@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.59 2004/12/30 22:09:12 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.60 2005/01/11 08:25:43 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -247,8 +247,8 @@ public class Driver implements java.sql.Driver
                   "Control use of SSL; any nonnull value causes SSL to be required." },
                 { "sslfactory", Boolean.FALSE,
                   "Provide a SSLSocketFactory class when using SSL." },
-                { "sslfactoryargs", Boolean.FALSE,
-                  "Arguments forwarded to constructor of SSLSocketFactory class." },
+                { "sslfactoryarg", Boolean.FALSE,
+                  "Argument forwarded to constructor of SSLSocketFactory class." },
                 { "logLevel", Boolean.FALSE,
                   "Control the driver's log verbosity: 0 is off, 1 is INFO, 2 is DEBUG.",
                   new String[] { "0", "1", "2" } },
