@@ -1,28 +1,27 @@
-# translation of test.po to Français
 # french message translation for the PostgreSQL JDBC driver
 # This file is distributed under the same license as the package.
-# Xavier Poinsard <xpoinsard@free.fr>, 2004.
+# Xavier Poinsard <xpoinsard@free.fr>, 2004, 2005.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: test\n"
+"Project-Id-Version: fr\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-12-28 12:38-0800\n"
-"PO-Revision-Date: 2004-12-22 12:29+0100\n"
+"POT-Creation-Date: 2005-01-08 11:21-0800\n"
+"PO-Revision-Date: 2005-01-07 17:12+0100\n"
 "Last-Translator: Xavier Poinsard <xpoinsard@free.fr>\n"
 "Language-Team: Français <pgsql-fr-generale@postgresql.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=ISO-8859-1\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: KBabel 1.3.1\n"
+"X-Generator: KBabel 1.9.1\n"
 "Plural-Forms:  nplurals=2; plural=(n > 1);\n"
 
-#: org/postgresql/Driver.java.in:159
+#: org/postgresql/Driver.java.in:171
 msgid "Error loading default settings from driverconfig.properties"
 msgstr ""
 "Erreur de chargement des valeurs par défaut depuis driverconfig.properties"
 
-#: org/postgresql/Driver.java.in:197
+#: org/postgresql/Driver.java.in:209
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1766
 msgid ""
 "Something unusual has occured to cause the driver to fail. Please report "
@@ -31,7 +30,7 @@ msgstr ""
 "Quelque chose d''inhabituel a provoqué l''échec du pilote. Veuillez faire un "
 "rapport sur cette erreur."
 
-#: org/postgresql/Driver.java.in:518
+#: org/postgresql/Driver.java.in:530
 msgid "This method is not yet implemented."
 msgstr "Cette fonction n''est pas encore implémentée."
 
@@ -83,7 +82,7 @@ msgstr ""
 #: org/postgresql/core/v3/ConnectionFactoryImpl.java:275
 #, java-format
 msgid "Connection rejected: {0}."
-msgstr "Connexion rejetée: {0}."
+msgstr "Connexion rejetée : {0}."
 
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:239
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:262
@@ -124,7 +123,7 @@ msgstr "Erreur de protocole. Ouverture de la session en échec."
 #: org/postgresql/core/v3/ConnectionFactoryImpl.java:443
 #, java-format
 msgid "Backend start-up failed: {0}."
-msgstr "Démarrage du serveur en échec: {0}."
+msgstr "Démarrage du serveur en échec : {0}."
 
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:417
 msgid "An unexpected result was returned by a query."
@@ -143,7 +142,8 @@ msgstr "Un résultat inattendu a été retourné par une requête."
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSetMetaData.java:610
 #, java-format
 msgid "The column index is out of range: {0}, number of columns: {1}."
-msgstr "L''indice de la colonne est hors limite: {0}, nombre de colonnes: {1}."
+msgstr ""
+"L''indice de la colonne est hors limite : {0}, nombre de colonnes : {1}."
 
 #: org/postgresql/core/v2/FastpathParameterList.java:129
 #: org/postgresql/core/v2/SimpleParameterList.java:141
@@ -165,7 +165,7 @@ msgstr "Attendait le statut de commande BEGIN, obtenu {0}."
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1731
 #, java-format
 msgid "Unexpected command status: {0}."
-msgstr "Statut de commande inattendu: {0}."
+msgstr "Statut de commande inattendu : {0}."
 
 #: org/postgresql/core/v2/QueryExecutorImpl.java:116
 #: org/postgresql/core/v2/QueryExecutorImpl.java:127
@@ -191,7 +191,7 @@ msgstr "Type de réponse inconnu {0}."
 msgid "Unable to interpret the update count in command completion tag: {0}."
 msgstr ""
 "Incapable d''interpréter le nombre de mise à jour dans la balise de "
-"complétion de commande: {0}"
+"complétion de commande : {0}"
 
 #: org/postgresql/core/v2/SimpleParameterList.java:56
 msgid "Zero bytes may not occur in string parameters."
@@ -279,24 +279,24 @@ msgstr "La fonction fastpath {0} est inconnue."
 #: org/postgresql/geometric/PGline.java:82
 #: org/postgresql/geometric/PGlseg.java:79
 #: org/postgresql/geometric/PGpoint.java:85
-#, fuzzy, java-format
+#, java-format
 msgid "Conversion to type {0} failed: {1}."
-msgstr "La conversion de lseg a échoué: {0}."
+msgstr "La conversion vers le type {0} a échoué : {1}."
 
 #: org/postgresql/geometric/PGpath.java:83
 #, java-format
 msgid "Cannot tell if path is open or closed: {0}."
-msgstr "Impossible de dire si path est fermé ou ouvert: {0}."
+msgstr "Impossible de dire si path est fermé ou ouvert : {0}."
 
 #: org/postgresql/jdbc2/AbstractJdbc2Array.java:90
 #, java-format
 msgid "The array index is out of range: {0}"
-msgstr "L''indice du tableau est hors limites: {0}"
+msgstr "L''indice du tableau est hors limites : {0}"
 
 #: org/postgresql/jdbc2/AbstractJdbc2Array.java:163
 #, java-format
 msgid "The array index is out of range: {0}, number of elements: {1}."
-msgstr "L''indice du tableau est hors limites: {0}, nombre d''éléments: {1}."
+msgstr "L''indice du tableau est hors limites : {0}, nombre d''éléments : {1}."
 
 #: org/postgresql/jdbc2/AbstractJdbc2Connection.java:198
 #: org/postgresql/jdbc2/AbstractJdbc2Connection.java:943
@@ -316,7 +316,7 @@ msgstr "Un résultat a été retourné alors qu''aucun n''était attendu."
 #: org/postgresql/jdbc2/AbstractJdbc2Connection.java:407
 #, java-format
 msgid "Failed to create object for: {0}."
-msgstr "Échec à la création de l''objet pour: {0}."
+msgstr "Échec à la création de l''objet pour : {0}."
 
 #: org/postgresql/jdbc2/AbstractJdbc2Connection.java:426
 #, java-format
@@ -388,7 +388,7 @@ msgstr ""
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2470
 #, java-format
 msgid "Invalid fetch direction constant: {0}."
-msgstr "Constante de direction pour la récupération invalide: {0}."
+msgstr "Constante de direction pour la récupération invalide : {0}."
 
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:674
 msgid "Cannot call cancelRowUpdates() when on the insert row."
@@ -431,7 +431,7 @@ msgstr ""
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:946
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2094
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2125
-#, fuzzy, java-format
+#, java-format
 msgid "The JVM claims not to support the encoding: {0}"
 msgstr "La JVM prétend ne pas supporter l''encodage {0}."
 
@@ -502,7 +502,7 @@ msgstr ""
 #: org/postgresql/jdbc2/TimestampUtils.java:161
 #, java-format
 msgid "Bad value for type {0} : {1}"
-msgstr "Mauvaise valeur pour le type {0} : {1}"
+msgstr "Mauvaise valeur pour le type {0} : {1}"
 
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2347
 #, java-format
@@ -610,18 +610,18 @@ msgstr "La JVM prétend ne pas supporter l''encodage {0}."
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2522
 #, java-format
 msgid "Unknown type {0}."
-msgstr "Type inconnu: {0}."
+msgstr "Type inconnu : {0}."
 
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1579
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1591
-#, fuzzy, java-format
+#, java-format
 msgid "Cannot cast an instance of {0} to type {1}"
-msgstr "Impossible de convertir une instance de type {0} vers Types.BIT"
+msgstr "Impossible de convertir une instance de {0} vers le type {1}"
 
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1594
 #, java-format
 msgid "Unsupported Types value: {0}"
-msgstr "Valeur de type non supportée: {0}"
+msgstr "Valeur de type non supportée : {0}"
 
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1612
 msgid ""
@@ -770,7 +770,7 @@ msgstr ""
 #: org/postgresql/jdbc3/AbstractJdbc3Connection.java:59
 #, java-format
 msgid "Unknown ResultSet holdability setting: {0}."
-msgstr "Paramètre holdability du ResultSet inconnu: {0}."
+msgstr "Paramètre holdability du ResultSet inconnu : {0}."
 
 #: org/postgresql/jdbc3/AbstractJdbc3Connection.java:94
 #: org/postgresql/jdbc3/AbstractJdbc3Connection.java:124
@@ -832,11 +832,11 @@ msgstr "La conversion de money a échoué."
 #: org/postgresql/util/PSQLException.java.in:50
 #, java-format
 msgid "Exception: {0}"
-msgstr "Exception: {0}"
+msgstr "Exception : {0}"
 
 #: org/postgresql/util/PSQLException.java.in:51
 msgid "Stack Trace:"
-msgstr "Pile d''appel:"
+msgstr "Pile d''appel :"
 
 #: org/postgresql/util/PSQLException.java.in:53
 msgid "End of Stack Trace"
@@ -845,96 +845,35 @@ msgstr "Fin de la pile d''appel"
 #: org/postgresql/util/PSQLException.java.in:61
 #, java-format
 msgid "Exception generating stacktrace for: {0} encountered: {1}"
-msgstr "Exception en générant la pile d''appel pour: {0} erreur rencontrée:{1}"
+msgstr ""
+"Exception en générant la pile d''appel pour : {0} erreur rencontrée : {1}"
 
 #: org/postgresql/util/ServerErrorMessage.java:88
 #, java-format
 msgid "Detail: {0}"
-msgstr "Détail: {0}"
+msgstr "Détail : {0}"
 
 #: org/postgresql/util/ServerErrorMessage.java:91
 #, java-format
 msgid "Hint: {0}"
-msgstr "Indice: {0}"
+msgstr "Indice : {0}"
 
 #: org/postgresql/util/ServerErrorMessage.java:94
 #, java-format
 msgid "Position: {0}"
-msgstr "Position: {0}"
+msgstr "Position : {0}"
 
 #: org/postgresql/util/ServerErrorMessage.java:97
 #, java-format
 msgid "Where: {0}"
-msgstr "Où: {0}"
+msgstr "Où : {0}"
 
 #: org/postgresql/util/ServerErrorMessage.java:105
 #, java-format
 msgid "Location: File: {0}, Routine: {1}, Line: {2}"
-msgstr "Localisation: Fichier: {0}, Routine: {1}, Ligne: {2}"
+msgstr "Localisation : Fichier : {0}, Routine : {1}, Ligne : {2}"
 
 #: org/postgresql/util/ServerErrorMessage.java:108
 #, java-format
 msgid "Server SQLState: {0}"
-msgstr "SQLState serveur: {0}"
-
-#~ msgid "Conversion of box failed: {0}."
-#~ msgstr "La conversion de box a échoué: {0}."
-
-#~ msgid "Conversion of circle failed: {0}."
-#~ msgstr "La conversion de circle a échoué: {0}."
-
-#~ msgid "Conversion of line failed: {0}."
-#~ msgstr "La conversion de line a échoué: {0}."
-
-#~ msgid "Conversion of point failed: {0}."
-#~ msgstr "La conversion de point a échoué: {0}."
-
-#~ msgid "The JVM claims not to support the ASCII encoding."
-#~ msgstr "La JVM prétend ne pas supporter l''encodage ASCII."
-
-#~ msgid "Bad byte: {0}"
-#~ msgstr "Mauvais octet: {0}"
-
-#~ msgid "Bad short: {0}"
-#~ msgstr "Mauvais short: {0}"
-
-#~ msgid "The JVM claims not to support the UTF-8 encoding."
-#~ msgstr "La JVM prétend ne pas supporter l''encodage UTF-8."
-
-#~ msgid "Bad int: {0}"
-#~ msgstr "Mauvais int: {0}"
-
-#~ msgid "Bad long: {0}"
-#~ msgstr "Mauvais long: {0}"
-
-#~ msgid "Bad BigDecimal: {0}"
-#~ msgstr "Mauvais BigDecimal: {0}"
-
-#~ msgid "Bad float: {0}"
-#~ msgstr "Mauvais float: {0}"
-
-#~ msgid "Bad double: {0}"
-#~ msgstr "Mauvais double: {0}"
-
-#~ msgid "Bad date: {0}"
-#~ msgstr "Mauvaise date: {0}"
-
-#~ msgid "Cannot cast an instance of {0} to Types.OTHER"
-#~ msgstr "Impossible de convertir une instance de {0} vers Types.OTHER"
-
-#~ msgid "The given date {0} does not match the format required: {1}."
-#~ msgstr "La date donnée {0} ne correspond pas au format requis: {1}."
-
-#~ msgid "The time given {0} does not match the format required: {1}."
-#~ msgstr "L''heure donnée {0} ne correspond pas au format requis: {1}."
-
-#~ msgid "The timestamp given {0} does not match the format required: {1}."
-#~ msgstr "Le timestamp donné {0} ne correspond pas au format requis: {1}."
-
-#~ msgid "Could not extract nanoseconds from {0}."
-#~ msgstr "Impossible d''extraire les nano-secondes de {0}."
-
-#~ msgid "ResultSet holdability of HOLD_CURSORS_OVER_COMMIT is not supported."
-#~ msgstr ""
-#~ "Le maintien du ResultSet avec HOLD_CURSORS_OVER_COMMIT n''est pas "
-#~ "supporté."
+msgstr "SQLState serveur : {0}"
