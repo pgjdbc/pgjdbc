@@ -1479,6 +1479,11 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 			{
 				setBytes(parameterIndex, l_bytes);
 			}
+			// x.read will return -1 not 0 on an empty InputStream
+			else if (l_bytesRead == -1)
+			{
+				setBytes(parameterIndex, new byte[0]);
+			}
 			else
 			{
 				//the stream contained less data than they said
