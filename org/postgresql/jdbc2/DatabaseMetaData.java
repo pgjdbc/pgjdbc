@@ -2057,7 +2057,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData
 
 		if ((tableNamePattern != null) && ! tableNamePattern.equals("%"))
 		{
-			sql.append(" and c.relname like \'" + tableNamePattern + "\'");
+			sql.append(" and c.relname like \'" + tableNamePattern.toLowerCase() + "\'");
 		}
 
 		if ((columnNamePattern != null) && ! columnNamePattern.equals("%"))
