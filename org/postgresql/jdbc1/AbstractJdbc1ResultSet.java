@@ -20,6 +20,7 @@ import org.postgresql.util.PSQLException;
  */
 public abstract class AbstractJdbc1ResultSet
 {
+
 	protected Vector rows;			// The results
         protected Statement statement;
 	protected Field fields[];		// The field descriptions

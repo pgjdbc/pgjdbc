@@ -23,5 +23,13 @@ public class Jdbc2ResultSet extends org.postgresql.jdbc2.AbstractJdbc2ResultSet 
 		return new Jdbc2ResultSetMetaData(rows, fields);
 	}
 
+        public java.sql.Clob getClob(int i) throws SQLException {
+          return new org.postgresql.jdbc2.Jdbc2Clob(connection, getInt(i));
+        }
+
+        public java.sql.Blob getBlob(int i) throws SQLException {
+          return new org.postgresql.jdbc2.Jdbc2Blob(connection, getInt(i));
+        }
+
 }
 

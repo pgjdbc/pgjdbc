@@ -20,7 +20,8 @@ import org.postgresql.util.PSQLException;
  * org.postgresql.jdbc1.AbstractJdbc1ResultSet which provides the jdbc1
  * methods.  The real Statement class (for jdbc2) is org.postgresql.jdbc2.Jdbc2ResultSet
  */
-public class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.AbstractJdbc1ResultSet {
+public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.AbstractJdbc1ResultSet {
+
   protected String sqlQuery = null;
 
   //needed for updateable result set support
@@ -237,9 +238,7 @@ public class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.AbstractJdbc1Re
   }
 
 
-  public Blob getBlob(int i) throws SQLException {
-    return new org.postgresql.largeobject.PGblob(connection, getInt(i));
-  }
+  public abstract Blob getBlob(int i) throws SQLException;
 
 
   public java.io.Reader getCharacterStream(String columnName) throws SQLException {
@@ -276,9 +275,7 @@ public class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.AbstractJdbc1Re
   }
 
 
-  public Clob getClob(int i) throws SQLException {
-    return new org.postgresql.largeobject.PGclob(connection, getInt(i));
-  }
+  public abstract Clob getClob(int i) throws SQLException;
 
 
   public int getConcurrency() throws SQLException {
@@ -919,7 +916,7 @@ public class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.AbstractJdbc1Re
         selectStatement.setObject( i, ((PrimaryKey) primaryKeys.get(j)).getValue() );
       }
 
-      Jdbc2ResultSet rs = (Jdbc2ResultSet) selectStatement.executeQuery();
+      AbstractJdbc2ResultSet rs = (AbstractJdbc2ResultSet) selectStatement.executeQuery();
 
       if ( rs.first() ) {
         rowBuffer = rs.rowBuffer;
