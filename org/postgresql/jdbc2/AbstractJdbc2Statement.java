@@ -1212,7 +1212,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 		}
 		catch (UnsupportedEncodingException l_uee)
 		{
-			throw new PSQLException(GT.tr("The JVM claism not to support the {0} encoding.", encoding), PSQLState.UNEXPECTED_ERROR, l_uee);
+			throw new PSQLException(GT.tr("The JVM claims not to support the {0} encoding.", encoding), PSQLState.UNEXPECTED_ERROR, l_uee);
 		}
 		catch (IOException l_ioe)
 		{

@@ -183,7 +183,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 			hasResultSet = stat.getMoreResults();
 
 		if (!hasResultSet)
-			throw new PSQLException(GT.tr("No results where returned by the query."), PSQLState.NO_DATA);
+			throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
 
 		// Transfer warnings to the connection, since the user never
 		// has a chance to see the statement itself.
@@ -891,7 +891,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 			query.setString(1, typeName);
 
 			if (! ((BaseStatement)query).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN) )
-				throw new PSQLException(GT.tr("No results where returned by the query."), PSQLState.NO_DATA);
+				throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
 
 			ResultSet result = query.getResultSet();
 			if (result.next()) {
@@ -933,7 +933,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 			query.setInt(1, oid);
 
 			if (! ((BaseStatement)query).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN) )
-				throw new PSQLException(GT.tr("No results where returned by the query."), PSQLState.NO_DATA);
+				throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
 
 			ResultSet result = query.getResultSet();
 			if (result.next()) {

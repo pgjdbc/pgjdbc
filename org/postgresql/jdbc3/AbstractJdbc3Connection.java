@@ -79,7 +79,7 @@ public abstract class AbstractJdbc3Connection extends org.postgresql.jdbc2.Abstr
 		if (!haveMinimumServerVersion("8.0"))
 			throw new PSQLException(GT.tr("Server versions prior to 8.0 do not support savepoints."), PSQLState.NOT_IMPLEMENTED);
 		if (getAutoCommit())
-			throw new PSQLException(GT.tr("Cannot establish a savpoint int auto-commit mode."));
+			throw new PSQLException(GT.tr("Cannot establish a savepoint in auto-commit mode."));
 
 		PSQLSavepoint savepoint = new PSQLSavepoint(savepointId++);
 
@@ -109,7 +109,7 @@ public abstract class AbstractJdbc3Connection extends org.postgresql.jdbc2.Abstr
 		if (!haveMinimumServerVersion("8.0"))
 			throw new PSQLException(GT.tr("Server versions prior to 8.0 do not support savepoints."), PSQLState.NOT_IMPLEMENTED);
 		if (getAutoCommit())
-			throw new PSQLException(GT.tr("Cannot establish a savpoint int auto-commit mode."));
+			throw new PSQLException(GT.tr("Cannot establish a savepoint in auto-commit mode."));
 
 		PSQLSavepoint savepoint = new PSQLSavepoint(name);
 
