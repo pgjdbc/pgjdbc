@@ -359,8 +359,7 @@ public abstract class AbstractJdbc1Connection implements org.postgresql.PGConnec
         // are common to all implementations (JDBC1 or 2), they are placed here.
         // This should make it easy to maintain the two specifications.
 
-//BJL TODO this method shouldn't need to take a Connection since this can be used.
-        public abstract java.sql.ResultSet getResultSet(java.sql.Statement stat, org.postgresql.Field[] fields, Vector tuples, String status, int updateCount, long insertOID, boolean binaryCursor) throws SQLException;
+        public abstract java.sql.ResultSet getResultSet(Statement statement, org.postgresql.Field[] fields, Vector tuples, String status, int updateCount, long insertOID, boolean binaryCursor) throws SQLException;
 
         /*
          * This adds a warning to the warning chain.

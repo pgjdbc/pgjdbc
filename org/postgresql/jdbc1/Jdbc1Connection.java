@@ -24,10 +24,9 @@ public class Jdbc1Connection extends org.postgresql.jdbc1.AbstractJdbc1Connectio
 		return new org.postgresql.jdbc1.Jdbc1PreparedStatement(this, sql);
 	}
 
-//BJL TODO - merge callable statement logic from jdbc2 to jdbc1
 	public java.sql.CallableStatement prepareCall(String sql) throws SQLException
 	{
-		throw new PSQLException("postgresql.con.call");
+		return new org.postgresql.jdbc1.Jdbc1CallableStatement(this, sql);
 	}
 
 	public java.sql.DatabaseMetaData getMetaData() throws SQLException
@@ -39,7 +38,12 @@ public class Jdbc1Connection extends org.postgresql.jdbc1.AbstractJdbc1Connectio
 
 	public java.sql.ResultSet getResultSet(java.sql.Statement stat, Field[] fields, Vector tuples, String status, int updateCount, long insertOID, boolean binaryCursor) throws SQLException
 	{
-		return new Jdbc1ResultSet(this, fields, tuples, status, updateCount, insertOID, binaryCursor);
+		return new Jdbc1ResultSet(this, stat, fields, tuples, status, updateCount, insertOID, binaryCursor);
+	}
+
+	public java.sql.ResultSet getResultSet(java.sql.Statement stat, Field[] fields, Vector tuples, String status, int updateCount) throws SQLException
+	{
+		return new Jdbc1ResultSet(this, stat, fields, tuples, status, updateCount, 0, false);
 	}
 
 }

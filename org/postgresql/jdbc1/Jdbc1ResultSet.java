@@ -13,14 +13,9 @@ import org.postgresql.Field;
 public class Jdbc1ResultSet extends org.postgresql.jdbc1.AbstractJdbc1ResultSet implements java.sql.ResultSet
 {
 
-	public Jdbc1ResultSet(Jdbc1Connection conn, Field[] fields, Vector tuples, String status, int updateCount, long insertOID, boolean binaryCursor)
+	public Jdbc1ResultSet(Jdbc1Connection conn, Statement statement, Field[] fields, Vector tuples, String status, int updateCount, long insertOID, boolean binaryCursor)
 	{
-		super(conn, fields, tuples, status, updateCount, insertOID, binaryCursor);
-	}
-
-	public Jdbc1ResultSet(Jdbc1Connection conn, Field[] fields, Vector tuples, String status, int updateCount)
-	{
-		super(conn, fields, tuples, status, updateCount, 0, false);
+		super(conn, statement, fields, tuples, status, updateCount, insertOID, binaryCursor);
 	}
 
 	public java.sql.ResultSetMetaData getMetaData() throws SQLException

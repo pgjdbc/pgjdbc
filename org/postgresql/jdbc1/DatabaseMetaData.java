@@ -1549,7 +1549,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData
 
 			v.addElement(tuple);
 		}
-		return new Jdbc1ResultSet(connection, f, v, "OK", 1);
+		return connection.getResultSet(null, f, v, "OK", 1);
 	}
 
 	/*
@@ -1627,7 +1627,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData
 
 		// add query loop here
 
-		return new Jdbc1ResultSet(connection, f, v, "OK", 1);
+		return connection.getResultSet(null, f, v, "OK", 1);
 	}
 
 	/*
@@ -1762,7 +1762,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData
 			v.addElement(tuple);
 		}
 		r.close();
-		return new Jdbc1ResultSet(connection, f, v, "OK", 1);
+		return connection.getResultSet(null, f, v, "OK", 1);
 	}
 
 	// This array contains the valid values for the types argument
@@ -1809,7 +1809,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData
 		f[0] = new Field(connection, "TABLE_SCHEM", iVarcharOid, 32);
 		tuple[0] = "".getBytes();
 		v.addElement(tuple);
-		return new Jdbc1ResultSet(connection, f, v, "OK", 1);
+		return connection.getResultSet(null, f, v, "OK", 1);
 	}
 
 	/*
@@ -1854,7 +1854,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData
 			tuple[0] = getTableTypes[i][0].getBytes();
 			v.addElement(tuple);
 		}
-		return new Jdbc1ResultSet(connection, f, v, "OK", 1);
+		return connection.getResultSet(null, f, v, "OK", 1);
 	}
 
 	/*
@@ -2050,7 +2050,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData
 		}
 		r.close();
 
-		return new Jdbc1ResultSet(connection, f, v, "OK", 1);
+		return connection.getResultSet(null, f, v, "OK", 1);
 	}
 
 	/*
@@ -2113,7 +2113,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData
 			//v.addElement(tuple);
 		}
 
-		return new Jdbc1ResultSet(connection, f, v, "OK", 1);
+		return connection.getResultSet(null, f, v, "OK", 1);
 	}
 
 	/*
@@ -2203,7 +2203,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData
 		f[6] = new Field(connection, "DECIMAL_DIGITS", iInt2Oid, 2);
 		f[7] = new Field(connection, "PSEUDO_COLUMN", iInt2Oid, 2);
 
-		return new Jdbc1ResultSet(connection, f, v, "OK", 1);
+		return connection.getResultSet(null, f, v, "OK", 1);
 	}
 
 	/*
@@ -2413,7 +2413,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData
 			while (hasMore);
 		}
 
-		return new Jdbc1ResultSet(connection, f, tuples, "OK", 1);
+		return connection.getResultSet(null, f, tuples, "OK", 1);
 	}
 
 	/*
@@ -2692,7 +2692,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData
 				v.addElement(tuple);
 			}
 			rs.close();
-			return new Jdbc1ResultSet(connection, f, v, "OK", 1);
+			return connection.getResultSet(null, f, v, "OK", 1);
 		}
 
 		throw new PSQLException("postgresql.metadata.unavailable");
@@ -2832,7 +2832,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData
 			}
 		}
 
-		return new Jdbc1ResultSet(connection, f, v, "OK", 1);
+		return connection.getResultSet(null, f, v, "OK", 1);
 	}
 
 }

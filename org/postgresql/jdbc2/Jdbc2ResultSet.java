@@ -13,14 +13,9 @@ import org.postgresql.Field;
 public class Jdbc2ResultSet extends org.postgresql.jdbc2.AbstractJdbc2ResultSet implements java.sql.ResultSet
 {
 
-	public Jdbc2ResultSet(Jdbc2Connection conn, Field[] fields, Vector tuples, String status, int updateCount, long insertOID, boolean binaryCursor)
+	public Jdbc2ResultSet(Jdbc2Connection conn, Statement statement, Field[] fields, Vector tuples, String status, int updateCount, long insertOID, boolean binaryCursor)
 	{
-		super(conn, fields, tuples, status, updateCount, insertOID, binaryCursor);
-	}
-
-	public Jdbc2ResultSet(Jdbc2Connection conn, Field[] fields, Vector tuples, String status, int updateCount)
-	{
-		super(conn, fields, tuples, status, updateCount, 0, false);
+		super(conn, statement, fields, tuples, status, updateCount, insertOID, binaryCursor);
 	}
 
 	public java.sql.ResultSetMetaData getMetaData() throws SQLException
