@@ -1,12 +1,9 @@
 /*-------------------------------------------------------------------------
  *
- * V3ParameterList.java
- *	  Common interface for all V3 query implementations.
- *
  * Copyright (c) 2004, Open Cloud Limited.
  *
  * IDENTIFICATION
- *	  $PostgreSQL$
+ *	  $PostgreSQL: pgjdbc/org/postgresql/core/v3/V3Query.java,v 1.1 2004/06/29 06:43:25 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */

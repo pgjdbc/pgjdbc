@@ -1,3 +1,12 @@
+/*-------------------------------------------------------------------------
+ *
+ * Copyright (c) 2003-2004, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $PostgreSQL$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql;
 
 import java.sql.SQLException;

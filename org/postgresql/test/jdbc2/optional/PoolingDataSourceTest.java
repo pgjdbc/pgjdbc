@@ -1,3 +1,12 @@
+/*-------------------------------------------------------------------------
+ *
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $PostgreSQL$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql.test.jdbc2.optional;
 
 import java.sql.SQLException;
@@ -10,7 +19,6 @@ import org.postgresql.ds.common.BaseDataSource;
  * Minimal tests for pooling DataSource.  Needs many more.
  *
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
- * @version $Revision$
  */
 public class PoolingDataSourceTest extends BaseDataSourceTest
 {

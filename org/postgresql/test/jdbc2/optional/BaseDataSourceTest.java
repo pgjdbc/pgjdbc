@@ -1,3 +1,12 @@
+/*-------------------------------------------------------------------------
+ *
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $PostgreSQL$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql.test.jdbc2.optional;
 
 import junit.framework.TestCase;
@@ -18,7 +27,6 @@ import javax.naming.*;
  * tests.
  *
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
- * @version $Revision$
  */
 public abstract class BaseDataSourceTest extends TestCase
 {

@@ -1,3 +1,12 @@
+/*-------------------------------------------------------------------------
+ *
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $PostgreSQL$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql.ds;
 
 import javax.sql.DataSource;
@@ -15,7 +24,6 @@ import org.postgresql.ds.common.*;
  * are declared in the superclass.
  *
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
- * @version $Revision$
  */
 public class PGSimpleDataSource extends BaseDataSource implements Serializable, DataSource
 {

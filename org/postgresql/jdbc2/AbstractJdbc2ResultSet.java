@@ -1,14 +1,9 @@
 /*-------------------------------------------------------------------------
  *
- * AbstractJdbc2ResultSet.java
- *     This class defines methods of the jdbc2 specification.
- *     The real Statement class (for jdbc2) is
- *     org.postgresql.jdbc2.Jdbc2ResultSet
- *
- * Copyright (c) 2003, PostgreSQL Global Development Group
+ * Copyright (c) 2003-2004, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.57 2004/10/28 20:04:46 jurka Exp $
+ *	  $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.58 2004/11/01 18:55:19 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */

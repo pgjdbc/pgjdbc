@@ -1,12 +1,9 @@
 /*-------------------------------------------------------------------------
  *
- * BaseStatement.java
- *	  The internal interface definition for a jdbc statement
- *
- * Copyright (c) 2003, PostgreSQL Global Development Group
+ * Copyright (c) 2003-2004, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/core/BaseStatement.java,v 1.6 2003/10/29 02:39:09 davec Exp $
+ *	  $PostgreSQL: pgjdbc/org/postgresql/core/BaseStatement.java,v 1.14 2004/07/27 05:19:27 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */

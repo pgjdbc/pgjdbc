@@ -1,12 +1,9 @@
 /*-------------------------------------------------------------------------
  *
- * Notification.java
- *     This is the implementation of the PGNotification interface
- *
- * Copyright (c) 2003, PostgreSQL Global Development Group
+ * Copyright (c) 2003-2004, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/core/Notification.java,v 1.3 2003/03/07 18:39:41 barry Exp $
+ *	  $PostgreSQL: pgjdbc/org/postgresql/core/Notification.java,v 1.5 2004/01/28 12:16:09 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */

@@ -1,4 +1,8 @@
-# "jdbc" translation to Brazilian Portuguese Language.
+# Brazilian Portuguese message translation for the PostgreSQL JDBC driver
+# This file is distributed under the same license as the package.
+#
+# $PostgreSQL$
+#
 # Euler Taveira de Oliveira <euler@ufgnet.ufg.br>, 2004.
 #
 msgid ""

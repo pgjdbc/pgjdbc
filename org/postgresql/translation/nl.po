@@ -1,6 +1,8 @@
 # Dutch message translation for the PostgreSQL JDBC driver
 # This file is distributed under the same license as the package.
 #
+# $PostgreSQL$
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: PostgreSQL JDBC Driver 8.0\n"

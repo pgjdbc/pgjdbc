@@ -1,3 +1,12 @@
+/*-------------------------------------------------------------------------
+ *
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $PostgreSQL$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql.ds.common;
 
 import javax.naming.*;
@@ -12,7 +21,6 @@ import java.io.IOException;
  * Base class for data sources and related classes.
  *
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
- * @version $Revision$
  */
 public abstract class BaseDataSource implements Referenceable
 {

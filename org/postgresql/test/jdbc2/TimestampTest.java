@@ -1,3 +1,12 @@
+/*-------------------------------------------------------------------------
+ *
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $PostgreSQL$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.test.TestUtil;
@@ -5,8 +14,6 @@ import junit.framework.TestCase;
 import java.sql.*;
 
 /*
- * $PostgreSQL: TimestampTest.java,v 1.12 2003/09/22 04:55:00 barry Exp $
- *
  * Test get/setTimestamp for both timestamp with time zone and
  * timestamp without time zone datatypes
  *

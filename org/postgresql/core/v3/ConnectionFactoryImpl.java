@@ -1,13 +1,10 @@
 /*-------------------------------------------------------------------------
  *
- * ConnectionFactoryImpl.java
- *	  Connection setup code for the V3 protocol
- *
- * Copyright (c) 2003, PostgreSQL Global Development Group
+ * Copyright (c) 2003-2004, PostgreSQL Global Development Group
  * Copyright (c) 2004, Open Cloud Limited.
  *
  * IDENTIFICATION
- *	  $PostgreSQL$
+ *	  $PostgreSQL: pgjdbc/org/postgresql/core/v3/ConnectionFactoryImpl.java,v 1.4 2004/10/17 11:55:17 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */

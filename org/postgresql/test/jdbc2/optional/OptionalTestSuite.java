@@ -1,3 +1,12 @@
+/*-------------------------------------------------------------------------
+ *
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $PostgreSQL$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql.test.jdbc2.optional;
 
 import junit.framework.TestSuite;
@@ -8,7 +17,6 @@ import junit.framework.TestSuite;
  * PooledConnection implementations.
  *
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
- * @version $Revision$
  */
 public class OptionalTestSuite extends TestSuite
 {

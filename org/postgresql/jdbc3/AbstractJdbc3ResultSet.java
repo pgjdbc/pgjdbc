@@ -1,3 +1,12 @@
+/*-------------------------------------------------------------------------
+ *
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $PostgreSQL$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql.jdbc3;
 
 
@@ -7,7 +16,7 @@ import org.postgresql.core.*;
 import org.postgresql.util.GT;
 
 
-/* $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/jdbc3/AbstractJdbc3ResultSet.java,v 1.4 2003/03/07 18:39:45 barry Exp $
+/**
  * This class defines methods of the jdbc3 specification.  This class extends
  * org.postgresql.jdbc2.AbstractJdbc2ResultSet which provides the jdbc2
  * methods.  The real Statement class (for jdbc3) is org.postgresql.jdbc3.Jdbc3ResultSet

@@ -1,13 +1,10 @@
 /*-------------------------------------------------------------------------
  *
- * V2Query.java
- *	  Query implementation for all queries via the V2 protocol.
- *
- * Copyright (c) 2003, PostgreSQL Global Development Group
+ * Copyright (c) 2003-2004, PostgreSQL Global Development Group
  * Copyright (c) 2004, Open Cloud Limited.
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgjdbc/org/postgresql/core/v2/V2Query.java,v 1.1 2004/06/29 06:43:25 jurka Exp $
+ *	  $PostgreSQL: pgjdbc/org/postgresql/core/v2/V2Query.java,v 1.2 2004/11/01 11:04:57 oliver Exp $
  *
  *-------------------------------------------------------------------------
  */

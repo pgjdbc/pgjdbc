@@ -1,13 +1,9 @@
 /*-------------------------------------------------------------------------
  *
- * PGStream.java
- *      This class is used by ProtocolConnection implementations
- *      for communicating with the backend.
- *
- * Copyright (c) 2003, PostgreSQL Global Development Group
+ * Copyright (c) 2003-2004, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/core/PGStream.java,v 1.3 2003/09/08 17:30:22 barry Exp $
+ *	  $PostgreSQL: pgjdbc/org/postgresql/core/PGStream.java,v 1.9 2004/10/18 03:45:25 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */

@@ -1,13 +1,9 @@
 /*-------------------------------------------------------------------------
  *
- * PSQLException.java
- *     This class extends SQLException, and provides our internationalisation
- *     handling
- *
- * Copyright (c) 2003, PostgreSQL Global Development Group
+ * Copyright (c) 2003-2004, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql-server/src/interfaces/jdbc/org/postgresql/util/PSQLException.java,v 1.14 2003/11/29 19:52:11 pgsql Exp $
+ *	  $PostgreSQL: pgjdbc/org/postgresql/util/PSQLException.java.in,v 1.6 2004/10/10 16:25:13 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */

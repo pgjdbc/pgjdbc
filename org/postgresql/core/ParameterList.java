@@ -1,12 +1,9 @@
 /*-------------------------------------------------------------------------
  *
- * ParameterList.java
- *	  Abstraction of query parameter lists.
- *
  * Copyright (c) 2004, Open Cloud Limited.
  *
  * IDENTIFICATION
- *	  $PostgreSQL$
+ *	  $PostgreSQL: pgjdbc/org/postgresql/core/ParameterList.java,v 1.2 2004/09/20 08:36:48 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */

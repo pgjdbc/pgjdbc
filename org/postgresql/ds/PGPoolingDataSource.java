@@ -1,3 +1,12 @@
+/*-------------------------------------------------------------------------
+ *
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $PostgreSQL$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql.ds;
 
 import javax.sql.*;
@@ -36,7 +45,6 @@ import org.postgresql.ds.common.*;
  * <p>This implementation supports JDK 1.3 and higher.</p>
  *
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
- * @version $Revision$
  */
 public class PGPoolingDataSource extends BaseDataSource implements DataSource
 {

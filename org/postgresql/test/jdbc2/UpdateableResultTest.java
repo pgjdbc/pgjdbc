@@ -1,3 +1,12 @@
+/*-------------------------------------------------------------------------
+ *
+ * Copyright (c) 2001-2004, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $PostgreSQL$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql.test.jdbc2;
 
 import java.sql.*;
@@ -10,14 +19,6 @@ import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 
 import org.postgresql.test.TestUtil;
-/**
- * <p>Title: </p>
- * <p>Description: </p>
- * <p>Copyright: Copyright (c) 2001</p>
- * <p>Company: </p>
- * @author unascribed
- * @version 1.0
- */
 
 public class UpdateableResultTest extends TestCase
 {

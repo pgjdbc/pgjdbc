@@ -1,10 +1,19 @@
+/*-------------------------------------------------------------------------
+ *
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $PostgreSQL$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql.jdbc3;
 
 import java.sql.*;
 import java.util.Vector;
 import org.postgresql.core.*;
 
-/* $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/jdbc3/Jdbc3Statement.java,v 1.5 2003/05/03 20:40:45 barry Exp $
+/**
  * This class implements the java.sql.Statement interface for JDBC3.
  * However most of the implementation is really done in
  * org.postgresql.jdbc3.AbstractJdbc3Statement or one of it's parents

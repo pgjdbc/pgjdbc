@@ -1,12 +1,9 @@
 /*-------------------------------------------------------------------------
  *
- * Driver.java(.in)
- *	  The Postgresql JDBC Driver implementation
- *
- * Copyright (c) 2003, PostgreSQL Global Development Group
+ * Copyright (c) 2003-2004, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.51 2004/10/17 11:55:16 jurka Exp $
+ *	  $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.52 2004/11/02 18:33:02 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -21,7 +18,7 @@ import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLDriverVersion;
 import org.postgresql.util.GT;
 
-/*
+/**
  * The Java SQL framework allows for multiple database drivers.  Each
  * driver should supply a class that implements the Driver interface
  *

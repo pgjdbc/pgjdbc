@@ -1,12 +1,9 @@
 /*-------------------------------------------------------------------------
  *
- * SimpleQuery.java
- *	  V3 Query implementation for a single-statement query.
- *
  * Copyright (c) 2004, Open Cloud Limited.
  *
  * IDENTIFICATION
- *	  $PostgreSQL$
+ *	  $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleQuery.java,v 1.2 2004/09/20 08:36:49 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */

@@ -1,12 +1,9 @@
 /*-------------------------------------------------------------------------
  *
- * ConnectionFactory.java
- *	  Superclass and factory for protocol-specific connection setup.
- *
  * Copyright (c) 2004, Open Cloud Limited.
  *
  * IDENTIFICATION
- *	  $PostgreSQL$
+ *	  $PostgreSQL: pgjdbc/org/postgresql/core/ConnectionFactory.java,v 1.3 2004/10/10 15:39:33 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */

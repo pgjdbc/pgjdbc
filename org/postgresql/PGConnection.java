@@ -1,15 +1,9 @@
 /*-------------------------------------------------------------------------
  *
- * PGConnection.java
- *	  The public interface definition for a Postgresql Connection
- *    This interface defines PostgreSQL extentions to the java.sql.Connection
- *    interface. Any java.sql.Connection object returned by the driver will 
- *    also implement this interface
- *
- * Copyright (c) 2003, PostgreSQL Global Development Group
+ * Copyright (c) 2003-2004, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/PGConnection.java,v 1.6 2003/05/29 03:21:32 barry Exp $
+ *	  $PostgreSQL: pgjdbc/org/postgresql/PGConnection.java,v 1.9 2004/06/29 06:43:23 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */

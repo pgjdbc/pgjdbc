@@ -1,8 +1,9 @@
-# ru.po
-# JDBC Translation into Russian, (C) 2003-2004 Serguei A. Mokhov, <mokhov@cs.concordia.ca>
-# Distributed under the same licensing terms as the JDBC driver itself.
+# Russian message translation for the PostgreSQL JDBC driver
+# This file is distributed under the same license as the package.
 #
-# $PostgreSQL$
+# (C) 2003-2004 Serguei A. Mokhov, <mokhov@cs.concordia.ca>
+#
+# $PostgreSQL: pgjdbc/org/postgresql/translation/ru.po,v 1.3 2004/10/24 19:27:55 jurka Exp $
 #
 # ChangeLog:
 #

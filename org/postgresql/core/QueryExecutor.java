@@ -1,13 +1,10 @@
 /*-------------------------------------------------------------------------
  *
- * QueryExecutor.java
- *     Executes a query on the backend.
- *
- * Copyright (c) 2003, PostgreSQL Global Development Group
+ * Copyright (c) 2003-2004, PostgreSQL Global Development Group
  * Copyright (c) 2004, Open Cloud Limited.
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgjdbc/org/postgresql/core/QueryExecutor.java,v 1.35 2004/06/29 06:43:25 jurka Exp $
+ *	  $PostgreSQL: pgjdbc/org/postgresql/core/QueryExecutor.java,v 1.36 2004/10/25 20:58:54 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */

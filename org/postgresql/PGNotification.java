@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
  *
- * Copyright (c) 2003, PostgreSQL Global Development Group
+ * Copyright (c) 2003-2004, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/PGNotification.java,v 1.3 2003/03/07 18:39:41 barry Exp $
+ *	  $PostgreSQL: pgjdbc/org/postgresql/PGNotification.java,v 1.8 2004/08/04 23:59:16 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */

@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
  *
- * Copyright (c) 2003, PostgreSQL Global Development Group
+ * Copyright (c) 2003-2004, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/geometric/PGpolygon.java,v 1.5 2003/05/29 04:39:48 barry Exp $
+ *	  $PostgreSQL: pgjdbc/org/postgresql/geometric/PGpolygon.java,v 1.8 2004/06/29 06:43:26 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */

@@ -1,3 +1,12 @@
+/*-------------------------------------------------------------------------
+ *
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $PostgreSQL$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql.test.util;
 
 import java.util.*;
@@ -12,7 +21,6 @@ import javax.naming.spi.ObjectFactory;
  * pools.  It is not a complete JNDI implementations.
  *
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
- * @version $Revision$
  */
 public class MiniJndiContext implements Context
 {

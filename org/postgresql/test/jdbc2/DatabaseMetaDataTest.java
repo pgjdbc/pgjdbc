@@ -1,3 +1,12 @@
+/*-------------------------------------------------------------------------
+ *
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $PostgreSQL$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.test.TestUtil;
@@ -7,9 +16,6 @@ import java.sql.*;
 /*
  * TestCase to test the internal functionality of org.postgresql.jdbc2.DatabaseMetaData
  *
- * PS: Do you know how difficult it is to type on a train? ;-)
- *
- * $PostgreSQL: pgsql-server/src/interfaces/jdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.21 2003/12/11 15:50:20 davec Exp $
  */
 
 public class DatabaseMetaDataTest extends TestCase

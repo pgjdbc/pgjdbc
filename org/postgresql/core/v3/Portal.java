@@ -1,12 +1,9 @@
 /*-------------------------------------------------------------------------
  *
- * Portal.java
- *	  V3 ResultCursor implementation in terms of backend Portals.
- *
  * Copyright (c) 2004, Open Cloud Limited.
  *
  * IDENTIFICATION
- *	  $PostgreSQL$
+ *	  $PostgreSQL: pgjdbc/org/postgresql/core/v3/Portal.java,v 1.2 2004/09/20 08:36:49 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */

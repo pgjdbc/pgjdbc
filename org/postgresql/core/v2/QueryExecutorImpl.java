@@ -1,13 +1,10 @@
 /*-------------------------------------------------------------------------
  *
- * QueryExecutorImpl.java
- *	  QueryExecutor implementation for the V2 protocol.
- *
- * Copyright (c) 2003, PostgreSQL Global Development Group
+ * Copyright (c) 2003-2004, PostgreSQL Global Development Group
  * Copyright (c) 2004, Open Cloud Limited.
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgjdbc/org/postgresql/core/v2/QueryExecutorImpl.java,v 1.4 2004/10/25 20:58:55 jurka Exp $
+ *	  $PostgreSQL: pgjdbc/org/postgresql/core/v2/QueryExecutorImpl.java,v 1.5 2004/10/25 22:43:18 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */

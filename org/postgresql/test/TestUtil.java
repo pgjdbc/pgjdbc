@@ -1,9 +1,18 @@
+/*-------------------------------------------------------------------------
+ *
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $PostgreSQL$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql.test;
 
 import java.sql.*;
 import java.util.Properties;
 
-/*
+/**
  * Utility class for JDBC tests
  */
 public class TestUtil

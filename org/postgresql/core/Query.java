@@ -1,12 +1,9 @@
 /*-------------------------------------------------------------------------
  *
- * Query.java
- *	  Abstraction of a generic query.
- *
  * Copyright (c) 2004, Open Cloud Limited.
  *
  * IDENTIFICATION
- *	  $PostgreSQL$
+ *	  $PostgreSQL: pgjdbc/org/postgresql/core/Query.java,v 1.1 2004/06/29 06:43:25 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */

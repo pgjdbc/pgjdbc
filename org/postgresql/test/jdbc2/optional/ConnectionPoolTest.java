@@ -1,3 +1,12 @@
+/*-------------------------------------------------------------------------
+ *
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $PostgreSQL$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql.test.jdbc2.optional;
 
 import org.postgresql.jdbc2.optional.ConnectionPool;
@@ -13,7 +22,6 @@ import java.io.*;
  * interface to the PooledConnection is through the CPDS.
  *
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
- * @version $Revision$
  */
 public class ConnectionPoolTest extends BaseDataSourceTest
 {

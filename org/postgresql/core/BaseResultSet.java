@@ -1,12 +1,9 @@
 /*-------------------------------------------------------------------------
  *
- * BaseResultSet.java
- *	  The internal interface definition for a jdbc result set
- *
- * Copyright (c) 2003, PostgreSQL Global Development Group
+ * Copyright (c) 2003-2004, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/core/BaseResultSet.java,v 1.2 2003/03/08 06:06:55 barry Exp $
+ *	  $PostgreSQL: pgjdbc/org/postgresql/core/BaseResultSet.java,v 1.6 2004/07/16 09:07:53 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */

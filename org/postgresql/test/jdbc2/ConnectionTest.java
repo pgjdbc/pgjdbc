@@ -1,3 +1,12 @@
+/*-------------------------------------------------------------------------
+ *
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $PostgreSQL$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.test.TestUtil;
@@ -8,9 +17,6 @@ import java.sql.*;
  * TestCase to test the internal functionality of org.postgresql.jdbc2.Connection
  * and it's superclass.
  *
- * PS: Do you know how difficult it is to type on a train? ;-)
- *
- * $PostgreSQL: ConnectionTest.java,v 1.10 2002/10/17 05:33:52 barry Exp $
  */
 
 public class ConnectionTest extends TestCase

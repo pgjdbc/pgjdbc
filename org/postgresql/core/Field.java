@@ -1,12 +1,9 @@
 /*-------------------------------------------------------------------------
  *
- * Field.java
- *     Field is a class used to describe fields in a PostgreSQL ResultSet
- *
- * Copyright (c) 2003, PostgreSQL Global Development Group
+ * Copyright (c) 2003-2004, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/core/Field.java,v 1.2 2003/05/29 03:21:32 barry Exp $
+ *	  $PostgreSQL: pgjdbc/org/postgresql/core/Field.java,v 1.7 2004/09/23 05:28:07 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */

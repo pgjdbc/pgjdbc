@@ -1,12 +1,14 @@
 <?xml version="1.0"?>
 <!--
 
-  Build file to allow ant (http://jakarta.apache.org/ant/) to be used
+  Copyright (c) 2004, PostgreSQL Global Development Group
+
+  Build file to allow ant (http://ant.apache.org/) to be used
   to build the PostgreSQL JDBC Driver.
 
   This file now requires Ant 1.4.1.  2002-04-18
 
-  $PostgreSQL: pgjdbc/build.xml,v 1.56 2004/10/18 10:13:56 jurka Exp $
+  $PostgreSQL: pgjdbc/build.xml,v 1.57 2004/10/28 22:26:38 oliver Exp $
 
 -->
 

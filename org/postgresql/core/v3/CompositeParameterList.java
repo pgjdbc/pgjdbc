@@ -1,12 +1,9 @@
 /*-------------------------------------------------------------------------
  *
- * CompositeParameterList.java
- *	  Parameter list for V3 query strings that contain multiple statements.
- *
  * Copyright (c) 2004, Open Cloud Limited.
  *
  * IDENTIFICATION
- *	  $PostgreSQL$
+ *	  $PostgreSQL: pgjdbc/org/postgresql/core/v3/CompositeParameterList.java,v 1.3 2004/10/10 15:39:37 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */

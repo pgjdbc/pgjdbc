@@ -1,12 +1,9 @@
 /*-------------------------------------------------------------------------
  *
- * SimpleParameterList.java
- *	  Parameter list for a single-statement V3 query
- *
  * Copyright (c) 2004, Open Cloud Limited.
  *
  * IDENTIFICATION
- *	  $PostgreSQL$
+ *	  $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleParameterList.java,v 1.3 2004/10/10 15:39:37 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */

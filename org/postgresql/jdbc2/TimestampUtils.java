@@ -1,12 +1,9 @@
 /*-------------------------------------------------------------------------
  *
- * TimestampUtils.java
- *	  Misc utils for handling time and date values.
- *
- * Copyright (c) 2003, PostgreSQL Global Development Group
+ * Copyright (c) 2003-2004, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL$
+ *	  $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.3 2004/10/10 15:39:41 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */

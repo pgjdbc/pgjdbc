@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
  *
- * Copyright (c) 2003, PostgreSQL Global Development Group
+ * Copyright (c) 2003-2004, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/geometric/PGbox.java,v 1.5 2003/09/13 04:02:14 barry Exp $
+ *	  $PostgreSQL: pgjdbc/org/postgresql/geometric/PGbox.java,v 1.9 2004/10/10 15:39:39 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */

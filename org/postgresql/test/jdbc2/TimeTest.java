@@ -1,3 +1,12 @@
+/*-------------------------------------------------------------------------
+ *
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $PostgreSQL$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.test.TestUtil;
@@ -7,8 +16,6 @@ import java.util.Calendar;
 import java.util.TimeZone;
 
 /*
- * $PostgreSQL: TimeTest.java,v 1.6 2003/09/22 04:55:00 barry Exp $
- *
  * Some simple tests based on problems reported by users. Hopefully these will
  * help prevent previous problems from re-occuring ;-)
  *

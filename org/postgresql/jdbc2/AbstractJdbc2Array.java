@@ -1,3 +1,12 @@
+/*-------------------------------------------------------------------------
+ *
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $PostgreSQL$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql.jdbc2;
 
 import org.postgresql.core.*;
@@ -14,7 +23,7 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.Vector;
 
-/*
+/**
  * Array is used collect one column of query result data.
  *
  * <p>Read a field of type Array into either a natively-typed
@@ -38,7 +47,7 @@ public class AbstractJdbc2Array
 	private int idx = 0;
 	private String rawString = null;
 
-	/*
+	/**
 	 * Create a new Array
 	 *
 	 * @param conn a database connection

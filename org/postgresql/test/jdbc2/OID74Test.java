@@ -1,3 +1,12 @@
+/*-------------------------------------------------------------------------
+ *
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $PostgreSQL$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql.test.jdbc2;
                                                                                                                                                                                      
 import org.postgresql.test.TestUtil;
@@ -10,9 +19,6 @@ import java.sql.*;
 
 /**
  * User: alexei
- * Date: 17-Dec-2003
- * Time: 11:01:44
- * @version $Id$
  */
 public class OID74Test  extends TestCase
 {

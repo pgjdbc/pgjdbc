@@ -1,11 +1,18 @@
+/*-------------------------------------------------------------------------
+ *
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $PostgreSQL$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.test.TestUtil;
 import junit.framework.*;
 import java.sql.*;
 /*
- * $PostgreSQL: $
- *
  * Test for getObject
  */
 

@@ -1,12 +1,9 @@
 /*-------------------------------------------------------------------------
  *
- * Encoding.java
- *     Converts to and from the character encoding used by the backend.
- *
- * Copyright (c) 2003, PostgreSQL Global Development Group
+ * Copyright (c) 2003-2004, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/core/Encoding.java,v 1.12 2003/09/08 17:30:22 barry Exp $
+ *	  $PostgreSQL: pgjdbc/org/postgresql/core/Encoding.java,v 1.17 2004/09/20 08:36:48 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */

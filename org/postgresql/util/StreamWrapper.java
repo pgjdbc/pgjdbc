@@ -1,12 +1,9 @@
 /*-------------------------------------------------------------------------
  *
- * StreamWrapper.java
- *	  Wrapper around a length-limited InputStream.
- *
  * Copyright (c) 2004, Open Cloud Limited.
  *
  * IDENTIFICATION
- *	  $PostgreSQL$
+ *	  $PostgreSQL: pgjdbc/org/postgresql/util/StreamWrapper.java,v 1.2 2004/09/20 08:36:51 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */

@@ -1,13 +1,22 @@
+/*-------------------------------------------------------------------------
+ *
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $PostgreSQL$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql.jdbc2;
 
 import java.sql.*;
 import java.util.Vector;
 import org.postgresql.core.*;
 
-/* $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/jdbc2/Jdbc2Statement.java,v 1.6 2003/05/03 20:40:45 barry Exp $
+/**
  * This class implements the java.sql.Statement interface for JDBC2.
  * However most of the implementation is really done in
- * org.postgresql.jdbc2.AbstractJdbc2Statement or one of it's parents
+ * org.postgresql.jdbc2.AbstractJdbc2Statement
  */
 class Jdbc2Statement extends AbstractJdbc2Statement implements Statement
 {

@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
  *
- * Copyright (c) 2003, PostgreSQL Global Development Group
+ * Copyright (c) 2003-2004, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/util/PGobject.java,v 1.4 2003/03/07 18:39:46 barry Exp $
+ *	  $PostgreSQL: pgjdbc/org/postgresql/util/PGobject.java,v 1.6 2004/06/07 21:52:46 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */

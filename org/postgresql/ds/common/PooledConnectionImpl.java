@@ -1,3 +1,12 @@
+/*-------------------------------------------------------------------------
+ *
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $PostgreSQL$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql.ds.common;
 
 import javax.sql.*;
@@ -15,7 +24,6 @@ import org.postgresql.util.GT;
  *
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  * @author Csaba Nagy (ncsaba@yahoo.com)
- * @version $Revision$
  */
 public class PooledConnectionImpl implements PooledConnection
 {

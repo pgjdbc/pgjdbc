@@ -1,3 +1,12 @@
+/*-------------------------------------------------------------------------
+ *
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $PostgreSQL$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.test.TestUtil;
@@ -5,8 +14,6 @@ import junit.framework.TestCase;
 import java.sql.*;
 
 /*
- * $PostgreSQL: DriverTest.java,v 1.6 2003/11/03 15:22:07 davec Exp $
- *
  * Tests the dynamically created class org.postgresql.Driver
  *
  */

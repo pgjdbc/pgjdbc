@@ -1,12 +1,9 @@
 /*-------------------------------------------------------------------------
  *
- * ProtocolConnectionImpl.java
- *	  ProtocolConnection implementation for the V2 protocol.
- *
  * Copyright (c) 2004, Open Cloud Limited.
  *
  * IDENTIFICATION
- *	  $PostgreSQL$
+ *	  $PostgreSQL: pgjdbc/org/postgresql/core/v2/ProtocolConnectionImpl.java,v 1.2 2004/09/20 08:36:49 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */

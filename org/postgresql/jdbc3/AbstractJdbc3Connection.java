@@ -1,3 +1,12 @@
+/*-------------------------------------------------------------------------
+ *
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $PostgreSQL$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql.jdbc3;
 
 import java.util.Properties;
@@ -7,7 +16,7 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.GT;
 
-/* $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/jdbc3/AbstractJdbc3Connection.java,v 1.4 2003/06/30 21:10:55 davec Exp $
+/**
  * This class defines methods of the jdbc3 specification.  This class extends
  * org.postgresql.jdbc2.AbstractJdbc2Connection which provides the jdbc2
  * methods.  The real Connection class (for jdbc3) is org.postgresql.jdbc3.Jdbc3Connection
