@@ -364,7 +364,7 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 			setDate(i, d);
 		else
 		{
-			cal.setTime(d);
+			cal = changeTime(d, cal, true);		
 			setDate(i, new java.sql.Date(cal.getTime().getTime()));
 		}
 	}
@@ -376,7 +376,7 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 			setTime(i, t);
 		else
 		{
-			cal.setTime(t);
+			cal = changeTime(t, cal, true);
 			setTime(i, new java.sql.Time(cal.getTime().getTime()));
 		}
 	}
@@ -388,7 +388,7 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 			setTimestamp(i, t);
 		else
 		{
-			cal.setTime(t);
+			cal = changeTime(t, cal, true);
 			setTimestamp(i, new java.sql.Timestamp(cal.getTime().getTime()));
 		}
 	}
@@ -429,17 +429,35 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 
 	public java.sql.Date getDate(int i, java.util.Calendar cal) throws SQLException
 	{
-		throw Driver.notImplemented();
+		if (cal == null)
+			return getDate(i);
+		java.util.Date tmp = getDate(i);
+		if (tmp == null)
+			return null;
+		cal = changeTime(tmp, cal, false);
+		return new java.sql.Date(cal.getTime().getTime());
 	}
 
 	public Time getTime(int i, java.util.Calendar cal) throws SQLException
 	{
-		throw Driver.notImplemented();
+		if (cal == null)
+			return getTime(i);
+		java.util.Date tmp = getTime(i);
+		if (tmp == null)
+			return null;			
+		cal = changeTime(tmp, cal, false);
+		return new java.sql.Time(cal.getTime().getTime());
 	}
 
 	public Timestamp getTimestamp(int i, java.util.Calendar cal) throws SQLException
 	{
-		throw Driver.notImplemented();
+		if (cal == null)
+			return getTimestamp(i);
+		java.util.Date tmp = getTimestamp(i);
+		if (tmp == null)
+			return null;			
+		cal = changeTime(tmp, cal, false);
+		return new java.sql.Timestamp(cal.getTime().getTime());
 	}
 
 	// no custom types allowed yet..
@@ -453,6 +471,22 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 	protected String[] getSqlFragments()
 	{
 		return m_sqlFragments;
+	}
+	
+	static java.util.Calendar changeTime(java.util.Date t, java.util.Calendar cal, boolean Add)
+	{
+		long millis = t.getTime();
+		int localoffset = t.getTimezoneOffset() * 60 * 1000 * -1;
+		int caloffset = cal.getTimeZone().getRawOffset();
+		if (cal.getTimeZone().inDaylightTime(t))
+			millis += 60*60*1000;
+		caloffset = (Add) ? (caloffset-localoffset) : -1*(caloffset-localoffset);
+		java.util.Date tmpDate = new java.util.Date();
+		tmpDate.setTime(millis-caloffset);
+		cal.setTime(tmpDate);
+//		cal.setTimeInMillis(millis-caloffset);
+		tmpDate = null;
+		return cal;	
 	}
 
 }

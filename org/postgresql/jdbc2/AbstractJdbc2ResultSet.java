@@ -342,28 +342,37 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 
 	public java.sql.Date getDate(int i, java.util.Calendar cal) throws SQLException
 	{
-		// If I read the specs, this should use cal only if we don't
-		// store the timezone, and if we do, then act just like getDate()?
-		// for now...
-		return getDate(i);
+		if (cal == null)
+			return getDate(i);
+		java.util.Date tmp = getDate(i);
+		if (tmp == null)
+			return null;			
+		cal = org.postgresql.jdbc2.AbstractJdbc2Statement.changeTime(tmp, cal, false);
+		return new java.sql.Date(cal.getTime().getTime());
 	}
 
 
 	public Time getTime(int i, java.util.Calendar cal) throws SQLException
 	{
-		// If I read the specs, this should use cal only if we don't
-		// store the timezone, and if we do, then act just like getTime()?
-		// for now...
-		return getTime(i);
+		if (cal == null)
+			return getTime(i);
+		java.util.Date tmp = getTime(i);
+		if (tmp == null)
+			return null;			
+		cal = org.postgresql.jdbc2.AbstractJdbc2Statement.changeTime(tmp, cal, false);
+		return new java.sql.Time(cal.getTime().getTime());
 	}
 
 
 	public Timestamp getTimestamp(int i, java.util.Calendar cal) throws SQLException
 	{
-		// If I read the specs, this should use cal only if we don't
-		// store the timezone, and if we do, then act just like getDate()?
-		// for now...
-		return getTimestamp(i);
+		if (cal == null)
+			return getTimestamp(i);
+		java.util.Date tmp = getTimestamp(i);
+		if (tmp == null)
+			return null;			
+		cal = org.postgresql.jdbc2.AbstractJdbc2Statement.changeTime(tmp, cal, false);
+		return new java.sql.Timestamp(cal.getTime().getTime());
 	}
 
 
