@@ -37,3 +37,5 @@ uninstall:
 
 clean distclean maintainer-clean:
 	$(ANT) -buildfile $(top_srcdir)/build.xml clean
+	# ANT 1.3 has a bug that prevents directory deletion
+	rm -rf build jars
