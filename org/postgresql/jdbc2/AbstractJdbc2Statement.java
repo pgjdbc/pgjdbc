@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.67 2005/01/27 11:30:41 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.68 2005/02/01 07:27:54 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -21,6 +21,7 @@ import java.util.Calendar;
 import java.util.GregorianCalendar;
 
 import org.postgresql.Driver;
+import org.postgresql.PGStatement;
 import org.postgresql.largeobject.*;
 import org.postgresql.core.*;
 import org.postgresql.util.PSQLException;
@@ -2840,6 +2841,14 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     static java.util.Calendar changeTime(java.util.Date t, java.util.Calendar cal, boolean Add)
     {
         long millis = t.getTime();
+
+        if (millis == PGStatement.DATE_POSITIVE_INFINITY ||
+            millis == PGStatement.DATE_NEGATIVE_INFINITY)
+        {
+            cal.setTimeInMillis(millis);
+            return cal;
+        }
+
         int localoffset = t.getTimezoneOffset() * 60 * 1000 * -1;
         int caloffset = cal.getTimeZone().getRawOffset();
         if (cal.getTimeZone().inDaylightTime(t))
