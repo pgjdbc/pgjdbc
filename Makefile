@@ -130,8 +130,8 @@ jdbc1:
 	) >postgresql/DriverClass.java
 	@$(MAKE) jdbc1real
 
-jdbc2real: postgresql/DriverClass.class \
-	$(OBJ_COMMON) $(OBJ_JDBC2) postgresql.jar msg
+jdbc1real: postgresql/DriverClass.class \
+	$(OBJ_COMMON) $(OBJ_JDBC1) postgresql.jar msg
 
 # This rule builds the JDBC2 compliant driver
 jdbc2:	
