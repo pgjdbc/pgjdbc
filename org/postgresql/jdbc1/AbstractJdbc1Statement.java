@@ -871,6 +871,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 				break;
 			case Types.BINARY:
 			case Types.VARBINARY:
+			case Types.LONGVARBINARY:
 				l_pgType = PG_BYTEA;
 				break;
 			case Types.OTHER:
@@ -1490,6 +1491,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 				break;
 			case Types.BINARY:
 			case Types.VARBINARY:
+			case Types.LONGVARBINARY:
 				setObject(parameterIndex, x);
 				break;
 			case Types.OTHER:

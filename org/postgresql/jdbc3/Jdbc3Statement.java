@@ -3,6 +3,7 @@ package org.postgresql.jdbc3;
 
 import java.sql.*;
 import java.util.Vector;
+import org.postgresql.PGRefCursorResultSet;
 import org.postgresql.core.BaseResultSet;
 import org.postgresql.core.Field;
 
@@ -24,4 +25,8 @@ public class Jdbc3Statement extends org.postgresql.jdbc3.AbstractJdbc3Statement 
 		return new Jdbc3ResultSet(this, fields, tuples, status, updateCount, insertOID, binaryCursor);
 	}
 
+  	public PGRefCursorResultSet createRefCursorResultSet (String cursorName) throws SQLException
+	{
+                return new Jdbc3RefCursorResultSet(this, cursorName);
+	}
 }

@@ -575,11 +575,18 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 				return getBytes(columnIndex);
 			default:
 				String type = field.getPGType();
+
 				// if the backend doesn't know the type then coerce to String
 				if (type.equals("unknown"))
 				{
 					return getString(columnIndex);
 				}
+                                // Specialized support for ref cursors is neater.
+                                else if (type.equals("refcursor"))
+                                {
+                                        String cursorName = getString(columnIndex);
+                                        return statement.createRefCursorResultSet(cursorName);
+                                }
 				else
 				{
 					return connection.getObject(field.getPGType(), getString(columnIndex));
