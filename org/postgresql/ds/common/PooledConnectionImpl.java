@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/PooledConnectionImpl.java,v 1.8 2005/01/11 08:25:45 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/PooledConnectionImpl.java,v 1.9 2005/01/14 01:20:17 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -22,7 +22,7 @@ import org.postgresql.util.PSQLState;
  * PostgreSQL implementation of the PooledConnection interface.  This shouldn't
  * be used directly, as the pooling client should just interact with the
  * ConnectionPool instead.
- * @see org.postgresql.ds.PGConnectionPool
+ * @see org.postgresql.ds.PGConnectionPoolDataSource
  *
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  * @author Csaba Nagy (ncsaba@yahoo.com)
