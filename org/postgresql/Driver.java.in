@@ -6,7 +6,7 @@
  * Copyright (c) 2003, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql-server/src/interfaces/jdbc/org/postgresql/Driver.java.in,v 1.39 2003/12/10 18:30:44 davec Exp $
+ *	  $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.51 2004/10/17 11:55:16 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -442,7 +442,7 @@ public class Driver implements java.sql.Driver
 	 */
 	public String user(Properties props)
 	{
-		return props.getProperty("user");
+		return props.getProperty("user", "");
 	}
 
 	/*
