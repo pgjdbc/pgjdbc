@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.60 2005/01/11 08:25:43 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.61 2005/01/17 08:38:05 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -13,6 +13,10 @@ import java.io.*;
 import java.sql.*;
 import java.util.*;
 import java.net.URL;
+
+import java.security.AccessController;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -64,24 +68,62 @@ public class Driver implements java.sql.Driver
         }
     }
 
-    //
     // Helper to retrieve default properties from classloader resource
     // properties files.
-    //
     private Properties defaultProperties;
-    synchronized Properties getDefaultProperties()
-    throws IOException {
+    private synchronized Properties getDefaultProperties() throws IOException {
         if (defaultProperties != null)
             return defaultProperties;
 
+        // Make sure we load properties with the maximum possible
+        // privileges.
+        try
+        {
+            defaultProperties = (Properties)
+                AccessController.doPrivileged(new PrivilegedExceptionAction() {
+                        public Object run() throws IOException {
+                            return loadDefaultProperties();
+                        }
+                    });
+        }
+        catch (PrivilegedActionException e)
+        {
+            throw (IOException)e.getException();
+        }
+
+        return defaultProperties;
+    }
+
+    private Properties loadDefaultProperties() throws IOException {
         Properties merged = new Properties();
+
+        // If we are loaded by the bootstrap classloader, getClassLoader()
+        // may return null. In that case, try to fall back to the system
+        // classloader.
+        //
+        // We should not need to catch SecurityException here as we are
+        // accessing either our own classloader, or the system classloader
+        // when our classloader is null. The ClassLoader javadoc claims
+        // neither case can throw SecurityException.
+        ClassLoader cl = getClass().getClassLoader();
+        if (cl == null)
+            cl = ClassLoader.getSystemClassLoader();
+
+        if (cl == null) {
+            if (Driver.logDebug)
+                Driver.debug("Can't find a classloader for the Driver; not loading driver configuration");
+            return merged; // Give up on finding defaults.
+        }
+
+        if (Driver.logDebug)
+            Driver.debug("Loading driver configuration via classloader " + cl);
 
         // When loading the driver config files we don't want settings found
         // in later files in the classpath to override settings specified in
         // earlier files.  To do this we've got to read the returned
         // Enumeration into temporary storage.
         ArrayList urls = new ArrayList();
-        Enumeration urlEnum = getClass().getClassLoader().getResources("org/postgresql/driverconfig.properties");
+        Enumeration urlEnum = cl.getResources("org/postgresql/driverconfig.properties");
         while (urlEnum.hasMoreElements())
         {
             urls.add(urlEnum.nextElement());
