@@ -116,7 +116,7 @@ public class LargeObjectManager
 		if (conn.getMetaData().supportsSchemasInTableDefinitions()) {
 			sql = "SELECT p.proname,p.oid "+
 				" FROM pg_catalog.pg_proc p, pg_catalog.pg_namespace n "+
-				" WHERE p.pronamespace=n.oid AND n.nspname='pg_catalog' AND ";
+				" WHERE p.pronamespace=n.oid AND n.nspname='pg_catalog' AND (";
 		} else {
 			sql = "SELECT proname,oid FROM pg_proc WHERE ";
 		}
@@ -128,6 +128,10 @@ public class LargeObjectManager
 			" or proname = 'lo_tell'" +
 			" or proname = 'loread'" +
 			" or proname = 'lowrite'";
+
+		if (conn.getMetaData().supportsSchemasInTableDefinitions()) {
+			sql += ")";
+		}
 
 		ResultSet res = conn.createStatement().executeQuery(sql);
 
