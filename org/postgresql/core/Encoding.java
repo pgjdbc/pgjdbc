@@ -284,7 +284,7 @@ public class Encoding
 			String s = new String(l_cdata, 0, j);
 			return s;
 		} catch (Exception l_e) {
-			throw new PSQLException("postgresql.con.invalidchar", l_e);
+			throw new PSQLException("postgresql.con.invalidchar", PSQLState.DATA_ERROR, l_e);
 		}
 	}
 

@@ -17,7 +17,9 @@ import java.io.IOException;
 import java.sql.*;
 import org.postgresql.Driver;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLWarning;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.ServerErrorMessage;
 
 public class QueryExecutor
 {
@@ -109,7 +111,7 @@ public class QueryExecutor
 	private BaseResultSet executeV3() throws SQLException
 	{
 
-		PSQLException error = null;
+		SQLException error = null;
 
 		if (pgStream == null) 
 		{
@@ -153,7 +155,8 @@ public class QueryExecutor
 
 						int l_elen = pgStream.ReceiveIntegerR(4);
 						String totalMessage = connection.getEncoding().decode(pgStream.Receive(l_elen-4));
-						PSQLException l_error = PSQLException.parseServerError(totalMessage);
+						ServerErrorMessage l_errorMsg = new ServerErrorMessage(totalMessage);
+						SQLException l_error = new SQLException(l_errorMsg.toString(), l_errorMsg.getSQLState());
 
 						if (error != null) {
 							error.setNextException(l_error);
@@ -168,7 +171,8 @@ public class QueryExecutor
 						break;
 					case 'N':	// Error Notification
 						int l_nlen = pgStream.ReceiveIntegerR(4);
-						statement.addWarning(connection.getEncoding().decode(pgStream.Receive(l_nlen-4)));
+						ServerErrorMessage l_warnMsg = new ServerErrorMessage(connection.getEncoding().decode(pgStream.Receive(l_nlen-4)));
+						statement.addWarning(new PSQLWarning(l_warnMsg));
 						break;
 					case 'P':	// Portal Name
 						String pname = pgStream.ReceiveString(connection.getEncoding());
@@ -269,7 +273,7 @@ public class QueryExecutor
 						int t = pgStream.ReceiveIntegerR(4);
 						break;
 					case 'N':	// Error Notification
-						statement.addWarning(pgStream.ReceiveString(connection.getEncoding()));
+						statement.addWarning(new SQLWarning(pgStream.ReceiveString(connection.getEncoding())));
 						break;
 					case 'P':	// Portal Name
 						String pname = pgStream.ReceiveString(connection.getEncoding());

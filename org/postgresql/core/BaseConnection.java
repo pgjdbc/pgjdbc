@@ -15,6 +15,7 @@ package org.postgresql.core;
 import java.sql.DatabaseMetaData;
 import java.sql.Statement;
 import java.sql.SQLException;
+import java.sql.SQLWarning;
 import org.postgresql.PGConnection;
 import org.postgresql.PGNotification;
 
@@ -22,7 +23,7 @@ public interface BaseConnection extends PGConnection
 {
 
 	public void addNotification(PGNotification p_notification);
-	public void addWarning(String msg);
+	public void addWarning(SQLWarning warn);
 	public void cancelQuery() throws SQLException;
 	public Statement createStatement() throws SQLException;
 	public BaseResultSet execSQL(String s) throws SQLException;

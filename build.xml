@@ -156,6 +156,7 @@
   <target name="check_driver">
     <uptodate targetfile="${package}/Driver.java" property="driver.uptodate">
       <srcfiles dir=".">
+      <include name="${package}/util/PSQLException.java.in"/>
       <include name="${package}/Driver.java.in"/>
       <include name="build.properties"/>
       <include name="build.local.properties" />
@@ -197,6 +198,19 @@
         <equals arg1="${jdbc3}" arg2="true"/>
     </condition>
 
+    <!-- Determine if we have 1.4 or not.
+         If we do, we use Throwable.initCause() in org.postgresql.util.PSQLException
+         instead of appending any nested exception to the message. -->
+    <condition property="notjdk14" value="//">
+        <equals arg1="${ant.java.version}" arg2="1.4"/>
+    </condition>
+    
+    <condition property="notjdk14" value="">
+      <not>
+        <equals arg1="${ant.java.version}" arg2="1.4"/>
+      </not>
+    </condition>
+    
     <!-- determine the ssl status -->
     <condition property="ssl_config" value="">
         <equals arg1="${ssl}" arg2="true"/>
@@ -222,6 +236,7 @@
     <filter token="JDBCCONNECTCLASS" value="${connectclass}" />
     <filter token="DEF_PGPORT" value="${def_pgport}" />
     <filter token="SSL" value="${ssl_config}" />
+    <filter token="NOTJDK14" value="${notjdk14}" />
 
      <fail unless="major" message="'major' undefined. Please follow the directions in README."/>
      <fail unless="minor" message="'minor' undefined. Please follow the directions in README."/>
@@ -235,6 +250,10 @@
     <copy file="${package}/Driver.java.in"
           overwrite="true"
           tofile="${package}/Driver.java"
+          filtering="yes" />
+    <copy file="${package}/util/PSQLException.java.in"
+          overwrite="true"
+          tofile="${package}/util/PSQLException.java"
           filtering="yes" />
 
     <echo message="Configured build for the ${edition} edition driver with ${ssl_edition}" />
@@ -280,6 +299,7 @@
     <delete quiet="true" dir="${builddir}" />
     <delete quiet="true" dir="${jardir}" />
     <delete quiet="true" file="${package}/Driver.java" />
+    <delete quiet="true" file="${package}/util/PSQLException.java" />
   </target>
 
   <!-- This compiles and executes the JUnit tests -->

@@ -48,6 +48,12 @@ public class MessageTranslator
 		return instance;
 	}
 
+	public final static String translate(String id)
+	{
+		MessageTranslator translator = MessageTranslator.getInstance();
+		return translator._translate(id, new Object[0]);
+	}
+
 	public final static String translate(String id, Object[] args)
 	{
 

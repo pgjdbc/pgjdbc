@@ -703,14 +703,14 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 
 	/**
 	 * This adds a warning to the warning chain.
-	 * @param msg message to add
+	 * @param warn warning to add
 	 */
-	public void addWarning(String msg)
+	public void addWarning(SQLWarning warn)
 	{
 		if (warnings != null)
-			warnings.setNextWarning(new SQLWarning(msg));
+			warnings.setNextWarning(warn);
 		else
-			warnings = new SQLWarning(msg);
+			warnings = warn;
 	}
 
 	/*
@@ -784,7 +784,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	 */
 	public void cancel() throws SQLException
 	{
-		throw new PSQLException("postgresql.unimplemented", PSQLState.NOT_IMPLEMENTED);
+		throw org.postgresql.Driver.notImplemented();
 	}
 
 	/*
@@ -2284,7 +2284,8 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 		}
 		catch (Exception e)
 		{
-			throw new PSQLException("postgresql.format.baddate", PSQLState.BAD_DATETIME_FORMAT, s , "yyyy-MM-dd[-tz]");
+			throw new PSQLException("postgresql.format.baddate", PSQLState.BAD_DATETIME_FORMAT, e,
+									new Object[] { s , "yyyy-MM-dd[-tz]" });
 		}
 		timezone = 0;
 		if (timezoneLocation>7 && timezoneLocation+3 == s.length())
@@ -2315,7 +2316,8 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 		}
 		catch (Exception e)
 		{
-			throw new PSQLException("postgresql.format.badtime", PSQLState.BAD_DATETIME_FORMAT, s, "HH:mm:ss[-tz]");
+			throw new PSQLException("postgresql.format.badtime", PSQLState.BAD_DATETIME_FORMAT, e,
+									new Object[] { s, "HH:mm:ss[-tz]" });
 		}
 		timezone = 0;
 		if (timezoneLocation != -1 && timezoneLocation+3 == s.length())
@@ -2354,7 +2356,8 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 		}
 		catch (Exception e)
 		{
-			throw new PSQLException("postgresql.format.badtimestamp", PSQLState.BAD_DATETIME_FORMAT, s, "yyyy-MM-dd HH:mm:ss[.xxxxxx][-tz]");
+			throw new PSQLException("postgresql.format.badtimestamp", PSQLState.BAD_DATETIME_FORMAT, e,
+									new Object[] { s, "yyyy-MM-dd HH:mm:ss[.xxxxxx][-tz]" });
 		}
 		timezone = 0;
 		if (nanospos != -1)

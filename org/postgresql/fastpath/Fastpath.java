@@ -14,13 +14,16 @@ package org.postgresql.fastpath;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.sql.SQLWarning;
 import java.sql.ResultSet;
 import java.util.Hashtable;
 import org.postgresql.Driver;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.PGStream;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.ServerErrorMessage;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.PSQLWarning;
 
 /*
  * This class implements the Fastpath api.
@@ -108,7 +111,7 @@ public class Fastpath
 
 			// Now loop, reading the results
 			Object result = null; // our result
-			PSQLException error = null;
+			SQLException error = null;
 			int c;
 			boolean l_endQuery = false;
 			while (!l_endQuery)
@@ -129,7 +132,8 @@ public class Fastpath
 					case 'E':
 						int l_elen = stream.ReceiveIntegerR(4);
 						String totalMessage = conn.getEncoding().decode(stream.Receive(l_elen-4));
-						PSQLException l_error = PSQLException.parseServerError(totalMessage);
+						ServerErrorMessage l_errorMsg = new ServerErrorMessage(totalMessage);
+						SQLException l_error = new SQLException(l_errorMsg.toString(), l_errorMsg.getSQLState());
 
 						if (error != null) {
 							error.setNextException(l_error);
@@ -142,7 +146,8 @@ public class Fastpath
 						// Notice from backend
 					case 'N':
 						int l_nlen = stream.ReceiveIntegerR(4);
-						conn.addWarning(conn.getEncoding().decode(stream.Receive(l_nlen-4)));
+						ServerErrorMessage l_warnMsg = new ServerErrorMessage(conn.getEncoding().decode(stream.Receive(l_nlen-4)));
+						conn.addWarning(new PSQLWarning(l_warnMsg));
 						break;
 
 					case 'V':
@@ -251,7 +256,7 @@ public class Fastpath
 						//------------------------------
 						// Notice from backend
 					case 'N':
-						conn.addWarning(stream.ReceiveString(conn.getEncoding()));
+						conn.addWarning(new SQLWarning(stream.ReceiveString(conn.getEncoding())));
 						break;
 
 					case 'V':
@@ -331,7 +336,7 @@ public class Fastpath
 	{
 		Integer i = (Integer)fastpath(name, true, args);
 		if (i == null)
-			throw new PSQLException("postgresql.fp.expint", name);
+			throw new PSQLException("postgresql.fp.expint", null, name);
 		return i.intValue();
 	}
 

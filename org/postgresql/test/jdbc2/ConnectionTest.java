@@ -205,7 +205,7 @@ public class ConnectionTest extends TestCase
 			con.clearWarnings();
 
 			// Set the test warning
-			((org.postgresql.jdbc2.AbstractJdbc2Connection)con).addWarning(testStr);
+			((org.postgresql.jdbc2.AbstractJdbc2Connection)con).addWarning(new SQLWarning(testStr));
 
 			// Retrieve it
 			SQLWarning warning = con.getWarnings();

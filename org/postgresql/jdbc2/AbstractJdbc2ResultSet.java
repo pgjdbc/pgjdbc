@@ -417,7 +417,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 	public Ref getRef(int i) throws SQLException
 	{
 		//The backend doesn't yet have SQL3 REF types
-		throw new PSQLException("postgresql.psqlnotimp", PSQLState.NOT_IMPLEMENTED);
+		throw org.postgresql.Driver.notImplemented();
 	}
 
 
@@ -773,7 +773,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 		}
 		catch (IOException ie)
 		{
-			throw new PSQLException("postgresql.updateable.ioerror", ie);
+			throw new PSQLException("postgresql.updateable.ioerror", null, ie);
 		}
 
 		updateValue(columnIndex, theData);
@@ -806,7 +806,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 		}
 		catch (IOException ie)
 		{
-			throw new PSQLException("postgresql.updateable.ioerror", ie);
+			throw new PSQLException("postgresql.updateable.ioerror", null, ie);
 		}
 		updateValue(columnIndex, theData);
 	}
@@ -853,7 +853,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 		}
 		catch (IOException ie)
 		{
-			throw new PSQLException("postgresql.updateable.ioerror", ie);
+			throw new PSQLException("postgresql.updateable.ioerror", null, ie);
 		}
 		updateValue(columnIndex, theData);
 	}

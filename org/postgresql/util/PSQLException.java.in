@@ -1,0 +1,87 @@
+/*-------------------------------------------------------------------------
+ *
+ * PSQLException.java
+ *     This class extends SQLException, and provides our internationalisation
+ *     handling
+ *
+ * Copyright (c) 2003, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $PostgreSQL: pgsql-server/src/interfaces/jdbc/org/postgresql/util/PSQLException.java,v 1.14 2003/11/29 19:52:11 pgsql Exp $
+ *
+ *-------------------------------------------------------------------------
+ */
+package org.postgresql.util;
+
+import java.io.ByteArrayOutputStream;
+import java.io.PrintWriter;
+import java.io.IOException;
+import java.sql.SQLException;
+import org.postgresql.Driver;
+
+public class PSQLException extends SQLException
+{
+	private String message;
+	private PSQLState state;
+
+	public PSQLException(String msg, PSQLState state, Throwable cause, Object[] argv)
+	{
+		super(translate(msg, cause, argv), state == null ? null : state.getState(), msg.hashCode());                
+		initCause(cause); // Calls either the 1.4 Throwable impl or our impl below.
+		if (Driver.logDebug)
+			Driver.debug("Exception: " + this);
+		
+	}
+
+	public PSQLException(String msg)
+	{
+		this(msg, (PSQLState)null, (Throwable)null, (Object[])null);
+	}
+	
+	public PSQLException(String msg, PSQLState state)
+	{
+		this(msg, state, (Throwable)null, (Object[])null);
+	}
+	
+	public PSQLException(String msg, PSQLState state, Throwable cause)
+	{
+		this(msg, state, cause, (Object[])null);
+	}
+	
+	public PSQLException(String msg, PSQLState state, Object arg1)
+	{
+		this(msg, state, null, new Object[] { arg1 });
+	}
+
+	public PSQLException(String msg, PSQLState state, Object arg1, Throwable cause)
+	{
+		this(msg, state, cause, new Object[] { arg1 });
+	}
+	
+	private static String translate(String msg, Throwable cause, Object[] args) {
+		String translated = MessageTranslator.translate(msg, args);
+@NOTJDK14@		if (cause != null) {
+@NOTJDK14@			try {
+@NOTJDK14@				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+@NOTJDK14@				PrintWriter pw = new PrintWriter(baos);
+@NOTJDK14@				pw.println();
+@NOTJDK14@				pw.println(MessageTranslator.translate("postgresql.error.exception", cause.toString()));
+@NOTJDK14@				pw.println(MessageTranslator.translate("postgresql.error.stacktrace"));
+@NOTJDK14@				cause.printStackTrace(pw);
+@NOTJDK14@				pw.println(MessageTranslator.translate("postgresql.error.stacktraceend"));
+@NOTJDK14@				pw.flush();
+@NOTJDK14@				translated = translated + baos.toString();
+@NOTJDK14@				pw.close();
+@NOTJDK14@				baos.close();
+@NOTJDK14@			} catch (IOException ioe) {
+@NOTJDK14@				translated = translated + MessageTranslator.translate("postgresql.error.stacktraceerror", new Object[] { cause.toString(), ioe.toString() });
+@NOTJDK14@			}
+@NOTJDK14@		}
+		return translated;
+	}
+	
+@NOTJDK14@	// Dummy initCause() for pre-1.4 JVMs
+@NOTJDK14@	public void initCause(Throwable cause) {}
+
+
+}

@@ -675,7 +675,7 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 		for (i = 0 ; i < flen; ++i)
 			if (fields[i].getName().equalsIgnoreCase(columnName))
 				return (i + 1);
-		throw new PSQLException ("postgresql.res.colname", columnName);
+		throw new PSQLException ("postgresql.res.colname", null, columnName);
 	}
 
 
@@ -1185,7 +1185,7 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 			}
 			catch (ParseException e)
 			{
-				throw new PSQLException("postgresql.res.badtimestamp", PSQLState.BAD_DATETIME_FORMAT, new Integer(e.getErrorOffset()), s);
+				throw new PSQLException("postgresql.res.badtimestamp", PSQLState.BAD_DATETIME_FORMAT, e, new Object[] { new Integer(e.getErrorOffset()), s });
 			}
 		}
 	}

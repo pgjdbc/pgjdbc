@@ -30,7 +30,7 @@ public interface BaseStatement extends org.postgresql.PGStatement
 	 * any ResultSet can contain.  If the limit is exceeded, the
 	 * excess rows are silently dropped.
 	 */
-	public void addWarning(String p_warning) throws SQLException;
+	public void addWarning(SQLWarning p_warning) throws SQLException;
 	public void close() throws SQLException;
 	public int getFetchSize();
  	public int getMaxFieldSize() throws SQLException;
