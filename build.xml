@@ -335,4 +335,13 @@
   <!-- Build and run the tests. -->
   <target name="test" depends="testjar,runtest"/>
 
+  <!-- Build the documentation -->
+  <target name="doc" depends="prepare">
+   <mkdir dir="${builddir}/doc"/>
+   <xslt basedir="doc" destdir="${builddir}/doc" includes="*.xml" force="yes" style="${docbook.stylesheet}">
+     <param name="base.dir" expression="./"/>
+   </xslt>
+   <delete file="${builddir}/doc/pgjdbc.html"/>
+  </target>
+
 </project>
