@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!--
   Copyright (c) 2004-2005, PostgreSQL Global Development Group
-  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.14 2005/01/11 07:57:59 jurka Exp $
+  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.15 2005/01/11 08:25:42 jurka Exp $
 -->
 
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN" "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">
@@ -421,13 +421,31 @@ Connection conn = DriverManager.getConnection(url);
 	 not need a value associated with it.  The mere presence of it
 	 specifies a <acronym>SSL</acronym> connection.  However, for
          compatibility with future versions, the value "true" is
-         preferred.
-         <!--
-         KJJ need section on configuring SSL support.
-         http://archives.postgresql.org/pgsql-jdbc/2003-08/msg00110.php
-         http://archives.postgresql.org/pgsql-jdbc/2004-02/msg00198.php
-         -->
+         preferred.  For more information see <xref linkend="ssl" />.
         </para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
+       <term><varname>sslfactory</varname> = <type>String</type></term>
+       <listitem>
+        <para>
+	 The provided value is a class name to use as the
+	 <classname>SSLSocketFactory</classname> when establishing a
+	 <acronym>SSL</acronym> connection.
+         For more information see <xref linkend="ssl-factory"/>.
+	</para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
+       <term><varname>sslfactoryarg</varname> = <type>String</type></term>
+       <listitem>
+        <para>
+	 This value is an optional argument to the constructor of the
+	 <literal>sslfactory</literal> class provided above.
+         For more information see <xref linkend="ssl-factory"/>.
+	</para>
        </listitem>
       </varlistentry>
 
@@ -519,6 +537,185 @@ Connection conn = DriverManager.getConnection(url);
    </sect2>
 
   </sect1>
+
+ </chapter>
+
+ <chapter id="ssl">
+  <title>Using <acronym>SSL</acronym></title>
+
+   <sect1 id="ssl-server">
+    <title>Configuring the Server</title>
+
+    <para>
+     Configuring the <productname>PostgreSQL</productname> server for
+     <acronym>SSL</acronym> is covered in the
+     <ulink url="http://www.postgresql.org/docs/current/static/ssl-tcp.html">main documentation</ulink>,
+     so it will not be repeated here.  Before trying to access your
+     <acronym>SSL</acronym> enabled server from Java, make sure you
+     can get to it via <command>psql</command>.  You should see output
+     like the following if you have established a <acronym>SSL</acronym>
+     connnection.
+    </para>
+
+<programlisting>
+$ ./bin/psql -h localhost
+Welcome to psql 8.0.0rc5, the PostgreSQL interactive terminal.
+
+Type:  \copyright for distribution terms
+       \h for help with SQL commands
+       \? for help with psql commands
+       \g or terminate with semicolon to execute query
+       \q to quit
+
+SSL connection (cipher: DHE-RSA-AES256-SHA, bits: 256)
+
+jurka=# 
+</programlisting>
+   </sect1>
+
+   <sect1 id="ssl-client">
+    <title>Configuring the Client</title>
+
+    <para>
+     Unlike <application>psql</application> and other
+     <application>libpq</application> based programs the
+     <acronym>JDBC</acronym> driver does server certificate
+     validation by default.  This means that when establishing a
+     <acronym>SSL</acronym> connection the <acronym>JDBC</acronym>
+     driver will validate the server's identity preventing
+     "man in the middle" attacks.  It does this by checking that
+     the server certificate is signed by a trusted authority.  If
+     you have a certificate signed by a global certificate authority
+     (<acronym>CA</acronym>), there is nothing further to do
+     because Java comes with copies of the most common CA's certificates.
+     If you are dealing with a self-signed certificate though, you
+     need to make this available to the Java client to enable it
+     to validate the server's certificate.
+
+     <note>
+      <para>
+       Only the <acronym>JDBC</acronym> 3 driver supports
+       <acronym>SSL</acronym>.  The 1.4 <acronym>JDK</acronym>
+       was the first version to come bundled with <acronym>SSL</acronym>
+       support.  Previous <acronym>JDK</acronym> versions that wanted
+       to use <acronym>SSL</acronym> could make use of the additional
+       <acronym>JSSE</acronym> library, but it does not support the
+       full range of features utilized by the
+       <productname>PostgreSQL</productname> <acronym>JDBC</acronym>
+       driver.
+      </para>
+     </note>
+    </para>
+
+
+    <para>
+     To make the server certificate available to Java, the first step
+     is to convert it to a form Java understands.
+
+<programlisting>
+openssl x509 -in server.crt -out server.crt.der -outform der
+</programlisting>
+
+     From here the easiest thing to do is import this certificate into Java's
+     system truststore.
+
+<programlisting>
+keytool -keystore $JAVA_HOME/lib/security/cacerts -alias postgresql -import -file server.crt.der
+</programlisting>
+
+     The default password for the cacerts keystore is <literal>changeit</literal>.  The alias to postgesql is not important and you may select any name you desire.
+    </para>
+
+    <para>
+     If you do not have access to the system cacerts truststore you can create your own truststore.
+
+<programlisting>
+keytool -keystore mystore -alias postgresql -import -file server.crt.der 
+</programlisting>
+
+     When starting your Java application you must specify this keystore and
+     password to use.
+
+<programlisting>
+java -Djavax.net.ssl.trustStore=mystore -Djavax.net.ssl.trustStorePassword=mypassword com.mycompany.MyApp
+</programlisting>
+
+     In the event of problems extra debugging information is available
+     by adding <literal>-Djavax.net.debug=ssl</literal> to your command
+     line.
+    </para>
+
+    <para>
+     To instruct the <acronym>JDBC</acronym> driver to try and establish
+     a <acronym>SSL</acronym> connection you must add the connection
+     <acronym>URL</acronym> parameter <literal>ssl=true</literal>.
+    </para>
+
+    <sect2 id="nonvalidating">
+     <title>Using SSL without Certificate Validation</title>
+
+     <para>
+      In some situations it may not be possible to configure your Java
+      environment to make the server certificate available, for example
+      in an applet.  For a large scale deployment it would be best to
+      get a certificate signed by recognized certificate authority, but
+      that is not always an option.  The <acronym>JDBC</acronym> driver
+      provides an option to establish a <acronym>SSL</acronym> connection
+      without doing any validation, but please understand the risk
+      involved before enabling this option.
+     </para>
+
+     <para>
+      A non-validating connection is established via a custom
+      <classname>SSLSocketFactory</classname> class that is provided with
+      the driver.  Setting the connection <acronym>URL</acronym>
+      parameter
+      <literal>sslfactory=org.postgresql.ssl.NonValidatingFactory</literal>
+      will turn off all <acronym>SSL</acronym> validation.
+     </para>
+    </sect2>
+
+   </sect1>
+
+   <sect1 id="ssl-factory">
+    <title>Custom SSLSocketFactory</title>
+
+    <para>
+     <productname>PostgreSQL</productname> provides a way for developers
+     to customize how a <acronym>SSL</acronym> connection is established.
+     This may be used to provide a custom certificate source or other
+     extensions by allowing the developer to create their own
+     <classname>SSLContext</classname> instance.  The connection 
+     <acronym>URL</acronym> parameters
+     <literal>sslfactory</literal> and <literal>sslfactoryarg</literal>
+     allow the user to specify which custom class to use for creating
+     the <classname>SSLSocketFactory</classname>.  The class name specified
+     by <literal>sslfactory</literal> must extend
+     <classname>javax.net.ssl.SSLSocketFactory</classname> and be available
+     to the driver's classloader.  This class
+     must have a zero argument constructor or a single argument
+     constructor taking a <type>String</type> argument.  This argument
+     may optionally be supplied by <literal>sslfactoryarg</literal>.
+    </para>
+    
+    <para>
+     Information on how to actually implement such a class is beyond
+     the scope of this documentation.  Places to look for help are the
+     <ulink url="http://java.sun.com/j2se/1.4.2/docs/guide/security/jsse/JSSERefGuide.html">
+     <acronym>JSSE</acronym> Reference Guide</ulink> and the source to the
+     <classname>NonValidatingFactory</classname> provided by the
+     <acronym>JDBC</acronym> driver.
+    </para>
+
+    <para>
+     The Java <acronym>SSL</acronym> <acronym>API</acronym> is not very
+     well known to the <acronym>JDBC</acronym> driver developers and we
+     would be interested in any interesting and generally useful
+     extensions that you have implemented using this mechanism.
+     Specifically it would be nice to be able to provide client certificates
+     to be validated by the server.
+    </para>
+   </sect1>
 
  </chapter>
 
