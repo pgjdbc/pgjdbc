@@ -54,6 +54,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	private static final short IN_STRING = 1;
 	private static final short BACKSLASH = 2;
 	private static final short ESC_TIMEDATE = 3;
+    private static final short ESC_FUNCTION = 4;
+    private static final short ESC_OUTERJOIN = 5;
+
 
 	// Some performance caches
 	private StringBuffer sbuf = new StringBuffer(32);
@@ -108,7 +111,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
 	public abstract ResultSet createResultSet(Query originalQuery, Field[] fields, Vector tuples, ResultCursor cursor)
 		throws SQLException;
-	
+
 
 	public BaseConnection getPGConnection() {
 		return connection;
@@ -159,14 +162,14 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 		public void handleWarning(SQLWarning warning) {
 			AbstractJdbc2Statement.this.addWarning(warning);
 		}
-		
+
 		public void handleError(SQLException newError) {
 			if (error == null)
 				error = newError;
 			else
 				error.setNextException(newError);
 		}
-		
+
 		public void handleCompletion() throws SQLException {
 			if (error != null)
 				throw error;
@@ -202,7 +205,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	 * @exception SQLException if a database access error occurs
 	 */
 	public java.sql.ResultSet executeQuery() throws SQLException
-	{		
+	{
 		if (!executeWithFlags(0))
 			throw new PSQLException("postgresql.stat.noresult", PSQLState.NO_DATA);
 
@@ -665,6 +668,23 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 									i += (i + 2 < len && p_sql.charAt(i + 2) == 's') ? 2 : 1;
 									break;
 								}
+                                else if ( next == 'f')
+                                {
+                                    state = ESC_FUNCTION;
+                                    i +=
+                                        (i + 2 < len && p_sql.charAt(i + 2) == 'n') ?
+                                        2 : 1;
+                                    break;
+                                }
+                                else if ( next == 'o' )
+                                {
+                                    state = ESC_OUTERJOIN;
+                                    i +=
+                                        (i + 2 < len && p_sql.charAt(i + 2) == 'j') ?
+                                        2 : 1;
+                                    break;
+                                }
+
 							}
 						newsql.append(c);
 						break;
@@ -685,6 +705,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 						break;
 
 					case ESC_TIMEDATE:
+                    case ESC_FUNCTION:
+                    case ESC_OUTERJOIN:
 						if (c == '}')
 							state = IN_SQLCODE;		  // end of escape code.
 						else
@@ -1839,7 +1861,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
 		if (paramIndex == 1) // need to registerOut instead
 			throw new PSQLException ("postgresql.call.funcover");
-		
+
 		return paramIndex - 1;
 	}
 
@@ -1891,7 +1913,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
 		while (i < len && !syntaxError) {
 			char ch = p_sql.charAt(i);
-			
+
 			switch (state) {
 			case 1: // Looking for { at start of query
 				if (ch == '{') {
@@ -1904,7 +1926,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 					i = len;
 				}
 				break;
-				
+
 			case 2: // After {, looking for ? or =, skipping whitespace
 				if (ch == '?') {
 					isFunction = true;   // { ? = call ... }  -- function with one out parameter
@@ -1919,7 +1941,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 					syntaxError = true;
 				}
 				break;
-				
+
 			case 3: // Looking for = after ?, skipping whitespace
 				if (ch == '=') {
 					++i;
@@ -1930,7 +1952,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 					syntaxError = true;
 				}
 				break;
-				
+
 			case 4: // Looking for 'call' after '? =' skipping whitespace
 				if (ch == 'c' || ch == 'C') {
 					++state; // Don't increase 'i'.
@@ -1943,7 +1965,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
 			case 5: // Should be at 'call ' either at start of string or after ?=
 				if ((ch == 'c' || ch == 'C') && i+4 <= len && p_sql.substring(i, i+4).equalsIgnoreCase("call")) {
-					i += 4;					
+					i += 4;
 					++state;
 				} else if (Character.isWhitespace(ch)) {
 					++i;
@@ -2004,7 +2026,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 		}
 
 		// We can only legally end in a couple of states here.
-		if (i == len && !syntaxError) {			
+		if (i == len && !syntaxError) {
 			if (state == 1)
 				return p_sql; // Not an escaped syntax.
 			if (state != 8)
@@ -2066,21 +2088,21 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
 		if (newThreshold < 0)
 			newThreshold = 0;
-		
+
 		this.m_prepareThreshold = newThreshold;
 	}
-	
+
 	public int getPrepareThreshold() {
 		return m_prepareThreshold;
 	}
-	
+
 	public void setUseServerPrepare(boolean flag) throws SQLException {
 		setPrepareThreshold(flag ? 1 : 0);
 	}
-	
+
 	public boolean isUseServerPrepare() {
 		return (preparedQuery != null && m_prepareThreshold != 0 && m_useCount+1 >= m_prepareThreshold);
-	}       	
+	}
 
 	protected void checkClosed() throws SQLException
 	{
@@ -2257,7 +2279,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 				handleError(new SQLException("Too many update results were returned"));
 				return;
 			}
-			
+
 			updateCounts[resultIndex++] = updateCount;
 		}
 
@@ -2268,24 +2290,24 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 		public void handleError(SQLException newError) {
 			if (batchException == null) {
 				int[] successCounts;
-				
+
 				if (resultIndex >= updateCounts.length)
 					successCounts = updateCounts;
 				else {
 					successCounts = new int[resultIndex];
 					System.arraycopy(updateCounts, 0, successCounts, 0, resultIndex);
 				}
-				
+
 				String queryString = "<unknown>";
 				if (resultIndex <= queries.length)
 					queryString = queries[resultIndex].toString(parameterLists[resultIndex]);
-				
+
 				batchException = new PBatchUpdateException("postgresql.stat.batch.error",
-														   new Integer(resultIndex), 
+														   new Integer(resultIndex),
 														   queryString,
 														   successCounts);
 			}
-				
+
 			batchException.setNextException(newError);
 		}
 
@@ -2301,7 +2323,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
 		if (batchStatements == null || batchStatements.isEmpty())
 			return new int[0];
-		
+
 		int size = batchStatements.size();
 		int[] updateCounts = new int[size];
 
@@ -2573,7 +2595,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 			setDate(i, d);
 		else
 		{
-			cal = changeTime(d, cal, true);		
+			cal = changeTime(d, cal, true);
 			setDate(i, new java.sql.Date(cal.getTime().getTime()));
 		}
 	}
@@ -2653,7 +2675,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 			return getTime(i);
 		java.util.Date tmp = getTime(i);
 		if (tmp == null)
-			return null;			
+			return null;
 		cal = changeTime(tmp, cal, false);
 		return new java.sql.Time(cal.getTime().getTime());
 	}
@@ -2664,7 +2686,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 			return getTimestamp(i);
 		java.util.Date tmp = getTimestamp(i);
 		if (tmp == null)
-			return null;			
+			return null;
 		cal = changeTime(tmp, cal, false);
 		return new java.sql.Timestamp(cal.getTime().getTime());
 	}
@@ -2689,7 +2711,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 		cal.setTime(tmpDate);
 //		cal.setTimeInMillis(millis-caloffset);
 		tmpDate = null;
-		return cal;	
+		return cal;
 	}
 
 }

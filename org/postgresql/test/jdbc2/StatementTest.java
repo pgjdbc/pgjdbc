@@ -26,6 +26,8 @@ public class StatementTest extends TestCase
     con = TestUtil.openDB();
     TestUtil.createTempTable(con, "test_statement",
         "i int");
+    TestUtil.createTempTable(con, "escapetest",
+                             "ts timestamp, d date, t time");
   }
 
   protected void tearDown() throws Exception
@@ -78,5 +80,28 @@ public class StatementTest extends TestCase
 		count = stmt.executeUpdate("CREATE TEMP TABLE another_table (a int)");
 		assertEquals(0,count);
 	}
+    public void testEscapeProcessing() throws SQLException
+    {
+        Statement stmt = con.createStatement();
+        int count;
 
+        count = stmt.executeUpdate("insert into escapetest (ts) values ({ts '1900-01-01 00:00:00'})");
+        assertEquals(1,count);
+
+        count = stmt.executeUpdate("insert into escapetest (d) values ({d '1900-01-01'})");
+        assertEquals(1,count);
+
+        count = stmt.executeUpdate("insert into escapetest (t) values ({t '00:00:00'})");
+        assertEquals(1,count);
+
+
+        ResultSet rs = stmt.executeQuery( "select {fn 'version()'} as version" );
+        assertTrue(rs.next());
+
+        count= stmt.executeUpdate( "create temp table b (i int)" );
+        assertEquals(0,count);
+
+        rs = stmt.executeQuery( "select * from test_statement as a {oj left outer join b on (a.i=b.i)} ");
+        assertTrue(!rs.next());
+    }
 }
