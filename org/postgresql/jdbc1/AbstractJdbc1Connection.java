@@ -34,6 +34,7 @@ public abstract class AbstractJdbc1Connection implements org.postgresql.PGConnec
 	protected String PG_DATABASE;
 	protected boolean PG_STATUS;
 	protected String compatible;
+	protected boolean useSSL;
 
 	// The PID an cancellation key we get from the backend process
 	protected int pid;
@@ -100,7 +101,7 @@ public abstract class AbstractJdbc1Connection implements org.postgresql.PGConnec
 	 * @exception SQLException if a database access error occurs
 	 */
 	public void openConnection(String host, int port, Properties info, String database, String url, org.postgresql.Driver d) throws SQLException
-	{
+	  {
 		firstWarning = null;
 
 		// Throw an exception if the user or password properties are missing
@@ -120,6 +121,15 @@ public abstract class AbstractJdbc1Connection implements org.postgresql.PGConnec
 
 		PG_HOST = host;
 		PG_STATUS = CONNECTION_BAD;
+
+		if (info.getProperty("ssl") != null && this_driver.sslEnabled())
+		{
+			useSSL = true;
+		}
+		else
+		{
+			useSSL = false;
+		}
 
 		if (info.getProperty("compatible") == null)
 		{
@@ -156,6 +166,11 @@ public abstract class AbstractJdbc1Connection implements org.postgresql.PGConnec
 		//Print out the driver version number
 		if (org.postgresql.Driver.logInfo)
 			org.postgresql.Driver.info(org.postgresql.Driver.getVersion());
+		if (org.postgresql.Driver.logDebug) {
+			org.postgresql.Driver.debug("    ssl = " + useSSL);
+			org.postgresql.Driver.debug("    compatible = " + compatible);
+			org.postgresql.Driver.debug("    loglevel = " + l_logLevel);
+		}
 
 		// Now make the initial connection
 		try
@@ -173,6 +188,56 @@ public abstract class AbstractJdbc1Connection implements org.postgresql.PGConnec
 		{
 			throw new PSQLException ("postgresql.con.failed", e);
 		}
+
+		// Now we need to construct and send an ssl startup packet
+		try
+		{
+			if (useSSL) {
+				if (org.postgresql.Driver.logDebug)
+					org.postgresql.Driver.debug("Asking server if it supports ssl");
+				pg_stream.SendInteger(8,4);
+				pg_stream.SendInteger(80877103,4);
+
+				// now flush the ssl packets to the backend
+				pg_stream.flush();
+
+				// Now get the response from the backend, either an error message
+				// or an authentication request
+				int beresp = pg_stream.ReceiveChar();
+				if (org.postgresql.Driver.logDebug)
+					org.postgresql.Driver.debug("Server response was (S=Yes,N=No): "+(char)beresp);
+				switch (beresp)
+					{
+					case 'E':
+						// An error occured, so pass the error message to the
+						// user.
+						//
+						// The most common one to be thrown here is:
+						// "User authentication failed"
+						//
+						throw new PSQLException("postgresql.con.misc", pg_stream.ReceiveString(encoding));
+						
+					case 'N':
+						// Server does not support ssl
+						throw new PSQLException("postgresql.con.sslnotsupported");
+						
+					case 'S':
+						// Server supports ssl
+						if (org.postgresql.Driver.logDebug)
+							org.postgresql.Driver.debug("server does support ssl");
+						org.postgresql.Driver.makeSSL(pg_stream);
+						break;
+
+					default:
+						throw new PSQLException("postgresql.con.sslfail");
+					}
+			}
+		}
+		catch (IOException e)
+		{
+			throw new PSQLException("postgresql.con.failed", e);
+		}
+
 
 		// Now we need to construct and send a startup packet
 		try
