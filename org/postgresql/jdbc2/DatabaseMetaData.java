@@ -1973,8 +1973,6 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData
 		"order by" +
 		"    c.relname, a.attnum");
 
-	System.out.println(sql);
-
 	java.sql.ResultSet r = connection.ExecSQL(sql.toString());
 	while (r.next()) {
 		byte[][] tuple = new byte[18][0];
