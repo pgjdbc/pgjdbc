@@ -86,7 +86,7 @@ public class basic
     // This shows how to get the oid of a just inserted row
     // updated for 7.1
     st.executeUpdate("insert into basic values (4,1)");
-    int insertedOID = ((org.postgresql.jdbc2.Statement)st).getInsertedOID();
+    int insertedOID = ((org.postgresql.Statement)st).getInsertedOID();
     System.out.println("Inserted row with oid "+insertedOID);
 
     // Now change the value of b from 1 to 8
