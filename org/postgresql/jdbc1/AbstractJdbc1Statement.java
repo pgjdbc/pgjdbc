@@ -763,10 +763,7 @@ public abstract class AbstractJdbc1Statement implements org.postgresql.PGStateme
 	 */
 	public void setShort(int parameterIndex, short x) throws SQLException
 	{
-		//Note this should be fixed
-		//as soon as the backend correctly supports int8 type
-		//comparisons
-		bind(parameterIndex, "'" + Integer.toString(x) + "'", PG_INT2);
+		bind(parameterIndex, Integer.toString(x), PG_INT2);
 	}
 
 	/*
@@ -792,10 +789,7 @@ public abstract class AbstractJdbc1Statement implements org.postgresql.PGStateme
 	 */
 	public void setLong(int parameterIndex, long x) throws SQLException
 	{
-		//Note this should be fixed
-		//as soon as the backend correctly supports int8 type
-		//comparisons
-		bind(parameterIndex, "'" + Long.toString(x) + "'", PG_INT8);
+		bind(parameterIndex, Long.toString(x), PG_INT8);
 	}
 
 	/*
@@ -808,10 +802,7 @@ public abstract class AbstractJdbc1Statement implements org.postgresql.PGStateme
 	 */
 	public void setFloat(int parameterIndex, float x) throws SQLException
 	{
-		//Note this should be fixed
-		//as soon as the backend correctly supports int8 type
-		//comparisons
-		bind(parameterIndex, "'" + Float.toString(x) + "'", PG_FLOAT);
+		bind(parameterIndex, Float.toString(x), PG_FLOAT);
 	}
 
 	/*
@@ -824,10 +815,7 @@ public abstract class AbstractJdbc1Statement implements org.postgresql.PGStateme
 	 */
 	public void setDouble(int parameterIndex, double x) throws SQLException
 	{
-		//Note this should be fixed
-		//as soon as the backend correctly supports int8 type
-		//comparisons
-		bind(parameterIndex, "'" + Double.toString(x) + "'", PG_DOUBLE);
+		bind(parameterIndex, Double.toString(x), PG_DOUBLE);
 	}
 
 	/*
@@ -845,10 +833,7 @@ public abstract class AbstractJdbc1Statement implements org.postgresql.PGStateme
 			setNull(parameterIndex, Types.OTHER);
 		else
 		{
-			//Note this should be fixed
-			//as soon as the backend correctly supports int8 type
-			//comparisons
-			bind(parameterIndex, "'" + x.toString() + "'", PG_NUMERIC);
+			bind(parameterIndex, x.toString(), PG_NUMERIC);
 		}
 	}
 
@@ -1322,10 +1307,7 @@ public abstract class AbstractJdbc1Statement implements org.postgresql.PGStateme
 				if (x instanceof Boolean)
 					bind(parameterIndex, ((Boolean)x).booleanValue() ? "1" : "0", PG_BOOLEAN);
 				else
-					//Note this should be fixed
-					//as soon as the backend correctly supports int8 type
-					//comparisons
-					bind(parameterIndex, "'" + x.toString() + "'", PG_NUMERIC);
+					bind(parameterIndex, x.toString(), PG_NUMERIC);
 				break;
 			case Types.CHAR:
 			case Types.VARCHAR:
