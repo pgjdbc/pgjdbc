@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.57 2004/11/10 20:31:05 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.58 2004/12/11 03:31:36 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -76,14 +76,26 @@ public class Driver implements java.sql.Driver
 
         Properties merged = new Properties();
 
-        Enumeration urls = getClass().getClassLoader().getResources("/org/postgresql/driverconfig.properties");
-        while (urls.hasMoreElements())
+        // When loading the driver config files we don't want settings found
+        // in later files in the classpath to override settings specified in
+        // earlier files.  To do this we've got to read the returned
+        // Enumeration into temporary storage.
+        ArrayList urls = new ArrayList();
+        Enumeration urlEnum = getClass().getClassLoader().getResources("org/postgresql/driverconfig.properties");
+        while (urlEnum.hasMoreElements())
         {
-            URL url = (URL)urls.nextElement();
+            urls.add(urlEnum.nextElement());
+        }
+
+        for (int i=urls.size()-1; i>=0; i--) {
+            URL url = (URL)urls.get(i);
+            if (Driver.logDebug)
+                Driver.debug("Loading driver configuration from: " + url);
             InputStream is = url.openStream();
             merged.load(is);
             is.close();
         }
+
 
         defaultProperties = merged;
         return defaultProperties;
