@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.68.2.1 2005/02/15 08:32:16 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.68.2.2 2005/02/15 08:55:50 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2845,7 +2845,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (millis == PGStatement.DATE_POSITIVE_INFINITY ||
             millis == PGStatement.DATE_NEGATIVE_INFINITY)
         {
-            cal.setTimeInMillis(millis);
+            cal.setTime(t);
             return cal;
         }
 
