@@ -22,7 +22,7 @@ public abstract class Connection
   public PG_Stream pg_stream;
 
   // This is set by org.postgresql.Statement.setMaxRows()
-  public int maxrows = 0;		// maximum no. of rows; 0 = unlimited
+  //public int maxrows = 0;		// maximum no. of rows; 0 = unlimited
 
   private String PG_HOST;
   private int PG_PORT;
@@ -414,6 +414,11 @@ public abstract class Connection
      */
     public java.sql.ResultSet ExecSQL(String sql,java.sql.Statement stat) throws SQLException
     {
+      // added Jan 30 2001 to correct maxrows per statement
+      int maxrows=0;
+      if(stat!=null)
+        maxrows=stat.getMaxRows();
+
 	// added Oct 7 1998 to give us thread safety.
 	synchronized(pg_stream) {
  	    // Deallocate all resources in the stream associated

@@ -265,7 +265,27 @@ public class Connection extends org.postgresql.Connection implements java.sql.Co
    */
   public boolean isClosed() throws SQLException
   {
-    return (pg_stream == null);
+    // If the stream is gone, then close() was called
+    if(pg_stream == null)
+      return true;
+
+    // ok, test the connection
+    try {
+      // by sending an empty query. If we are dead, then an SQLException should
+      // be thrown
+      java.sql.ResultSet rs = ExecSQL(" ");
+      if(rs!=null)
+        rs.close();
+
+      // By now, we must be alive
+      return false;
+    } catch(SQLException se) {
+      // Why throw an SQLException as this may fail without throwing one,
+      // ie isClosed() is called incase the connection has died, and we don't
+      // want to find out by an Exception, so instead we return true, as its
+      // most likely why it was thrown in the first place.
+      return true;
+    }
   }
 
   /**
