@@ -59,6 +59,11 @@ public class QueryExecutor
 
 		StringBuffer errorMessage = null;
 
+		if (pg_stream == null) 
+		{
+			throw new PSQLException("postgresql.con.closed");
+		}
+
 		synchronized (pg_stream)
 		{
 
