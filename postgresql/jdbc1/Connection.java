@@ -96,7 +96,7 @@ public class Connection extends postgresql.Connection implements java.sql.Connec
    */
   public java.sql.CallableStatement prepareCall(String sql) throws SQLException
   {
-    throw new SQLException("Callable Statements are not supported at this time");
+    throw new PSQLException("postgresql.con.call");
     //		return new CallableStatement(this, sql);
   }
   
@@ -311,7 +311,7 @@ public class Connection extends postgresql.Connection implements java.sql.Connec
    */
   public void setTransactionIsolation(int level) throws SQLException
   {
-    throw new SQLException("Transaction Isolation Levels are not implemented");
+    throw postgresql.Driver.notImplemented();
   }
   
   /**
