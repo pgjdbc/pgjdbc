@@ -31,16 +31,9 @@ public class ConnectionPoolTest extends BaseDataSourceTest
 		if (bds == null)
 		{
 			bds = new ConnectionPool();
-			String db = TestUtil.getURL();
-			if (db.indexOf('/') > -1)
-			{
-				db = db.substring(db.lastIndexOf('/') + 1);
-			}
-			else if (db.indexOf(':') > -1)
-			{
-				db = db.substring(db.lastIndexOf(':') + 1);
-			}
-			bds.setDatabaseName(db);
+			bds.setServerName(TestUtil.getServer());
+			bds.setPortNumber(TestUtil.getPort());
+			bds.setDatabaseName(TestUtil.getDatabase());
 			bds.setUser(TestUtil.getUser());
 			bds.setPassword(TestUtil.getPassword());
 		}

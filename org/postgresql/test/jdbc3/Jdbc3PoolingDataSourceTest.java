@@ -42,15 +42,9 @@ public class Jdbc3PoolingDataSourceTest extends PoolingDataSourceTest
     private void configureDataSource(PoolingDataSource source)
     {
         String db = TestUtil.getURL();
-        if (db.indexOf('/') > -1)
-        {
-            db = db.substring(db.lastIndexOf('/') + 1);
-        }
-        else if (db.indexOf(':') > -1)
-        {
-            db = db.substring(db.lastIndexOf(':') + 1);
-        }
-        source.setDatabaseName(db);
+        source.setServerName(TestUtil.getServer());
+        source.setPortNumber(TestUtil.getPort());
+        source.setDatabaseName(TestUtil.getDatabase());
         source.setUser(TestUtil.getUser());
         source.setPassword(TestUtil.getPassword());
         source.setDataSourceName(DS_NAME);
