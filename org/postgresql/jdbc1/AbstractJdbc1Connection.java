@@ -1255,12 +1255,12 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 		{
 			if (haveMinimumServerVersion("7.1"))
 			{
-				execSQL("begin;" + getIsolationLevelSQL());
+				execSQL("begin;");
 			}
 			else
 			{
 				execSQL("begin");
-				execSQL(getIsolationLevelSQL());
+				execSQL(getPre71IsolationLevelSQL(isolationLevel));
 			}
 		}
 		this.autoCommit = autoCommit;
@@ -1294,13 +1294,13 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 		//TODO: delay starting new transaction until first command
 		if (haveMinimumServerVersion("7.1"))
 		{
-			execSQL("commit;begin;" + getIsolationLevelSQL());
+			execSQL("commit;begin;");
 		}
 		else
 		{
 			execSQL("commit");
 			execSQL("begin");
-			execSQL(getIsolationLevelSQL());
+			execSQL(getPre71IsolationLevelSQL(isolationLevel));
 		}
 	}
 
@@ -1319,13 +1319,13 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 		//TODO: delay starting transaction until first command
 		if (haveMinimumServerVersion("7.1"))
 		{
-			execSQL("rollback; begin;" + getIsolationLevelSQL());
+			execSQL("rollback; begin;");
 		}
 		else
 		{
 			execSQL("rollback");
 			execSQL("begin");
-			execSQL(getIsolationLevelSQL());
+			execSQL(getPre71IsolationLevelSQL(isolationLevel));
 		}
 	}
 
@@ -1391,30 +1391,34 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 		//each transaction, thus adding complexity below.
 		//When we decide to drop support for servers older than 7.1
 		//this can be simplified
-		isolationLevel = level;
 		String isolationLevelSQL;
 
 		if (!haveMinimumServerVersion("7.1"))
 		{
-			isolationLevelSQL = getIsolationLevelSQL();
+			isolationLevelSQL = getPre71IsolationLevelSQL(level);
 		}
 		else
 		{
-			isolationLevelSQL = "SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL ";
-			switch (isolationLevel)
-			{
-				case Connection.TRANSACTION_READ_COMMITTED:
-					isolationLevelSQL += "READ COMMITTED";
-					break;
-				case Connection.TRANSACTION_SERIALIZABLE:
-					isolationLevelSQL += "SERIALIZABLE";
-					break;
-				default:
-					throw new PSQLException("postgresql.con.isolevel", PSQLState.TRANSACTION_STATE_INVALID,
-											new Integer(isolationLevel));
-			}
+			isolationLevelSQL = "SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL " + getIsolationLevelName(level);
 		}
 		execSQL(isolationLevelSQL);
+		isolationLevel = level;
+	}
+
+	protected String getIsolationLevelName(int level) throws SQLException
+	{
+		boolean pg75 = haveMinimumServerVersion("7.5");
+
+		if (level == Connection.TRANSACTION_READ_COMMITTED) {
+			return " READ COMMITTED";
+		} else if (level == Connection.TRANSACTION_SERIALIZABLE) {
+			return " SERIALIZABLE";
+		} else if (pg75 && level == Connection.TRANSACTION_READ_UNCOMMITTED) {
+			return " READ UNCOMMITTED";
+		} else if (pg75 && level == Connection.TRANSACTION_REPEATABLE_READ) {
+			return " REPEATABLE READ";
+		}
+		throw new PSQLException("postgresql.con.isolevel", PSQLState.TRANSACTION_STATE_INVALID, new Integer(level));
 	}
 
 	/*
@@ -1426,30 +1430,9 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 	 * servers, and should be removed when support for these older
 	 * servers are dropped
 	 */
-	protected String getIsolationLevelSQL() throws SQLException
+	protected String getPre71IsolationLevelSQL(int level) throws SQLException
 	{
-		//7.1 and higher servers have a default specified so
-		//no additional SQL is required to set the isolation level
-		if (haveMinimumServerVersion("7.1"))
-		{
-			return "";
-		}
-		StringBuffer sb = new StringBuffer("SET TRANSACTION ISOLATION LEVEL");
-
-		switch (isolationLevel)
-		{
-			case Connection.TRANSACTION_READ_COMMITTED:
-				sb.append(" READ COMMITTED");
-				break;
-
-			case Connection.TRANSACTION_SERIALIZABLE:
-				sb.append(" SERIALIZABLE");
-				break;
-
-			default:
-				throw new PSQLException("postgresql.con.isolevel", PSQLState.TRANSACTION_STATE_INVALID, new Integer(isolationLevel));
-		}
-		return sb.toString();
+		return "SET TRANSACTION ISOLATION LEVEL " + getIsolationLevelName(level);
 	}
 
 	/*
