@@ -1313,6 +1313,14 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 				//we need to include the local time and timezone offset
 				//so that timestamp without time zone works correctly
 				int l_year = x.getYear() + 1900;
+
+				// always use four digits for the year so very
+				// early years, like 2, don't get misinterpreted
+				int l_yearlen = String.valueOf(l_year).length();
+				for (int i=4; i>l_yearlen; i--) {
+					sbuf.append("0");
+				}
+
 				sbuf.append(l_year);
 				sbuf.append('-');
 				int l_month = x.getMonth() + 1;
