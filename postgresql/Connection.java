@@ -321,6 +321,7 @@ public abstract class Connection
 	    int fqp = 0;
 	    boolean hfr = false;
 	    String recv_status = null, msg;
+		int update_count = 1;
 	    SQLException final_error = null;
 	    
 	    if (sql.length() > 8192)
@@ -358,6 +359,15 @@ public abstract class Connection
 			    break;
 			case 'C':	// Command Status
 			    recv_status = pg_stream.ReceiveString(8192);
+				
+				// Now handle the update count correctly.
+				if(recv_status.startsWith("INSERT") || recv_status.startsWith("UPDATE")) {
+					try {
+						update_count = Integer.parseInt(recv_status.substring(1+recv_status.lastIndexOf(' ')));
+					} catch(NumberFormatException nfe) {
+						throw new SQLException("Unable to fathom update count \""+recv_status+"\"");
+					}
+				}
 			    if (fields != null)
 				hfr = true;
 			    else
@@ -414,8 +424,8 @@ public abstract class Connection
 		}
 	    if (final_error != null)
 		throw final_error;
-	    return getResultSet(this, fields, tuples, recv_status, 1);
-	    //return new ResultSet(this, fields, tuples, recv_status, 1);
+		
+	    return getResultSet(this, fields, tuples, recv_status, update_count);
 	}
     }
 
