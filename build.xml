@@ -375,9 +375,9 @@
   <target name="test" depends="testjar,runtest"/>
 
   <!-- Build public javadoc -->
-  <target name="javadoc" depends="compile">
-    <mkdir dir="${builddir}/javadoc" />
-    <javadoc destdir="${builddir}/javadoc">
+  <target name="publicapi" depends="compile">
+    <mkdir dir="${builddir}/publicapi" />
+    <javadoc destdir="${builddir}/publicapi">
       <classpath>
         <pathelement path="${builddir}" />
         <pathelement path="${java.class.path}" />
@@ -395,8 +395,8 @@
   </target>
 
   <!-- Build driver-internal javadoc. NB: needs Ant 1.6 & JDK 1.4 for 'breakiterator'. -->
-  <target name="internal-javadoc" depends="compile">
-    <javadoc destdir="${builddir}/internal-javadoc" breakiterator="yes">
+  <target name="privateapi" depends="compile">
+    <javadoc destdir="${builddir}/privateapi" breakiterator="yes">
       <classpath>
         <pathelement path="${builddir}" />
         <pathelement path="${java.class.path}" />
@@ -404,6 +404,8 @@
       <fileset dir="${package}">
         <include name="**/*.java"/>
 	<exclude name="jdbc2/Jdbc2*.java" unless="jdbc2" />
+	<exclude name="jdbc3/Jdbc3*.java" unless="jdbc3" />
+	<exclude name="jdbc3g/Jdbc3g*.java" unless="jdbc3g" />
         <exclude name="test/**/*.java"/>
       </fileset>
     </javadoc>
