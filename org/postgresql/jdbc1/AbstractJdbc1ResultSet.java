@@ -201,7 +201,11 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 					case Types.DOUBLE:
 					case Types.FLOAT:
 					case Types.DECIMAL:
-						s = (s.indexOf(".")==-1) ? s : s.substring(0,s.indexOf("."));
+						int loc = s.indexOf(".");
+						if (loc!=-1 && Integer.parseInt(s.substring(loc+1,s.length()))==0)
+						{
+							s = s.substring(0,loc);
+						}
 						break;
 					case Types.CHAR:
 						s = s.trim();
@@ -232,7 +236,11 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 					case Types.DOUBLE:
 					case Types.FLOAT:
 					case Types.DECIMAL:
-						s = (s.indexOf(".")==-1) ? s : s.substring(0,s.indexOf("."));
+						int loc = s.indexOf(".");
+						if (loc!=-1 && Integer.parseInt(s.substring(loc+1,s.length()))==0)
+						{
+							s = s.substring(0,loc);
+						}
 						break;
 					case Types.CHAR:
 						s = s.trim();
