@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!--
   Copyright (c) 2004, PostgreSQL Global Development Group
-  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.12 2004/11/07 22:15:27 jurka Exp $
+  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.13 2005/01/11 03:28:13 jurka Exp $
 -->
 
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN" "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">
@@ -9,7 +9,7 @@
 <book id="jdbc">
  <title>The <productname>PostgreSQL</productname> <acronym>JDBC</acronym> Interface</title>
 
- <chapter id="jdbc-intro">
+ <chapter id="intro">
   <title>Introduction</title>
 
   <para>
@@ -36,7 +36,7 @@
   </para>
  </chapter>
 
- <chapter id="jdbc-setup">
+ <chapter id="setup">
   <title>Setting up the <acronym>JDBC</acronym> Driver</title>
 
   <para>
@@ -44,7 +44,7 @@
    write or run programs that use the <acronym>JDBC</acronym> interface.
   </para>
 
-  <sect1 id="jdbc-build">
+  <sect1 id="build">
    <title>Getting the Driver</title>
 
    <para>
@@ -80,24 +80,24 @@ JAVACMD=$JAVA_HOME/bin/java
 
    <para>
     To compile the driver simply run <command>ant</command> in the top level
-    directory.  The compiled driver will be placed in a <filename>jars/postgresql.jar</filename>.
+    directory.  The compiled driver will be placed in <filename>jars/postgresql.jar</filename>.
     The resulting driver will be built for the version of Java you are
     running.  If you build with a 1.2 or 1.3
     <acronym>JDK</acronym> you will build a version that supports the
     <acronym>JDBC</acronym> 2 specification, and finally if you build
-    with a 1.4 or 1.5 <acronym>JDK</acronym> you will build a version that
+    with a 1.4 or 5.0 <acronym>JDK</acronym> you will build a version that
     supports the <acronym>JDBC</acronym> 3 specification.
    </para>
   </sect1>
 
-  <sect1 id="jdbc-classpath">
+  <sect1 id="classpath">
    <title>Setting up the Class Path</title>
 
-   <indexterm zone="jdbc-classpath">
+   <indexterm zone="classpath">
     <primary>class path</primary>
    </indexterm>
 
-   <indexterm zone="jdbc-classpath">
+   <indexterm zone="classpath">
     <primary>CLASSPATH</primary>
    </indexterm>
 
@@ -128,36 +128,64 @@ java MyApp
 
     <para>
      Loading the driver from within the application is covered in
-     <xref linkend="jdbc-use"/>.
+     <xref linkend="use"/>.
     </para>
   </sect1>
 
-  <sect1 id="jdbc-prepare">
+  <sect1 id="prepare">
    <title>Preparing the Database Server for <acronym>JDBC</acronym></title>
 
    <para>
-    Because Java only uses TCP/IP connections, the
+    Because Java does not support using unix sockets the
     <productname>PostgreSQL</productname> server must be configured to
-    accept TCP/IP connections.  This can be done by setting
-    <literal>tcpip_socket = true</literal> in the
-    <filename>postgresql.conf</filename> file or by supplying the
-    <option>-i</option> option flag when starting
-    <command>postmaster</command>.
+    allow <acronym>TCP/IP</acronym> connections.  Starting with server
+    version 8.0 <acronym>TCP/IP</acronym> connections are allowed from
+    <literal>localhost</literal>.  To allow connections to other interfaces
+    than the loopback interface, you must modify the
+    <filename>postgresql.conf</filename> file's
+    <literal>listen_addresses</literal> setting.
    </para>
 
    <para>
-    Also, the client authentication setup in the
-    <filename>pg_hba.conf</filename> file may need to be configured.
-    Refer to the <productname>PostgreSQL</productname> documentation for
+    For server versions prior to 8.0 the server does not listen on any
+    interface by default, and you must set
+    <literal>tcpip_socket = true</literal> in the
+    <filename>postgresql.conf</filename> file.
+   </para>
+
+   <para>
+    Once you have made sure the server is correctly listening for
+    <acronym>TCP/IP</acronym> connections the next step is to verify
+    that users are allowed to connect to the server.  Client authentication
+    is setup in <filename>pg_hba.conf</filename>.
+    Refer to the main <productname>PostgreSQL</productname> documentation for
     details.  The <acronym>JDBC</acronym> driver supports the
     <literal>trust</literal>, <literal>ident</literal>,
     <literal>password</literal>, <literal>md5</literal>, and
     <literal>crypt</literal> authentication methods.
    </para>
   </sect1>
+
+  <sect1 id="your-database">
+   <title>Creating a Database</title>
+
+   <para>
+    When creating a database to be accessed via <acronym>JDBC</acronym>
+    it is important to select an appropriate encoding for your data.  Many
+    other client interfaces do not care what data you send back and forth,
+    and will allow you to do inappropriate things, but Java makes sure that
+    your data is correctly encoded.  Do not use a database that uses the
+    <literal>SQL_ASCII</literal> encoding.  This is not a real
+    encoding and you will have problems the moment you store data in it that
+    does not fit in the seven bit <acronym>ASCII</acronym> character set.
+    If you do not know what your encoding will be or are otherwise unsure
+    about what you will be storing the <literal>UNICODE</literal> encoding
+    is a reasonable default to use.
+   </para>
+  </sect1>
  </chapter>
 
- <chapter id="jdbc-use">
+ <chapter id="use">
   <title>Initializing the Driver</title>
 
   <para>
@@ -165,7 +193,7 @@ java MyApp
    driver in your programs.
   </para>
 
-  <sect1 id="jdbc-import">
+  <sect1 id="import">
    <title>Importing <acronym>JDBC</acronym></title>
 
    <para>
@@ -186,7 +214,7 @@ import java.sql.*;
     </note>
   </sect1>
 
-  <sect1 id="jdbc-load">
+  <sect1 id="load">
    <title>Loading the Driver</title>
 
    <para>
@@ -252,7 +280,7 @@ java -Djdbc.drivers=org.postgresql.Driver example.ImageViewer
    </para>
   </sect1>
 
-  <sect1 id="jdbc-connect">
+  <sect1 id="connect">
    <title>Connecting to the Database</title>
 
    <para>
@@ -418,7 +446,7 @@ Connection conn = DriverManager.getConnection(url);
         </para>
         <para>
          Information on binary data handling is detailed in
-         <xref linkend="jdbc-binary-data" />.  To force the use of
+         <xref linkend="binary-data" />.  To force the use of
          Large Objects set the compatible property to 7.1.
         </para>
        </listitem>
@@ -492,32 +520,21 @@ Connection conn = DriverManager.getConnection(url);
 
   </sect1>
 
-  <sect1 id="jdbc-disconnect">
-   <title>Closing the Connection</title>
-
-   <para>
-    To close the database connection, simply call the
-    <function>close()</function> method to the <classname>Connection</classname>:
-<programlisting>
-db.close();
-</programlisting>
-   </para>
-  </sect1>
  </chapter>
 
 
-  <chapter id="jdbc-query">
+  <chapter id="query">
    <title>Issuing a Query and Processing the Result</title>
 
-   <indexterm zone="jdbc-query">
+   <indexterm zone="query">
     <primary>Statement</primary>
    </indexterm>
 
-   <indexterm zone="jdbc-query">
+   <indexterm zone="query">
     <primary>PreparedStatement</primary>
    </indexterm>
 
-   <indexterm zone="jdbc-query">
+   <indexterm zone="query">
     <primary>ResultSet</primary>
    </indexterm>
 
@@ -528,19 +545,19 @@ db.close();
     a <classname>Statement</classname> or 
     <classname>PreparedStatement</classname>, you can use issue a
     query. This will return a <classname>ResultSet</classname>
-    instance, which contains the entire result (see <xref linkend="jdbc-query-with-cursor"/>
+    instance, which contains the entire result (see <xref linkend="query-with-cursor"/>
     here for how to alter this behaviour).
-    <xref linkend="jdbc-query-example"/> illustrates this process.
+    <xref linkend="query-example"/> illustrates this process.
    </para>
 
-   <example id="jdbc-query-example">
+   <example id="query-example">
     <title>Processing a Simple Query in <acronym>JDBC</acronym></title>
 
     <para>
      This example will issue a simple query and print out the first
      column of each row using a <classname>Statement</classname>.
 <programlisting>
-Statement st = db.createStatement();
+Statement st = conn.createStatement();
 ResultSet rs = st.executeQuery("SELECT * FROM mytable WHERE columnfoo = 500");
 while (rs.next()) {
     System.out.print("Column 1 returned ");
@@ -557,7 +574,7 @@ st.close();
      and a bind value in the query.
 <programlisting>
 int foovalue = 500;
-PreparedStatement st = db.prepareStatement("SELECT * FROM mytable WHERE columnfoo = ?");
+PreparedStatement st = conn.prepareStatement("SELECT * FROM mytable WHERE columnfoo = ?");
 st.setInt(1, foovalue);
 ResultSet rs = st.executeQuery();
 while (rs.next()) {
@@ -570,7 +587,7 @@ st.close();
     </para>
    </example>
 
-   <sect1 id="jdbc-query-with-cursor">
+   <sect1 id="query-with-cursor">
      <title>Getting results based on a cursor</title>
 
      <para>By default the driver collects all the results for the
@@ -626,7 +643,7 @@ st.close();
       </para>
      </note>
 
-     <example>
+     <example id="fetchsize-example">
        <title>Setting fetch size to turn cursors on and off.</title>
 
      <para>Changing code to cursor mode is as simple as setting the
@@ -636,8 +653,8 @@ st.close();
 
 <programlisting>
 // make sure autocommit is off
-db.setAutoCommit(false);
-Statement st = db.createStatement();
+conn.setAutoCommit(false);
+Statement st = conn.createStatement();
 
 // Turn use of the cursor on.
 st.setFetchSize(50);
@@ -695,7 +712,7 @@ st.close();
        <para>
         If you are using threads, and several are using the database,
         you must use a separate <classname>Statement</classname> for
-        each thread. Refer to <xref linkend="jdbc-thread"/> if you are
+        each thread. Refer to <xref linkend="thread"/> if you are
         thinking of using threads, as it covers some important points.
        </para>
       </listitem>
@@ -730,16 +747,6 @@ st.close();
 
       <listitem>
        <para>
-        Under the <acronym>JDBC</acronym> specification, you should
-        access a field only once. It is safest to stick to this rule,
-        although at the current time, the
-        <productname>PostgreSQL</productname> driver will allow you to
-        access a field as many times as you want.
-       </para>
-      </listitem>
-
-      <listitem>
-       <para>
         You must close a <classname>ResultSet</classname> by calling
         <function>close()</function> once you have finished using it.
        </para>
@@ -760,29 +767,29 @@ st.close();
    </sect1>
   </chapter>
 
-  <chapter id="jdbc-update">
+  <chapter id="update">
    <title>Performing Updates</title>
 
    <para>
-    To change data (perform an <command>INSERT</command>,
-    <command>UPDATE</command>, or <command>DELETE</command>) you use
+    To change data (perform an <literal>INSERT</literal>,
+    <literal>UPDATE</literal>, or <literal>DELETE</literal>) you use
     the <function>executeUpdate()</function> method.  This method is
     similar to the method <function>executeQuery()</function> used to
-    issue a <command>SELECT</command> statement, but it doesn't return
+    issue a <literal>SELECT</literal> statement, but it doesn't return
     a <classname>ResultSet</classname>; instead it returns the number
-    of rows affected by the <command>INSERT</command>,
-    <command>UPDATE</command>, or <command>DELETE</command> statement.
-    <xref linkend="jdbc-delete-example"/> illustrates the usage.
+    of rows affected by the <literal>INSERT</literal>,
+    <literal>UPDATE</literal>, or <literal>DELETE</literal> statement.
+    <xref linkend="delete-example"/> illustrates the usage.
    </para>
 
-  <example id="jdbc-delete-example">
+  <example id="delete-example">
    <title>Deleting Rows in <acronym>JDBC</acronym></title>
    <para>
-     This example will issue a simple <command>DELETE</command>
+     This example will issue a simple <literal>DELETE</literal>
      statement and print out the number of rows deleted.
 <programlisting>
 int foovalue = 500;
-PreparedStatement st = db.prepareStatement("DELETE FROM mytable WHERE columnfoo = ?");
+PreparedStatement st = conn.prepareStatement("DELETE FROM mytable WHERE columnfoo = ?");
 st.setInt(1, foovalue);
 int rowsDeleted = st.executeUpdate();
 System.out.println(rowsDeleted + " rows deleted");
@@ -793,23 +800,35 @@ st.close();
   </chapter>
 
 
-  <chapter id="jdbc-callproc">
+  <chapter id="callproc">
     <title>Calling Stored Functions</title>
 
     <para><productname>PostgreSQL's</productname> <acronym>JDBC</acronym>
       driver fully supports calling <productname>PostgreSQL</productname>
-      storedfunctions.</para>
+      stored functions.
+    
+      <note>
+       <para>
+        The <classname>CallableStatement</classname> support is only as good as
+        the backend support for stored procedures.
+        <productname>PostgreSQL</productname> does not support functions that
+        have output parameters.  This means you may not use
+        <function>registerOutParameter</function> for anything other than the
+        function's return value.
+       </para>
+      </note>
+    </para>
 
-    <example id="jdbc-call-function">
+    <example id="call-function-example">
       <title>Calling a built in stored function</title>
 
       <para>This example shows how to call
 	a <productname>PostgreSQL</productname> built in
-	function, <command>upper</command>, which simply converts the
+	function, <function>upper</function>, which simply converts the
 	supplied string argument to uppercase.
 
 <programlisting>
-CallableStatement upperProc = con.prepareCall("{ ? = call upper( ? ) }");
+CallableStatement upperProc = conn.prepareCall("{ ? = call upper( ? ) }");
 upperProc.registerOutParameter(1, Types.VARCHAR);
 upperProc.setString(2, "lowercase to uppercase");
 upperProc.execute();
@@ -819,58 +838,114 @@ upperProc.close();
       </para>
     </example>
 
-    <sect1>
-      <title>Using the <classname>CallableStatement</classname> Interface</title>
-
-      <para>
-	All the considerations that apply
-	for <classname>Statement</classname>
-	and <classname>PreparedStatement</classname> apply
-	for <classname>CallableStatement</classname> but in addition
-	you must also consider one extra restriction:
+    <sect1 id="callproc-resultset">
+      <title>Obtaining a <classname>ResultSet</classname> from a stored function</title>
+     
+      <para><productname>PostgreSQL's</productname> stored functions
+	can return results in two different ways.  The function may return
+	either a <type>refcursor</type> value or a <literal>SETOF</literal>
+	some datatype.  Depending on which of these return methods are used
+	determines how the function should be called.
       </para>
 
-      <itemizedlist>
-	<listitem>
-	  <para>You can only call a stored function from within a
-	    transaction.</para>
-	</listitem>
-      </itemizedlist>
+      <sect2 id="callproc-resultset-setof">
+       <title>From a Function Returing <literal>SETOF</literal> type</title>
 
-    </sect1>
+       <para>
+        Functions that return data as a set should not be called via the
+	<classname>CallableStatement</classname> interface, but instead should
+	use the normal <classname>Statement</classname> or
+	<classname>PreparedStatement</classname> interfaces.
+       </para>
 
-    <sect1>
-      <title>Obtaining <classname>ResultSet</classname> from a stored function</title>
-     
-      <para><productname>PostgreSQL's</productname> stored function
-	can return results by means of a <type>refcursor</type>
-	value. A <type>refcursor</type>.</para>
-
-      <para>As an extension to <acronym>JDBC</acronym>,
-	the <productname>PostgreSQL</productname> <acronym>JDBC</acronym>
-	driver can return <type>refcursor</type> values
-	as <classname>ResultSet</classname> values.</para>
-
-      <example id="get-refcursor-from-function-call">
-	<title>Getting <type>refcursor</type> values from a
-	function</title>
-
-	<para>When calling a function that returns
-	  a <type>refcursor</type> you must cast the return type
-	  of <function>getObject</function> to
-	  a <classname>ResultSet</classname></para>
+       <example id="setof-resultset">
+        <title>
+	 Getting <literal>SETOF</literal> type values from a function
+	</title>
 
 <programlisting>
-// Turn transactions off.
-con.setAutoCommit(false);
+Statement stmt = conn.createStatement();
+stmt.execute("CREATE OR REPLACE FUNCTION setoffunc() RETURNS SETOF int AS "
+		+ "' SELECT 1 UNION SELECT 2;' LANGUAGE sql");
+ResultSet rs = stmt.executeQuery("SELECT * FROM setoffunc()");
+while (rs.next()) {
+    // do something
+}
+rs.close();
+stmt.close();
+</programlisting>
+
+       </example>
+      </sect2>
+
+      <sect2 id="callproc-resultset-refcursor">
+       <title>From a Function Returing a <type>refcursor</type></title>
+
+       <para>
+        When calling a function that returns
+	a <type>refcursor</type> you must cast the return type
+	of <function>getObject</function> to
+	a <classname>ResultSet</classname>
+
+	<note>
+	 <para>
+	  There are some limitations on the current support for a
+	  <classname>ResultSet</classname> created from a
+	  <type>refcursor</type>.  These limits are deficiences of the
+	  <acronym>JDBC</acronym> driver, not the server, and it is
+	  technically possible to remove them, we just haven't found
+	  the time.
+
+	  <itemizedlist>
+	   <listitem>
+	    <para>
+	     <classname>ResultSetMetaData</classname> is not available.
+	     Calling <function>getMetaData</function> will return
+	     <literal>null</literal>.
+	     </para>
+	   </listitem>
+
+	   <listitem>
+	    <para>
+	     Even though it is a cursor backed
+	     <classname>ResultSet</classname>, all data will be retrieved
+	     and cached on the client.  The fetch size parameter described
+	     in <xref linkend="query-with-cursor" /> will be ignored.
+	    </para>
+	   </listitem>
+	  </itemizedlist>
+
+	 </para>
+	</note>
+       </para>
+
+       <example id="get-refcursor-from-function-call">
+	<title>
+	 Getting <type>refcursor</type> Value From a Function
+	</title>
+
+<programlisting>
+// Setup function to call.
+Statement stmt = conn.createStatement();
+stmt.execute("CREATE OR REPLACE FUNCTION refcursorfunc() RETURNS refcursor AS '"
+		+ " DECLARE "
+		+ "    mycurs refcursor; "
+		+ " BEGIN "
+		+ "    OPEN mycurs FOR SELECT 1 UNION SELECT 2; "
+		+ "    RETURN mycurs; "
+		+ " END;' language plpgsql");
+stmt.close();
+
+// We must be inside a transaction for cursors to work.
+conn.setAutoCommit(false);
+
 // Procedure call.
-CallableStatement proc = con.prepareCall("{ ? = call doquery ( ? ) }");
+CallableStatement proc = conn.prepareCall("{ ? = call refcursorfunc() }");
 proc.registerOutParameter(1, Types.Other);
-proc.setInt(2, -1);
 proc.execute();
 ResultSet results = (ResultSet) proc.getObject(1);
 while (results.next()) {
-  // do something with the results...
+    // do something with the results...
 }
 results.close();
 proc.close();
@@ -880,42 +955,46 @@ proc.close();
       <para>It is also possible to treat the <type>refcursor</type>
        return value as a cursor name directly. To do this, use the
        <function>getString</function> of <classname>ResultSet</classname>.
+       With the underlying cursor name, you are free to directly use cursor
+       commands on it, such as <literal>FETCH</literal> and
+       <literal>MOVE</literal>.
       </para>
 
-      <example>
+      <example id="refcursor-string-example">
 	<title>Treating <type>refcursor</type> as a cursor name</title>
 
 <programlisting>
-con.setAutoCommit(false);
-CallableStatement proc = con.prepareCall("{ ? = call doquery ( ? ) }");
+conn.setAutoCommit(false);
+CallableStatement proc = conn.prepareCall("{ ? = call refcursorfunc() }");
 proc.registerOutParameter(1, Types.Other);
-proc.setInt(2, 0);
-String cursorName = con.getString(1);
+proc.execute();
+String cursorName = proc.getString(1);
 proc.close();
 </programlisting>
       </example>
+     </sect2>
     </sect1>
 
   </chapter>
 
 
-  <chapter id="jdbc-ddl">
+  <chapter id="ddl">
    <title>Creating and Modifying Database Objects</title>
 
    <para>
     To create, modify or drop a database object like a table or view
     you use the <function>execute()</function> method.  This method is
     similar to the method <function>executeQuery()</function>, but it
-    doesn't return a result.  <xref linkend="jdbc-drop-table-example"/>
+    doesn't return a result.  <xref linkend="drop-table-example"/>
     illustrates the usage.
    </para>
 
-  <example id="jdbc-drop-table-example">
+  <example id="drop-table-example">
    <title>Dropping a Table in <acronym>JDBC</acronym></title>
    <para>
      This example will drop a table.
 <programlisting>
-Statement st = db.createStatement();
+Statement st = conn.createStatement();
 st.execute("DROP TABLE mytable");
 st.close();
 </programlisting>
@@ -923,15 +1002,15 @@ st.close();
   </example>
   </chapter>
 
- <chapter id="jdbc-binary-data">
+ <chapter id="binary-data">
   <title>Storing Binary Data</title>
 
-  <indexterm zone="jdbc-binary-data">
+  <indexterm zone="binary-data">
    <primary>bytea</primary>
    <secondary sortas="JDBC">in JDBC</secondary>
   </indexterm>
 
-  <indexterm zone="jdbc-binary-data">
+  <indexterm zone="binary-data">
    <primary>large object</primary>
    <secondary sortas="JDBC">in JDBC</secondary>
   </indexterm>
@@ -1003,25 +1082,13 @@ st.close();
    </para>
   </important>
 
-  <note>
-   <para>
-      In a future release of the
-      <acronym>JDBC</acronym> driver, the <function>getBLOB()</function>
-      and <function>setBLOB()</function> methods may no longer 
-      interact with Large Objects and will instead work on the data type
-      <type>bytea</type>.  So it is recommended that you 
-      use the <classname>LargeObject</classname> <acronym>API</acronym> 
-      if you intend to use Large Objects.
-   </para>
-  </note>
-
   <para>
-   <xref linkend="jdbc-binary-data-example"/> contains some examples on
+   <xref linkend="binary-data-example"/> contains some examples on
    how to process binary data using the <productname>PostgreSQL</productname>
    <acronym>JDBC</acronym> driver.
   </para>
 
-  <example id="jdbc-binary-data-example">
+  <example id="binary-data-example">
    <title>Processing Binary Data in <acronym>JDBC</acronym></title>
 
    <para>
@@ -1051,6 +1118,16 @@ fis.close();
     This also could have been done using the <function>setBytes()</function>
     method if the contents of the image was already in a 
     <classname>byte[]</classname>. 
+
+    <note>
+     <para>
+      The length parameter to <function>setBinaryStream</function> must be
+      correct.  There is no way to indicate that the stream is of unknown
+      length.  If you are in this situation, you must read the stream yourself
+      into temporary storage and determine the length.  Now with the correct
+      length you may send the data from temporary storage on to the driver.
+     </para>
+    </note>
    </para>
 
    <para>
@@ -1059,16 +1136,14 @@ fis.close();
     <classname>Statement</classname> class can equally be used.)
 
 <programlisting>
-PreparedStatement ps = con.prepareStatement("SELECT img FROM images WHERE imgname = ?");
+PreparedStatement ps = conn.prepareStatement("SELECT img FROM images WHERE imgname = ?");
 ps.setString(1, "myimage.gif");
 ResultSet rs = ps.executeQuery();
-if (rs != null) {
-    while (rs.next()) {
-        byte[] imgBytes = rs.getBytes(1);
-        // use the data in some way here
-    }
-    rs.close();
+while (rs.next()) {
+    byte[] imgBytes = rs.getBytes(1);
+    // use the data in some way here
 }
+rs.close();
 ps.close();
 </programlisting>
    </para>
@@ -1141,25 +1216,23 @@ conn.setAutoCommit(false);
 // Get the Large Object Manager to perform operations with
 LargeObjectManager lobj = ((org.postgresql.PGConnection)conn).getLargeObjectAPI();
 
-PreparedStatement ps = con.prepareStatement("SELECT imgoid FROM imageslo WHERE imgname = ?");
+PreparedStatement ps = conn.prepareStatement("SELECT imgoid FROM imageslo WHERE imgname = ?");
 ps.setString(1, "myimage.gif");
 ResultSet rs = ps.executeQuery();
-if (rs != null) {
-    while (rs.next()) {
-        // Open the large object for reading
-        int oid = rs.getInt(1);
-        LargeObject obj = lobj.open(oid, LargeObjectManager.READ);
+while (rs.next()) {
+    // Open the large object for reading
+    int oid = rs.getInt(1);
+    LargeObject obj = lobj.open(oid, LargeObjectManager.READ);
 
-        // Read the data
-        byte buf[] = new byte[obj.size()];
-        obj.read(buf, 0, obj.size());
-        // Do something with the data read here
+    // Read the data
+    byte buf[] = new byte[obj.size()];
+    obj.read(buf, 0, obj.size());
+    // Do something with the data read here
 
-        // Close the object
-        obj.close();
-    }
-    rs.close();
+    // Close the object
+    obj.close();
 }
+rs.close();
 ps.close();
 
 // Finally, commit the transaction.
@@ -1171,7 +1244,7 @@ conn.commit();
  </chapter>
 
 
- <chapter id="jdbc-ext">
+ <chapter id="ext">
   <title><productname>PostgreSQL</productname> Extensions to the
     <acronym>JDBC</acronym> <acronym>API</acronym></title>
 
@@ -1211,11 +1284,67 @@ Fastpath fp = ((org.postgresql.PGConnection)db).getFastpathAPI();
     <productname>PostgreSQL</productname> has a set of data types that
     can store geometric features into a table. These include single
     points, lines, and polygons.  We support these types in Java with
-    the org.postgresql.geometric package.  It contains classes that
-    extend the org.postgresql.util.PGobject class.  Refer to that
-    class for details on how to implement your own data type handlers.
+    the org.postgresql.geometric package.  Please consult the Javadoc
+    for the details of available classes and features metioned in
+    <xref linkend="reading" />.
    </para>
 
+   <example id="geometric-circle-example">
+    <title>Using the circle datatype from <acronym>JDBC</acronym></title>
+
+<programlisting>
+
+import java.sql.*;
+
+import org.postgresql.geometric.PGpoint;
+import org.postgresql.geometric.PGcircle;
+
+public class GeometricTest {
+
+	public static void main(String args[]) throws Exception {
+		Class.forName("org.postgresql.Driver");
+		String url = "jdbc:postgresql://localhost:5432/test";
+
+		Connection conn = DriverManager.getConnection(url,"test","");
+
+		Statement stmt = conn.createStatement();
+		stmt.execute("CREATE TEMP TABLE geomtest(mycirc circle)");
+		stmt.close();
+
+		insertCircle(conn);
+		retrieveCircle(conn);
+		conn.close();
+	}
+
+	private static void insertCircle(Connection conn) throws SQLException {
+
+		PGpoint center = new PGpoint(1, 2.5);
+		double radius = 4;
+		PGcircle circle = new PGcircle(center, radius);
+
+		PreparedStatement ps = conn.prepareStatement("INSERT INTO geomtest(mycirc) VALUES (?)");
+		ps.setObject(1, circle);
+		ps.executeUpdate();
+		ps.close();
+	}
+	
+	private static void retrieveCircle(Connection conn) throws SQLException {
+		Statement stmt = conn.createStatement();
+		ResultSet rs = stmt.executeQuery("SELECT mycirc, area(mycirc) FROM geomtest");
+		rs.next();
+		PGcircle circle = (PGcircle)rs.getObject(1);
+		double area = rs.getDouble(2);
+
+		PGpoint center = circle.center;
+		double radius = circle.radius;
+
+		System.out.println("Center (X, Y) = (" + center.x + ", " + center.y + ")");
+		System.out.println("Radius = " + radius);
+		System.out.println("Area = " + area);
+	}
+}
+</programlisting>
+    </example>
   </sect1>
 
 
@@ -1234,7 +1363,8 @@ Fastpath fp = ((org.postgresql.PGConnection)db).getFastpathAPI();
     C interface's large object <acronym>API</acronym>. It consists of
     two classes, <classname>LargeObjectManager</classname>, which deals with creating,
     opening and deleting large objects, and <classname>LargeObject</classname> which deals
-    with an individual object.
+    with an individual object.  For an example usage of this <acronym>API</acronym>,
+    please see <xref linkend="binary-data-example"/>.
    </para>
   </sect1>
 
@@ -1251,7 +1381,8 @@ Fastpath fp = ((org.postgresql.PGConnection)db).getFastpathAPI();
    </para>
 
    <para>
-    Standard LISTEN, NOTIFY, and UNLISTEN commands are issued via the
+    Standard <literal>LISTEN</literal>, <literal>NOTIFY</literal>, and
+    <literal>UNLISTEN</literal> commands are issued via the
     standard <classname>Statement</classname> interface.  To retrieve
     and process retrieved notifications the
     <classname>Connection</classname> must be cast to the
@@ -1269,7 +1400,7 @@ Fastpath fp = ((org.postgresql.PGConnection)db).getFastpathAPI();
     </para>
    </note>
 
-   <example>
+   <example id="listen-notify-example">
     <title>Receiving Notifications</title>
 
 <programlisting>
@@ -1417,7 +1548,7 @@ class Notifier extends Thread {
     </para>
    </note>
 
-   <example>
+   <example id="server-prepared-statement-example">
     <title>Using server side prepared statements</title>
 
 <programlisting>
@@ -1514,10 +1645,10 @@ System.out.println(pgstmt.getPrepareThreshold()); // Should be 5
  </chapter>
 
 
- <chapter id="jdbc-thread">
+ <chapter id="thread">
   <title>Using the Driver in a Multithreaded or a Servlet Environment</title>
 
-  <indexterm zone="jdbc-thread">
+  <indexterm zone="thread">
    <primary>threads</primary>
    <secondary sortas="JDBC">with JDBC</secondary>
   </indexterm>
@@ -1567,15 +1698,15 @@ System.out.println(pgstmt.getPrepareThreshold()); // Should be 5
   </para>
  </chapter>
 
- <chapter id="jdbc-datasource">
+ <chapter id="datasource">
   <title>Connection Pools and Data Sources</title>
 
-  <indexterm zone="jdbc-datasource">
+  <indexterm zone="datasource">
    <primary>connection pool</primary>
    <secondary sortas="JDBC">in JDBC</secondary>
   </indexterm>
 
-  <indexterm zone="jdbc-datasource">
+  <indexterm zone="datasource">
    <primary>DataSource</primary>
   </indexterm>
 
@@ -1597,7 +1728,7 @@ System.out.println(pgstmt.getPrepareThreshold()); // Should be 5
     url="http://java.sun.com/products/jdbc/download.html#spec"><acronym>JDBC</acronym> download site</ulink>.
    </para>
 
-  <sect1 id="jdbc-ds-intro">
+  <sect1 id="ds-intro">
    <title>Overview</title>
 
     <para>
@@ -1637,7 +1768,7 @@ System.out.println(pgstmt.getPrepareThreshold()); // Should be 5
     </para>
   </sect1>
    
-  <sect1 id="jdbc-ds-cpds">
+  <sect1 id="ds-cpds">
    <title>Application Servers: <classname>ConnectionPoolDataSource</classname></title>
 
    <para>
@@ -1649,11 +1780,11 @@ System.out.println(pgstmt.getPrepareThreshold()); // Should be 5
    <para>
     <acronym>JDBC</acronym> requires that a
     <classname>ConnectionPoolDataSource</classname> be configured via
-    JavaBean properties, shown in <xref linkend="jdbc-ds-cpds-props"/>,
+    JavaBean properties, shown in <xref linkend="ds-cpds-props"/>,
     so there are get and set methods for each of these properties.
    </para>
 
-   <table id="jdbc-ds-cpds-props">
+   <table id="ds-cpds-props">
     <title><classname>ConnectionPoolDataSource</classname> Configuration Properties</title>
   
     <tgroup cols="3">
@@ -1734,12 +1865,12 @@ serverName=localhost;databaseName=test;user=testuser;password=testpassword
 
   </sect1>
 
-  <sect1 id="jdbc-ds-ds">
+  <sect1 id="ds-ds">
    <title>Applications: <classname>DataSource</classname></title>
 
     <para><productname>PostgreSQL</productname> includes two
      implementations of <literal>DataSource</literal>
-     , as shown in <xref linkend="jdbc-ds-ds-imp"/>.  One that does
+     , as shown in <xref linkend="ds-ds-imp"/>.  One that does
      pooling and the other that does not.
      The pooling implementation does not actually close connections
      when the client calls the <literal>close</literal> method, but
@@ -1761,7 +1892,7 @@ serverName=localhost;databaseName=test;user=testuser;password=testpassword
      jakarta commons DBCP</ulink> project.
     </para>
 
-   <table id="jdbc-ds-ds-imp">
+   <table id="ds-ds-imp">
     <title><classname>DataSource</classname> Implementations</title>
   
     <tgroup cols="2">
@@ -1791,11 +1922,11 @@ serverName=localhost;databaseName=test;user=testuser;password=testpassword
      Both implementations use the same configuration scheme.
      <acronym>JDBC</acronym> requires that a
      <literal>DataSource</literal> be configured via JavaBean
-     properties, shown in <xref linkend="jdbc-ds-ds-props"/>, so there
+     properties, shown in <xref linkend="ds-ds-props"/>, so there
      are get and set methods for each of these properties.
     </para>
 
-    <table id="jdbc-ds-ds-props">
+    <table id="ds-ds-props">
     <title><classname>DataSource</classname> Configuration Properties</title>
   
     <tgroup cols="3">
@@ -1845,9 +1976,9 @@ serverName=localhost;databaseName=test;user=testuser;password=testpassword
     </table>
 
     <para>The pooling implementation requires some additional
-      configuration properties, which are shown in <xref linkend="jdbc-ds-ds-xprops"/>.</para>
+      configuration properties, which are shown in <xref linkend="ds-ds-xprops"/>.</para>
 
-   <table id="jdbc-ds-ds-xprops">
+   <table id="ds-ds-xprops">
     <title>Additional Pooling <classname>DataSource</classname> Configuration Properties</title>
   
     <tgroup cols="3">
@@ -1885,10 +2016,10 @@ serverName=localhost;databaseName=test;user=testuser;password=testpassword
     </tgroup>
     </table>
 
-    <para><xref linkend="jdbc-ds-example"/> shows an example of typical application code using a
+    <para><xref linkend="ds-example"/> shows an example of typical application code using a
      pooling <literal>DataSource</literal>.</para>
  
-   <example id="jdbc-ds-example">
+   <example id="ds-example">
     <title><literal>DataSource</literal> Code Example</title>
 
     <para>
@@ -1907,15 +2038,15 @@ source.setMaxConnections(10);
       are eventually closed.  Else the pool will <quote>leak</quote> connections and
       will eventually lock all the clients out.
 <programlisting>
-Connection con = null;
+Connection conn = null;
 try {
-    con = source.getConnection();
+    conn = source.getConnection();
     // use connection
 } catch (SQLException e) {
     // log error
 } finally {
     if (con != null) {
-        try { con.close(); } catch (SQLException e) {}
+        try { conn.close(); } catch (SQLException e) {}
     }
 }
 </programlisting>
@@ -2052,10 +2183,10 @@ public class DBTest
    </para>
   </sect1>
 
-  <sect1 id="jdbc-jndi">
+  <sect1 id="jndi">
    <title>Data Sources and <acronym>JNDI</acronym></title>
 
-   <indexterm zone="jdbc-jndi">
+   <indexterm zone="jndi">
     <primary>JNDI</primary>
    </indexterm>
 
@@ -2087,10 +2218,10 @@ public class DBTest
      so that it doesn't have to make a reference to the
      <literal>DataSource</literal> available to all application
      components that may need to use it.  An example of this is
-     shown in <xref linkend="jdbc-ds-jndi"/>.
+     shown in <xref linkend="ds-jndi"/>.
     </para>
 
-   <example id="jdbc-ds-jndi">
+   <example id="ds-jndi">
     <title><classname>DataSource</classname> <acronym>JNDI</acronym> Code Example</title>
 
     <para>
@@ -2109,10 +2240,10 @@ new InitialContext().rebind("DataSource", source);
       Then code to use a connection from the pool might look
       like this:
 <programlisting>
-Connection con = null;
+Connection conn = null;
 try {
     DataSource source = (DataSource)new InitialContext().lookup("DataSource");
-    con = source.getConnection();
+    conn = source.getConnection();
     // use connection
 } catch (SQLException e) {
     // log error
@@ -2120,7 +2251,7 @@ try {
     // DataSource wasn't found in JNDI
 } finally {
     if (con != null) {
-        try { con.close(); } catch (SQLException e) {}
+        try { conn.close(); } catch (SQLException e) {}
     }
 }
 </programlisting>
@@ -2130,7 +2261,7 @@ try {
 
  </chapter>
 
- <chapter id="jdbc-reading">
+ <chapter id="reading">
   <title>Further Reading</title>
 
   <para>
@@ -2145,8 +2276,9 @@ try {
   <para>
    <ulink
    url="http://jdbc.postgresql.org/index.html"></ulink>
-   contains updated information not included in this manual and
-   also offers precompiled drivers.
+   contains updated information not included in this manual including
+   Javadoc class documentation and a FAQ.  Additionally it
+   offers precompiled drivers.
   </para>
  </chapter>
 </book>
