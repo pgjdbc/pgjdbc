@@ -115,8 +115,7 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 
 	public int getFetchSize() throws SQLException
 	{
-		// This one can only return a valid value when were a cursor?
-		throw org.postgresql.Driver.notImplemented();
+		return 0;
 	}
 
 	public int getResultSetConcurrency() throws SQLException
