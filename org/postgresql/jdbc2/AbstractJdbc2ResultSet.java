@@ -968,6 +968,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 			}
 
 			rows.setElementAt( rowBuffer, current_row );
+			this_row = rowBuffer;
 			if ( Driver.logDebug )
 				Driver.debug("done updates");
 
