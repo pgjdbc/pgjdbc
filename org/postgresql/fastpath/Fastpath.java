@@ -3,7 +3,7 @@
  * Copyright (c) 2003, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgjdbc/org/postgresql/fastpath/Fastpath.java,v 1.26 2004/10/10 15:39:38 jurka Exp $
+ *	  $PostgreSQL: pgjdbc/org/postgresql/fastpath/Fastpath.java,v 1.27 2004/10/25 20:58:55 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -78,7 +78,7 @@ public class Fastpath
 		return new Integer((returnValue[3] & 255) |
 						   ((returnValue[2] & 255) << 8) |
 						   ((returnValue[1] & 255) << 16) |
-						   ((returnValue[0] & 255) << 25));
+						   ((returnValue[0] & 255) << 24));
 	}
 
 	/**
