@@ -14,7 +14,7 @@ import org.postgresql.util.PSQLState;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.GT;
 
-/* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.37 2004/10/21 19:09:34 jurka Exp $
+/* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.38 2004/10/22 21:06:09 jurka Exp $
  * This class defines methods of the jdbc2 specification.
  * The real Statement class (for jdbc2) is org.postgresql.jdbc2.Jdbc2Statement
  */
@@ -826,10 +826,6 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 				break;
 		}
 
-		setNullByOid(parameterIndex, oid);
-	}
-
-	protected void setNullByOid(int parameterIndex, int oid) throws SQLException {
 		preparedParameters.setNull(adjustParamIndex(parameterIndex), oid);
 	}
 
