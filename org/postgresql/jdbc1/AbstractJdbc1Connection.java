@@ -1740,6 +1740,7 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 				"varchar", "text", "name", "filename",
 				"bytea",
 				"bool",
+				"bit",
 				"date",
 				"time",
 				"abstime", "timestamp", "timestamptz"
@@ -1763,6 +1764,7 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 		Types.CHAR, Types.CHAR, Types.CHAR, Types.CHAR, Types.CHAR, Types.CHAR,
 		Types.VARCHAR, Types.VARCHAR, Types.VARCHAR, Types.VARCHAR,
 		Types.BINARY,
+		Types.BIT,
 		Types.BIT,
 		Types.DATE,
 		Types.TIME,

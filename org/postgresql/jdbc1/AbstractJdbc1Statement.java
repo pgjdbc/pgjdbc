@@ -1464,7 +1464,10 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 		switch (targetSqlType)
 		{
 			case Types.INTEGER:
-				bind(parameterIndex, x.toString(), PG_INTEGER);
+				if (x instanceof Boolean)
+					bind(parameterIndex,((Boolean)x).booleanValue() ? "1" :"0", PG_BOOLEAN);
+				else
+					bind(parameterIndex, x.toString(), PG_INTEGER);
 				break;
 			case Types.TINYINT:
 			case Types.SMALLINT:
@@ -1497,6 +1500,10 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 				if (x instanceof Boolean)
 				{
 					bind(parameterIndex, ((Boolean)x).booleanValue() ? "TRUE" : "FALSE", PG_TEXT);
+				}
+				else if (x instanceof Number)
+				{
+					bind(parameterIndex, ((Number)x).intValue()==1 ? "TRUE" : "FALSE", PG_TEXT);
 				}
 				else
 				{
