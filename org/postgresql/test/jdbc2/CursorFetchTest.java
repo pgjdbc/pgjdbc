@@ -176,7 +176,7 @@ public class CursorFetchTest extends TestCase
 	}
 
 	// Test odd queries that should not be transformed into cursor-based fetches.
-	public void TODO_FAILS_testInsert() throws Exception
+	public void testInsert() throws Exception
 	{
 		// INSERT should not be transformed.
 		PreparedStatement stmt = con.prepareStatement("insert into test_fetch(value) values(1)");
@@ -184,7 +184,7 @@ public class CursorFetchTest extends TestCase
 		stmt.executeUpdate();
 	}
 
-	public void TODO_FAILS_testMultistatement() throws Exception
+	public void testMultistatement() throws Exception
 	{
 		// Queries with multiple statements should not be transformed.
 

@@ -231,7 +231,7 @@ public class ServerPreparedStmtTest extends TestCase
 	}
 
 	// Check statements are not transformed when they shouldn't be.
-	public void TODO_FAILS_testCreateTable() throws Exception {
+	public void testCreateTable() throws Exception {
 		// CREATE TABLE isn't supported by PREPARE; the driver should realize this and
 		// still complete without error.
 		PreparedStatement pstmt = con.prepareStatement("CREATE TABLE testsps_bad(data int)");
@@ -240,7 +240,7 @@ public class ServerPreparedStmtTest extends TestCase
 		TestUtil.dropTable(con, "testsps_bad");
 	}
 
-	public void TODO_FAILS_testMultistatement() throws Exception {
+	public void testMultistatement() throws Exception {
 		// Shouldn't try to PREPARE this one, if we do we get:
 		//   PREPARE x(int,int) AS INSERT .... $1 ; INSERT ... $2    -- syntax error
 		try {
