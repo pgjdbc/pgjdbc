@@ -25,46 +25,53 @@ import org.postgresql.largeobject.*;
  */
 public class PGclob implements java.sql.Clob
 {
-    private org.postgresql.Connection conn;
-    private int oid;
-    private LargeObject lo;
+	private org.postgresql.Connection conn;
+	private int oid;
+	private LargeObject lo;
 
-    public PGclob(org.postgresql.Connection conn,int oid) throws SQLException {
-	this.conn=conn;
-	this.oid=oid;
-	LargeObjectManager lom = conn.getLargeObjectAPI();
-	this.lo = lom.open(oid);
-    }
+	public PGclob(org.postgresql.Connection conn, int oid) throws SQLException
+	{
+		this.conn = conn;
+		this.oid = oid;
+		LargeObjectManager lom = conn.getLargeObjectAPI();
+		this.lo = lom.open(oid);
+	}
 
-    public long length() throws SQLException {
-	return lo.size();
-    }
+	public long length() throws SQLException
+	{
+		return lo.size();
+	}
 
-    public InputStream getAsciiStream() throws SQLException {
-	return lo.getInputStream();
-    }
+	public InputStream getAsciiStream() throws SQLException
+	{
+		return lo.getInputStream();
+	}
 
-    public Reader getCharacterStream() throws SQLException {
-	return new InputStreamReader(lo.getInputStream());
-    }
+	public Reader getCharacterStream() throws SQLException
+	{
+		return new InputStreamReader(lo.getInputStream());
+	}
 
-    public String getSubString(long i,int j) throws SQLException {
-      lo.seek((int)i-1);
-      return new String(lo.read(j));
-    }
+	public String getSubString(long i, int j) throws SQLException
+	{
+		lo.seek((int)i - 1);
+		return new String(lo.read(j));
+	}
 
-    /*
-     * For now, this is not implemented.
-     */
-    public long position(String pattern,long start) throws SQLException {
-	throw org.postgresql.Driver.notImplemented();
-    }
+	/*
+	 * For now, this is not implemented.
+	 */
+	public long position(String pattern, long start) throws SQLException
+	{
+		throw org.postgresql.Driver.notImplemented();
+	}
 
-    /*
-     * This should be simply passing the byte value of the pattern Blob
-     */
-    public long position(Clob pattern,long start) throws SQLException {
-	throw org.postgresql.Driver.notImplemented();
-    }
+	/*
+	 * This should be simply passing the byte value of the pattern Blob
+	 */
+	public long position(Clob pattern, long start) throws SQLException
+	{
+		throw org.postgresql.Driver.notImplemented();
+	}
 
 }
