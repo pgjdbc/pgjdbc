@@ -41,7 +41,7 @@ public class OID74Test  extends TestCase
 			c =  DriverManager.getConnection("jdbc:postgresql://localhost/test?compatible=7.1&user=test");
     			c.setAutoCommit(false);
 			st = c.createStatement();
-        		st.execute("CREATE TABLE temp (col oid)");
+        		st.execute("CREATE temp TABLE temp (col oid)");
       		}
 		 catch (SQLException e) 
 		{
