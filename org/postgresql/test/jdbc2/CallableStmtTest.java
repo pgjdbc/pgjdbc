@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CallableStmtTest.java,v 1.11 2005/01/05 00:54:48 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CallableStmtTest.java,v 1.12 2005/01/11 08:25:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -47,6 +47,7 @@ public class CallableStmtTest extends TestCase
                 "RETURNS numeric AS '  " +
                 "begin return 42; end; ' LANGUAGE 'plpgsql';");
         stmt.execute("CREATE OR REPLACE FUNCTION getarray() RETURNS int[] as 'SELECT ''{1,2}''::int[];' LANGUAGE 'sql'");
+        stmt.execute("CREATE OR REPLACE FUNCTION raisenotice() RETURNS int as 'BEGIN RAISE NOTICE ''hello'';  RAISE NOTICE ''goodbye''; RETURN 1; END;' LANGUAGE 'plpgsql'");
         stmt.close ();
     }
 
@@ -59,6 +60,7 @@ public class CallableStmtTest extends TestCase
         stmt.execute ("drop FUNCTION testspg__getNumeric (numeric);");
         stmt.execute ("drop FUNCTION testspg__getNumericWithoutArg ();");
         stmt.execute ("DROP FUNCTION getarray();");
+        stmt.execute ("DROP FUNCTION raisenotice();");
         TestUtil.closeDB(con);
     }
 
@@ -126,6 +128,20 @@ public class CallableStmtTest extends TestCase
         assertTrue(rs.next());
         assertEquals(2, rs.getInt(1));
         assertTrue(!rs.next());
+    }
+
+    public void testRaiseNotice() throws SQLException
+    {
+        CallableStatement call = con.prepareCall("{? = call raisenotice()}");
+        call.registerOutParameter(1, Types.INTEGER);
+        call.execute();
+        SQLWarning warn = call.getWarnings();
+        assertNotNull(warn);
+        assertEquals("hello", warn.getMessage());
+        warn = warn.getNextWarning();
+        assertNotNull(warn);
+        assertEquals("goodbye", warn.getMessage());
+        assertEquals(1, call.getInt(1));
     }
 
     public void testBadStmt () throws Throwable

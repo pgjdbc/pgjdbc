@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/QueryExecutorImpl.java,v 1.9 2005/01/14 01:20:15 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/QueryExecutorImpl.java,v 1.10 2005/02/01 07:27:54 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -516,7 +516,14 @@ public class QueryExecutorImpl implements QueryExecutor {
     }
 
     private SQLWarning receiveNotification() throws IOException {
-        String warnMsg = pgStream.ReceiveString().trim();
+        String warnMsg = pgStream.ReceiveString();
+
+        // Strip out the severity field so we have consistency with
+        // the V3 protocol.  SQLWarning.getMessage should return just
+        // the actual message.
+        //
+        int severityMark = warnMsg.indexOf(":");
+        warnMsg = warnMsg.substring(severityMark+1).trim();
         if (Driver.logDebug)
             Driver.debug(" <=BE NoticeResponse(" + warnMsg + ")");
         return new SQLWarning(warnMsg);
