@@ -1018,34 +1018,34 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 	 */
 	public Object getObject(String type, String value) throws SQLException
 	{
-          PGobject obj = null;
+        PGobject obj = null;
 		try
 		{
-			Object o = objectTypes.get(type);
+			String className = (String)objectTypes.get(type);
 
-			// If o is null, then the type is unknown.
-			// If o is not null, and it is a String, then its a class name that
-			// extends PGobject.
-			//
+			// If className is not null, then try to instantiate it,
+			// It must be basetype PGobject
+
 			// This is used to implement the org.postgresql unique types (like lseg,
 			// point, etc).
-			if (o != null )
+
+			if (className != null )
 			{
-                          if( o instanceof String )
-                          {
-                            // 6.3 style extending PG_Object
-                            obj = (PGobject) (Class.forName( (String) o).newInstance());
-                            obj.setType(type);
-                            obj.setValue(value);
-                            return (Object) obj;
-                          }
+                // 6.3 style extending PG_Object
+                obj = (PGobject) (Class.forName( className ).newInstance());
+                obj.setType(type);
+                obj.setValue(value);
 			}
-                        else
-                        {
-                           obj = new PGobject();
-                           obj.setType( type );
-                           obj.setValue( value );
-                        }
+
+            else
+            {
+                // If className is null, then the type is unknown.
+                // so return a PGobject with the type set, and the value set
+               obj = new PGobject();
+               obj.setType( type );
+               obj.setValue( value );
+            }
+            return (Object) obj;
 		}
 		catch (SQLException sx)
 		{
@@ -1057,14 +1057,6 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 		{
 			throw new PSQLException("postgresql.con.creobj", PSQLState.CONNECTION_FAILURE, type, ex);
 		}
-
-                if (obj == null)
-                {
-                  throw new PSQLException("postgresql.con.creobj",  PSQLState.CONNECTION_FAILURE, type );
-                }
-                else
-                /* should never get here */
-                  return obj;
 	}
 
 	/*
