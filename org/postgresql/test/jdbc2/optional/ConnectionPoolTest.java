@@ -3,14 +3,14 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/optional/ConnectionPoolTest.java,v 1.12 2004/11/07 22:17:06 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/optional/ConnectionPoolTest.java,v 1.13 2004/11/09 08:55:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.test.jdbc2.optional;
 
 import org.postgresql.jdbc2.optional.ConnectionPool;
-import org.postgresql.ds.PGConnectionPool;
+import org.postgresql.ds.PGConnectionPoolDataSource;
 import org.postgresql.test.TestUtil;
 import javax.sql.*;
 import java.sql.*;
@@ -61,7 +61,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest
         // jdbc.optional.ConnectionPool because our ObjectFactory
         // returns only the top level class, not the specific
         // jdbc2/jdbc3 implementations.
-        return ((PGConnectionPool)bds).getPooledConnection();
+        return ((PGConnectionPoolDataSource)bds).getPooledConnection();
     }
 
     /**

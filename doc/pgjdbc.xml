@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!--
   Copyright (c) 2004, PostgreSQL Global Development Group
-  $PostgreSQL$
+  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.12 2004/11/07 22:15:27 jurka Exp $
 -->
 
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN" "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">
@@ -1642,39 +1642,11 @@ System.out.println(pgstmt.getPrepareThreshold()); // Should be 5
 
    <para>
     <productname>PostgreSQL</productname> includes one implementation
-    of <classname>ConnectionPoolDataSource</classname> for
-    <acronym>JDBC</acronym> 2 and one for <acronym>JDBC</acronym> 3,
-    as shown in <xref linkend="jdbc-ds-cpds-imp-table"/>.
+    of <classname>ConnectionPoolDataSource</classname> named
+    <classname>org.postgresql.ds.PGConnectionPoolDataSource</classname>.
    </para>
 
-  
-   <table id="jdbc-ds-cpds-imp-table">
-    <title><classname>ConnectionPoolDataSource</classname> Implementations</title>
-  
-    <tgroup cols="2">
-     <thead>
-      <row>
-       <entry><acronym>JDBC</acronym></entry>
-       <entry>Implementation Class</entry>
-      </row>
-     </thead>
- 
-     <tbody>
-      <row>
-       <entry>2</entry>
-       <entry><literal>org.postgresql.jdbc2.optional.ConnectionPool</literal></entry>
-      </row>
- 
-      <row>
-       <entry>3</entry>
-       <entry><literal>org.postgresql.jdbc3.Jdbc3ConnectionPool</literal></entry>
-      </row>
-     </tbody>
-    </tgroup>
-   </table>
-
    <para>
-    Both implementations use the same configuration scheme.
     <acronym>JDBC</acronym> requires that a
     <classname>ConnectionPoolDataSource</classname> be configured via
     JavaBean properties, shown in <xref linkend="jdbc-ds-cpds-props"/>,
@@ -1767,31 +1739,34 @@ serverName=localhost;databaseName=test;user=testuser;password=testpassword
 
     <para><productname>PostgreSQL</productname> includes two
      implementations of <literal>DataSource</literal>
-     for <acronym>JDBC</acronym> 2 and two for <acronym>JDBC</acronym>
-     3, as shown in <xref linkend="jdbc-ds-ds-imp"/>.
-     The pooling implementations do not actually close connections
+     , as shown in <xref linkend="jdbc-ds-ds-imp"/>.  One that does
+     pooling and the other that does not.
+     The pooling implementation does not actually close connections
      when the client calls the <literal>close</literal> method, but
-     instead return the connections to a pool of available connections
+     instead returns the connections to a pool of available connections
      for other clients to use.  This avoids any overhead of repeatedly
      opening and closing connections, and allows a large number of
      clients to share a small number of database connections.</para>
+     
     <para>The pooling data-source implementation provided here is not
      the most feature-rich in the world.  Among other things,
      connections are never closed until the pool itself is closed;
      there is no way to shrink the pool.  As well, connections
      requested for users other than the default configured user are
-     not pooled.  Many application servers
-     provide more advanced pooling features and use the
-     <literal>ConnectionPoolDataSource</literal> implementation
-     instead.</para>
+     not pooled.  Its error handling sometimes cannot remove a broken
+     connection from the pool.  In general it is not recommended to 
+     use the <productname>PostgreSQL</productname> provided connection
+     pool.  Check your application server or check out the excellent
+     <ulink url="http://jakarta.apache.org/commons/dbcp/">
+     jakarta commons DBCP</ulink> project.
+    </para>
 
    <table id="jdbc-ds-ds-imp">
     <title><classname>DataSource</classname> Implementations</title>
   
-    <tgroup cols="3">
+    <tgroup cols="2">
      <thead>
       <row>
-       <entry><acronym>JDBC</acronym></entry>
        <entry>Pooling</entry>
        <entry>Implementation Class</entry>
       </row>
@@ -1799,27 +1774,13 @@ serverName=localhost;databaseName=test;user=testuser;password=testpassword
  
      <tbody>
       <row>
-       <entry>2</entry>
        <entry>No</entry>
-       <entry><literal>org.postgresql.jdbc2.optional.SimpleDataSource</literal></entry>
+       <entry><classname>org.postgresql.ds.PGSimpleDataSource</classname></entry>
       </row>
  
       <row>
-       <entry>2</entry>
        <entry>Yes</entry>
-       <entry><literal>org.postgresql.jdbc2.optional.PoolingDataSource</literal></entry>
-      </row>
- 
-      <row>
-       <entry>3</entry>
-       <entry>No</entry>
-       <entry><literal>org.postgresql.jdbc3.Jdbc3SimpleDataSource</literal></entry>
-      </row>
- 
-      <row>
-       <entry>3</entry>
-       <entry>Yes</entry>
-       <entry><literal>org.postgresql.jdbc3.Jdbc3PoolingDataSource</literal></entry>
+       <entry><classname>org.postgresql.ds.PGPoolingDataSource</classname></entry>
       </row>
  
      </tbody>
@@ -1827,7 +1788,7 @@ serverName=localhost;databaseName=test;user=testuser;password=testpassword
     </table>
 
     <para>
-     All the implementations use the same configuration scheme.
+     Both implementations use the same configuration scheme.
      <acronym>JDBC</acronym> requires that a
      <literal>DataSource</literal> be configured via JavaBean
      properties, shown in <xref linkend="jdbc-ds-ds-props"/>, so there
@@ -1883,7 +1844,7 @@ serverName=localhost;databaseName=test;user=testuser;password=testpassword
     </tgroup>
     </table>
 
-    <para>The pooling implementations require some additional
+    <para>The pooling implementation requires some additional
       configuration properties, which are shown in <xref linkend="jdbc-ds-ds-xprops"/>.</para>
 
    <table id="jdbc-ds-ds-xprops">
@@ -1933,7 +1894,7 @@ serverName=localhost;databaseName=test;user=testuser;password=testpassword
     <para>
      Code to initialize a pooling <classname>DataSource</classname> might look like this:
 <programlisting>
-Jdbc3PoolingDataSource source = new Jdbc3PoolingDataSource();
+PGPoolingDataSource source = new PGPoolingDataSource();
 source.setDataSourceName("A Data Source");
 source.setServerName("localhost");
 source.setDatabaseName("test");
@@ -2136,7 +2097,7 @@ public class DBTest
      Application code to initialize a pooling <classname>DataSource</classname> and add
      it to <acronym>JNDI</acronym> might look like this:
 <programlisting>
-Jdbc3PoolingDataSource source = new Jdbc3PoolingDataSource();
+PGPoolingDataSource source = new PGPoolingDataSource();
 source.setDataSourceName("A Data Source");
 source.setServerName("localhost");
 source.setDatabaseName("test");
@@ -2184,7 +2145,7 @@ try {
   <para>
    <ulink
    url="http://jdbc.postgresql.org/index.html"></ulink>
-   contains updated information not included in this chapter and
+   contains updated information not included in this manual and
    also offers precompiled drivers.
   </para>
  </chapter>

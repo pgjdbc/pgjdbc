@@ -3,7 +3,7 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/PGObjectFactory.java,v 1.2 2004/11/07 22:15:45 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/PGObjectFactory.java,v 1.3 2004/11/09 08:47:13 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -42,7 +42,7 @@ public class PGObjectFactory implements ObjectFactory
         {
             return loadSimpleDataSource(ref);
         }
-        else if (className.equals("org.postgresql.ds.PGConnectionPool")
+        else if (className.equals("org.postgresql.ds.PGConnectionPoolDataSource")
                  || className.equals("org.postgresql.jdbc2.optional.ConnectionPool")
                  || className.equals("org.postgresql.jdbc3.Jdbc3ConnectionPool"))
         {
@@ -94,7 +94,7 @@ public class PGObjectFactory implements ObjectFactory
 
     private Object loadConnectionPool(Reference ref)
     {
-        PGConnectionPool cp = new PGConnectionPool();
+        PGConnectionPoolDataSource cp = new PGConnectionPoolDataSource();
         return loadBaseDataSource(cp, ref);
     }
 

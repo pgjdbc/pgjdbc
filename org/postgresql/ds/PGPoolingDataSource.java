@@ -3,7 +3,7 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/PGPoolingDataSource.java,v 1.3 2004/11/07 22:15:42 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/PGPoolingDataSource.java,v 1.4 2004/11/09 08:46:49 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -65,7 +65,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource
     private Stack used = new Stack();
     private Object lock = new Object()
                               ;
-    private PGConnectionPool source;
+    private PGConnectionPoolDataSource source;
 
     /**
      * Gets a description of this DataSource.
@@ -304,8 +304,8 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource
     /**
      * Creates the appropriate ConnectionPool to use for this DataSource.
      */
-    protected PGConnectionPool createConnectionPool() {
-        return new PGConnectionPool();
+    protected PGConnectionPoolDataSource createConnectionPool() {
+        return new PGConnectionPoolDataSource();
     }
 
     /**

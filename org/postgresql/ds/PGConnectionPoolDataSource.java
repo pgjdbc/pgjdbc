@@ -3,7 +3,7 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/PGConnectionPool.java,v 1.2 2004/11/07 22:15:42 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/PGConnectionPool.java,v 1.3 2004/11/09 08:46:49 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -36,7 +36,7 @@ import org.postgresql.ds.common.*;
  *
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  */
-public class PGConnectionPool extends BaseDataSource implements Serializable, ConnectionPoolDataSource
+public class PGConnectionPoolDataSource extends BaseDataSource implements Serializable, ConnectionPoolDataSource
 {
     private boolean defaultAutoCommit = false;
 
