@@ -24,7 +24,7 @@ public class StockDB
     int id = -1;
     
     public void connect(String url,String usr,String pwd) throws Exception {
-	Class.forName("postgresql.Driver");
+	Class.forName("org.postgresql.Driver");
 	System.out.println("Connecting to "+url);
 	con = DriverManager.getConnection(url,usr,pwd);
 	st = con.createStatement();
