@@ -17,7 +17,8 @@ minorversion := $(shell echo $(VERSION) | sed 's/^[0-9][0-9]*\.\([0-9][0-9]*\).*
 
 properties := -Dmajor=$(majorversion) -Dminor=$(minorversion) \
 		-Dfullversion=$(VERSION) \
-		-Ddef_pgport=$(DEF_PGPORT)
+		-Ddef_pgport=$(DEF_PGPORT) \
+		-Denable_debug=$(enable_debug)
 
 all:
 	$(ANT) -buildfile $(srcdir)/build.xml all \
