@@ -61,11 +61,29 @@ public class ResultSetTest extends TestCase
         stmt.executeUpdate("INSERT INTO testnumeric VALUES('0.0')");
         stmt.executeUpdate("INSERT INTO testnumeric VALUES('-1.0')");
         stmt.executeUpdate("INSERT INTO testnumeric VALUES('1.2')");
+        stmt.executeUpdate("INSERT INTO testnumeric VALUES('-2.5')");
         stmt.executeUpdate("INSERT INTO testnumeric VALUES('99999.2')");
         stmt.executeUpdate("INSERT INTO testnumeric VALUES('99999')");
-        stmt.executeUpdate("INSERT INTO testnumeric VALUES('-2.5')");
         stmt.executeUpdate("INSERT INTO testnumeric VALUES('-99999.2')");
         stmt.executeUpdate("INSERT INTO testnumeric VALUES('-99999')");
+
+        // Integer.MaxValue
+        stmt.execute("INSERT INTO testnumeric VALUES('2147483647')");
+
+        // Integer.MinValue
+        stmt.execute("INSERT INTO testnumeric VALUES('-2147483648')");
+
+        stmt.executeUpdate("INSERT INTO testnumeric VALUES('2147483648')");
+        stmt.executeUpdate("INSERT INTO testnumeric VALUES('-2147483649')");
+
+        // Long.MaxValue
+        stmt.executeUpdate("INSERT INTO testnumeric VALUES('9223372036854775807')");
+
+        // Long.MinValue
+        stmt.executeUpdate("INSERT INTO testnumeric VALUES('-9223372036854775808')");
+
+        stmt.executeUpdate("INSERT INTO testnumeric VALUES('9223372036854775808')");
+        stmt.executeUpdate("INSERT INTO testnumeric VALUES('-9223372036854775809')");
 
         stmt.close();
 
@@ -225,63 +243,203 @@ public class ResultSetTest extends TestCase
 
        public void testgetByte() throws SQLException
        {
-       		ResultSet rs = con.createStatement().executeQuery("select * from testnumeric");
-		boolean thrown = false;
+           ResultSet rs = con.createStatement().executeQuery(
+               "select * from testnumeric");
+           boolean thrown = false;
 
-		assertTrue(rs.next());
-		assertEquals(1,rs.getByte(1));
+           assertTrue(rs.next());
+           assertEquals(1, rs.getByte(1));
 
-		assertTrue(rs.next());
-		assertEquals(0,rs.getByte(1));
+           assertTrue(rs.next());
+           assertEquals(0, rs.getByte(1));
 
-		assertTrue(rs.next());
-		assertEquals(-1,rs.getByte(1));
+           assertTrue(rs.next());
+           assertEquals( -1, rs.getByte(1));
 
-		while (rs.next())
-		{
-			thrown = false;
-			try
-			{
-				rs.getByte(1);
-			}
-			catch (Exception e)
-			{
-				thrown = true;
-			}
-			if (!thrown)
-				fail("Exception expected.");
-		}
-	}
+           assertTrue(rs.next());
+           assertEquals(1, rs.getByte(1));
+
+           assertTrue(rs.next());
+           assertEquals(-2, rs.getByte(1));
+
+           while (rs.next())
+           {
+               thrown = false;
+               try
+               {
+                   rs.getByte(1);
+               }
+               catch (Exception e)
+               {
+                   thrown = true;
+               }
+               if (!thrown)
+                   fail("Exception expected.");
+           }
+           rs.close();
+       }
 
        public void testgetShort() throws SQLException
        {
-       		ResultSet rs = con.createStatement().executeQuery("select * from testnumeric");
-		boolean thrown = false;
+           ResultSet rs = con.createStatement().executeQuery(
+               "select * from testnumeric");
+           boolean thrown = false;
 
-		assertTrue(rs.next());
-		assertEquals(1,rs.getShort(1));
+           assertTrue(rs.next());
+           assertEquals(1, rs.getShort(1));
 
-		assertTrue(rs.next());
-		assertEquals(0,rs.getShort(1));
+           assertTrue(rs.next());
+           assertEquals(0, rs.getShort(1));
 
-		assertTrue(rs.next());
-		assertEquals(-1,rs.getShort(1));
+           assertTrue(rs.next());
+           assertEquals( -1, rs.getShort(1));
 
-		while (rs.next())
-		{
-			thrown = false;
-			try
-			{
-				rs.getShort(1);
-			}
-			catch (Exception e)
-			{
-				thrown = true;
-			}
-			if (!thrown)
-				fail("Exception expected.");
-		}
+           assertTrue(rs.next());
+           assertEquals(1, rs.getShort(1));
+
+           assertTrue(rs.next());
+           assertEquals(-2, rs.getShort(1));
+
+           while (rs.next())
+           {
+               thrown = false;
+               try
+               {
+                   rs.getShort(1);
+               }
+               catch (Exception e)
+               {
+                   thrown = true;
+               }
+               if (!thrown)
+                   fail("Exception expected.");
+           }
+           rs.close();
 	}
+
+    public void testgetInt() throws SQLException
+    {
+        ResultSet rs = con.createStatement().executeQuery(
+            "select * from testnumeric");
+        boolean thrown = false;
+
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+
+        assertTrue(rs.next());
+        assertEquals(0, rs.getInt(1));
+
+        assertTrue(rs.next());
+        assertEquals( -1, rs.getInt(1));
+
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+
+        assertTrue(rs.next());
+        assertEquals( -2, rs.getInt(1));
+
+        assertTrue(rs.next());
+        assertEquals(99999, rs.getInt(1));
+
+        assertTrue(rs.next());
+        assertEquals(99999, rs.getInt(1));
+
+        assertTrue(rs.next());
+        assertEquals(-99999, rs.getInt(1));
+
+        assertTrue(rs.next());
+        assertEquals(-99999, rs.getInt(1));
+
+        assertTrue(rs.next());
+        assertEquals(Integer.MAX_VALUE, rs.getInt(1));
+
+        assertTrue(rs.next());
+        assertEquals(Integer.MIN_VALUE, rs.getInt(1));
+
+        while (rs.next())
+        {
+            thrown = false;
+            try
+            {
+                rs.getInt(1);
+            }
+            catch (Exception e)
+            {
+                thrown = true;
+            }
+            if (!thrown)
+                fail("Exception expected." + rs.getString(1));
+        }
+        rs.close();
+    }
+
+    public void testgetLong() throws SQLException
+    {
+        ResultSet rs = con.createStatement().executeQuery(
+            "select * from testnumeric");
+        boolean thrown = false;
+
+        assertTrue(rs.next());
+        assertEquals(1, rs.getLong(1));
+
+        assertTrue(rs.next());
+        assertEquals(0, rs.getLong(1));
+
+        assertTrue(rs.next());
+        assertEquals( -1, rs.getLong(1));
+
+        assertTrue(rs.next());
+        assertEquals(1, rs.getLong(1));
+
+        assertTrue(rs.next());
+        assertEquals( -2, rs.getLong(1));
+
+        assertTrue(rs.next());
+        assertEquals(99999, rs.getLong(1));
+
+        assertTrue(rs.next());
+        assertEquals(99999, rs.getLong(1));
+
+        assertTrue(rs.next());
+        assertEquals(-99999, rs.getLong(1));
+
+        assertTrue(rs.next());
+        assertEquals(-99999, rs.getLong(1));
+
+        assertTrue(rs.next());
+        assertEquals( ((long)Integer.MAX_VALUE), rs.getLong(1));
+
+        assertTrue(rs.next());
+        assertEquals( ((long)Integer.MIN_VALUE), rs.getLong(1));
+
+        assertTrue(rs.next());
+        assertEquals( ((long)Integer.MAX_VALUE)+1, rs.getLong(1));
+
+        assertTrue(rs.next());
+        assertEquals( ((long)Integer.MIN_VALUE)-1, rs.getLong(1));
+
+        assertTrue(rs.next());
+        assertEquals( Long.MAX_VALUE, rs.getLong(1));
+
+        assertTrue(rs.next());
+        assertEquals( Long.MIN_VALUE, rs.getLong(1));
+
+        while (rs.next())
+        {
+            thrown = false;
+            try
+            {
+                rs.getLong(1);
+            }
+            catch (Exception e)
+            {
+                thrown = true;
+            }
+            if (!thrown)
+                fail("Exception expected." + rs.getString(1) );
+        }
+        rs.close();
+    }
 
 	public void testParameters() throws SQLException
 	{

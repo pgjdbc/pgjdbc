@@ -28,6 +28,7 @@ import org.postgresql.util.PGbytea;
 import org.postgresql.util.PGtokenizer;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import java.math.BigInteger;
 
 public abstract class AbstractJdbc1ResultSet implements BaseResultSet, org.postgresql.PGRefCursorResultSet
 {
@@ -61,32 +62,32 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet, org.postg
 
 	public class CursorResultHandler implements ResultHandler {
 		private SQLException error;
-		
+
 		public void handleResultRows(Query fromQuery, Field[] fields, Vector tuples, ResultCursor cursor) {
 			AbstractJdbc1ResultSet.this.rows = tuples;
 			AbstractJdbc1ResultSet.this.cursor = cursor;
 		}
-		
+
 		public void handleCommandStatus(String status, int updateCount, long insertOID) {
 			handleError(new SQLException("unexpected command status"));
 		}
-		
+
 		public void handleWarning(SQLWarning warning) {
 			AbstractJdbc1ResultSet.this.addWarning(warning);
 		}
-		
+
 		public void handleError(SQLException newError) {
 			if (error == null)
 				error = newError;
 			else
 				error.setNextException(newError);
 		}
-		
+
 		public void handleCompletion() throws SQLException {
 			if (error != null)
 				throw error;
 		}
-	};	
+	};
 
 	public AbstractJdbc1ResultSet(Query originalQuery,
 								  BaseStatement statement,
@@ -146,7 +147,7 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet, org.postg
 	{
 		if (rows == null)
 			throw new PSQLException("postgresql.con.closed", PSQLState.CONNECTION_DOES_NOT_EXIST);
-		
+
 		if (onInsertRow)
 			throw new PSQLException("postgresql.res.oninsertrow");
 
@@ -224,6 +225,8 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet, org.postg
 		return toBoolean( getString(columnIndex) );
 	}
 
+    private static final BigInteger BYTEMAX = new BigInteger(Byte.toString(Byte.MAX_VALUE));
+    private static final BigInteger BYTEMIN = new BigInteger(Byte.toString(Byte.MIN_VALUE));
 
 	public byte getByte(int columnIndex) throws SQLException
 	{
@@ -231,35 +234,46 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet, org.postg
 
 		if (s != null )
 		{
+            s= s.trim();
+            if ( s.length() == 0 ) return 0;
 			try
 			{
-				switch(getSQLType(columnIndex))
-				{
-					case Types.NUMERIC:
-					case Types.REAL:
-					case Types.DOUBLE:
-					case Types.FLOAT:
-					case Types.DECIMAL:
-						int loc = s.indexOf(".");
-						if (loc!=-1 && Integer.parseInt(s.substring(loc+1,s.length()))==0)
-						{
-							s = s.substring(0,loc);
-						}
-						break;
-					case Types.CHAR:
-						s = s.trim();
-						break;
-				}
-				if ( s.length() == 0 ) return 0;
-				return Byte.parseByte(s);
+                // try the optimal parse
+                return Byte.parseByte(s);
 			}
 			catch (NumberFormatException e)
 			{
-				throw new PSQLException("postgresql.res.badbyte", PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, s);
+                // didn't work, assume the column is not a byte
+                try
+                {
+                    BigDecimal n = new BigDecimal(s);
+                    BigInteger i = n.toBigInteger();
+
+                    int gt = i.compareTo(BYTEMAX);
+                    int lt = i.compareTo(BYTEMIN);
+
+                    if ( gt > 0 || lt < 0 )
+                    {
+                        throw new PSQLException("postgresql.res.badbyte",
+                                                PSQLState.
+                                                NUMERIC_VALUE_OUT_OF_RANGE,
+                                                s);
+                    }
+                    return i.byteValue();
+                }
+                catch( NumberFormatException ex )
+                {
+                    throw new PSQLException("postgresql.res.badbyte",
+                                            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE,
+                                            s);
+                }
 			}
 		}
 		return 0; // SQL NULL
 	}
+
+    private static final BigInteger SHORTMAX = new BigInteger(Short.toString(Short.MAX_VALUE));
+    private static final BigInteger SHORTMIN = new BigInteger(Short.toString(Short.MIN_VALUE));
 
 	public short getShort(int columnIndex) throws SQLException
 	{
@@ -267,30 +281,36 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet, org.postg
 
 		if (s != null)
 		{
+            s = s.trim();
 			try
 			{
-				switch(getSQLType(columnIndex))
-				{
-					case Types.NUMERIC:
-					case Types.REAL:
-					case Types.DOUBLE:
-					case Types.FLOAT:
-					case Types.DECIMAL:
-						int loc = s.indexOf(".");
-						if (loc!=-1 && Integer.parseInt(s.substring(loc+1,s.length()))==0)
-						{
-							s = s.substring(0,loc);
-						}
-						break;
-					case Types.CHAR:
-						s = s.trim();
-						break;
-				}
 				return Short.parseShort(s);
 			}
 			catch (NumberFormatException e)
 			{
-				throw new PSQLException("postgresql.res.badshort", PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, s);
+                try
+                {
+                    BigDecimal n = new BigDecimal(s);
+                    BigInteger i = n.toBigInteger();
+                    int gt = i.compareTo(SHORTMAX);
+                    int lt = i.compareTo(SHORTMIN);
+
+                    if ( gt > 0 || lt < 0 )
+                    {
+                        throw new PSQLException("postgresql.res.badshort",
+                                                PSQLState.
+                                                NUMERIC_VALUE_OUT_OF_RANGE,
+                                                s);
+                    }
+                    return i.shortValue();
+
+                }
+                catch ( NumberFormatException ne )
+                {
+                    throw new PSQLException("postgresql.res.badshort",
+                                            PSQLState.
+                                            NUMERIC_VALUE_OUT_OF_RANGE, s);
+                }
 			}
 		}
 		return 0; // SQL NULL
@@ -634,14 +654,14 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet, org.postg
 			wasNullFlag = true;
 			return null;
 		}
-		
+
 		Object result = internalGetObject(columnIndex, field);
 		if (result != null)
 			return result;
 
 		return connection.getObject(getPGType(columnIndex), getString(columnIndex));
 	}
-		
+
 	protected Object internalGetObject(int columnIndex, Field field) throws SQLException
 	{
 		switch (getSQLType(columnIndex)) {
@@ -800,6 +820,9 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet, org.postg
 		return false;		// SQL NULL
 	}
 
+    private static final BigInteger INTMAX = new BigInteger(Integer.toString(Integer.MAX_VALUE));
+    private static final BigInteger INTMIN = new BigInteger(Integer.toString(Integer.MIN_VALUE));
+
 	public static int toInt(String s) throws SQLException
 	{
 		if (s != null)
@@ -811,11 +834,36 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet, org.postg
 			}
 			catch (NumberFormatException e)
 			{
-				throw new PSQLException ("postgresql.res.badint", PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, s);
+                try
+                {
+                    BigDecimal n = new BigDecimal(s);
+                    BigInteger i = n.toBigInteger();
+
+                    int gt = i.compareTo(INTMAX);
+                    int lt = i.compareTo(INTMIN);
+
+                    if (gt > 0 || lt < 0)
+                    {
+                        throw new PSQLException("postgresql.res.badint",
+                                                PSQLState.
+                                                NUMERIC_VALUE_OUT_OF_RANGE,
+                                                s);
+                    }
+                    return i.intValue();
+
+                }
+                catch( NumberFormatException ne )
+                {
+                    throw new PSQLException("postgresql.res.badint",
+                                            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE,
+                                            s);
+                }
 			}
 		}
 		return 0;		// SQL NULL
 	}
+    private final static BigInteger LONGMAX = new BigInteger(Long.toString(Long.MAX_VALUE));
+    private final static BigInteger LONGMIN = new BigInteger(Long.toString(Long.MIN_VALUE));
 
 	public static long toLong(String s) throws SQLException
 	{
@@ -828,7 +876,28 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet, org.postg
 			}
 			catch (NumberFormatException e)
 			{
-				throw new PSQLException ("postgresql.res.badlong", PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, s);
+                try
+                {
+                    BigDecimal n = new BigDecimal(s);
+                    BigInteger i = n.toBigInteger();
+                    int gt = i.compareTo(LONGMAX);
+                    int lt = i.compareTo(LONGMIN);
+
+                    if ( gt > 0 || lt < 0 )
+                    {
+                        throw new PSQLException("postgresql.res.badint",
+                                                PSQLState.
+                                                NUMERIC_VALUE_OUT_OF_RANGE,
+                                                s);
+                    }
+                    return i.longValue();
+                }
+                catch( NumberFormatException ne )
+                {
+                    throw new PSQLException("postgresql.res.badint",
+                                            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE,
+                                            s);
+                }
 			}
 		}
 		return 0;		// SQL NULL
@@ -846,7 +915,8 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet, org.postg
 			}
 			catch (NumberFormatException e)
 			{
-				throw new PSQLException ("postgresql.res.badbigdec", PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, s);
+                throw new PSQLException("postgresql.res.badbigdec",
+                                        PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, s);
 			}
 			if (scale == -1)
 				return val;
@@ -856,7 +926,8 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet, org.postg
 			}
 			catch (ArithmeticException e)
 			{
-				throw new PSQLException ("postgresql.res.badbigdec", PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, s);
+                throw new PSQLException("postgresql.res.badbigdec",
+                                        PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, s);
 			}
 		}
 		return null;		// SQL NULL
@@ -873,7 +944,8 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet, org.postg
 			}
 			catch (NumberFormatException e)
 			{
-				throw new PSQLException ("postgresql.res.badfloat", PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, s);
+                throw new PSQLException("postgresql.res.badfloat",
+                                        PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, s);
 			}
 		}
 		return 0;		// SQL NULL
@@ -890,7 +962,8 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet, org.postg
 			}
 			catch (NumberFormatException e)
 			{
-				throw new PSQLException ("postgresql.res.baddouble", PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, s);
+                throw new PSQLException("postgresql.res.baddouble",
+                                        PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, s);
 			}
 		}
 		return 0;		// SQL NULL
