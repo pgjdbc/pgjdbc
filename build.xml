@@ -119,7 +119,7 @@
     <available classname="org.postgresql.Driver" property="old.driver.present" />
     <fail message="Old driver was detected on classpath or in jre/lib/ext, please remove and try again." if="old.driver.present" />
 
-    <javac classpath="{$srcdir}" srcdir="${srcdir}" destdir="${builddir}" debug="${debug}">
+    <javac classpath="${srcdir}" srcdir="${srcdir}" destdir="${builddir}" debug="${debug}">
       <!-- This is the core of the driver.  It is common for all three versions. -->
        <include name="${package}/*.java" />
        <include name="${package}/core/**" />
