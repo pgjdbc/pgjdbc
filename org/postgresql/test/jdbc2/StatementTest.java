@@ -64,6 +64,24 @@ public class StatementTest extends TestCase
      stmt.close();
   }
 
+	public void testMultiExecute() throws SQLException
+	{
+		Statement stmt = con.createStatement();
+		stmt.execute("SELECT 1; SELECT 2");
+
+		ResultSet rs = stmt.getResultSet();
+		assertTrue(rs.next());
+		assertEquals(1, rs.getInt(1));
+		rs.close();
+
+		assertTrue(stmt.getMoreResults());
+		rs = stmt.getResultSet();
+		assertTrue(rs.next());
+		assertEquals(2, rs.getInt(1));
+		rs.close();
+		stmt.close();
+	}
+
 	public void testUpdateCount() throws SQLException
 	{
 		Statement stmt = con.createStatement();
