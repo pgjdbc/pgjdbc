@@ -7,7 +7,7 @@
  * Copyright (c) 2004, Open Cloud Limited.
  *
  * IDENTIFICATION
- *	  $PostgreSQL$
+ *	  $PostgreSQL: pgjdbc/org/postgresql/core/v2/V2Query.java,v 1.1 2004/06/29 06:43:25 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -29,19 +29,38 @@ class V2Query implements Query {
 		// Parse query and find parameter placeholders.
 
 		Vector v = new Vector();
-		boolean inQuotes = false;
 		int lastParmEnd = 0;
+
+		boolean inSingleQuotes = false;
+		boolean inDoubleQuotes = false;
 
 		for (int i = 0; i < query.length(); ++i)
 		{
-			int c = query.charAt(i);
+			char c = query.charAt(i);
 
-			if (c == '\'')
-				inQuotes = !inQuotes;
-			if (c == '?' && !inQuotes)
-			{
-				v.addElement(query.substring (lastParmEnd, i));
-				lastParmEnd = i + 1;
+			switch (c) {
+			case '\\':
+				if (inSingleQuotes)
+					++i; // Skip one character.
+				break;
+
+			case '\'':
+				inSingleQuotes = !inDoubleQuotes && !inSingleQuotes;
+				break;
+
+			case '"':
+				inDoubleQuotes = !inSingleQuotes && !inDoubleQuotes;
+				break;
+
+			case '?':
+				if (!inSingleQuotes && !inDoubleQuotes) {
+					v.addElement(query.substring (lastParmEnd, i));
+					lastParmEnd = i + 1;
+				}
+				break;
+
+			default:
+				break;
 			}
 		}
 

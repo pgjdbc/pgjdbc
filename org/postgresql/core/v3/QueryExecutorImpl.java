@@ -7,7 +7,7 @@
  * Copyright (c) 2004, Open Cloud Limited.
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.9 2004/10/25 22:43:19 jurka Exp $
+ *	  $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.10 2004/10/25 22:48:03 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -61,27 +61,49 @@ public class QueryExecutorImpl implements QueryExecutor {
 		boolean inQuotes = false;
 		int fragmentStart = 0;
 
+		boolean inSingleQuotes = false;
+		boolean inDoubleQuotes = false;
+
 		for (int i = 0; i < query.length(); ++i)
 		{
 			char c = query.charAt(i);
 
-			if (c == '\'')
-				inQuotes = !inQuotes;
+			switch (c) {
+			case '\\':
+				if (inSingleQuotes)
+					++i; // Skip one character.
+				break;
 
-			if (withParameters && c == '?' && !inQuotes) {
-				fragmentList.add(query.substring(fragmentStart, i));
-				fragmentStart = i + 1;
-			}
+			case '\'':
+				inSingleQuotes = !inDoubleQuotes && !inSingleQuotes;
+				break;
 
-			if (c == ';' && !inQuotes) {
-				fragmentList.add(query.substring(fragmentStart, i));
-				fragmentStart = i + 1;
-				if (fragmentList.size() > 1 || ((String)fragmentList.get(0)).length() > 0)
-					statementList.add(fragmentList.toArray(new String[fragmentList.size()]));
-				fragmentList.clear();
+			case '"':
+				inDoubleQuotes = !inSingleQuotes && !inDoubleQuotes;
+				break;
+
+			case '?':
+				if (withParameters && !inSingleQuotes && !inDoubleQuotes) {
+					fragmentList.add(query.substring(fragmentStart, i));
+					fragmentStart = i + 1;
+				}
+				break;
+
+			case ';':
+				if (!inSingleQuotes && !inDoubleQuotes) {
+					fragmentList.add(query.substring(fragmentStart, i));
+					fragmentStart = i + 1;
+					if (fragmentList.size() > 1 || ((String)fragmentList.get(0)).length() > 0)
+						statementList.add(fragmentList.toArray(new String[fragmentList.size()]));
+					fragmentList.clear();
+				}
+				break;
+
+			default:
+				break;
 			}
 		}
-		
+
 		fragmentList.add(query.substring(fragmentStart));
 		if (fragmentList.size() > 1 || ((String)fragmentList.get(0)).length() > 0)
 			statementList.add(fragmentList.toArray(new String[fragmentList.size()]));

@@ -222,4 +222,55 @@ public class PreparedStatementTest extends TestCase
 
 		pstmt.close();
 	}
+
+	public void testSingleQuotes() throws SQLException {
+		String[] testStrings = new String[] {
+			"bare ? question mark",
+			"quoted \\' single quote",
+			"doubled '' single quote",
+			"octal \\060 constant",
+			"escaped \\? question mark",
+			"double \\\\ backslash",
+			"double \" quote",
+		};
+
+		String[] expected = new String[] {
+			"bare ? question mark",
+			"quoted ' single quote",
+			"doubled ' single quote",
+			"octal 0 constant",
+			"escaped ? question mark",
+			"double \\ backslash",
+			"double \" quote",
+		};
+
+		for (int i = 0; i < testStrings.length; ++i) {
+			PreparedStatement pstmt = conn.prepareStatement("SELECT '" + testStrings[i] + "'");
+			ResultSet rs = pstmt.executeQuery();
+			assertTrue(rs.next());
+			assertEquals(expected[i], rs.getString(1));
+			rs.close();
+			pstmt.close();
+		}
+	}
+
+	public void testDoubleQuotes() throws SQLException {
+		String[] testStrings = new String[] {
+			"bare ? question mark",
+			"single ' quote",
+			"doubled '' single quote",
+			"doubled \"\" double quote",
+			"no backslash interpretation here: \\",
+		};
+
+		for (int i = 0; i < testStrings.length; ++i) {
+			PreparedStatement pstmt = conn.prepareStatement("CREATE TABLE \"" + testStrings[i] + "\" (i integer)");
+			pstmt.executeUpdate();
+			pstmt.close();
+
+			pstmt = conn.prepareStatement("DROP TABLE \"" + testStrings[i] + "\"");
+			pstmt.executeUpdate();
+			pstmt.close();			
+		}
+	}
 }
