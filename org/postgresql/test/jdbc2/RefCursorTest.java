@@ -3,19 +3,14 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/RefCursorTest.java,v 1.4 2004/11/09 08:54:50 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/RefCursorTest.java,v 1.5 2005/01/11 08:25:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.test.TestUtil;
-import java.sql.CallableStatement;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.Statement;
-import java.sql.Types;
-
+import java.sql.*;
 import junit.framework.TestCase;
 
 /*
@@ -51,16 +46,18 @@ public class RefCursorTest extends TestCase
 
         // Create the functions.
         stmt.execute ("CREATE OR REPLACE FUNCTION testspg__getRefcursor () RETURNS refcursor AS '"
-                      + "declare v_resset; begin open v_resset for select id from testrs order by id; "
+                      + "declare v_resset refcursor; begin open v_resset for select id from testrs order by id; "
                       + "return v_resset; end;' LANGUAGE 'plpgsql';");
         stmt.execute ("CREATE OR REPLACE FUNCTION testspg__getEmptyRefcursor () RETURNS refcursor AS '"
-                      + "declare v_resset; begin open v_resset for select id from testrs where id < 1 order by id; "
+                      + "declare v_resset refcursor; begin open v_resset for select id from testrs where id < 1 order by id; "
                       + "return v_resset; end;' LANGUAGE 'plpgsql';");
         stmt.close();
+        con.setAutoCommit(false);
     }
 
     protected void tearDown() throws Exception
     {
+        con.setAutoCommit(true);
         Statement stmt = con.createStatement ();
         stmt.execute ("drop FUNCTION testspg__getRefcursor ();");
         stmt.execute ("drop FUNCTION testspg__getEmptyRefcursor ();");
@@ -68,7 +65,7 @@ public class RefCursorTest extends TestCase
         TestUtil.closeDB(con);
     }
 
-    public void testResult() throws Exception
+    public void testResult() throws SQLException
     {
         CallableStatement call = con.prepareCall("{ ? = call testspg__getRefcursor () }");
         call.registerOutParameter(1, Types.OTHER);
@@ -99,9 +96,9 @@ public class RefCursorTest extends TestCase
     }
 
 
-    public void testEmptyResult() throws Exception
+    public void testEmptyResult() throws SQLException
     {
-        CallableStatement call = con.prepareCall("{ ? = call testspg__getRefcursor () }");
+        CallableStatement call = con.prepareCall("{ ? = call testspg__getEmptyRefcursor () }");
         call.registerOutParameter(1, Types.OTHER);
         call.execute();
 
@@ -110,4 +107,25 @@ public class RefCursorTest extends TestCase
 
         call.close();
     }
+
+    public void testMetaData() throws SQLException
+    {
+        if (!TestUtil.haveMinimumServerVersion(con, "7.4"))
+            return;
+
+        CallableStatement call = con.prepareCall("{ ? = call testspg__getRefcursor () }");
+        call.registerOutParameter(1, Types.OTHER);
+        call.execute();
+
+        ResultSet rs = (ResultSet) call.getObject(1);
+        ResultSetMetaData rsmd = rs.getMetaData();
+        assertNotNull(rsmd);
+        assertEquals(1, rsmd.getColumnCount());
+        assertEquals(Types.INTEGER, rsmd.getColumnType(1));
+        assertEquals("int4", rsmd.getColumnTypeName(1));
+        rs.close();
+
+        call.close();
+    }
+
 }

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!--
   Copyright (c) 2004-2005, PostgreSQL Global Development Group
-  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.20 2005/01/21 11:53:27 jurka Exp $
+  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.21 2005/01/27 11:21:24 jurka Exp $
 -->
 
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN" "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">
@@ -1133,32 +1133,16 @@ stmt.close();
 
 	<note>
 	 <para>
-	  There are some limitations on the current support for a
+	  One notable limitation of the current support for a
 	  <classname>ResultSet</classname> created from a
-	  <type>refcursor</type>.  These limits are deficiences of the
-	  <acronym>JDBC</acronym> driver, not the server, and it is
-	  technically possible to remove them, we just haven't found
-	  the time.
-
-	  <itemizedlist>
-	   <listitem>
-	    <para>
-	     <classname>ResultSetMetaData</classname> is not available.
-	     Calling <function>getMetaData</function> will return
-	     <literal>null</literal>.
-	     </para>
-	   </listitem>
-
-	   <listitem>
-	    <para>
-	     Even though it is a cursor backed
-	     <classname>ResultSet</classname>, all data will be retrieved
-	     and cached on the client.  The fetch size parameter described
-	     in <xref linkend="query-with-cursor" /> will be ignored.
-	    </para>
-	   </listitem>
-	  </itemizedlist>
-
+	  <type>refcursor</type> is that even though it is a cursor
+	  backed <classname>ResultSet</classname>, all data will be retrieved
+	  and cached on the client.  The <classname>Statement</classname>
+	  fetch size parameter described in
+	  <xref linkend="query-with-cursor" /> is ignored.  This limitation
+	  is a deficiency of the <acronym>JDBC</acronym> driver,
+	  not the server, and it is technically possible to remove it,
+	  we just haven't found the time.
 	 </para>
 	</note>
        </para>
