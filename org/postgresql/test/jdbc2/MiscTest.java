@@ -51,4 +51,29 @@ public class MiscTest extends TestCase
 			fail(ex.getMessage());
 		}
 	}
+
+	public void xtestLocking()
+	{
+
+		System.out.println("testing lock");
+		try
+		{
+			Connection con = JDBC2Tests.openDB();
+			Connection con2 = JDBC2Tests.openDB();
+
+			JDBC2Tests.createTable(con, "test_lock", "name text");
+			Statement st = con.createStatement();
+			Statement st2 = con2.createStatement();
+			con.setAutoCommit(false);
+			st.execute("lock table test_lock");
+			st2.executeUpdate( "insert into test_lock ( name ) values ('hello')" );
+ 			con.commit();
+			JDBC2Tests.dropTable(con, "test_lock");
+			con.close();
+		}
+		catch ( Exception ex )
+		{
+			fail( ex.getMessage() );
+		}
+	}
 }
