@@ -162,7 +162,7 @@ public class QueryExecutor
 						// keep processing
 						break;
 					case 'I':	// Empty Query
-						int t = pgStream.ReceiveChar();
+						int t = pgStream.ReceiveIntegerR(4);
 						break;
 					case 'N':	// Error Notification
 						int l_nlen = pgStream.ReceiveIntegerR(4);
@@ -264,7 +264,7 @@ public class QueryExecutor
 						// keep processing
 						break;
 					case 'I':	// Empty Query
-						int t = pgStream.ReceiveChar();
+						int t = pgStream.ReceiveIntegerR(4);
 						break;
 					case 'N':	// Error Notification
 						statement.addWarning(pgStream.ReceiveString(connection.getEncoding()));
