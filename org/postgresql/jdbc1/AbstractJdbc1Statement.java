@@ -144,7 +144,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 		v.addElement(l_sql.substring (lastParmEnd, l_sql.length()));
 
 		m_sqlFragments = new String[v.size()];
-		m_binds = new String[v.size() - 1];
+		m_binds = new Object[v.size() - 1];
 		m_bindTypes = new String[v.size() - 1];
 
 		for (i = 0 ; i < m_sqlFragments.length; ++i)
