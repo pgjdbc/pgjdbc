@@ -1934,7 +1934,7 @@ public abstract class AbstractJdbc1Statement implements org.postgresql.PGStateme
 	private static final String PG_INT8 = "int8";
 	private static final String PG_NUMERIC = "numeric";
 	private static final String PG_FLOAT = "float";
-	private static final String PG_DOUBLE = "double";
+	private static final String PG_DOUBLE = "double precision";
 	private static final String PG_BOOLEAN = "boolean";
 	private static final String PG_DATE = "date";
 	private static final String PG_TIME = "time";
