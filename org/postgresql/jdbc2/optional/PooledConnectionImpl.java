@@ -26,7 +26,7 @@ public class PooledConnectionImpl implements PooledConnection
 	 * Creates a new PooledConnection representing the specified physical
 	 * connection.
 	 */
-	PooledConnectionImpl(Connection con, boolean autoCommit)
+	protected PooledConnectionImpl(Connection con, boolean autoCommit)
 	{
 		this.con = con;
 		this.autoCommit = autoCommit;

@@ -262,6 +262,7 @@
   <target name="testjdbc2optional" depends="jar" if="jdbc2optionaltests">
     <javac srcdir="${srcdir}" destdir="${builddir}" debug="${debug}">
       <include name="${package}/test/jdbc2/optional/**" />
+      <include name="${package}/test/util/**" />
     </javac>
     <java fork="yes" classname="junit.${junit.ui}.TestRunner" taskname="junit" failonerror="true">
       <arg value="org.postgresql.test.jdbc2.optional.OptionalTestSuite" />
@@ -278,6 +279,7 @@
   <target name="testjdbc3" depends="jar" if="jdbc3tests">
     <javac srcdir="${srcdir}" destdir="${builddir}" debug="${debug}">
       <include name="${package}/test/jdbc3/*" />
+      <include name="${package}/test/util/*" />
     </javac>
     <java fork="yes" classname="junit.${junit.ui}.TestRunner" taskname="junit" failonerror="true">
       <arg value="org.postgresql.test.jdbc3.Jdbc3TestSuite" />
