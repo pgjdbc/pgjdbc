@@ -18,6 +18,7 @@ import java.util.*;
 
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.PSQLDriverVersion;
 
 /*
  * The Java SQL framework allows for multiple database drivers.  Each
@@ -262,7 +263,7 @@ public class Driver implements java.sql.Driver
 	 */
 	public static String getVersion()
 	{
-		return "@VERSION@ (build " + m_buildNumber + ")";
+		return "@VERSION@ (build " + PSQLDriverVersion.buildNumber + ")";
 	}
 
 	/*
@@ -535,8 +536,5 @@ public class Driver implements java.sql.Driver
 		return l_return;
 	}
 
-
-	//The build number should be incremented for every new build
-	private static int m_buildNumber = 305;
 
 }
