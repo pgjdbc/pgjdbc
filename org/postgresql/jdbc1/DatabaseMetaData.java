@@ -2017,14 +2017,17 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData
 			// from the typmod value.
 			if (typname.equals("numeric") || typname.equals("decimal"))
 			{
-				int attypmod = r.getInt(8);
+				int attypmod = r.getInt(8) -  VARHDRSZ;
 				tuple[8] =
-					Integer.toString((attypmod - VARHDRSZ) & 0xffff).getBytes();
+					Integer.toString(attypmod & 0xffff).getBytes();
+				tuple[9] =
+					Integer.toString( ( attypmod >> 16 ) & 0xffff ).getBytes();
 			}
 			else
+			{
 				tuple[8] = "0".getBytes();
-
-			tuple[9] = "10".getBytes();				// Num Prec Radix - assume decimal
+				tuple[9] = "10".getBytes();				// Num Prec Radix - assume decimal
+			}
 			tuple[10] = Integer.toString(nullFlag.equals("f") ?
 										 java.sql.DatabaseMetaData.columnNullable :
 										 java.sql.DatabaseMetaData.columnNoNulls).getBytes();	// Nullable
