@@ -320,8 +320,10 @@ public abstract class Connection
 		int update_count = 1;
 	    SQLException final_error = null;
 	    
-	    if (sql.length() > 8192)
-		throw new PSQLException("postgresql.con.toolong",sql);
+	    // Commented out as the backend can now handle queries
+	    // larger than 8K. Peter June 6 2000
+	    //if (sql.length() > 8192)
+	    //throw new PSQLException("postgresql.con.toolong",sql);
 	    try
 		{
 		    pg_stream.SendChar('Q');
