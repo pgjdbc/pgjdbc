@@ -3,7 +3,7 @@
  * Copyright (c) 2004, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL$
+ *	  $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.20 2004/11/07 22:16:03 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -101,11 +101,10 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 		prepareThreshold = 0;
 		try {
 			prepareThreshold = Integer.parseInt(info.getProperty("prepareThreshold", "0"));
+			if (prepareThreshold < 0)
+				prepareThreshold = 0;
 		} catch (Exception e) {}
-		
-		if (prepareThreshold < 0)
-			prepareThreshold = 0;
-		
+				
 		//Print out the driver version number
 		if (Driver.logInfo)
 			Driver.info(Driver.getVersion());
@@ -126,7 +125,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 		rollbackQuery = getQueryExecutor().createSimpleQuery("ROLLBACK");
 
 		// Initialize object handling
-		initObjectTypes();
+		initObjectTypes(info);
 	}
 
 	/*
@@ -425,28 +424,38 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 	// This holds the available types, a String to Class mapping.
 	private final HashMap objectTypes = new HashMap();
 
-	// This array contains the types that are supported as standard.
-	//
-	// The first entry is the types name on the database, the second
-	// the full class name of the handling class.
-	//
-	private static final Object[][] defaultObjectTypes = {
-		{ "box",      org.postgresql.geometric.PGbox.class     },
-		{ "circle",   org.postgresql.geometric.PGcircle.class  },
-		{ "line",     org.postgresql.geometric.PGline.class    },
-		{ "lseg",     org.postgresql.geometric.PGlseg.class    },
-		{ "path",     org.postgresql.geometric.PGpath.class    },
-		{ "point",    org.postgresql.geometric.PGpoint.class   },
-		{ "polygon",  org.postgresql.geometric.PGpolygon.class },
-		{ "money",    org.postgresql.util.PGmoney.class        },
-		{ "interval", org.postgresql.util.PGInterval.class     }
-	};
-
 	// This initialises the objectTypes hashtable
-	private void initObjectTypes() throws SQLException
+	private void initObjectTypes(Properties info) throws SQLException
 	{
-		for (int i = 0; i < defaultObjectTypes.length; ++i)
-			addDataType((String) defaultObjectTypes[i][0], (Class) defaultObjectTypes[i][1]);
+		// Add in the types that come packaged with the driver.
+		// These can be overridden later if desired.
+		addDataType("box", org.postgresql.geometric.PGbox.class);
+		addDataType("circle", org.postgresql.geometric.PGcircle.class);
+		addDataType("line", org.postgresql.geometric.PGline.class);
+		addDataType("lseg", org.postgresql.geometric.PGlseg.class);
+		addDataType("path", org.postgresql.geometric.PGpath.class);
+		addDataType("point", org.postgresql.geometric.PGpoint.class);
+		addDataType("polygon", org.postgresql.geometric.PGpolygon.class);
+		addDataType("money", org.postgresql.util.PGmoney.class);
+		addDataType("interval", org.postgresql.util.PGInterval.class);
+
+		for (Enumeration e = info.propertyNames(); e.hasMoreElements(); ) {
+			String propertyName = (String)e.nextElement();
+			if (propertyName.startsWith("datatype.")) {
+				String typeName = propertyName.substring(9);
+				String className = info.getProperty(propertyName);
+				Class klass;
+
+				try {
+					klass = Class.forName(className);
+				} catch (ClassNotFoundException cnfe) {
+					throw new PSQLException(GT.tr("Unable to load the class {0} responsible for the datatype {1}", new Object[] { className, typeName }),
+											PSQLState.SYSTEM_ERROR, cnfe);
+				}
+
+				addDataType(typeName, klass);
+			}
+		}
 	}
 
 	/**

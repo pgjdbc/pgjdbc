@@ -3,7 +3,7 @@
  * Copyright (c) 2003-2004, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.52 2004/11/02 18:33:02 jurka Exp $
+ *	  $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.53 2004/11/07 22:15:28 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -12,6 +12,7 @@ package org.postgresql;
 import java.io.*;
 import java.sql.*;
 import java.util.*;
+import java.net.URL;
 
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -63,7 +64,30 @@ public class Driver implements java.sql.Driver
 		}
 	}
 
-	/*
+	//
+	// Helper to retrieve default properties from classloader resource
+	// properties files.
+	//
+	private Properties defaultProperties;
+	synchronized Properties getDefaultProperties() throws IOException {
+		if (defaultProperties != null)
+			return defaultProperties;
+
+		Properties merged = new Properties();
+
+		Enumeration urls = getClass().getClassLoader().getResources("/org/postgresql/driverconfig.properties");
+		while (urls.hasMoreElements()) {
+			URL url = (URL)urls.nextElement();
+			InputStream is = url.openStream();
+			merged.load(is);
+			is.close();
+		}
+
+		defaultProperties = merged;
+		return defaultProperties;
+	}
+
+	/**
 	 * Try to make a database connection to the given URL.	The driver
 	 * should return "null" if it realizes it is the wrong kind of
 	 * driver to connect to the given URL.	This will be common, as
@@ -122,8 +146,24 @@ public class Driver implements java.sql.Driver
 	 */
 	public java.sql.Connection connect(String url, Properties info) throws SQLException
 	{
-		Properties props;
-		if ((props = parseURL(url, info)) == null)
+		// get defaults
+		Properties defaults;
+		try {
+			defaults = getDefaultProperties();
+		} catch (IOException ioe) {
+			throw new PSQLException(GT.tr("Error loading default settings from postgresql.properties"),
+									PSQLState.UNEXPECTED_ERROR, ioe);
+		}
+
+		// override defaults with provided properties
+		Properties props = new Properties(defaults);
+		for (Enumeration e = info.propertyNames(); e.hasMoreElements(); ) {
+			String propName = (String)e.nextElement();
+			props.setProperty(propName, info.getProperty(propName));
+		}
+
+		// parse URL and add more properties
+		if ((props = parseURL(url, props)) == null)
 		{
 			if (Driver.logDebug)
 				Driver.debug("Error in url" + url);
@@ -152,7 +192,7 @@ public class Driver implements java.sql.Driver
 		}
 	}
 
-	/*
+	/**
 	 * Returns true if the driver thinks it can open a connection to the
 	 * given URL.  Typically, drivers will return true if they understand
 	 * the subprotocol specified in the URL and false if they don't.  Our
@@ -202,7 +242,7 @@ public class Driver implements java.sql.Driver
 		  new String[] { "7.1", "7.2", "7.3" } }
 	};
 					
-	/*
+	/**
 	 * The getPropertyInfo method is intended to allow a generic GUI
 	 * tool to discover what properties it should prompt a human for
 	 * in order to get enough information to connect to a database.
@@ -238,7 +278,7 @@ public class Driver implements java.sql.Driver
 		return props;
 	}
 
-	/*
+	/**
 	 * Gets the drivers major version number
 	 *
 	 * @return the drivers major version number
@@ -250,7 +290,7 @@ public class Driver implements java.sql.Driver
 	}
 
 
-	/*
+	/**
 	 * Get the drivers minor version number
 	 *
 	 * @return the drivers minor version number
@@ -261,15 +301,16 @@ public class Driver implements java.sql.Driver
 		return MINORVERSION;
 	}
 
-	/*
-	 * Returns the VERSION variable from Makefile.global
+	/**
+	 * Returns the server version series of this driver and the
+	 * specific build number.
 	 */
 	public static String getVersion()
 	{
 		return "@VERSION@ (build " + PSQLDriverVersion.buildNumber + ")";
 	}
 
-	/*
+	/**
 	 * Report whether the driver is a genuine JDBC compliant driver.  A
 	 * driver may only report "true" here if it passes the JDBC compliance
 	 * tests, otherwise it is required to return false.  JDBC compliance
@@ -286,7 +327,7 @@ public class Driver implements java.sql.Driver
 
 	static private String[] protocols = { "jdbc", "postgresql" };
 
-	/*
+	/**
 	 * Constructs a new DriverURL, splitting the specified URL into its
 	 * component parts
 	 * @param url JDBC URL to parse
@@ -342,7 +383,7 @@ public class Driver implements java.sql.Driver
 							// to handle multiple backend protocols.
 							if (count == 2 && tmp > 0)
 							{
-								urlProps.put("Protocol", token);
+								urlProps.setProperty("Protocol", token);
 								found = true;
 							}
 						}
@@ -360,7 +401,7 @@ public class Driver implements java.sql.Driver
 					state = 0;
 				else if (count == 4)
 				{
-					urlProps.put("PGDBNAME", token);
+					urlProps.setProperty("PGDBNAME", token);
 					state = -2;
 				}
 				else if (count == 5 && state == 0 && token.equals("/"))
@@ -368,7 +409,7 @@ public class Driver implements java.sql.Driver
 				else if (count == 5 && state == 0)
 					return null;
 				else if (count == 6 && state == 1)
-					urlProps.put("PGHOST", token);
+					urlProps.setProperty("PGHOST", token);
 				else if (count == 7 && token.equals(":"))
 					state = 2;
 				else if (count == 8 && state == 2)
@@ -376,7 +417,7 @@ public class Driver implements java.sql.Driver
 					try
 					{
 						Integer portNumber = Integer.decode(token);
-						urlProps.put("PGPORT", portNumber.toString());
+						urlProps.setProperty("PGPORT", portNumber.toString());
 					}
 					catch (Exception e)
 					{
@@ -388,7 +429,7 @@ public class Driver implements java.sql.Driver
 					state = -1;
 				else if (state == -1)
 				{
-					urlProps.put("PGDBNAME", token);
+					urlProps.setProperty("PGDBNAME", token);
 					state = -2;
 				}
 			}
@@ -399,7 +440,7 @@ public class Driver implements java.sql.Driver
 
 		// if we extracted an IPv6 address out earlier put it back
 		if (ipv6address != null)
-			urlProps.put("PGHOST",ipv6address);
+			urlProps.setProperty("PGHOST",ipv6address);
 
 		//parse the args part of the url
 		StringTokenizer qst = new StringTokenizer(l_urlArgs, "&");
@@ -408,9 +449,9 @@ public class Driver implements java.sql.Driver
 			String token = qst.nextToken();
 			int l_pos = token.indexOf('=');
 			if (l_pos == -1) {
-				urlProps.put(token, "");
+				urlProps.setProperty(token, "");
 			} else {
-				urlProps.put(token.substring(0,l_pos), token.substring(l_pos+1));
+				urlProps.setProperty(token.substring(0,l_pos), token.substring(l_pos+1));
 			}
 		}
 
@@ -418,34 +459,34 @@ public class Driver implements java.sql.Driver
 
 	}
 
-	/*
+	/**
 	 * @return the hostname portion of the URL
 	 */
-	public String host(Properties props)
+	private String host(Properties props)
 	{
 		return props.getProperty("PGHOST", "localhost");
 	}
 
-	/*
+	/**
 	 * @return the port number portion of the URL or the default if no port was specified
 	 */
-	public int port(Properties props)
+	private int port(Properties props)
 	{
 		return Integer.parseInt(props.getProperty("PGPORT", "@DEF_PGPORT@"));
 	}
 
-	/*
+	/**
 	 * @return the username of the URL
 	 */
-	public String user(Properties props)
+	private String user(Properties props)
 	{
 		return props.getProperty("user", "");
 	}
 
-	/*
+	/**
 	 * @return the database name of the URL
 	 */
-	public String database(Properties props)
+	private String database(Properties props)
 	{
 		return props.getProperty("PGDBNAME", "");
 	}
@@ -473,7 +514,7 @@ public class Driver implements java.sql.Driver
 		logDebug = (logLevel >= DEBUG) ? true : false;
 		logInfo = (logLevel >= INFO) ? true : false;
 	}
-	/*
+	/**
 	 * logging message at the debug level
 	 * messages will be printed if the logging level is less or equal to DEBUG
 	 */
@@ -484,7 +525,7 @@ public class Driver implements java.sql.Driver
 			DriverManager.println(msg);
 		}
 	}
-	/*
+	/**
 	 * logging message at the debug level
 	 * messages will be printed if the logging level is less or equal to DEBUG
 	 */
@@ -498,7 +539,7 @@ public class Driver implements java.sql.Driver
 			}
 		}
 	}
-	/*
+	/**
 	 * logging message at info level
 	 * messages will be printed if the logging level is less or equal to INFO
 	 */
@@ -509,7 +550,7 @@ public class Driver implements java.sql.Driver
 			DriverManager.println(msg);
 		}
 	}
-	/*
+	/**
 	 * logging message at info level
 	 * messages will be printed if the logging level is less or equal to INFO
 	 */
