@@ -1121,7 +1121,7 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 			try
 			{
 				pgStream.SendChar('X');
-				pgStream.SendInteger(0,4);
+				pgStream.SendInteger(4,4);
 				pgStream.flush();
 				pgStream.close();
 			}
