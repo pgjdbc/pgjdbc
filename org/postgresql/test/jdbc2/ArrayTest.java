@@ -81,7 +81,7 @@ public class ArrayTest extends TestCase
 		assertTrue(arrrs.next());
 		assertEquals(3,arrrs.getInt(1));
 		assertEquals(3,arrrs.getInt(2));
-		assertFalse(arrrs.next());
+		assertTrue(!arrrs.next());
 		assertTrue(arrrs.previous());
 		assertEquals(3,arrrs.getInt(2));
 		arrrs.first();
@@ -106,7 +106,7 @@ public class ArrayTest extends TestCase
 		assertTrue(arrrs.next());
 		assertEquals(3, arrrs.getInt(1));
 		assertEquals("fa\"b", arrrs.getString(2));
-		assertFalse(arrrs.next());
+		assertTrue(!arrrs.next());
 		arrrs.close();
 
 		rs.close();
