@@ -9,7 +9,7 @@ import org.omg.CosNaming.*;
  *
  * It has no GUI, just a text frontend to keep it simple.
  *
- * $Id$
+ * $PostgreSQL: StockClient.java,v 1.6 2002/09/06 21:23:05 momjian Exp $
  */
 public class StockClient
 {

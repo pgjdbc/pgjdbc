@@ -1,6 +1,6 @@
 --
 -- This creates the database for the stock example
--- $Id$
+-- $PostgreSQL: stock.sql,v 1.1 1999/01/25 21:22:04 scrappy Exp $
 --
 drop table stock;
 

@@ -1,9 +1,9 @@
-// $Id$
+// $PostgreSQL: stock.idl,v 1.1 1999/01/25 21:22:04 scrappy Exp $
 //
 // This is our CORBA bindings for a very simple stock control
 // system.
 //
-// $Id$
+// $PostgreSQL: stock.idl,v 1.1 1999/01/25 21:22:04 scrappy Exp $
 //
 
 // For some reason, idltojava on my setup doesn't like this to be

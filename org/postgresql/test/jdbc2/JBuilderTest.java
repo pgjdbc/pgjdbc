@@ -8,7 +8,7 @@ import java.sql.Statement;
 import junit.framework.TestCase;
 
 /*
- * $Id$
+ * $PostgreSQL: JBuilderTest.java,v 1.8 2003/05/29 04:39:48 barry Exp $
  *
  * Some simple tests to check that the required components needed for JBuilder
  * stay working

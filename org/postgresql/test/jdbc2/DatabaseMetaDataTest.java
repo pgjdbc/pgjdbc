@@ -9,7 +9,7 @@ import java.sql.*;
  *
  * PS: Do you know how difficult it is to type on a train? ;-)
  *
- * $Id$
+ * $PostgreSQL: DatabaseMetaDataTest.java,v 1.19 2003/11/03 15:22:07 davec Exp $
  */
 
 public class DatabaseMetaDataTest extends TestCase

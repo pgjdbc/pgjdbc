@@ -8,7 +8,7 @@ import java.sql.*;
 import org.postgresql.largeobject.*;
 
 /*
- * $Id$
+ * $PostgreSQL: BlobTest.java,v 1.9 2003/08/15 18:45:11 barry Exp $
  *
  * Some simple tests based on problems reported by users. Hopefully these will
  * help prevent previous problems from re-occuring ;-)

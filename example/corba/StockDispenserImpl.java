@@ -5,7 +5,7 @@ import org.omg.CosNaming.*;
 /*
  * This class implements the server side of the example.
  *
- * $Id$
+ * $PostgreSQL: StockDispenserImpl.java,v 1.5 2002/09/06 21:23:05 momjian Exp $
  */
 public class StockDispenserImpl extends stock._StockDispenserImplBase
 {

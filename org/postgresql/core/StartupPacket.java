@@ -5,7 +5,7 @@ import java.io.IOException;
 /**
  * Sent to the backend to initialize a newly created connection.
  *
- * $Id$
+ * $PostgreSQL: StartupPacket.java,v 1.4 2003/05/29 03:21:32 barry Exp $
  */
 
 public class StartupPacket

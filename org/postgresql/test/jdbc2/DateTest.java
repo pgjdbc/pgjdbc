@@ -5,7 +5,7 @@ import junit.framework.TestCase;
 import java.sql.*;
 
 /*
- * $Id$
+ * $PostgreSQL: DateTest.java,v 1.6 2003/09/22 04:55:00 barry Exp $
  *
  * Some simple tests based on problems reported by users. Hopefully these will
  * help prevent previous problems from re-occuring ;-)
