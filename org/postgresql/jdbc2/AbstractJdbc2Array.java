@@ -3,7 +3,6 @@ package org.postgresql.jdbc2;
 import org.postgresql.core.*;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
-import org.postgresql.jdbc2.TimestampUtils;
 
 import java.math.BigDecimal;
 import java.sql.ResultSet;

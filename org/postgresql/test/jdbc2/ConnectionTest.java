@@ -49,55 +49,39 @@ public class ConnectionTest extends TestCase
 	/*
 	 * Tests the two forms of createStatement()
 	 */
-	public void testCreateStatement()
+	public void testCreateStatement() throws SQLException
 	{
-		try
-		{
-			java.sql.Connection conn = TestUtil.openDB();
+		Connection conn = TestUtil.openDB();
 
-			// A standard Statement
-			java.sql.Statement stat = conn.createStatement();
-			assertNotNull(stat);
-			stat.close();
+		// A standard Statement
+		Statement stat = conn.createStatement();
+		assertNotNull(stat);
+		stat.close();
 
-			// Ask for Updateable ResultSets
-			stat = conn.createStatement(java.sql.ResultSet.TYPE_SCROLL_INSENSITIVE, java.sql.ResultSet.CONCUR_UPDATABLE);
-			assertNotNull(stat);
-			stat.close();
-
-		}
-		catch (SQLException ex)
-		{
-			assertTrue(ex.getMessage(), false);
-		}
+		// Ask for Updateable ResultSets
+		stat = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+		assertNotNull(stat);
+		stat.close();
 	}
 
 	/*
 	 * Tests the two forms of prepareStatement()
 	 */
-	public void testPrepareStatement()
+	public void testPrepareStatement() throws SQLException
 	{
-		try
-		{
-			java.sql.Connection conn = TestUtil.openDB();
+		Connection conn = TestUtil.openDB();
 
-			String sql = "select source,cost,imageid from test_c";
+		String sql = "select source,cost,imageid from test_c";
 
-			// A standard Statement
-			java.sql.PreparedStatement stat = conn.prepareStatement(sql);
-			assertNotNull(stat);
-			stat.close();
+		// A standard Statement
+		PreparedStatement stat = conn.prepareStatement(sql);
+		assertNotNull(stat);
+		stat.close();
 
-			// Ask for Updateable ResultSets
-			stat = conn.prepareStatement(sql, java.sql.ResultSet.TYPE_SCROLL_INSENSITIVE, java.sql.ResultSet.CONCUR_UPDATABLE);
-			assertNotNull(stat);
-			stat.close();
-
-		}
-		catch (SQLException ex)
-		{
-			assertTrue(ex.getMessage(), false);
-		}
+		// Ask for Updateable ResultSets
+		stat = conn.prepareStatement(sql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+		assertNotNull(stat);
+		stat.close();
 	}
 
 	/*
@@ -117,111 +101,89 @@ public class ConnectionTest extends TestCase
 	/*
 	 * Test autoCommit (both get & set)
 	 */
-	public void testTransactions()
+	public void testTransactions() throws SQLException
 	{
-		try
-		{
-			java.sql.Connection con = TestUtil.openDB();
-			java.sql.Statement st;
-			java.sql.ResultSet rs;
+		Connection con = TestUtil.openDB();
+		Statement st;
+		ResultSet rs;
 
-			// Turn it off
-			con.setAutoCommit(false);
-			assertTrue(!con.getAutoCommit());
+		// Turn it off
+		con.setAutoCommit(false);
+		assertTrue(!con.getAutoCommit());
 
-			// Turn it back on
-			con.setAutoCommit(true);
-			assertTrue(con.getAutoCommit());
+		// Turn it back on
+		con.setAutoCommit(true);
+		assertTrue(con.getAutoCommit());
 
-			// Now test commit
-			st = con.createStatement();
-			st.executeUpdate("insert into test_a (imagename,image,id) values ('comttest',1234,5678)");
+		// Now test commit
+		st = con.createStatement();
+		st.executeUpdate("insert into test_a (imagename,image,id) values ('comttest',1234,5678)");
 
-			con.setAutoCommit(false);
+		con.setAutoCommit(false);
 
-			// Now update image to 9876 and commit
-			st.executeUpdate("update test_a set image=9876 where id=5678");
-			con.commit();
-			rs = st.executeQuery("select image from test_a where id=5678");
-			assertTrue(rs.next());
-			assertEquals(9876, rs.getInt(1));
-			rs.close();
+		// Now update image to 9876 and commit
+		st.executeUpdate("update test_a set image=9876 where id=5678");
+		con.commit();
+		rs = st.executeQuery("select image from test_a where id=5678");
+		assertTrue(rs.next());
+		assertEquals(9876, rs.getInt(1));
+		rs.close();
 
-			// Now try to change it but rollback
-			st.executeUpdate("update test_a set image=1111 where id=5678");
-			con.rollback();
-			rs = st.executeQuery("select image from test_a where id=5678");
-			assertTrue(rs.next());
-			assertEquals(9876, rs.getInt(1)); // Should not change!
-			rs.close();
+		// Now try to change it but rollback
+		st.executeUpdate("update test_a set image=1111 where id=5678");
+		con.rollback();
+		rs = st.executeQuery("select image from test_a where id=5678");
+		assertTrue(rs.next());
+		assertEquals(9876, rs.getInt(1)); // Should not change!
+		rs.close();
 
-			TestUtil.closeDB(con);
-		}
-		catch (SQLException ex)
-		{
-			assertTrue(ex.getMessage(), false);
-		}
+		TestUtil.closeDB(con);
 	}
 
 	/*
 	 * Simple test to see if isClosed works.
 	 */
-	public void testIsClosed()
+	public void testIsClosed() throws SQLException
 	{
-		try
-		{
-			Connection con = TestUtil.openDB();
+		Connection con = TestUtil.openDB();
 
-			// Should not say closed
-			assertTrue(!con.isClosed());
+		// Should not say closed
+		assertTrue(!con.isClosed());
 
-			TestUtil.closeDB(con);
+		TestUtil.closeDB(con);
 
-			// Should now say closed
-			assertTrue(con.isClosed());
-
-		}
-		catch (SQLException ex)
-		{
-			assertTrue(ex.getMessage(), false);
-		}
+		// Should now say closed
+		assertTrue(con.isClosed());
 	}
 
 	/*
 	 * Test the warnings system
 	 */
-	public void testWarnings()
+	public void testWarnings() throws SQLException
 	{
-		try
-		{
-			Connection con = TestUtil.openDB();
+		Connection con = TestUtil.openDB();
 
-			String testStr = "This Is OuR TeSt message";
+		String testStr = "This Is OuR TeSt message";
 
-			// The connection must be ours!
-			assertTrue(con instanceof org.postgresql.PGConnection);
+		// The connection must be ours!
+		assertTrue(con instanceof org.postgresql.PGConnection);
 
-			// Clear any existing warnings
-			con.clearWarnings();
+		// Clear any existing warnings
+		con.clearWarnings();
 
-			// Set the test warning
-			((org.postgresql.jdbc2.AbstractJdbc2Connection)con).addWarning(new SQLWarning(testStr));
+		// Set the test warning
+		((org.postgresql.jdbc2.AbstractJdbc2Connection)con).addWarning(new SQLWarning(testStr));
 
-			// Retrieve it
-			SQLWarning warning = con.getWarnings();
-			assertNotNull(warning);
-			assertEquals(testStr, warning.getMessage());
+		// Retrieve it
+		SQLWarning warning = con.getWarnings();
+		assertNotNull(warning);
+		assertEquals(testStr, warning.getMessage());
 
-			// Finally test clearWarnings() this time there must be something to delete
-			con.clearWarnings();
-			assertTrue(con.getWarnings() == null);
+		// Finally test clearWarnings() this time there must be something to delete
+		con.clearWarnings();
+		assertTrue(con.getWarnings() == null);
 
-			TestUtil.closeDB(con);
-		}
-		catch (SQLException ex)
-		{
-			assertTrue(ex.getMessage(), false);
-		}
+		TestUtil.closeDB(con);
 	}
 
 	/*
@@ -298,30 +260,23 @@ public class ConnectionTest extends TestCase
 	/*
 	 * JDBC2 Type mappings
 	 */
-	public void testTypeMaps()
+	public void testTypeMaps() throws SQLException
 	{
-		try
-		{
-			Connection con = TestUtil.openDB();
+		Connection con = TestUtil.openDB();
 
-			// preserve the current map
-			java.util.Map oldmap = con.getTypeMap();
+		// preserve the current map
+		java.util.Map oldmap = con.getTypeMap();
 
-			// now change it for an empty one
-			java.util.Map newmap = new java.util.HashMap();
-			con.setTypeMap(newmap);
-			assertEquals(newmap, con.getTypeMap());
+		// now change it for an empty one
+		java.util.Map newmap = new java.util.HashMap();
+		con.setTypeMap(newmap);
+		assertEquals(newmap, con.getTypeMap());
 
-			// restore the old one
-			con.setTypeMap(oldmap);
-			assertEquals(oldmap, con.getTypeMap());
+		// restore the old one
+		con.setTypeMap(oldmap);
+		assertEquals(oldmap, con.getTypeMap());
 
-			TestUtil.closeDB(con);
-		}
-		catch (SQLException ex)
-		{
-			assertTrue(ex.getMessage(), false);
-		}
+		TestUtil.closeDB(con);
 	}
 
 	/**

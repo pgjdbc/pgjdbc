@@ -28,7 +28,6 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.StringTokenizer;
 import java.util.Vector;
-import java.text.SimpleDateFormat;
 import org.postgresql.Driver;
 import org.postgresql.core.*;
 import org.postgresql.largeobject.*;
@@ -47,7 +46,6 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 	protected Hashtable updateValues = new Hashtable();
 	private boolean usingOID = false;	// are we using the OID for the primary key?
 	private Vector primaryKeys;    // list of primary keys
-	private int numKeys = 0;
 	private boolean singleTable = false;
 	protected String tableName = null;
 	protected PreparedStatement updateStatement = null;
@@ -75,10 +73,6 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
 	private StringBuffer sbuf = null;
 	public byte[][] rowBuffer = null;       // updateable rowbuffer
-
- 	private SimpleDateFormat m_tsFormat = null;
- 	private SimpleDateFormat m_tstzFormat = null;
- 	private SimpleDateFormat m_dateFormat = null;
 
 	protected int fetchSize;       // Current fetch size (might be 0).
 	protected ResultCursor cursor; // Cursor for fetching additional data.
@@ -1544,8 +1538,6 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
 			rs.close();
 		}
-
-		numKeys = primaryKeys.size();
 
 		if ( Driver.logDebug )
 			Driver.debug( "no of keys=" + i );

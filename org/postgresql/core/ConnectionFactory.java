@@ -12,7 +12,6 @@
  */
 package org.postgresql.core;
 
-import java.util.HashMap;
 import java.util.Properties;
 import java.sql.SQLException;
 

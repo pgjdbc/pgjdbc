@@ -23,8 +23,6 @@ import java.io.EOFException;
 import java.io.Writer;
 import java.net.Socket;
 import java.sql.*;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 /**
  * Wrapper around the raw connection to the server that implements some basic

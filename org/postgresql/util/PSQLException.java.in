@@ -21,8 +21,6 @@ import org.postgresql.Driver;
 
 public class PSQLException extends SQLException
 {
-	private String message;
-	private PSQLState state;
 
 	public PSQLException(String msg, PSQLState state, Throwable cause, Object[] argv)
 	{

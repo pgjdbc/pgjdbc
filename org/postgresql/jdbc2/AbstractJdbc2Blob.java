@@ -9,12 +9,10 @@ import java.sql.SQLException;
 
 public abstract class AbstractJdbc2Blob
 {
-	private int oid;
 	private LargeObject lo;
 
 	public AbstractJdbc2Blob(PGConnection conn, int oid) throws SQLException
 	{
-		this.oid = oid;
 		LargeObjectManager lom = conn.getLargeObjectAPI();
 		this.lo = lom.open(oid);
 	}

@@ -1,7 +1,6 @@
 package org.postgresql.util;
 
 import java.io.Serializable;
-import java.lang.Exception;
 
 public class PGInterval extends PGobject implements Serializable, Cloneable
 {

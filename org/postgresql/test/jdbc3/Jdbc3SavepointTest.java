@@ -50,12 +50,12 @@ public class Jdbc3SavepointTest extends TestCase {
 		_conn.setAutoCommit(true);
 
 		try {
-			Savepoint sp = _conn.setSavepoint();
+			_conn.setSavepoint();
 			fail("Can't create a savepoint with autocommit.");
 		} catch(SQLException sqle) { }
 
 		try {
-			Savepoint sp = _conn.setSavepoint("spname");
+			_conn.setSavepoint("spname");
 			fail("Can't create a savepoint with autocommit.");
 		} catch(SQLException sqle) { }
 	}
@@ -99,9 +99,9 @@ public class Jdbc3SavepointTest extends TestCase {
 		if (!hasSavepoints())
 			return;
 
-		Savepoint empty = _conn.setSavepoint();
+		_conn.setSavepoint();
 		addRow(1);
-		Savepoint onerow = _conn.setSavepoint("onerow");
+		_conn.setSavepoint("onerow");
 		addRow(2);
 		
 		assertEquals(2, countRows());

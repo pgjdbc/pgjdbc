@@ -15,9 +15,7 @@ package org.postgresql.core.v2;
 import org.postgresql.core.*;
 
 import java.io.InputStream;
-import java.io.Writer;
 import java.io.IOException;
-import java.io.EOFException;
 import java.sql.SQLException;
 import java.util.Arrays;
 import org.postgresql.util.PSQLException;

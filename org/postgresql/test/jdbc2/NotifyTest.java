@@ -4,7 +4,6 @@ import org.postgresql.test.TestUtil;
 import junit.framework.TestCase;
 import java.sql.*;
 
-import org.postgresql.PGConnection;
 import org.postgresql.PGNotification;
 
 public class NotifyTest extends TestCase
@@ -35,9 +34,9 @@ public class NotifyTest extends TestCase
 
 		PGNotification notifications[] = ((org.postgresql.PGConnection)conn).getNotifications();
 		assertNotNull(notifications);
-		assertEquals(notifications.length, 1);
-		assertEquals(notifications[0].getName(), "mynotification");
-		assertEquals(notifications[0].getParameter(), "");
+		assertEquals(1, notifications.length);
+		assertEquals("mynotification", notifications[0].getName());
+		assertEquals("", notifications[0].getParameter());
 
 		stmt.close();
 	}

@@ -9,9 +9,7 @@
  */
 package org.postgresql.fastpath;
 
-import java.io.IOException;
 import java.sql.SQLException;
-import java.sql.SQLWarning;
 import java.sql.ResultSet;
 import java.util.Hashtable;
 import org.postgresql.Driver;
@@ -19,9 +17,7 @@ import org.postgresql.core.BaseConnection;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ParameterList;
 import org.postgresql.util.PSQLException;
-import org.postgresql.util.ServerErrorMessage;
 import org.postgresql.util.PSQLState;
-import org.postgresql.util.PSQLWarning;
 
 /**
  * This class implements the Fastpath api.

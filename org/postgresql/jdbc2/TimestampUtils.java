@@ -154,7 +154,6 @@ public class TimestampUtils {
 					df = tsFormat;
 				}
 			} else {
-                int i;
 				if (slen == 8 && s.equals("infinity"))
 					//java doesn't have a concept of postgres's infinity
 					//so set to an arbitrary future date

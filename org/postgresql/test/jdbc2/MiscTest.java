@@ -46,7 +46,7 @@ public class MiscTest extends TestCase
 		TestUtil.closeDB(con);
 	}
 
-	public void testError() throws SQLException
+	public void testError() throws Exception
 	{
 		Connection con = TestUtil.openDB();
 		try
@@ -62,41 +62,29 @@ public class MiscTest extends TestCase
 		catch ( SQLException ex )
 		{
 			// Verify that the SQLException is serializable.
-			try {
-				ByteArrayOutputStream baos = new ByteArrayOutputStream();
-				ObjectOutputStream oos = new ObjectOutputStream(baos);
-				oos.writeObject(ex);
-				oos.close();
-			} catch (IOException ioe) {
-				fail(ioe.getMessage());
-			}
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			ObjectOutputStream oos = new ObjectOutputStream(baos);
+			oos.writeObject(ex);
+			oos.close();
 		}
 
 		con.commit();
 		con.close();
 	}
 
-	public void xtestLocking()
+	public void xtestLocking() throws SQLException
 	{
+		Connection con = TestUtil.openDB();
+		Connection con2 = TestUtil.openDB();
 
-		try
-		{
-			Connection con = TestUtil.openDB();
-			Connection con2 = TestUtil.openDB();
-
-			TestUtil.createTable(con, "test_lock", "name text");
-			Statement st = con.createStatement();
-			Statement st2 = con2.createStatement();
-			con.setAutoCommit(false);
-			st.execute("lock table test_lock");
-			st2.executeUpdate( "insert into test_lock ( name ) values ('hello')" );
-			con.commit();
-			TestUtil.dropTable(con, "test_lock");
-			con.close();
-		}
-		catch ( Exception ex )
-		{
-			fail( ex.getMessage() );
-		}
+		TestUtil.createTable(con, "test_lock", "name text");
+		Statement st = con.createStatement();
+		Statement st2 = con2.createStatement();
+		con.setAutoCommit(false);
+		st.execute("lock table test_lock");
+		st2.executeUpdate( "insert into test_lock ( name ) values ('hello')" );
+		con.commit();
+		TestUtil.dropTable(con, "test_lock");
+		con.close();
 	}
 }

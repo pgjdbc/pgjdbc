@@ -14,7 +14,6 @@ package org.postgresql.core;
 
 import java.sql.SQLException;
 import java.io.InputStream;
-import java.io.IOException;
 
 /**
  * Abstraction of a list of parameters to be substituted into a Query.

@@ -5,7 +5,6 @@ import org.postgresql.core.*;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import java.sql.*;
-import java.util.Vector;
 import java.util.Hashtable;
 
 public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaData

@@ -123,88 +123,74 @@ public class TimeTest extends TestCase
 	/*
 	 * Tests the time methods in ResultSet
 	 */
-	public void testGetTime()
+	public void testGetTime() throws SQLException
 	{
-		try
-		{
-			Statement stmt = con.createStatement();
+		Statement stmt = con.createStatement();
 
-			assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testtime", "'01:02:03'")));
-			assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testtime", "'23:59:59'")));
-			assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testtime", "'12:00:00'")));
-			assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testtime", "'05:15:21'")));
-			assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testtime", "'16:21:51'")));
-			assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testtime", "'12:15:12'")));
-			assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testtime", "'22:12:01'")));
-			assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testtime", "'08:46:44'")));
+		assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testtime", "'01:02:03'")));
+		assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testtime", "'23:59:59'")));
+		assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testtime", "'12:00:00'")));
+		assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testtime", "'05:15:21'")));
+		assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testtime", "'16:21:51'")));
+		assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testtime", "'12:15:12'")));
+		assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testtime", "'22:12:01'")));
+		assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testtime", "'08:46:44'")));
 
 
-			// Fall through helper
-			timeTest();
+		// Fall through helper
+		timeTest();
 
-			assertEquals(8, stmt.executeUpdate("DELETE FROM testtime"));
-			stmt.close();
-		}
-		catch (Exception ex)
-		{
-			fail(ex.getMessage());
-		}
+		assertEquals(8, stmt.executeUpdate("DELETE FROM testtime"));
+		stmt.close();
 	}
 
 	/*
 	 * Tests the time methods in PreparedStatement
 	 */
-	public void testSetTime()
+	public void testSetTime() throws SQLException
 	{
-		try
-		{
-			PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("testtime", "?"));
-			Statement stmt = con.createStatement();
+		PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("testtime", "?"));
+		Statement stmt = con.createStatement();
 
-			ps.setTime(1, makeTime(1, 2, 3));
-			assertEquals(1, ps.executeUpdate());
+		ps.setTime(1, makeTime(1, 2, 3));
+		assertEquals(1, ps.executeUpdate());
 
-			ps.setTime(1, makeTime(23, 59, 59));
-			assertEquals(1, ps.executeUpdate());
+		ps.setTime(1, makeTime(23, 59, 59));
+		assertEquals(1, ps.executeUpdate());
 
-			ps.setObject(1, java.sql.Time.valueOf("12:00:00"), java.sql.Types.TIME);
-			assertEquals(1, ps.executeUpdate());
+		ps.setObject(1, java.sql.Time.valueOf("12:00:00"), java.sql.Types.TIME);
+		assertEquals(1, ps.executeUpdate());
 
-			ps.setObject(1, java.sql.Time.valueOf("05:15:21"), java.sql.Types.TIME);
-			assertEquals(1, ps.executeUpdate());
+		ps.setObject(1, java.sql.Time.valueOf("05:15:21"), java.sql.Types.TIME);
+		assertEquals(1, ps.executeUpdate());
 
-			ps.setObject(1, java.sql.Time.valueOf("16:21:51"), java.sql.Types.TIME);
-			assertEquals(1, ps.executeUpdate());
+		ps.setObject(1, java.sql.Time.valueOf("16:21:51"), java.sql.Types.TIME);
+		assertEquals(1, ps.executeUpdate());
 
-			ps.setObject(1, java.sql.Time.valueOf("12:15:12"), java.sql.Types.TIME);
-			assertEquals(1, ps.executeUpdate());
+		ps.setObject(1, java.sql.Time.valueOf("12:15:12"), java.sql.Types.TIME);
+		assertEquals(1, ps.executeUpdate());
 
-			ps.setObject(1, "22:12:1", java.sql.Types.TIME);
-			assertEquals(1, ps.executeUpdate());
+		ps.setObject(1, "22:12:1", java.sql.Types.TIME);
+		assertEquals(1, ps.executeUpdate());
 
-			ps.setObject(1, "8:46:44", java.sql.Types.TIME);
-			assertEquals(1, ps.executeUpdate());
+		ps.setObject(1, "8:46:44", java.sql.Types.TIME);
+		assertEquals(1, ps.executeUpdate());
 
-			ps.setObject(1, "5:1:2-03", java.sql.Types.TIME);
-			assertEquals(1, ps.executeUpdate());
+		ps.setObject(1, "5:1:2-03", java.sql.Types.TIME);
+		assertEquals(1, ps.executeUpdate());
 
-			ps.setObject(1, "23:59:59+11", java.sql.Types.TIME);
-			assertEquals(1, ps.executeUpdate());
+		ps.setObject(1, "23:59:59+11", java.sql.Types.TIME);
+		assertEquals(1, ps.executeUpdate());
 
-			// Need to let the test know this one has extra test cases.
-			testSetTime = true;
-			// Fall through helper
-			timeTest();
-			testSetTime = false;
+		// Need to let the test know this one has extra test cases.
+		testSetTime = true;
+		// Fall through helper
+		timeTest();
+		testSetTime = false;
 
-			assertEquals(10, stmt.executeUpdate("DELETE FROM testtime"));
-			stmt.close();
-			ps.close();
-		}
-		catch (Exception ex)
-		{
-			fail(ex.getMessage());
-		}
+		assertEquals(10, stmt.executeUpdate("DELETE FROM testtime"));
+		stmt.close();
+		ps.close();
 	}
 
 	/*
@@ -273,7 +259,7 @@ public class TimeTest extends TestCase
 			}
 			int Timeoffset = 3 * 60 * 60 * 1000;
 			tmpTime.setTime(tmpTime.getTime() + Timeoffset + localoffset);
-			assertEquals(t, makeTime(tmpTime.getHours(), tmpTime.getMinutes(), tmpTime.getSeconds()));
+			assertEquals(makeTime(tmpTime.getHours(), tmpTime.getMinutes(), tmpTime.getSeconds()), t);
 
 			assertTrue(rs.next());
 			t = rs.getTime(1);
@@ -286,7 +272,7 @@ public class TimeTest extends TestCase
 			}
 			Timeoffset = -11 * 60 * 60 * 1000;
 			tmpTime.setTime(tmpTime.getTime() + Timeoffset + localoffset);
-			assertEquals(t, makeTime(tmpTime.getHours(), tmpTime.getMinutes(), tmpTime.getSeconds()));
+			assertEquals(makeTime(tmpTime.getHours(), tmpTime.getMinutes(), tmpTime.getSeconds()), t);
 		}
 
 		assertTrue(! rs.next());

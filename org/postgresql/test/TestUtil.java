@@ -1,7 +1,6 @@
 package org.postgresql.test;
 
 import java.sql.*;
-import junit.framework.TestCase;
 import java.util.Properties;
 
 /*

@@ -107,18 +107,16 @@ public class CallableStmtTest extends TestCase
 		tryOneBadStmt ("{ = ? call getString (?); }");
 	}
 
-	protected void tryOneBadStmt (String sql) throws Throwable
+	protected void tryOneBadStmt (String sql) throws SQLException
 	{
-		boolean wasCaught = false;
 		try
 		{
-			CallableStatement call = con.prepareCall (sql);
+			con.prepareCall (sql);
+			fail("Bad statement (" + sql + ") was not caught.");
+
 		}
 		catch (SQLException e)
-		{
-			wasCaught = true; // good -> this statement was missing something
-		}
-		assertTrue ("bad statment ('" + sql + "')was not caught", wasCaught);
+		{ }
 	}
 
 }

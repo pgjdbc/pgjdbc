@@ -13,7 +13,6 @@
 package org.postgresql.util;
 
 import java.io.InputStream;
-import java.io.IOException;
 
 /**
  * Wrapper around a length-limited InputStream.

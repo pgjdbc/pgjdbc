@@ -20,9 +20,6 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.io.IOException;
 import java.util.Hashtable;
-import java.util.Vector;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 /**
  * Representation of a particular character encoding.

@@ -14,7 +14,6 @@ package org.postgresql.core;
 
 import java.sql.*;
 import org.postgresql.PGConnection;
-import org.postgresql.PGNotification;
 
 /**
  * Driver-internal connection interface. Application code should not use

@@ -13,7 +13,6 @@
  */
 package org.postgresql.core.v3;
 
-import java.util.HashMap;
 import java.util.Properties;
 
 import java.sql.*;
@@ -21,7 +20,6 @@ import java.io.IOException;
 import java.net.ConnectException;
 
 import org.postgresql.Driver;
-import org.postgresql.PGNotification;
 import org.postgresql.core.*;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;

@@ -15,13 +15,10 @@ package org.postgresql.core.v3;
 import org.postgresql.PGNotification;
 import org.postgresql.Driver;
 import org.postgresql.core.*;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import java.sql.*;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.net.ConnectException;
 
 /**
  * ProtocolConnection implementation for the V3 protocol.

@@ -19,8 +19,6 @@ import java.util.ArrayList;
 import org.postgresql.Driver;
 import org.postgresql.PGNotification;
 import org.postgresql.core.*;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 /**
  * V2 implementation of ProtocolConnection.

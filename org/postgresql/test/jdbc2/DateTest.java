@@ -37,126 +37,112 @@ public class DateTest extends TestCase
 	/*
 	 * Tests the time methods in ResultSet
 	 */
-	public void testGetDate()
+	public void testGetDate() throws SQLException
 	{
-		try
-		{
-			Statement stmt = con.createStatement();
+		Statement stmt = con.createStatement();
 
-			assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1950-02-07'")));
-			assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1970-06-02'")));
-			assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1999-08-11'")));
-			assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'2001-02-13'")));
-			assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1950-04-02'")));
-			assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1970-11-30'")));
-			assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1988-01-01'")));
-			assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'2003-07-09'")));
-			assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1934-02-28'")));
-			assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1969-04-03'")));
-			assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1982-08-03'")));
-			assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'2012-03-15'")));
-			assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1912-05-01'")));
-			assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1971-12-15'")));
-			assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1984-12-03'")));
-			assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'2000-01-01'")));
+		assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1950-02-07'")));
+		assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1970-06-02'")));
+		assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1999-08-11'")));
+		assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'2001-02-13'")));
+		assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1950-04-02'")));
+		assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1970-11-30'")));
+		assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1988-01-01'")));
+		assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'2003-07-09'")));
+		assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1934-02-28'")));
+		assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1969-04-03'")));
+		assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1982-08-03'")));
+		assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'2012-03-15'")));
+		assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1912-05-01'")));
+		assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1971-12-15'")));
+		assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1984-12-03'")));
+		assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'2000-01-01'")));
 
-			/* dateTest() contains all of the tests */
-			dateTest();
+		/* dateTest() contains all of the tests */
+		dateTest();
 
-			assertEquals(16, stmt.executeUpdate("DELETE FROM " + "testdate"));
-			stmt.close();
-		}
-		catch (Exception ex)
-		{
-			fail(ex.getMessage());
-		}
+		assertEquals(16, stmt.executeUpdate("DELETE FROM " + "testdate"));
+		stmt.close();
 	}
 
 	/*
 	 * Tests the time methods in PreparedStatement
 	 */
-	public void testSetDate()
+	public void testSetDate() throws SQLException
 	{
-		try
-		{
-			Statement stmt = con.createStatement();
-			PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("testdate", "?"));
+		Statement stmt = con.createStatement();
+		PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("testdate", "?"));
 
-			ps.setDate(1, makeDate(1950, 2, 7));
-			assertEquals(1, ps.executeUpdate());
+		ps.setDate(1, makeDate(1950, 2, 7));
+		assertEquals(1, ps.executeUpdate());
 
-			ps.setDate(1, makeDate(1970, 6, 2));
-			assertEquals(1, ps.executeUpdate());
+		ps.setDate(1, makeDate(1970, 6, 2));
+		assertEquals(1, ps.executeUpdate());
 
-			ps.setDate(1, makeDate(1999, 8, 11));
-			assertEquals(1, ps.executeUpdate());
+		ps.setDate(1, makeDate(1999, 8, 11));
+		assertEquals(1, ps.executeUpdate());
 
-			ps.setDate(1, makeDate(2001, 2, 13));
-			assertEquals(1, ps.executeUpdate());
-			
-			ps.setObject(1, java.sql.Timestamp.valueOf("1950-04-02 12:00:00"), java.sql.Types.DATE);
-			assertEquals(1, ps.executeUpdate());
-			
-			ps.setObject(1, java.sql.Timestamp.valueOf("1970-11-30 3:00:00"), java.sql.Types.DATE);
-			assertEquals(1, ps.executeUpdate());
-			
-			ps.setObject(1, java.sql.Timestamp.valueOf("1988-1-1 13:00:00"), java.sql.Types.DATE);
-			assertEquals(1, ps.executeUpdate());
-			
-			ps.setObject(1, java.sql.Timestamp.valueOf("2003-07-09 12:00:00"), java.sql.Types.DATE);
-			assertEquals(1, ps.executeUpdate());
-			
-			ps.setObject(1, "1934-02-28", java.sql.Types.DATE);
-			assertEquals(1, ps.executeUpdate());
-			
-			ps.setObject(1, "1969-04-3", java.sql.Types.DATE);
-			assertEquals(1, ps.executeUpdate());
-			
-			ps.setObject(1, "1982-08-03", java.sql.Types.DATE);
-			assertEquals(1, ps.executeUpdate());
-			
-			ps.setObject(1, "2012-3-15", java.sql.Types.DATE);
-			assertEquals(1, ps.executeUpdate());
-			
-			ps.setObject(1, java.sql.Date.valueOf("1912-5-1"), java.sql.Types.DATE);
-			assertEquals(1, ps.executeUpdate());
-			
-			ps.setObject(1, java.sql.Date.valueOf("1971-12-15"), java.sql.Types.DATE);
-			assertEquals(1, ps.executeUpdate());
-			
-			ps.setObject(1, java.sql.Date.valueOf("1984-12-03"), java.sql.Types.DATE);
-			assertEquals(1, ps.executeUpdate());
-			
-			ps.setObject(1, java.sql.Date.valueOf("2000-1-1"), java.sql.Types.DATE);
-			assertEquals(1, ps.executeUpdate());
-			
-			ps.setObject(1, "1944-4-04-01", java.sql.Types.DATE);
-			assertEquals(1, ps.executeUpdate());
-			
-			ps.setObject(1, "1970-01-1-10", java.sql.Types.DATE);
-			assertEquals(1, ps.executeUpdate());
-			
-			ps.setObject(1, "1982-12-14+13", java.sql.Types.DATE);
-			assertEquals(1, ps.executeUpdate());
-			
-			ps.setObject(1, "2010-08-3+05", java.sql.Types.DATE);
-			assertEquals(1, ps.executeUpdate());
-			
-			ps.close();
+		ps.setDate(1, makeDate(2001, 2, 13));
+		assertEquals(1, ps.executeUpdate());
+		
+		ps.setObject(1, java.sql.Timestamp.valueOf("1950-04-02 12:00:00"), java.sql.Types.DATE);
+		assertEquals(1, ps.executeUpdate());
+		
+		ps.setObject(1, java.sql.Timestamp.valueOf("1970-11-30 3:00:00"), java.sql.Types.DATE);
+		assertEquals(1, ps.executeUpdate());
+		
+		ps.setObject(1, java.sql.Timestamp.valueOf("1988-1-1 13:00:00"), java.sql.Types.DATE);
+		assertEquals(1, ps.executeUpdate());
+		
+		ps.setObject(1, java.sql.Timestamp.valueOf("2003-07-09 12:00:00"), java.sql.Types.DATE);
+		assertEquals(1, ps.executeUpdate());
+		
+		ps.setObject(1, "1934-02-28", java.sql.Types.DATE);
+		assertEquals(1, ps.executeUpdate());
+		
+		ps.setObject(1, "1969-04-3", java.sql.Types.DATE);
+		assertEquals(1, ps.executeUpdate());
+		
+		ps.setObject(1, "1982-08-03", java.sql.Types.DATE);
+		assertEquals(1, ps.executeUpdate());
+		
+		ps.setObject(1, "2012-3-15", java.sql.Types.DATE);
+		assertEquals(1, ps.executeUpdate());
+		
+		ps.setObject(1, java.sql.Date.valueOf("1912-5-1"), java.sql.Types.DATE);
+		assertEquals(1, ps.executeUpdate());
+		
+		ps.setObject(1, java.sql.Date.valueOf("1971-12-15"), java.sql.Types.DATE);
+		assertEquals(1, ps.executeUpdate());
+		
+		ps.setObject(1, java.sql.Date.valueOf("1984-12-03"), java.sql.Types.DATE);
+		assertEquals(1, ps.executeUpdate());
+		
+		ps.setObject(1, java.sql.Date.valueOf("2000-1-1"), java.sql.Types.DATE);
+		assertEquals(1, ps.executeUpdate());
+		
+		ps.setObject(1, "1944-4-04-01", java.sql.Types.DATE);
+		assertEquals(1, ps.executeUpdate());
+		
+		ps.setObject(1, "1970-01-1-10", java.sql.Types.DATE);
+		assertEquals(1, ps.executeUpdate());
+		
+		ps.setObject(1, "1982-12-14+13", java.sql.Types.DATE);
+		assertEquals(1, ps.executeUpdate());
+		
+		ps.setObject(1, "2010-08-3+05", java.sql.Types.DATE);
+		assertEquals(1, ps.executeUpdate());
+		
+		ps.close();
 
-			// Need to set a flag so that the method knows there is an extra test.
-			testingSetDate = true;
-			// Fall through helper
-			dateTest();
-			testingSetDate = false;
+		// Need to set a flag so that the method knows there is an extra test.
+		testingSetDate = true;
+		// Fall through helper
+		dateTest();
+		testingSetDate = false;
 
-			assertEquals(20, stmt.executeUpdate("DELETE FROM testdate"));
-			stmt.close();
-		}
-		catch (Exception ex)
-		{
-			fail(ex.getMessage());
-		}
+		assertEquals(20, stmt.executeUpdate("DELETE FROM testdate"));
+		stmt.close();
 	}
 
 	/*
@@ -174,82 +160,82 @@ public class DateTest extends TestCase
 		assertTrue(rs.next());
 		d = rs.getDate(1);
 		assertNotNull(d);
-		assertEquals(d, makeDate(1950, 2, 7));
+		assertEquals(makeDate(1950, 2, 7), d);
 
 		assertTrue(rs.next());
 		d = rs.getDate(1);
 		assertNotNull(d);
-		assertEquals(d, makeDate(1970, 6, 2));
+		assertEquals(makeDate(1970, 6, 2), d);
 
 		assertTrue(rs.next());
 		d = rs.getDate(1);
 		assertNotNull(d);
-		assertEquals(d, makeDate(1999, 8, 11));
+		assertEquals(makeDate(1999, 8, 11), d);
 
 		assertTrue(rs.next());
 		d = rs.getDate(1);
 		assertNotNull(d);
-		assertEquals(d, makeDate(2001, 2, 13));
+		assertEquals(makeDate(2001, 2, 13), d);
 
 		assertTrue(rs.next());
 		d = rs.getDate(1);
 		assertNotNull(d);
-		assertEquals(d, makeDate(1950, 4, 2));
+		assertEquals(makeDate(1950, 4, 2), d);
 
 		assertTrue(rs.next());
 		d = rs.getDate(1);
 		assertNotNull(d);
-		assertEquals(d, makeDate(1970, 11, 30));		
+		assertEquals(makeDate(1970, 11, 30), d);		
 
 		assertTrue(rs.next());
 		d = rs.getDate(1);
 		assertNotNull(d);
-		assertEquals(d, makeDate(1988, 1, 1));
+		assertEquals(makeDate(1988, 1, 1), d);
 
 		assertTrue(rs.next());
 		d = rs.getDate(1);
 		assertNotNull(d);
-		assertEquals(d, makeDate(2003, 7, 9));
+		assertEquals(makeDate(2003, 7, 9), d);
 		
 		assertTrue(rs.next());
 		d = rs.getDate(1);
 		assertNotNull(d);
-		assertEquals(d, makeDate(1934, 2, 28));						
+		assertEquals(makeDate(1934, 2, 28), d);						
 				
 		assertTrue(rs.next());
 		d = rs.getDate(1);
 		assertNotNull(d);
-		assertEquals(d, makeDate(1969, 4, 3));
+		assertEquals(makeDate(1969, 4, 3), d);
 		
 		assertTrue(rs.next());
 		d = rs.getDate(1);
 		assertNotNull(d);
-		assertEquals(d, makeDate(1982, 8, 3));
+		assertEquals(makeDate(1982, 8, 3), d);
 		
 		assertTrue(rs.next());
 		d = rs.getDate(1);
 		assertNotNull(d);
-		assertEquals(d, makeDate(2012, 3, 15));	
+		assertEquals(makeDate(2012, 3, 15), d);
 		
 		assertTrue(rs.next());
 		d = rs.getDate(1);
 		assertNotNull(d);
-		assertEquals(d, makeDate(1912, 5, 1));	
+		assertEquals(makeDate(1912, 5, 1), d);
 
 		assertTrue(rs.next());
 		d = rs.getDate(1);
 		assertNotNull(d);
-		assertEquals(d, makeDate(1971, 12, 15));
+		assertEquals(makeDate(1971, 12, 15), d);
 		
 		assertTrue(rs.next());
 		d = rs.getDate(1);
 		assertNotNull(d);
-		assertEquals(d, makeDate(1984, 12, 3));
+		assertEquals(makeDate(1984, 12, 3), d);
 
 		assertTrue(rs.next());
 		d = rs.getDate(1);
 		assertNotNull(d);
-		assertEquals(d, makeDate(2000, 1, 1));
+		assertEquals(makeDate(2000, 1, 1), d);
 		
 		//now we have to convert the date, cause I fed it a timezone. IF it used it. hence the check			
 		if (testingSetDate)
@@ -265,7 +251,7 @@ public class DateTest extends TestCase
 			}			
 			int Dateoffset = 60 * 60 * 1000;
 			tmpDate.setTime(tmpDate.getTime() + Dateoffset + localoffset);
-			assertEquals(d, makeDate(tmpDate.getYear() + 1900, tmpDate.getMonth()+1, tmpDate.getDate()));
+			assertEquals(makeDate(tmpDate.getYear() + 1900, tmpDate.getMonth()+1, tmpDate.getDate()), d);
 			
 			assertTrue(rs.next());
 			d = rs.getDate(1);
@@ -278,7 +264,7 @@ public class DateTest extends TestCase
 			}						
 			Dateoffset = 10 * 60 * 60 * 1000;
 			tmpDate.setTime(tmpDate.getTime() + Dateoffset + localoffset);
-			assertEquals(d, makeDate(tmpDate.getYear() + 1900, tmpDate.getMonth()+1, tmpDate.getDate()));
+			assertEquals(makeDate(tmpDate.getYear() + 1900, tmpDate.getMonth()+1, tmpDate.getDate()), d);
 			
 			assertTrue(rs.next());
 			d = rs.getDate(1);
@@ -291,7 +277,7 @@ public class DateTest extends TestCase
 			}						
 			Dateoffset = -13 * 60 * 60 * 1000;
 			tmpDate.setTime(tmpDate.getTime() + Dateoffset + localoffset);
-			assertEquals(d, makeDate(tmpDate.getYear() + 1900, tmpDate.getMonth()+1, tmpDate.getDate()));
+			assertEquals(makeDate(tmpDate.getYear() + 1900, tmpDate.getMonth()+1, tmpDate.getDate()), d);
 
 			assertTrue(rs.next());
 			d = rs.getDate(1);
@@ -304,7 +290,7 @@ public class DateTest extends TestCase
 			}						
 			Dateoffset = -5 * 60 * 60 * 1000;
 			tmpDate.setTime(tmpDate.getTime() + Dateoffset + localoffset);
-			assertEquals(d, makeDate(tmpDate.getYear() + 1900, tmpDate.getMonth()+1, tmpDate.getDate()));
+			assertEquals(makeDate(tmpDate.getYear() + 1900, tmpDate.getMonth()+1, tmpDate.getDate()), d);
 		}
 		
 		assertTrue(!rs.next());

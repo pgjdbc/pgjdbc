@@ -18,7 +18,6 @@ import org.postgresql.util.PSQLState;
 
 import java.sql.SQLException;
 import java.io.InputStream;
-import java.io.IOException;
 
 /**
  * Parameter list for V3 query strings that contain multiple statements.

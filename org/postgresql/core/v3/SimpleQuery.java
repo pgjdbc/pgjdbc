@@ -12,7 +12,6 @@
  */
 package org.postgresql.core.v3;
 
-import org.postgresql.Driver;
 import org.postgresql.core.*;
 import java.lang.ref.PhantomReference;
 

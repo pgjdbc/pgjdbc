@@ -160,15 +160,15 @@ public class ResultSetTest extends TestCase
    			//max should not apply to the following since per the spec
    			//it should apply only to binary and char/varchar columns
    			rs.next();
-   			assertEquals(rs.getString(1),"12345");
-   			assertEquals(new String(rs.getBytes(1)), "12345");
+   			assertEquals("12345", rs.getString(1));
+   			assertEquals("12345", new String(rs.getBytes(1)));
 
    			//max should apply to the following since the column is
    			//a varchar column
    			rs = stmt.executeQuery("select * from teststring");
    			rs.next();
-   			assertEquals(rs.getString(1), "12");
-   			assertEquals(new String(rs.getBytes(1)), "12");
+   			assertEquals("12", rs.getString(1));
+   			assertEquals("12", new String(rs.getBytes(1)));
 	}
 
 	public void booleanTests(boolean useServerPrepare) throws SQLException
@@ -245,7 +245,6 @@ public class ResultSetTest extends TestCase
        {
            ResultSet rs = con.createStatement().executeQuery(
                "select * from testnumeric");
-           boolean thrown = false;
 
            assertTrue(rs.next());
            assertEquals(1, rs.getByte(1));
@@ -264,17 +263,12 @@ public class ResultSetTest extends TestCase
 
            while (rs.next())
            {
-               thrown = false;
                try
                {
                    rs.getByte(1);
+		   fail("Exception expected.");
                }
-               catch (Exception e)
-               {
-                   thrown = true;
-               }
-               if (!thrown)
-                   fail("Exception expected.");
+               catch (Exception e) { }
            }
            rs.close();
        }
@@ -283,7 +277,6 @@ public class ResultSetTest extends TestCase
        {
            ResultSet rs = con.createStatement().executeQuery(
                "select * from testnumeric");
-           boolean thrown = false;
 
            assertTrue(rs.next());
            assertEquals(1, rs.getShort(1));
@@ -302,17 +295,12 @@ public class ResultSetTest extends TestCase
 
            while (rs.next())
            {
-               thrown = false;
                try
                {
                    rs.getShort(1);
-               }
-               catch (Exception e)
-               {
-                   thrown = true;
-               }
-               if (!thrown)
                    fail("Exception expected.");
+               }
+               catch (Exception e) { }
            }
            rs.close();
 	}
@@ -321,7 +309,6 @@ public class ResultSetTest extends TestCase
     {
         ResultSet rs = con.createStatement().executeQuery(
             "select * from testnumeric");
-        boolean thrown = false;
 
         assertTrue(rs.next());
         assertEquals(1, rs.getInt(1));
@@ -358,17 +345,12 @@ public class ResultSetTest extends TestCase
 
         while (rs.next())
         {
-            thrown = false;
             try
             {
                 rs.getInt(1);
-            }
-            catch (Exception e)
-            {
-                thrown = true;
-            }
-            if (!thrown)
                 fail("Exception expected." + rs.getString(1));
+            }
+            catch (Exception e) { }
         }
         rs.close();
     }
@@ -377,7 +359,6 @@ public class ResultSetTest extends TestCase
     {
         ResultSet rs = con.createStatement().executeQuery(
             "select * from testnumeric");
-        boolean thrown = false;
 
         assertTrue(rs.next());
         assertEquals(1, rs.getLong(1));
@@ -426,17 +407,12 @@ public class ResultSetTest extends TestCase
 
         while (rs.next())
         {
-            thrown = false;
             try
             {
                 rs.getLong(1);
-            }
-            catch (Exception e)
-            {
-                thrown = true;
-            }
-            if (!thrown)
                 fail("Exception expected." + rs.getString(1) );
+            }
+            catch (Exception e) { }
         }
         rs.close();
     }
@@ -449,15 +425,15 @@ public class ResultSetTest extends TestCase
 
 		ResultSet rs = stmt.executeQuery("SELECT * FROM testrs");
 
-		assertEquals(stmt.getResultSetConcurrency(), ResultSet.CONCUR_UPDATABLE);
-		assertEquals(stmt.getResultSetType(), ResultSet.TYPE_SCROLL_SENSITIVE);
-		assertEquals(stmt.getFetchSize(), 100);
-		assertEquals(stmt.getFetchDirection(), ResultSet.FETCH_UNKNOWN);
+		assertEquals(ResultSet.CONCUR_UPDATABLE, stmt.getResultSetConcurrency());
+		assertEquals(ResultSet.TYPE_SCROLL_SENSITIVE, stmt.getResultSetType());
+		assertEquals(100, stmt.getFetchSize());
+		assertEquals(ResultSet.FETCH_UNKNOWN, stmt.getFetchDirection());
 
-		assertEquals(rs.getConcurrency(), ResultSet.CONCUR_UPDATABLE);
-		assertEquals(rs.getType(), ResultSet.TYPE_SCROLL_SENSITIVE);
-		assertEquals(rs.getFetchSize(), 100);
-		assertEquals(rs.getFetchDirection(), ResultSet.FETCH_UNKNOWN);
+		assertEquals(ResultSet.CONCUR_UPDATABLE, rs.getConcurrency());
+		assertEquals(ResultSet.TYPE_SCROLL_SENSITIVE, rs.getType());
+		assertEquals(100, rs.getFetchSize());
+		assertEquals(ResultSet.FETCH_UNKNOWN, rs.getFetchDirection());
 
 		rs.close();
 		stmt.close();
@@ -467,23 +443,23 @@ public class ResultSetTest extends TestCase
 	{
 		Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
 		ResultSet rs = stmt.executeQuery("SELECT * FROM pg_database WHERE datname='nonexistantdatabase'");
-		assertEquals(rs.previous(),false);
-		assertEquals(rs.previous(),false);
-		assertEquals(rs.next(),false);
-		assertEquals(rs.next(),false);
-		assertEquals(rs.next(),false);
-		assertEquals(rs.next(),false);
-		assertEquals(rs.next(),false);
-		assertEquals(rs.previous(),false);
-		assertEquals(rs.first(),false);
-		assertEquals(rs.last(),false);
-		assertEquals(rs.getRow(),0);
-		assertEquals(rs.absolute(1),false);
-		assertEquals(rs.relative(1),false);
-		assertEquals(rs.isBeforeFirst(),false);
-		assertEquals(rs.isAfterLast(),false);
-		assertEquals(rs.isFirst(),false);
-		assertEquals(rs.isLast(),false);
+		assertTrue(!rs.previous());
+		assertTrue(!rs.previous());
+		assertTrue(!rs.next());
+		assertTrue(!rs.next());
+		assertTrue(!rs.next());
+		assertTrue(!rs.next());
+		assertTrue(!rs.next());
+		assertTrue(!rs.previous());
+		assertTrue(!rs.first());
+		assertTrue(!rs.last());
+		assertEquals(0, rs.getRow());
+		assertTrue(!rs.absolute(1));
+		assertTrue(!rs.relative(1));
+		assertTrue(!rs.isBeforeFirst());
+		assertTrue(!rs.isAfterLast());
+		assertTrue(!rs.isFirst());
+		assertTrue(!rs.isLast());
 		rs.close();
 		stmt.close();
 	}

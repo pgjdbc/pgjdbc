@@ -9,7 +9,6 @@
  */
 package org.postgresql.fastpath;
 
-import java.io.IOException;
 import java.sql.SQLException;
 import org.postgresql.core.ParameterList;
 

@@ -49,17 +49,17 @@ public class ResultSetMetaDataTest extends TestCase
 	}
 
 	public void testGetColumnCount() throws SQLException {
-		assertEquals(rsmd.getColumnCount(), 6);
+		assertEquals(6, rsmd.getColumnCount());
 	}
 
 	public void testGetColumnLabel() throws SQLException {
-		assertEquals(rsmd.getColumnLabel(1), "a");
-		assertEquals(rsmd.getColumnLabel(4), "total");
+		assertEquals("a", rsmd.getColumnLabel(1));
+		assertEquals("total", rsmd.getColumnLabel(4));
 	}
 
 	public void testGetColumnName() throws SQLException {
-		assertEquals(rsmd.getColumnName(1), "a");
-		assertEquals(rsmd.getColumnName(5), "oid");
+		assertEquals("a", rsmd.getColumnName(1));
+		assertEquals("oid", rsmd.getColumnName(5));
 		if (TestUtil.haveMinimumServerVersion(conn,"7.4")) {
 			assertEquals("", pgrsmd.getBaseColumnName(4));
 			assertEquals("b", pgrsmd.getBaseColumnName(6));
@@ -67,21 +67,21 @@ public class ResultSetMetaDataTest extends TestCase
 	}
 
 	public void testGetColumnType() throws SQLException {
-		assertEquals(rsmd.getColumnType(1), Types.INTEGER);
-		assertEquals(rsmd.getColumnType(2), Types.VARCHAR);
+		assertEquals(Types.INTEGER, rsmd.getColumnType(1));
+		assertEquals(Types.VARCHAR, rsmd.getColumnType(2));
 	}
 
 	public void testGetColumnTypeName() throws SQLException {
-		assertEquals(rsmd.getColumnTypeName(1), "int4");
-		assertEquals(rsmd.getColumnTypeName(2), "text");
+		assertEquals("int4", rsmd.getColumnTypeName(1));
+		assertEquals("text", rsmd.getColumnTypeName(2));
 	}
 
 	public void testGetPrecision() throws SQLException {
-		assertEquals(rsmd.getPrecision(3), 10);
+		assertEquals(10, rsmd.getPrecision(3));
 	}
 
 	public void testGetScale() throws SQLException {
-		assertEquals(rsmd.getScale(3), 2);
+		assertEquals(2, rsmd.getScale(3));
 	}
 
 	public void testGetSchemaName() throws SQLException {
@@ -104,11 +104,11 @@ public class ResultSetMetaDataTest extends TestCase
 
 	public void testIsNullable() throws SQLException {
 		if (TestUtil.haveMinimumServerVersion(conn,"7.4")) {
-			assertEquals(rsmd.isNullable(1), ResultSetMetaData.columnNoNulls);
-			assertEquals(rsmd.isNullable(2), ResultSetMetaData.columnNullable);
-			assertEquals(rsmd.isNullable(4), ResultSetMetaData.columnNullableUnknown);
+			assertEquals(ResultSetMetaData.columnNoNulls, rsmd.isNullable(1));
+			assertEquals(ResultSetMetaData.columnNullable, rsmd.isNullable(2));
+			assertEquals(ResultSetMetaData.columnNullableUnknown, rsmd.isNullable(4));
 		} else {
-			assertEquals(rsmd.isNullable(1), ResultSetMetaData.columnNullableUnknown);
+			assertEquals(ResultSetMetaData.columnNullableUnknown, rsmd.isNullable(1));
 		}
 	}
 
@@ -116,8 +116,8 @@ public class ResultSetMetaDataTest extends TestCase
 		DatabaseMetaData databaseMetaData = conn.getMetaData();
 		ResultSet resultSet = databaseMetaData.getTableTypes();
 		ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
-		assertEquals(resultSetMetaData.getColumnCount(), 1);
-		assertEquals(resultSetMetaData.getColumnName(1), "TABLE_TYPE");
+		assertEquals(1, resultSetMetaData.getColumnCount());
+		assertEquals("TABLE_TYPE", resultSetMetaData.getColumnName(1));
 		resultSet.close();
 	}
 

@@ -12,7 +12,6 @@ import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLWarning;
 
 
 /* $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.6 2003/06/30 21:10:55 davec Exp $

@@ -2,10 +2,7 @@ package org.postgresql.jdbc2;
 
 import java.sql.*;
 import java.util.Map;
-import java.util.Vector;
-import java.util.Hashtable;
 import java.util.Properties;
-import org.postgresql.core.Field;
 
 /* $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/jdbc2/Jdbc2Connection.java,v 1.7 2003/03/07 18:39:45 barry Exp $
  * This class implements the java.sql.Connection interface for JDBC2.

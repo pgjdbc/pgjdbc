@@ -9,8 +9,6 @@ import org.postgresql.util.MessageTranslator;
 class PBatchUpdateException extends java.sql.BatchUpdateException
 {
 
-	private String message;
-
 	public PBatchUpdateException(
 		String error, Object arg1, Object arg2, int[] updateCounts )
 	{
