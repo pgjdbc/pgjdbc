@@ -30,7 +30,7 @@ public class MiscTest extends TestCase {
 
       Statement st=con.createStatement();
       ResultSet rs=st.executeQuery("select datname from pg_database");
-      assert(rs!=null);
+      assertNotNull(rs);
 
       while(rs.next()){
 	String s = rs.getString(1);
@@ -41,7 +41,7 @@ public class MiscTest extends TestCase {
 
       JDBC2Tests.closeDB(con);
     } catch(Exception ex) {
-      assert(ex.getMessage(),false);
+      fail(ex.getMessage());
     }
   }
 }

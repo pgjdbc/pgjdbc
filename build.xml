@@ -182,7 +182,6 @@
   <property name="username" value="test" />
   <!-- Password must be something.  Doesn't matter if trust is used! -->
   <property name="password" value="password" />
-  <property name="tablename" value="jdbctest" />
   <!-- junit.ui is one of textui, awtui, or swingui -->
   <property name="junit.ui" value="textui" />
 

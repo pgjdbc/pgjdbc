@@ -31,11 +31,8 @@ public class JBuilderTest extends TestCase {
   // Tear down the fixture for this test case.
   protected void tearDown() throws Exception {
   	Connection con = JDBC2Tests.openDB();
-	Statement stmt = con.createStatement();
-
-	stmt.executeUpdate("DROP TABLE test_c");
-	stmt.close();
-    JDBC2Tests.closeDB(con);
+	JDBC2Tests.dropTable(con, "test_c");
+	JDBC2Tests.closeDB(con);
   }
 
   /**
@@ -47,7 +44,7 @@ public class JBuilderTest extends TestCase {
 
       Statement st=con.createStatement();
       ResultSet rs=st.executeQuery("select cost from test_c");
-      assert(rs!=null);
+      assertNotNull(rs);
 
       while(rs.next()){
         double bd = rs.getDouble(1);
@@ -58,7 +55,7 @@ public class JBuilderTest extends TestCase {
 
       JDBC2Tests.closeDB(con);
     } catch(Exception ex) {
-      assert(ex.getMessage(),false);
+      fail(ex.getMessage());
     }
   }
 }
