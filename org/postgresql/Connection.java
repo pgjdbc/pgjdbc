@@ -363,8 +363,7 @@ public abstract class Connection
 	    try
 		{
 		    pg_stream.SendChar('Q');
-		    buf = sql.getBytes();
-		    pg_stream.Send(sql.getBytes());
+		    pg_stream.Send(buf);
 		    pg_stream.SendChar(0);
 		    pg_stream.flush();
 		} catch (IOException e) {
