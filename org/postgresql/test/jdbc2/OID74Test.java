@@ -40,6 +40,13 @@ public class OID74Test  extends TestCase
 		TestUtil.closeDB(conn);
 	}
 
+	public void testSetNull() throws SQLException {
+		PreparedStatement pstmt = conn.prepareStatement("INSERT INTO temp VALUES (?)");
+		pstmt.setNull(1, Types.VARBINARY);
+		pstmt.executeUpdate();
+		pstmt.close();
+	}
+
 	public void testBinaryStream() throws Exception
 	{
     		

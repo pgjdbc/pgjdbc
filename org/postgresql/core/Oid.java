@@ -21,4 +21,5 @@ public class Oid {
 	public static final int BYTEA = 17;
 	public static final int CHAR = 18;
 	public static final int VARCHAR = 1043;
+	public static final int OID = 26;
 }
