@@ -30,7 +30,6 @@
     It defaults to jdbc1, but builds jdbc2 if the java.lang.Byte class is
     in the CLASSPATH (ie JDK1.2 or later), and then enterprise if the
     javax.sql.DataSource class is present.
-
     Important: This must have the following order: jdbc1, jdbc2, jdbc3
   -->
   <target name="check_versions">
