@@ -222,6 +222,11 @@ public class TestUtil
 		return false;
 	}
 
+	public static boolean haveMinimumJVMVersion(String version) {
+		String jvm = java.lang.System.getProperty("java.version");
+		return (jvm.compareTo(version) >= 0);
+	}
+
 	/**
 	 * Print a ResultSet to System.out.
 	 * This is useful for debugging tests.

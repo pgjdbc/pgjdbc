@@ -81,7 +81,14 @@ public class TimeTest extends TestCase
            assertEquals(100, time.getTime() % 1000);
            timestamp = rs.getTimestamp(1);
            assertNotNull(timestamp);
-           assertEquals(100, timestamp.getTime() % 1000);
+
+	   // Pre 1.4 JVM's considered the nanos field completely separate
+	   // and wouldn't return it in getTime()
+	   if (TestUtil.haveMinimumJVMVersion("1.4")) {
+               assertEquals(100, timestamp.getTime() % 1000);
+	   } else {
+	       assertEquals(100, (timestamp.getTime() + timestamp.getNanos() / 1000000) % 1000);
+	   }
            assertEquals(100000000, timestamp.getNanos());
 
            timetz = rs.getTime(2);
@@ -89,7 +96,14 @@ public class TimeTest extends TestCase
            assertEquals(10, timetz.getTime() % 1000);
            timestamptz = rs.getTimestamp(2);
            assertNotNull(timestamptz);
-           assertEquals(10, timestamptz.getTime() % 1000);
+
+	   // Pre 1.4 JVM's considered the nanos field completely separate
+	   // and wouldn't return it in getTime()
+	   if (TestUtil.haveMinimumJVMVersion("1.4")) {
+               assertEquals(10, timestamptz.getTime() % 1000);
+	   } else {
+	       assertEquals(10, (timestamptz.getTime() + timestamptz.getNanos() / 1000000) % 1000);
+	   }
            assertEquals(10000000, timestamptz.getNanos());
 
            assertTrue(rs.next());
