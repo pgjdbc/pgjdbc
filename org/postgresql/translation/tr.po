@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: jdbc-tr\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-01-05 07:38-0800\n"
-"PO-Revision-Date: 2005-01-05 11:15+0200\n"
+"POT-Creation-Date: 2004-10-10 14:57-0700\n"
+"PO-Revision-Date: 2005-01-16 15:29+0200\n"
 "Last-Translator: Nicolai Tufar <ntufar@tdmsoft.com>\n"
 "Language-Team: Turkish <pgsql-tr-genel@PostgreSQL.org>\n"
 "MIME-Version: 1.0\n"
@@ -23,29 +23,23 @@ msgid "Error loading default settings from driverconfig.properties"
 msgstr "driverconfig.properties dosyasından varsayılan ayarları yükleme hatası"
 
 #: org/postgresql/Driver.java.in:209
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1766
-msgid ""
-"Something unusual has occured to cause the driver to fail. Please report "
-"this exception."
-msgstr ""
-"Sıradışı bir durum sürücünün hata vermesine sebep oldu. Lütfen bu durumu "
-"geliştiricilere bildirin."
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1778
+msgid "Something unusual has occured to cause the driver to fail. Please report this exception."
+msgstr "Sıradışı bir durum sürücünün hata vermesine sebep oldu. Lütfen bu durumu geliştiricilere bildirin."
 
 #: org/postgresql/Driver.java.in:530
 msgid "This method is not yet implemented."
 msgstr "Bu yöntem henüz kodlanmadı."
 
-#: org/postgresql/core/ConnectionFactory.java:68
+#: org/postgresql/core/ConnectionFactory.java:70
 #, java-format
-msgid "No connection was able to be made for requested protocol {0}."
-msgstr "İstenile protokol için bağlantı kurulamadı {0}"
+msgid "A connection could not be made using the requested protocol {0}."
+msgstr "İstenilen protokol ile bağlantı kurulamadı {0}"
 
-#: org/postgresql/core/PGStream.java:458
+#: org/postgresql/core/PGStream.java:466
 #, java-format
 msgid "Premature end of input stream, expected {0} bytes, but only read {1}."
-msgstr ""
-"Giriş akımında beklenmeyen dosya sonu, {0} bayt beklenirken sadece {1} bayt "
-"alındı."
+msgstr "Giriş akımında beklenmeyen dosya sonu, {0} bayt beklenirken sadece {1} bayt alındı."
 
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:55
 #: org/postgresql/core/v3/ConnectionFactoryImpl.java:66
@@ -54,12 +48,8 @@ msgstr "Sürücü SSL desteklememktedir."
 
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:93
 #: org/postgresql/core/v3/ConnectionFactoryImpl.java:122
-msgid ""
-"Connection refused. Check that the hostname and port are correct and that "
-"the postmaster is accepting TCP/IP connections."
-msgstr ""
-"Bağlantı reddedildi. Sunucu adı ve portun doğru olup olmadığını ve "
-"postmaster'in TCP/IP bağlantılarını kabul edip etmediğini kontrol ediniz."
+msgid "Connection refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections."
+msgstr "Bağlantı reddedildi. Sunucu adı ve portun doğru olup olmadığını ve postmaster'in TCP/IP bağlantılarını kabul edip etmediğini kontrol ediniz."
 
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:108
 #: org/postgresql/core/v3/ConnectionFactoryImpl.java:136
@@ -90,23 +80,14 @@ msgstr "Bağlantı reddedildi {0}"
 #: org/postgresql/core/v3/ConnectionFactoryImpl.java:299
 #: org/postgresql/core/v3/ConnectionFactoryImpl.java:325
 #: org/postgresql/core/v3/ConnectionFactoryImpl.java:352
-msgid ""
-"The server requested password-based authentication, but no password was "
-"provided."
+msgid "The server requested password-based authentication, but no password was provided."
 msgstr "Sunucu şifre tabanlı yetkilendirme istedi; ancak bir şifre sağlanmadı."
 
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:306
 #: org/postgresql/core/v3/ConnectionFactoryImpl.java:375
 #, java-format
-msgid ""
-"The authentication type {0} is not supported. Check that you have configured "
-"the pg_hba.conf file to include the client''s IP address or subnet, and that "
-"it is using an authentication scheme supported by the driver."
-msgstr ""
-"{0} yetkinlendirme tipi desteklenmemektedir. pg_hba.conf dosyanızı "
-"istemcinin IP adresini ya da subnetini içerecek şekilde ayarlayıp "
-"ayarlamadığınızı ve sürücü tarafından desteklenen yetkilendirme "
-"yöntemlerinden birisini kullanıp kullanmadığını kontrol ediniz."
+msgid "The authentication type {0} is not supported. Check that you have configured the pg_hba.conf file to include the client''s IP address or subnet, and that it is using an authentication scheme supported by the driver."
+msgstr "{0} yetkinlendirme tipi desteklenmemektedir. pg_hba.conf dosyanızı istemcinin IP adresini ya da subnetini içerecek şekilde ayarlayıp ayarlamadığınızı ve sürücü tarafından desteklenen yetkilendirme yöntemlerinden birisini kullanıp kullanmadığını kontrol ediniz."
 
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:312
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:350
@@ -127,68 +108,68 @@ msgstr "Backend başlaması başarısız oldu: {0}"
 msgid "An unexpected result was returned by a query."
 msgstr "Sorgu beklenmeyen bir sonuç döndürdü."
 
-#: org/postgresql/core/v2/FastpathParameterList.java:42
-#: org/postgresql/core/v2/FastpathParameterList.java:64
-#: org/postgresql/core/v2/FastpathParameterList.java:71
-#: org/postgresql/core/v2/SimpleParameterList.java:44
-#: org/postgresql/core/v2/SimpleParameterList.java:68
-#: org/postgresql/core/v2/SimpleParameterList.java:75
-#: org/postgresql/core/v2/SimpleParameterList.java:82
-#: org/postgresql/core/v3/CompositeParameterList.java:36
-#: org/postgresql/core/v3/SimpleParameterList.java:37
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2430
+#: org/postgresql/core/v2/FastpathParameterList.java:43
+#: org/postgresql/core/v2/FastpathParameterList.java:65
+#: org/postgresql/core/v2/FastpathParameterList.java:72
+#: org/postgresql/core/v2/SimpleParameterList.java:45
+#: org/postgresql/core/v2/SimpleParameterList.java:69
+#: org/postgresql/core/v2/SimpleParameterList.java:76
+#: org/postgresql/core/v2/SimpleParameterList.java:83
+#: org/postgresql/core/v3/CompositeParameterList.java:37
+#: org/postgresql/core/v3/SimpleParameterList.java:38
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2450
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSetMetaData.java:610
 #, java-format
 msgid "The column index is out of range: {0}, number of columns: {1}."
 msgstr "Sütun gçstergesi kapsam dışıdır: {0}, sütun sayısı: {1}."
 
-#: org/postgresql/core/v2/FastpathParameterList.java:129
-#: org/postgresql/core/v2/SimpleParameterList.java:141
-#: org/postgresql/core/v3/SimpleParameterList.java:94
+#: org/postgresql/core/v2/FastpathParameterList.java:130
+#: org/postgresql/core/v2/SimpleParameterList.java:142
+#: org/postgresql/core/v3/SimpleParameterList.java:95
 #, java-format
 msgid "No value specified for parameter {0}."
 msgstr "{0} parametresi için hiç bir değer belirtilmedi."
 
 #: org/postgresql/core/v2/QueryExecutorImpl.java:72
-#: org/postgresql/core/v2/QueryExecutorImpl.java:302
+#: org/postgresql/core/v2/QueryExecutorImpl.java:304
 #: org/postgresql/core/v3/QueryExecutorImpl.java:366
-#: org/postgresql/core/v3/QueryExecutorImpl.java:411
+#: org/postgresql/core/v3/QueryExecutorImpl.java:412
 #, java-format
 msgid "Expected command status BEGIN, got {0}."
 msgstr "BEGIN komut durumunu beklenirken {0} alındı."
 
-#: org/postgresql/core/v2/QueryExecutorImpl.java:77
-#: org/postgresql/core/v3/QueryExecutorImpl.java:416
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1731
+#: org/postgresql/core/v2/QueryExecutorImpl.java:78
+#: org/postgresql/core/v3/QueryExecutorImpl.java:418
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1745
 #, java-format
 msgid "Unexpected command status: {0}."
 msgstr "Beklenmeyen komut durumu: {0}."
 
-#: org/postgresql/core/v2/QueryExecutorImpl.java:116
-#: org/postgresql/core/v2/QueryExecutorImpl.java:127
-#: org/postgresql/core/v2/QueryExecutorImpl.java:333
+#: org/postgresql/core/v2/QueryExecutorImpl.java:118
+#: org/postgresql/core/v2/QueryExecutorImpl.java:129
+#: org/postgresql/core/v2/QueryExecutorImpl.java:336
 #: org/postgresql/core/v3/QueryExecutorImpl.java:198
 #: org/postgresql/core/v3/QueryExecutorImpl.java:334
-#: org/postgresql/core/v3/QueryExecutorImpl.java:453
-#: org/postgresql/core/v3/QueryExecutorImpl.java:465
-#: org/postgresql/core/v3/QueryExecutorImpl.java:1302
+#: org/postgresql/core/v3/QueryExecutorImpl.java:456
+#: org/postgresql/core/v3/QueryExecutorImpl.java:468
+#: org/postgresql/core/v3/QueryExecutorImpl.java:1305
 msgid "An I/O error occured while sending to the backend."
 msgstr "Backend'e gönderirken bir I/O hatası oluştu."
 
-#: org/postgresql/core/v2/QueryExecutorImpl.java:196
-#: org/postgresql/core/v2/QueryExecutorImpl.java:207
-#: org/postgresql/core/v3/QueryExecutorImpl.java:568
+#: org/postgresql/core/v2/QueryExecutorImpl.java:198
+#: org/postgresql/core/v2/QueryExecutorImpl.java:209
+#: org/postgresql/core/v3/QueryExecutorImpl.java:571
 #, java-format
 msgid "Unknown Response Type {0}."
 msgstr "Bilinmeyen yanıt tipi {0}"
 
-#: org/postgresql/core/v2/QueryExecutorImpl.java:535
-#: org/postgresql/core/v3/QueryExecutorImpl.java:1404
+#: org/postgresql/core/v2/QueryExecutorImpl.java:538
+#: org/postgresql/core/v3/QueryExecutorImpl.java:1407
 #, java-format
 msgid "Unable to interpret the update count in command completion tag: {0}."
 msgstr "Komut tamamlama etiketinde update sayısı yorumlanamıyor: {0}."
 
-#: org/postgresql/core/v2/SimpleParameterList.java:56
+#: org/postgresql/core/v2/SimpleParameterList.java:57
 msgid "Zero bytes may not occur in string parameters."
 msgstr "String parametrelerinde sıfır bayt olamaz."
 
@@ -196,69 +177,52 @@ msgstr "String parametrelerinde sıfır bayt olamaz."
 msgid "Unable to bind parameter values for statement."
 msgstr "Komut için parametre değerlei bağlanamadı."
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:762
+#: org/postgresql/core/v3/QueryExecutorImpl.java:765
 #, java-format
-msgid ""
-"Bind message length {0} too long.  This can be caused by very large or "
-"incorrect length specifications on InputStream parameters."
-msgstr ""
-"Bind mesaj uzunluğu ({0}) fazla uzun. Bu durum InputStream yalnış uzunluk "
-"belirtimlerden kaynaklanabilir."
+msgid "Bind message length {0} too long.  This can be caused by very large or incorrect length specifications on InputStream parameters."
+msgstr "Bind mesaj uzunluğu ({0}) fazla uzun. Bu durum InputStream yalnış uzunluk belirtimlerden kaynaklanabilir."
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:1196
+#: org/postgresql/core/v3/QueryExecutorImpl.java:1199
 #, java-format
-msgid ""
-"The server''s client_encoding parameter was changed to {0}. The JDBC driver "
-"requires client_encoding to be UNICODE for correct operation."
-msgstr ""
-"İstemcinin client_encoding parametresi {0} değerine değiştirilmiştir. JDBC "
-"sürücüsünün doğru çalışması için client_encoding parameteresinin UNICODE "
-"olması gerekir."
+msgid "The server''s client_encoding parameter was changed to {0}. The JDBC driver requires client_encoding to be UNICODE for correct operation."
+msgstr "İstemcinin client_encoding parametresi {0} değerine değiştirilmiştir. JDBC sürücüsünün doğru çalışması için client_encoding parameteresinin UNICODE olması gerekir."
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:1203
+#: org/postgresql/core/v3/QueryExecutorImpl.java:1206
 #, java-format
-msgid ""
-"The server''s DateStyle parameter was changed to {0}. The JDBC driver "
-"requires DateStyle to begin with ISO for correct operation."
-msgstr ""
-"Sunucunun DateStyle parametresi {0} olarak değiştirildi. JDBC sürücüsü doğru "
-"işlemesi için DateStyle tanımının ISO işle başlamasını gerekir."
+msgid "The server''s DateStyle parameter was changed to {0}. The JDBC driver requires DateStyle to begin with ISO for correct operation."
+msgstr "Sunucunun DateStyle parametresi {0} olarak değiştirildi. JDBC sürücüsü doğru işlemesi için DateStyle tanımının ISO işle başlamasını gerekir."
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:1247
+#: org/postgresql/core/v3/QueryExecutorImpl.java:1250
 msgid "The driver currently does not support COPY operations."
 msgstr "Bu sunucu şu aşamada COPY işlemleri desteklememktedir."
 
-#: org/postgresql/ds/PGPoolingDataSource.java:408
+#: org/postgresql/ds/PGPoolingDataSource.java:410
 msgid "DataSource has been closed."
 msgstr "DataSource kapatıldı."
 
-#: org/postgresql/ds/common/PooledConnectionImpl.java:110
+#: org/postgresql/ds/common/PooledConnectionImpl.java:112
 msgid "This PooledConnection has already been closed."
 msgstr "Geçerli PooledConnection zaten önceden kapatıldı."
 
-#: org/postgresql/ds/common/PooledConnectionImpl.java:251
-msgid ""
-"Connection has been closed automatically because a new connection was opened "
-"for the same PooledConnection or the PooledConnection has been closed."
-msgstr ""
-"PooledConnection kapatıldığı için veya aynı PooledConnection için yeni bir "
-"bağlantı açıldığı için geçerli bağlantı otomatik kapatıldı."
+#: org/postgresql/ds/common/PooledConnectionImpl.java:298
+msgid "Connection has been closed automatically because a new connection was opened for the same PooledConnection or the PooledConnection has been closed."
+msgstr "PooledConnection kapatıldığı için veya aynı PooledConnection için yeni bir bağlantı açıldığı için geçerli bağlantı otomatik kapatıldı."
 
-#: org/postgresql/ds/common/PooledConnectionImpl.java:251
+#: org/postgresql/ds/common/PooledConnectionImpl.java:298
 msgid "Connection has been closed."
 msgstr "Bağlantı kapatıldı."
 
-#: org/postgresql/ds/common/PooledConnectionImpl.java:397
+#: org/postgresql/ds/common/PooledConnectionImpl.java:456
 msgid "Statement has been closed."
 msgstr "Komut kapatıldı."
 
 #: org/postgresql/fastpath/Fastpath.java:77
-#: org/postgresql/fastpath/Fastpath.java:123
+#: org/postgresql/fastpath/Fastpath.java:124
 #, java-format
 msgid "Fastpath call {0} - No result was returned and we expected an integer."
 msgstr "Fastpath call {0} - Integer beklenirken hiçbir sonuç getirilmedi."
 
-#: org/postgresql/fastpath/Fastpath.java:217
+#: org/postgresql/fastpath/Fastpath.java:219
 #, java-format
 msgid "The fastpath function {0} is unknown."
 msgstr "{0} fastpath fonksiyonu bilinmemektedir."
@@ -283,60 +247,59 @@ msgstr "Pathın açık mı kapalı olduğunu tespit edilemiyor: {0}."
 msgid "The array index is out of range: {0}"
 msgstr "Dizi göstergesi kapsam dışıdır: {0}"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Array.java:163
+#: org/postgresql/jdbc2/AbstractJdbc2Array.java:137
+msgid "Multi-dimensional arrays are currently not supported."
+msgstr "Çok boyutlu matrisler şu aşamada seteklenmemektedir."
+
+#: org/postgresql/jdbc2/AbstractJdbc2Array.java:164
 #, java-format
 msgid "The array index is out of range: {0}, number of elements: {1}."
 msgstr "Dizin göstergisi kapsam dışıdır: {0}, öğe sayısı: {1}."
 
 #: org/postgresql/jdbc2/AbstractJdbc2Connection.java:198
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:943
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:987
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:219
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:237
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:946
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:990
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:220
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:239
 msgid "No results were returned by the query."
 msgstr "Sorgudan hiç bir sonuç dönmedi."
 
 #: org/postgresql/jdbc2/AbstractJdbc2Connection.java:212
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:260
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:277
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2325
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:263
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:281
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2340
 msgid "A result was returned when none was expected."
 msgstr "Hiçbir sonuç kebklenimezken sonuç getirildi."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:407
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:408
 #, java-format
 msgid "Failed to create object for: {0}."
 msgstr "{0} için nesne oluşturma hatası."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:426
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:427
 #, java-format
 msgid "The class {0} does not implement org.postgresql.util.PGobject."
 msgstr "{0} sınıfı org.postgresql.util.PGobject implemente etmiyor."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:467
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:468
 #, java-format
 msgid "Unable to load the class {0} responsible for the datatype {1}"
 msgstr "{1} veri tipinden sorumlu {0} sınıfı yüklenemedi"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:556
-msgid ""
-"Cannot change transaction read-only property in the middle of a transaction."
-msgstr ""
-"Transaction ortasında geçerli transactionun read-only özellği değiştirilemez."
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:557
+msgid "Cannot change transaction read-only property in the middle of a transaction."
+msgstr "Transaction ortasında geçerli transactionun read-only özellği değiştirilemez."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:731
-msgid ""
-"Cannot change transaction isolation level in the middle of a transaction."
-msgstr ""
-"Transaction ortasında geçerli transactionun transaction isolation level "
-"özellği değiştirilemez."
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:733
+msgid "Cannot change transaction isolation level in the middle of a transaction."
+msgstr "Transaction ortasında geçerli transactionun transaction isolation level özellği değiştirilemez."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:735
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:738
 #, java-format
 msgid "Transaction isolation level {0} not supported."
 msgstr "Transaction isolation level {0} desteklenmiyor."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:899
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:902
 msgid "Unable to translate data into the desired encoding."
 msgstr "Veri, istenilen dil kodlamasına çevrilemiyor."
 
@@ -349,413 +312,343 @@ msgid "Unable to find name datatype in the system catalogs."
 msgstr "Sistem kataloglarında name veri tipi bulunamıyor."
 
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:179
-msgid ""
-"Operation requires a scrollable ResultSet, but this ResultSet is "
-"FORWARD_ONLY."
-msgstr ""
-"İşlem, kaydırılabilen ResultSet gerektirir, ancak bu ResultSet "
-"FORWARD_ONLYdir."
+msgid "Operation requires a scrollable ResultSet, but this ResultSet is FORWARD_ONLY."
+msgstr "İşlem, kaydırılabilen ResultSet gerektirir, ancak bu ResultSet FORWARD_ONLYdir."
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:353
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:354
 msgid "Unexpected error while decoding character data from a large object."
 msgstr "Large-object nesnesinden karakter veriyi çözerken beklenmeyen hata."
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:617
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:642
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1793
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:618
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:644
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1809
 msgid "Can''t use relative move methods while on the insert row."
 msgstr "Insert kaydı üzerinde relative move method kullanılamaz."
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:661
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2470
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:664
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2487
 #, java-format
 msgid "Invalid fetch direction constant: {0}."
 msgstr "Getirme yönü değişmezi geçersiz: {0}."
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:674
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:678
 msgid "Cannot call cancelRowUpdates() when on the insert row."
 msgstr "Insert edilmiş kaydın üzerindeyken cancelRowUpdates() çağırılamaz."
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:693
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:698
 msgid "Cannot call deleteRow() when on the insert row."
 msgstr "Insert  kaydı üzerinde deleteRow() çağırılamaz."
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:698
-msgid ""
-"Currently positioned before the start of the ResultSet.  You cannot call "
-"deleteRow() here."
-msgstr ""
-"Şu an ResultSet başlangcıından önce konumlandı. deleteRow() burada "
-"çağırabilirsiniz."
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:704
+msgid "Currently positioned before the start of the ResultSet.  You cannot call deleteRow() here."
+msgstr "Şu an ResultSet başlangcıından önce konumlandı. deleteRow() burada çağırabilirsiniz."
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:702
-msgid ""
-"Currently positioned after the end of the ResultSet.  You cannot call "
-"deleteRow() here."
-msgstr ""
-"Şu an ResultSet sonucundan sonra konumlandı. deleteRow() burada "
-"çağırabilirsiniz."
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:709
+msgid "Currently positioned after the end of the ResultSet.  You cannot call deleteRow() here."
+msgstr "Şu an ResultSet sonucundan sonra konumlandı. deleteRow() burada çağırabilirsiniz."
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:706
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:714
 msgid "There are no rows in this ResultSet."
 msgstr "Bu ResultSet içinde kayıt bulunamadı."
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:753
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:762
 msgid "Not on the insert row."
 msgstr "Insert kaydı değil."
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:757
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:766
 msgid "You must specify at least one column value to insert a row."
 msgstr "Bir satır eklemek için en az bir sütun değerini belirtmelisiniz."
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:946
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2094
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2125
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:956
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2111
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2142
 #, java-format
 msgid "The JVM claims not to support the encoding: {0}"
 msgstr "JVM, {0} dil kodlamasını desteklememektedir."
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:950
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:993
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1283
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1411
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:960
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1003
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1294
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1423
 msgid "Provided InputStream failed."
 msgstr "Sağlanmış InputStream başarısız."
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1065
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2603
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1075
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2623
 msgid "Provided Reader failed."
 msgstr "Sağlanmış InputStream başarısız."
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1142
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1152
 msgid "Can''t refresh the insert row."
 msgstr "Inser satırı yenilenemiyor."
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1213
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1224
 msgid "Cannot call updateRow() when on the insert row."
 msgstr "Insert  kaydı üzerinde updateRow() çağırılamaz."
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1218
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2649
-msgid ""
-"Cannot update the ResultSet because it is either before the start or after "
-"the end of the results."
-msgstr ""
-"ResultSet, sonuçların ilk kaydından önce veya son kaydından sonra olduğu "
-"için güncelleme yapılamamaktadır."
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1230
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2669
+msgid "Cannot update the ResultSet because it is either before the start or after the end of the results."
+msgstr "ResultSet, sonuçların ilk kaydından önce veya son kaydından sonra olduğu için güncelleme yapılamamaktadır."
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1573
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1586
 #, java-format
 msgid "No primary key found for table {0}."
 msgstr "{0} tablosunda primary key yok."
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1778
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2478
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1793
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2496
 msgid "Fetch size must be a value greater to or equal to 0."
 msgstr "Fetch boyutu sıfır veya daha büyük bir değer olmalıdır."
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1870
-msgid ""
-"Invalid character data was found.  This is most likely caused by stored data "
-"containing characters that are invalid for the character set the database "
-"was created in.  The most common example of this is storing 8bit data in a "
-"SQL_ASCII database."
-msgstr ""
-"Geçersiz karakterler bulunmuştur. Bunun sebebi, verilerde veritabanın "
-"desteklediği dil kodlamadaki karakterlerin dışında bir karaktere "
-"rastlamasıdır. Bunun en yaygın örneği 8 bitlik veriyi SQL_ASCII "
-"veritabanında saklamasıdır."
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1887
+msgid "Invalid character data was found.  This is most likely caused by stored data containing characters that are invalid for the character set the database was created in.  The most common example of this is storing 8bit data in a SQL_ASCII database."
+msgstr "Geçersiz karakterler bulunmuştur. Bunun sebebi, verilerde veritabanın desteklediği dil kodlamadaki karakterlerin dışında bir karaktere rastlamasıdır. Bunun en yaygın örneği 8 bitlik veriyi SQL_ASCII veritabanında saklamasıdır."
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1909
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1916
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1949
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1957
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2480
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2488
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2518
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2525
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1926
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1933
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1966
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1974
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2500
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2508
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2538
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2545
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2556
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2574
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2592
-#: org/postgresql/jdbc2/TimestampUtils.java:161
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2565
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2576
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2594
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2612
+#: org/postgresql/jdbc2/TimestampUtils.java:162
 #, java-format
 msgid "Bad value for type {0} : {1}"
 msgstr "{0} veri tipi için geçersiz değer : {1}"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2347
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2364
 #, java-format
 msgid "The column name {0} was not found in this ResultSet."
 msgstr "Bu ResultSet içinde {0} sütun adı bulunamadı."
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2410
-msgid ""
-"ResultSet is not updateable.  The query that generated this result set must "
-"select only one table, and must select all primary keys from that table. See "
-"the JDBC 2.1 API Specification, section 5.6 for more details."
-msgstr ""
-"ResultSet değiştirilemez. Bu sonucu üreten sorgu tek bir tablodan "
-"sorgulamalı ve tablonun tüm primary key alanları belirtmelidir. Daha fazla "
-"bilgi için bk. JDBC 2.1 API Specification, section 5.6."
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2428
+msgid "ResultSet is not updateable.  The query that generated this result set must select only one table, and must select all primary keys from that table. See the JDBC 2.1 API Specification, section 5.6 for more details."
+msgstr "ResultSet değiştirilemez. Bu sonucu üreten sorgu tek bir tablodan sorgulamalı ve tablonun tüm primary key alanları belirtmelidir. Daha fazla bilgi için bk. JDBC 2.1 API Specification, section 5.6."
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2421
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2440
 msgid "This ResultSet is closed."
 msgstr "ResultSet kapalıdır."
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2428
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2447
 msgid "ResultSet not positioned properly, perhaps you need to call next."
 msgstr "ResultSet doğru konumlanmamıştır, next işlemi çağırmanız gerekir."
 
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:216
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:257
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:296
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2285
-msgid ""
-"Can''t use query methods that take a query string on a PreparedStatement."
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:259
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:301
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2299
+msgid "Can''t use query methods that take a query string on a PreparedStatement."
 msgstr "PreparedStatement ile sorgu satırı alan sorgu yöntemleri kullanılamaz."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:222
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:240
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:223
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:242
 msgid "Multiple ResultSets were returned by the query."
 msgstr "Sorgu tarafından birden fazla ResultSet getirildi."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:320
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2246
-msgid ""
-"A CallableStatement was declared, but no call to registerOutParameter(1, "
-"<some type>) was made."
-msgstr ""
-"CallableStatement bildirildi ancak registerOutParameter(1, < bir tip>) "
-"tanıtımı yapılmadı."
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:326
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2259
+msgid "A CallableStatement was declared, but no call to registerOutParameter(1, <some type>) was made."
+msgstr "CallableStatement bildirildi ancak registerOutParameter(1, < bir tip>) tanıtımı yapılmadı."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:328
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:332
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:334
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:338
 msgid "A CallableStatement was executed with nothing returned."
 msgstr "CallableStatement çalıştırma sonucunda veri getirilmedi."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:337
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:343
 #, java-format
-msgid ""
-"A CallableStatement function was executed and the return was of type {0} "
-"however type {1} was registered."
-msgstr ""
-"CallableStatement çalıştırıldı ancak döndürme tipi {1} olark bildirilirken "
-"{0} alındı."
+msgid "A CallableStatement function was executed and the return was of type {0} however type {1} was registered."
+msgstr "CallableStatement çalıştırıldı ancak döndürme tipi {1} olark bildirilirken {0} alındı."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:487
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:493
 msgid "Maximum number of rows must be a value grater than or equal to 0."
 msgstr "En büyük getirilecek satır sayısı sıfırdan büyük olmalıdır."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:528
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:535
 msgid "Query timeout must be a value greater than or equals to 0."
 msgstr "Sorgu zaman aşımı değer sıfır veya sıfırdan büyük bir sayı olmalıdır."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:590
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:598
 msgid "The maximum field size must be a value greater than or equal to 0."
 msgstr "En büyük alan boyutu sıfır ya da sıfırdan büyük bir değer olmalı."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:975
-msgid ""
-"setNull(i,Types.OTHER) is not supported; use setObject(i,nullobject,Types."
-"OTHER) instead."
-msgstr ""
-"setNull(i,Types.OTHER) desteklenmemektedir; yerine setObject(i,nullobject,"
-"Types.OTHER) kullanın."
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:985
+msgid "setNull(i,Types.OTHER) is not supported; use setObject(i,nullobject,Types.OTHER) instead."
+msgstr "setNull(i,Types.OTHER) desteklenmemektedir; yerine setObject(i,nullobject,Types.OTHER) kullanın."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:978
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:988
 msgid "Unknown Types value."
 msgstr "Geçersiz Types değeri."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1249
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1373
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2575
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1259
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1384
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2594
 #, java-format
 msgid "Invalid stream length {0}."
 msgstr "Geçersiz akım uzunluğu {0}."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1279
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1290
 #, java-format
 msgid "The JVM claims not to support the {0} encoding."
 msgstr "JVM, {0} dil kodlamasını desteklememektedir."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1453
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2522
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1465
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2541
 #, java-format
 msgid "Unknown type {0}."
 msgstr "Bilinmeyen tip {0}."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1579
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1591
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1603
 #, java-format
 msgid "Cannot cast an instance of {0} to type {1}"
 msgstr "{0} tipi {1} tipine dönüştürülemiyor"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1594
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1606
 #, java-format
 msgid "Unsupported Types value: {0}"
 msgstr "Geçersiz Types değeri: {0}"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1612
-msgid ""
-"setObject(i,null) is not supported. Instead, use setNull(i,type) or setObject"
-"(i,null,type)"
-msgstr ""
-"setObject(i,Types.OTHER) desteklenmemektedir; yerine setNull(i,type) veya "
-"setObject(i,null,type) kullanın"
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1624
+msgid "setObject(i,null) is not supported. Instead, use setNull(i,type) or setObject(i,null,type)"
+msgstr "setObject(i,Types.OTHER) desteklenmemektedir; yerine setNull(i,type) veya setObject(i,null,type) kullanın"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1644
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1656
 #, java-format
-msgid ""
-"Can''t infer the SQL type to use for an instance of {0}. Use setObject() "
-"with an explicit Types value to specify the type to use."
-msgstr ""
-"{0}'nin örneği ile kullanılacak SQL tip bulunamadı. Kullanılacak tip "
-"belirtmek için kesin Types değerleri ile setObject() kullanın."
+msgid "Can''t infer the SQL type to use for an instance of {0}. Use setObject() with an explicit Types value to specify the type to use."
+msgstr "{0}'nin örneği ile kullanılacak SQL tip bulunamadı. Kullanılacak tip belirtmek için kesin Types değerleri ile setObject() kullanın."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1669
-msgid ""
-"This statement does not declare an OUT parameter.  Use '{' ?= call ... '}' "
-"to declare one."
-msgstr ""
-"Bu komut OUT parametresi bildirmemektedir.  Bildirmek için '{' ?= call ... "
-"'}' kullanın."
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1681
+msgid "This statement does not declare an OUT parameter.  Use '{' ?= call ... '}' to declare one."
+msgstr "Bu komut OUT parametresi bildirmemektedir.  Bildirmek için '{' ?= call ... '}' kullanın."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1973
-msgid ""
-"Cannot call setXXX(1, ..) on a CallableStatement.  This is an output that "
-"must be configured with registerOutParameter instead."
-msgstr ""
-"CallableStatement üzerinde call setXXX(1, ..)  fonksiyonu çağırılamıyor . Bu "
-"çikışı registerOutParameter ile tanıtmanız gerekmektedir."
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1985
+msgid "Cannot call setXXX(1, ..) on a CallableStatement.  This is an output that must be configured with registerOutParameter instead."
+msgstr "CallableStatement üzerinde call setXXX(1, ..)  fonksiyonu çağırılamıyor . Bu çikışı registerOutParameter ile tanıtmanız gerekmektedir."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2197
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2210
 #, java-format
 msgid "Malformed function or procedure escape syntax at offset {0}."
 msgstr "{0} adresinde fonksiyon veya yordamda kaçış söz dizimi geçersiz."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2218
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2232
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2231
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2245
 #, java-format
-msgid ""
-"Parameter of type {0} was registered, but call to get{1} (sqltype={2}) was "
-"made."
-msgstr ""
-"{0} tipinde parametre tanıtıldı, ancak {1} (sqltype={2}) tipinde geri "
-"getirmek için çağrı yapıldı."
+msgid "Parameter of type {0} was registered, but call to get{1} (sqltype={2}) was made."
+msgstr "{0} tipinde parametre tanıtıldı, ancak {1} (sqltype={2}) tipinde geri getirmek için çağrı yapıldı."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2248
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2261
 msgid "PostgreSQL only supports a single OUT function return value at index 1."
-msgstr ""
-"Birinci değerde PostgreSQL sadece bir tane OUT fonksiyonu desteklemektedir."
+msgstr "Birinci değerde PostgreSQL sadece bir tane OUT fonksiyonu desteklemektedir."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2275
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2288
 msgid "This statement has been closed."
 msgstr "Bu komut kapatıldı."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2331
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2347
 msgid "Too many update results were returned."
 msgstr "Çok fazla güncelleme sonucu döndürüldü."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2359
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2376
 #, java-format
-msgid ""
-"Batch entry {0} {1} was aborted.  Call getNextException to see the cause."
-msgstr ""
-"Tpilı iş girişi {0} {1} durduruldu.  Nedenini görmek için getNextException "
-"fonksiyonu çağırın."
+msgid "Batch entry {0} {1} was aborted.  Call getNextException to see the cause."
+msgstr "Tpilı iş girişi {0} {1} durduruldu.  Nedenini görmek için getNextException fonksiyonu çağırın."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2555
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2633
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2666
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2574
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2653
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2686
 msgid "Unexpected error writing large object to database."
 msgstr "Large object veritabanına yazılırken beklenmeyan hata."
 
-#: org/postgresql/jdbc2/EscapedFunctions.java:126
-#: org/postgresql/jdbc2/EscapedFunctions.java:137
-#: org/postgresql/jdbc2/EscapedFunctions.java:148
-#: org/postgresql/jdbc2/EscapedFunctions.java:193
-#: org/postgresql/jdbc2/EscapedFunctions.java:228
-#: org/postgresql/jdbc2/EscapedFunctions.java:250
-#: org/postgresql/jdbc2/EscapedFunctions.java:273
-#: org/postgresql/jdbc2/EscapedFunctions.java:295
-#: org/postgresql/jdbc2/EscapedFunctions.java:306
-#: org/postgresql/jdbc2/EscapedFunctions.java:328
-#: org/postgresql/jdbc2/EscapedFunctions.java:365
-#: org/postgresql/jdbc2/EscapedFunctions.java:373
-#: org/postgresql/jdbc2/EscapedFunctions.java:381
-#: org/postgresql/jdbc2/EscapedFunctions.java:389
-#: org/postgresql/jdbc2/EscapedFunctions.java:397
+#: org/postgresql/jdbc2/EscapedFunctions.java:127
+#: org/postgresql/jdbc2/EscapedFunctions.java:139
+#: org/postgresql/jdbc2/EscapedFunctions.java:151
+#: org/postgresql/jdbc2/EscapedFunctions.java:200
+#: org/postgresql/jdbc2/EscapedFunctions.java:237
+#: org/postgresql/jdbc2/EscapedFunctions.java:261
+#: org/postgresql/jdbc2/EscapedFunctions.java:286
+#: org/postgresql/jdbc2/EscapedFunctions.java:310
+#: org/postgresql/jdbc2/EscapedFunctions.java:322
+#: org/postgresql/jdbc2/EscapedFunctions.java:346
+#: org/postgresql/jdbc2/EscapedFunctions.java:387
+#: org/postgresql/jdbc2/EscapedFunctions.java:396
 #: org/postgresql/jdbc2/EscapedFunctions.java:405
-#: org/postgresql/jdbc2/EscapedFunctions.java:413
-#: org/postgresql/jdbc2/EscapedFunctions.java:421
-#: org/postgresql/jdbc2/EscapedFunctions.java:429
-#: org/postgresql/jdbc2/EscapedFunctions.java:437
-#: org/postgresql/jdbc2/EscapedFunctions.java:445
-#: org/postgresql/jdbc2/EscapedFunctions.java:453
+#: org/postgresql/jdbc2/EscapedFunctions.java:414
+#: org/postgresql/jdbc2/EscapedFunctions.java:423
+#: org/postgresql/jdbc2/EscapedFunctions.java:432
+#: org/postgresql/jdbc2/EscapedFunctions.java:441
+#: org/postgresql/jdbc2/EscapedFunctions.java:450
+#: org/postgresql/jdbc2/EscapedFunctions.java:459
+#: org/postgresql/jdbc2/EscapedFunctions.java:468
+#: org/postgresql/jdbc2/EscapedFunctions.java:477
+#: org/postgresql/jdbc2/EscapedFunctions.java:486
 #, java-format
 msgid "{0} function takes one and only one argument."
 msgstr "{0} fonksiyonunu yalnız tek bir parametre alabilir."
 
-#: org/postgresql/jdbc2/EscapedFunctions.java:159
-#: org/postgresql/jdbc2/EscapedFunctions.java:181
-#: org/postgresql/jdbc2/EscapedFunctions.java:239
-#: org/postgresql/jdbc2/EscapedFunctions.java:284
-#: org/postgresql/jdbc2/EscapedFunctions.java:339
-#: org/postgresql/jdbc2/EscapedFunctions.java:469
+#: org/postgresql/jdbc2/EscapedFunctions.java:163
+#: org/postgresql/jdbc2/EscapedFunctions.java:187
+#: org/postgresql/jdbc2/EscapedFunctions.java:249
+#: org/postgresql/jdbc2/EscapedFunctions.java:298
+#: org/postgresql/jdbc2/EscapedFunctions.java:358
+#: org/postgresql/jdbc2/EscapedFunctions.java:504
 #, java-format
 msgid "{0} function takes two and only two arguments."
 msgstr "{0} fonksiyonunu sadece iki parametre alabilir."
 
-#: org/postgresql/jdbc2/EscapedFunctions.java:172
+#: org/postgresql/jdbc2/EscapedFunctions.java:177
 msgid "rand function only takes zero or one argument(the seed)."
 msgstr "rand fonksiyonu yalnız sıfır veya bir (seed) argüman alabilir."
 
-#: org/postgresql/jdbc2/EscapedFunctions.java:216
+#: org/postgresql/jdbc2/EscapedFunctions.java:224
 #, java-format
 msgid "{0} function takes four and only four argument."
 msgstr "{0} fonksiyonunu yalnız dört parametre alabilir."
 
-#: org/postgresql/jdbc2/EscapedFunctions.java:264
-#: org/postgresql/jdbc2/EscapedFunctions.java:319
+#: org/postgresql/jdbc2/EscapedFunctions.java:276
+#: org/postgresql/jdbc2/EscapedFunctions.java:336
 #, java-format
 msgid "{0} function takes two or three arguments."
 msgstr "{0} fonksiyonu yalnız iki veya üç argüman alabilir."
 
-#: org/postgresql/jdbc2/EscapedFunctions.java:349
-#: org/postgresql/jdbc2/EscapedFunctions.java:357
-#: org/postgresql/jdbc2/EscapedFunctions.java:461
-#: org/postgresql/jdbc2/EscapedFunctions.java:477
+#: org/postgresql/jdbc2/EscapedFunctions.java:369
+#: org/postgresql/jdbc2/EscapedFunctions.java:378
+#: org/postgresql/jdbc2/EscapedFunctions.java:495
+#: org/postgresql/jdbc2/EscapedFunctions.java:513
 #, java-format
 msgid "{0} function doesn't take any argument."
 msgstr "{0} fonksiyonu parametre alamaz."
 
 #: org/postgresql/jdbc2/TimestampUtils.java:40
-msgid ""
-"Inifite value found for timestamp.  Java has no corresponding representation."
-msgstr ""
-"Timestamp veri tipinde sonsuz değer bulunmuştur. Java'da buna uygun bir "
-"gösterim yoktur."
+msgid "Infinite value found for timestamp.  Java has no corresponding representation."
+msgstr "Timestamp veri tipinde sonsuz değer bulunmuştur. Java'da buna uygun bir gösterim yoktur."
 
 #: org/postgresql/jdbc3/AbstractJdbc3Connection.java:59
 #, java-format
 msgid "Unknown ResultSet holdability setting: {0}."
 msgstr "ResultSet tutabilme ayarı geçersiz: {0}."
 
-#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:94
-#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:124
-#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:157
-#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:178
+#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:95
+#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:126
+#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:160
+#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:181
 msgid "Server versions prior to 8.0 do not support savepoints."
 msgstr "Sunucunun 8.0'dan  önceki sürümler savepoint desteklememektedir."
 
-#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:96
-#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:126
+#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:97
+#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:128
 msgid "Cannot establish a savepoint in auto-commit mode."
 msgstr "Auto-commit biçimde savepoint oluşturulamıyor."
 
-#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:349
-#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:397
-#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:445
+#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:352
+#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:400
+#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:448
 #: org/postgresql/jdbc3/AbstractJdbc3Statement.java:138
 #: org/postgresql/jdbc3/AbstractJdbc3Statement.java:164
 #: org/postgresql/jdbc3/AbstractJdbc3Statement.java:189
@@ -765,26 +658,26 @@ msgstr "Auto-commit biçimde savepoint oluşturulamıyor."
 msgid "Returning autogenerated keys is not supported."
 msgstr "Otomatik üretilen değerlerin getirilmesi desteklenememktedir."
 
-#: org/postgresql/jdbc3/PSQLSavepoint.java:38
-#: org/postgresql/jdbc3/PSQLSavepoint.java:48
-#: org/postgresql/jdbc3/PSQLSavepoint.java:62
+#: org/postgresql/jdbc3/PSQLSavepoint.java:39
+#: org/postgresql/jdbc3/PSQLSavepoint.java:51
+#: org/postgresql/jdbc3/PSQLSavepoint.java:67
 msgid "Cannot reference a savepoint after it has been released."
 msgstr "Bırakıldıktan sonra savepoint referans edilemez."
 
-#: org/postgresql/jdbc3/PSQLSavepoint.java:41
+#: org/postgresql/jdbc3/PSQLSavepoint.java:43
 msgid "Cannot retrieve the id of a named savepoint."
 msgstr "Adlandırılmış savepointin id değerine erişilemiyor."
 
-#: org/postgresql/jdbc3/PSQLSavepoint.java:51
+#: org/postgresql/jdbc3/PSQLSavepoint.java:55
 msgid "Cannot retrieve the name of an unnamed savepoint."
 msgstr "Adı verilmemiş savepointin id değerine erişilemiyor."
 
-#: org/postgresql/largeobject/LargeObjectManager.java:139
+#: org/postgresql/largeobject/LargeObjectManager.java:140
 msgid "Failed to initialize LargeObject API"
 msgstr "LArgeObject API ilklendirme hatası"
 
-#: org/postgresql/largeobject/LargeObjectManager.java:171
-#: org/postgresql/largeobject/LargeObjectManager.java:198
+#: org/postgresql/largeobject/LargeObjectManager.java:172
+#: org/postgresql/largeobject/LargeObjectManager.java:200
 msgid "Large Objects may not be used in auto-commit mode."
 msgstr "Auto-commit biçimde large object kullanılamaz."
 
@@ -797,20 +690,20 @@ msgstr "SSLSocketFactory {0} ile örneklenmedi."
 msgid "Conversion of money failed."
 msgstr "Money dönüştürmesi başarısız."
 
-#: org/postgresql/util/PSQLException.java.in:50
+#: org/postgresql/util/PSQLException.java.in:45
 #, java-format
 msgid "Exception: {0}"
 msgstr "İstisna: {0}"
 
-#: org/postgresql/util/PSQLException.java.in:51
+#: org/postgresql/util/PSQLException.java.in:46
 msgid "Stack Trace:"
 msgstr "Stack Trace:"
 
-#: org/postgresql/util/PSQLException.java.in:53
+#: org/postgresql/util/PSQLException.java.in:48
 msgid "End of Stack Trace"
 msgstr "Stack Trace Sonu"
 
-#: org/postgresql/util/PSQLException.java.in:61
+#: org/postgresql/util/PSQLException.java.in:56
 #, java-format
 msgid "Exception generating stacktrace for: {0} encountered: {1}"
 msgstr "Exception generating stacktrace for: {0} encountered: {1}"
@@ -844,3 +737,4 @@ msgstr "Yer: Dosya: {0}, Yordam: {1}, Satır: {2}"
 #, java-format
 msgid "Server SQLState: {0}"
 msgstr "Sunucu SQLState: {0}"
+
