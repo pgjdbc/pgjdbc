@@ -6,7 +6,7 @@
 ]>
 
 <book id="jdbc">
- <title>The PostgreSQL <acronym>JDBC</acronym> Interface</title>
+ <title>The <productname>PostgreSQL</productname> <acronym>JDBC</acronym> Interface</title>
 
  <chapter id="jdbc-intro">
   <title>Introduction</title>
@@ -53,18 +53,14 @@
     <acronym>JDBC</acronym> web site</ulink>.
    </para>
 
-   <remark>
-    These instructions are currently inaccurate.
-   </remark>
-
    <para>
     Alternatively you can build the driver from source, but you should
     only need to do this if you are making changes to the source code.
-    To build the JDBC driver, you need <application>Ant</application>
-    1.5 or higher and a <acronym>JDK</acronym>.
+    To build the <acronym>JDBC</acronym> driver, you need
+    <application>Ant</application> 1.5 or higher and a <acronym>JDK</acronym>.
     <application>Ant</application> is a special tool for building
     Java-based packages.  It can be downloaded from the <ulink
-    url="http://jakarta.apache.org/ant/index.html"><application>Ant</application>
+    url="http://ant.apache.org/index.html"><application>Ant</application>
     web site</ulink>.
    </para>
 
@@ -81,17 +77,9 @@ JAVACMD=$JAVA_HOME/bin/java
 </programlisting>
    </para>
 
-   <note>
-    <para>
-     Do not try to build the driver by calling <command>ant</command>
-     or even <command>javac</command> directly.  This will not work.
-     Run <command>gmake</command> normally as described below.
-    </para>
-   </note>
-
    <para>
-    After installation, the driver should be found in
-    <filename><replaceable>PREFIX</replaceable>/share/java/postgresql.jar</filename>.
+    To compile the driver simply run <command>ant</command> in the top level
+    directory.  The compiled driver will be placed in a <filename>jars/postgresql.jar</filename>.
     The resulting driver will be built for the version of Java you are
     running.  If you build with a 1.1 <acronym>JDK</acronym> you will
     build a version that supports the <acronym>JDBC</acronym> 1
@@ -162,9 +150,10 @@ java MyApp
    <para>
     Also, the client authentication setup in the
     <filename>pg_hba.conf</filename> file may need to be configured.
-    Refer to the PostgreSQL documentation for details.  The
-    <acronym>JDBC</acronym> driver supports the <literal>trust</literal>,
-    <literal>ident</literal>, <literal>password</literal>, <literal>md5</literal>, and
+    Refer to the <productname>PostgreSQL</productname> documentation for
+    details.  The <acronym>JDBC</acronym> driver supports the
+    <literal>trust</literal>, <literal>ident</literal>,
+    <literal>password</literal>, <literal>md5</literal>, and
     <literal>crypt</literal> authentication methods.
    </para>
   </sect1>
@@ -192,9 +181,9 @@ import java.sql.*;
 
     <note>
      <para>
-      Do not import the <literal>org.postgresql</literal> package. If
-      you do, your source will not compile, as
-      <command>javac</command> will get confused.
+      You should not import the <literal>org.postgresql</literal> package
+      unless you are using not standard <productname>PostgreSQL</productname>
+      extensions to the <acronym>JDBC</acronym> <acronym>API</acronym>.
      </para>
     </note>
   </sect1>
@@ -430,7 +419,7 @@ st.close();
 
      <para>By default the driver collects all the results for the
        query at once. This can be inconvenient for large data sets so
-       the JDBC driver provides a means of basing
+       the <acronym>JDBC</acronym> driver provides a means of basing
        a <classname>ResultSet</classname> on a database cursor and
        only fetching a small number of rows.</para>
 
@@ -438,6 +427,42 @@ st.close();
        client side of the connection and when exhausted the next
        block of rows is retrieved by repositioning the cursor.
      </para>
+
+     <note>
+      <para>
+       Cursor based <classname>ResultSets</classname> cannot be used in all
+       situations.  There a number of restrictions which will make the driver
+       silently fall back to fetching the whole <classname>ResultSet</classname>
+       at once.
+       <itemizedlist>
+        <listitem>
+         <para>
+          The <classname>Connection</classname> must not be in autocommit
+          mode.  The backend closes cursors at the end of transactions, so in
+          autocommit mode the backend will have closed the cursor before anything
+          can be fetched from it.
+         </para>
+        </listitem>
+        <listitem>
+         <para>
+           The <classname>Statement</classname> must be created with
+           a <classname>ResultSet</classname> type of
+           <literal>ResultSet.TYPE_FORWARD_ONLY</literal>.
+           This is the default, so no code will need to be rewritten to take
+           advantage of this, but it also means that you cannot scroll
+           backwards or otherwise jump around in the
+          <classname>ResultSet</classname>.
+         </para>
+        </listitem>
+        <listitem>
+         <para>
+          The query given must be a single statement, not multiple statements
+          strung together with semicolons.
+         </para>
+        </listitem>
+       </itemizedlist>
+      </para>
+     </note>
 
      <example>
        <title>Setting fetch size to turn cursors on and off.</title>
@@ -448,7 +473,10 @@ st.close();
        all rows to be cached (the default behaviour).
 
 <programlisting>
+// make sure autocommit is off
+db.setAutoCommit(false);
 Statement st = db.createStatement();
+
 // Turn use of the cursor on.
 st.setFetchSize(50);
 ResultSet rs = st.executeQuery("SELECT * FROM mytable");
@@ -456,13 +484,15 @@ while (rs.next()) {
    System.out.print("a row was returned.");
 }
 rs.close();
+
 // Turn the cursor off.
 st.setFetchSize(0);
-ResultSet rs = st.executeQuery("SELECT * FROM mytable");
+rs = st.executeQuery("SELECT * FROM mytable");
 while (rs.next()) {
    System.out.print("many rows were returned.");
 }
 rs.close();
+
 // Close the statement.
 st.close();
 </programlisting>
@@ -604,9 +634,9 @@ st.close();
   <chapter id="jdbc-callproc">
     <title>Calling Stored Functions</title>
 
-    <para><productname>PostgreSQL's</productname> JDBC driver fully
-      supports calling <productname>PostgreSQL</productname> stored
-      functions.</para>
+    <para><productname>PostgreSQL's</productname> <acronym>JDBC</acronym>
+      driver fully supports calling <productname>PostgreSQL</productname>
+      storedfunctions.</para>
 
     <example id="jdbc-call-function">
       <title>Calling a built in stored function</title>
@@ -657,9 +687,9 @@ upperProc.close();
 	can return results by means of a <type>refcursor</type>
 	value. A <type>refcursor</type>.</para>
 
-      <para>As an extension to JDBC,
-	the <productname>PostgreSQL</productname> JDBC driver can
-	return <type>refcursor</type> values
+      <para>As an extension to <acronym>JDBC</acronym>,
+	the <productname>PostgreSQL</productname> <acronym>JDBC</acronym>
+	driver can return <type>refcursor</type> values
 	as <classname>ResultSet</classname> values.</para>
 
       <example id="get-refcursor-from-function-call">
@@ -689,10 +719,10 @@ proc.close();
       </example>
 
       <para>It is also possible to treat the <type>refcursor</type>
-      return value as a distinct type in itself. The JDBC driver
-	provides
-      the <classname>org.postgresql.PGRefCursorResultSet</classname>
-	class for this purpose.</para>
+       return value as a distinct type in itself. The <acronym>JDBC</acronym>
+       driver provides
+       the <classname>org.postgresql.PGRefCursorResultSet</classname>
+       class for this purpose.</para>
 
       <example>
 	<title>Treating <type>refcursor</type> as a distinct
@@ -726,7 +756,7 @@ proc.close();
    </para>
 
   <example id="jdbc-drop-table-example">
-   <title>Dropping a Table in JDBC</title>
+   <title>Dropping a Table in <acronym>JDBC</acronym></title>
    <para>
      This example will drop a table.
 <programlisting>
@@ -989,7 +1019,7 @@ ps.close();
    then be called from queries, or even add your own data types.  As
    these are facilities unique to <productname>PostgreSQL</productname>,
    we support them from Java, with a set of extension
-   <acronym>API</acronym>'s. Some features within the core of the
+   <acronym>APIs</acronym>. Some features within the core of the
    standard driver actually use these extensions to implement Large
    Objects, etc.
   </para>
@@ -1019,7 +1049,7 @@ public class PGConnection
 
     <para>
      These are the extra methods used to gain access to
-     <productname>PostgreSQL</productname>'s extensions. 
+     <productname>PostgreSQL's</productname> extensions. 
     </para>
 
     <sect3>
@@ -1103,7 +1133,7 @@ LargeObjectManager lo = ((org.postgresql.PGConnection)myconn).getLargeObjectAPI(
 public void addDataType(String type, String name)
 </synopsis>
         This allows client code to add a handler for one of
-        <productname>PostgreSQL</productname>'s more unique data types. Normally, a data type not
+        <productname>PostgreSQL's</productname> more unique data types. Normally, a data type not
         known by the driver is returned by <literal>ResultSet.getObject()</literal> as a
         <classname>PGobject</classname> instance.  This method allows you to write a class
         that extends <classname>PGobject</classname>, and tell the driver the type name, and
@@ -3313,12 +3343,12 @@ try {
    (supplied with Sun's <acronym>JDK</acronym>) and the
    <acronym>JDBC</acronym> Specification.  Both are available from
    <ulink
-   url="http://java.sun.com/products/jdbc/index.html"></ulink>.
+   url="http://java.sun.com/products/jdbc/index.jsp"></ulink>.
   </para>
 
   <para>
    <ulink
-   url="http://jdbc.postgresql.org"></ulink>
+   url="http://jdbc.postgresql.org/index.html"></ulink>
    contains updated information not included in this chapter and
    also offers precompiled drivers.
   </para>
