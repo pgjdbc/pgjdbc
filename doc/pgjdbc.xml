@@ -334,6 +334,132 @@ jdbc:postgresql://[::1]:5740/accounting
 Connection db = DriverManager.getConnection(url, username, password);
 </programlisting>
    </para>
+
+   <sect2 id="connection-parameters">
+    <title>Connection Parameters</title>
+
+    <para>
+     In addition to the standard connection parameters the driver supports a
+     number of additional properties which can be used to specify additional
+     driver behavior specific to <productname>PostgreSQL</productname>.  These
+     properties may be specified in either the connection
+     <acronym>URL</acronym> or an additional
+     <classname>Properties</classname> object parameter to
+     <function>DriverManager.getConnection</function>.  The following
+     examples illustrate the use of both methods to establish a SSL
+     connection.
+
+<programlisting>
+String url = "jdbc:postgresql://localhost/test";
+Properties props = new Properties();
+props.setProperty("user","fred");
+props.setProperty("password","secret");
+props.setProperty("ssl","true");
+Connection conn = DriverManager.getConnection(url, props);
+</programlisting>
+
+<programlisting>
+String url = "jdbc:postgresql://localhost/test?user=fred&amp;password=secret&amp;ssl=true";
+Connection conn = DriverManager.getConnection(url);
+</programlisting>
+
+     <variablelist>
+
+      <varlistentry>
+       <term><varname>user</varname> = <type>String</type></term>
+       <listitem>
+        <para>
+         The database user on whose behalf the connection is being made.
+        </para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
+       <term><varname>password</varname> = <type>String</type></term>
+       <listitem>
+        <para>
+         The database user's password.
+        </para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
+       <term><varname>ssl</varname></term>
+       <listitem>
+        <para>
+         Connect using <acronym>SSL</acronym>.  The driver must have been
+         compiled with <acronym>SSL</acronym> support.  This property does
+	 not need a value associated with it.  The mere presence of it
+	 specifies a <acronym>SSL</acronym> connection.
+         <!--
+         KJJ need section on configuring SSL support.
+         http://archives.postgresql.org/pgsql-jdbc/2003-08/msg00110.php
+         http://archives.postgresql.org/pgsql-jdbc/2004-02/msg00198.php
+         -->
+        </para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
+       <term><varname>compatible</varname> = <type>String</type></term>
+       <listitem>
+        <para>
+         Act like an older version of the driver to retain compatibility with
+         older applications.  At the moment this controls two driver behaviors,
+         the connection protocol and the handling of binary data fields.
+        </para>
+        <para>
+         The driver supports both the V2 and V3 frontend/backend protocols.
+         The V3 protocol was introduced in 7.4 and the driver will by default
+         try to connect using the V3 protocol, if that fails it will fall
+         back to the V2 protocol.  To avoid the failing attempt when connecting
+         to a version 7.3 or less server or to force the driver to use the
+         V2 protocol despite connecting to a 7.4 or greater server set the
+         compatible property to be 7.3 or less.
+        </para>
+        <para>
+         Information on binary data handling is detailed in
+         <xref linkend="jdbc-binary-data" />.  To force the use of
+         Large Objects set the compatible property to 7.1.
+        </para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
+       <term><varname>loglevel</varname> = <type>int</type></term>
+       <listitem>
+        <para>
+         Set the amount of logging information printed to the DriverManager's
+         current value for LogStream or LogWriter.  It currently supports
+         values of <literal>org.postgresql.Driver.DEBUG</literal> (2) and
+         <literal>org.postgresql.Driver.INFO</literal> (1).
+         <literal>INFO</literal> will log very little information while
+         <literal>DEBUG</literal> will produce significant detail.  This
+         property is only really useful if you are a developer or are
+         having problems with the driver.
+        </para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
+       <term><varname>charSet</varname> = <type>String</type></term>
+       <listitem>
+        <para>
+         The character set to use for data sent to the database or recieved
+         from the database.  This property is only relevent for server
+         versions less than or equal to 7.2.  The 7.3 release was the first
+         with multibyte support compiled by default and the driver uses
+         its character set translation facilities instead of trying to do
+         it itself.
+        </para>
+       </listitem>
+      </varlistentry>
+
+     </variablelist>
+    </para>
+
+   </sect2>
+
   </sect1>
 
   <sect1 id="jdbc-disconnect">
@@ -821,7 +947,8 @@ st.close();
     It is possible to revert the driver back to the old 7.1 behavior 
     by setting the property <literal>compatible</literal> on 
     the <classname>Connection</classname> object to the value
-    <literal>7.1</literal>.
+    <literal>7.1</literal>.  More details on connection properties are
+    available in <xref linkend="connection-parameters" />.
   </para>
 
   <para>
