@@ -27,6 +27,7 @@ public interface BaseConnection extends PGConnection
 	public void cancelQuery() throws SQLException;
 	public Statement createStatement() throws SQLException;
 	public BaseResultSet execSQL(String s) throws SQLException;
+	public boolean getAutoCommit() throws SQLException;
 	public String getCursorName() throws SQLException;
 	public Encoding getEncoding() throws SQLException;
 	public DatabaseMetaData getMetaData() throws SQLException;
@@ -38,6 +39,7 @@ public interface BaseConnection extends PGConnection
 	public int getSQLType(String pgTypeName) throws SQLException;
 	public boolean haveMinimumCompatibleVersion(String ver) throws SQLException;
 	public boolean haveMinimumServerVersion(String ver) throws SQLException;
+	public void setAutoCommit(boolean autoCommit) throws SQLException;
 	public void setCursorName(String cursor) throws SQLException;
 
 }
