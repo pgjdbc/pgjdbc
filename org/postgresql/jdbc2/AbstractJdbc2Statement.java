@@ -3,7 +3,7 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.50 2004/11/17 02:43:49 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.51 2004/12/11 04:13:35 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -11,10 +11,13 @@ package org.postgresql.jdbc2;
 
 
 import java.io.*;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.math.*;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Vector;
+
 import org.postgresql.Driver;
 import org.postgresql.largeobject.*;
 import org.postgresql.core.*;
@@ -61,11 +64,11 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     // Static variables for parsing SQL when replaceProcessing is true.
     private static final short IN_SQLCODE = 0;
     private static final short IN_STRING = 1;
+    private static final short IN_IDENTIFIER = 6;
     private static final short BACKSLASH = 2;
     private static final short ESC_TIMEDATE = 3;
     private static final short ESC_FUNCTION = 4;
     private static final short ESC_OUTERJOIN = 5;
-
 
     // Some performance caches
     private StringBuffer sbuf = new StringBuffer(32);
@@ -659,95 +662,196 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
      *
      * Currently implemented Escape clauses are those mentioned in 11.3
      * in the specification. Basically we look through the sql string for
-     * {d xxx}, {t xxx} or {ts xxx} in non-string sql code. When we find
-     * them, we just strip the escape part leaving only the xxx part.
+     * {d xxx}, {t xxx}, {ts xxx}, {oj xxx} or {fn xxx} in non-string sql 
+     * code. When we find them, we just strip the escape part leaving only
+     * the xxx part.
      * So, something like "select * from x where d={d '2001-10-09'}" would
      * return "select * from x where d= '2001-10-09'".
      */
-    protected String replaceProcessing(String p_sql)
+    protected String replaceProcessing(String p_sql) throws SQLException
     {
         if (replaceProcessingEnabled)
         {
             // Since escape codes can only appear in SQL CODE, we keep track
             // of if we enter a string or not.
             StringBuffer newsql = new StringBuffer(p_sql.length());
-            short state = IN_SQLCODE;
-
-            int i = -1;
-            int len = p_sql.length();
-            while (++i < len)
-            {
-                char c = p_sql.charAt(i);
-                switch (state)
-                {
-                case IN_SQLCODE:
-                    if (c == '\'')      // start of a string?
-                        state = IN_STRING;
-                    else if (c == '{')     // start of an escape code?
-                        if (i + 1 < len)
-                        {
-                            char next = p_sql.charAt(i + 1);
-                            char nextnext = (i + 2 < len) ? p_sql.charAt(i + 2) : '\0';
-                            if (next == 'd' || next == 'D')
-                            {
-                                state = ESC_TIMEDATE;
-                                i++;
-                                break;
-                            }
-                            else if (next == 't' || next == 'T')
-                            {
-                                state = ESC_TIMEDATE;
-                                i += (nextnext == 's' || nextnext == 'S') ? 2 : 1;
-                                break;
-                            }
-                            else if ( next == 'f' || next == 'F' )
-                            {
-                                state = ESC_FUNCTION;
-                                i += (nextnext == 'n' || nextnext == 'N') ? 2 : 1;
-                                break;
-                            }
-                            else if ( next == 'o' || next == 'O' )
-                            {
-                                state = ESC_OUTERJOIN;
-                                i += (nextnext == 'j' || nextnext == 'J') ? 2 : 1;
-                                break;
-                            }
-
-                        }
-                    newsql.append(c);
-                    break;
-
-                case IN_STRING:
-                    if (c == '\'')       // end of string?
-                        state = IN_SQLCODE;
-                    else if (c == '\\')      // a backslash?
-                        state = BACKSLASH;
-
-                    newsql.append(c);
-                    break;
-
-                case BACKSLASH:
-                    state = IN_STRING;
-
-                    newsql.append(c);
-                    break;
-
-                case ESC_TIMEDATE:
-                case ESC_FUNCTION:
-                case ESC_OUTERJOIN:
-                    if (c == '}')
-                        state = IN_SQLCODE;    // end of escape code.
-                    else
-                        newsql.append(c);
-                    break;
-                } // end switch
-            }
-
+            parseSql(p_sql,0,newsql,false);
             return newsql.toString();
         }
         else
         {
             return p_sql;
+        }
+    }
+    
+    /**
+     * parse the given sql from index i, appending it to the gven buffer
+     * until we hit an unmatched right parentheses or end of string.  When
+     * the stopOnComma flag is set we also stop processing when a comma is
+     * found in sql text that isn't inside nested parenthesis.
+     *
+     * @param p_sql the original query text
+     * @param i starting position for replacing
+     * @param newsql where to write the replaced output
+     * @param stopOnComma should we stop after hitting the first comma in sql text?
+     * @return the position we stopped processing at
+     */
+    private int parseSql(String p_sql,int i,StringBuffer newsql, boolean stopOnComma)throws SQLException{
+        short state = IN_SQLCODE;
+        int len = p_sql.length();
+        int nestedParenthesis=0;
+        boolean endOfNested=false;
+
+	// because of the ++i loop
+	i--;
+        while (!endOfNested && ++i < len)
+        {
+            char c = p_sql.charAt(i);
+            switch (state)
+            {
+            case IN_SQLCODE:
+                if (c == '\'')      // start of a string?
+                    state = IN_STRING;
+                else if (c == '"')      // start of a identifer?
+                    state = IN_IDENTIFIER;
+                else if (c=='(') { // begin nested sql
+                    nestedParenthesis++;
+                } else if (c==')') { // end of nested sql
+                    nestedParenthesis--;
+                    if (nestedParenthesis<0){
+                        endOfNested=true;
+                        break;
+                    }
+                } else if (stopOnComma && c==',' && nestedParenthesis==0) {
+                    endOfNested=true;
+                    break;
+                } else if (c == '{') {     // start of an escape code?
+                    if (i + 1 < len)
+                    {
+                        char next = p_sql.charAt(i + 1);
+                        char nextnext = (i + 2 < len) ? p_sql.charAt(i + 2) : '\0';
+                        if (next == 'd' || next == 'D')
+                        {
+                            state = ESC_TIMEDATE;
+                            i++;
+                            break;
+                        }
+                        else if (next == 't' || next == 'T')
+                        {
+                            state = ESC_TIMEDATE;
+                            i += (nextnext == 's' || nextnext == 'S') ? 2 : 1;
+                            break;
+                        }
+                        else if ( next == 'f' || next == 'F' )
+                        {
+                            state = ESC_FUNCTION;
+                            i += (nextnext == 'n' || nextnext == 'N') ? 2 : 1;
+                            break;
+                        }
+                        else if ( next == 'o' || next == 'O' )
+                        {
+                            state = ESC_OUTERJOIN;
+                            i += (nextnext == 'j' || nextnext == 'J') ? 2 : 1;
+                            break;
+                        }
+                    }
+		}
+                newsql.append(c);
+                break;
+
+            case IN_STRING:
+                if (c == '\'')       // end of string?
+                    state = IN_SQLCODE;
+                else if (c == '\\')      // a backslash?
+                    state = BACKSLASH;
+
+                newsql.append(c);
+                break;
+                
+            case IN_IDENTIFIER:
+                if (c == '"')       // end of identifier
+                    state = IN_SQLCODE;
+                newsql.append(c);
+                break;
+
+            case BACKSLASH:
+                state = IN_STRING;
+
+                newsql.append(c);
+                break;
+
+            case ESC_FUNCTION:
+                // extract function name
+                String functionName;
+                int posArgs = p_sql.indexOf('(',i);
+                if (posArgs!=-1){
+                    functionName=p_sql.substring(i,posArgs).trim();
+                    // extract arguments
+                    i= posArgs+1;// we start the scan after the first (
+                    StringBuffer args=new StringBuffer();
+                    i = parseSql(p_sql,i,args,false);
+                    // translate the function and parse arguments
+                    newsql.append(escapeFunction(functionName,args.toString()));
+                }
+                // go to the end of the function copying anything found
+                i++;
+                while (i<len && p_sql.charAt(i)!='}')
+                    newsql.append(p_sql.charAt(i));
+                state = IN_SQLCODE; // end of escaped function (or query)
+                break;
+            case ESC_TIMEDATE:       
+            case ESC_OUTERJOIN:
+                if (c == '}')
+                    state = IN_SQLCODE;    // end of escape code.
+                else
+                    newsql.append(c);
+                break;
+            } // end switch
+        }
+        return i;
+    }
+    
+    /**
+     * generate sql for escaped functions
+     * @param functionName the escaped function name
+     * @param args the arguments for this functin
+     * @return the right postgreSql sql
+     */
+    protected String escapeFunction(String functionName, String args) throws SQLException{
+        // parse function arguments
+        int len = args.length();
+        int i=0;
+        ArrayList parsedArgs = new ArrayList();
+        while (i<len){
+            StringBuffer arg = new StringBuffer();
+            int lastPos=i;
+            i=parseSql(args,i,arg,true);
+            int nestedCount=0;
+            if (lastPos!=i){
+                parsedArgs.add(arg);
+            }
+            i++;
+        }
+        // we can now tranlate escape functions
+        try{
+            Method escapeMethod = EscapedFunctions.getFunction(functionName);
+            return (String) escapeMethod.invoke(null,new Object[] {parsedArgs});
+        }catch(InvocationTargetException e){
+            if (e.getTargetException() instanceof SQLException)
+                throw (SQLException) e.getTargetException();
+            else
+                throw new SQLException(e.getTargetException().getMessage());
+        }catch (Exception e){
+            // by default the function name is kept unchanged
+            StringBuffer buf = new StringBuffer();
+            buf.append(functionName).append('(');
+            for (int iArg = 0;iArg<parsedArgs.size();iArg++){
+                buf.append(parsedArgs.get(iArg));
+                if (iArg!=(parsedArgs.size()-1))
+                    buf.append(',');
+            }
+            buf.append(')');
+            return buf.toString();    
         }
     }
 

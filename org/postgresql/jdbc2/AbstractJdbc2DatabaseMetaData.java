@@ -3,7 +3,7 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.15 2004/11/07 22:16:03 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.16 2004/11/09 08:48:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -464,32 +464,81 @@ public abstract class AbstractJdbc2DatabaseMetaData
         return keywords;
     }
 
+    /**
+     * get supported escaped numeric functions
+     * @return a comma separated list of function names
+     */
     public String getNumericFunctions() throws SQLException
     {
         if (Driver.logDebug)
             Driver.debug("getNumericFunctions");
-        return "";
+        return EscapedFunctions.ABS+','+EscapedFunctions.ACOS+
+        ','+EscapedFunctions.ASIN+','+EscapedFunctions.ATAN+
+        ','+EscapedFunctions.ATAN2+','+EscapedFunctions.CEILING+
+        ','+EscapedFunctions.COS+','+EscapedFunctions.COT+
+        ','+EscapedFunctions.DEGREES+','+EscapedFunctions.EXP+
+        ','+EscapedFunctions.FLOOR+','+EscapedFunctions.LOG+
+        ','+EscapedFunctions.LOG10+','+EscapedFunctions.MOD+
+        ','+EscapedFunctions.PI+','+EscapedFunctions.POWER+
+        ','+EscapedFunctions.RADIANS+','+EscapedFunctions.RAND+
+        ','+EscapedFunctions.ROUND+','+EscapedFunctions.SIGN+
+        ','+EscapedFunctions.SIN+','+EscapedFunctions.SQRT+
+        ','+EscapedFunctions.TAN+','+EscapedFunctions.TRUNCATE;
+        
     }
 
     public String getStringFunctions() throws SQLException
     {
         if (Driver.logDebug)
             Driver.debug("getStringFunctions");
-        return "";
+        String funcs = EscapedFunctions.ASCII+','+EscapedFunctions.CHAR+
+        ','+EscapedFunctions.CONCAT+
+        ','+EscapedFunctions.LCASE+','+EscapedFunctions.LEFT+
+        ','+EscapedFunctions.LENGTH+
+        ','+EscapedFunctions.LTRIM+','+EscapedFunctions.REPEAT+
+        ','+EscapedFunctions.RTRIM+
+        ','+EscapedFunctions.SPACE+','+EscapedFunctions.SUBSTRING+
+        ','+EscapedFunctions.UCASE;
+
+        // Currently these don't work correctly with parameterized
+        // arguments, so leave them out.  They reorder the arguments
+        // when rewriting the query, but no translation layer is provided,
+        // so a setObject(N, obj) will not go to the correct parameter.
+        //','+EscapedFunctions.INSERT+','+EscapedFunctions.LOCATE+
+        //','+EscapedFunctions.RIGHT+
+ 
+        if (connection.haveMinimumServerVersion("7.3")) {
+            funcs += ','+EscapedFunctions.REPLACE;
+        }
+
+        return funcs;
     }
 
     public String getSystemFunctions() throws SQLException
     {
         if (Driver.logDebug)
             Driver.debug("getSystemFunctions");
-        return "";
+        if (connection.haveMinimumServerVersion("7.3")){
+            return EscapedFunctions.DATABASE+','+EscapedFunctions.IFNULL+
+                ','+EscapedFunctions.USER;
+        } else {
+            return EscapedFunctions.IFNULL+
+            ','+EscapedFunctions.USER;
+        }
     }
 
     public String getTimeDateFunctions() throws SQLException
     {
         if (Driver.logDebug)
             Driver.debug("getTimeDateFunctions");
-        return "";
+        return EscapedFunctions.CURDATE+','+EscapedFunctions.CURTIME+
+        ','+EscapedFunctions.DAYNAME+','+EscapedFunctions.DAYOFMONTH+
+        ','+EscapedFunctions.DAYOFWEEK+','+EscapedFunctions.DAYOFYEAR+
+        ','+EscapedFunctions.HOUR+','+EscapedFunctions.MINUTE+
+        ','+EscapedFunctions.MONTH+
+        ','+EscapedFunctions.MONTHNAME+','+EscapedFunctions.NOW+
+        ','+EscapedFunctions.QUARTER+','+EscapedFunctions.SECOND+
+        ','+EscapedFunctions.WEEK+','+EscapedFunctions.YEAR;
     }
 
     /*

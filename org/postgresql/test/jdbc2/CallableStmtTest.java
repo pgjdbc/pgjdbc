@@ -3,7 +3,7 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CallableStmtTest.java,v 1.7 2004/11/07 22:16:42 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CallableStmtTest.java,v 1.8 2004/11/09 08:54:08 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -47,6 +47,9 @@ public class CallableStmtTest extends TestCase
         stmt.execute ("CREATE OR REPLACE FUNCTION testspg__getNumeric (numeric) " +
                       "RETURNS numeric AS ' DECLARE inString alias for $1; " +
                       "begin return 42; end; ' LANGUAGE 'plpgsql';");
+        stmt.execute ("CREATE OR REPLACE FUNCTION testspg__getNumericWithoutArg() " +
+                "RETURNS numeric AS '  " +
+                "begin return 42; end; ' LANGUAGE 'plpgsql';");
         stmt.close ();
     }
 
@@ -57,6 +60,7 @@ public class CallableStmtTest extends TestCase
         stmt.execute ("drop FUNCTION testspg__getDouble (float);");
         stmt.execute ("drop FUNCTION testspg__getInt (int);");
         stmt.execute ("drop FUNCTION testspg__getNumeric (numeric);");
+        stmt.execute ("drop FUNCTION testspg__getNumericWithoutArg ();");
         TestUtil.closeDB(con);
     }
 
@@ -73,8 +77,7 @@ public class CallableStmtTest extends TestCase
         call.setDouble (2, (double)3.04);
         call.registerOutParameter (1, Types.DOUBLE);
         call.execute ();
-        double result = call.getDouble (1);
-        assertTrue ("correct return from getString ()", result == 42.42);
+        assertEquals(42.42, call.getDouble(1), 0.00001);
     }
 
     public void testGetInt () throws Throwable
@@ -83,8 +86,7 @@ public class CallableStmtTest extends TestCase
         call.setInt (2, 4);
         call.registerOutParameter (1, Types.INTEGER);
         call.execute ();
-        int result = call.getInt (1);
-        assertTrue ("correct return from getString ()", result == 42);
+        assertEquals(42, call.getInt(1));
     }
 
     public void testGetNumeric () throws Throwable
@@ -93,9 +95,15 @@ public class CallableStmtTest extends TestCase
         call.setBigDecimal (2, new java.math.BigDecimal(4));
         call.registerOutParameter (1, Types.NUMERIC);
         call.execute ();
-        java.math.BigDecimal result = call.getBigDecimal (1);
-        assertTrue ("correct return from getString ()",
-                    result.equals (new java.math.BigDecimal(42)));
+	assertEquals(new java.math.BigDecimal(42), call.getBigDecimal(1));
+    }
+    
+    public void testGetNumericWithoutArg () throws Throwable
+    {
+        CallableStatement call = con.prepareCall (func + pkgName + "getNumericWithoutArg () }");
+        call.registerOutParameter (1, Types.NUMERIC);
+        call.execute ();
+	assertEquals(new java.math.BigDecimal(42), call.getBigDecimal(1));
     }
 
     public void testGetString () throws Throwable
@@ -104,8 +112,7 @@ public class CallableStmtTest extends TestCase
         call.setString (2, "foo");
         call.registerOutParameter (1, Types.VARCHAR);
         call.execute ();
-        String result = call.getString (1);
-        assertTrue ("correct return from getString ()", result.equals ("bob"));
+        assertEquals("bob", call.getString(1));
 
     }
 
