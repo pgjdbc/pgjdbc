@@ -44,6 +44,8 @@ all:	  postgresql.jar
 	@echo ------------------------------------------------------------
 	@echo
 
+dep depend:
+
 # This rule builds the javadoc documentation
 doc:
 	export CLASSPATH=.;\
