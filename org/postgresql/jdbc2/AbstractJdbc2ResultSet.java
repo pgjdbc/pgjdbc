@@ -1217,11 +1217,11 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 				updateValues.clear();
 				doingUpdates = false;
 			}
-			catch (Exception e)
+			catch (SQLException e)
 			{
 				if ( Driver.logDebug )
 					Driver.debug(e.getClass().getName() + e);
-				throw new SQLException( e.getMessage() );
+				throw e;
 			}
 
 		}
@@ -1617,6 +1617,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 					case Types.NUMERIC:
 					case Types.REAL:
 					case Types.TINYINT:
+					case Types.OTHER:
 
 						rowBuffer[columnIndex] = connection.getEncoding().encode(String.valueOf( valueObject));
 
