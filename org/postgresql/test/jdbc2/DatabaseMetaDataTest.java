@@ -524,6 +524,16 @@ public class DatabaseMetaDataTest extends TestCase
 		}
 	}
 
+	public void testSearchStringEscape() throws Exception {
+		DatabaseMetaData dbmd = con.getMetaData();
+		Statement stmt = con.createStatement();
+		ResultSet rs = stmt.executeQuery("SELECT 'a' LIKE '" + dbmd.getSearchStringEscape() + "_'");
+		assertTrue (rs.next());
+		assertTrue(!rs.getBoolean(1));
+		rs.close();
+		stmt.close();
+	}
+
     public void testGetUDTQualified() throws Exception
     {
 		if (!TestUtil.haveMinimumServerVersion(con, "7.3"))

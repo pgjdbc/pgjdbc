@@ -483,7 +483,16 @@ public abstract class AbstractJdbc2DatabaseMetaData
 	{
 		if (Driver.logDebug)
 			Driver.debug("getSearchStringEscape");
-		return "\\";
+
+		// Java's parse takes off two backslashes
+		// and then pg's input parser takes off another layer
+		// so we need many backslashes here.
+		//
+		// This would work differently if you used a PreparedStatement
+		// and " mycol LIKE ? " which using the V3 protocol would skip
+		// pg's input parser, but I don't know what we can do about that.
+		//
+		return "\\\\";
 	}
 
 	/*
