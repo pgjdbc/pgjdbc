@@ -1731,7 +1731,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData
 			String relKind;
 			switch (r.getBytes(3)[0])
 			{
-				case (byte) 'r':
+				case (byte) 'r':                                        
 					if ( r.getString(1).startsWith("pg_") )
                                         {
                                                 relKind = "SYSTEM TABLE";
@@ -2108,7 +2108,6 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData
 		{
 			byte[][] tuple = new byte[8][0];
 			tuple[0] = tuple[1] = "".getBytes();
-			DriverManager.println("relname=\"" + r.getString(1) + "\" relacl=\"" + r.getString(2) + "\"");
 
 			// For now, don't add to the result as relacl needs to be processed.
 			//v.addElement(tuple);

@@ -318,6 +318,14 @@ public class Connection extends org.postgresql.Connection implements java.sql.Co
                                                                                                 Types.ARRAY
                                                                                         };
 
+        //Because the get/setLogStream methods are deprecated in JDBC2
+        //we use the get/setLogWriter methods here for JDBC2 by overriding
+        //the base version of this method
+        protected void enableDriverManagerLogging() {
+            if (DriverManager.getLogWriter() == null) {
+                DriverManager.setLogWriter(new PrintWriter(System.out));
+	    }
+	}
 
 }
 
