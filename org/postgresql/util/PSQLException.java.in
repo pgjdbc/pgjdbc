@@ -60,28 +60,28 @@ public class PSQLException extends SQLException
 	
 	private static String translate(String msg, Throwable cause, Object[] args) {
 		String translated = MessageTranslator.translate(msg, args);
-@NOTJDK14@		if (cause != null) {
-@NOTJDK14@			try {
-@NOTJDK14@				ByteArrayOutputStream baos = new ByteArrayOutputStream();
-@NOTJDK14@				PrintWriter pw = new PrintWriter(baos);
-@NOTJDK14@				pw.println();
-@NOTJDK14@				pw.println(MessageTranslator.translate("postgresql.error.exception", cause.toString()));
-@NOTJDK14@				pw.println(MessageTranslator.translate("postgresql.error.stacktrace"));
-@NOTJDK14@				cause.printStackTrace(pw);
-@NOTJDK14@				pw.println(MessageTranslator.translate("postgresql.error.stacktraceend"));
-@NOTJDK14@				pw.flush();
-@NOTJDK14@				translated = translated + baos.toString();
-@NOTJDK14@				pw.close();
-@NOTJDK14@				baos.close();
-@NOTJDK14@			} catch (IOException ioe) {
-@NOTJDK14@				translated = translated + MessageTranslator.translate("postgresql.error.stacktraceerror", new Object[] { cause.toString(), ioe.toString() });
-@NOTJDK14@			}
-@NOTJDK14@		}
+@NOINITCAUSE@		if (cause != null) {
+@NOINITCAUSE@			try {
+@NOINITCAUSE@				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+@NOINITCAUSE@				PrintWriter pw = new PrintWriter(baos);
+@NOINITCAUSE@				pw.println();
+@NOINITCAUSE@				pw.println(MessageTranslator.translate("postgresql.error.exception", cause.toString()));
+@NOINITCAUSE@				pw.println(MessageTranslator.translate("postgresql.error.stacktrace"));
+@NOINITCAUSE@				cause.printStackTrace(pw);
+@NOINITCAUSE@				pw.println(MessageTranslator.translate("postgresql.error.stacktraceend"));
+@NOINITCAUSE@				pw.flush();
+@NOINITCAUSE@				translated = translated + baos.toString();
+@NOINITCAUSE@				pw.close();
+@NOINITCAUSE@				baos.close();
+@NOINITCAUSE@			} catch (IOException ioe) {
+@NOINITCAUSE@				translated = translated + MessageTranslator.translate("postgresql.error.stacktraceerror", new Object[] { cause.toString(), ioe.toString() });
+@NOINITCAUSE@			}
+@NOINITCAUSE@		}
 		return translated;
 	}
 	
-@NOTJDK14@	// Dummy initCause() for pre-1.4 JVMs
-@NOTJDK14@	public void initCause(Throwable cause) {}
+@NOINITCAUSE@	// Dummy initCause() for pre-1.4 JVMs
+@NOINITCAUSE@	public void initCause(Throwable cause) {}
 
 
 }

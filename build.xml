@@ -47,7 +47,10 @@
       </or>
     </condition>
     <condition property="jdbc3">
+      <or>
         <equals arg1="${ant.java.version}" arg2="1.4"/>
+	<equals arg1="${ant.java.version}" arg2="1.5"/>
+      </or>
     </condition>
     <available property="datasource" classname="javax.sql.DataSource"/>
     <available property="ssl" classname="javax.net.ssl.SSLSocketFactory"/>
@@ -198,16 +201,22 @@
         <equals arg1="${jdbc3}" arg2="true"/>
     </condition>
 
-    <!-- Determine if we have 1.4 or not.
-         If we do, we use Throwable.initCause() in org.postgresql.util.PSQLException
+    <!-- Determine if we have Throwable.initCause() 
+         if so we use it in org.postgresql.util.PSQLException
          instead of appending any nested exception to the message. -->
-    <condition property="notjdk14" value="//">
+    <condition property="noInitCause" value="//">
+      <or>
         <equals arg1="${ant.java.version}" arg2="1.4"/>
+	<equals arg1="${ant.java.version}" arg2="1.5"/>
+      </or>
     </condition>
     
-    <condition property="notjdk14" value="">
+    <condition property="noInitCause" value="">
       <not>
-        <equals arg1="${ant.java.version}" arg2="1.4"/>
+        <or>
+          <equals arg1="${ant.java.version}" arg2="1.4"/>
+          <equals arg1="${ant.java.version}" arg2="1.5"/>
+        </or>
       </not>
     </condition>
     
@@ -236,7 +245,7 @@
     <filter token="JDBCCONNECTCLASS" value="${connectclass}" />
     <filter token="DEF_PGPORT" value="${def_pgport}" />
     <filter token="SSL" value="${ssl_config}" />
-    <filter token="NOTJDK14" value="${notjdk14}" />
+    <filter token="NOINITCAUSE" value="${noInitCause}" />
 
      <fail unless="major" message="'major' undefined. Please follow the directions in README."/>
      <fail unless="minor" message="'minor' undefined. Please follow the directions in README."/>
