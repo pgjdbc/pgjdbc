@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2004, PostgreSQL Global Development Group
+* Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/optional/PoolingDataSourceTest.java,v 1.5 2004/11/07 22:17:06 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/optional/PoolingDataSourceTest.java,v 1.6 2004/11/09 08:55:49 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

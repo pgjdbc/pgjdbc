@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2004, PostgreSQL Global Development Group
+* Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/Jdbc3SavepointTest.java,v 1.4 2004/11/07 22:17:07 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/Jdbc3SavepointTest.java,v 1.5 2004/11/09 08:56:25 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2004, PostgreSQL Global Development Group
+* Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CursorFetchTest.java,v 1.10 2004/11/07 22:16:43 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CursorFetchTest.java,v 1.11 2004/11/09 08:54:12 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2003-2004, PostgreSQL Global Development Group
+* Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/PSQLState.java,v 1.5 2004/11/07 22:17:15 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/util/PSQLState.java,v 1.6 2004/11/09 08:57:32 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

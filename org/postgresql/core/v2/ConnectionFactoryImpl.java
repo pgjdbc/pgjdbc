@@ -1,10 +1,10 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2003-2004, PostgreSQL Global Development Group
+* Copyright (c) 2003-2005, PostgreSQL Global Development Group
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ConnectionFactoryImpl.java,v 1.6 2004/11/09 08:45:31 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ConnectionFactoryImpl.java,v 1.7 2004/11/17 02:43:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

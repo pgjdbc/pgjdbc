@@ -1,9 +1,10 @@
 /*-------------------------------------------------------------------------
 *
+* Copyright (c) 2004-2005, PostgreSQL Global Development Group
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/ResultHandler.java,v 1.2 2004/11/07 22:15:33 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/ResultHandler.java,v 1.3 2004/11/09 08:44:55 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

@@ -1,10 +1,10 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2003-2004, PostgreSQL Global Development Group
+* Copyright (c) 2003-2005, PostgreSQL Global Development Group
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/QueryExecutor.java,v 1.37 2004/11/07 22:15:33 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/QueryExecutor.java,v 1.38 2004/11/09 08:44:49 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

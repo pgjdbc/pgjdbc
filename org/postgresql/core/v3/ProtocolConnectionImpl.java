@@ -1,9 +1,10 @@
 /*-------------------------------------------------------------------------
 *
+* Copyright (c) 2004-2005, PostgreSQL Global Development Group
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ProtocolConnectionImpl.java,v 1.4 2004/11/09 08:46:11 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ProtocolConnectionImpl.java,v 1.5 2004/12/11 03:31:52 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

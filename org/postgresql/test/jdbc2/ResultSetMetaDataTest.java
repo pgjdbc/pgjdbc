@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2004, PostgreSQL Global Development Group
+* Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ResultSetMetaDataTest.java,v 1.8 2004/11/09 08:54:52 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ResultSetMetaDataTest.java,v 1.9 2005/01/05 00:53:08 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
