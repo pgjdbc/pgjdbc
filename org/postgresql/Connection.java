@@ -110,16 +110,11 @@ public abstract class Connection
 		if (info.getProperty("user") == null)
 			throw new PSQLException("postgresql.con.user");
 
-
-                PG_PASSWORD = info.getProperty("password");
-                // allow a null password D.C.
-                if ( PG_PASSWORD== null)
-                  PG_PASSWORD = "";
-
 		this_driver = d;
 		this_url = url;
 		PG_DATABASE = database;
 		PG_USER = info.getProperty("user");
+                PG_PASSWORD = info.getProperty("password","");
 		PG_PORT = port;
 		PG_HOST = host;
 		PG_STATUS = CONNECTION_BAD;
