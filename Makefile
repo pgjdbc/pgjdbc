@@ -16,12 +16,12 @@ majorversion:= $(shell echo $(VERSION) | sed 's/^\([0-9][0-9]*\)\..*$$/\1/')
 minorversion:= $(shell echo $(VERSION) | sed 's/^[0-9][0-9]*\.\([0-9][0-9]*\).*$$/\1/')
 
 build.properties: $(top_builddir)/src/Makefile.global
-	echo "# This file was created by 'make build.properties'." > build.properties
-	echo major=$(majorversion) >> build.properties
-	echo minor=$(minorversion) >> build.properties
-	echo fullversion=$(VERSION) >> build.properties
-	echo def_pgport=$(DEF_PGPORT) >> build.properties
-	echo enable_debug=$(enable_debug) >> build.properties
+	@echo "# This file was created by 'make build.properties'." > build.properties
+	@echo major=$(majorversion) >> build.properties
+	@echo minor=$(minorversion) >> build.properties
+	@echo fullversion=$(VERSION) >> build.properties
+	@echo def_pgport=$(DEF_PGPORT) >> build.properties
+	@echo enable_debug=$(enable_debug) >> build.properties
 
 all: build.properties
 	$(ANT) -buildfile $(srcdir)/build.xml all
