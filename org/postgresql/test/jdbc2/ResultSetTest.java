@@ -549,4 +549,20 @@ public class ResultSetTest extends TestCase
 		rs.close();
 		stmt.close();
 	}
+
+	public void testCaseInsensitiveFindColumn() throws SQLException
+	{
+		Statement stmt = con.createStatement();
+		ResultSet rs = stmt.executeQuery("SELECT id, id AS \"ID2\" FROM testrs");
+		assertEquals(1, rs.findColumn("id"));
+		assertEquals(1, rs.findColumn("ID"));
+		assertEquals(1, rs.findColumn("Id"));
+		assertEquals(2, rs.findColumn("id2"));
+		assertEquals(2, rs.findColumn("ID2"));
+		assertEquals(2, rs.findColumn("Id2"));
+		try {
+			rs.findColumn("id3");
+			fail("There isn't an id3 column in the ResultSet.");
+		} catch(SQLException sqle) { }
+	}
 }
