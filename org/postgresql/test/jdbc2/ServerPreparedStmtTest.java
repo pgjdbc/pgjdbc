@@ -44,6 +44,23 @@ public class ServerPreparedStmtTest extends TestCase
 		TestUtil.closeDB(con);
 	}
 
+	public void testPreparedExecuteCount() throws Exception
+	{
+		PreparedStatement pstmt = con.prepareStatement("UPDATE testsps SET id = id + 44");
+		((PGStatement)pstmt).setUseServerPrepare(true);
+		int count = pstmt.executeUpdate();
+		if (TestUtil.haveMinimumServerVersion(con,"7.3")) {
+			assertTrue(((PGStatement)pstmt).isUseServerPrepare());
+			// Currently server prepared statements do not
+			// correctly return the update count.
+			assertEquals(0, count);
+		} else {
+			assertEquals(6, count);
+		}
+		pstmt.close();
+	}
+
+
 	public void testPreparedStatementsNoBinds() throws Exception
 	{
 		PreparedStatement pstmt = con.prepareStatement("SELECT * FROM testsps WHERE id = 2");

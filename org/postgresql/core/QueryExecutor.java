@@ -424,6 +424,8 @@ public class QueryExecutor
 			if (status.startsWith("INSERT") || status.startsWith("UPDATE") || status.startsWith("DELETE") || status.startsWith("MOVE"))
 			{
 				update_count = Integer.parseInt(status.substring(1 + status.lastIndexOf(' ')));
+			} else {
+				update_count = 0;
 			}
 			if (status.startsWith("INSERT"))
 			{
@@ -450,6 +452,8 @@ public class QueryExecutor
 			if (status.startsWith("INSERT") || status.startsWith("UPDATE") || status.startsWith("DELETE") || status.startsWith("MOVE"))
 			{
 				update_count = Integer.parseInt(status.substring(1 + status.lastIndexOf(' ')));
+			} else {
+				update_count = 0;
 			}
 			if (status.startsWith("INSERT"))
 			{

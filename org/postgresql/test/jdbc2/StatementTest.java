@@ -62,4 +62,21 @@ public class StatementTest extends TestCase
      stmt.close();
   }
 
+	public void testUpdateCount() throws SQLException
+	{
+		Statement stmt = con.createStatement();
+		int count;
+
+		count = stmt.executeUpdate("INSERT INTO test_statement VALUES (3)");
+		assertEquals(1,count);
+		count = stmt.executeUpdate("INSERT INTO test_statement VALUES (3)");
+		assertEquals(1,count);
+
+		count = stmt.executeUpdate("UPDATE test_statement SET i=4");
+		assertEquals(2,count);
+
+		count = stmt.executeUpdate("CREATE TEMP TABLE another_table (a int)");
+		assertEquals(0,count);
+	}
+
 }
