@@ -4,30 +4,28 @@ import java.text.MessageFormat;
 import java.util.ResourceBundle;
 import java.util.MissingResourceException;
 
+/**
+ * This class provides a wrapper around a gettext message catalog that
+ * can provide a localized version of error messages.  The caller provides
+ * a message String in the standard java.text.MessageFormat syntax and any
+ * arguments it may need.  The returned String is the localized version if
+ * available or the original if not.
+ */
+
 public class GT {
 
-	private static GT instance;
-
-	private final static GT getGT() {
-		if (instance == null) {
-			instance = new GT();
-		}
-		return instance;
-	}
+	private static GT _gt = new GT();
 
 	public final static String tr(String message) {
-		GT gt = getGT();
-		return gt.translate(message, null);
+		return _gt.translate(message, null);
 	}
 
 	public final static String tr(String message, Object arg) {
-		GT gt = getGT();
-		return gt.translate(message, new Object[]{arg});
+		return _gt.translate(message, new Object[]{arg});
 	}
 
 	public final static String tr(String message, Object args[]) {
-		GT gt = getGT();
-		return gt.translate(message, args);
+		return _gt.translate(message, args);
 	}
 
 
