@@ -178,7 +178,7 @@ public class Fastpath
 						break;
 
 					default:
-						throw new PSQLException("postgresql.fp.protocol", new Character((char)c));
+						throw new PSQLException("postgresql.fp.protocol", PSQLState.COMMUNICATION_ERROR, new Character((char)c));
 				}
 			}
 
@@ -279,12 +279,12 @@ public class Fastpath
 						break;
 
 					default:
-						throw new PSQLException("postgresql.fp.protocol", new Character((char)c));
+						throw new PSQLException("postgresql.fp.protocol", PSQLState.COMMUNICATION_ERROR, new Character((char)c));
 				}
 			}
 
 			if ( errorMessage != null )
-				throw new PSQLException("postgresql.fp.error", errorMessage.toString());
+				throw new PSQLException("postgresql.fp.error", PSQLState.COMMUNICATION_ERROR, errorMessage.toString());
 
 			return result;
 		}
@@ -422,7 +422,7 @@ public class Fastpath
 		// so, until we know we can do this (needs testing, on the TODO list)
 		// for now, we throw the exception and do no lookups.
 		if (id == null)
-			throw new PSQLException("postgresql.fp.unknown", name);
+			throw new PSQLException("postgresql.fp.unknown", PSQLState.UNEXPECTED_ERROR, name);
 
 		return id.intValue();
 	}

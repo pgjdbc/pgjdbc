@@ -373,7 +373,7 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 							case AUTH_REQ_SCM:
 								if (Driver.logDebug)
 									Driver.debug("postgresql: SCM");
-								throw new PSQLException("postgresql.con.scm");
+								throw new PSQLException("postgresql.con.scm", PSQLState.CONNECTION_REJECTED);
 
 
 							case AUTH_REQ_PASSWORD:

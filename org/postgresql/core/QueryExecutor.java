@@ -311,7 +311,7 @@ public class QueryExecutor
 		for ( int i = 0; i < m_binds.length ; i++ )
 		{
 			if ( m_binds[i] == null )
-				throw new PSQLException("postgresql.prep.param", PSQLState.PARAMETER_ERROR, new Integer(i + 1));
+				throw new PSQLException("postgresql.prep.param", PSQLState.INVALID_PARAMETER_VALUE, new Integer(i + 1));
 		}
 		try
 		{
@@ -352,7 +352,7 @@ public class QueryExecutor
 		for ( int i = 0; i < m_binds.length ; i++ )
 		{
 			if ( m_binds[i] == null )
-				throw new PSQLException("postgresql.prep.param", PSQLState.PARAMETER_ERROR, new Integer(i + 1));
+				throw new PSQLException("postgresql.prep.param", PSQLState.INVALID_PARAMETER_VALUE, new Integer(i + 1));
 		}
 		try
 		{

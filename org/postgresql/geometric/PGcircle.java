@@ -16,6 +16,8 @@ package org.postgresql.geometric;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+
 import java.io.Serializable;
 import java.sql.SQLException;
 
@@ -78,7 +80,7 @@ public class PGcircle extends PGobject implements Serializable, Cloneable
 	{
 		PGtokenizer t = new PGtokenizer(PGtokenizer.removeAngle(s), ',');
 		if (t.getSize() != 2)
-			throw new PSQLException("postgresql.geo.circle", s);
+			throw new PSQLException("postgresql.geo.circle", PSQLState.DATA_TYPE_MISMATCH, s);
 
 		try
 		{
@@ -87,7 +89,7 @@ public class PGcircle extends PGobject implements Serializable, Cloneable
 		}
 		catch (NumberFormatException e)
 		{
-			throw new PSQLException("postgresql.geo.circle", e);
+			throw new PSQLException("postgresql.geo.circle", PSQLState.DATA_TYPE_MISMATCH, e);
 		}
 	}
 

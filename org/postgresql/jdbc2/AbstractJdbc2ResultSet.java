@@ -261,7 +261,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 			return null;
 
 		if (i < 1 || i > fields.length)
-			throw new PSQLException("postgresql.res.colrange");
+			throw new PSQLException("postgresql.res.colrange", PSQLState.INVALID_PARAMETER_VALUE);
 		return (java.sql.Array) new org.postgresql.jdbc2.Array( connection, i, fields[i - 1], this );
 	}
 

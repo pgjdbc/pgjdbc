@@ -15,6 +15,8 @@ package org.postgresql.geometric;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+
 import java.awt.Point;
 import java.io.Serializable;
 import java.sql.SQLException;
@@ -80,7 +82,7 @@ public class PGpoint extends PGobject implements Serializable, Cloneable
 		}
 		catch (NumberFormatException e)
 		{
-			throw new PSQLException("postgresql.geo.point", e.toString());
+			throw new PSQLException("postgresql.geo.point", PSQLState.DATA_TYPE_MISMATCH, e.toString());
 		}
 	}
 

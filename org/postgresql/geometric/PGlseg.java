@@ -12,11 +12,13 @@
  */
 package org.postgresql.geometric;
 
-import java.io.Serializable;
-import java.sql.SQLException;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+
+import java.io.Serializable;
+import java.sql.SQLException;
 
 public class PGlseg extends PGobject implements Serializable, Cloneable
 {
@@ -73,7 +75,7 @@ public class PGlseg extends PGobject implements Serializable, Cloneable
 	{
 		PGtokenizer t = new PGtokenizer(PGtokenizer.removeBox(s), ',');
 		if (t.getSize() != 2)
-			throw new PSQLException("postgresql.geo.lseg");
+			throw new PSQLException("postgresql.geo.lseg", PSQLState.DATA_TYPE_MISMATCH);
 
 		point[0] = new PGpoint(t.getToken(0));
 		point[1] = new PGpoint(t.getToken(1));

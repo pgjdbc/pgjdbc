@@ -12,11 +12,13 @@
  */
 package org.postgresql.geometric;
 
-import java.io.Serializable;
-import java.sql.SQLException;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+
+import java.io.Serializable;
+import java.sql.SQLException;
 
 /*
  * Currently line is not yet implemented in the backend, but this class
@@ -77,7 +79,7 @@ public class PGline extends PGobject implements Serializable, Cloneable
 	{
 		PGtokenizer t = new PGtokenizer(PGtokenizer.removeBox(s), ',');
 		if (t.getSize() != 2)
-			throw new PSQLException("postgresql.geo.line", s);
+			throw new PSQLException("postgresql.geo.line", PSQLState.DATA_TYPE_MISMATCH, s);
 
 		point[0] = new PGpoint(t.getToken(0));
 		point[1] = new PGpoint(t.getToken(1));
