@@ -1036,26 +1036,14 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 				sbuf.setLength(0);
 				sbuf.ensureCapacity(x.length() + (int)(x.length() / 10));
 				sbuf.append('\'');
-				escapeString(x, sbuf, true);
+				escapeString(x, sbuf);
 				sbuf.append('\'');
 				bind(parameterIndex, sbuf.toString(), type);
 			}
 		}
 	}
 
-    private String escapeString(String p_input) {
-        // use the shared buffer object. Should never clash but this makes
-        // us thread safe!
-        synchronized (sbuf)
-        {
-            sbuf.setLength(0);
-            sbuf.ensureCapacity(p_input.length());
-            escapeString(p_input, sbuf, false);
-            return sbuf.toString();
-        }
-    }
-
-    private void escapeString(String p_input, StringBuffer p_output, boolean p_allowStatementTerminator) {
+    private void escapeString(String p_input, StringBuffer p_output) {
         for (int i = 0 ; i < p_input.length() ; ++i)
         {
             char c = p_input.charAt(i);
@@ -1068,9 +1056,6 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 					break;
 			    case '\0':
 					throw new IllegalArgumentException("\\0 not allowed");
-			    case ';':
-					if (!p_allowStatementTerminator)
-						throw new IllegalArgumentException("semicolon not allowed");
 				default:
 					p_output.append(c);
 			}
@@ -1493,8 +1478,14 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 			case Types.INTEGER:
 				if (x instanceof Boolean)
 					bind(parameterIndex,((Boolean)x).booleanValue() ? "1" :"0", PG_BOOLEAN);
+				else if (x instanceof Integer || x instanceof Long || 
+					x instanceof Double || x instanceof Short ||
+					x instanceof Number || x instanceof Float )
+					bind(parameterIndex, x.toString(), PG_INTEGER);
 				else
-					bind(parameterIndex, escapeString(x.toString()), PG_INTEGER);
+					//ensure the value is a valid numeric value to avoid
+					//sql injection attacks
+					bind(parameterIndex, new BigDecimal(x.toString()).toString(), PG_INTEGER);
 				break;
 			case Types.TINYINT:
 			case Types.SMALLINT:
@@ -1506,8 +1497,14 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 			case Types.NUMERIC:
 				if (x instanceof Boolean)
 					bind(parameterIndex, ((Boolean)x).booleanValue() ? "1" : "0", PG_BOOLEAN);
+				else if (x instanceof Integer || x instanceof Long || 
+					x instanceof Double || x instanceof Short ||
+					x instanceof Number || x instanceof Float )
+					bind(parameterIndex, x.toString(), PG_NUMERIC);
 				else
-					bind(parameterIndex, escapeString(x.toString()), PG_NUMERIC);
+					//ensure the value is a valid numeric value to avoid
+					//sql injection attacks
+					bind(parameterIndex, new BigDecimal(x.toString()).toString(), PG_NUMERIC);
 				break;
 			case Types.CHAR:
 			case Types.VARCHAR:
