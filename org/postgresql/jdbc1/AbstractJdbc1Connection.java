@@ -475,6 +475,10 @@ public abstract class AbstractJdbc1Connection implements org.postgresql.PGConnec
 	 */
 	public java.sql.ResultSet ExecSQL(String sql, java.sql.Statement stat) throws SQLException
 	{
+		if (isClosed())
+		{
+			throw new PSQLException("postgresql.con.closed");
+		}
 		return new QueryExecutor(new String[] {sql}, EMPTY_OBJECT_ARRAY, stat, pg_stream, (java.sql.Connection)this).execute();
 	}
 	private static final Object[] EMPTY_OBJECT_ARRAY = new Object[0];
@@ -494,6 +498,10 @@ public abstract class AbstractJdbc1Connection implements org.postgresql.PGConnec
 	 */
 	public java.sql.ResultSet ExecSQL(String[] p_sqlFragments, Object[] p_binds, java.sql.Statement stat) throws SQLException
 	{
+		if (isClosed())
+		{
+			throw new PSQLException("postgresql.con.closed");
+		}
 		return new QueryExecutor(p_sqlFragments, p_binds, stat, pg_stream, (java.sql.Connection)this).execute();
 	}
 
