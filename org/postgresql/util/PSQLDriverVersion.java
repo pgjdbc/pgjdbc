@@ -12,7 +12,7 @@ import org.postgresql.Driver;
  */
 public class PSQLDriverVersion {
 
-	public static int buildNumber = 306;
+	public static int buildNumber = 307;
 
 	public static void main(String args[]) {
 		Driver driver = new Driver();
