@@ -8,7 +8,7 @@
  * Copyright (c) 2003, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.56 2004/10/28 01:55:12 oliver Exp $
+ *	  $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.57 2004/10/28 20:04:46 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -671,6 +671,9 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 		{
 			throw new PSQLException(GT.tr("Currently positioned after the end of the ResultSet.  You cannot call deleteRow() here."));
 		}
+		if (rows.size() == 0) {
+			throw new PSQLException(GT.tr("There are no rows in this ResultSet."));
+		}
 
 
 		int numKeys = primaryKeys.size();
@@ -717,6 +720,10 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 		if (!onInsertRow)
 		{
 			throw new PSQLException(GT.tr("Not on the insert row."));
+		}
+		else if (updateValues.size() == 0)
+		{
+			throw new PSQLException(GT.tr("You must specify at least one column value to insert a row."));
 		}
 		else
 		{
@@ -1096,7 +1103,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 		if (onInsertRow)
 			throw new PSQLException(GT.tr("Can't refresh the insert row."));
 
-		if (isBeforeFirst() || isAfterLast())
+		if (isBeforeFirst() || isAfterLast() || rows.size() == 0)
 			return;
 
 		StringBuffer selectSQL = new StringBuffer( "select ");
@@ -1162,7 +1169,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 	throws SQLException
 	{
 		checkUpdateable();
-		if (isBeforeFirst() || isAfterLast())
+		if (isBeforeFirst() || isAfterLast() || rows.size() == 0)
 		{
 			throw new PSQLException(GT.tr("Cannot update the ResultSet because it is either before the start or after the end of the results."));
 		}
@@ -2569,7 +2576,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 	protected void updateValue(int columnIndex, Object value) throws SQLException {
 		checkUpdateable();
 
-		if (!onInsertRow && (isBeforeFirst() || isAfterLast()))
+		if (!onInsertRow && (isBeforeFirst() || isAfterLast() || rows.size() == 0))
 		{
 			throw new PSQLException(GT.tr("Cannot update the ResultSet because it is either before the start or after the end of the results."));
 		}
