@@ -18,6 +18,8 @@ package org.postgresql.jdbc2;
 import java.io.CharArrayReader;
 import java.io.InputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.util.Enumeration;
@@ -878,21 +880,38 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 											  )
 	throws SQLException
 	{
-		byte[] theData = null;
+		if (x == null)
+		{
+			updateNull(columnIndex);
+			return;
+		}
+
 		try
 		{
-			x.read(theData, 0, length);
+			InputStreamReader reader = new InputStreamReader(x, "ASCII");
+			char data[] = new char[length];
+			int numRead = 0;
+			while (true)
+			{
+				int n = reader.read(data, numRead, length - numRead);
+				if (n == -1)
+					break;
+
+				numRead += n;
+
+				if (numRead == length)
+					break;
+			}
+			updateString(columnIndex, new String(data, 0, numRead));
 		}
-		catch (NullPointerException ex )
+		catch (UnsupportedEncodingException uee)
 		{
-			throw new PSQLException("postgresql.updateable.inputstream");
+			throw new PSQLException("postgresql.unusual", PSQLState.UNEXPECTED_ERROR, uee);
 		}
 		catch (IOException ie)
 		{
 			throw new PSQLException("postgresql.updateable.ioerror", null, ie);
 		}
-
-		updateValue(columnIndex, theData);
 	}
 
 
@@ -910,21 +929,45 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 											   )
 	throws SQLException
 	{
-		byte[] theData = null;
+		if (x == null)
+		{
+			updateNull(columnIndex);
+			return;
+		}
+
+		byte data[] = new byte[length];
+		int numRead = 0;
 		try
 		{
-			x.read(theData, 0, length);
+			while (true)
+			{
+				int n = x.read(data, numRead, length - numRead);
+				if (n == -1)
+					break;
 
-		}
-		catch ( NullPointerException ex )
-		{
-			throw new PSQLException("postgresql.updateable.inputstream");
+				numRead += n;
+
+				if (numRead == length)
+					break;
+			}
 		}
 		catch (IOException ie)
 		{
 			throw new PSQLException("postgresql.updateable.ioerror", null, ie);
 		}
-		updateValue(columnIndex, theData);
+
+		if (numRead == length)
+		{
+			updateBytes(columnIndex, data);
+		}
+		else
+		{
+			// the stream contained less data than they said
+			// perhaps this is an error?
+			byte data2[] = new byte[numRead];
+			System.arraycopy(data, 0, data2, 0, numRead);
+			updateBytes(columnIndex, data2);
+		}
 	}
 
 
@@ -957,21 +1000,33 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 												  )
 	throws SQLException
 	{
-		char[] theData = null;
+		if (x == null)
+		{
+			updateNull(columnIndex);
+			return;
+		}
+		
 		try
 		{
-			x.read(theData, 0, length);
+			char data[] = new char[length];
+			int numRead = 0;
+			while(true)
+			{
+				int n = x.read(data, numRead, length - numRead);
+				if (n == -1)
+					break;
 
-		}
-		catch (NullPointerException ex)
-		{
-			throw new PSQLException("postgresql.updateable.inputstream");
+				numRead += n;
+
+				if (numRead == length)
+					break;
+			}
+			updateString(columnIndex, new String(data, 0, numRead));
 		}
 		catch (IOException ie)
 		{
 			throw new PSQLException("postgresql.updateable.ioerror", null, ie);
 		}
-		updateValue(columnIndex, theData);
 	}
 
 
