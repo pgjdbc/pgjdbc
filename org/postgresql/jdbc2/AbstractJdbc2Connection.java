@@ -3,7 +3,7 @@
  * Copyright (c) 2004, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.20 2004/11/07 22:16:03 jurka Exp $
+ *	  $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.21 2004/11/08 09:49:35 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -98,9 +98,9 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 			enableDriverManagerLogging();
 		}
 
-		prepareThreshold = 0;
+		prepareThreshold = 5;
 		try {
-			prepareThreshold = Integer.parseInt(info.getProperty("prepareThreshold", "0"));
+			prepareThreshold = Integer.parseInt(info.getProperty("prepareThreshold", "5"));
 			if (prepareThreshold < 0)
 				prepareThreshold = 0;
 		} catch (Exception e) {}

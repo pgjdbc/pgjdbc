@@ -3,7 +3,7 @@
  * Copyright (c) 2004, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL$
+ *	  $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.3 2004/11/07 22:15:45 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -266,7 +266,7 @@ public abstract class BaseDataSource implements Referenceable
 	private String getUrl()
 	{
 		return "jdbc:postgresql://" + serverName + (portNumber == 0 ? "" : ":" + portNumber) + "/" + databaseName + 
-			(prepareThreshold == 0 ? "" : "?prepareThreshold=" + prepareThreshold);
+			(prepareThreshold == 5 ? "" : "?prepareThreshold=" + prepareThreshold);
 	}
 
     /**
@@ -296,7 +296,7 @@ public abstract class BaseDataSource implements Referenceable
 		{
 			ref.add(new StringRefAddr("password", password));
 		}
-		if (prepareThreshold != 0)
+		if (prepareThreshold != 5)
 			ref.add(new StringRefAddr("prepareThreshold", Integer.toString(prepareThreshold)));
 		return ref;
 	}
