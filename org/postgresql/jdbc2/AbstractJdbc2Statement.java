@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.65 2005/01/24 21:34:43 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.66 2005/01/25 06:21:21 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -71,7 +71,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     private static final short ESC_TIMEDATE = 3;
     private static final short ESC_FUNCTION = 4;
     private static final short ESC_OUTERJOIN = 5;
-
+    private static final short ESC_ESCAPECHAR = 7;
+    
     // Some performance caches
     private StringBuffer sbuf = new StringBuffer(35);
     private GregorianCalendar calendar = null;
@@ -785,6 +786,11 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                             i += (nextnext == 'j' || nextnext == 'J') ? 2 : 1;
                             break;
                         }
+                        else if ( next == 'e' || next == 'E' )
+                        { // we assume that escape is the only escape sequence beginning with e
+                            state = ESC_ESCAPECHAR;
+                            break;
+                        }
                     }
                 }
                 newsql.append(c);
@@ -832,6 +838,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                 break;
             case ESC_TIMEDATE:       
             case ESC_OUTERJOIN:
+            case ESC_ESCAPECHAR:
                 if (c == '}')
                     state = IN_SQLCODE;    // end of escape code.
                 else

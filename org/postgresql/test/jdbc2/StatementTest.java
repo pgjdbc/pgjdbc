@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.13 2005/01/11 08:25:48 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.14 2005/01/18 21:33:18 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -34,6 +34,11 @@ public class StatementTest extends TestCase
                                  "i int");
         TestUtil.createTempTable(con, "escapetest",
                                  "ts timestamp, d date, t time, \")\" varchar(5), \"\"\"){a}'\" text ");
+        TestUtil.createTempTable(con, "comparisontest","str1 varchar(5), str2 varchar(15)");
+        Statement stmt = con.createStatement();
+        stmt.executeUpdate(TestUtil.insertSQL("comparisontest","str1,str2","'_abcd','_found'"));
+        stmt.executeUpdate(TestUtil.insertSQL("comparisontest","str1,str2","'%abcd','%found'"));
+        stmt.close();
     }
 
     protected void tearDown() throws Exception
@@ -41,6 +46,7 @@ public class StatementTest extends TestCase
         super.tearDown();
         TestUtil.dropTable( con, "test_statement" );
         TestUtil.dropTable( con, "escapetest" );
+        TestUtil.dropTable(con,"comparisontest");
         con.close();
     }
 
@@ -144,8 +150,15 @@ public class StatementTest extends TestCase
         count = stmt.executeUpdate( "create temp table b (i int)" );
         assertEquals(0, count);
 
-        rs = stmt.executeQuery( "select * from test_statement as a {oj left outer join b on (a.i=b.i)} ");
+        rs = stmt.executeQuery( "select * from {oj test_statement a left outer join b on (a.i=b.i)} ");
         assertTrue(!rs.next());
+        // test escape escape character
+        rs = stmt.executeQuery("select str2 from comparisontest where str1 like '|_abcd' {escape '|'} ");
+        assertTrue(rs.next());
+        assertEquals("_found",rs.getString(1));
+        rs = stmt.executeQuery("select str2 from comparisontest where str1 like '|%abcd' {escape '|'} ");
+        assertTrue(rs.next());
+        assertEquals("%found",rs.getString(1));
     }
 
 
