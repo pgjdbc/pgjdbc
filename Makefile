@@ -23,7 +23,7 @@ all:
 	$(ANT) -buildfile $(top_srcdir)/build.xml $(properties)
 
 install: installdirs
-	$(ANT) -Dinstall.directory=$(DESTDIR)$(datadir)/java \
+	$(ANT) -Dinstall.directory=$(javadir) \
 		-buildfile $(top_srcdir)/build.xml \
 		install $(properties)
 
