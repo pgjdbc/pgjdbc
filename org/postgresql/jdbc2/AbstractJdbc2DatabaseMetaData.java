@@ -141,4 +141,10 @@ public abstract class AbstractJdbc2DatabaseMetaData extends org.postgresql.jdbc1
 	{
 		return false;
 	}
+	
+	protected java.sql.Statement createMetaDataStatement() throws SQLException
+	{
+		return ((AbstractJdbc2Connection)connection).createStatement(java.sql.ResultSet.TYPE_SCROLL_INSENSITIVE, java.sql.ResultSet.CONCUR_READ_ONLY);
+	}
+
 }

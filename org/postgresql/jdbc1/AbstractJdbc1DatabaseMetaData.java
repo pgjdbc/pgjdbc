@@ -1759,7 +1759,7 @@ public abstract class AbstractJdbc1DatabaseMetaData
 				}
 				sql += " ORDER BY PROCEDURE_NAME ";
 		}
-		return connection.createStatement().executeQuery(sql);
+		return createMetaDataStatement().executeQuery(sql);
 	}
 
 	/*
@@ -1928,7 +1928,12 @@ public abstract class AbstractJdbc1DatabaseMetaData
 		}
 		rs.close();
 
-		return (ResultSet) ((BaseStatement)connection.createStatement()).createDriverResultSet(f, v);
+		return (ResultSet)((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, v);
+	}
+
+	protected Statement createMetaDataStatement() throws SQLException
+	{
+		return connection.createStatement();
 	}
 
 	/*
@@ -2083,7 +2088,7 @@ public abstract class AbstractJdbc1DatabaseMetaData
 		sql += ") ";
 		sql += orderby;
 
-		return connection.createStatement().executeQuery(sql);
+		return createMetaDataStatement().executeQuery(sql);
 	}
 
 	private static final Hashtable tableTypeClauses;
@@ -2161,7 +2166,7 @@ public abstract class AbstractJdbc1DatabaseMetaData
 		} else {
 			sql = "SELECT ''::text AS TABLE_SCHEM ORDER BY TABLE_SCHEM";
 		}
-		return connection.createStatement().executeQuery(sql);
+		return createMetaDataStatement().executeQuery(sql);
 	}
 
 	/*
@@ -2184,7 +2189,7 @@ public abstract class AbstractJdbc1DatabaseMetaData
 		} else {
 			sql = "SELECT datname AS TABLE_CAT FROM pg_database ORDER BY TABLE_CAT";
 		}
-		return connection.createStatement().executeQuery(sql);
+		return createMetaDataStatement().executeQuery(sql);
 	}
 
 	/*
@@ -2220,7 +2225,7 @@ public abstract class AbstractJdbc1DatabaseMetaData
 			v.addElement(tuple);
 		}
 
-		return (ResultSet) ((BaseStatement)connection.createStatement()).createDriverResultSet(f, v);
+		return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, v);
 	}
 
 	/*
@@ -2394,7 +2399,7 @@ public abstract class AbstractJdbc1DatabaseMetaData
 		}
 		rs.close();
 
-		return (ResultSet) ((BaseStatement)connection.createStatement()).createDriverResultSet(f, v);
+		return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, v);
 	}
 
 	/*
@@ -2507,7 +2512,7 @@ public abstract class AbstractJdbc1DatabaseMetaData
 		}
 		rs.close();
 
-		return (ResultSet) ((BaseStatement)connection.createStatement()).createDriverResultSet(f, v);
+		return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, v);
 	}
 
 	/*
@@ -2609,7 +2614,7 @@ public abstract class AbstractJdbc1DatabaseMetaData
 		}
 		rs.close();
 
-		return (ResultSet) ((BaseStatement)connection.createStatement()).createDriverResultSet(f, v);
+		return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, v);
 	}
 
 	private static void sortStringArray(String s[]) {
@@ -2807,7 +2812,7 @@ public abstract class AbstractJdbc1DatabaseMetaData
 			v.addElement(tuple);
 		}
 
-		return (ResultSet) ((BaseStatement)connection.createStatement()).createDriverResultSet(f, v);
+		return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, v);
 	}
 
 	/*
@@ -2877,7 +2882,7 @@ public abstract class AbstractJdbc1DatabaseMetaData
 		/* Perhaps we should check that the given
 		 * catalog.schema.table actually exists. -KJ
 		 */
-		return (ResultSet) ((BaseStatement)connection.createStatement()).createDriverResultSet(f, v);
+		return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, v);
 	}
 
 	/*
@@ -2929,7 +2934,7 @@ public abstract class AbstractJdbc1DatabaseMetaData
                         }
 			sql += where+
 			" ORDER BY table_name, pk_name, key_seq";
-		return connection.createStatement().executeQuery(sql);
+		return createMetaDataStatement().executeQuery(sql);
 	}
 
 	/**
@@ -3028,7 +3033,7 @@ public abstract class AbstractJdbc1DatabaseMetaData
 				sql += " ORDER BY pkn.nspname,pkc.relname,pos.n";
 			}
 
-			return connection.createStatement().executeQuery(sql);
+			return createMetaDataStatement().executeQuery(sql);
 		} else if (connection.haveMinimumServerVersion("7.3")) {
 			select = "SELECT DISTINCT n1.nspname as pnspname,n2.nspname as fnspname, ";
 			from = " FROM pg_catalog.pg_namespace n1 "+
@@ -3251,7 +3256,7 @@ public abstract class AbstractJdbc1DatabaseMetaData
 			tuples.addElement(tuple);
 		}
 
-		return (ResultSet) ((BaseStatement)connection.createStatement()).createDriverResultSet(f, tuples);
+		return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, tuples);
 	}
 
 	/*
@@ -3536,7 +3541,7 @@ public abstract class AbstractJdbc1DatabaseMetaData
 		}
 		rs.close();
 
-		return (ResultSet) ((BaseStatement)connection.createStatement()).createDriverResultSet(f, v);
+		return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, v);
 	}
 
 	/*
@@ -3631,7 +3636,7 @@ public abstract class AbstractJdbc1DatabaseMetaData
 			sql += " AND i.indisunique ";
 		}
 		sql += " ORDER BY NON_UNIQUE, TYPE, INDEX_NAME, ORDINAL_POSITION ";
-		return connection.createStatement().executeQuery(sql);
+		return createMetaDataStatement().executeQuery(sql);
 	}
 
 	/**
