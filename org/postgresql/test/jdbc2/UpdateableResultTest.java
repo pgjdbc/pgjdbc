@@ -3,7 +3,7 @@
 * Copyright (c) 2001-2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/UpdateableResultTest.java,v 1.14 2004/11/09 08:55:16 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/UpdateableResultTest.java,v 1.15 2004/11/19 03:18:52 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -32,7 +32,7 @@ public class UpdateableResultTest extends TestCase
     protected void setUp() throws Exception
     {
         con = TestUtil.openDB();
-        TestUtil.createTable(con, "updateable", "id int primary key, name text, notselected text");
+        TestUtil.createTable(con, "updateable", "id int primary key, name text, notselected text", true);
         TestUtil.createTable(con, "second", "id1 int primary key, name1 text");
         TestUtil.createTable(con, "stream", "id int primary key, asi text, chr text, bin bytea");
 

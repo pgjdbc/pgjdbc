@@ -3,7 +3,7 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ResultSetMetaDataTest.java,v 1.7 2004/11/07 22:16:56 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ResultSetMetaDataTest.java,v 1.8 2004/11/09 08:54:52 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -31,7 +31,7 @@ public class ResultSetMetaDataTest extends TestCase
     protected void setUp() throws Exception
     {
         conn = TestUtil.openDB();
-        TestUtil.createTable(conn, "rsmd1", "a int primary key, b text, c decimal(10,2)");
+        TestUtil.createTable(conn, "rsmd1", "a int primary key, b text, c decimal(10,2)", true);
 
         stmt = conn.createStatement();
         rs = stmt.executeQuery("SELECT a,b,c,a+c as total,oid,b as d FROM rsmd1");

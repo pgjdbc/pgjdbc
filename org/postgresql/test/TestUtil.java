@@ -3,7 +3,7 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/TestUtil.java,v 1.14 2004/11/07 22:16:39 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/TestUtil.java,v 1.15 2004/11/09 08:53:30 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -112,6 +112,18 @@ public class TestUtil
                                    String table,
                                    String columns) throws SQLException
     {
+        // by default we don't request oids.
+        createTable(con,table,columns,false);
+    }
+
+    /*
+     * Helper - creates a test table for use by a test
+     */
+    public static void createTable(Connection con,
+                                   String table,
+                                   String columns,
+                                   boolean withOids) throws SQLException
+    {
         Statement st = con.createStatement();
         try
         {
@@ -119,7 +131,14 @@ public class TestUtil
             dropTable(con, table);
 
             // Now create the table
-            st.executeUpdate("create table " + table + " (" + columns + ")");
+            String sql = "CREATE TABLE " + table + " (" + columns + ") ";
+
+            // Starting with 8.0 oids may be turned off by default.
+            // Some tests need them, so they flag that here.
+            if (withOids && haveMinimumServerVersion(con,"8.0")) {
+                sql += " WITH OIDS";
+            }
+            st.executeUpdate(sql);
         }
         finally
         {
