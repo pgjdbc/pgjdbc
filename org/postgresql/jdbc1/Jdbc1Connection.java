@@ -8,7 +8,7 @@ import org.postgresql.util.PSQLException;
 
 /* $Header$
  * This class implements the java.sql.Connection interface for JDBC1.
- * However most of the implementation is really done in 
+ * However most of the implementation is really done in
  * org.postgresql.jdbc1.AbstractJdbc1Connection
  */
 public class Jdbc1Connection extends org.postgresql.jdbc1.AbstractJdbc1Connection implements java.sql.Connection

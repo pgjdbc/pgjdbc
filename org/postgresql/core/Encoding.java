@@ -42,14 +42,14 @@ public class Encoding
 		encodings.put("EUC_KR", new String[] { "EUC_KR" });
 		encodings.put("JOHAB", new String[] { "Johab" });
 		encodings.put("EUC_TW", new String[] { "EUC_TW" });
-		encodings.put("SJIS", new String[] { "MS932","SJIS" });
-		encodings.put("BIG5", new String[] { "Big5","MS950","Cp950" });
-		encodings.put("GBK", new String[] { "GBK","MS936" });
-		encodings.put("UHC", new String[] { "MS949","Cp949","Cp949C" });
+		encodings.put("SJIS", new String[] { "MS932", "SJIS" });
+		encodings.put("BIG5", new String[] { "Big5", "MS950", "Cp950" });
+		encodings.put("GBK", new String[] { "GBK", "MS936" });
+		encodings.put("UHC", new String[] { "MS949", "Cp949", "Cp949C" });
 		encodings.put("TCVN", new String[] { "Cp1258" });
 		encodings.put("WIN1256", new String[] { "Cp1256" });
 		encodings.put("WIN1250", new String[] { "Cp1250" });
-		encodings.put("WIN874", new String[] { "MS874","Cp874" });
+		encodings.put("WIN874", new String[] { "MS874", "Cp874" });
 		encodings.put("WIN", new String[] { "Cp1251" });
 		encodings.put("ALT", new String[] { "Cp866" });
 		// We prefer KOI8-U, since it is a superset of KOI8-R.

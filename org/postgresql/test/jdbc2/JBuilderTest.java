@@ -26,7 +26,7 @@ public class JBuilderTest extends TestCase
 		Connection con = TestUtil.openDB();
 
 		TestUtil.createTable( con, "test_c",
-								"source text,cost money,imageid int4" );
+							  "source text,cost money,imageid int4" );
 
 		TestUtil.closeDB(con);
 	}

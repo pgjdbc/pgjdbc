@@ -7,7 +7,7 @@ import org.postgresql.Field;
 
 /* $Header$
  * This class implements the java.sql.ResultSet interface for JDBC1.
- * However most of the implementation is really done in 
+ * However most of the implementation is really done in
  * org.postgresql.jdbc1.AbstractJdbc1ResultSet
  */
 public class Jdbc1ResultSet extends org.postgresql.jdbc1.AbstractJdbc1ResultSet implements java.sql.ResultSet

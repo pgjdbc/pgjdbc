@@ -22,15 +22,16 @@ public class StartupPacket
 	private String user;
 	private String database;
 
-	public StartupPacket(int protocolMajor, int protocolMinor, String user, String database) {
+	public StartupPacket(int protocolMajor, int protocolMinor, String user, String database)
+	{
 		this.protocolMajor = protocolMajor;
 		this.protocolMinor = protocolMinor;
 		this.user = user;
 		this.database = database;
 	}
 
-    public void writeTo(PG_Stream stream) throws IOException
-    {
+	public void writeTo(PG_Stream stream) throws IOException
+	{
 		stream.SendInteger(4 + 4 + SM_DATABASE + SM_USER + SM_OPTIONS + SM_UNUSED + SM_TTY, 4);
 		stream.SendInteger(protocolMajor, 2);
 		stream.SendInteger(protocolMinor, 2);

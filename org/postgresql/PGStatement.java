@@ -5,21 +5,21 @@ import java.sql.*;
 
 /* $Header$
  * This interface defines PostgreSQL extentions to the java.sql.Statement interface.
- * Any java.sql.Statement object returned by the driver will also implement this 
+ * Any java.sql.Statement object returned by the driver will also implement this
  * interface
  */
 public interface PGStatement
 {
 
 	/*
-	 * Returns the Last inserted/updated oid. 
+	 * Returns the Last inserted/updated oid.
 	 * @return OID of last insert
-         * @since 7.3
+			* @since 7.3
 	 */
-        public long getLastOID() throws SQLException;
+	public long getLastOID() throws SQLException;
 
-        public void setUseServerPrepare(boolean flag);
+	public void setUseServerPrepare(boolean flag);
 
-        public boolean isUseServerPrepare();
+	public boolean isUseServerPrepare();
 
 }

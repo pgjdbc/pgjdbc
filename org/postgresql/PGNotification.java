@@ -6,15 +6,15 @@ package org.postgresql;
  */
 public interface PGNotification
 {
-    /* 
-     * Returns name of this notification
-     */
-    public String getName();
+	/*
+	 * Returns name of this notification
+	 */
+	public String getName();
 
-    /*
-     * Returns the process id of the backend process making this notification
-     */
-    public int getPID();
+	/*
+	 * Returns the process id of the backend process making this notification
+	 */
+	public int getPID();
 
 }
 

@@ -52,28 +52,29 @@ public class MiscTest extends TestCase
 		}
 	}
 
-  public void testError()
-  {
-    Connection con = TestUtil.openDB();
+	public void testError()
+	{
+		Connection con = TestUtil.openDB();
 		try
 		{
 
-      // transaction mode
-      con.setAutoCommit(false);
-      Statement stmt = con.createStatement();
-      stmt.execute("select 1/0");
+			// transaction mode
+			con.setAutoCommit(false);
+			Statement stmt = con.createStatement();
+			stmt.execute("select 1/0");
 			fail( "Should not execute this, as a SQLException s/b thrown" );
-      con.commit();
+			con.commit();
 		}
 		catch ( Exception ex )
+		{}
+		try
 		{
+			con.commit();
+			con.close();
 		}
-    try
-    {
-      con.commit();
-      con.close();
-    }catch ( Exception ex) {}
-  }
+		catch ( Exception ex)
+		{}
+	}
 
 	public void xtestLocking()
 	{
@@ -90,7 +91,7 @@ public class MiscTest extends TestCase
 			con.setAutoCommit(false);
 			st.execute("lock table test_lock");
 			st2.executeUpdate( "insert into test_lock ( name ) values ('hello')" );
- 			con.commit();
+			con.commit();
 			TestUtil.dropTable(con, "test_lock");
 			con.close();
 		}

@@ -67,11 +67,11 @@ public class StockDispenserImpl extends stock._StockDispenserImplBase
 			{
 				stock[i].inUse = false;
 				System.out.println("Releasing slot " + i);
-				return;
+				return ;
 			}
 		}
 		System.out.println("Reserved object not a member of this dispenser");
-		return;
+		return ;
 	}
 
 	/*

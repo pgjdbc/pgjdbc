@@ -10,15 +10,17 @@ import junit.framework.TestSuite;
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  * @version $Revision$
  */
-public class OptionalTestSuite extends TestSuite {
-    /**
-     * Gets the test suite for the entire JDBC 2.0 Optional Package
-     * implementation.
-     */
-    public static TestSuite suite() {
-        TestSuite suite = new TestSuite();
-        suite.addTestSuite(SimpleDataSourceTest.class);
-        suite.addTestSuite(ConnectionPoolTest.class);
-        return suite;
-    }
+public class OptionalTestSuite extends TestSuite
+{
+	/**
+	 * Gets the test suite for the entire JDBC 2.0 Optional Package
+	 * implementation.
+	 */
+	public static TestSuite suite()
+	{
+		TestSuite suite = new TestSuite();
+		suite.addTestSuite(SimpleDataSourceTest.class);
+		suite.addTestSuite(ConnectionPoolTest.class);
+		return suite;
+	}
 }

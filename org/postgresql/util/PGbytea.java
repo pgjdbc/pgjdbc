@@ -19,7 +19,7 @@ public class PGbytea
 	{
 		if (s == null)
 			return null;
-                int slength = s.length;
+		int slength = s.length;
 		byte[] buf = new byte[slength];
 		int bufpos = 0;
 		int thebyte;
