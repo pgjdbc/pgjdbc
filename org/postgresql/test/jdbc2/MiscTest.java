@@ -52,6 +52,29 @@ public class MiscTest extends TestCase
 		}
 	}
 
+  public void testError()
+  {
+    Connection con = JDBC2Tests.openDB();
+		try
+		{
+
+      // transaction mode
+      con.setAutoCommit(false);
+      Statement stmt = con.createStatement();
+      stmt.execute("select 1/0");
+			fail( "Should not execute this, as a SQLException s/b thrown" );
+      con.commit();
+		}
+		catch ( Exception ex )
+		{
+		}
+    try
+    {
+      con.commit();
+      con.close();
+    }catch ( Exception ex) {}
+  }
+
 	public void xtestLocking()
 	{
 
