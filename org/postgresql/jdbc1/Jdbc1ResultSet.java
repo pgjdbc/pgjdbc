@@ -20,7 +20,7 @@ public class Jdbc1ResultSet extends org.postgresql.jdbc1.AbstractJdbc1ResultSet 
 
 	public java.sql.ResultSetMetaData getMetaData() throws SQLException
 	{
-		return new ResultSetMetaData(rows, fields);
+		return new Jdbc1ResultSetMetaData(rows, fields);
 	}
 
 }

@@ -78,6 +78,10 @@ public abstract class AbstractJdbc1Connection implements org.postgresql.PGConnec
          */
         private int isolationLevel = java.sql.Connection.TRANSACTION_READ_COMMITTED;
 
+
+        public abstract java.sql.Statement createStatement() throws SQLException;
+
+
         /*
          * This method actually opens the connection. It is called by Driver.
          *
@@ -360,6 +364,8 @@ public abstract class AbstractJdbc1Connection implements org.postgresql.PGConnec
         // This should make it easy to maintain the two specifications.
 
         public abstract java.sql.ResultSet getResultSet(Statement statement, org.postgresql.Field[] fields, Vector tuples, String status, int updateCount, long insertOID, boolean binaryCursor) throws SQLException;
+
+        public abstract java.sql.ResultSet getResultSet(Statement statement, org.postgresql.Field[] fields, Vector tuples, String status, int updateCount) throws SQLException;
 
         /*
          * This adds a warning to the warning chain.

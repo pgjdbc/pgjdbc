@@ -42,7 +42,7 @@ public class Jdbc2Connection extends org.postgresql.jdbc2.AbstractJdbc2Connectio
         public java.sql.DatabaseMetaData getMetaData() throws SQLException
         {
                 if (metadata == null)
-                        metadata = new org.postgresql.jdbc2.DatabaseMetaData(this);
+                        metadata = new org.postgresql.jdbc2.Jdbc2DatabaseMetaData(this);
                 return metadata;
         }
 

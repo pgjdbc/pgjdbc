@@ -32,7 +32,7 @@ public class Jdbc1Connection extends org.postgresql.jdbc1.AbstractJdbc1Connectio
 	public java.sql.DatabaseMetaData getMetaData() throws SQLException
 	{
 		if (metadata == null)
-			metadata = new org.postgresql.jdbc1.DatabaseMetaData(this);
+			metadata = new org.postgresql.jdbc1.Jdbc1DatabaseMetaData(this);
 		return metadata;
 	}
 
