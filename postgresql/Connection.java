@@ -693,6 +693,8 @@ public abstract class Connection
      */
     protected abstract java.sql.ResultSet getResultSet(postgresql.Connection conn, Field[] fields, Vector tuples, String status, int updateCount) throws SQLException;
     
+    public abstract void close() throws SQLException;
+	
     /**
      * Overides finalize(). If called, it closes the connection.
      *
