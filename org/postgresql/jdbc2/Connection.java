@@ -356,30 +356,6 @@ public class Connection extends org.postgresql.Connection implements java.sql.Co
   }
 
   /**
-   * A sub-space of this Connection's database may be selected by
-   * setting a catalog name.  If the driver does not support catalogs,
-   * it will silently ignore this request
-   *
-   * @exception SQLException if a database access error occurs
-   */
-  public void setCatalog(String catalog) throws SQLException
-  {
-    // No-op
-  }
-
-  /**
-   * Return the connections current catalog name, or null if no
-   * catalog name is set, or we dont support catalogs.
-   *
-   * @return the current catalog name or null
-   * @exception SQLException if a database access error occurs
-   */
-  public String getCatalog() throws SQLException
-  {
-    return null;
-  }
-
-  /**
    * You can call this method to try to change the transaction
    * isolation level using one of the TRANSACTION_* values.
    *

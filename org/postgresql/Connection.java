@@ -791,6 +791,36 @@ public abstract class Connection
     public abstract void close() throws SQLException;
 
     /**
+     * A sub-space of this Connection's database may be selected by
+     * setting a catalog name.  If the driver does not support catalogs,
+     * it will silently ignore this request
+     *
+     * @exception SQLException if a database access error occurs
+     */
+    public void setCatalog(String catalog) throws SQLException
+    {
+	if(catalog!=null && !catalog.equals(PG_DATABASE)) {
+	    close();
+	    Properties info=new Properties();
+	    info.setProperty("user", PG_USER);
+	    info.setProperty("password", PG_PASSWORD);
+	    openConnection(PG_HOST, PG_PORT, info, catalog, this_url, this_driver);
+	}
+    }
+
+    /**
+     * Return the connections current catalog name, or null if no
+     * catalog name is set, or we dont support catalogs.
+     *
+     * @return the current catalog name or null
+     * @exception SQLException if a database access error occurs
+     */
+    public String getCatalog() throws SQLException
+    {
+	return PG_DATABASE;
+    }
+
+    /**
      * Overides finalize(). If called, it closes the connection.
      *
      * This was done at the request of Rachel Greenham
