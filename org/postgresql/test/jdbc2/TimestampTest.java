@@ -129,4 +129,6 @@ public class TimestampTest extends TestCase {
 										  JDBC2Tests.fix(h,  2) + ":" +
 										  JDBC2Tests.fix(mn, 2) + ":" +
 										  JDBC2Tests.fix(se, 2) + "." +
+										  JDBC2Tests.fix(f,  9));
+	}
 }
