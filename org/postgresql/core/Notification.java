@@ -1,10 +1,20 @@
+/*-------------------------------------------------------------------------
+ *
+ * Notification.java
+ *     This is the implementation of the PGNotification interface
+ *
+ * Copyright (c) 2003, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $Header$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql.core;
 
+import org.postgresql.PGNotification;
 
-/* $Header$
- * This is the implementation of the PGNotification interface
- */
-public class Notification implements org.postgresql.PGNotification
+public class Notification implements PGNotification
 {
 	public Notification(String p_name, int p_pid)
 	{

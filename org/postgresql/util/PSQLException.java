@@ -1,11 +1,22 @@
+/*-------------------------------------------------------------------------
+ *
+ * PSQLException.java
+ *     This class extends SQLException, and provides our internationalisation
+ *     handling
+ *
+ * Copyright (c) 2003, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $Header$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql.util;
 
-import java.io.*;
-import java.sql.*;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintWriter;
+import java.sql.SQLException;
 
-/*
- * This class extends SQLException, and provides our internationalisation handling
- */
 public class PSQLException extends SQLException
 {
 	private String message;

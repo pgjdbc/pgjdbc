@@ -1,10 +1,20 @@
+/*-------------------------------------------------------------------------
+ *
+ * MD5Digest.java
+ *     MD5-based utility function to obfuscate passwords before network 
+ *     transmission
+ *
+ * Copyright (c) 2003, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $Header$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql.util;
 
 /*
- * MD5-based utility function to obfuscate passwords before network transmission
- *
  * @author Jeremy Wohl
- * $Id$
  */
 
 import java.security.*;

@@ -1,11 +1,21 @@
+/*-------------------------------------------------------------------------
+ *
+ * MessageTranslator.java
+ *     A singleton class to translate JDBC driver messages in SQLException's.
+ *
+ * Copyright (c) 2003, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $Header$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql.util;
 
-import java.util.*;
-import java.text.*;
+import java.text.MessageFormat;
+import java.util.MissingResourceException;
+import java.util.ResourceBundle;
 
-/*
- * A singleton class to translate JDBC driver messages in SQLException's.
- */
 public class MessageTranslator
 {
 

@@ -1,6 +1,5 @@
 package org.postgresql.core;
 
-import org.postgresql.PG_Stream;
 import java.io.IOException;
 
 /**
@@ -30,7 +29,7 @@ public class StartupPacket
 		this.database = database;
 	}
 
-	public void writeTo(PG_Stream stream) throws IOException
+	public void writeTo(PGStream stream) throws IOException
 	{
 		stream.SendInteger(4 + 4 + SM_DATABASE + SM_USER + SM_OPTIONS + SM_UNUSED + SM_TTY, 4);
 		stream.SendInteger(protocolMajor, 2);

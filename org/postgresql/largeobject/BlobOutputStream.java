@@ -1,12 +1,21 @@
+/*-------------------------------------------------------------------------
+ *
+ * BlobOutputStream.java
+ *     This implements a basic output stream that writes to a LargeObject
+ *
+ * Copyright (c) 2003, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $Header$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql.largeobject;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.SQLException;
 
-/*
- * This implements a basic output stream that writes to a LargeObject
- */
 public class BlobOutputStream extends OutputStream
 {
 	/*

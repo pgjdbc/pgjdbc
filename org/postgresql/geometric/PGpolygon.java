@@ -1,12 +1,23 @@
+/*-------------------------------------------------------------------------
+ *
+ * PGline.java
+ *     This implements the polygon datatype within PostgreSQL.
+ *
+ * Copyright (c) 2003, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $Header$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql.geometric;
 
-import java.io.*;
-import java.sql.*;
-import org.postgresql.util.*;
+import java.io.Serializable;
+import java.sql.SQLException;
+import org.postgresql.util.PGobject;
+import org.postgresql.util.PGtokenizer;
+import org.postgresql.util.PSQLException;
 
-/*
- * This implements the polygon datatype within PostgreSQL.
- */
 public class PGpolygon extends PGobject implements Serializable, Cloneable
 {
 	/*

@@ -52,51 +52,6 @@ public abstract class AbstractJdbc2Connection extends org.postgresql.jdbc1.Abstr
 		typemap = map;
 	}
 
-	public void cancelQuery() throws SQLException
-	{
-		org.postgresql.PG_Stream cancelStream = null;
-		try
-		{
-			cancelStream = new org.postgresql.PG_Stream(PG_HOST, PG_PORT);
-		}
-		catch (ConnectException cex)
-		{
-			// Added by Peter Mount <peter@retep.org.uk>
-			// ConnectException is thrown when the connection cannot be made.
-			// we trap this an return a more meaningful message for the end user
-			throw new PSQLException ("postgresql.con.refused");
-		}
-		catch (IOException e)
-		{
-			throw new PSQLException ("postgresql.con.failed", e);
-		}
-
-		// Now we need to construct and send a cancel packet
-		try
-		{
-			cancelStream.SendInteger(16, 4);
-			cancelStream.SendInteger(80877102, 4);
-			cancelStream.SendInteger(pid, 4);
-			cancelStream.SendInteger(ckey, 4);
-			cancelStream.flush();
-		}
-		catch (IOException e)
-		{
-			throw new PSQLException("postgresql.con.failed", e);
-		}
-		finally
-		{
-			try
-			{
-				if (cancelStream != null)
-					cancelStream.close();
-			}
-			catch (IOException e)
-			{} // Ignore
-		}
-	}
-
-
 	/*
 	 * This overides the standard internal getObject method so that we can
 	 * check the jdbc2 type map first

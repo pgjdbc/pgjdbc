@@ -1,12 +1,23 @@
+/*-------------------------------------------------------------------------
+ *
+ * PGpath.java
+ *     This implements a path (a multiple segmented line, which may be closed)
+ *
+ * Copyright (c) 2003, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $Header$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql.geometric;
 
-import java.io.*;
-import java.sql.*;
-import org.postgresql.util.*;
+import java.io.Serializable;
+import java.sql.SQLException;
+import org.postgresql.util.PGobject;
+import org.postgresql.util.PGtokenizer;
+import org.postgresql.util.PSQLException;
 
-/*
- * This implements a path (a multiple segmented line, which may be closed)
- */
 public class PGpath extends PGobject implements Serializable, Cloneable
 {
 	/*

@@ -1,14 +1,21 @@
+/*-------------------------------------------------------------------------
+ *
+ * BlobInputStream.java
+ *     This is an implementation of an InputStream from a large object.
+ *
+ * Copyright (c) 2003, PostgreSQL Global Development Group
+ *
+ * IDENTIFICATION
+ *	  $Header$
+ *
+ *-------------------------------------------------------------------------
+ */
 package org.postgresql.largeobject;
 
 import java.io.InputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 
-/*
- * This is an initial implementation of an InputStream from a large object.
- * For now, the bare minimum is implemented. Later (after 7.1) we will overide
- * the other read methods to optimise them.
- */
 public class BlobInputStream extends InputStream
 {
 	/*

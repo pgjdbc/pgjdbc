@@ -3,7 +3,7 @@ package org.postgresql.jdbc1;
 
 import java.util.Vector;
 import java.sql.*;
-import org.postgresql.Field;
+import org.postgresql.core.Field;
 import org.postgresql.util.PSQLException;
 
 /* $Header$

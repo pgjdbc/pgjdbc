@@ -3,7 +3,8 @@ package org.postgresql.jdbc2;
 
 import java.sql.*;
 import java.util.Vector;
-import org.postgresql.Field;
+import org.postgresql.core.BaseStatement;
+import org.postgresql.core.Field;
 
 /* $Header$
  * This class implements the java.sql.ResultSet interface for JDBC2.
@@ -13,12 +14,12 @@ import org.postgresql.Field;
 public class Jdbc2ResultSet extends org.postgresql.jdbc2.AbstractJdbc2ResultSet implements java.sql.ResultSet
 {
 
-	public Jdbc2ResultSet(Statement statement, Field[] fields, Vector tuples, String status, int updateCount, long insertOID, boolean binaryCursor)
+	public Jdbc2ResultSet(BaseStatement statement, Field[] fields, Vector tuples, String status, int updateCount, long insertOID, boolean binaryCursor)
 	{
 		super(statement, fields, tuples, status, updateCount, insertOID, binaryCursor);
 	}
 
-	public java.sql.ResultSetMetaData getMetaData() throws SQLException
+	public ResultSetMetaData getMetaData() throws SQLException
 	{
 		return new Jdbc2ResultSetMetaData(rows, fields);
 	}

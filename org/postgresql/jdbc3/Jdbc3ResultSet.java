@@ -3,7 +3,8 @@ package org.postgresql.jdbc3;
 
 import java.sql.*;
 import java.util.Vector;
-import org.postgresql.Field;
+import org.postgresql.core.Field;
+import org.postgresql.core.BaseStatement;
 
 /* $Header$
  * This class implements the java.sql.ResultSet interface for JDBC3.
@@ -13,7 +14,7 @@ import org.postgresql.Field;
 public class Jdbc3ResultSet extends org.postgresql.jdbc3.AbstractJdbc3ResultSet implements java.sql.ResultSet
 {
 
-	public Jdbc3ResultSet(Statement statement, Field[] fields, Vector tuples, String status, int updateCount, long insertOID, boolean binaryCursor)
+	public Jdbc3ResultSet(BaseStatement statement, Field[] fields, Vector tuples, String status, int updateCount, long insertOID, boolean binaryCursor)
 	{
 		super(statement, fields, tuples, status, updateCount, insertOID, binaryCursor);
 	}

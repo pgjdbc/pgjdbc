@@ -3,7 +3,8 @@ package org.postgresql.jdbc1;
 
 import java.sql.*;
 import java.util.Vector;
-import org.postgresql.Field;
+import org.postgresql.core.BaseStatement;
+import org.postgresql.core.Field;
 
 /* $Header$
  * This class implements the java.sql.ResultSet interface for JDBC1.
@@ -13,7 +14,7 @@ import org.postgresql.Field;
 public class Jdbc1ResultSet extends org.postgresql.jdbc1.AbstractJdbc1ResultSet implements java.sql.ResultSet
 {
 
-	public Jdbc1ResultSet(Statement statement, Field[] fields, Vector tuples, String status, int updateCount, long insertOID, boolean binaryCursor)
+	public Jdbc1ResultSet(BaseStatement statement, Field[] fields, Vector tuples, String status, int updateCount, long insertOID, boolean binaryCursor)
 	{
 		super(statement, fields, tuples, status, updateCount, insertOID, binaryCursor);
 	}
