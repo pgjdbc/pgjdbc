@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleQuery.java,v 1.4 2004/11/09 08:46:19 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleQuery.java,v 1.5 2005/01/11 08:25:44 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -37,7 +37,10 @@ class SimpleQuery implements V3Query {
         StringBuffer sbuf = new StringBuffer(fragments[0]);
         for (int i = 1; i < fragments.length; ++i)
         {
-            sbuf.append(parameters.toString(i));
+            if (parameters == null)
+                sbuf.append('?');
+            else
+                sbuf.append(parameters.toString(i));
             sbuf.append(fragments[i]);
         }
         return sbuf.toString();

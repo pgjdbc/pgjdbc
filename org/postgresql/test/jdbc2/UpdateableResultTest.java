@@ -3,7 +3,7 @@
 * Copyright (c) 2001-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/UpdateableResultTest.java,v 1.16 2005/01/05 00:53:08 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/UpdateableResultTest.java,v 1.17 2005/01/11 08:25:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -356,4 +356,24 @@ public class UpdateableResultTest extends TestCase
         rs.close();
         st.close();
     }
+
+    public void testUpdateablePreparedStatement() throws Exception
+    {
+        // No args.
+        PreparedStatement st = con.prepareStatement("select * from updateable",
+                                                    ResultSet.TYPE_SCROLL_INSENSITIVE,
+                                                    ResultSet.CONCUR_UPDATABLE);
+        ResultSet rs = st.executeQuery();
+        rs.moveToInsertRow();
+        rs.close();
+        st.close();
+
+        // With args.
+        st = con.prepareStatement("select * from updateable where id = ?");
+        st.setInt(1, 1);
+        rs = st.executeQuery();
+        rs.moveToInsertRow();
+        rs.close();
+        st.close();
+    }        
 }
