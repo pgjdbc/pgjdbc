@@ -7,7 +7,7 @@ import java.sql.*;
 
 import org.postgresql.largeobject.*;
 
-/**
+/*
  * $Id$
  *
  * Some simple tests based on problems reported by users. Hopefully these will
@@ -40,7 +40,7 @@ public class BlobTest extends TestCase
 		JDBC2Tests.closeDB(con);
 	}
 
-	/**
+	/*
 	 * Tests one method of uploading a blob to the database
 	 */
 	public void testUploadBlob_LOOP()
@@ -64,7 +64,7 @@ public class BlobTest extends TestCase
 		}
 	}
 
-	/**
+	/*
 	 * Tests one method of uploading a blob to the database
 	 */
 	public void testUploadBlob_NATIVE()
@@ -88,7 +88,7 @@ public class BlobTest extends TestCase
 		}
 	}
 
-	/**
+	/*
 	 * Helper - uploads a file into a blob using old style methods. We use this
 	 * because it always works, and we can use it as a base to test the new
 	 * methods.
@@ -152,7 +152,7 @@ public class BlobTest extends TestCase
 		return oid;
 	}
 
-	/**
+	/*
 	 * Helper - compares the blobs in a table with a local file. Note this alone
 	 * tests the InputStream methods!
 	 */

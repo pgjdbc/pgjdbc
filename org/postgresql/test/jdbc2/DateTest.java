@@ -4,7 +4,7 @@ import org.postgresql.test.JDBC2Tests;
 import junit.framework.TestCase;
 import java.sql.*;
 
-/**
+/*
  * $Id$
  *
  * Some simple tests based on problems reported by users. Hopefully these will
@@ -33,7 +33,7 @@ public class DateTest extends TestCase
 		JDBC2Tests.closeDB(con);
 	}
 
-	/**
+	/*
 	 * Tests the time methods in ResultSet
 	 */
 	public void testGetDate()
@@ -59,7 +59,7 @@ public class DateTest extends TestCase
 		}
 	}
 
-	/**
+	/*
 	 * Tests the time methods in PreparedStatement
 	 */
 	public void testSetDate()
@@ -95,7 +95,7 @@ public class DateTest extends TestCase
 		}
 	}
 
-	/**
+	/*
 	 * Helper for the date tests. It tests what should be in the db
 	 */
 	private void dateTest() throws SQLException

@@ -4,7 +4,7 @@ import org.postgresql.test.JDBC2Tests;
 import junit.framework.TestCase;
 import java.sql.*;
 
-/**
+/*
  * $Id$
  *
  * Some simple tests based on problems reported by users. Hopefully these will
@@ -19,7 +19,7 @@ public class MiscTest extends TestCase
 		super(name);
 	}
 
-	/**
+	/*
 	 * Some versions of the driver would return rs as a null?
 	 *
 	 * Sasha <ber0806@iperbole.bologna.it> was having this problem.

@@ -4,7 +4,7 @@ import org.postgresql.test.JDBC2Tests;
 import junit.framework.TestCase;
 import java.sql.*;
 
-/**
+/*
  * $Id$
  *
  * This has been the most controversial pair of methods since 6.5 was released!
@@ -37,7 +37,7 @@ public class TimestampTest extends TestCase
 		JDBC2Tests.closeDB(con);
 	}
 
-	/**
+	/*
 	 * Tests the time methods in ResultSet
 	 */
 	public void testGetTimestamp()
@@ -69,7 +69,7 @@ public class TimestampTest extends TestCase
 		}
 	}
 
-	/**
+	/*
 	 * Tests the time methods in PreparedStatement
 	 */
 	public void testSetTimestamp()
@@ -102,7 +102,7 @@ public class TimestampTest extends TestCase
 		}
 	}
 
-	/**
+	/*
 	 * Helper for the TimeTests. It tests what should be in the db
 	 */
 	private void timestampTest() throws SQLException

@@ -5,7 +5,7 @@ import junit.framework.*;
 import org.postgresql.core.Encoding;
 import java.io.*;
 
-/**
+/*
  * Tests for the Encoding class.
  *
  * $Id$

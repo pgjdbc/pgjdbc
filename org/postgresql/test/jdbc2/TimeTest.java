@@ -4,7 +4,7 @@ import org.postgresql.test.JDBC2Tests;
 import junit.framework.TestCase;
 import java.sql.*;
 
-/**
+/*
  * $Id$
  *
  * Some simple tests based on problems reported by users. Hopefully these will
@@ -33,7 +33,7 @@ public class TimeTest extends TestCase
 		JDBC2Tests.closeDB(con);
 	}
 
-	/**
+	/*
 	 * Tests the time methods in ResultSet
 	 */
 	public void testGetTime()
@@ -57,7 +57,7 @@ public class TimeTest extends TestCase
 		}
 	}
 
-	/**
+	/*
 	 * Tests the time methods in PreparedStatement
 	 */
 	public void testSetTime()
@@ -86,7 +86,7 @@ public class TimeTest extends TestCase
 		}
 	}
 
-	/**
+	/*
 	 * Helper for the TimeTests. It tests what should be in the db
 	 */
 	private void timeTest() throws SQLException

@@ -5,7 +5,7 @@ import junit.framework.TestCase;
 import java.sql.*;
 import java.math.BigDecimal;
 
-/**
+/*
  * $Id$
  *
  * Some simple tests to check that the required components needed for JBuilder
@@ -39,7 +39,7 @@ public class JBuilderTest extends TestCase
 		JDBC2Tests.closeDB(con);
 	}
 
-	/**
+	/*
 	 * This tests that Money types work. JDBCExplorer barfs if this fails.
 	 */
 	public void testMoney()

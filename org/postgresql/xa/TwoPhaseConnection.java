@@ -1,4 +1,4 @@
-/**
+/*
 * Redistribution and use of this software and associated documentation
 * ("Software"), with or without modification, are permitted provided
 * that the following conditions are met:
@@ -50,7 +50,7 @@ package org.postgresql.xa;
 import java.sql.SQLException;
 
 
-/**
+/*
  * Defines two-phase commit support for a JDBC connection used by
  * {@link XAConnection}. A JDBC connection that can implement any of
  * these features should extend this interface and attempt to
@@ -79,7 +79,7 @@ public interface TwoPhaseConnection
 {
 
 
-	/**
+	/*
 	 * Enables or disables transaction demarcation through SQL commit
 	 * and rollback. When the connection falls under control of
 	 * {@link XAConnection}, SQL commit/rollback commands will be
@@ -90,7 +90,7 @@ public interface TwoPhaseConnection
 	public void enableSQLTransactions( boolean flag );
 
 
-	/**
+	/*
 	 * Called to prepare the transaction for commit. Returns true if
 	 * the transaction is prepared, false if the transaction is
 	 * read-only. If the transaction has been marked for rollback,
@@ -104,7 +104,7 @@ public interface TwoPhaseConnection
 	throws SQLException;
 
 
-	/**
+	/*
 	 * Returns true if the error issued by this connection is a
 	 * critical error and the connection should be terminated.
 	 *

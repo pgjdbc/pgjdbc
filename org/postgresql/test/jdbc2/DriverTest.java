@@ -4,7 +4,7 @@ import org.postgresql.test.JDBC2Tests;
 import junit.framework.TestCase;
 import java.sql.*;
 
-/**
+/*
  * $Id$
  *
  * Tests the dynamically created class org.postgresql.Driver
@@ -18,7 +18,7 @@ public class DriverTest extends TestCase
 		super(name);
 	}
 
-	/**
+	/*
 	 * This tests the acceptsURL() method with a couple of good and badly formed
 	 * jdbc urls
 	 */
@@ -49,10 +49,10 @@ public class DriverTest extends TestCase
 		}
 	}
 
-	/**
+	/*
 	 * Tests parseURL (internal)
 	 */
-	/**
+	/*
 	 * Tests the connect method by connecting to the test database
 	 */
 	public void testConnect()

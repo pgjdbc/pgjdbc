@@ -4,7 +4,7 @@ import org.postgresql.test.JDBC2Tests;
 import junit.framework.TestCase;
 import java.sql.*;
 
-/**
+/*
  * TestCase to test the internal functionality of org.postgresql.jdbc2.DatabaseMetaData
  *
  * PS: Do you know how difficult it is to type on a train? ;-)
@@ -15,7 +15,7 @@ import java.sql.*;
 public class DatabaseMetaDataTest extends TestCase
 {
 
-	/**
+	/*
 	 * Constructor
 	 */
 	public DatabaseMetaDataTest(String name)
@@ -23,7 +23,7 @@ public class DatabaseMetaDataTest extends TestCase
 		super(name);
 	}
 
-	/**
+	/*
 	 * The spec says this may return null, but we always do!
 	 */
 	public void testGetMetaData()
@@ -43,7 +43,7 @@ public class DatabaseMetaDataTest extends TestCase
 		}
 	}
 
-	/**
+	/*
 	 * Test default capabilities
 	 */
 	public void testCapabilities()

@@ -16,7 +16,7 @@ import org.postgresql.Field;
 import org.postgresql.largeobject.*;
 import org.postgresql.largeobject.*;
 
-/**
+/*
  * This implements the Blob interface, which is basically another way to
  * access a LargeObject.
  *
