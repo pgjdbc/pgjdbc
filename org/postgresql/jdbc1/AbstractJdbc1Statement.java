@@ -141,6 +141,11 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 		return fetchSize;
 	}
 
+	// Overridden by JDBC2 code.
+	protected boolean wantsScrollableResultSet() {
+		return false;
+	}
+
 	protected void parseSqlStmt (String p_sql) throws SQLException
 	{
 		String l_sql = p_sql;
@@ -474,7 +479,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 
 		// We prefer cursor-based-fetch over server-side-prepare here.		
 		// Eventually a v3 implementation should let us do both at once.
-		if (fetchSize > 0 && !connection.getAutoCommit() && isSingleSelect())
+		if (fetchSize > 0 && !wantsScrollableResultSet() && !connection.getAutoCommit() && isSingleSelect())
 			return transformToCursorFetch();
 
 		if (isUseServerPrepare() && isSingleDML())
@@ -2020,12 +2025,6 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	{
 		checkIndex (parameterIndex);
 		return callResult;
-	}
-
-	//This method is implemeted in jdbc2
-	public int getResultSetConcurrency() throws SQLException
-	{
-		return 0;
 	}
 
 	/*

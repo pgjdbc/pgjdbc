@@ -35,7 +35,6 @@ public interface BaseStatement extends org.postgresql.PGStatement
 	public int getFetchSize();
  	public int getMaxFieldSize() throws SQLException;
 	public int getMaxRows() throws SQLException;
-	public int getResultSetConcurrency() throws SQLException;
 	public String getFetchingCursorName();
 	public SQLWarning getWarnings() throws SQLException;
  	public void setMaxFieldSize(int max) throws SQLException;

@@ -21,17 +21,27 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 	protected Vector batch = null;
 	protected int resultsettype;		 // the resultset type to return
 	protected int concurrency;		 // is it updateable or not?
+	protected int fetchdirection;		 // fetch direction hint (ignored.)
 
 	public AbstractJdbc2Statement (AbstractJdbc2Connection c)
 	{
 		super(c);
-		resultsettype = ResultSet.TYPE_SCROLL_INSENSITIVE;
+		fetchdirection = ResultSet.FETCH_FORWARD;
+		resultsettype = ResultSet.TYPE_FORWARD_ONLY;
 		concurrency = ResultSet.CONCUR_READ_ONLY;
 	}
 
 	public AbstractJdbc2Statement(AbstractJdbc2Connection connection, String sql) throws SQLException
 	{
 		super(connection, sql);
+		fetchdirection = ResultSet.FETCH_FORWARD;
+		resultsettype = ResultSet.TYPE_FORWARD_ONLY;
+		concurrency = ResultSet.CONCUR_READ_ONLY;
+	}
+
+	// Overriddes JDBC1 implementation.
+	protected boolean wantsScrollableResultSet() {
+		return resultsettype != ResultSet.TYPE_FORWARD_ONLY;
 	}
 
 	/*
@@ -128,26 +138,24 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 		return (Connection) connection;
 	}
 
-	public int getFetchDirection() throws SQLException
+	public int getFetchDirection()
 	{
-		throw new PSQLException("postgresql.psqlnotimp", PSQLState.NOT_IMPLEMENTED);
+		return fetchdirection;
 	}
 
-	public int getResultSetConcurrency() throws SQLException
+	public int getResultSetConcurrency()
 	{
 		return concurrency;
 	}
 
-	public int getResultSetType() throws SQLException
+	public int getResultSetType()
 	{
 		return resultsettype;
 	}
 
 	public void setFetchDirection(int direction) throws SQLException
 	{
-		// I don't think this should happen, since it's a hint it should just
-		// fail quietly.
-		//   throw Driver.notImplemented();
+		fetchdirection = direction;
 	}
 
 	public void setFetchSize(int rows) throws SQLException

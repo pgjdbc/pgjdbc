@@ -21,23 +21,22 @@ public abstract class AbstractJdbc2Connection extends org.postgresql.jdbc1.Abstr
  
 	public java.sql.Statement createStatement() throws SQLException
 	{
-		// The spec says default of TYPE_FORWARD_ONLY but everyone is used to
-		// using TYPE_SCROLL_INSENSITIVE
-		return createStatement(java.sql.ResultSet.TYPE_SCROLL_INSENSITIVE, java.sql.ResultSet.CONCUR_READ_ONLY);
+		// We now follow the spec and default to TYPE_FORWARD_ONLY.
+		return createStatement(java.sql.ResultSet.TYPE_FORWARD_ONLY, java.sql.ResultSet.CONCUR_READ_ONLY);
 	}
 
 	public abstract java.sql.Statement createStatement(int resultSetType, int resultSetConcurrency) throws SQLException;
 
 	public java.sql.PreparedStatement prepareStatement(String sql) throws SQLException
 	{
-		return prepareStatement(sql, java.sql.ResultSet.TYPE_SCROLL_INSENSITIVE, java.sql.ResultSet.CONCUR_READ_ONLY);
+		return prepareStatement(sql, java.sql.ResultSet.TYPE_FORWARD_ONLY, java.sql.ResultSet.CONCUR_READ_ONLY);
 	}
 
 	public abstract java.sql.PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency) throws SQLException;
 
 	public java.sql.CallableStatement prepareCall(String sql) throws SQLException
 	{
-		return prepareCall(sql, java.sql.ResultSet.TYPE_SCROLL_INSENSITIVE, java.sql.ResultSet.CONCUR_READ_ONLY);
+		return prepareCall(sql, java.sql.ResultSet.TYPE_FORWARD_ONLY, java.sql.ResultSet.CONCUR_READ_ONLY);
 	}
 
 	public abstract java.sql.CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency) throws SQLException;

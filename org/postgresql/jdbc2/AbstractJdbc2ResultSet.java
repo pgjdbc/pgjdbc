@@ -50,11 +50,16 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 	protected PreparedStatement insertStatement = null;
 	protected PreparedStatement deleteStatement = null;
 	private PreparedStatement selectStatement = null;
-
+	private int resultsettype;
+	private int resultsetconcurrency;
+	private int fetchdirection;
   
 	public AbstractJdbc2ResultSet(BaseStatement statement, Field[] fields, Vector tuples, String status, int updateCount, long insertOID, boolean binaryCursor)
 	{
 		super (statement, fields, tuples, status, updateCount, insertOID, binaryCursor);
+		this.fetchdirection = (statement == null ? java.sql.ResultSet.FETCH_FORWARD : ((AbstractJdbc2Statement)statement).getFetchDirection());
+		this.resultsettype = (statement == null ? java.sql.ResultSet.TYPE_SCROLL_INSENSITIVE : ((AbstractJdbc2Statement)statement).getResultSetType());
+		this.resultsetconcurrency = (statement == null ? java.sql.ResultSet.CONCUR_READ_ONLY : ((AbstractJdbc2Statement)statement).getResultSetConcurrency());
 	}
 
 	public java.net.URL getURL(int columnIndex) throws SQLException
@@ -331,9 +336,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 
 	public int getConcurrency() throws SQLException
 	{
-		if (statement == null)
-			return java.sql.ResultSet.CONCUR_READ_ONLY;
-		return statement.getResultSetConcurrency();
+		return resultsetconcurrency;
 	}
 
 
@@ -384,8 +387,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 
 	public int getFetchDirection() throws SQLException
 	{
-		//PostgreSQL normally sends rows first->last
-		return java.sql.ResultSet.FETCH_FORWARD;
+		return fetchdirection;
 	}
 
 
@@ -439,10 +441,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 
 	public int getType() throws SQLException
 	{
-		// This implementation allows scrolling but is not able to
-		// see any changes. Sub-classes may overide this to return a more
-		// meaningful result.
-		return java.sql.ResultSet.TYPE_SCROLL_INSENSITIVE;
+		return resultsettype;
 	}
 
 
@@ -508,7 +507,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 
 	public void setFetchDirection(int direction) throws SQLException
 	{
-		throw new PSQLException("postgresql.psqlnotimp", PSQLState.NOT_IMPLEMENTED);
+		this.fetchdirection = direction;
 	}
 
 

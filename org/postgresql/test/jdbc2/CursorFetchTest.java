@@ -66,6 +66,78 @@ public class CursorFetchTest extends TestCase
 		}
 	}
 
+
+	// Similar, but for scrollable resultsets.
+	public void testScrollableFetch() throws Exception
+	{
+		createRows(100);
+
+		PreparedStatement stmt = con.prepareStatement("select * from test_fetch order by value",
+													  ResultSet.TYPE_SCROLL_INSENSITIVE,
+													  ResultSet.CONCUR_READ_ONLY);
+		
+		int[] testSizes = { 0, 1, 49, 50, 51, 99, 100, 101 };
+		for (int i = 0; i < testSizes.length; ++i) {
+			stmt.setFetchSize(testSizes[i]);
+			assertEquals(testSizes[i], stmt.getFetchSize());
+
+			ResultSet rs = stmt.executeQuery();
+			assertEquals(testSizes[i], rs.getFetchSize());
+			
+			for (int j = 0; j <= 50; ++j) {
+				assertTrue("ran out of rows at position " + j + " with fetch size " + testSizes[i], rs.next());
+				assertEquals("query value error with fetch size " + testSizes[i], j, rs.getInt(1));
+			}
+
+			int position = 50;
+			for (int j = 1; j < 100; ++j) {
+				for (int k = 0; k < j; ++k) {
+					if (j % 2 == 0) {
+						++position;
+						assertTrue("ran out of rows doing a forward fetch on iteration " + j + "/" + k + " at position " + position + " with fetch size " + testSizes[i], rs.next());
+					} else {
+						--position;
+						assertTrue("ran out of rows doing a reverse fetch on iteration " + j + "/" + k + " at position " + position + " with fetch size " + testSizes[i], rs.previous());
+					}
+
+					assertEquals("query value error on iteration " + j + "/" + k + " with fetch size " + testSizes[i], position, rs.getInt(1));
+				} 
+			}
+		}
+	}		
+
+	public void testScrollableAbsoluteFetch() throws Exception
+	{
+		createRows(100);
+
+		PreparedStatement stmt = con.prepareStatement("select * from test_fetch order by value",
+													  ResultSet.TYPE_SCROLL_INSENSITIVE,
+													  ResultSet.CONCUR_READ_ONLY);
+		
+		int[] testSizes = { 0, 1, 49, 50, 51, 99, 100, 101 };
+		for (int i = 0; i < testSizes.length; ++i) {
+			stmt.setFetchSize(testSizes[i]);
+			assertEquals(testSizes[i], stmt.getFetchSize());
+
+			ResultSet rs = stmt.executeQuery();
+			assertEquals(testSizes[i], rs.getFetchSize());
+			
+			int position = 50;			
+			assertTrue("ran out of rows doing an absolute fetch at " + position + " with fetch size " + testSizes[i], rs.absolute(position+1));
+			assertEquals("query value error with fetch size " + testSizes[i], position, rs.getInt(1));
+
+			for (int j = 1; j < 100; ++j) {
+				if (j % 2 == 0)
+					position += j;
+				else
+					position -= j;
+
+				assertTrue("ran out of rows doing an absolute fetch at " + position + " on iteration " + j + " with fetchsize" + testSizes[i], rs.absolute(position+1));
+				assertEquals("query value error with fetch size " + testSizes[i], position, rs.getInt(1));
+			} 
+		}
+	}		
+
 	//
 	// Tests for ResultSet.setFetchSize().
 	//

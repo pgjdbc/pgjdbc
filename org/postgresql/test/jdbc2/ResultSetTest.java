@@ -4,6 +4,7 @@ import org.postgresql.test.TestUtil;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.sql.SQLException;
 
 import junit.framework.TestCase;
 
@@ -19,7 +20,7 @@ public class ResultSetTest extends TestCase
 		super(name);
 	}
 
-	protected void setUp() throws Exception
+	protected void setUp() throws SQLException
 	{
 		con = TestUtil.openDB();
 		Statement stmt = con.createStatement();
@@ -71,7 +72,7 @@ public class ResultSetTest extends TestCase
 		stmt.close();
 	}
 
-	protected void tearDown() throws Exception
+	protected void tearDown() throws SQLException
 	{
 		TestUtil.dropTable(con, "testrs");
 		TestUtil.dropTable(con, "teststring");
@@ -83,7 +84,7 @@ public class ResultSetTest extends TestCase
 		TestUtil.closeDB(con);
 	}
 
-	public void testBackward() throws Exception
+	public void testBackward() throws SQLException
 	{
 		Statement stmt = con.createStatement();
 		ResultSet rs = stmt.executeQuery("SELECT * FROM testrs");
@@ -93,7 +94,7 @@ public class ResultSetTest extends TestCase
 		stmt.close();
 	}
 
-	public void testAbsolute() throws Exception
+	public void testAbsolute() throws SQLException
 	{
 		Statement stmt = con.createStatement();
 		ResultSet rs = stmt.executeQuery("SELECT * FROM testrs");
@@ -116,28 +117,19 @@ public class ResultSetTest extends TestCase
 
 		stmt.close();
 	}
-	public void testEmptyResult()
+
+	public void testEmptyResult() throws SQLException
 	{
-		try
-		{
-			Statement stmt = con.createStatement();
-			ResultSet rs = stmt.executeQuery("SELECT * FROM testrs where id=100");
-			rs.beforeFirst();
-			rs.afterLast();
-			assertTrue(!rs.first());
-			assertTrue(!rs.last());
-			assertTrue(!rs.next());
-
-
-		}
-		catch ( Exception ex )
-		{
-			fail( ex.getMessage() );
-		}
-
+		Statement stmt = con.createStatement();
+		ResultSet rs = stmt.executeQuery("SELECT * FROM testrs where id=100");
+		rs.beforeFirst();
+		rs.afterLast();
+		assertTrue(!rs.first());
+		assertTrue(!rs.last());
+		assertTrue(!rs.next());
 	}
 	
-	public void testMaxFieldSize() throws Exception
+	public void testMaxFieldSize() throws SQLException
 	{
 			Statement stmt = con.createStatement();
 			stmt.setMaxFieldSize(2);
@@ -158,7 +150,7 @@ public class ResultSetTest extends TestCase
    			assertEquals(new String(rs.getBytes(1)), "12");
 	}
 
-	public void booleanTests(boolean useServerPrepare) throws Exception
+	public void booleanTests(boolean useServerPrepare) throws SQLException
         {
                 java.sql.PreparedStatement pstmt = con.prepareStatement("insert into testbool values (?)");
                 if (useServerPrepare)
@@ -220,13 +212,13 @@ public class ResultSetTest extends TestCase
                }
        }
 
-       public void testBoolean() throws Exception
+       public void testBoolean() throws SQLException
        {
                booleanTests(true);
                booleanTests(false);
        }
        
-       public void testgetByte() throws Exception
+       public void testgetByte() throws SQLException
        {
        		ResultSet rs = con.createStatement().executeQuery("select * from testnumeric");
 		boolean thrown = false;
@@ -256,7 +248,7 @@ public class ResultSetTest extends TestCase
 		}
 	}
 		
-       public void testgetShort() throws Exception
+       public void testgetShort() throws SQLException
        {
        		ResultSet rs = con.createStatement().executeQuery("select * from testnumeric");
 		boolean thrown = false;
@@ -285,5 +277,27 @@ public class ResultSetTest extends TestCase
 				fail("Exception expected.");
 		}
 	}
-       
+
+	public void testParameters() throws SQLException
+	{
+		Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+		stmt.setFetchSize(100);
+		stmt.setFetchDirection(ResultSet.FETCH_UNKNOWN);
+
+		ResultSet rs = stmt.executeQuery("SELECT * FROM testrs");
+		
+		assertEquals(stmt.getResultSetConcurrency(), ResultSet.CONCUR_UPDATABLE);
+		assertEquals(stmt.getResultSetType(), ResultSet.TYPE_SCROLL_SENSITIVE);
+		assertEquals(stmt.getFetchSize(), 100);
+		assertEquals(stmt.getFetchDirection(), ResultSet.FETCH_UNKNOWN);
+
+		assertEquals(rs.getConcurrency(), ResultSet.CONCUR_UPDATABLE);
+		assertEquals(rs.getType(), ResultSet.TYPE_SCROLL_SENSITIVE);
+		assertEquals(rs.getFetchSize(), 100);
+		assertEquals(rs.getFetchDirection(), ResultSet.FETCH_UNKNOWN);
+
+		rs.close();
+		stmt.close();
+	}
+
 }
