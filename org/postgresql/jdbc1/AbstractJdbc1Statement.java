@@ -1034,7 +1034,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 			synchronized (sbuf)
 			{
 				sbuf.setLength(0);
-				sbuf.ensureCapacity(x.length() + (int)(x.length() / 10));
+				sbuf.ensureCapacity(2 + x.length() + (int)(x.length() / 10));
 				sbuf.append('\'');
 				escapeString(x, sbuf);
 				sbuf.append('\'');
