@@ -49,10 +49,9 @@ public class ServerPreparedStmtTest extends TestCase
 		PreparedStatement pstmt = con.prepareStatement("UPDATE testsps SET id = id + 44");
 		((PGStatement)pstmt).setUseServerPrepare(true);
 		int count = pstmt.executeUpdate();
-		if (TestUtil.haveMinimumServerVersion(con,"7.3")) {
+		// Server versions 7.3 and 7.4 do not return the update count.
+		if (TestUtil.haveMinimumServerVersion(con,"7.3") && !TestUtil.haveMinimumServerVersion(con, "7.5")) {
 			assertTrue(((PGStatement)pstmt).isUseServerPrepare());
-			// Currently server prepared statements do not
-			// correctly return the update count.
 			assertEquals(0, count);
 		} else {
 			assertEquals(6, count);
