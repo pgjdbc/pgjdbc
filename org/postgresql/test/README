@@ -18,12 +18,12 @@ the JDBC driver. This document explains how to install,
 configure and run this test suite. Furthermore, it offers
 guidelines and an example for developers to add new test cases.
 
-Sun provides two standard JDBC test suites that you may also 
+Sun provides two standard JDBC test suites that you may also
 find useful.
 http://java.sun.com/products/jdbc/download2.html (JDBC 1)
 http://java.sun.com/products/jdbc/jdbctestsuite-1_2_1.html (JDBC
 2, including J2EE requirements)
-The JDBC 2 test suite is covered in section 8 below. The JDBC 1 
+The JDBC 2 test suite is covered in section 8 below. The JDBC 1
 test suite is not currently covered in this document.
 
 2 Installation
@@ -41,49 +41,35 @@ CLASSPATH before you perform the following steps. Ant will
 dynamically detect that JUnit is present and then build the JDBC
 test suite.
 
-You need to install and build the PostgreSQL source tree. You
-can download it from http://www.postgresql.org/devel-corner/.
-See README and INSTALL in the top of the tree for more
-information.
+You need to install and build the PostgreSQL JDBC driver source
+tree. You can download it from http://jdbc.postgresql.org/.  See
+README in the top of the tree for more information.
 
-You should run ./configure with the command line option
---with-java. You may also want to use --with-pgport to compile a
-non-standard default port number (e.g. 5433) into all 
-components. This will cause the server to listen on this
-non-standard port and it will cause the JDBC driver to connect
-to this port by default. In this way your testing environment is
-easily separated from other PostgreSQL applications on the same
-system.
-
-In this Howto we'll use $JDBC_SRC to refer to the directory 
-src/interfaces/jdbc of the PostgreSQL source tree in your 
-environment. The test suite is located in the subdirectory 
-$JDBC_SRC/org/postgresql/test.
+In this Howto we'll use $JDBC_SRC to refer to the top-level directory
+of the JDBC driver source tree.  The test suite is located in the
+subdirectory $JDBC_SRC/org/postgresql/test.
 
 3 Configuration
 ---------------
-The test suite requires a PostgreSQL database to run the tests 
-against and a user to login as. For a full regression test of 
-the entire PostgreSQL system, you should run the test against a 
-server built from the same source tree as the driver you're 
-testing. The tests will create and drop many objects in this 
-database, so it should not contain production tables to avoid 
+The test suite requires a PostgreSQL database to run the tests against
+and a user to login as. The tests will create and drop many objects in
+this database, so it should not contain production tables to avoid
 loss of data. We recommend you assign the following names:
 
   database: test
   username: test
   password: password
 
-These names correspond with the default names set for the test
-suite in $JDBC_SRC/build.xml. If you have chosen other names you
-need to edit this file and change the properties "database",
-"username" and "password" accordingly.
+These names correspond with the default names set for the test suite
+in $JDBC_SRC/build.xml. If you have chosen other names you need to
+create a file named $JDBC_SRC/build.local.properties and add your
+customized values of the properties "database", "username" and
+"password".
 
 4 Running the test suite
 ------------------------
 %cd $JDBC_SRC
-%make
-%make check
+%ant test
 
 This will run the command line version of JUnit. If you'd like
 to see an animated coloured progress bar as the tests are
@@ -96,7 +82,7 @@ mailing list pgsql-jdbc@postgresql.org.
 
 5 Extending the test suite with new tests
 -----------------------------------------
-If you're not familiar with JUnit, we recommend that you 
+If you're not familiar with JUnit, we recommend that you
 first read the introductory article "JUnit Test Infected:
 Programmers Love Writing Tests" on
 http://junit.sourceforge.net/doc/testinfected/testing.htm.
@@ -104,7 +90,7 @@ Before continuing, you should ensure you understand the
 following concepts: test suite, test case, test, fixture,
 assertion, failure.
 
-The test suite consists of test cases, which consist of tests. 
+The test suite consists of test cases, which consist of tests.
 A test case is a collection of tests that test a particular
 feature. The test suite is a collection of test cases that
 together test the driver - and to an extent the PostgreSQL
@@ -121,9 +107,10 @@ If you decide to add a new test case, you should do two things:
 1) Add a class that extends junit.framework.TestCase. It should
 contain setUp() and tearDown() methods that create and destroy
 the fixture respectively.
-2) Edit $JDBC_SRC/org/postgresql/test/JDBC2Tests.java and add a
-suite.addTestSuite() call for your class. This will make the
-test case part of the test suite.
+2) Edit $JDBC_SRC/org/postgresql/test/jdbc2/Jdbc2TestSuite.java or
+$JDBC_SRC/org/postgresql/test/jdbc3/Jdbc3TestSuite.java and add a
+suite.addTestSuite() call for your class. This will make the test case
+part of the test suite.
 
 6 Guidelines for developing new tests
 -------------------------------------
@@ -146,8 +133,8 @@ To simply report a failure use TestCase.fail().
 
 The JUnit FAQ explains how to test for a thrown exception.
 
-Avoid the use of the deprecated TestCase.assert(), since it will
-collide with the new assert keyword in the Java 2 platform
+Avoid the use of the deprecated TestCase.assert(), since it
+collides with the new assert keyword in the Java 2 platform
 version 1.4.
 
 As a rule, the test suite should succeed. Any errors or failures
@@ -156,12 +143,12 @@ the test suite - should be fixed ASAP. Don't let a test fail
 just to make it clear that something needs to be fixed somewhere.
 That's what the TODO lists are for.
 
-Add some comments to your tests to explain to others what it is 
+Add some comments to your tests to explain to others what it is
 you're testing. A long sequence of JDBC method calls and JUnit
 assertions can be hard to comprehend.
 
-For example, in the comments you can explain where a certain test 
-condition originates from. Is it a JDBC requirement, PostgreSQL 
+For example, in the comments you can explain where a certain test
+condition originates from. Is it a JDBC requirement, PostgreSQL
 behaviour or the intended implementation of a feature?
 
 7 Example (incomplete)
@@ -201,12 +188,12 @@ public class FooTest extends TestCase {
         stmt.executeUpdate(
            "CREATE TABLE testfoo(pk INTEGER, col1 INTEGER)");
         stmt.executeUpdate("INSERT INTO testfoo VALUES(1, 0)");
-        
-        // You may want to call con.setAutoCommit(false) at 
+
+        // You may want to call con.setAutoCommit(false) at
         // this point, if most tests in this test case require
         // the use of transactions.
     }
-   
+
     protected void tearDown() throws Exception {
         con.setAutoCommit(true);
         if (stmt != null) {
@@ -217,18 +204,18 @@ public class FooTest extends TestCase {
               TestUtil.closeDB(con);
         }
     }
-       
+
     public void testFoo() {
         // Use the assert methods in junit.framework.TestCase
         // for the actual tests
-        
+
         // Just some silly examples
         assertNotNull(con);
         if (stmt == null) {
         	fail("Where is my statement?");
         }
     }
-    
+
     public void testBar() {
     	// Another test.
     }
@@ -236,7 +223,7 @@ public class FooTest extends TestCase {
 
 8. Running the JDBC 2 test suite from Sun against PostgreSQL
 ------------------------------------------------------------
-Download the test suite from 
+Download the test suite from
 http://java.sun.com/products/jdbc/jdbctestsuite-1_2_1.html
 This is the JDBC 2 test suite that includes J2EE requirements.
 
@@ -303,21 +290,21 @@ This is the JDBC 2 test suite that includes J2EE requirements.
 
      $ cd $CTS_HOME/tests/jdbc/ee
      $ make jdbc-tests
-    
-At the time of writing of this document, a great number of tests 
+
+At the time of writing of this document, a great number of tests
 in this test suite fail.
 
 9 Credits, feedback
 -------------------
-The parts of this document describing the PostgreSQL test suite 
-were originally written by Rene Pijlman. Liam Stewart contributed 
+The parts of this document describing the PostgreSQL test suite
+were originally written by Rene Pijlman. Liam Stewart contributed
 the section on the Sun JDBC 2 test suite.
 
 Please send your questions about the JDBC test suites or suggestions
 for improvement to the pgsql-jdbc@postgresql.org mailing list.
 
-The source of this document is maintained in 
-src/interfaces/jdbc/org/postgresql/test/README in CVS. Patches for
-improvement can be send to the mailing list 
-pgsql-patches@postgresql.org.
+The source of this document is maintained in
+org/postgresql/test/README in CVS. Patches for
+improvement can be send to the mailing list
+pgsql-jdbc@postgresql.org.
 
