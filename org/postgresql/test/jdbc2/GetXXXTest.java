@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2004, PostgreSQL Global Development Group
- *
- * IDENTIFICATION
- *	  $PostgreSQL$
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2004, PostgreSQL Global Development Group
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/GetXXXTest.java,v 1.3 2004/11/07 22:16:52 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.test.TestUtil;
@@ -20,67 +20,67 @@ import java.util.HashMap;
 
 public class GetXXXTest extends TestCase
 {
-  Connection con = null;
+    Connection con = null;
 
-  public GetXXXTest(String name )
-  {
-    super(name);
-  }
-  protected void setUp() throws Exception
-  {
-    super.setUp();
+    public GetXXXTest(String name )
+    {
+        super(name);
+    }
+    protected void setUp() throws Exception
+    {
+        super.setUp();
 
-    con = TestUtil.openDB();
-    TestUtil.createTempTable(con, "test_interval",
-        "initial timestamp with time zone, final timestamp with time zone");
-    PreparedStatement pstmt = con.prepareStatement(
-        "insert into test_interval values (?,?)");
-    Calendar cal = Calendar.getInstance();
-    cal.add(Calendar.DAY_OF_YEAR, -1);
+        con = TestUtil.openDB();
+        TestUtil.createTempTable(con, "test_interval",
+                                 "initial timestamp with time zone, final timestamp with time zone");
+        PreparedStatement pstmt = con.prepareStatement(
+                                      "insert into test_interval values (?,?)");
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DAY_OF_YEAR, -1);
 
-    pstmt.setTimestamp(1, new Timestamp(cal.getTime().getTime()));
-    pstmt.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
-    assertTrue(pstmt.executeUpdate() == 1);
-    pstmt.close();
-  }
+        pstmt.setTimestamp(1, new Timestamp(cal.getTime().getTime()));
+        pstmt.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
+        assertTrue(pstmt.executeUpdate() == 1);
+        pstmt.close();
+    }
 
-  protected void tearDown() throws Exception
-  {
-    super.tearDown();
-    TestUtil.dropTable( con, "test_interval" );
-    con.close();
-  }
+    protected void tearDown() throws Exception
+    {
+        super.tearDown();
+        TestUtil.dropTable( con, "test_interval" );
+        con.close();
+    }
 
-  public void testGetObject() throws SQLException
-  {
-      Statement stmt = con.createStatement();
-      ResultSet rs = stmt.executeQuery(
-          "select (final-initial) as diff from test_interval");
-      while (rs.next())
-      {
-          String str = (String) rs.getString(1);
+    public void testGetObject() throws SQLException
+    {
+        Statement stmt = con.createStatement();
+        ResultSet rs = stmt.executeQuery(
+                           "select (final-initial) as diff from test_interval");
+        while (rs.next())
+        {
+            String str = (String) rs.getString(1);
 
-          assertNotNull(str);
-          Object obj = rs.getObject(1);
-          assertNotNull(obj);
-      }
-  }
+            assertNotNull(str);
+            Object obj = rs.getObject(1);
+            assertNotNull(obj);
+        }
+    }
 
-  public void testGetUDT() throws SQLException
-  {
-      Statement stmt = con.createStatement();
-      ResultSet rs = stmt.executeQuery("select (final-initial) as diff from test_interval");
+    public void testGetUDT() throws SQLException
+    {
+        Statement stmt = con.createStatement();
+        ResultSet rs = stmt.executeQuery("select (final-initial) as diff from test_interval");
 
-      while (rs.next() )
-      {
-          // make this return a PGobject
-          Object obj = rs.getObject(1, new HashMap());
+        while (rs.next() )
+        {
+            // make this return a PGobject
+            Object obj = rs.getObject(1, new HashMap());
 
-          // it should not be an instance of PGInterval
-          assertTrue(obj instanceof org.postgresql.util.PGInterval);
+            // it should not be an instance of PGInterval
+            assertTrue(obj instanceof org.postgresql.util.PGInterval);
 
-      }
+        }
 
-  }
+    }
 
 }

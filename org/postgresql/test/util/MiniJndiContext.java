@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2004, PostgreSQL Global Development Group
- *
- * IDENTIFICATION
- *	  $PostgreSQL$
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2004, PostgreSQL Global Development Group
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/test/util/MiniJndiContext.java,v 1.2 2004/11/07 22:17:09 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.test.util;
 
 import java.util.*;
@@ -203,19 +203,19 @@ public class MiniJndiContext implements Context
     }
 
     public String composeName(String name, String prefix)
-            throws NamingException
+    throws NamingException
     {
         return null;
     }
 
     public Object addToEnvironment(String propName, Object propVal)
-            throws NamingException
+    throws NamingException
     {
         return null;
     }
 
     public Object removeFromEnvironment(String propName)
-            throws NamingException
+    throws NamingException
     {
         return null;
     }

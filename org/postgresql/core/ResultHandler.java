@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2004, Open Cloud Limited.
- *
- * IDENTIFICATION
- *	  $PostgreSQL: pgjdbc/org/postgresql/core/ResultHandler.java,v 1.1 2004/06/29 06:43:25 jurka Exp $
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2004, Open Cloud Limited.
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/core/ResultHandler.java,v 1.2 2004/11/07 22:15:33 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.core;
 
 import java.sql.*;
@@ -29,55 +29,55 @@ import java.util.Vector;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 public interface ResultHandler {
-	/**
-	 * Called when result rows are received from a query.
-	 *
-	 * @param fromQuery the underlying query that generated these results;
-	 *   this may not be very specific (e.g. it may be a query that includes
-	 *   multiple statements).
-	 * @param fields column metadata for the resultset; might be
-	 *   <code>null</code> if Query.QUERY_NO_METADATA was specified.
-	 * @param tuples the actual data
-	 * @param cursor a cursor to use to fetch additional data;
-	 *   <code>null</code> if no further results are present.
-	 */
-	void handleResultRows(Query fromQuery, Field[] fields, Vector tuples, ResultCursor cursor);
+    /**
+     * Called when result rows are received from a query.
+     *
+     * @param fromQuery the underlying query that generated these results;
+     *   this may not be very specific (e.g. it may be a query that includes
+     *   multiple statements).
+     * @param fields column metadata for the resultset; might be
+     *   <code>null</code> if Query.QUERY_NO_METADATA was specified.
+     * @param tuples the actual data
+     * @param cursor a cursor to use to fetch additional data;
+     *   <code>null</code> if no further results are present.
+     */
+    void handleResultRows(Query fromQuery, Field[] fields, Vector tuples, ResultCursor cursor);
 
-	/**
-	 * Called when a query that did not return a resultset completes.
-	 *
-	 * @param status the command status string (e.g. "SELECT") returned by
-	 *   the backend
-	 * @param updateCount the number of rows affected by an INSERT, UPDATE,
-	 *   DELETE, FETCH, or MOVE command; -1 if not available.
-	 * @param insertOID for a single-row INSERT query, the OID of the newly
-	 *   inserted row; 0 if not available.
-	 */
-	void handleCommandStatus(String status, int updateCount, long insertOID);
+    /**
+     * Called when a query that did not return a resultset completes.
+     *
+     * @param status the command status string (e.g. "SELECT") returned by
+     *   the backend
+     * @param updateCount the number of rows affected by an INSERT, UPDATE,
+     *   DELETE, FETCH, or MOVE command; -1 if not available.
+     * @param insertOID for a single-row INSERT query, the OID of the newly
+     *   inserted row; 0 if not available.
+     */
+    void handleCommandStatus(String status, int updateCount, long insertOID);
 
-	/**
-	 * Called when a warning is emitted.
-	 *
-	 * @param warning the warning that occured.
-	 */
-	void handleWarning(SQLWarning warning);
+    /**
+     * Called when a warning is emitted.
+     *
+     * @param warning the warning that occured.
+     */
+    void handleWarning(SQLWarning warning);
 
-	/**
-	 * Called when an error occurs. Subsequent queries are abandoned;
-	 * in general the only calls between a handleError call and 
-	 * a subsequent handleCompletion call are handleError or handleWarning.
-	 *
-	 * @param error the error that occurred
-	 */
-	void handleError(SQLException error);
-	
-	/**
-	 * Called before a QueryExecutor method returns. This method
-	 * may throw a SQLException if desired; if it does, the QueryExecutor
-	 * method will propagate that exception to the original caller.
-	 *
-	 * @throws SQLException if the handler wishes the original method to
-	 *   throw an exception.
-	 */
-	void handleCompletion() throws SQLException;
+    /**
+     * Called when an error occurs. Subsequent queries are abandoned;
+     * in general the only calls between a handleError call and 
+     * a subsequent handleCompletion call are handleError or handleWarning.
+     *
+     * @param error the error that occurred
+     */
+    void handleError(SQLException error);
+
+    /**
+     * Called before a QueryExecutor method returns. This method
+     * may throw a SQLException if desired; if it does, the QueryExecutor
+     * method will propagate that exception to the original caller.
+     *
+     * @throws SQLException if the handler wishes the original method to
+     *   throw an exception.
+     */
+    void handleCompletion() throws SQLException;
 }

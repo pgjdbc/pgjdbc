@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2003-2004, PostgreSQL Global Development Group
- *
- * IDENTIFICATION
- *	  $PostgreSQL: pgjdbc/org/postgresql/largeobject/LargeObjectManager.java,v 1.15 2004/10/25 20:58:55 jurka Exp $
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2003-2004, PostgreSQL Global Development Group
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/largeobject/LargeObjectManager.java,v 1.16 2004/11/07 22:16:37 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.largeobject;
 
 
@@ -61,166 +61,171 @@ import org.postgresql.util.GT;
  */
 public class LargeObjectManager
 {
-	// the fastpath api for this connection
-	private Fastpath fp;
-	private BaseConnection conn;
+    // the fastpath api for this connection
+    private Fastpath fp;
+    private BaseConnection conn;
 
-	/**
-	 * This mode indicates we want to write to an object
-	 */
-	public static final int WRITE = 0x00020000;
+    /**
+     * This mode indicates we want to write to an object
+     */
+    public static final int WRITE = 0x00020000;
 
-	/**
-	 * This mode indicates we want to read an object
-	 */
-	public static final int READ = 0x00040000;
+    /**
+     * This mode indicates we want to read an object
+     */
+    public static final int READ = 0x00040000;
 
-	/**
-	 * This mode is the default. It indicates we want read and write access to
-	 * a large object
-	 */
-	public static final int READWRITE = READ | WRITE;
+    /**
+     * This mode is the default. It indicates we want read and write access to
+     * a large object
+     */
+    public static final int READWRITE = READ | WRITE;
 
-	/**
-	 * This prevents us being created by mere mortals
-	 */
-	private LargeObjectManager()
-	{}
+    /**
+     * This prevents us being created by mere mortals
+     */
+    private LargeObjectManager()
+    {
+    }
 
-	/**
-	 * Constructs the LargeObject API.
-	 *
-	 * <p><b>Important Notice</b>
-	 * <br>This method should only be called by org.postgresql.Connection
-	 *
-	 * <p>There should only be one LargeObjectManager per Connection. The
-	 * org.postgresql.Connection class keeps track of the various extension API's
-	 * and it's advised you use those to gain access, and not going direct.
-	 */
-	public LargeObjectManager(BaseConnection conn) throws SQLException
-	{
-		this.conn = conn;
-		// We need Fastpath to do anything
-		this.fp = conn.getFastpathAPI();
+    /**
+     * Constructs the LargeObject API.
+     *
+     * <p><b>Important Notice</b>
+     * <br>This method should only be called by org.postgresql.Connection
+     *
+     * <p>There should only be one LargeObjectManager per Connection. The
+     * org.postgresql.Connection class keeps track of the various extension API's
+     * and it's advised you use those to gain access, and not going direct.
+     */
+    public LargeObjectManager(BaseConnection conn) throws SQLException
+    {
+        this.conn = conn;
+        // We need Fastpath to do anything
+        this.fp = conn.getFastpathAPI();
 
-		// Now get the function oid's for the api
-		//
-		// This is an example of Fastpath.addFunctions();
-		//
-		String sql;
-		if (conn.getMetaData().supportsSchemasInTableDefinitions()) {
-			sql = "SELECT p.proname,p.oid "+
-				" FROM pg_catalog.pg_proc p, pg_catalog.pg_namespace n "+
-				" WHERE p.pronamespace=n.oid AND n.nspname='pg_catalog' AND (";
-		} else {
-			sql = "SELECT proname,oid FROM pg_proc WHERE ";
-		}
-		sql += " proname = 'lo_open'" +
-			" or proname = 'lo_close'" +
-			" or proname = 'lo_creat'" +
-			" or proname = 'lo_unlink'" +
-			" or proname = 'lo_lseek'" +
-			" or proname = 'lo_tell'" +
-			" or proname = 'loread'" +
-			" or proname = 'lowrite'";
+        // Now get the function oid's for the api
+        //
+        // This is an example of Fastpath.addFunctions();
+        //
+        String sql;
+        if (conn.getMetaData().supportsSchemasInTableDefinitions())
+        {
+            sql = "SELECT p.proname,p.oid " +
+                  " FROM pg_catalog.pg_proc p, pg_catalog.pg_namespace n " +
+                  " WHERE p.pronamespace=n.oid AND n.nspname='pg_catalog' AND (";
+        }
+        else
+        {
+            sql = "SELECT proname,oid FROM pg_proc WHERE ";
+        }
+        sql += " proname = 'lo_open'" +
+               " or proname = 'lo_close'" +
+               " or proname = 'lo_creat'" +
+               " or proname = 'lo_unlink'" +
+               " or proname = 'lo_lseek'" +
+               " or proname = 'lo_tell'" +
+               " or proname = 'loread'" +
+               " or proname = 'lowrite'";
 
-		if (conn.getMetaData().supportsSchemasInTableDefinitions()) {
-			sql += ")";
-		}
+        if (conn.getMetaData().supportsSchemasInTableDefinitions())
+        {
+            sql += ")";
+        }
 
-		ResultSet res = conn.createStatement().executeQuery(sql);
+        ResultSet res = conn.createStatement().executeQuery(sql);
 
-		if (res == null)
-			throw new PSQLException(GT.tr("Failed to initialize LargeObject API"));
+        if (res == null)
+            throw new PSQLException(GT.tr("Failed to initialize LargeObject API"));
 
-		fp.addFunctions(res);
-		res.close();
-		if (Driver.logDebug)
-			Driver.debug("Large Object initialised");
-	}
+        fp.addFunctions(res);
+        res.close();
+        if (Driver.logDebug)
+            Driver.debug("Large Object initialised");
+    }
 
-	/**
-	 * This opens an existing large object, based on its OID. This method
-	 * assumes that READ and WRITE access is required (the default).
-	 *
-	 * @param oid of large object
-	 * @return LargeObject instance providing access to the object
-	 * @exception SQLException on error
-	 */
-	public LargeObject open(int oid) throws SQLException
-	{
-		return open(oid, READWRITE);
-	}
+    /**
+     * This opens an existing large object, based on its OID. This method
+     * assumes that READ and WRITE access is required (the default).
+     *
+     * @param oid of large object
+     * @return LargeObject instance providing access to the object
+     * @exception SQLException on error
+     */
+    public LargeObject open(int oid) throws SQLException
+    {
+        return open(oid, READWRITE);
+    }
 
-	/**
-	 * This opens an existing large object, based on its OID
-	 *
-	 * @param oid of large object
-	 * @param mode mode of open
-	 * @return LargeObject instance providing access to the object
-	 * @exception SQLException on error
-	 */
-	public LargeObject open(int oid, int mode) throws SQLException
-	{
-		if (conn.getAutoCommit())
-			throw new PSQLException(GT.tr("Large Objects may not be used in auto-commit mode."));
-		return new LargeObject(fp, oid, mode);
-	}
+    /**
+     * This opens an existing large object, based on its OID
+     *
+     * @param oid of large object
+     * @param mode mode of open
+     * @return LargeObject instance providing access to the object
+     * @exception SQLException on error
+     */
+    public LargeObject open(int oid, int mode) throws SQLException
+    {
+        if (conn.getAutoCommit())
+            throw new PSQLException(GT.tr("Large Objects may not be used in auto-commit mode."));
+        return new LargeObject(fp, oid, mode);
+    }
 
-	/**
-	 * This creates a large object, returning its OID.
-	 *
-	 * <p>It defaults to READWRITE for the new object's attributes.
-	 *
-	 * @return oid of new object
-	 * @exception SQLException on error
-	 */
-	public int create() throws SQLException
-	{
-		return create(READWRITE);
-	}
+    /**
+     * This creates a large object, returning its OID.
+     *
+     * <p>It defaults to READWRITE for the new object's attributes.
+     *
+     * @return oid of new object
+     * @exception SQLException on error
+     */
+    public int create() throws SQLException
+    {
+        return create(READWRITE);
+    }
 
-	/**
-	 * This creates a large object, returning its OID
-	 *
-	 * @param mode a bitmask describing different attributes of the new object
-	 * @return oid of new object
-	 * @exception SQLException on error
-	 */
-	public int create(int mode) throws SQLException
-	{
-		if (conn.getAutoCommit())
-			throw new PSQLException(GT.tr("Large Objects may not be used in auto-commit mode."));
-		FastpathArg args[] = new FastpathArg[1];
-		args[0] = new FastpathArg(mode);
-		return fp.getInteger("lo_creat", args);
-	}
+    /**
+     * This creates a large object, returning its OID
+     *
+     * @param mode a bitmask describing different attributes of the new object
+     * @return oid of new object
+     * @exception SQLException on error
+     */
+    public int create(int mode) throws SQLException
+    {
+        if (conn.getAutoCommit())
+            throw new PSQLException(GT.tr("Large Objects may not be used in auto-commit mode."));
+        FastpathArg args[] = new FastpathArg[1];
+        args[0] = new FastpathArg(mode);
+        return fp.getInteger("lo_creat", args);
+    }
 
-	/**
-	 * This deletes a large object.
-	 *
-	 * @param oid describing object to delete
-	 * @exception SQLException on error
-	 */
-	public void delete(int oid) throws SQLException
-	{
-		FastpathArg args[] = new FastpathArg[1];
-		args[0] = new FastpathArg(oid);
-		fp.fastpath("lo_unlink", false, args);
-	}
+    /**
+     * This deletes a large object.
+     *
+     * @param oid describing object to delete
+     * @exception SQLException on error
+     */
+    public void delete(int oid) throws SQLException
+    {
+        FastpathArg args[] = new FastpathArg[1];
+        args[0] = new FastpathArg(oid);
+        fp.fastpath("lo_unlink", false, args);
+    }
 
-	/**
-	 * This deletes a large object.
-	 *
-	 * <p>It is identical to the delete method, and is supplied as the C API uses
-	 * unlink.
-	 *
-	 * @param oid describing object to delete
-	 * @exception SQLException on error
-	 */
-	public void unlink(int oid) throws SQLException
-	{
-		delete(oid);
-	}
+    /**
+     * This deletes a large object.
+     *
+     * <p>It is identical to the delete method, and is supplied as the C API uses
+     * unlink.
+     *
+     * @param oid describing object to delete
+     * @exception SQLException on error
+     */
+    public void unlink(int oid) throws SQLException
+    {
+        delete(oid);
+    }
 
 }

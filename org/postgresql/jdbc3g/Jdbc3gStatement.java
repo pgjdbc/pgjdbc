@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2004, PostgreSQL Global Development Group
- *
- * IDENTIFICATION
- *	  $PostgreSQL$
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2004, PostgreSQL Global Development Group
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3g/Jdbc3gStatement.java,v 1.2 2004/11/07 22:16:36 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.jdbc3g;
 
 import java.sql.*;
@@ -20,24 +20,24 @@ import org.postgresql.core.*;
  */
 class Jdbc3gStatement extends org.postgresql.jdbc3.AbstractJdbc3Statement implements Statement
 {
-	Jdbc3gStatement (Jdbc3gConnection c, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
-	{
-		super(c, rsType, rsConcurrency, rsHoldability);
-	}
+    Jdbc3gStatement (Jdbc3gConnection c, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
+    {
+        super(c, rsType, rsConcurrency, rsHoldability);
+    }
 
-	protected Jdbc3gStatement(Jdbc3gConnection connection, String sql, boolean isCallable, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
-	{
-		super(connection, sql, isCallable, rsType, rsConcurrency, rsHoldability);
-	}
+    protected Jdbc3gStatement(Jdbc3gConnection connection, String sql, boolean isCallable, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
+    {
+        super(connection, sql, isCallable, rsType, rsConcurrency, rsHoldability);
+    }
 
-	public ResultSet createResultSet (Query originalQuery, Field[] fields, Vector tuples, ResultCursor cursor)
-		throws SQLException
-	{
-		Jdbc3gResultSet newResult = new Jdbc3gResultSet(originalQuery, this, fields, tuples, cursor,
-													  getMaxRows(), getMaxFieldSize(),
-													  getResultSetType(), getResultSetConcurrency(), getResultSetHoldability());
-		newResult.setFetchSize(getFetchSize());
-		newResult.setFetchDirection(getFetchDirection());
-		return newResult;
-	}
+    public ResultSet createResultSet (Query originalQuery, Field[] fields, Vector tuples, ResultCursor cursor)
+    throws SQLException
+    {
+        Jdbc3gResultSet newResult = new Jdbc3gResultSet(originalQuery, this, fields, tuples, cursor,
+                                    getMaxRows(), getMaxFieldSize(),
+                                    getResultSetType(), getResultSetConcurrency(), getResultSetHoldability());
+        newResult.setFetchSize(getFetchSize());
+        newResult.setFetchDirection(getFetchDirection());
+        return newResult;
+    }
 }

@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2004, PostgreSQL Global Development Group
- *
- * IDENTIFICATION
- *	  $PostgreSQL$
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2004, PostgreSQL Global Development Group
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/NotifyTest.java,v 1.3 2004/11/07 22:16:56 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.test.TestUtil;
@@ -18,35 +18,35 @@ import org.postgresql.PGNotification;
 public class NotifyTest extends TestCase
 {
 
-	private Connection conn;
+    private Connection conn;
 
-	public NotifyTest(String name)
-	{
-		super(name);
-	}
+    public NotifyTest(String name)
+    {
+        super(name);
+    }
 
-	protected void setUp() throws SQLException
-	{
-		conn = TestUtil.openDB();
-	}
+    protected void setUp() throws SQLException
+    {
+        conn = TestUtil.openDB();
+    }
 
-	protected void tearDown() throws SQLException
-	{
-		TestUtil.closeDB(conn);
-	}
+    protected void tearDown() throws SQLException
+    {
+        TestUtil.closeDB(conn);
+    }
 
-	public void testNotify() throws SQLException
-	{
-		Statement stmt = conn.createStatement();
-		stmt.executeUpdate("LISTEN mynotification");
-		stmt.executeUpdate("NOTIFY mynotification");
+    public void testNotify() throws SQLException
+    {
+        Statement stmt = conn.createStatement();
+        stmt.executeUpdate("LISTEN mynotification");
+        stmt.executeUpdate("NOTIFY mynotification");
 
-		PGNotification notifications[] = ((org.postgresql.PGConnection)conn).getNotifications();
-		assertNotNull(notifications);
-		assertEquals(1, notifications.length);
-		assertEquals("mynotification", notifications[0].getName());
-		assertEquals("", notifications[0].getParameter());
+        PGNotification notifications[] = ((org.postgresql.PGConnection)conn).getNotifications();
+        assertNotNull(notifications);
+        assertEquals(1, notifications.length);
+        assertEquals("mynotification", notifications[0].getName());
+        assertEquals("", notifications[0].getParameter());
 
-		stmt.close();
-	}
+        stmt.close();
+    }
 }

@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2004, Open Cloud Limited.
- *
- * IDENTIFICATION
- *	  $PostgreSQL: pgjdbc/org/postgresql/core/v2/ProtocolConnectionImpl.java,v 1.2 2004/09/20 08:36:49 jurka Exp $
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2004, Open Cloud Limited.
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ProtocolConnectionImpl.java,v 1.3 2004/11/07 22:15:36 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.core.v2;
 
 import java.sql.*;
@@ -23,165 +23,182 @@ import org.postgresql.core.*;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 class ProtocolConnectionImpl implements ProtocolConnection {
-	ProtocolConnectionImpl(PGStream pgStream, String user, String database) {
-		this.pgStream = pgStream;
-		this.user = user;
-		this.database = database;
-		this.executor = new QueryExecutorImpl(this, pgStream);
-	}
+    ProtocolConnectionImpl(PGStream pgStream, String user, String database) {
+        this.pgStream = pgStream;
+        this.user = user;
+        this.database = database;
+        this.executor = new QueryExecutorImpl(this, pgStream);
+    }
 
-	public String getHost() {
-		return pgStream.getHost();
-	}
+    public String getHost() {
+        return pgStream.getHost();
+    }
 
-	public int getPort() {
-		return pgStream.getPort();
-	}
+    public int getPort() {
+        return pgStream.getPort();
+    }
 
-	public String getUser() {
-		return user;
-	}
+    public String getUser() {
+        return user;
+    }
 
-	public String getDatabase() {
-		return database;
-	}
+    public String getDatabase() {
+        return database;
+    }
 
-	public String getServerVersion() {
-		return serverVersion;
-	}
+    public String getServerVersion() {
+        return serverVersion;
+    }
 
-	public synchronized int getTransactionState() {
-		return transactionState;
-	}
+    public synchronized int getTransactionState()
+    {
+        return transactionState;
+    }
 
-	public synchronized PGNotification[] getNotifications() {
-		PGNotification[] array = (PGNotification[])notifications.toArray(new PGNotification[notifications.size()]);
-		notifications.clear();
-		return array;
-	}
+    public synchronized PGNotification[]
+    getNotifications() {
+        PGNotification[] array = (PGNotification[])notifications.toArray(new PGNotification[notifications.size()]);
+        notifications.clear();
+        return array;
+    }
 
-	public synchronized SQLWarning getWarnings() {
-		SQLWarning chain = warnings;
-		warnings = null;
-		return chain;
-	}
+    public synchronized SQLWarning getWarnings()
+    {
+        SQLWarning chain = warnings;
+        warnings = null;
+        return chain;
+    }
 
-	public QueryExecutor getQueryExecutor() {
-		return executor;
-	}
+    public QueryExecutor getQueryExecutor() {
+        return executor;
+    }
 
-	public void sendQueryCancel() throws SQLException {
-		if (cancelPid <= 0)
-			return;
+    public void sendQueryCancel() throws SQLException {
+        if (cancelPid <= 0)
+            return ;
 
-		PGStream cancelStream = null;
-		
-		// Now we need to construct and send a cancel packet
-		try
-		{
-			if (Driver.logDebug)
-				Driver.debug(" FE=> CancelRequest(pid=" + cancelPid + ",ckey=" + cancelKey + ")");
+        PGStream cancelStream = null;
 
-			cancelStream = new PGStream(pgStream.getHost(), pgStream.getPort());
-			cancelStream.SendInteger4(16);
-			cancelStream.SendInteger2(1234);
-			cancelStream.SendInteger2(5678);
-			cancelStream.SendInteger4(cancelPid);
-			cancelStream.SendInteger4(cancelKey);
-			cancelStream.flush();
-			cancelStream.close();
-			cancelStream = null;
-		} catch (IOException e) {
-			// Safe to ignore.
-			if (Driver.logDebug)
-				Driver.debug("Ignoring exception on cancel request:", e);
-		} finally {
-			if (cancelStream != null) {
-				try {
-					cancelStream.close();
-				} catch (IOException e) {
-					// Ignored.
-				}
-			}
-		}
-	}
+        // Now we need to construct and send a cancel packet
+        try
+        {
+            if (Driver.logDebug)
+                Driver.debug(" FE=> CancelRequest(pid=" + cancelPid + ",ckey=" + cancelKey + ")");
 
-	public void close() {
-		if (closed)
-			return;
+            cancelStream = new PGStream(pgStream.getHost(), pgStream.getPort());
+            cancelStream.SendInteger4(16);
+            cancelStream.SendInteger2(1234);
+            cancelStream.SendInteger2(5678);
+            cancelStream.SendInteger4(cancelPid);
+            cancelStream.SendInteger4(cancelKey);
+            cancelStream.flush();
+            cancelStream.close();
+            cancelStream = null;
+        }
+        catch (IOException e)
+        {
+            // Safe to ignore.
+            if (Driver.logDebug)
+                Driver.debug("Ignoring exception on cancel request:", e);
+        }
+        finally
+        {
+            if (cancelStream != null)
+            {
+                try
+                {
+                    cancelStream.close();
+                }
+                catch (IOException e)
+                {
+                    // Ignored.
+                }
+            }
+        }
+    }
 
-		try {
-			if (Driver.logDebug)
-				Driver.debug(" FE=> Terminate");
-			pgStream.SendChar('X');
-			pgStream.flush();
-			pgStream.close();
-		} catch (IOException ioe) {
-			// Forget it.
-			if (Driver.logDebug)
-				Driver.debug("Discarding IOException on close:", ioe);
-		}
+    public void close() {
+        if (closed)
+            return ;
 
-		closed = true;
-	}
+        try
+        {
+            if (Driver.logDebug)
+                Driver.debug(" FE=> Terminate");
+            pgStream.SendChar('X');
+            pgStream.flush();
+            pgStream.close();
+        }
+        catch (IOException ioe)
+        {
+            // Forget it.
+            if (Driver.logDebug)
+                Driver.debug("Discarding IOException on close:", ioe);
+        }
 
- 	public Encoding getEncoding() {
-		return pgStream.getEncoding();
-	}
+        closed = true;
+    }
 
-	public boolean isClosed() {
-		return closed;
-	}
+    public Encoding getEncoding() {
+        return pgStream.getEncoding();
+    }
 
-	//
-	// Package-private accessors called during connection setup
-	//
+    public boolean isClosed() {
+        return closed;
+    }
 
-	void setEncoding(Encoding encoding) throws IOException {
-		pgStream.setEncoding(encoding);
-	}		
+    //
+    // Package-private accessors called during connection setup
+    //
 
-	void setServerVersion(String serverVersion) {
-		this.serverVersion = serverVersion;
-	}
+    void setEncoding(Encoding encoding) throws IOException {
+        pgStream.setEncoding(encoding);
+    }
 
-	void setBackendKeyData(int cancelPid, int cancelKey) {
-		this.cancelPid = cancelPid;
-		this.cancelKey = cancelKey;
-	}
+    void setServerVersion(String serverVersion) {
+        this.serverVersion = serverVersion;
+    }
 
-	//
-	// Package-private accessors called by the query executor
-	//
+    void setBackendKeyData(int cancelPid, int cancelKey) {
+        this.cancelPid = cancelPid;
+        this.cancelKey = cancelKey;
+    }
 
-	synchronized void addWarning(SQLWarning newWarning) {
-		if (warnings == null)
-			warnings = newWarning;
-		else
-			warnings.setNextWarning(newWarning);
-	}
+    //
+    // Package-private accessors called by the query executor
+    //
 
-	synchronized void addNotification(PGNotification notification) {
-		notifications.add(notification);
-	}
+    synchronized void addWarning(SQLWarning newWarning)
+    {
+        if (warnings == null)
+            warnings = newWarning;
+        else
+            warnings.setNextWarning(newWarning);
+    }
 
-	synchronized void setTransactionState(int state) {
-		transactionState = state;
-	}
+    synchronized void addNotification(PGNotification notification)
+    {
+        notifications.add(notification);
+    }
 
-	private String serverVersion;
-	private int cancelPid;
-	private int cancelKey;
+    synchronized void setTransactionState(int state)
+    {
+        transactionState = state;
+    }
 
-	private int transactionState;
-	private SQLWarning warnings;
+    private String serverVersion;
+    private int cancelPid;
+    private int cancelKey;
 
-	private boolean closed = false;
+    private int transactionState;
+    private SQLWarning warnings;
 
-	private final ArrayList notifications = new ArrayList();
+    private boolean closed = false;
 
-	private final PGStream pgStream;
-	private final String user;
-	private final String database;
-	private final QueryExecutorImpl executor;
+    private final ArrayList notifications = new ArrayList();
+
+    private final PGStream pgStream;
+    private final String user;
+    private final String database;
+    private final QueryExecutorImpl executor;
 }

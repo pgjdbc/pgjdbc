@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2004, PostgreSQL Global Development Group
- *
- * IDENTIFICATION
- *	  $PostgreSQL$
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2004, PostgreSQL Global Development Group
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/util/PSQLDriverVersion.java,v 1.3 2004/11/07 22:17:15 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.util;
 
 import org.postgresql.Driver;
@@ -21,13 +21,13 @@ import org.postgresql.Driver;
  */
 public class PSQLDriverVersion {
 
-	public static int buildNumber = 307;
+    public static int buildNumber = 307;
 
-	public static void main(String args[]) {
-		Driver driver = new Driver();
-		java.net.URL url = driver.getClass().getResource("/org/postgresql/Driver.class");
-		System.out.println(driver.getVersion());
-		System.out.println("Found in: " + url);
-	}
+    public static void main(String args[]) {
+        Driver driver = new Driver();
+        java.net.URL url = driver.getClass().getResource("/org/postgresql/Driver.class");
+        System.out.println(driver.getVersion());
+        System.out.println("Found in: " + url);
+    }
 
 }

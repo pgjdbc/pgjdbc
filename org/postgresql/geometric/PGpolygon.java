@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2003-2004, PostgreSQL Global Development Group
- *
- * IDENTIFICATION
- *	  $PostgreSQL: pgjdbc/org/postgresql/geometric/PGpolygon.java,v 1.8 2004/06/29 06:43:26 jurka Exp $
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2003-2004, PostgreSQL Global Development Group
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/geometric/PGpolygon.java,v 1.9 2004/11/07 22:15:54 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.geometric;
 
 import org.postgresql.util.PGobject;
@@ -19,106 +19,107 @@ import java.sql.SQLException;
  */
 public class PGpolygon extends PGobject implements Serializable, Cloneable
 {
-	/**
-	 * The points defining the polygon
-	 */
-	public PGpoint points[];
+    /**
+     * The points defining the polygon
+     */
+    public PGpoint points[];
 
-	/**
-	 * Creates a polygon using an array of PGpoints
-	 *
-	 * @param points the points defining the polygon
-	 */
-	public PGpolygon(PGpoint[] points)
-	{
-		this();
-		this.points = points;
-	}
+    /**
+     * Creates a polygon using an array of PGpoints
+     *
+     * @param points the points defining the polygon
+     */
+    public PGpolygon(PGpoint[] points)
+    {
+        this();
+        this.points = points;
+    }
 
-	/**
-	 * @param s definition of the polygon in PostgreSQL's syntax.
-	 * @exception SQLException on conversion failure
-	 */
-	public PGpolygon(String s) throws SQLException
-	{
-		this();
-		setValue(s);
-	}
+    /**
+     * @param s definition of the polygon in PostgreSQL's syntax.
+     * @exception SQLException on conversion failure
+     */
+    public PGpolygon(String s) throws SQLException
+    {
+        this();
+        setValue(s);
+    }
 
-	/**
-	 * Required by the driver
-	 */
-	public PGpolygon()
-	{
-		setType("polygon");
-	}
+    /**
+     * Required by the driver
+     */
+    public PGpolygon()
+    {
+        setType("polygon");
+    }
 
-	/**
-	 * @param s Definition of the polygon in PostgreSQL's syntax
-	 * @exception SQLException on conversion failure
-	 */
-	public void setValue(String s) throws SQLException
-	{
-		PGtokenizer t = new PGtokenizer(PGtokenizer.removePara(s), ',');
-		int npoints = t.getSize();
-		points = new PGpoint[npoints];
-		for (int p = 0;p < npoints;p++)
-			points[p] = new PGpoint(t.getToken(p));
-	}
+    /**
+     * @param s Definition of the polygon in PostgreSQL's syntax
+     * @exception SQLException on conversion failure
+     */
+    public void setValue(String s) throws SQLException
+    {
+        PGtokenizer t = new PGtokenizer(PGtokenizer.removePara(s), ',');
+        int npoints = t.getSize();
+        points = new PGpoint[npoints];
+        for (int p = 0;p < npoints;p++)
+            points[p] = new PGpoint(t.getToken(p));
+    }
 
-	/**
-	 * @param obj Object to compare with
-	 * @return true if the two polygons are identical
-	 */
-	public boolean equals(Object obj)
-	{
-		if (obj instanceof PGpolygon)
-		{
-			PGpolygon p = (PGpolygon)obj;
+    /**
+     * @param obj Object to compare with
+     * @return true if the two polygons are identical
+     */
+    public boolean equals(Object obj)
+    {
+        if (obj instanceof PGpolygon)
+        {
+            PGpolygon p = (PGpolygon)obj;
 
-			if (p.points.length != points.length)
-				return false;
+            if (p.points.length != points.length)
+                return false;
 
-			for (int i = 0;i < points.length;i++)
-				if (!points[i].equals(p.points[i]))
-					return false;
+            for (int i = 0;i < points.length;i++)
+                if (!points[i].equals(p.points[i]))
+                    return false;
 
-			return true;
-		}
-		return false;
-	}
+            return true;
+        }
+        return false;
+    }
 
-	public int hashCode() {
-		// XXX not very good..
-		int hash = 0;
-		for (int i = 0; i < points.length && i < 5; ++i) {
-			hash = hash ^ points[i].hashCode();
-		}
-		return hash;
-	}
+    public int hashCode() {
+        // XXX not very good..
+        int hash = 0;
+        for (int i = 0; i < points.length && i < 5; ++i)
+        {
+            hash = hash ^ points[i].hashCode();
+        }
+        return hash;
+    }
 
-	public Object clone()
-	{
-		PGpoint ary[] = new PGpoint[points.length];
-		for (int i = 0;i < points.length;i++)
-			ary[i] = (PGpoint)points[i].clone();
-		return new PGpolygon(ary);
-	}
+    public Object clone()
+    {
+        PGpoint ary[] = new PGpoint[points.length];
+        for (int i = 0;i < points.length;i++)
+            ary[i] = (PGpoint)points[i].clone();
+        return new PGpolygon(ary);
+    }
 
-	/**
-	 * @return the PGpolygon in the syntax expected by org.postgresql
-	 */
-	public String getValue()
-	{
-		StringBuffer b = new StringBuffer();
-		b.append("(");
-		for (int p = 0;p < points.length;p++)
-		{
-			if (p > 0)
-				b.append(",");
-			b.append(points[p].toString());
-		}
-		b.append(")");
-		return b.toString();
-	}
+    /**
+     * @return the PGpolygon in the syntax expected by org.postgresql
+     */
+    public String getValue()
+    {
+        StringBuffer b = new StringBuffer();
+        b.append("(");
+        for (int p = 0;p < points.length;p++)
+        {
+            if (p > 0)
+                b.append(",");
+            b.append(points[p].toString());
+        }
+        b.append(")");
+        return b.toString();
+    }
 }

@@ -1,39 +1,39 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2004, PostgreSQL Global Development Group
- *
- * IDENTIFICATION
- *	  $PostgreSQL$
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2004, PostgreSQL Global Development Group
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ServerCursorTest.java,v 1.2 2004/11/07 22:16:57 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.test.jdbc2;
- 
+
 import java.sql.*;
- 
+
 import junit.framework.TestCase;
- 
+
 import org.postgresql.test.TestUtil;
- 
+
 /*
  *  Tests for using non-zero setFetchSize().
  */
 public class ServerCursorTest extends TestCase
 {
     private Connection con;
- 
+
     public ServerCursorTest(String name)
     {
         super(name);
     }
- 
+
     protected void setUp() throws Exception
     {
         con = TestUtil.openDB();
         TestUtil.createTable(con, "test_fetch", "value integer,data bytea");
         con.setAutoCommit(false);
     }
- 
+
     protected void tearDown() throws Exception
     {
         con.rollback();
@@ -41,13 +41,14 @@ public class ServerCursorTest extends TestCase
         TestUtil.dropTable(con, "test_fetch");
         TestUtil.closeDB(con);
     }
- 
+
     protected void createRows(int count) throws Exception
     {
         PreparedStatement stmt = con.prepareStatement("insert into test_fetch(value,data) values(?,?)");
-        for (int i = 0; i < count; ++i) {
-            stmt.setInt(1,i+1);
-            stmt.setBytes(2,DATA_STRING.getBytes("UTF8"));
+        for (int i = 0; i < count; ++i)
+        {
+            stmt.setInt(1, i + 1);
+            stmt.setBytes(2, DATA_STRING.getBytes("UTF8"));
             stmt.executeUpdate();
         }
         con.commit();
@@ -63,31 +64,33 @@ public class ServerCursorTest extends TestCase
 
         stmt = con.prepareStatement("fetch forward from test_cursor");
         ResultSet rs = stmt.executeQuery();
-        while (rs.next()) {
+        while (rs.next())
+        {
             //there should only be one row returned
             assertEquals("query value error", 1, rs.getInt(1));
             byte[] dataBytes = rs.getBytes(2);
-            assertEquals("binary data got munged", DATA_STRING, new String(dataBytes,"UTF8"));
+            assertEquals("binary data got munged", DATA_STRING, new String(dataBytes, "UTF8"));
         }
- 
+
     }
 
     //Test binary cursor fetching
     public void testBinaryFetch() throws Exception
     {
         createRows(1);
- 
+
         PreparedStatement stmt = con.prepareStatement("declare test_cursor binary cursor for select * from test_fetch");
         stmt.execute();
 
         stmt = con.prepareStatement("fetch forward from test_cursor");
         ResultSet rs = stmt.executeQuery();
-        while (rs.next()) {
+        while (rs.next())
+        {
             //there should only be one row returned
             byte[] dataBytes = rs.getBytes(2);
-            assertEquals("binary data got munged", DATA_STRING, new String(dataBytes,"UTF8"));
+            assertEquals("binary data got munged", DATA_STRING, new String(dataBytes, "UTF8"));
         }
- 
+
     }
 
     //This string contains a variety different data:

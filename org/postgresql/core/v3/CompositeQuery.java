@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2004, Open Cloud Limited.
- *
- * IDENTIFICATION
- *	  $PostgreSQL: pgjdbc/org/postgresql/core/v3/CompositeQuery.java,v 1.1 2004/06/29 06:43:25 jurka Exp $
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2004, Open Cloud Limited.
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/CompositeQuery.java,v 1.2 2004/11/07 22:15:38 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.core.v3;
 
 import org.postgresql.core.*;
@@ -20,40 +20,41 @@ import org.postgresql.core.*;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 class CompositeQuery implements V3Query {
-	CompositeQuery(SimpleQuery[] subqueries, int[] offsets) {
-		this.subqueries = subqueries;
-		this.offsets = offsets;
-	}
-	
-	public ParameterList createParameterList() {
-		SimpleParameterList[] subparams = new SimpleParameterList[subqueries.length];
-		for (int i = 0; i < subqueries.length; ++i)
-			subparams[i] = (SimpleParameterList)subqueries[i].createParameterList();
-		return new CompositeParameterList(subparams, offsets);
-	}
+    CompositeQuery(SimpleQuery[] subqueries, int[] offsets) {
+        this.subqueries = subqueries;
+        this.offsets = offsets;
+    }
 
-	public String toString(ParameterList parameters) {
-		StringBuffer sbuf = new StringBuffer(subqueries[0].toString());
-		for (int i = 1; i < subqueries.length; ++i) {
-			sbuf.append(';');
-			sbuf.append(subqueries[i]);
-		}
-		return sbuf.toString();
-	}
+    public ParameterList createParameterList() {
+        SimpleParameterList[] subparams = new SimpleParameterList[subqueries.length];
+        for (int i = 0; i < subqueries.length; ++i)
+            subparams[i] = (SimpleParameterList)subqueries[i].createParameterList();
+        return new CompositeParameterList(subparams, offsets);
+    }
 
-	public String toString() {
-		return toString(null);
-	}
+    public String toString(ParameterList parameters) {
+        StringBuffer sbuf = new StringBuffer(subqueries[0].toString());
+        for (int i = 1; i < subqueries.length; ++i)
+        {
+            sbuf.append(';');
+            sbuf.append(subqueries[i]);
+        }
+        return sbuf.toString();
+    }
 
-	public void close() {
-		for (int i = 0; i < subqueries.length; ++i)
-			subqueries[i].close();
-	}
+    public String toString() {
+        return toString(null);
+    }
 
-	public SimpleQuery[] getSubqueries() { 
-		return subqueries;
-	}
+    public void close() {
+        for (int i = 0; i < subqueries.length; ++i)
+            subqueries[i].close();
+    }
 
-	private final SimpleQuery[] subqueries;
-	private final int[] offsets;
-}		
+    public SimpleQuery[] getSubqueries() {
+        return subqueries;
+    }
+
+    private final SimpleQuery[] subqueries;
+    private final int[] offsets;
+}

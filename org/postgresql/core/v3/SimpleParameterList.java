@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2004, Open Cloud Limited.
- *
- * IDENTIFICATION
- *	  $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleParameterList.java,v 1.3 2004/10/10 15:39:37 jurka Exp $
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2004, Open Cloud Limited.
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleParameterList.java,v 1.4 2004/11/07 22:15:39 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.core.v3;
 
 import java.io.InputStream;
@@ -26,179 +26,184 @@ import org.postgresql.util.GT;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 class SimpleParameterList implements V3ParameterList {
-	SimpleParameterList(int paramCount) {
-		this.paramValues  = new Object[paramCount];
-		this.paramTypes   = new int[paramCount];
-		this.encoded      = new byte[paramCount][];
-	}
+    SimpleParameterList(int paramCount) {
+        this.paramValues = new Object[paramCount];
+        this.paramTypes = new int[paramCount];
+        this.encoded = new byte[paramCount][];
+    }
 
-	private void bind(int index, Object value, int oid) throws SQLException {
-		if (index < 1 || index > paramValues.length)
-			throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE );
+    private void bind(int index, Object value, int oid) throws SQLException {
+        if (index < 1 || index > paramValues.length)
+            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE );
 
-		--index;
+        --index;
 
-		encoded[index] = null;
-		paramValues[index] = value;
-		paramTypes[index] = oid;
-	}
-		
-	public int getParameterCount() { 
-		return paramValues.length;
-	}
+        encoded[index] = null;
+        paramValues[index] = value;
+        paramTypes[index] = oid;
+    }
 
-	public void setIntParameter(int index, int value) throws SQLException {
-		byte[] data = new byte[4];
-		data[3] = (byte)value;
-		data[2] = (byte)(value>>8);
-		data[1] = (byte)(value>>16);
-		data[0] = (byte)(value>>24);
-		bind(index, data, Oid.INT4);
-	}
+    public int getParameterCount() {
+        return paramValues.length;
+    }
 
-	public void setLiteralParameter(int index, String value, int oid) throws SQLException {
-		bind(index, value, oid);
-	}
+    public void setIntParameter(int index, int value) throws SQLException {
+        byte[] data = new byte[4];
+        data[3] = (byte)value;
+        data[2] = (byte)(value >> 8);
+        data[1] = (byte)(value >> 16);
+        data[0] = (byte)(value >> 24);
+        bind(index, data, Oid.INT4);
+    }
 
-	public void setStringParameter(int index, String value, int oid) throws SQLException {
-		bind(index, value, oid);
-	}
+    public void setLiteralParameter(int index, String value, int oid) throws SQLException {
+        bind(index, value, oid);
+    }
 
-	public void setBytea(int index, byte[] data, int offset, int length) throws SQLException {
-		bind(index, new StreamWrapper(data, offset, length), Oid.BYTEA);
-	}
+    public void setStringParameter(int index, String value, int oid) throws SQLException {
+        bind(index, value, oid);
+    }
 
-	public void setBytea(int index, InputStream stream, int length) throws SQLException {
-		bind(index, new StreamWrapper(stream, length), Oid.BYTEA);
-	}
+    public void setBytea(int index, byte[] data, int offset, int length) throws SQLException {
+        bind(index, new StreamWrapper(data, offset, length), Oid.BYTEA);
+    }
 
-	public void setNull(int index, int oid) throws SQLException {
-		bind(index, NULL_OBJECT, oid);
-	}
+    public void setBytea(int index, InputStream stream, int length) throws SQLException {
+        bind(index, new StreamWrapper(stream, length), Oid.BYTEA);
+    }
 
-	public String toString(int index) {
-		--index;
+    public void setNull(int index, int oid) throws SQLException {
+        bind(index, NULL_OBJECT, oid);
+    }
 
-		if (paramValues[index] == null)
-			return "?";
-		else if (paramValues[index] == NULL_OBJECT)
-			return "NULL";
-		else
-			return paramValues[index].toString();
-	}
+    public String toString(int index) {
+        --index;
 
-	public void checkAllParametersSet() throws SQLException {
-		for (int i = 0; i < paramTypes.length; ++i) {
-			if (paramValues[i] == null)
-				throw new PSQLException(GT.tr("No value specified for parameter {0}.", new Integer(i+1)), PSQLState.INVALID_PARAMETER_VALUE);
-		}
-	}
+        if (paramValues[index] == null)
+            return "?";
+        else if (paramValues[index] == NULL_OBJECT)
+            return "NULL";
+        else
+            return paramValues[index].toString();
+    }
 
-	//
-	// bytea helper
-	//
+    public void checkAllParametersSet() throws SQLException {
+        for (int i = 0; i < paramTypes.length; ++i)
+        {
+            if (paramValues[i] == null)
+                throw new PSQLException(GT.tr("No value specified for parameter {0}.", new Integer(i + 1)), PSQLState.INVALID_PARAMETER_VALUE);
+        }
+    }
 
-	private static void streamBytea(PGStream pgStream, StreamWrapper wrapper) throws IOException {
-		byte[] rawData = wrapper.getBytes();
-		if (rawData != null) {
-			pgStream.Send(rawData, wrapper.getOffset(), wrapper.getLength());
-			return;
-		}
+    //
+    // bytea helper
+    //
 
-		pgStream.SendStream(wrapper.getStream(), wrapper.getLength());
-	}
+    private static void streamBytea(PGStream pgStream, StreamWrapper wrapper) throws IOException {
+        byte[] rawData = wrapper.getBytes();
+        if (rawData != null)
+        {
+            pgStream.Send(rawData, wrapper.getOffset(), wrapper.getLength());
+            return ;
+        }
 
-	//
-	// Package-private V3 accessors
-	//
+        pgStream.SendStream(wrapper.getStream(), wrapper.getLength());
+    }
 
-	int getTypeOID(int index) {
-		return paramTypes[index-1];
-	}
+    //
+    // Package-private V3 accessors
+    //
 
-	boolean isNull(int index) {
-		return (paramValues[index-1] == NULL_OBJECT);
-	}
+    int getTypeOID(int index) {
+        return paramTypes[index -1];
+    }
 
-	boolean isBinary(int index) {
-		// Currently, only StreamWrapper uses the binary parameter form.
-		return (paramValues[index-1] instanceof StreamWrapper);
-	}
+    boolean isNull(int index) {
+        return (paramValues[index -1] == NULL_OBJECT);
+    }
 
-	int getV3Length(int index) {
-		--index;
+    boolean isBinary(int index) {
+        // Currently, only StreamWrapper uses the binary parameter form.
+        return (paramValues[index -1] instanceof StreamWrapper);
+    }
 
-		// Null?
-		if (paramValues[index] == NULL_OBJECT)
-			throw new IllegalArgumentException("can't getV3Length() on a null parameter");
+    int getV3Length(int index) {
+        --index;
 
-		// Directly encoded?
-		if (paramValues[index] instanceof byte[])
-			return ((byte[])paramValues[index]).length;
+        // Null?
+        if (paramValues[index] == NULL_OBJECT)
+            throw new IllegalArgumentException("can't getV3Length() on a null parameter");
 
-		// Binary-format bytea?
-		if (paramValues[index] instanceof StreamWrapper)
-			return ((StreamWrapper)paramValues[index]).getLength();
+        // Directly encoded?
+        if (paramValues[index] instanceof byte[])
+            return ((byte[])paramValues[index]).length;
 
-		// Already encoded?
-		if (encoded[index] == null) {
-			// Encode value and compute actual length using UTF-8.
-			encoded[index] = Utils.encodeUTF8(paramValues[index].toString());
-		}
+        // Binary-format bytea?
+        if (paramValues[index] instanceof StreamWrapper)
+            return ((StreamWrapper)paramValues[index]).getLength();
 
-		return encoded[index].length;
-	}
+        // Already encoded?
+        if (encoded[index] == null)
+        {
+            // Encode value and compute actual length using UTF-8.
+            encoded[index] = Utils.encodeUTF8(paramValues[index].toString());
+        }
 
-	void writeV3Value(int index, PGStream pgStream) throws IOException {
-		--index;
+        return encoded[index].length;
+    }
 
-		// Null?
-		if (paramValues[index] == NULL_OBJECT)
-			throw new IllegalArgumentException("can't writeV3Value() on a null parameter");
-		
-		// Directly encoded?
-		if (paramValues[index] instanceof byte[]) {
-			pgStream.Send((byte[])paramValues[index]);
-			return;
-		}
+    void writeV3Value(int index, PGStream pgStream) throws IOException {
+        --index;
 
-		// Binary-format bytea?
-		if (paramValues[index] instanceof StreamWrapper) {
-			streamBytea(pgStream, (StreamWrapper)paramValues[index]);
-			return;
-		}
+        // Null?
+        if (paramValues[index] == NULL_OBJECT)
+            throw new IllegalArgumentException("can't writeV3Value() on a null parameter");
 
-		// Encoded string.
-		if (encoded[index] == null)
-			encoded[index] = Utils.encodeUTF8((String)paramValues[index]);
-		pgStream.Send(encoded[index]);
-	}	
+        // Directly encoded?
+        if (paramValues[index] instanceof byte[])
+        {
+            pgStream.Send((byte[])paramValues[index]);
+            return ;
+        }
 
-	public ParameterList copy() {
-		SimpleParameterList newCopy = new SimpleParameterList(paramValues.length);
-		System.arraycopy(paramValues, 0, newCopy.paramValues, 0, paramValues.length);
-		System.arraycopy(paramTypes, 0, newCopy.paramTypes, 0, paramTypes.length);
-		return newCopy;
-	}
+        // Binary-format bytea?
+        if (paramValues[index] instanceof StreamWrapper)
+        {
+            streamBytea(pgStream, (StreamWrapper)paramValues[index]);
+            return ;
+        }
 
-	public void clear() {
-		Arrays.fill(paramValues, null);
-		Arrays.fill(paramTypes, 0);
-		Arrays.fill(encoded, null);
-	}
+        // Encoded string.
+        if (encoded[index] == null)
+            encoded[index] = Utils.encodeUTF8((String)paramValues[index]);
+        pgStream.Send(encoded[index]);
+    }
 
-	public SimpleParameterList[] getSubparams() {
-		return null;
-	}
+    public ParameterList copy() {
+        SimpleParameterList newCopy = new SimpleParameterList(paramValues.length);
+        System.arraycopy(paramValues, 0, newCopy.paramValues, 0, paramValues.length);
+        System.arraycopy(paramTypes, 0, newCopy.paramTypes, 0, paramTypes.length);
+        return newCopy;
+    }
 
-	private final Object[] paramValues;
-	private final int[]    paramTypes;
-	private final byte[][] encoded;
+    public void clear() {
+        Arrays.fill(paramValues, null);
+        Arrays.fill(paramTypes, 0);
+        Arrays.fill(encoded, null);
+    }
 
-	/**
-	 * Marker object representing NULL; this distinguishes
-	 * "parameter never set" from "parameter set to null".
-	 */
-	private final static Object NULL_OBJECT = new Object();
+    public SimpleParameterList[] getSubparams() {
+        return null;
+    }
+
+    private final Object[] paramValues;
+    private final int[] paramTypes;
+    private final byte[][] encoded;
+
+    /**
+     * Marker object representing NULL; this distinguishes
+     * "parameter never set" from "parameter set to null".
+     */
+    private final static Object NULL_OBJECT = new Object();
 }
 

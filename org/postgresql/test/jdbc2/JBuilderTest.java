@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2004, PostgreSQL Global Development Group
- *
- * IDENTIFICATION
- *	  $PostgreSQL$
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2004, PostgreSQL Global Development Group
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/JBuilderTest.java,v 1.11 2004/11/07 22:16:52 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.test.TestUtil;
@@ -22,49 +22,49 @@ import junit.framework.TestCase;
 public class JBuilderTest extends TestCase
 {
 
-	public JBuilderTest(String name)
-	{
-		super(name);
-	}
+    public JBuilderTest(String name)
+    {
+        super(name);
+    }
 
-	// Set up the fixture for this testcase: the tables for this test.
-	protected void setUp() throws Exception
-	{
-		Connection con = TestUtil.openDB();
+    // Set up the fixture for this testcase: the tables for this test.
+    protected void setUp() throws Exception
+    {
+        Connection con = TestUtil.openDB();
 
-		TestUtil.createTable( con, "test_c",
-							  "source text,cost money,imageid int4" );
+        TestUtil.createTable( con, "test_c",
+                              "source text,cost money,imageid int4" );
 
-		TestUtil.closeDB(con);
-	}
+        TestUtil.closeDB(con);
+    }
 
-	// Tear down the fixture for this test case.
-	protected void tearDown() throws Exception
-	{
-		Connection con = TestUtil.openDB();
-		TestUtil.dropTable(con, "test_c");
-		TestUtil.closeDB(con);
-	}
+    // Tear down the fixture for this test case.
+    protected void tearDown() throws Exception
+    {
+        Connection con = TestUtil.openDB();
+        TestUtil.dropTable(con, "test_c");
+        TestUtil.closeDB(con);
+    }
 
-	/*
-	 * This tests that Money types work. JDBCExplorer barfs if this fails.
-	 */
-	public void testMoney() throws SQLException
-	{
-		Connection con = TestUtil.openDB();
+    /*
+     * This tests that Money types work. JDBCExplorer barfs if this fails.
+     */
+    public void testMoney() throws SQLException
+    {
+        Connection con = TestUtil.openDB();
 
-		Statement st = con.createStatement();
-		ResultSet rs = st.executeQuery("select cost from test_c");
-		assertNotNull(rs);
+        Statement st = con.createStatement();
+        ResultSet rs = st.executeQuery("select cost from test_c");
+        assertNotNull(rs);
 
-		while (rs.next())
-		{
-			rs.getDouble(1);
-		}
+        while (rs.next())
+        {
+            rs.getDouble(1);
+        }
 
-		rs.close();
-		st.close();
+        rs.close();
+        st.close();
 
-		TestUtil.closeDB(con);
-	}
+        TestUtil.closeDB(con);
+    }
 }

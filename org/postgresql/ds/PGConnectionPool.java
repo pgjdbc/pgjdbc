@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2004, PostgreSQL Global Development Group
- *
- * IDENTIFICATION
- *	  $PostgreSQL$
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2004, PostgreSQL Global Development Group
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/PGConnectionPool.java,v 1.2 2004/11/07 22:15:42 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.ds;
 
 import javax.sql.ConnectionPoolDataSource;
@@ -38,69 +38,69 @@ import org.postgresql.ds.common.*;
  */
 public class PGConnectionPool extends BaseDataSource implements Serializable, ConnectionPoolDataSource
 {
-	private boolean defaultAutoCommit = false;
+    private boolean defaultAutoCommit = false;
 
-	/**
-	 * Gets a description of this DataSource.
-	 */
-	public String getDescription()
-	{
-		return "ConnectionPoolDataSource from " + org.postgresql.Driver.getVersion();
-	}
+    /**
+     * Gets a description of this DataSource.
+     */
+    public String getDescription()
+    {
+        return "ConnectionPoolDataSource from " + org.postgresql.Driver.getVersion();
+    }
 
-	/**
-	 * Gets a connection which may be pooled by the app server or middleware
-	 * implementation of DataSource.
-	 *
-	 * @throws java.sql.SQLException
-	 *		   Occurs when the physical database connection cannot be established.
-	 */
-	public PooledConnection getPooledConnection() throws SQLException
-	{
-		return new PooledConnectionImpl(getConnection(), defaultAutoCommit);
-	}
+    /**
+     * Gets a connection which may be pooled by the app server or middleware
+     * implementation of DataSource.
+     *
+     * @throws java.sql.SQLException
+     *     Occurs when the physical database connection cannot be established.
+     */
+    public PooledConnection getPooledConnection() throws SQLException
+    {
+        return new PooledConnectionImpl(getConnection(), defaultAutoCommit);
+    }
 
-	/**
-	 * Gets a connection which may be pooled by the app server or middleware
-	 * implementation of DataSource.
-	 *
-	 * @throws java.sql.SQLException
-	 *		   Occurs when the physical database connection cannot be established.
-	 */
-	public PooledConnection getPooledConnection(String user, String password) throws SQLException
-	{
-		return new PooledConnectionImpl(getConnection(user, password), defaultAutoCommit);
-	}
+    /**
+     * Gets a connection which may be pooled by the app server or middleware
+     * implementation of DataSource.
+     *
+     * @throws java.sql.SQLException
+     *     Occurs when the physical database connection cannot be established.
+     */
+    public PooledConnection getPooledConnection(String user, String password) throws SQLException
+    {
+        return new PooledConnectionImpl(getConnection(user, password), defaultAutoCommit);
+    }
 
-	/**
-	 * Gets whether connections supplied by this pool will have autoCommit
-	 * turned on by default.  The default value is <tt>false</tt>, so that
-	 * autoCommit will be turned off by default.
-	 */
-	public boolean isDefaultAutoCommit()
-	{
-		return defaultAutoCommit;
-	}
+    /**
+     * Gets whether connections supplied by this pool will have autoCommit
+     * turned on by default.  The default value is <tt>false</tt>, so that
+     * autoCommit will be turned off by default.
+     */
+    public boolean isDefaultAutoCommit()
+    {
+        return defaultAutoCommit;
+    }
 
-	/**
-	 * Sets whether connections supplied by this pool will have autoCommit
-	 * turned on by default.  The default value is <tt>false</tt>, so that
-	 * autoCommit will be turned off by default.
-	 */
-	public void setDefaultAutoCommit(boolean defaultAutoCommit)
-	{
-		this.defaultAutoCommit = defaultAutoCommit;
-	}
+    /**
+     * Sets whether connections supplied by this pool will have autoCommit
+     * turned on by default.  The default value is <tt>false</tt>, so that
+     * autoCommit will be turned off by default.
+     */
+    public void setDefaultAutoCommit(boolean defaultAutoCommit)
+    {
+        this.defaultAutoCommit = defaultAutoCommit;
+    }
 
-	private void writeObject(ObjectOutputStream out) throws IOException
-	{
-		writeBaseObject(out);
-		out.writeBoolean(defaultAutoCommit);
-	}
+    private void writeObject(ObjectOutputStream out) throws IOException
+    {
+        writeBaseObject(out);
+        out.writeBoolean(defaultAutoCommit);
+    }
 
-	private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException
-	{
-		readBaseObject(in);
-		defaultAutoCommit = in.readBoolean();
-	}
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException
+    {
+        readBaseObject(in);
+        defaultAutoCommit = in.readBoolean();
+    }
 }

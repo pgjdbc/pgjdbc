@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2003-2004, PostgreSQL Global Development Group
- *
- * IDENTIFICATION
- *	  $PostgreSQL: pgjdbc/org/postgresql/PGRefCursorResultSet.java,v 1.3 2004/06/29 06:43:24 jurka Exp $
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2003-2004, PostgreSQL Global Development Group
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/PGRefCursorResultSet.java,v 1.4 2004/11/07 22:15:29 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql;
 
 /**
@@ -18,10 +18,10 @@ package org.postgresql;
  */
 public interface PGRefCursorResultSet
 {
-	
-	/** @return the name of the cursor.
-	 *  @deprecated As of build 303, replaced with calling getString() on
-	 *    the ResultSet that this ResultSet was obtained from.
-	 */
-	public String getRefCursor ();	
+
+    /** @return the name of the cursor.
+     *  @deprecated As of build 303, replaced with calling getString() on
+     *    the ResultSet that this ResultSet was obtained from.
+     */
+    public String getRefCursor ();
 }

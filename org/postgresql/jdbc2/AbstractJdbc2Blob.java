@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2004, PostgreSQL Global Development Group
- *
- * IDENTIFICATION
- *	  $PostgreSQL$
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2004, PostgreSQL Global Development Group
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Blob.java,v 1.5 2004/11/07 22:15:59 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.jdbc2;
 
 import org.postgresql.PGConnection;
@@ -18,44 +18,44 @@ import java.sql.SQLException;
 
 public abstract class AbstractJdbc2Blob
 {
-	private LargeObject lo;
+    private LargeObject lo;
 
-	public AbstractJdbc2Blob(PGConnection conn, int oid) throws SQLException
-	{
-		LargeObjectManager lom = conn.getLargeObjectAPI();
-		this.lo = lom.open(oid);
-	}
+    public AbstractJdbc2Blob(PGConnection conn, int oid) throws SQLException
+    {
+        LargeObjectManager lom = conn.getLargeObjectAPI();
+        this.lo = lom.open(oid);
+    }
 
-	public long length() throws SQLException
-	{
-		return lo.size();
-	}
+    public long length() throws SQLException
+    {
+        return lo.size();
+    }
 
-	public InputStream getBinaryStream() throws SQLException
-	{
-		return lo.getInputStream();
-	}
+    public InputStream getBinaryStream() throws SQLException
+    {
+        return lo.getInputStream();
+    }
 
-	public byte[] getBytes(long pos, int length) throws SQLException
-	{
-		lo.seek((int)pos, LargeObject.SEEK_SET);
-		return lo.read(length);
-	}
+    public byte[] getBytes(long pos, int length) throws SQLException
+    {
+        lo.seek((int)pos, LargeObject.SEEK_SET);
+        return lo.read(length);
+    }
 
-	/*
-	 * For now, this is not implemented.
-	 */
-	public long position(byte[] pattern, long start) throws SQLException
-	{
-		throw org.postgresql.Driver.notImplemented();
-	}
+    /*
+     * For now, this is not implemented.
+     */
+    public long position(byte[] pattern, long start) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented();
+    }
 
-	/*
-	 * This should be simply passing the byte value of the pattern Blob
-	 */
-	public long position(Blob pattern, long start) throws SQLException
-	{
-		return position(pattern.getBytes(0, (int)pattern.length()), start);
-	}
+    /*
+     * This should be simply passing the byte value of the pattern Blob
+     */
+    public long position(Blob pattern, long start) throws SQLException
+    {
+        return position(pattern.getBytes(0, (int)pattern.length()), start);
+    }
 
 }

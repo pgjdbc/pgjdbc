@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2004, PostgreSQL Global Development Group
- *
- * IDENTIFICATION
- *	  $PostgreSQL$
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2004, PostgreSQL Global Development Group
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/ssl/NonValidatingFactory.java,v 1.2 2004/11/07 22:16:38 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.ssl;
 
 import javax.net.ssl.SSLContext;
@@ -18,28 +18,28 @@ import java.security.GeneralSecurityException;
 
 public class NonValidatingFactory extends WrappedFactory {
 
-	public NonValidatingFactory(String arg) throws GeneralSecurityException {
-		SSLContext ctx = SSLContext.getInstance("TLS"); // or "SSL" ?
+    public NonValidatingFactory(String arg) throws GeneralSecurityException {
+        SSLContext ctx = SSLContext.getInstance("TLS"); // or "SSL" ?
 
-		ctx.init(null,
-			new TrustManager[] { new NonValidatingTM() },
-			null);
+        ctx.init(null,
+                 new TrustManager[] { new NonValidatingTM() },
+                 null);
 
-		_factory = ctx.getSocketFactory();
-	}
+        _factory = ctx.getSocketFactory();
+    }
 
-	class NonValidatingTM implements X509TrustManager {
+    class NonValidatingTM implements X509TrustManager {
 
-		public X509Certificate[] getAcceptedIssuers() {
-			return new X509Certificate[0];
-		}
+        public X509Certificate[] getAcceptedIssuers() {
+            return new X509Certificate[0];
+        }
 
-		public void checkClientTrusted(X509Certificate[] certs, String authType) {
-		}
+        public void checkClientTrusted(X509Certificate[] certs, String authType) {
+        }
 
-		public void checkServerTrusted(X509Certificate[] certs, String authType) {
-		}
-	}
+        public void checkServerTrusted(X509Certificate[] certs, String authType) {
+        }
+    }
 
 }
 

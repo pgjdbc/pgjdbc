@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2004, Open Cloud Limited.
- *
- * IDENTIFICATION
- *	  $PostgreSQL: pgjdbc/org/postgresql/core/ResultCursor.java,v 1.1 2004/06/29 06:43:25 jurka Exp $
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2004, Open Cloud Limited.
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/core/ResultCursor.java,v 1.2 2004/11/07 22:15:33 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.core;
 
 /**
@@ -18,10 +18,10 @@ package org.postgresql.core;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 public interface ResultCursor {
-	/**
-	 * Close this cursor. This may not immediately free underlying resources
-	 * but may make it happen more promptly. Closed cursors should not be
-	 * passed to QueryExecutor methods.
-	 */
-	void close();
+    /**
+     * Close this cursor. This may not immediately free underlying resources
+     * but may make it happen more promptly. Closed cursors should not be
+     * passed to QueryExecutor methods.
+     */
+    void close();
 }

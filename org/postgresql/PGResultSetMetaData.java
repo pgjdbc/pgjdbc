@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2003-2004, PostgreSQL Global Development Group
- *
- * IDENTIFICATION
- *	  $PostgreSQL$
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2003-2004, PostgreSQL Global Development Group
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/PGResultSetMetaData.java,v 1.2 2004/11/07 22:15:29 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql;
 
 import java.sql.SQLException;
@@ -14,28 +14,28 @@ import java.sql.SQLException;
 public interface PGResultSetMetaData
 {
 
-	/**
-	 * Returns the underlying column name of a query result, or ""
-	 * if it is unable to be determined.
-	 * 
-	 * @since 8.0
-	 */
-	public String getBaseColumnName(int column) throws SQLException;
+    /**
+     * Returns the underlying column name of a query result, or ""
+     * if it is unable to be determined.
+     * 
+     * @since 8.0
+     */
+    public String getBaseColumnName(int column) throws SQLException;
 
-	/**
-	 * Returns the underlying table name of query result, or ""
-	 * if it is unable to be determined.
-	 *
-	 * @since 8.0
-	 */
-	public String getBaseTableName(int column) throws SQLException;
+    /**
+     * Returns the underlying table name of query result, or ""
+     * if it is unable to be determined.
+     *
+     * @since 8.0
+     */
+    public String getBaseTableName(int column) throws SQLException;
 
-	/**
-	 * Returns the underlying table name of query result, or ""
-	 * if it is unable to be determined.
-	 *
-	 * @since 8.0
-	 */
-	public String getBaseSchemaName(int column) throws SQLException;
+    /**
+     * Returns the underlying table name of query result, or ""
+     * if it is unable to be determined.
+     *
+     * @since 8.0
+     */
+    public String getBaseSchemaName(int column) throws SQLException;
 
 }

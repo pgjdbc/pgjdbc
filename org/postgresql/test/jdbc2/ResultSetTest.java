@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2004, PostgreSQL Global Development Group
- *
- * IDENTIFICATION
- *	  $PostgreSQL$
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2004, PostgreSQL Global Development Group
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ResultSetTest.java,v 1.22 2004/11/07 22:16:56 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.test.TestUtil;
@@ -22,15 +22,15 @@ import junit.framework.TestCase;
  */
 public class ResultSetTest extends TestCase
 {
-	private Connection con;
+    private Connection con;
 
-	public ResultSetTest(String name)
-	{
-		super(name);
-	}
+    public ResultSetTest(String name)
+    {
+        super(name);
+    }
 
-	protected void setUp() throws SQLException
-	{
+    protected void setUp() throws SQLException
+    {
         con = TestUtil.openDB();
         Statement stmt = con.createStatement();
 
@@ -97,227 +97,231 @@ public class ResultSetTest extends TestCase
         stmt.close();
 
 
-	}
+    }
 
-	protected void tearDown() throws SQLException
-	{
-		TestUtil.dropTable(con, "testrs");
-		TestUtil.dropTable(con, "teststring");
-		TestUtil.dropTable(con, "testint");
-		TestUtil.dropTable(con, "testbool");
-		//TestUtil.dropTable(con, "testbit");
-		TestUtil.dropTable(con, "testboolstring");
-		TestUtil.dropTable(con, "testnumeric");
-		TestUtil.closeDB(con);
-	}
+    protected void tearDown() throws SQLException
+    {
+        TestUtil.dropTable(con, "testrs");
+        TestUtil.dropTable(con, "teststring");
+        TestUtil.dropTable(con, "testint");
+        TestUtil.dropTable(con, "testbool");
+        //TestUtil.dropTable(con, "testbit");
+        TestUtil.dropTable(con, "testboolstring");
+        TestUtil.dropTable(con, "testnumeric");
+        TestUtil.closeDB(con);
+    }
 
-	public void testBackward() throws SQLException
-	{
-		Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-		ResultSet rs = stmt.executeQuery("SELECT * FROM testrs");
-		rs.afterLast();
-		assertTrue(rs.previous());
-		rs.close();
-		stmt.close();
-	}
+    public void testBackward() throws SQLException
+    {
+        Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        ResultSet rs = stmt.executeQuery("SELECT * FROM testrs");
+        rs.afterLast();
+        assertTrue(rs.previous());
+        rs.close();
+        stmt.close();
+    }
 
-	public void testAbsolute() throws SQLException
-	{
-		Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-		ResultSet rs = stmt.executeQuery("SELECT * FROM testrs");
+    public void testAbsolute() throws SQLException
+    {
+        Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        ResultSet rs = stmt.executeQuery("SELECT * FROM testrs");
 
-		assertTrue(!rs.absolute(0));
-		assertEquals(0, rs.getRow());
+        assertTrue(!rs.absolute(0));
+        assertEquals(0, rs.getRow());
 
-		assertTrue(rs.absolute( -1));
-		assertEquals(6, rs.getRow());
+        assertTrue(rs.absolute( -1));
+        assertEquals(6, rs.getRow());
 
-		assertTrue(rs.absolute(1));
-		assertEquals(1, rs.getRow());
+        assertTrue(rs.absolute(1));
+        assertEquals(1, rs.getRow());
 
-		assertTrue(!rs.absolute( -10));
-		assertEquals(0, rs.getRow());
-		assertTrue(rs.next());
-		assertEquals(1, rs.getRow());
+        assertTrue(!rs.absolute( -10));
+        assertEquals(0, rs.getRow());
+        assertTrue(rs.next());
+        assertEquals(1, rs.getRow());
 
-		assertTrue(!rs.absolute(10));
-		assertEquals(0, rs.getRow());
-		assertTrue(rs.previous());
-		assertEquals(6, rs.getRow());
+        assertTrue(!rs.absolute(10));
+        assertEquals(0, rs.getRow());
+        assertTrue(rs.previous());
+        assertEquals(6, rs.getRow());
 
-		stmt.close();
-	}
+        stmt.close();
+    }
 
-	public void testEmptyResult() throws SQLException
-	{
-		Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-		ResultSet rs = stmt.executeQuery("SELECT * FROM testrs where id=100");
-		rs.beforeFirst();
-		rs.afterLast();
-		assertTrue(!rs.first());
-		assertTrue(!rs.last());
-		assertTrue(!rs.next());
-	}
+    public void testEmptyResult() throws SQLException
+    {
+        Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        ResultSet rs = stmt.executeQuery("SELECT * FROM testrs where id=100");
+        rs.beforeFirst();
+        rs.afterLast();
+        assertTrue(!rs.first());
+        assertTrue(!rs.last());
+        assertTrue(!rs.next());
+    }
 
-	public void testMaxFieldSize() throws SQLException
-	{
-			Statement stmt = con.createStatement();
-			stmt.setMaxFieldSize(2);
+    public void testMaxFieldSize() throws SQLException
+    {
+        Statement stmt = con.createStatement();
+        stmt.setMaxFieldSize(2);
 
-   			ResultSet rs = stmt.executeQuery("select * from testint");
+        ResultSet rs = stmt.executeQuery("select * from testint");
 
-   			//max should not apply to the following since per the spec
-   			//it should apply only to binary and char/varchar columns
-   			rs.next();
-   			assertEquals("12345", rs.getString(1));
-   			assertEquals("12345", new String(rs.getBytes(1)));
+        //max should not apply to the following since per the spec
+        //it should apply only to binary and char/varchar columns
+        rs.next();
+        assertEquals("12345", rs.getString(1));
+        assertEquals("12345", new String(rs.getBytes(1)));
 
-   			//max should apply to the following since the column is
-   			//a varchar column
-   			rs = stmt.executeQuery("select * from teststring");
-   			rs.next();
-   			assertEquals("12", rs.getString(1));
-   			assertEquals("12", new String(rs.getBytes(1)));
-	}
+        //max should apply to the following since the column is
+        //a varchar column
+        rs = stmt.executeQuery("select * from teststring");
+        rs.next();
+        assertEquals("12", rs.getString(1));
+        assertEquals("12", new String(rs.getBytes(1)));
+    }
 
-	public void booleanTests(boolean useServerPrepare) throws SQLException
+    public void booleanTests(boolean useServerPrepare) throws SQLException
+    {
+        java.sql.PreparedStatement pstmt = con.prepareStatement("insert into testbool values (?)");
+        if (useServerPrepare)
+            ((org.postgresql.PGStatement)pstmt).setUseServerPrepare(true);
+
+        pstmt.setObject(1, new Float(0), java.sql.Types.BIT);
+        pstmt.executeUpdate();
+
+        pstmt.setObject(1, new Float(1), java.sql.Types.BIT);
+        pstmt.executeUpdate();
+
+        pstmt.setObject(1, "False", java.sql.Types.BIT);
+        pstmt.executeUpdate();
+
+        pstmt.setObject(1, "True", java.sql.Types.BIT);
+        pstmt.executeUpdate();
+
+        ResultSet rs = con.createStatement().executeQuery("select * from testbool");
+        for (int i = 0; i < 2; i++)
         {
-                java.sql.PreparedStatement pstmt = con.prepareStatement("insert into testbool values (?)");
-                if (useServerPrepare)
-			((org.postgresql.PGStatement)pstmt).setUseServerPrepare(true);
+            assertTrue(rs.next());
+            assertEquals(false, rs.getBoolean(1));
+            assertTrue(rs.next());
+            assertEquals(true, rs.getBoolean(1));
+        }
 
-		pstmt.setObject(1, new Float(0), java.sql.Types.BIT);
-                pstmt.executeUpdate();
+        /*
+        pstmt = con.prepareStatement("insert into testbit values (?)");
 
-                pstmt.setObject(1, new Float(1), java.sql.Types.BIT);
-                pstmt.executeUpdate();
+                      pstmt.setObject(1, new Float(0), java.sql.Types.BIT);
+                      pstmt.executeUpdate();
 
-                pstmt.setObject(1, "False", java.sql.Types.BIT);
-                pstmt.executeUpdate();
+                      pstmt.setObject(1, new Float(1), java.sql.Types.BIT);
+                      pstmt.executeUpdate();
 
-                pstmt.setObject(1, "True", java.sql.Types.BIT);
-                pstmt.executeUpdate();
+                      pstmt.setObject(1, "false", java.sql.Types.BIT);
+                      pstmt.executeUpdate();
 
-                ResultSet rs = con.createStatement().executeQuery("select * from testbool");
-		for (int i = 0; i<2; i++)
-                {
-                	assertTrue(rs.next());
-                        assertEquals(false, rs.getBoolean(1));
-                        assertTrue(rs.next());
-                        assertEquals(true, rs.getBoolean(1));
-                }
+                      pstmt.setObject(1, "true", java.sql.Types.BIT);
+                      pstmt.executeUpdate();
 
-		/*
-		pstmt = con.prepareStatement("insert into testbit values (?)");
+        rs = con.createStatement().executeQuery("select * from testbit");
 
-                pstmt.setObject(1, new Float(0), java.sql.Types.BIT);
-                pstmt.executeUpdate();
+                      for (int i = 0;i<2; i++)
+                      {
+                assertTrue(rs.next());
+                       assertEquals(false, rs.getBoolean(1));
+                              assertTrue(rs.next());
+                              assertEquals(true, rs.getBoolean(1));
+                      }
+        */
 
-                pstmt.setObject(1, new Float(1), java.sql.Types.BIT);
-                pstmt.executeUpdate();
+        rs = con.createStatement().executeQuery("select * from testboolstring");
 
-                pstmt.setObject(1, "false", java.sql.Types.BIT);
-                pstmt.executeUpdate();
+        for (int i = 0;i < 4; i++)
+        {
+            assertTrue(rs.next());
+            assertEquals(true, rs.getBoolean(1));
+            assertTrue(rs.next());
+            assertEquals(false, rs.getBoolean(1));
+        }
+    }
 
-                pstmt.setObject(1, "true", java.sql.Types.BIT);
-                pstmt.executeUpdate();
+    public void testBoolean() throws SQLException
+    {
+        booleanTests(true);
+        booleanTests(false);
+    }
 
-		rs = con.createStatement().executeQuery("select * from testbit");
+    public void testgetByte() throws SQLException
+    {
+        ResultSet rs = con.createStatement().executeQuery(
+                           "select * from testnumeric");
 
-                for (int i = 0;i<2; i++)
-                {
-		        assertTrue(rs.next());
-                	assertEquals(false, rs.getBoolean(1));
-                        assertTrue(rs.next());
-                        assertEquals(true, rs.getBoolean(1));
-                }
-		*/
+        assertTrue(rs.next());
+        assertEquals(1, rs.getByte(1));
 
-                rs = con.createStatement().executeQuery("select * from testboolstring");
+        assertTrue(rs.next());
+        assertEquals(0, rs.getByte(1));
 
-                for (int i = 0;i<4; i++)
-                {
-                        assertTrue(rs.next());
-                        assertEquals(true, rs.getBoolean(1));
-                        assertTrue(rs.next());
-                        assertEquals(false, rs.getBoolean(1));
-               }
-       }
+        assertTrue(rs.next());
+        assertEquals( -1, rs.getByte(1));
 
-       public void testBoolean() throws SQLException
-       {
-               booleanTests(true);
-               booleanTests(false);
-       }
+        assertTrue(rs.next());
+        assertEquals(1, rs.getByte(1));
 
-       public void testgetByte() throws SQLException
-       {
-           ResultSet rs = con.createStatement().executeQuery(
-               "select * from testnumeric");
+        assertTrue(rs.next());
+        assertEquals( -2, rs.getByte(1));
 
-           assertTrue(rs.next());
-           assertEquals(1, rs.getByte(1));
+        while (rs.next())
+        {
+            try
+            {
+                rs.getByte(1);
+                fail("Exception expected.");
+            }
+            catch (Exception e)
+            {
+            }
+        }
+        rs.close();
+    }
 
-           assertTrue(rs.next());
-           assertEquals(0, rs.getByte(1));
+    public void testgetShort() throws SQLException
+    {
+        ResultSet rs = con.createStatement().executeQuery(
+                           "select * from testnumeric");
 
-           assertTrue(rs.next());
-           assertEquals( -1, rs.getByte(1));
+        assertTrue(rs.next());
+        assertEquals(1, rs.getShort(1));
 
-           assertTrue(rs.next());
-           assertEquals(1, rs.getByte(1));
+        assertTrue(rs.next());
+        assertEquals(0, rs.getShort(1));
 
-           assertTrue(rs.next());
-           assertEquals(-2, rs.getByte(1));
+        assertTrue(rs.next());
+        assertEquals( -1, rs.getShort(1));
 
-           while (rs.next())
-           {
-               try
-               {
-                   rs.getByte(1);
-		   fail("Exception expected.");
-               }
-               catch (Exception e) { }
-           }
-           rs.close();
-       }
+        assertTrue(rs.next());
+        assertEquals(1, rs.getShort(1));
 
-       public void testgetShort() throws SQLException
-       {
-           ResultSet rs = con.createStatement().executeQuery(
-               "select * from testnumeric");
+        assertTrue(rs.next());
+        assertEquals( -2, rs.getShort(1));
 
-           assertTrue(rs.next());
-           assertEquals(1, rs.getShort(1));
-
-           assertTrue(rs.next());
-           assertEquals(0, rs.getShort(1));
-
-           assertTrue(rs.next());
-           assertEquals( -1, rs.getShort(1));
-
-           assertTrue(rs.next());
-           assertEquals(1, rs.getShort(1));
-
-           assertTrue(rs.next());
-           assertEquals(-2, rs.getShort(1));
-
-           while (rs.next())
-           {
-               try
-               {
-                   rs.getShort(1);
-                   fail("Exception expected.");
-               }
-               catch (Exception e) { }
-           }
-           rs.close();
-	}
+        while (rs.next())
+        {
+            try
+            {
+                rs.getShort(1);
+                fail("Exception expected.");
+            }
+            catch (Exception e)
+            {
+            }
+        }
+        rs.close();
+    }
 
     public void testgetInt() throws SQLException
     {
         ResultSet rs = con.createStatement().executeQuery(
-            "select * from testnumeric");
+                           "select * from testnumeric");
 
         assertTrue(rs.next());
         assertEquals(1, rs.getInt(1));
@@ -341,10 +345,10 @@ public class ResultSetTest extends TestCase
         assertEquals(99999, rs.getInt(1));
 
         assertTrue(rs.next());
-        assertEquals(-99999, rs.getInt(1));
+        assertEquals( -99999, rs.getInt(1));
 
         assertTrue(rs.next());
-        assertEquals(-99999, rs.getInt(1));
+        assertEquals( -99999, rs.getInt(1));
 
         assertTrue(rs.next());
         assertEquals(Integer.MAX_VALUE, rs.getInt(1));
@@ -359,7 +363,9 @@ public class ResultSetTest extends TestCase
                 rs.getInt(1);
                 fail("Exception expected." + rs.getString(1));
             }
-            catch (Exception e) { }
+            catch (Exception e)
+            {
+            }
         }
         rs.close();
     }
@@ -367,7 +373,7 @@ public class ResultSetTest extends TestCase
     public void testgetLong() throws SQLException
     {
         ResultSet rs = con.createStatement().executeQuery(
-            "select * from testnumeric");
+                           "select * from testnumeric");
 
         assertTrue(rs.next());
         assertEquals(1, rs.getLong(1));
@@ -391,10 +397,10 @@ public class ResultSetTest extends TestCase
         assertEquals(99999, rs.getLong(1));
 
         assertTrue(rs.next());
-        assertEquals(-99999, rs.getLong(1));
+        assertEquals( -99999, rs.getLong(1));
 
         assertTrue(rs.next());
-        assertEquals(-99999, rs.getLong(1));
+        assertEquals( -99999, rs.getLong(1));
 
         assertTrue(rs.next());
         assertEquals( ((long)Integer.MAX_VALUE), rs.getLong(1));
@@ -403,10 +409,10 @@ public class ResultSetTest extends TestCase
         assertEquals( ((long)Integer.MIN_VALUE), rs.getLong(1));
 
         assertTrue(rs.next());
-        assertEquals( ((long)Integer.MAX_VALUE)+1, rs.getLong(1));
+        assertEquals( ((long)Integer.MAX_VALUE) + 1, rs.getLong(1));
 
         assertTrue(rs.next());
-        assertEquals( ((long)Integer.MIN_VALUE)-1, rs.getLong(1));
+        assertEquals( ((long)Integer.MIN_VALUE) - 1, rs.getLong(1));
 
         assertTrue(rs.next());
         assertEquals( Long.MAX_VALUE, rs.getLong(1));
@@ -421,157 +427,220 @@ public class ResultSetTest extends TestCase
                 rs.getLong(1);
                 fail("Exception expected." + rs.getString(1) );
             }
-            catch (Exception e) { }
+            catch (Exception e)
+            {
+            }
         }
         rs.close();
     }
 
-	public void testParameters() throws SQLException
-	{
-		Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
-		stmt.setFetchSize(100);
-		stmt.setFetchDirection(ResultSet.FETCH_UNKNOWN);
+    public void testParameters() throws SQLException
+    {
+        Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        stmt.setFetchSize(100);
+        stmt.setFetchDirection(ResultSet.FETCH_UNKNOWN);
 
-		ResultSet rs = stmt.executeQuery("SELECT * FROM testrs");
+        ResultSet rs = stmt.executeQuery("SELECT * FROM testrs");
 
-		assertEquals(ResultSet.CONCUR_UPDATABLE, stmt.getResultSetConcurrency());
-		assertEquals(ResultSet.TYPE_SCROLL_SENSITIVE, stmt.getResultSetType());
-		assertEquals(100, stmt.getFetchSize());
-		assertEquals(ResultSet.FETCH_UNKNOWN, stmt.getFetchDirection());
+        assertEquals(ResultSet.CONCUR_UPDATABLE, stmt.getResultSetConcurrency());
+        assertEquals(ResultSet.TYPE_SCROLL_SENSITIVE, stmt.getResultSetType());
+        assertEquals(100, stmt.getFetchSize());
+        assertEquals(ResultSet.FETCH_UNKNOWN, stmt.getFetchDirection());
 
-		assertEquals(ResultSet.CONCUR_UPDATABLE, rs.getConcurrency());
-		assertEquals(ResultSet.TYPE_SCROLL_SENSITIVE, rs.getType());
-		assertEquals(100, rs.getFetchSize());
-		assertEquals(ResultSet.FETCH_UNKNOWN, rs.getFetchDirection());
+        assertEquals(ResultSet.CONCUR_UPDATABLE, rs.getConcurrency());
+        assertEquals(ResultSet.TYPE_SCROLL_SENSITIVE, rs.getType());
+        assertEquals(100, rs.getFetchSize());
+        assertEquals(ResultSet.FETCH_UNKNOWN, rs.getFetchDirection());
 
-		rs.close();
-		stmt.close();
-	}
+        rs.close();
+        stmt.close();
+    }
 
-	public void testZeroRowResultPositioning() throws SQLException
-	{
-		Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
-		ResultSet rs = stmt.executeQuery("SELECT * FROM pg_database WHERE datname='nonexistantdatabase'");
-		assertTrue(!rs.previous());
-		assertTrue(!rs.previous());
-		assertTrue(!rs.next());
-		assertTrue(!rs.next());
-		assertTrue(!rs.next());
-		assertTrue(!rs.next());
-		assertTrue(!rs.next());
-		assertTrue(!rs.previous());
-		assertTrue(!rs.first());
-		assertTrue(!rs.last());
-		assertEquals(0, rs.getRow());
-		assertTrue(!rs.absolute(1));
-		assertTrue(!rs.relative(1));
-		assertTrue(!rs.isBeforeFirst());
-		assertTrue(!rs.isAfterLast());
-		assertTrue(!rs.isFirst());
-		assertTrue(!rs.isLast());
-		rs.close();
-		stmt.close();
-	}
+    public void testZeroRowResultPositioning() throws SQLException
+    {
+        Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        ResultSet rs = stmt.executeQuery("SELECT * FROM pg_database WHERE datname='nonexistantdatabase'");
+        assertTrue(!rs.previous());
+        assertTrue(!rs.previous());
+        assertTrue(!rs.next());
+        assertTrue(!rs.next());
+        assertTrue(!rs.next());
+        assertTrue(!rs.next());
+        assertTrue(!rs.next());
+        assertTrue(!rs.previous());
+        assertTrue(!rs.first());
+        assertTrue(!rs.last());
+        assertEquals(0, rs.getRow());
+        assertTrue(!rs.absolute(1));
+        assertTrue(!rs.relative(1));
+        assertTrue(!rs.isBeforeFirst());
+        assertTrue(!rs.isAfterLast());
+        assertTrue(!rs.isFirst());
+        assertTrue(!rs.isLast());
+        rs.close();
+        stmt.close();
+    }
 
-	public void testRowResultPositioning() throws SQLException
-	{
-		Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
-		// Create a one row result set.
-		ResultSet rs = stmt.executeQuery("SELECT * FROM pg_database WHERE datname='template1'");
+    public void testRowResultPositioning() throws SQLException
+    {
+        Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        // Create a one row result set.
+        ResultSet rs = stmt.executeQuery("SELECT * FROM pg_database WHERE datname='template1'");
 
-		assertTrue(rs.isBeforeFirst());
-		assertTrue(!rs.isAfterLast());
-		assertTrue(!rs.isFirst());
-		assertTrue(!rs.isLast());
+        assertTrue(rs.isBeforeFirst());
+        assertTrue(!rs.isAfterLast());
+        assertTrue(!rs.isFirst());
+        assertTrue(!rs.isLast());
 
-		assertTrue(rs.next());
+        assertTrue(rs.next());
 
-		assertTrue(!rs.isBeforeFirst());
-		assertTrue(!rs.isAfterLast());
-		assertTrue(rs.isFirst());
-		assertTrue(rs.isLast());
+        assertTrue(!rs.isBeforeFirst());
+        assertTrue(!rs.isAfterLast());
+        assertTrue(rs.isFirst());
+        assertTrue(rs.isLast());
 
-		assertTrue(!rs.next());
+        assertTrue(!rs.next());
 
-		assertTrue(!rs.isBeforeFirst());
-		assertTrue(rs.isAfterLast());
-		assertTrue(!rs.isFirst());
-		assertTrue(!rs.isLast());
+        assertTrue(!rs.isBeforeFirst());
+        assertTrue(rs.isAfterLast());
+        assertTrue(!rs.isFirst());
+        assertTrue(!rs.isLast());
 
-		assertTrue(rs.previous());
+        assertTrue(rs.previous());
 
-		assertTrue(!rs.isBeforeFirst());
-		assertTrue(!rs.isAfterLast());
-		assertTrue(rs.isFirst());
-		assertTrue(rs.isLast());
+        assertTrue(!rs.isBeforeFirst());
+        assertTrue(!rs.isAfterLast());
+        assertTrue(rs.isFirst());
+        assertTrue(rs.isLast());
 
-		assertTrue(rs.absolute(1));
+        assertTrue(rs.absolute(1));
 
-		assertTrue(!rs.isBeforeFirst());
-		assertTrue(!rs.isAfterLast());
-		assertTrue(rs.isFirst());
-		assertTrue(rs.isLast());
+        assertTrue(!rs.isBeforeFirst());
+        assertTrue(!rs.isAfterLast());
+        assertTrue(rs.isFirst());
+        assertTrue(rs.isLast());
 
-		assertTrue(!rs.absolute(0));
+        assertTrue(!rs.absolute(0));
 
-		assertTrue(rs.isBeforeFirst());
-		assertTrue(!rs.isAfterLast());
-		assertTrue(!rs.isFirst());
-		assertTrue(!rs.isLast());
+        assertTrue(rs.isBeforeFirst());
+        assertTrue(!rs.isAfterLast());
+        assertTrue(!rs.isFirst());
+        assertTrue(!rs.isLast());
 
-		assertTrue(!rs.absolute(2));
+        assertTrue(!rs.absolute(2));
 
-		assertTrue(!rs.isBeforeFirst());
-		assertTrue(rs.isAfterLast());
-		assertTrue(!rs.isFirst());
-		assertTrue(!rs.isLast());
+        assertTrue(!rs.isBeforeFirst());
+        assertTrue(rs.isAfterLast());
+        assertTrue(!rs.isFirst());
+        assertTrue(!rs.isLast());
 
-		rs.close();
-		stmt.close();
-	}
+        rs.close();
+        stmt.close();
+    }
 
-	public void testForwardOnlyExceptions() throws SQLException
-	{
-		// Test that illegal operations on a TYPE_FORWARD_ONLY resultset
-		// correctly result in throwing an exception.
-		Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-		ResultSet rs = stmt.executeQuery("SELECT * FROM testnumeric");
+    public void testForwardOnlyExceptions() throws SQLException
+    {
+        // Test that illegal operations on a TYPE_FORWARD_ONLY resultset
+        // correctly result in throwing an exception.
+        Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+        ResultSet rs = stmt.executeQuery("SELECT * FROM testnumeric");
 
-		try { rs.absolute(1);   fail("absolute() on a TYPE_FORWARD_ONLY resultset did not throw an exception"); } catch (SQLException e) {}
-		try { rs.afterLast();   fail("afterLast() on a TYPE_FORWARD_ONLY resultset did not throw an exception on a TYPE_FORWARD_ONLY resultset"); } catch (SQLException e) {}
-		try { rs.beforeFirst(); fail("beforeFirst() on a TYPE_FORWARD_ONLY resultset did not throw an exception"); } catch (SQLException e) {}
-		try { rs.first();       fail("first() on a TYPE_FORWARD_ONLY resultset did not throw an exception"); } catch (SQLException e) {}
-		try { rs.last();        fail("last() on a TYPE_FORWARD_ONLY resultset did not throw an exception"); } catch (SQLException e) {}
-		try { rs.previous();    fail("previous() on a TYPE_FORWARD_ONLY resultset did not throw an exception"); } catch (SQLException e) {}
-		try { rs.relative(1);   fail("relative() on a TYPE_FORWARD_ONLY resultset did not throw an exception"); } catch (SQLException e) {}
+        try
+        {
+            rs.absolute(1);
+            fail("absolute() on a TYPE_FORWARD_ONLY resultset did not throw an exception");
+        }
+        catch (SQLException e)
+        {
+        }
+        try
+        {
+            rs.afterLast();
+            fail("afterLast() on a TYPE_FORWARD_ONLY resultset did not throw an exception on a TYPE_FORWARD_ONLY resultset");
+        }
+        catch (SQLException e)
+        {
+        }
+        try
+        {
+            rs.beforeFirst();
+            fail("beforeFirst() on a TYPE_FORWARD_ONLY resultset did not throw an exception");
+        }
+        catch (SQLException e)
+        {
+        }
+        try
+        {
+            rs.first();
+            fail("first() on a TYPE_FORWARD_ONLY resultset did not throw an exception");
+        }
+        catch (SQLException e)
+        {
+        }
+        try
+        {
+            rs.last();
+            fail("last() on a TYPE_FORWARD_ONLY resultset did not throw an exception");
+        }
+        catch (SQLException e)
+        {
+        }
+        try
+        {
+            rs.previous();
+            fail("previous() on a TYPE_FORWARD_ONLY resultset did not throw an exception");
+        }
+        catch (SQLException e)
+        {
+        }
+        try
+        {
+            rs.relative(1);
+            fail("relative() on a TYPE_FORWARD_ONLY resultset did not throw an exception");
+        }
+        catch (SQLException e)
+        {
+        }
 
-		try {
-			rs.setFetchDirection(ResultSet.FETCH_REVERSE);
-			fail("setFetchDirection(FETCH_REVERSE) on a TYPE_FORWARD_ONLY resultset did not throw an exception");
-		} catch (SQLException e) {}
+        try
+        {
+            rs.setFetchDirection(ResultSet.FETCH_REVERSE);
+            fail("setFetchDirection(FETCH_REVERSE) on a TYPE_FORWARD_ONLY resultset did not throw an exception");
+        }
+        catch (SQLException e)
+        {
+        }
 
-		try {
-			rs.setFetchDirection(ResultSet.FETCH_UNKNOWN);
-			fail("setFetchDirection(FETCH_UNKNOWN) on a TYPE_FORWARD_ONLY resultset did not throw an exception");
-		} catch (SQLException e) {}
+        try
+        {
+            rs.setFetchDirection(ResultSet.FETCH_UNKNOWN);
+            fail("setFetchDirection(FETCH_UNKNOWN) on a TYPE_FORWARD_ONLY resultset did not throw an exception");
+        }
+        catch (SQLException e)
+        {
+        }
 
-		rs.close();
-		stmt.close();
-	}
+        rs.close();
+        stmt.close();
+    }
 
-	public void testCaseInsensitiveFindColumn() throws SQLException
-	{
-		Statement stmt = con.createStatement();
-		ResultSet rs = stmt.executeQuery("SELECT id, id AS \"ID2\" FROM testrs");
-		assertEquals(1, rs.findColumn("id"));
-		assertEquals(1, rs.findColumn("ID"));
-		assertEquals(1, rs.findColumn("Id"));
-		assertEquals(2, rs.findColumn("id2"));
-		assertEquals(2, rs.findColumn("ID2"));
-		assertEquals(2, rs.findColumn("Id2"));
-		try {
-			rs.findColumn("id3");
-			fail("There isn't an id3 column in the ResultSet.");
-		} catch(SQLException sqle) { }
-	}
+    public void testCaseInsensitiveFindColumn() throws SQLException
+    {
+        Statement stmt = con.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT id, id AS \"ID2\" FROM testrs");
+        assertEquals(1, rs.findColumn("id"));
+        assertEquals(1, rs.findColumn("ID"));
+        assertEquals(1, rs.findColumn("Id"));
+        assertEquals(2, rs.findColumn("id2"));
+        assertEquals(2, rs.findColumn("ID2"));
+        assertEquals(2, rs.findColumn("Id2"));
+        try
+        {
+            rs.findColumn("id3");
+            fail("There isn't an id3 column in the ResultSet.");
+        }
+        catch (SQLException sqle)
+        {
+        }
+    }
 }

@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2004, Open Cloud Limited.
- *
- * IDENTIFICATION
- *	  $PostgreSQL: pgjdbc/org/postgresql/core/v2/SimpleParameterList.java,v 1.2 2004/10/10 15:39:36 jurka Exp $
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2004, Open Cloud Limited.
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/SimpleParameterList.java,v 1.3 2004/11/07 22:15:36 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.core.v2;
 
 import org.postgresql.core.*;
@@ -27,131 +27,137 @@ import org.postgresql.util.GT;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 class SimpleParameterList implements ParameterList {
-	SimpleParameterList(int paramCount) {
-		this.paramValues = new Object[paramCount];
-	}
+    SimpleParameterList(int paramCount) {
+        this.paramValues = new Object[paramCount];
+    }
 
-	public int getParameterCount() { 
-		return paramValues.length;
-	}
+    public int getParameterCount() {
+        return paramValues.length;
+    }
 
-	public void setIntParameter(int index, int value) throws SQLException {
-		setLiteralParameter(index, ""+value, Oid.INT4);
-	}
+    public void setIntParameter(int index, int value) throws SQLException {
+        setLiteralParameter(index, "" + value, Oid.INT4);
+    }
 
-	public void setLiteralParameter(int index, String value, int oid) throws SQLException {
-		if (index < 1 || index > paramValues.length)
-			throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE );
+    public void setLiteralParameter(int index, String value, int oid) throws SQLException {
+        if (index < 1 || index > paramValues.length)
+            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE );
 
-		paramValues[index-1] = value;
-	}
-		
-	public void setStringParameter(int index, String value, int oid) throws SQLException {
-		StringBuffer sbuf = new StringBuffer(2 + value.length() * 11 / 10); // Add 10% for escaping.
-		sbuf.append('\'');
-		for (int i = 0; i < value.length(); ++i) {
-			char ch = value.charAt(i);
-			if (ch == '\0')
-				throw new PSQLException(GT.tr("Zero bytes may not occur in string parameters."), PSQLState.INVALID_PARAMETER_VALUE);
-			if (ch == '\\' || ch == '\'')
-				sbuf.append('\\');
-			sbuf.append(ch);
-		}
-		sbuf.append('\'');
+        paramValues[index - 1] = value;
+    }
 
-		setLiteralParameter(index, sbuf.toString(), oid);
-	}
-		
-	public void setBytea(int index, byte[] data, int offset, int length) throws SQLException {
-		if (index < 1 || index > paramValues.length)
-			throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE );
+    public void setStringParameter(int index, String value, int oid) throws SQLException {
+        StringBuffer sbuf = new StringBuffer(2 + value.length() * 11 / 10); // Add 10% for escaping.
+        sbuf.append('\'');
+        for (int i = 0; i < value.length(); ++i)
+        {
+            char ch = value.charAt(i);
+            if (ch == '\0')
+                throw new PSQLException(GT.tr("Zero bytes may not occur in string parameters."), PSQLState.INVALID_PARAMETER_VALUE);
+            if (ch == '\\' || ch == '\'')
+                sbuf.append('\\');
+            sbuf.append(ch);
+        }
+        sbuf.append('\'');
 
-		paramValues[index-1] = new StreamWrapper(data, offset, length);
-	}
+        setLiteralParameter(index, sbuf.toString(), oid);
+    }
 
-	public void setBytea(int index, final InputStream stream, final int length) throws SQLException {
-		if (index < 1 || index > paramValues.length)
-			throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE );
+    public void setBytea(int index, byte[] data, int offset, int length) throws SQLException {
+        if (index < 1 || index > paramValues.length)
+            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE );
 
-		paramValues[index-1] = new StreamWrapper(stream, length);
-	}
+        paramValues[index - 1] = new StreamWrapper(data, offset, length);
+    }
 
-	public void setNull(int index, int oid) throws SQLException {
-		if (index < 1 || index > paramValues.length)
-			throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE );
+    public void setBytea(int index, final InputStream stream, final int length) throws SQLException {
+        if (index < 1 || index > paramValues.length)
+            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE );
 
-		paramValues[index-1] = NULL_OBJECT;
-	}
+        paramValues[index - 1] = new StreamWrapper(stream, length);
+    }
 
-	public String toString(int index) {
-		if (index < 1 || index > paramValues.length)
-			throw new IllegalArgumentException("Parameter index " + index + " out of range");
+    public void setNull(int index, int oid) throws SQLException {
+        if (index < 1 || index > paramValues.length)
+            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE );
 
-		if (paramValues[index-1] == null)
-			return "?";
-		else if (paramValues[index-1] == NULL_OBJECT)
-			return "NULL";
-		else
-			return paramValues[index-1].toString();
-	}
-	
-	/**
-	 * Send a streamable bytea encoded as a text representation with an arbitary encoding.
-	 */
-	private static void streamBytea(StreamWrapper param, Writer encodingWriter) throws IOException {
-		// NB: we escape everything in this path, as I don't like assuming
-		// that byte values 32..127 will make it through the encoding
-		// unscathed..
+        paramValues[index - 1] = NULL_OBJECT;
+    }
 
-		InputStream stream = param.getStream();
-		char[] buffer = new char[] { '\\', '\\', 0, 0, 0 };
+    public String toString(int index) {
+        if (index < 1 || index > paramValues.length)
+            throw new IllegalArgumentException("Parameter index " + index + " out of range");
 
-		encodingWriter.write('\'');
-		for (int remaining = param.getLength(); remaining > 0; --remaining) {
-			int nextByte = stream.read();
-			
-			buffer[2] = (char)( '0' + ((nextByte >> 6) & 3));
-			buffer[3] = (char)( '0' + ((nextByte >> 3) & 7));
-			buffer[4] = (char)( '0' + (nextByte & 7));
-			
-			encodingWriter.write(buffer, 0, 5);
-		}
+        if (paramValues[index - 1] == null)
+            return "?";
+        else if (paramValues[index -1] == NULL_OBJECT)
+            return "NULL";
+        else
+            return paramValues[index -1].toString();
+    }
 
-		encodingWriter.write('\'');
-	}
-	
+    /**
+     * Send a streamable bytea encoded as a text representation with an arbitary encoding.
+     */
+    private static void streamBytea(StreamWrapper param, Writer encodingWriter) throws IOException {
+        // NB: we escape everything in this path, as I don't like assuming
+        // that byte values 32..127 will make it through the encoding
+        // unscathed..
 
-	void writeV2Value(int index, Writer encodingWriter) throws IOException {
-		if (paramValues[index-1] instanceof StreamWrapper) {
-			streamBytea((StreamWrapper)paramValues[index-1], encodingWriter);
-		} else {
-			encodingWriter.write((String)paramValues[index-1]);
-		}
-	}
+        InputStream stream = param.getStream();
+        char[] buffer = new char[] { '\\', '\\', 0, 0, 0 };
 
-	void checkAllParametersSet() throws SQLException {
-		for (int i = 0; i < paramValues.length; i++) {
-			if (paramValues[i] == null)
-				throw new PSQLException(GT.tr("No value specified for parameter {0}.", new Integer(i+1)), PSQLState.INVALID_PARAMETER_VALUE);
-		}
-	}
+        encodingWriter.write('\'');
+        for (int remaining = param.getLength(); remaining > 0; --remaining)
+        {
+            int nextByte = stream.read();
 
-	public ParameterList copy() {
-		SimpleParameterList newCopy = new SimpleParameterList(paramValues.length);
-		System.arraycopy(paramValues, 0, newCopy.paramValues, 0, paramValues.length);
-		return newCopy;
-	}
+            buffer[2] = (char)( '0' + ((nextByte >> 6) & 3));
+            buffer[3] = (char)( '0' + ((nextByte >> 3) & 7));
+            buffer[4] = (char)( '0' + (nextByte & 7));
 
-	public void clear() {
-		Arrays.fill(paramValues, null);
-	}
+            encodingWriter.write(buffer, 0, 5);
+        }
 
-	private final Object[] paramValues;
+        encodingWriter.write('\'');
+    }
 
-	/* Object representing NULL; conveniently, String streams exactly as we want it to. *
-	 * nb: we explicitly say "new String" to avoid interning giving us an object that
-	 * might be the same (by identity) as a String elsewhere.
-	 */
-	private final static String NULL_OBJECT = new String("NULL");
+
+    void writeV2Value(int index, Writer encodingWriter) throws IOException {
+        if (paramValues[index - 1] instanceof StreamWrapper)
+        {
+            streamBytea((StreamWrapper)paramValues[index - 1], encodingWriter);
+        }
+        else
+        {
+            encodingWriter.write((String)paramValues[index - 1]);
+        }
+    }
+
+    void checkAllParametersSet() throws SQLException {
+        for (int i = 0; i < paramValues.length; i++)
+        {
+            if (paramValues[i] == null)
+                throw new PSQLException(GT.tr("No value specified for parameter {0}.", new Integer(i + 1)), PSQLState.INVALID_PARAMETER_VALUE);
+        }
+    }
+
+    public ParameterList copy() {
+        SimpleParameterList newCopy = new SimpleParameterList(paramValues.length);
+        System.arraycopy(paramValues, 0, newCopy.paramValues, 0, paramValues.length);
+        return newCopy;
+    }
+
+    public void clear() {
+        Arrays.fill(paramValues, null);
+    }
+
+    private final Object[] paramValues;
+
+    /* Object representing NULL; conveniently, String streams exactly as we want it to. *
+     * nb: we explicitly say "new String" to avoid interning giving us an object that
+     * might be the same (by identity) as a String elsewhere.
+     */
+    private final static String NULL_OBJECT = new String("NULL");
 }
 

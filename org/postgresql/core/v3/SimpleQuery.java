@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2004, Open Cloud Limited.
- *
- * IDENTIFICATION
- *	  $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleQuery.java,v 1.2 2004/09/20 08:36:49 jurka Exp $
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2004, Open Cloud Limited.
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleQuery.java,v 1.3 2004/11/07 22:15:39 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.core.v3;
 
 import org.postgresql.core.*;
@@ -21,73 +21,75 @@ import java.lang.ref.PhantomReference;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 class SimpleQuery implements V3Query {
-	SimpleQuery(String[] fragments) {
-		this.fragments = fragments;
-	}
+    SimpleQuery(String[] fragments) {
+        this.fragments = fragments;
+    }
 
-	public ParameterList createParameterList() {
-		if (fragments.length == 1)
-			return NO_PARAMETERS;
+    public ParameterList createParameterList() {
+        if (fragments.length == 1)
+            return NO_PARAMETERS;
 
-		return new SimpleParameterList(fragments.length - 1);
-	}
+        return new SimpleParameterList(fragments.length - 1);
+    }
 
-	public String toString(ParameterList parameters) {
-		StringBuffer sbuf = new StringBuffer(fragments[0]);
-		for (int i = 1; i < fragments.length; ++i) {
-			sbuf.append(parameters.toString(i));
-			sbuf.append(fragments[i]);
-		}
-		return sbuf.toString();
-	}
+    public String toString(ParameterList parameters) {
+        StringBuffer sbuf = new StringBuffer(fragments[0]);
+        for (int i = 1; i < fragments.length; ++i)
+        {
+            sbuf.append(parameters.toString(i));
+            sbuf.append(fragments[i]);
+        }
+        return sbuf.toString();
+    }
 
-	public String toString() {
-		return toString(null);
-	}
+    public String toString() {
+        return toString(null);
+    }
 
-	public void close() {
-		if (cleanupRef != null) {
-			cleanupRef.clear();
-			cleanupRef.enqueue();
-			cleanupRef = null;
-		}
-	}			
+    public void close() {
+        if (cleanupRef != null)
+        {
+            cleanupRef.clear();
+            cleanupRef.enqueue();
+            cleanupRef = null;
+        }
+    }
 
-	//
-	// V3Query
-	//
+    //
+    // V3Query
+    //
 
-	public SimpleQuery[] getSubqueries() {
-		return null;
-	}
+    public SimpleQuery[] getSubqueries() {
+        return null;
+    }
 
-	String[] getFragments() {
-		return fragments;
-	}
+    String[] getFragments() {
+        return fragments;
+    }
 
-	void setStatementName(String statementName) {
-		this.statementName = statementName;
-		this.encodedStatementName = (statementName == null ? null : Utils.encodeUTF8(statementName));
-	}
+    void setStatementName(String statementName) {
+        this.statementName = statementName;
+        this.encodedStatementName = (statementName == null ? null : Utils.encodeUTF8(statementName));
+    }
 
-	String getStatementName() {
-		return statementName;
-	}
-		
-	byte[] getEncodedStatementName() {
-		return encodedStatementName;
-	}
-		
-	void setCleanupRef(PhantomReference cleanupRef) {
-		this.cleanupRef = cleanupRef;
-	}
+    String getStatementName() {
+        return statementName;
+    }
 
-	private final String[] fragments;
-	private String statementName;
-	private byte[] encodedStatementName;
-	private PhantomReference cleanupRef;
+    byte[] getEncodedStatementName() {
+        return encodedStatementName;
+    }
 
-	final static SimpleParameterList NO_PARAMETERS = new SimpleParameterList(0);
+    void setCleanupRef(PhantomReference cleanupRef) {
+        this.cleanupRef = cleanupRef;
+    }
+
+    private final String[] fragments;
+    private String statementName;
+    private byte[] encodedStatementName;
+    private PhantomReference cleanupRef;
+
+    final static SimpleParameterList NO_PARAMETERS = new SimpleParameterList(0);
 }
 
 

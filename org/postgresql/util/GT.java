@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2004, PostgreSQL Global Development Group
- *
- * IDENTIFICATION
- *	  $PostgreSQL$
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2004, PostgreSQL Global Development Group
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/util/GT.java,v 1.4 2004/11/07 22:17:14 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.util;
 
 import java.text.MessageFormat;
@@ -23,52 +23,59 @@ import java.util.MissingResourceException;
 
 public class GT {
 
-	private static GT _gt = new GT();
+    private static GT _gt = new GT();
 
-	public final static String tr(String message) {
-		return _gt.translate(message, null);
-	}
+    public final static String tr(String message) {
+        return _gt.translate(message, null);
+    }
 
-	public final static String tr(String message, Object arg) {
-		return _gt.translate(message, new Object[]{arg});
-	}
+    public final static String tr(String message, Object arg) {
+        return _gt.translate(message, new Object[]{arg});
+    }
 
-	public final static String tr(String message, Object args[]) {
-		return _gt.translate(message, args);
-	}
+    public final static String tr(String message, Object args[]) {
+        return _gt.translate(message, args);
+    }
 
 
-	private ResourceBundle _bundle;
+    private ResourceBundle _bundle;
 
-	private GT() {
-		try {
-			_bundle = ResourceBundle.getBundle("org.postgresql.translation.messages");
-		} catch (MissingResourceException mre) {
-			// translation files have not been installed
-			_bundle = null;
-		}
-	}
+    private GT() {
+        try
+        {
+            _bundle = ResourceBundle.getBundle("org.postgresql.translation.messages");
+        }
+        catch (MissingResourceException mre)
+        {
+            // translation files have not been installed
+            _bundle = null;
+        }
+    }
 
-	private final String translate(String message, Object args[])
-	{
-		if (_bundle != null && message != null)
-		{
-			try {
-				message = _bundle.getString(message);
-			} catch (MissingResourceException mre) {
-				// If we can't find a translation, just
-				// use the untranslated message.
-			}
-		}
+    private final String translate(String message, Object args[])
+    {
+        if (_bundle != null && message != null)
+        {
+            try
+            {
+                message = _bundle.getString(message);
+            }
+            catch (MissingResourceException mre)
+            {
+                // If we can't find a translation, just
+                // use the untranslated message.
+            }
+        }
 
-		// Replace placeholders with arguments
-		//
-		if (args != null && message != null) {
-			message = MessageFormat.format(message, args);
-		}
+        // Replace placeholders with arguments
+        //
+        if (args != null && message != null)
+        {
+            message = MessageFormat.format(message, args);
+        }
 
-		return message;
-	}
+        return message;
+    }
 
 }
 

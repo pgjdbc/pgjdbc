@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2003-2004, PostgreSQL Global Development Group
- *
- * IDENTIFICATION
- *	  $PostgreSQL: pgjdbc/org/postgresql/geometric/PGpath.java,v 1.10 2004/10/10 15:39:39 jurka Exp $
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2003-2004, PostgreSQL Global Development Group
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/geometric/PGpath.java,v 1.11 2004/11/07 22:15:53 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.geometric;
 
 import org.postgresql.util.GT;
@@ -23,149 +23,150 @@ import java.sql.SQLException;
  */
 public class PGpath extends PGobject implements Serializable, Cloneable
 {
-	/**
-	 * True if the path is open, false if closed
-	 */
-	public boolean open;
+    /**
+     * True if the path is open, false if closed
+     */
+    public boolean open;
 
-	/**
-	 * The points defining this path
-	 */
-	public PGpoint points[];
+    /**
+     * The points defining this path
+     */
+    public PGpoint points[];
 
-	/**
-	 * @param points the PGpoints that define the path
-	 * @param open True if the path is open, false if closed
-	 */
-	public PGpath(PGpoint[] points, boolean open)
-	{
-		this();
-		this.points = points;
-		this.open = open;
-	}
+    /**
+     * @param points the PGpoints that define the path
+     * @param open True if the path is open, false if closed
+     */
+    public PGpath(PGpoint[] points, boolean open)
+    {
+        this();
+        this.points = points;
+        this.open = open;
+    }
 
-	/**
-	 * Required by the driver
-	 */
-	public PGpath()
-	{
-		setType("path");
-	}
+    /**
+     * Required by the driver
+     */
+    public PGpath()
+    {
+        setType("path");
+    }
 
-	/**
-	 * @param s definition of the path in PostgreSQL's syntax.
-	 * @exception SQLException on conversion failure
-	 */
-	public PGpath(String s) throws SQLException
-	{
-		this();
-		setValue(s);
-	}
+    /**
+     * @param s definition of the path in PostgreSQL's syntax.
+     * @exception SQLException on conversion failure
+     */
+    public PGpath(String s) throws SQLException
+    {
+        this();
+        setValue(s);
+    }
 
-	/**
-	 * @param s Definition of the path in PostgreSQL's syntax
-	 * @exception SQLException on conversion failure
-	 */
-	public void setValue(String s) throws SQLException
-	{
-		// First test to see if were open
-		if (s.startsWith("[") && s.endsWith("]"))
-		{
-			open = true;
-			s = PGtokenizer.removeBox(s);
-		}
-		else if (s.startsWith("(") && s.endsWith(")"))
-		{
-			open = false;
-			s = PGtokenizer.removePara(s);
-		}
-		else
-			throw new PSQLException(GT.tr("Cannot tell if path is open or closed: {0}.", s),  PSQLState.DATA_TYPE_MISMATCH);
+    /**
+     * @param s Definition of the path in PostgreSQL's syntax
+     * @exception SQLException on conversion failure
+     */
+    public void setValue(String s) throws SQLException
+    {
+        // First test to see if were open
+        if (s.startsWith("[") && s.endsWith("]"))
+        {
+            open = true;
+            s = PGtokenizer.removeBox(s);
+        }
+        else if (s.startsWith("(") && s.endsWith(")"))
+        {
+            open = false;
+            s = PGtokenizer.removePara(s);
+        }
+        else
+            throw new PSQLException(GT.tr("Cannot tell if path is open or closed: {0}.", s), PSQLState.DATA_TYPE_MISMATCH);
 
-		PGtokenizer t = new PGtokenizer(s, ',');
-		int npoints = t.getSize();
-		points = new PGpoint[npoints];
-		for (int p = 0;p < npoints;p++)
-			points[p] = new PGpoint(t.getToken(p));
-	}
+        PGtokenizer t = new PGtokenizer(s, ',');
+        int npoints = t.getSize();
+        points = new PGpoint[npoints];
+        for (int p = 0;p < npoints;p++)
+            points[p] = new PGpoint(t.getToken(p));
+    }
 
-	/**
-	 * @param obj Object to compare with
-	 * @return true if the two paths are identical
-	 */
-	public boolean equals(Object obj)
-	{
-		if (obj instanceof PGpath)
-		{
-			PGpath p = (PGpath)obj;
+    /**
+     * @param obj Object to compare with
+     * @return true if the two paths are identical
+     */
+    public boolean equals(Object obj)
+    {
+        if (obj instanceof PGpath)
+        {
+            PGpath p = (PGpath)obj;
 
-			if (p.points.length != points.length)
-				return false;
+            if (p.points.length != points.length)
+                return false;
 
-			if (p.open != open)
-				return false;
+            if (p.open != open)
+                return false;
 
-			for (int i = 0;i < points.length;i++)
-				if (!points[i].equals(p.points[i]))
-					return false;
+            for (int i = 0;i < points.length;i++)
+                if (!points[i].equals(p.points[i]))
+                    return false;
 
-			return true;
-		}
-		return false;
-	}
+            return true;
+        }
+        return false;
+    }
 
-	public int hashCode() {
-		// XXX not very good..
-		int hash = 0;
-		for (int i = 0; i < points.length && i < 5; ++i) {
-			hash = hash ^ points[i].hashCode();
-		}
-		return hash;
-	}
+    public int hashCode() {
+        // XXX not very good..
+        int hash = 0;
+        for (int i = 0; i < points.length && i < 5; ++i)
+        {
+            hash = hash ^ points[i].hashCode();
+        }
+        return hash;
+    }
 
-	public Object clone()
-	{
-		PGpoint ary[] = new PGpoint[points.length];
-		for (int i = 0;i < points.length;i++)
-			ary[i] = (PGpoint)points[i].clone();
-		return new PGpath(ary, open);
-	}
+    public Object clone()
+    {
+        PGpoint ary[] = new PGpoint[points.length];
+        for (int i = 0;i < points.length;i++)
+            ary[i] = (PGpoint)points[i].clone();
+        return new PGpath(ary, open);
+    }
 
-	/**
-	 * This returns the path in the syntax expected by org.postgresql
-	 */
-	public String getValue()
-	{
-		StringBuffer b = new StringBuffer(open ? "[" : "(");
+    /**
+     * This returns the path in the syntax expected by org.postgresql
+     */
+    public String getValue()
+    {
+        StringBuffer b = new StringBuffer(open ? "[" : "(");
 
-		for (int p = 0;p < points.length;p++)
-		{
-			if (p > 0)
-				b.append(",");
-			b.append(points[p].toString());
-		}
-		b.append(open ? "]" : ")");
+        for (int p = 0;p < points.length;p++)
+        {
+            if (p > 0)
+                b.append(",");
+            b.append(points[p].toString());
+        }
+        b.append(open ? "]" : ")");
 
-		return b.toString();
-	}
+        return b.toString();
+    }
 
-	public boolean isOpen()
-	{
-		return open;
-	}
+    public boolean isOpen()
+    {
+        return open;
+    }
 
-	public boolean isClosed()
-	{
-		return !open;
-	}
+    public boolean isClosed()
+    {
+        return !open;
+    }
 
-	public void closePath()
-	{
-		open = false;
-	}
+    public void closePath()
+    {
+        open = false;
+    }
 
-	public void openPath()
-	{
-		open = true;
-	}
+    public void openPath()
+    {
+        open = true;
+    }
 }

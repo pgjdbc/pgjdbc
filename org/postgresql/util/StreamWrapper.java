@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2004, Open Cloud Limited.
- *
- * IDENTIFICATION
- *	  $PostgreSQL: pgjdbc/org/postgresql/util/StreamWrapper.java,v 1.2 2004/09/20 08:36:51 jurka Exp $
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2004, Open Cloud Limited.
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/util/StreamWrapper.java,v 1.3 2004/11/07 22:17:15 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.util;
 
 import java.io.InputStream;
@@ -17,45 +17,45 @@ import java.io.InputStream;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 public class StreamWrapper {
-	public StreamWrapper(byte[] data, int offset, int length) {
-		this.stream = null;
-		this.rawData = data;
-		this.offset = offset;
-		this.length = length;
-	}
-		
-	public StreamWrapper(InputStream stream, int length) {
-		this.stream = stream;
-		this.rawData = null;
-		this.offset = 0;
-		this.length = length;
-	}
-	
-	public InputStream getStream() {
-		if (stream != null)
-			return stream;
-		
-		return new java.io.ByteArrayInputStream(rawData, offset, length);
-	}
+    public StreamWrapper(byte[] data, int offset, int length) {
+        this.stream = null;
+        this.rawData = data;
+        this.offset = offset;
+        this.length = length;
+    }
 
-	public int getLength() {
-		return length;
-	}
+    public StreamWrapper(InputStream stream, int length) {
+        this.stream = stream;
+        this.rawData = null;
+        this.offset = 0;
+        this.length = length;
+    }
 
-	public int getOffset() {
-		return offset;
-	}
+    public InputStream getStream() {
+        if (stream != null)
+            return stream;
 
-	public byte[] getBytes() {
-		return rawData;
-	}
+        return new java.io.ByteArrayInputStream(rawData, offset, length);
+    }
 
-	public String toString() {
-		return "<stream of " + length + " bytes>";
-	}
-    
-	private final InputStream stream;
-	private final byte[] rawData;
-	private final int offset;
-	private final int length;
+    public int getLength() {
+        return length;
+    }
+
+    public int getOffset() {
+        return offset;
+    }
+
+    public byte[] getBytes() {
+        return rawData;
+    }
+
+    public String toString() {
+        return "<stream of " + length + " bytes>";
+    }
+
+    private final InputStream stream;
+    private final byte[] rawData;
+    private final int offset;
+    private final int length;
 }

@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2003-2004, PostgreSQL Global Development Group
- *
- * IDENTIFICATION
- *	  $PostgreSQL: pgjdbc/org/postgresql/util/PSQLException.java.in,v 1.6 2004/10/10 16:25:13 jurka Exp $
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2003-2004, PostgreSQL Global Development Group
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/util/PSQLException.java.in,v 1.7 2004/11/07 22:17:15 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.util;
 
 import java.io.ByteArrayOutputStream;
@@ -18,50 +18,55 @@ import org.postgresql.Driver;
 public class PSQLException extends SQLException
 {
 
-	public PSQLException(String msg, PSQLState state, Throwable cause)
-	{
-		super(addCauseToMessage(msg, cause), state == null ? null : state.getState());                
-		initCause(cause); // Calls either the 1.4 Throwable impl or our impl below.
-		if (Driver.logDebug)
-			Driver.debug("Exception: " + this);
-		
-	}
+    public PSQLException(String msg, PSQLState state, Throwable cause)
+    {
+        super(addCauseToMessage(msg, cause), state == null ? null : state.getState());
+        initCause(cause); // Calls either the 1.4 Throwable impl or our impl below.
+        if (Driver.logDebug)
+            Driver.debug("Exception: " + this);
 
-	public PSQLException(String msg)
-	{
-		this(msg, null, null);
-	}
-	
-	public PSQLException(String msg, PSQLState state)
-	{
-		this(msg, state, null);
-	}
-	
-	private static String addCauseToMessage(String msg, Throwable cause) {
-		boolean hasInitCause = true;
-@NOINITCAUSE@	hasInitCause = false;
-		if (!hasInitCause && cause != null) {
-			try {
-				ByteArrayOutputStream baos = new ByteArrayOutputStream();
-				PrintWriter pw = new PrintWriter(baos);
-				pw.println();
-				pw.println(GT.tr("Exception: {0}", cause.toString()));
-				pw.println(GT.tr("Stack Trace:"));
-				cause.printStackTrace(pw);
-				pw.println(GT.tr("End of Stack Trace"));
-				pw.flush();
-				msg = msg + baos.toString();
-				pw.close();
-				baos.close();
-			} catch (IOException ioe) {
-				msg = msg + GT.tr("Exception generating stacktrace for: {0} encountered: {1}", new Object[] { cause.toString(), ioe.toString() });
-			}
-		}
-		return msg;
-	}
-	
-		// Dummy initCause() for pre-1.4 JVMs
-@NOINITCAUSE@	public void initCause(Throwable cause) {}
+    }
+
+    public PSQLException(String msg)
+    {
+        this(msg, null, null);
+    }
+
+    public PSQLException(String msg, PSQLState state)
+    {
+        this(msg, state, null);
+    }
+
+    private static String addCauseToMessage(String msg, Throwable cause) {
+        boolean hasInitCause = true;
+        @NOINITCAUSE@ hasInitCause = false;
+        if (!hasInitCause && cause != null)
+        {
+            try
+            {
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                PrintWriter pw = new PrintWriter(baos);
+                pw.println();
+                pw.println(GT.tr("Exception: {0}", cause.toString()));
+                pw.println(GT.tr("Stack Trace:"));
+                cause.printStackTrace(pw);
+                pw.println(GT.tr("End of Stack Trace"));
+                pw.flush();
+                msg = msg + baos.toString();
+                pw.close();
+                baos.close();
+            }
+            catch (IOException ioe)
+            {
+                msg = msg + GT.tr("Exception generating stacktrace for: {0} encountered: {1}", new Object[] { cause.toString(), ioe.toString() });
+            }
+        }
+        return msg;
+    }
+
+    // Dummy initCause() for pre-1.4 JVMs
+    @NOINITCAUSE@ public void initCause(Throwable cause) {
+        @NOINITCAUSE@ }
 
 
 }

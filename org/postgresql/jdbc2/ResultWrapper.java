@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2004, Open Cloud Limited.
- *
- * IDENTIFICATION
- *	  $PostgreSQL: pgjdbc/org/postgresql/jdbc2/ResultWrapper.java,v 1.1 2004/07/16 06:14:26 jurka Exp $
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2004, Open Cloud Limited.
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/ResultWrapper.java,v 1.2 2004/11/07 22:16:21 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.jdbc2;
 
 import java.sql.*;
@@ -19,44 +19,44 @@ import java.sql.*;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 public class ResultWrapper {
-	public ResultWrapper(ResultSet rs) {
-		this.rs = rs;
-		this.updateCount = -1;
-		this.insertOID = -1;
-	}
+    public ResultWrapper(ResultSet rs) {
+        this.rs = rs;
+        this.updateCount = -1;
+        this.insertOID = -1;
+    }
 
-	public ResultWrapper(int updateCount, long insertOID) {
-		this.rs = null;
-		this.updateCount = updateCount;
-		this.insertOID = insertOID;
-	}
+    public ResultWrapper(int updateCount, long insertOID) {
+        this.rs = null;
+        this.updateCount = updateCount;
+        this.insertOID = insertOID;
+    }
 
-	public ResultSet getResultSet() {
-		return rs;
-	}
+    public ResultSet getResultSet() {
+        return rs;
+    }
 
-	public int getUpdateCount() {
-		return updateCount;
-	}
+    public int getUpdateCount() {
+        return updateCount;
+    }
 
-	public long getInsertOID() {
-		return insertOID;
-	}
+    public long getInsertOID() {
+        return insertOID;
+    }
 
-	public ResultWrapper getNext() {
-		return next;
-	}
+    public ResultWrapper getNext() {
+        return next;
+    }
 
-	public void append(ResultWrapper newResult) {
-		ResultWrapper tail = this;
-		while (tail.next != null)
-			tail = tail.next;
+    public void append(ResultWrapper newResult) {
+        ResultWrapper tail = this;
+        while (tail.next != null)
+            tail = tail.next;
 
-		tail.next = newResult;
-	}
+        tail.next = newResult;
+    }
 
-	private final ResultSet rs;
-	private final int updateCount;
-	private final long insertOID;
-	private ResultWrapper next;
+    private final ResultSet rs;
+    private final int updateCount;
+    private final long insertOID;
+    private ResultWrapper next;
 }

@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2003-2004, PostgreSQL Global Development Group
- *
- * IDENTIFICATION
- *	  $PostgreSQL: pgjdbc/org/postgresql/fastpath/FastpathArg.java,v 1.9 2004/09/20 08:36:49 jurka Exp $
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2003-2004, PostgreSQL Global Development Group
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/fastpath/FastpathArg.java,v 1.10 2004/11/07 22:15:50 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.fastpath;
 
 import java.sql.SQLException;
@@ -23,64 +23,64 @@ import org.postgresql.core.ParameterList;
  */
 public class FastpathArg
 {
-	/**
-	 * Encoded byte value of argument.
-	 */
-	private final byte[] bytes;
-	private final int bytesStart;
-	private final int bytesLength;
+    /**
+     * Encoded byte value of argument.
+     */
+    private final byte[] bytes;
+    private final int bytesStart;
+    private final int bytesLength;
 
-	/**
-	 * Constructs an argument that consists of an integer value
-	 * @param value int value to set
-	 */
-	public FastpathArg(int value)
-	{
-		bytes = new byte[4];
-		bytes[3] = (byte) (value);
-		bytes[2] = (byte) (value >> 8);
-		bytes[1] = (byte) (value >> 16);
-		bytes[0] = (byte) (value >> 24);
-		bytesStart = 0;
-		bytesLength = 4;
-	}
+    /**
+     * Constructs an argument that consists of an integer value
+     * @param value int value to set
+     */
+    public FastpathArg(int value)
+    {
+        bytes = new byte[4];
+        bytes[3] = (byte) (value);
+        bytes[2] = (byte) (value >> 8);
+        bytes[1] = (byte) (value >> 16);
+        bytes[0] = (byte) (value >> 24);
+        bytesStart = 0;
+        bytesLength = 4;
+    }
 
-	/**
-	 * Constructs an argument that consists of an array of bytes
-	 * @param bytes array to store
-	 */
-	public FastpathArg(byte bytes[])
-	{
-		this(bytes, 0, bytes.length);
-	}
+    /**
+     * Constructs an argument that consists of an array of bytes
+     * @param bytes array to store
+     */
+    public FastpathArg(byte bytes[])
+    {
+        this(bytes, 0, bytes.length);
+    }
 
-	/**
-	 * Constructs an argument that consists of part of a byte array
-	 * @param buf source array
-	 * @param off offset within array
-	 * @param len length of data to include
-	 */
-	public FastpathArg(byte buf[], int off, int len)
-	{
-		this.bytes = buf;
-		this.bytesStart = off;
-		this.bytesLength = len;
-	}
+    /**
+     * Constructs an argument that consists of part of a byte array
+     * @param buf source array
+     * @param off offset within array
+     * @param len length of data to include
+     */
+    public FastpathArg(byte buf[], int off, int len)
+    {
+        this.bytes = buf;
+        this.bytesStart = off;
+        this.bytesLength = len;
+    }
 
-	/**
-	 * Constructs an argument that consists of a String.
-	 * @param s String to store
-	 */
-	public FastpathArg(String s)
-	{
-		this(s.getBytes());
-	}
+    /**
+     * Constructs an argument that consists of a String.
+     * @param s String to store
+     */
+    public FastpathArg(String s)
+    {
+        this(s.getBytes());
+    }
 
-	void populateParameter(ParameterList params, int index) throws SQLException {
-		if (bytes == null)
-			params.setNull(index, 0);
-		else
-			params.setBytea(index, bytes, bytesStart, bytesLength);
-	}
+    void populateParameter(ParameterList params, int index) throws SQLException {
+        if (bytes == null)
+            params.setNull(index, 0);
+        else
+            params.setBytea(index, bytes, bytesStart, bytesLength);
+    }
 }
 

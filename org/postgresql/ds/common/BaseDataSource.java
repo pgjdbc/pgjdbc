@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2004, PostgreSQL Global Development Group
- *
- * IDENTIFICATION
- *	  $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.3 2004/11/07 22:15:45 jurka Exp $
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2004, PostgreSQL Global Development Group
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.4 2004/11/09 07:39:50 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.ds.common;
 
 import javax.naming.*;
@@ -24,301 +24,302 @@ import java.io.IOException;
  */
 public abstract class BaseDataSource implements Referenceable
 {
-	// Load the normal driver, since we'll use it to actually connect to the
-	// database.  That way we don't have to maintain the connecting code in
-	// multiple places.
-	static {
-		try
-		{
-			Class.forName("org.postgresql.Driver");
-		}
-		catch (ClassNotFoundException e)
-		{
-			System.err.println("PostgreSQL DataSource unable to load PostgreSQL JDBC Driver");
-		}
-	}
+    // Load the normal driver, since we'll use it to actually connect to the
+    // database.  That way we don't have to maintain the connecting code in
+    // multiple places.
+    static {
+        try
+        {
+            Class.forName("org.postgresql.Driver");
+        }
+        catch (ClassNotFoundException e)
+        {
+            System.err.println("PostgreSQL DataSource unable to load PostgreSQL JDBC Driver");
+        }
+    }
 
-	// Needed to implement the DataSource/ConnectionPoolDataSource interfaces
-	private transient PrintWriter logger;
-	// Don't track loginTimeout, since we'd just ignore it anyway
+    // Needed to implement the DataSource/ConnectionPoolDataSource interfaces
+    private transient PrintWriter logger;
+    // Don't track loginTimeout, since we'd just ignore it anyway
 
-	// Standard properties, defined in the JDBC 2.0 Optional Package spec
-	private String serverName = "localhost";
-	private String databaseName;
-	private String user;
-	private String password;
-	private int portNumber;
-	private int prepareThreshold;
+    // Standard properties, defined in the JDBC 2.0 Optional Package spec
+    private String serverName = "localhost";
+    private String databaseName;
+    private String user;
+    private String password;
+    private int portNumber;
+    private int prepareThreshold;
 
-	/**
-	 * Gets a connection to the PostgreSQL database.  The database is identified by the
-	 * DataSource properties serverName, databaseName, and portNumber.	The user to
-	 * connect as is identified by the DataSource properties user and password.
-	 *
-	 * @return A valid database connection.
-	 * @throws SQLException
-	 *		   Occurs when the database connection cannot be established.
-	 */
-	public Connection getConnection() throws SQLException
-	{
-		return getConnection(user, password);
-	}
+    /**
+     * Gets a connection to the PostgreSQL database.  The database is identified by the
+     * DataSource properties serverName, databaseName, and portNumber. The user to
+     * connect as is identified by the DataSource properties user and password.
+     *
+     * @return A valid database connection.
+     * @throws SQLException
+     *     Occurs when the database connection cannot be established.
+     */
+    public Connection getConnection() throws SQLException
+    {
+        return getConnection(user, password);
+    }
 
-	/**
-	 * Gets a connection to the PostgreSQL database.  The database is identified by the
-	 * DataSource properties serverName, databaseName, and portNumber.	The user to
-	 * connect as is identified by the arguments user and password, which override
-	 * the DataSource properties by the same name.
-	 *
-	 * @return A valid database connection.
-	 * @throws SQLException
-	 *		   Occurs when the database connection cannot be established.
-	 */
-	public Connection getConnection(String user, String password) throws SQLException
-	{
-		try
-		{
-			Connection con = DriverManager.getConnection(getUrl(), user, password);
-			if (logger != null)
-			{
-				logger.println("Created a non-pooled connection for " + user + " at " + getUrl());
-			}
-			return con;
-		}
-		catch (SQLException e)
-		{
-			if (logger != null)
-			{
-				logger.println("Failed to create a non-pooled connection for " + user + " at " + getUrl() + ": " + e);
-			}
-			throw e;
-		}
-	}
+    /**
+     * Gets a connection to the PostgreSQL database.  The database is identified by the
+     * DataSource properties serverName, databaseName, and portNumber. The user to
+     * connect as is identified by the arguments user and password, which override
+     * the DataSource properties by the same name.
+     *
+     * @return A valid database connection.
+     * @throws SQLException
+     *     Occurs when the database connection cannot be established.
+     */
+    public Connection getConnection(String user, String password) throws SQLException
+    {
+        try
+        {
+            Connection con = DriverManager.getConnection(getUrl(), user, password);
+            if (logger != null)
+            {
+                logger.println("Created a non-pooled connection for " + user + " at " + getUrl());
+            }
+            return con;
+        }
+        catch (SQLException e)
+        {
+            if (logger != null)
+            {
+                logger.println("Failed to create a non-pooled connection for " + user + " at " + getUrl() + ": " + e);
+            }
+            throw e;
+        }
+    }
 
-	/**
-	 * This DataSource does not support a configurable login timeout.
-	 * @return 0
-	 */
-	public int getLoginTimeout() throws SQLException
-	{
-		return 0;
-	}
+    /**
+     * This DataSource does not support a configurable login timeout.
+     * @return 0
+     */
+    public int getLoginTimeout() throws SQLException
+    {
+        return 0;
+    }
 
-	/**
-	 * This DataSource does not support a configurable login timeout.  Any value
-	 * provided here will be ignored.
-	 */
-	public void setLoginTimeout(int i) throws SQLException
-		{}
+    /**
+     * This DataSource does not support a configurable login timeout.  Any value
+     * provided here will be ignored.
+     */
+    public void setLoginTimeout(int i) throws SQLException
+    {
+    }
 
-	/**
-	 * Gets the log writer used to log connections opened.
-	 */
-	public PrintWriter getLogWriter() throws SQLException
-	{
-		return logger;
-	}
+    /**
+     * Gets the log writer used to log connections opened.
+     */
+    public PrintWriter getLogWriter() throws SQLException
+    {
+        return logger;
+    }
 
-	/**
-	 * The DataSource will note every connection opened to the provided log writer.
-	 */
-	public void setLogWriter(PrintWriter printWriter) throws SQLException
-	{
-		logger = printWriter;
-	}
+    /**
+     * The DataSource will note every connection opened to the provided log writer.
+     */
+    public void setLogWriter(PrintWriter printWriter) throws SQLException
+    {
+        logger = printWriter;
+    }
 
-	/**
-	 * Gets the name of the host the PostgreSQL database is running on.
-	 */
-	public String getServerName()
-	{
-		return serverName;
-	}
+    /**
+     * Gets the name of the host the PostgreSQL database is running on.
+     */
+    public String getServerName()
+    {
+        return serverName;
+    }
 
-	/**
-	 * Sets the name of the host the PostgreSQL database is running on.  If this
-	 * is changed, it will only affect future calls to getConnection.  The default
-	 * value is <tt>localhost</tt>.
-	 */
-	public void setServerName(String serverName)
-	{
-		if (serverName == null || serverName.equals(""))
-		{
-			this.serverName = "localhost";
-		}
-		else
-		{
-			this.serverName = serverName;
-		}
-	}
+    /**
+     * Sets the name of the host the PostgreSQL database is running on.  If this
+     * is changed, it will only affect future calls to getConnection.  The default
+     * value is <tt>localhost</tt>.
+     */
+    public void setServerName(String serverName)
+    {
+        if (serverName == null || serverName.equals(""))
+        {
+            this.serverName = "localhost";
+        }
+        else
+        {
+            this.serverName = serverName;
+        }
+    }
 
-	/**
-	 * Gets the name of the PostgreSQL database, running on the server identified
-	 * by the serverName property.
-	 */
-	public String getDatabaseName()
-	{
-		return databaseName;
-	}
+    /**
+     * Gets the name of the PostgreSQL database, running on the server identified
+     * by the serverName property.
+     */
+    public String getDatabaseName()
+    {
+        return databaseName;
+    }
 
-	/**
-	 * Sets the name of the PostgreSQL database, running on the server identified
-	 * by the serverName property.	If this is changed, it will only affect
-	 * future calls to getConnection.
-	 */
-	public void setDatabaseName(String databaseName)
-	{
-		this.databaseName = databaseName;
-	}
+    /**
+     * Sets the name of the PostgreSQL database, running on the server identified
+     * by the serverName property. If this is changed, it will only affect
+     * future calls to getConnection.
+     */
+    public void setDatabaseName(String databaseName)
+    {
+        this.databaseName = databaseName;
+    }
 
-	/**
-	 * Gets a description of this DataSource-ish thing.  Must be customized by
-	 * subclasses.
-	 */
-	public abstract String getDescription();
+    /**
+     * Gets a description of this DataSource-ish thing.  Must be customized by
+     * subclasses.
+     */
+    public abstract String getDescription();
 
-	/**
-	 * Gets the user to connect as by default.	If this is not specified, you must
-	 * use the getConnection method which takes a user and password as parameters.
-	 */
-	public String getUser()
-	{
-		return user;
-	}
+    /**
+     * Gets the user to connect as by default. If this is not specified, you must
+     * use the getConnection method which takes a user and password as parameters.
+     */
+    public String getUser()
+    {
+        return user;
+    }
 
-	/**
-	 * Sets the user to connect as by default.	If this is not specified, you must
-	 * use the getConnection method which takes a user and password as parameters.
-	 * If this is changed, it will only affect future calls to getConnection.
-	 */
-	public void setUser(String user)
-	{
-		this.user = user;
-	}
+    /**
+     * Sets the user to connect as by default. If this is not specified, you must
+     * use the getConnection method which takes a user and password as parameters.
+     * If this is changed, it will only affect future calls to getConnection.
+     */
+    public void setUser(String user)
+    {
+        this.user = user;
+    }
 
-	/**
-	 * Gets the password to connect with by default.  If this is not specified but a
-	 * password is needed to log in, you must use the getConnection method which takes
-	 * a user and password as parameters.
-	 */
-	public String getPassword()
-	{
-		return password;
-	}
+    /**
+     * Gets the password to connect with by default.  If this is not specified but a
+     * password is needed to log in, you must use the getConnection method which takes
+     * a user and password as parameters.
+     */
+    public String getPassword()
+    {
+        return password;
+    }
 
-	/**
-	 * Sets the password to connect with by default.  If this is not specified but a
-	 * password is needed to log in, you must use the getConnection method which takes
-	 * a user and password as parameters.  If this is changed, it will only affect
-	 * future calls to getConnection.
-	 */
-	public void setPassword(String password)
-	{
-		this.password = password;
-	}
+    /**
+     * Sets the password to connect with by default.  If this is not specified but a
+     * password is needed to log in, you must use the getConnection method which takes
+     * a user and password as parameters.  If this is changed, it will only affect
+     * future calls to getConnection.
+     */
+    public void setPassword(String password)
+    {
+        this.password = password;
+    }
 
-	/**
-	 * Gets the port which the PostgreSQL server is listening on for TCP/IP
-	 * connections.
-	 *
-	 * @return The port, or 0 if the default port will be used.
-	 */
-	public int getPortNumber()
-	{
-		return portNumber;
-	}
+    /**
+     * Gets the port which the PostgreSQL server is listening on for TCP/IP
+     * connections.
+     *
+     * @return The port, or 0 if the default port will be used.
+     */
+    public int getPortNumber()
+    {
+        return portNumber;
+    }
 
-	/**
-	 * Gets the port which the PostgreSQL server is listening on for TCP/IP
-	 * connections.  Be sure the -i flag is passed to postmaster when PostgreSQL
-	 * is started.	If this is not set, or set to 0, the default port will be used.
-	 */
-	public void setPortNumber(int portNumber)
-	{
-		this.portNumber = portNumber;
-	}
+    /**
+     * Gets the port which the PostgreSQL server is listening on for TCP/IP
+     * connections.  Be sure the -i flag is passed to postmaster when PostgreSQL
+     * is started. If this is not set, or set to 0, the default port will be used.
+     */
+    public void setPortNumber(int portNumber)
+    {
+        this.portNumber = portNumber;
+    }
 
-	/**
-	 * Sets the default threshold for enabling server-side prepare.
-	 * See {@link org.postgresql.PGConnection#setPrepareThreshold(int)} for details.
-	 *
-	 * @param count the number of times a statement object must be reused before server-side
-	 *   prepare is enabled.
-	 */
-	public void setPrepareThreshold(int count)
-	{
-		this.prepareThreshold = count;
-	}
-	
-	/**
-	 * Gets the default threshold for enabling server-side prepare.
-	 *
-	 * @see #setPrepareThreshold(int)
-	 */
-	public int getPrepareThreshold()
-	{
-		return prepareThreshold;
-	}
-	
-	/**
-	 * Generates a DriverManager URL from the other properties supplied.
-	 */
-	private String getUrl()
-	{
-		return "jdbc:postgresql://" + serverName + (portNumber == 0 ? "" : ":" + portNumber) + "/" + databaseName + 
-			(prepareThreshold == 5 ? "" : "?prepareThreshold=" + prepareThreshold);
-	}
+    /**
+     * Sets the default threshold for enabling server-side prepare.
+     * See {@link org.postgresql.PGConnection#setPrepareThreshold(int)} for details.
+     *
+     * @param count the number of times a statement object must be reused before server-side
+     *   prepare is enabled.
+     */
+    public void setPrepareThreshold(int count)
+    {
+        this.prepareThreshold = count;
+    }
+
+    /**
+     * Gets the default threshold for enabling server-side prepare.
+     *
+     * @see #setPrepareThreshold(int)
+     */
+    public int getPrepareThreshold()
+    {
+        return prepareThreshold;
+    }
+
+    /**
+     * Generates a DriverManager URL from the other properties supplied.
+     */
+    private String getUrl()
+    {
+        return "jdbc:postgresql://" + serverName + (portNumber == 0 ? "" : ":" + portNumber) + "/" + databaseName +
+               (prepareThreshold == 5 ? "" : "?prepareThreshold=" + prepareThreshold);
+    }
 
     /**
      * Generates a reference using the appropriate object factory.
      */
     protected Reference createReference() {
-	    return new Reference(
-			    getClass().getName(),
-			    PGObjectFactory.class.getName(),
-			    null);
+        return new Reference(
+                   getClass().getName(),
+                   PGObjectFactory.class.getName(),
+                   null);
     }
 
-	public Reference getReference() throws NamingException
-	{
-		Reference ref = createReference();
-		ref.add(new StringRefAddr("serverName", serverName));
-		if (portNumber != 0)
-		{
-			ref.add(new StringRefAddr("portNumber", Integer.toString(portNumber)));
-		}
-		ref.add(new StringRefAddr("databaseName", databaseName));
-		if (user != null)
-		{
-			ref.add(new StringRefAddr("user", user));
-		}
-		if (password != null)
-		{
-			ref.add(new StringRefAddr("password", password));
-		}
-		if (prepareThreshold != 5)
-			ref.add(new StringRefAddr("prepareThreshold", Integer.toString(prepareThreshold)));
-		return ref;
-	}
+    public Reference getReference() throws NamingException
+    {
+        Reference ref = createReference();
+        ref.add(new StringRefAddr("serverName", serverName));
+        if (portNumber != 0)
+        {
+            ref.add(new StringRefAddr("portNumber", Integer.toString(portNumber)));
+        }
+        ref.add(new StringRefAddr("databaseName", databaseName));
+        if (user != null)
+        {
+            ref.add(new StringRefAddr("user", user));
+        }
+        if (password != null)
+        {
+            ref.add(new StringRefAddr("password", password));
+        }
+        if (prepareThreshold != 5)
+            ref.add(new StringRefAddr("prepareThreshold", Integer.toString(prepareThreshold)));
+        return ref;
+    }
 
-	protected void writeBaseObject(ObjectOutputStream out) throws IOException
-	{
-		out.writeObject(serverName);
-		out.writeObject(databaseName);
-		out.writeObject(user);
-		out.writeObject(password);
-		out.writeInt(portNumber);
-		out.writeInt(prepareThreshold);
-	}
+    protected void writeBaseObject(ObjectOutputStream out) throws IOException
+    {
+        out.writeObject(serverName);
+        out.writeObject(databaseName);
+        out.writeObject(user);
+        out.writeObject(password);
+        out.writeInt(portNumber);
+        out.writeInt(prepareThreshold);
+    }
 
-	protected void readBaseObject(ObjectInputStream in) throws IOException, ClassNotFoundException
-	{
-		serverName = (String)in.readObject();
-		databaseName = (String)in.readObject();
-		user = (String)in.readObject();
-		password = (String)in.readObject();
-		portNumber = in.readInt();
-		prepareThreshold = in.readInt();
-	}
+    protected void readBaseObject(ObjectInputStream in) throws IOException, ClassNotFoundException
+    {
+        serverName = (String)in.readObject();
+        databaseName = (String)in.readObject();
+        user = (String)in.readObject();
+        password = (String)in.readObject();
+        portNumber = in.readInt();
+        prepareThreshold = in.readInt();
+    }
 
 }

@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2004, PostgreSQL Global Development Group
- *
- * IDENTIFICATION
- *	  $PostgreSQL$
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2004, PostgreSQL Global Development Group
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/Jdbc3Connection.java,v 1.9 2004/11/07 22:16:26 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.jdbc3;
 
 import java.util.Map;
@@ -20,42 +20,42 @@ import java.sql.SQLException;
  */
 public class Jdbc3Connection extends org.postgresql.jdbc3.AbstractJdbc3Connection implements java.sql.Connection
 {
-	public Jdbc3Connection(String host, int port, String user, String database, Properties info, String url) throws SQLException {
-		super(host, port, user, database, info, url);
-	}
+    public Jdbc3Connection(String host, int port, String user, String database, Properties info, String url) throws SQLException {
+        super(host, port, user, database, info, url);
+    }
 
-	public java.sql.Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException
-	{
-		Jdbc3Statement s = new Jdbc3Statement(this, resultSetType, resultSetConcurrency, resultSetHoldability);
-		s.setPrepareThreshold(getPrepareThreshold());
-		return s;
-	}
+    public java.sql.Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException
+    {
+        Jdbc3Statement s = new Jdbc3Statement(this, resultSetType, resultSetConcurrency, resultSetHoldability);
+        s.setPrepareThreshold(getPrepareThreshold());
+        return s;
+    }
 
 
-	public java.sql.PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException
-	{
-		Jdbc3PreparedStatement s = new Jdbc3PreparedStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
-		s.setPrepareThreshold(getPrepareThreshold());
-		return s;
-	}
+    public java.sql.PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException
+    {
+        Jdbc3PreparedStatement s = new Jdbc3PreparedStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
+        s.setPrepareThreshold(getPrepareThreshold());
+        return s;
+    }
 
-	public java.sql.CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException
-	{
-		Jdbc3CallableStatement s = new Jdbc3CallableStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
-		s.setPrepareThreshold(getPrepareThreshold());
-		return s;
-	}
+    public java.sql.CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException
+    {
+        Jdbc3CallableStatement s = new Jdbc3CallableStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
+        s.setPrepareThreshold(getPrepareThreshold());
+        return s;
+    }
 
-	public java.sql.DatabaseMetaData getMetaData() throws SQLException
-	{
-		if (metadata == null)
-			metadata = new Jdbc3DatabaseMetaData(this);
-		return metadata;
-	}
+    public java.sql.DatabaseMetaData getMetaData() throws SQLException
+    {
+        if (metadata == null)
+            metadata = new Jdbc3DatabaseMetaData(this);
+        return metadata;
+    }
 
-	public void setTypeMap(Map map) throws SQLException
-	{
-		setTypeMapImpl(map);
-	}
+    public void setTypeMap(Map map) throws SQLException
+    {
+        setTypeMapImpl(map);
+    }
 
 }

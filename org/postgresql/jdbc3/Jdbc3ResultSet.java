@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2004, PostgreSQL Global Development Group
- *
- * IDENTIFICATION
- *	  $PostgreSQL$
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2004, PostgreSQL Global Development Group
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/Jdbc3ResultSet.java,v 1.10 2004/11/07 22:16:31 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.jdbc3;
 
 
@@ -22,49 +22,49 @@ import org.postgresql.core.*;
  */
 public class Jdbc3ResultSet extends org.postgresql.jdbc3.AbstractJdbc3ResultSet implements java.sql.ResultSet
 {
-	Jdbc3ResultSet(Query originalQuery, BaseStatement statement, Field[] fields, Vector tuples, ResultCursor cursor, 
-				   int maxRows, int maxFieldSize, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
-	{
-		super(originalQuery, statement, fields, tuples, cursor, maxRows, maxFieldSize, rsType, rsConcurrency, rsHoldability);
-	}
+    Jdbc3ResultSet(Query originalQuery, BaseStatement statement, Field[] fields, Vector tuples, ResultCursor cursor,
+                   int maxRows, int maxFieldSize, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
+    {
+        super(originalQuery, statement, fields, tuples, cursor, maxRows, maxFieldSize, rsType, rsConcurrency, rsHoldability);
+    }
 
-	public java.sql.ResultSetMetaData getMetaData() throws SQLException
-	{
-		return new Jdbc3ResultSetMetaData(connection, fields);
-	}
+    public java.sql.ResultSetMetaData getMetaData() throws SQLException
+    {
+        return new Jdbc3ResultSetMetaData(connection, fields);
+    }
 
-	public java.sql.Clob getClob(int i) throws SQLException
-	{
-		wasNullFlag = (this_row[i - 1] == null);
-		if (wasNullFlag)
-			return null;
+    public java.sql.Clob getClob(int i) throws SQLException
+    {
+        wasNullFlag = (this_row[i - 1] == null);
+        if (wasNullFlag)
+            return null;
 
-		return new Jdbc3Clob(connection, getInt(i));
-	}
+        return new Jdbc3Clob(connection, getInt(i));
+    }
 
-	public java.sql.Blob getBlob(int i) throws SQLException
-	{
-		wasNullFlag = (this_row[i - 1] == null);
-		if (wasNullFlag)
-			return null;
+    public java.sql.Blob getBlob(int i) throws SQLException
+    {
+        wasNullFlag = (this_row[i - 1] == null);
+        if (wasNullFlag)
+            return null;
 
-		return new Jdbc3Blob(connection, getInt(i));
-	}
+        return new Jdbc3Blob(connection, getInt(i));
+    }
 
-	public Array createArray(int i) throws SQLException
-	{
-		return new Jdbc3Array(connection, i, fields[i - 1], this);
-	}
+    public Array createArray(int i) throws SQLException
+    {
+        return new Jdbc3Array(connection, i, fields[i - 1], this);
+    }
 
-	public Object getObject(String s, Map map) throws SQLException
-	{
-		return getObjectImpl(s,map);
-	}
+    public Object getObject(String s, Map map) throws SQLException
+    {
+        return getObjectImpl(s, map);
+    }
 
-	public Object getObject(int i, Map map) throws SQLException
-	{
-		return getObjectImpl(i, map);
-	}
+    public Object getObject(int i, Map map) throws SQLException
+    {
+        return getObjectImpl(i, map);
+    }
 
 }
 

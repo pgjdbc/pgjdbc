@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2004, PostgreSQL Global Development Group
- *
- * IDENTIFICATION
- *	  $PostgreSQL$
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2004, PostgreSQL Global Development Group
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ConnectionTest.java,v 1.17 2004/11/07 22:16:43 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.test.TestUtil;
@@ -22,276 +22,280 @@ import java.sql.*;
 public class ConnectionTest extends TestCase
 {
 
-	/*
-	 * Constructor
-	 */
-	public ConnectionTest(String name)
-	{
-		super(name);
-	}
+    /*
+     * Constructor
+     */
+    public ConnectionTest(String name)
+    {
+        super(name);
+    }
 
-	// Set up the fixture for this testcase: the tables for this test.
-	protected void setUp() throws Exception
-	{
-		Connection con = TestUtil.openDB();
+    // Set up the fixture for this testcase: the tables for this test.
+    protected void setUp() throws Exception
+    {
+        Connection con = TestUtil.openDB();
 
-		TestUtil.createTable(con, "test_a", "imagename name,image oid,id int4");
-		TestUtil.createTable(con, "test_c", "source text,cost money,imageid int4");
+        TestUtil.createTable(con, "test_a", "imagename name,image oid,id int4");
+        TestUtil.createTable(con, "test_c", "source text,cost money,imageid int4");
 
-		TestUtil.closeDB(con);
-	}
+        TestUtil.closeDB(con);
+    }
 
-	// Tear down the fixture for this test case.
-	protected void tearDown() throws Exception
-	{
-		Connection con = TestUtil.openDB();
+    // Tear down the fixture for this test case.
+    protected void tearDown() throws Exception
+    {
+        Connection con = TestUtil.openDB();
 
-		TestUtil.dropTable(con, "test_a");
-		TestUtil.dropTable(con, "test_c");
+        TestUtil.dropTable(con, "test_a");
+        TestUtil.dropTable(con, "test_c");
 
-		TestUtil.closeDB(con);
-	}
+        TestUtil.closeDB(con);
+    }
 
-	/*
-	 * Tests the two forms of createStatement()
-	 */
-	public void testCreateStatement() throws SQLException
-	{
-		Connection conn = TestUtil.openDB();
+    /*
+     * Tests the two forms of createStatement()
+     */
+    public void testCreateStatement() throws SQLException
+    {
+        Connection conn = TestUtil.openDB();
 
-		// A standard Statement
-		Statement stat = conn.createStatement();
-		assertNotNull(stat);
-		stat.close();
+        // A standard Statement
+        Statement stat = conn.createStatement();
+        assertNotNull(stat);
+        stat.close();
 
-		// Ask for Updateable ResultSets
-		stat = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
-		assertNotNull(stat);
-		stat.close();
-	}
+        // Ask for Updateable ResultSets
+        stat = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        assertNotNull(stat);
+        stat.close();
+    }
 
-	/*
-	 * Tests the two forms of prepareStatement()
-	 */
-	public void testPrepareStatement() throws SQLException
-	{
-		Connection conn = TestUtil.openDB();
+    /*
+     * Tests the two forms of prepareStatement()
+     */
+    public void testPrepareStatement() throws SQLException
+    {
+        Connection conn = TestUtil.openDB();
 
-		String sql = "select source,cost,imageid from test_c";
+        String sql = "select source,cost,imageid from test_c";
 
-		// A standard Statement
-		PreparedStatement stat = conn.prepareStatement(sql);
-		assertNotNull(stat);
-		stat.close();
+        // A standard Statement
+        PreparedStatement stat = conn.prepareStatement(sql);
+        assertNotNull(stat);
+        stat.close();
 
-		// Ask for Updateable ResultSets
-		stat = conn.prepareStatement(sql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
-		assertNotNull(stat);
-		stat.close();
-	}
+        // Ask for Updateable ResultSets
+        stat = conn.prepareStatement(sql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        assertNotNull(stat);
+        stat.close();
+    }
 
-	/*
-	 * Put the test for createPrepareCall here
-	 */
-	public void testPrepareCall()
-	{}
+    /*
+     * Put the test for createPrepareCall here
+     */
+    public void testPrepareCall()
+    {
+    }
 
-	/*
-	 * Test nativeSQL
-	 */
-	public void testNativeSQL()
-	{
-		// For now do nothing as it returns itself
-	}
+    /*
+     * Test nativeSQL
+     */
+    public void testNativeSQL()
+    {
+        // For now do nothing as it returns itself
+    }
 
-	/*
-	 * Test autoCommit (both get & set)
-	 */
-	public void testTransactions() throws SQLException
-	{
-		Connection con = TestUtil.openDB();
-		Statement st;
-		ResultSet rs;
+    /*
+     * Test autoCommit (both get & set)
+     */
+    public void testTransactions() throws SQLException
+    {
+        Connection con = TestUtil.openDB();
+        Statement st;
+        ResultSet rs;
 
-		// Turn it off
-		con.setAutoCommit(false);
-		assertTrue(!con.getAutoCommit());
+        // Turn it off
+        con.setAutoCommit(false);
+        assertTrue(!con.getAutoCommit());
 
-		// Turn it back on
-		con.setAutoCommit(true);
-		assertTrue(con.getAutoCommit());
+        // Turn it back on
+        con.setAutoCommit(true);
+        assertTrue(con.getAutoCommit());
 
-		// Now test commit
-		st = con.createStatement();
-		st.executeUpdate("insert into test_a (imagename,image,id) values ('comttest',1234,5678)");
+        // Now test commit
+        st = con.createStatement();
+        st.executeUpdate("insert into test_a (imagename,image,id) values ('comttest',1234,5678)");
 
-		con.setAutoCommit(false);
+        con.setAutoCommit(false);
 
-		// Now update image to 9876 and commit
-		st.executeUpdate("update test_a set image=9876 where id=5678");
-		con.commit();
-		rs = st.executeQuery("select image from test_a where id=5678");
-		assertTrue(rs.next());
-		assertEquals(9876, rs.getInt(1));
-		rs.close();
+        // Now update image to 9876 and commit
+        st.executeUpdate("update test_a set image=9876 where id=5678");
+        con.commit();
+        rs = st.executeQuery("select image from test_a where id=5678");
+        assertTrue(rs.next());
+        assertEquals(9876, rs.getInt(1));
+        rs.close();
 
-		// Now try to change it but rollback
-		st.executeUpdate("update test_a set image=1111 where id=5678");
-		con.rollback();
-		rs = st.executeQuery("select image from test_a where id=5678");
-		assertTrue(rs.next());
-		assertEquals(9876, rs.getInt(1)); // Should not change!
-		rs.close();
+        // Now try to change it but rollback
+        st.executeUpdate("update test_a set image=1111 where id=5678");
+        con.rollback();
+        rs = st.executeQuery("select image from test_a where id=5678");
+        assertTrue(rs.next());
+        assertEquals(9876, rs.getInt(1)); // Should not change!
+        rs.close();
 
-		TestUtil.closeDB(con);
-	}
+        TestUtil.closeDB(con);
+    }
 
-	/*
-	 * Simple test to see if isClosed works.
-	 */
-	public void testIsClosed() throws SQLException
-	{
-		Connection con = TestUtil.openDB();
+    /*
+     * Simple test to see if isClosed works.
+     */
+    public void testIsClosed() throws SQLException
+    {
+        Connection con = TestUtil.openDB();
 
-		// Should not say closed
-		assertTrue(!con.isClosed());
+        // Should not say closed
+        assertTrue(!con.isClosed());
 
-		TestUtil.closeDB(con);
+        TestUtil.closeDB(con);
 
-		// Should now say closed
-		assertTrue(con.isClosed());
-	}
+        // Should now say closed
+        assertTrue(con.isClosed());
+    }
 
-	/*
-	 * Test the warnings system
-	 */
-	public void testWarnings() throws SQLException
-	{
-		Connection con = TestUtil.openDB();
+    /*
+     * Test the warnings system
+     */
+    public void testWarnings() throws SQLException
+    {
+        Connection con = TestUtil.openDB();
 
-		String testStr = "This Is OuR TeSt message";
+        String testStr = "This Is OuR TeSt message";
 
-		// The connection must be ours!
-		assertTrue(con instanceof org.postgresql.PGConnection);
+        // The connection must be ours!
+        assertTrue(con instanceof org.postgresql.PGConnection);
 
-		// Clear any existing warnings
-		con.clearWarnings();
+        // Clear any existing warnings
+        con.clearWarnings();
 
-		// Set the test warning
-		((org.postgresql.jdbc2.AbstractJdbc2Connection)con).addWarning(new SQLWarning(testStr));
+        // Set the test warning
+        ((org.postgresql.jdbc2.AbstractJdbc2Connection)con).addWarning(new SQLWarning(testStr));
 
-		// Retrieve it
-		SQLWarning warning = con.getWarnings();
-		assertNotNull(warning);
-		assertEquals(testStr, warning.getMessage());
+        // Retrieve it
+        SQLWarning warning = con.getWarnings();
+        assertNotNull(warning);
+        assertEquals(testStr, warning.getMessage());
 
-		// Finally test clearWarnings() this time there must be something to delete
-		con.clearWarnings();
-		assertTrue(con.getWarnings() == null);
+        // Finally test clearWarnings() this time there must be something to delete
+        con.clearWarnings();
+        assertTrue(con.getWarnings() == null);
 
-		TestUtil.closeDB(con);
-	}
+        TestUtil.closeDB(con);
+    }
 
-	/*
-	 * Transaction Isolation Levels
-	 */
-	public void testTransactionIsolation() throws SQLException
-	{
-			Connection con = TestUtil.openDB();
+    /*
+     * Transaction Isolation Levels
+     */
+    public void testTransactionIsolation() throws SQLException
+    {
+        Connection con = TestUtil.openDB();
 
-			// PostgreSQL defaults to READ COMMITTED
-			assertEquals(Connection.TRANSACTION_READ_COMMITTED,
-						 con.getTransactionIsolation());
+        // PostgreSQL defaults to READ COMMITTED
+        assertEquals(Connection.TRANSACTION_READ_COMMITTED,
+                     con.getTransactionIsolation());
 
-			// Begin a transaction
-			con.setAutoCommit(false);
+        // Begin a transaction
+        con.setAutoCommit(false);
 
-			// The isolation level should not have changed
-			assertEquals(Connection.TRANSACTION_READ_COMMITTED,
-						 con.getTransactionIsolation());
+        // The isolation level should not have changed
+        assertEquals(Connection.TRANSACTION_READ_COMMITTED,
+                     con.getTransactionIsolation());
 
-			// Now run some tests with autocommit enabled.
-			con.setAutoCommit(true);
+        // Now run some tests with autocommit enabled.
+        con.setAutoCommit(true);
 
-			assertEquals(Connection.TRANSACTION_READ_COMMITTED,
-						 con.getTransactionIsolation());
+        assertEquals(Connection.TRANSACTION_READ_COMMITTED,
+                     con.getTransactionIsolation());
 
-			con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
-			assertEquals(Connection.TRANSACTION_SERIALIZABLE,
-						 con.getTransactionIsolation());
+        con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+        assertEquals(Connection.TRANSACTION_SERIALIZABLE,
+                     con.getTransactionIsolation());
 
-			con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
-			assertEquals(Connection.TRANSACTION_READ_COMMITTED, con.getTransactionIsolation());
+        con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+        assertEquals(Connection.TRANSACTION_READ_COMMITTED, con.getTransactionIsolation());
 
-			// Test if a change of isolation level before beginning the
-			// transaction affects the isolation level inside the transaction.
-			con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
-			assertEquals(Connection.TRANSACTION_SERIALIZABLE,
-						 con.getTransactionIsolation());
-			con.setAutoCommit(false);
-			assertEquals(Connection.TRANSACTION_SERIALIZABLE,
-						 con.getTransactionIsolation());
-			con.setAutoCommit(true);
-			assertEquals(Connection.TRANSACTION_SERIALIZABLE,
-						 con.getTransactionIsolation());
-			con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
-			assertEquals(Connection.TRANSACTION_READ_COMMITTED,
-						 con.getTransactionIsolation());
-			con.setAutoCommit(false);
-			assertEquals(Connection.TRANSACTION_READ_COMMITTED,
-						 con.getTransactionIsolation());
-			con.commit();
+        // Test if a change of isolation level before beginning the
+        // transaction affects the isolation level inside the transaction.
+        con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+        assertEquals(Connection.TRANSACTION_SERIALIZABLE,
+                     con.getTransactionIsolation());
+        con.setAutoCommit(false);
+        assertEquals(Connection.TRANSACTION_SERIALIZABLE,
+                     con.getTransactionIsolation());
+        con.setAutoCommit(true);
+        assertEquals(Connection.TRANSACTION_SERIALIZABLE,
+                     con.getTransactionIsolation());
+        con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+        assertEquals(Connection.TRANSACTION_READ_COMMITTED,
+                     con.getTransactionIsolation());
+        con.setAutoCommit(false);
+        assertEquals(Connection.TRANSACTION_READ_COMMITTED,
+                     con.getTransactionIsolation());
+        con.commit();
 
-			// Test that getTransactionIsolation() does not actually start a new txn.
-			con.getTransactionIsolation(); // Shouldn't start a new transaction.
-			con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE); // Should be ok -- we're not in a transaction.
-			con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED); // Should still be ok.
+        // Test that getTransactionIsolation() does not actually start a new txn.
+        con.getTransactionIsolation(); // Shouldn't start a new transaction.
+        con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE); // Should be ok -- we're not in a transaction.
+        con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED); // Should still be ok.
 
-			// Test that we can't change isolation mid-transaction
-			Statement stmt = con.createStatement();
-			stmt.executeQuery("SELECT 1");          // Start transaction.
-			stmt.close();
-			
-			try {
-				con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
-				fail("Expected an exception when changing transaction isolation mid-transaction");
-			} catch (SQLException e) {
-				// Ok.
-			}
+        // Test that we can't change isolation mid-transaction
+        Statement stmt = con.createStatement();
+        stmt.executeQuery("SELECT 1");          // Start transaction.
+        stmt.close();
 
-			con.rollback();
-			TestUtil.closeDB(con);
-	}
+        try
+        {
+            con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+            fail("Expected an exception when changing transaction isolation mid-transaction");
+        }
+        catch (SQLException e)
+        {
+            // Ok.
+        }
 
-	/*
-	 * JDBC2 Type mappings
-	 */
-	public void testTypeMaps() throws SQLException
-	{
-		Connection con = TestUtil.openDB();
+        con.rollback();
+        TestUtil.closeDB(con);
+    }
 
-		// preserve the current map
-		java.util.Map oldmap = con.getTypeMap();
+    /*
+     * JDBC2 Type mappings
+     */
+    public void testTypeMaps() throws SQLException
+    {
+        Connection con = TestUtil.openDB();
 
-		// now change it for an empty one
-		java.util.Map newmap = new java.util.HashMap();
-		con.setTypeMap(newmap);
-		assertEquals(newmap, con.getTypeMap());
+        // preserve the current map
+        java.util.Map oldmap = con.getTypeMap();
 
-		// restore the old one
-		con.setTypeMap(oldmap);
-		assertEquals(oldmap, con.getTypeMap());
+        // now change it for an empty one
+        java.util.Map newmap = new java.util.HashMap();
+        con.setTypeMap(newmap);
+        assertEquals(newmap, con.getTypeMap());
 
-		TestUtil.closeDB(con);
-	}
+        // restore the old one
+        con.setTypeMap(oldmap);
+        assertEquals(oldmap, con.getTypeMap());
 
-	/**
-	 * Closing a Connection more than once is not an error.
-	 */
-	public void testDoubleClose() throws SQLException
-	{
-		Connection con = TestUtil.openDB();
-		con.close();
-		con.close();
-	}
+        TestUtil.closeDB(con);
+    }
+
+    /**
+     * Closing a Connection more than once is not an error.
+     */
+    public void testDoubleClose() throws SQLException
+    {
+        Connection con = TestUtil.openDB();
+        con.close();
+        con.close();
+    }
 }

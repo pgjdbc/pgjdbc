@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- *
- * Copyright (c) 2003-2004, PostgreSQL Global Development Group
- *
- * IDENTIFICATION
- *	  $PostgreSQL: pgjdbc/org/postgresql/geometric/PGpoint.java,v 1.10 2004/10/10 15:39:39 jurka Exp $
- *
- *-------------------------------------------------------------------------
- */
+*
+* Copyright (c) 2003-2004, PostgreSQL Global Development Group
+*
+* IDENTIFICATION
+*   $PostgreSQL: pgjdbc/org/postgresql/geometric/PGpoint.java,v 1.11 2004/11/07 22:15:53 jurka Exp $
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.geometric;
 
 import org.postgresql.util.GT;
@@ -27,162 +27,162 @@ import java.sql.SQLException;
  */
 public class PGpoint extends PGobject implements Serializable, Cloneable
 {
-	/**
-	 * The X coordinate of the point
-	 */
-	public double x;
+    /**
+     * The X coordinate of the point
+     */
+    public double x;
 
-	/**
-	 * The Y coordinate of the point
-	 */
-	public double y;
+    /**
+     * The Y coordinate of the point
+     */
+    public double y;
 
-	/**
-	 * @param x coordinate
-	 * @param y coordinate
-	 */
-	public PGpoint(double x, double y)
-	{
-		this();
-		this.x = x;
-		this.y = y;
-	}
+    /**
+     * @param x coordinate
+     * @param y coordinate
+     */
+    public PGpoint(double x, double y)
+    {
+        this();
+        this.x = x;
+        this.y = y;
+    }
 
-	/**
-	 * This is called mainly from the other geometric types, when a
-	 * point is embedded within their definition.
-	 *
-	 * @param value Definition of this point in PostgreSQL's syntax
-	 */
-	public PGpoint(String value) throws SQLException
-	{
-		this();
-		setValue(value);
-	}
+    /**
+     * This is called mainly from the other geometric types, when a
+     * point is embedded within their definition.
+     *
+     * @param value Definition of this point in PostgreSQL's syntax
+     */
+    public PGpoint(String value) throws SQLException
+    {
+        this();
+        setValue(value);
+    }
 
-	/**
-	 * Required by the driver
-	 */
-	public PGpoint()
-	{
-		setType("point");
-	}
+    /**
+     * Required by the driver
+     */
+    public PGpoint()
+    {
+        setType("point");
+    }
 
-	/**
-	 * @param s Definition of this point in PostgreSQL's syntax
-	 * @exception SQLException on conversion failure
-	 */
-	public void setValue(String s) throws SQLException
-	{
-		PGtokenizer t = new PGtokenizer(PGtokenizer.removePara(s), ',');
-		try
-		{
-			x = Double.valueOf(t.getToken(0)).doubleValue();
-			y = Double.valueOf(t.getToken(1)).doubleValue();
-		}
-		catch (NumberFormatException e)
-		{
-			throw new PSQLException(GT.tr("Conversion of point failed: {0}.",s), PSQLState.DATA_TYPE_MISMATCH, e);
-		}
-	}
+    /**
+     * @param s Definition of this point in PostgreSQL's syntax
+     * @exception SQLException on conversion failure
+     */
+    public void setValue(String s) throws SQLException
+    {
+        PGtokenizer t = new PGtokenizer(PGtokenizer.removePara(s), ',');
+        try
+        {
+            x = Double.valueOf(t.getToken(0)).doubleValue();
+            y = Double.valueOf(t.getToken(1)).doubleValue();
+        }
+        catch (NumberFormatException e)
+        {
+            throw new PSQLException(GT.tr("Conversion of point failed: {0}.", s), PSQLState.DATA_TYPE_MISMATCH, e);
+        }
+    }
 
-	/**
-	 * @param obj Object to compare with
-	 * @return true if the two points are identical
-	 */
-	public boolean equals(Object obj)
-	{
-		if (obj instanceof PGpoint)
-		{
-			PGpoint p = (PGpoint)obj;
-			return x == p.x && y == p.y;
-		}
-		return false;
-	}
+    /**
+     * @param obj Object to compare with
+     * @return true if the two points are identical
+     */
+    public boolean equals(Object obj)
+    {
+        if (obj instanceof PGpoint)
+        {
+            PGpoint p = (PGpoint)obj;
+            return x == p.x && y == p.y;
+        }
+        return false;
+    }
 
-	public int hashCode()
-	{
-		long v1 = Double.doubleToLongBits(x);
-		long v2 = Double.doubleToLongBits(y);
-		return (int) (v1 ^ v2 ^ (v1>>>32) ^ (v2>>>32));
-	}
+    public int hashCode()
+    {
+        long v1 = Double.doubleToLongBits(x);
+        long v2 = Double.doubleToLongBits(y);
+        return (int) (v1 ^ v2 ^ (v1 >>> 32) ^ (v2 >>> 32));
+    }
 
-	public Object clone()
-	{
-		return new PGpoint(x, y);
-	}
+    public Object clone()
+    {
+        return new PGpoint(x, y);
+    }
 
-	/**
-	 * @return the PGpoint in the syntax expected by org.postgresql
-	 */
-	public String getValue()
-	{
-		return "(" + x + "," + y + ")";
-	}
+    /**
+     * @return the PGpoint in the syntax expected by org.postgresql
+     */
+    public String getValue()
+    {
+        return "(" + x + "," + y + ")";
+    }
 
-	/**
-	 * Translate the point by the supplied amount.
-	 * @param x integer amount to add on the x axis
-	 * @param y integer amount to add on the y axis
-	 */
-	public void translate(int x, int y)
-	{
-		translate((double)x, (double)y);
-	}
+    /**
+     * Translate the point by the supplied amount.
+     * @param x integer amount to add on the x axis
+     * @param y integer amount to add on the y axis
+     */
+    public void translate(int x, int y)
+    {
+        translate((double)x, (double)y);
+    }
 
-	/**
-	 * Translate the point by the supplied amount.
-	 * @param x double amount to add on the x axis
-	 * @param y double amount to add on the y axis
-	 */
-	public void translate(double x, double y)
-	{
-		this.x += x;
-		this.y += y;
-	}
+    /**
+     * Translate the point by the supplied amount.
+     * @param x double amount to add on the x axis
+     * @param y double amount to add on the y axis
+     */
+    public void translate(double x, double y)
+    {
+        this.x += x;
+        this.y += y;
+    }
 
-	/**
-	 * Moves the point to the supplied coordinates.
-	 * @param x integer coordinate
-	 * @param y integer coordinate
-	 */
-	public void move(int x, int y)
-	{
-		setLocation(x, y);
-	}
+    /**
+     * Moves the point to the supplied coordinates.
+     * @param x integer coordinate
+     * @param y integer coordinate
+     */
+    public void move(int x, int y)
+    {
+        setLocation(x, y);
+    }
 
-	/**
-	 * Moves the point to the supplied coordinates.
-	 * @param x double coordinate
-	 * @param y double coordinate
-	 */
-	public void move(double x, double y)
-	{
-		this.x = x;
-		this.y = y;
-	}
+    /**
+     * Moves the point to the supplied coordinates.
+     * @param x double coordinate
+     * @param y double coordinate
+     */
+    public void move(double x, double y)
+    {
+        this.x = x;
+        this.y = y;
+    }
 
-	/**
-	 * Moves the point to the supplied coordinates.
-	 * refer to java.awt.Point for description of this
-	 * @param x integer coordinate
-	 * @param y integer coordinate
-	 * @see java.awt.Point
-	 */
-	public void setLocation(int x, int y)
-	{
-		move((double)x, (double)y);
-	}
+    /**
+     * Moves the point to the supplied coordinates.
+     * refer to java.awt.Point for description of this
+     * @param x integer coordinate
+     * @param y integer coordinate
+     * @see java.awt.Point
+     */
+    public void setLocation(int x, int y)
+    {
+        move((double)x, (double)y);
+    }
 
-	/**
-	 * Moves the point to the supplied java.awt.Point
-	 * refer to java.awt.Point for description of this
-	 * @param p Point to move to
-	 * @see java.awt.Point
-	 */
-	public void setLocation(Point p)
-	{
-		setLocation(p.x, p.y);
-	}
+    /**
+     * Moves the point to the supplied java.awt.Point
+     * refer to java.awt.Point for description of this
+     * @param p Point to move to
+     * @see java.awt.Point
+     */
+    public void setLocation(Point p)
+    {
+        setLocation(p.x, p.y);
+    }
 
 }
