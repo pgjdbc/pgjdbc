@@ -1,6 +1,7 @@
 package org.postgresql.jdbc2;
 
 import java.sql.*;
+import java.util.Map;
 import java.util.Vector;
 import java.util.Hashtable;
 import java.util.Properties;
@@ -44,6 +45,12 @@ public class Jdbc2Connection extends org.postgresql.jdbc2.AbstractJdbc2Connectio
 		if (metadata == null)
 			metadata = new org.postgresql.jdbc2.Jdbc2DatabaseMetaData(this);
 		return metadata;
+	}
+
+	public void setTypeMap(Map map) throws SQLException
+	{
+		setTypeMapImpl(map);
+
 	}
 
 }

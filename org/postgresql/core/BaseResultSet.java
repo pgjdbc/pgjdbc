@@ -29,4 +29,6 @@ public interface BaseResultSet extends ResultSet
 	 * @throws SQLException if something goes wrong
 	 */
 	public String getFixedString(int col) throws SQLException;
+
+	public Array createArray(int col) throws SQLException;
 }

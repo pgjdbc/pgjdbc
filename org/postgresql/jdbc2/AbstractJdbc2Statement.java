@@ -2626,7 +2626,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 		throw Driver.notImplemented();
 	}
 
-	public Object getObject(int i, java.util.Map map) throws SQLException
+	public Object getObjectImpl(int i, java.util.Map map) throws SQLException
 	{
 		throw Driver.notImplemented();
 	}

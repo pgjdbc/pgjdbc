@@ -20,7 +20,7 @@ import java.util.Vector;
  * Driver-internal statement interface. Application code should not use
  * this interface.
  */
-public interface BaseStatement extends PGStatement, Statement, PreparedStatement, CallableStatement
+public interface BaseStatement extends PGStatement, Statement
 {
 	/**
 	 * Create a synthetic resultset from data provided by the driver.

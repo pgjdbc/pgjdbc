@@ -30,7 +30,7 @@ import java.util.Vector;
  */
 
 
-public class Array implements java.sql.Array
+public class AbstractJdbc2Array
 {
 	private BaseConnection conn = null;
 	private Field field = null;
@@ -46,7 +46,7 @@ public class Array implements java.sql.Array
 	 * @param field the Field descriptor for the field to load into this Array
 	 * @param rs the ResultSet from which to get the data for this Array
 	 */
-	public Array(BaseConnection conn, int idx, Field field, BaseResultSet rs )
+	public AbstractJdbc2Array(BaseConnection conn, int idx, Field field, BaseResultSet rs )
 	throws SQLException
 	{
 		this.conn = conn;
@@ -58,20 +58,20 @@ public class Array implements java.sql.Array
 
 	public Object getArray() throws SQLException
 	{
-		return getArray( 1, 0, null );
+		return getArrayImpl( 1, 0, null );
 	}
 
 	public Object getArray(long index, int count) throws SQLException
 	{
-		return getArray( index, count, null );
+		return getArrayImpl( index, count, null );
 	}
 
-	public Object getArray(Map map) throws SQLException
+	public Object getArrayImpl(Map map) throws SQLException
 	{
-		return getArray( 1, 0, map );
+		return getArrayImpl( 1, 0, map );
 	}
 
-	public Object getArray(long index, int count, Map map) throws SQLException
+	public Object getArrayImpl(long index, int count, Map map) throws SQLException
 	{
 		if ( map != null ) // For now maps aren't supported.
 			throw org.postgresql.Driver.notImplemented();
@@ -208,22 +208,22 @@ public class Array implements java.sql.Array
 
 	public java.sql.ResultSet getResultSet() throws SQLException
 	{
-		return getResultSet( 1, 0, null );
+		return getResultSetImpl( 1, 0, null );
 	}
 
 	public java.sql.ResultSet getResultSet(long index, int count) throws SQLException
 	{
-		return getResultSet( index, count, null );
+		return getResultSetImpl( index, count, null );
 	}
 
-	public java.sql.ResultSet getResultSet(Map map) throws SQLException
+	public java.sql.ResultSet getResultSetImpl(Map map) throws SQLException
 	{
-		return getResultSet( 1, 0, map );
+		return getResultSetImpl( 1, 0, map );
 	}
 
-	public java.sql.ResultSet getResultSet(long index, int count, java.util.Map map) throws SQLException
+	public java.sql.ResultSet getResultSetImpl(long index, int count, java.util.Map map) throws SQLException
 	{
-		Object array = getArray( index, count, map );
+		Object array = getArrayImpl( index, count, map );
 		Vector rows = new Vector();
 		Field[] fields = new Field[2];
 		fields[0] = new Field("INDEX", Oid.INT2, 2);

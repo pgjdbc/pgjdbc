@@ -286,7 +286,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
 		if (i < 1 || i > fields.length)
 			throw new PSQLException("postgresql.res.colrange", PSQLState.INVALID_PARAMETER_VALUE);
-		return (java.sql.Array) new org.postgresql.jdbc2.Array( connection, i, fields[i - 1], this );
+		return createArray(i);
 	}
 
 
@@ -429,9 +429,9 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 	}
 
 
-	public Object getObject(String columnName, java.util.Map map) throws SQLException
+	public Object getObjectImpl(String columnName, java.util.Map map) throws SQLException
 	{
-		return getObject(findColumn(columnName), map);
+		return getObjectImpl(findColumn(columnName), map);
 	}
 
 
@@ -440,7 +440,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 	 * an object based on that mapping. The class must implement the SQLData
 	 * interface.
 	 */
-	public Object getObject(int i, java.util.Map map) throws SQLException
+	public Object getObjectImpl(int i, java.util.Map map) throws SQLException
 	{
 		throw org.postgresql.Driver.notImplemented();
 	}

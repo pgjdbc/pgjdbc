@@ -1,4 +1,4 @@
-package org.postgresql.jdbc3;
+package org.postgresql.jdbc3g;
 
 import java.util.Map;
 import java.util.Properties;
@@ -9,15 +9,15 @@ import java.sql.SQLException;
  * However most of the implementation is really done in
  * org.postgresql.jdbc3.AbstractJdbc3Connection or one of it's parents
  */
-public class Jdbc3Connection extends org.postgresql.jdbc3.AbstractJdbc3Connection implements java.sql.Connection
+public class Jdbc3gConnection extends org.postgresql.jdbc3.AbstractJdbc3Connection implements java.sql.Connection
 {
-	public Jdbc3Connection(String host, int port, String user, String database, Properties info, String url) throws SQLException {
+	public Jdbc3gConnection(String host, int port, String user, String database, Properties info, String url) throws SQLException {
 		super(host, port, user, database, info, url);
 	}
 
 	public java.sql.Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException
 	{
-		Jdbc3Statement s = new Jdbc3Statement(this, resultSetType, resultSetConcurrency, resultSetHoldability);
+		Jdbc3gStatement s = new Jdbc3gStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability);
 		s.setPrepareThreshold(getPrepareThreshold());
 		return s;
 	}
@@ -25,14 +25,14 @@ public class Jdbc3Connection extends org.postgresql.jdbc3.AbstractJdbc3Connectio
 
 	public java.sql.PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException
 	{
-		Jdbc3PreparedStatement s = new Jdbc3PreparedStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
+		Jdbc3gPreparedStatement s = new Jdbc3gPreparedStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
 		s.setPrepareThreshold(getPrepareThreshold());
 		return s;
 	}
 
 	public java.sql.CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException
 	{
-		Jdbc3CallableStatement s = new Jdbc3CallableStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
+		Jdbc3gCallableStatement s = new Jdbc3gCallableStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
 		s.setPrepareThreshold(getPrepareThreshold());
 		return s;
 	}
@@ -40,11 +40,11 @@ public class Jdbc3Connection extends org.postgresql.jdbc3.AbstractJdbc3Connectio
 	public java.sql.DatabaseMetaData getMetaData() throws SQLException
 	{
 		if (metadata == null)
-			metadata = new Jdbc3DatabaseMetaData(this);
+			metadata = new Jdbc3gDatabaseMetaData(this);
 		return metadata;
 	}
 
-	public void setTypeMap(Map map) throws SQLException
+	public void setTypeMap(Map<String, Class<?>> map) throws SQLException
 	{
 		setTypeMapImpl(map);
 	}

@@ -2,6 +2,7 @@ package org.postgresql.jdbc2;
 
 
 import java.sql.*;
+import java.util.Map;
 import java.util.Vector;
 import org.postgresql.core.*;
 
@@ -39,6 +40,21 @@ public class Jdbc2ResultSet extends org.postgresql.jdbc2.AbstractJdbc2ResultSet 
 			return null;
 
 		return new org.postgresql.jdbc2.Jdbc2Blob(connection, getInt(i));
+	}
+
+	public java.sql.Array createArray(int i) throws SQLException
+	{
+		return new org.postgresql.jdbc2.Jdbc2Array(connection, i, fields[i - 1], this);
+	}
+
+	public Object getObject(String s, Map map) throws SQLException
+	{
+		return getObjectImpl(s,map);
+	}
+
+	public Object getObject(int i, Map map) throws SQLException
+	{
+		return getObjectImpl(i, map);
 	}
 
 }

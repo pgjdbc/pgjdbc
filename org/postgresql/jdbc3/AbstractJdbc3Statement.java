@@ -1250,7 +1250,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
 	 * @see #setObject
 	 * @since 1.4
 	 */
-	public Object getObject (String parameterName, java.util.Map map) throws SQLException
+	public Object getObjectImpl (String parameterName, java.util.Map map) throws SQLException
 	{
 		throw org.postgresql.Driver.notImplemented();
 	}

@@ -999,7 +999,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 	}	
 
 
-	public void setTypeMap(java.util.Map map) throws SQLException
+	public void setTypeMapImpl(java.util.Map map) throws SQLException
 	{
 		typemap = map;
 	}

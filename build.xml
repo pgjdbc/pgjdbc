@@ -37,20 +37,32 @@
       </or>
     </condition>
     <condition property="jdbc3">
-      <or>
         <equals arg1="${ant.java.version}" arg2="1.4"/>
-	<equals arg1="${ant.java.version}" arg2="1.5"/>
-      </or>
     </condition>
-    <available property="datasource" classname="javax.sql.DataSource"/>
+    <condition property="jdbc3g">
+	<equals arg1="${ant.java.version}" arg2="1.5"/>
+    </condition>
+    <available property="hasdatasource" classname="javax.sql.DataSource"/>
     <available property="ssl" classname="javax.net.ssl.SSLSocketFactory"/>
     <available property="junit" classname="junit.framework.Test"/>
     <available property="junit.task" classname="org.apache.tools.ant.taskdefs.optional.junit.JUnitTask"/>
+
+    <!-- for now jdbc3g can't compile PGObjectFactory -->
+    <condition property="datasource">
+      <and>
+        <isset property="hasdatasource" />
+	<not>
+	  <isset property="jdbc3g" />
+	</not>
+      </and>
+    </condition>
+
     <condition property="jdbc2tests">
       <and>
         <or>
           <isset property="jdbc2"/>
           <isset property="jdbc3"/>
+          <isset property="jdbc3g"/>
         </or>
         <isset property="junit"/>
       </and>
@@ -60,6 +72,7 @@
         <or>
           <isset property="jdbc2"/>
           <isset property="jdbc3"/>
+          <isset property="jdbc3g"/>
         </or>
         <isset property="datasource"/>
         <isset property="junit"/>
@@ -67,7 +80,11 @@
     </condition>
     <condition property="jdbc3tests">
       <and>
-        <isset property="jdbc3"/>
+        <or>
+          <isset property="jdbc3"/>
+	  <isset property="jdbc3g"/>
+	</or>
+        <isset property="datasource"/>
         <isset property="junit"/>
       </and>
     </condition>
@@ -110,7 +127,7 @@
     <fail message="Old driver was detected on classpath or in jre/lib/ext, please remove and try again." if="old.driver.present" />
 
     <javac classpath="${srcdir}" srcdir="${srcdir}" destdir="${builddir}" debug="${debug}">
-      <!-- This is the core of the driver.  It is common for all three versions. -->
+      <!-- This is the core of the driver.  It is common for all versions. -->
        <include name="${package}/*.java" />
        <include name="${package}/core/**" />
        <include name="${package}/fastpath/**" />
@@ -132,12 +149,18 @@
        <!-- jdbc2 subpackage -->
        <include name="${package}/jdbc2/**" if="jdbc2"/>
        <include name="${package}/jdbc2/**" if="jdbc3"/>
+       <include name="${package}/jdbc2/**" if="jdbc3g"/>
        <exclude name="${package}/jdbc2/Jdbc2*.java" unless="jdbc2"/>
        <exclude name="${package}/jdbc2/optional/**" unless="datasource"/>
  
        <!-- jdbc3 subpackage -->
        <include name="${package}/jdbc3/*.java" if="jdbc3"/>
        <exclude name="${package}/jdbc3/Jdbc3*.java" unless="jdbc3"/>
+
+       <!-- jdbc3g subpackage -->
+       <include name="${package}/jdbc3/*.java" if="jdbc3g"/>
+       <include name="${package}/jdbc3g/*.java" if="jdbc3g" />
+       <exclude name="${package}/jdbc3g/Jdbc3g*.java" unless="jdbc3g" />
 
     </javac>
   </target>
@@ -166,6 +189,9 @@
     <condition property="edition" value="JDBC3">
         <equals arg1="${jdbc3}" arg2="true"/>
     </condition>
+    <condition property="edition" value="JDBC3g">
+    	<equals arg1="${jdbc3g}" arg2="true" />
+    </condition>
     <condition property="edition" value="JDBC2 Enterprise">
       <and>
         <available classname="javax.sql.DataSource" />
@@ -179,6 +205,9 @@
     </condition>
     <condition property="connectclass" value="org.postgresql.jdbc3.Jdbc3Connection">
         <equals arg1="${jdbc3}" arg2="true"/>
+    </condition>
+    <condition property="connectclass" value="org.postgresql.jdbc3g.Jdbc3gConnection">
+        <equals arg1="${jdbc3g}" arg2="true"/>
     </condition>
 
     <!-- Determine if we have Throwable.initCause() 
