@@ -4,7 +4,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import org.postgresql.test.TestUtil;
 import org.postgresql.jdbc2.optional.PoolingDataSource;
-import org.postgresql.jdbc2.optional.BaseDataSource;
+import org.postgresql.ds.common.BaseDataSource;
 
 /**
  * Minimal tests for pooling DataSource.  Needs many more.

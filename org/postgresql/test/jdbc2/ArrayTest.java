@@ -116,37 +116,18 @@ public class ArrayTest extends TestCase
 		stmt.close();
 	}
 
-	private static class SimpleArray implements Array {
-		SimpleArray(int baseType, String baseTypeName, String value) {
-			this.baseType = baseType;
-			this.baseTypeName = baseTypeName;
-			this.value = value;
-		}
-
-		public Object getArray() { throw new UnsupportedOperationException(); }
-		public Object getArray(long index, int count) { throw new UnsupportedOperationException(); }
-		public Object getArray(long index, int count, Map map) { throw new UnsupportedOperationException(); }
-		public Object getArray(Map map) { throw new UnsupportedOperationException(); }
-		public ResultSet getResultSet() { throw new UnsupportedOperationException(); }
-		public ResultSet getResultSet(long index, int count) { throw new UnsupportedOperationException(); }
-		public ResultSet getResultSet(long index, int count, Map map) { throw new UnsupportedOperationException(); }
-		public ResultSet getResultSet(Map map) { throw new UnsupportedOperationException(); }
-
-		public int getBaseType() { return baseType; }
-		public String getBaseTypeName() { return baseTypeName; }
-
-		public String toString() { return value; }
-
-		private final int baseType;
-		private final String baseTypeName;
-		private final String value;
-	}
-		
-
 	public void testSetArray() throws SQLException {
-		PreparedStatement stmt = conn.prepareStatement("INSERT INTO arrtest(intarr) VALUES (?)");
-		stmt.setArray(1, new SimpleArray(Types.INTEGER, "int4", "{1,2,3}"));
-		stmt.executeUpdate();
+		Statement stmt = conn.createStatement();
+		ResultSet arrRS = stmt.executeQuery("SELECT '{1,2,3}'::int4[]");
+		assertTrue(arrRS.next());
+		Array arr = arrRS.getArray(1);
+		arrRS.close();
+		stmt.close();
+
+		PreparedStatement pstmt = conn.prepareStatement("INSERT INTO arrtest(intarr) VALUES (?)");
+		pstmt.setArray(1, arr);
+		pstmt.executeUpdate();
+		pstmt.close();
 
 		Statement select = conn.createStatement();
 		ResultSet rs = select.executeQuery("SELECT intarr FROM arrtest");

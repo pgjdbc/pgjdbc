@@ -1,4 +1,4 @@
-package org.postgresql.jdbc2.optional;
+package org.postgresql.ds.common;
 
 import javax.sql.*;
 import java.sql.*;
@@ -27,7 +27,7 @@ public class PooledConnectionImpl implements PooledConnection
 	 * Creates a new PooledConnection representing the specified physical
 	 * connection.
 	 */
-	protected PooledConnectionImpl(Connection con, boolean autoCommit)
+	public PooledConnectionImpl(Connection con, boolean autoCommit)
 	{
 		this.con = con;
 		this.autoCommit = autoCommit;

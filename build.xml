@@ -42,20 +42,27 @@
     <condition property="jdbc3g">
 	<equals arg1="${ant.java.version}" arg2="1.5"/>
     </condition>
-    <available property="hasdatasource" classname="javax.sql.DataSource"/>
-    <available property="ssl" classname="javax.net.ssl.SSLSocketFactory"/>
-    <available property="junit" classname="junit.framework.Test"/>
-    <available property="junit.task" classname="org.apache.tools.ant.taskdefs.optional.junit.JUnitTask"/>
+    <condition property="jdbc3any">
+      <or>
+        <isset property="jdbc3" />
+        <isset property="jdbc3g" />
+      </or>
+    </condition>
 
-    <!-- for now jdbc3g can't compile PGObjectFactory -->
-    <condition property="datasource">
+    <available property="datasource" classname="javax.sql.DataSource"/>
+
+    <condition property="noGenericDatasource">
       <and>
-        <isset property="hasdatasource" />
+        <isset property="datasource" />
 	<not>
 	  <isset property="jdbc3g" />
 	</not>
       </and>
     </condition>
+
+    <available property="ssl" classname="javax.net.ssl.SSLSocketFactory"/>
+    <available property="junit" classname="junit.framework.Test"/>
+    <available property="junit.task" classname="org.apache.tools.ant.taskdefs.optional.junit.JUnitTask"/>
 
     <condition property="jdbc2tests">
       <and>
@@ -151,16 +158,37 @@
        <include name="${package}/jdbc2/**" if="jdbc3"/>
        <include name="${package}/jdbc2/**" if="jdbc3g"/>
        <exclude name="${package}/jdbc2/Jdbc2*.java" unless="jdbc2"/>
-       <exclude name="${package}/jdbc2/optional/**" unless="datasource"/>
  
        <!-- jdbc3 subpackage -->
-       <include name="${package}/jdbc3/*.java" if="jdbc3"/>
-       <exclude name="${package}/jdbc3/Jdbc3*.java" unless="jdbc3"/>
+       <include name="${package}/jdbc3/Abstract*.java" if="jdbc3any" />
+       <include name="${package}/jdbc3/PSQLSavepoint.java" if="jdcb3any" />
+
+       
+       <include name="${package}/jdbc3/Jdbc3Array.java" if="jdbc3"/>
+       <include name="${package}/jdbc3/Jdbc3Blob.java" if="jdbc3"/>
+       <include name="${package}/jdbc3/Jdbc3CallableStatement.java" if="jdbc3"/>
+       <include name="${package}/jdbc3/Jdbc3Clob.java" if="jdbc3"/>
+       <include name="${package}/jdbc3/Jdbc3Connection.java" if="jdbc3"/>
+       <include name="${package}/jdbc3/Jdbc3DatabaseMetaData.java" if="jdbc3"/>
+       <include name="${package}/jdbc3/Jdbc3PreparedStatement.java" if="jdbc3"/>
+       <include name="${package}/jdbc3/Jdbc3ResultSet.java" if="jdbc3"/>
+       <include name="${package}/jdbc3/Jdbc3ResultSetMetaData.java.java" if="jdbc3"/>
+       <include name="${package}/jdbc3/Jdbc3Statement.java" if="jdbc3"/>
 
        <!-- jdbc3g subpackage -->
-       <include name="${package}/jdbc3/*.java" if="jdbc3g"/>
        <include name="${package}/jdbc3g/*.java" if="jdbc3g" />
        <exclude name="${package}/jdbc3g/Jdbc3g*.java" unless="jdbc3g" />
+
+       <!-- datasource stuff -->
+       <exclude name="${package}/jdbc2/optional/**" unless="datasource"/>
+       <include name="${package}/jdbc3/Jdbc3ConnectionPool.java" if="jdbc3any" />
+       <include name="${package}/jdbc3/Jdbc3PoolingDataSource.java" if="jdbc3any" />
+       <include name="${package}/jdbc3/Jdbc3SimpleDataSource.java" if="jdbc3any" />
+
+       <include name="${package}/ds/*.java" if="datasource" />
+       <include name="${package}/ds/common/*.java" if="datasource" />
+       <include name="${package}/ds/jdbc23/*.java" if="noGenericDatasource" />
+       <include name="${package}/ds/jdbc3g/*.java" if="jdbc3g" />
 
     </javac>
   </target>
@@ -170,6 +198,7 @@
       <srcfiles dir=".">
       <include name="${package}/util/PSQLException.java.in"/>
       <include name="${package}/Driver.java.in"/>
+      <include name="${package}/test/VersionInfo.java.in" />
       <include name="build.properties"/>
       <include name="build.local.properties" />
       </srcfiles>
@@ -228,6 +257,16 @@
         </or>
       </not>
     </condition>
+
+    <condition property="noGenerics" value="//">
+      <not>
+        <equals arg1="${ant.java.version}" arg2="1.5"/>
+      </not>
+    </condition>
+    
+    <condition property="noGenerics" value="">
+      <equals arg1="${ant.java.version}" arg2="1.5"/>
+    </condition>
     
     <!-- determine the ssl status -->
     <condition property="ssl_config" value="">
@@ -255,6 +294,7 @@
     <filter token="DEF_PGPORT" value="${def_pgport}" />
     <filter token="SSL" value="${ssl_config}" />
     <filter token="NOINITCAUSE" value="${noInitCause}" />
+    <filter token="NOGENERICS" value="${noGenerics}" />
 
      <fail unless="major" message="'major' undefined. Please follow the directions in README."/>
      <fail unless="minor" message="'minor' undefined. Please follow the directions in README."/>
@@ -273,6 +313,10 @@
           overwrite="true"
           tofile="${package}/util/PSQLException.java"
           filtering="yes" />
+    <copy file="${package}/test/VersionInfo.java.in"
+          overwrite="true"
+	  tofile="${package}/test/VersionInfo.java"
+	  filtering="yes" />
 
     <echo message="Configured build for the ${edition} edition driver with ${ssl_edition}" />
   </target>
@@ -317,6 +361,7 @@
     <delete quiet="true" dir="${jardir}" />
     <delete quiet="true" file="${package}/Driver.java" />
     <delete quiet="true" file="${package}/util/PSQLException.java" />
+    <delete quiet="true" file="${package}/test/VersionInfo.java" />
   </target>
 
   <!-- This compiles and executes the JUnit tests -->
@@ -343,7 +388,9 @@
       <exclude name="${package}/test/jdbc2/**" unless="jdbc2tests"/>
       <exclude name="${package}/test/jdbc2/optional/**" unless="jdbc2optionaltests" />
       <exclude name="${package}/test/jdbc3/**" unless="jdbc3tests" />
-      <exclude name="${package}/test/util/**" unless="jdbc2optionaltests"/>
+      <exclude name="${package}/test/util/**" unless="jdbc2optionaltests" />
+      <exclude name="${package}/test/util/Jdbc23*.java" if="jdbc3g" />
+      <exclude name="${package}/test/util/Jdbc3g*.java" unless="jdbc3g" />
 
       <classpath>
         <pathelement location="${jardir}/postgresql.jar"/>
@@ -393,12 +440,8 @@
         <include name="fastpath/*.java" />
         <include name="PG*.java" />
         <include name="util/PGobject.java" />
-        <include name="jdbc2/optional/SimpleDataSource.java" if="datasource" />
-        <include name="jdbc2/optional/PoolingDataSource.java" if="datasource" />
-        <include name="jdbc2/optional/ConnectionPool.java" if="datasource" />
-        <include name="jdbc3/Jdbc3SimpleDataSource.java" if="jdbc3" />
-        <include name="jdbc3/Jdbc3PoolingDataSource.java" if="jdbc3" />
-        <include name="jdbc3/Jdbc3ConnectionPool.java" if="jdbc3" />
+        <include name="ds/PG*.java" if="datasource" />
+	<include name="ds/common/*.java" if="datasource" />
       </fileset>
     </javadoc>
   </target>
