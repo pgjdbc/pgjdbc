@@ -68,7 +68,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
 			// Construct and send an ssl startup packet if requested.
 			if (trySSL)
-				newStream = enableSSL(newStream, requireSSL);
+				newStream = enableSSL(newStream, requireSSL, info);
 
 			// Construct and send a startup packet.
 			sendStartupPacket(newStream, user, database);
@@ -107,7 +107,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 		}
 	}
 
-	private PGStream enableSSL(PGStream pgStream, boolean requireSSL) throws IOException, SQLException {
+	private PGStream enableSSL(PGStream pgStream, boolean requireSSL, Properties info) throws IOException, SQLException {
 		if (Driver.logDebug)
 			Driver.debug(" FE=> SSLRequest");
 
@@ -147,7 +147,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 				Driver.debug(" <=BE SSLOk");
 
 			// Server supports ssl
-			Driver.makeSSL(pgStream);
+			Driver.makeSSL(pgStream,info);
 			return pgStream;
 
 		default:

@@ -50,7 +50,7 @@
     </condition>
 
     <available property="datasource" classname="javax.sql.DataSource"/>
-    <available property="ssl" classname="javax.net.ssl.SSLSocketFactory"/>
+    <available property="ssl" classname="javax.net.ssl.SSLContext"/>
     <available property="junit" classname="junit.framework.Test"/>
     <available property="junit.task" classname="org.apache.tools.ant.taskdefs.optional.junit.JUnitTask"/>
 
@@ -152,6 +152,9 @@
        <include name="${package}/jdbc3g/*.java" if="jdbc3g" />
        <exclude name="${package}/jdbc3g/Jdbc3g*.java" unless="jdbc3g" />
 
+       <!-- ssl -->
+       <include name="${package}/ssl/*.java" if="ssl" />
+
        <!-- datasource stuff -->
        <exclude name="${package}/jdbc2/optional/**" unless="datasource"/>
        <include name="${package}/jdbc3/Jdbc3ConnectionPool.java" if="jdbc3any" />
@@ -181,6 +184,12 @@
   <target name="driver" depends="prepare,check_versions,check_driver"
           unless="driver.uptodate">
     <!-- determine the edition text -->
+    <condition property="edition" value="JDBC2 Enterprise">
+      <and>
+        <available classname="javax.sql.DataSource" />
+        <equals arg1="${jdbc2}" arg2="true"/>
+      </and>
+    </condition>
     <condition property="edition" value="JDBC2">
         <equals arg1="${jdbc2}" arg2="true"/>
     </condition>
@@ -189,12 +198,6 @@
     </condition>
     <condition property="edition" value="JDBC3g">
     	<equals arg1="${jdbc3g}" arg2="true" />
-    </condition>
-    <condition property="edition" value="JDBC2 Enterprise">
-      <and>
-        <available classname="javax.sql.DataSource" />
-        <equals arg1="${jdbc2}" arg2="true"/>
-      </and>
     </condition>
 
     <!-- determine the connection class -->

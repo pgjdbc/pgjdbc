@@ -189,6 +189,10 @@ public class Driver implements java.sql.Driver
 		  "Force use of a particular protocol version when connecting; if set, disables protocol version fallback.", },
 		{ "ssl", Boolean.FALSE,
 		  "Control use of SSL; any nonnull value causes SSL to be required." },
+        { "sslfactory", Boolean.FALSE,
+          "Provide a SSLSocketFactory class when using SSL." },
+        { "sslfactoryargs", Boolean.FALSE,
+          "Arguments forwarded to constructor of SSLSocketFactory class." },
 		{ "logLevel", Boolean.FALSE,
 		  "Control the driver's log verbosity: 0 is off, 1 is INFO, 2 is DEBUG.",
 		  new String[] { "0", "1", "2" } },
@@ -524,12 +528,8 @@ public class Driver implements java.sql.Driver
 	}
 
 
-	public static void makeSSL(org.postgresql.core.PGStream p_stream) throws IOException {
-@SSL@		if (logDebug)
-@SSL@			debug("converting regular socket connection to ssl");
-@SSL@		javax.net.ssl.SSLSocketFactory factory = (javax.net.ssl.SSLSocketFactory) javax.net.ssl.SSLSocketFactory.getDefault();
-@SSL@       java.net.Socket newConnection = factory.createSocket(p_stream.getSocket(), p_stream.getHost(), p_stream.getPort(), true);
-@SSL@       p_stream.changeSocket(newConnection);
+	public static void makeSSL(org.postgresql.core.PGStream stream, Properties info) throws IOException,SQLException {
+@SSL@		org.postgresql.ssl.MakeSSL.convert(stream, info);
 	}
 
 	public static boolean sslEnabled() {
