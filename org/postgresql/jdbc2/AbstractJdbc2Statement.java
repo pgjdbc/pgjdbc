@@ -1184,6 +1184,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 			setNull(parameterIndex, Types.VARCHAR);
 				return;
 		}
+		if (length < 0)
+			throw new PSQLException(GT.tr("Invalid stream length {0}.", new Integer(length)));
+
 
 		//Version 7.2 supports AsciiStream for all PG text types (char, varchar, text)
 		//As the spec/javadoc for this method indicate this is to be used for
@@ -1303,6 +1306,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 			setNull(parameterIndex, Types.VARBINARY);
 			return;
 		}
+
+		if (length < 0)
+			throw new PSQLException(GT.tr("Invalid stream length {0}.", new Integer(length)));
 
 		if (connection.haveMinimumCompatibleVersion("7.2"))
 		{
@@ -2514,6 +2520,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	public void setCharacterStream(int i, java.io.Reader x, int length) throws SQLException
 	{
 		checkClosed();
+		if (length < 0)
+			throw new PSQLException(GT.tr("Invalid stream length {0}.", new Integer(length)));
+
 		if (connection.haveMinimumCompatibleVersion("7.2"))
 		{
 			//Version 7.2 supports CharacterStream for for the PG text types

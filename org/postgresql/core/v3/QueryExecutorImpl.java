@@ -131,10 +131,30 @@ public class QueryExecutorImpl implements QueryExecutor {
 		((V3ParameterList)parameters).checkAllParametersSet();
 
 		try {
-			handler = sendQueryPreamble(handler, flags);		
-			sendQuery((V3Query)query, (V3ParameterList)parameters, maxRows, fetchSize, flags);		
-			sendSync();
-			processResults(handler, flags);
+			try {
+				handler = sendQueryPreamble(handler, flags);		
+				sendQuery((V3Query)query, (V3ParameterList)parameters, maxRows, fetchSize, flags);		
+				sendSync();
+				processResults(handler, flags);
+			} catch (PGBindException se) {
+				// There are three causes of this error, an
+				// invalid total Bind message length, a
+				// BinaryStream that cannot provide the amount
+				// of data claimed by the length arugment, and
+				// a BinaryStream that throws an Exception
+				// when reading.
+				//
+				// We simply do not send the Execute message
+				// so we can just continue on as if nothing
+				// has happened.  Perhaps we need to
+				// introduce an error here to force the
+				// caller to rollback if there is a
+				// transaction in progress?
+				//
+				sendSync();
+				processResults(handler, flags);
+				handler.handleError(new PSQLException(GT.tr("Unable to bind parameter values for statement."), PSQLState.INVALID_PARAMETER_VALUE, se.getIOException()));
+			}
 		} catch (IOException e) {
 			protoConnection.close();
 			handler.handleError(new PSQLException(GT.tr("An I/O error occured while sending to the backend."), PSQLState.CONNECTION_FAILURE, e));
@@ -576,14 +596,14 @@ public class QueryExecutorImpl implements QueryExecutor {
 		//            + 2 (param format code count) + N * 2 (format codes)
 		//            + 2 (param value count) + N (encoded param value size)
 		//            + 2 (result format code count, 0)
-		int encodedSize = 0;
+		long encodedSize = 0;
 		for (int i = 1; i <= params.getParameterCount(); ++i) {
 			if (params.isNull(i))
 				encodedSize += 4;
 			else
-				encodedSize += 4 + params.getV3Length(i);
+				encodedSize += (long)4 + params.getV3Length(i);
 		}
-		
+
 		encodedSize = 4
 			+ (encodedPortalName == null ? 0 : encodedPortalName.length) + 1
 			+ (encodedStatementName == null ? 0 : encodedStatementName.length) + 1
@@ -591,8 +611,18 @@ public class QueryExecutorImpl implements QueryExecutor {
 			+ 2 + encodedSize
 			+ 2;
 
+		// backend's MaxAllocSize is the largest message that can
+		// be received from a client.  If we have a bigger value
+		// from either very large parameters or incorrent length
+		// descriptions of setXXXStream we do not send the bind
+		// messsage.
+		//
+		if (encodedSize > 0x3fffffff) {
+			throw new PGBindException(new IOException(GT.tr("Bind message length {0} too long.  This can be caused by very large or incorrect length specifications on InputStream parameters.", new Long(encodedSize))));
+		}
+
 		pgStream.SendChar('B');                  // Bind
-		pgStream.SendInteger4(encodedSize);      // Message size
+		pgStream.SendInteger4((int)encodedSize);      // Message size
 		if (encodedPortalName != null)           
 			pgStream.Send(encodedPortalName);    // Destination portal name.
 		pgStream.SendChar(0);                    // End of portal name.
@@ -605,12 +635,26 @@ public class QueryExecutorImpl implements QueryExecutor {
 			pgStream.SendInteger2(params.isBinary(i) ? 1 : 0);  // Parameter format code
 			
 		pgStream.SendInteger2(params.getParameterCount());      // # of parameter values
+
+		// If an error occurs when reading a stream we have to
+		// continue pumping out data to match the length we
+		// said we would.  Once we've done that we throw
+		// this exception.  Multiple exceptions can occur and
+		// it really doesn't matter which one is reported back
+		// to the caller.
+		//
+		PGBindException bindException = null;
+		
 		for (int i = 1; i <= params.getParameterCount(); ++i) {
 			if (params.isNull(i))
 				pgStream.SendInteger4(-1);                      // Magic size of -1 means NULL
 			else {
 				pgStream.SendInteger4(params.getV3Length(i));   // Parameter size
-				params.writeV3Value(i, pgStream);                 // Parameter value
+				try {
+					params.writeV3Value(i, pgStream);                 // Parameter value
+				} catch(PGBindException be) {
+					bindException = be;
+				}
 			}
 		}
 
@@ -618,6 +662,10 @@ public class QueryExecutorImpl implements QueryExecutor {
 		pgStream.SendChar(0);       //  (...)
 
 		pendingBindQueue.add(portal);
+
+		if (bindException != null) {
+			throw bindException;
+		}
 	}
 
 	private void sendDescribe(Portal portal) throws IOException {

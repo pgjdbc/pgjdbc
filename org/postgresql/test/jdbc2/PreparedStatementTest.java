@@ -1,6 +1,7 @@
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.util.BrokenInputStream;
 import junit.framework.TestCase;
 import java.io.*;
 import java.sql.*;
@@ -85,6 +86,61 @@ public class PreparedStatementTest extends TestCase
 			pstmt.execute("UPDATE streamtable SET bin=bin");
 			fail("Expected an exception when executing a new SQL statement on a prepared statement");
 		} catch (SQLException e) {}
+	}
+
+	public void testBinaryStreamErrorsRestartable() throws SQLException {
+		// The V2 protocol does not have the ability to recover when
+		// streaming data to the server.  We could potentially try
+		// introducing a syntax error to force the query to fail, but
+		// that seems dangerous.
+		//
+		if(!TestUtil.haveMinimumServerVersion(conn, "7.4")) {
+			return;
+		}
+
+		byte buf[] = new byte[10];
+		for (int i=0; i<buf.length; i++) {
+			buf[i] = (byte)i;
+		}
+
+		// InputStream is shorter than the length argument implies.
+		InputStream is = new ByteArrayInputStream(buf);
+		runBrokenStream(is, buf.length+1);
+
+		// InputStream throws an Exception during read.
+		is = new BrokenInputStream(new ByteArrayInputStream(buf), buf.length/2);
+		runBrokenStream(is, buf.length);
+
+		// Invalid length < 0.
+		is = new ByteArrayInputStream(buf);
+		runBrokenStream(is, -1);
+
+		// Total Bind message length too long.
+		is = new ByteArrayInputStream(buf);
+		runBrokenStream(is, Integer.MAX_VALUE);
+	}
+
+	private void runBrokenStream(InputStream is, int length) throws SQLException
+	{
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)");
+			pstmt.setBinaryStream(1, is, length);
+			pstmt.setString(2, "Other");
+			pstmt.executeUpdate();
+			fail("This isn't supposed to work.");
+		} catch (SQLException sqle) {
+			// don't need to rollback because we're in autocommit mode
+			pstmt.close();
+
+			// verify the connection is still valid and the row didn't go in.
+			Statement stmt = conn.createStatement();
+			ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM streamtable");
+			assertTrue(rs.next());
+			assertEquals(0, rs.getInt(1));
+			rs.close();
+			stmt.close();
+		}
 	}
 
 	private void doSetBinaryStream(ByteArrayInputStream bais, int length) throws SQLException

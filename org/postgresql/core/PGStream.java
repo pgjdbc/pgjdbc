@@ -24,6 +24,8 @@ import java.io.Writer;
 import java.net.Socket;
 import java.sql.*;
 
+import org.postgresql.util.GT;
+
 /**
  * Wrapper around the raw connection to the server that implements some basic
  * primitives (reading/writing formatted data, doing string encoding, etc).
@@ -437,6 +439,7 @@ public class PGStream
 	 * @param remaining the number of bytes to copy
 	 */
 	public void SendStream(InputStream inStream, int remaining) throws IOException {
+		int expectedLength = remaining;
 		if (streamBuffer == null)
 			streamBuffer = new byte[8192];
 
@@ -444,10 +447,19 @@ public class PGStream
 			int count = (remaining > streamBuffer.length ? streamBuffer.length : remaining);
 			int readCount;
 
-			readCount = inStream.read(streamBuffer, 0, count);
-			if (readCount < 0)
-				throw new EOFException("Premature end of input stream");
-			
+			try {
+				readCount = inStream.read(streamBuffer, 0, count);
+				if (readCount < 0)
+					throw new EOFException(GT.tr("Premature end of input stream, expected {0} bytes, but only read {1}.", new Object[]{new Integer(expectedLength), new Integer(expectedLength - remaining)}));
+			} catch(IOException ioe) {
+				while (remaining > 0) {
+					Send(streamBuffer, count);
+					remaining -= count;
+					count = (remaining > streamBuffer.length ? streamBuffer.length : remaining);
+				}
+				throw new PGBindException(ioe);
+			}
+
 			Send(streamBuffer, readCount);
 			remaining -= readCount;
 		}
