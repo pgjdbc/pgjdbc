@@ -810,7 +810,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 	public synchronized void moveToCurrentRow()
 	throws SQLException
 	{
-		if (!updateable)
+		if (!isUpdateable())
 		{
 			throw new PSQLException( "postgresql.updateable.notupdateable" );
 		}
