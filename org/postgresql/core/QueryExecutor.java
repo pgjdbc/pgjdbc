@@ -148,7 +148,7 @@ public class QueryExecutor
 						int t = pgStream.ReceiveChar();
 						break;
 					case 'N':	// Error Notification
-						connection.addWarning(pgStream.ReceiveString(connection.getEncoding()));
+						statement.addWarning(pgStream.ReceiveString(connection.getEncoding()));
 						break;
 					case 'P':	// Portal Name
 						String pname = pgStream.ReceiveString(connection.getEncoding());
