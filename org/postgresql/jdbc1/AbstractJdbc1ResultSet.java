@@ -131,6 +131,10 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 			String[] binds = new String[0];
 			// Is this the correct query???
 			String cursorName = statement.getStatementName();
+			//if cursorName is null, we are not batching (likely because the
+			//query itself can't be batched)
+			if (cursorName == null)
+				return false;
 			sql[0] = "FETCH FORWARD " + fetchSize + " FROM " + cursorName;
 			QueryExecutor.execute(sql,
 								  binds,
