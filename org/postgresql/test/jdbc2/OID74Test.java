@@ -75,6 +75,7 @@ public class OID74Test  extends TestCase
 		}
 
 		TestUtil.dropTable(c,"temp");
+                c.commit();
 		TestUtil.closeDB(c);
   	}	
 }

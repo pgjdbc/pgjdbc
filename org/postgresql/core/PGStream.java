@@ -240,12 +240,11 @@ public class PGStream
 	 * array of bytes
 	 *
 	 * @param nf the number of fields expected
-	 * @param bin true if the tuple is a binary tuple
 	 * @return null if the current response has no more tuples, otherwise
 	 *	an array of strings
 	 * @exception SQLException if a data I/O error occurs
 	 */
-	public byte[][] ReceiveTupleV3(int nf, boolean bin) throws SQLException
+	public byte[][] ReceiveTupleV3(int nf) throws SQLException
 	{
 		//TODO: use l_msgSize
 		int l_msgSize = ReceiveIntegerR(4);

@@ -15,9 +15,9 @@ import org.postgresql.core.Field;
 public abstract class AbstractJdbc3ResultSet extends org.postgresql.jdbc2.AbstractJdbc2ResultSet
 {
 
-	public AbstractJdbc3ResultSet(BaseStatement statement, Field[] fields, Vector tuples, String status, int updateCount, long insertOID, boolean binaryCursor)
+	public AbstractJdbc3ResultSet(BaseStatement statement, Field[] fields, Vector tuples, String status, int updateCount, long insertOID)
 	{
-		super (statement, fields, tuples, status, updateCount, insertOID, binaryCursor);
+		super (statement, fields, tuples, status, updateCount, insertOID);
 	}
 
 	/**

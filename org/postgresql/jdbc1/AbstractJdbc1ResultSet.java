@@ -41,7 +41,6 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 	protected BaseStatement statement;
 	protected Field fields[];		// The field descriptions
 	protected String status;		// Status of the result
-	protected boolean binaryCursor = false; // is the data binary or Strings
 	protected int updateCount;		// How many rows did we get back?
 	protected long insertOID;		// The oid of an inserted row
 	protected int current_row;		// Our pointer to where we are at
@@ -72,8 +71,7 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 				      Vector tuples,
 				      String status,
 				      int updateCount,
-				      long insertOID,
-					  boolean binaryCursor)
+				      long insertOID)
 	{
 		this.connection = statement.getPGConnection();
 		this.statement = statement;
@@ -85,7 +83,6 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 		this.insertOID = insertOID;
 		this.this_row = null;
 		this.current_row = -1;
-		this.binaryCursor = binaryCursor;
 
 		this.lastFetchSize = this.fetchSize = (statement == null ? 0 : statement.getFetchSize());
 	}
@@ -104,7 +101,7 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 
 	//method to reinitialize a result set with more data
 	public void reInit (Field[] fields, Vector tuples, String status,
-			  int updateCount, long insertOID, boolean binaryCursor)
+			  int updateCount, long insertOID)
 	{
 		this.fields = fields;
 		// on a reinit the size of this indicates how many we pulled
@@ -115,7 +112,6 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 		this.insertOID = insertOID;
 		this.this_row = null;
 		this.current_row = -1;
-		this.binaryCursor = binaryCursor;
 	}
 
 	//
@@ -329,7 +325,7 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 		wasNullFlag = (this_row[columnIndex - 1] == null);
 		if (!wasNullFlag)
 		{
-			if (binaryCursor)
+			if (fields[columnIndex -1].getFormat() == Field.BINARY_FORMAT)
 			{
 				//If the data is already binary then just return it
 				return this_row[columnIndex - 1];

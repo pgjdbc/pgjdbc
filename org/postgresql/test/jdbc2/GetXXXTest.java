@@ -31,7 +31,7 @@ public class GetXXXTest extends TestCase
     Calendar cal = Calendar.getInstance();
     cal.add(Calendar.DAY_OF_YEAR, -1);
 
-    pstmt.setTimestamp(1, new Timestamp(cal.getTimeInMillis()));
+    pstmt.setTimestamp(1, new Timestamp(cal.getTime().getTime()));
     pstmt.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
     assertTrue(pstmt.executeUpdate() == 1);
     pstmt.close();

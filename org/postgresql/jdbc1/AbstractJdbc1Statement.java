@@ -113,10 +113,10 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 		for (int i=0; i<fields.length; i++) {
 			fields[i].setFromServer(false);
 		}
-		return createResultSet(fields,tuples,"OK",1,0,false);
+		return createResultSet(fields,tuples,"OK",1,0);
 	}
 
-	public abstract BaseResultSet createResultSet(Field[] fields, Vector tuples, String status, int updateCount, long insertOID, boolean binaryCursor) throws SQLException;
+	public abstract BaseResultSet createResultSet(Field[] fields, Vector tuples, String status, int updateCount, long insertOID) throws SQLException;
 
 	public AbstractJdbc1Statement (BaseConnection connection)
 	{

@@ -54,9 +54,9 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 	private int resultsetconcurrency;
 	private int fetchdirection;
 
-	public AbstractJdbc2ResultSet(BaseStatement statement, Field[] fields, Vector tuples, String status, int updateCount, long insertOID, boolean binaryCursor)
+	public AbstractJdbc2ResultSet(BaseStatement statement, Field[] fields, Vector tuples, String status, int updateCount, long insertOID)
 	{
-		super (statement, fields, tuples, status, updateCount, insertOID, binaryCursor);
+		super (statement, fields, tuples, status, updateCount, insertOID);
 		this.fetchdirection = (statement == null ? java.sql.ResultSet.FETCH_FORWARD : ((AbstractJdbc2Statement)statement).getFetchDirection());
 		this.resultsettype = (statement == null ? java.sql.ResultSet.TYPE_SCROLL_INSENSITIVE : ((AbstractJdbc2Statement)statement).getResultSetType());
 		this.resultsetconcurrency = (statement == null ? java.sql.ResultSet.CONCUR_READ_ONLY : ((AbstractJdbc2Statement)statement).getResultSetConcurrency());

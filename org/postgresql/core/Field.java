@@ -20,10 +20,20 @@ import org.postgresql.core.BaseConnection;
  */
 public class Field
 {
+	//The V3 protocol defines two constants for the format of data
+	public static final int TEXT_FORMAT = 0;
+	public static final int BINARY_FORMAT = 1;
+
 	private int length;		// Internal Length of this field
 	private int oid;		// OID of the type
 	private int mod;		// type modifier of this field
 	private String name;		// Name of this field (the column label)
+	private int format = TEXT_FORMAT;   // In the V3 protocol each field has a format
+					// 0 = text, 1 = binary
+					// In the V2 protocol all fields in a
+					// binary cursor are binary and all 
+					// others are text
+
 	private int tableOid; // OID of table ( zero if no table )
 	private int positionInTable;
 	private boolean fromServer;	// Did this field come from a query?
@@ -113,6 +123,22 @@ public class Field
 	public int getLength()
 	{
 		return length;
+	}
+
+	/*
+	 * @return the format of this Field's data (text=0, binary=1)
+	 */
+	public int getFormat()
+	{
+		return format;
+	}
+
+	/*
+	 * @param format the format of this Field's data (text=0, binary=1)
+	 */
+	public void setFormat(int format)
+	{
+		this.format = format;
 	}
 
 	/*

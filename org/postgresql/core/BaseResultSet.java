@@ -44,7 +44,7 @@ public interface BaseResultSet
 	public boolean next() throws SQLException;
 	public boolean reallyResultSet();
 	public void reInit (Field[] fields, Vector tuples, String status,
-						int updateCount, long insertOID, boolean binaryCursor);
+						int updateCount, long insertOID);
 	public void setStatement(BaseStatement statement);
 
 }
