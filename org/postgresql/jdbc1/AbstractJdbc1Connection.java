@@ -2,8 +2,8 @@
  *
  * AbstractJdbc1Connection.java
  *     This class defines methods of the jdbc1 specification.  This class is
- *     extended by org.postgresql.jdbc2.AbstractJdbc2Connection which adds 
- *     the jdbc2 methods.  The real Connection class (for jdbc1) is 
+ *     extended by org.postgresql.jdbc2.AbstractJdbc2Connection which adds
+ *     the jdbc2 methods.  The real Connection class (for jdbc1) is
  *     org.postgresql.jdbc1.Jdbc1Connection
  *
  * Copyright (c) 2003, PostgreSQL Global Development Group
@@ -45,7 +45,7 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 	public PGStream getPGStream() {
 		return pgStream;
 	}
-  
+
 	protected String PG_HOST;
 	protected int PG_PORT;
 	protected String PG_USER;
@@ -249,11 +249,11 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 						// "User authentication failed"
 						//
 						throw new PSQLException("postgresql.con.misc", PSQLState.CONNECTION_REJECTED, pgStream.ReceiveString(encoding));
-						
+
 					case 'N':
 						// Server does not support ssl
 						throw new PSQLException("postgresql.con.sslnotsupported", PSQLState.CONNECTION_FAILURE);
-						
+
 					case 'S':
 						// Server supports ssl
 						if (Driver.logDebug)
@@ -302,7 +302,7 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 						//
 						int l_elen = pgStream.ReceiveIntegerR(4);
 						if (l_elen > 30000) {
-							//if the error length is > than 30000 we assume this is really a v2 protocol 
+							//if the error length is > than 30000 we assume this is really a v2 protocol
 							//server so try again with a v2 connection
 							//need to create a new connection and try again
 							try
@@ -466,7 +466,7 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 		}
 		while (beresp != 'Z');
 		// read ReadyForQuery
-		if (pgStream.ReceiveIntegerR(4) != 5) throw new PSQLException("postgresql.con.setup", PSQLState.CONNECTION_UNABLE_TO_CONNECT); 
+		if (pgStream.ReceiveIntegerR(4) != 5) throw new PSQLException("postgresql.con.setup", PSQLState.CONNECTION_UNABLE_TO_CONNECT);
 		//TODO: handle transaction status
 		char l_tStatus = (char)pgStream.ReceiveChar();
 
@@ -492,7 +492,7 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 
 		BaseResultSet resultSet
 			= execSQL("set datestyle to 'ISO'; select version(), " + encodingQuery + ";");
-		
+
 		if (! resultSet.next())
 		{
 			throw new PSQLException("postgresql.con.failed.bad.encoding", PSQLState.CONNECTION_UNABLE_TO_CONNECT);
@@ -502,15 +502,15 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 
 		String dbEncoding = resultSet.getString(2);
 		encoding = Encoding.getEncoding(dbEncoding, p_info.getProperty("charSet"));
-		//In 7.3 we are forced to do a second roundtrip to handle the case 
+		//In 7.3 we are forced to do a second roundtrip to handle the case
 		//where a database may not be running in autocommit mode
 		//jdbc by default assumes autocommit is on until setAutoCommit(false)
-		//is called.  Therefore we need to ensure a new connection is 
+		//is called.  Therefore we need to ensure a new connection is
 		//initialized to autocommit on.
-		//We also set the client encoding so that the driver only needs 
-		//to deal with utf8.  We can only do this in 7.3 because multibyte 
+		//We also set the client encoding so that the driver only needs
+		//to deal with utf8.  We can only do this in 7.3 because multibyte
 		//support is now always included
-		if (haveMinimumServerVersion("7.3")) 
+		if (haveMinimumServerVersion("7.3"))
 		{
 			BaseResultSet acRset =
 			//TODO: if protocol V3 we can set the client encoding in startup
@@ -560,11 +560,11 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 						// "User authentication failed"
 						//
 						throw new PSQLException("postgresql.con.misc", PSQLState.CONNECTION_REJECTED, pgStream.ReceiveString(encoding));
-						
+
 					case 'N':
 						// Server does not support ssl
 						throw new PSQLException("postgresql.con.sslnotsupported", PSQLState.CONNECTION_FAILURE);
-						
+
 					case 'S':
 						// Server supports ssl
 						if (Driver.logDebug)
@@ -770,7 +770,7 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 
 		BaseResultSet resultSet
 			= execSQL("set datestyle to 'ISO'; select version(), " + encodingQuery + ";");
-		
+
 		if (! resultSet.next())
 		{
 			throw new PSQLException("postgresql.con.failed.bad.encoding", PSQLState.CONNECTION_UNABLE_TO_CONNECT);
@@ -780,9 +780,9 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 
 		String dbEncoding = resultSet.getString(2);
 		encoding = Encoding.getEncoding(dbEncoding, info.getProperty("charSet"));
-		
+
 		//TODO: remove this once the set is done as part of V3protocol connection initiation
-		if (haveMinimumServerVersion("7.4")) 
+		if (haveMinimumServerVersion("7.4"))
 		{
 			BaseResultSet acRset =
 				execSQL("set client_encoding = 'UNICODE'");
@@ -791,15 +791,15 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 			encoding = Encoding.getEncoding("UNICODE", null);
 		}
 
-		//In 7.3 we are forced to do a second roundtrip to handle the case 
+		//In 7.3 we are forced to do a second roundtrip to handle the case
 		//where a database may not be running in autocommit mode
 		//jdbc by default assumes autocommit is on until setAutoCommit(false)
-		//is called.  Therefore we need to ensure a new connection is 
+		//is called.  Therefore we need to ensure a new connection is
 		//initialized to autocommit on.
-		//We also set the client encoding so that the driver only needs 
-		//to deal with utf8.  We can only do this in 7.3+ because multibyte 
+		//We also set the client encoding so that the driver only needs
+		//to deal with utf8.  We can only do this in 7.3+ because multibyte
 		//support is now always included
-		if (haveMinimumServerVersion("7.3")  && !haveMinimumServerVersion("7.4")) 
+		if (haveMinimumServerVersion("7.3")  && !haveMinimumServerVersion("7.4"))
 		{
 			BaseResultSet acRset =
 				execSQL("set client_encoding = 'UNICODE'; show autocommit");
@@ -872,8 +872,8 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 	{
 		final Object[] nullarr = new Object[0];
 		BaseStatement stat = (BaseStatement) createStatement();
-		return QueryExecutor.execute(new String[] { s }, 
-									 nullarr, 
+		return QueryExecutor.execute(new String[] { s },
+									 nullarr,
 									 stat);
 	}
 
@@ -1018,6 +1018,7 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 	 */
 	public Object getObject(String type, String value) throws SQLException
 	{
+          PGobject obj = null;
 		try
 		{
 			Object o = objectTypes.get(type);
@@ -1028,15 +1029,23 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 			//
 			// This is used to implement the org.postgresql unique types (like lseg,
 			// point, etc).
-			if (o != null && o instanceof String)
+			if (o != null )
 			{
-				// 6.3 style extending PG_Object
-				PGobject obj = null;
-				obj = (PGobject)(Class.forName((String)o).newInstance());
-				obj.setType(type);
-				obj.setValue(value);
-				return (Object)obj;
+                          if( o instanceof String )
+                          {
+                            // 6.3 style extending PG_Object
+                            obj = (PGobject) (Class.forName( (String) o).newInstance());
+                            obj.setType(type);
+                            obj.setValue(value);
+                            return (Object) obj;
+                          }
 			}
+                        else
+                        {
+                           obj = new PGobject();
+                           obj.setType( type );
+                           obj.setValue( value );
+                        }
 		}
 		catch (SQLException sx)
 		{
@@ -1049,8 +1058,13 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 			throw new PSQLException("postgresql.con.creobj", PSQLState.CONNECTION_FAILURE, type, ex);
 		}
 
-		// should never be reached
-		return null;
+                if (obj == null)
+                {
+                  throw new PSQLException("postgresql.con.creobj",  PSQLState.CONNECTION_FAILURE, type );
+                }
+                else
+                /* should never get here */
+                  return obj;
 	}
 
 	/*
@@ -1094,7 +1108,8 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 				{"path", "org.postgresql.geometric.PGpath"},
 				{"point", "org.postgresql.geometric.PGpoint"},
 				{"polygon", "org.postgresql.geometric.PGpolygon"},
-				{"money", "org.postgresql.util.PGmoney"}
+				{"money", "org.postgresql.util.PGmoney"},
+                                {"interval", "org.postgresql.util.PGInterval"}
 			};
 
 	// This initialises the objectTypes hashtable
@@ -1257,7 +1272,7 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 			return ;
 		if (autoCommit)
 		{
-				execSQL("end");				
+				execSQL("end");
 		}
 		else
 		{
@@ -1502,7 +1517,7 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 
 		for (start = 0; start < dirtyString.length() && !Character.isDigit(dirtyString.charAt(start)); ++start)
 			;
-		
+
 		for (end = start; end < dirtyString.length() && Character.isDigit(dirtyString.charAt(end)); ++end)
 			;
 
@@ -1516,10 +1531,10 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 	 * Get server major version
 	 */
 	public int getServerMajorVersion()
-	{        
+	{
 		try
 		{
-			StringTokenizer versionTokens = new StringTokenizer(dbVersionNumber, ".");  // aaXbb.ccYdd       
+			StringTokenizer versionTokens = new StringTokenizer(dbVersionNumber, ".");  // aaXbb.ccYdd
 			return integerPart(versionTokens.nextToken()); // return X
 		}
 		catch (NoSuchElementException e)
@@ -1532,7 +1547,7 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 	 * Get server minor version
 	 */
 	public int getServerMinorVersion()
-	{        
+	{
 		try
 		{
 			StringTokenizer versionTokens = new StringTokenizer(dbVersionNumber, ".");  // aaXbb.ccYdd
@@ -1544,7 +1559,7 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 			return 0;
 		}
 	}
-	
+
 	/**
 	 * Is the server we are connected to running at least this version?
 	 * This comparison method will fail whenever a major or minor version

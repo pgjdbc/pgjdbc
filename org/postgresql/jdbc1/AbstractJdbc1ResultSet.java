@@ -3,7 +3,7 @@
  * AbstractJdbc1ResultSet.java
  *     This class defines methods of the jdbc1 specification.  This class is
  *     extended by org.postgresql.jdbc2.AbstractJdbc2ResultSet which adds the
- *     jdbc2 methods.  The real ResultSet class (for jdbc1) is 
+ *     jdbc2 methods.  The real ResultSet class (for jdbc1) is
  *     org.postgresql.jdbc1.Jdbc1ResultSet
  *
  * Copyright (c) 2003, PostgreSQL Global Development Group
@@ -71,7 +71,7 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 				      Vector tuples,
 				      String status,
 				      int updateCount,
-				      long insertOID, 
+				      long insertOID,
 					  boolean binaryCursor)
 	{
 		this.connection = statement.getPGConnection();
@@ -120,7 +120,7 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 	//
 	// Part of the JDBC2 support, but convenient to implement here.
 	//
-  
+
 	public void setFetchSize(int rows) throws SQLException
 	{
 		fetchSize = rows;
@@ -144,24 +144,24 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 				current_row = rows.size();
 				return false;  // Not doing a cursor-based fetch or the last fetch was the end of the query
 			}
- 
+
   			// Use the ref to the statement to get
   			// the details we need to do another cursor
   			// query - it will use reinit() to repopulate this
   			// with the right data.
- 
- 			// NB: We can reach this point with fetchSize == 0 
+
+ 			// NB: We can reach this point with fetchSize == 0
  			// if the fetch size is changed halfway through reading results.
  			// Use "FETCH FORWARD ALL" in that case to complete the query.
  			String[] sql = new String[] {
  				fetchSize == 0 ? ("FETCH FORWARD ALL FROM " + cursorName) :
  				("FETCH FORWARD " + fetchSize + " FROM " + cursorName)
  			};
- 
+
   			QueryExecutor.execute(sql,
  								  new String[0],
   								  this);
-  
+
   			// Test the new rows array.
  			lastFetchSize = fetchSize;
   			if (rows.size() == 0)
@@ -214,7 +214,7 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 	public byte getByte(int columnIndex) throws SQLException
 	{
 		String s = getString(columnIndex);
-		
+
 		if (s != null )
 		{
 			try
@@ -871,7 +871,7 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 		{
 			try
 			{
-				s = s.trim();		
+				s = s.trim();
 				return Long.parseLong(s);
 			}
 			catch (NumberFormatException e)
@@ -1176,7 +1176,7 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 			{
 				// All that's left is to parse the string and return the ts.
 				if ( Driver.logDebug )
-					Driver.debug("the data after parsing is " 
+					Driver.debug("the data after parsing is "
                      + l_sbuf.toString() + " with " + nanos + " nanos");
 
  				Timestamp result = new Timestamp(df.parse(l_sbuf.toString()).getTime());
@@ -1189,7 +1189,7 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 			}
 		}
 	}
-	
+
 	private boolean isColumnTrimmable(int columnIndex) throws SQLException
 	{
 		switch (fields[columnIndex-1].getSQLType())
@@ -1230,13 +1230,13 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 		if (l_maxSize > 0 && p_string.length() > l_maxSize && isColumnTrimmable(p_columnIndex))
 		{
 			return p_string.substring(0,l_maxSize);
-		} 
-		else 
+		}
+		else
 		{
 			return p_string;
 		}
 	}
-	
+
 	public SimpleDateFormat getTimestampTZFormat() {
 		if (m_tstzFormat == null) {
 			m_tstzFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z");
