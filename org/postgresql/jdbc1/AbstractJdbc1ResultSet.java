@@ -646,6 +646,10 @@ public abstract class AbstractJdbc1ResultSet
 		if (wasNullFlag)
 			return null;
 
+		// if we don't have at least 2 characters it can't be money.
+ 		if (s.length() < 2)
+ 			return s;
+
 		// Handle Money
 		if (s.charAt(0) == '(')
 		{
@@ -654,6 +658,10 @@ public abstract class AbstractJdbc1ResultSet
 		if (s.charAt(0) == '$')
 		{
 			s = s.substring(1);
+		}
+ 		else if (s.charAt(0) == '-' && s.charAt(1) == '$')
+ 		{
+ 			s = "-" + s.substring(2);
 		}
 
 		return s;
