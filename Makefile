@@ -151,7 +151,7 @@ jdbc2real: postgresql/DriverClass.class \
 # Note:	This works by storing all compiled classes under the postgresql
 #	directory. We use this later for compiling the dual-mode driver.
 #
-postgresql.jar: $(OBJ) $(OBJ_COMMON)
+postgresql.jar: $(OBJ_COMMON)
 	$(JAR) -c0f $@ `$(FIND) postgresql -name "*.class" -print` \
 		$(wildcard postgresql/*.properties)
 
