@@ -3,7 +3,7 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.57 2004/12/22 23:34:15 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.58 2004/12/22 23:55:51 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2720,7 +2720,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
     public java.sql.Array getArray(int i) throws SQLException
     {
-        throw Driver.notImplemented();
+        checkClosed();
+        checkIndex(i, Types.ARRAY, "Array");
+        return (Array)callResult;
     }
 
     public java.math.BigDecimal getBigDecimal(int parameterIndex) throws SQLException

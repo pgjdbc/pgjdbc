@@ -3,18 +3,14 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CallableStmtTest.java,v 1.9 2004/12/14 06:23:40 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CallableStmtTest.java,v 1.10 2004/12/14 06:28:32 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.test.TestUtil;
-import java.sql.CallableStatement;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Types;
+import java.sql.*;
 
 import junit.framework.TestCase;
 
@@ -50,6 +46,7 @@ public class CallableStmtTest extends TestCase
         stmt.execute ("CREATE OR REPLACE FUNCTION testspg__getNumericWithoutArg() " +
                 "RETURNS numeric AS '  " +
                 "begin return 42; end; ' LANGUAGE 'plpgsql';");
+        stmt.execute("CREATE OR REPLACE FUNCTION getarray() RETURNS int[] as 'SELECT ''{1,2}''::int[];' LANGUAGE 'sql'");
         stmt.close ();
     }
 
@@ -61,6 +58,7 @@ public class CallableStmtTest extends TestCase
         stmt.execute ("drop FUNCTION testspg__getInt (int);");
         stmt.execute ("drop FUNCTION testspg__getNumeric (numeric);");
         stmt.execute ("drop FUNCTION testspg__getNumericWithoutArg ();");
+        stmt.execute ("DROP FUNCTION getarray();");
         TestUtil.closeDB(con);
     }
 
@@ -114,6 +112,20 @@ public class CallableStmtTest extends TestCase
         call.execute ();
         assertEquals("bob", call.getString(1));
 
+    }
+
+    public void testGetArray() throws SQLException
+    {
+        CallableStatement call = con.prepareCall("{ ? = call getarray()}");
+        call.registerOutParameter(1, Types.ARRAY);
+        call.execute();
+        Array arr = call.getArray(1);
+        ResultSet rs = arr.getResultSet();
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+        assertTrue(rs.next());
+        assertEquals(2, rs.getInt(1));
+        assertTrue(!rs.next());
     }
 
     public void testBadStmt () throws Throwable
