@@ -61,6 +61,7 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
  	private SimpleDateFormat m_tstzFormat = null;
  	private SimpleDateFormat m_dateFormat = null;
 
+
 	private int fetchSize;      // Fetch size for next read (might be 0).
 	private int lastFetchSize;  // Fetch size of last read (might be 0).
 
@@ -961,6 +962,63 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 		}
 	}
 
+/* parse out the various endings of a time string
+*
+*    hh:mm:ss.SSS+/-HH:MM
+*
+*    Everything after the last s is optional
+*    we will return a string with everything filled in so that a
+*    SimpleDateFormat (hh:mm:ss.SSS z) will parse the date
+*    This function expects the string to begin with the string after the last s
+*/
+
+   private static String parseTime( String s, SimpleDateFormat df ) throws ParseException
+   {
+       StringBuffer sbuf = new StringBuffer(s.substring(0,8));
+       StringBuffer dateFormat = new StringBuffer("HH:mm:ss");
+
+
+       int msIndex = s.indexOf('.');
+       int tzIndex = s.indexOf('-');
+       if ( tzIndex == -1 )
+           tzIndex = s.indexOf('+');
+
+       if ( msIndex != -1 )
+       {
+           String microseconds = s.substring(msIndex+1,tzIndex!=-1?tzIndex:s.length());
+           int msec=0;
+
+           // I want to have a peek at the 4th digit to see if we round up
+
+           for ( int i=0; i < (microseconds.length() > 3 ? 4 : microseconds.length()) ; i++ )
+           {
+               int digit = Character.digit(microseconds.charAt(i),10);
+               if (digit == -1) throw new ParseException(s,tzIndex);
+               if ( i==0 )
+                   msec += digit*100;
+               else if ( i==1 )
+                   msec += digit*10;
+               else if ( i==2 )
+                   msec += digit;
+               else if ( i==3 && digit >= 5)
+                   msec += 1;
+
+           }
+           sbuf.append('.').append( msec );
+           dateFormat.append(".SSS");
+       }
+
+       if ( tzIndex != -1 ) // we have a time zone
+       {
+           String tz = s.substring(tzIndex);
+           sbuf.append(" GMT").append(tz);
+           if (tz.length() < 6)
+               sbuf.append(":00");
+           dateFormat.append( " z" );
+       }
+       df.applyPattern(dateFormat.toString());
+       return sbuf.toString();
+   }
 	public static Time toTime(String s, BaseResultSet resultSet, String pgDataType) throws SQLException
 	{
 		if (s == null)
@@ -968,36 +1026,24 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 		try
 		{
 			s = s.trim();
-			if (s.length() == 8)
-			{
-				//value is a time value
-				return java.sql.Time.valueOf(s);
-			}
-			else if (s.indexOf(".") == 8)
-			{
-				//value is a time value with fractional seconds
-				java.sql.Time l_time = java.sql.Time.valueOf(s.substring(0, 8));
-				String l_strMillis = s.substring(9);
-				if (l_strMillis.length() > 3)
-					l_strMillis = l_strMillis.substring(0, 3);
-				int l_millis = Integer.parseInt(l_strMillis);
-				if (l_millis < 10)
-				{
-					l_millis = l_millis * 100;
-				}
-				else if (l_millis < 100)
-				{
-					l_millis = l_millis * 10;
-				}
-				return new java.sql.Time(l_time.getTime() + l_millis);
-			}
-			else
-			{
-				//value is a timestamp
-				return new java.sql.Time(toTimestamp(s, resultSet, pgDataType).getTime());
-			}
+
+           if (s.length() == 8)
+            {
+                //value is a time value
+                return java.sql.Time.valueOf(s);
+            }
+            else if ( !pgDataType.startsWith("timestamp") )
+            {
+                SimpleDateFormat df = new SimpleDateFormat();
+                s = parseTime(s,df);
+                java.util.Date d = df.parse(s);
+                return new java.sql.Time( d.getTime() );
+
+            }
+            //value is a timestamp
+            return new java.sql.Time(toTimestamp(s, resultSet, pgDataType).getTime());
 		}
-		catch (NumberFormatException e)
+		catch (ParseException e)
 		{
 			throw new PSQLException("postgresql.res.badtime", PSQLState.BAD_DATETIME_FORMAT, s);
 		}
@@ -1157,6 +1203,7 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 			}
 			else
 			{
+                int i;
 				if (slen == 8 && s.equals("infinity"))
 					//java doesn't have a concept of postgres's infinity
 					//so set to an arbitrary future date
@@ -1169,7 +1216,27 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 				// We must just have a date. This case is
 				// needed if this method is called on a date
 				// column
-				df = rs.getDateFormat();
+                if ( pgDataType.compareTo("date") == 0 )
+                {
+                    df = rs.getDateFormat();
+                }
+                else
+                {
+                    df = new SimpleDateFormat("00:00:00");
+                    l_sbuf.setLength(0);
+                    try
+                    {
+                        l_sbuf.append(parseTime(s, df));
+                    }
+                    catch ( ParseException ex )
+                    {
+                        throw new PSQLException("postgresql.res.badtimestamp",
+                                                PSQLState.BAD_DATETIME_FORMAT,
+                                                ex, new Object[]
+                                                {new Integer(ex.getErrorOffset()),
+                                                s});
+                    }
+                }
 			}
 
 			try
@@ -1236,6 +1303,7 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 			return p_string;
 		}
 	}
+
 
 	public SimpleDateFormat getTimestampTZFormat() {
 		if (m_tstzFormat == null) {
