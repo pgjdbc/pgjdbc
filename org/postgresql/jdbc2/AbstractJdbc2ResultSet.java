@@ -1406,34 +1406,42 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 			String columnName = (String) columns.nextElement();
 			int columnIndex = _findColumn( columnName ) - 1;
 
-			switch ( connection.getSQLType( fields[columnIndex].getPGType() ) )
-			{
-
-				case Types.DECIMAL:
-				case Types.BIGINT:
-				case Types.DOUBLE:
-				case Types.BIT:
-				case Types.VARCHAR:
-				case Types.DATE:
-				case Types.TIME:
-				case Types.TIMESTAMP:
-				case Types.SMALLINT:
-				case Types.FLOAT:
-				case Types.INTEGER:
-				case Types.CHAR:
-				case Types.NUMERIC:
-				case Types.REAL:
-				case Types.TINYINT:
-
-					rowBuffer[columnIndex] = connection.getEncoding().encode(String.valueOf( updateValues.get( columnName ) ));
-
-				case Types.NULL:
-					continue;
-
-				default:
-					rowBuffer[columnIndex] = (byte[]) updateValues.get( columnName );
+			Object valueObject = updateValues.get(columnName);
+			if (valueObject instanceof NullObject) {
+				rowBuffer[columnIndex] = null;
 			}
+			else
+			{
+				
+				switch ( connection.getSQLType( fields[columnIndex].getPGType() ) )
+				{
 
+					case Types.DECIMAL:
+					case Types.BIGINT:
+					case Types.DOUBLE:
+					case Types.BIT:
+					case Types.VARCHAR:
+					case Types.DATE:
+					case Types.TIME:
+					case Types.TIMESTAMP:
+					case Types.SMALLINT:
+					case Types.FLOAT:
+					case Types.INTEGER:
+					case Types.CHAR:
+					case Types.NUMERIC:
+					case Types.REAL:
+					case Types.TINYINT:
+
+						rowBuffer[columnIndex] = connection.getEncoding().encode(String.valueOf( valueObject));
+
+					case Types.NULL:
+						continue;
+
+					default:
+						rowBuffer[columnIndex] = (byte[]) valueObject;
+				}
+
+			}
 		}
 	}
 
