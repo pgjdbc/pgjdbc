@@ -833,7 +833,7 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 
 			try
 			{
-				if (Double.parseDouble(s)==1)
+				if (Double.valueOf(s).doubleValue()==1)
 					return true;
 			}
 			catch (NumberFormatException e)
