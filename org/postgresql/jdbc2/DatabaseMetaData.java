@@ -1832,7 +1832,14 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData
 			switch (r.getBytes(3)[0])
 			{
 				case (byte) 'r':
-					relKind = "TABLE";
+					if ( r.getString(1).startsWith("pg_") )
+					{
+						relKind = "SYSTEM TABLE";
+					}
+					else
+					{
+						relKind = "TABLE";
+					}
 					break;
 				case (byte) 'i':
 					relKind = "INDEX";
