@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/PSQLSavepoint.java,v 1.5 2005/01/11 08:25:47 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/PSQLSavepoint.java,v 1.6 2005/01/14 01:20:21 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -41,7 +41,7 @@ public class PSQLSavepoint implements Savepoint {
 
         if (_isNamed)
             throw new PSQLException(GT.tr("Cannot retrieve the id of a named savepoint."),
-                                    PSQLState.OBJECT_NOT_IN_STATE);
+                                    PSQLState.WRONG_OBJECT_TYPE);
 
         return _id;
     }
@@ -53,7 +53,7 @@ public class PSQLSavepoint implements Savepoint {
 
         if (!_isNamed)
             throw new PSQLException(GT.tr("Cannot retrieve the name of an unnamed savepoint."),
-                                    PSQLState.OBJECT_NOT_IN_STATE);
+                                    PSQLState.WRONG_OBJECT_TYPE);
 
         return _name;
     }

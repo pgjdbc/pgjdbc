@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.61 2005/01/11 21:54:00 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.62 2005/01/14 01:20:19 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -214,7 +214,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     {
         if (preparedQuery != null)
             throw new PSQLException(GT.tr("Can''t use query methods that take a query string on a PreparedStatement."),
-                                    PSQLState.OBJECT_NOT_IN_STATE);
+                                    PSQLState.WRONG_OBJECT_TYPE);
 
         if (!executeWithFlags(p_sql, 0))
             throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
@@ -257,7 +257,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     {
         if (preparedQuery != null)
             throw new PSQLException(GT.tr("Can''t use query methods that take a query string on a PreparedStatement."),
-                                    PSQLState.OBJECT_NOT_IN_STATE);
+                                    PSQLState.WRONG_OBJECT_TYPE);
 
         if (executeWithFlags(p_sql, QueryExecutor.QUERY_NO_RESULTS))
             throw new PSQLException(GT.tr("A result was returned when none was expected."),
@@ -299,7 +299,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     {
         if (preparedQuery != null)
             throw new PSQLException(GT.tr("Can''t use query methods that take a query string on a PreparedStatement."),
-                                    PSQLState.OBJECT_NOT_IN_STATE);
+                                    PSQLState.WRONG_OBJECT_TYPE);
 
         return executeWithFlags(p_sql, 0);
     }
@@ -2297,7 +2297,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
         if (preparedQuery != null)
             throw new PSQLException(GT.tr("Can''t use query methods that take a query string on a PreparedStatement."),
-                                    PSQLState.OBJECT_NOT_IN_STATE);
+                                    PSQLState.WRONG_OBJECT_TYPE);
 
         if (batchStatements == null)
         {

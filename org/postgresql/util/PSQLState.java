@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/PSQLState.java,v 1.7 2005/01/11 08:25:49 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/util/PSQLState.java,v 1.8 2005/01/14 01:20:25 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -66,6 +66,7 @@ public class PSQLState implements java.io.Serializable
 
     public final static PSQLState SYNTAX_ERROR = new PSQLState("42601");
     public final static PSQLState UNDEFINED_COLUMN = new PSQLState("42703");
+    public final static PSQLState WRONG_OBJECT_TYPE = new PSQLState("42809");
     public final static PSQLState NUMERIC_CONSTANT_OUT_OF_RANGE = new PSQLState("42820");
     public final static PSQLState DATA_TYPE_MISMATCH = new PSQLState("42821");
     public final static PSQLState UNDEFINED_FUNCTION = new PSQLState("42883");
