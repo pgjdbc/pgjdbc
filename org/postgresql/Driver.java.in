@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.62 2005/01/18 22:31:54 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.63 2005/01/18 23:17:36 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -232,7 +232,21 @@ public class Driver implements java.sql.Driver
             if (Driver.logDebug)
                 Driver.debug("connect " + url);
 
-            return new @JDBCCONNECTCLASS@(host(props), port(props), user(props), database(props), props, url);
+            // Enforce login timeout, if specified, by running the connection
+            // attempt in a separate thread. If we hit the timeout without the
+            // connection completing, we abandon the connection attempt in
+            // the calling thread, but the separate thread will keep trying.
+            // Eventually, the separate thread will either fail or complete
+            // the connection; at that point we clean up the connection if
+            // we managed to establish one after all. See ConnectThread for
+            // more details.
+            long timeout = timeout(props);
+            if (timeout <= 0)
+                return makeConnection(url, props);
+
+            ConnectThread ct = new ConnectThread(url, props);
+            new Thread(ct, "PostgreSQL JDBC driver connection thread").start();
+            return ct.getResult(timeout);
         }
         catch (PSQLException ex1)
         {
@@ -249,6 +263,112 @@ public class Driver implements java.sql.Driver
             throw new PSQLException(GT.tr("Something unusual has occured to cause the driver to fail. Please report this exception."),
                                     PSQLState.UNEXPECTED_ERROR, ex2);
         }
+    }
+
+    /**
+     * Perform a connect in a separate thread; supports
+     * getting the results from the original thread while enforcing
+     * a login timout.
+     */
+    private static class ConnectThread implements Runnable {
+        ConnectThread(String url, Properties props) {
+            this.url = url;
+            this.props = props;
+        }
+
+        public void run() {
+            Connection conn;
+            Throwable error;
+
+            try {
+                conn = makeConnection(url, props);
+                error = null;
+            } catch (Throwable t) {
+                conn = null;
+                error = t;
+            }
+
+            synchronized (this) {
+                if (abandoned) {
+                    if (conn != null) {
+                        try {
+                            conn.close();
+                        } catch (SQLException e) {}
+                    }
+                } else {
+                    result = conn;
+                    resultException = error;
+                    notify();
+                }
+            }
+        }
+
+        /**
+         * Get the connection result from this (assumed running) thread.
+         * If the timeout is reached without a result being available,
+         * a SQLException is thrown.
+         *
+         * @param timeout timeout in milliseconds
+         * @return the new connection, if successful
+         * @throws SQLException if a connection error occurs or the timeout is reached
+         */
+        public Connection getResult(long timeout) throws SQLException {
+            long expiry = System.currentTimeMillis() + timeout;
+            synchronized (this) {
+                while (true) {
+                    if (result != null)
+                        return result;
+                    
+                    if (resultException != null) {
+                        if (resultException instanceof SQLException) {
+                            resultException.fillInStackTrace();
+                            throw (SQLException)resultException;
+                        } else {
+                            throw new PSQLException(GT.tr("Something unusual has occured to cause the driver to fail. Please report this exception."),
+                                                    PSQLState.UNEXPECTED_ERROR, resultException);
+                        }
+                    }
+                    
+                    long delay = expiry - System.currentTimeMillis();
+                    if (delay <= 0) {
+                        abandoned = true;
+                        throw new PSQLException(GT.tr("Connection attempt timed out."),
+                                                PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+                    }
+                    
+                    try {
+                        wait(delay);
+                    } catch (InterruptedException ie) {
+                        abandoned = true;
+                        throw new PSQLException(GT.tr("Interrupted while attempting to connect."),
+                                                PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+                    }                                            
+                }
+            }
+        }
+
+        private final String url;
+        private final Properties props;
+        private Connection result;
+        private Throwable resultException;
+        private boolean abandoned;
+    }
+
+    /**
+     * Create a connection from URL and properties. Always
+     * does the connection work in the current thread without
+     * enforcing a timeout, regardless of any timeout specified
+     * in the properties.
+     *
+     * @param url the original URL
+     * @param props the parsed/defaulted connection properties
+     * @return a new connection
+     * @throws SQLException if the connection could not be made
+     */
+    private static Connection makeConnection(String url, Properties props) throws SQLException {
+        return new @JDBCCONNECTCLASS@(host(props), port(props),
+                                      user(props), database(props),
+                                      props, url);
     }
 
     /**
@@ -300,7 +420,9 @@ public class Driver implements java.sql.Driver
                   "When connecting to a pre-7.3 server, the database encoding to assume is in use." },
                 { "compatible", Boolean.FALSE,
                   "Force compatibility of some features with an older version of the driver.",
-                  new String[] { "7.1", "7.2", "7.3" } }
+                  new String[] { "7.1", "7.2", "7.3" } },
+                { "loginTimeout", Boolean.FALSE,
+                  "The login timeout, in seconds; 0 means no timeout beyond the normal TCP connection timout." }
             };
 
     /**
@@ -530,7 +652,7 @@ public class Driver implements java.sql.Driver
     /**
      * @return the hostname portion of the URL
      */
-    private String host(Properties props)
+    private static String host(Properties props)
     {
         return props.getProperty("PGHOST", "localhost");
     }
@@ -538,7 +660,7 @@ public class Driver implements java.sql.Driver
     /**
      * @return the port number portion of the URL or the default if no port was specified
      */
-    private int port(Properties props)
+    private static int port(Properties props)
     {
         return Integer.parseInt(props.getProperty("PGPORT", "@DEF_PGPORT@"));
     }
@@ -546,7 +668,7 @@ public class Driver implements java.sql.Driver
     /**
      * @return the username of the URL
      */
-    private String user(Properties props)
+    private static String user(Properties props)
     {
         return props.getProperty("user", "");
     }
@@ -554,9 +676,21 @@ public class Driver implements java.sql.Driver
     /**
      * @return the database name of the URL
      */
-    private String database(Properties props)
+    private static String database(Properties props)
     {
         return props.getProperty("PGDBNAME", "");
+    }
+
+    /**
+     * @return the timeout from the URL, in milliseconds
+     */
+    private static long timeout(Properties props)
+    {
+        try {
+            return (long) (Float.parseFloat(props.getProperty("loginTimeout", "0")) * 1000);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     /*

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.5 2004/11/09 08:47:13 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.6 2005/01/11 08:25:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -49,6 +49,7 @@ public abstract class BaseDataSource implements Referenceable
     private String password;
     private int portNumber;
     private int prepareThreshold;
+    private int loginTimeout; // in seconds
 
     /**
      * Gets a connection to the PostgreSQL database.  The database is identified by the
@@ -96,20 +97,19 @@ public abstract class BaseDataSource implements Referenceable
     }
 
     /**
-     * This DataSource does not support a configurable login timeout.
-     * @return 0
+     * @return the login timeout, in seconds.
      */
     public int getLoginTimeout() throws SQLException
     {
-        return 0;
+        return loginTimeout;
     }
 
     /**
-     * This DataSource does not support a configurable login timeout.  Any value
-     * provided here will be ignored.
+     * Set the login timeout, in seconds.
      */
     public void setLoginTimeout(int i) throws SQLException
     {
+        this.loginTimeout = i;
     }
 
     /**
@@ -266,8 +266,9 @@ public abstract class BaseDataSource implements Referenceable
      */
     private String getUrl()
     {
-        return "jdbc:postgresql://" + serverName + (portNumber == 0 ? "" : ":" + portNumber) + "/" + databaseName +
-               (prepareThreshold == 5 ? "" : "?prepareThreshold=" + prepareThreshold);
+        return
+            "jdbc:postgresql://" + serverName + (portNumber == 0 ? "" : ":" + portNumber) + "/" + databaseName +
+            "?loginTimeout=" + loginTimeout + "&prepareThreshold=" + prepareThreshold;
     }
 
     /**
@@ -297,8 +298,9 @@ public abstract class BaseDataSource implements Referenceable
         {
             ref.add(new StringRefAddr("password", password));
         }
-        if (prepareThreshold != 5)
-            ref.add(new StringRefAddr("prepareThreshold", Integer.toString(prepareThreshold)));
+        
+        ref.add(new StringRefAddr("prepareThreshold", Integer.toString(prepareThreshold)));
+        ref.add(new StringRefAddr("loginTimeout", Integer.toString(loginTimeout)));
         return ref;
     }
 
@@ -310,6 +312,7 @@ public abstract class BaseDataSource implements Referenceable
         out.writeObject(password);
         out.writeInt(portNumber);
         out.writeInt(prepareThreshold);
+        out.writeInt(loginTimeout);
     }
 
     protected void readBaseObject(ObjectInputStream in) throws IOException, ClassNotFoundException
@@ -320,6 +323,7 @@ public abstract class BaseDataSource implements Referenceable
         password = (String)in.readObject();
         portNumber = in.readInt();
         prepareThreshold = in.readInt();
+        loginTimeout = in.readInt();
     }
 
 }
