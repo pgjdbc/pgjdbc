@@ -3,7 +3,7 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/PooledConnectionImpl.java,v 1.4 2004/11/07 22:15:45 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/PooledConnectionImpl.java,v 1.5 2004/11/09 08:47:16 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -334,7 +334,7 @@ public class PooledConnectionImpl implements PooledConnection
      * The StatementHandler is required in order to return the proper
      * Connection proxy for the getConnection method.
      */
-    private static class StatementHandler implements InvocationHandler {
+    private class StatementHandler implements InvocationHandler {
         private ConnectionHandler con;
         private Statement st;
 
