@@ -14,7 +14,7 @@ import org.postgresql.util.PSQLState;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.GT;
 
-/* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.44 2004/10/30 15:45:50 jurka Exp $
+/* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.45 2004/10/30 16:57:48 jurka Exp $
  * This class defines methods of the jdbc2 specification.
  * The real Statement class (for jdbc2) is org.postgresql.jdbc2.Jdbc2Statement
  */
@@ -2332,7 +2332,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 				}
 
 				String queryString = "<unknown>";
-				if (resultIndex <= queries.length)
+				if (resultIndex < queries.length)
 					queryString = queries[resultIndex].toString(parameterLists[resultIndex]);
 
 				batchException = new BatchUpdateException(GT.tr("Batch entry {0} {1} was aborted.  Call getNextException to see the cause.",
