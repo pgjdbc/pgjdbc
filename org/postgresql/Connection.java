@@ -307,7 +307,16 @@ public abstract class Connection
         } else if (dbEncoding.equals("EUC_TW")) {
           dbEncoding = "EUC_TW";
         } else if (dbEncoding.equals("KOI8")) {
-          dbEncoding = "KOI8_R";
+	  // try first if KOI8_U is present, it's a superset of KOI8_R
+	    try {
+        	dbEncoding = "KOI8_U";
+		"test".getBytes(dbEncoding);
+	    }
+	    catch(UnsupportedEncodingException uee) {
+	    // well, KOI8_U is still not in standard JDK, falling back to KOI8_R :(
+        	dbEncoding = "KOI8_R";
+	    }
+
         } else if (dbEncoding.equals("WIN")) {
           dbEncoding = "Cp1252";
         } else {
