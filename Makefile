@@ -75,7 +75,8 @@ OBJS=	postgresql/CallableStatement.class \
 	postgresql/largeobject/LargeObject.class \
 	postgresql/largeobject/LargeObjectManager.class \
 	postgresql/util/PGobject.class \
-	postgresql/util/PGtokenizer.class
+	postgresql/util/PGtokenizer.class \
+	postgresql/util/UnixCrypt.class
 
 # If you have problems with the first line, try the second one.
 # This is needed when compiling under Solaris, as the solaris sh doesn't
@@ -120,6 +121,7 @@ postgresql/largeobject/LargeObject.class: postgresql/largeobject/LargeObject.jav
 postgresql/largeobject/LargeObjectManager.class: postgresql/largeobject/LargeObjectManager.java
 postgresql/util/PGobject.class:		postgresql/util/PGobject.java
 postgresql/util/PGtokenizer.class:	postgresql/util/PGtokenizer.java
+postgresql/util/UnixCrypt.class:	postgresql/util/UnixCrypt.java
 
 #######################################################################
 # These classes are in the example directory, and form the examples
