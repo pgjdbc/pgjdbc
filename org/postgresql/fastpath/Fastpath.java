@@ -3,7 +3,7 @@
  * Copyright (c) 2003, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql-server/src/interfaces/jdbc/org/postgresql/fastpath/Fastpath.java,v 1.19 2003/12/17 15:45:05 davec Exp $
+ *	  $PostgreSQL: pgjdbc/org/postgresql/fastpath/Fastpath.java,v 1.26 2004/10/10 15:39:38 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -35,6 +35,7 @@ public class Fastpath
 	// to a connection).
 	private final Hashtable func = new Hashtable();
 	private final QueryExecutor executor;
+	private final BaseConnection connection;
 
 	/**
 	 * Initialises the fastpath system
@@ -43,6 +44,7 @@ public class Fastpath
 	 */
 	public Fastpath(BaseConnection conn)
 	{
+		this.connection = conn;
 		this.executor = conn.getQueryExecutor();
 	}
 
@@ -64,7 +66,7 @@ public class Fastpath
 		}
 
 		// Run it.
-		byte[] returnValue = executor.fastpathCall(fnId, params);
+		byte[] returnValue = executor.fastpathCall(fnId, params, connection.getAutoCommit());
 
 		// Interpret results.
 		if (!resultType || returnValue == null)

@@ -7,7 +7,7 @@
  * Copyright (c) 2004, Open Cloud Limited.
  *
  * IDENTIFICATION
- *	  $PostgreSQL$
+ *	  $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.7 2004/10/18 03:45:25 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -339,7 +339,60 @@ public class QueryExecutorImpl implements QueryExecutor {
 	// Fastpath
 	//
 
-	public synchronized byte[] fastpathCall(int fnid, ParameterList parameters) throws SQLException {
+	public synchronized byte[] fastpathCall(int fnid, ParameterList parameters, boolean suppressBegin) throws SQLException {
+		if (protoConnection.getTransactionState() == ProtocolConnection.TRANSACTION_IDLE && !suppressBegin) {
+
+			if (Driver.logDebug)
+				Driver.debug("Issuing BEGIN before fastpath call.");
+
+			ResultHandler handler = new ResultHandler() {
+					private boolean sawBegin = false;
+					private SQLException sqle = null;
+
+					public void handleResultRows(Query fromQuery, Field[] fields, Vector tuples, ResultCursor cursor) {
+					}
+
+					public void handleCommandStatus(String status, int updateCount, long insertOID) {
+						if (!sawBegin) {
+							if (!status.equals("BEGIN"))
+								handleError(new SQLException("Expected command status BEGIN, got " + status));
+							sawBegin = true;
+						} else {
+							handleError(new SQLException("Unexpected command status: " + status));
+						}
+					}
+
+					public void handleWarning(SQLWarning warning) {
+						// we don't want to ignore warnings and it would be tricky
+						// to chain them back to the connection, so since we don't
+						// expect to get them in the first place, we just consider
+						// them errors.
+						handleError(warning);
+					}
+
+					public void handleError(SQLException error) {
+						if (sqle == null) {
+							sqle = error;
+						} else {
+							sqle.setNextException(error);
+						}
+					}
+
+					public void handleCompletion() throws SQLException{
+						if (sqle != null)
+							throw sqle;
+					}
+				};
+
+			try {
+				sendOneQuery(beginTransactionQuery, SimpleQuery.NO_PARAMETERS, 0, 0, QueryExecutor.QUERY_NO_METADATA);
+				sendSync();
+				processResults(handler, 0);
+			} catch (IOException ioe) {
+				throw new PSQLException(GT.tr("An I/O error occured while sending to the backend."), PSQLState.CONNECTION_FAILURE, ioe);
+			}
+		}
+
 		try {
 			sendFastpathCall(fnid, (SimpleParameterList)parameters);
 			return receiveFastpathResult();

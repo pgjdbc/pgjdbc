@@ -7,7 +7,7 @@
  * Copyright (c) 2004, Open Cloud Limited.
  *
  * IDENTIFICATION
- *	  $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/core/QueryExecutor.java,v 1.27 2003/09/17 08:21:36 barry Exp $
+ *	  $PostgreSQL: pgjdbc/org/postgresql/core/QueryExecutor.java,v 1.35 2004/06/29 06:43:25 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -191,5 +191,5 @@ public interface QueryExecutor {
 	 *  if a void result was returned
 	 * @throws SQLException if an error occurs while executing the fastpath call
 	 */
-	byte[] fastpathCall(int fnid, ParameterList params) throws SQLException;
+	byte[] fastpathCall(int fnid, ParameterList params, boolean suppressBegin) throws SQLException;
 }

@@ -3,7 +3,7 @@
  * Copyright (c) 2003, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql-server/src/interfaces/jdbc/org/postgresql/largeobject/LargeObjectManager.java,v 1.11 2003/11/29 19:52:11 pgsql Exp $
+ *	  $PostgreSQL: pgjdbc/org/postgresql/largeobject/LargeObjectManager.java,v 1.14 2004/10/10 15:39:43 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -63,6 +63,7 @@ public class LargeObjectManager
 {
 	// the fastpath api for this connection
 	private Fastpath fp;
+	private BaseConnection conn;
 
 	/**
 	 * This mode indicates we want to write to an object
@@ -98,6 +99,7 @@ public class LargeObjectManager
 	 */
 	public LargeObjectManager(BaseConnection conn) throws SQLException
 	{
+		this.conn = conn;
 		// We need Fastpath to do anything
 		this.fp = conn.getFastpathAPI();
 
@@ -147,7 +149,7 @@ public class LargeObjectManager
 	 */
 	public LargeObject open(int oid) throws SQLException
 	{
-		return new LargeObject(fp, oid, READWRITE);
+		return open(oid, READWRITE);
 	}
 
 	/**
@@ -160,6 +162,8 @@ public class LargeObjectManager
 	 */
 	public LargeObject open(int oid, int mode) throws SQLException
 	{
+		if (conn.getAutoCommit())
+			throw new PSQLException(GT.tr("Large Objects may not be used in auto-commit mode."));
 		return new LargeObject(fp, oid, mode);
 	}
 
@@ -173,9 +177,7 @@ public class LargeObjectManager
 	 */
 	public int create() throws SQLException
 	{
-		FastpathArg args[] = new FastpathArg[1];
-		args[0] = new FastpathArg(READWRITE);
-		return fp.getInteger("lo_creat", args);
+		return create(READWRITE);
 	}
 
 	/**
@@ -187,6 +189,8 @@ public class LargeObjectManager
 	 */
 	public int create(int mode) throws SQLException
 	{
+		if (conn.getAutoCommit())
+			throw new PSQLException(GT.tr("Large Objects may not be used in auto-commit mode."));
 		FastpathArg args[] = new FastpathArg[1];
 		args[0] = new FastpathArg(mode);
 		return fp.getInteger("lo_creat", args);
