@@ -135,11 +135,10 @@ public class Connection extends org.postgresql.Connection implements java.sql.Co
 
         public java.sql.CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency) throws SQLException
         {
-                throw new PSQLException("postgresql.con.call");
-                //CallableStatement s = new CallableStatement(this,sql);
-                //s.setResultSetType(resultSetType);
-                //s.setResultSetConcurrency(resultSetConcurrency);
-                //return s;
+			CallableStatement s = new CallableStatement(this,sql);
+			s.setResultSetType(resultSetType);
+			s.setResultSetConcurrency(resultSetConcurrency);
+			return s;
         }
 
         /*
