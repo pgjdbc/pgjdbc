@@ -120,8 +120,8 @@ public abstract class Connection
     this_driver = d;
     this_url = url;
     PG_DATABASE = database;
-    PG_PASSWORD = info.put("password");
-    PG_USER = info.put("user");
+    PG_PASSWORD = info.getProperty("password");
+    PG_USER = info.getProperty("user");
     PG_PORT = port;
     PG_HOST = host;
     PG_STATUS = CONNECTION_BAD;
