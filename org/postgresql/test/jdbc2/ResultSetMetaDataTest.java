@@ -1,5 +1,6 @@
 package org.postgresql.test.jdbc2;
 
+import org.postgresql.PGResultSetMetaData;
 import org.postgresql.test.TestUtil;
 import junit.framework.TestCase;
 import java.sql.*;
@@ -11,6 +12,7 @@ public class ResultSetMetaDataTest extends TestCase
 	private Statement stmt;
 	private ResultSet rs;
 	private ResultSetMetaData rsmd;
+	private PGResultSetMetaData pgrsmd;
 
 	public ResultSetMetaDataTest(String name)
 	{
@@ -23,8 +25,9 @@ public class ResultSetMetaDataTest extends TestCase
 		TestUtil.createTable(conn, "rsmd1", "a int primary key, b text, c decimal(10,2)");
 
 		stmt = conn.createStatement();
-		rs = stmt.executeQuery("SELECT a,b,c,a+c as total,oid FROM rsmd1");
+		rs = stmt.executeQuery("SELECT a,b,c,a+c as total,oid,b as d FROM rsmd1");
 		rsmd = rs.getMetaData();
+		pgrsmd = (PGResultSetMetaData)rsmd;
 		
 
 		TestUtil.createTable(conn, "timetest", "tm time(3), tmtz timetz, ts timestamp without time zone, tstz timestamp(6) with time zone");
@@ -46,7 +49,7 @@ public class ResultSetMetaDataTest extends TestCase
 	}
 
 	public void testGetColumnCount() throws SQLException {
-		assertEquals(rsmd.getColumnCount(), 5);
+		assertEquals(rsmd.getColumnCount(), 6);
 	}
 
 	public void testGetColumnLabel() throws SQLException {
@@ -58,7 +61,8 @@ public class ResultSetMetaDataTest extends TestCase
 		assertEquals(rsmd.getColumnName(1), "a");
 		assertEquals(rsmd.getColumnName(5), "oid");
 		if (TestUtil.haveMinimumServerVersion(conn,"7.4")) {
-			assertEquals(rsmd.getColumnName(4), "");
+			assertEquals("", pgrsmd.getBaseColumnName(4));
+			assertEquals("b", pgrsmd.getBaseColumnName(6));
 		}
 	}
 
@@ -81,16 +85,20 @@ public class ResultSetMetaDataTest extends TestCase
 	}
 
 	public void testGetSchemaName() throws SQLException {
+		assertEquals("", rsmd.getSchemaName(1));
+		assertEquals("", rsmd.getSchemaName(4));
 		if (TestUtil.haveMinimumServerVersion(conn,"7.4")) {
-			assertEquals(rsmd.getSchemaName(1), "public");
-			assertEquals(rsmd.getSchemaName(4), "");
+			assertEquals("public", pgrsmd.getBaseSchemaName(1));
+			assertEquals("", pgrsmd.getBaseSchemaName(4));
 		}
 	}
 
 	public void testGetTableName() throws SQLException {
+		assertEquals("", rsmd.getTableName(1));
+		assertEquals("", rsmd.getTableName(4));
 		if (TestUtil.haveMinimumServerVersion(conn,"7.4")) {
-			assertEquals(rsmd.getTableName(1), "rsmd1");
-			assertEquals(rsmd.getTableName(4), "");
+			assertEquals("rsmd1", pgrsmd.getBaseTableName(1));
+			assertEquals("", pgrsmd.getBaseTableName(4));
 		}
 	}
 

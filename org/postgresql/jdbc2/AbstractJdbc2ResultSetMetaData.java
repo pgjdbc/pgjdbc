@@ -1,5 +1,6 @@
 package org.postgresql.jdbc2;
 
+import org.postgresql.PGResultSetMetaData;
 import org.postgresql.core.*;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -7,7 +8,7 @@ import java.sql.*;
 import java.util.Vector;
 import java.util.Hashtable;
 
-public abstract class AbstractJdbc2ResultSetMetaData
+public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaData
 {
 	protected final BaseConnection connection;
 	protected final Field[] fields;
@@ -274,6 +275,10 @@ public abstract class AbstractJdbc2ResultSetMetaData
 	 */
 	public String getColumnName(int column) throws SQLException
 	{
+		return getColumnLabel(column);
+	}
+
+	public String getBaseColumnName(int column) throws SQLException {
 		Field field = getField(column);
 		return field.getColumnName(connection);
 	}
@@ -284,6 +289,11 @@ public abstract class AbstractJdbc2ResultSetMetaData
 	 * @exception SQLException if a database access error occurs
 	 */
 	public String getSchemaName(int column) throws SQLException
+	{
+		return "";
+	}
+
+	public String getBaseSchemaName(int column) throws SQLException
 	{
 		Field field = getField(column);
 		if (field.getTableOid() == 0)
@@ -427,6 +437,11 @@ public abstract class AbstractJdbc2ResultSetMetaData
 	 * @exception SQLException if a database access error occurs
 	 */
 	public String getTableName(int column) throws SQLException
+	{
+		return "";
+	}
+
+	public String getBaseTableName(int column) throws SQLException
 	{
 		Field field = getField(column);
 		if (field.getTableOid() == 0)
