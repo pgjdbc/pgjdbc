@@ -3,7 +3,7 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Array.java,v 1.7 2004/11/09 08:48:29 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Array.java,v 1.8 2004/11/10 20:43:45 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -253,6 +253,28 @@ public class AbstractJdbc2Array
         return getResultSetImpl( 1, 0, map );
     }
 
+    private void fillIntegerResultSet(long index, int[] intArray, Vector rows) throws SQLException
+    {
+        for ( int i = 0; i < intArray.length; i++ )
+        {
+            byte[][] tuple = new byte[2][0];
+            tuple[0] = conn.encodeString( Integer.toString((int)index + i) ); // Index
+            tuple[1] = conn.encodeString( Integer.toString(intArray[i]) ); // Value
+            rows.addElement(tuple);
+        }
+    }
+
+    private void fillStringResultSet(long index, String[] strArray, Vector rows) throws SQLException
+    {
+        for ( int i = 0; i < strArray.length; i++ )
+        {
+            byte[][] tuple = new byte[2][0];
+            tuple[0] = conn.encodeString( Integer.toString((int)index + i) ); // Index
+            tuple[1] = conn.encodeString( strArray[i] ); // Value
+            rows.addElement(tuple);
+        }
+    }
+
     public java.sql.ResultSet getResultSetImpl(long index, int count, java.util.Map map) throws SQLException
     {
         Object array = getArrayImpl( index, count, map );
@@ -274,18 +296,11 @@ public class AbstractJdbc2Array
             break;
         case Types.SMALLINT:
             fields[1] = new Field("VALUE", Oid.INT2, 2);
+            fillIntegerResultSet(index, (int[])array, rows);
             break;
         case Types.INTEGER:
-            int[] intArray = (int[]) array;
-            if ( fields[1] == null )
-                fields[1] = new Field("VALUE", Oid.INT4, 4);
-            for ( int i = 0; i < intArray.length; i++ )
-            {
-                byte[][] tuple = new byte[2][0];
-                tuple[0] = conn.encodeString( Integer.toString((int)index + i) ); // Index
-                tuple[1] = conn.encodeString( Integer.toString(intArray[i]) ); // Value
-                rows.addElement(tuple);
-            }
+            fields[1] = new Field("VALUE", Oid.INT4, 4);
+            fillIntegerResultSet(index, (int[])array, rows);
             break;
         case Types.BIGINT:
             long[] longArray = (long[]) array;
@@ -333,18 +348,11 @@ public class AbstractJdbc2Array
             break;
         case Types.CHAR:
             fields[1] = new Field("VALUE", Oid.BPCHAR, 1);
+            fillStringResultSet(index, (String[])array, rows);
             break;
         case Types.VARCHAR:
-            String[] strArray = (String[]) array;
-            if ( fields[1] == null )
-                fields[1] = new Field("VALUE", Oid.VARCHAR, -1);
-            for ( int i = 0; i < strArray.length; i++ )
-            {
-                byte[][] tuple = new byte[2][0];
-                tuple[0] = conn.encodeString( Integer.toString((int)index + i) ); // Index
-                tuple[1] = conn.encodeString( strArray[i] ); // Value
-                rows.addElement(tuple);
-            }
+            fields[1] = new Field("VALUE", Oid.VARCHAR, -1);
+            fillStringResultSet(index, (String[])array, rows);
             break;
         case Types.DATE:
             java.sql.Date[] dateArray = (java.sql.Date[]) array;
