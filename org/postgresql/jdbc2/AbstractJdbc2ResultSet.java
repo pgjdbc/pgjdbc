@@ -2262,7 +2262,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 			return index.intValue();
 		}
 
-		throw new PSQLException (GT.tr("The column name '{0}' was not found in this ResultSet.", columnName));
+		throw new PSQLException (GT.tr("The column name {0} was not found in this ResultSet.", columnName));
 	}
 
 	/*
