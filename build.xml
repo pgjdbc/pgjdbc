@@ -339,7 +339,7 @@
   <target name="doc" depends="prepare">
    <mkdir dir="${builddir}/doc"/>
    <xslt basedir="doc" destdir="${builddir}/doc" includes="*.xml" force="yes" style="${docbook.stylesheet}">
-     <param name="base.dir" expression="./"/>
+     <param name="base.dir" expression="${builddir}/doc/"/>
    </xslt>
    <delete file="${builddir}/doc/pgjdbc.html"/>
   </target>
