@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/PGStream.java,v 1.10 2004/11/07 22:15:32 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/PGStream.java,v 1.11 2004/11/09 08:44:37 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -264,7 +264,15 @@ public class PGStream
             n = b | (n << 8);
         }
 
-        return n;
+        switch (siz) {
+            case 1:
+                return (int)((byte)n);
+            case 2:
+                return (int)((short)n);
+            default:
+                return n;
+        }
+
     }
 
     private byte[] byte_buf = new byte[8*1024];
