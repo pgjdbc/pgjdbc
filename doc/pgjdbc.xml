@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!--
   Copyright (c) 2004-2005, PostgreSQL Global Development Group
-  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.22 2005/01/30 11:04:54 jurka Exp $
+  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.23 2005/02/02 20:05:20 jurka Exp $
 -->
 
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN" "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">
@@ -550,6 +550,16 @@ Connection conn = DriverManager.getConnection(url);
          prepared statements.  More information on server side prepared
          statements is available in <xref linkend="server-prepare" />.
         </para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
+       <term><varname>loginTimeout</varname> = <type>int</type></term>
+       <listitem>
+        <para>
+	 Specify how long to wait for establishment of a database connection.
+	 The timeout is specified in seconds.
+	</para>
        </listitem>
       </varlistentry>
 
