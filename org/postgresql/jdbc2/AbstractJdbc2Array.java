@@ -93,7 +93,28 @@ public class AbstractJdbc2Array
 			StringBuffer sbuf = new StringBuffer();
 			boolean foundOpen = false;
 			boolean insideString = false;
-			for ( int i = 0; i < chars.length; i++ )
+
+			/**
+			 * Starting with 8.0 non-standard (beginning index
+			 * isn't 1) bounds the dimensions are returned in the
+			 * data formatted like so "[0:3]={0,1,2,3,4}".
+			 * Older versions simply do not return the bounds.
+			 *
+			 * Right now we ignore these bounds, but we could
+			 * consider allowing these index values to be used
+			 * even though the JDBC spec says 1 is the first
+			 * index.  I'm not sure what a client would like
+			 * to see, so we just retain the old behavior.
+			 */
+			int startOffset = 0;
+			if (chars[0] == '[') {
+				while(chars[startOffset] != '=') {
+					startOffset++;
+				}
+				startOffset++; // skip =
+			}
+
+			for ( int i = startOffset; i < chars.length; i++ )
 			{
 				if ( chars[i] == '\\' )
 					//escape character that we need to skip
@@ -101,7 +122,7 @@ public class AbstractJdbc2Array
 				else if (!insideString && chars[i] == '{' )
 				{
 					if ( foundOpen )  // Only supports 1-D arrays for now
-						throw org.postgresql.Driver.notImplemented();
+						throw new PSQLException("Multi-dimensional arrays are currently not supported.");
 					foundOpen = true;
 					continue;
 				}

@@ -162,5 +162,25 @@ public class ArrayTest extends TestCase
 		assertEquals(2,intarr[1]);
 		assertEquals(3,intarr[2]);
 	}
+
+	/**
+	 * Starting with 8.0 non-standard (beginning index isn't 1) bounds
+	 * the dimensions are returned in the data.  The following should
+	 * return "[0:3]={0,1,2,3,4}" when queried.  Older versions simply
+	 * do not return the bounds.
+	 */
+	public void testNonStandardBounds() throws SQLException {
+		Statement stmt = conn.createStatement();
+		stmt.executeUpdate("INSERT INTO arrtest (intarr) VALUES ('{1,2,3}')");
+		stmt.executeUpdate("UPDATE arrtest SET intarr[0] = 0");
+		ResultSet rs = stmt.executeQuery("SELECT intarr FROM arrtest");
+		assertTrue(rs.next());
+		Array result = rs.getArray(1);
+		int intarr[] = (int[])result.getArray();
+		assertEquals(4, intarr.length);
+		for (int i=0; i<intarr.length; i++) {
+			assertEquals(i, intarr[i]);
+		}
+	}
 }
 
