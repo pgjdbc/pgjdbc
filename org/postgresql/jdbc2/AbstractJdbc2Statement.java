@@ -14,7 +14,7 @@ import org.postgresql.util.PSQLState;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.GT;
 
-/* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.41 2004/10/24 19:42:45 jurka Exp $
+/* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.42 2004/10/25 22:43:21 jurka Exp $
  * This class defines methods of the jdbc2 specification.
  * The real Statement class (for jdbc2) is org.postgresql.jdbc2.Jdbc2Statement
  */
@@ -827,9 +827,11 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 				}
 				break;
 			case Types.OTHER:
+				// We cannot determine an appropriate OID in this case.
+				throw new PSQLException(GT.tr("setNull(i,Types.OTHER) is not supported; use setObject(i,nullobject,Types.OTHER) instead."), PSQLState.INVALID_PARAMETER_TYPE);
 			default:
-				oid = 0;
-				break;
+				// Bad Types value.
+				throw new PSQLException(GT.tr("Unknown Types value."), PSQLState.INVALID_PARAMETER_TYPE);
 		}
 
 		preparedParameters.setNull(adjustParamIndex(parameterIndex), oid);
@@ -1389,6 +1391,16 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 			return new BigDecimal(x.toString()).toString();
 	}
 
+	// Helper method for setting parameters to PGobject subclasses.
+	private void setPGobject(int parameterIndex, PGobject x) throws SQLException {
+		String typename = x.getType();
+		int oid = connection.getPGType(typename);
+		if (oid == Oid.INVALID)
+			throw new PSQLException(GT.tr("Unknown type {0}.", typename), PSQLState.INVALID_PARAMETER_TYPE);
+
+		setString(parameterIndex, x.getValue(), oid);
+	}
+
 	/*
 	 * Set the value of a parameter using an object; use the java.lang
 	 * equivalent objects for integral values.
@@ -1487,7 +1499,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 				}
 				else
 				{
-					throw new PSQLException(GT.tr("Unknown Types value."), PSQLState.INVALID_PARAMETER_TYPE);
+					throw new PSQLException(GT.tr("Cannot cast an instance of {0} to Types.BIT", x.getClass().getName()), PSQLState.INVALID_PARAMETER_TYPE);
 				}
 				break;
 			case Types.BINARY:
@@ -1497,12 +1509,12 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 				break;
 			case Types.OTHER:
 				if (x instanceof PGobject)
-					setString(parameterIndex, ((PGobject)x).getValue(), connection.getPGType( ((PGobject)x).getType() ));
+					setPGobject(parameterIndex, (PGobject)x);
 				else
-					throw new PSQLException(GT.tr("Unknown Types value."), PSQLState.INVALID_PARAMETER_TYPE);
+					throw new PSQLException(GT.tr("Cannot cast an instance of {0} to Types.OTHER", x.getClass().getName()), PSQLState.INVALID_PARAMETER_TYPE);
 				break;
 			default:
-				throw new PSQLException(GT.tr("Unknown Types value."), PSQLState.INVALID_PARAMETER_TYPE);
+				throw new PSQLException(GT.tr("Unsupported Types value: {0}", new Integer(targetSqlType)), PSQLState.INVALID_PARAMETER_TYPE);
 		}
 	}
 
@@ -1517,11 +1529,11 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	public void setObject(int parameterIndex, Object x) throws SQLException
 	{
 		checkClosed();
-		if (x == null)
-		{
-			setNull(parameterIndex, Types.OTHER);
-			return;
+		if (x == null) {
+			// We cannot determine an appropriate OID in this case.
+			throw new PSQLException(GT.tr("setObject(i,null) is not supported. Instead, use setNull(i,type) or setObject(i,null,type)"), PSQLState.INVALID_PARAMETER_TYPE);
 		}
+
 		if (x instanceof String)
 			setString(parameterIndex, (String)x);
 		else if (x instanceof BigDecimal)
@@ -1547,10 +1559,11 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 		else if (x instanceof Boolean)
 			setBoolean(parameterIndex, ((Boolean)x).booleanValue());
 		else if (x instanceof PGobject)
-			setString(parameterIndex, ((PGobject)x).getValue(), connection.getPGType(((PGobject)x).getType()));
-		else
-			// Try to store as a string in database
-			setString(parameterIndex, x.toString(), 0);
+			setPGobject(parameterIndex, (PGobject)x);
+		else {
+			// Can't infer a type.
+			throw new PSQLException(GT.tr("Can't infer the SQL type to use for an instance of {0}. Use setObject() with an explicit Types value to specify the type to use.", x.getClass().getName()), PSQLState.INVALID_PARAMETER_TYPE);
+		}
 	}
 
 	/*

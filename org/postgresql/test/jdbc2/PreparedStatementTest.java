@@ -184,4 +184,42 @@ public class PreparedStatementTest extends TestCase
 		rs.close();
 		pstmt.close();
 	}
+
+	public void testSetNull() throws SQLException {
+		// valid: fully qualified type to setNull()
+		PreparedStatement pstmt = conn.prepareStatement("INSERT INTO texttable (te) VALUES (?)");
+		pstmt.setNull(1, Types.VARCHAR);
+		pstmt.executeUpdate();
+
+		// valid: fully qualified type to setObject()
+		pstmt.setObject(1, null, Types.VARCHAR);
+		pstmt.executeUpdate();
+
+		// valid: setObject() with partial type info and a typed "null object instance"
+		org.postgresql.util.PGobject dummy = new org.postgresql.util.PGobject();
+		dummy.setType("text");
+		dummy.setValue(null);
+		pstmt.setObject(1, dummy, Types.OTHER);
+		pstmt.executeUpdate();
+		
+		// not valid: setObject() with no type info
+		try {
+			pstmt.setObject(1, null);
+			fail("Expected an exception on setObject(1,null)");
+		} catch (SQLException e) {}
+
+		// not valid: setObject() with insufficient type info
+		try {
+			pstmt.setObject(1, null, Types.OTHER);
+			fail("Expected an exception on setObject(1,null,Types.OTHER)");
+		} catch (SQLException e) {}
+
+		// not valid: setNull() with insufficient type info
+		try {
+			pstmt.setNull(1, Types.OTHER);
+			fail("Expected an exception on setNull(1,Types.OTHER)");
+		} catch (SQLException e) {}
+
+		pstmt.close();
+	}
 }

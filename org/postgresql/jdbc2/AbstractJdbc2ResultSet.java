@@ -8,7 +8,7 @@
  * Copyright (c) 2003, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.54 2004/10/17 12:19:38 jurka Exp $
+ *	  $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.55 2004/10/25 22:43:20 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -30,6 +30,7 @@ import java.util.Vector;
 import org.postgresql.Driver;
 import org.postgresql.core.*;
 import org.postgresql.largeobject.*;
+import org.postgresql.util.PGobject;
 import org.postgresql.util.PGbytea;
 import org.postgresql.util.PGtokenizer;
 import org.postgresql.util.PSQLException;
@@ -758,10 +759,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 			{
 				String key = (String) keys.next();
 				Object o = updateValues.get(key);
-				if (o instanceof NullObject)
-					insertStatement.setNull(i,java.sql.Types.NULL);
-				else
-					insertStatement.setObject(i, o);
+				insertStatement.setObject(i, o);
 			}
 
 			insertStatement.executeUpdate();
@@ -1070,7 +1068,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 	public synchronized void updateNull(int columnIndex)
 	throws SQLException
 	{
-		updateValue(columnIndex, new NullObject());
+		String columnTypeName = connection.getPGType(fields[columnIndex - 1].getOID());
+		updateValue(columnIndex, new NullObject(columnTypeName));
 	}
 
 
@@ -1220,10 +1219,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 				for (; iterator.hasNext(); i++)
 				{
 					Object o = iterator.next();
-					if (o instanceof NullObject)
-						updateStatement.setNull(i+1,java.sql.Types.NULL);
-					else
-						updateStatement.setObject( i + 1, o );
+					updateStatement.setObject( i + 1, o );
 
 				}
 				for ( int j = 0; j < numKeys; j++, i++)
@@ -2598,8 +2594,20 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 		}
 	};
 
-	class NullObject {
-	};
+	//
+	// We need to specify the type of NULL when updating a column to NULL, so
+	// NullObject is a simple extension of PGobject that always returns null
+	// values but retains column type info.
+	//
 
+	class NullObject extends PGobject {
+		NullObject(String type) {
+			setType(type);
+		}
+
+		public String getValue() {
+			return null;
+		}
+	};
 }
 
