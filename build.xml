@@ -215,7 +215,7 @@
 
   <!-- defaults for the tests - override these if required -->
   <property name="database" value="jdbc:postgresql:test" />
-  <property name="username" value="postgres" />
+  <property name="username" value="test" />
   <!-- Password must be something.  Doesn't matter if trust is used! -->
   <property name="password" value="password" />
   <!-- junit.ui is one of textui, awtui, or swingui -->
