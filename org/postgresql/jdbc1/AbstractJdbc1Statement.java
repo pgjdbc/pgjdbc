@@ -1036,7 +1036,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 				sbuf.setLength(0);
 				sbuf.ensureCapacity(x.length() + (int)(x.length() / 10));
 				sbuf.append('\'');
-				escapeString(x, sbuf);
+				escapeString(x, sbuf, true);
 				sbuf.append('\'');
 				bind(parameterIndex, sbuf.toString(), type);
 			}
@@ -1050,18 +1050,30 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
         {
             sbuf.setLength(0);
             sbuf.ensureCapacity(p_input.length());
-            escapeString(p_input, sbuf);
+            escapeString(p_input, sbuf, false);
             return sbuf.toString();
         }
     }
 
-    private void escapeString(String p_input, StringBuffer p_output) {
+    private void escapeString(String p_input, StringBuffer p_output, boolean p_allowStatementTerminator) {
         for (int i = 0 ; i < p_input.length() ; ++i)
         {
             char c = p_input.charAt(i);
-            if (c == '\\' || c == '\'')
-                p_output.append((char)'\\');
-            p_output.append(c);
+			switch (c)
+			{
+			    case '\\':
+			    case '\'':
+					p_output.append('\\');
+					p_output.append(c);
+					break;
+			    case '\0':
+					throw new IllegalArgumentException("\\0 not allowed");
+			    case ';':
+					if (!p_allowStatementTerminator)
+						throw new IllegalArgumentException("semicolon not allowed");
+				default:
+					p_output.append(c);
+			}
         }
     }
 
