@@ -37,7 +37,6 @@ public class GT {
 		try {
 			_bundle = ResourceBundle.getBundle("org.postgresql.translation.messages");
 		} catch (MissingResourceException mre) {
-			System.err.println("Couldn't get bundle");
 			// translation files have not been installed
 			_bundle = null;
 		}
@@ -52,7 +51,6 @@ public class GT {
 			} catch (MissingResourceException mre) {
 				// If we can't find a translation, just
 				// use the untranslated message.
-			System.err.println("Couldn't get messages");
 			}
 		}
 
