@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.69 2005/01/11 08:25:46 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.70 2005/01/14 01:20:19 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1506,6 +1506,10 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     boolean isUpdateable() throws SQLException
     {
         checkClosed();
+
+        if (resultsetconcurrency == ResultSet.CONCUR_READ_ONLY)
+            throw new PSQLException(GT.tr("ResultSets with concurrency CONCUR_READ_ONLY cannot be updated."),
+                                    PSQLState.INVALID_CURSOR_STATE);
 
         if (updateable)
             return true;

@@ -3,7 +3,7 @@
 * Copyright (c) 2001-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/UpdateableResultTest.java,v 1.17 2005/01/11 08:25:48 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/UpdateableResultTest.java,v 1.18 2005/01/27 20:59:06 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -369,11 +369,24 @@ public class UpdateableResultTest extends TestCase
         st.close();
 
         // With args.
-        st = con.prepareStatement("select * from updateable where id = ?");
+        st = con.prepareStatement("select * from updateable where id = ?",
+                                  ResultSet.TYPE_SCROLL_INSENSITIVE,
+                                  ResultSet.CONCUR_UPDATABLE);
         st.setInt(1, 1);
         rs = st.executeQuery();
         rs.moveToInsertRow();
         rs.close();
         st.close();
     }        
+
+    public void testUpdateReadOnlyResultSet() throws Exception
+    {
+        Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+                                           ResultSet.CONCUR_READ_ONLY);
+        ResultSet rs = st.executeQuery( "select * from updateable");
+        try {
+            rs.moveToInsertRow();
+            fail("expected an exception when calling moveToInsertRow() on a read-only resultset");
+        } catch (SQLException e) {}
+    }
 }
