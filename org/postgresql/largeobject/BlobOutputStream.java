@@ -1,8 +1,5 @@
 /*-------------------------------------------------------------------------
  *
- * BlobOutputStream.java
- *     This implements a basic output stream that writes to a LargeObject
- *
  * Copyright (c) 2003, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
@@ -16,29 +13,32 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.SQLException;
 
+/**
+ *     This implements a basic output stream that writes to a LargeObject
+ */
 public class BlobOutputStream extends OutputStream
 {
-	/*
+	/**
 	 * The parent LargeObject
 	 */
 	private LargeObject lo;
 
-	/*
+	/**
 	 * Buffer
 	 */
 	private byte buf[];
 
-	/*
+	/**
 	 * Size of the buffer (default 1K)
 	 */
 	private int bsize;
 
-	/*
+	/**
 	 * Position within the buffer
 	 */
 	private int bpos;
 
-	/*
+	/**
 	 * Create an OutputStream to a large object
 	 * @param lo LargeObject
 	 */
@@ -47,7 +47,7 @@ public class BlobOutputStream extends OutputStream
 		this(lo, 1024);
 	}
 
-	/*
+	/**
 	 * Create an OutputStream to a large object
 	 * @param lo LargeObject
 	 * @param bsize The size of the buffer used to improve performance
@@ -97,7 +97,7 @@ public class BlobOutputStream extends OutputStream
 	}
 
 
-	/*
+	/**
 	 * Flushes this output stream and forces any buffered output bytes
 	 * to be written out. The general contract of <code>flush</code> is
 	 * that calling it is an indication that, if any bytes previously
@@ -121,7 +121,7 @@ public class BlobOutputStream extends OutputStream
 		}
 	}
 
-	/*
+	/**
 	 * Closes this output stream and releases any system resources
 	 * associated with this stream. The general contract of <code>close</code>
 	 * is that it closes the output stream. A closed stream cannot perform

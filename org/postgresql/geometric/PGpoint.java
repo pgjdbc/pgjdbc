@@ -1,8 +1,5 @@
 /*-------------------------------------------------------------------------
  *
- * PGline.java
- *     It maps to the point datatype in org.postgresql.
- *
  * Copyright (c) 2003, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
@@ -21,23 +18,25 @@ import java.awt.Point;
 import java.io.Serializable;
 import java.sql.SQLException;
 
-/*
+/**
+ * It maps to the point datatype in org.postgresql.
+ *
  * This implements a version of java.awt.Point, except it uses double
  * to represent the coordinates.
  */
 public class PGpoint extends PGobject implements Serializable, Cloneable
 {
-	/*
+	/**
 	 * The X coordinate of the point
 	 */
 	public double x;
 
-	/*
+	/**
 	 * The Y coordinate of the point
 	 */
 	public double y;
 
-	/*
+	/**
 	 * @param x coordinate
 	 * @param y coordinate
 	 */
@@ -48,9 +47,9 @@ public class PGpoint extends PGobject implements Serializable, Cloneable
 		this.y = y;
 	}
 
-	/*
+	/**
 	 * This is called mainly from the other geometric types, when a
-	 * point is imbeded within their definition.
+	 * point is embedded within their definition.
 	 *
 	 * @param value Definition of this point in PostgreSQL's syntax
 	 */
@@ -60,7 +59,7 @@ public class PGpoint extends PGobject implements Serializable, Cloneable
 		setValue(value);
 	}
 
-	/*
+	/**
 	 * Required by the driver
 	 */
 	public PGpoint()
@@ -68,7 +67,7 @@ public class PGpoint extends PGobject implements Serializable, Cloneable
 		setType("point");
 	}
 
-	/*
+	/**
 	 * @param s Definition of this point in PostgreSQL's syntax
 	 * @exception SQLException on conversion failure
 	 */
@@ -86,9 +85,9 @@ public class PGpoint extends PGobject implements Serializable, Cloneable
 		}
 	}
 
-	/*
+	/**
 	 * @param obj Object to compare with
-	 * @return true if the two boxes are identical
+	 * @return true if the two points are identical
 	 */
 	public boolean equals(Object obj)
 	{
@@ -100,15 +99,12 @@ public class PGpoint extends PGobject implements Serializable, Cloneable
 		return false;
 	}
 
-	/*
-	 * This must be overidden to allow the object to be cloned
-	 */
 	public Object clone()
 	{
 		return new PGpoint(x, y);
 	}
 
-	/*
+	/**
 	 * @return the PGpoint in the syntax expected by org.postgresql
 	 */
 	public String getValue()
@@ -116,8 +112,8 @@ public class PGpoint extends PGobject implements Serializable, Cloneable
 		return "(" + x + "," + y + ")";
 	}
 
-	/*
-	 * Translate the point with the supplied amount.
+	/**
+	 * Translate the point by the supplied amount.
 	 * @param x integer amount to add on the x axis
 	 * @param y integer amount to add on the y axis
 	 */
@@ -126,8 +122,8 @@ public class PGpoint extends PGobject implements Serializable, Cloneable
 		translate((double)x, (double)y);
 	}
 
-	/*
-	 * Translate the point with the supplied amount.
+	/**
+	 * Translate the point by the supplied amount.
 	 * @param x double amount to add on the x axis
 	 * @param y double amount to add on the y axis
 	 */
@@ -137,7 +133,7 @@ public class PGpoint extends PGobject implements Serializable, Cloneable
 		this.y += y;
 	}
 
-	/*
+	/**
 	 * Moves the point to the supplied coordinates.
 	 * @param x integer coordinate
 	 * @param y integer coordinate
@@ -147,7 +143,7 @@ public class PGpoint extends PGobject implements Serializable, Cloneable
 		setLocation(x, y);
 	}
 
-	/*
+	/**
 	 * Moves the point to the supplied coordinates.
 	 * @param x double coordinate
 	 * @param y double coordinate
@@ -158,7 +154,7 @@ public class PGpoint extends PGobject implements Serializable, Cloneable
 		this.y = y;
 	}
 
-	/*
+	/**
 	 * Moves the point to the supplied coordinates.
 	 * refer to java.awt.Point for description of this
 	 * @param x integer coordinate
@@ -170,7 +166,7 @@ public class PGpoint extends PGobject implements Serializable, Cloneable
 		move((double)x, (double)y);
 	}
 
-	/*
+	/**
 	 * Moves the point to the supplied java.awt.Point
 	 * refer to java.awt.Point for description of this
 	 * @param p Point to move to

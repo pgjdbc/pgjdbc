@@ -369,6 +369,19 @@
   <!-- Build and run the tests. -->
   <target name="test" depends="testjar,runtest"/>
 
+
+  <target name="javadoc" depends="compile">
+    <javadoc destdir="${builddir}/javadoc" classpath="${builddir}">
+      <fileset dir="org/postgresql">
+        <include name="geometric/*.java" />
+        <include name="largeobject/*.java" />
+        <include name="fastpath/*.java" />
+        <include name="PG*.java" />
+        <include name="util/PGobject.java" />
+      </fileset>
+    </javadoc>
+  </target>
+
   <!-- Build the documentation -->
   <target name="doc" depends="prepare">
    <mkdir dir="${builddir}/doc"/>

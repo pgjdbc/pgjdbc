@@ -1,8 +1,5 @@
 /*-------------------------------------------------------------------------
  *
- * PGline.java
- *     This implements the polygon datatype within PostgreSQL.
- *
  * Copyright (c) 2003, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
@@ -17,14 +14,17 @@ import org.postgresql.util.PGtokenizer;
 import java.io.Serializable;
 import java.sql.SQLException;
 
+/**
+ *     This implements the polygon datatype within PostgreSQL.
+ */
 public class PGpolygon extends PGobject implements Serializable, Cloneable
 {
-	/*
+	/**
 	 * The points defining the polygon
 	 */
 	public PGpoint points[];
 
-	/*
+	/**
 	 * Creates a polygon using an array of PGpoints
 	 *
 	 * @param points the points defining the polygon
@@ -35,8 +35,8 @@ public class PGpolygon extends PGobject implements Serializable, Cloneable
 		this.points = points;
 	}
 
-	/*
-	 * @param s definition of the circle in PostgreSQL's syntax.
+	/**
+	 * @param s definition of the polygon in PostgreSQL's syntax.
 	 * @exception SQLException on conversion failure
 	 */
 	public PGpolygon(String s) throws SQLException
@@ -45,7 +45,7 @@ public class PGpolygon extends PGobject implements Serializable, Cloneable
 		setValue(s);
 	}
 
-	/*
+	/**
 	 * Required by the driver
 	 */
 	public PGpolygon()
@@ -53,7 +53,7 @@ public class PGpolygon extends PGobject implements Serializable, Cloneable
 		setType("polygon");
 	}
 
-	/*
+	/**
 	 * @param s Definition of the polygon in PostgreSQL's syntax
 	 * @exception SQLException on conversion failure
 	 */
@@ -66,9 +66,9 @@ public class PGpolygon extends PGobject implements Serializable, Cloneable
 			points[p] = new PGpoint(t.getToken(p));
 	}
 
-	/*
+	/**
 	 * @param obj Object to compare with
-	 * @return true if the two boxes are identical
+	 * @return true if the two polygons are identical
 	 */
 	public boolean equals(Object obj)
 	{
@@ -88,9 +88,6 @@ public class PGpolygon extends PGobject implements Serializable, Cloneable
 		return false;
 	}
 
-	/*
-	 * This must be overidden to allow the object to be cloned
-	 */
 	public Object clone()
 	{
 		PGpoint ary[] = new PGpoint[points.length];
@@ -99,7 +96,7 @@ public class PGpolygon extends PGobject implements Serializable, Cloneable
 		return new PGpolygon(ary);
 	}
 
-	/*
+	/**
 	 * @return the PGpolygon in the syntax expected by org.postgresql
 	 */
 	public String getValue()

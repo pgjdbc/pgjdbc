@@ -1,8 +1,5 @@
 /*-------------------------------------------------------------------------
  *
- * Fastpath.java
- *     This class implements the Fastpath api.
- *
  * Copyright (c) 2003, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
@@ -25,7 +22,7 @@ import org.postgresql.util.ServerErrorMessage;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLWarning;
 
-/*
+/**
  * This class implements the Fastpath api.
  *
  * <p>This is a means of executing functions imbeded in the org.postgresql
@@ -43,7 +40,7 @@ public class Fastpath
 	protected BaseConnection conn;		// our connection
 	protected PGStream stream;	// the network stream
 
-	/*
+	/**
 	 * Initialises the fastpath system
 	 *
 	 * @param conn BaseConnection to attach to
@@ -55,7 +52,7 @@ public class Fastpath
 		this.stream = stream;
 	}
 
-	/*
+	/**
 	 * Send a function call to the PostgreSQL backend
 	 *
 	 * @param fnid Function id
@@ -298,7 +295,7 @@ public class Fastpath
 		}
 	}
 
-	/*
+	/**
 	 * Send a function call to the PostgreSQL backend by name.
 	 *
 	 * Note: the mapping for the procedure name to function id needs to exist,
@@ -325,7 +322,7 @@ public class Fastpath
 		return fastpath(getID(name), resulttype, args);
 	}
 
-	/*
+	/**
 	 * This convenience method assumes that the return value is an Integer
 	 * @param name Function name
 	 * @param args Function arguments
@@ -340,7 +337,7 @@ public class Fastpath
 		return i.intValue();
 	}
 
-	/*
+	/**
 	 * This convenience method assumes that the return value is an Integer
 	 * @param name Function name
 	 * @param args Function arguments
@@ -352,7 +349,7 @@ public class Fastpath
 		return (byte[])fastpath(name, false, args);
 	}
 
-	/*
+	/**
 	 * This adds a function to our lookup table.
 	 *
 	 * <p>User code should use the addFunctions method, which is based upon a
@@ -368,7 +365,7 @@ public class Fastpath
 		func.put(name, new Integer(fnid));
 	}
 
-	/*
+	/**
 	 * This takes a ResultSet containing two columns. Column 1 contains the
 	 * function name, Column 2 the oid.
 	 *
@@ -408,8 +405,8 @@ public class Fastpath
 		}
 	}
 
-	/*
-	 * This returns the function id associated by its name
+	/**
+	 * This returns the function id associated by its name.
 	 *
 	 * <p>If addFunction() or addFunctions() have not been called for this name,
 	 * then an SQLException is thrown.

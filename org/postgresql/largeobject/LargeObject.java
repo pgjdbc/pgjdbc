@@ -1,8 +1,5 @@
 /*-------------------------------------------------------------------------
  *
- * LargeObject.java
- *     This class implements the large object interface to org.postgresql.
- *
  * Copyright (c) 2003, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
@@ -19,7 +16,7 @@ import java.sql.SQLException;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.fastpath.FastpathArg;
 
-/*
+/**
  * This class provides the basic methods required to run the interface, plus
  * a pair of methods that provide InputStream and OutputStream classes
  * for this object.
@@ -46,17 +43,17 @@ import org.postgresql.fastpath.FastpathArg;
  */
 public class LargeObject
 {
-	/*
+	/**
 	 * Indicates a seek from the begining of a file
 	 */
 	public static final int SEEK_SET = 0;
 
-	/*
+	/**
 	 * Indicates a seek from the current position
 	 */
 	public static final int SEEK_CUR = 1;
 
-	/*
+	/**
 	 * Indicates a seek from the end of a file
 	 */
 	public static final int SEEK_END = 2;
@@ -69,7 +66,7 @@ public class LargeObject
 
 	private boolean closed = false; // true when we are closed
 
-	/*
+	/**
 	 * This opens a large object.
 	 *
 	 * <p>If the object does not exist, then an SQLException is thrown.
@@ -92,7 +89,7 @@ public class LargeObject
 		this.fd = fp.getInteger("lo_open", args);
 	}
 
-	/* Release large object resources during garbage cleanup */
+	/** Release large object resources during garbage cleanup */
 	protected void finalize() throws SQLException
 	{
 		//This code used to call close() however that was problematic
@@ -103,7 +100,7 @@ public class LargeObject
 		//handle cleanup when it ends the transaction.
 	}
 
-	/*
+	/**
 	 * @return the OID of this LargeObject
 	 */
 	public int getOID()
@@ -111,7 +108,7 @@ public class LargeObject
 		return oid;
 	}
 
-	/*
+	/**
 	 * This method closes the object. You must not call methods in this
 	 * object after this is called.
 	 * @exception SQLException if a database-access error occurs.
@@ -146,7 +143,7 @@ public class LargeObject
 		}
 	}
 
-	/*
+	/**
 	 * Reads some data from the object, and return as a byte[] array
 	 *
 	 * @param len number of bytes to read
@@ -187,7 +184,7 @@ public class LargeObject
 		//}
 	}
 
-	/*
+	/**
 	 * Reads some data from the object into an existing array
 	 *
 	 * @param buf destination array
@@ -205,7 +202,7 @@ public class LargeObject
 		return len;
 	}
 
-	/*
+	/**
 	 * Writes an array to the object
 	 *
 	 * @param buf array to write
@@ -219,7 +216,7 @@ public class LargeObject
 		fp.fastpath("lowrite", false, args);
 	}
 
-	/*
+	/**
 	 * Writes some data from an array to the object
 	 *
 	 * @param buf destination array
@@ -234,7 +231,7 @@ public class LargeObject
 		write(data);
 	}
 
-	/*
+	/**
 	 * Sets the current position within the object.
 	 *
 	 * <p>This is similar to the fseek() call in the standard C library. It
@@ -253,7 +250,7 @@ public class LargeObject
 		fp.fastpath("lo_lseek", false, args);
 	}
 
-	/*
+	/**
 	 * Sets the current position within the object.
 	 *
 	 * <p>This is similar to the fseek() call in the standard C library. It
@@ -267,7 +264,7 @@ public class LargeObject
 		seek(pos, SEEK_SET);
 	}
 
-	/*
+	/**
 	 * @return the current position within the object
 	 * @exception SQLException if a database-access error occurs.
 	 */
@@ -278,7 +275,7 @@ public class LargeObject
 		return fp.getInteger("lo_tell", args);
 	}
 
-	/*
+	/**
 	 * This method is inefficient, as the only way to find out the size of
 	 * the object is to seek to the end, record the current position, then
 	 * return to the original position.
@@ -297,7 +294,7 @@ public class LargeObject
 		return sz;
 	}
 
-	/*
+	/**
 	 * Returns an InputStream from this object.
 	 *
 	 * <p>This InputStream can then be used in any method that requires an
@@ -310,8 +307,8 @@ public class LargeObject
 		return new BlobInputStream(this, 4096);
 	}
 
-	/*
-	 * Returns an OutputStream to this object
+	/**
+	 * Returns an OutputStream to this object.
 	 *
 	 * <p>This OutputStream can then be used in any method that requires an
 	 * OutputStream.

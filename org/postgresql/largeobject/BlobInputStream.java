@@ -1,8 +1,5 @@
 /*-------------------------------------------------------------------------
  *
- * BlobInputStream.java
- *     This is an implementation of an InputStream from a large object.
- *
  * Copyright (c) 2003, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
@@ -16,34 +13,37 @@ import java.io.InputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 
+/**
+ *     This is an implementation of an InputStream from a large object.
+ */
 public class BlobInputStream extends InputStream
 {
-	/*
+	/**
 	 * The parent LargeObject
 	 */
 	private LargeObject lo;
 
-	/*
+	/**
 	 * Buffer used to improve performance
 	 */
 	private byte[] buffer;
 
-	/*
+	/**
 	 * Position within buffer
 	 */
 	private int bpos;
 
-	/*
+	/**
 	 * The buffer size
 	 */
 	private int bsize;
 
-	/*
+	/**
 	 * The mark position
 	 */
 	private int mpos = 0;
 
-	/*
+	/**
 	 * @param lo LargeObject to read from
 	 */
 	public BlobInputStream(LargeObject lo)
@@ -51,7 +51,7 @@ public class BlobInputStream extends InputStream
 		this(lo, 1024);
 	}
 
-	/*
+	/**
 	 * @param lo LargeObject to read from
 	 * @param bsize buffer size
 	 */
@@ -63,7 +63,7 @@ public class BlobInputStream extends InputStream
 		this.bsize = bsize;
 	}
 
-	/*
+	/**
 	 * The minimum required to implement input stream
 	 */
 	public int read() throws java.io.IOException
@@ -99,7 +99,7 @@ public class BlobInputStream extends InputStream
 	}
 
 
-	/*
+	/**
 	 * Closes this input stream and releases any system resources associated
 	 * with the stream.
 	 *
@@ -121,7 +121,7 @@ public class BlobInputStream extends InputStream
 		}
 	}
 
-	/*
+	/**
 	 * Marks the current position in this input stream. A subsequent call to
 	 * the <code>reset</code> method repositions this stream at the last marked
 	 * position so that subsequent reads re-read the same bytes.
@@ -157,7 +157,7 @@ public class BlobInputStream extends InputStream
 		}
 	}
 
-	/*
+	/**
 	 * Repositions this stream to the position at the time the
 	 * <code>mark</code> method was last called on this input stream.
 	 * NB: If mark is not called we move to the begining.
@@ -177,7 +177,7 @@ public class BlobInputStream extends InputStream
 		}
 	}
 
-	/*
+	/**
 	 * Tests if this input stream supports the <code>mark</code> and
 	 * <code>reset</code> methods. The <code>markSupported</code> method of
 	 * <code>InputStream</code> returns <code>false</code>.
