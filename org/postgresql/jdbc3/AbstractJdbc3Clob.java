@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Clob.java,v 1.4 2004/11/09 08:50:07 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Clob.java,v 1.5 2005/01/11 08:25:46 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -37,7 +37,7 @@ public abstract class AbstractJdbc3Clob extends org.postgresql.jdbc2.AbstractJdb
      */
     public int setString(long pos, String str) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setString(long,str)");
     }
 
     /**
@@ -60,7 +60,7 @@ public abstract class AbstractJdbc3Clob extends org.postgresql.jdbc2.AbstractJdb
      */
     public int setString(long pos, String str, int offset, int len) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setString(long,String,int,int)");
     }
 
     /**
@@ -79,7 +79,7 @@ public abstract class AbstractJdbc3Clob extends org.postgresql.jdbc2.AbstractJdb
      */
     public java.io.OutputStream setAsciiStream(long pos) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setAsciiStream(long)");
     }
 
     /**
@@ -99,7 +99,7 @@ public abstract class AbstractJdbc3Clob extends org.postgresql.jdbc2.AbstractJdb
      */
     public java.io.Writer setCharacterStream(long pos) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setCharacteStream(long)");
     }
 
     /**
@@ -115,7 +115,7 @@ public abstract class AbstractJdbc3Clob extends org.postgresql.jdbc2.AbstractJdb
      */
     public void truncate(long len) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "truncate(long)");
     }
 
 }

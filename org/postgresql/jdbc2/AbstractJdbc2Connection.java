@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.25 2005/01/14 01:20:19 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.26 2005/01/25 06:21:21 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -357,7 +357,9 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
             if (d != null)
             {
                 // Handle the type (requires SQLInput & SQLOutput classes to be implemented)
-                throw org.postgresql.Driver.notImplemented();
+                if (Driver.logDebug)
+                    Driver.debug("getObject(String,String) with custom typemap");
+                throw org.postgresql.Driver.notImplemented(this.getClass(), "getObject(String,String)");
             }
         }
 

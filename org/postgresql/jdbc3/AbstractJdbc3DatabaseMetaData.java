@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3DatabaseMetaData.java,v 1.9 2004/11/09 10:53:35 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3DatabaseMetaData.java,v 1.10 2005/01/11 08:25:46 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -121,7 +121,7 @@ public abstract class AbstractJdbc3DatabaseMetaData extends org.postgresql.jdbc2
     public ResultSet getSuperTypes(String catalog, String schemaPattern,
                                    String typeNamePattern) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getSuperTypes(String,String,String)");
     }
 
     /**
@@ -160,7 +160,7 @@ public abstract class AbstractJdbc3DatabaseMetaData extends org.postgresql.jdbc2
     public ResultSet getSuperTables(String catalog, String schemaPattern,
                                     String tableNamePattern) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getSuperTables(String,String,String,String)");
     }
 
     /**
@@ -237,7 +237,7 @@ public abstract class AbstractJdbc3DatabaseMetaData extends org.postgresql.jdbc2
                                    String typeNamePattern, String attributeNamePattern)
     throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getAttributes(String,String,String,String)");
     }
 
     /**

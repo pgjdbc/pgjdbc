@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/QueryExecutorImpl.java,v 1.10 2005/02/01 07:27:54 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/QueryExecutorImpl.java,v 1.10.2.1 2005/02/10 19:52:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -267,7 +267,7 @@ public class QueryExecutorImpl implements QueryExecutor {
     }
 
     public void fetch(ResultCursor cursor, ResultHandler handler, int rows) throws SQLException {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "fetch(ResultCursor,ResultHandler,int)");
     }
 
     private void execute(V2Query query,

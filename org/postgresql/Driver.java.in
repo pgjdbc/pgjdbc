@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.62 2005/01/18 22:31:54 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.63 2005/01/18 23:17:36 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -564,10 +564,20 @@ public class Driver implements java.sql.Driver
      * for an unimplemented method. I decided to do it this way while
      * implementing the JDBC2 extensions to JDBC, as it should help keep the
      * overall driver size down.
+     * It now requires the call Class and the function name to help when the
+     * driver is used with closed software that don't report the stack strace
+     * @param callClass the call Class
+     * @param functionName the name of the unimplemented function with the type
+     *  of its arguments
+     * @return PSQLException with a localized message giving the complete 
+     *  description of the unimplemeted function
      */
-    public static SQLException notImplemented()
+    public static SQLException notImplemented(Class callClass, String functionName)
     {
-        return new PSQLException(GT.tr("This method is not yet implemented."), PSQLState.NOT_IMPLEMENTED);
+        String message = GT.tr("Method {0} is not yet implemented.",callClass.getName()+"."+functionName);
+        if (Driver.logDebug)
+            Driver.debug(message);
+        return new PSQLException(message, PSQLState.NOT_IMPLEMENTED);
     }
 
     /**
