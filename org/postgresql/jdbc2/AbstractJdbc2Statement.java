@@ -105,7 +105,7 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 
 			PBatchUpdateException updex =
 				new PBatchUpdateException("postgresql.stat.batch.error",
-										  new Integer(i), batch.elementAt(i), resultSucceeded);
+										  new Integer(i), m_sqlFragments[0], resultSucceeded);
 			updex.setNextException(e);
 
 			throw updex;

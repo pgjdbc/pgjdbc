@@ -16,6 +16,7 @@ package org.postgresql.util;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
 import java.sql.SQLException;
+import org.postgresql.Driver;
 
 public class PSQLException extends SQLException
 {
@@ -29,6 +30,8 @@ public class PSQLException extends SQLException
 	{
 		super();
 		translate(error, null);
+		if (Driver.logDebug)
+			Driver.debug("Exception: " + this);
 	}
 
 	/*
@@ -40,6 +43,8 @@ public class PSQLException extends SQLException
 	{
 		super();
 		translate(error, args);
+		if (Driver.logDebug)
+			Driver.debug("Exception: " + this);
 	}
 
 	/*
@@ -51,6 +56,8 @@ public class PSQLException extends SQLException
 		Object[] argv = new Object[1];
 		argv[0] = arg;
 		translate(error, argv);
+		if (Driver.logDebug)
+			Driver.debug("Exception: " + this);
 	}
 
 	/*
@@ -82,6 +89,8 @@ public class PSQLException extends SQLException
 		}
 
 		translate(error, argv);
+		if (Driver.logDebug)
+			Driver.debug("Exception: " + this);
 	}
 
 	/*
@@ -94,6 +103,8 @@ public class PSQLException extends SQLException
 		argv[0] = arg1;
 		argv[1] = arg2;
 		translate(error, argv);
+		if (Driver.logDebug)
+			Driver.debug("Exception: " + this);
 	}
 
 	private void translate(String error, Object[] args)
