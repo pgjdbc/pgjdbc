@@ -687,10 +687,15 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 			throw new PSQLException( "postgresql.updateable.notupdateable" );
 		}
 
-		this_row = (byte[][]) rows.elementAt(current_row);
+		if (current_row < 0) {
+			this_row = null;
+			rowBuffer = null;
+		} else {
+			this_row = (byte[][]) rows.elementAt(current_row);
 
-		rowBuffer = new byte[this_row.length][];
-		System.arraycopy(this_row, 0, rowBuffer, 0, this_row.length);
+			rowBuffer = new byte[this_row.length][];
+			System.arraycopy(this_row, 0, rowBuffer, 0, this_row.length);
+		}
 
 		onInsertRow = false;
 		doingUpdates = false;

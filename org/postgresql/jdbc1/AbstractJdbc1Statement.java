@@ -554,6 +554,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	 */
 	public void setMaxRows(int max) throws SQLException
 	{
+		if (max<0) throw new PSQLException("postgresql.input.rows.gt0");
 		maxrows = max;
 	}
 
@@ -590,6 +591,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	 */
 	public void setQueryTimeout(int seconds) throws SQLException
 	{
+		if (seconds<0) throw new PSQLException("postgresql.input.query.gt0");
 		timeout = seconds;
 	}
 

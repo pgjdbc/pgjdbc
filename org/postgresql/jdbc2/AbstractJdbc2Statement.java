@@ -151,6 +151,7 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 
 	public void setFetchSize(int rows) throws SQLException
 	{
+		if (rows<0) throw new PSQLException("postgresql.input.fetch.gt0");
 		super.fetchSize = rows;
 	}
 
