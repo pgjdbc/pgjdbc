@@ -11,7 +11,7 @@ import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
 import org.postgresql.util.GT;
 
-/* $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Statement.java,v 1.9 2004/10/22 21:06:09 jurka Exp $
+/* $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Statement.java,v 1.10 2004/10/22 21:36:09 jurka Exp $
  * This class defines methods of the jdbc3 specification.  This class extends
  * org.postgresql.jdbc2.AbstractJdbc2Statement which provides the jdbc2
  * methods.  The real Statement class (for jdbc2) is org.postgresql.jdbc3.Jdbc3Statement
@@ -1428,5 +1428,13 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
 			sqlType = Types.BIT;
 		}
 		super.setNull(parameterIndex, sqlType);
+	}
+
+	public void registerOutParameter(int parameterIndex, int sqlType) throws SQLException
+	{
+		if (sqlType == Types.BOOLEAN) {
+			sqlType = Types.BIT;
+		}
+		super.registerOutParameter(parameterIndex, sqlType);
 	}
 }
