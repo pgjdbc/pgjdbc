@@ -1359,5 +1359,16 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
 	{
 		throw org.postgresql.Driver.notImplemented();
 	}
+	
+	public void setObject(int parameterIndex, Object x, int targetSqlType, int scale) throws SQLException
+	{
+		switch (targetSqlType)
+		{
+			case Types.BOOLEAN:
+				super.setObject(parameterIndex, x, Types.BIT, scale);
+			default:
+				super.setObject(parameterIndex, x, targetSqlType, scale);
+		}
+	}
 
 }
