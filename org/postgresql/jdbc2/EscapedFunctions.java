@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/EscapedFunctions.java,v 1.3 2005/01/14 01:20:20 oliver Exp $
+* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/EscapedFunctions.java,v 1.4 2005/01/18 21:33:17 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -67,11 +67,12 @@ public class EscapedFunctions {
     public final static String SPACE="space";
     public final static String SUBSTRING="substring";
     public final static String UCASE="ucase";
-    // soundex and difference are implemented on the server side by 
+    // soundex is implemented on the server side by 
     // the contrib/fuzzystrmatch module.  We provide a translation
     // for this in the driver, but since we don't want to bother with run
-    // time detection of this module's installation we don't report these
-    // methods as supported in DatabaseMetaData.
+    // time detection of this module's installation we don't report this
+    // method as supported in DatabaseMetaData.
+    // difference is currently unsupported entirely.
 
     // date time function names
     public final static String CURDATE="curdate";
@@ -349,19 +350,6 @@ public class EscapedFunctions {
         buf.append(parsedArgs.get(0));
         return buf.append(')').toString();
     }
-    
-    /** difference to levenshtein translation */
-    public static String sqldifference(List parsedArgs) throws SQLException{
-        StringBuffer buf = new StringBuffer();
-        buf.append("levenshtein(");
-        if (parsedArgs.size()!=2){
-            throw new PSQLException(GT.tr("{0} function takes two and only two arguments.","difference"),
-                                    PSQLState.SYNTAX_ERROR);
-        }
-        buf.append(parsedArgs.get(0)).append(",").append(parsedArgs.get(1));
-        return buf.append(")").toString();
-    }
-    
     
     /** curdate to current_date translation */
     public static String sqlcurdate(List parsedArgs) throws SQLException{
