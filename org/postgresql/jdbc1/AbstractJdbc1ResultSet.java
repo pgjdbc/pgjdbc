@@ -379,6 +379,14 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 
 	public Timestamp getTimestamp(int columnIndex) throws SQLException
 	{
+        this.checkResultSet(columnIndex);
+        int sqlType = fields[columnIndex-1].getSQLType();
+
+        if ( sqlType == Types.TIME )
+        {
+            Time time = toTime(getString( columnIndex ), this, fields[columnIndex - 1].getPGType() );
+            return new Timestamp(time.getTime() );
+        }
 		return toTimestamp( getString(columnIndex), this, fields[columnIndex - 1].getPGType() );
 	}
 
@@ -1227,20 +1235,23 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
                 }
                 else
                 {
-                    df = new SimpleDateFormat("00:00:00");
-                    l_sbuf.setLength(0);
-                    try
-                    {
-                        l_sbuf.append(parseTime(s, df));
-                    }
-                    catch ( ParseException ex )
-                    {
-                        throw new PSQLException("postgresql.res.badtimestamp",
-                                                PSQLState.BAD_DATETIME_FORMAT,
-                                                ex, new Object[]
-                                                {new Integer(ex.getErrorOffset()),
-                                                s});
-                    }
+
+                     try
+                     {
+                         df = new SimpleDateFormat();
+                         s = parseTime(s,df);
+                         java.util.Date d = df.parse(s);
+                         return new Timestamp( d.getTime() );
+
+                     }
+                     catch ( ParseException ex )
+                     {
+                         throw new PSQLException("postgresql.res.badtimestamp",
+                                                 PSQLState.BAD_DATETIME_FORMAT,
+                                                 ex, new Object[]
+                                                 {new Integer(ex.getErrorOffset()),
+                                                 s});
+                     }
                 }
 			}
 

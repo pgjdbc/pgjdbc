@@ -78,15 +78,19 @@ public class TimeTest extends TestCase
 
            time = rs.getTime(1);
            assertNotNull(time);
-           assertTrue((time.getTime() % 1000) == 100);
+           assertEquals(100, time.getTime() % 1000);
            timestamp = rs.getTimestamp(1);
            assertNotNull(timestamp);
+           assertEquals(100, timestamp.getTime() % 1000);
+           assertEquals(100000000, timestamp.getNanos());
 
            timetz = rs.getTime(2);
            assertNotNull(timetz);
-           assertTrue((timetz.getTime() % 1000) == 10);
+           assertEquals(10, timetz.getTime() % 1000);
            timestamptz = rs.getTimestamp(2);
            assertNotNull(timestamptz);
+           assertEquals(10, timestamptz.getTime() % 1000);
+           assertEquals(10000000, timestamptz.getNanos());
 
            assertTrue(rs.next());
 
