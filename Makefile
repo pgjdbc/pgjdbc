@@ -78,6 +78,7 @@ OBJS=	postgresql/CallableStatement.class \
 	postgresql/largeobject/LargeObjectManager.class \
 	postgresql/util/PGobject.class \
 	postgresql/util/PGtokenizer.class \
+	postgresql/util/Serialize.class \
 	postgresql/util/UnixCrypt.class
 
 # If you have problems with the first line, try the second one.
@@ -123,6 +124,7 @@ postgresql/largeobject/LargeObject.class: postgresql/largeobject/LargeObject.jav
 postgresql/largeobject/LargeObjectManager.class: postgresql/largeobject/LargeObjectManager.java
 postgresql/util/PGobject.class:		postgresql/util/PGobject.java
 postgresql/util/PGtokenizer.class:	postgresql/util/PGtokenizer.java
+postgresql/util/Serialize.class:	postgresql/util/Serialize.java
 postgresql/util/UnixCrypt.class:	postgresql/util/UnixCrypt.java
 
 #######################################################################
@@ -131,7 +133,8 @@ EX=	example/basic.class \
 	example/blobtest.class \
 	example/datestyle.class \
 	example/psql.class \
-	example/ImageViewer.class
+	example/ImageViewer.class \
+	example/Objects.class
 
 # This rule builds the examples
 examples:	postgresql.jar $(EX)
@@ -151,6 +154,7 @@ examples:	postgresql.jar $(EX)
 	@echo "  example.datestyle    Shows how datestyles are handled"
 	@echo "  example.ImageViewer  Example application storing images"
 	@echo "  example.psql         Simple java implementation of psql"
+	@echo "  example.Objects      Demonstrates Object Serialisation"
 	@echo ------------------------------------------------------------
 	@echo
 
@@ -159,4 +163,5 @@ example/blobtest.class:			example/blobtest.java
 example/datestyle.class:		example/datestyle.java
 example/psql.class:			example/psql.java
 example/ImageViewer.class:		example/ImageViewer.java
+example/Objects.class:			example/Objects.java
 #######################################################################
