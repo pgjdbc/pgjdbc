@@ -818,7 +818,12 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 		return s;
 	}
 
-	protected void checkResultSet( int column ) throws SQLException
+	protected String getPGType( int column ) throws SQLException
+    {
+        checkResultSet( column );
+        return fields[ column - 1].getPGType();
+    }
+    protected void checkResultSet( int column ) throws SQLException
 	{
 		if ( this_row == null )
 			throw new PSQLException("postgresql.res.nextrequired");

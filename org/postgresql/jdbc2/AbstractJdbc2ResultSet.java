@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
  *
  * AbstractJdbc2ResultSet.java
- *     This class defines methods of the jdbc2 specification.  This class 
- *     extends org.postgresql.jdbc1.AbstractJdbc1ResultSet which provides the 
- *     jdbc1 methods.  The real Statement class (for jdbc2) is 
+ *     This class defines methods of the jdbc2 specification.  This class
+ *     extends org.postgresql.jdbc1.AbstractJdbc1ResultSet which provides the
+ *     jdbc1 methods.  The real Statement class (for jdbc2) is
  *     org.postgresql.jdbc2.Jdbc2ResultSet
  *
  * Copyright (c) 2003, PostgreSQL Global Development Group
@@ -53,7 +53,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 	private int resultsettype;
 	private int resultsetconcurrency;
 	private int fetchdirection;
-  
+
 	public AbstractJdbc2ResultSet(BaseStatement statement, Field[] fields, Vector tuples, String status, int updateCount, long insertOID, boolean binaryCursor)
 	{
 		super (statement, fields, tuples, status, updateCount, insertOID, binaryCursor);
@@ -342,23 +342,27 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 
 	public java.sql.Date getDate(int i, java.util.Calendar cal) throws SQLException
 	{
-		if (cal == null)
+        // apply available calendar if there is no timezone information
+		if (cal == null || getPGType(i).endsWith("tz") )
 			return getDate(i);
-		java.util.Date tmp = getDate(i);
+
+       java.util.Date tmp = getDate(i);
 		if (tmp == null)
-			return null;			
-		cal = org.postgresql.jdbc2.AbstractJdbc2Statement.changeTime(tmp, cal, false);
+			return null;
+
+        cal = org.postgresql.jdbc2.AbstractJdbc2Statement.changeTime(tmp, cal, false);
 		return new java.sql.Date(cal.getTime().getTime());
 	}
 
 
 	public Time getTime(int i, java.util.Calendar cal) throws SQLException
 	{
-		if (cal == null)
+        // apply available calendar if there is no timezone information
+		if (cal == null || getPGType(i).endsWith("tz") )
 			return getTime(i);
 		java.util.Date tmp = getTime(i);
 		if (tmp == null)
-			return null;			
+			return null;
 		cal = org.postgresql.jdbc2.AbstractJdbc2Statement.changeTime(tmp, cal, false);
 		return new java.sql.Time(cal.getTime().getTime());
 	}
@@ -366,11 +370,12 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 
 	public Timestamp getTimestamp(int i, java.util.Calendar cal) throws SQLException
 	{
-		if (cal == null)
+        // apply available calendar if there is no timezone information
+		if (cal == null || getPGType(i).endsWith("tz") )
 			return getTimestamp(i);
 		java.util.Date tmp = getTimestamp(i);
 		if (tmp == null)
-			return null;			
+			return null;
 		cal = org.postgresql.jdbc2.AbstractJdbc2Statement.changeTime(tmp, cal, false);
 		return new java.sql.Timestamp(cal.getTime().getTime());
 	}
@@ -1438,7 +1443,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 		parts[0] = acc.toString();
 		return parts;
 	}
- 
+
 	public void parseQuery()
 	{
 		String[] l_sqlFragments = ((AbstractJdbc2Statement)statement).getSqlFragments();
@@ -1486,7 +1491,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 			}
 			else
 			{
-				
+
 				switch ( connection.getSQLType( fields[columnIndex].getPGType() ) )
 				{
 
