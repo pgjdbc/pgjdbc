@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: test\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2004-12-14 01:37-0800\n"
-"PO-Revision-Date: 2004-12-13 19:29+0100\n"
+"PO-Revision-Date: 2004-12-15 19:29+0100\n"
 "Last-Translator: Xavier Poinsard <xpoinsard@free.fr>\n"
 "Language-Team: Français <pgsql-fr-generale@postgresql.org>\n"
 "MIME-Version: 1.0\n"
@@ -793,7 +793,7 @@ msgstr "Erreur inattendue pendant l''écriture de large object dans la base."
 #: org/postgresql/jdbc2/EscapedFunctions.java:453
 #, java-format
 msgid "{0} function takes one and only one argument."
-msgstr ""
+msgstr "La fonction {0} n''accepte qu''un et un seul argument."
 
 #: org/postgresql/jdbc2/EscapedFunctions.java:159
 #: org/postgresql/jdbc2/EscapedFunctions.java:181
@@ -803,22 +803,23 @@ msgstr ""
 #: org/postgresql/jdbc2/EscapedFunctions.java:469
 #, java-format
 msgid "{0} function takes two and only two arguments."
-msgstr ""
+msgstr "La fonction {0} n''accepte que deux et seulement deux arguments."
+
 
 #: org/postgresql/jdbc2/EscapedFunctions.java:172
 msgid "rand function only takes zero or one argument(the seed)."
-msgstr ""
+msgstr "La fonction rand n''accepte que zéro ou un argument(la graine)."
 
 #: org/postgresql/jdbc2/EscapedFunctions.java:216
 #, java-format
 msgid "{0} function takes four and only four argument."
-msgstr ""
+msgstr "La fonction {0} n''accepte que quatre et seulement quatre arguments."
 
 #: org/postgresql/jdbc2/EscapedFunctions.java:264
 #: org/postgresql/jdbc2/EscapedFunctions.java:319
 #, java-format
 msgid "{0} function takes two or three arguments."
-msgstr ""
+msgstr "La fonction {0} n''accepte que deux ou trois arguments."
 
 #: org/postgresql/jdbc2/EscapedFunctions.java:349
 #: org/postgresql/jdbc2/EscapedFunctions.java:357
@@ -826,7 +827,7 @@ msgstr ""
 #: org/postgresql/jdbc2/EscapedFunctions.java:477
 #, java-format
 msgid "{0} function doesn't take any argument."
-msgstr ""
+msgstr "La fonction {0} n''accepte aucun arguments."
 
 #: org/postgresql/jdbc2/TimestampUtils.java:118
 #, java-format
