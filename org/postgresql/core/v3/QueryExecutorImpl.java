@@ -1175,7 +1175,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
 	private void receiveRFQ() throws IOException {
 		if (pgStream.ReceiveIntegerR(4) != 5)
-			throw new IOException("unexpected length of ReadyForQuery packet");
+			throw new IOException("unexpected length of ReadyForQuery message");
 		
 		char tStatus = (char)pgStream.ReceiveChar();
 		if (Driver.logDebug)
@@ -1193,8 +1193,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 			protoConnection.setTransactionState(ProtocolConnection.TRANSACTION_FAILED);
 			break;
 		default:
-			// Huh?
-			break;
+			throw new IOException("unexpected transaction state in ReadyForQuery message: " + (int)tStatus);
 		}
 	}
 
