@@ -218,6 +218,13 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 
 	private void openConnectionV3(String p_host, int p_port, Properties p_info, String p_database, String p_url, Driver p_d, String p_password) throws SQLException
 	  {
+	    // NOTE: To simplify this code, it is assumed that if we are
+	    // using the V3 protocol, then the database is at least 7.4.  That
+	    // eliminates the need to check database versions and maintain
+	    // backward-compatible code here.
+	    //
+	    // Change by Chris Smith <cdsmith@twu.net>
+
 		PGProtocolVersionMajor = 3;
 		if (Driver.logDebug)
 			Driver.debug("Using Protocol Version3");
@@ -275,13 +282,20 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 		// Now we need to construct and send a startup packet
 		try
 		{
+			Hashtable params = new Hashtable();
+			params.put("client_encoding", "UNICODE");
+			params.put("DateStyle", "ISO");
 			new StartupPacket(PGProtocolVersionMajor,
 							  PGProtocolVersionMinor,
-							  PG_USER,
-							  p_database).writeTo(pgStream);
+							  PG_USER, p_database, params)
+				.writeTo(pgStream);
 
 			// now flush the startup packets to the backend
 			pgStream.flush();
+
+			// The startup request has been sent with the UNICODE encoding.
+			// From here out, everything should be in Unicode.
+			encoding = Encoding.getEncoding("UNICODE", null);
 
 			// Now get the response from the backend, either an error message
 			// or an authentication request
@@ -454,9 +468,17 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 			    case 'S':
 					//TODO: handle parameter status messages
 					int l_len = pgStream.ReceiveIntegerR(4);
-					String l_pStatus = encoding.decode(pgStream.Receive(l_len-4));
+					String name = pgStream.ReceiveString(encoding);
+					String value = pgStream.ReceiveString(encoding);
+
 					if (Driver.logDebug)
-						Driver.debug("ParameterStatus="+ l_pStatus);
+						Driver.debug("ParameterStatus: " + name + "=" + value);
+
+					if (name.equals("server_version"))
+					{
+						dbVersionNumber = value;
+					}
+
 					break;
 				default:
 					if (Driver.logDebug)
@@ -465,60 +487,12 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 			}
 		}
 		while (beresp != 'Z');
+
 		// read ReadyForQuery
 		if (pgStream.ReceiveIntegerR(4) != 5) throw new PSQLException("postgresql.con.setup", PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+
 		//TODO: handle transaction status
 		char l_tStatus = (char)pgStream.ReceiveChar();
-
-		// "pg_encoding_to_char(1)" will return 'EUC_JP' for a backend compiled with multibyte,
-		// otherwise it's hardcoded to 'SQL_ASCII'.
-		// If the backend doesn't know about multibyte we can't assume anything about the encoding
-		// used, so we denote this with 'UNKNOWN'.
-		//Note: begining with 7.2 we should be using pg_client_encoding() which
-		//is new in 7.2.  However it isn't easy to conditionally call this new
-		//function, since we don't yet have the information as to what server
-		//version we are talking to.  Thus we will continue to call
-		//getdatabaseencoding() until we drop support for 7.1 and older versions
-		//or until someone comes up with a conditional way to run one or
-		//the other function depending on server version that doesn't require
-		//two round trips to the server per connection
-
-		final String encodingQuery =
-			"case when pg_encoding_to_char(1) = 'SQL_ASCII' then 'UNKNOWN' else getdatabaseencoding() end";
-
-		// Set datestyle and fetch db encoding in a single call, to avoid making
-		// more than one round trip to the backend during connection startup.
-
-
-		BaseResultSet resultSet
-			= execSQL("set datestyle to 'ISO'; select version(), " + encodingQuery + ";");
-
-		if (! resultSet.next())
-		{
-			throw new PSQLException("postgresql.con.failed.bad.encoding", PSQLState.CONNECTION_UNABLE_TO_CONNECT);
-		}
-		String version = resultSet.getString(1);
-		dbVersionNumber = extractVersionNumber(version);
-
-		String dbEncoding = resultSet.getString(2);
-		encoding = Encoding.getEncoding(dbEncoding, p_info.getProperty("charSet"));
-		//In 7.3 we are forced to do a second roundtrip to handle the case
-		//where a database may not be running in autocommit mode
-		//jdbc by default assumes autocommit is on until setAutoCommit(false)
-		//is called.  Therefore we need to ensure a new connection is
-		//initialized to autocommit on.
-		//We also set the client encoding so that the driver only needs
-		//to deal with utf8.  We can only do this in 7.3 because multibyte
-		//support is now always included
-		if (haveMinimumServerVersion("7.3"))
-		{
-			BaseResultSet acRset =
-			//TODO: if protocol V3 we can set the client encoding in startup
-			execSQL("set client_encoding = 'UNICODE'");
-			//set encoding to be unicode
-			encoding = Encoding.getEncoding("UNICODE", null);
-
-		}
 
 		// Initialise object handling
 		initObjectTypes();

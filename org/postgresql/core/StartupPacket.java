@@ -1,6 +1,8 @@
 package org.postgresql.core;
 
 import java.io.IOException;
+import java.util.Hashtable;
+import java.util.Enumeration;
 
 /**
  * Sent to the backend to initialize a newly created connection.
@@ -18,15 +20,40 @@ public class StartupPacket
 
 	private int protocolMajor;
 	private int protocolMinor;
-	private String user;
-	private String database;
 
-	public StartupPacket(int protocolMajor, int protocolMinor, String user, String database)
+	/*
+	 * Extra params can be sent to the server starting with the V3 wire
+	 * protocol.  This Hashtable holds these extra parameters.
+	 *
+	 * Changed by Chris Smith <cdsmith@twu.net>
+	 */
+	private Hashtable params;
+
+	public StartupPacket(int protocolMajor, int protocolMinor,
+	    String user, String database)
 	{
+		this(protocolMajor, protocolMinor, user, database, new Hashtable());
+	}
+
+	public StartupPacket(int protocolMajor, int protocolMinor,
+		String user, String database, Hashtable params)
+	{
+		/*
+		 * The extra arguments from this constructor are only
+		 * available in v3 of the wire protocol.
+		 */
+		if ((protocolMajor < 3) && !params.isEmpty())
+		{
+			throw new IllegalArgumentException();
+		}
+
 		this.protocolMajor = protocolMajor;
 		this.protocolMinor = protocolMinor;
-		this.user = user;
-		this.database = database;
+
+		params.put("user", user);
+		params.put("database", database);
+
+		this.params = params;
 	}
 
 	public void writeTo(PGStream stream) throws IOException
@@ -40,22 +67,47 @@ public class StartupPacket
 
 	public void v3WriteTo(PGStream stream) throws IOException
 	{
-		stream.SendInteger(4 + 4 + "user".length() + 1 + user.length() + 1 + "database".length() +1 + database.length() + 1 + 1, 4);
+		/*
+		 * Precalculate message length.
+		 */
+		int length = 4 + 4;
+
+		Enumeration en = params.keys();
+		while (en.hasMoreElements())
+		{
+			String name = (String) en.nextElement();
+			String value = (String) params.get(name);
+			length += name.length() + 1 + value.length() + 1;
+		}
+
+		length += 1;
+
+		/*
+		 * Send the startup message.
+		 */
+		stream.SendInteger(length, 4);
 		stream.SendInteger(protocolMajor, 2);
 		stream.SendInteger(protocolMinor, 2);
-		stream.Send("user".getBytes());
-		stream.SendChar(0);
-		stream.Send(user.getBytes());
-		stream.SendChar(0);
-		stream.Send("database".getBytes());
-		stream.SendChar(0);
-		stream.Send(database.getBytes());
-		stream.SendChar(0);
+
+		en = params.keys();
+		while (en.hasMoreElements())
+		{
+			String name = (String) en.nextElement();
+			String value = (String) params.get(name);
+			stream.Send(name.getBytes());
+			stream.SendChar(0);
+			stream.Send(value.getBytes());
+			stream.SendChar(0);
+		}
+
 		stream.SendChar(0);
 	}
 
 	public void v2WriteTo(PGStream stream) throws IOException
 	{
+		String user = (String)params.get("user");
+		String database = (String)params.get("database");
+
 		stream.SendInteger(4 + 4 + SM_DATABASE + SM_USER + SM_OPTIONS + SM_UNUSED + SM_TTY, 4);
 		stream.SendInteger(protocolMajor, 2);
 		stream.SendInteger(protocolMinor, 2);
