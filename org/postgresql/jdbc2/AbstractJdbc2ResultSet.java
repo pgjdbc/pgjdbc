@@ -1328,8 +1328,16 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 		else
 		{
 			// otherwise go and get the primary keys and create a hashtable of keys
-			java.sql.ResultSet rs = ((java.sql.Connection) connection).getMetaData().getPrimaryKeys("", "", tableName);
-
+			// if the user has supplied a quoted table name
+			// remove the quotes, but preserve the case.
+			// otherwise fold to lower case.
+			String quotelessTableName;
+			if (tableName.startsWith("\"") && tableName.endsWith("\"")) {
+				quotelessTableName = tableName.substring(1,tableName.length()-1);
+			} else {
+				quotelessTableName = tableName.toLowerCase();
+			}
+			java.sql.ResultSet rs = ((java.sql.Connection) connection).getMetaData().getPrimaryKeys("", "", quotelessTableName);
 
 			for (; rs.next(); i++ )
 			{
