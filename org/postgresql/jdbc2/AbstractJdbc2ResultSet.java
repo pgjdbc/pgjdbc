@@ -35,6 +35,7 @@ import org.postgresql.util.PGbytea;
 import org.postgresql.util.PGtokenizer;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.GT;
 
 
 public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postgresql.PGRefCursorResultSet
@@ -173,7 +174,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 	private void checkScrollable() throws SQLException
 	{
 		if (resultsettype == ResultSet.TYPE_FORWARD_ONLY)
-			throw new PSQLException("postgresql.res.notscrollable");
+			throw new PSQLException(GT.tr("Operation requires a scrollable ResultSet, but this ResultSet is FORWARD_ONLY."));
 	}
 
 	public boolean absolute(int index) throws SQLException
@@ -286,8 +287,6 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 		if (wasNullFlag)
 			return null;
 
-		if (i < 1 || i > fields.length)
-			throw new PSQLException("postgresql.res.colrange", PSQLState.INVALID_PARAMETER_VALUE);
 		return createArray(i);
 	}
 
@@ -345,7 +344,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 			try {
 				return encoding.getDecodingReader(input);
 			} catch (IOException ioe) {
-				throw new PSQLException("postgresql.unexpected", PSQLState.UNEXPECTED_ERROR, ioe);
+				throw new PSQLException(GT.tr("Unexpected error while decoding character data from a large object."), PSQLState.UNEXPECTED_ERROR, ioe);
 			}
 		}
 	}
@@ -594,7 +593,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 		checkScrollable();
 
 		if (onInsertRow)
-			throw new PSQLException("postgresql.res.oninsertrow");
+			throw new PSQLException(GT.tr("Can't use relative move methods while on the insert row."));
 
 		if (current_row-1 < 0) {
 			current_row = -1;
@@ -616,7 +615,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 		checkScrollable();
 
 		if (onInsertRow)
-			throw new PSQLException("postgresql.res.oninsertrow");
+			throw new PSQLException(GT.tr("Can't use relative move methods while on the insert row."));
 
 		//have to add 1 since absolute expects a 1-based index
 		return absolute(current_row + 1 + rows);
@@ -633,9 +632,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 			checkScrollable();
 			break;
 		default:
-			throw new PSQLException("postgresql.res.badfetchdirection",
-									null,
-									new Integer(direction));
+			throw new PSQLException(GT.tr("Invalid fetch direction constant: {0}.", new Integer(direction)));
 		}
 
 		this.fetchdirection = direction;
@@ -657,27 +654,20 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 	public synchronized void deleteRow()
 	throws SQLException
 	{
-		if ( !isUpdateable() )
-		{
-			throw new PSQLException( "postgresql.updateable.notupdateable" );
-		}
+		checkUpdateable();
 
 		if (onInsertRow)
 		{
-			throw new PSQLException( "postgresql.updateable.oninsertrow" );
+			throw new PSQLException(GT.tr("Cannot call deleteRow() when on the insert row."));
 		}
 
-		if (rows.size() == 0)
-		{
-			throw new PSQLException( "postgresql.updateable.emptydelete" );
-		}
 		if (isBeforeFirst())
 		{
-			throw new PSQLException( "postgresql.updateable.beforestartdelete" );
+			throw new PSQLException(GT.tr("Currently positioned before the start of the ResultSet.  You cannot call deleteRow() here."));
 		}
 		if (isAfterLast())
 		{
-			throw new PSQLException( "postgresql.updateable.afterlastdelete" );
+			throw new PSQLException(GT.tr("Currently positioned after the end of the ResultSet.  You cannot call deleteRow() here."));
 		}
 
 
@@ -718,14 +708,11 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 	public synchronized void insertRow()
 	throws SQLException
 	{
-		if ( !isUpdateable() )
-		{
-			throw new PSQLException( "postgresql.updateable.notupdateable" );
-		}
+		checkUpdateable();
 
 		if (!onInsertRow)
 		{
-			throw new PSQLException( "postgresql.updateable.notoninsertrow" );
+			throw new PSQLException(GT.tr("Not on the insert row."));
 		}
 		else
 		{
@@ -804,10 +791,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 	public synchronized void moveToCurrentRow()
 	throws SQLException
 	{
-		if (!isUpdateable())
-		{
-			throw new PSQLException( "postgresql.updateable.notupdateable" );
-		}
+		checkUpdateable();
 
 		if (current_row < 0) {
 			this_row = null;
@@ -827,10 +811,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 	public synchronized void moveToInsertRow()
 	throws SQLException
 	{
-		if ( !isUpdateable() )
-		{
-			throw new PSQLException( "postgresql.updateable.notupdateable" );
-		}
+		checkUpdateable();
 
 		if (insertStatement != null)
 		{
@@ -914,11 +895,11 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 		}
 		catch (UnsupportedEncodingException uee)
 		{
-			throw new PSQLException("postgresql.unusual", PSQLState.UNEXPECTED_ERROR, uee);
+			throw new PSQLException(GT.tr("The JVM claims not to support the ASCII encoding."), PSQLState.UNEXPECTED_ERROR, uee);
 		}
 		catch (IOException ie)
 		{
-			throw new PSQLException("postgresql.updateable.ioerror", null, ie);
+			throw new PSQLException(GT.tr("Provided InputStream failed."), null, ie);
 		}
 	}
 
@@ -961,7 +942,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 		}
 		catch (IOException ie)
 		{
-			throw new PSQLException("postgresql.updateable.ioerror", null, ie);
+			throw new PSQLException(GT.tr("Provided InputStream failed."), null, ie);
 		}
 
 		if (numRead == length)
@@ -1033,7 +1014,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 		}
 		catch (IOException ie)
 		{
-			throw new PSQLException("postgresql.updateable.ioerror", null, ie);
+			throw new PSQLException(GT.tr("Provided Reader failed."), null, ie);
 		}
 	}
 
@@ -1100,11 +1081,6 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 	public synchronized void updateObject(int columnIndex, Object x, int scale)
 	throws SQLException
 	{
-		if ( !isUpdateable() )
-		{
-			throw new PSQLException( "postgresql.updateable.notupdateable" );
-		}
-
 		this.updateObject(columnIndex, x);
 
 	}
@@ -1112,12 +1088,9 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
 	public void refreshRow() throws SQLException
 	{
-		if ( !isUpdateable() )
-		{
-			throw new PSQLException( "postgresql.updateable.notupdateable" );
-		}
+		checkUpdateable();
 		if (onInsertRow)
-			throw new PSQLException("postgresql.res.oninsertrow");
+			throw new PSQLException(GT.tr("Can't refresh the insert row."));
 
 		if (isBeforeFirst() || isAfterLast())
 			return;
@@ -1184,13 +1157,10 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 	public synchronized void updateRow()
 	throws SQLException
 	{
-		if ( !isUpdateable() )
-		{
-			throw new PSQLException( "postgresql.updateable.notupdateable" );
-		}
+		checkUpdateable();
 		if (isBeforeFirst() || isAfterLast())
 		{
-			throw new PSQLException("postgresql.updateable.badupdateposition");
+			throw new PSQLException(GT.tr("Cannot update the ResultSet because it is either before the start or after the end of the results."));
 		}
 
 		if (doingUpdates)
@@ -1749,10 +1719,10 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 	public boolean next() throws SQLException
 	{
 		if (rows == null)
-			throw new PSQLException("postgresql.con.closed", PSQLState.CONNECTION_DOES_NOT_EXIST);
+			throw new PSQLException(GT.tr("This ResultSet is closed."), PSQLState.CONNECTION_DOES_NOT_EXIST);
 
 		if (onInsertRow)
-			throw new PSQLException("postgresql.res.oninsertrow");
+			throw new PSQLException(GT.tr("Can't use relative move methods while on the insert row."));
 
 		if (current_row+1 >= rows.size())
 		{
@@ -1819,7 +1789,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 		try {
 			return trimString(columnIndex, encoding.decode(this_row[columnIndex-1]));
 		} catch (IOException ioe) {
-			throw new PSQLException("postgresql.con.invalidchar", PSQLState.DATA_ERROR, ioe);
+			throw new PSQLException(GT.tr("Invalid character data was found.  This is most likely caused by stored data containing characters that are invalid for the character set the database was created in.  The most common example of this is storing 8bit data in a SQL_ASCII database."), PSQLState.DATA_ERROR, ioe);
 		}
 	}
 
@@ -1857,18 +1827,15 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
                     if ( gt > 0 || lt < 0 )
                     {
-                        throw new PSQLException("postgresql.res.badbyte",
-                                                PSQLState.
-                                                NUMERIC_VALUE_OUT_OF_RANGE,
-                                                s);
+                        throw new PSQLException(GT.tr("Bad byte: {0}", s),
+                                            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
                     }
                     return i.byteValue();
                 }
                 catch( NumberFormatException ex )
                 {
-                    throw new PSQLException("postgresql.res.badbyte",
-                                            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE,
-                                            s);
+                        throw new PSQLException(GT.tr("Bad byte: {0}", s),
+                                            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
                 }
 			}
 		}
@@ -1900,19 +1867,16 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
                     if ( gt > 0 || lt < 0 )
                     {
-                        throw new PSQLException("postgresql.res.badshort",
-                                                PSQLState.
-                                                NUMERIC_VALUE_OUT_OF_RANGE,
-                                                s);
+                        throw new PSQLException(GT.tr("Bad short: {0}", s),
+                                                PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
                     }
                     return i.shortValue();
 
                 }
                 catch ( NumberFormatException ne )
                 {
-                    throw new PSQLException("postgresql.res.badshort",
-                                            PSQLState.
-                                            NUMERIC_VALUE_OUT_OF_RANGE, s);
+                    throw new PSQLException(GT.tr("Bad short: {0}", s),
+                                            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
                 }
 			}
 		}
@@ -2048,7 +2012,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 			}
 			catch (UnsupportedEncodingException l_uee)
 			{
-				throw new PSQLException("postgresql.unusual", PSQLState.UNEXPECTED_ERROR, l_uee);
+				throw new PSQLException(GT.tr("The JVM claims not to support the ASCII encoding."), PSQLState.UNEXPECTED_ERROR, l_uee);
 			}
 		}
 		else
@@ -2079,7 +2043,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 			}
 			catch (UnsupportedEncodingException l_uee)
 			{
-				throw new PSQLException("postgresql.unusual", PSQLState.UNEXPECTED_ERROR, l_uee);
+				throw new PSQLException(GT.tr("The JVM claims not to support the UTF-8 encoding."), PSQLState.UNEXPECTED_ERROR, l_uee);
 			}
 		}
 		else
@@ -2281,7 +2245,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 		for (i = 0 ; i < flen; ++i)
 			if (fields[i].getColumnLabel().equalsIgnoreCase(columnName))
 				return (i + 1);
-		throw new PSQLException ("postgresql.res.colname", null, columnName);
+		throw new PSQLException (GT.tr("The column name '{0}' was not found in this ResultSet.", columnName));
 	}
 
 	/*
@@ -2339,12 +2303,19 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         return connection.getSQLType(fields[column - 1].getOID());
     }
 
+	private void checkUpdateable() throws SQLException
+	{
+		if (!isUpdateable())
+			throw new PSQLException(GT.tr("ResultSet is not updateable.  The query that generated this result set must select only one table, and must select all primary keys from that table. See the JDBC 2.1 API Specification, section 5.6 for more details."));
+	}
+
+
     protected void checkResultSet( int column ) throws SQLException
 	{
 		if ( this_row == null )
-			throw new PSQLException("postgresql.res.nextrequired");
+			throw new PSQLException(GT.tr("ResultSet not positioned properly, perhaps you need to call next."));
 		if ( column < 1 || column > fields.length )
-			throw new PSQLException("postgresql.res.colrange", PSQLState.INVALID_PARAMETER_VALUE );
+			throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(column), new Integer(fields.length)}), PSQLState.INVALID_PARAMETER_VALUE );
 	}
 
 	//----------------- Formatting Methods -------------------
@@ -2394,19 +2365,16 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
                     if (gt > 0 || lt < 0)
                     {
-                        throw new PSQLException("postgresql.res.badint",
-                                                PSQLState.
-                                                NUMERIC_VALUE_OUT_OF_RANGE,
-                                                s);
+                        throw new PSQLException(GT.tr("Bad int: {0}", s),
+                                                PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
                     }
                     return i.intValue();
 
                 }
                 catch( NumberFormatException ne )
                 {
-                    throw new PSQLException("postgresql.res.badint",
-                                            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE,
-                                            s);
+                    throw new PSQLException(GT.tr("Bad int: {0}", s),
+                                            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
                 }
 			}
 		}
@@ -2435,18 +2403,15 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
                     if ( gt > 0 || lt < 0 )
                     {
-                        throw new PSQLException("postgresql.res.badint",
-                                                PSQLState.
-                                                NUMERIC_VALUE_OUT_OF_RANGE,
-                                                s);
+                        throw new PSQLException(GT.tr("Bad long: {0}", s),
+                                                PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
                     }
                     return i.longValue();
                 }
                 catch( NumberFormatException ne )
                 {
-                    throw new PSQLException("postgresql.res.badint",
-                                            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE,
-                                            s);
+                    throw new PSQLException(GT.tr("Bad long: {0}", s),
+                                            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
                 }
 			}
 		}
@@ -2465,8 +2430,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 			}
 			catch (NumberFormatException e)
 			{
-                throw new PSQLException("postgresql.res.badbigdec",
-                                        PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, s);
+                throw new PSQLException(GT.tr("Bad BigDecimal: {0}", s),
+                                        PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
 			}
 			if (scale == -1)
 				return val;
@@ -2476,8 +2441,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 			}
 			catch (ArithmeticException e)
 			{
-                throw new PSQLException("postgresql.res.badbigdec",
-                                        PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, s);
+                throw new PSQLException(GT.tr("Bad BigDecimal: {0}", s),
+                                        PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
 			}
 		}
 		return null;		// SQL NULL
@@ -2494,8 +2459,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 			}
 			catch (NumberFormatException e)
 			{
-                throw new PSQLException("postgresql.res.badfloat",
-                                        PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, s);
+                throw new PSQLException(GT.tr("Bad float: {0}", s),
+                                        PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
 			}
 		}
 		return 0;		// SQL NULL
@@ -2512,8 +2477,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 			}
 			catch (NumberFormatException e)
 			{
-                throw new PSQLException("postgresql.res.baddouble",
-                                        PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, s);
+                throw new PSQLException(GT.tr("Bad double: {0}", s),
+                                        PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
 			}
 		}
 		return 0;		// SQL NULL
@@ -2532,7 +2497,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 		}
 		catch (NumberFormatException e)
 		{
-			throw new PSQLException("postgresql.res.baddate",PSQLState.BAD_DATETIME_FORMAT, s);
+			throw new PSQLException(GT.tr("Bad date: {0}", s), PSQLState.BAD_DATETIME_FORMAT);
 		}
 	}
 
@@ -2582,13 +2547,11 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 	}
 
 	protected void updateValue(int columnIndex, Object value) throws SQLException {
-		if ( !isUpdateable() )
-		{
-			throw new PSQLException( "postgresql.updateable.notupdateable" );
-		}
+		checkUpdateable();
+
 		if (!onInsertRow && (isBeforeFirst() || isAfterLast()))
 		{
-			throw new PSQLException("postgresql.updateable.badupdateposition");
+			throw new PSQLException(GT.tr("Cannot update the ResultSet because it is either before the start or after the end of the results."));
 		}
 		doingUpdates = !onInsertRow;
 		if (value == null)

@@ -19,6 +19,7 @@ import java.util.*;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLDriverVersion;
+import org.postgresql.util.GT;
 
 /*
  * The Java SQL framework allows for multiple database drivers.  Each
@@ -149,7 +150,8 @@ public class Driver implements java.sql.Driver
 			if (Driver.logDebug) {
 				Driver.debug("error", ex2);
 			}
-			throw new PSQLException("postgresql.unusual", PSQLState.UNEXPECTED_ERROR, ex2);
+			throw new PSQLException(GT.tr("Something unusual has occured to cause the driver to fail. Please report this exception."),
+					PSQLState.UNEXPECTED_ERROR, ex2);
 		}
 	}
 
@@ -455,7 +457,7 @@ public class Driver implements java.sql.Driver
 	 */
 	public static SQLException notImplemented()
 	{
-		return new PSQLException("postgresql.unimplemented", PSQLState.NOT_IMPLEMENTED);
+		return new PSQLException(GT.tr("This method is not yet implemented."), PSQLState.NOT_IMPLEMENTED);
 	}
 
 	/**

@@ -27,6 +27,7 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.UnixCrypt;
 import org.postgresql.util.MD5Digest;
+import org.postgresql.util.GT;
 
 /**
  * ConnectionFactory implementation for version 2 (pre-7.4) connections.
@@ -53,7 +54,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
 		if (!Driver.sslEnabled()) {			
 			if (requireSSL)
-				throw new PSQLException("postgresql.con.driversslnotsupported", PSQLState.CONNECTION_FAILURE);	   
+				throw new PSQLException(GT.tr("The driver does not support SSL."), PSQLState.CONNECTION_FAILURE);
 			trySSL = false;
 		}
 
@@ -88,14 +89,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 			// Added by Peter Mount <peter@retep.org.uk>
 			// ConnectException is thrown when the connection cannot be made.
 			// we trap this an return a more meaningful message for the end user
-			throw new PSQLException ("postgresql.con.refused", PSQLState.CONNECTION_REJECTED, cex);
+			throw new PSQLException (GT.tr("Connection refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections."), PSQLState.CONNECTION_REJECTED, cex);
 		} catch (IOException ioe) {
 			if (newStream != null) {
 				try { newStream.close(); }
 				catch (IOException e) {}
 			}
 							 
-			throw new PSQLException ("postgresql.con.failed", PSQLState.CONNECTION_UNABLE_TO_CONNECT, ioe);
+			throw new PSQLException (GT.tr("The connection attempt failed."), PSQLState.CONNECTION_UNABLE_TO_CONNECT, ioe);
 		} catch (SQLException se) {
 			if (newStream != null) {
 				try { newStream.close(); }
@@ -125,7 +126,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
 			// Server doesn't even know about the SSL handshake protocol
 			if (requireSSL)
-				throw new PSQLException("postgresql.con.sslnotsupported", PSQLState.CONNECTION_FAILURE);
+				throw new PSQLException(GT.tr("The server does not support SSL."), PSQLState.CONNECTION_FAILURE);
 
 			// We have to reconnect to continue.
 			pgStream.close();
@@ -137,7 +138,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
 			// Server does not support ssl
 			if (requireSSL)
-				throw new PSQLException("postgresql.con.sslnotsupported", PSQLState.CONNECTION_FAILURE);
+				throw new PSQLException(GT.tr("The server does not support SSL."), PSQLState.CONNECTION_FAILURE);
 
 			return pgStream;
 
@@ -150,7 +151,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 			return pgStream;
 
 		default:
-			throw new PSQLException("postgresql.con.sslfail", PSQLState.CONNECTION_FAILURE);
+			throw new PSQLException(GT.tr("An error occured while setting up the SSL connection."), PSQLState.CONNECTION_FAILURE);
 		}
 	}
 
@@ -197,7 +198,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 				String errorMsg = pgStream.ReceiveString();
 				if (Driver.logDebug)
 					Driver.debug(" <=BE ErrorMessage(" + errorMsg + ")");
-				throw new PSQLException("postgresql.con.rejected", PSQLState.CONNECTION_REJECTED, errorMsg);
+				throw new PSQLException(GT.tr("Connection rejected: {0}.", errorMsg), PSQLState.CONNECTION_REJECTED);
 
 			case 'R':
 				// Authentication request.
@@ -213,7 +214,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 						Driver.debug(" <=BE AuthenticationReqCrypt(salt='" + salt + "')");
 					
 					if (password == null)
-						throw new PSQLException("postgresql.con.nopassword", PSQLState.CONNECTION_REJECTED);
+						throw new PSQLException(GT.tr("The server requested password-based authentication, but no password was provided."), PSQLState.CONNECTION_REJECTED);
 
 					String result = UnixCrypt.crypt(salt, password);
 					byte[] encodedResult = result.getBytes("US-ASCII");
@@ -235,7 +236,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 						Driver.debug(" <=BE AuthenticationReqMD5(salt=" + Utils.toHexString(md5Salt) + ")");
 
 					if (password == null)
-						throw new PSQLException("postgresql.con.nopassword", PSQLState.CONNECTION_REJECTED);
+						throw new PSQLException(GT.tr("The server requested password-based authentication, but no password was provided."), PSQLState.CONNECTION_REJECTED);
 
 					byte[] digest = MD5Digest.encode(user, password, md5Salt);
 					if (Driver.logDebug)
@@ -254,7 +255,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 						Driver.debug(" <=BE AuthenticationReqPassword");
 
 					if (password == null)
-						throw new PSQLException("postgresql.con.nopassword", PSQLState.CONNECTION_REJECTED);
+						throw new PSQLException(GT.tr("The server requested password-based authentication, but no password was provided."), PSQLState.CONNECTION_REJECTED);
 
 					if (Driver.logDebug)
 						Driver.debug(" FE=> Password(password=<not shown>)");
@@ -278,13 +279,13 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 					if (Driver.logDebug)
 						Driver.debug(" <=BE AuthenticationReq (unsupported type " + ((int)areq) + ")");
 
-					throw new PSQLException("postgresql.con.auth", PSQLState.CONNECTION_REJECTED, new Integer(areq));
+					throw new PSQLException(GT.tr("The authentication type {0} is not supported. Check that you have configured the pg_hba.conf file to include the client's IP address or Subnet, and that it is using an authentication scheme supported by the driver.", new Integer(areq)), PSQLState.CONNECTION_REJECTED);
 				}
 
 				break;
 
 			default:
-				throw new PSQLException("postgresql.con.setup", PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+				throw new PSQLException(GT.tr("Protocol error.  Session setup failed."), PSQLState.CONNECTION_UNABLE_TO_CONNECT);
 			}
 		}
 	}
@@ -310,7 +311,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 				String errorMsg = pgStream.ReceiveString();				
 				if (Driver.logDebug)
 					Driver.debug(" <=BE ErrorResponse(" + errorMsg + ")");
-				throw new PSQLException("postgresql.con.backend", PSQLState.CONNECTION_UNABLE_TO_CONNECT, errorMsg);
+				throw new PSQLException(GT.tr("Backend start-up failed: {0}.", errorMsg), PSQLState.CONNECTION_UNABLE_TO_CONNECT);
 
 			case 'N': // NoticeResponse
 				String warnMsg = pgStream.ReceiveString();
@@ -320,7 +321,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 				break;
 
 			default:
-				throw new PSQLException("postgresql.con.setup", PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+				throw new PSQLException(GT.tr("Protocol error.  Session setup failed."), PSQLState.CONNECTION_UNABLE_TO_CONNECT);
 			}
 		}
 	}
@@ -381,7 +382,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
 		Vector tuples = handler.getResults();
 		if (tuples == null || tuples.size() != 1)
-			throw new PSQLException("postgresql.con.unexpected", PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+			throw new PSQLException(GT.tr("An unexpected result was returned by a query."), PSQLState.CONNECTION_UNABLE_TO_CONNECT);
 
 		return (byte[][]) tuples.elementAt(0);
 	}

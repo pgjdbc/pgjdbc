@@ -6,6 +6,7 @@ import org.postgresql.core.*;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.Driver;
+import org.postgresql.util.GT;
 
 public abstract class AbstractJdbc2DatabaseMetaData
 {
@@ -43,7 +44,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
 			String sql = "SELECT t1.typlen/t2.typlen FROM "+from+" t1.typelem=t2.oid AND t1.typname='oidvector'";
 			ResultSet rs = connection.createStatement().executeQuery(sql);
 			if (!rs.next()) {
-				throw new PSQLException("postgresql.unexpected", PSQLState.UNEXPECTED_ERROR);
+				throw new PSQLException(GT.tr("Unable to find datatypes oid and oidvector in the system catalogs."), PSQLState.UNEXPECTED_ERROR);
 			}
 			INDEX_MAX_KEYS = rs.getInt(1);
 			rs.close();
@@ -61,7 +62,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
 			}
 			ResultSet rs = connection.createStatement().executeQuery(sql);
 			if (!rs.next()) {
-				throw new PSQLException("postgresql.unexpected", PSQLState.UNEXPECTED_ERROR);
+				throw new PSQLException(GT.tr("Unable to find name datatype in the system catalogs."), PSQLState.UNEXPECTED_ERROR);
 			}
 			NAMEDATALEN = rs.getInt("typlen");
 			rs.close();

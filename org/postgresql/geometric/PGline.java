@@ -9,6 +9,7 @@
  */
 package org.postgresql.geometric;
 
+import org.postgresql.util.GT;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
 import org.postgresql.util.PSQLException;
@@ -78,7 +79,7 @@ public class PGline extends PGobject implements Serializable, Cloneable
 	{
 		PGtokenizer t = new PGtokenizer(PGtokenizer.removeBox(s), ',');
 		if (t.getSize() != 2)
-			throw new PSQLException("postgresql.geo.line", PSQLState.DATA_TYPE_MISMATCH, s);
+			throw new PSQLException(GT.tr("Conversion of line failed: {0}.",s), PSQLState.DATA_TYPE_MISMATCH);
 
 		point[0] = new PGpoint(t.getToken(0));
 		point[1] = new PGpoint(t.getToken(1));

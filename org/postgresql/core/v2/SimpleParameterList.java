@@ -22,6 +22,7 @@ import java.util.Arrays;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.StreamWrapper;
+import org.postgresql.util.GT;
 
 /**
  * Parameter list for query parameters in the V2 protocol.
@@ -43,7 +44,7 @@ class SimpleParameterList implements ParameterList {
 
 	public void setLiteralParameter(int index, String value, int oid) throws SQLException {
 		if (index < 1 || index > paramValues.length)
-			throw new PSQLException("postgresql.prep.range", PSQLState.INVALID_PARAMETER_VALUE);
+			throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE );
 
 		paramValues[index-1] = value;
 	}
@@ -54,7 +55,7 @@ class SimpleParameterList implements ParameterList {
 		for (int i = 0; i < value.length(); ++i) {
 			char ch = value.charAt(i);
 			if (ch == '\0')
-				throw new PSQLException("postgresql.prep.zeroinstring", PSQLState.INVALID_PARAMETER_VALUE);
+				throw new PSQLException(GT.tr("Zero bytes may not occur in string parameters."), PSQLState.INVALID_PARAMETER_VALUE);
 			if (ch == '\\' || ch == '\'')
 				sbuf.append('\\');
 			sbuf.append(ch);
@@ -66,21 +67,21 @@ class SimpleParameterList implements ParameterList {
 		
 	public void setBytea(int index, byte[] data, int offset, int length) throws SQLException {
 		if (index < 1 || index > paramValues.length)
-			throw new PSQLException("postgresql.prep.range", PSQLState.INVALID_PARAMETER_VALUE);
+			throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE );
 
 		paramValues[index-1] = new StreamWrapper(data, offset, length);
 	}
 
 	public void setBytea(int index, final InputStream stream, final int length) throws SQLException {
 		if (index < 1 || index > paramValues.length)
-			throw new PSQLException("postgresql.prep.range", PSQLState.INVALID_PARAMETER_VALUE);
+			throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE );
 
 		paramValues[index-1] = new StreamWrapper(stream, length);
 	}
 
 	public void setNull(int index, int oid) throws SQLException {
 		if (index < 1 || index > paramValues.length)
-			throw new PSQLException("postgresql.prep.range", PSQLState.INVALID_PARAMETER_VALUE);
+			throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE );
 
 		paramValues[index-1] = NULL_OBJECT;
 	}
@@ -134,7 +135,7 @@ class SimpleParameterList implements ParameterList {
 	void checkAllParametersSet() throws SQLException {
 		for (int i = 0; i < paramValues.length; i++) {
 			if (paramValues[i] == null)
-				throw new PSQLException("postgresql.prep.param", PSQLState.INVALID_PARAMETER_VALUE, new Integer(i + 1));
+				throw new PSQLException(GT.tr("No value specified for parameter {0}.", new Integer(i+1)), PSQLState.INVALID_PARAMETER_VALUE);
 		}
 	}
 

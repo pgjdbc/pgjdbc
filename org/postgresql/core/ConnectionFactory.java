@@ -16,6 +16,7 @@ import java.util.Properties;
 import java.sql.SQLException;
 
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.GT;
 
 /**
  * Handles protocol-specific connection setup.
@@ -66,7 +67,7 @@ public abstract class ConnectionFactory {
 				return connection;
 		}
 
-		throw new PSQLException("postgresql.con.noprotocol");
+		throw new PSQLException(GT.tr("No connection was able to be made for requested protocol {0}.", protoName));
 	}
 
 	/**

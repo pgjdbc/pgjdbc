@@ -9,6 +9,7 @@
  */
 package org.postgresql.geometric;
 
+import org.postgresql.util.GT;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
 import org.postgresql.util.PSQLException;
@@ -80,7 +81,7 @@ public class PGbox extends PGobject implements Serializable, Cloneable
 	{
 		PGtokenizer t = new PGtokenizer(value, ',');
 		if (t.getSize() != 2)
-			throw new PSQLException("postgresql.geo.box", PSQLState.DATA_TYPE_MISMATCH, value);
+			throw new PSQLException(GT.tr("Conversion of box failed: {0}.", value), PSQLState.DATA_TYPE_MISMATCH);
 
 		point[0] = new PGpoint(t.getToken(0));
 		point[1] = new PGpoint(t.getToken(1));

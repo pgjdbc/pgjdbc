@@ -22,9 +22,10 @@ import org.postgresql.Driver;
 public class PSQLException extends SQLException
 {
 
-	public PSQLException(String msg, PSQLState state, Throwable cause, Object[] argv)
+	public PSQLException(String msg, PSQLState state, Throwable cause)
 	{
-		super(translate(msg, cause, argv), state == null ? null : state.getState());                
+@NOINITCAUSE@	msg = addCauseToMessage(msg, cause);
+		super(msg, state == null ? null : state.getState());                
 		initCause(cause); // Calls either the 1.4 Throwable impl or our impl below.
 		if (Driver.logDebug)
 			Driver.debug("Exception: " + this);
@@ -33,52 +34,36 @@ public class PSQLException extends SQLException
 
 	public PSQLException(String msg)
 	{
-		this(msg, (PSQLState)null, (Throwable)null, (Object[])null);
+		this(msg, null, null);
 	}
 	
 	public PSQLException(String msg, PSQLState state)
 	{
-		this(msg, state, (Throwable)null, (Object[])null);
+		this(msg, state, null);
 	}
 	
-	public PSQLException(String msg, PSQLState state, Throwable cause)
-	{
-		this(msg, state, cause, (Object[])null);
+	private static String addCauseToMessage(String msg, Throwable cause) {
+		if (cause != null) {
+			try {
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				PrintWriter pw = new PrintWriter(baos);
+				pw.println();
+				pw.println(GT.tr("Exception: {0}", cause.toString()));
+				pw.println(GT.tr("Stack Trace:"));
+				cause.printStackTrace(pw);
+				pw.println(GT.tr("End of Stack Trace"));
+				pw.flush();
+				msg = msg + baos.toString();
+				pw.close();
+				baos.close();
+			} catch (IOException ioe) {
+				msg = msg + GT.tr("Exception generating stacktrace for: {0} encountered: {1}", new Object[] { cause.toString(), ioe.toString() });
+			}
+		}
+		return msg;
 	}
 	
-	public PSQLException(String msg, PSQLState state, Object arg1)
-	{
-		this(msg, state, null, new Object[] { arg1 });
-	}
-
-	public PSQLException(String msg, PSQLState state, Object arg1, Throwable cause)
-	{
-		this(msg, state, cause, new Object[] { arg1 });
-	}
-	
-	private static String translate(String msg, Throwable cause, Object[] args) {
-		String translated = MessageTranslator.translate(msg, args);
-@NOINITCAUSE@		if (cause != null) {
-@NOINITCAUSE@			try {
-@NOINITCAUSE@				ByteArrayOutputStream baos = new ByteArrayOutputStream();
-@NOINITCAUSE@				PrintWriter pw = new PrintWriter(baos);
-@NOINITCAUSE@				pw.println();
-@NOINITCAUSE@				pw.println(MessageTranslator.translate("postgresql.error.exception", cause.toString()));
-@NOINITCAUSE@				pw.println(MessageTranslator.translate("postgresql.error.stacktrace"));
-@NOINITCAUSE@				cause.printStackTrace(pw);
-@NOINITCAUSE@				pw.println(MessageTranslator.translate("postgresql.error.stacktraceend"));
-@NOINITCAUSE@				pw.flush();
-@NOINITCAUSE@				translated = translated + baos.toString();
-@NOINITCAUSE@				pw.close();
-@NOINITCAUSE@				baos.close();
-@NOINITCAUSE@			} catch (IOException ioe) {
-@NOINITCAUSE@				translated = translated + MessageTranslator.translate("postgresql.error.stacktraceerror", new Object[] { cause.toString(), ioe.toString() });
-@NOINITCAUSE@			}
-@NOINITCAUSE@		}
-		return translated;
-	}
-	
-@NOINITCAUSE@	// Dummy initCause() for pre-1.4 JVMs
+		// Dummy initCause() for pre-1.4 JVMs
 @NOINITCAUSE@	public void initCause(Throwable cause) {}
 
 

@@ -3,6 +3,7 @@ package org.postgresql.jdbc3;
 import java.sql.SQLException;
 import java.sql.Savepoint;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.GT;
 
 public class PSQLSavepoint implements Savepoint {
 
@@ -25,20 +26,20 @@ public class PSQLSavepoint implements Savepoint {
 
 	public int getSavepointId() throws SQLException {
 		if (!_isValid)
-			throw new PSQLException("postgresql.savepoint.invalid");
+			throw new PSQLException(GT.tr("Cannot reference a savepoint after it has been released."));
 
 		if (_isNamed)
-			throw new PSQLException("postgresql.savepoint.notunnamed");
+			throw new PSQLException(GT.tr("Cannot retrieve the id of a named savepoint."));
 
 		return _id;
 	}
 
 	public String getSavepointName() throws SQLException {
 		if (!_isValid)
-			throw new PSQLException("postgresql.savepoint.invalid");
+			throw new PSQLException(GT.tr("Cannot reference a savepoint after it has been released."));
 
 		if (!_isNamed)
-			throw new PSQLException("postgresql.savepoint.notnamed");
+			throw new PSQLException(GT.tr("Cannot retrieve the name of an unnamed savepoint."));
 
 		return _name;
 	}
@@ -49,7 +50,7 @@ public class PSQLSavepoint implements Savepoint {
 
 	public String getPGName() throws SQLException {
 		if (!_isValid)
-			throw new PSQLException("postgresql.savepoint.invalid");
+			throw new PSQLException(GT.tr("Cannot reference a savepoint after it has been released."));
 
 		if (_isNamed) {
 			// We need to quote and escape the name in case it

@@ -12,6 +12,7 @@ import org.postgresql.core.*;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PGobject;
+import org.postgresql.util.GT;
 
 /* $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.17 2003/09/09 10:49:16 barry Exp $
  * This class defines methods of the jdbc2 specification.
@@ -185,13 +186,13 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	public java.sql.ResultSet executeQuery(String p_sql) throws SQLException
 	{
 		if (preparedQuery != null)
-			throw new PSQLException("postgresql.stmt.wrongstatementtype");
+			throw new PSQLException(GT.tr("Can't use query methods that take a query string on a PreparedStatement."));
 
 		if (!executeWithFlags(p_sql, 0))
-			throw new PSQLException("postgresql.stat.noresult", PSQLState.NO_DATA);
+			throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
 
 		if (result.getNext() != null)
-			throw new PSQLException("postgresql.stat.multi");
+			throw new PSQLException(GT.tr("Multiple ResultSets were returned by the query."));
 
 		return (ResultSet)result.getResultSet();
 	}
@@ -206,10 +207,10 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	public java.sql.ResultSet executeQuery() throws SQLException
 	{
 		if (!executeWithFlags(0))
-			throw new PSQLException("postgresql.stat.noresult", PSQLState.NO_DATA);
+			throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
 
 		if (result.getNext() != null)
-			throw new PSQLException("postgresql.stat.multi");
+			throw new PSQLException(GT.tr("Multiple ResultSets were returned by the query."));
 
 		return (ResultSet) result.getResultSet();
 	}
@@ -226,10 +227,10 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	public int executeUpdate(String p_sql) throws SQLException
 	{
 		if (preparedQuery != null)
-			throw new PSQLException("postgresql.stmt.wrongstatementtype");
+			throw new PSQLException(GT.tr("Can't use query methods that take a query string on a PreparedStatement."));
 
 		if (executeWithFlags(p_sql, QueryExecutor.QUERY_NO_RESULTS))
-			throw new PSQLException("postgresql.stat.result");
+			throw new PSQLException(GT.tr("A result was returned when none was expected."));
 
 		return getUpdateCount();
 	}
@@ -246,7 +247,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	public int executeUpdate() throws SQLException
 	{
 		if (executeWithFlags(QueryExecutor.QUERY_NO_RESULTS))
-			throw new PSQLException("postgresql.stat.result");
+			throw new PSQLException(GT.tr("A result was returned when none was expected."));
 
 		return getUpdateCount();
 	}
@@ -265,7 +266,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	public boolean execute(String p_sql) throws SQLException
 	{
 		if (preparedQuery != null)
-			throw new PSQLException("postgresql.stmt.wrongstatementtype");
+			throw new PSQLException(GT.tr("Can't use query methods that take a query string on a PreparedStatement."));
 
 		return executeWithFlags(p_sql, 0);
 	}
@@ -288,7 +289,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	{
         checkClosed();
 		if (isFunction && !returnTypeSet)
-			throw new PSQLException("postgresql.call.noreturntype", PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
+			throw new PSQLException(GT.tr("A CallableStatement was declared, but no call to registerOutParameter(1, <some type>) was made."), PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
 
 		execute(preparedQuery, preparedParameters, flags);
 
@@ -296,18 +297,19 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 		if (isFunction)
 		{
 			if (result == null || result.getResultSet() == null)
-				throw new PSQLException("postgresql.call.noreturnval", PSQLState.NO_DATA);
+				throw new PSQLException(GT.tr("A CallableStatement was executed with nothing returned."), PSQLState.NO_DATA);
 
 			ResultSet rs = result.getResultSet();
 			if (!rs.next())
-				throw new PSQLException ("postgresql.call.noreturnval", PSQLState.NO_DATA);
+				throw new PSQLException(GT.tr("A CallableStatement was executed with nothing returned."), PSQLState.NO_DATA);
 
 			callResult = rs.getObject(1);
 			int columnType = rs.getMetaData().getColumnType(1);
 			if (columnType != functionReturnType)
-				throw new PSQLException ("postgresql.call.wrongrtntype", PSQLState.DATA_TYPE_MISMATCH, null,
+				throw new PSQLException (GT.tr("A CallableStatement function was executed and the return was of type {0} however type {1} was registered.",
 										 new Object[]{
-											 "java.sql.Types=" + columnType, "java.sql.Types=" + functionReturnType });
+											 "java.sql.Types=" + columnType, "java.sql.Types=" + functionReturnType }),
+							PSQLState.DATA_TYPE_MISMATCH);
 
 			rs.close();
 			result = null;
@@ -446,7 +448,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	public void setMaxRows(int max) throws SQLException
 	{
 		checkClosed();
-		if (max<0) throw new PSQLException("postgresql.input.rows.gt0");
+		if (max<0)
+			throw new PSQLException(GT.tr("Maximum number of rows must be a value grater than or equal to 0."));
 		maxrows = max;
 	}
 
@@ -486,7 +489,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	public void setQueryTimeout(int seconds) throws SQLException
 	{
 		checkClosed();
-		if (seconds<0) throw new PSQLException("postgresql.input.query.gt0");
+		if (seconds<0)
+			throw new PSQLException(GT.tr("Query timeout must be a value greater than or equals to 0."));
 		timeout = seconds;
 	}
 
@@ -547,7 +551,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	public void setMaxFieldSize(int max) throws SQLException
 	{
         checkClosed();
-		if (max < 0) throw new PSQLException("postgresql.input.field.gt0");
+		if (max < 0)
+			throw new PSQLException(GT.tr("The maximum field size must be a value greater than or equal to 0."));
 		maxfieldSize = max;
 	}
 
@@ -1207,11 +1212,11 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 		}
 		catch (UnsupportedEncodingException l_uee)
 		{
-			throw new PSQLException("postgresql.unusual", PSQLState.UNEXPECTED_ERROR, l_uee);
+			throw new PSQLException(GT.tr("The JVM claism not to support the {0} encoding.", encoding), PSQLState.UNEXPECTED_ERROR, l_uee);
 		}
 		catch (IOException l_ioe)
 		{
-			throw new PSQLException("postgresql.unusual", PSQLState.UNEXPECTED_ERROR, l_ioe);
+			throw new PSQLException(GT.tr("Provided InputStream failed."), PSQLState.UNEXPECTED_ERROR, l_ioe);
 		}
 	}
 
@@ -1335,7 +1340,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 			}
 			catch (IOException se)
 			{
-				throw new PSQLException("postgresql.unusual", PSQLState.UNEXPECTED_ERROR, se);
+				throw new PSQLException(GT.tr("Provided InputStream failed."), PSQLState.UNEXPECTED_ERROR, se);
 			}
 			// lob is closed by the stream so don't call lob.close()
 			setInt(parameterIndex, oid);
@@ -1469,7 +1474,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 				}
 				else
 				{
-					throw new PSQLException("postgresql.prep.type", PSQLState.INVALID_PARAMETER_TYPE);
+					throw new PSQLException(GT.tr("Unknown Types value."), PSQLState.INVALID_PARAMETER_TYPE);
 				}
 				break;
 			case Types.BINARY:
@@ -1481,10 +1486,10 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 				if (x instanceof PGobject)
 					setString(parameterIndex, ((PGobject)x).getValue(), connection.getPGType( ((PGobject)x).getType() ));
 				else
-					throw new PSQLException("postgresql.prep.type", PSQLState.INVALID_PARAMETER_TYPE);
+					throw new PSQLException(GT.tr("Unknown Types value."), PSQLState.INVALID_PARAMETER_TYPE);
 				break;
 			default:
-				throw new PSQLException("postgresql.prep.type", PSQLState.INVALID_PARAMETER_TYPE);
+				throw new PSQLException(GT.tr("Unknown Types value."), PSQLState.INVALID_PARAMETER_TYPE);
 		}
 	}
 
@@ -1555,10 +1560,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	public void registerOutParameter(int parameterIndex, int sqlType) throws SQLException
 	{
 		checkClosed();
-		if (parameterIndex != 1)
-			throw new PSQLException ("postgresql.call.noinout", PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
 		if (!isFunction)
-			throw new PSQLException ("postgresql.call.procasfunc", PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
+			throw new PSQLException (GT.tr("This statement does not declare an OUT parameter.  Use '{' ?= call ... '}' to declare one."), PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
+		checkIndex(parameterIndex);
 
 		// functionReturnType contains the user supplied value to check
 		// testReturn contains a modified version to make it easier to
@@ -1859,7 +1863,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 			return paramIndex;
 
 		if (paramIndex == 1) // need to registerOut instead
-			throw new PSQLException ("postgresql.call.funcover");
+			throw new PSQLException (GT.tr("Cannot call setXXX(1, ..) on a CallableStatement.  This is an output that must be configured with registerOutParameter instead."));
 
 		return paramIndex - 1;
 	}
@@ -2033,8 +2037,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 		}
 
 		if (syntaxError)
-			throw new PSQLException ("postgresql.call.malformed",PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL,
-									 new Object[] { new Integer(i) });
+			throw new PSQLException (GT.tr("Malformed function or procedure escape syntax at offset {0}.", new Integer(i)),
+					PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
 
 		if (connection.haveMinimumServerVersion("7.3")) {
 			return "select * from " + p_sql.substring(startIndex, endIndex) + " as result";
@@ -2051,10 +2055,11 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	{
 		checkIndex (parameterIndex);
 		if (type1 != this.testReturn && type2 != this.testReturn)
-			throw new PSQLException("postgresql.call.wrongget", PSQLState.MOST_SPECIFIC_TYPE_DOES_NOT_MATCH,
+			throw new PSQLException(GT.tr("Parameter of type {0} was registered, but call to get{1} (sqltype={2}) was made.",
 						new Object[]{"java.sql.Types=" + testReturn,
 							     getName,
-							     "java.sql.Types=" + type1});
+							     "java.sql.Types=" + type1}),
+						PSQLState.MOST_SPECIFIC_TYPE_DOES_NOT_MATCH);
 	}
 
 	/** helperfunction for the getXXX calls to check isFunction and index == 1
@@ -2064,10 +2069,11 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	{
 		checkIndex (parameterIndex);
 		if (type != this.testReturn)
-			throw new PSQLException("postgresql.call.wrongget", PSQLState.MOST_SPECIFIC_TYPE_DOES_NOT_MATCH,
+			throw new PSQLException(GT.tr("Parameter of type {0} was registered, but call to get{1} (sqltype={2}) was made.",
 						new Object[]{"java.sql.Types=" + testReturn,
 							     getName,
-							     "java.sql.Types=" + type});
+							     "java.sql.Types=" + type}),
+						PSQLState.MOST_SPECIFIC_TYPE_DOES_NOT_MATCH);
 	}
 
 	/** helperfunction for the getXXX calls to check isFunction and index == 1
@@ -2077,9 +2083,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	private void checkIndex (int parameterIndex) throws SQLException
 	{
 		if (!isFunction)
-			throw new PSQLException("postgresql.call.noreturntype", PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
+			throw new PSQLException(GT.tr("A CallableStatement was declared, but no call to registerOutParameter(1, <some type>) was made."), PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
 		if (parameterIndex != 1)
-			throw new PSQLException("postgresql.call.noinout", PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
+			throw new PSQLException (GT.tr("PostgreSQL only supports a single OUT function return value at index 1."), PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
 	}
 
 	public void setPrepareThreshold(int newThreshold) throws SQLException {
@@ -2107,7 +2113,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	{
 		//need to add to errors.properties.
 		if (isClosed)
-			throw new PSQLException("postgresql.stmt.closed");
+			throw new PSQLException(GT.tr("This statement has been closed."));
 	}
 
 	private java.sql.Date dateFromString (String s) throws SQLException
@@ -2126,8 +2132,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 		}
 		catch (Exception e)
 		{
-			throw new PSQLException("postgresql.format.baddate", PSQLState.BAD_DATETIME_FORMAT, e,
-									new Object[] { s , "yyyy-MM-dd[-tz]" });
+			throw new PSQLException(GT.tr("The given date {0} does not match the format required: {1}.",
+						new Object[] { s , "yyyy-MM-dd[-tz]" }),
+						PSQLState.BAD_DATETIME_FORMAT, e);
 		}
 		timezone = 0;
 		if (timezoneLocation>7 && timezoneLocation+3 == s.length())
@@ -2158,8 +2165,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 		}
 		catch (Exception e)
 		{
-			throw new PSQLException("postgresql.format.badtime", PSQLState.BAD_DATETIME_FORMAT, e,
-									new Object[] { s, "HH:mm:ss[-tz]" });
+			throw new PSQLException(GT.tr("The time given {0} does not match the format required: {1}.",
+						new Object[] { s, "HH:mm:ss[-tz]" }),
+						PSQLState.BAD_DATETIME_FORMAT, e);
 		}
 		timezone = 0;
 		if (timezoneLocation != -1 && timezoneLocation+3 == s.length())
@@ -2198,8 +2206,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 		}
 		catch (Exception e)
 		{
-			throw new PSQLException("postgresql.format.badtimestamp", PSQLState.BAD_DATETIME_FORMAT, e,
-									new Object[] { s, "yyyy-MM-dd HH:mm:ss[.xxxxxx][-tz]" });
+			throw new PSQLException(GT.tr("The timestamp given {0} does not match the format required: {1}.",
+						new Object[] { s, "yyyy-MM-dd HH:mm:ss[.xxxxxx][-tz]" }),
+						PSQLState.BAD_DATETIME_FORMAT, e);
 		}
 		timezone = 0;
 		if (nanospos != -1)
@@ -2232,7 +2241,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 		checkClosed();
 
 		if (preparedQuery != null)
-			throw new PSQLException("postgresql.stmt.wrongstatementtype");
+			throw new PSQLException(GT.tr("Can't use query methods that take a query string on a PreparedStatement."));
 
 		if (batchStatements == null) {
 			batchStatements = new ArrayList();
@@ -2270,7 +2279,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 		}
 
 		public void handleResultRows(Query fromQuery, Field[] fields, Vector tuples, ResultCursor cursor) {
-			handleError(new PSQLException("postgresql.stat.result"));
+			handleError(new PSQLException(GT.tr("A result was returned when none was expected.")));
 		}
 
 		public void handleCommandStatus(String status, int updateCount, long insertOID) {
@@ -2301,10 +2310,10 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 				if (resultIndex <= queries.length)
 					queryString = queries[resultIndex].toString(parameterLists[resultIndex]);
 
-				batchException = new PBatchUpdateException("postgresql.stat.batch.error",
-														   new Integer(resultIndex),
-														   queryString,
-														   successCounts);
+				batchException = new BatchUpdateException(GT.tr("Batch entry {0} {1} was aborted.  Call getNextException to see the cause.",
+							new Object[]{ new Integer(resultIndex),
+								queryString}),
+							successCounts);
 			}
 
 			batchException.setNextException(newError);
@@ -2404,14 +2413,15 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 			fetchdirection = direction;
 			break;
 		default:
-			throw new PSQLException("postgresql.res.badfetchdirection", null, new Integer(direction));
+			throw new PSQLException(GT.tr("Invalid fetch direction constant: {0}.", new Integer(direction)));
 		}
 	}
 
 	public void setFetchSize(int rows) throws SQLException
 	{
 		checkClosed();
-		if (rows<0) throw new PSQLException("postgresql.input.fetch.gt0");
+		if (rows<0)
+			throw new PSQLException(GT.tr("Fetch size must be a value greater to or equal to 0."));
 		fetchSize = rows;
 	}
 
@@ -2454,7 +2464,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 		String typename = "_" + x.getBaseTypeName();
 		int oid = connection.getPGType(typename);
 		if (oid == Oid.INVALID)
-			throw new PSQLException("postgresql.prep.typenotfound", PSQLState.INVALID_PARAMETER_TYPE, typename);
+			throw new PSQLException(GT.tr("Unknown type {0}.", typename), PSQLState.INVALID_PARAMETER_TYPE);
 
 		setString(i, x.toString(), oid);
 	}
@@ -2487,7 +2497,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 		}
 		catch (IOException se)
 		{
-			throw new PSQLException("postgresql.unusual", PSQLState.UNEXPECTED_ERROR, se);
+			throw new PSQLException(GT.tr("Unexpected error writing large object to database."), PSQLState.UNEXPECTED_ERROR, se);
 		}
 		finally
 		{
@@ -2520,7 +2530,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 			}
 			catch (IOException l_ioe)
 			{
-				throw new PSQLException("postgresql.unusual", PSQLState.UNEXPECTED_ERROR, l_ioe);
+				throw new PSQLException(GT.tr("Provided Reader failed."), PSQLState.UNEXPECTED_ERROR, l_ioe);
 			}
 			setString(i, new String(l_chars, 0, l_charsRead));
 		}
@@ -2550,7 +2560,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 			}
 			catch (IOException se)
 			{
-				throw new PSQLException("postgresql.unusual", PSQLState.UNEXPECTED_ERROR, se);
+				throw new PSQLException(GT.tr("Unexpected error writing large object to database."), PSQLState.UNEXPECTED_ERROR, se);
 			}
 			// lob is closed by the stream so don't call lob.close()
 			setInt(i, oid);
@@ -2583,7 +2593,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 		}
 		catch (IOException se)
 		{
-			throw new PSQLException("postgresql.unusual", PSQLState.UNEXPECTED_ERROR, se);
+			throw new PSQLException(GT.tr("Unexpected error writing large object to database."), PSQLState.UNEXPECTED_ERROR, se);
 		}
 		// lob is closed by the stream so don't call lob.close()
 		setInt(i, oid);

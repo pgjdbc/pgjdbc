@@ -6,6 +6,7 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import java.sql.*;
 import java.util.Hashtable;
+import org.postgresql.util.GT;
 
 public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaData
 {
@@ -584,7 +585,7 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
 	protected Field getField(int columnIndex) throws SQLException
 	{
 		if (columnIndex < 1 || columnIndex > fields.length)
-			throw new PSQLException("postgresql.res.colrange", PSQLState.INVALID_PARAMETER_VALUE);
+			throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(columnIndex), new Integer(fields.length)}), PSQLState.INVALID_PARAMETER_VALUE );
 		return fields[columnIndex - 1];
 	}
 

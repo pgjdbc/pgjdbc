@@ -28,6 +28,7 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLWarning;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.ServerErrorMessage;
+import org.postgresql.util.GT;
 
 /**
  * QueryExecutor implementation for the V3 protocol.
@@ -136,7 +137,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 			processResults(handler, flags);
 		} catch (IOException e) {
 			protoConnection.close();
-			handler.handleError(new PSQLException("postgresql.con.ioerror", PSQLState.CONNECTION_FAILURE, e));
+			handler.handleError(new PSQLException(GT.tr("An I/O error occured while sending to the backend."), PSQLState.CONNECTION_FAILURE, e));
 		}
 
 		handler.handleCompletion();		
@@ -263,7 +264,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 			}
 		} catch (IOException e) {
 			protoConnection.close();
-			handler.handleError(new PSQLException("postgresql.con.ioerror", PSQLState.CONNECTION_FAILURE, e));
+			handler.handleError(new PSQLException(GT.tr("An I/O error occured while sending to the backend."), PSQLState.CONNECTION_FAILURE, e));
 		}
 
 		handler.handleCompletion();
@@ -324,7 +325,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 			return receiveFastpathResult();
 		} catch (IOException ioe) {
 			protoConnection.close();
-			throw new PSQLException("postgresql.con.ioerror", PSQLState.CONNECTION_FAILURE, ioe);
+			throw new PSQLException(GT.tr("An I/O error occured while sending to the backend."), PSQLState.CONNECTION_FAILURE, ioe);
 		}
 	}
 
@@ -419,7 +420,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 				break;
 
 			default:
-				throw new PSQLException("postgresql.con.type", PSQLState.CONNECTION_FAILURE, new Character((char) c));
+				throw new PSQLException(GT.tr("Unknown Response Type {0}.", new Character((char) c)), PSQLState.CONNECTION_FAILURE);
 			}
 			
 		}
@@ -976,13 +977,13 @@ public class QueryExecutorImpl implements QueryExecutor {
 
 					if (name.equals("client_encoding") && !value.equals("UNICODE")) {
 						protoConnection.close(); // we're screwed now; we can't trust any subsequent string.
-						handler.handleError(new PSQLException("postgresql.con.changeclientencoding", PSQLState.CONNECTION_FAILURE, value));
+						handler.handleError(new PSQLException(GT.tr("The server's client_encoding parameter was changed to {0}. The JDBC driver requires client_encoding to be UNICODE for correct operation.", value), PSQLState.CONNECTION_FAILURE));
 						endQuery = true;
 					}
 
 					if (name.equals("DateStyle") && !value.startsWith("ISO,")) {
 						protoConnection.close(); // we're screwed now; we can't trust any subsequent date.
-						handler.handleError(new PSQLException("postgresql.con.changedatestyle", PSQLState.CONNECTION_FAILURE, value));
+						handler.handleError(new PSQLException(GT.tr("The server's DateStyle parameter was changed to {0}. The JDBC driver requires DateStyle to begin with ISO for correct operation.", value), PSQLState.CONNECTION_FAILURE));
 						endQuery = true;
 					}
 				}
@@ -1024,7 +1025,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 					int l_len = pgStream.ReceiveIntegerR(4);
 					/* discard */ pgStream.Receive(l_len);
 
-					handler.handleError(new PSQLException("postgresql.con.nocopy", PSQLState.NOT_IMPLEMENTED));
+					handler.handleError(new PSQLException(GT.tr("The driver currently does not support COPY operations."), PSQLState.NOT_IMPLEMENTED));
 				}
 				break;
 
@@ -1075,7 +1076,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 			processResults(handler, 0);
 		} catch (IOException e) {
 			protoConnection.close();
-			handler.handleError(new PSQLException("postgresql.con.ioerror", PSQLState.CONNECTION_FAILURE, e));
+			handler.handleError(new PSQLException(GT.tr("An I/O error occured while sending to the backend."), PSQLState.CONNECTION_FAILURE, e));
 		}
 
 		handler.handleCompletion();
@@ -1173,7 +1174,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 					insert_oid = Long.parseLong(status.substring(1 + status.indexOf(' '),
 																 status.lastIndexOf(' ')));
 			} catch (NumberFormatException nfe) {
-				handler.handleError(new PSQLException("postgresql.con.fathom", PSQLState.CONNECTION_FAILURE, status));
+				handler.handleError(new PSQLException(GT.tr("Unable to interpret the update count in command completion tag: {0}.", status), PSQLState.CONNECTION_FAILURE));
 				return;
 			}
 		}

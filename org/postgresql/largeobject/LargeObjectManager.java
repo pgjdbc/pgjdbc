@@ -17,6 +17,7 @@ import org.postgresql.core.BaseConnection;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.fastpath.FastpathArg;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.GT;
 
 /**
  * This class implements the large object interface to org.postgresql.
@@ -128,7 +129,7 @@ public class LargeObjectManager
 		ResultSet res = conn.createStatement().executeQuery(sql);
 
 		if (res == null)
-			throw new PSQLException("postgresql.lo.init");
+			throw new PSQLException(GT.tr("Failed to initialize LargeObject API"));
 
 		fp.addFunctions(res);
 		res.close();

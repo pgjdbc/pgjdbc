@@ -21,6 +21,7 @@ import org.postgresql.core.*;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.StreamWrapper;
+import org.postgresql.util.GT;
 
 /**
  * Parameter list for a single-statement V3 query.
@@ -36,7 +37,7 @@ class SimpleParameterList implements V3ParameterList {
 
 	private void bind(int index, Object value, int oid) throws SQLException {
 		if (index < 1 || index > paramValues.length)
-			throw new PSQLException("postgresql.prep.range", PSQLState.INVALID_PARAMETER_VALUE);
+			throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE );
 
 		--index;
 
@@ -92,7 +93,7 @@ class SimpleParameterList implements V3ParameterList {
 	public void checkAllParametersSet() throws SQLException {
 		for (int i = 0; i < paramTypes.length; ++i) {
 			if (paramValues[i] == null)
-				throw new PSQLException("postgresql.prep.param", PSQLState.INVALID_PARAMETER_VALUE, new Integer(i + 1));
+				throw new PSQLException(GT.tr("No value specified for parameter {0}.", new Integer(i+1)), PSQLState.INVALID_PARAMETER_VALUE);
 		}
 	}
 

@@ -72,26 +72,26 @@ public class ServerErrorMessage
 		if (Driver.logInfo) {
 			l_message = (String)m_mesgParts.get(DETAIL);
 			if (l_message != null)
-				l_totalMessage.append("\n  ").append(MessageTranslator.translate("postgresql.error.detail", l_message));
+				l_totalMessage.append("\n  ").append(GT.tr("Detail: {0}", l_message));
 			l_message = (String)m_mesgParts.get(HINT);
 			if (l_message != null)
-				l_totalMessage.append("\n  ").append(MessageTranslator.translate("postgresql.error.hint", l_message));
+				l_totalMessage.append("\n  ").append(GT.tr("Hint: {0}", l_message));
 			l_message = (String)m_mesgParts.get(POSITION);
 			if (l_message != null)
-				l_totalMessage.append("\n  ").append(MessageTranslator.translate("postgresql.error.position", l_message));
+				l_totalMessage.append("\n  ").append(GT.tr("Position: {0}", l_message));
 			l_message = (String)m_mesgParts.get(WHERE);
 			if (l_message != null)
-				l_totalMessage.append("\n  ").append(MessageTranslator.translate("postgresql.error.where", l_message));
+				l_totalMessage.append("\n  ").append(GT.tr("Where: {0}", l_message));
 	    }
 		if (Driver.logDebug) {
 			String l_file = (String)m_mesgParts.get(FILE);
 			String l_line = (String)m_mesgParts.get(LINE);
 			String l_routine = (String)m_mesgParts.get(ROUTINE);
 			if (l_file != null || l_line != null || l_routine != null)
-				l_totalMessage.append("\n  ").append(MessageTranslator.translate("postgresql.error.location", new Object[] {l_file, l_routine, l_line}));
+				l_totalMessage.append("\n  ").append(GT.tr("Location: File: {0}, Routine: {1}, Line: {2}", new Object[] {l_file, l_routine, l_line}));
 			l_message = (String)m_mesgParts.get(SQLSTATE);
 			if (l_message != null)
-				l_totalMessage.append("\n  ").append(MessageTranslator.translate("postgresql.error.sqlstate", l_message));
+				l_totalMessage.append("\n  ").append(GT.tr("Server SQLState: {0}", l_message));
 		}
 
 		return l_totalMessage.toString();

@@ -72,7 +72,7 @@ public class PGmoney extends PGobject implements Serializable, Cloneable
 		}
 		catch (NumberFormatException e)
 		{
-			throw new PSQLException("postgresql.money", PSQLState.NUMERIC_CONSTANT_OUT_OF_RANGE, e);
+			throw new PSQLException(GT.tr("Conversion of money failed."), PSQLState.NUMERIC_CONSTANT_OUT_OF_RANGE, e);
 		}
 	}
 

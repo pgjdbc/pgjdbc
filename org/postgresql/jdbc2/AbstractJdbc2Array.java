@@ -3,6 +3,7 @@ package org.postgresql.jdbc2;
 import org.postgresql.core.*;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.GT;
 
 import java.math.BigDecimal;
 import java.sql.ResultSet;
@@ -76,7 +77,7 @@ public class AbstractJdbc2Array
 			throw org.postgresql.Driver.notImplemented();
 
 		if (index < 1)
-			throw new PSQLException("postgresql.arr.range", PSQLState.DATA_ERROR);
+			throw new PSQLException(GT.tr("The array index is out of range: {0}", new Long(index)), PSQLState.DATA_ERROR);
 		Object retVal = null;
 
 		ArrayList array = new ArrayList();
@@ -126,7 +127,7 @@ public class AbstractJdbc2Array
 			count = arrayContents.length;
 		index--;
 		if ( index + count > arrayContents.length )
-			throw new PSQLException("postgresql.arr.range", PSQLState.DATA_ERROR);
+			throw new PSQLException(GT.tr("The array index is out of range: {0}, number of elements: {1}.", new Object[]{new Long(index+count), new Long(arrayContents.length)}), PSQLState.DATA_ERROR);
 
 		int i = 0;
 		switch ( getBaseType() )

@@ -110,7 +110,7 @@ public class TimestampUtils {
 					try {
 						nanos = Integer.parseInt(s.substring(start, end));
 					} catch (NumberFormatException e) {
-						throw new PSQLException("postgresql.unusual", PSQLState.UNEXPECTED_ERROR, e);
+						throw new PSQLException(GT.tr("Could not extract nanoseconds from {0}.", s.substring(start,end)), PSQLState.UNEXPECTED_ERROR, e);
 					}
 
 					// The nanos field stores nanoseconds. Adjust the parsed
@@ -175,11 +175,10 @@ public class TimestampUtils {
 						java.util.Date d = df.parse(s);
 						return new Timestamp( d.getTime() );						
 					} catch ( ParseException ex ) {
-						throw new PSQLException("postgresql.res.badtimestamp",
-												PSQLState.BAD_DATETIME_FORMAT,
-												ex, new Object[]
-												{new Integer(ex.getErrorOffset()),
-                                                 s});
+						throw new PSQLException(GT.tr("The timestamp given {0} does not match the format required: {1}.", 
+									new Object[]{s, df}),
+									PSQLState.BAD_DATETIME_FORMAT,
+									ex);
 					}
                 }
 			}
@@ -194,7 +193,7 @@ public class TimestampUtils {
 				result.setNanos(nanos);
 				return result;
 			} catch (ParseException e) {
-				throw new PSQLException("postgresql.res.badtimestamp", PSQLState.BAD_DATETIME_FORMAT, e, new Object[] { new Integer(e.getErrorOffset()), s });
+				throw new PSQLException(GT.tr("The timestamp given {0} does not match the format required: {1}.", new Object[]{sbuf.toString(), df}), PSQLState.BAD_DATETIME_FORMAT, e);
 			}
 		}
 	}
@@ -256,6 +255,7 @@ public class TimestampUtils {
 		if (s == null)
 			return null; // SQL NULL
 
+		SimpleDateFormat df = null;
 		try {
 			s = s.trim();
 			
@@ -265,7 +265,7 @@ public class TimestampUtils {
             }
 
             if ( !pgDataType.startsWith("timestamp") ) {
-                SimpleDateFormat df = new SimpleDateFormat();
+                df = new SimpleDateFormat();
                 s = parseTime(s,df);
                 java.util.Date d = df.parse(s);
                 return new java.sql.Time( d.getTime() );				
@@ -274,7 +274,7 @@ public class TimestampUtils {
             //value is a timestamp
 			return new java.sql.Time(toTimestamp(s, pgDataType).getTime());
 		} catch (ParseException e) {
-			throw new PSQLException("postgresql.res.badtime", PSQLState.BAD_DATETIME_FORMAT, s);
+			throw new PSQLException(GT.tr("The time given {0} does not match the format required: {1}.", new Object[]{s,df}), PSQLState.BAD_DATETIME_FORMAT);
 		}
 	}
 }

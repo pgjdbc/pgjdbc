@@ -4,6 +4,7 @@ package org.postgresql.jdbc3;
 import java.sql.*;
 import java.util.Vector;
 import org.postgresql.core.*;
+import org.postgresql.util.GT;
 
 
 /* $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/jdbc3/AbstractJdbc3ResultSet.java,v 1.4 2003/03/07 18:39:45 barry Exp $

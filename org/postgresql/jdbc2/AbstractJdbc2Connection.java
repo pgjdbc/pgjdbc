@@ -12,6 +12,7 @@ import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.GT;
 
 
 /* $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.6 2003/06/30 21:10:55 davec Exp $
@@ -182,7 +183,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 			hasResultSet = stat.getMoreResults();
 
 		if (!hasResultSet)
-			throw new PSQLException("postgresql.stat.noresult", PSQLState.NO_DATA);
+			throw new PSQLException(GT.tr("No results where returned by the query."), PSQLState.NO_DATA);
 
 		// Transfer warnings to the connection, since the user never
 		// has a chance to see the statement itself.
@@ -196,7 +197,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     public void execSQLUpdate(String s) throws SQLException {
 		BaseStatement stmt = (BaseStatement) createStatement();
 		if (stmt.executeWithFlags(s, QueryExecutor.QUERY_NO_METADATA | QueryExecutor.QUERY_NO_RESULTS | QueryExecutor.QUERY_SUPPRESS_BEGIN))
-			throw new PSQLException("postgresql.stat.result");
+			throw new PSQLException(GT.tr("A result was returned when none was expected."));
 
 		// Transfer warnings to the connection, since the user never
 		// has a chance to see the statement itself.
@@ -390,7 +391,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 		}
 		catch (Exception ex)
 		{
-			throw new PSQLException("postgresql.con.creobj", PSQLState.CONNECTION_FAILURE, type, ex);
+			throw new PSQLException(GT.tr("Failed to create object for: {0}.",type), PSQLState.CONNECTION_FAILURE, ex);
 		}
 	}
  
@@ -406,7 +407,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 	public void addDataType(String type, Class klass) throws SQLException
 	{
 		if (!org.postgresql.util.PGobject.class.isAssignableFrom(klass))
-			throw new PSQLException("postgresql.adddatatype.notpgobject", PSQLState.INVALID_PARAMETER_TYPE, klass.toString());
+			throw new PSQLException(GT.tr("The class {0} does not implement org.postgresql.util.PGobject.", klass.toString()), PSQLState.INVALID_PARAMETER_TYPE);
 		
 		synchronized (objectTypes) {
 			objectTypes.put(type, klass);
@@ -518,7 +519,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 	public void setReadOnly(boolean readOnly) throws SQLException
 	{
 		if (protoConnection.getTransactionState() != ProtocolConnection.TRANSACTION_IDLE)
-			throw new PSQLException("postgresql.con.changereadonly");
+			throw new PSQLException(GT.tr("Cannot change transaction read-only property in the middle of a transaction."));
 
 		if (haveMinimumServerVersion("7.4") && readOnly != this.readOnly) {
 			String readOnlySql = "SET SESSION CHARACTERISTICS AS TRANSACTION " + (readOnly ? "READ ONLY" : "READ WRITE");
@@ -689,11 +690,11 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 	public void setTransactionIsolation(int level) throws SQLException
 	{
 		if (protoConnection.getTransactionState() != ProtocolConnection.TRANSACTION_IDLE)
-			throw new PSQLException("postgresql.con.changeisolevel");
+			throw new PSQLException(GT.tr("Cannot change transaction isolation level in the middle of a transaction."));
 
 		String isolationLevelName = getIsolationLevelName(level);
 		if (isolationLevelName == null)
-			throw new PSQLException("postgresql.con.isolevel", PSQLState.TRANSACTION_STATE_INVALID, new Integer(level));
+			throw new PSQLException(GT.tr("Transaction isolation level {0} not supported.", new Integer(level)), PSQLState.TRANSACTION_STATE_INVALID);
 
 		String isolationLevelSQL = "SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL " + isolationLevelName;
 		execSQLUpdate(isolationLevelSQL); // nb: no BEGIN triggered
@@ -847,7 +848,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 		try {
 			return getEncoding().encode(str);
 		} catch (IOException ioe) {
-			throw new PSQLException("postgresql.con.invalidchar", PSQLState.DATA_ERROR, ioe);
+			throw new PSQLException(GT.tr("Unable to translate data into the desired encoding."), PSQLState.DATA_ERROR, ioe);
 		}
 	}
 
@@ -890,7 +891,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 			query.setString(1, typeName);
 
 			if (! ((BaseStatement)query).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN) )
-				throw new PSQLException("postgresql.stat.noresult", PSQLState.NO_DATA);
+				throw new PSQLException(GT.tr("No results where returned by the query."), PSQLState.NO_DATA);
 
 			ResultSet result = query.getResultSet();
 			if (result.next()) {
@@ -932,7 +933,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 			query.setInt(1, oid);
 
 			if (! ((BaseStatement)query).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN) )
-				throw new PSQLException("postgresql.stat.noresult", PSQLState.NO_DATA);
+				throw new PSQLException(GT.tr("No results where returned by the query."), PSQLState.NO_DATA);
 
 			ResultSet result = query.getResultSet();
 			if (result.next()) {

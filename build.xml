@@ -105,7 +105,7 @@
       </fileset>
 
       <fileset dir="${srcdir}">
-        <include name="${package}/*.properties" />
+        <include name="${package}/translation/*.class" />
       </fileset>
     </jar>
 

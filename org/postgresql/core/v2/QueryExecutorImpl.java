@@ -22,6 +22,7 @@ import org.postgresql.Driver;
 import org.postgresql.core.*;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.GT;
 
 /**
  * QueryExecutor implementation for the V2 protocol.
@@ -57,7 +58,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 			sendFastpathCall(fnid, (FastpathParameterList)parameters);
 			return receiveFastpathResult();
 		} catch (IOException ioe) {
-			throw new PSQLException("postgresql.con.ioerror", PSQLState.CONNECTION_FAILURE, ioe);
+			throw new PSQLException(GT.tr("An I/O error occured while sending to the backend."), PSQLState.CONNECTION_FAILURE, ioe);
 		}
 	}
 
@@ -121,7 +122,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 				}
 
 				if (c != '0')
-					throw new PSQLException("postgresql.con.type", PSQLState.CONNECTION_FAILURE, new Character((char) c));
+					throw new PSQLException(GT.tr("Unknown Response Type {0}.", new Character((char) c)), PSQLState.CONNECTION_FAILURE);
 
 				break;
 
@@ -132,7 +133,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 				break;
 
 			default:
-				throw new PSQLException("postgresql.con.type", PSQLState.CONNECTION_FAILURE, new Character((char) c));
+				throw new PSQLException(GT.tr("Unknown Response Type {0}.", new Character((char) c)), PSQLState.CONNECTION_FAILURE);
 			}
 			
 		}
@@ -248,7 +249,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 			processResults(query, handler, maxRows);
 		} catch (IOException e) {
 			protoConnection.close();
-			handler.handleError(new PSQLException("postgresql.con.ioerror", PSQLState.CONNECTION_FAILURE, e));
+			handler.handleError(new PSQLException(GT.tr("An I/O error occured while sending to the backend."), PSQLState.CONNECTION_FAILURE, e));
 		}
 
 		handler.handleCompletion();
@@ -439,7 +440,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 					insert_oid = Long.parseLong(status.substring(1 + status.indexOf(' '),
 																 status.lastIndexOf(' ')));
 			} catch (NumberFormatException nfe) {
-				handler.handleError(new PSQLException("postgresql.con.fathom", PSQLState.CONNECTION_FAILURE, status));
+				handler.handleError(new PSQLException(GT.tr("Unable to interpret the update count in command completion tag: {0}.", status), PSQLState.CONNECTION_FAILURE));
 				return;
 			}
 		}
