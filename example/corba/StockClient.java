@@ -4,7 +4,7 @@ import java.io.*;
 import java.sql.*;
 import org.omg.CosNaming.*;
 
-/**
+/*
  * This class is the frontend to our mini CORBA application.
  *
  * It has no GUI, just a text frontend to keep it simple.

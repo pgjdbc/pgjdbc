@@ -4,7 +4,7 @@ import java.io.*;
 import java.sql.*;
 import java.text.*;
 
-/**
+/*
  *
  * $Id$
  *
@@ -56,7 +56,7 @@ public class basic
 		//throw postgresql.Driver.notImplemented();
 	}
 
-	/**
+	/*
 	 * This drops the table (if it existed). No errors are reported.
 	 */
 	public void cleanup()
@@ -71,7 +71,7 @@ public class basic
 		}
 	}
 
-	/**
+	/*
 	 * This performs the example
 	 */
 	public void doexample() throws SQLException
@@ -178,7 +178,7 @@ public class basic
 		// cleanup() method.
 	}
 
-	/**
+	/*
 	 * Display some instructions on how to run the example
 	 */
 	public static void instructions()
@@ -188,7 +188,7 @@ public class basic
 		System.exit(1);
 	}
 
-	/**
+	/*
 	 * This little lot starts the test
 	 */
 	public static void main(String args[])

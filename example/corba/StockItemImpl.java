@@ -2,7 +2,7 @@ package example.corba;
 
 import org.omg.CosNaming.*;
 
-/**
+/*
  * This class implements the server side of the example.
  *
  * $Id$
@@ -28,7 +28,7 @@ public class StockItemImpl extends stock._StockItemImplBase
 		}
 	}
 
-	/**
+	/*
 	 * This is defined in stock.idl
 	 *
 	 * It sets the item to view
@@ -46,7 +46,7 @@ public class StockItemImpl extends stock._StockItemImplBase
 	}
 
 
-	/**
+	/*
 	 * This is defined in stock.idl
 	 *
 	 * It sets the item to view
@@ -63,7 +63,7 @@ public class StockItemImpl extends stock._StockItemImplBase
 		}
 	}
 
-	/**
+	/*
 	 * This is defined in stock.idl
 	 *
 	 * It returns the description of a Stock item
@@ -80,7 +80,7 @@ public class StockItemImpl extends stock._StockItemImplBase
 		}
 	}
 
-	/**
+	/*
 	 * This is defined in stock.idl
 	 *
 	 * It returns the description of a Stock item
@@ -97,7 +97,7 @@ public class StockItemImpl extends stock._StockItemImplBase
 		}
 	}
 
-	/**
+	/*
 	 * This is defined in stock.idl
 	 *
 	 * It returns the description of a Stock item
@@ -114,7 +114,7 @@ public class StockItemImpl extends stock._StockItemImplBase
 		}
 	}
 
-	/**
+	/*
 	 * This is defined in stock.idl
 	 *
 	 * It returns the description of a Stock item
@@ -131,7 +131,7 @@ public class StockItemImpl extends stock._StockItemImplBase
 		}
 	}
 
-	/**
+	/*
 	 * This is defined in stock.idl
 	 *
 	 * It returns the description of a Stock item
@@ -148,7 +148,7 @@ public class StockItemImpl extends stock._StockItemImplBase
 		}
 	}
 
-	/**
+	/*
 	 * This is defined in stock.idl
 	 *
 	 * It returns the description of a Stock item
@@ -165,7 +165,7 @@ public class StockItemImpl extends stock._StockItemImplBase
 		}
 	}
 
-	/**
+	/*
 	 * This is defined in stock.idl
 	 *
 	 * It returns the description of a Stock item
@@ -182,7 +182,7 @@ public class StockItemImpl extends stock._StockItemImplBase
 		}
 	}
 
-	/**
+	/*
 	 * This returns the highest id used, hence the number of items available
 	 */
 	public int getLastID() throws stock.StockException
@@ -197,7 +197,7 @@ public class StockItemImpl extends stock._StockItemImplBase
 		}
 	}
 
-	/**
+	/*
 	 * This is used by our Dispenser
 	 */
 	public String getInstanceName()

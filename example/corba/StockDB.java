@@ -2,7 +2,7 @@ package example.corba;
 
 import java.sql.*;
 
-/**
+/*
  * This class handles the JDBC side of things. It opens a connection to
  * the database, and performes queries on that database.
  *

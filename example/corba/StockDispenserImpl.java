@@ -2,7 +2,7 @@ package example.corba;
 
 import org.omg.CosNaming.*;
 
-/**
+/*
  * This class implements the server side of the example.
  *
  * $Id$
@@ -39,7 +39,7 @@ public class StockDispenserImpl extends stock._StockDispenserImplBase
 		}
 	}
 
-	/**
+	/*
 	 * This method, defined in stock.idl, reserves a slot in the dispenser
 	 */
 	public stock.StockItem reserveItem() throws stock.StockException
@@ -56,7 +56,7 @@ public class StockDispenserImpl extends stock._StockDispenserImplBase
 		return null;
 	}
 
-	/**
+	/*
 	 * This releases a slot from the dispenser
 	 */
 	public void releaseItem(stock.StockItem item) throws stock.StockException
@@ -74,7 +74,7 @@ public class StockDispenserImpl extends stock._StockDispenserImplBase
 		return ;
 	}
 
-	/**
+	/*
 	 * This class defines a slot in the dispenser
 	 */
 	class StockItemStatus
