@@ -158,30 +158,6 @@ public class LargeObject
 		args[0] = new FastpathArg(fd);
 		args[1] = new FastpathArg(len);
 		return fp.getData("loread", args);
-
-		// This version allows us to break this down into 4k blocks
-		//if (len<=4048) {
-		//// handle as before, return the whole block in one go
-		//FastpathArg args[] = new FastpathArg[2];
-		//args[0] = new FastpathArg(fd);
-		//args[1] = new FastpathArg(len);
-		//return fp.getData("loread",args);
-		//} else {
-		//// return in 4k blocks
-		//byte[] buf=new byte[len];
-		//int off=0;
-		//while (len>0) {
-		//int bs=4048;
-		//len-=bs;
-		//if (len<0) {
-		//bs+=len;
-		//len=0;
-		//}
-		//read(buf,off,bs);
-		//off+=bs;
-		//}
-		//return buf;
-		//}
 	}
 
 	/**
@@ -226,9 +202,10 @@ public class LargeObject
 	 */
 	public void write(byte buf[], int off, int len) throws SQLException
 	{
-		byte data[] = new byte[len];
-		System.arraycopy(buf, off, data, 0, len);
-		write(data);
+		FastpathArg args[] = new FastpathArg[2];
+		args[0] = new FastpathArg(fd);
+		args[1] = new FastpathArg(buf, off, len);
+		fp.fastpath("lowrite", false, args);
 	}
 
 	/**

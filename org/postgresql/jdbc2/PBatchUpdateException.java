@@ -15,34 +15,11 @@ class PBatchUpdateException extends java.sql.BatchUpdateException
 		String error, Object arg1, Object arg2, int[] updateCounts )
 	{
 
-		super(updateCounts);
-
-		Object[] argv = new Object[2];
-		argv[0] = arg1;
-		argv[1] = arg2;
-		translate(error, argv);
+		super(translate(error, new Object[] { arg1, arg2 }), updateCounts);
 	}
 
-	private void translate(String error, Object[] args)
+	private static String translate(String error, Object[] args)
 	{
-		message = MessageTranslator.translate(error, args);
-	}
-
-	// Overides Throwable
-	public String getLocalizedMessage()
-	{
-		return message;
-	}
-
-	// Overides Throwable
-	public String getMessage()
-	{
-		return message;
-	}
-
-	// Overides Object
-	public String toString()
-	{
-		return message;
+		return MessageTranslator.translate(error, args);
 	}
 }

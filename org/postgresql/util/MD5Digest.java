@@ -45,8 +45,8 @@ public class MD5Digest
 		{
 			md = MessageDigest.getInstance("MD5");
 
-			md.update(password.getBytes());
-			md.update(user.getBytes());
+			md.update(password.getBytes("US-ASCII"));
+			md.update(user.getBytes("US-ASCII"));
 			temp_digest = md.digest();
 
 			bytesToHex(temp_digest, hex_digest, 0);

@@ -107,6 +107,12 @@ public class PGcircle extends PGobject implements Serializable, Cloneable
 		return false;
 	}
 
+	public int hashCode()
+	{
+		long v = Double.doubleToLongBits(radius);
+		return (int) (center.hashCode() ^ v ^ (v>>>32));
+	}
+
 	public Object clone()
 	{
 		return new PGcircle((PGpoint)center.clone(), radius);

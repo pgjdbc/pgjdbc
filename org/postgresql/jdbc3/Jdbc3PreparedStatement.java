@@ -1,28 +1,16 @@
 package org.postgresql.jdbc3;
 
-
 import java.sql.*;
-import org.postgresql.PGRefCursorResultSet;
-import org.postgresql.core.BaseResultSet;
-import org.postgresql.core.BaseStatement;
-import org.postgresql.core.Field;
 
-public class Jdbc3PreparedStatement extends org.postgresql.jdbc3.AbstractJdbc3Statement implements java.sql.PreparedStatement
+class Jdbc3PreparedStatement extends Jdbc3Statement implements PreparedStatement
 {
-
-	public Jdbc3PreparedStatement(Jdbc3Connection connection, String sql) throws SQLException
+	Jdbc3PreparedStatement(Jdbc3Connection connection, String sql, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
 	{
-		super(connection, sql);
+		this(connection, sql, false, rsType, rsConcurrency, rsHoldability);
 	}
 
-	public BaseResultSet createResultSet (Field[] fields, java.util.Vector tuples, String status, int updateCount, long insertOID) throws SQLException
+	protected Jdbc3PreparedStatement(Jdbc3Connection connection, String sql, boolean isCallable, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
 	{
-                return new Jdbc3ResultSet((BaseStatement)this, fields, tuples, status, updateCount, insertOID);
-	}
-         
-  	public PGRefCursorResultSet createRefCursorResultSet (String cursorName) throws SQLException
-	{
-                return new Jdbc3RefCursorResultSet(this, cursorName);
+		super(connection, sql, isCallable, rsType, rsConcurrency, rsHoldability);
 	}
 }
-

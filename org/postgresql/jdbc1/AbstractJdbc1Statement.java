@@ -1,10 +1,6 @@
 package org.postgresql.jdbc1;
 
-import org.postgresql.core.BaseConnection;
-import org.postgresql.core.BaseResultSet;
-import org.postgresql.core.BaseStatement;
-import org.postgresql.core.Field;
-import org.postgresql.core.QueryExecutor;
+import org.postgresql.core.*;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.util.PGbytea;
@@ -12,6 +8,7 @@ import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import java.io.IOException;
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -33,7 +30,7 @@ import java.util.Vector;
  */
 public abstract class AbstractJdbc1Statement implements BaseStatement
 {
-        // The connection who created us
+	// The connection who created us
 	protected BaseConnection connection;
 
 	/** The warnings chain. */
@@ -50,8 +47,11 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 
 	protected boolean replaceProcessingEnabled = true;
 
-	/** The current results */
-	protected BaseResultSet result = null;
+	/** The current results. */
+	protected ResultWrapper result = null;
+
+	/** The first unclosed result. */
+	protected ResultWrapper firstUnclosedResult = null;
 
 	// Static variables for parsing SQL when replaceProcessing is true.
 	private static final short IN_SQLCODE = 0;
@@ -62,42 +62,13 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	// Some performance caches
 	private StringBuffer sbuf = new StringBuffer(32);
 
-	protected String[] m_sqlFragments;              // Query fragments.
-	private String[] m_executeSqlFragments;         // EXECUTE(...) if useServerPrepare
-	protected Object[] m_binds = new Object[0];     // Parameter values
+	protected final Query preparedQuery;              // Query fragments for prepared statement.
+	protected final ParameterList preparedParameters; // Parameter values for prepared statement.
 
-	protected String[] m_bindTypes = new String[0]; // Parameter types, for PREPARE(...)
-	protected String m_statementName = null;        // Allocated PREPARE statement name for server-prepared statements
-	protected String m_cursorName = null;           // Allocated DECLARE cursor name for cursor-based fetch
-
-	// Constants for allowXXX and m_isSingleStatement vars, below.
-	// The idea is to defer the cost of examining the query until we really need to know,
-	// but don't reexamine it every time thereafter.
-
-	private static final short UNKNOWN = 0;      // Don't know yet, examine the query.
-	private static final short NO = 1;           // Don't use feature
-	private static final short YES = 2;          // Do use feature
-
-	private short m_isSingleDML = UNKNOWN;         // Is the query a single SELECT/UPDATE/INSERT/DELETE?
-	private short m_isSingleSelect = UNKNOWN;      // Is the query a single SELECT?
-	private short m_isSingleStatement = UNKNOWN;   // Is the query a single statement?
-
-	private int m_prepareThreshold;                // Reuse threshold to enable use of PREPARE
-	private int m_useCount = 1;                    // Number of times this statement has been reused (plus 1)
-
-    // m_preparedCount is used for naming of auto-cursors and must
-    // be synchronized so that multiple threads using the same
-    // connection don't stomp over each others cursors.
-	private static int m_preparedCount = 1;
-    private synchronized static int next_preparedCount()
-    {
-        return m_preparedCount++;
-    }
+	protected int m_prepareThreshold;                // Reuse threshold to enable use of PREPARE
+	protected int m_useCount = 0;                    // Number of times this statement has been used
 
 	//Used by the callablestatement style methods
-	private static final String JDBC_SYNTAX = "{[? =] call <some_function> ([? [,?]*]) }";
-	private static final String RESULT_ALIAS = "result";
-	private String originalSql = "";
 	private boolean isFunction;
 	// functionReturnType contains the user supplied value to check
 	// testReturn contains a modified version to make it easier to
@@ -109,26 +80,32 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	protected Object callResult;
 	protected int maxfieldSize = 0;
 
-	public BaseResultSet createDriverResultSet(Field[] fields, Vector tuples) throws SQLException
+	public ResultSet createDriverResultSet(Field[] fields, Vector tuples)
+		throws SQLException
 	{
-		for (int i=0; i<fields.length; i++) {
-			fields[i].setFromServer(false);
-		}
-		return createResultSet(fields,tuples,"OK",1,0);
+		return createResultSet(null,fields,tuples,null);
 	}
 
-	public abstract BaseResultSet createResultSet(Field[] fields, Vector tuples, String status, int updateCount, long insertOID) throws SQLException;
-
+	public abstract ResultSet createResultSet(Query originalQuery, Field[] fields, Vector tuples, ResultCursor cursor)
+		throws SQLException;
+	
 	public AbstractJdbc1Statement (BaseConnection connection) throws SQLException
 	{
 		this.connection = connection;
-		setPrepareThreshold(connection.getPrepareThreshold());
+		this.preparedQuery = null;
+		this.preparedParameters = null;
 	}
 
-	public AbstractJdbc1Statement (BaseConnection connection, String p_sql) throws SQLException
+	public AbstractJdbc1Statement (BaseConnection connection, String p_sql, boolean isCallable) throws SQLException
 	{
-		this(connection);
-		parseSqlStmt(p_sql);  // this allows Callable stmt to override
+		this.connection = connection;
+
+		String parsed_sql = replaceProcessing(p_sql);
+		if (isCallable)
+			parsed_sql = modifyJdbcCall(parsed_sql);
+
+		this.preparedQuery = connection.getQueryExecutor().createParameterizedQuery(parsed_sql);
+		this.preparedParameters = preparedQuery.createParameterList();
 	}
 
 	public BaseConnection getPGConnection() {
@@ -136,7 +113,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	}
 
 	public String getFetchingCursorName() {
-		return m_cursorName;
+		return null;
 	}
 
 	public int getFetchSize() {
@@ -148,74 +125,51 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 		return false;
 	}
 
-	protected void parseSqlStmt (String p_sql) throws SQLException
-	{
-        checkClosed();
-		String l_sql = p_sql;
+	//
+	// ResultHandler implementations for updates, queries, and either-or.
+	//
 
-		l_sql = replaceProcessing(l_sql);
+	public class StatementResultHandler implements ResultHandler {
+		private SQLException error;
+		private ResultWrapper results;
 
-		if (this instanceof CallableStatement)
-		{
-			l_sql = modifyJdbcCall(l_sql);
+		ResultWrapper getResults() { return results; }
+
+		private void append(ResultWrapper newResult) {
+			if (results == null)
+				results = newResult;
+			else
+				results.append(newResult);
 		}
 
-		Vector v = new Vector();
-		boolean inQuotes = false;
-		int lastParmEnd = 0, i;
-
-		m_isSingleSelect = m_isSingleDML = UNKNOWN;
-		m_isSingleStatement = YES;
-
-		for (i = 0; i < l_sql.length(); ++i)
-		{
-			int c = l_sql.charAt(i);
-
-			if (c == '\'')
-				inQuotes = !inQuotes;
-			if (c == '?' && !inQuotes)
-			{
-				v.addElement(l_sql.substring (lastParmEnd, i));
-				lastParmEnd = i + 1;
-			}
-			if (c == ';' && !inQuotes)
-				m_isSingleStatement = m_isSingleSelect = m_isSingleDML = NO;
-		}
-		v.addElement(l_sql.substring (lastParmEnd, l_sql.length()));
-
-		m_sqlFragments = new String[v.size()];
-		m_binds = new Object[v.size() - 1];
-		m_bindTypes = new String[v.size() - 1];
-
-		for (i = 0 ; i < m_sqlFragments.length; ++i)
-			m_sqlFragments[i] = (String)v.elementAt(i);
-
-	}
-
-	/*
-	 * Deallocate resources allocated for the current query
-	 * in preparation for replacing it with a new query.
-	 */
-	protected void deallocateQuery()
-	{
-		//If we have already created a server prepared statement, we need
-		//to deallocate the existing one
-		if (m_statementName != null)
-		{
-			try
-			{
-				connection.execSQL("DEALLOCATE " + m_statementName);
-			}
-			catch (Exception e)
-			{
+		public void handleResultRows(Query fromQuery, Field[] fields, Vector tuples, ResultCursor cursor) {
+			try {
+				ResultSet rs = AbstractJdbc1Statement.this.createResultSet(fromQuery, fields, tuples, cursor);
+				append(new ResultWrapper(rs));
+			} catch (SQLException e) {
+				handleError(e);
 			}
 		}
 
-		m_statementName = null;
-		m_cursorName = null; // automatically closed at end of txn anyway
-		m_executeSqlFragments = null;
-		m_isSingleStatement = m_isSingleSelect = m_isSingleDML = UNKNOWN;
-		m_useCount = 1;
+		public void handleCommandStatus(String status, int updateCount, long insertOID) {
+			append(new ResultWrapper(updateCount, insertOID));
+		}
+
+		public void handleWarning(SQLWarning warning) {
+			AbstractJdbc1Statement.this.addWarning(warning);
+		}
+		
+		public void handleError(SQLException newError) {
+			if (error == null)
+				error = newError;
+			else
+				error.setNextException(newError);
+		}
+		
+		public void handleCompletion() throws SQLException {
+			if (error != null)
+				throw error;
+		}
 	}
 
 	/*
@@ -227,14 +181,16 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	 */
 	public java.sql.ResultSet executeQuery(String p_sql) throws SQLException
 	{
-        checkClosed();
-		deallocateQuery();
+		if (preparedQuery != null)
+			throw new PSQLException("postgresql.stmt.wrongstatementtype");
 
-		String l_sql = replaceProcessing(p_sql);
-		m_sqlFragments = new String[] {l_sql};
-		m_binds = new Object[0];
+		if (!executeWithFlags(p_sql, 0))
+			throw new PSQLException("postgresql.stat.noresult", PSQLState.NO_DATA);
 
-		return executeQuery();
+		if (result.getNext() != null)
+			throw new PSQLException("postgresql.stat.multi");
+
+		return (ResultSet)result.getResultSet();
 	}
 
 	/*
@@ -245,15 +201,14 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	 * @exception SQLException if a database access error occurs
 	 */
 	public java.sql.ResultSet executeQuery() throws SQLException
-	{
-
-       this.execute();
-
-		while (result != null && !result.reallyResultSet())
-			result = (BaseResultSet) result.getNext();
-		if (result == null)
+	{		
+		if (!executeWithFlags(0))
 			throw new PSQLException("postgresql.stat.noresult", PSQLState.NO_DATA);
-		return (ResultSet) result;
+
+		if (result.getNext() != null)
+			throw new PSQLException("postgresql.stat.multi");
+
+		return (ResultSet) result.getResultSet();
 	}
 
 	/*
@@ -267,14 +222,13 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	 */
 	public int executeUpdate(String p_sql) throws SQLException
 	{
-        checkClosed();
-		deallocateQuery();
+		if (preparedQuery != null)
+			throw new PSQLException("postgresql.stmt.wrongstatementtype");
 
-		String l_sql = replaceProcessing(p_sql);
-		m_sqlFragments = new String[] {l_sql};
-		m_binds = new Object[0];
+		if (executeWithFlags(p_sql, QueryExecutor.QUERY_NO_RESULTS))
+			throw new PSQLException("postgresql.stat.result");
 
-		return executeUpdate();
+		return getUpdateCount();
 	}
 
 	/*
@@ -288,10 +242,10 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	 */
 	public int executeUpdate() throws SQLException
 	{
-		this.execute();
-		if (result.reallyResultSet())
+		if (executeWithFlags(QueryExecutor.QUERY_NO_RESULTS))
 			throw new PSQLException("postgresql.stat.result");
-		return this.getUpdateCount();
+
+		return getUpdateCount();
 	}
 
 	/*
@@ -307,258 +261,91 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	 */
 	public boolean execute(String p_sql) throws SQLException
 	{
+		if (preparedQuery != null)
+			throw new PSQLException("postgresql.stmt.wrongstatementtype");
+
+		return executeWithFlags(p_sql, 0);
+	}
+
+	public boolean executeWithFlags(String p_sql, int flags) throws SQLException
+	{
         checkClosed();
-		deallocateQuery();
-
-		String l_sql = replaceProcessing(p_sql);
-		m_sqlFragments = new String[] {l_sql};
-		m_binds = new Object[0];
-
-		return execute();
+		p_sql = replaceProcessing(p_sql);
+		Query simpleQuery = connection.getQueryExecutor().createSimpleQuery(p_sql);
+		execute(simpleQuery, null, QueryExecutor.QUERY_ONESHOT | flags);
+		return (result != null && result.getResultSet() != null);
 	}
 
-	/*
-	 * Check if the current query is a single statement.
-	 */
-	private boolean isSingleStatement()
-	{
-		if (m_isSingleStatement != UNKNOWN)
-			return m_isSingleStatement == YES;
-
-		// Crude detection of multiple statements. This could be
-		// improved by parsing the whole query for quotes, but is
-		// it worth it given that the only queries that get here are
-		// unparameterized queries?
-
-		for (int i = 0; i < m_sqlFragments.length; ++i) { // a bit redundant, but ..
-			if (m_sqlFragments[i].indexOf(';') != -1) {
-				m_isSingleStatement = NO;
-				return false;
-			}
-		}
-
-		m_isSingleStatement = YES;
-		return true;
-	}
-
-	/*
-	 * Helper for isSingleSelect() and isSingleDML(): computes values
-	 * of m_isSingleDML and m_isSingleSelect.
-	 */
-	private void analyzeStatementType()
-	{
-		if (!isSingleStatement()) {
-			m_isSingleSelect = m_isSingleDML = NO;
-			return;
-		}
-
-		String compare = m_sqlFragments[0].trim().toLowerCase();
-		if (compare.startsWith("select")) {
-			m_isSingleSelect = m_isSingleDML = YES;
-			return;
-		}
-
-		m_isSingleSelect = NO;
-
-		if (!compare.startsWith("update") &&
-			!compare.startsWith("delete") &&
-			!compare.startsWith("insert")) {
-			m_isSingleDML = NO;
-			return;
-		}
-
-		m_isSingleDML = YES;
-	}
-
-	/*
-	 * Check if the current query is a single SELECT.
-	 */
-	private boolean isSingleSelect()
-	{
-		if (m_isSingleSelect == UNKNOWN)
-			analyzeStatementType();
-
-		return m_isSingleSelect == YES;
-	}
-
-	/*
-	 * Check if the current query is a single SELECT/UPDATE/INSERT/DELETE.
-	 */
-	private boolean isSingleDML()
-	{
-		if (m_isSingleDML == UNKNOWN)
-			analyzeStatementType();
-
-		return m_isSingleDML == YES;
-	}
-
-	/*
-	 * Return the query fragments to use for a server-prepared statement.
-	 * The first query executed will include a PREPARE and EXECUTE;
-	 * subsequent queries will just be an EXECUTE.
-	 */
-	private String[] transformToServerPrepare() {
-		if (m_statementName != null)
-			return m_executeSqlFragments;
-
-		// First time through.
-		m_statementName = "JDBC_STATEMENT_" + m_preparedCount++;
-
-		// Set up m_executeSqlFragments
-		m_executeSqlFragments = new String[m_sqlFragments.length];
-		m_executeSqlFragments[0] = "EXECUTE " + m_statementName;
-		if (m_sqlFragments.length > 1) {
-			m_executeSqlFragments[0] += "(";
-			for (int i = 1; i < m_bindTypes.length; i++)
-				m_executeSqlFragments[i] = ", ";
-			m_executeSqlFragments[m_bindTypes.length] = ")";
-		}
-
-		// Set up the PREPARE.
-		String[] prepareSqlFragments = new String[m_sqlFragments.length];
-		System.arraycopy(m_sqlFragments, 0, prepareSqlFragments, 0, m_sqlFragments.length);
-
-		synchronized (sbuf) {
-			sbuf.setLength(0);
-			sbuf.append("PREPARE ");
-			sbuf.append(m_statementName);
-			if (m_sqlFragments.length > 1) {
-				sbuf.append("(");
-				for (int i = 0; i < m_bindTypes.length; i++) {
-					if (i != 0) sbuf.append(", ");
-					sbuf.append(m_bindTypes[i]);
-				}
-				sbuf.append(")");
-			}
-			sbuf.append(" AS ");
-			sbuf.append(m_sqlFragments[0]);
-			for (int i = 1; i < m_sqlFragments.length; i++) {
-				sbuf.append(" $");
-				sbuf.append(i);
-				sbuf.append(" ");
-				sbuf.append(m_sqlFragments[i]);
-			}
-			sbuf.append("; ");
-			sbuf.append(m_executeSqlFragments[0]);
-
-			prepareSqlFragments[0] = sbuf.toString();
-		}
-
-		System.arraycopy(m_executeSqlFragments, 1, prepareSqlFragments, 1, prepareSqlFragments.length - 1);
-		return prepareSqlFragments;
-	}
-
-	/*
-	 * Return the current query transformed into a cursor-based statement.
-	 * This uses a new cursor on each query.
-	 */
-	private String[] transformToCursorFetch()
-	{
-
-		// Pinch the prepared count for our own nefarious purposes.
-		m_cursorName = "JDBC_CURS_" + m_preparedCount++;
-
-		// Create a cursor declaration and initial fetch statement from the original query.
-		int len = m_sqlFragments.length;
-		String[] cursorBasedSql = new String[len];
-		System.arraycopy(m_sqlFragments, 0, cursorBasedSql, 0, len);
-		cursorBasedSql[0] = "DECLARE " + m_cursorName + " CURSOR FOR " + cursorBasedSql[0];
-		cursorBasedSql[len-1] += "; FETCH FORWARD " + fetchSize + " FROM " + m_cursorName;
-
-		// Make the cursor based query the one that will be used.
-		if (org.postgresql.Driver.logDebug)
-			org.postgresql.Driver.debug("using cursor based sql with cursor name " + m_cursorName);
-
-		return cursorBasedSql;
-	}
-
-	/**
-	 * Do transformations to a query for server-side prepare or setFetchSize() cursor
-	 * work.
-	 * @return the query fragments to execute
-	 */
-	private String[] getQueryFragments()
-	{
-		// nb: isSingleXXX() are relatively expensive, avoid calling them unless we must.
-
-		// We check the "mutable" bits of these conditions (which may change without
-		// a new query being created) here; isSingleXXX() only concern themselves with
-		// the query structure itself.
-
-		// We prefer cursor-based-fetch over server-side-prepare here.
-		// Eventually a v3 implementation should let us do both at once.
-		if (fetchSize > 0 && !wantsScrollableResultSet() && !connection.getAutoCommit() && isSingleSelect())
-			return transformToCursorFetch();
-
-		if (isUseServerPrepare() && isSingleDML())
-			return transformToServerPrepare();
-
-		// Not server-prepare or cursor-fetch, just return a plain query.
-		return m_sqlFragments;
-	}
-
-	/*
-	 * Some prepared statements return multiple results; the execute method
-	 * handles these complex statements as well as the simpler form of
-	 * statements handled by executeQuery and executeUpdate
-	 *
-	 * @return true if the next result is a ResultSet; false if it is an
-	 *		 update count or there are no more results
-	 * @exception SQLException if a database access error occurs
-	 */
 	public boolean execute() throws SQLException
+	{
+		return executeWithFlags(0);
+	}
+
+	private boolean executeWithFlags(int flags) throws SQLException
 	{
         checkClosed();
 		if (isFunction && !returnTypeSet)
 			throw new PSQLException("postgresql.call.noreturntype", PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
-		if (isFunction)
-		{ // set entry 1 to dummy entry..
-			m_binds[0] = ""; // dummy entry which ensured that no one overrode
-			m_bindTypes[0] = PG_TEXT;
-			// and calls to setXXX (2,..) really went to first arg in a function call..
-		}
 
-		// New in 7.1, if we have a previous resultset then force it to close
-		// This brings us nearer to compliance, and helps memory management.
-		// Internal stuff will call ExecSQL directly, bypassing this.
+		execute(preparedQuery, preparedParameters, flags);
 
-		if (result != null)
-		{
-			java.sql.ResultSet rs = getResultSet();
-			if (rs != null)
-				rs.close();
-		}
-
-		// Get the actual query fragments to run (might be a transformed version of
-		// the original fragments)
-		String[] fragments = getQueryFragments();
-		++m_useCount; // We used this statement once more.
-
-		// New in 7.1, pass Statement so that ExecSQL can customise to it
-		result = QueryExecutor.execute(fragments,
-									   m_binds,
-									   this);
-
-		//If we are executing a callable statement function set the return data
+		// If we are executing a callable statement function set the return data
 		if (isFunction)
 		{
-			if (!result.reallyResultSet())
+			if (result == null || result.getResultSet() == null)
 				throw new PSQLException("postgresql.call.noreturnval", PSQLState.NO_DATA);
-			if (!result.next ())
+
+			ResultSet rs = result.getResultSet();
+			if (!rs.next())
 				throw new PSQLException ("postgresql.call.noreturnval", PSQLState.NO_DATA);
-			callResult = result.getObject(1);
-			int columnType = result.getMetaData().getColumnType(1);
+
+			callResult = rs.getObject(1);
+			int columnType = rs.getMetaData().getColumnType(1);
 			if (columnType != functionReturnType)
 				throw new PSQLException ("postgresql.call.wrongrtntype", PSQLState.DATA_TYPE_MISMATCH, null,
 										 new Object[]{
 											 "java.sql.Types=" + columnType, "java.sql.Types=" + functionReturnType });
-			result.close ();
-			return true;
+
+			rs.close();
+			result = null;
+			return false;
 		}
-		else
-		{
-			return (result != null && result.reallyResultSet());
+
+		return (result != null && result.getResultSet() != null);
+	}
+
+	protected void execute(Query queryToExecute, ParameterList queryParameters, int flags) throws SQLException {
+		// Close any existing resultsets associated with this statement.
+		while (firstUnclosedResult != null) {
+			if (firstUnclosedResult.getResultSet() != null)
+				firstUnclosedResult.getResultSet().close();
+			firstUnclosedResult = firstUnclosedResult.getNext();
 		}
+
+
+		// Enable cursor-based resultset if possible.
+		if (fetchSize > 0 && !wantsScrollableResultSet())
+			flags |= QueryExecutor.QUERY_FORWARD_CURSOR;
+
+		// Only use named statements after we hit the threshold
+		if (preparedQuery != null) {
+			++m_useCount; // We used this statement once more.
+			if (m_prepareThreshold == 0 || m_useCount < m_prepareThreshold)
+				flags |= QueryExecutor.QUERY_ONESHOT;
+		}
+
+		if (connection.getAutoCommit())
+			flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
+
+		StatementResultHandler handler = new StatementResultHandler();
+		result = null;
+		connection.getQueryExecutor().execute(queryToExecute,
+											  queryParameters,
+											  handler,
+											  maxrows,
+											  fetchSize,
+											  flags);
+		result = firstUnclosedResult = handler.getResults();
 	}
 
 	/*
@@ -574,16 +361,13 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	 * generated the ResultSet being used for positioning.	Also, cursor
 	 * names must be unique within a Connection.
 	 *
-	 * <p>We throw an additional constriction.	There can only be one
-	 * cursor active at any one time.
-	 *
 	 * @param name the new cursor name
 	 * @exception SQLException if a database access error occurs
 	 */
 	public void setCursorName(String name) throws SQLException
 	{
         checkClosed();
-		connection.setCursorName(name);
+		// No-op.
 	}
 
 	private boolean isClosed = false;
@@ -601,11 +385,14 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 		checkClosed();
 		if (result == null)
 			return -1;
+
 		if (isFunction)
 			return 1;
-		if (result.reallyResultSet())
+
+		if (result.getResultSet() != null)
 			return -1;
-		return result.getResultCount();
+
+		return result.getUpdateCount();
 	}
 
 	/*
@@ -617,24 +404,19 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	 */
 	public boolean getMoreResults() throws SQLException
 	{
-		checkClosed();
-		result = (BaseResultSet) result.getNext();
-		return (result != null && result.reallyResultSet());
-	}
-
-
-
-	/*
-	 * Returns the status message from the current Result.<p>
-	 * This is used internally by the driver.
-	 *
-	 * @return status message from backend
-	 */
-	public String getResultStatusString()
-	{
 		if (result == null)
-			return null;
-		return result.getStatusString();
+			return false;
+
+		result = result.getNext();
+
+		// Close preceding resultsets.
+		while (firstUnclosedResult != result) {
+			if (firstUnclosedResult.getResultSet() != null)
+				firstUnclosedResult.getResultSet().close();
+			firstUnclosedResult = firstUnclosedResult.getNext();
+		}
+
+		return (result != null && result.getResultSet() != null);
 	}
 
 	/*
@@ -750,7 +532,6 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	 */
 	public int getMaxFieldSize() throws SQLException
 	{
-        checkClosed();
 		return maxfieldSize;
 	}
 
@@ -801,9 +582,11 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	public java.sql.ResultSet getResultSet() throws SQLException
 	{
         checkClosed();
-		if (result != null && result.reallyResultSet())
-			return (ResultSet) result;
-		return null;
+
+		if (result == null)
+			return null;
+
+		return (ResultSet) result.getResultSet();
 	}
 
 	/*
@@ -824,16 +607,20 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 		if (isClosed)
 			return;
 
-		// Force the ResultSet to close
-		java.sql.ResultSet rs = getResultSet();
-		if (rs != null)
-			rs.close();
+		// Force the ResultSet(s) to close
+		while (firstUnclosedResult != null) {
+			if (firstUnclosedResult.getResultSet() != null)
+				firstUnclosedResult.getResultSet().close();
+			firstUnclosedResult = firstUnclosedResult.getNext();
+		}
 
-		deallocateQuery();
 
-		// Disasociate it from us (For Garbage Collection)
-		result = null;
-		isClosed=true;
+		if (preparedQuery != null)
+			preparedQuery.close();
+
+		// Disasociate it from us
+		result = firstUnclosedResult = null;
+		isClosed = true;
 	}
 
  	/**
@@ -943,7 +730,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
         checkClosed();
 		if (result == null)
 			return 0;
-		return (int) result.getLastOID();
+		return (int) result.getInsertOID();
 	}
 
 	/*
@@ -956,7 +743,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
         checkClosed();
 		if (result == null)
 			return 0;
-		return result.getLastOID();
+		return result.getInsertOID();
 	}
 
 	/*
@@ -972,59 +759,60 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	public void setNull(int parameterIndex, int sqlType) throws SQLException
 	{
 		checkClosed();
-        String l_pgType;
+
+		int oid;
 		switch (sqlType)
 		{
 			case Types.INTEGER:
-				l_pgType = PG_INTEGER;
+				oid = Oid.INT4;
 				break;
 			case Types.TINYINT:
 			case Types.SMALLINT:
-				l_pgType = PG_INT2;
+				oid = Oid.INT2;
 				break;
 			case Types.BIGINT:
-				l_pgType = PG_INT8;
+				oid = Oid.INT8;
 				break;
 			case Types.REAL:
 			case Types.FLOAT:
-				l_pgType = PG_FLOAT;
+				oid = Oid.FLOAT4;
 				break;
 			case Types.DOUBLE:
-				l_pgType = PG_DOUBLE;
+				oid = Oid.FLOAT8;
 				break;
 			case Types.DECIMAL:
 			case Types.NUMERIC:
-				l_pgType = PG_NUMERIC;
+				oid = Oid.NUMERIC;
 				break;
 			case Types.CHAR:
 			case Types.VARCHAR:
 			case Types.LONGVARCHAR:
-				l_pgType = PG_TEXT;
+				oid = Oid.TEXT;
 				break;
 			case Types.DATE:
-				l_pgType = PG_DATE;
+				oid = Oid.DATE;
 				break;
 			case Types.TIME:
-				l_pgType = PG_TIME;
+				oid = Oid.TIME;
 				break;
 			case Types.TIMESTAMP:
-				l_pgType = PG_TIMESTAMPTZ;
+				oid = Oid.TIMESTAMPTZ;
 				break;
 			case Types.BIT:
-				l_pgType = PG_BOOLEAN;
+				oid = Oid.BOOL;
 				break;
 			case Types.BINARY:
 			case Types.VARBINARY:
 			case Types.LONGVARBINARY:
-				l_pgType = PG_BYTEA;
+				oid = Oid.BYTEA;
 				break;
 			case Types.OTHER:
-				l_pgType = PG_TEXT;
-				break;
 			default:
-				l_pgType = PG_TEXT;
+				oid = 0;
+				break;
 		}
-		bind(parameterIndex, "null", l_pgType);
+
+		preparedParameters.setNull(adjustParamIndex(parameterIndex), oid);
 	}
 
 	/*
@@ -1038,7 +826,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	public void setBoolean(int parameterIndex, boolean x) throws SQLException
 	{
         checkClosed();
-        bind(parameterIndex, x ? "'1'" : "'0'", PG_BOOLEAN);
+        bindString(parameterIndex, x ? "1" : "0", Oid.BOOL);
 	}
 
 	/*
@@ -1052,7 +840,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	public void setByte(int parameterIndex, byte x) throws SQLException
 	{
         checkClosed();
-		bind(parameterIndex, Integer.toString(x), PG_INT2);
+		bindLiteral(parameterIndex, Integer.toString(x), Oid.INT2);
 	}
 
 	/*
@@ -1066,7 +854,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	public void setShort(int parameterIndex, short x) throws SQLException
 	{
 		checkClosed();
-		bind(parameterIndex, Integer.toString(x), PG_INT2);
+		bindLiteral(parameterIndex, Integer.toString(x), Oid.INT2);
 	}
 
 	/*
@@ -1080,7 +868,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	public void setInt(int parameterIndex, int x) throws SQLException
 	{
 		checkClosed();
-		bind(parameterIndex, Integer.toString(x), PG_INTEGER);
+		bindLiteral(parameterIndex, Integer.toString(x), Oid.INT4);
 	}
 
 	/*
@@ -1094,7 +882,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	public void setLong(int parameterIndex, long x) throws SQLException
 	{
 		checkClosed();
-		bind(parameterIndex, Long.toString(x), PG_INT8);
+		bindLiteral(parameterIndex, Long.toString(x), Oid.INT8);
 	}
 
 	/*
@@ -1108,7 +896,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	public void setFloat(int parameterIndex, float x) throws SQLException
 	{
 		checkClosed();
-		bind(parameterIndex, Float.toString(x), PG_FLOAT);
+		bindLiteral(parameterIndex, Float.toString(x), Oid.FLOAT4);
 	}
 
 	/*
@@ -1122,7 +910,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	public void setDouble(int parameterIndex, double x) throws SQLException
 	{
 		checkClosed();
-		bind(parameterIndex, Double.toString(x), PG_DOUBLE);
+		bindLiteral(parameterIndex, Double.toString(x), Oid.FLOAT8);
 	}
 
 	/*
@@ -1141,7 +929,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 			setNull(parameterIndex, Types.DECIMAL);
 		else
 		{
-			bind(parameterIndex, x.toString(), PG_NUMERIC);
+			bindLiteral(parameterIndex, x.toString(), Oid.NUMERIC);
 		}
 	}
 
@@ -1158,50 +946,18 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	public void setString(int parameterIndex, String x) throws SQLException
 	{
 		checkClosed();
-		setString(parameterIndex, x, PG_TEXT);
+		setString(parameterIndex, x, Oid.TEXT);
 	}
 
-	public void setString(int parameterIndex, String x, String type) throws SQLException
+	protected void setString(int parameterIndex, String x, int oid) throws SQLException
 	{
 		// if the passed string is null, then set this column to null
 		checkClosed();
 		if (x == null)
-			setNull(parameterIndex, Types.VARCHAR);
+			preparedParameters.setNull(adjustParamIndex(parameterIndex), oid);
 		else
-		{
-			// use the shared buffer object. Should never clash but this makes
-			// us thread safe!
-			synchronized (sbuf)
-			{
-				sbuf.setLength(0);
-				sbuf.ensureCapacity(2 + x.length() + (int)(x.length() / 10));
-				sbuf.append('\'');
-				escapeString(x, sbuf);
-				sbuf.append('\'');
-				bind(parameterIndex, sbuf.toString(), type);
-			}
-		}
+			bindString(parameterIndex, x, oid);
 	}
-
-    private void escapeString(String p_input, StringBuffer p_output) {
-        for (int i = 0 ; i < p_input.length() ; ++i)
-        {
-            char c = p_input.charAt(i);
-			switch (c)
-			{
-			    case '\\':
-			    case '\'':
-					p_output.append('\\');
-					p_output.append(c);
-					break;
-			    case '\0':
-					throw new IllegalArgumentException("\\0 not allowed");
-				default:
-					p_output.append(c);
-			}
-        }
-    }
-
 
 	/*
 	 * Set a parameter to a Java array of bytes.  The driver converts this
@@ -1217,20 +973,21 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	 * @param x the parameter value
 	 * @exception SQLException if a database access error occurs
 	 */
-	public void setBytes(int parameterIndex, byte x[]) throws SQLException
+	public void setBytes(int parameterIndex, byte[] x) throws SQLException
 	{
 		checkClosed();
+
+		if (null == x) {
+			setNull(parameterIndex, Types.VARBINARY);
+			return;
+		}
+
 		if (connection.haveMinimumCompatibleVersion("7.2"))
 		{
 			//Version 7.2 supports the bytea datatype for byte arrays
-			if (null == x)
-			{
-				setNull(parameterIndex, Types.VARBINARY);
-			}
-			else
-			{
-				setString(parameterIndex, PGbytea.toPGString(x), PG_BYTEA);
-			}
+			byte[] copy = new byte[x.length];
+			System.arraycopy(x, 0, copy, 0, x.length);
+			preparedParameters.setBytea(adjustParamIndex(parameterIndex), copy, 0, x.length);
 		}
 		else
 		{
@@ -1261,7 +1018,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 		}
 		else
 		{
-			bind(parameterIndex, "'" + x.toString() + "'", PG_DATE);
+			bindString(parameterIndex, x.toString(), Oid.DATE);
 		}
 	}
 
@@ -1282,7 +1039,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 		}
 		else
 		{
-			bind(parameterIndex, "'" + x.toString() + "'", PG_TIME);
+			bindString(parameterIndex, x.toString(), Oid.TIME);
 		}
 	}
 
@@ -1308,7 +1065,6 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 			{
 				sbuf.setLength(0);
 				sbuf.ensureCapacity(32);
-				sbuf.append("'");
 				//format the timestamp
 				//we do our own formating so that we can get a format
 				//that works with both timestamp with time zone and
@@ -1400,8 +1156,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 						sbuf.append(-l_minos);
 					}
 				}
-				sbuf.append("'");
-				bind(parameterIndex, sbuf.toString(), PG_TIMESTAMPTZ);
+				bindString(parameterIndex, sbuf.toString(), Oid.TIMESTAMPTZ);
 			}
 
 		}
@@ -1439,7 +1194,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 					break;
 			}
 
-			setString(parameterIndex, new String(l_chars, 0, l_charsRead), PG_TEXT);
+			setString(parameterIndex, new String(l_chars, 0, l_charsRead), Oid.TEXT);
 		}
 		catch (UnsupportedEncodingException l_uee)
 		{
@@ -1529,52 +1284,21 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	public void setBinaryStream(int parameterIndex, InputStream x, int length) throws SQLException
 	{
 		checkClosed();
+
+		if (x == null) {
+			setNull(parameterIndex, Types.VARBINARY);
+			return;
+		}
+
 		if (connection.haveMinimumCompatibleVersion("7.2"))
 		{
-			if (x == null)
-			{
-				setNull(parameterIndex, Types.VARBINARY);
-				return;
-			}
-
 			//Version 7.2 supports BinaryStream for for the PG bytea type
 			//As the spec/javadoc for this method indicate this is to be used for
 			//large binary values (i.e. LONGVARBINARY)	PG doesn't have a separate
 			//long binary datatype, but with toast the bytea datatype is capable of
-			//handling very large values.  Thus the implementation ends up calling
-			//setBytes() since there is no current way to stream the value to the server
-			byte[] l_bytes = new byte[length];
-			int l_bytesRead = 0;
-			try
-			{
-				while (true)
-				{
-					int n = x.read(l_bytes, l_bytesRead, length - l_bytesRead);
-					if (n == -1)
-						break;
+			//handling very large values.
 
-					l_bytesRead += n;
-
-					if (l_bytesRead == length)
-						break;
-
-				}
-			}
-			catch (IOException l_ioe)
-			{
-				throw new PSQLException("postgresql.unusual", PSQLState.UNEXPECTED_ERROR, l_ioe);
-			}
-			if (l_bytesRead == length)
-			{
-				setBytes(parameterIndex, l_bytes);
-			}
-			else
-			{
-				//the stream contained less data than they said
-				byte[] l_bytes2 = new byte[l_bytesRead];
-				System.arraycopy(l_bytes, 0, l_bytes2, 0, l_bytesRead);
-				setBytes(parameterIndex, l_bytes2);
-			}
+			preparedParameters.setBytea(adjustParamIndex(parameterIndex), x, length);
 		}
 		else
 		{
@@ -1621,13 +1345,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	 */
 	public void clearParameters() throws SQLException
 	{
-		int i;
-
-		for (i = 0 ; i < m_binds.length ; i++)
-		{
-			m_binds[i] = null;
-			m_bindTypes[i] = null;
-		}
+		preparedParameters.clear();
 	}
 
 	// Helper method that extracts numeric values from an arbitary Object.
@@ -1675,25 +1393,25 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 		switch (targetSqlType)
 		{
 			case Types.INTEGER:
-				bind(parameterIndex, numericValueOf(x), PG_INTEGER);
+				bindLiteral(parameterIndex, numericValueOf(x), Oid.INT4);
 				break;
 			case Types.TINYINT:
 			case Types.SMALLINT:
-				bind(parameterIndex, numericValueOf(x), PG_INT2);
+				bindLiteral(parameterIndex, numericValueOf(x), Oid.INT2);
 				break;
 			case Types.BIGINT:
-				bind(parameterIndex, numericValueOf(x), PG_INT8);
+				bindLiteral(parameterIndex, numericValueOf(x), Oid.INT8);
 				break;
 			case Types.REAL:
 			case Types.FLOAT:
-				bind(parameterIndex, numericValueOf(x), PG_FLOAT);
+				bindLiteral(parameterIndex, numericValueOf(x), Oid.FLOAT4);
 				break;
 			case Types.DOUBLE:
-				bind(parameterIndex, numericValueOf(x), PG_DOUBLE);
+				bindLiteral(parameterIndex, numericValueOf(x), Oid.FLOAT8);
 				break;
 			case Types.DECIMAL:
 			case Types.NUMERIC:
-				bind(parameterIndex, numericValueOf(x), PG_NUMERIC);
+				bindLiteral(parameterIndex, numericValueOf(x), Oid.NUMERIC);
 				break;
 			case Types.CHAR:
 			case Types.VARCHAR:
@@ -1730,15 +1448,15 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 			case Types.BIT:
 				if (x instanceof Boolean)
 				{
-					bind(parameterIndex, ((Boolean)x).booleanValue() ? "'1'" : "'0'", PG_BOOLEAN);
+					bindString(parameterIndex, ((Boolean)x).booleanValue() ? "1" : "0", Oid.BOOL);
 				}
 				else if (x instanceof String)
 				{
-					bind(parameterIndex, Boolean.valueOf(x.toString()).booleanValue() ? "'1'" : "'0'", PG_BOOLEAN);
+					bindString(parameterIndex, Boolean.valueOf(x.toString()).booleanValue() ? "1" : "0", Oid.BOOL);
 				}
 				else if (x instanceof Number)
 				{
-					bind(parameterIndex, ((Number)x).intValue()!=0 ? "'1'" : "'0'", PG_BOOLEAN);
+					bindString(parameterIndex, ((Number)x).intValue()!=0 ? "1" : "0", Oid.BOOL);
 				}
 				else
 				{
@@ -1752,7 +1470,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 				break;
 			case Types.OTHER:
 				if (x instanceof PGobject)
-					setString(parameterIndex, ((PGobject)x).getValue(), ((PGobject)x).getType());
+					setString(parameterIndex, ((PGobject)x).getValue(), connection.getPGType( ((PGobject)x).getType() ));
 				else
 					throw new PSQLException("postgresql.prep.type", PSQLState.INVALID_PARAMETER_TYPE);
 				break;
@@ -1775,7 +1493,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 		if (x == null)
 		{
 			setNull(parameterIndex, Types.OTHER);
-			return ;
+			return;
 		}
 		if (x instanceof String)
 			setString(parameterIndex, (String)x);
@@ -1802,10 +1520,10 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 		else if (x instanceof Boolean)
 			setBoolean(parameterIndex, ((Boolean)x).booleanValue());
 		else if (x instanceof PGobject)
-			setString(parameterIndex, ((PGobject)x).getValue(), PG_TEXT);
+			setString(parameterIndex, ((PGobject)x).getValue(), connection.getPGType(((PGobject)x).getType()));
 		else
 			// Try to store as a string in database
-			setString(parameterIndex, x.toString(), PG_TEXT);
+			setString(parameterIndex, x.toString(), 0);
 	}
 
 	/*
@@ -1831,7 +1549,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 		if (parameterIndex != 1)
 			throw new PSQLException ("postgresql.call.noinout", PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
 		if (!isFunction)
-			throw new PSQLException ("postgresql.call.procasfunc", PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL,originalSql);
+			throw new PSQLException ("postgresql.call.procasfunc", PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
 
 		// functionReturnType contains the user supplied value to check
 		// testReturn contains a modified version to make it easier to
@@ -2121,25 +1839,20 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	 */
 	public String toString()
 	{
-		if (m_sqlFragments == null)
+		if (preparedQuery == null)
 			return super.toString();
 
-		synchronized (sbuf)
-		{
-			sbuf.setLength(0);
-			int i;
+		return preparedQuery.toString(preparedParameters);
+	}
 
-			for (i = 0 ; i < m_binds.length ; ++i)
-			{
-				sbuf.append (m_sqlFragments[i]);
-				if (m_binds[i] == null)
-					sbuf.append( '?' );
-				else
-					sbuf.append (m_binds[i]);
-			}
-			sbuf.append(m_sqlFragments[m_binds.length]);
-			return sbuf.toString();
-		}
+	private int adjustParamIndex(int paramIndex) throws SQLException {
+		if (!isFunction)
+			return paramIndex;
+
+		if (paramIndex == 1) // need to registerOut instead
+			throw new PSQLException ("postgresql.call.funcover");
+		
+		return paramIndex - 1;
 	}
 
 	/*
@@ -2148,72 +1861,177 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
      * most calls to this method do not require escaping as the source
      * of the string is known safe (i.e. Integer.toString())
 	 */
-	private void bind(int paramIndex, Object s, String type) throws SQLException
+	private void bindLiteral(int paramIndex, String s, int oid) throws SQLException
 	{
-		if (paramIndex < 1 || paramIndex > m_binds.length)
-			throw new PSQLException("postgresql.prep.range", PSQLState.INVALID_PARAMETER_VALUE);
-		if (paramIndex == 1 && isFunction) // need to registerOut instead
-			throw new PSQLException ("postgresql.call.funcover");
-		m_binds[paramIndex - 1] = s;
-		m_bindTypes[paramIndex - 1] = type;
+		preparedParameters.setLiteralParameter(adjustParamIndex(paramIndex), s, oid);
+	}
+
+	/*
+	 * This version is for values that should turn into strings
+	 * e.g. setString directly calls bindString with no escaping;
+	 * the per-protocol ParameterList does escaping as needed.
+	 */
+	private void bindString(int paramIndex, String s, int oid) throws SQLException
+	{
+		preparedParameters.setStringParameter(adjustParamIndex(paramIndex), s, oid);
 	}
 
 	/**
 	 * this method will turn a string of the form
-	 * {? = call <some_function> (?, [?,..]) }
+	 * { [? =] call <some_function> [(?, [?,..])] }
 	 * into the PostgreSQL format which is
 	 * select <some_function> (?, [?, ...]) as result
 	 * or select * from <some_function> (?, [?, ...]) as result (7.3)
-	 *
 	 */
 	private String modifyJdbcCall(String p_sql) throws SQLException
 	{
 		checkClosed();
-		//Check that this is actually a call which should start with a {
-        //if not do nothing and treat this as a standard prepared sql
-		if (!p_sql.trim().startsWith("{")) {
-			return p_sql;
+
+		// Mini-parser for JDBC function-call syntax (only)
+		// TODO: Merge with escape processing (and parameter parsing?)
+		// so we only parse each query once.
+
+		isFunction = false;
+
+		int len = p_sql.length();
+		int state = 1;
+		boolean inQuotes = false, inEscape = false;
+
+		int startIndex = -1, endIndex = -1;
+		boolean syntaxError = false;
+		int i = 0;
+
+		while (i < len && !syntaxError) {
+			char ch = p_sql.charAt(i);
+			
+			switch (state) {
+			case 1: // Looking for { at start of query
+				if (ch == '{') {
+					++i;
+					++state;
+				} else if (Character.isWhitespace(ch)) {
+					++i;
+				} else {
+					// Not function-call syntax. Skip the rest of the string.
+					i = len;
+				}
+				break;
+				
+			case 2: // After {, looking for ? or =, skipping whitespace
+				if (ch == '?') {
+					isFunction = true;   // { ? = call ... }  -- function with one out parameter
+					++i;
+					++state;
+				} else if (ch == 'c') {  // { call ... }      -- proc with no out parameters
+					state += 3; // Don't increase 'i'
+				} else if (Character.isWhitespace(ch)) {
+					++i;
+				} else {
+					// "{ foo ...", doesn't make sense, complain.
+					syntaxError = true;
+				}
+				break;
+				
+			case 3: // Looking for = after ?, skipping whitespace
+				if (ch == '=') {
+					++i;
+					++state;
+				} else if (Character.isWhitespace(ch)) {
+					++i;
+				} else {
+					syntaxError = true;
+				}
+				break;
+				
+			case 4: // Looking for 'call' after '? =' skipping whitespace
+				if (ch == 'c' || ch == 'C') {
+					++state; // Don't increase 'i'.
+				} else if (Character.isWhitespace(ch)) {
+					++i;
+				} else {
+					syntaxError = true;
+				}
+				break;
+
+			case 5: // Should be at 'call ' either at start of string or after ?=
+				if ((ch == 'c' || ch == 'C') && i+4 <= len && p_sql.substring(i, i+4).equalsIgnoreCase("call")) {
+					i += 4;					
+					++state;
+				} else if (Character.isWhitespace(ch)) {
+					++i;
+				} else {
+					syntaxError = true;
+				}
+				break;
+
+			case 6: // Looking for whitespace char after 'call'
+				if (Character.isWhitespace(ch)) {
+					// Ok, we found the start of the real call.
+					++i;
+					++state;
+					startIndex = i;
+				} else {
+					syntaxError = true;
+				}
+				break;
+
+			case 7: // In "body" of the query (after "{ [? =] call ")
+				if (ch == '\'') {
+					inQuotes = !inQuotes;
+					++i;
+				} else if (inQuotes && ch == '\\') {
+					// Backslash in string constant, skip next character.
+					i += 2;
+				} else if (!inQuotes && ch == '{') {
+					inEscape = !inEscape;
+					++i;
+				} else if (!inQuotes && ch == '}') {
+					if (!inEscape) {
+						// Should be end of string.
+						endIndex = i;
+						++i;
+						++state;
+					} else {
+						inEscape = false;
+					}
+				} else if (!inQuotes && ch == ';') {
+					syntaxError = true;
+				} else {
+					// Everything else is ok.
+					++i;
+				}
+				break;
+
+			case 8: // At trailing end of query, eating whitespace
+				if (Character.isWhitespace(ch)) {
+					++i;
+				} else {
+					syntaxError = true;
+				}
+				break;
+
+			default:
+				throw new IllegalStateException("somehow got into bad state " + state);
+			}
 		}
 
-		// syntax checking is not complete only a few basics :(
-		originalSql = p_sql; // save for error msgs..
-		String l_sql = p_sql;
-		int index = l_sql.indexOf ("="); // is implied func or proc?
-		boolean isValid = true;
-		if (index > -1)
-		{
-			isFunction = true;
-			isValid = l_sql.indexOf ("?") < index; // ? before =
+		// We can only legally end in a couple of states here.
+		if (i == len && !syntaxError) {			
+			if (state == 1)
+				return p_sql; // Not an escaped syntax.
+			if (state != 8)
+				syntaxError = true; // Ran out of query while still parsing
 		}
-		l_sql = l_sql.trim ();
-		if (l_sql.startsWith ("{") && l_sql.endsWith ("}"))
-		{
-			l_sql = l_sql.substring (1, l_sql.length() - 1);
-		}
-		else
-			isValid = false;
-		index = l_sql.indexOf ("call");
-		if (index == -1 || !isValid)
+
+		if (syntaxError)
 			throw new PSQLException ("postgresql.call.malformed",PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL,
-									 new Object[]{l_sql, JDBC_SYNTAX});
-		l_sql = l_sql.replace ('{', ' '); // replace these characters
-		l_sql = l_sql.replace ('}', ' ');
-		l_sql = l_sql.replace (';', ' ');
+									 new Object[] { new Integer(i) });
 
-		// this removes the 'call' string and also puts a hidden '?'
-		// at the front of the line for functions, this will
-		// allow the registerOutParameter to work correctly
-		// because in the source sql there was one more ? for the return
-		// value that is not needed by the postgres syntax.  But to make
-		// sure that the parameter numbers are the same as in the original
-		// sql we add a dummy parameter in this case
-		l_sql = (isFunction ? "?" : "") + l_sql.substring (index + 4);
 		if (connection.haveMinimumServerVersion("7.3")) {
-			l_sql = "select * from " + l_sql + " as " + RESULT_ALIAS + ";";
+			return "select * from " + p_sql.substring(startIndex, endIndex) + " as result";
 		} else {
-			l_sql = "select " + l_sql + " as " + RESULT_ALIAS + ";";
+			return "select " + p_sql.substring(startIndex, endIndex) + " as result";
 		}
-		return l_sql;
 	}
 
 	/** helperfunction for the getXXX calls to check isFunction and index == 1
@@ -2256,28 +2074,25 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	}
 
 	public void setPrepareThreshold(int newThreshold) throws SQLException {
+		checkClosed();
+
 		if (newThreshold < 0)
 			newThreshold = 0;
-
-		if (!connection.haveMinimumServerVersion("7.3"))
-			newThreshold = 0;
-
+		
 		this.m_prepareThreshold = newThreshold;
-		if (m_statementName != null && !isUseServerPrepare())
-			deallocateQuery();
 	}
-
+	
 	public int getPrepareThreshold() {
 		return m_prepareThreshold;
 	}
-
- 	public void setUseServerPrepare(boolean flag) throws SQLException {
- 		setPrepareThreshold(flag ? 1 : 0);
- 	}
-
- 	public boolean isUseServerPrepare() {
- 		return m_prepareThreshold > 0 && m_useCount >= m_prepareThreshold;
- 	}
+	
+	public void setUseServerPrepare(boolean flag) throws SQLException {
+		setPrepareThreshold(flag ? 1 : 0);
+	}
+	
+	public boolean isUseServerPrepare() {
+		return (preparedQuery != null && m_prepareThreshold != 0 && m_useCount+1 >= m_prepareThreshold);
+	}       	
 
 	protected void checkClosed() throws SQLException
 	{
@@ -2400,20 +2215,4 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 		tmpts.setNanos(nanosVal);
 		return tmpts;
 	}
-
-
-	private static final String PG_TEXT = "text";
-	private static final String PG_INTEGER = "integer";
-	private static final String PG_INT2 = "int2";
-	private static final String PG_INT8 = "int8";
-	private static final String PG_NUMERIC = "numeric";
-	private static final String PG_FLOAT = "float";
-	private static final String PG_DOUBLE = "double precision";
-	private static final String PG_BOOLEAN = "boolean";
-	private static final String PG_DATE = "date";
-	private static final String PG_TIME = "time";
-	private static final String PG_TIMESTAMPTZ = "timestamptz";
-    private static final String PG_BYTEA = "bytea";
-
-
 }

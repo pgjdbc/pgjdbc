@@ -371,15 +371,41 @@
   <!-- Build and run the tests. -->
   <target name="test" depends="testjar,runtest"/>
 
-
+  <!-- Build public javadoc -->
   <target name="javadoc" depends="compile">
-    <javadoc destdir="${builddir}/javadoc" classpath="${builddir}">
-      <fileset dir="org/postgresql">
+    <mkdir dir="${builddir}/javadoc" />
+    <javadoc destdir="${builddir}/javadoc">
+      <classpath>
+        <pathelement path="${builddir}" />
+        <pathelement path="${java.class.path}" />
+      </classpath>
+      <fileset dir="${package}">
         <include name="geometric/*.java" />
         <include name="largeobject/*.java" />
         <include name="fastpath/*.java" />
         <include name="PG*.java" />
         <include name="util/PGobject.java" />
+        <include name="jdbc2/optional/SimpleDataSource.java" if="datasource" />
+        <include name="jdbc2/optional/PoolingDataSource.java" if="datasource" />
+        <include name="jdbc2/optional/ConnectionPool.java" if="datasource" />
+        <include name="jdbc3/Jdbc3SimpleDataSource.java" if="jdbc3" />
+        <include name="jdbc3/Jdbc3PoolingDataSource.java" if="jdbc3" />
+        <include name="jdbc3/Jdbc3ConnectionPool.java" if="jdbc3" />
+      </fileset>
+    </javadoc>
+  </target>
+
+  <!-- Build driver-internal javadoc. NB: needs Ant 1.6 & JDK 1.4 for 'breakiterator'. -->
+  <target name="internal-javadoc" depends="compile">
+    <javadoc destdir="${builddir}/internal-javadoc" breakiterator="yes">
+      <classpath>
+        <pathelement path="${builddir}" />
+        <pathelement path="${java.class.path}" />
+      </classpath>
+      <fileset dir="${package}">
+        <include name="**/*.java"/>
+	<exclude name="jdbc2/Jdbc2*.java" unless="jdbc2" />
+        <exclude name="test/**/*.java"/>
       </fileset>
     </javadoc>
   </target>

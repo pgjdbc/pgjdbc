@@ -3,9 +3,7 @@ package org.postgresql.jdbc1;
 
 import java.sql.*;
 import java.util.*;
-import org.postgresql.core.BaseStatement;
-import org.postgresql.core.Field;
-import org.postgresql.core.Encoding;
+import org.postgresql.core.*;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.Driver;
@@ -22,14 +20,8 @@ public abstract class AbstractJdbc1DatabaseMetaData
 										   "returns,rule,recipe,setof,stdin,stdout,store," +
 										   "vacuum,verbose,version";
 
-	protected AbstractJdbc1Connection connection; // The connection association
-	protected Encoding encoding;
+	protected final AbstractJdbc1Connection connection; // The connection association
 
-	// These define various OID's. Hopefully they will stay constant.
-	protected static final int iVarcharOid = 1043;	// OID for varchar
-	protected static final int iBoolOid = 16; // OID for bool
-	protected static final int iInt2Oid = 21; // OID for int2
-	protected static final int iInt4Oid = 23; // OID for int4
 	protected static final int VARHDRSZ = 4;	// length for int4
 
 	private int NAMEDATALEN = 0;	// length for name datatype
@@ -75,13 +67,6 @@ public abstract class AbstractJdbc1DatabaseMetaData
 	public AbstractJdbc1DatabaseMetaData(AbstractJdbc1Connection conn)
 	{
 		this.connection = conn;
-		try {
-			this.encoding = conn.getEncoding();
-		}
-		catch (SQLException sqle) {
-			this.encoding = Encoding.defaultEncoding();
-		}
-
 	}
 
 	/*
@@ -273,10 +258,7 @@ public abstract class AbstractJdbc1DatabaseMetaData
 	 */
 	public int getDriverMajorVersion()
 	{
-		int majorVersion = connection.this_driver.getMajorVersion();
-		if (Driver.logDebug)
-			Driver.debug("getMajorVersion " + majorVersion);
-		return majorVersion;
+		return Driver.MAJORVERSION;
 	}
 
 	/*
@@ -286,10 +268,7 @@ public abstract class AbstractJdbc1DatabaseMetaData
 	 */
 	public int getDriverMinorVersion()
 	{
-		int minorVersion = connection.this_driver.getMinorVersion();
-		if (Driver.logDebug)
-			Driver.debug("getMinorVersion " + minorVersion);
-		return minorVersion;
+		return Driver.MINORVERSION;
 	}
 
 	/*
@@ -1813,19 +1792,19 @@ public abstract class AbstractJdbc1DatabaseMetaData
 		Field f[] = new Field[13];
 		Vector v = new Vector();		// The new ResultSet tuple stuff
 
-		f[0] = new Field(connection, "PROCEDURE_CAT", iVarcharOid, getMaxNameLength());
-		f[1] = new Field(connection, "PROCEDURE_SCHEM", iVarcharOid, getMaxNameLength());
-		f[2] = new Field(connection, "PROCEDURE_NAME", iVarcharOid, getMaxNameLength());
-		f[3] = new Field(connection, "COLUMN_NAME", iVarcharOid, getMaxNameLength());
-		f[4] = new Field(connection, "COLUMN_TYPE", iInt2Oid, 2);
-		f[5] = new Field(connection, "DATA_TYPE", iInt2Oid, 2);
-		f[6] = new Field(connection, "TYPE_NAME", iVarcharOid, getMaxNameLength());
-		f[7] = new Field(connection, "PRECISION", iInt4Oid, 4);
-		f[8] = new Field(connection, "LENGTH", iInt4Oid, 4);
-		f[9] = new Field(connection, "SCALE", iInt2Oid, 2);
-		f[10] = new Field(connection, "RADIX", iInt2Oid, 2);
-		f[11] = new Field(connection, "NULLABLE", iInt2Oid, 2);
-		f[12] = new Field(connection, "REMARKS", iVarcharOid, getMaxNameLength());
+		f[0] = new Field("PROCEDURE_CAT", Oid.VARCHAR, getMaxNameLength());
+		f[1] = new Field("PROCEDURE_SCHEM", Oid.VARCHAR, getMaxNameLength());
+		f[2] = new Field("PROCEDURE_NAME", Oid.VARCHAR, getMaxNameLength());
+		f[3] = new Field("COLUMN_NAME", Oid.VARCHAR, getMaxNameLength());
+		f[4] = new Field("COLUMN_TYPE", Oid.INT2, 2);
+		f[5] = new Field("DATA_TYPE", Oid.INT2, 2);
+		f[6] = new Field("TYPE_NAME", Oid.VARCHAR, getMaxNameLength());
+		f[7] = new Field("PRECISION", Oid.INT4, 4);
+		f[8] = new Field("LENGTH", Oid.INT4, 4);
+		f[9] = new Field("SCALE", Oid.INT2, 2);
+		f[10] = new Field("RADIX", Oid.INT2, 2);
+		f[11] = new Field("NULLABLE", Oid.INT2, 2);
+		f[12] = new Field("REMARKS", Oid.VARCHAR, getMaxNameLength());
 
 		String sql;
 		if (connection.haveMinimumServerVersion("7.3")) {
@@ -1869,15 +1848,15 @@ public abstract class AbstractJdbc1DatabaseMetaData
 				tuple[0] = null;
 				tuple[1] = schema;
 				tuple[2] = procedureName;
-				tuple[3] = encoding.encode("returnValue");
-				tuple[4] = encoding.encode(Integer.toString(java.sql.DatabaseMetaData.procedureColumnReturn));
-				tuple[5] = encoding.encode(Integer.toString(connection.getSQLType(returnType)));
-				tuple[6] = encoding.encode(connection.getPGType(returnType));
+				tuple[3] = connection.encodeString("returnValue");
+				tuple[4] = connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.procedureColumnReturn));
+				tuple[5] = connection.encodeString(Integer.toString(connection.getSQLType(returnType)));
+				tuple[6] = connection.encodeString(connection.getPGType(returnType));
 				tuple[7] = null;
 				tuple[8] = null;
 				tuple[9] = null;
 				tuple[10] = null;
-				tuple[11] = encoding.encode(Integer.toString(java.sql.DatabaseMetaData.procedureNullableUnknown));
+				tuple[11] = connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.procedureNullableUnknown));
 				tuple[12] = null;
 				v.addElement(tuple);
 			}
@@ -1889,15 +1868,15 @@ public abstract class AbstractJdbc1DatabaseMetaData
 				tuple[0] = null;
 				tuple[1] = schema;
 				tuple[2] = procedureName;
-				tuple[3] = encoding.encode("$"+(i+1));
-				tuple[4] = encoding.encode(Integer.toString(java.sql.DatabaseMetaData.procedureColumnIn));
-				tuple[5] = encoding.encode(Integer.toString(connection.getSQLType(argOid)));
-				tuple[6] = encoding.encode(connection.getPGType(argOid));
+				tuple[3] = connection.encodeString("$"+(i+1));
+				tuple[4] = connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.procedureColumnIn));
+				tuple[5] = connection.encodeString(Integer.toString(connection.getSQLType(argOid)));
+				tuple[6] = connection.encodeString(connection.getPGType(argOid));
 				tuple[7] = null;
 				tuple[8] = null;
 				tuple[9] = null;
 				tuple[10] = null;
-				tuple[11] = encoding.encode(Integer.toString(java.sql.DatabaseMetaData.procedureNullableUnknown));
+				tuple[11] = connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.procedureNullableUnknown));
 				tuple[12] = null;
 				v.addElement(tuple);
 			}
@@ -1913,14 +1892,14 @@ public abstract class AbstractJdbc1DatabaseMetaData
 					tuple[1] = schema;
 					tuple[2] = procedureName;
 					tuple[3] = columnrs.getBytes("attname");
-					tuple[4] = encoding.encode(Integer.toString(java.sql.DatabaseMetaData.procedureColumnResult));
-					tuple[5] = encoding.encode(Integer.toString(connection.getSQLType(columnTypeOid)));
-					tuple[6] = encoding.encode(connection.getPGType(columnTypeOid));
+					tuple[4] = connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.procedureColumnResult));
+					tuple[5] = connection.encodeString(Integer.toString(connection.getSQLType(columnTypeOid)));
+					tuple[6] = connection.encodeString(connection.getPGType(columnTypeOid));
 					tuple[7] = null;
 					tuple[8] = null;
 					tuple[9] = null;
 					tuple[10] = null;
-					tuple[11] = encoding.encode(Integer.toString(java.sql.DatabaseMetaData.procedureNullableUnknown));
+					tuple[11] = connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.procedureNullableUnknown));
 					tuple[12] = null;
 					v.addElement(tuple);
 				}
@@ -2217,11 +2196,11 @@ public abstract class AbstractJdbc1DatabaseMetaData
 
 		Field f[] = new Field[1];
 		Vector v = new Vector();
-		f[0] = new Field(connection, new String("TABLE_TYPE"), iVarcharOid, getMaxNameLength());
+		f[0] = new Field(new String("TABLE_TYPE"), Oid.VARCHAR, getMaxNameLength());
 		for (i=0; i < types.length; i++)
 		{
 			byte[][] tuple = new byte[1][];
-			tuple[0] = encoding.encode(types[i]);
+			tuple[0] = connection.encodeString(types[i]);
 			v.addElement(tuple);
 		}
 
@@ -2281,24 +2260,24 @@ public abstract class AbstractJdbc1DatabaseMetaData
 		Vector v = new Vector();		// The new ResultSet tuple stuff
 		Field f[] = new Field[18];		// The field descriptors for the new ResultSet
 
-		f[0] = new Field(connection, "TABLE_CAT", iVarcharOid, getMaxNameLength());
-		f[1] = new Field(connection, "TABLE_SCHEM", iVarcharOid, getMaxNameLength());
-		f[2] = new Field(connection, "TABLE_NAME", iVarcharOid, getMaxNameLength());
-		f[3] = new Field(connection, "COLUMN_NAME", iVarcharOid, getMaxNameLength());
-		f[4] = new Field(connection, "DATA_TYPE", iInt2Oid, 2);
-		f[5] = new Field(connection, "TYPE_NAME", iVarcharOid, getMaxNameLength());
-		f[6] = new Field(connection, "COLUMN_SIZE", iInt4Oid, 4);
-		f[7] = new Field(connection, "BUFFER_LENGTH", iVarcharOid, getMaxNameLength());
-		f[8] = new Field(connection, "DECIMAL_DIGITS", iInt4Oid, 4);
-		f[9] = new Field(connection, "NUM_PREC_RADIX", iInt4Oid, 4);
-		f[10] = new Field(connection, "NULLABLE", iInt4Oid, 4);
-		f[11] = new Field(connection, "REMARKS", iVarcharOid, getMaxNameLength());
-		f[12] = new Field(connection, "COLUMN_DEF", iVarcharOid, getMaxNameLength());
-		f[13] = new Field(connection, "SQL_DATA_TYPE", iInt4Oid, 4);
-		f[14] = new Field(connection, "SQL_DATETIME_SUB", iInt4Oid, 4);
-		f[15] = new Field(connection, "CHAR_OCTET_LENGTH", iVarcharOid, getMaxNameLength());
-		f[16] = new Field(connection, "ORDINAL_POSITION", iInt4Oid, 4);
-		f[17] = new Field(connection, "IS_NULLABLE", iVarcharOid, getMaxNameLength());
+		f[0] = new Field("TABLE_CAT", Oid.VARCHAR, getMaxNameLength());
+		f[1] = new Field("TABLE_SCHEM", Oid.VARCHAR, getMaxNameLength());
+		f[2] = new Field("TABLE_NAME", Oid.VARCHAR, getMaxNameLength());
+		f[3] = new Field("COLUMN_NAME", Oid.VARCHAR, getMaxNameLength());
+		f[4] = new Field("DATA_TYPE", Oid.INT2, 2);
+		f[5] = new Field("TYPE_NAME", Oid.VARCHAR, getMaxNameLength());
+		f[6] = new Field("COLUMN_SIZE", Oid.INT4, 4);
+		f[7] = new Field("BUFFER_LENGTH", Oid.VARCHAR, getMaxNameLength());
+		f[8] = new Field("DECIMAL_DIGITS", Oid.INT4, 4);
+		f[9] = new Field("NUM_PREC_RADIX", Oid.INT4, 4);
+		f[10] = new Field("NULLABLE", Oid.INT4, 4);
+		f[11] = new Field("REMARKS", Oid.VARCHAR, getMaxNameLength());
+		f[12] = new Field("COLUMN_DEF", Oid.VARCHAR, getMaxNameLength());
+		f[13] = new Field("SQL_DATA_TYPE", Oid.INT4, 4);
+		f[14] = new Field("SQL_DATETIME_SUB", Oid.INT4, 4);
+		f[15] = new Field("CHAR_OCTET_LENGTH", Oid.VARCHAR, getMaxNameLength());
+		f[16] = new Field("ORDINAL_POSITION", Oid.INT4, 4);
+		f[17] = new Field("IS_NULLABLE", Oid.VARCHAR, getMaxNameLength());
 
 		String sql;
 		if (connection.haveMinimumServerVersion("7.3")) {
@@ -2354,46 +2333,46 @@ public abstract class AbstractJdbc1DatabaseMetaData
 			tuple[1] = rs.getBytes("nspname");	// Schema
 			tuple[2] = rs.getBytes("relname");	// Table name
 			tuple[3] = rs.getBytes("attname");	// Column name
-			tuple[4] = encoding.encode(Integer.toString(connection.getSQLType(typeOid)));
+			tuple[4] = connection.encodeString(Integer.toString(connection.getSQLType(typeOid)));
 			String pgType = connection.getPGType(typeOid);
-			tuple[5] = encoding.encode(pgType);	// Type name
+			tuple[5] = connection.encodeString(pgType);	// Type name
 
 			// by default no decimal_digits
 			// if the type is numeric or decimal we will
 			// overwrite later.
-			tuple[8] = encoding.encode("0");
+			tuple[8] = connection.encodeString("0");
 
 			if (pgType.equals("bpchar") || pgType.equals("varchar"))
 			{
 				int atttypmod = rs.getInt("atttypmod");
-				tuple[6] = encoding.encode(Integer.toString(atttypmod != -1 ? atttypmod - VARHDRSZ : 0));
+				tuple[6] = connection.encodeString(Integer.toString(atttypmod != -1 ? atttypmod - VARHDRSZ : 0));
 			}
 			else if (pgType.equals("numeric") || pgType.equals("decimal")) 
 			{
 				int attypmod = rs.getInt("atttypmod") - VARHDRSZ;
-				tuple[6] = encoding.encode(Integer.toString( ( attypmod >> 16 ) & 0xffff ));
-				tuple[8] = encoding.encode(Integer.toString(attypmod & 0xffff));
-				tuple[9] = encoding.encode("10");
+				tuple[6] = connection.encodeString(Integer.toString( ( attypmod >> 16 ) & 0xffff ));
+				tuple[8] = connection.encodeString(Integer.toString(attypmod & 0xffff));
+				tuple[9] = connection.encodeString("10");
 			}
 			else if (pgType.equals("bit") || pgType.equals("varbit")) {
 				tuple[6] = rs.getBytes("atttypmod");
-				tuple[9] = encoding.encode("2");
+				tuple[9] = connection.encodeString("2");
 			}
 			else {
 				tuple[6] = rs.getBytes("attlen");
-				tuple[9] = encoding.encode("10");
+				tuple[9] = connection.encodeString("10");
 			}
 
 			tuple[7] = null;						// Buffer length
 
-			tuple[10] = encoding.encode(Integer.toString(rs.getBoolean("attnotnull") ? java.sql.DatabaseMetaData.columnNoNulls : java.sql.DatabaseMetaData.columnNullable));	// Nullable
+			tuple[10] = connection.encodeString(Integer.toString(rs.getBoolean("attnotnull") ? java.sql.DatabaseMetaData.columnNoNulls : java.sql.DatabaseMetaData.columnNullable));	// Nullable
 			tuple[11] = rs.getBytes("description");				// Description (if any)
 			tuple[12] = rs.getBytes("adsrc");				// Column default
 			tuple[13] = null;						// sql data type (unused)
 			tuple[14] = null;						// sql datetime sub (unused)
 			tuple[15] = tuple[6];					// char octet length
 			tuple[16] = rs.getBytes("attnum");		// ordinal position
-			tuple[17] = encoding.encode(rs.getBoolean("attnotnull") ? "NO" : "YES");	// Is nullable
+			tuple[17] = connection.encodeString(rs.getBoolean("attnotnull") ? "NO" : "YES");	// Is nullable
 
 			v.addElement(tuple);
 		}
@@ -2440,14 +2419,14 @@ public abstract class AbstractJdbc1DatabaseMetaData
 		if (columnNamePattern == null)
 			columnNamePattern = "%";
 
-		f[0] = new Field(connection, "TABLE_CAT", iVarcharOid, getMaxNameLength());
-		f[1] = new Field(connection, "TABLE_SCHEM", iVarcharOid, getMaxNameLength());
-		f[2] = new Field(connection, "TABLE_NAME", iVarcharOid, getMaxNameLength());
-		f[3] = new Field(connection, "COLUMN_NAME", iVarcharOid, getMaxNameLength());
-		f[4] = new Field(connection, "GRANTOR", iVarcharOid, getMaxNameLength());
-		f[5] = new Field(connection, "GRANTEE", iVarcharOid, getMaxNameLength());
-		f[6] = new Field(connection, "PRIVILEGE", iVarcharOid, getMaxNameLength());
-		f[7] = new Field(connection, "IS_GRANTABLE", iVarcharOid, getMaxNameLength());
+		f[0] = new Field("TABLE_CAT", Oid.VARCHAR, getMaxNameLength());
+		f[1] = new Field("TABLE_SCHEM", Oid.VARCHAR, getMaxNameLength());
+		f[2] = new Field("TABLE_NAME", Oid.VARCHAR, getMaxNameLength());
+		f[3] = new Field("COLUMN_NAME", Oid.VARCHAR, getMaxNameLength());
+		f[4] = new Field("GRANTOR", Oid.VARCHAR, getMaxNameLength());
+		f[5] = new Field("GRANTEE", Oid.VARCHAR, getMaxNameLength());
+		f[6] = new Field("PRIVILEGE", Oid.VARCHAR, getMaxNameLength());
+		f[7] = new Field("IS_GRANTABLE", Oid.VARCHAR, getMaxNameLength());
 
 		String sql;
 		if (connection.haveMinimumServerVersion("7.3")) {
@@ -2492,7 +2471,7 @@ public abstract class AbstractJdbc1DatabaseMetaData
 			}
 			sortStringArray(permNames);
 			for (i=0; i<permNames.length; i++) {
-				byte[] privilege = encoding.encode(permNames[i]);
+				byte[] privilege = connection.encodeString(permNames[i]);
 				Vector grantees = (Vector)permissions.get(permNames[i]);
 				for (int j=0; j<grantees.size(); j++) {
 					String grantee = (String)grantees.elementAt(j);
@@ -2502,10 +2481,10 @@ public abstract class AbstractJdbc1DatabaseMetaData
 					tuple[1] = schemaName;
 					tuple[2] = tableName;
 					tuple[3] = column;
-					tuple[4] = encoding.encode(owner);
-					tuple[5] = encoding.encode(grantee);
+					tuple[4] = connection.encodeString(owner);
+					tuple[5] = connection.encodeString(grantee);
 					tuple[6] = privilege;
-					tuple[7] = encoding.encode(grantable);
+					tuple[7] = connection.encodeString(grantable);
 					v.addElement(tuple);
 				}
 			}
@@ -2550,13 +2529,13 @@ public abstract class AbstractJdbc1DatabaseMetaData
 		Field f[] = new Field[7];
 		Vector v = new Vector();
 
-		f[0] = new Field(connection, "TABLE_CAT", iVarcharOid, getMaxNameLength());
-		f[1] = new Field(connection, "TABLE_SCHEM", iVarcharOid, getMaxNameLength());
-		f[2] = new Field(connection, "TABLE_NAME", iVarcharOid, getMaxNameLength());
-		f[3] = new Field(connection, "GRANTOR", iVarcharOid, getMaxNameLength());
-		f[4] = new Field(connection, "GRANTEE", iVarcharOid, getMaxNameLength());
-		f[5] = new Field(connection, "PRIVILEGE", iVarcharOid, getMaxNameLength());
-		f[6] = new Field(connection, "IS_GRANTABLE", iVarcharOid, getMaxNameLength());
+		f[0] = new Field("TABLE_CAT", Oid.VARCHAR, getMaxNameLength());
+		f[1] = new Field("TABLE_SCHEM", Oid.VARCHAR, getMaxNameLength());
+		f[2] = new Field("TABLE_NAME", Oid.VARCHAR, getMaxNameLength());
+		f[3] = new Field("GRANTOR", Oid.VARCHAR, getMaxNameLength());
+		f[4] = new Field("GRANTEE", Oid.VARCHAR, getMaxNameLength());
+		f[5] = new Field("PRIVILEGE", Oid.VARCHAR, getMaxNameLength());
+		f[6] = new Field("IS_GRANTABLE", Oid.VARCHAR, getMaxNameLength());
 
 		String sql;
 		if (connection.haveMinimumServerVersion("7.3")) {
@@ -2595,7 +2574,7 @@ public abstract class AbstractJdbc1DatabaseMetaData
 			}
 			sortStringArray(permNames);
 			for (i=0; i<permNames.length; i++) {
-				byte[] privilege = encoding.encode(permNames[i]);
+				byte[] privilege = connection.encodeString(permNames[i]);
 				Vector grantees = (Vector)permissions.get(permNames[i]);
 				for (int j=0; j<grantees.size(); j++) {
 					String grantee = (String)grantees.elementAt(j);
@@ -2604,10 +2583,10 @@ public abstract class AbstractJdbc1DatabaseMetaData
 					tuple[0] = null;
 					tuple[1] = schema;
 					tuple[2] = table;
-					tuple[3] = encoding.encode(owner);
-					tuple[4] = encoding.encode(grantee);
+					tuple[3] = connection.encodeString(owner);
+					tuple[4] = connection.encodeString(grantee);
 					tuple[5] = privilege;
-					tuple[6] = encoding.encode(grantable);
+					tuple[6] = connection.encodeString(grantable);
 					v.addElement(tuple);
 				}
 			}
@@ -2764,14 +2743,14 @@ public abstract class AbstractJdbc1DatabaseMetaData
 		Field f[] = new Field[8];
 		Vector v = new Vector();		// The new ResultSet tuple stuff
 
-		f[0] = new Field(connection, "SCOPE", iInt2Oid, 2);
-		f[1] = new Field(connection, "COLUMN_NAME", iVarcharOid, getMaxNameLength());
-		f[2] = new Field(connection, "DATA_TYPE", iInt2Oid, 2);
-		f[3] = new Field(connection, "TYPE_NAME", iVarcharOid, getMaxNameLength());
-		f[4] = new Field(connection, "COLUMN_SIZE", iInt4Oid, 4);
-		f[5] = new Field(connection, "BUFFER_LENGTH", iInt4Oid, 4);
-		f[6] = new Field(connection, "DECIMAL_DIGITS", iInt2Oid, 2);
-		f[7] = new Field(connection, "PSEUDO_COLUMN", iInt2Oid, 2);
+		f[0] = new Field("SCOPE", Oid.INT2, 2);
+		f[1] = new Field("COLUMN_NAME", Oid.VARCHAR, getMaxNameLength());
+		f[2] = new Field("DATA_TYPE", Oid.INT2, 2);
+		f[3] = new Field("TYPE_NAME", Oid.VARCHAR, getMaxNameLength());
+		f[4] = new Field("COLUMN_SIZE", Oid.INT4, 4);
+		f[5] = new Field("BUFFER_LENGTH", Oid.INT4, 4);
+		f[6] = new Field("DECIMAL_DIGITS", Oid.INT2, 2);
+		f[7] = new Field("PSEUDO_COLUMN", Oid.INT2, 2);
 
 		/* At the moment this simply returns a table's primary key,
 		 * if there is one.  I believe other unique indexes, ctid,
@@ -2801,14 +2780,14 @@ public abstract class AbstractJdbc1DatabaseMetaData
 		while (rs.next()) {
 			byte tuple[][] = new byte[8][];
 			int columnTypeOid = rs.getInt("atttypid");
-			tuple[0] = encoding.encode(Integer.toString(scope));
+			tuple[0] = connection.encodeString(Integer.toString(scope));
 			tuple[1] = rs.getBytes("attname");
-			tuple[2] = encoding.encode(Integer.toString(connection.getSQLType(columnTypeOid)));
-			tuple[3] = encoding.encode(connection.getPGType(columnTypeOid));
+			tuple[2] = connection.encodeString(Integer.toString(connection.getSQLType(columnTypeOid)));
+			tuple[3] = connection.encodeString(connection.getPGType(columnTypeOid));
 			tuple[4] = null;
 			tuple[5] = null;
 			tuple[6] = null;
-			tuple[7] = encoding.encode(Integer.toString(java.sql.DatabaseMetaData.bestRowNotPseudo));
+			tuple[7] = connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.bestRowNotPseudo));
 			v.addElement(tuple);
 		}
 
@@ -2848,14 +2827,14 @@ public abstract class AbstractJdbc1DatabaseMetaData
 		Field f[] = new Field[8];
 		Vector v = new Vector();		// The new ResultSet tuple stuff
 
-		f[0] = new Field(connection, "SCOPE", iInt2Oid, 2);
-		f[1] = new Field(connection, "COLUMN_NAME", iVarcharOid, getMaxNameLength());
-		f[2] = new Field(connection, "DATA_TYPE", iInt2Oid, 2);
-		f[3] = new Field(connection, "TYPE_NAME", iVarcharOid, getMaxNameLength());
-		f[4] = new Field(connection, "COLUMN_SIZE", iInt4Oid, 4);
-		f[5] = new Field(connection, "BUFFER_LENGTH", iInt4Oid, 4);
-		f[6] = new Field(connection, "DECIMAL_DIGITS", iInt2Oid, 2);
-		f[7] = new Field(connection, "PSEUDO_COLUMN", iInt2Oid, 2);
+		f[0] = new Field("SCOPE", Oid.INT2, 2);
+		f[1] = new Field("COLUMN_NAME", Oid.VARCHAR, getMaxNameLength());
+		f[2] = new Field("DATA_TYPE", Oid.INT2, 2);
+		f[3] = new Field("TYPE_NAME", Oid.VARCHAR, getMaxNameLength());
+		f[4] = new Field("COLUMN_SIZE", Oid.INT4, 4);
+		f[5] = new Field("BUFFER_LENGTH", Oid.INT4, 4);
+		f[6] = new Field("DECIMAL_DIGITS", Oid.INT2, 2);
+		f[7] = new Field("PSEUDO_COLUMN", Oid.INT2, 2);
 
 		byte tuple[][] = new byte[8][];
 
@@ -2870,13 +2849,13 @@ public abstract class AbstractJdbc1DatabaseMetaData
 		 */
 
 		tuple[0] = null;
-		tuple[1] = encoding.encode("ctid");
-		tuple[2] = encoding.encode(Integer.toString(connection.getSQLType("tid")));
-		tuple[3] = encoding.encode("tid");
+		tuple[1] = connection.encodeString("ctid");
+		tuple[2] = connection.encodeString(Integer.toString(connection.getSQLType("tid")));
+		tuple[3] = connection.encodeString("tid");
 		tuple[4] = null;
 		tuple[5] = null;
 		tuple[6] = null;
-		tuple[7] = encoding.encode(Integer.toString(java.sql.DatabaseMetaData.versionColumnPseudo));
+		tuple[7] = connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.versionColumnPseudo));
 		v.addElement(tuple);
 
 		/* Perhaps we should check that the given
@@ -2939,8 +2918,8 @@ public abstract class AbstractJdbc1DatabaseMetaData
 
 	/**
 	 *
-	 * @param catalog
-	 * @param schema
+	 * @param primaryCatalog
+	 * @param primarySchema
 	 * @param primaryTable if provided will get the keys exported by this table
 	 * @param foreignTable if provided will get the keys imported by this table
 	 * @return ResultSet
@@ -2951,20 +2930,20 @@ public abstract class AbstractJdbc1DatabaseMetaData
 	{
 		Field f[] = new Field[14];
 
-		f[0] = new Field(connection, "PKTABLE_CAT", iVarcharOid, getMaxNameLength());
-		f[1] = new Field(connection, "PKTABLE_SCHEM", iVarcharOid, getMaxNameLength());
-		f[2] = new Field(connection, "PKTABLE_NAME", iVarcharOid, getMaxNameLength());
-		f[3] = new Field(connection, "PKCOLUMN_NAME", iVarcharOid, getMaxNameLength());
-		f[4] = new Field(connection, "FKTABLE_CAT", iVarcharOid, getMaxNameLength());
-		f[5] = new Field(connection, "FKTABLE_SCHEM", iVarcharOid, getMaxNameLength());
-		f[6] = new Field(connection, "FKTABLE_NAME", iVarcharOid, getMaxNameLength());
-		f[7] = new Field(connection, "FKCOLUMN_NAME", iVarcharOid, getMaxNameLength());
-		f[8] = new Field(connection, "KEY_SEQ", iInt2Oid, 2);
-		f[9] = new Field(connection, "UPDATE_RULE", iInt2Oid, 2);
-		f[10] = new Field(connection, "DELETE_RULE", iInt2Oid, 2);
-		f[11] = new Field(connection, "FK_NAME", iVarcharOid, getMaxNameLength());
-		f[12] = new Field(connection, "PK_NAME", iVarcharOid, getMaxNameLength());
-		f[13] = new Field(connection, "DEFERRABILITY", iInt2Oid, 2);
+		f[0] = new Field("PKTABLE_CAT", Oid.VARCHAR, getMaxNameLength());
+		f[1] = new Field("PKTABLE_SCHEM", Oid.VARCHAR, getMaxNameLength());
+		f[2] = new Field("PKTABLE_NAME", Oid.VARCHAR, getMaxNameLength());
+		f[3] = new Field("PKCOLUMN_NAME", Oid.VARCHAR, getMaxNameLength());
+		f[4] = new Field("FKTABLE_CAT", Oid.VARCHAR, getMaxNameLength());
+		f[5] = new Field("FKTABLE_SCHEM", Oid.VARCHAR, getMaxNameLength());
+		f[6] = new Field("FKTABLE_NAME", Oid.VARCHAR, getMaxNameLength());
+		f[7] = new Field("FKCOLUMN_NAME", Oid.VARCHAR, getMaxNameLength());
+		f[8] = new Field("KEY_SEQ", Oid.INT2, 2);
+		f[9] = new Field("UPDATE_RULE", Oid.INT2, 2);
+		f[10] = new Field("DELETE_RULE", Oid.INT2, 2);
+		f[11] = new Field("FK_NAME", Oid.VARCHAR, getMaxNameLength());
+		f[12] = new Field("PK_NAME", Oid.VARCHAR, getMaxNameLength());
+		f[13] = new Field("DEFERRABILITY", Oid.INT2, 2);
 
 
 		String select;
@@ -3173,7 +3152,7 @@ public abstract class AbstractJdbc1DatabaseMetaData
 				else if ("restrict".equals(rule))
 					action = java.sql.DatabaseMetaData.importedKeyRestrict;
 
-				tuple[9] = encoding.encode(Integer.toString(action));
+				tuple[9] = connection.encodeString(Integer.toString(action));
 
 			}
 
@@ -3193,7 +3172,7 @@ public abstract class AbstractJdbc1DatabaseMetaData
 					action = java.sql.DatabaseMetaData.importedKeySetDefault;
 				else if ("restrict".equals(rule))
 					action = java.sql.DatabaseMetaData.importedKeyRestrict;
-				tuple[10] = encoding.encode(Integer.toString(action));
+				tuple[10] = connection.encodeString(Integer.toString(action));
 			}
 
 
@@ -3233,11 +3212,11 @@ public abstract class AbstractJdbc1DatabaseMetaData
 				pkeyColumn = (String)tokens.elementAt(element);
 			}
 
-			tuple[3] = encoding.encode(pkeyColumn); //PKCOLUMN_NAME
-			tuple[7] = encoding.encode(fkeyColumn); //FKCOLUMN_NAME
+			tuple[3] = connection.encodeString(pkeyColumn); //PKCOLUMN_NAME
+			tuple[7] = connection.encodeString(fkeyColumn); //FKCOLUMN_NAME
 
 			tuple[8] = rs.getBytes(6); //KEY_SEQ
-			tuple[11] = encoding.encode(fkName); //FK_NAME this will give us a unique name for the foreign key
+			tuple[11] = connection.encodeString(fkName); //FK_NAME this will give us a unique name for the foreign key
 			tuple[12] = rs.getBytes(7); //PK_NAME
 
 			// DEFERRABILITY
@@ -3251,7 +3230,7 @@ public abstract class AbstractJdbc1DatabaseMetaData
 				else
 					deferrability = java.sql.DatabaseMetaData.importedKeyInitiallyImmediate;
 			}
-			tuple[13] = encoding.encode(Integer.toString(deferrability));
+			tuple[13] = connection.encodeString(Integer.toString(deferrability));
 
 			tuples.addElement(tuple);
 		}
@@ -3485,24 +3464,24 @@ public abstract class AbstractJdbc1DatabaseMetaData
 		Field f[] = new Field[18];
 		Vector v = new Vector();		// The new ResultSet tuple stuff
 
-		f[0] = new Field(connection, "TYPE_NAME", iVarcharOid, getMaxNameLength());
-		f[1] = new Field(connection, "DATA_TYPE", iInt2Oid, 2);
-		f[2] = new Field(connection, "PRECISION", iInt4Oid, 4);
-		f[3] = new Field(connection, "LITERAL_PREFIX", iVarcharOid, getMaxNameLength());
-		f[4] = new Field(connection, "LITERAL_SUFFIX", iVarcharOid, getMaxNameLength());
-		f[5] = new Field(connection, "CREATE_PARAMS", iVarcharOid, getMaxNameLength());
-		f[6] = new Field(connection, "NULLABLE", iInt2Oid, 2);
-		f[7] = new Field(connection, "CASE_SENSITIVE", iBoolOid, 1);
-		f[8] = new Field(connection, "SEARCHABLE", iInt2Oid, 2);
-		f[9] = new Field(connection, "UNSIGNED_ATTRIBUTE", iBoolOid, 1);
-		f[10] = new Field(connection, "FIXED_PREC_SCALE", iBoolOid, 1);
-		f[11] = new Field(connection, "AUTO_INCREMENT", iBoolOid, 1);
-		f[12] = new Field(connection, "LOCAL_TYPE_NAME", iVarcharOid, getMaxNameLength());
-		f[13] = new Field(connection, "MINIMUM_SCALE", iInt2Oid, 2);
-		f[14] = new Field(connection, "MAXIMUM_SCALE", iInt2Oid, 2);
-		f[15] = new Field(connection, "SQL_DATA_TYPE", iInt4Oid, 4);
-		f[16] = new Field(connection, "SQL_DATETIME_SUB", iInt4Oid, 4);
-		f[17] = new Field(connection, "NUM_PREC_RADIX", iInt4Oid, 4);
+		f[0] = new Field("TYPE_NAME", Oid.VARCHAR, getMaxNameLength());
+		f[1] = new Field("DATA_TYPE", Oid.INT2, 2);
+		f[2] = new Field("PRECISION", Oid.INT4, 4);
+		f[3] = new Field("LITERAL_PREFIX", Oid.VARCHAR, getMaxNameLength());
+		f[4] = new Field("LITERAL_SUFFIX", Oid.VARCHAR, getMaxNameLength());
+		f[5] = new Field("CREATE_PARAMS", Oid.VARCHAR, getMaxNameLength());
+		f[6] = new Field("NULLABLE", Oid.INT2, 2);
+		f[7] = new Field("CASE_SENSITIVE", Oid.BOOL, 1);
+		f[8] = new Field("SEARCHABLE", Oid.INT2, 2);
+		f[9] = new Field("UNSIGNED_ATTRIBUTE", Oid.BOOL, 1);
+		f[10] = new Field("FIXED_PREC_SCALE", Oid.BOOL, 1);
+		f[11] = new Field("AUTO_INCREMENT", Oid.BOOL, 1);
+		f[12] = new Field("LOCAL_TYPE_NAME", Oid.VARCHAR, getMaxNameLength());
+		f[13] = new Field("MINIMUM_SCALE", Oid.INT2, 2);
+		f[14] = new Field("MAXIMUM_SCALE", Oid.INT2, 2);
+		f[15] = new Field("SQL_DATA_TYPE", Oid.INT4, 4);
+		f[16] = new Field("SQL_DATETIME_SUB", Oid.INT4, 4);
+		f[17] = new Field("NUM_PREC_RADIX", Oid.INT4, 4);
 
 		String sql;
 		if (connection.haveMinimumServerVersion("7.3")) {
@@ -3514,18 +3493,18 @@ public abstract class AbstractJdbc1DatabaseMetaData
 		ResultSet rs = connection.createStatement().executeQuery(sql);
 		// cache some results, this will keep memory useage down, and speed
 		// things up a little.
-		byte b9[] = encoding.encode("9");
-		byte b10[] = encoding.encode("10");
-		byte bf[] = encoding.encode("f");
-		byte bnn[] = encoding.encode(Integer.toString(java.sql.DatabaseMetaData.typeNoNulls));
-		byte bts[] = encoding.encode(Integer.toString(java.sql.DatabaseMetaData.typeSearchable));
+		byte b9[] = connection.encodeString("9");
+		byte b10[] = connection.encodeString("10");
+		byte bf[] = connection.encodeString("f");
+		byte bnn[] = connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.typeNoNulls));
+		byte bts[] = connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.typeSearchable));
 
 		while (rs.next())
 		{
 			byte[][] tuple = new byte[18][];
 			String typname = rs.getString(1);
-			tuple[0] = encoding.encode(typname);
-			tuple[1] = encoding.encode(Integer.toString(connection.getSQLType(typname)));
+			tuple[0] = connection.encodeString(typname);
+			tuple[1] = connection.encodeString(Integer.toString(connection.getSQLType(typname)));
 			tuple[2] = b9;	// for now
 			tuple[6] = bnn; // for now
 			tuple[7] = bf; // false for now - not case sensitive

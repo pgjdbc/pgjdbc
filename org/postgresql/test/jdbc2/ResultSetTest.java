@@ -42,7 +42,7 @@ public class ResultSetTest extends TestCase
 
         TestUtil.createTable(con, "testbool", "a boolean");
 
-        TestUtil.createTable(con, "testbit", "a bit");
+        //TestUtil.createTable(con, "testbit", "a bit");
 
         TestUtil.createTable(con, "testboolstring", "a varchar(30)");
 
@@ -78,7 +78,7 @@ public class ResultSetTest extends TestCase
 		TestUtil.dropTable(con, "teststring");
 		TestUtil.dropTable(con, "testint");
 		TestUtil.dropTable(con, "testbool");
-		TestUtil.dropTable(con, "testbit");
+		//TestUtil.dropTable(con, "testbit");
 		TestUtil.dropTable(con, "testboolstring");
 		TestUtil.dropTable(con, "testnumeric");
 		TestUtil.closeDB(con);
@@ -180,7 +180,8 @@ public class ResultSetTest extends TestCase
                         assertEquals(true, rs.getBoolean(1));
                 }
 
-                pstmt = con.prepareStatement("insert into testbit values (?)");
+		/*
+		pstmt = con.prepareStatement("insert into testbit values (?)");
 
                 pstmt.setObject(1, new Float(0), java.sql.Types.BIT);
                 pstmt.executeUpdate();
@@ -203,6 +204,7 @@ public class ResultSetTest extends TestCase
                         assertTrue(rs.next());
                         assertEquals(true, rs.getBoolean(1));
                 }
+		*/
 
                 rs = con.createStatement().executeQuery("select * from testboolstring");
 

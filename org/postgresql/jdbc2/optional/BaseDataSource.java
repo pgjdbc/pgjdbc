@@ -245,7 +245,7 @@ public abstract class BaseDataSource implements Referenceable
 	/**
 	 * Gets the default threshold for enabling server-side prepare.
 	 *
-	 * @see #setServerPrepareThreshold(int)
+	 * @see #setPrepareThreshold(int)
 	 */
 	public int getPrepareThreshold()
 	{

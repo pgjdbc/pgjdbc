@@ -22,72 +22,88 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Vector;
 import org.postgresql.Driver;
-import org.postgresql.core.BaseConnection;
-import org.postgresql.core.BaseResultSet;
-import org.postgresql.core.BaseStatement;
-import org.postgresql.core.Field;
-import org.postgresql.core.Encoding;
-import org.postgresql.core.QueryExecutor;
+import org.postgresql.core.*;
 import org.postgresql.largeobject.*;
 import org.postgresql.util.PGbytea;
 import org.postgresql.util.PGtokenizer;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
-public abstract class AbstractJdbc1ResultSet implements BaseResultSet
+public abstract class AbstractJdbc1ResultSet implements BaseResultSet, org.postgresql.PGRefCursorResultSet
 {
+	protected final BaseConnection connection;  // the connection we belong to
+	protected final BaseStatement statement;    // the statement we belong to
+	protected final Field fields[];		        // Field metadata for this resultset.
+	protected final Query originalQuery;        // Query we originated from
 
-	protected Vector rows;			// The results
-	protected BaseStatement statement;
-	protected Field fields[];		// The field descriptions
-	protected String status;		// Status of the result
-	protected int updateCount;		// How many rows did we get back?
-	protected long insertOID;		// The oid of an inserted row
-	protected int current_row;		// Our pointer to where we are at
-	protected int row_offset;       // Offset into the actual resultset of row 0
-	protected byte[][] this_row;		// the current row result
-	protected BaseConnection connection;	// the connection which we returned from
+	protected final int maxRows;            // Maximum rows in this resultset (might be 0).
+	protected final int maxFieldSize;       // Maximum field size in this resultset (might be 0).
+
+	protected Vector rows;			        // Current page of results.
+	protected int current_row = -1;         // Index into 'rows' of our currrent row (0-based)
+	protected int row_offset;               // Offset of row 0 in the actual resultset
+	protected byte[][] this_row;		    // copy of the current result row
 	protected SQLWarning warnings = null;	// The warning chain
 	protected boolean wasNullFlag = false;	// the flag for wasNull()
 	protected boolean onInsertRow = false;  // are we on the insert row (for JDBC2 updatable resultsets)?
 
-	// We can chain multiple resultSets together - this points to
-	// next resultSet in the chain.
-	protected BaseResultSet next = null;
-
 	private StringBuffer sbuf = null;
-	public byte[][] rowBuffer = null;
+	public byte[][] rowBuffer = null;       // updateable rowbuffer
 
  	private SimpleDateFormat m_tsFormat = null;
  	private SimpleDateFormat m_tstzFormat = null;
  	private SimpleDateFormat m_dateFormat = null;
 
-
-	protected int fetchSize;      // Fetch size for next read (might be 0).
-	protected int lastFetchSize;  // Fetch size of last read (might be 0).
+	protected int fetchSize;       // Current fetch size (might be 0).
+	protected ResultCursor cursor; // Cursor for fetching additional data.
 
 	public abstract ResultSetMetaData getMetaData() throws SQLException;
 
-	public AbstractJdbc1ResultSet(BaseStatement statement,
-				      Field[] fields,
-				      Vector tuples,
-				      String status,
-				      int updateCount,
-				      long insertOID)
+	public class CursorResultHandler implements ResultHandler {
+		private SQLException error;
+		
+		public void handleResultRows(Query fromQuery, Field[] fields, Vector tuples, ResultCursor cursor) {
+			AbstractJdbc1ResultSet.this.rows = tuples;
+			AbstractJdbc1ResultSet.this.cursor = cursor;
+		}
+		
+		public void handleCommandStatus(String status, int updateCount, long insertOID) {
+			handleError(new SQLException("unexpected command status"));
+		}
+		
+		public void handleWarning(SQLWarning warning) {
+			AbstractJdbc1ResultSet.this.addWarning(warning);
+		}
+		
+		public void handleError(SQLException newError) {
+			if (error == null)
+				error = newError;
+			else
+				error.setNextException(newError);
+		}
+		
+		public void handleCompletion() throws SQLException {
+			if (error != null)
+				throw error;
+		}
+	};	
+
+	public AbstractJdbc1ResultSet(Query originalQuery,
+								  BaseStatement statement,
+								  Field[] fields,
+								  Vector tuples,
+								  ResultCursor cursor,
+								  int maxRows,
+								  int maxFieldSize) throws SQLException
 	{
-		this.connection = statement.getPGConnection();
+		this.originalQuery = originalQuery;
+		this.connection = (BaseConnection) statement.getConnection();
 		this.statement = statement;
 		this.fields = fields;
 		this.rows = tuples;
-		this.status = status;
-		this.updateCount = updateCount;
-
-		this.insertOID = insertOID;
-		this.this_row = null;
-		this.current_row = -1;
-		this.row_offset = 0;
-
-		this.lastFetchSize = this.fetchSize = (statement == null ? 0 : statement.getFetchSize());
+		this.cursor = cursor;
+		this.maxRows = maxRows;
+		this.maxFieldSize = maxFieldSize;
 	}
 
     public BaseStatement getPGStatement() {
@@ -98,23 +114,18 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 		return sbuf;
 	}
 
-	//This is implemented in jdbc2
-	public void setStatement(BaseStatement statement) {
+	//
+	// Backwards compatibility with PGRefCursorResultSet
+	//
+
+	private String refCursorName;
+
+	public String getRefCursor() {
+		return refCursorName;
 	}
 
-	//method to reinitialize a result set with more data
-	public void reInit (Field[] fields, Vector tuples, String status,
-			  int updateCount, long insertOID)
-	{
-		this.fields = fields;
-		// on a reinit the size of this indicates how many we pulled
-		// back. If it's 0 then the res set has ended.
-		this.rows = tuples;
-		this.status = status;
-		this.updateCount = updateCount;
-		this.insertOID = insertOID;
-		this.this_row = null;
-		this.current_row = -1;
+	private void setRefCursor(String refCursorName) {
+		this.refCursorName = refCursorName;
 	}
 
 	//
@@ -125,7 +136,6 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 	{
 		fetchSize = rows;
 	}
-
 
 	public int getFetchSize() throws SQLException
 	{
@@ -142,42 +152,33 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 
 		if (current_row+1 >= rows.size())
 		{
- 			String cursorName = statement.getFetchingCursorName();
-			if (cursorName == null || lastFetchSize == 0 || rows.size() < lastFetchSize) {
+			if (cursor == null || (maxRows > 0 && row_offset + rows.size() >= maxRows)) {
 				current_row = rows.size();
 				this_row = null;
 				rowBuffer = null;
-				return false;  // Not doing a cursor-based fetch or the last fetch was the end of the query
+				return false;  // End of the resultset.
 			}
 
-  			// Use the ref to the statement to get
-  			// the details we need to do another cursor
-  			// query - it will use reinit() to repopulate this
-  			// with the right data.
-
- 			// NB: We can reach this point with fetchSize == 0
- 			// if the fetch size is changed halfway through reading results.
- 			// Use "FETCH FORWARD ALL" in that case to complete the query.
- 			String[] sql = new String[] {
- 				fetchSize == 0 ? ("FETCH FORWARD ALL FROM " + cursorName) :
- 				("FETCH FORWARD " + fetchSize + " FROM " + cursorName)
- 			};
-
+			// Ask for some more data.
 			row_offset += rows.size(); // We are discarding some data.
-  			QueryExecutor.execute(sql,
- 								  new String[0],
-  								  this);
+
+			int fetchRows = fetchSize;
+			if (maxRows != 0) {
+				if (fetchRows == 0 || row_offset + fetchRows > maxRows) // Fetch would exceed maxRows, limit it.
+					fetchRows = maxRows - row_offset;
+			}
+
+			// Execute the fetch and update this resultset.
+			connection.getQueryExecutor().fetch(cursor, new CursorResultHandler(), fetchRows);
+
+			current_row = 0;
 
   			// Test the new rows array.
- 			lastFetchSize = fetchSize;
   			if (rows.size() == 0) {
 				this_row = null;
 				rowBuffer = null;
   				return false;
 			}
-
-			// Otherwise reset the counter and let it go on...
-			current_row = 0;
 		} else {
 			current_row++;
 		}
@@ -211,7 +212,11 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 			return null;
 
 		Encoding encoding = connection.getEncoding();
-		return trimString(columnIndex, encoding.decode(this_row[columnIndex-1]));
+		try {
+			return trimString(columnIndex, encoding.decode(this_row[columnIndex-1]));
+		} catch (IOException ioe) {
+			throw new PSQLException("postgresql.con.invalidchar", PSQLState.DATA_ERROR, ioe);
+		}
 	}
 
 	public boolean getBoolean(int columnIndex) throws SQLException
@@ -228,7 +233,7 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 		{
 			try
 			{
-				switch(fields[columnIndex-1].getSQLType())
+				switch(getSQLType(columnIndex))
 				{
 					case Types.NUMERIC:
 					case Types.REAL:
@@ -264,7 +269,7 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 		{
 			try
 			{
-				switch(fields[columnIndex-1].getSQLType())
+				switch(getSQLType(columnIndex))
 				{
 					case Types.NUMERIC:
 					case Types.REAL:
@@ -345,7 +350,7 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 			else if (connection.haveMinimumCompatibleVersion("7.2"))
 			{
 				//Version 7.2 supports the bytea datatype for byte arrays
-				if (fields[columnIndex - 1].getPGType().equals("bytea"))
+				if (fields[columnIndex - 1].getOID() == Oid.BYTEA)
 				{
 					return trimBytes(columnIndex, PGbytea.toBytes(this_row[columnIndex - 1]));
 				}
@@ -382,20 +387,21 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 
 	public Time getTime(int columnIndex) throws SQLException
 	{
-		return toTime( getString(columnIndex), this, fields[columnIndex - 1].getPGType() );
+        checkResultSet(columnIndex);
+		return TimestampUtils.toTime( getString(columnIndex), getPGType(columnIndex) );
 	}
 
 	public Timestamp getTimestamp(int columnIndex) throws SQLException
 	{
         this.checkResultSet(columnIndex);
-        int sqlType = fields[columnIndex-1].getSQLType();
+        int sqlType = getSQLType(columnIndex);
 
         if ( sqlType == Types.TIME )
         {
-            Time time = toTime(getString( columnIndex ), this, fields[columnIndex - 1].getPGType() );
+            Time time = TimestampUtils.toTime(getString( columnIndex ), getPGType(columnIndex));
             return new Timestamp(time.getTime() );
         }
-		return toTimestamp( getString(columnIndex), this, fields[columnIndex - 1].getPGType() );
+		return TimestampUtils.toTimestamp(getString(columnIndex), getPGType(columnIndex));
 	}
 
 	public InputStream getAsciiStream(int columnIndex) throws SQLException
@@ -583,9 +589,9 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 		warnings = null;
 	}
 
-	public void addWarnings(SQLWarning warnings)
+	protected void addWarning(SQLWarning warnings)
 	{
-		if ( this.warnings != null )
+		if (this.warnings != null)
 			this.warnings.setNextWarning(warnings);
 		else
 			this.warnings = warnings;
@@ -593,7 +599,7 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 
 	public String getCursorName() throws SQLException
 	{
-		return (connection.getCursorName());
+		return null;
 	}
 
 	/*
@@ -611,12 +617,15 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 	 * @return a Object holding the column value
 	 * @exception SQLException if a database access error occurs
 	 */
-	public Object getObject(int columnIndex) throws SQLException
-	{
+	public Object getObject(int columnIndex) throws SQLException {
 		Field field;
 
-		if (columnIndex < 1 || columnIndex > fields.length)
-			throw new PSQLException("postgresql.res.colrange", PSQLState.INVALID_PARAMETER_VALUE);
+		checkResultSet(columnIndex);
+
+		wasNullFlag = (this_row[columnIndex - 1] == null);
+		if (wasNullFlag)
+			return null;
+
 		field = fields[columnIndex - 1];
 
 		// some fields can be null, mainly from those returned by MetaData methods
@@ -625,9 +634,17 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 			wasNullFlag = true;
 			return null;
 		}
+		
+		Object result = internalGetObject(columnIndex, field);
+		if (result != null)
+			return result;
 
-		switch (field.getSQLType())
-		{
+		return connection.getObject(getPGType(columnIndex), getString(columnIndex));
+	}
+		
+	protected Object internalGetObject(int columnIndex, Field field) throws SQLException
+	{
+		switch (getSQLType(columnIndex)) {
 			case Types.BIT:
 				return getBoolean(columnIndex) ? Boolean.TRUE : Boolean.FALSE;
 			case Types.SMALLINT:
@@ -655,24 +672,26 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 			case Types.BINARY:
 			case Types.VARBINARY:
 				return getBytes(columnIndex);
+
 			default:
-				String type = field.getPGType();
+				String type = getPGType(columnIndex);
 
 				// if the backend doesn't know the type then coerce to String
 				if (type.equals("unknown"))
-				{
 					return getString(columnIndex);
+
+				// Specialized support for ref cursors is neater.
+				if (type.equals("refcursor")) {
+					// Fetch all results.
+					String cursorName = getString(columnIndex);
+					String fetchSql = "FETCH ALL IN \"" + cursorName + "\"";
+					ResultSet rs = connection.execSQLQuery(fetchSql);
+					((AbstractJdbc1ResultSet)rs).setRefCursor(cursorName);
+					return rs;
 				}
-                                // Specialized support for ref cursors is neater.
-                                else if (type.equals("refcursor"))
-                                {
-                                        String cursorName = getString(columnIndex);
-                                        return statement.createRefCursorResultSet(cursorName);
-                                }
-				else
-				{
-					return connection.getObject(field.getPGType(), getString(columnIndex));
-				}
+
+				// Caller determines what to do (JDBC2 overrides in this case)
+				return null;
 		}
 	}
 
@@ -690,83 +709,9 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 
 		final int flen = fields.length;
 		for (i = 0 ; i < flen; ++i)
-			if (fields[i].getName().equalsIgnoreCase(columnName))
+			if (fields[i].getColumnLabel().equalsIgnoreCase(columnName))
 				return (i + 1);
 		throw new PSQLException ("postgresql.res.colname", null, columnName);
-	}
-
-
-	/*
-	 * We at times need to know if the resultSet we are working
-	 * with is the result of an UPDATE, DELETE or INSERT (in which
-	 * case, we only have a row count), or of a SELECT operation
-	 * (in which case, we have multiple fields) - this routine
-	 * tells us.
-	 */
-	public boolean reallyResultSet()
-	{
-		return (fields != null);
-	}
-
-	/*
-	 * Since ResultSets can be chained, we need some method of
-	 * finding the next one in the chain.  The method getNext()
-	 * returns the next one in the chain.
-	 *
-	 * @return the next ResultSet, or null if there are none
-	 */
-	public ResultSet getNext()
-	{
-		return (ResultSet)next;
-	}
-
-	/*
-	 * This following method allows us to add a ResultSet object
-	 * to the end of the current chain.
-	 */
-	public void append(BaseResultSet r)
-	{
-		if (next == null)
-			next = r;
-		else
-			next.append(r);
-	}
-
-	/*
-	 * If we are just a place holder for results, we still need
-	 * to get an updateCount.  This method returns it.
-	 */
-	public int getResultCount()
-	{
-		return updateCount;
-	}
-
-	/*
-	 * We also need to provide a couple of auxiliary functions for
-	 * the implementation of the ResultMetaData functions.	In
-	 * particular, we need to know the number of rows and the
-	 * number of columns.  Rows are also known as Tuples
-	 */
-	public int getTupleCount()
-	{
-		return rows.size();
-	}
-
-	/*
-	 * getColumnCount returns the number of columns
-	 */
-	public int getColumnCount()
-	{
-		return fields.length;
-	}
-
-	/*
-	 * Returns the status message from the backend.<p>
-	 * It is used internally by the driver.
-	 */
-	public String getStatusString()
-	{
-		return status;
 	}
 
 	/*
@@ -776,26 +721,6 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 	public int getColumnOID(int field)
 	{
 		return fields[field -1].getOID();
-	}
-
-	/*
-	 * returns the OID of the last inserted row.  Deprecated in 7.2 because
-			* range for OID values is greater than java signed int.
-	 * @deprecated Replaced by getLastOID() in 7.2
-	 */
-	public int getInsertedOID()
-	{
-		return (int) getLastOID();
-	}
-
-
-	/*
-	 * returns the OID of the last inserted row
-			* @since 7.2
-	 */
-	public long getLastOID()
-	{
-		return insertOID;
 	}
 
 	/*
@@ -836,9 +761,14 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 
 	protected String getPGType( int column ) throws SQLException
     {
-        checkResultSet( column );
-        return fields[ column - 1].getPGType();
+        return connection.getPGType(fields[column - 1].getOID());
     }
+
+	protected int getSQLType( int column ) throws SQLException
+    {
+        return connection.getSQLType(fields[column - 1].getOID());
+    }
+
     protected void checkResultSet( int column ) throws SQLException
 	{
 		if ( this_row == null )
@@ -983,307 +913,9 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 		}
 	}
 
-/* parse out the various endings of a time string
-*
-*    hh:mm:ss.SSS+/-HH:MM
-*
-*    Everything after the last s is optional
-*    we will return a string with everything filled in so that a
-*    SimpleDateFormat (hh:mm:ss.SSS z) will parse the date
-*    This function expects the string to begin with the string after the last s
-*/
-
-   private static String parseTime( String s, SimpleDateFormat df ) throws ParseException
-   {
-       StringBuffer sbuf = new StringBuffer(s.substring(0,8));
-       StringBuffer dateFormat = new StringBuffer("HH:mm:ss");
-
-
-       int msIndex = s.indexOf('.');
-       int tzIndex = s.indexOf('-');
-       if ( tzIndex == -1 )
-           tzIndex = s.indexOf('+');
-
-       if ( msIndex != -1 )
-       {
-           String microseconds = s.substring(msIndex+1,tzIndex!=-1?tzIndex:s.length());
-           int msec=0;
-
-           // I want to have a peek at the 4th digit to see if we round up
-
-           for ( int i=0; i < (microseconds.length() > 3 ? 4 : microseconds.length()) ; i++ )
-           {
-               int digit = Character.digit(microseconds.charAt(i),10);
-               if (digit == -1) throw new ParseException(s,tzIndex);
-               if ( i==0 )
-                   msec += digit*100;
-               else if ( i==1 )
-                   msec += digit*10;
-               else if ( i==2 )
-                   msec += digit;
-               else if ( i==3 && digit >= 5)
-                   msec += 1;
-
-           }
-           sbuf.append('.').append( msec );
-           dateFormat.append(".SSS");
-       }
-
-       if ( tzIndex != -1 ) // we have a time zone
-       {
-           String tz = s.substring(tzIndex);
-           sbuf.append(" GMT").append(tz);
-           if (tz.length() < 6)
-               sbuf.append(":00");
-           dateFormat.append( " z" );
-       }
-       df.applyPattern(dateFormat.toString());
-       return sbuf.toString();
-   }
-	public static Time toTime(String s, BaseResultSet resultSet, String pgDataType) throws SQLException
-	{
-		if (s == null)
-			return null; // SQL NULL
-		try
-		{
-			s = s.trim();
-
-           if (s.length() == 8)
-            {
-                //value is a time value
-                return java.sql.Time.valueOf(s);
-            }
-            else if ( !pgDataType.startsWith("timestamp") )
-            {
-                SimpleDateFormat df = new SimpleDateFormat();
-                s = parseTime(s,df);
-                java.util.Date d = df.parse(s);
-                return new java.sql.Time( d.getTime() );
-
-            }
-            //value is a timestamp
-            return new java.sql.Time(toTimestamp(s, resultSet, pgDataType).getTime());
-		}
-		catch (ParseException e)
-		{
-			throw new PSQLException("postgresql.res.badtime", PSQLState.BAD_DATETIME_FORMAT, s);
-		}
-	}
-
-	/**
-	* Parse a string and return a timestamp representing its value.
-	*
-	* The driver is set to return ISO date formated strings. We modify this
-	* string from the ISO format to a format that Java can understand. Java
-	* expects timezone info as 'GMT+09:00' where as ISO gives '+09'.
-	* Java also expects fractional seconds to 3 places where postgres
-	* will give, none, 2 or 6 depending on the time and postgres version.
-	* From version 7.2 postgres returns fractional seconds to 6 places.
-	*
-	* According to the Timestamp documentation, fractional digits are kept
-	* in the nanos field of Timestamp and not in the milliseconds of Date.
-	* Thus, parsing for fractional digits is entirely separated from the
-	* rest.
-	*
-	* The method assumes that there are no more than 9 fractional
-	* digits given. Undefined behavior if this is not the case.
-	*
-	* @param s		   The ISO formated date string to parse.
-	* @param resultSet The ResultSet this date is part of.
-	*
-	* @return null if s is null or a timestamp of the parsed string s.
-	*
-	* @throws SQLException if there is a problem parsing s.
-	**/
-	public static Timestamp toTimestamp(String s, BaseResultSet resultSet, String pgDataType)
-	throws SQLException
-	{
-		BaseResultSet rs = resultSet;
-		if (s == null)
-			return null;
-
-		s = s.trim();
-		// We must be synchronized here incase more theads access the ResultSet
-		// bad practice but possible. Anyhow this is to protect sbuf and
-		// SimpleDateFormat objects
-		synchronized (rs)
-		{
-			StringBuffer l_sbuf = rs.getStringBuffer();
-			SimpleDateFormat df = null;
-			if ( Driver.logDebug )
-				Driver.debug("the data from the DB is " + s);
-
-			// If first time, create the buffer, otherwise clear it.
-			if (l_sbuf == null)
-				l_sbuf = new StringBuffer(32);
-			else
-			{
-				l_sbuf.setLength(0);
-			}
-
-			// Copy s into sbuf for parsing.
-			l_sbuf.append(s);
-			int slen = s.length();
-
-			// For a Timestamp, the fractional seconds are stored in the
-			// nanos field. As a DateFormat is used for parsing which can
-			// only parse to millisecond precision and which returns a
-			// Date object, the fractional second parsing is completely
-			// separate.
-			int nanos = 0;
-
-			if (slen > 19)
-			{
-				// The len of the ISO string to the second value is 19 chars. If
-				// greater then 19, there may be tz info and perhaps fractional
-				// second info which we need to change to java to read it.
-
-				// cut the copy to second value "2001-12-07 16:29:22"
-				int i = 19;
-				l_sbuf.setLength(i);
-
-				char c = s.charAt(i++);
-				if (c == '.')
-				{
-					// Found a fractional value.
-					final int start = i;
-					while (true)
-					{
-						c = s.charAt(i++);
-						if (!Character.isDigit(c))
-							break;
-						if (i == slen)
-							{
-								i++;
-								break;
-							}
-					}
-
-					// The range [start, i - 1) contains all fractional digits.
-					final int end = i - 1;
-					try
-						{
-							nanos = Integer.parseInt(s.substring(start, end));
-						}
-					catch (NumberFormatException e)
-						{
-							throw new PSQLException("postgresql.unusual", PSQLState.UNEXPECTED_ERROR, e);
-						}
-
-					// The nanos field stores nanoseconds. Adjust the parsed
-					// value to the correct magnitude.
-					for (int digitsToNano = 9 - (end - start);
-						 digitsToNano > 0; --digitsToNano)
-						nanos *= 10;
-				}
-
-				if (i < slen)
-				{
-					// prepend the GMT part and then add the remaining bit of
-					// the string.
-					l_sbuf.append(" GMT");
-					l_sbuf.append(c);
-					l_sbuf.append(s.substring(i, slen));
-
-					// Lastly, if the tz part doesn't specify the :MM part then
-					// we add ":00" for java.
-					if (slen - i < 5)
-						l_sbuf.append(":00");
-
-					// we'll use this dateformat string to parse the result.
-					df = rs.getTimestampTZFormat();
-				}
-				else
-				{
-					// Just found fractional seconds but no timezone.
-					//If timestamptz then we use GMT, else local timezone
-					if (pgDataType.equals("timestamptz"))
-					{
-						l_sbuf.append(" GMT");
-						df = rs.getTimestampTZFormat();
-					}
-					else
-					{
-						df = rs.getTimestampFormat();
-					}
-				}
-			}
-			else if (slen == 19)
-			{
-				// No tz or fractional second info.
-				//If timestamptz then we use GMT, else local timezone
-				if (pgDataType.equals("timestamptz"))
-				{
-					l_sbuf.append(" GMT");
-					df = rs.getTimestampTZFormat();
-				}
-				else
-				{
-					df = rs.getTimestampFormat();
-				}
-			}
-			else
-			{
-                int i;
-				if (slen == 8 && s.equals("infinity"))
-					//java doesn't have a concept of postgres's infinity
-					//so set to an arbitrary future date
-					s = "9999-01-01";
-				if (slen == 9 && s.equals("-infinity"))
-					//java doesn't have a concept of postgres's infinity
-					//so set to an arbitrary old date
-					s = "0001-01-01";
-
-				// We must just have a date. This case is
-				// needed if this method is called on a date
-				// column
-                if ( pgDataType.compareTo("date") == 0 )
-                {
-                    df = rs.getDateFormat();
-                }
-                else
-                {
-
-                     try
-                     {
-                         df = new SimpleDateFormat();
-                         s = parseTime(s,df);
-                         java.util.Date d = df.parse(s);
-                         return new Timestamp( d.getTime() );
-
-                     }
-                     catch ( ParseException ex )
-                     {
-                         throw new PSQLException("postgresql.res.badtimestamp",
-                                                 PSQLState.BAD_DATETIME_FORMAT,
-                                                 ex, new Object[]
-                                                 {new Integer(ex.getErrorOffset()),
-                                                 s});
-                     }
-                }
-			}
-
-			try
-			{
-				// All that's left is to parse the string and return the ts.
-				if ( Driver.logDebug )
-					Driver.debug("the data after parsing is "
-                     + l_sbuf.toString() + " with " + nanos + " nanos");
-
- 				Timestamp result = new Timestamp(df.parse(l_sbuf.toString()).getTime());
-				result.setNanos(nanos);
-				return result;
-			}
-			catch (ParseException e)
-			{
-				throw new PSQLException("postgresql.res.badtimestamp", PSQLState.BAD_DATETIME_FORMAT, e, new Object[] { new Integer(e.getErrorOffset()), s });
-			}
-		}
-	}
-
 	private boolean isColumnTrimmable(int columnIndex) throws SQLException
 	{
-		switch (fields[columnIndex-1].getSQLType())
+		switch (getSQLType(columnIndex))
 		{
 			case Types.CHAR:
 			case Types.VARCHAR:
@@ -1298,13 +930,12 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 
 	private byte[] trimBytes(int p_columnIndex, byte[] p_bytes) throws SQLException
 	{
-		int l_maxSize = statement.getMaxFieldSize();
 		//we need to trim if maxsize is set and the length is greater than maxsize and the
 		//type of this column is a candidate for trimming
-		if (l_maxSize > 0 && p_bytes.length > l_maxSize && isColumnTrimmable(p_columnIndex))
+		if (maxFieldSize > 0 && p_bytes.length > maxFieldSize && isColumnTrimmable(p_columnIndex))
 		{
-			byte[] l_bytes = new byte[l_maxSize];
-			System.arraycopy (p_bytes, 0, l_bytes, 0, l_maxSize);
+			byte[] l_bytes = new byte[maxFieldSize];
+			System.arraycopy (p_bytes, 0, l_bytes, 0, maxFieldSize);
 			return l_bytes;
 		}
 		else
@@ -1315,37 +946,16 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 
 	private String trimString(int p_columnIndex, String p_string) throws SQLException
 	{
-		int l_maxSize = statement.getMaxFieldSize();
 		//we need to trim if maxsize is set and the length is greater than maxsize and the
 		//type of this column is a candidate for trimming
-		if (l_maxSize > 0 && p_string.length() > l_maxSize && isColumnTrimmable(p_columnIndex))
+		if (maxFieldSize > 0 && p_string.length() > maxFieldSize && isColumnTrimmable(p_columnIndex))
 		{
-			return p_string.substring(0,l_maxSize);
+			return p_string.substring(0, maxFieldSize);
 		}
 		else
 		{
 			return p_string;
 		}
 	}
-
-
-	public SimpleDateFormat getTimestampTZFormat() {
-		if (m_tstzFormat == null) {
-			m_tstzFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z");
-		}
-		return m_tstzFormat;
-	}
-	public SimpleDateFormat getTimestampFormat() {
-		if (m_tsFormat == null) {
-			m_tsFormat = new SimpleDateFormat ("yyyy-MM-dd HH:mm:ss");
-		}
-		return m_tsFormat;
-	}
-	public SimpleDateFormat getDateFormat() {
-		if (m_dateFormat == null) {
-			m_dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-		}
-		return m_dateFormat;
-	}
-}
+  }
 

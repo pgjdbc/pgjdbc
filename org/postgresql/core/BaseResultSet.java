@@ -12,39 +12,21 @@
  */
 package org.postgresql.core;
 
+import java.sql.*;
 
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.text.SimpleDateFormat;
-import java.util.Vector;
-
-public interface BaseResultSet
+/**
+ * Driver-internal resultset interface. Application code should not use
+ * this interface.
+ */
+public interface BaseResultSet extends ResultSet
 {
-
-    public BaseStatement getPGStatement();
-
-	public void append(BaseResultSet r);
-	public void close() throws SQLException;
-	public int getColumnCount();
-	public String getCursorName() throws SQLException;
-	public SimpleDateFormat getDateFormat();
+	/**
+	 * Return a sanitized numeric string for a column. This handles
+	 * "money" representations, stripping $ and () as appropriate.
+	 *
+	 * @param col the 1-based column to retrieve
+	 * @return the sanitized string
+	 * @throws SQLException if something goes wrong
+	 */
 	public String getFixedString(int col) throws SQLException;
-	public long getLastOID();
-	public ResultSetMetaData getMetaData() throws SQLException;
-	public ResultSet getNext();
-	public Object getObject(int columnIndex) throws SQLException;
-	public int getResultCount();
-	public String getStatusString();
-	public String getString(int columnIndex) throws SQLException;
-	public StringBuffer getStringBuffer();
-	public SimpleDateFormat getTimestampFormat();
-	public SimpleDateFormat getTimestampTZFormat();
-	public int getTupleCount();
-	public boolean next() throws SQLException;
-	public boolean reallyResultSet();
-	public void reInit (Field[] fields, Vector tuples, String status,
-						int updateCount, long insertOID);
-	public void setStatement(BaseStatement statement);
-
 }

@@ -1,7 +1,6 @@
 package org.postgresql.jdbc2;
 
-
-import org.postgresql.core.Field;
+import org.postgresql.core.*;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import java.sql.SQLException;
@@ -10,7 +9,6 @@ import java.util.Vector;
 
 public abstract class AbstractJdbc2ResultSetMetaData extends org.postgresql.jdbc1.AbstractJdbc1ResultSetMetaData
 {
-
 	/*
 	 *	Initialise for a result with a tuple set and
 	 *	a field descriptor set
@@ -18,9 +16,9 @@ public abstract class AbstractJdbc2ResultSetMetaData extends org.postgresql.jdbc
 	 * @param rows the Vector of rows returned by the ResultSet
 	 * @param fields the array of field descriptors
 	 */
-	public AbstractJdbc2ResultSetMetaData(Vector rows, Field[] fields)
+	public AbstractJdbc2ResultSetMetaData(BaseConnection connection, Field[] fields)
 	{
-		super(rows, fields);
+		super(connection, fields);
 	}
 
 	/*
@@ -57,7 +55,7 @@ public abstract class AbstractJdbc2ResultSetMetaData extends org.postgresql.jdbc
 	 */
 	public boolean isCaseSensitive(int column) throws SQLException
 	{
-		int sql_type = getField(column).getSQLType();
+		int sql_type = getSQLType(column);
 
 		switch (sql_type)
 		{
@@ -89,7 +87,7 @@ public abstract class AbstractJdbc2ResultSetMetaData extends org.postgresql.jdbc
 	 */
 	public boolean isSearchable(int column) throws SQLException
 	{
-		int sql_type = getField(column).getSQLType();
+		int sql_type = getSQLType(column);
 
 		// This switch is pointless, I know - but it is a set-up
 		// for further expansion.
@@ -113,7 +111,7 @@ public abstract class AbstractJdbc2ResultSetMetaData extends org.postgresql.jdbc
 	 */
 	public boolean isCurrency(int column) throws SQLException
 	{
-		String type_name = getField(column).getPGType();
+		String type_name = getPGType(column);
 
 		return type_name.equals("cash") || type_name.equals("money");
 	}
@@ -129,7 +127,7 @@ public abstract class AbstractJdbc2ResultSetMetaData extends org.postgresql.jdbc
 	 */
 	public boolean isSigned(int column) throws SQLException
 	{
-		int sql_type = getField(column).getSQLType();
+		int sql_type = getSQLType(column);
 
 		switch (sql_type)
 		{
@@ -158,7 +156,7 @@ public abstract class AbstractJdbc2ResultSetMetaData extends org.postgresql.jdbc
 	public int getColumnDisplaySize(int column) throws SQLException
 	{
 		Field f = getField(column);
-		String type_name = f.getPGType();
+		String type_name = getPGType(column);
 		int typmod = f.getMod();
 
 		// I looked at other JDBC implementations and couldn't find a consistent
@@ -212,7 +210,7 @@ public abstract class AbstractJdbc2ResultSetMetaData extends org.postgresql.jdbc
 	 */
 	public int getPrecision(int column) throws SQLException
 	{
-		int sql_type = getField(column).getSQLType();
+		int sql_type = getSQLType(column);
 
 		switch (sql_type)
 		{
@@ -249,7 +247,7 @@ public abstract class AbstractJdbc2ResultSetMetaData extends org.postgresql.jdbc
 	 */
 	public int getScale(int column) throws SQLException
 	{
-		int sql_type = getField(column).getSQLType();
+		int sql_type = getSQLType(column);
 
 		switch (sql_type)
 		{
@@ -302,7 +300,7 @@ public abstract class AbstractJdbc2ResultSetMetaData extends org.postgresql.jdbc
 	 */
 	public int getColumnType(int column) throws SQLException
 	{
-		return getField(column).getSQLType();
+		return getSQLType(column);
 	}
 
 	/*
@@ -314,7 +312,7 @@ public abstract class AbstractJdbc2ResultSetMetaData extends org.postgresql.jdbc
 	 */
 	public String getColumnTypeName(int column) throws SQLException
 	{
-		return getField(column).getPGType();
+		return getPGType(column);
 	}
 
 	/**
@@ -435,7 +433,7 @@ public abstract class AbstractJdbc2ResultSetMetaData extends org.postgresql.jdbc
 		*/
 
 		Field field = getField(column);
-		int sql_type = field.getSQLType();
+		int sql_type = getSQLType(column);
 
 		switch (sql_type)
 		{
@@ -468,7 +466,7 @@ public abstract class AbstractJdbc2ResultSetMetaData extends org.postgresql.jdbc
 			case Types.ARRAY:
 				return ("java.sql.Array");
 			default:
-				String type = field.getPGType();
+				String type = getPGType(column);
 				if ("unknown".equals(type))
 				{
 					return ("java.lang.String");

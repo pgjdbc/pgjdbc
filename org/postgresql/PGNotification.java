@@ -10,7 +10,7 @@
 package org.postgresql;
 
 /**
- *    This interface defines public PostgreSQL extention for Notifications
+ *    This interface defines the public PostgreSQL extension for Notifications
  */
 public interface PGNotification
 {

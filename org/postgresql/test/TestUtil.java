@@ -83,7 +83,8 @@ public class TestUtil
 		props.setProperty("password",getPassword());
 
 		// this allows loads the class.
-		org.postgresql.Driver.setLogLevel(org.postgresql.Driver.INFO);
+//		org.postgresql.Driver.setLogLevel(org.postgresql.Driver.DEBUG);
+//		java.sql.DriverManager.setLogWriter(new java.io.PrintWriter(System.err));
 		return java.sql.DriverManager.getConnection(getURL(), props);
 	}
 

@@ -21,8 +21,6 @@ public class ServerErrorMessage
 
 	public ServerErrorMessage(String p_serverError) 
 	{
-		if (Driver.logDebug)
-			Driver.debug("Constructing exception from server message: " + p_serverError);
 		char[] l_chars = p_serverError.toCharArray();
 		int l_pos = 0;
 		int l_length = l_chars.length;

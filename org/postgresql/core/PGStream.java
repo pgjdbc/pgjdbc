@@ -1,8 +1,8 @@
 /*-------------------------------------------------------------------------
  *
  * PGStream.java
- *      This class is used by Connection for communicating with the
- *      backend.
+ *      This class is used by ProtocolConnection implementations
+ *      for communicating with the backend.
  *
  * Copyright (c) 2003, PostgreSQL Global Development Group
  *
@@ -16,23 +16,37 @@ package org.postgresql.core;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.FilterOutputStream;
 import java.io.IOException;
+import java.io.EOFException;
+import java.io.Writer;
 import java.net.Socket;
 import java.sql.*;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
-
+/**
+ * Wrapper around the raw connection to the server that implements some basic
+ * primitives (reading/writing formatted data, doing string encoding, etc).
+ *<p>
+ * In general, instances of PGStream are not threadsafe; the caller must ensure
+ * that only one thread at a time is accessing a particular PGStream instance.
+ */
 public class PGStream
 {
-	public String host;
-	public int port;
-	public Socket connection;
-	public InputStream pg_input;
-	public BufferedOutputStream pg_output;
-	private byte[] byte_buf = new byte[8*1024];
+	private final String host;
+	private final int port;
 
-	/*
+	private Socket connection;
+	private InputStream pg_input;
+	private OutputStream pg_output;
+	private byte[] streamBuffer;
+
+	private Encoding encoding;
+	private Writer encodingWriter;
+
+	/**
 	 * Constructor:  Connect to the PostgreSQL back end and return
 	 * a stream connection.
 	 *
@@ -40,22 +54,97 @@ public class PGStream
 	 * @param port the port number that the postmaster is sitting on
 	 * @exception IOException if an IOException occurs below it.
 	 */
-	public PGStream(String p_host, int p_port) throws IOException
+	public PGStream(String host, int port) throws IOException
 	{
-		host = p_host;
-		port = p_port;
-		connection = new Socket(host, port);
+		this.host = host;
+		this.port = port;
+		
+		changeSocket(new Socket(host, port));
+		setEncoding(Encoding.getJVMEncoding("US-ASCII"));
+	}
 
-		// Submitted by Jason Venner <jason@idiom.com> adds a 10x speed
-		// improvement on FreeBSD machines (caused by a bug in their TCP Stack)
+	public String getHost() {
+		return host; 
+	}
+
+	public int getPort() {
+		return port;
+	}
+
+	public Socket getSocket() {
+		return connection;
+	}
+
+	/**
+	 * Switch this stream to using a new socket. Any existing socket
+	 * is <em>not</em> closed; it's assumed that we are changing to
+	 * a new socket that delegates to the original socket (e.g. SSL).
+	 *
+	 * @param socket the new socket to change to
+	 * @throws IOException if something goes wrong
+	 */
+	public void changeSocket(Socket socket) throws IOException {
+		this.connection = socket;
+
+		// Submitted by Jason Venner <jason@idiom.com>. Disable Nagle
+		// as we are selective about flushing output only when we
+		// really need to.
 		connection.setTcpNoDelay(true);
 
 		// Buffer sizes submitted by Sverre H Huseby <sverrehu@online.no>
 		pg_input = new BufferedInputStream(connection.getInputStream(), 8192);
 		pg_output = new BufferedOutputStream(connection.getOutputStream(), 8192);
+
+		if (encoding != null)
+			setEncoding(encoding);
 	}
 
-	/*
+	public Encoding getEncoding() {
+		return encoding;
+	}
+
+	/**
+	 * Change the encoding used by this connection.
+	 *
+	 * @param encoding the new encoding to use
+	 * @throws IOException if something goes wrong
+	 */
+	public void setEncoding(Encoding encoding) throws IOException {
+		// Close down any old writer.
+		if (encodingWriter != null)
+			encodingWriter.close();
+
+		this.encoding = encoding;
+
+		// Intercept flush() downcalls from the writer; our caller
+		// will call PGStream.flush() as needed.
+		OutputStream interceptor = new FilterOutputStream(pg_output) {
+				public void flush() throws IOException {}
+				public void close() throws IOException { super.flush(); }
+			};
+
+		encodingWriter = encoding.getEncodingWriter(interceptor);
+	}
+
+	/**
+	 * Get a Writer instance that encodes directly onto the underlying stream.
+	 *<p>
+	 * The returned Writer should not be closed, as it's a shared object.
+	 * Writer.flush needs to be called when switching between use of the Writer and
+	 * use of the PGStream write methods, but it won't actually flush output
+	 * all the way out -- call {@link #flush} to actually ensure all output
+	 * has been pushed to the server.
+	 *
+	 * @return the shared Writer instance
+	 * @throws IOException if something goes wrong.
+	 */
+	public Writer getEncodingWriter() throws IOException {
+		if (encodingWriter == null)
+			throw new IOException("No encoding has been set on this connection");
+		return encodingWriter;
+	}
+
+	/**
 	 * Sends a single character to the back end
 	 *
 	 * @param val the character to be sent
@@ -66,26 +155,36 @@ public class PGStream
 		pg_output.write((byte)val);
 	}
 
-	/*
-	 * Sends an integer to the back end
+	/**
+	 * Sends a 4-byte integer to the back end
 	 *
 	 * @param val the integer to be sent
-	 * @param siz the length of the integer in bytes (size of structure)
 	 * @exception IOException if an I/O error occurs
 	 */
-	public void SendInteger(int val, int siz) throws IOException
+	public void SendInteger4(int val) throws IOException
 	{
-		byte[] buf = new byte[siz];
-
-		while (siz-- > 0)
-		{
-			buf[siz] = (byte)(val & 0xff);
-			val >>= 8;
-		}
-		Send(buf);
+		SendChar((val>>24)&255);
+		SendChar((val>>16)&255);
+		SendChar((val>>8)&255);
+		SendChar(val&255);
 	}
 
-	/*
+	/**
+	 * Sends a 2-byte integer (short) to the back end
+	 *
+	 * @param val the integer to be sent
+	 * @exception IOException if an I/O error occurs or <code>val</code> cannot be encoded in 2 bytes
+	 */
+	public void SendInteger2(int val) throws IOException
+	{
+		if (val < Short.MIN_VALUE || val > Short.MAX_VALUE)
+			throw new IOException("Tried to send an out-of-range integer as a 2-byte value: " + val);
+
+		SendChar((val>>8)&255);
+		SendChar(val&255);
+	}
+
+	/**
 	 * Send an array of bytes to the backend
 	 *
 	 * @param buf The array of bytes to be sent
@@ -96,9 +195,9 @@ public class PGStream
 		pg_output.write(buf);
 	}
 
-	/*
-	 * Send an exact array of bytes to the backend - if the length
-	 * has not been reached, send nulls until it has.
+	/**
+	 * Send a fixed-size array of bytes to the backend. If buf.length < siz,
+	 * pad with zeros. If buf.lengh > siz, truncate the array.
 	 *
 	 * @param buf the array of bytes to be sent
 	 * @param siz the number of bytes to be sent
@@ -109,9 +208,9 @@ public class PGStream
 		Send(buf, 0, siz);
 	}
 
-	/*
-	 * Send an exact array of bytes to the backend - if the length
-	 * has not been reached, send nulls until it has.
+	/**
+	 * Send a fixed-size array of bytes to the backend. If length < siz,
+	 * pad with zeros. If length > siz, truncate the array.
 	 *
 	 * @param buf the array of bytes to be sent
 	 * @param off offset in the array to start sending from
@@ -132,119 +231,107 @@ public class PGStream
 		}
 	}
 
-	/*
+	/**
 	 * Receives a single character from the backend
 	 *
 	 * @return the character received
-	 * @exception SQLException if an I/O Error returns
+	 * @exception IOException if an I/O Error occurs
 	 */
-	public int ReceiveChar() throws SQLException
+	public int ReceiveChar() throws IOException
 	{
-		int c = 0;
-
-		try
-		{
-			c = pg_input.read();
-			if (c < 0)
-				throw new PSQLException("postgresql.stream.eof", PSQLState.COMMUNICATION_ERROR);
-		}
-		catch (IOException e)
-		{
-			throw new PSQLException("postgresql.stream.ioerror", PSQLState.COMMUNICATION_ERROR, e);
-		}
+		int c = pg_input.read();
+		if (c < 0)
+			throw new EOFException();
 		return c;
 	}
 
-	/*
+	/**
 	 * Receives an integer from the backend
 	 *
 	 * @param siz length of the integer in bytes
 	 * @return the integer received from the backend
-	 * @exception SQLException if an I/O error occurs
+	 * @exception IOException if an I/O error occurs
 	 */
-	public int ReceiveIntegerR(int siz) throws SQLException
+	public int ReceiveIntegerR(int siz) throws IOException
 	{
 		int n = 0;
 
-		try
-		{
-			for (int i = 0 ; i < siz ; i++)
-			{
-				int b = pg_input.read();
+		for (int i = 0 ; i < siz ; i++) {
+			int b = pg_input.read();
+			
+			if (b < 0)
+				throw new EOFException();
+			n = b | (n << 8);
+		}
 
-				if (b < 0)
-					throw new PSQLException("postgresql.stream.eof", PSQLState.COMMUNICATION_ERROR);
-				n = b | (n << 8);
-			}
-		}
-		catch (IOException e)
-		{
-			throw new PSQLException("postgresql.stream.ioerror", PSQLState.COMMUNICATION_ERROR, e);
-		}
 		return n;
 	}
 
-	/*
+	private byte[] byte_buf = new byte[8*1024];
+
+	/**
+	 * Receives a fixed-size string from the backend.
+	 *
+	 * @param len the length of the string to receive, in bytes.
+	 * @return the decoded string
+	 */
+	public String ReceiveString(int len) throws IOException {
+		if (len > byte_buf.length)
+			byte_buf = new byte[len];
+		
+		Receive(byte_buf, 0, len);
+		return encoding.decode(byte_buf, 0, len);
+	}
+
+	/**
 	 * Receives a null-terminated string from the backend.	If we don't see a
 	 * null, then we assume something has gone wrong.
 	 *
-	 * @param encoding the charset encoding to use.
 	 * @return string from back end
-	 * @exception SQLException if an I/O error occurs, or end of file
+	 * @exception IOException if an I/O error occurs, or end of file
 	 */
-	public String ReceiveString(Encoding encoding)
-	throws SQLException
+	public String ReceiveString() throws IOException
 	{
-		int s = 0;
+		int i = 0;
 		byte[] rst = byte_buf;
-		try
-		{
-			int buflen = rst.length;
-			boolean done = false;
-			while (!done)
-			{
-				while (s < buflen)
-				{
-					int c = pg_input.read();
-					if (c < 0)
-						throw new PSQLException("postgresql.stream.eof", PSQLState.COMMUNICATION_ERROR);
-					else if (c == 0)
-					{
-						rst[s] = 0;
-						done = true;
-						break;
-					}
-					else
-					{
-						rst[s++] = (byte)c;
-					}
-					if (s >= buflen)
-					{ // Grow the buffer
-						buflen = (int)(buflen * 2); // 100% bigger
-						byte[] newrst = new byte[buflen];
-						System.arraycopy(rst, 0, newrst, 0, s);
-						rst = newrst;
-					}
-				}
+		int buflen = rst.length;
+
+		while (true) {
+			int c = pg_input.read();
+
+			if (c < 0)
+				throw new EOFException();
+
+			if (c == 0)
+				break;
+
+			if (i == buflen) {
+				// Grow the buffer.
+				buflen *= 2;     // 100% bigger
+				if (buflen <= 0) // Watch for overflow
+					throw new IOException("Impossibly long string");
+
+				byte[] newrst = new byte[buflen];
+				System.arraycopy(rst, 0, newrst, 0, i);
+				rst = newrst;
 			}
+			
+			rst[i++] = (byte)c;
 		}
-		catch (IOException e)
-		{
-			throw new PSQLException("postgresql.stream.ioerror", PSQLState.COMMUNICATION_ERROR, e);
-		}
-		return encoding.decode(rst, 0, s);
+
+		return encoding.decode(rst, 0, i);
 	}
 
-	/*
+	/**
 	 * Read a tuple from the back end.	A tuple is a two dimensional
-	 * array of bytes
+	 * array of bytes. This variant reads the V3 protocol's tuple
+	 * representation.
 	 *
-	 * @param nf the number of fields expected
 	 * @return null if the current response has no more tuples, otherwise
-	 *	an array of strings
-	 * @exception SQLException if a data I/O error occurs
+	 *	an array of bytearrays
+	 * @exception IOException if a data I/O error occurs
 	 */
-	public byte[][] ReceiveTupleV3(int nf) throws SQLException
+	public byte[][] ReceiveTupleV3() throws IOException
 	{
 		//TODO: use l_msgSize
 		int l_msgSize = ReceiveIntegerR(4);
@@ -263,20 +350,22 @@ public class PGStream
 				answer[i] = Receive(l_size);
 			}
 		}
+
 		return answer;
 	}
 
-	/*
+	/**
 	 * Read a tuple from the back end.	A tuple is a two dimensional
-	 * array of bytes
+	 * array of bytes. This variant reads the V2 protocol's tuple
+	 * representation.
 	 *
 	 * @param nf the number of fields expected
 	 * @param bin true if the tuple is a binary tuple
 	 * @return null if the current response has no more tuples, otherwise
-	 *	an array of strings
-	 * @exception SQLException if a data I/O error occurs
+	 *	an array of bytearrays
+	 * @exception IOException if a data I/O error occurs
 	 */
-	public byte[][] ReceiveTupleV2(int nf, boolean bin) throws SQLException
+	public byte[][] ReceiveTupleV2(int nf, boolean bin) throws IOException
 	{
 		int i, bim = (nf + 7) / 8;
 		byte[] bitmask = Receive(bim);
@@ -309,72 +398,86 @@ public class PGStream
 		return answer;
 	}
 
-	/*
+	/**
 	 * Reads in a given number of bytes from the backend
 	 *
 	 * @param siz number of bytes to read
 	 * @return array of bytes received
-	 * @exception SQLException if a data I/O error occurs
+	 * @exception IOException if a data I/O error occurs
 	 */
-	public byte[] Receive(int siz) throws SQLException
+	public byte[] Receive(int siz) throws IOException
 	{
 		byte[] answer = new byte[siz];
 		Receive(answer, 0, siz);
 		return answer;
 	}
 
-	/*
+	/**
 	 * Reads in a given number of bytes from the backend
 	 *
 	 * @param buf buffer to store result
 	 * @param off offset in buffer
 	 * @param siz number of bytes to read
-	 * @exception SQLException if a data I/O error occurs
+	 * @exception IOException if a data I/O error occurs
 	 */
-	public void Receive(byte[] b, int off, int siz) throws SQLException
+	public void Receive(byte[] buf, int off, int siz) throws IOException
 	{
 		int s = 0;
 
-		try
-		{
-			while (s < siz)
-			{
-				int w = pg_input.read(b, off + s, siz - s);
-				if (w < 0)
-					throw new PSQLException("postgresql.stream.eof", PSQLState.COMMUNICATION_ERROR);
-				s += w;
-			}
-		}
-		catch (IOException e)
-		{
-			throw new PSQLException("postgresql.stream.ioerror", PSQLState.COMMUNICATION_ERROR, e);
+		while (s < siz) {
+			int w = pg_input.read(buf, off + s, siz - s);
+			if (w < 0)
+				throw new EOFException();
+			s += w;
 		}
 	}
 
-	/*
-	 * This flushes any pending output to the backend. It is used primarily
-	 * by the Fastpath code.
-	 * @exception SQLException if an I/O error occurs
+	/**
+	 * Copy data from an input stream to the connection.
+	 *
+	 * @param inStream the stream to read data from
+	 * @param remaining the number of bytes to copy
 	 */
-	public void flush() throws SQLException
-	{
-		try
-		{
-			pg_output.flush();
-		}
-		catch (IOException e)
-		{
-			throw new PSQLException("postgresql.stream.flush", PSQLState.COMMUNICATION_ERROR, e);
+	public void SendStream(InputStream inStream, int remaining) throws IOException {
+		if (streamBuffer == null)
+			streamBuffer = new byte[8192];
+
+		while (remaining > 0) {				
+			int count = (remaining > streamBuffer.length ? streamBuffer.length : remaining);
+			int readCount;
+
+			readCount = inStream.read(streamBuffer, 0, count);
+			if (readCount < 0)
+				throw new EOFException("Premature end of input stream");
+			
+			Send(streamBuffer, readCount);
+			remaining -= readCount;
 		}
 	}
 
-	/*
+
+
+	/**
+	 * Flush any pending output to the backend.
+	 * @exception IOException if an I/O error occurs
+	 */
+	public void flush() throws IOException
+	{
+		if (encodingWriter != null)
+			encodingWriter.flush();
+		pg_output.flush();
+	}
+
+	/**
 	 * Closes the connection
 	 *
-	 * @exception IOException if a IO Error occurs
+	 * @exception IOException if an I/O Error occurs
 	 */
 	public void close() throws IOException
 	{
+		if (encodingWriter != null)
+			encodingWriter.close();
+
 		pg_output.close();
 		pg_input.close();
 		connection.close();

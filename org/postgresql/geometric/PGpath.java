@@ -113,6 +113,15 @@ public class PGpath extends PGobject implements Serializable, Cloneable
 		return false;
 	}
 
+	public int hashCode() {
+		// XXX not very good..
+		int hash = 0;
+		for (int i = 0; i < points.length && i < 5; ++i) {
+			hash = hash ^ points[i].hashCode();
+		}
+		return hash;
+	}
+
 	public Object clone()
 	{
 		PGpoint ary[] = new PGpoint[points.length];

@@ -28,10 +28,7 @@ import java.util.Iterator;
 import java.util.StringTokenizer;
 import java.util.Vector;
 import org.postgresql.Driver;
-import org.postgresql.core.BaseStatement;
-import org.postgresql.core.Field;
-import org.postgresql.core.Encoding;
-import org.postgresql.core.QueryExecutor;
+import org.postgresql.core.*;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -54,14 +51,15 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 	private PreparedStatement selectStatement = null;
 	private int resultsettype;
 	private int resultsetconcurrency;
-	private int fetchdirection;
+	private int fetchdirection = ResultSet.FETCH_UNKNOWN;
 
-	public AbstractJdbc2ResultSet(BaseStatement statement, Field[] fields, Vector tuples, String status, int updateCount, long insertOID)
+	public AbstractJdbc2ResultSet(Query originalQuery, BaseStatement statement, Field[] fields, Vector tuples,
+								  ResultCursor cursor, int maxRows, int maxFieldSize,
+								  int rsType, int rsConcurrency) throws SQLException
 	{
-		super (statement, fields, tuples, status, updateCount, insertOID);
-		this.fetchdirection = (statement == null ? java.sql.ResultSet.FETCH_FORWARD : ((AbstractJdbc2Statement)statement).getFetchDirection());
-		this.resultsettype = (statement == null ? java.sql.ResultSet.TYPE_SCROLL_INSENSITIVE : ((AbstractJdbc2Statement)statement).getResultSetType());
-		this.resultsetconcurrency = (statement == null ? java.sql.ResultSet.CONCUR_READ_ONLY : ((AbstractJdbc2Statement)statement).getResultSetConcurrency());
+		super (originalQuery, statement, fields, tuples, cursor, maxRows, maxFieldSize);
+		this.resultsettype = rsType;
+		this.resultsetconcurrency = rsConcurrency;
 	}
 
 	public java.net.URL getURL(int columnIndex) throws SQLException
@@ -75,103 +73,19 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 		return null;
 	}
 
-
-	/*
-	 * Get the value of a column in the current row as a Java object
-	 *
-	 * <p>This method will return the value of the given column as a
-	 * Java object.  The type of the Java object will be the default
-	 * Java Object type corresponding to the column's SQL type, following
-	 * the mapping specified in the JDBC specification.
-	 *
-	 * <p>This method may also be used to read database specific abstract
-	 * data types.
-	 *
-	 * @param columnIndex the first column is 1, the second is 2...
-	 * @return a Object holding the column value
-	 * @exception SQLException if a database access error occurs
-	 */
-	public Object getObject(int columnIndex) throws SQLException
+	protected Object internalGetObject(int columnIndex, Field field) throws SQLException
 	{
-		Field field;
+		Object result = super.internalGetObject(columnIndex, field);
+		if (result != null)
+			return result; // Handled by superclass.
 
-		checkResultSet( columnIndex );
-
-		wasNullFlag = (this_row[columnIndex - 1] == null);
-		if (wasNullFlag)
-			return null;
-
-		field = fields[columnIndex - 1];
-
-		// some fields can be null, mainly from those returned by MetaData methods
-		if (field == null)
+		switch (getSQLType(columnIndex))
 		{
-			wasNullFlag = true;
+		case Types.ARRAY:
+			return getArray(columnIndex);
+
+		default:
 			return null;
-		}
-
-		switch (field.getSQLType())
-		{
-			case Types.BIT:
-				return getBoolean(columnIndex) ? Boolean.TRUE : Boolean.FALSE;
-
-			case Types.SMALLINT:
-				return new Short(getShort(columnIndex));
-
-			case Types.INTEGER:
-				return new Integer(getInt(columnIndex));
-
-			case Types.BIGINT:
-				return new Long(getLong(columnIndex));
-
-			case Types.NUMERIC:
-				return getBigDecimal
-					   (columnIndex, (field.getMod() == -1) ? -1 : ((field.getMod() - 4) & 0xffff));
-
-			case Types.REAL:
-				return new Float(getFloat(columnIndex));
-
-			case Types.DOUBLE:
-				return new Double(getDouble(columnIndex));
-
-			case Types.CHAR:
-			case Types.VARCHAR:
-				return getString(columnIndex);
-
-			case Types.DATE:
-				return getDate(columnIndex);
-
-			case Types.TIME:
-				return getTime(columnIndex);
-
-			case Types.TIMESTAMP:
-				return getTimestamp(columnIndex);
-
-			case Types.BINARY:
-			case Types.VARBINARY:
-				return getBytes(columnIndex);
-
-			case Types.ARRAY:
-				return getArray(columnIndex);
-
-			default:
-				String type = field.getPGType();
-
-				// if the backend doesn't know the type then coerce to String
-				if (type.equals("unknown"))
-				{
-					return getString(columnIndex);
-				}
-                                // Specialized support for ref cursors is neater.
-                                else if (type.equals("refcursor"))
-                                {
-                                        String cursorName = getString(columnIndex);
-                                        return statement.createRefCursorResultSet(cursorName);
-                                }
-				else
-				{
-					return connection.getObject(field.getPGType(), getString(columnIndex));
-				}
 		}
 	}
 
@@ -346,7 +260,12 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 			// In 7.1 Handle as BLOBS so return the LargeObject input stream
 			Encoding encoding = connection.getEncoding();
 			InputStream input = getBinaryStream(i);
-			return encoding.getDecodingReader(input);
+
+			try {
+				return encoding.getDecodingReader(input);
+			} catch (IOException ioe) {
+				throw new PSQLException("postgresql.unexpected", PSQLState.UNEXPECTED_ERROR, ioe);
+			}
 		}
 	}
 
@@ -530,9 +449,14 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 			return false; // Not on the last row of this block.
 
 		// We are on the last row of the current block.
-		String cursorName = statement.getFetchingCursorName();
-		if (cursorName == null || lastFetchSize == 0 || rows_size < lastFetchSize) {
+
+		if (cursor == null) {
 			// This is the last block and therefore the last row.
+			return true;
+		}
+
+		if (maxRows > 0 && row_offset + current_row == maxRows) {
+			// We are implicitly limited by maxRows.
 			return true;
 		}
 
@@ -545,28 +469,25 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 		// block (so current_row == 0). This works as the current row
 		// must be the last row of the current block if we got this far.
 
-		byte[][] saveThisRow = this_row;   // Cleared by reInit().
+		row_offset += rows_size - 1; // Discarding all but one row.
 
-		String[] sql = new String[] {
-			fetchSize == 0 ? ("FETCH FORWARD ALL FROM " + cursorName) :
-			"FETCH FORWARD " + fetchSize + " FROM " + cursorName
-		};
+		// Work out how many rows maxRows will let us fetch.
+		int fetchRows = fetchSize;
+		if (maxRows != 0) {
+			if (fetchRows == 0 || row_offset + fetchRows > maxRows) // Fetch would exceed maxRows, limit it.
+				fetchRows = maxRows - row_offset;
+		}
 
-
-		QueryExecutor.execute(sql,
-							  new String[0],
-							  this);
+		// Do the actual fetch.
+		connection.getQueryExecutor().fetch(cursor, new CursorResultHandler(), fetchRows);
 		
 		// Now prepend our one saved row and move to it.
-		rows.insertElementAt(saveThisRow, 0);
+		rows.insertElementAt(this_row, 0);
 		current_row = 0;
-		this_row = saveThisRow;
-		row_offset += (rows_size - 1);  // We discarded all but one row of the last block.
-		lastFetchSize = (fetchSize == 0 ? 0 : fetchSize + 1); // There should be one more row than we fetched.
 
 		// Finally, now we can tell if we're the last row or not.
 		return (rows.size() == 1);
-	}
+   }
 
 	public boolean last() throws SQLException
 	{
@@ -981,7 +902,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 	throws SQLException
 	{
 		if ( Driver.logDebug )
-			Driver.debug("updating boolean " + fields[columnIndex - 1].getName() + "=" + x);
+			Driver.debug("updating boolean " + fields[columnIndex - 1].getColumnLabel() + "=" + x);
 		updateValue(columnIndex, new Boolean(x));
 	}
 
@@ -1047,7 +968,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 	throws SQLException
 	{
 		if ( Driver.logDebug )
-			Driver.debug("updating double " + fields[columnIndex - 1].getName() + "=" + x);
+			Driver.debug("updating double " + fields[columnIndex - 1].getColumnLabel() + "=" + x);
 		updateValue(columnIndex, new Double(x));
 	}
 
@@ -1056,7 +977,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 	throws SQLException
 	{
 		if ( Driver.logDebug )
-			Driver.debug("updating float " + fields[columnIndex - 1].getName() + "=" + x);
+			Driver.debug("updating float " + fields[columnIndex - 1].getColumnLabel() + "=" + x);
 		updateValue(columnIndex, new Float(x));
 	}
 
@@ -1065,7 +986,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 	throws SQLException
 	{
 		if ( Driver.logDebug )
-			Driver.debug("updating int " + fields[columnIndex - 1].getName() + "=" + x);
+			Driver.debug("updating int " + fields[columnIndex - 1].getColumnLabel() + "=" + x);
 		updateValue(columnIndex, new Integer(x));
 	}
 
@@ -1074,7 +995,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 	throws SQLException
 	{
 		if ( Driver.logDebug )
-			Driver.debug("updating long " + fields[columnIndex - 1].getName() + "=" + x);
+			Driver.debug("updating long " + fields[columnIndex - 1].getColumnLabel() + "=" + x);
 		updateValue(columnIndex, new Long(x));
 	}
 
@@ -1090,7 +1011,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 	throws SQLException
 	{
 		if ( Driver.logDebug )
-			Driver.debug("updating object " + fields[columnIndex - 1].getName() + " = " + x);
+			Driver.debug("updating object " + fields[columnIndex - 1].getColumnLabel() + " = " + x);
 		updateValue(columnIndex, x);
 	}
 
@@ -1126,8 +1047,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 
 		for (int i = 0; i < numColumns; i++ )
 		{
-
-			selectSQL.append( fields[i].getName() );
+			selectSQL.append( fields[i].getColumnLabel() );
 
 			if ( i < numColumns - 1 )
 			{
@@ -1288,7 +1208,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 	throws SQLException
 	{
 		if ( Driver.logDebug )
-			Driver.debug("in update Short " + fields[columnIndex - 1].getName() + " = " + x);
+			Driver.debug("in update Short " + fields[columnIndex - 1].getColumnLabel() + " = " + x);
 		updateValue(columnIndex, new Short(x));
 	}
 
@@ -1297,7 +1217,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 	throws SQLException
 	{
 		if ( Driver.logDebug )
-			Driver.debug("in update String " + fields[columnIndex - 1].getName() + " = " + x);
+			Driver.debug("in update String " + fields[columnIndex - 1].getColumnLabel() + " = " + x);
 		updateValue(columnIndex, x);
 	}
 
@@ -1306,7 +1226,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 	throws SQLException
 	{
 		if ( Driver.logDebug )
-			Driver.debug("in update Time " + fields[columnIndex - 1].getName() + " = " + x);
+			Driver.debug("in update Time " + fields[columnIndex - 1].getColumnLabel() + " = " + x);
 		updateValue(columnIndex, x);
 	}
 
@@ -1315,7 +1235,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 	throws SQLException
 	{
 		if ( Driver.logDebug )
-			Driver.debug("updating Timestamp " + fields[columnIndex - 1].getName() + " = " + x);
+			Driver.debug("updating Timestamp " + fields[columnIndex - 1].getColumnLabel() + " = " + x);
 		updateValue(columnIndex, x);
 
 	}
@@ -1606,10 +1526,9 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 		return parts;
 	}
 
-	public void parseQuery()
+	private void parseQuery()
 	{
-		String[] l_sqlFragments = ((AbstractJdbc2Statement)statement).getSqlFragments();
-		String l_sql = l_sqlFragments[0];
+		String l_sql = originalQuery.toString(null);
 		StringTokenizer st = new StringTokenizer(l_sql, " \r\t\n");
 		boolean tableFound = false, tablesChecked = false;
 		String name = "";
@@ -1654,7 +1573,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 			else
 			{
 
-				switch ( connection.getSQLType( fields[columnIndex].getPGType() ) )
+				switch ( getSQLType(columnIndex+1) )
 				{
 
 					case Types.DECIMAL:
@@ -1673,8 +1592,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 					case Types.REAL:
 					case Types.TINYINT:
 					case Types.OTHER:
-
-						rowBuffer[columnIndex] = connection.getEncoding().encode(String.valueOf( valueObject));
+						rowBuffer[columnIndex] = connection.encodeString(String.valueOf( valueObject));
 
 					case Types.NULL:
 						continue;
@@ -1685,12 +1603,6 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 
 			}
 		}
-	}
-
-
-	public void setStatement(BaseStatement statement)
-	{
-		this.statement = statement;
 	}
 
 	protected void updateValue(int columnIndex, Object value) throws SQLException {
@@ -1706,7 +1618,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 		if (value == null)
 			updateNull(columnIndex);
 		else
-			updateValues.put(fields[columnIndex - 1].getName(), value);
+			updateValues.put(fields[columnIndex - 1].getColumnLabel(), value);
 	}
 
 	private class PrimaryKey

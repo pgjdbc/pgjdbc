@@ -3,8 +3,7 @@ package org.postgresql.jdbc3;
 
 import java.sql.*;
 import java.util.Vector;
-import org.postgresql.core.BaseStatement;
-import org.postgresql.core.Field;
+import org.postgresql.core.*;
 
 
 /* $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/jdbc3/AbstractJdbc3ResultSet.java,v 1.4 2003/03/07 18:39:45 barry Exp $
@@ -14,10 +13,10 @@ import org.postgresql.core.Field;
  */
 public abstract class AbstractJdbc3ResultSet extends org.postgresql.jdbc2.AbstractJdbc2ResultSet
 {
-
-	public AbstractJdbc3ResultSet(BaseStatement statement, Field[] fields, Vector tuples, String status, int updateCount, long insertOID)
+	public AbstractJdbc3ResultSet(Query originalQuery, BaseStatement statement, Field[] fields, Vector tuples,
+								  ResultCursor cursor, int maxRows, int maxFieldSize, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
 	{
-		super (statement, fields, tuples, status, updateCount, insertOID);
+		super (originalQuery, statement, fields, tuples, cursor, maxRows, maxFieldSize, rsType, rsConcurrency);
 	}
 
 	/**

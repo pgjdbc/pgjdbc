@@ -157,12 +157,12 @@ public class UpdateableResultTest extends TestCase
 
 		rs.beforeFirst();
 		assertTrue(rs.next());
-		assertFalse(rs.next());
+		assertTrue(!rs.next());
 		checkPositioning(rs);
 
 		rs.afterLast();
 		assertTrue(rs.previous());
-		assertFalse(rs.previous());
+		assertTrue(!rs.previous());
 		checkPositioning(rs);
 
 		rs.close();

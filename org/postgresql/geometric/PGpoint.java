@@ -99,6 +99,13 @@ public class PGpoint extends PGobject implements Serializable, Cloneable
 		return false;
 	}
 
+	public int hashCode()
+	{
+		long v1 = Double.doubleToLongBits(x);
+		long v2 = Double.doubleToLongBits(y);
+		return (int) (v1 ^ v2 ^ (v1>>>32) ^ (v2>>>32));
+	}
+
 	public Object clone()
 	{
 		return new PGpoint(x, y);

@@ -96,6 +96,11 @@ public class PGlseg extends PGobject implements Serializable, Cloneable
 		return false;
 	}
 
+	public int hashCode()
+	{
+		return point[0].hashCode() ^ point[1].hashCode();
+	}
+
 	public Object clone()
 	{
 		return new PGlseg((PGpoint)point[0].clone(), (PGpoint)point[1].clone());

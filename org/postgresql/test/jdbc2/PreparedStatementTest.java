@@ -40,16 +40,13 @@ public class PreparedStatementTest extends TestCase
 		doSetBinaryStream(bais,0);
 
 		bais = new ByteArrayInputStream(new byte[0]);
-		doSetBinaryStream(bais,100);
+		doSetBinaryStream(bais,0);
 
 		bais = new ByteArrayInputStream(buf);
 		doSetBinaryStream(bais,0);
 
 		bais = new ByteArrayInputStream(buf);
 		doSetBinaryStream(bais,10);
-
-		bais = new ByteArrayInputStream(buf);
-		doSetBinaryStream(bais,100);
 	}
 
 	public void testSetAsciiStream() throws Exception
@@ -69,6 +66,25 @@ public class PreparedStatementTest extends TestCase
 
 		bais = new ByteArrayInputStream(baos.toByteArray());
 		doSetAsciiStream(bais, 100);
+	}
+
+	public void testExecuteStringOnPreparedStatement() throws Exception {
+		PreparedStatement pstmt = conn.prepareStatement("SELECT 1");
+
+		try {
+			pstmt.executeQuery("SELECT 2");
+			fail("Expected an exception when executing a new SQL query on a prepared statement");
+		} catch (SQLException e) {}
+
+		try {
+			pstmt.executeUpdate("UPDATE streamtable SET bin=bin");
+			fail("Expected an exception when executing a new SQL update on a prepared statement");
+		} catch (SQLException e) {}
+
+		try {
+			pstmt.execute("UPDATE streamtable SET bin=bin");
+			fail("Expected an exception when executing a new SQL statement on a prepared statement");
+		} catch (SQLException e) {}
 	}
 
 	private void doSetBinaryStream(ByteArrayInputStream bais, int length) throws SQLException

@@ -16,7 +16,8 @@ import java.sql.ResultSet;
 import java.util.Hashtable;
 import org.postgresql.Driver;
 import org.postgresql.core.BaseConnection;
-import org.postgresql.core.PGStream;
+import org.postgresql.core.QueryExecutor;
+import org.postgresql.core.ParameterList;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.ServerErrorMessage;
 import org.postgresql.util.PSQLState;
@@ -35,264 +36,50 @@ public class Fastpath
 {
 	// This maps the functions names to their id's (possible unique just
 	// to a connection).
-	protected Hashtable func = new Hashtable();
-
-	protected BaseConnection conn;		// our connection
-	protected PGStream stream;	// the network stream
+	private final Hashtable func = new Hashtable();
+	private final QueryExecutor executor;
 
 	/**
 	 * Initialises the fastpath system
 	 *
 	 * @param conn BaseConnection to attach to
-	 * @param stream The network stream to the backend
 	 */
-	public Fastpath(BaseConnection conn, PGStream stream)
+	public Fastpath(BaseConnection conn)
 	{
-		this.conn = conn;
-		this.stream = stream;
+		this.executor = conn.getQueryExecutor();
 	}
 
 	/**
 	 * Send a function call to the PostgreSQL backend
 	 *
-	 * @param fnid Function id
-	 * @param resulttype True if the result is an integer, false for other results
+	 * @param fnId Function id
+	 * @param resultType True if the result is an integer, false for other results
 	 * @param args FastpathArguments to pass to fastpath
 	 * @return null if no data, Integer if an integer result, or byte[] otherwise
 	 * @exception SQLException if a database-access error occurs.
 	 */
-	public Object fastpath(int fnid, boolean resulttype, FastpathArg[] args) throws SQLException
+	public Object fastpath(int fnId, boolean resultType, FastpathArg[] args) throws SQLException
 	{
-		if (conn.getPGProtocolVersionMajor() == 3) {
-			return fastpathV3(fnid, resulttype, args);
-		} else {
-			return fastpathV2(fnid, resulttype, args);
+		// Turn fastpath array into a parameter list.
+		ParameterList params = executor.createFastpathParameters(args.length);
+		for (int i = 0; i < args.length; ++i) {
+			args[i].populateParameter(params, i+1);
 		}
-	}
 
-	private Object fastpathV3(int fnid, boolean resulttype, FastpathArg[] args) throws SQLException
-	{
-		// added Oct 7 1998 to give us thread safety
-		synchronized (stream)
-		{
-			// send the function call
-			try
-			{
-				int l_msgLen = 0;
-				l_msgLen += 16;
-				for (int i=0;i < args.length;i++)
-					l_msgLen += args[i].sendSize();
-					
-				stream.SendChar('F');
-				stream.SendInteger(l_msgLen,4);
-				stream.SendInteger(fnid, 4);
-				stream.SendInteger(1,2);
-				stream.SendInteger(1,2);
-				stream.SendInteger(args.length,2);
+		// Run it.
+		byte[] returnValue = executor.fastpathCall(fnId, params);
 
-				for (int i = 0;i < args.length;i++)
-					args[i].send(stream);
-				
-				stream.SendInteger(1,2);
-	
-				// This is needed, otherwise data can be lost
-				stream.flush();
+		// Interpret results.
+		if (!resultType || returnValue == null)
+			return returnValue;
 
-			}
-			catch (IOException ioe)
-			{
-				throw new PSQLException("postgresql.fp.send", PSQLState.COMMUNICATION_ERROR, new Integer(fnid), ioe);
-			}
+		if (returnValue.length != 4)
+			throw new PSQLException("postgresql.fp.expint");
 
-			// Now handle the result
-
-			// Now loop, reading the results
-			Object result = null; // our result
-			SQLException error = null;
-			int c;
-			boolean l_endQuery = false;
-			while (!l_endQuery)
-			{
-				c = stream.ReceiveChar();
-
-				switch (c)
-				{
-					case 'A':	// Asynchronous Notify
-						int msglen = stream.ReceiveIntegerR(4);
-						int pid = stream.ReceiveIntegerR(4);
-						String msg = stream.ReceiveString(conn.getEncoding());
-						String param = stream.ReceiveString(conn.getEncoding());
-						conn.addNotification(new org.postgresql.core.Notification(msg, pid, param));
-						break;
-						//------------------------------
-						// Error message returned
-					case 'E':
-						int l_elen = stream.ReceiveIntegerR(4);
-						String totalMessage = conn.getEncoding().decode(stream.Receive(l_elen-4));
-						ServerErrorMessage l_errorMsg = new ServerErrorMessage(totalMessage);
-						SQLException l_error = new SQLException(l_errorMsg.toString(), l_errorMsg.getSQLState());
-
-						if (error != null) {
-							error.setNextException(l_error);
-						} else {
-							error = l_error;
-						}
-
-						break;
-						//------------------------------
-						// Notice from backend
-					case 'N':
-						int l_nlen = stream.ReceiveIntegerR(4);
-						ServerErrorMessage l_warnMsg = new ServerErrorMessage(conn.getEncoding().decode(stream.Receive(l_nlen-4)));
-						conn.addWarning(new PSQLWarning(l_warnMsg));
-						break;
-
-					case 'V':
-						int l_msgLen = stream.ReceiveIntegerR(4);
-						int l_valueLen = stream.ReceiveIntegerR(4);
-						
-						if (l_valueLen == -1) 
-						{
-							//null value
-						}
-						else if (l_valueLen == 0)
-						{
-							result = new byte[0];
-						}
-						else 
-						{
-							// Return an Integer if
-							if (resulttype)
-								result = new Integer(stream.ReceiveIntegerR(l_valueLen));
-							else
-							{
-								byte buf[] = new byte[l_valueLen];
-								stream.Receive(buf, 0, l_valueLen);
-								result = buf;
-							}
-						}
-						break;
-
-					case 'Z':
-						//TODO: use size better
-						if (stream.ReceiveIntegerR(4) != 5) throw new PSQLException("postgresql.con.setup", PSQLState.CONNECTION_UNABLE_TO_CONNECT); 
-						//TODO: handle transaction status
-						char l_tStatus = (char)stream.ReceiveChar();
-						l_endQuery = true;
-						break;
-
-					default:
-						throw new PSQLException("postgresql.fp.protocol", PSQLState.COMMUNICATION_ERROR, new Character((char)c));
-				}
-			}
-
-			if ( error != null )
-				throw error;
-
-			return result;
-		}
-	}
-
-	private Object fastpathV2(int fnid, boolean resulttype, FastpathArg[] args) throws SQLException
-	{
-		// added Oct 7 1998 to give us thread safety
-		synchronized (stream)
-		{
-			// send the function call
-			try
-			{
-				// 70 is 'F' in ASCII. Note: don't use SendChar() here as it adds padding
-				// that confuses the backend. The 0 terminates the command line.
-				stream.SendInteger(70, 1);
-				stream.SendInteger(0, 1);
-
-				stream.SendInteger(fnid, 4);
-				stream.SendInteger(args.length, 4);
-
-				for (int i = 0;i < args.length;i++)
-					args[i].send(stream);
-
-				// This is needed, otherwise data can be lost
-				stream.flush();
-
-			}
-			catch (IOException ioe)
-			{
-				//Should be sending exception as second arg.
-				throw new PSQLException("postgresql.fp.send", PSQLState.COMMUNICATION_ERROR, new Integer(fnid), ioe);
-			}
-
-			// Now handle the result
-
-			// Now loop, reading the results
-			Object result = null; // our result
-			StringBuffer errorMessage = null;
-			int c;
-			boolean l_endQuery = false;
-			while (!l_endQuery)
-			{
-				c = stream.ReceiveChar();
-
-				switch (c)
-				{
-					case 'A':	// Asynchronous Notify
-						//TODO: do something with this
-						int pid = stream.ReceiveIntegerR(4);
-						String msg = stream.ReceiveString(conn.getEncoding());
-						conn.addNotification(new org.postgresql.core.Notification(msg, pid));
-						break;
-
-						//------------------------------
-						// Error message returned
-					case 'E':
-						if ( errorMessage == null )
-							errorMessage = new StringBuffer();
-						errorMessage.append(stream.ReceiveString(conn.getEncoding()));
-						break;
-
-						//------------------------------
-						// Notice from backend
-					case 'N':
-						conn.addWarning(new SQLWarning(stream.ReceiveString(conn.getEncoding())));
-						break;
-
-					case 'V':
-						int l_nextChar = stream.ReceiveChar();
-						if (l_nextChar == 'G')
-						{
-							int sz = stream.ReceiveIntegerR(4);
-							// Return an Integer if
-							if (resulttype)
-								result = new Integer(stream.ReceiveIntegerR(sz));
-							else
-							{
-								byte buf[] = new byte[sz];
-								stream.Receive(buf, 0, sz);
-								result = buf;
-							}
-							//There should be a trailing '0'
-							int l_endChar = stream.ReceiveChar();
-						}
-						else
-						{
-							//it must have been a '0', thus no results
-						}
-						break;
-
-					case 'Z':
-						l_endQuery = true;
-						break;
-
-					default:
-						throw new PSQLException("postgresql.fp.protocol", PSQLState.COMMUNICATION_ERROR, new Character((char)c));
-				}
-			}
-
-			if ( errorMessage != null )
-				throw new PSQLException("postgresql.fp.error", PSQLState.COMMUNICATION_ERROR, errorMessage.toString());
-
-			return result;
-		}
+		return new Integer((returnValue[3] & 255) |
+						   ((returnValue[2] & 255) << 8) |
+						   ((returnValue[1] & 255) << 16) |
+						   ((returnValue[0] & 255) << 25));
 	}
 
 	/**
@@ -338,7 +125,7 @@ public class Fastpath
 	}
 
 	/**
-	 * This convenience method assumes that the return value is an Integer
+	 * This convenience method assumes that the return value is not an Integer
 	 * @param name Function name
 	 * @param args Function arguments
 	 * @return byte[] array containing result

@@ -486,48 +486,49 @@ public class DatabaseMetaDataTest extends TestCase
 		}
 	}
 
-	public void testSchemas()
+	public void testSchemas() throws Exception
 	{
-		try
-		{
-			DatabaseMetaData dbmd = con.getMetaData();
-			assertNotNull(dbmd);
+		if (!TestUtil.haveMinimumServerVersion(con, "7.3"))
+			return;
 
-			ResultSet rs = dbmd.getSchemas();
-			boolean foundPublic = false;
-			boolean foundEmpty = false;
-			boolean foundPGCatalog = false;
-			int count;
+		DatabaseMetaData dbmd = con.getMetaData();
+		assertNotNull(dbmd);
+
+		ResultSet rs = dbmd.getSchemas();
+		boolean foundPublic = false;
+		boolean foundEmpty = false;
+		boolean foundPGCatalog = false;
+		int count;
 		
-			for(count=0; rs.next(); count++) {
-				String schema = rs.getString("TABLE_SCHEM");
-				if ("public".equals(schema)) {
-					foundPublic = true;
-				} else if ("".equals(schema)) {
-					foundEmpty = true;
-				} else if ("pg_catalog".equals(schema)) {
-					foundPGCatalog = true;
-				}
+		for(count=0; rs.next(); count++) {
+			String schema = rs.getString("TABLE_SCHEM");
+			if ("public".equals(schema)) {
+				foundPublic = true;
+			} else if ("".equals(schema)) {
+				foundEmpty = true;
+			} else if ("pg_catalog".equals(schema)) {
+				foundPGCatalog = true;
 			}
-			rs.close();
-			if (TestUtil.haveMinimumServerVersion(con,"7.3")) {
-				assertTrue(count >= 2);
-				assertTrue(foundPublic);
-				assertTrue(foundPGCatalog);
-				assertTrue(!foundEmpty);
-			} else {
-				assertEquals(count,1);
-				assertTrue(foundEmpty);
-				assertTrue(!foundPublic);
-				assertTrue(!foundPGCatalog);
-			}
-		} catch (SQLException sqle) {
-			fail(sqle.getMessage());
+		}
+		rs.close();
+		if (TestUtil.haveMinimumServerVersion(con,"7.3")) {
+			assertTrue(count >= 2);
+			assertTrue(foundPublic);
+			assertTrue(foundPGCatalog);
+			assertTrue(!foundEmpty);
+		} else {
+			assertEquals(count,1);
+			assertTrue(foundEmpty);
+			assertTrue(!foundPublic);
+			assertTrue(!foundPGCatalog);
 		}
 	}
 
-    public void testGetUDTQualified()
+    public void testGetUDTQualified() throws Exception
     {
+		if (!TestUtil.haveMinimumServerVersion(con, "7.3"))
+			return;
+
         Statement stmt =  null;
         try
         {
@@ -564,10 +565,6 @@ public class DatabaseMetaDataTest extends TestCase
             this.assertEquals("type name ", "testint8", typeName);
             this.assertEquals("schema name ", "jdbc",schema);
         }
-        catch( SQLException ex )
-        {
-            fail( ex.getMessage() );
-        }
         finally
         {
             try
@@ -582,8 +579,12 @@ public class DatabaseMetaDataTest extends TestCase
         }
 
     }
-    public void testGetUDT1()
+
+    public void testGetUDT1() throws Exception
     {
+		if (!TestUtil.haveMinimumServerVersion(con, "7.3"))
+			return;
+
         try
          {
              Statement stmt = con.createStatement();
@@ -610,10 +611,6 @@ public class DatabaseMetaDataTest extends TestCase
              this.assertEquals("remarks", "jdbc123", remarks);
 
          }
-         catch( SQLException ex )
-         {
-             fail( ex.getMessage() );
-         }
          finally
          {
              try
@@ -626,8 +623,11 @@ public class DatabaseMetaDataTest extends TestCase
      }
 
 
-     public void testGetUDT2()
+     public void testGetUDT2() throws Exception
      {
+		 if (!TestUtil.haveMinimumServerVersion(con, "7.3"))
+			return;
+
          try
          {
              Statement stmt = con.createStatement();
@@ -655,10 +655,6 @@ public class DatabaseMetaDataTest extends TestCase
              this.assertEquals("remarks", "jdbc123", remarks);
 
          }
-         catch (SQLException ex)
-         {
-             fail(ex.getMessage());
-         }
          finally
          {
              try
@@ -670,8 +666,12 @@ public class DatabaseMetaDataTest extends TestCase
              {}
          }
      }
-     public void testGetUDT3()
+
+     public void testGetUDT3() throws Exception
       {
+		  if (!TestUtil.haveMinimumServerVersion(con, "7.3"))
+			return;
+
           try
           {
               Statement stmt = con.createStatement();
@@ -699,10 +699,6 @@ public class DatabaseMetaDataTest extends TestCase
               this.assertEquals("remarks", "jdbc123", remarks);
 
           }
-          catch (SQLException ex)
-          {
-              fail(ex.getMessage());
-          }
           finally
           {
               try
@@ -715,8 +711,11 @@ public class DatabaseMetaDataTest extends TestCase
           }
       }
 
-    public void testGetUDT4()
+    public void testGetUDT4() throws Exception
     {
+		if (!TestUtil.haveMinimumServerVersion(con, "7.3"))
+			return;
+
         try
         {
             Statement stmt = con.createStatement();
@@ -740,10 +739,6 @@ public class DatabaseMetaDataTest extends TestCase
             this.assertEquals("data type", Types.STRUCT, dataType );
             this.assertEquals("type name ", "testint8", typeName);
 
-        }
-        catch( SQLException ex )
-        {
-            fail( ex.getMessage() );
         }
         finally
         {

@@ -393,7 +393,9 @@ Connection conn = DriverManager.getConnection(url);
          Connect using <acronym>SSL</acronym>.  The driver must have been
          compiled with <acronym>SSL</acronym> support.  This property does
 	 not need a value associated with it.  The mere presence of it
-	 specifies a <acronym>SSL</acronym> connection.
+	 specifies a <acronym>SSL</acronym> connection.  However, for
+         compatibility with future versions, the value "true" is
+         preferred.
          <!--
          KJJ need section on configuring SSL support.
          http://archives.postgresql.org/pgsql-jdbc/2003-08/msg00110.php
@@ -412,18 +414,32 @@ Connection conn = DriverManager.getConnection(url);
          the connection protocol and the handling of binary data fields.
         </para>
         <para>
-         The driver supports both the V2 and V3 frontend/backend protocols.
-         The V3 protocol was introduced in 7.4 and the driver will by default
-         try to connect using the V3 protocol, if that fails it will fall
-         back to the V2 protocol.  To avoid the failing attempt when connecting
-         to a version 7.3 or less server or to force the driver to use the
-         V2 protocol despite connecting to a 7.4 or greater server set the
-         compatible property to be 7.3 or less.
+         Older versions of the driver used this property to also control the
+         protocol used to connect to the backend.  This is now controlled by the
+         <varname>protocolVersion</varname> property.
         </para>
         <para>
          Information on binary data handling is detailed in
          <xref linkend="jdbc-binary-data" />.  To force the use of
          Large Objects set the compatible property to 7.1.
+        </para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
+       <term><varname>protocolVersion</varname> = <type>String</type></term>
+       <listitem>
+        <para>
+         The driver supports both the V2 and V3 frontend/backend protocols.
+         The V3 protocol was introduced in 7.4 and the driver will by default
+         try to connect using the V3 protocol, if that fails it will fall
+         back to the V2 protocol.  If the protocolVersion property is
+         specified, the driver will try only the specified protocol (which
+         should be either "2" or "3").  Setting protocolVersion to "2" may
+         be used to avoid the failed attempt to use the V3 protocol when
+         connecting to a version 7.3 or earlier server, or to force the
+         driver to use the V2 protocol despite connecting to a 7.4 or greater
+         server.
         </para>
        </listitem>
       </varlistentry>
@@ -577,6 +593,12 @@ st.close();
        silently fall back to fetching the whole <classname>ResultSet</classname>
        at once.
        <itemizedlist>
+        <listitem>
+         <para>
+          The connection to the server must be using the V3 protocol.  This is the
+          default for (and is only supported by) server versions 7.4 and later.
+         </para>
+        </listitem>
         <listitem>
          <para>
           The <classname>Connection</classname> must not be in autocommit
@@ -858,23 +880,19 @@ proc.close();
       </example>
 
       <para>It is also possible to treat the <type>refcursor</type>
-       return value as a distinct type in itself. The <acronym>JDBC</acronym>
-       driver provides
-       the <classname>org.postgresql.PGRefCursorResultSet</classname>
-       class for this purpose.</para>
+       return value as a cursor name directly. To do this, use the
+       <function>getString</function> of <classname>ResultSet</classname>.
+      </para>
 
       <example>
-	<title>Treating <type>refcursor</type> as a distinct
-	type</title>
+	<title>Treating <type>refcursor</type> as a cursor name</title>
 
 <programlisting>
 con.setAutoCommit(false);
 CallableStatement proc = con.prepareCall("{ ? = call doquery ( ? ) }");
 proc.registerOutParameter(1, Types.Other);
 proc.setInt(2, 0);
-org.postgresql.PGRefCursorResultSet refcurs 
-    = (PGRefCursorResultSet) con.getObject(1);
-String cursorName = refcurs.getRefCursor();
+String cursorName = con.getString(1);
 proc.close();
 </programlisting>
       </example>
@@ -1109,6 +1127,9 @@ ps.setInt(2, oid);
 ps.executeUpdate();
 ps.close();
 fis.close();
+
+// Finally, commit the transaction.
+conn.commit();
 </programlisting>
    </para>
 
@@ -1142,6 +1163,9 @@ if (rs != null) {
     rs.close();
 }
 ps.close();
+
+// Finally, commit the transaction.
+conn.commit();
 </programlisting>
    </para>
 
@@ -1351,14 +1375,29 @@ class Notifier extends Thread {
    <title>Server Prepared Statements</title>
 
    <para>
-    Starting with <productname>PostgreSQL</productname> version 7.3
-    the server allows clients to compile sql statements that are
-    expected to be reused to avoid the overhead of parsing and
-    planning the statement for every execution.  This functionality
-    is available at the <acronym>SQL</acronym> level via PREPARE and
-    EXECUTE, but as Java developers we really just want to use the
-    standard <classname>PreparedStatement</classname> interface.
+    The <productname>PostgreSQL</productname> server allows clients
+    to compile sql statements that are expected to be reused to avoid the
+    overhead of parsing and planning the statement for every execution. 
+    This functionality is available at the <acronym>SQL</acronym> level
+    via PREPARE and EXECUTE beginning with server version 7.3, and at the
+    protocol level beginning with server version 7.4, but as Java
+    developers we really just want to use the standard
+    <classname>PreparedStatement</classname> interface.
    </para>
+
+   <note>
+    <para>
+     Previous versions of the driver used PREPARE and EXECUTE to
+     implement server-prepared statements.  This is supported on all server
+     versions beginning with 7.3, but produced application-visible changes
+     in query results, such as missing ResultSet metadata and row update
+     counts. The current driver uses the V3 protocol-level equivalents which
+     avoid these changes in query results, but the V3 protocol is only
+     available beginning with server version 7.4.  Enabling server-prepared
+     statements will have no affect when connected to a 7.3 server or when
+     explicitly using the V2 protocol to connect to a 7.4 server.
+    </para>
+   </note>
 
    <para>
     There are a number of ways to enable server side prepared statements
@@ -1371,47 +1410,14 @@ class Notifier extends Thread {
 
    <note>
     <para>
-     Server side prepared statements have a number of limitations that
-     can potentially make using them impossible depending on your
-     applications needs.  Carefully read these limitations especially
-     if you are enabling them globally and not in a specific location.
-
-     <itemizedlist>
-
-      <listitem>
-       <para>
-        The affected row count returned by a server prepared
-        statement issuing <function>executeUpdate()</function> will
-        always be zero when connected to a 7.3 or 7.4 server.  New
-        backend functionality introduced in 7.5 is required to return
-        the correct affected row count.
-       </para>
-      </listitem>
-
-      <listitem>
-       <para>
-        Certain features of <classname>ResultSetMetaData</classname> are
-        not available on a <classname>ResultSet</classname> produced by
-        a server side prepared statement, notably retrieving column
-        information such as <function>isNullable</function>,
-        <function>getColumnName</function>,
-        <function>getTableName</function>, and
-        <function>getSchemaName</function>.
-       </para>
-      </listitem>
-
-      <listitem>
-       <para>
-        Certain type conversions that were possible without a server
-        prepared statement will not work, notably conversions between bit
-        and boolean.
-       </para>
-      </listitem>
-
-     </itemizedlist>
+     Server side prepared statements are planned only once by the server.
+     This avoids the cost of replanning the query every time, but also
+     means that the planner cannot take advantage of the particular
+     parameter values used in a particular execution of the query.
+     You should be cautious about enabling the use of server side prepared
+     statements globally.
     </para>
    </note>
-
 
    <example>
     <title>Using server side prepared statements</title>

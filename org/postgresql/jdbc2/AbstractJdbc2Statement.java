@@ -4,11 +4,13 @@ package org.postgresql.jdbc2;
 import java.io.*;
 import java.math.*;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.Vector;
 import org.postgresql.Driver;
 import org.postgresql.largeobject.*;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.core.*;
 
 /* $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.17 2003/09/09 10:49:16 barry Exp $
  * This class defines methods of the jdbc2 specification.  This class extends
@@ -17,34 +19,24 @@ import org.postgresql.util.PSQLState;
  */
 public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.AbstractJdbc1Statement
 {
+	protected ArrayList batchStatements = null;
+	protected ArrayList batchParameters = null;
+	protected final int resultsettype;		 // the resultset type to return (ResultSet.TYPE_xxx)
+	protected final int concurrency;		 // is it updateable or not?     (ResultSet.CONCUR_xxx)
+	protected int fetchdirection = ResultSet.FETCH_FORWARD;	 // fetch direction hint (currently ignored)
 
-	protected Vector batch = null;
-	protected int resultsettype;		 // the resultset type to return
-	protected int concurrency;		 // is it updateable or not?
-	protected int fetchdirection;		 // fetch direction hint (ignored.)
-
-	private final static int BATCH_UNKNOWN = 1;
-	private final static int BATCH_PREPARED = 2;
-	private final static int BATCH_STRING = 3;
-
-	private int batchType;
-
-	public AbstractJdbc2Statement (AbstractJdbc2Connection c) throws SQLException
+	public AbstractJdbc2Statement (AbstractJdbc2Connection c, int rsType, int rsConcurrency) throws SQLException
 	{
 		super(c);
-		fetchdirection = ResultSet.FETCH_FORWARD;
-		resultsettype = ResultSet.TYPE_FORWARD_ONLY;
-		concurrency = ResultSet.CONCUR_READ_ONLY;
-		batchType = BATCH_UNKNOWN;
+		resultsettype = rsType;
+		concurrency = rsConcurrency;
 	}
 
-	public AbstractJdbc2Statement(AbstractJdbc2Connection connection, String sql) throws SQLException
+	public AbstractJdbc2Statement(AbstractJdbc2Connection connection, String sql, boolean isCallable, int rsType, int rsConcurrency) throws SQLException
 	{
-		super(connection, sql);
-		fetchdirection = ResultSet.FETCH_FORWARD;
-		resultsettype = ResultSet.TYPE_FORWARD_ONLY;
-		concurrency = ResultSet.CONCUR_READ_ONLY;
-		batchType = BATCH_UNKNOWN;
+		super(connection, sql, isCallable);
+		resultsettype = rsType;
+		concurrency = rsConcurrency;
 	}
 
 	// Overriddes JDBC1 implementation.
@@ -52,99 +44,140 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 		return resultsettype != ResultSet.TYPE_FORWARD_ONLY;
 	}
 
-	/*
-	 * Execute a SQL statement that may return multiple results. We
-	 * don't have to worry about this since we do not support multiple
-	 * ResultSets.	 You can use getResultSet or getUpdateCount to
-	 * retrieve the result.
-	 *
-	 * @param sql any SQL statement
-	 * @return true if the next result is a ResulSet, false if it is
-	 *	an update count or there are no more results
-	 * @exception SQLException if a database access error occurs
-	 */
-	public boolean execute() throws SQLException
-	{
-		boolean l_return = super.execute();
-		//Now do the jdbc2 specific stuff
-		//required for ResultSet.getStatement() to work and updateable resultsets
-		result.setStatement(this);
-
-		return l_return;
-	}
-
 	// ** JDBC 2 Extensions **
 
 	public void addBatch(String p_sql) throws SQLException
 	{
 		checkClosed();
-		if (batchType == BATCH_PREPARED) {
-			throw new PSQLException("postgresql.stmt.mixedbatch");
-		} else if (batchType == BATCH_UNKNOWN) {
-			batchType = BATCH_STRING;
+
+		if (preparedQuery != null)
+			throw new PSQLException("postgresql.stmt.wrongstatementtype");
+
+		if (batchStatements == null) {
+			batchStatements = new ArrayList();
+			batchParameters = new ArrayList();
 		}
-		if (batch == null)
-			batch = new Vector();
-        Object[] l_statement = new Object[] {new String[] {p_sql}, new Object[0], new String[0]};
-		batch.addElement(l_statement);
+
+		batchStatements.add(connection.getQueryExecutor().createSimpleQuery(p_sql));
+		batchParameters.add(null);
 	}
 
 	public void clearBatch() throws SQLException
 	{
-		batch = null;
-		batchType = BATCH_UNKNOWN;
+		batchStatements.clear();
+		batchParameters.clear();
+	}
+
+	//
+	// ResultHandler for batch queries.
+	//
+
+	private class BatchResultHandler implements ResultHandler {
+		private BatchUpdateException batchException = null;
+		private int resultIndex = 0;
+
+		private final Query[] queries;
+		private final ParameterList[] parameterLists;
+		private final int[] updateCounts;
+
+		BatchResultHandler(Query[] queries, ParameterList[] parameterLists, int[] updateCounts) {
+			this.queries = queries;
+			this.parameterLists = parameterLists;
+			this.updateCounts = updateCounts;
+		}
+
+		public void handleResultRows(Query fromQuery, Field[] fields, Vector tuples, ResultCursor cursor) {
+			handleError(new PSQLException("postgresql.stat.result"));
+		}
+
+		public void handleCommandStatus(String status, int updateCount, long insertOID) {
+			if (resultIndex >= updateCounts.length) {
+				handleError(new SQLException("Too many update results were returned"));
+				return;
+			}
+			
+			updateCounts[resultIndex++] = updateCount;
+		}
+
+		public void handleWarning(SQLWarning warning) {
+			AbstractJdbc2Statement.this.addWarning(warning);
+		}
+
+		public void handleError(SQLException newError) {
+			if (batchException == null) {
+				int[] successCounts;
+				
+				if (resultIndex >= updateCounts.length)
+					successCounts = updateCounts;
+				else {
+					successCounts = new int[resultIndex];
+					System.arraycopy(updateCounts, 0, successCounts, 0, resultIndex);
+				}
+				
+				String queryString = "<unknown>";
+				if (resultIndex <= queries.length)
+					queryString = queries[resultIndex].toString(parameterLists[resultIndex]);
+				
+				batchException = new PBatchUpdateException("postgresql.stat.batch.error",
+														   new Integer(resultIndex), 
+														   queryString,
+														   successCounts);
+			}
+				
+			batchException.setNextException(newError);
+		}
+
+		public void handleCompletion() throws SQLException {
+			if (batchException != null)
+				throw batchException;
+		}
 	}
 
 	public int[] executeBatch() throws SQLException
 	{
 		checkClosed();
-		if (batch == null)
-			batch = new Vector();
-		int size = batch.size();
-		int[] result = new int[size];
-		int i = 0;
-		try
-		{
-            //copy current state of statement
-			String[] l_origSqlFragments = m_sqlFragments;
-			Object[] l_origBinds = m_binds;
-			String[] l_origBindTypes = m_bindTypes;
 
-			for (i = 0;i < size;i++) {
-				//set state from batch
-				Object[] l_statement = (Object[])batch.elementAt(i);
-				this.m_sqlFragments = (String[])l_statement[0];
-				this.m_binds = (Object[])l_statement[1];
-				this.m_bindTypes = (String[])l_statement[2];
-				if (batchType == BATCH_STRING) {
-					deallocateQuery();
-				}
-				result[i] = this.executeUpdate();
-			}
+		if (batchStatements == null || batchStatements.isEmpty())
+			return new int[0];
+		
+		int size = batchStatements.size();
+		int[] updateCounts = new int[size];
 
-			//restore state of statement
-			m_sqlFragments = l_origSqlFragments;
-			m_binds = l_origBinds;
-			m_bindTypes = l_origBindTypes;
+		// Construct query/parameter arrays.
+		Query[] queries = (Query[])batchStatements.toArray(new Query[batchStatements.size()]);
+		ParameterList[] parameterLists = (ParameterList[])batchParameters.toArray(new ParameterList[batchParameters.size()]);
+		batchStatements.clear();
+		batchParameters.clear();
 
+		// Close any existing resultsets associated with this statement.
+		while (firstUnclosedResult != null) {
+			if (firstUnclosedResult.getResultSet() != null)
+				firstUnclosedResult.getResultSet().close();
+			firstUnclosedResult = firstUnclosedResult.getNext();
 		}
-		catch (SQLException e)
-		{
-			int[] resultSucceeded = new int[i];
-			System.arraycopy(result, 0, resultSucceeded, 0, i);
 
-			PBatchUpdateException updex =
-				new PBatchUpdateException("postgresql.stat.batch.error",
-										  new Integer(i), m_sqlFragments[0], resultSucceeded);
-			updex.setNextException(e);
+		int flags = QueryExecutor.QUERY_NO_RESULTS;
 
-			throw updex;
+		// Only use named statements after we hit the threshold
+		if (preparedQuery != null) {
+			m_useCount += queries.length;
+			if (m_prepareThreshold == 0 || m_useCount < m_prepareThreshold)
+				flags |= QueryExecutor.QUERY_ONESHOT;
 		}
-		finally
-		{
-			clearBatch();
-		}
-		return result;
+
+		if (connection.getAutoCommit())
+			flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
+
+		result = null;
+		BatchResultHandler handler = new BatchResultHandler(queries, parameterLists, updateCounts);
+		connection.getQueryExecutor().execute(queries,
+											  parameterLists,
+											  handler,
+											  maxrows,
+											  fetchSize,
+											  flags);
+
+		return updateCounts;
 	}
 
 	public void cancel() throws SQLException
@@ -192,41 +225,18 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 		super.fetchSize = rows;
 	}
 
-	public void setResultSetConcurrency(int value) throws SQLException
-	{
-		checkClosed();
-		concurrency = value;
-	}
-
-	public void setResultSetType(int value) throws SQLException
-	{
-		checkClosed();
-		resultsettype = value;
-	}
-
 	public void addBatch() throws SQLException
 	{
 		checkClosed();
-		if (batch == null)
-			batch = new Vector();
 
-		if (batchType == BATCH_STRING) {
-			throw new PSQLException("postgresql.stmt.mixedbatch");
-		} else if (batchType == BATCH_UNKNOWN) {
-			batchType = BATCH_PREPARED;
+		if (batchStatements == null) {
+			batchStatements = new ArrayList();
+			batchParameters = new ArrayList();
 		}
-		//we need to create copies, otherwise the values can be changed
-		Object[] l_newSqlFragments = null;
-		if (m_sqlFragments != null) { 
-			l_newSqlFragments = new String[m_sqlFragments.length];
-			System.arraycopy(m_sqlFragments,0,l_newSqlFragments,0,m_sqlFragments.length);
-		}
-		Object[] l_newBinds = new Object[m_binds.length];
-        System.arraycopy(m_binds,0,l_newBinds,0,m_binds.length);
-		String[] l_newBindTypes = new String[m_bindTypes.length];
-        System.arraycopy(m_bindTypes,0,l_newBindTypes,0,m_bindTypes.length);
-        Object[] l_statement = new Object[] {l_newSqlFragments, l_newBinds, l_newBindTypes};
-		batch.addElement(l_statement);
+
+		// we need to create copies of our parameters, otherwise the values can be changed
+		batchStatements.add(preparedQuery);
+		batchParameters.add(preparedParameters.copy());
 	}
 
 	public ResultSetMetaData getMetaData() throws SQLException
@@ -497,12 +507,6 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 	}
 
 
-	//This is needed by AbstractJdbc2ResultSet to determine if the query is updateable or not
-	protected String[] getSqlFragments()
-	{
-		return m_sqlFragments;
-	}
-	
 	static java.util.Calendar changeTime(java.util.Date t, java.util.Calendar cal, boolean Add)
 	{
 		long millis = t.getTime();

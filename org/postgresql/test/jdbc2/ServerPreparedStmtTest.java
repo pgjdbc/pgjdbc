@@ -49,13 +49,7 @@ public class ServerPreparedStmtTest extends TestCase
 		PreparedStatement pstmt = con.prepareStatement("UPDATE testsps SET id = id + 44");
 		((PGStatement)pstmt).setUseServerPrepare(true);
 		int count = pstmt.executeUpdate();
-		// Server versions 7.3 and 7.4 do not return the update count.
-		if (TestUtil.haveMinimumServerVersion(con,"7.3") && !TestUtil.haveMinimumServerVersion(con, "7.5")) {
-			assertTrue(((PGStatement)pstmt).isUseServerPrepare());
-			assertEquals(0, count);
-		} else {
-			assertEquals(6, count);
-		}
+		assertEquals(6, count);
 		pstmt.close();
 	}
 
@@ -64,11 +58,7 @@ public class ServerPreparedStmtTest extends TestCase
 	{
 		PreparedStatement pstmt = con.prepareStatement("SELECT * FROM testsps WHERE id = 2");
         ((PGStatement)pstmt).setUseServerPrepare(true);
-        if (TestUtil.haveMinimumServerVersion(con,"7.3")) {
-			assertTrue(((PGStatement)pstmt).isUseServerPrepare());
-		} else {
-			assertTrue(!((PGStatement)pstmt).isUseServerPrepare());
-		}
+		assertTrue(((PGStatement)pstmt).isUseServerPrepare());
 
         //Test that basic functionality works
 		ResultSet rs = pstmt.executeQuery();
@@ -82,19 +72,14 @@ public class ServerPreparedStmtTest extends TestCase
         assertEquals(2, rs.getInt(1));
         rs.close();
 
-        //Verify that using the statement to execute a different query works
-		rs = pstmt.executeQuery("SELECT * FROM testsps WHERE id = 9");
-		assertTrue(rs.next());
-        assertEquals(9, rs.getInt(1));
-        rs.close();
+        //Verify that using the statement still works after turning off prepares
 
         ((PGStatement)pstmt).setUseServerPrepare(false);
         assertTrue(!((PGStatement)pstmt).isUseServerPrepare());
 
-        //Verify that using the statement still works after turning off prepares
-		rs = pstmt.executeQuery("SELECT * FROM testsps WHERE id = 9");
+		rs = pstmt.executeQuery();
 		assertTrue(rs.next());
-        assertEquals(9, rs.getInt(1));
+        assertEquals(2, rs.getInt(1));
         rs.close();
 
 		pstmt.close();
@@ -104,11 +89,7 @@ public class ServerPreparedStmtTest extends TestCase
 	{
 		PreparedStatement pstmt = con.prepareStatement("SELECT * FROM testsps WHERE id = ?");
         ((PGStatement)pstmt).setUseServerPrepare(true);
-        if (TestUtil.haveMinimumServerVersion(con,"7.3")) {
-			assertTrue(((PGStatement)pstmt).isUseServerPrepare());
-		} else {
-			assertTrue(!((PGStatement)pstmt).isUseServerPrepare());
-		}
+		assertTrue(((PGStatement)pstmt).isUseServerPrepare());
 
         //Test that basic functionality works
         pstmt.setInt(1,2);
@@ -123,17 +104,13 @@ public class ServerPreparedStmtTest extends TestCase
         assertEquals(2, rs.getInt(1));
         rs.close();
 
-        //Verify that using the statement to execute a different query works
-		rs = pstmt.executeQuery("SELECT * FROM testsps WHERE id = 9");
-		assertTrue(rs.next());
-        assertEquals(9, rs.getInt(1));
-        rs.close();
+        //Verify that using the statement still works after turning off prepares
 
         ((PGStatement)pstmt).setUseServerPrepare(false);
         assertTrue(!((PGStatement)pstmt).isUseServerPrepare());
 
-        //Verify that using the statement still works after turning off prepares
-		rs = pstmt.executeQuery("SELECT * FROM testsps WHERE id = 9");
+		pstmt.setInt(1,9);
+		rs = pstmt.executeQuery();
 		assertTrue(rs.next());
         assertEquals(9, rs.getInt(1));
         rs.close();
@@ -146,11 +123,7 @@ public class ServerPreparedStmtTest extends TestCase
 	{
 		PreparedStatement pstmt = con.prepareStatement("SELECT * FROM testsps WHERE value = ?");
         ((PGStatement)pstmt).setUseServerPrepare(true);
-        if (TestUtil.haveMinimumServerVersion(con,"7.3")) {
-			assertTrue(((PGStatement)pstmt).isUseServerPrepare());
-		} else {
-			assertTrue(!((PGStatement)pstmt).isUseServerPrepare());
-		}
+		assertTrue(((PGStatement)pstmt).isUseServerPrepare());
 
         pstmt.setObject(1, new Boolean(false), java.sql.Types.BIT);
 		ResultSet rs = pstmt.executeQuery();
@@ -164,11 +137,7 @@ public class ServerPreparedStmtTest extends TestCase
 	{
 		PreparedStatement pstmt = con.prepareStatement("SELECT * FROM testsps WHERE id = ?");
         ((PGStatement)pstmt).setUseServerPrepare(true);
-        if (TestUtil.haveMinimumServerVersion(con,"7.3")) {
-			assertTrue(((PGStatement)pstmt).isUseServerPrepare());
-		} else {
-			assertTrue(!((PGStatement)pstmt).isUseServerPrepare());
-		}
+		assertTrue(((PGStatement)pstmt).isUseServerPrepare());
 
         pstmt.setObject(1, new Boolean(true), java.sql.Types.INTEGER);
 		ResultSet rs = pstmt.executeQuery();
@@ -182,11 +151,7 @@ public class ServerPreparedStmtTest extends TestCase
 	{
 		PreparedStatement pstmt = con.prepareStatement("SELECT * FROM testsps WHERE value = ?");
         ((PGStatement)pstmt).setUseServerPrepare(true);
-        if (TestUtil.haveMinimumServerVersion(con,"7.3")) {
-			assertTrue(((PGStatement)pstmt).isUseServerPrepare());
-		} else {
-			assertTrue(!((PGStatement)pstmt).isUseServerPrepare());
-		}
+		assertTrue(((PGStatement)pstmt).isUseServerPrepare());
 
         pstmt.setBoolean(1, false);
 		ResultSet rs = pstmt.executeQuery();
@@ -199,11 +164,7 @@ public class ServerPreparedStmtTest extends TestCase
 	{
 		PreparedStatement pstmt = con.prepareStatement("SELECT * FROM testsps WHERE id = ? or id = ?");
         ((PGStatement)pstmt).setUseServerPrepare(true);
-        if (TestUtil.haveMinimumServerVersion(con,"7.3")) {
-			assertTrue(((PGStatement)pstmt).isUseServerPrepare());
-		} else {
-			assertTrue(!((PGStatement)pstmt).isUseServerPrepare());
-		}
+		assertTrue(((PGStatement)pstmt).isUseServerPrepare());
 
         //Test that basic functionality works
         //bind different datatypes

@@ -318,17 +318,12 @@ public class DatabaseMetaDataPropertiesTest extends TestCase
 	{
 		try
 		{
-			assertTrue(con instanceof org.postgresql.PGConnection);
-			org.postgresql.jdbc2.AbstractJdbc2Connection pc = (org.postgresql.jdbc2.AbstractJdbc2Connection) con;
-
 			DatabaseMetaData dbmd = con.getMetaData();
 			assertNotNull(dbmd);
 
 			assertTrue(dbmd.getDriverVersion().equals(org.postgresql.Driver.getVersion()));
-			assertTrue(dbmd.getDriverMajorVersion() == pc.getDriver().getMajorVersion());
-			assertTrue(dbmd.getDriverMinorVersion() == pc.getDriver().getMinorVersion());
-
-
+			assertTrue(dbmd.getDriverMajorVersion() == org.postgresql.Driver.MAJORVERSION);
+			assertTrue(dbmd.getDriverMinorVersion() == org.postgresql.Driver.MINORVERSION);
 		}
 		catch (SQLException ex)
 		{

@@ -78,7 +78,7 @@ public class Driver implements java.sql.Driver
 	 * <p>The java.util.Properties argument can be used to pass arbitrary
 	 * string tag/value pairs as connection arguments.
 	 *
-	 * user - (optional) The user to connect as
+	 * user - (required) The user to connect as
 	 * password - (optional) The password for the user
 	 * ssl - (optional) Use SSL when connecting to the server
 	 * charSet - (optional) The character set to be used for converting
@@ -135,15 +135,7 @@ public class Driver implements java.sql.Driver
 			if (Driver.logDebug)
 				Driver.debug("connect " + url);
 
-			@JDBCCONNECTCLASS@ con = (@JDBCCONNECTCLASS@)(Class.forName("@JDBCCONNECTCLASS@").newInstance());
-			con.openConnection (host(props), port(props), props, database(props), url, this);
-			return (java.sql.Connection)con;
-		}
-		catch (ClassNotFoundException ex)
-		{
-			if (Driver.logDebug)
-				Driver.debug("error", ex);
-			throw new PSQLException("postgresql.jvm.version", PSQLState.SYSTEM_ERROR, ex);
+			return new @JDBCCONNECTCLASS@(host(props), port(props), user(props), database(props), props, url);
 		}
 		catch (PSQLException ex1)
 		{
@@ -179,6 +171,33 @@ public class Driver implements java.sql.Driver
 		return true;
 	}
 
+	private static final Object[][] knownProperties = {
+		{ "PGDBNAME", Boolean.TRUE, 
+		  "Database name to connect to; may be specified directly in the JDBC URL." },
+		{ "user",     Boolean.TRUE, 
+		  "Username to connect to the database as.", null },
+		{ "PGHOST",   Boolean.FALSE,
+		  "Hostname of the PostgreSQL server; may be specified directly in the JDBC URL." },
+		{ "PGPORT",   Boolean.FALSE,
+		  "Port number to connect to the PostgreSQL server on; may be specified directly in the JDBC URL.", },
+		{ "password", Boolean.FALSE,
+		  "Password to use when authenticating.", },
+		{ "protocolVersion", Boolean.FALSE,
+		  "Force use of a particular protocol version when connecting; if set, disables protocol version fallback.", },
+		{ "ssl", Boolean.FALSE,
+		  "Control use of SSL; any nonnull value causes SSL to be required." },
+		{ "logLevel", Boolean.FALSE,
+		  "Control the driver's log verbosity: 0 is off, 1 is INFO, 2 is DEBUG.",
+		  new String[] { "0", "1", "2" } },
+		{ "prepareThreshold", Boolean.FALSE,
+		  "Default statement prepare threshold (numeric)." },
+		{ "charSet", Boolean.FALSE,
+		  "When connecting to a pre-7.3 server, the database encoding to assume is in use." },
+		{ "compatible", Boolean.FALSE,
+		  "Force compatibility of some features with an older version of the driver.",
+		  new String[] { "7.1", "7.2", "7.3" } }
+	};
+					
 	/*
 	 * The getPropertyInfo method is intended to allow a generic GUI
 	 * tool to discover what properties it should prompt a human for
@@ -199,10 +218,20 @@ public class Driver implements java.sql.Driver
 	 */
 	public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) throws SQLException
 	{
-		//This method isn't really implemented
-		//we just parse the URL to ensure it is valid
-		parseURL(url, info);
-		return new DriverPropertyInfo[0];
+		Properties copy = new Properties(info);
+		parseURL(url, copy);
+
+		DriverPropertyInfo[] props = new DriverPropertyInfo[knownProperties.length];
+		for (int i = 0; i < knownProperties.length; ++i) {	
+			String name = (String) knownProperties[i][0];
+			props[i] = new DriverPropertyInfo(name, copy.getProperty(name));
+			props[i].required = ((Boolean) knownProperties[i][1]).booleanValue();
+			props[i].description = (String) knownProperties[i][2];
+			if (knownProperties[i].length > 3)
+				props[i].choices = (String[]) knownProperties[i][3];
+		}
+
+		return props;
 	}
 
 	/*
@@ -210,19 +239,22 @@ public class Driver implements java.sql.Driver
 	 *
 	 * @return the drivers major version number
 	 */
+	public static final int MAJORVERSION = @MAJORVERSION@;
 	public int getMajorVersion()
 	{
-		return @MAJORVERSION@;
+		return MAJORVERSION;
 	}
+
 
 	/*
 	 * Get the drivers minor version number
 	 *
 	 * @return the drivers minor version number
 	 */
+	public static final int MINORVERSION = @MINORVERSION@;
 	public int getMinorVersion()
 	{
-		return @MINORVERSION@;
+		return MINORVERSION;
 	}
 
 	/*
@@ -399,6 +431,14 @@ public class Driver implements java.sql.Driver
 	}
 
 	/*
+	 * @return the username of the URL
+	 */
+	public String user(Properties props)
+	{
+		return props.getProperty("user");
+	}
+
+	/*
 	 * @return the database name of the URL
 	 */
 	public String database(Properties props)
@@ -485,9 +525,8 @@ public class Driver implements java.sql.Driver
 @SSL@		if (logDebug)
 @SSL@			debug("converting regular socket connection to ssl");
 @SSL@		javax.net.ssl.SSLSocketFactory factory = (javax.net.ssl.SSLSocketFactory) javax.net.ssl.SSLSocketFactory.getDefault();
-@SSL@		p_stream.connection = (javax.net.ssl.SSLSocket) factory.createSocket(p_stream.connection,p_stream.host,p_stream.port,true);
-@SSL@		p_stream.pg_input = new BufferedInputStream(p_stream.connection.getInputStream(), 8192);
-@SSL@		p_stream.pg_output = new BufferedOutputStream(p_stream.connection.getOutputStream(), 8192);
+@SSL@       java.net.Socket newConnection = factory.createSocket(p_stream.getSocket(), p_stream.getHost(), p_stream.getPort(), true);
+@SSL@       p_stream.changeSocket(newConnection);
 	}
 
 	public static boolean sslEnabled() {

@@ -14,9 +14,13 @@
  */
 package org.postgresql;
 
-
 import java.sql.*;
 
+/**
+ *  This interface defines the public PostgreSQL extensions to
+ *  java.sql.Statement. All Statements constructed by the PostgreSQL
+ *  driver implement PGStatement.
+ */
 public interface PGStatement
 {
 
@@ -30,20 +34,22 @@ public interface PGStatement
 	/**
 	 * Turn on the use of prepared statements in the server (server side
 	 * prepared statements are unrelated to jdbc PreparedStatements)
-	 * As of 7.5, this method is equivalent to <code>setPrepareThreshold(1)</code>.
+	 * As of build 302, this method is equivalent to
+	 *  <code>setPrepareThreshold(1)</code>.
 	 *
-	 * @deprecated As of 7.5, replaced by {@link #setPrepareThreshold(int)}
+	 * @deprecated As of build 302, replaced by {@link #setPrepareThreshold(int)}
    	 * @since 7.3
 	 */
 	public void setUseServerPrepare(boolean flag) throws SQLException;
 
 	/**
-	 * Checks if this statement will be executed as a server-prepared statement.
-	 * A return value of <code>true</code> indicates that the next execution of the
-	 * statement, <em>with an unchanged query</em>, via a PreparedStatement variant of
-	 * execute(), will be done as a server-prepared statement.
+	 * Checks if this statement will be executed as a server-prepared
+	 * statement. A return value of <code>true</code> indicates that the next
+	 * execution of the statement will be done as a server-prepared statement,
+	 * assuming the underlying protocol supports it.
 	 *
-	 * @return true if the next reuse of this statement will use a server-prepared statement
+	 * @return true if the next reuse of this statement will use a
+	 *  server-prepared statement
 	 */
 	public boolean isUseServerPrepare();
 
@@ -51,25 +57,25 @@ public interface PGStatement
 	 * Sets the reuse threshold for using server-prepared statements.
 	 *<p>
 	 * If <code>threshold</code> is a non-zero value N, the Nth and subsequent
-	 * uses of a statement for the same query will use server-side
-	 * prepare. A query is currently only considered the "same" if the statement
-	 * is a PreparedStatement, and none of the base Statement query execution methods
-	 * that take an explicit query string have been called.
+	 * reuses of a PreparedStatement will use server-side prepare.
 	 *<p>
 	 * If <code>threshold</code> is zero, server-side prepare will not be used.
+	 *<p>
+	 * The reuse threshold is only used by PreparedStatement and
+	 * CallableStatement objects; it is ignored for plain Statements.
 	 *
+	 * @since build 302
 	 * @param threshold the new threshold for this statement
 	 * @throws SQLException if an exception occurs while changing the threshold
-	 * @since 7.5
 	 */
 	public void setPrepareThreshold(int threshold) throws SQLException;
 	
 	/**
 	 * Gets the server-side prepare reuse threshold in use for this statement.
 	 *
+	 * @since build 302
 	 * @return the current threshold
 	 * @see #setPrepareThreshold(int)
-	 * @since 7.5
 	 */
 	public int getPrepareThreshold();
 }

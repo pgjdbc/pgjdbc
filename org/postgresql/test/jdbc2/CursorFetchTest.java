@@ -353,8 +353,10 @@ public class CursorFetchTest extends TestCase
 		createRows(100); // 0 .. 99
 		PreparedStatement stmt = con.prepareStatement("insert into test_fetch(value) values(100); select * from test_fetch order by value");
 		stmt.setFetchSize(10);
-		ResultSet rs = stmt.executeQuery();
-		
+
+		assertTrue(!stmt.execute());       // INSERT
+		assertTrue(stmt.getMoreResults()); // SELECT
+		ResultSet rs = stmt.getResultSet();
 		int count = 0;
 		while (rs.next()) {
 			assertEquals(count, rs.getInt(1));

@@ -1,7 +1,6 @@
 package org.postgresql.jdbc1;
 
-
-import org.postgresql.core.Field;
+import org.postgresql.core.*;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -10,8 +9,8 @@ import java.util.*;
 
 public abstract class AbstractJdbc1ResultSetMetaData
 {
-	protected Vector rows;
-	protected Field[] fields;
+	protected final BaseConnection connection;
+	protected final Field[] fields;
 
 	private Hashtable tableNameCache;
 	private Hashtable schemaNameCache;
@@ -20,12 +19,11 @@ public abstract class AbstractJdbc1ResultSetMetaData
 	 *	Initialise for a result with a tuple set and
 	 *	a field descriptor set
 	 *
-	 * @param rows the Vector of rows returned by the ResultSet
 	 * @param fields the array of field descriptors
 	 */
-	public AbstractJdbc1ResultSetMetaData(Vector rows, Field[] fields)
+	public AbstractJdbc1ResultSetMetaData(BaseConnection connection, Field[] fields)
 	{
-		this.rows = rows;
+		this.connection = connection;
 		this.fields = fields;
 	}
 
@@ -63,7 +61,7 @@ public abstract class AbstractJdbc1ResultSetMetaData
 	 */
 	public boolean isCaseSensitive(int column) throws SQLException
 	{
-		int sql_type = getField(column).getSQLType();
+		int sql_type = getSQLType(column);
 
 		switch (sql_type)
 		{
@@ -95,7 +93,7 @@ public abstract class AbstractJdbc1ResultSetMetaData
 	 */
 	public boolean isSearchable(int column) throws SQLException
 	{
-		int sql_type = getField(column).getSQLType();
+		int sql_type = getSQLType(column);
 
 		// This switch is pointless, I know - but it is a set-up
 		// for further expansion.
@@ -119,7 +117,7 @@ public abstract class AbstractJdbc1ResultSetMetaData
 	 */
 	public boolean isCurrency(int column) throws SQLException
 	{
-		String type_name = getField(column).getPGType();
+		String type_name = getPGType(column);
 
 		return type_name.equals("cash") || type_name.equals("money");
 	}
@@ -134,7 +132,7 @@ public abstract class AbstractJdbc1ResultSetMetaData
 	public int isNullable(int column) throws SQLException
 	{
 		Field field = getField(column);
-		return field.getNullable();
+		return field.getNullable(connection);
   	}
 
 	/*
@@ -148,7 +146,7 @@ public abstract class AbstractJdbc1ResultSetMetaData
 	 */
 	public boolean isSigned(int column) throws SQLException
 	{
-		int sql_type = getField(column).getSQLType();
+		int sql_type = getSQLType(column);
 
 		switch (sql_type)
 		{
@@ -177,7 +175,7 @@ public abstract class AbstractJdbc1ResultSetMetaData
 	public int getColumnDisplaySize(int column) throws SQLException
 	{
 		Field f = getField(column);
-		String type_name = f.getPGType();
+		String type_name = getPGType(column);
 		int typmod = f.getMod();
 
 		// I looked at other JDBC implementations and couldn't find a consistent
@@ -231,7 +229,7 @@ public abstract class AbstractJdbc1ResultSetMetaData
 	{
 		Field f = getField(column);
 		if (f != null)
-			return f.getName();
+			return f.getColumnLabel();
 		return "field" + column;
 	}
 
@@ -245,7 +243,7 @@ public abstract class AbstractJdbc1ResultSetMetaData
 	public String getColumnName(int column) throws SQLException
 	{
 		Field field = getField(column);
-		return field.getColumnName();
+		return field.getColumnName(connection);
 	}
 
 	/*
@@ -271,13 +269,12 @@ public abstract class AbstractJdbc1ResultSetMetaData
 			return schemaName;
 		} else
 		{
-			java.sql.Connection con = (java.sql.Connection) field.getConn();
 			ResultSet res = null;
 			PreparedStatement ps = null;
 			try
 			{
 				String sql = "SELECT n.nspname FROM pg_catalog.pg_class c, pg_catalog.pg_namespace n WHERE n.oid = c.relnamespace AND c.oid = ?;";
-				ps = con.prepareStatement(sql);
+				ps = ((Connection)connection).prepareStatement(sql);
 				ps.setInt(1, tableOid.intValue());
 				res = ps.executeQuery();
 				schemaName = "";
@@ -306,7 +303,7 @@ public abstract class AbstractJdbc1ResultSetMetaData
 	 */
 	public int getPrecision(int column) throws SQLException
 	{
-		int sql_type = getField(column).getSQLType();
+		int sql_type = getSQLType(column);
 
 		switch (sql_type)
 		{
@@ -343,7 +340,7 @@ public abstract class AbstractJdbc1ResultSetMetaData
 	 */
 	public int getScale(int column) throws SQLException
 	{
-		int sql_type = getField(column).getSQLType();
+		int sql_type = getSQLType(column);
 
 		switch (sql_type)
 		{
@@ -393,12 +390,11 @@ public abstract class AbstractJdbc1ResultSetMetaData
 			return tableName;
 		} else
 		{
-			java.sql.Connection con = (java.sql.Connection) field.getConn();
 			ResultSet res = null;
 			PreparedStatement ps = null;
 			try
 			{
-				ps = con.prepareStatement("SELECT relname FROM pg_catalog.pg_class WHERE oid = ?");
+				ps = ((Connection)connection).prepareStatement("SELECT relname FROM pg_catalog.pg_class WHERE oid = ?");
 				ps.setInt(1, tableOid.intValue());
 				res = ps.executeQuery();
 				tableName = "";
@@ -443,7 +439,7 @@ public abstract class AbstractJdbc1ResultSetMetaData
 	 */
 	public int getColumnType(int column) throws SQLException
 	{
-		return getField(column).getSQLType();
+		return getSQLType(column);
 	}
 
 	/*
@@ -455,7 +451,7 @@ public abstract class AbstractJdbc1ResultSetMetaData
 	 */
 	public String getColumnTypeName(int column) throws SQLException
 	{
-		return getField(column).getPGType();
+		return getPGType(column);
 	}
 
 	/*
@@ -521,6 +517,16 @@ public abstract class AbstractJdbc1ResultSetMetaData
 		if (columnIndex < 1 || columnIndex > fields.length)
 			throw new PSQLException("postgresql.res.colrange", PSQLState.INVALID_PARAMETER_VALUE);
 		return fields[columnIndex - 1];
+	}
+
+	protected String getPGType(int columnIndex) throws SQLException
+	{
+		return connection.getPGType(getField(columnIndex).getOID());
+	}
+
+	protected int getSQLType(int columnIndex) throws SQLException
+	{
+		return connection.getSQLType(getField(columnIndex).getOID());
 	}
 }
 

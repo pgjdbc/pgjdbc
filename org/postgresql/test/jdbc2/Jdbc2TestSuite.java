@@ -69,6 +69,8 @@ public class Jdbc2TestSuite extends TestSuite
 		suite.addTestSuite(CursorFetchTest.class);
 		suite.addTestSuite(ServerCursorTest.class);
 
+		suite.addTestSuite(GeometricTest.class);
+
 		// That's all folks
 		return suite;
 	}

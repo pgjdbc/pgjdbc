@@ -15,12 +15,18 @@ package org.postgresql.core;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.io.UnsupportedEncodingException;
-import java.sql.SQLException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.io.IOException;
 import java.util.Hashtable;
+import java.util.Vector;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+/**
+ * Representation of a particular character encoding.
+ */
 public class Encoding
 {
 
@@ -75,40 +81,38 @@ public class Encoding
 	}
 
 	private final String encoding;
+	private final boolean utf8;
 
 	private Encoding(String encoding)
 	{
 		this.encoding = encoding;
+		this.utf8 = (encoding != null && (encoding.equals("UTF-8") || encoding.equals("UTF8")));
 	}
 
-	/*
-	 * Get an Encoding for from the given database encoding and
-	 * the encoding passed in by the user.
+	/**
+	 * Construct an Encoding for a given JVM encoding.
+	 * 
+	 * @param jvmEncoding the name of the JVM encoding
+	 * @return an Encoding instance for the specified encoding,
+	 *   or an Encoding instance for the default JVM encoding if the
+	 *   specified encoding is unavailable.
 	 */
-	public static Encoding getEncoding(String databaseEncoding,
-									   String passedEncoding)
-	{
-		if (passedEncoding != null)
-		{
-			if (isAvailable(passedEncoding))
-			{
-				return new Encoding(passedEncoding);
-			}
-			else
-			{
-				return defaultEncoding();
-			}
-		}
+	public static Encoding getJVMEncoding(String jvmEncoding) {
+		if (isAvailable(jvmEncoding))
+			return new Encoding(jvmEncoding);
 		else
-		{
-			return encodingForDatabaseEncoding(databaseEncoding);
-		}
+			return defaultEncoding();
 	}
 
-	/*
-	 * Get an Encoding matching the given database encoding.
+	/**
+	 * Construct an Encoding for a given database encoding.
+	 * 
+	 * @param databaseEncoding the name of the database encoding
+	 * @return an Encoding instance for the specified encoding,
+	 *   or an Encoding instance for the default JVM encoding if the
+	 *   specified encoding is unavailable.
 	 */
-	private static Encoding encodingForDatabaseEncoding(String databaseEncoding)
+	public static Encoding getDatabaseEncoding(String databaseEncoding)
 	{
 		// If the backend encoding is known and there is a suitable
 		// encoding in the JVM we use that. Otherwise we fall back
@@ -125,111 +129,120 @@ public class Encoding
 				}
 			}
 		}
+
+		// Try the encoding name directly -- maybe the charset has been
+		// provided by the user.
+		if (isAvailable(databaseEncoding))
+			return new Encoding(databaseEncoding);
+
+		// Fall back to default JVM encoding.
 		return defaultEncoding();
 	}
 
-	/*
-	 * Name of the (JVM) encoding used.
+	/**
+	 * Get the name of the (JVM) encoding used.
+	 *
+	 * @return the JVM encoding name used by this instance.
 	 */
 	public String name()
 	{
 		return encoding;
 	}
 
-	/*
+	/**
 	 * Encode a string to an array of bytes.
+	 *
+	 * @param s the string to encode
+	 * @return a bytearray containing the encoded string
+	 * @throws IOException if something goes wrong
 	 */
-	public byte[] encode(String s) throws SQLException
+	public byte[] encode(String s) throws IOException
 	{
-		byte[] l_return;
-		try
-		{
-			if (encoding == null)
-			{
-				l_return = s.getBytes();
-			}
-			else
-			{
-				l_return = s.getBytes(encoding);
-			}
-			//Don't return null, return an empty byte[] instead
-			if (l_return == null) {
-				return new byte[0];
-			} else {
-				return l_return;
-			}
-		}
-		catch (UnsupportedEncodingException e)
-		{
-			throw new PSQLException("postgresql.stream.encoding", PSQLState.DATA_ERROR, e);
-		}
+		if (s == null)
+			return null;
+
+		if (encoding == null)
+			return s.getBytes();
+
+		return s.getBytes(encoding);
 	}
 
-	/*
+	/**
 	 * Decode an array of bytes into a string.
+	 * 
+	 * @param encodedString a bytearray containing the encoded string  the string to encod
+	 * @param offset the offset in <code>encodedString</code> of the first byte of the encoded representation
+	 * @param length the length, in bytes, of the encoded representation
+	 * @return the decoded string
+	 * @throws IOException if something goes wrong
 	 */
-	public String decode(byte[] encodedString, int offset, int length) throws SQLException
+	public String decode(byte[] encodedString, int offset, int length) throws IOException
 	{
-		try
-		{
-			if (encoding == null)
-			{
-				return new String(encodedString, offset, length);
-			}
-			else
-			{
-				if (encoding.equals("UTF-8")) {
-					return decodeUTF8(encodedString, offset, length);
-				}
-				return new String(encodedString, offset, length, encoding);
-			}
-		}
-		catch (UnsupportedEncodingException e)
-		{
-			throw new PSQLException("postgresql.stream.encoding", PSQLState.DATA_ERROR, e);
-		}
+		if (encoding == null)
+			return new String(encodedString, offset, length);
+
+		if (utf8)
+			return decodeUTF8(encodedString, offset, length);
+
+		return new String(encodedString, offset, length, encoding);
 	}
 
-	/*
+	/**
 	 * Decode an array of bytes into a string.
+	 *
+	 * @param encodedString a bytearray containing the encoded string  the string to encod
+	 * @return the decoded string
+	 * @throws IOException if something goes wrong
 	 */
-	public String decode(byte[] encodedString) throws SQLException
+	public String decode(byte[] encodedString) throws IOException
 	{
 		return decode(encodedString, 0, encodedString.length);
 	}
 
-	/*
-	 * Get a Reader that decodes the given InputStream.
+	/**
+	 * Get a Reader that decodes the given InputStream using this encoding.
+	 *
+	 * @param in the underlying stream to decode from
+	 * @return a non-null Reader implementation.
+	 * @throws IOException if something goes wrong
 	 */
-	public Reader getDecodingReader(InputStream in) throws SQLException
+	public Reader getDecodingReader(InputStream in) throws IOException
 	{
-		try
-		{
-			if (encoding == null)
-			{
-				return new InputStreamReader(in);
-			}
-			else
-			{
-				return new InputStreamReader(in, encoding);
-			}
-		}
-		catch (UnsupportedEncodingException e)
-		{
-			throw new PSQLException("postgresql.res.encoding", PSQLState.DATA_ERROR, e);
-		}
+		if (encoding == null)
+			return new InputStreamReader(in);
+
+		return new InputStreamReader(in, encoding);
 	}
 
-	/*
+	/**
+	 * Get a Writer that encodes to the given OutputStream using this encoding.
+	 *
+	 * @param out the underlying stream to encode to
+	 * @return a non-null Writer implementation.
+	 * @throws IOException if something goes wrong
+	 */
+	public Writer getEncodingWriter(OutputStream out) throws IOException
+	{
+		if (encoding == null)
+			return new OutputStreamWriter(out);
+
+		return new OutputStreamWriter(out, encoding);
+	}
+
+	/**
 	 * Get an Encoding using the default encoding for the JVM.
+	 * @return an Encoding instance
 	 */
 	public static Encoding defaultEncoding()
 	{
 		return DEFAULT_ENCODING;
 	}
 
-	/*
+	/**
 	 * Test if an encoding is available in the JVM.
+	 *
+	 * @param encodingName the JVM encoding name to test
+	 * @return true iff the encoding is supported
 	 */
 	private static boolean isAvailable(String encodingName)
 	{
@@ -238,54 +251,61 @@ public class Encoding
 			"DUMMY".getBytes(encodingName);
 			return true;
 		}
-		catch (UnsupportedEncodingException e)
+		catch (java.io.UnsupportedEncodingException e)
 		{
 			return false;
 		}
 	}
 
-	/**
-	 * custom byte[] -> String conversion routine, 3x-10x faster than
-	 * standard new String(byte[])
-	 */
-	private static final int pow2_6 = 64;		// 26
-	private static final int pow2_12 = 4096;	// 212
-	private char[] cdata = new char[50];
+	private char[] decoderArray = new char[1024];
 
-	private synchronized String decodeUTF8(byte data[], int offset, int length) throws SQLException {
+ 	/**
+ 	 * Custom byte[] -> String conversion routine for UTF-8 only.
+	 * This is about 30% faster than using the String(byte[],int,int,String)
+	 * ctor, at least under JDK 1.4.2.
+	 *
+	 * @param data the array containing UTF8-encoded data
+	 * @param offset the offset of the first byte in <code>data</code> to decode from
+	 * @param length the number of bytes to decode
+	 * @return a decoded string
+	 * @throws IOException if something goes wrong
+ 	 */
+	private synchronized String decodeUTF8(byte[] data, int offset, int length) throws IOException {
+		char[] cdata = decoderArray;
+		if (cdata.length < length)
+			cdata = decoderArray = new char[length];
+
+		int in = offset;
+		int out = 0;
+		int end = length + offset;
+
 		try {
-			char[] l_cdata = cdata;
-			if (l_cdata.length < (length)) {
-				l_cdata = new char[length];
+			while (in < end) {
+				int ch = data[in++] & 0xff;
+				if (ch < 0x80) {
+					// Length 1: \u00000 .. \u0007f
+				} else if (ch < 0xe0) { 
+					// Length 2: \u00080 .. \u007ff
+					ch = ch | ((data[in++] & 0x7f) << 6);
+				} else {
+					// Length 3: \u00800 .. \u0ffff
+					ch = ch | ((data[in++] & 0x7f) << 12);
+					ch = ch | ((data[in++] & 0x7f) << 6);
+				}
+				cdata[out++] = (char)ch;
 			}
-			int i = offset;
-			int j = 0;
-			int k = length + offset;
-			int z, y, x, val;
-			while (i < k) {
-				z = data[i] & 0xFF;
-				if (z < 0x80) {
-					l_cdata[j++] = (char)data[i];
-					i++;
-				} else if (z >= 0xE0) {		// length == 3
-					y = data[i+1] & 0xFF;
-					x = data[i+2] & 0xFF;
-					val = (z-0xE0)*pow2_12 + (y-0x80)*pow2_6 + (x-0x80);
-					l_cdata[j++] = (char) val;
-					i+= 3;
-				} else {		// length == 2 (maybe add checking for length > 3, throw exception if it is
-					y = data[i+1] & 0xFF;
-					val = (z - 0xC0)* (pow2_6)+(y-0x80);
-					l_cdata[j++] = (char) val;
-					i+=2;
-				} 
-			}
-	
-			String s = new String(l_cdata, 0, j);
-			return s;
-		} catch (Exception l_e) {
-			throw new PSQLException("postgresql.con.invalidchar", PSQLState.DATA_ERROR, l_e);
+		} catch (ArrayIndexOutOfBoundsException a) {
+			throw new IOException("UTF-8 string representation was truncated");
 		}
+
+		// Check if we ran past the end without seeing an exception.
+		if (in > end)
+			throw new IOException("UTF-8 string representation was truncated");
+
+		return new String(cdata, 0, out);
 	}
 
+	public String toString() {
+		return (encoding == null ? "<default JVM encoding>" : encoding);
+	}
 }

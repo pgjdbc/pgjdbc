@@ -23,21 +23,18 @@ public class EncodingTest extends TestCase
 	public void testCreation() throws Exception
 	{
 		Encoding encoding;
-		encoding = Encoding.getEncoding("UNICODE", null);
+		encoding = Encoding.getDatabaseEncoding("UNICODE");
 		assertEquals("UTF", encoding.name().substring(0, 3).toUpperCase());
-		encoding = Encoding.getEncoding("SQL_ASCII", null);
+		encoding = Encoding.getDatabaseEncoding("SQL_ASCII");
 		assertTrue(encoding.name().toUpperCase().indexOf("ASCII") != -1);
 		assertEquals("When encoding is unknown the default encoding should be used",
 					 Encoding.defaultEncoding(),
-					 Encoding.getEncoding("UNKNOWN", null));
-		encoding = Encoding.getEncoding("SQL_ASCII", "utf-8");
-		assertTrue("Encoding passed in by the user should be preferred",
-				   encoding.name().toUpperCase().indexOf("UTF") != -1);
+					 Encoding.getDatabaseEncoding("UNKNOWN"));
 	}
 
 	public void testTransformations() throws Exception
 	{
-		Encoding encoding = Encoding.getEncoding("UNICODE", null);
+		Encoding encoding = Encoding.getDatabaseEncoding("UNICODE");
 		assertEquals("ab", encoding.decode(new byte[] { 97, 98 }));
 
 		assertEquals(2, encoding.encode("ab").length);
@@ -52,7 +49,7 @@ public class EncodingTest extends TestCase
 
 	public void testReader() throws Exception
 	{
-		Encoding encoding = Encoding.getEncoding("SQL_ASCII", null);
+		Encoding encoding = Encoding.getDatabaseEncoding("SQL_ASCII");
 		InputStream stream = new ByteArrayInputStream(new byte[] { 97, 98 });
 		Reader reader = encoding.getDecodingReader(stream);
 		assertEquals(97, reader.read());

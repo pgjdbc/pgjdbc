@@ -10,6 +10,13 @@
 package org.postgresql.fastpath;
 
 import java.io.IOException;
+import java.sql.SQLException;
+import org.postgresql.core.ParameterList;
+
+// Not a very clean mapping to the new QueryExecutor/ParameterList
+// stuff, but it seems hard to support both v2 and v3 cleanly with
+// the same model while retaining API compatibility. So I've just
+// done it the ugly way..
 
 /**
  *     Each fastpath call requires an array of arguments, the number and type
@@ -18,19 +25,11 @@ import java.io.IOException;
 public class FastpathArg
 {
 	/**
-	 * Type of argument, true=integer, false=byte[]
+	 * Encoded byte value of argument.
 	 */
-	public boolean type;
-
-	/**
-	 * Integer value if type=true
-	 */
-	public int value;
-
-	/**
-	 * Byte value if type=false;
-	 */
-	public byte[] bytes;
+	private final byte[] bytes;
+	private final int bytesStart;
+	private final int bytesLength;
 
 	/**
 	 * Constructs an argument that consists of an integer value
@@ -38,8 +37,13 @@ public class FastpathArg
 	 */
 	public FastpathArg(int value)
 	{
-		type = true;
-		this.value = value;
+		bytes = new byte[4];
+		bytes[3] = (byte) (value);
+		bytes[2] = (byte) (value >> 8);
+		bytes[1] = (byte) (value >> 16);
+		bytes[0] = (byte) (value >> 24);
+		bytesStart = 0;
+		bytesLength = 4;
 	}
 
 	/**
@@ -48,8 +52,7 @@ public class FastpathArg
 	 */
 	public FastpathArg(byte bytes[])
 	{
-		type = false;
-		this.bytes = bytes;
+		this(bytes, 0, bytes.length);
 	}
 
 	/**
@@ -60,9 +63,9 @@ public class FastpathArg
 	 */
 	public FastpathArg(byte buf[], int off, int len)
 	{
-		type = false;
-		bytes = new byte[len];
-		System.arraycopy(buf, off, bytes, 0, len);
+		this.bytes = buf;
+		this.bytesStart = off;
+		this.bytesLength = len;
 	}
 
 	/**
@@ -74,43 +77,11 @@ public class FastpathArg
 		this(s.getBytes());
 	}
 
-	/**
-	 * This sends this argument down the network stream.
-	 *
-	 * <p>The stream sent consists of the length.int4 then the contents.
-	 *
-	 * <p><b>Note:</b> This is called from Fastpath, and cannot be called from
-	 * client code.
-	 *
-	 * @param s output stream
-	 * @exception IOException if something failed on the network stream
-	 */
-	protected void send(org.postgresql.core.PGStream s) throws IOException
-	{
-		if (type)
-		{
-			// argument is an integer
-			s.SendInteger(4, 4);	// size of an integer
-			s.SendInteger(value, 4);	// integer value of argument
-		}
+	void populateParameter(ParameterList params, int index) throws SQLException {
+		if (bytes == null)
+			params.setNull(index, 0);
 		else
-		{
-			// argument is a byte array
-			s.SendInteger(bytes.length, 4); // size of array
-			s.Send(bytes);
-		}
-	}
-
-	protected int sendSize()
-	{
-		if (type)
-		{
-			return 8;
-		}
-		else
-		{
-			return 4+bytes.length;
-		}
+			params.setBytea(index, bytes, bytesStart, bytesLength);
 	}
 }
 

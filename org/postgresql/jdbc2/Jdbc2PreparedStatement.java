@@ -1,29 +1,17 @@
 package org.postgresql.jdbc2;
 
-
 import java.sql.*;
-import java.util.Vector;
-import org.postgresql.PGRefCursorResultSet;
-import org.postgresql.core.BaseResultSet;
-import org.postgresql.core.Field;
 
-public class Jdbc2PreparedStatement extends org.postgresql.jdbc2.AbstractJdbc2Statement implements java.sql.PreparedStatement
+class Jdbc2PreparedStatement extends Jdbc2Statement implements PreparedStatement
 {
-
-	public Jdbc2PreparedStatement(Jdbc2Connection connection, String sql) throws SQLException
+	Jdbc2PreparedStatement(Jdbc2Connection connection, String sql, int rsType, int rsConcurrency) throws SQLException
 	{
-		super(connection, sql);
+		this(connection, sql, false, rsType, rsConcurrency);
 	}
 
-	public BaseResultSet createResultSet (Field[] fields, Vector tuples, String status, int updateCount, long insertOID) throws SQLException
+	protected Jdbc2PreparedStatement(Jdbc2Connection connection, String sql, boolean isCallable, int rsType, int rsConcurrency) throws SQLException
 	{
-		return new Jdbc2ResultSet(this, fields, tuples, status, updateCount, insertOID);
-	}
-
- 
-  	public PGRefCursorResultSet createRefCursorResultSet (String cursorName) throws SQLException
-	{
-                return new Jdbc2RefCursorResultSet(this, cursorName);
+		super(connection, sql, isCallable, rsType, rsConcurrency);
 	}
 }
 
