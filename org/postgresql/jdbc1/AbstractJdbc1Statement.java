@@ -1890,6 +1890,9 @@ public abstract class AbstractJdbc1Statement implements org.postgresql.PGStateme
 	 */
 	public String toString()
 	{
+		if (m_sqlFragments == null)
+			return "";
+
 		synchronized (sbuf)
 		{
 			sbuf.setLength(0);
@@ -1897,11 +1900,11 @@ public abstract class AbstractJdbc1Statement implements org.postgresql.PGStateme
 
 			for (i = 0 ; i < m_binds.length ; ++i)
 			{
+				sbuf.append (m_sqlFragments[i]);
 				if (m_binds[i] == null)
 					sbuf.append( '?' );
 				else
-					sbuf.append (m_sqlFragments[i]);
-				sbuf.append (m_binds[i]);
+					sbuf.append (m_binds[i]);
 			}
 			sbuf.append(m_sqlFragments[m_binds.length]);
 			return sbuf.toString();
@@ -2070,7 +2073,7 @@ public abstract class AbstractJdbc1Statement implements org.postgresql.PGStateme
 	private static final String PG_INT8 = "int8";
 	private static final String PG_NUMERIC = "numeric";
 	private static final String PG_FLOAT = "float";
-	private static final String PG_DOUBLE = "double";
+	private static final String PG_DOUBLE = "double precision";
 	private static final String PG_BOOLEAN = "boolean";
 	private static final String PG_DATE = "date";
 	private static final String PG_TIME = "time";
