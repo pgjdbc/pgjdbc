@@ -505,7 +505,7 @@ public abstract class Connection
 			    recv_status = pg_stream.ReceiveString(receive_sbuf,8192,getEncoding());
 
 				// Now handle the update count correctly.
-				if(recv_status.startsWith("INSERT") || recv_status.startsWith("UPDATE") || recv_status.startsWith("DELETE")) {
+				if(recv_status.startsWith("INSERT") || recv_status.startsWith("UPDATE") || recv_status.startsWith("DELETE") || recv_status.startsWith("MOVE")) {
 					try {
 						update_count = Integer.parseInt(recv_status.substring(1+recv_status.lastIndexOf(' ')));
 					} catch(NumberFormatException nfe) {
