@@ -378,9 +378,9 @@ public class Connection extends org.postgresql.Connection implements java.sql.Co
      * This overides the method in org.postgresql.Connection and returns a
      * ResultSet.
      */
-    protected java.sql.ResultSet getResultSet(org.postgresql.Connection conn, Field[] fields, Vector tuples, String status, int updateCount) throws SQLException
+    protected java.sql.ResultSet getResultSet(org.postgresql.Connection conn, Field[] fields, Vector tuples, String status, int updateCount, int insertOID) throws SQLException
     {
-	return new org.postgresql.jdbc2.ResultSet((org.postgresql.jdbc2.Connection)conn,fields,tuples,status,updateCount);
+	return new org.postgresql.jdbc2.ResultSet((org.postgresql.jdbc2.Connection)conn,fields,tuples,status,updateCount,insertOID);
     }
     
     // *****************

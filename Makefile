@@ -181,7 +181,7 @@ clean:
 	$(FIND) . -name "*.class" -exec $(RM) {} \;
 	$(FIND) . -name "*.html" -exec $(RM) {} \;
 	-$(RM) -rf stock example/corba/stock.built
-	-$(RM) postgresql.jar
+	-$(RM) postgresql.jar org/postgresql/DriverClass.java
 	-$(RM) -rf Package-postgresql *output
 
 #######################################################################

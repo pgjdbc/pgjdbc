@@ -83,9 +83,18 @@ public class basic
     st.executeUpdate("insert into basic values (2,1)");
     st.executeUpdate("insert into basic values (3,1)");
     
+    // This shows how to get the oid of a just inserted row
+    st.executeUpdate("insert into basic values (4,1)");
+    int insertedOID = ((org.postgresql.ResultSet)st.getResultSet()).getInsertedOID();
+    System.out.println("Inserted row with oid "+insertedOID);
+    
     // Now change the value of b from 1 to 8
     st.executeUpdate("update basic set b=8");
     System.out.println("Updated "+st.getUpdateCount()+" rows");
+    
+    // Now delete 2 rows
+    st.executeUpdate("delete from basic where a<3");
+    System.out.println("deleted "+st.getUpdateCount()+" rows");
     
     // For large inserts, a PreparedStatement is more efficient, because it
     // supports the idea of precompiling the SQL statement, and to store
