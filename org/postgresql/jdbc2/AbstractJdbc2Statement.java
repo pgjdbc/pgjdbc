@@ -64,8 +64,10 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 
 	public void clearBatch() throws SQLException
 	{
-		batchStatements.clear();
-		batchParameters.clear();
+		if (batchStatements != null) {
+			batchStatements.clear();
+			batchParameters.clear();
+		}
 	}
 
 	//
