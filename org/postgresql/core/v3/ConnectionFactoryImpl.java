@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ConnectionFactoryImpl.java,v 1.6 2004/11/09 08:46:01 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ConnectionFactoryImpl.java,v 1.7 2004/11/17 02:43:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -94,7 +94,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             doAuthentication(newStream, user, info.getProperty("password"));
 
             // Do final startup.
-            ProtocolConnectionImpl protoConnection = new ProtocolConnectionImpl(newStream, user, database);
+            ProtocolConnectionImpl protoConnection = new ProtocolConnectionImpl(newStream, user, database, info);
             readStartupMessages(newStream, protoConnection);
 
             // And we're done.

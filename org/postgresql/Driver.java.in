@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.56 2004/11/09 10:06:04 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.57 2004/11/10 20:31:05 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -240,6 +240,8 @@ public class Driver implements java.sql.Driver
                 { "logLevel", Boolean.FALSE,
                   "Control the driver's log verbosity: 0 is off, 1 is INFO, 2 is DEBUG.",
                   new String[] { "0", "1", "2" } },
+                { "allowEncodingChanges", Boolean.FALSE,
+                  "Allow the user to change the client_encoding variable." },
                 { "prepareThreshold", Boolean.FALSE,
                   "Default statement prepare threshold (numeric)." },
                 { "charSet", Boolean.FALSE,

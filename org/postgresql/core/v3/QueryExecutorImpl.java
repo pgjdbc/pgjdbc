@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.14 2004/11/09 08:46:14 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.15 2004/11/17 02:43:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -15,6 +15,7 @@ import org.postgresql.core.*;
 import java.util.ArrayList;
 import java.util.Vector;
 import java.util.HashMap;
+import java.util.Properties;
 
 import java.lang.ref.*;
 
@@ -31,9 +32,14 @@ import org.postgresql.util.GT;
  * QueryExecutor implementation for the V3 protocol.
  */
 public class QueryExecutorImpl implements QueryExecutor {
-    public QueryExecutorImpl(ProtocolConnectionImpl protoConnection, PGStream pgStream) {
+    public QueryExecutorImpl(ProtocolConnectionImpl protoConnection, PGStream pgStream, Properties info) {
         this.protoConnection = protoConnection;
         this.pgStream = pgStream;
+        if (info.getProperty("allowEncodingChanges") != null) {
+            this.allowEncodingChanges = Boolean.valueOf(info.getProperty("allowEncodingChanges")).booleanValue();
+        } else {
+            this.allowEncodingChanges = false;
+	}
     }
 
     //
@@ -1184,7 +1190,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                     if (Driver.logDebug)
                         Driver.debug(" <=BE ParameterStatus(" + name + " = " + value + ")");
 
-                    if (name.equals("client_encoding") && !value.equals("UNICODE"))
+                    if (name.equals("client_encoding") && !value.equals("UNICODE") && !allowEncodingChanges)
                     {
                         protoConnection.close(); // we're screwed now; we can't trust any subsequent string.
                         handler.handleError(new PSQLException(GT.tr("The server''s client_encoding parameter was changed to {0}. The JDBC driver requires client_encoding to be UNICODE for correct operation.", value), PSQLState.CONNECTION_FAILURE));
@@ -1435,6 +1441,7 @@ public class QueryExecutorImpl implements QueryExecutor {
     private long nextUniqueID = 1;
     private final ProtocolConnectionImpl protoConnection;
     private final PGStream pgStream;
+    private final boolean allowEncodingChanges;
 
     private final SimpleQuery beginTransactionQuery = new SimpleQuery(new String[] { "BEGIN" });
     ;

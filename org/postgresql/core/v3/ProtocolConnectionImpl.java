@@ -3,7 +3,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ProtocolConnectionImpl.java,v 1.3 2004/11/07 22:15:39 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ProtocolConnectionImpl.java,v 1.4 2004/11/09 08:46:11 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -16,6 +16,7 @@ import org.postgresql.core.*;
 import java.sql.*;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Properties;
 
 /**
  * ProtocolConnection implementation for the V3 protocol.
@@ -23,11 +24,11 @@ import java.util.ArrayList;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 class ProtocolConnectionImpl implements ProtocolConnection {
-    ProtocolConnectionImpl(PGStream pgStream, String user, String database) {
+    ProtocolConnectionImpl(PGStream pgStream, String user, String database, Properties info) {
         this.pgStream = pgStream;
         this.user = user;
         this.database = database;
-        this.executor = new QueryExecutorImpl(this, pgStream);
+        this.executor = new QueryExecutorImpl(this, pgStream, info);
     }
 
     public String getHost() {
