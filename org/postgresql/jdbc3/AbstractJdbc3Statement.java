@@ -8,9 +8,10 @@ import java.util.Vector;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.core.Field;
+import org.postgresql.core.Oid;
 import org.postgresql.util.GT;
 
-/* $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/jdbc3/AbstractJdbc3Statement.java,v 1.3 2003/09/17 05:07:38 barry Exp $
+/* $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Statement.java,v 1.8 2004/10/10 15:39:42 jurka Exp $
  * This class defines methods of the jdbc3 specification.  This class extends
  * org.postgresql.jdbc2.AbstractJdbc2Statement which provides the jdbc2
  * methods.  The real Statement class (for jdbc2) is org.postgresql.jdbc3.Jdbc3Statement
@@ -1422,6 +1423,19 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
 				break;
 			default:
 				super.setObject(parameterIndex, x, targetSqlType, scale);
+				break;
+		}
+	}
+
+	public void setNull(int parameterIndex, int sqlType) throws SQLException
+	{
+		switch(sqlType)
+		{
+			case Types.BOOLEAN:
+				setNullByOid(parameterIndex, Oid.BOOL);
+				break;
+			default:
+				super.setNull(parameterIndex, sqlType);
 				break;
 		}
 	}

@@ -15,6 +15,7 @@ public class Jdbc3TestSuite extends TestSuite
 	{
         TestSuite suite = new TestSuite();
 	suite.addTestSuite(Jdbc3SavepointTest.class);
+	suite.addTestSuite(TypesTest.class);
         return suite;
 	}
 }
