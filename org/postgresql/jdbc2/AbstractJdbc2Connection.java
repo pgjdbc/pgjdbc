@@ -17,7 +17,7 @@ public abstract class AbstractJdbc2Connection extends org.postgresql.jdbc1.Abstr
 	 * The current type mappings
 	 */
 	protected java.util.Map typemap;
-
+ 
 	public java.sql.Statement createStatement() throws SQLException
 	{
 		// The spec says default of TYPE_FORWARD_ONLY but everyone is used to

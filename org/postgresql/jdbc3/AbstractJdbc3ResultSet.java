@@ -12,9 +12,9 @@ import java.util.Vector;
 public abstract class AbstractJdbc3ResultSet extends org.postgresql.jdbc2.AbstractJdbc2ResultSet
 {
 
-	public AbstractJdbc3ResultSet(org.postgresql.PGConnection conn, Statement statement, org.postgresql.Field[] fields, Vector tuples, String status, int updateCount, long insertOID, boolean binaryCursor)
+	public AbstractJdbc3ResultSet(Statement statement, org.postgresql.Field[] fields, Vector tuples, String status, int updateCount, long insertOID, boolean binaryCursor)
 	{
-		super (conn, statement, fields, tuples, status, updateCount, insertOID, binaryCursor);
+		super (statement, fields, tuples, status, updateCount, insertOID, binaryCursor);
 	}
 
 	/**

@@ -36,16 +36,6 @@ public class Jdbc1Connection extends org.postgresql.jdbc1.AbstractJdbc1Connectio
 		return metadata;
 	}
 
-	public java.sql.ResultSet getResultSet(java.sql.Statement stat, Field[] fields, Vector tuples, String status, int updateCount, long insertOID, boolean binaryCursor) throws SQLException
-	{
-		return new Jdbc1ResultSet(this, stat, fields, tuples, status, updateCount, insertOID, binaryCursor);
-	}
-
-	public java.sql.ResultSet getResultSet(java.sql.Statement stat, Field[] fields, Vector tuples, String status, int updateCount) throws SQLException
-	{
-		return new Jdbc1ResultSet(this, stat, fields, tuples, status, updateCount, 0, false);
-	}
-
 }
 
 

@@ -46,16 +46,4 @@ public class Jdbc3Connection extends org.postgresql.jdbc3.AbstractJdbc3Connectio
 		return metadata;
 	}
 
-	public java.sql.ResultSet getResultSet(Statement statement, Field[] fields, Vector tuples, String status, int updateCount, long insertOID, boolean binaryCursor) throws SQLException
-	{
-		return new Jdbc3ResultSet(this, statement, fields, tuples, status, updateCount, insertOID, binaryCursor);
-	}
-
-	public java.sql.ResultSet getResultSet(Statement statement, Field[] fields, Vector tuples, String status, int updateCount) throws SQLException
-	{
-		return new Jdbc3ResultSet(this, statement, fields, tuples, status, updateCount, 0, false);
-	}
-
 }
-
-

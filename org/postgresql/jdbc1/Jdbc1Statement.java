@@ -16,4 +16,8 @@ public class Jdbc1Statement extends org.postgresql.jdbc1.AbstractJdbc1Statement 
 		super(c);
 	}
 
+	public java.sql.ResultSet createResultSet (org.postgresql.Field[] fields, java.util.Vector tuples, String status, int updateCount, long insertOID, boolean binaryCursor) throws SQLException
+	{
+		return new Jdbc1ResultSet(this, fields, tuples, status, updateCount, insertOID, binaryCursor);
+	}
 }

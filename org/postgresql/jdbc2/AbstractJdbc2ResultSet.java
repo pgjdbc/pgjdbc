@@ -38,11 +38,10 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 	protected PreparedStatement deleteStatement = null;
 	private PreparedStatement selectStatement = null;
 
-
-
-	public AbstractJdbc2ResultSet(org.postgresql.PGConnection conn, Statement statement, Field[] fields, Vector tuples, String status, int updateCount, long insertOID, boolean binaryCursor)
+  
+	public AbstractJdbc2ResultSet(Statement statement, Field[] fields, Vector tuples, String status, int updateCount, long insertOID, boolean binaryCursor)
 	{
-		super (conn, statement, fields, tuples, status, updateCount, insertOID, binaryCursor);
+		super (statement, fields, tuples, status, updateCount, insertOID, binaryCursor);
 	}
 
 	public java.net.URL getURL(int columnIndex) throws SQLException
@@ -366,9 +365,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 
 	public int getFetchSize() throws SQLException
 	{
-		// In this implementation we return the entire result set, so
-		// here return the number of rows we have. Sub-classes can return a proper
-		// value
+		// Returning the current batch size seems the right thing to do.
 		return rows.size();
 	}
 
@@ -754,7 +751,6 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 		}
 
 		updateValue(columnIndex, theData);
-
 	}
 
 
@@ -787,7 +783,6 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 			throw new PSQLException("postgresql.updateable.ioerror" + ie);
 		}
 		updateValue(columnIndex, theData);
-
 	}
 
 
