@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!--
   Copyright (c) 2004-2005, PostgreSQL Global Development Group
-  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.15 2005/01/11 08:25:42 jurka Exp $
+  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.16 2005/01/17 07:37:32 jurka Exp $
 -->
 
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN" "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">
@@ -514,6 +514,28 @@ Connection conn = DriverManager.getConnection(url);
          with multibyte support compiled by default and the driver uses
          its character set translation facilities instead of trying to do
          it itself.
+        </para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
+       <term><varname>allowEncodingChanges</varname> = <type>boolean</type></term>
+       <listitem>
+        <para>
+	 When using the V3 protocol the driver monitors changes in certain
+	 server configuration parameters that should not be touched by
+	 end users.  The <literal>client_encoding</literal> setting is set
+	 by the driver and should not be altered.  If the driver detects
+	 a change it will abort the connection.  There is one legitimate
+	 exception to this behavior though, using the <literal>COPY</literal>
+	 command on a file residing on the server's filesystem.  The only
+	 means of specifying the encoding of this file is by altering the
+	 <literal>client_encoding</literal> setting.  The
+	 <acronym>JDBC</acronym> team considers this a failing of the
+	 <literal>COPY</literal> command and hopes to provide an alternate
+	 means of specifying the encoding in the future, but for now there
+	 is this <acronym>URL</acronym> parameter.  Enable this only if
+	 you need to override the client encoding when doing a copy.
         </para>
        </listitem>
       </varlistentry>
