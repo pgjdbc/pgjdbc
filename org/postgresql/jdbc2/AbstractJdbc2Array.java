@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Array.java,v 1.11 2004/12/20 08:37:13 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Array.java,v 1.12 2005/01/11 08:25:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -134,7 +134,8 @@ public class AbstractJdbc2Array
                 else if (!insideString && chars[i] == '{' )
                 {
                     if ( foundOpen )  // Only supports 1-D arrays for now
-                        throw new PSQLException("Multi-dimensional arrays are currently not supported.");
+                        throw new PSQLException(GT.tr("Multi-dimensional arrays are currently not supported."),
+                                                PSQLState.NOT_IMPLEMENTED);
                     foundOpen = true;
                     continue;
                 }

@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/largeobject/LargeObjectManager.java,v 1.17 2004/11/09 08:52:08 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/largeobject/LargeObjectManager.java,v 1.18 2005/01/11 08:25:47 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -18,6 +18,7 @@ import org.postgresql.fastpath.Fastpath;
 import org.postgresql.fastpath.FastpathArg;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.GT;
+import org.postgresql.util.PSQLState;
 
 /**
  * This class implements the large object interface to org.postgresql.
@@ -136,7 +137,7 @@ public class LargeObjectManager
         ResultSet res = conn.createStatement().executeQuery(sql);
 
         if (res == null)
-            throw new PSQLException(GT.tr("Failed to initialize LargeObject API"));
+            throw new PSQLException(GT.tr("Failed to initialize LargeObject API"), PSQLState.SYSTEM_ERROR);
 
         fp.addFunctions(res);
         res.close();
@@ -168,7 +169,8 @@ public class LargeObjectManager
     public LargeObject open(int oid, int mode) throws SQLException
     {
         if (conn.getAutoCommit())
-            throw new PSQLException(GT.tr("Large Objects may not be used in auto-commit mode."));
+            throw new PSQLException(GT.tr("Large Objects may not be used in auto-commit mode."),
+                                    PSQLState.NO_ACTIVE_SQL_TRANSACTION);
         return new LargeObject(fp, oid, mode);
     }
 
@@ -195,7 +197,8 @@ public class LargeObjectManager
     public int create(int mode) throws SQLException
     {
         if (conn.getAutoCommit())
-            throw new PSQLException(GT.tr("Large Objects may not be used in auto-commit mode."));
+            throw new PSQLException(GT.tr("Large Objects may not be used in auto-commit mode."),
+                                    PSQLState.NO_ACTIVE_SQL_TRANSACTION);
         FastpathArg args[] = new FastpathArg[1];
         args[0] = new FastpathArg(mode);
         return fp.getInteger("lo_creat", args);

@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/fastpath/Fastpath.java,v 1.30 2004/11/09 08:47:38 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/fastpath/Fastpath.java,v 1.31 2005/01/11 08:25:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -74,7 +74,8 @@ public class Fastpath
             return returnValue;
 
         if (returnValue.length != 4)
-            throw new PSQLException(GT.tr("Fastpath call {0} - No result was returned and we expected an integer.", new Integer(fnId)));
+            throw new PSQLException(GT.tr("Fastpath call {0} - No result was returned and we expected an integer.", new Integer(fnId)),
+                                    PSQLState.NO_DATA);
 
         return new Integer((returnValue[3] & 255) |
                            ((returnValue[2] & 255) << 8) |
@@ -120,7 +121,8 @@ public class Fastpath
     {
         Integer i = (Integer)fastpath(name, true, args);
         if (i == null)
-            throw new PSQLException(GT.tr("Fastpath call {0} - No result was returned and we expected an integer.", name));
+            throw new PSQLException(GT.tr("Fastpath call {0} - No result was returned and we expected an integer.", name),
+                                    PSQLState.NO_DATA);
         return i.intValue();
     }
 

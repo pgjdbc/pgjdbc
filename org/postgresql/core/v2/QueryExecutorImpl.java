@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/QueryExecutorImpl.java,v 1.7 2004/11/09 08:45:31 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/QueryExecutorImpl.java,v 1.8 2005/01/11 08:25:43 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -69,12 +69,14 @@ public class QueryExecutorImpl implements QueryExecutor {
                                             if (!sawBegin)
                                             {
                                                 if (!status.equals("BEGIN"))
-                                                    handleError(new SQLException(GT.tr("Expected command status BEGIN, got {0}.", status)));
+                                                    handleError(new PSQLException(GT.tr("Expected command status BEGIN, got {0}.", status),
+                                                                                  PSQLState.PROTOCOL_VIOLATION));
                                                 sawBegin = true;
                                             }
                                             else
                                             {
-                                                handleError(new SQLException(GT.tr("Unexpected command status: {0}.", status)));
+                                                handleError(new PSQLException(GT.tr("Unexpected command status: {0}.", status),
+                                                                              PSQLState.PROTOCOL_VIOLATION));
                                             }
                                         }
 
@@ -299,7 +301,8 @@ public class QueryExecutorImpl implements QueryExecutor {
                               if (!sawBegin)
                               {
                                   if (!status.equals("BEGIN"))
-                                      handleError(new SQLException(GT.tr("Expected command status BEGIN, got {0}.", status)));
+                                      handleError(new PSQLException(GT.tr("Expected command status BEGIN, got {0}.", status),
+                                                                    PSQLState.PROTOCOL_VIOLATION));
                                   sawBegin = true;
                               }
                               else
@@ -503,7 +506,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         String errorMsg = pgStream.ReceiveString().trim();
         if (Driver.logDebug)
             Driver.debug(" <=BE ErrorResponse(" + errorMsg + ")");
-        return new SQLException(errorMsg);
+        return new PSQLException(errorMsg, PSQLState.UNKNOWN_STATE);
     }
 
     private SQLWarning receiveNotification() throws IOException {

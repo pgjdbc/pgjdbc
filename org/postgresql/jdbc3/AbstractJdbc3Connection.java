@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Connection.java,v 1.14 2004/12/11 04:13:38 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Connection.java,v 1.15 2005/01/11 08:25:46 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -56,7 +56,8 @@ public abstract class AbstractJdbc3Connection extends org.postgresql.jdbc2.Abstr
             rsHoldability = holdability;
             break;
         default:
-            throw new PSQLException(GT.tr("Unknown ResultSet holdability setting: {0}.", new Integer(holdability)));
+            throw new PSQLException(GT.tr("Unknown ResultSet holdability setting: {0}.", new Integer(holdability)),
+                                    PSQLState.INVALID_PARAMETER_VALUE);
         }
     }
 
@@ -93,7 +94,8 @@ public abstract class AbstractJdbc3Connection extends org.postgresql.jdbc2.Abstr
         if (!haveMinimumServerVersion("8.0"))
             throw new PSQLException(GT.tr("Server versions prior to 8.0 do not support savepoints."), PSQLState.NOT_IMPLEMENTED);
         if (getAutoCommit())
-            throw new PSQLException(GT.tr("Cannot establish a savepoint in auto-commit mode."));
+            throw new PSQLException(GT.tr("Cannot establish a savepoint in auto-commit mode."),
+                                    PSQLState.NO_ACTIVE_SQL_TRANSACTION);
 
         PSQLSavepoint savepoint = new PSQLSavepoint(savepointId++);
 
@@ -123,7 +125,8 @@ public abstract class AbstractJdbc3Connection extends org.postgresql.jdbc2.Abstr
         if (!haveMinimumServerVersion("8.0"))
             throw new PSQLException(GT.tr("Server versions prior to 8.0 do not support savepoints."), PSQLState.NOT_IMPLEMENTED);
         if (getAutoCommit())
-            throw new PSQLException(GT.tr("Cannot establish a savepoint in auto-commit mode."));
+            throw new PSQLException(GT.tr("Cannot establish a savepoint in auto-commit mode."),
+                                    PSQLState.NO_ACTIVE_SQL_TRANSACTION);
 
         PSQLSavepoint savepoint = new PSQLSavepoint(name);
 

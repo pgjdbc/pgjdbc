@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.60 2005/01/11 08:25:46 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.61 2005/01/11 21:54:00 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -213,13 +213,15 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public java.sql.ResultSet executeQuery(String p_sql) throws SQLException
     {
         if (preparedQuery != null)
-            throw new PSQLException(GT.tr("Can''t use query methods that take a query string on a PreparedStatement."));
+            throw new PSQLException(GT.tr("Can''t use query methods that take a query string on a PreparedStatement."),
+                                    PSQLState.OBJECT_NOT_IN_STATE);
 
         if (!executeWithFlags(p_sql, 0))
             throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
 
         if (result.getNext() != null)
-            throw new PSQLException(GT.tr("Multiple ResultSets were returned by the query."));
+            throw new PSQLException(GT.tr("Multiple ResultSets were returned by the query."),
+                                    PSQLState.TOO_MANY_RESULTS);
 
         return (ResultSet)result.getResultSet();
     }
@@ -237,7 +239,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
 
         if (result.getNext() != null)
-            throw new PSQLException(GT.tr("Multiple ResultSets were returned by the query."));
+            throw new PSQLException(GT.tr("Multiple ResultSets were returned by the query."), PSQLState.TOO_MANY_RESULTS);
 
         return (ResultSet) result.getResultSet();
     }
@@ -254,10 +256,12 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public int executeUpdate(String p_sql) throws SQLException
     {
         if (preparedQuery != null)
-            throw new PSQLException(GT.tr("Can''t use query methods that take a query string on a PreparedStatement."));
+            throw new PSQLException(GT.tr("Can''t use query methods that take a query string on a PreparedStatement."),
+                                    PSQLState.OBJECT_NOT_IN_STATE);
 
         if (executeWithFlags(p_sql, QueryExecutor.QUERY_NO_RESULTS))
-            throw new PSQLException(GT.tr("A result was returned when none was expected."));
+            throw new PSQLException(GT.tr("A result was returned when none was expected."),
+                                    PSQLState.TOO_MANY_RESULTS);
 
         return getUpdateCount();
     }
@@ -274,7 +278,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public int executeUpdate() throws SQLException
     {
         if (executeWithFlags(QueryExecutor.QUERY_NO_RESULTS))
-            throw new PSQLException(GT.tr("A result was returned when none was expected."));
+            throw new PSQLException(GT.tr("A result was returned when none was expected."),
+                                    PSQLState.TOO_MANY_RESULTS);
 
         return getUpdateCount();
     }
@@ -293,7 +298,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public boolean execute(String p_sql) throws SQLException
     {
         if (preparedQuery != null)
-            throw new PSQLException(GT.tr("Can''t use query methods that take a query string on a PreparedStatement."));
+            throw new PSQLException(GT.tr("Can''t use query methods that take a query string on a PreparedStatement."),
+                                    PSQLState.OBJECT_NOT_IN_STATE);
 
         return executeWithFlags(p_sql, 0);
     }
@@ -484,7 +490,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     {
         checkClosed();
         if (max < 0)
-            throw new PSQLException(GT.tr("Maximum number of rows must be a value grater than or equal to 0."));
+            throw new PSQLException(GT.tr("Maximum number of rows must be a value grater than or equal to 0."),
+                                    PSQLState.INVALID_PARAMETER_VALUE);
         maxrows = max;
     }
 
@@ -525,7 +532,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     {
         checkClosed();
         if (seconds < 0)
-            throw new PSQLException(GT.tr("Query timeout must be a value greater than or equals to 0."));
+            throw new PSQLException(GT.tr("Query timeout must be a value greater than or equals to 0."),
+                                    PSQLState.INVALID_PARAMETER_VALUE);
         timeout = seconds;
     }
 
@@ -587,7 +595,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     {
         checkClosed();
         if (max < 0)
-            throw new PSQLException(GT.tr("The maximum field size must be a value greater than or equal to 0."));
+            throw new PSQLException(GT.tr("The maximum field size must be a value greater than or equal to 0."),
+                                    PSQLState.INVALID_PARAMETER_VALUE);
         maxfieldSize = max;
     }
 
@@ -853,7 +862,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             if (e.getTargetException() instanceof SQLException)
                 throw (SQLException) e.getTargetException();
             else
-                throw new SQLException(e.getTargetException().getMessage());
+                throw new PSQLException(e.getTargetException().getMessage(),
+                                        PSQLState.SYSTEM_ERROR);
         }catch (Exception e){
             // by default the function name is kept unchanged
             StringBuffer buf = new StringBuffer();
@@ -1246,7 +1256,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             return ;
         }
         if (length < 0)
-            throw new PSQLException(GT.tr("Invalid stream length {0}.", new Integer(length)));
+            throw new PSQLException(GT.tr("Invalid stream length {0}.", new Integer(length)),
+                                    PSQLState.INVALID_PARAMETER_VALUE);
 
 
         //Version 7.2 supports AsciiStream for all PG text types (char, varchar, text)
@@ -1370,7 +1381,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         }
 
         if (length < 0)
-            throw new PSQLException(GT.tr("Invalid stream length {0}.", new Integer(length)));
+            throw new PSQLException(GT.tr("Invalid stream length {0}.", new Integer(length)),
+                                    PSQLState.INVALID_PARAMETER_VALUE);
 
         if (connection.haveMinimumCompatibleVersion("7.2"))
         {
@@ -1970,7 +1982,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             return paramIndex;
 
         if (paramIndex == 1) // need to registerOut instead
-            throw new PSQLException (GT.tr("Cannot call setXXX(1, ..) on a CallableStatement.  This is an output that must be configured with registerOutParameter instead."));
+            throw new PSQLException (GT.tr("Cannot call setXXX(1, ..) on a CallableStatement.  This is an output that must be configured with registerOutParameter instead."),
+                                     PSQLState.INVALID_PARAMETER_VALUE);
 
         return paramIndex - 1;
     }
@@ -2272,7 +2285,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     protected void checkClosed() throws SQLException
     {
         if (isClosed)
-            throw new PSQLException(GT.tr("This statement has been closed."));
+            throw new PSQLException(GT.tr("This statement has been closed."),
+                                    PSQLState.OBJECT_NOT_IN_STATE);
     }
 
     // ** JDBC 2 Extensions **
@@ -2282,7 +2296,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         checkClosed();
 
         if (preparedQuery != null)
-            throw new PSQLException(GT.tr("Can''t use query methods that take a query string on a PreparedStatement."));
+            throw new PSQLException(GT.tr("Can''t use query methods that take a query string on a PreparedStatement."),
+                                    PSQLState.OBJECT_NOT_IN_STATE);
 
         if (batchStatements == null)
         {
@@ -2322,13 +2337,15 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         }
 
         public void handleResultRows(Query fromQuery, Field[] fields, Vector tuples, ResultCursor cursor) {
-            handleError(new PSQLException(GT.tr("A result was returned when none was expected.")));
+            handleError(new PSQLException(GT.tr("A result was returned when none was expected."),
+                                          PSQLState.TOO_MANY_RESULTS));
         }
 
         public void handleCommandStatus(String status, int updateCount, long insertOID) {
             if (resultIndex >= updateCounts.length)
             {
-                handleError(new SQLException(GT.tr("Too many update results were returned.")));
+                handleError(new PSQLException(GT.tr("Too many update results were returned."),
+                                              PSQLState.TOO_MANY_RESULTS));
                 return ;
             }
 
@@ -2467,7 +2484,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             fetchdirection = direction;
             break;
         default:
-            throw new PSQLException(GT.tr("Invalid fetch direction constant: {0}.", new Integer(direction)));
+            throw new PSQLException(GT.tr("Invalid fetch direction constant: {0}.", new Integer(direction)),
+                                    PSQLState.INVALID_PARAMETER_VALUE);
         }
     }
 
@@ -2475,7 +2493,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     {
         checkClosed();
         if (rows < 0)
-            throw new PSQLException(GT.tr("Fetch size must be a value greater to or equal to 0."));
+            throw new PSQLException(GT.tr("Fetch size must be a value greater to or equal to 0."),
+                                    PSQLState.INVALID_PARAMETER_VALUE);
         fetchSize = rows;
     }
 
@@ -2572,7 +2591,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     {
         checkClosed();
         if (length < 0)
-            throw new PSQLException(GT.tr("Invalid stream length {0}.", new Integer(length)));
+            throw new PSQLException(GT.tr("Invalid stream length {0}.", new Integer(length)),
+                                    PSQLState.INVALID_PARAMETER_VALUE);
 
         if (connection.haveMinimumCompatibleVersion("7.2"))
         {

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/PGPoolingDataSource.java,v 1.5 2005/01/11 03:28:14 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/PGPoolingDataSource.java,v 1.6 2005/01/11 08:25:44 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -16,6 +16,8 @@ import java.sql.Connection;
 import java.sql.SQLException;
 
 import org.postgresql.util.GT;
+import org.postgresql.util.PSQLState;
+import org.postgresql.util.PSQLException;
 import org.postgresql.ds.common.*;
 
 /**
@@ -405,7 +407,8 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource
         {
             if (available == null)
             {
-                throw new SQLException(GT.tr("DataSource has been closed."));
+                throw new PSQLException(GT.tr("DataSource has been closed."),
+                                        PSQLState.CONNECTION_DOES_NOT_EXIST);
             }
             while (true)
             {

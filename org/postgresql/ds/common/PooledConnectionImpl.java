@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/PooledConnectionImpl.java,v 1.7 2004/11/10 20:43:00 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/PooledConnectionImpl.java,v 1.8 2005/01/11 08:25:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -15,6 +15,8 @@ import java.util.*;
 import java.lang.reflect.*;
 import org.postgresql.PGConnection;
 import org.postgresql.util.GT;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 /**
  * PostgreSQL implementation of the PooledConnection interface.  This shouldn't
@@ -107,7 +109,8 @@ public class PooledConnectionImpl implements PooledConnection
         if (con == null)
         {
             // Before throwing the exception, let's notify the registered listeners about the error
-            final SQLException sqlException = new SQLException(GT.tr("This PooledConnection has already been closed."));
+            PSQLException sqlException = new PSQLException(GT.tr("This PooledConnection has already been closed."),
+                                                           PSQLState.CONNECTION_DOES_NOT_EXIST);
             fireConnectionFatalError(sqlException);
             throw sqlException;
         }
@@ -185,6 +188,50 @@ public class PooledConnectionImpl implements PooledConnection
         }
     }
 
+    // Classes we consider fatal.
+    private static String[] fatalClasses = {
+        "08",  // connection error
+        "53",  // insufficient resources
+
+        // nb: not just "57" as that includes query cancel which is nonfatal
+        "57P01",  // admin shutdown
+        "57P02",  // crash shutdown
+        "57P03",  // cannot connect now
+
+        "58",  // system error (backend)
+        "60",  // system error (driver)
+        "99",  // unexpected error
+        "F0",  // configuration file error (backend)
+        "XX",  // internal error (backend)
+    };
+
+    private static boolean isFatalState(String state) {
+        if (state == null)      // no info, assume fatal
+            return true;
+        if (state.length() < 2) // no class info, assume fatal
+            return true;
+
+        for (int i = 0; i < fatalClasses.length; ++i)
+            if (state.startsWith(fatalClasses[i]))
+                return true; // fatal
+
+        return false;
+    }
+
+    /**
+     * Fires a connection error event, but only if we
+     * think the exception is fatal.
+     *
+     * @param e the SQLException to consider
+     */    
+    private void fireConnectionError(SQLException e) 
+    {
+        if (!isFatalState(e.getSQLState()))
+            return;
+
+        fireConnectionFatalError(e);
+    }
+
     /**
      * Instead of declaring a class implementing Connection, which would have
      * to be updated for every JDK rev, use a dynamic proxy to handle all
@@ -248,7 +295,8 @@ public class PooledConnectionImpl implements PooledConnection
             }
             if (con == null && !method.getName().equals("close"))
             {
-                throw new SQLException(automatic ? GT.tr("Connection has been closed automatically because a new connection was opened for the same PooledConnection or the PooledConnection has been closed.") : GT.tr("Connection has been closed."));
+                throw new PSQLException(automatic ? GT.tr("Connection has been closed automatically because a new connection was opened for the same PooledConnection or the PooledConnection has been closed.") : GT.tr("Connection has been closed."),
+                                        PSQLState.CONNECTION_DOES_NOT_EXIST);
             }
             if (method.getName().equals("close"))
             {
@@ -280,24 +328,35 @@ public class PooledConnectionImpl implements PooledConnection
                 }
                 return null;
             }
-            else if (method.getName().equals("createStatement"))
-            {
-                Statement st = (Statement)method.invoke(con, args);
-                return Proxy.newProxyInstance(getClass().getClassLoader(), new Class[]{Statement.class, org.postgresql.PGStatement.class}, new StatementHandler(this, st));
-            }
-            else if (method.getName().equals("prepareCall"))
-            {
-                Statement st = (Statement)method.invoke(con, args);
-                return Proxy.newProxyInstance(getClass().getClassLoader(), new Class[]{CallableStatement.class, org.postgresql.PGStatement.class}, new StatementHandler(this, st));
-            }
-            else if (method.getName().equals("prepareStatement"))
-            {
-                Statement st = (Statement)method.invoke(con, args);
-                return Proxy.newProxyInstance(getClass().getClassLoader(), new Class[]{PreparedStatement.class, org.postgresql.PGStatement.class}, new StatementHandler(this, st));
-            }
-            else
-            {
-                return method.invoke(con, args);
+            
+            // From here on in, we invoke via reflection, catch exceptions,
+            // and check if they're fatal before rethrowing.
+
+            try {            
+                if (method.getName().equals("createStatement"))
+                {
+                    Statement st = (Statement)method.invoke(con, args);
+                    return Proxy.newProxyInstance(getClass().getClassLoader(), new Class[]{Statement.class, org.postgresql.PGStatement.class}, new StatementHandler(this, st));
+                }
+                else if (method.getName().equals("prepareCall"))
+                {
+                    Statement st = (Statement)method.invoke(con, args);
+                    return Proxy.newProxyInstance(getClass().getClassLoader(), new Class[]{CallableStatement.class, org.postgresql.PGStatement.class}, new StatementHandler(this, st));
+                }
+                else if (method.getName().equals("prepareStatement"))
+                {
+                    Statement st = (Statement)method.invoke(con, args);
+                    return Proxy.newProxyInstance(getClass().getClassLoader(), new Class[]{PreparedStatement.class, org.postgresql.PGStatement.class}, new StatementHandler(this, st));
+                }
+                else
+                {
+                    return method.invoke(con, args);
+                }
+            } catch (InvocationTargetException e) {
+                Throwable te = e.getTargetException();
+                if (te instanceof SQLException)
+                    fireConnectionError((SQLException)te); // Tell listeners about exception if it's fatal
+                throw te;
             }
         }
 
@@ -335,7 +394,7 @@ public class PooledConnectionImpl implements PooledConnection
      * The StatementHandler is required in order to return the proper
      * Connection proxy for the getConnection method.
      */
-    private static class StatementHandler implements InvocationHandler {
+    private class StatementHandler implements InvocationHandler {
         private PooledConnectionImpl.ConnectionHandler con;
         private Statement st;
 
@@ -394,22 +453,23 @@ public class PooledConnectionImpl implements PooledConnection
             }
             if (st == null || con.isClosed())
             {
-                throw new SQLException(GT.tr("Statement has been closed."));
+                throw new PSQLException(GT.tr("Statement has been closed."),
+                                        PSQLState.OBJECT_NOT_IN_STATE);
             }
-            else if (method.getName().equals("getConnection"))
+            
+            if (method.getName().equals("getConnection"))
             {
                 return con.getProxy(); // the proxied connection, not a physical connection
             }
-            else
+
+            try
             {
-                try
-                {
-                    return method.invoke(st, args);
-                }
-                catch (InvocationTargetException e)
-                {
-                    throw e.getTargetException();
-                }
+                return method.invoke(st, args);
+            } catch (InvocationTargetException e) {
+                Throwable te = e.getTargetException();
+                if (te instanceof SQLException)
+                    fireConnectionError((SQLException)te); // Tell listeners about exception if it's fatal
+                throw te;
             }
         }
     }

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/PSQLSavepoint.java,v 1.4 2004/11/09 08:50:46 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/PSQLSavepoint.java,v 1.5 2005/01/11 08:25:47 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -13,6 +13,7 @@ import java.sql.SQLException;
 import java.sql.Savepoint;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.GT;
+import org.postgresql.util.PSQLState;
 
 public class PSQLSavepoint implements Savepoint {
 
@@ -35,20 +36,24 @@ public class PSQLSavepoint implements Savepoint {
 
     public int getSavepointId() throws SQLException {
         if (!_isValid)
-            throw new PSQLException(GT.tr("Cannot reference a savepoint after it has been released."));
+            throw new PSQLException(GT.tr("Cannot reference a savepoint after it has been released."),
+                                    PSQLState.INVALID_SAVEPOINT_SPECIFICATION);
 
         if (_isNamed)
-            throw new PSQLException(GT.tr("Cannot retrieve the id of a named savepoint."));
+            throw new PSQLException(GT.tr("Cannot retrieve the id of a named savepoint."),
+                                    PSQLState.OBJECT_NOT_IN_STATE);
 
         return _id;
     }
 
     public String getSavepointName() throws SQLException {
         if (!_isValid)
-            throw new PSQLException(GT.tr("Cannot reference a savepoint after it has been released."));
+            throw new PSQLException(GT.tr("Cannot reference a savepoint after it has been released."),
+                                    PSQLState.INVALID_SAVEPOINT_SPECIFICATION);
 
         if (!_isNamed)
-            throw new PSQLException(GT.tr("Cannot retrieve the name of an unnamed savepoint."));
+            throw new PSQLException(GT.tr("Cannot retrieve the name of an unnamed savepoint."),
+                                    PSQLState.OBJECT_NOT_IN_STATE);
 
         return _name;
     }
@@ -59,7 +64,8 @@ public class PSQLSavepoint implements Savepoint {
 
     public String getPGName() throws SQLException {
         if (!_isValid)
-            throw new PSQLException(GT.tr("Cannot reference a savepoint after it has been released."));
+            throw new PSQLException(GT.tr("Cannot reference a savepoint after it has been released."),
+                                    PSQLState.INVALID_SAVEPOINT_SPECIFICATION);
 
         if (_isNamed)
         {

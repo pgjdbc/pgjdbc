@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/largeobject/LargeObject.java,v 1.15 2004/11/09 08:52:08 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/largeobject/LargeObject.java,v 1.16 2005/01/11 08:25:47 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -13,6 +13,8 @@ import java.io.InputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.SQLException;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.fastpath.FastpathArg;
 
@@ -127,7 +129,8 @@ public class LargeObject
                 }
                 catch (IOException ioe)
                 {
-                    throw new SQLException(ioe.getMessage());
+                    throw new PSQLException("Exception flushing output stream",
+                                            PSQLState.DATA_ERROR, ioe);
                 }
                 finally
                 {

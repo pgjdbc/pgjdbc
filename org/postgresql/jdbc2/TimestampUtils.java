@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.10 2004/12/22 19:30:32 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.11 2005/01/11 08:25:46 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -37,7 +37,8 @@ public class TimestampUtils {
         // java doesn't have a concept of postgres's infinity
         // so there's not much we can do here.
         if ((slen == 8 && s.equals("infinity")) || (slen == 9 && s.equals("-infinity"))) {
-            throw new PSQLException(GT.tr("Inifite value found for timestamp.  Java has no corresponding representation."));
+            throw new PSQLException(GT.tr("Infinite value found for timestamp.  Java has no corresponding representation."),
+                                    PSQLState.DATETIME_OVERFLOW);
         }
 
         // Zero out all the fields.

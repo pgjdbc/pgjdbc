@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.68 2004/12/22 23:34:14 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.69 2005/01/11 08:25:46 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -176,7 +176,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     {
         checkClosed();
         if (resultsettype == ResultSet.TYPE_FORWARD_ONLY)
-            throw new PSQLException(GT.tr("Operation requires a scrollable ResultSet, but this ResultSet is FORWARD_ONLY."));
+            throw new PSQLException(GT.tr("Operation requires a scrollable ResultSet, but this ResultSet is FORWARD_ONLY."),
+                                    PSQLState.INVALID_CURSOR_STATE);
     }
 
     public boolean absolute(int index) throws SQLException
@@ -614,7 +615,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         checkScrollable();
 
         if (onInsertRow)
-            throw new PSQLException(GT.tr("Can''t use relative move methods while on the insert row."));
+            throw new PSQLException(GT.tr("Can''t use relative move methods while on the insert row."),
+                                    PSQLState.INVALID_CURSOR_STATE);
 
         if (current_row -1 < 0)
         {
@@ -639,7 +641,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         checkScrollable();
 
         if (onInsertRow)
-            throw new PSQLException(GT.tr("Can''t use relative move methods while on the insert row."));
+            throw new PSQLException(GT.tr("Can''t use relative move methods while on the insert row."),
+                                    PSQLState.INVALID_CURSOR_STATE);
 
         //have to add 1 since absolute expects a 1-based index
         return absolute(current_row + 1 + rows);
@@ -658,7 +661,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             checkScrollable();
             break;
         default:
-            throw new PSQLException(GT.tr("Invalid fetch direction constant: {0}.", new Integer(direction)));
+            throw new PSQLException(GT.tr("Invalid fetch direction constant: {0}.", new Integer(direction)),
+                                    PSQLState.INVALID_PARAMETER_VALUE);
         }
 
         this.fetchdirection = direction;
@@ -671,7 +675,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         checkClosed();
         if (onInsertRow)
         {
-            throw new PSQLException(GT.tr("Cannot call cancelRowUpdates() when on the insert row."));
+            throw new PSQLException(GT.tr("Cannot call cancelRowUpdates() when on the insert row."),
+                                    PSQLState.INVALID_CURSOR_STATE);
         }
 
         if (doingUpdates)
@@ -690,20 +695,24 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
         if (onInsertRow)
         {
-            throw new PSQLException(GT.tr("Cannot call deleteRow() when on the insert row."));
+            throw new PSQLException(GT.tr("Cannot call deleteRow() when on the insert row."),
+                                    PSQLState.INVALID_CURSOR_STATE);
         }
 
         if (isBeforeFirst())
         {
-            throw new PSQLException(GT.tr("Currently positioned before the start of the ResultSet.  You cannot call deleteRow() here."));
+            throw new PSQLException(GT.tr("Currently positioned before the start of the ResultSet.  You cannot call deleteRow() here."),
+                                    PSQLState.INVALID_CURSOR_STATE);
         }
         if (isAfterLast())
         {
-            throw new PSQLException(GT.tr("Currently positioned after the end of the ResultSet.  You cannot call deleteRow() here."));
+            throw new PSQLException(GT.tr("Currently positioned after the end of the ResultSet.  You cannot call deleteRow() here."),
+                                    PSQLState.INVALID_CURSOR_STATE);
         }
         if (rows.size() == 0)
         {
-            throw new PSQLException(GT.tr("There are no rows in this ResultSet."));
+            throw new PSQLException(GT.tr("There are no rows in this ResultSet."),
+                                    PSQLState.INVALID_CURSOR_STATE);
         }
 
 
@@ -750,11 +759,12 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
         if (!onInsertRow)
         {
-            throw new PSQLException(GT.tr("Not on the insert row."));
+            throw new PSQLException(GT.tr("Not on the insert row."), PSQLState.INVALID_CURSOR_STATE);
         }
         else if (updateValues.size() == 0)
         {
-            throw new PSQLException(GT.tr("You must specify at least one column value to insert a row."));
+            throw new PSQLException(GT.tr("You must specify at least one column value to insert a row."),
+                                    PSQLState.INVALID_PARAMETER_VALUE);
         }
         else
         {
@@ -1139,7 +1149,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     {
         checkUpdateable();
         if (onInsertRow)
-            throw new PSQLException(GT.tr("Can''t refresh the insert row."));
+            throw new PSQLException(GT.tr("Can''t refresh the insert row."),
+                                    PSQLState.INVALID_CURSOR_STATE);
 
         if (isBeforeFirst() || isAfterLast() || rows.size() == 0)
             return ;
@@ -1210,12 +1221,14 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
         if (onInsertRow)
         {
-            throw new PSQLException(GT.tr("Cannot call updateRow() when on the insert row."));
+            throw new PSQLException(GT.tr("Cannot call updateRow() when on the insert row."),
+                                    PSQLState.INVALID_CURSOR_STATE);
         }
 
         if (isBeforeFirst() || isAfterLast() || rows.size() == 0)
         {
-            throw new PSQLException(GT.tr("Cannot update the ResultSet because it is either before the start or after the end of the results."));
+            throw new PSQLException(GT.tr("Cannot update the ResultSet because it is either before the start or after the end of the results."),
+                                    PSQLState.INVALID_CURSOR_STATE);
         }
 
         if (doingUpdates)
@@ -1570,7 +1583,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
         if ( i < 1 )
         {
-            throw new SQLException(GT.tr("No primary key found for table {0}.", tableName));
+            throw new PSQLException(GT.tr("No primary key found for table {0}.", tableName),
+                                    PSQLState.DATA_ERROR);
         }
 
         updateable = primaryKeys.size() > 0;
@@ -1728,7 +1742,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         }
 
         public void handleCommandStatus(String status, int updateCount, long insertOID) {
-            handleError(new SQLException(GT.tr("Unexpected command status: {0}.", status)));
+            handleError(new PSQLException(GT.tr("Unexpected command status: {0}.", status),
+                                          PSQLState.PROTOCOL_VIOLATION));
         }
 
         public void handleWarning(SQLWarning warning) {
@@ -1775,7 +1790,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     {
         checkClosed();
         if (rows < 0)
-            throw new PSQLException(GT.tr("Fetch size must be a value greater to or equal to 0."));
+            throw new PSQLException(GT.tr("Fetch size must be a value greater to or equal to 0."),
+                                    PSQLState.INVALID_PARAMETER_VALUE);
         fetchSize = rows;
     }
 
@@ -1790,7 +1806,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         checkClosed();
 
         if (onInsertRow)
-            throw new PSQLException(GT.tr("Can''t use relative move methods while on the insert row."));
+            throw new PSQLException(GT.tr("Can''t use relative move methods while on the insert row."),
+                                    PSQLState.INVALID_CURSOR_STATE);
 
         if (current_row + 1 >= rows.size())
         {
@@ -2344,7 +2361,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             return index.intValue();
         }
 
-        throw new PSQLException (GT.tr("The column name {0} was not found in this ResultSet.", columnName));
+        throw new PSQLException (GT.tr("The column name {0} was not found in this ResultSet.", columnName),
+                                 PSQLState.UNDEFINED_COLUMN);
     }
 
     /*
@@ -2407,7 +2425,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         checkClosed();
 
         if (!isUpdateable())
-            throw new PSQLException(GT.tr("ResultSet is not updateable.  The query that generated this result set must select only one table, and must select all primary keys from that table. See the JDBC 2.1 API Specification, section 5.6 for more details."));
+            throw new PSQLException(GT.tr("ResultSet is not updateable.  The query that generated this result set must select only one table, and must select all primary keys from that table. See the JDBC 2.1 API Specification, section 5.6 for more details."),
+                                    PSQLState.INVALID_CURSOR_STATE);
 
         if (updateValues == null)
         {
@@ -2425,7 +2444,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     {
         checkClosed();
         if ( this_row == null )
-            throw new PSQLException(GT.tr("ResultSet not positioned properly, perhaps you need to call next."));
+            throw new PSQLException(GT.tr("ResultSet not positioned properly, perhaps you need to call next."),
+                                    PSQLState.INVALID_CURSOR_STATE);
         if ( column < 1 || column > fields.length )
             throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(column), new Integer(fields.length)}), PSQLState.INVALID_PARAMETER_VALUE );
     }
@@ -2646,7 +2666,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
         if (!onInsertRow && (isBeforeFirst() || isAfterLast() || rows.size() == 0))
         {
-            throw new PSQLException(GT.tr("Cannot update the ResultSet because it is either before the start or after the end of the results."));
+            throw new PSQLException(GT.tr("Cannot update the ResultSet because it is either before the start or after the end of the results."),
+                                    PSQLState.INVALID_CURSOR_STATE);
         }
         doingUpdates = !onInsertRow;
         if (value == null)

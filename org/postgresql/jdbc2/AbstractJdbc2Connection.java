@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.23 2004/11/09 08:48:29 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.24 2005/01/11 08:25:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -209,7 +209,8 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     public void execSQLUpdate(String s) throws SQLException {
         BaseStatement stmt = (BaseStatement) createStatement();
         if (stmt.executeWithFlags(s, QueryExecutor.QUERY_NO_METADATA | QueryExecutor.QUERY_NO_RESULTS | QueryExecutor.QUERY_SUPPRESS_BEGIN))
-            throw new PSQLException(GT.tr("A result was returned when none was expected."));
+            throw new PSQLException(GT.tr("A result was returned when none was expected."),
+                                    PSQLState.TOO_MANY_RESULTS);
 
         // Transfer warnings to the connection, since the user never
         // has a chance to see the statement itself.
@@ -553,7 +554,8 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     public void setReadOnly(boolean readOnly) throws SQLException
     {
         if (protoConnection.getTransactionState() != ProtocolConnection.TRANSACTION_IDLE)
-            throw new PSQLException(GT.tr("Cannot change transaction read-only property in the middle of a transaction."));
+            throw new PSQLException(GT.tr("Cannot change transaction read-only property in the middle of a transaction."),
+                                    PSQLState.ACTIVE_SQL_TRANSACTION);
 
         if (haveMinimumServerVersion("7.4") && readOnly != this.readOnly)
         {
@@ -728,11 +730,12 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     public void setTransactionIsolation(int level) throws SQLException
     {
         if (protoConnection.getTransactionState() != ProtocolConnection.TRANSACTION_IDLE)
-            throw new PSQLException(GT.tr("Cannot change transaction isolation level in the middle of a transaction."));
+            throw new PSQLException(GT.tr("Cannot change transaction isolation level in the middle of a transaction."),
+                                    PSQLState.ACTIVE_SQL_TRANSACTION);
 
         String isolationLevelName = getIsolationLevelName(level);
         if (isolationLevelName == null)
-            throw new PSQLException(GT.tr("Transaction isolation level {0} not supported.", new Integer(level)), PSQLState.TRANSACTION_STATE_INVALID);
+            throw new PSQLException(GT.tr("Transaction isolation level {0} not supported.", new Integer(level)), PSQLState.NOT_IMPLEMENTED);
 
         String isolationLevelSQL = "SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL " + isolationLevelName;
         execSQLUpdate(isolationLevelSQL); // nb: no BEGIN triggered

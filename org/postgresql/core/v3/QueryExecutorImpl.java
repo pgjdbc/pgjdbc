@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.17 2005/01/11 08:25:44 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.18 2005/01/12 10:25:51 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -363,7 +363,8 @@ public class QueryExecutorImpl implements QueryExecutor {
                        {
                            sawBegin = true;
                            if (!status.equals("BEGIN"))
-                               handleError(new SQLException(GT.tr("Expected command status BEGIN, got {0}.", status)));
+                               handleError(new PSQLException(GT.tr("Expected command status BEGIN, got {0}.", status),
+                                                             PSQLState.PROTOCOL_VIOLATION));
                        }
                        else
                        {
@@ -408,12 +409,14 @@ public class QueryExecutorImpl implements QueryExecutor {
                                             if (!sawBegin)
                                             {
                                                 if (!status.equals("BEGIN"))
-                                                    handleError(new SQLException(GT.tr("Expected command status BEGIN, got {0}.", status)));
+                                                    handleError(new PSQLException(GT.tr("Expected command status BEGIN, got {0}.", status),
+                                                                                  PSQLState.PROTOCOL_VIOLATION));
                                                 sawBegin = true;
                                             }
                                             else
                                             {
-                                                handleError(new SQLException(GT.tr("Unexpected command status: {0}.", status)));
+                                                handleError(new PSQLException(GT.tr("Unexpected command status: {0}.", status),
+                                                                              PSQLState.PROTOCOL_VIOLATION));
                                             }
                                         }
 
