@@ -36,6 +36,7 @@ public class Jdbc2TestSuite extends TestSuite
 		// ResultSet
 		suite.addTestSuite(ResultSetTest.class);
 		suite.addTestSuite(ResultSetMetaDataTest.class);
+		suite.addTestSuite(ArrayTest.class);
 
 		// Time, Date, Timestamp
 		suite.addTestSuite(DateTest.class);

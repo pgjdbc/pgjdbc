@@ -151,7 +151,7 @@ public class Array implements java.sql.Array
 			case Types.NUMERIC:
 				retVal = new BigDecimal[ count ];
 				for ( ; count > 0; count-- )
-					((BigDecimal[])retVal)[i++] = AbstractJdbc2ResultSet.toBigDecimal( arrayContents[(int)index++], 0 );
+					((BigDecimal[])retVal)[i++] = AbstractJdbc2ResultSet.toBigDecimal( arrayContents[(int)index++], -1 );
 				break;
 			case Types.REAL:
 				retVal = new float[ count ];
@@ -350,7 +350,7 @@ public class Array implements java.sql.Array
 			default:
 				throw org.postgresql.Driver.notImplemented();
 		}
-		BaseStatement stat = (BaseStatement) conn.createStatement();
+		BaseStatement stat = (BaseStatement) conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 		return (ResultSet) stat.createDriverResultSet(fields, rows);
 	}
 
