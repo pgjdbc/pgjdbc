@@ -978,7 +978,7 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 				"bool",
 				"bit",
 				"date",
-				"time",
+				"time", "timetz",
 				"abstime", "timestamp", "timestamptz"
 			};
 
@@ -1003,7 +1003,7 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 		Types.BIT,
 		Types.BIT,
 		Types.DATE,
-		Types.TIME,
+		Types.TIME, Types.TIME,
 		Types.TIMESTAMP, Types.TIMESTAMP, Types.TIMESTAMP
 	};
 

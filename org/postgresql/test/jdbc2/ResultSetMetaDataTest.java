@@ -21,17 +21,24 @@ public class ResultSetMetaDataTest extends TestCase
 	{
 		conn = TestUtil.openDB();
 		TestUtil.createTable(conn, "rsmd1", "a int primary key, b text, c decimal(10,2)");
+
 		stmt = conn.createStatement();
 		rs = stmt.executeQuery("SELECT a,b,c,a+c as total,oid FROM rsmd1");
 		rsmd = rs.getMetaData();
+		
+
+		TestUtil.createTable(conn, "timetest", "tm time(3), tmtz timetz, ts timestamp without time zone, tstz timestamp(6) with time zone");
+		Statement stmt2 = conn.createStatement();
+		stmt2.close();
 	}
 
 	protected void tearDown() throws Exception
 	{
 		TestUtil.dropTable(conn, "rsmd1");
-		TestUtil.closeDB(conn);
+		TestUtil.dropTable(conn, "timetest");
 		rs.close();
 		stmt.close();
+		TestUtil.closeDB(conn);
 		rsmd = null;
 		rs = null;
 		stmt = null;
@@ -104,6 +111,28 @@ public class ResultSetMetaDataTest extends TestCase
 		assertEquals(resultSetMetaData.getColumnCount(), 1);
 		assertEquals(resultSetMetaData.getColumnName(1), "TABLE_TYPE");
 		resultSet.close();
+	}
+
+	public void testTimestampInfo() throws SQLException {
+		Statement stmt2 = conn.createStatement();
+		ResultSet rs2 = stmt2.executeQuery("SELECT tm, tmtz, ts, tstz FROM timetest");
+		ResultSetMetaData rsmd2 = rs2.getMetaData();
+
+		// For reference:
+		// TestUtil.createTable(conn, "timetest", "tm time(3), tmtz timetz, ts timestamp without time zone, tstz timestamp(6) with time zone");
+
+		assertEquals(3, rsmd2.getScale(1));
+		assertEquals(6, rsmd2.getScale(2));
+		assertEquals(6, rsmd2.getScale(3));
+		assertEquals(6, rsmd2.getScale(4));
+
+		assertEquals(13, rsmd2.getColumnDisplaySize(1));
+		assertEquals(21, rsmd2.getColumnDisplaySize(2));
+		assertEquals(26, rsmd2.getColumnDisplaySize(3));
+		assertEquals(32, rsmd2.getColumnDisplaySize(4));
+
+		rs2.close();
+		stmt2.close();
 	}
 
 }

@@ -200,12 +200,44 @@ public abstract class AbstractJdbc1ResultSetMetaData
 			return 1;
 		if (type_name.equals( "bool" ))
 			return 1;
+
+		int secondSize;
+		switch(typmod) {
+			case 0:
+				secondSize = 0;
+				break;
+			case -1:
+				// six digits plus the decimal point
+				secondSize = 7;
+				break;
+			default:
+				// with an odd scale an even number of digits
+				// are always show so timestamp(1) will print
+				// two fractional digits.
+				secondSize = typmod + (typmod%2) + 1;
+				break;
+		}
+
 		if (type_name.equals( "date" ))
-			return 14; // "01/01/4713 BC" - "31/12/32767 AD"
+			return 13; // "01/01/4713 BC" - "31/12/32767"
+
+		// If we knew the timezone we could avoid having to possibly
+		// account for fractional hour offsets (which adds three chars).
+		//
+		// Also the range of timestamp types is not exactly clear.
+		// 4 digits is the common case for a year, but there are
+		// version/compilation dependencies on the exact date ranges, 
+		// (notably --enable-integer-datetimes), but for now we'll
+		// just ignore them and assume that a year is four digits.
+		//
 		if (type_name.equals( "time" ))
-			return 8;  // 00:00:00-23:59:59
+			return 8 + secondSize;  // 00:00:00 + seconds
+		if (type_name.equals( "timetz" ))
+			return 8 + secondSize + 6; // 00:00.00 + .000000 + -00:00
 		if (type_name.equals( "timestamp" ))
-			return 22; // hhmmm ... the output looks like this: 1999-08-03 22:22:08+02
+			return 19 + secondSize;	// 0000-00-00 00:00:00 + .000000;
+		if (type_name.equals( "timestamptz" ))
+			return 19 + secondSize + 6;	// 0000-00-00 00:00:00 + .000000 + -00:00;
 
 		// variable length fields
 		typmod -= 4;
@@ -321,10 +353,15 @@ public abstract class AbstractJdbc1ResultSetMetaData
 				return 0;
 			case Types.NUMERIC:
 				Field f = getField(column);
-				if (f != null)
+				if (f != null) {
+					// no specified precision or scale
+					if (f.getMod() == -1) {
+						return 1000;
+					}
 					return ((0xFFFF0000)&f.getMod()) >> 16;
-				else
+				} else {
 					return 0;
+				}
 			default:
 				return 0;
 		}
@@ -358,10 +395,27 @@ public abstract class AbstractJdbc1ResultSetMetaData
 				return 0;
 			case Types.NUMERIC:
 				Field f = getField(column);
-				if (f != null)
+				if (f != null) {
+					// no specified precision or scale
+					if (f.getMod() == -1) {
+						return 1000;
+					}
 					return (((0x0000FFFF)&f.getMod()) - 4);
-				else
+				} else {
 					return 0;
+				}
+			case Types.TIME:
+			case Types.TIMESTAMP:
+				int typmod = -1;
+
+				Field fld = getField(column);
+				if (fld != null)
+					typmod = fld.getMod();
+
+				if (typmod == -1)
+					return 6;
+
+				return typmod;
 			default:
 				return 0;
 		}
@@ -512,7 +566,7 @@ public abstract class AbstractJdbc1ResultSetMetaData
 	 * @return the Field description
 	 * @exception SQLException if a database access error occurs
 	 */
-	private Field getField(int columnIndex) throws SQLException
+	protected Field getField(int columnIndex) throws SQLException
 	{
 		if (columnIndex < 1 || columnIndex > fields.length)
 			throw new PSQLException("postgresql.res.colrange", PSQLState.INVALID_PARAMETER_VALUE);
