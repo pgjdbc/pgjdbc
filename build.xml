@@ -8,7 +8,7 @@
 
   This file now requires Ant 1.4.1.  2002-04-18
 
-  $PostgreSQL: pgjdbc/build.xml,v 1.59 2005/01/11 08:25:42 jurka Exp $
+  $PostgreSQL: pgjdbc/build.xml,v 1.60 2005/01/15 05:59:42 jurka Exp $
 
 -->
 
@@ -389,6 +389,8 @@
         <include name="fastpath/*.java" />
         <include name="PG*.java" />
         <include name="util/PGobject.java" />
+	<include name="ssl/WrappedFactory.java" if="ssl" />
+	<include name="ssl/NonValidatingFactory.java" if="ssl" />
         <include name="ds/PG*.java" if="datasource" />
 	<include name="ds/common/BaseDataSource.java" if="datasource" />
       </fileset>

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ssl/WrappedFactory.java,v 1.3 2004/11/09 08:53:04 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ssl/WrappedFactory.java,v 1.4 2005/01/11 08:25:47 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -15,6 +15,11 @@ import java.net.InetAddress;
 
 import javax.net.ssl.SSLSocketFactory;
 
+/**
+ * Provide a wrapper to a real SSLSocketFactory delegating all calls
+ * to the contained instance.  A subclass needs only provide a
+ * constructor for the wrapped SSLSocketFactory.
+ */
 public abstract class WrappedFactory extends SSLSocketFactory {
 
     protected SSLSocketFactory _factory;

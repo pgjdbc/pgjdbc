@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ssl/NonValidatingFactory.java,v 1.3 2004/11/09 08:53:00 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ssl/NonValidatingFactory.java,v 1.4 2005/01/11 08:25:47 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -16,8 +16,20 @@ import javax.net.ssl.X509TrustManager;
 import java.security.cert.X509Certificate;
 import java.security.GeneralSecurityException;
 
+/**
+ * Provide a SSLSocketFactory that allows SSL connections to be
+ * made without validating the server's certificate.  This is more
+ * convenient for some applications, but is less secure as it allows 
+ * "man in the middle" attacks.
+ */
 public class NonValidatingFactory extends WrappedFactory {
 
+    /**
+     * We provide a constructor that takes an unused argument solely
+     * because the ssl calling code will look for this constructor
+     * first and then fall back to the no argument constructor, so
+     * we avoid an exception and additional reflection lookups.
+     */
     public NonValidatingFactory(String arg) throws GeneralSecurityException {
         SSLContext ctx = SSLContext.getInstance("TLS"); // or "SSL" ?
 
