@@ -1,7 +1,8 @@
 #!/bin/sh
 
+ant clean
 find . -name '*.java' -o -name '*.java.in' > translation.filelist
-xgettext -kGT.tr -f translation.filelist -o org/postgresql/translation/messages.pot
+xgettext -k -kGT.tr -F -f translation.filelist -o org/postgresql/translation/messages.pot
 rm translation.filelist
 
 for i in org/postgresql/translation/*.po
