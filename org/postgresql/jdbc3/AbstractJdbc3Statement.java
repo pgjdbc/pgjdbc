@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Statement.java,v 1.14 2004/12/11 04:13:39 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Statement.java,v 1.15 2005/01/11 08:25:46 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -16,6 +16,7 @@ import java.util.Vector;
 
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
 import org.postgresql.util.GT;
@@ -363,7 +364,16 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public ParameterMetaData getParameterMetaData() throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        int flags = QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_DESCRIBE_ONLY | QueryExecutor.QUERY_SUPPRESS_BEGIN;
+        StatementResultHandler handler = new StatementResultHandler();
+        connection.getQueryExecutor().execute(preparedQuery, preparedParameters, handler, 0, 0, flags);
+
+        int oids[] = preparedParameters.getTypeOIDs();
+        if (oids != null)
+            return new PSQLParameterMetaData(connection, oids);
+
+        return null;
+
     }
 
     /**

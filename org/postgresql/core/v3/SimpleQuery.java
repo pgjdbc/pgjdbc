@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleQuery.java,v 1.6 2005/01/27 20:59:02 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleQuery.java,v 1.7 2005/01/27 22:50:14 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -70,9 +70,12 @@ class SimpleQuery implements V3Query {
         return fragments;
     }
 
-    void setStatementName(String statementName, int[] paramTypes) {
+    void setStatementName(String statementName) {
         this.statementName = statementName;
         this.encodedStatementName = Utils.encodeUTF8(statementName);
+    }
+
+    void setStatementTypes(int[] paramTypes) {
         this.preparedTypes = paramTypes;
     }
 

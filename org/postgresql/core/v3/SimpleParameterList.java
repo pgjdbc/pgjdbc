@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleParameterList.java,v 1.6 2005/01/11 08:25:44 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleParameterList.java,v 1.7 2005/01/27 22:50:14 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -41,6 +41,13 @@ class SimpleParameterList implements V3ParameterList {
 
         encoded[index] = null;
         paramValues[index] = value;
+
+        // If we are setting something to null, don't overwrite our existing type
+        // for it.  We don't need the correct type info to send NULL and we
+        // don't want to overwrite and require a reparse.
+        if (oid == Oid.INVALID && paramTypes[index] != Oid.INVALID)
+            return;
+
         paramTypes[index] = oid;
     }
 
@@ -111,6 +118,10 @@ class SimpleParameterList implements V3ParameterList {
         pgStream.SendStream(wrapper.getStream(), wrapper.getLength());
     }
 
+    public int[] getTypeOIDs() {
+        return paramTypes;
+    }
+
     //
     // Package-private V3 accessors
     //
@@ -119,8 +130,21 @@ class SimpleParameterList implements V3ParameterList {
         return paramTypes[index -1];
     }
 
-    int[] getTypeOIDs() {
-        return paramTypes;
+    boolean hasUnresolvedTypes() {
+        for (int i=0; i<paramTypes.length; i++) {
+            if (paramTypes[i] == Oid.INVALID)
+                return true;
+        }
+        return false;
+    }
+
+    void setResolvedType(int index, int oid) {
+        // only allow overwriting an unknown value
+        if (paramTypes[index-1] == Oid.INVALID) {
+            paramTypes[index-1] = oid;
+        } else if (paramTypes[index-1] != oid) {
+            throw new IllegalArgumentException("Can't change resolved type for param: " + index + " from " + paramTypes[index] + " to " + oid);
+        }
     }
 
     boolean isNull(int index) {

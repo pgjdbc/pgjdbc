@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ResultSetMetaDataTest.java,v 1.9 2005/01/05 00:53:08 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ResultSetMetaDataTest.java,v 1.10 2005/01/11 08:25:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -18,10 +18,6 @@ public class ResultSetMetaDataTest extends TestCase
 {
 
     private Connection conn;
-    private Statement stmt;
-    private ResultSet rs;
-    private ResultSetMetaData rsmd;
-    private PGResultSetMetaData pgrsmd;
 
     public ResultSetMetaDataTest(String name)
     {
@@ -32,13 +28,6 @@ public class ResultSetMetaDataTest extends TestCase
     {
         conn = TestUtil.openDB();
         TestUtil.createTable(conn, "rsmd1", "a int primary key, b text, c decimal(10,2)", true);
-
-        stmt = conn.createStatement();
-        rs = stmt.executeQuery("SELECT a,b,c,a+c as total,oid,b as d FROM rsmd1");
-        rsmd = rs.getMetaData();
-        pgrsmd = (PGResultSetMetaData)rsmd;
-
-
         TestUtil.createTable(conn, "timetest", "tm time(3), tmtz timetz, ts timestamp without time zone, tstz timestamp(6) with time zone");
 
         TestUtil.dropSequence( conn, "serialtest_a_seq");
@@ -53,25 +42,34 @@ public class ResultSetMetaDataTest extends TestCase
         TestUtil.dropTable(conn, "serialtest");
         TestUtil.dropSequence( conn, "serialtest_a_seq");
         TestUtil.dropSequence( conn, "serialtest_b_seq");
+        TestUtil.closeDB(conn);
+    }
+
+    public void testStandardResultSet() throws SQLException {
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT a,b,c,a+c as total,oid,b as d FROM rsmd1");
+        runStandardTests(rs.getMetaData());
         rs.close();
         stmt.close();
-        TestUtil.closeDB(conn);
-        rsmd = null;
-        rs = null;
-        stmt = null;
-        conn = null;
     }
 
-    public void testGetColumnCount() throws SQLException {
+    public void testPreparedResultSet() throws SQLException {
+        if (!TestUtil.haveMinimumServerVersion(conn, "7.4"))
+            return;
+
+        PreparedStatement pstmt = conn.prepareStatement("SELECT a,b,c,a+c as total,oid,b as d FROM rsmd1 WHERE b = ?");
+        runStandardTests(pstmt.getMetaData());
+        pstmt.close();
+    }
+
+    private void runStandardTests(ResultSetMetaData rsmd) throws SQLException {
+        PGResultSetMetaData pgrsmd = (PGResultSetMetaData)rsmd;
+
         assertEquals(6, rsmd.getColumnCount());
-    }
 
-    public void testGetColumnLabel() throws SQLException {
         assertEquals("a", rsmd.getColumnLabel(1));
         assertEquals("total", rsmd.getColumnLabel(4));
-    }
 
-    public void testGetColumnName() throws SQLException {
         assertEquals("a", rsmd.getColumnName(1));
         assertEquals("oid", rsmd.getColumnName(5));
         if (TestUtil.haveMinimumServerVersion(conn, "7.4"))
@@ -79,27 +77,17 @@ public class ResultSetMetaDataTest extends TestCase
             assertEquals("", pgrsmd.getBaseColumnName(4));
             assertEquals("b", pgrsmd.getBaseColumnName(6));
         }
-    }
 
-    public void testGetColumnType() throws SQLException {
         assertEquals(Types.INTEGER, rsmd.getColumnType(1));
         assertEquals(Types.VARCHAR, rsmd.getColumnType(2));
-    }
 
-    public void testGetColumnTypeName() throws SQLException {
         assertEquals("int4", rsmd.getColumnTypeName(1));
         assertEquals("text", rsmd.getColumnTypeName(2));
-    }
 
-    public void testGetPrecision() throws SQLException {
         assertEquals(10, rsmd.getPrecision(3));
-    }
 
-    public void testGetScale() throws SQLException {
         assertEquals(2, rsmd.getScale(3));
-    }
 
-    public void testGetSchemaName() throws SQLException {
         assertEquals("", rsmd.getSchemaName(1));
         assertEquals("", rsmd.getSchemaName(4));
         if (TestUtil.haveMinimumServerVersion(conn, "7.4"))
@@ -107,9 +95,7 @@ public class ResultSetMetaDataTest extends TestCase
             assertEquals("public", pgrsmd.getBaseSchemaName(1));
             assertEquals("", pgrsmd.getBaseSchemaName(4));
         }
-    }
 
-    public void testGetTableName() throws SQLException {
         assertEquals("", rsmd.getTableName(1));
         assertEquals("", rsmd.getTableName(4));
         if (TestUtil.haveMinimumServerVersion(conn, "7.4"))
@@ -117,9 +103,7 @@ public class ResultSetMetaDataTest extends TestCase
             assertEquals("rsmd1", pgrsmd.getBaseTableName(1));
             assertEquals("", pgrsmd.getBaseTableName(4));
         }
-    }
 
-    public void testIsNullable() throws SQLException {
         if (TestUtil.haveMinimumServerVersion(conn, "7.4"))
         {
             assertEquals(ResultSetMetaData.columnNoNulls, rsmd.isNullable(1));
@@ -132,6 +116,25 @@ public class ResultSetMetaDataTest extends TestCase
         }
     }
 
+    // verify that a prepared update statement returns no metadata and doesn't execute.
+    public void testPreparedUpdate() throws SQLException {
+        PreparedStatement pstmt = conn.prepareStatement("INSERT INTO rsmd1(a,b) VALUES(?,?)");
+        pstmt.setInt(1,1);
+        pstmt.setString(2,"hello");
+        ResultSetMetaData rsmd = pstmt.getMetaData();
+        assertNull(rsmd);
+        pstmt.close();
+
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM rsmd1");
+        assertTrue(rs.next());
+        assertEquals(0, rs.getInt(1));
+        rs.close();
+        stmt.close();
+    }
+
+    
+
     public void testDatabaseMetaDataNames() throws SQLException {
         DatabaseMetaData databaseMetaData = conn.getMetaData();
         ResultSet resultSet = databaseMetaData.getTableTypes();
@@ -142,41 +145,41 @@ public class ResultSetMetaDataTest extends TestCase
     }
 
     public void testTimestampInfo() throws SQLException {
-        Statement stmt2 = conn.createStatement();
-        ResultSet rs2 = stmt2.executeQuery("SELECT tm, tmtz, ts, tstz FROM timetest");
-        ResultSetMetaData rsmd2 = rs2.getMetaData();
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT tm, tmtz, ts, tstz FROM timetest");
+        ResultSetMetaData rsmd = rs.getMetaData();
 
         // For reference:
         // TestUtil.createTable(conn, "timetest", "tm time(3), tmtz timetz, ts timestamp without time zone, tstz timestamp(6) with time zone");
 
-        assertEquals(3, rsmd2.getScale(1));
-        assertEquals(6, rsmd2.getScale(2));
-        assertEquals(6, rsmd2.getScale(3));
-        assertEquals(6, rsmd2.getScale(4));
+        assertEquals(3, rsmd.getScale(1));
+        assertEquals(6, rsmd.getScale(2));
+        assertEquals(6, rsmd.getScale(3));
+        assertEquals(6, rsmd.getScale(4));
 
-        assertEquals(13, rsmd2.getColumnDisplaySize(1));
-        assertEquals(21, rsmd2.getColumnDisplaySize(2));
-        assertEquals(26, rsmd2.getColumnDisplaySize(3));
-        assertEquals(32, rsmd2.getColumnDisplaySize(4));
+        assertEquals(13, rsmd.getColumnDisplaySize(1));
+        assertEquals(21, rsmd.getColumnDisplaySize(2));
+        assertEquals(26, rsmd.getColumnDisplaySize(3));
+        assertEquals(32, rsmd.getColumnDisplaySize(4));
 
-        rs2.close();
-        stmt2.close();
+        rs.close();
+        stmt.close();
     }
 
     public void testIsAutoIncrement() throws SQLException {
-        Statement stmt2 = conn.createStatement();
-        ResultSet rs2 = stmt2.executeQuery("SELECT c,b,a FROM serialtest");
-        ResultSetMetaData rsmd2 = rs2.getMetaData();
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT c,b,a FROM serialtest");
+        ResultSetMetaData rsmd = rs.getMetaData();
 
-        assertTrue(!rsmd2.isAutoIncrement(1));
+        assertTrue(!rsmd.isAutoIncrement(1));
         if (TestUtil.haveMinimumServerVersion(conn, "7.4"))
         {
-            assertTrue(rsmd2.isAutoIncrement(2));
-            assertTrue(rsmd2.isAutoIncrement(3));
+            assertTrue(rsmd.isAutoIncrement(2));
+            assertTrue(rsmd.isAutoIncrement(3));
         }
 
-        rs2.close();
-        stmt2.close();
+        rs.close();
+        stmt.close();
     }
 
 }

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/PreparedStatementTest.java,v 1.8 2004/11/09 08:54:47 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/PreparedStatementTest.java,v 1.9 2005/01/11 08:25:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -229,35 +229,17 @@ public class PreparedStatementTest extends TestCase
         pstmt.setObject(1, dummy, Types.OTHER);
         pstmt.executeUpdate();
 
-        // not valid: setObject() with no type info
-        try
-        {
-            pstmt.setObject(1, null);
-            fail("Expected an exception on setObject(1,null)");
-        }
-        catch (SQLException e)
-        {
-        }
+        // setObject() with no type info
+        pstmt.setObject(1, null);
+        pstmt.executeUpdate();
 
-        // not valid: setObject() with insufficient type info
-        try
-        {
-            pstmt.setObject(1, null, Types.OTHER);
-            fail("Expected an exception on setObject(1,null,Types.OTHER)");
-        }
-        catch (SQLException e)
-        {
-        }
+        // setObject() with insufficient type info
+        pstmt.setObject(1, null, Types.OTHER);
+        pstmt.executeUpdate();
 
-        // not valid: setNull() with insufficient type info
-        try
-        {
-            pstmt.setNull(1, Types.OTHER);
-            fail("Expected an exception on setNull(1,Types.OTHER)");
-        }
-        catch (SQLException e)
-        {
-        }
+        // setNull() with insufficient type info
+        pstmt.setNull(1, Types.OTHER);
+        pstmt.executeUpdate();
 
         pstmt.close();
     }

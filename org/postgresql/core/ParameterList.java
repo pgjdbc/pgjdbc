@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/ParameterList.java,v 1.4 2004/11/09 08:44:40 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/ParameterList.java,v 1.5 2005/01/11 08:25:43 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -35,6 +35,13 @@ public interface ParameterList {
      * @return the number of parameters in this list.
      */
     int getParameterCount();
+
+
+    /**
+     * Return the oids of the parameters in this list.  May be null for
+     * a ParameterList that does not support typing of parameters.
+     */
+    public int[] getTypeOIDs();
 
     /**
      * Binds an integer value to a parameter. The type of the parameter is

@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/CompositeParameterList.java,v 1.5 2004/11/09 08:45:54 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/CompositeParameterList.java,v 1.6 2005/01/11 08:25:44 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -45,6 +45,15 @@ class CompositeParameterList implements V3ParameterList {
 
     public int getParameterCount() {
         return total;
+    }
+
+    public int[] getTypeOIDs() {
+        int oids[] = new int[total];
+        for (int i=0; i<offsets.length; i++) {
+            int subOids[] = subparams[i].getTypeOIDs();
+            System.arraycopy(subOids, 0, oids, offsets[i], subOids.length);
+        }
+        return oids;
     }
 
     public void setIntParameter(int index, int value) throws SQLException {

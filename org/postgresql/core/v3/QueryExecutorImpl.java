@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.19 2005/01/14 01:20:16 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.20 2005/01/27 22:50:13 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -159,8 +159,11 @@ public class QueryExecutorImpl implements QueryExecutor {
         if (parameters == null)
             parameters = SimpleQuery.NO_PARAMETERS;
 
+        boolean describeOnly = (QUERY_DESCRIBE_ONLY & flags) != 0;
+
         // Check parameters are all set..
-        ((V3ParameterList)parameters).checkAllParametersSet();
+        if (!describeOnly)
+            ((V3ParameterList)parameters).checkAllParametersSet();
 
         try
         {
@@ -286,11 +289,14 @@ public class QueryExecutorImpl implements QueryExecutor {
                          ", maxRows=" + maxRows + ", fetchSize=" + fetchSize + ", flags=" + flags);
         }
 
+        boolean describeOnly = (QUERY_DESCRIBE_ONLY & flags) != 0;
         // Check parameters and resolve OIDs.
-        for (int i = 0; i < parameterLists.length; ++i)
-        {
-            if (parameterLists[i] != null)
-                ((V3ParameterList)parameterLists[i]).checkAllParametersSet();
+        if (!describeOnly) {
+            for (int i = 0; i < parameterLists.length; ++i)
+            {
+                if (parameterLists[i] != null)
+                    ((V3ParameterList)parameterLists[i]).checkAllParametersSet();
+            }
         }
 
         try
@@ -644,7 +650,8 @@ public class QueryExecutorImpl implements QueryExecutor {
             // NB: Must clone the OID array, as it's a direct reference to
             // the SimpleParameterList's internal array that might be modified
             // under us.
-            query.setStatementName(statementName, (int[])typeOIDs.clone());
+            query.setStatementName(statementName);
+            query.setStatementTypes((int[])typeOIDs.clone());
         }
 
         byte[] encodedStatementName = query.getEncodedStatementName();
@@ -826,7 +833,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         }
     }
 
-    private void sendDescribe(Portal portal) throws IOException {
+    private void sendDescribePortal(Portal portal) throws IOException {
         //
         // Send Describe.
         //
@@ -847,6 +854,29 @@ public class QueryExecutorImpl implements QueryExecutor {
         if (encodedPortalName != null)
             pgStream.Send(encodedPortalName); // portal name to close
         pgStream.SendChar(0);                 // end of portal name
+    }
+
+    private void sendDescribeStatement(SimpleQuery query, SimpleParameterList params, boolean describeOnly) throws IOException {
+        // Send Statement Describe
+
+        if (Driver.logDebug)
+        {
+            Driver.debug(" FE=> Describe(statement=" + query.getStatementName()+")");
+        }
+
+        byte[] encodedStatementName = query.getEncodedStatementName();
+
+        // Total size = 4 (size field) + 1 (describe type, 'S') + N + 1 (portal name)
+        int encodedSize = 4 + 1 + (encodedStatementName == null ? 0 : encodedStatementName.length) + 1;
+
+        pgStream.SendChar('D');                     // Describe
+        pgStream.SendInteger4(encodedSize);         // Message size
+        pgStream.SendChar('S');                     // Describe (Statement);
+        if (encodedStatementName != null)
+            pgStream.Send(encodedStatementName);    // Statement name
+        pgStream.SendChar(0);                       // end message
+
+        pendingDescribeStatementQueue.add(new Object[]{query, params, new Boolean(describeOnly)});
     }
 
     private void sendExecute(Query query, Portal portal, int limit) throws IOException {
@@ -934,8 +964,10 @@ public class QueryExecutorImpl implements QueryExecutor {
 
         boolean noResults = (flags & QueryExecutor.QUERY_NO_RESULTS) != 0;
         boolean noMeta = (flags & QueryExecutor.QUERY_NO_METADATA) != 0;
-        boolean usePortal = (flags & QueryExecutor.QUERY_FORWARD_CURSOR) != 0 && !noResults && !noMeta && fetchSize > 0;
+        boolean describeOnly = (flags & QueryExecutor.QUERY_DESCRIBE_ONLY) != 0;
+        boolean usePortal = (flags & QueryExecutor.QUERY_FORWARD_CURSOR) != 0 && !noResults && !noMeta && fetchSize > 0 && !describeOnly;
         boolean oneShot = (flags & QueryExecutor.QUERY_ONESHOT) != 0 && !usePortal;
+        boolean describeStatement = describeOnly || (params.hasUnresolvedTypes() && !oneShot);
 
         // Work out how many rows to fetch in this pass.
 
@@ -959,6 +991,12 @@ public class QueryExecutorImpl implements QueryExecutor {
 
         sendParse(query, params, oneShot);
 
+        if (describeStatement) {
+            sendDescribeStatement(query, params, describeOnly);
+            if (describeOnly)
+                return;
+        }
+
         // Construct a new portal if needed.
         Portal portal = null;
         if (usePortal)
@@ -968,8 +1006,12 @@ public class QueryExecutorImpl implements QueryExecutor {
         }
 
         sendBind(query, params, portal);
-        if (!noMeta)
-            sendDescribe(portal);
+
+        // A statement describe will also output a RowDescription,
+        // so don't reissue it here if we've already done so.
+        //
+        if (!noMeta && !describeStatement)
+            sendDescribePortal(portal);
 
         sendExecute(query, portal, rows);
     }
@@ -1063,7 +1105,15 @@ public class QueryExecutorImpl implements QueryExecutor {
         int c;
         boolean endQuery = false;
 
+        // At the end of a command execution we have the CommandComplete
+        // message to tell us we're done, but with a describeOnly command
+        // we have no real flag to let us know we're done.  We've got to
+        // look for the next RowDescription or NoData message and return
+        // from there.
+        boolean doneAfterRowDescNoData = false;
+
         int parseIndex = 0;
+        int describeIndex = 0;
         int bindIndex = 0;
         int executeIndex = 0;
 
@@ -1086,6 +1136,32 @@ public class QueryExecutorImpl implements QueryExecutor {
                 registerParsedQuery(parsedQuery);
                 break;
 
+            case 't':    // ParameterDescription
+                pgStream.ReceiveIntegerR(4); // len, discarded
+
+                if (Driver.logDebug)
+                    Driver.debug(" <=BE ParameterDescription");
+
+                {
+                    Object describeData[] = (Object[])pendingDescribeStatementQueue.get(describeIndex);
+                    SimpleQuery query = (SimpleQuery)describeData[0];
+                    SimpleParameterList params = (SimpleParameterList)describeData[1];
+                    boolean describeOnly = ((Boolean)describeData[2]).booleanValue();
+
+                    int numParams = pgStream.ReceiveIntegerR(2);
+                    for (int i=1; i<=numParams; i++) {
+                        int typeOid = pgStream.ReceiveIntegerR(4);
+                        params.setResolvedType(i, typeOid);
+                    }
+                    query.setStatementTypes((int[])params.getTypeOIDs().clone());
+
+                    if (describeOnly)
+                        doneAfterRowDescNoData = true;
+                    else
+                        describeIndex++;
+                }
+                break;
+
             case '2':    // Bind Complete  (response to Bind)
                 pgStream.ReceiveIntegerR(4); // len, discarded
 
@@ -1106,6 +1182,16 @@ public class QueryExecutorImpl implements QueryExecutor {
                 pgStream.ReceiveIntegerR(4); // len, discarded
                 if (Driver.logDebug)
                     Driver.debug(" <=BE NoData");
+
+                if (doneAfterRowDescNoData) {
+                    Object describeData[] = (Object[])pendingDescribeStatementQueue.get(describeIndex++);
+                    Query currentQuery = (Query)describeData[0];
+
+                    if (fields != null || tuples != null)
+                    { // There was a resultset.
+                        handler.handleResultRows(currentQuery, fields, tuples, null);
+                    }
+                }
                 break;
 
             case 's':    // Portal Suspended (end of Execute)
@@ -1130,6 +1216,8 @@ public class QueryExecutorImpl implements QueryExecutor {
             case 'C':  // Command Status (end of Execute)
                 // Handle status.
                 String status = receiveCommandStatus();
+
+                doneAfterRowDescNoData = false;
 
                 {
                     Object[] executeData = (Object[])pendingExecuteQueue.get(executeIndex++);
@@ -1220,6 +1308,15 @@ public class QueryExecutorImpl implements QueryExecutor {
             case 'T':  // Row Description (response to Describe)
                 fields = receiveFields();
                 tuples = new Vector();
+                if (doneAfterRowDescNoData) {
+                    Object describeData[] = (Object[])pendingDescribeStatementQueue.get(describeIndex++);
+                    Query currentQuery = (Query)describeData[0];
+
+                    if (fields != null || tuples != null)
+                    { // There was a resultset.
+                        handler.handleResultRows(currentQuery, fields, tuples, null);
+                    }
+                }
                 break;
 
             case 'Z':    // Ready For Query (eventual response to Sync)
@@ -1233,9 +1330,10 @@ public class QueryExecutorImpl implements QueryExecutor {
                     failedQuery.unprepare();
                 }
 
-                pendingParseQueue.clear();   // No more ParseComplete messages expected.
-                pendingBindQueue.clear();    // No more BindComplete messages expected.
-                pendingExecuteQueue.clear(); // No more query executions expected.
+                pendingParseQueue.clear();              // No more ParseComplete messages expected.
+                pendingDescribeStatementQueue.clear();  // No more ParameterDescription messages expected.
+                pendingBindQueue.clear();               // No more BindComplete messages expected.
+                pendingExecuteQueue.clear();            // No more query executions expected.
                 break;
 
             case 'G':  // CopyInResponse
@@ -1448,6 +1546,7 @@ public class QueryExecutorImpl implements QueryExecutor {
     private final ArrayList pendingParseQueue = new ArrayList(); // list of SimpleQuery instances
     private final ArrayList pendingBindQueue = new ArrayList(); // list of Portal instances
     private final ArrayList pendingExecuteQueue = new ArrayList(); // list of {SimpleQuery,Portal} object arrays
+    private final ArrayList pendingDescribeStatementQueue = new ArrayList(); // list of {SimpleQuery, SimpleParameterList, Boolean} object arrays
 
     private long nextUniqueID = 1;
     private final ProtocolConnectionImpl protoConnection;

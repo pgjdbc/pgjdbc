@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/QueryExecutor.java,v 1.38 2004/11/09 08:44:49 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/QueryExecutor.java,v 1.39 2005/01/11 08:25:43 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -76,6 +76,12 @@ public interface QueryExecutor {
      * when outside a transaction should not be done.
      */
     static int QUERY_SUPPRESS_BEGIN = 16;
+
+    /**
+     * Flag for query execution when we don't really want to execute, we just
+     * want to get the parameter metadata for the statement.
+     */
+    static int QUERY_DESCRIBE_ONLY = 32;
 
     /**
      * Execute a Query, passing results to a provided ResultHandler.

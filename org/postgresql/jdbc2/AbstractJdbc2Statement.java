@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.66 2005/01/25 06:21:21 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.67 2005/01/27 11:30:41 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -996,8 +996,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             }
             break;
         case Types.OTHER:
-            // We cannot determine an appropriate OID in this case.
-            throw new PSQLException(GT.tr("setNull(i,Types.OTHER) is not supported. Instead, use setObject(i,obj,Types.OTHER) where ((PGobject)obj).getValue()==null."), PSQLState.INVALID_PARAMETER_TYPE);
+            oid = Oid.INVALID;
+            break;
         default:
             // Bad Types value.
             throw new PSQLException(GT.tr("Unknown Types value."), PSQLState.INVALID_PARAMETER_TYPE);
@@ -1634,12 +1634,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     {
         checkClosed();
         if (x == null)
-        {
-            // We cannot determine an appropriate OID in this case.
-            throw new PSQLException(GT.tr("setObject(i,null) is not supported. Instead, use setNull(i,type) or setObject(i,null,type)"), PSQLState.INVALID_PARAMETER_TYPE);
-        }
-
-        if (x instanceof String)
+            setNull(parameterIndex, Types.OTHER);
+        else if (x instanceof String)
             setString(parameterIndex, (String)x);
         else if (x instanceof BigDecimal)
             setBigDecimal(parameterIndex, (BigDecimal)x);
@@ -2532,10 +2528,24 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     {
         checkClosed();
         ResultSet rs = getResultSet();
+
+        if (rs == null) {
+            // OK, we haven't executed it yet, we've got to go to the backend
+            // for more info.  We send the full query, but just don't
+            // execute it.
+
+            int flags = QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_DESCRIBE_ONLY | QueryExecutor.QUERY_SUPPRESS_BEGIN;
+            StatementResultHandler handler = new StatementResultHandler();
+            connection.getQueryExecutor().execute(preparedQuery, preparedParameters, handler, 0, 0, flags);
+            ResultWrapper wrapper = handler.getResults();
+            if (wrapper != null) {
+                rs = wrapper.getResultSet();
+            }
+        }
+
         if (rs != null)
             return rs.getMetaData();
 
-        // Does anyone really know what this method does?
         return null;
     }
 

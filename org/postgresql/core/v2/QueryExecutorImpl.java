@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/QueryExecutorImpl.java,v 1.8 2005/01/11 08:25:43 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/QueryExecutorImpl.java,v 1.9 2005/01/14 01:20:15 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -275,6 +275,12 @@ public class QueryExecutorImpl implements QueryExecutor {
                          ResultHandler handler,
                          int maxRows, int flags) throws SQLException
     {
+
+        // The V2 protocol has no support for retrieving metadata
+        // without executing the whole query.
+        if ((flags & QueryExecutor.QUERY_DESCRIBE_ONLY) != 0)
+            return;
+
         if (parameters == null)
             parameters = (SimpleParameterList)query.createParameterList();
 

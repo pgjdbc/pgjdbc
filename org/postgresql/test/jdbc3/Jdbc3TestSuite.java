@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/Jdbc3TestSuite.java,v 1.10 2004/12/11 04:13:46 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/Jdbc3TestSuite.java,v 1.11 2005/01/11 08:25:49 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -25,7 +25,8 @@ public class Jdbc3TestSuite extends TestSuite
         TestSuite suite = new TestSuite();
         suite.addTestSuite(Jdbc3SavepointTest.class);
         suite.addTestSuite(TypesTest.class);
-	suite.addTestSuite(ResultSetTest.class);
+        suite.addTestSuite(ResultSetTest.class);
+        suite.addTestSuite(ParameterMetaDataTest.class);
         return suite;
     }
 }
