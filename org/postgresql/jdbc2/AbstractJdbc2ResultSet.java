@@ -30,6 +30,7 @@ import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Field;
 import org.postgresql.core.Encoding;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 
 public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.AbstractJdbc1ResultSet
@@ -421,7 +422,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 	public Ref getRef(int i) throws SQLException
 	{
 		//The backend doesn't yet have SQL3 REF types
-		throw new PSQLException("postgresql.psqlnotimp");
+		throw new PSQLException("postgresql.psqlnotimp", PSQLState.NOT_IMPLEMENTED);
 	}
 
 
@@ -513,7 +514,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 
 	public void setFetchDirection(int direction) throws SQLException
 	{
-		throw new PSQLException("postgresql.psqlnotimp");
+		throw new PSQLException("postgresql.psqlnotimp", PSQLState.NOT_IMPLEMENTED);
 	}
 
 

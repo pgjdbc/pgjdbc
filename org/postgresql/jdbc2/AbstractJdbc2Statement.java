@@ -8,6 +8,7 @@ import java.util.Vector;
 import org.postgresql.Driver;
 import org.postgresql.largeobject.*;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 /* $Header$
  * This class defines methods of the jdbc2 specification.  This class extends
@@ -129,7 +130,7 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 
 	public int getFetchDirection() throws SQLException
 	{
-		throw new PSQLException("postgresql.psqlnotimp");
+		throw new PSQLException("postgresql.psqlnotimp", PSQLState.NOT_IMPLEMENTED);
 	}
 
 	public int getResultSetConcurrency() throws SQLException

@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.net.Socket;
 import java.sql.*;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 
 public class PGStream
@@ -164,11 +165,11 @@ public class PGStream
 		{
 			c = pg_input.read();
 			if (c < 0)
-				throw new PSQLException("postgresql.stream.eof");
+				throw new PSQLException("postgresql.stream.eof", PSQLState.COMMUNICATION_ERROR);
 		}
 		catch (IOException e)
 		{
-			throw new PSQLException("postgresql.stream.ioerror", e);
+			throw new PSQLException("postgresql.stream.ioerror", PSQLState.COMMUNICATION_ERROR, e);
 		}
 		return c;
 	}
@@ -191,13 +192,13 @@ public class PGStream
 				int b = pg_input.read();
 
 				if (b < 0)
-					throw new PSQLException("postgresql.stream.eof");
+					throw new PSQLException("postgresql.stream.eof", PSQLState.COMMUNICATION_ERROR);
 				n = n | (b << (8 * i)) ;
 			}
 		}
 		catch (IOException e)
 		{
-			throw new PSQLException("postgresql.stream.ioerror", e);
+			throw new PSQLException("postgresql.stream.ioerror", PSQLState.COMMUNICATION_ERROR, e);
 		}
 		return n;
 	}
@@ -220,13 +221,13 @@ public class PGStream
 				int b = pg_input.read();
 
 				if (b < 0)
-					throw new PSQLException("postgresql.stream.eof");
+					throw new PSQLException("postgresql.stream.eof", PSQLState.COMMUNICATION_ERROR);
 				n = b | (n << 8);
 			}
 		}
 		catch (IOException e)
 		{
-			throw new PSQLException("postgresql.stream.ioerror", e);
+			throw new PSQLException("postgresql.stream.ioerror", PSQLState.COMMUNICATION_ERROR, e);
 		}
 		return n;
 	}
@@ -254,7 +255,7 @@ public class PGStream
 				{
 					int c = pg_input.read();
 					if (c < 0)
-						throw new PSQLException("postgresql.stream.eof");
+						throw new PSQLException("postgresql.stream.eof", PSQLState.COMMUNICATION_ERROR);
 					else if (c == 0)
 					{
 						rst[s] = 0;
@@ -277,7 +278,7 @@ public class PGStream
 		}
 		catch (IOException e)
 		{
-			throw new PSQLException("postgresql.stream.ioerror", e);
+			throw new PSQLException("postgresql.stream.ioerror", PSQLState.COMMUNICATION_ERROR, e);
 		}
 		return encoding.decode(rst, 0, s);
 	}
@@ -389,13 +390,13 @@ public class PGStream
 			{
 				int w = pg_input.read(b, off + s, siz - s);
 				if (w < 0)
-					throw new PSQLException("postgresql.stream.eof");
+					throw new PSQLException("postgresql.stream.eof", PSQLState.COMMUNICATION_ERROR);
 				s += w;
 			}
 		}
 		catch (IOException e)
 		{
-			throw new PSQLException("postgresql.stream.ioerror", e);
+			throw new PSQLException("postgresql.stream.ioerror", PSQLState.COMMUNICATION_ERROR, e);
 		}
 	}
 
@@ -412,7 +413,7 @@ public class PGStream
 		}
 		catch (IOException e)
 		{
-			throw new PSQLException("postgresql.stream.flush", e);
+			throw new PSQLException("postgresql.stream.flush", PSQLState.COMMUNICATION_ERROR, e);
 		}
 	}
 

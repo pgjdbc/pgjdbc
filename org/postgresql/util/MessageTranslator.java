@@ -56,6 +56,14 @@ public class MessageTranslator
 		return translator._translate(id, args);
 	}
 
+	public final static String translate(String id, Object arg)
+	{
+		MessageTranslator translator = MessageTranslator.getInstance();
+		Object[] args = new Object[1];
+		args[0] = arg;
+		return translator._translate(id, args);
+	}
+
 	private final String _translate(String id, Object[] args)
 	{
 		String message;
