@@ -3,7 +3,7 @@
 * Copyright (c) 2001-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/UpdateableResultTest.java,v 1.18 2005/01/27 20:59:06 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/UpdateableResultTest.java,v 1.19 2005/01/27 22:07:40 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -233,6 +233,14 @@ public class UpdateableResultTest extends TestCase
         stmt.close();
     }
 
+    public void testZeroRowResult() throws SQLException
+    {
+        Statement st = con.createStatement( ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE );
+        ResultSet rs = st.executeQuery( "select * from updateable WHERE 0 > 1");
+	assertTrue(!rs.next());
+	rs.moveToInsertRow();
+	rs.moveToCurrentRow();
+    }
 
     public void testUpdateable() throws SQLException
     {
