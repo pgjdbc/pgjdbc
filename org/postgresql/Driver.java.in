@@ -538,11 +538,4 @@ public class Driver implements java.sql.Driver
 		return l_return;
 	}
 
-	public static String getDataSourceObjectFactoryName() {
-		String name;
-		name = "org.postgresql.ds.jdbc23.Jdbc23ObjectFactory";
-@NOGENERICS@    name = "org.postgresql.ds.jdbc3g.Jdbc3gObjectFactory";
-		return name;
-	}
-
 }

@@ -2,7 +2,7 @@ package org.postgresql.test.jdbc2.optional;
 
 import junit.framework.TestCase;
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.VersionInfo;
+import org.postgresql.test.util.MiniJndiContextFactory;
 import org.postgresql.ds.common.BaseDataSource;
 import org.postgresql.PGConnection;
 
@@ -205,7 +205,7 @@ public abstract class BaseDataSourceTest extends TestCase
     protected InitialContext getInitialContext()
     {
         Hashtable env = new Hashtable();
-        env.put(Context.INITIAL_CONTEXT_FACTORY, VersionInfo.getJndiContextClass());
+        env.put(Context.INITIAL_CONTEXT_FACTORY, MiniJndiContextFactory.class.getName());
         try {
             return new InitialContext(env);
         } catch(NamingException e) {

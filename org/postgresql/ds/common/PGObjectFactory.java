@@ -1,6 +1,7 @@
 package org.postgresql.ds.common;
 
 import javax.naming.*;
+import javax.naming.spi.ObjectFactory;
 import java.util.Hashtable;
 
 import org.postgresql.ds.*;
@@ -16,13 +17,13 @@ import org.postgresql.ds.*;
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  * @version $Revision$
  */
-public abstract class AbstractObjectFactory
+public class PGObjectFactory implements ObjectFactory
 {
 	/**
 	 * Dereferences a PostgreSQL DataSource.  Other types of references are
 	 * ignored.
 	 */
-	public Object getObjectInstanceImpl(Object obj, Name name, Context nameCtx,
+	public Object getObjectInstance(Object obj, Name name, Context nameCtx,
 									Hashtable environment) throws Exception
 	{
 		Reference ref = (Reference)obj;

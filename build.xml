@@ -50,47 +50,20 @@
     </condition>
 
     <available property="datasource" classname="javax.sql.DataSource"/>
-
-    <condition property="noGenericDatasource">
-      <and>
-        <isset property="datasource" />
-	<not>
-	  <isset property="jdbc3g" />
-	</not>
-      </and>
-    </condition>
-
     <available property="ssl" classname="javax.net.ssl.SSLSocketFactory"/>
     <available property="junit" classname="junit.framework.Test"/>
     <available property="junit.task" classname="org.apache.tools.ant.taskdefs.optional.junit.JUnitTask"/>
 
-    <condition property="jdbc2tests">
-      <and>
-        <or>
-          <isset property="jdbc2"/>
-          <isset property="jdbc3"/>
-          <isset property="jdbc3g"/>
-        </or>
-        <isset property="junit"/>
-      </and>
-    </condition>
     <condition property="jdbc2optionaltests">
       <and>
-        <or>
-          <isset property="jdbc2"/>
-          <isset property="jdbc3"/>
-          <isset property="jdbc3g"/>
-        </or>
         <isset property="datasource"/>
         <isset property="junit"/>
       </and>
     </condition>
+
     <condition property="jdbc3tests">
       <and>
-        <or>
-          <isset property="jdbc3"/>
-	  <isset property="jdbc3g"/>
-	</or>
+        <isset property="jdbc3any"/>
         <isset property="datasource"/>
         <isset property="junit"/>
       </and>
@@ -185,10 +158,7 @@
        <include name="${package}/jdbc3/Jdbc3PoolingDataSource.java" if="jdbc3any" />
        <include name="${package}/jdbc3/Jdbc3SimpleDataSource.java" if="jdbc3any" />
 
-       <include name="${package}/ds/*.java" if="datasource" />
-       <include name="${package}/ds/common/*.java" if="datasource" />
-       <include name="${package}/ds/jdbc23/*.java" if="noGenericDatasource" />
-       <include name="${package}/ds/jdbc3g/*.java" if="jdbc3g" />
+       <include name="${package}/ds/**.java" if="datasource" />
 
     </javac>
   </target>
@@ -198,7 +168,6 @@
       <srcfiles dir=".">
       <include name="${package}/util/PSQLException.java.in"/>
       <include name="${package}/Driver.java.in"/>
-      <include name="${package}/test/VersionInfo.java.in" />
       <include name="build.properties"/>
       <include name="build.local.properties" />
       </srcfiles>
@@ -243,31 +212,13 @@
          if so we use it in org.postgresql.util.PSQLException
          instead of appending any nested exception to the message. -->
     <condition property="noInitCause" value="//">
-      <or>
-        <equals arg1="${ant.java.version}" arg2="1.4"/>
-	<equals arg1="${ant.java.version}" arg2="1.5"/>
-      </or>
+      <equals arg1="${jdbc3any}" arg2="true" />
     </condition>
     
     <condition property="noInitCause" value="">
-      <not>
-        <or>
-          <equals arg1="${ant.java.version}" arg2="1.4"/>
-          <equals arg1="${ant.java.version}" arg2="1.5"/>
-        </or>
-      </not>
+      <not><equals arg1="${jdbc3any}" arg2="true" /></not>
     </condition>
 
-    <condition property="noGenerics" value="//">
-      <not>
-        <equals arg1="${ant.java.version}" arg2="1.5"/>
-      </not>
-    </condition>
-    
-    <condition property="noGenerics" value="">
-      <equals arg1="${ant.java.version}" arg2="1.5"/>
-    </condition>
-    
     <!-- determine the ssl status -->
     <condition property="ssl_config" value="">
         <equals arg1="${ssl}" arg2="true"/>
@@ -294,7 +245,6 @@
     <filter token="DEF_PGPORT" value="${def_pgport}" />
     <filter token="SSL" value="${ssl_config}" />
     <filter token="NOINITCAUSE" value="${noInitCause}" />
-    <filter token="NOGENERICS" value="${noGenerics}" />
 
      <fail unless="major" message="'major' undefined. Please follow the directions in README."/>
      <fail unless="minor" message="'minor' undefined. Please follow the directions in README."/>
@@ -313,10 +263,6 @@
           overwrite="true"
           tofile="${package}/util/PSQLException.java"
           filtering="yes" />
-    <copy file="${package}/test/VersionInfo.java.in"
-          overwrite="true"
-	  tofile="${package}/test/VersionInfo.java"
-	  filtering="yes" />
 
     <echo message="Configured build for the ${edition} edition driver with ${ssl_edition}" />
   </target>
@@ -361,7 +307,6 @@
     <delete quiet="true" dir="${jardir}" />
     <delete quiet="true" file="${package}/Driver.java" />
     <delete quiet="true" file="${package}/util/PSQLException.java" />
-    <delete quiet="true" file="${package}/test/VersionInfo.java" />
   </target>
 
   <!-- This compiles and executes the JUnit tests -->
@@ -385,7 +330,7 @@
     <javac srcdir="${srcdir}" destdir="${builddir}/tests" debug="${debug}">
       <include name="${package}/test/**" />
 
-      <exclude name="${package}/test/jdbc2/**" unless="jdbc2tests"/>
+      <exclude name="${package}/test/jdbc2/**" unless="junit" />
       <exclude name="${package}/test/jdbc2/optional/**" unless="jdbc2optionaltests" />
       <exclude name="${package}/test/jdbc3/**" unless="jdbc3tests" />
       <exclude name="${package}/test/util/**" unless="jdbc2optionaltests" />
@@ -417,7 +362,7 @@
         <pathelement path="${java.class.path}" />
       </classpath>
 
-      <test name="org.postgresql.test.jdbc2.Jdbc2TestSuite" if="jdbc2tests"/>
+      <test name="org.postgresql.test.jdbc2.Jdbc2TestSuite" if="junit" />
       <test name="org.postgresql.test.jdbc2.optional.OptionalTestSuite" if="jdbc2optionaltests"/>
       <test name="org.postgresql.test.jdbc3.Jdbc3TestSuite" if="jdbc3tests"/>
     </junit>
@@ -441,7 +386,7 @@
         <include name="PG*.java" />
         <include name="util/PGobject.java" />
         <include name="ds/PG*.java" if="datasource" />
-	<include name="ds/common/*.java" if="datasource" />
+	<include name="ds/common/BaseDataSource.java" if="datasource" />
       </fileset>
     </javadoc>
   </target>

@@ -267,7 +267,7 @@ public abstract class BaseDataSource implements Referenceable
     protected Reference createReference() {
 	    return new Reference(
 			    getClass().getName(),
-			    org.postgresql.Driver.getDataSourceObjectFactoryName(),
+			    PGObjectFactory.class.getName(),
 			    null);
     }
 
