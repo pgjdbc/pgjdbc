@@ -2014,12 +2014,12 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData
 			// Decimal digits = scale
 			// From the source (see e.g. backend/utils/adt/numeric.c,
 			// function numeric()) the scale and precision can be calculated
-			// from the typmod value. mark@plasticsoftware.com.au
+			// from the typmod value.
 			if (typname.equals("numeric") || typname.equals("decimal"))
 			{
 				int attypmod = r.getInt(8);
 				tuple[8] =
-					Integer.toString((attypmod & 0xffff) - VARHDRSZ).getBytes();
+					Integer.toString((attypmod - VARHDRSZ) & 0xffff).getBytes();
 			}
 			else
 				tuple[8] = "0".getBytes();
