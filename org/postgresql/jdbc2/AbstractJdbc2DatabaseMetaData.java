@@ -107,8 +107,14 @@ public abstract class AbstractJdbc2DatabaseMetaData extends org.postgresql.jdbc1
 		return true;
 	}
 
-	/*
-	 * Return user defined types in a schema
+    /**
+     *
+     * @param catalog String
+     * @param schemaPattern String
+     * @param typeNamePattern String
+     * @param types int[]
+     * @throws SQLException
+     * @return ResultSet
 	 */
 	public java.sql.ResultSet getUDTs(String catalog,
 									  String schemaPattern,
@@ -116,7 +122,86 @@ public abstract class AbstractJdbc2DatabaseMetaData extends org.postgresql.jdbc1
 									  int[] types
 									 ) throws SQLException
 	{
-		throw org.postgresql.Driver.notImplemented();
+        String sql = "select "
+                   + "null as type_cat, n.nspname as type_schem, t.typname as type_name,  null as class_name, "
+                   + "CASE WHEN t.typtype='c' then "+ java.sql.Types.STRUCT + " else " + java.sql.Types.DISTINCT +" end as data_type, pg_catalog.obj_description(t.oid, 'pg_type')  "
+                   + "as remarks, CASE WHEN t.typtype = 'd' then  (select CASE";
+
+        for ( int i=0; i < AbstractJdbc2Connection.jdbc2Types.length; i++ )
+        {
+            sql += " when typname = '"+ AbstractJdbc2Connection.jdbc2Types[i] + "' then " + AbstractJdbc2Connection.jdbc2Typei[i] ;
+        }
+
+        sql += "else " + java.sql.Types.OTHER + " end from pg_type where oid=t.typbasetype) "
+            + "else null end as base_type "
+            + "from pg_catalog.pg_type t, pg_catalog.pg_namespace n where t.typnamespace = n.oid and n.nspname != 'pg_catalog' and n.nspname != 'pg_toast'";
+
+
+
+		String toAdd = "";
+        if ( types != null )
+        {
+            toAdd += " and ( ";
+            for (int i = 0; i < types.length; i++)
+            {
+                toAdd += " t.typtype = ";
+                switch (types[i] )
+                {
+                    case java.sql.Types.STRUCT:
+                        toAdd += "'c'";
+                        break;
+                    case java.sql.Types.DISTINCT:
+                        toAdd += "'d'";
+                        break;
+
+                    case java.sql.Types.JAVA_OBJECT:
+                    default:
+                        toAdd += "'j'";  // this is totally bogus, but we need to fill in the other side of the equals, just in case
+                        break;
+                }
+                if ( i+1 < types.length )
+                {
+                    toAdd += " or ";
+                }
+            }
+            toAdd += " ) ";
+        }
+        // spec says that if typeNamePattern is not null then the schema and catalog are ignored
+
+        if (typeNamePattern != null)
+        {
+            // search for qualifier
+            int firstQualifier = typeNamePattern.indexOf('.') ;
+            int secondQualifier = typeNamePattern.lastIndexOf('.');
+
+            if ( firstQualifier != -1 ) // if one of them is -1 they both will be
+            {
+                if ( firstQualifier != secondQualifier )
+                {
+                    // we have a catalog.schema.typename, ignore catalog
+                    schemaPattern =  typeNamePattern.substring(firstQualifier+1, secondQualifier);
+                }
+                else
+                {
+                    // we just have a schema.typename
+                    schemaPattern = typeNamePattern.substring(0,firstQualifier);
+                }
+                // strip out just the typeName
+                typeNamePattern = typeNamePattern.substring(secondQualifier+1);
+            }
+            toAdd += " and t.typname like '" + escapeQuotes(typeNamePattern) + "'";
+        }
+
+        // schemaPattern may have been modified above
+        if ( schemaPattern != null)
+        {
+			toAdd += " and n.nspname like '" + escapeQuotes(schemaPattern) +"'";
+        }
+		sql += toAdd;
+        sql += " order by data_type, type_schem, type_name";
+		java.sql.ResultSet rs = createMetaDataStatement().executeQuery(sql);
+
+		return rs;
 	}
 
 

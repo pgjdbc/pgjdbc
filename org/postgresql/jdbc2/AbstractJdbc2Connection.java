@@ -113,7 +113,7 @@ public abstract class AbstractJdbc2Connection extends org.postgresql.jdbc1.Abstr
 	 *
 	 * Tip: keep these grouped together by the Types. value
 	 */
-	private static final String jdbc2Types[] = {
+    static final String jdbc2Types[] = {
 				"int2",
 				"int4", "oid",
 				"int8",
@@ -142,7 +142,7 @@ public abstract class AbstractJdbc2Connection extends org.postgresql.jdbc1.Abstr
 	 *
 	 * Tip: keep these grouped together by the Types. value
 	 */
-	private static final int jdbc2Typei[] = {
+	static final int jdbc2Typei[] = {
 												Types.SMALLINT,
 												Types.INTEGER, Types.INTEGER,
 												Types.BIGINT,

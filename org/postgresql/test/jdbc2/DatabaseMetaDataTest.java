@@ -524,4 +524,233 @@ public class DatabaseMetaDataTest extends TestCase
 		}
 	}
 
+    public void testGetUDTQualified()
+    {
+        Statement stmt =  null;
+        try
+        {
+            stmt = con.createStatement();
+            stmt.execute("create schema jdbc");
+            stmt.execute("create type jdbc.testint8 as (i int8)");
+            DatabaseMetaData dbmd = con.getMetaData();
+            ResultSet rs = dbmd.getUDTs(null, null ,"jdbc.testint8" , null);
+            assertTrue(rs.next());
+            String cat, schema, typeName, remarks, className;
+            int dataType;
+            int baseType;
+
+            cat = rs.getString("type_cat");
+            schema = rs.getString("type_schem");
+            typeName = rs.getString( "type_name");
+            className = rs.getString("class_name");
+            dataType = rs.getInt("data_type");
+            remarks = rs.getString( "remarks" );
+            baseType = rs.getInt("base_type");
+            this.assertEquals("type name ", "testint8", typeName);
+            this.assertEquals("schema name ", "jdbc",schema);
+
+            // now test to see if the fully qualified stuff works as planned
+            rs = dbmd.getUDTs("catalog", "public" ,"catalog.jdbc.testint8" , null);
+            assertTrue(rs.next());
+            cat = rs.getString("type_cat");
+            schema = rs.getString("type_schem");
+            typeName = rs.getString( "type_name");
+            className = rs.getString("class_name");
+            dataType = rs.getInt("data_type");
+            remarks = rs.getString( "remarks" );
+            baseType = rs.getInt("base_type");
+            this.assertEquals("type name ", "testint8", typeName);
+            this.assertEquals("schema name ", "jdbc",schema);
+        }
+        catch( SQLException ex )
+        {
+            fail( ex.getMessage() );
+        }
+        finally
+        {
+            try
+            {
+                if (stmt != null )
+                    stmt.close();
+                stmt = con.createStatement();
+                stmt.execute("drop type jdbc.testint8");
+                stmt.execute("drop schema jdbc");
+            }
+            catch( Exception ex ){}
+        }
+
+    }
+    public void testGetUDT1()
+    {
+        try
+         {
+             Statement stmt = con.createStatement();
+             stmt.execute("create domain testint8 as int8");
+             stmt.execute("comment on domain testint8 is 'jdbc123'" );
+             DatabaseMetaData dbmd = con.getMetaData();
+             ResultSet rs = dbmd.getUDTs(null, null ,"testint8" , null);
+             assertTrue(rs.next());
+             String cat, schema, typeName, remarks, className;
+             int dataType;
+             int baseType;
+
+             cat = rs.getString("type_cat");
+             schema = rs.getString("type_schem");
+             typeName = rs.getString( "type_name");
+             className = rs.getString("class_name");
+             dataType = rs.getInt("data_type");
+             remarks = rs.getString( "remarks" );
+
+             baseType = rs.getInt("base_type");
+             this.assertTrue("base type", !rs.wasNull() );
+             this.assertEquals("data type", Types.DISTINCT, dataType );
+             this.assertEquals("type name ", "testint8", typeName);
+             this.assertEquals("remarks", "jdbc123", remarks);
+
+         }
+         catch( SQLException ex )
+         {
+             fail( ex.getMessage() );
+         }
+         finally
+         {
+             try
+             {
+                 Statement stmt = con.createStatement();
+                 stmt.execute("drop domain testint8");
+             }
+             catch( Exception ex ){}
+         }
+     }
+
+
+     public void testGetUDT2()
+     {
+         try
+         {
+             Statement stmt = con.createStatement();
+             stmt.execute("create domain testint8 as int8");
+             stmt.execute("comment on domain testint8 is 'jdbc123'");
+             DatabaseMetaData dbmd = con.getMetaData();
+             ResultSet rs = dbmd.getUDTs(null, null, "testint8", new int[]
+                                         {Types.DISTINCT, Types.STRUCT});
+             assertTrue(rs.next());
+             String cat, schema, typeName, remarks, className;
+             int dataType;
+             int baseType;
+
+             cat = rs.getString("type_cat");
+             schema = rs.getString("type_schem");
+             typeName = rs.getString("type_name");
+             className = rs.getString("class_name");
+             dataType = rs.getInt("data_type");
+             remarks = rs.getString("remarks");
+
+             baseType = rs.getInt("base_type");
+             this.assertTrue("base type", !rs.wasNull());
+             this.assertEquals("data type", Types.DISTINCT, dataType);
+             this.assertEquals("type name ", "testint8", typeName);
+             this.assertEquals("remarks", "jdbc123", remarks);
+
+         }
+         catch (SQLException ex)
+         {
+             fail(ex.getMessage());
+         }
+         finally
+         {
+             try
+             {
+                 Statement stmt = con.createStatement();
+                 stmt.execute("drop domain testint8");
+             }
+             catch (Exception ex)
+             {}
+         }
+     }
+     public void testGetUDT3()
+      {
+          try
+          {
+              Statement stmt = con.createStatement();
+              stmt.execute("create domain testint8 as int8");
+              stmt.execute("comment on domain testint8 is 'jdbc123'");
+              DatabaseMetaData dbmd = con.getMetaData();
+              ResultSet rs = dbmd.getUDTs(null, null, "testint8", new int[]
+                                          {Types.DISTINCT});
+              assertTrue(rs.next());
+              String cat, schema, typeName, remarks, className;
+              int dataType;
+              int baseType;
+
+              cat = rs.getString("type_cat");
+              schema = rs.getString("type_schem");
+              typeName = rs.getString("type_name");
+              className = rs.getString("class_name");
+              dataType = rs.getInt("data_type");
+              remarks = rs.getString("remarks");
+
+              baseType = rs.getInt("base_type");
+              this.assertTrue("base type", !rs.wasNull());
+              this.assertEquals("data type", Types.DISTINCT, dataType);
+              this.assertEquals("type name ", "testint8", typeName);
+              this.assertEquals("remarks", "jdbc123", remarks);
+
+          }
+          catch (SQLException ex)
+          {
+              fail(ex.getMessage());
+          }
+          finally
+          {
+              try
+              {
+                  Statement stmt = con.createStatement();
+                  stmt.execute("drop domain testint8");
+              }
+              catch (Exception ex)
+              {}
+          }
+      }
+
+    public void testGetUDT4()
+    {
+        try
+        {
+            Statement stmt = con.createStatement();
+            stmt.execute("create type testint8 as (i int8)");
+            DatabaseMetaData dbmd = con.getMetaData();
+            ResultSet rs = dbmd.getUDTs(null, null ,"testint8" , null);
+            assertTrue(rs.next());
+            String cat, schema, typeName, remarks, className;
+            int dataType;
+            int baseType;
+
+            cat = rs.getString("type_cat");
+            schema = rs.getString("type_schem");
+            typeName = rs.getString( "type_name");
+            className = rs.getString("class_name");
+            dataType = rs.getInt("data_type");
+            remarks = rs.getString( "remarks" );
+
+            baseType = rs.getInt("base_type");
+            this.assertTrue("base type", rs.wasNull() );
+            this.assertEquals("data type", Types.STRUCT, dataType );
+            this.assertEquals("type name ", "testint8", typeName);
+
+        }
+        catch( SQLException ex )
+        {
+            fail( ex.getMessage() );
+        }
+        finally
+        {
+            try
+            {
+                Statement stmt = con.createStatement();
+                stmt.execute("drop type testint8");
+            }
+            catch( Exception ex ){}
+        }
+    }
 }
