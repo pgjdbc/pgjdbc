@@ -776,7 +776,10 @@ public abstract class AbstractJdbc1Connection implements org.postgresql.PGConnec
                         }
                         catch (IOException e)
                         {}
-                        pg_stream = null;
+			finally
+			{
+                        	pg_stream = null;
+			}
                 }
         }
 
