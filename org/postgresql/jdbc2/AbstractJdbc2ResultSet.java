@@ -1381,7 +1381,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 	{
 		String[] l_sqlFragments = ((AbstractJdbc2Statement)statement).getSqlFragments();
 		String l_sql = l_sqlFragments[0];
-		StringTokenizer st = new StringTokenizer(l_sql, " \r\t");
+		StringTokenizer st = new StringTokenizer(l_sql, " \r\t\n");
 		boolean tableFound = false, tablesChecked = false;
 		String name = "";
 
