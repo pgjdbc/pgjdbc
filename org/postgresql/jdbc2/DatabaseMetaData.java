@@ -2643,19 +2643,17 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData
                                                            + "a.tgdeferrable,"
                                                            + "a.tginitdeferred "
                                                            + "FROM "
-                                                           + "(SELECT t.tgargs, t.tgconstrname, p.proname, t.tgdeferrable,"
-                                                           + "t.tginitdeferred "
+                                                           + "(SELECT t.tgargs, t.tgconstrname, p.proname,"
+                                                           + "t.tgdeferrable, t.tginitdeferred "
                                                            + "FROM pg_class as c, pg_proc as p, pg_trigger as t "
-                                                           + "WHERE c.relfilenode=t.tgrelid AND t.tgfoid = p.oid "
-                                                           + "AND p.proname LIKE 'RI_FKey_%_upd') as a,"
+                                                           + "WHERE c.relname like '"+table+"' AND c.relfilenode=t.tgrelid "
+                                                           + "AND t.tgfoid = p.oid AND p.proname LIKE 'RI_FKey_%_upd') as a, "
                                                            + "(SELECT t.tgconstrname, p.proname "
                                                            + "FROM pg_class as c, pg_proc as p, pg_trigger as t "
-                                                           + "WHERE c.relfilenode=t.tgrelid AND t.tgfoid = p.oid "
-                                                           + "AND p.proname LIKE 'RI_FKey_%_del') as b,"
-                                                           + "(SELECT t.tgconstrname FROM pg_class as c, pg_trigger as t "
-                                                           + "WHERE c.relname like '"+table+"' AND c.relfilenode=t.tgrelid) as c "
-                                                           + "WHERE a.tgconstrname=b.tgconstrname AND a.tgconstrname=c.tgconstrname"
-                                                           );
+                                                           + "WHERE c.relname like '"+table+"' AND c.relfilenode=t.tgrelid "
+                                                           + "AND t.tgfoid = p.oid AND p.proname LIKE 'RI_FKey_%_del') as b "
+                                                           + "WHERE a.tgconstrname=b.tgconstrname"
+							   );
                 Vector tuples = new Vector();
 
                 while (rs.next())
