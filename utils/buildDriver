@@ -38,10 +38,10 @@ MINORVERSION=`echo $VERSION | cut -f2 -d'.' | cut -c1`
 #---------------------------------------------------------------------------
 # Now finally build the driver
 sed \
-	-e "s/%JDBCCONNECTCLASS%/$CLASS/g" \
-	-e "s/%VERSION%/$VERSION $EDITION/g" \
-	-e "s/%MAJORVERSION%/$MAJORVERSION/g" \
-	-e "s/%MINORVERSION%/$MINORVERSION/g" \
+	-e "s/@JDBCCONNECTCLASS@/$CLASS/g" \
+	-e "s/@VERSION@/$VERSION $EDITION/g" \
+	-e "s/@MAJORVERSION@/$MAJORVERSION/g" \
+	-e "s/@MINORVERSION@/$MINORVERSION/g" \
 	<${SOURCE}.in \
 	>$SOURCE
 #---------------------------------------------------------------------------
