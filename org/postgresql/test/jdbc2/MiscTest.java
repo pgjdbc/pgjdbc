@@ -79,7 +79,6 @@ public class MiscTest extends TestCase
 	public void xtestLocking()
 	{
 
-		System.out.println("testing lock");
 		try
 		{
 			Connection con = TestUtil.openDB();

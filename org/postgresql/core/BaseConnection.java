@@ -13,7 +13,6 @@
 package org.postgresql.core;
 
 import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
 import java.sql.Statement;
 import java.sql.SQLException;
 import org.postgresql.PGConnection;
@@ -32,6 +31,8 @@ public interface BaseConnection extends PGConnection
 	public Encoding getEncoding() throws SQLException;
 	public DatabaseMetaData getMetaData() throws SQLException;
 	public Object getObject(String type, String value) throws SQLException;
+	public int getPGProtocolVersionMajor();
+	public int getPGProtocolVersionMinor();
 	public PGStream getPGStream();
 	public String getPGType(int oid) throws SQLException;
 	public int getPGType(String pgTypeName) throws SQLException;

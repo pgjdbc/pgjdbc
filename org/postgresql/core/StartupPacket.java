@@ -31,6 +31,31 @@ public class StartupPacket
 
 	public void writeTo(PGStream stream) throws IOException
 	{
+		if (protocolMajor == 3) {
+			v3WriteTo(stream);
+		} else {
+			v2WriteTo(stream);
+		}
+	}
+
+	public void v3WriteTo(PGStream stream) throws IOException
+	{
+		stream.SendInteger(4 + 4 + "user".length() + 1 + user.length() + 1 + "database".length() +1 + database.length() + 1 + 1, 4);
+		stream.SendInteger(protocolMajor, 2);
+		stream.SendInteger(protocolMinor, 2);
+		stream.Send("user".getBytes());
+		stream.SendChar(0);
+		stream.Send(user.getBytes());
+		stream.SendChar(0);
+		stream.Send("database".getBytes());
+		stream.SendChar(0);
+		stream.Send(database.getBytes());
+		stream.SendChar(0);
+		stream.SendChar(0);
+	}
+
+	public void v2WriteTo(PGStream stream) throws IOException
+	{
 		stream.SendInteger(4 + 4 + SM_DATABASE + SM_USER + SM_OPTIONS + SM_UNUSED + SM_TTY, 4);
 		stream.SendInteger(protocolMajor, 2);
 		stream.SendInteger(protocolMinor, 2);

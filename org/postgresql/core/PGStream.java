@@ -85,6 +85,25 @@ public class PGStream
 	}
 
 	/*
+	 * Sends an integer to the back end
+	 *
+	 * @param val the integer to be sent
+	 * @param siz the length of the integer in bytes (size of structure)
+	 * @exception IOException if an I/O error occurs
+	 */
+	public void SendIntegerR(int val, int siz) throws IOException
+	{
+		byte[] buf = new byte[siz];
+
+		for (int i = 0; i < siz; i++)
+		{
+			buf[i] = (byte)(val & 0xff);
+			val >>= 8;
+		}
+		Send(buf);
+	}
+
+	/*
 	 * Send an array of bytes to the backend
 	 *
 	 * @param buf The array of bytes to be sent
@@ -273,7 +292,39 @@ public class PGStream
 	 *	an array of strings
 	 * @exception SQLException if a data I/O error occurs
 	 */
-	public byte[][] ReceiveTuple(int nf, boolean bin) throws SQLException
+	public byte[][] ReceiveTupleV3(int nf, boolean bin) throws SQLException
+	{
+		//TODO: use l_msgSize
+		int l_msgSize = ReceiveIntegerR(4);
+		int i;
+		int l_nf = ReceiveIntegerR(2);
+		byte[][] answer = new byte[l_nf][0];
+		
+		for (i = 0 ; i < l_nf ; ++i)
+		{
+			int l_size = ReceiveIntegerR(4);
+			boolean isNull = l_size == -1;
+			if (isNull)
+				answer[i] = null;
+			else
+			{
+				answer[i] = Receive(l_size);
+			}
+		}
+		return answer;
+	}
+
+	/*
+	 * Read a tuple from the back end.	A tuple is a two dimensional
+	 * array of bytes
+	 *
+	 * @param nf the number of fields expected
+	 * @param bin true if the tuple is a binary tuple
+	 * @return null if the current response has no more tuples, otherwise
+	 *	an array of strings
+	 * @exception SQLException if a data I/O error occurs
+	 */
+	public byte[][] ReceiveTupleV2(int nf, boolean bin) throws SQLException
 	{
 		int i, bim = (nf + 7) / 8;
 		byte[] bitmask = Receive(bim);
@@ -313,7 +364,7 @@ public class PGStream
 	 * @return array of bytes received
 	 * @exception SQLException if a data I/O error occurs
 	 */
-	private byte[] Receive(int siz) throws SQLException
+	public byte[] Receive(int siz) throws SQLException
 	{
 		byte[] answer = new byte[siz];
 		Receive(answer, 0, siz);

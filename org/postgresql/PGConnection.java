@@ -16,8 +16,6 @@
 package org.postgresql;
 
 import java.sql.*;
-import java.util.Properties;
-import java.util.Vector;
 import org.postgresql.core.Encoding;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.largeobject.LargeObjectManager;

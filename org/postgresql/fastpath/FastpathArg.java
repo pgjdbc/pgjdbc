@@ -100,5 +100,17 @@ public class FastpathArg
 			s.Send(bytes);
 		}
 	}
+
+	protected int sendSize()
+	{
+		if (type)
+		{
+			return 8;
+		}
+		else
+		{
+			return 4+bytes.length;
+		}
+	}
 }
 

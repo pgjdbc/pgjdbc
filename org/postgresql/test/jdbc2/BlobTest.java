@@ -188,7 +188,7 @@ public class BlobTest extends TestCase
 			result = result && f == -1 && b == -1;
 
 			if (!result)
-				System.out.println("\nBlob compare failed at " + c + " of " + blob.size());
+				assertTrue("Blob compare failed at " + c + " of " + blob.size(), false);
 
 			blob.close();
 			fis.close();

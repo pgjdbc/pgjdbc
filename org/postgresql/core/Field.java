@@ -12,11 +12,8 @@
  */
 package org.postgresql.core;
 
-import java.lang.*;
 import java.sql.*;
-import java.util.*;
 import org.postgresql.core.BaseConnection;
-import org.postgresql.util.PSQLException;
 
 /*
  */
