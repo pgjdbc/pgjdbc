@@ -365,4 +365,23 @@ public class CursorFetchTest extends TestCase
  
 		assertEquals(101, count);
 	}	
+
+	// if the driver tries to use a cursor with autocommit on
+	// it will fail because the cursor will disappear partway
+	// through execution
+	public void testNoCursorWithAutoCommit() throws Exception
+	{
+		createRows(10); // 0 .. 9
+		con.setAutoCommit(true);
+		Statement stmt = con.createStatement();
+		stmt.setFetchSize(3);
+		ResultSet rs = stmt.executeQuery("SELECT * FROM test_fetch ORDER BY value");
+		int count = 0;
+		while (rs.next()) {
+			assertEquals(count++, rs.getInt(1));
+		}
+
+		assertEquals(10, count);
+	}
+
 }

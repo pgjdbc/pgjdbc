@@ -327,7 +327,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
 
 		// Enable cursor-based resultset if possible.
-		if (fetchSize > 0 && !wantsScrollableResultSet())
+		if (fetchSize > 0 && !wantsScrollableResultSet() && !connection.getAutoCommit())
 			flags |= QueryExecutor.QUERY_FORWARD_CURSOR;
 
 		// Only use named statements after we hit the threshold
