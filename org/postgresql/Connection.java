@@ -139,6 +139,8 @@ public abstract class Connection
 	 */
 	protected void openConnection(String host, int port, Properties info, String database, String url, Driver d) throws SQLException
 	{
+		firstWarning = null;
+
 		// Throw an exception if the user or password properties are missing
 		// This occasionally occurs when the client uses the properties version
 		// of getConnection(), and is a common question on the email lists
@@ -209,7 +211,7 @@ public abstract class Connection
 						// The most common one to be thrown here is:
 						// "User authentication failed"
 						//
-						throw new SQLException(pg_stream.ReceiveString(encoding));
+						throw new PSQLException("postgresql.con.misc", pg_stream.ReceiveString(encoding));
 
 					case 'R':
 						// Get the type of request
@@ -304,8 +306,10 @@ public abstract class Connection
 				ckey = pg_stream.ReceiveIntegerR(4);
 				break;
 			case 'E':
+				throw new PSQLException("postgresql.con.backend", pg_stream.ReceiveString(encoding));
 			case 'N':
-				throw new SQLException(pg_stream.ReceiveString(encoding));
+				addWarning(pg_stream.ReceiveString(encoding));
+				break;
 			default:
 				throw new PSQLException("postgresql.con.setup");
 		}
@@ -317,13 +321,10 @@ public abstract class Connection
 			case 'Z':
 				break;
 			case 'E':
-			case 'N':
-				throw new SQLException(pg_stream.ReceiveString(encoding));
+				throw new PSQLException("postgresql.con.backend", pg_stream.ReceiveString(encoding));
 			default:
 				throw new PSQLException("postgresql.con.setup");
 		}
-
-		firstWarning = null;
 
 		// "pg_encoding_to_char(1)" will return 'EUC_JP' for a backend compiled with multibyte,
 		// otherwise it's hardcoded to 'SQL_ASCII'.
@@ -361,7 +362,6 @@ public abstract class Connection
 		initObjectTypes();
 
 		// Mark the connection as ok, and cleanup
-		firstWarning = null;
 		PG_STATUS = CONNECTION_OK;
 	}
 
