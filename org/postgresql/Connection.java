@@ -1103,7 +1103,7 @@ public abstract class Connection
 	 */
 	public int getSQLType(int oid) throws SQLException
 	{
-		Integer sqlType = (Integer)typeOidCache.get(new Integer(oid));
+		Integer sqlType = (Integer)sqlTypeCache.get(new Integer(oid));
 
 		// it's not in the cache, so perform a query, and add the result to the cache
 		if (sqlType == null)
