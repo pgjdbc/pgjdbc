@@ -26,7 +26,7 @@ public class PSQLException extends SQLException
 
 	public PSQLException(String msg, PSQLState state, Throwable cause, Object[] argv)
 	{
-		super(translate(msg, cause, argv), state == null ? null : state.getState(), msg.hashCode());                
+		super(translate(msg, cause, argv), state == null ? null : state.getState());                
 		initCause(cause); // Calls either the 1.4 Throwable impl or our impl below.
 		if (Driver.logDebug)
 			Driver.debug("Exception: " + this);
