@@ -3,7 +3,7 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.48 2004/11/09 08:48:54 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.49 2004/11/10 20:43:45 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -200,7 +200,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public java.sql.ResultSet executeQuery(String p_sql) throws SQLException
     {
         if (preparedQuery != null)
-            throw new PSQLException(GT.tr("Can't use query methods that take a query string on a PreparedStatement."));
+            throw new PSQLException(GT.tr("Can''t use query methods that take a query string on a PreparedStatement."));
 
         if (!executeWithFlags(p_sql, 0))
             throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
@@ -241,7 +241,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public int executeUpdate(String p_sql) throws SQLException
     {
         if (preparedQuery != null)
-            throw new PSQLException(GT.tr("Can't use query methods that take a query string on a PreparedStatement."));
+            throw new PSQLException(GT.tr("Can''t use query methods that take a query string on a PreparedStatement."));
 
         if (executeWithFlags(p_sql, QueryExecutor.QUERY_NO_RESULTS))
             throw new PSQLException(GT.tr("A result was returned when none was expected."));
@@ -280,7 +280,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public boolean execute(String p_sql) throws SQLException
     {
         if (preparedQuery != null)
-            throw new PSQLException(GT.tr("Can't use query methods that take a query string on a PreparedStatement."));
+            throw new PSQLException(GT.tr("Can''t use query methods that take a query string on a PreparedStatement."));
 
         return executeWithFlags(p_sql, 0);
     }
@@ -1591,7 +1591,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         else
         {
             // Can't infer a type.
-            throw new PSQLException(GT.tr("Can't infer the SQL type to use for an instance of {0}. Use setObject() with an explicit Types value to specify the type to use.", x.getClass().getName()), PSQLState.INVALID_PARAMETER_TYPE);
+            throw new PSQLException(GT.tr("Can''t infer the SQL type to use for an instance of {0}. Use setObject() with an explicit Types value to specify the type to use.", x.getClass().getName()), PSQLState.INVALID_PARAMETER_TYPE);
         }
     }
 
@@ -2351,7 +2351,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         checkClosed();
 
         if (preparedQuery != null)
-            throw new PSQLException(GT.tr("Can't use query methods that take a query string on a PreparedStatement."));
+            throw new PSQLException(GT.tr("Can''t use query methods that take a query string on a PreparedStatement."));
 
         if (batchStatements == null)
         {

@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.13 2004/11/07 22:15:39 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.14 2004/11/09 08:46:14 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1187,14 +1187,14 @@ public class QueryExecutorImpl implements QueryExecutor {
                     if (name.equals("client_encoding") && !value.equals("UNICODE"))
                     {
                         protoConnection.close(); // we're screwed now; we can't trust any subsequent string.
-                        handler.handleError(new PSQLException(GT.tr("The server's client_encoding parameter was changed to {0}. The JDBC driver requires client_encoding to be UNICODE for correct operation.", value), PSQLState.CONNECTION_FAILURE));
+                        handler.handleError(new PSQLException(GT.tr("The server''s client_encoding parameter was changed to {0}. The JDBC driver requires client_encoding to be UNICODE for correct operation.", value), PSQLState.CONNECTION_FAILURE));
                         endQuery = true;
                     }
 
                     if (name.equals("DateStyle") && !value.startsWith("ISO,"))
                     {
                         protoConnection.close(); // we're screwed now; we can't trust any subsequent date.
-                        handler.handleError(new PSQLException(GT.tr("The server's DateStyle parameter was changed to {0}. The JDBC driver requires DateStyle to begin with ISO for correct operation.", value), PSQLState.CONNECTION_FAILURE));
+                        handler.handleError(new PSQLException(GT.tr("The server''s DateStyle parameter was changed to {0}. The JDBC driver requires DateStyle to begin with ISO for correct operation.", value), PSQLState.CONNECTION_FAILURE));
                         endQuery = true;
                     }
                 }

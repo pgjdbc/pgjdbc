@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ConnectionFactoryImpl.java,v 1.5 2004/11/07 22:15:34 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ConnectionFactoryImpl.java,v 1.6 2004/11/09 08:45:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -303,7 +303,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                     if (Driver.logDebug)
                         Driver.debug(" <=BE AuthenticationReq (unsupported type " + ((int)areq) + ")");
 
-                    throw new PSQLException(GT.tr("The authentication type {0} is not supported. Check that you have configured the pg_hba.conf file to include the client's IP address or Subnet, and that it is using an authentication scheme supported by the driver.", new Integer(areq)), PSQLState.CONNECTION_REJECTED);
+                    throw new PSQLException(GT.tr("The authentication type {0} is not supported. Check that you have configured the pg_hba.conf file to include the client''s IP address or subnet, and that it is using an authentication scheme supported by the driver.", new Integer(areq)), PSQLState.CONNECTION_REJECTED);
                 }
 
                 break;

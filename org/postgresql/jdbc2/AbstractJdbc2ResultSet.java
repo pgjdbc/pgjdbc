@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.60 2004/11/09 08:48:45 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.61 2004/11/10 20:43:45 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -599,7 +599,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         checkScrollable();
 
         if (onInsertRow)
-            throw new PSQLException(GT.tr("Can't use relative move methods while on the insert row."));
+            throw new PSQLException(GT.tr("Can''t use relative move methods while on the insert row."));
 
         if (current_row -1 < 0)
         {
@@ -624,7 +624,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         checkScrollable();
 
         if (onInsertRow)
-            throw new PSQLException(GT.tr("Can't use relative move methods while on the insert row."));
+            throw new PSQLException(GT.tr("Can''t use relative move methods while on the insert row."));
 
         //have to add 1 since absolute expects a 1-based index
         return absolute(current_row + 1 + rows);
@@ -1114,7 +1114,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     {
         checkUpdateable();
         if (onInsertRow)
-            throw new PSQLException(GT.tr("Can't refresh the insert row."));
+            throw new PSQLException(GT.tr("Can''t refresh the insert row."));
 
         if (isBeforeFirst() || isAfterLast() || rows.size() == 0)
             return ;
@@ -1757,7 +1757,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             throw new PSQLException(GT.tr("This ResultSet is closed."), PSQLState.CONNECTION_DOES_NOT_EXIST);
 
         if (onInsertRow)
-            throw new PSQLException(GT.tr("Can't use relative move methods while on the insert row."));
+            throw new PSQLException(GT.tr("Can''t use relative move methods while on the insert row."));
 
         if (current_row + 1 >= rows.size())
         {
