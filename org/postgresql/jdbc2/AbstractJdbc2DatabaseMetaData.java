@@ -2342,6 +2342,19 @@ public abstract class AbstractJdbc2DatabaseMetaData
 			String pgType = connection.getPGType(typeOid);
 			tuple[5] = connection.encodeString(pgType);	// Type name
 
+			String defval = rs.getString("adsrc");
+			
+			if ( defval != null ) {
+			    if ( pgType.equals("int4") ) {
+				if (defval.indexOf("nextval(") != -1)
+				    tuple[5] = connection.encodeString("serial");	// Type name == serial
+			    }
+			    else if ( pgType.equals("int8") ) {
+				if (defval.indexOf("nextval(") != -1)
+				    tuple[5] = connection.encodeString("bigserial");	// Type name == bigserial
+			    }
+			}
+
 			// by default no decimal_digits
 			// if the type is numeric or decimal we will
 			// overwrite later.
@@ -3501,6 +3514,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
 		byte b9[] = connection.encodeString("9");
 		byte b10[] = connection.encodeString("10");
 		byte bf[] = connection.encodeString("f");
+		byte bt[] = connection.encodeString("t");
 		byte bnn[] = connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.typeNoNulls));
 		byte bts[] = connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.typeSearchable));
 
@@ -3516,12 +3530,30 @@ public abstract class AbstractJdbc2DatabaseMetaData
 			tuple[8] = bts;
 			tuple[9] = bf; // false for now - it's signed
 			tuple[10] = bf; // false for now - must handle money
-			tuple[11] = bf; // false for now - handle autoincrement
+			tuple[11] = bf; // false - it isn't autoincrement
+			
 			// 12 - LOCAL_TYPE_NAME is null
 			// 13 & 14 ?
 			// 15 & 16 are unused so we return null
 			tuple[17] = b10; // everything is base 10
 			v.addElement(tuple);
+
+			// add pseudo-type serial, bigserial
+			if ( typname.equals("int4") ) {
+			  byte[][] tuple1 = (byte[][])tuple.clone();
+			  
+			  tuple1[0]  = connection.encodeString("serial");
+			  tuple1[11] = bt;
+			  v.addElement(tuple1);
+			} 
+			else if ( typname.equals("int8") ) {
+			  byte[][] tuple1 = (byte[][])tuple.clone();
+			  
+			  tuple1[0]  = connection.encodeString("bigserial");
+			  tuple1[11] = bt;
+			  v.addElement(tuple1);
+			}
+
 		}
 		rs.close();
 

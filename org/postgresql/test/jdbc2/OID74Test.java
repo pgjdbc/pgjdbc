@@ -28,14 +28,14 @@ public class OID74Test  extends TestCase
 		Properties props = new Properties();
 		props.setProperty("compatible","7.1");
 		conn = TestUtil.openDB(props);
-		conn.setAutoCommit(false);
 
 		TestUtil.createTable(conn,"temp","col oid");
+		conn.setAutoCommit(false);
 	}
 
 	public void tearDown() throws Exception
 	{
-		conn.setAutoCommit(false);
+		conn.setAutoCommit(true);
 		TestUtil.dropTable(conn,"temp");
 		TestUtil.closeDB(conn);
 	}

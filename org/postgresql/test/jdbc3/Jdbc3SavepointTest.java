@@ -19,6 +19,7 @@ public class Jdbc3SavepointTest extends TestCase {
 	}
 
 	protected void tearDown() throws SQLException {
+		_conn.setAutoCommit(true);
 		TestUtil.dropTable(_conn, "savepointtable");
 		TestUtil.closeDB(_conn);
 	}

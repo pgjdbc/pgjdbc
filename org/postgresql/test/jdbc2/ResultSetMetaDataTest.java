@@ -32,6 +32,8 @@ public class ResultSetMetaDataTest extends TestCase
 
 		TestUtil.createTable(conn, "timetest", "tm time(3), tmtz timetz, ts timestamp without time zone, tstz timestamp(6) with time zone");
 
+		TestUtil.dropSequence( conn, "serialtest_a_seq");
+		TestUtil.dropSequence( conn, "serialtest_b_seq");
 		TestUtil.createTable(conn, "serialtest", "a serial, b bigserial, c int");
 	}
 
@@ -40,6 +42,8 @@ public class ResultSetMetaDataTest extends TestCase
 		TestUtil.dropTable(conn, "rsmd1");
 		TestUtil.dropTable(conn, "timetest");
 		TestUtil.dropTable(conn, "serialtest");
+		TestUtil.dropSequence( conn, "serialtest_a_seq");
+		TestUtil.dropSequence( conn, "serialtest_b_seq");
 		rs.close();
 		stmt.close();
 		TestUtil.closeDB(conn);
