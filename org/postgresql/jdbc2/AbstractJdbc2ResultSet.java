@@ -8,7 +8,7 @@
  * Copyright (c) 2003, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.55 2004/10/25 22:43:20 jurka Exp $
+ *	  $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.56 2004/10/28 01:55:12 oliver Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -1709,6 +1709,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
 	public void setFetchSize(int rows) throws SQLException
 	{
+		if (rows<0)
+			throw new PSQLException(GT.tr("Fetch size must be a value greater to or equal to 0."));
 		fetchSize = rows;
 	}
 
