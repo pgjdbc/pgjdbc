@@ -3,7 +3,7 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.56 2004/12/22 09:23:57 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.57 2004/12/22 23:34:15 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2395,15 +2395,20 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             firstUnclosedResult = firstUnclosedResult.getNext();
         }
 
+        if (lastSimpleQuery != null) {
+            lastSimpleQuery.close();
+            lastSimpleQuery = null;
+        }
+
         int flags = QueryExecutor.QUERY_NO_RESULTS;
 
         // Only use named statements after we hit the threshold
         if (preparedQuery != null)
         {
             m_useCount += queries.length;
-            if (m_prepareThreshold == 0 || m_useCount < m_prepareThreshold)
-                flags |= QueryExecutor.QUERY_ONESHOT;
         }
+        if (m_prepareThreshold == 0 || m_useCount < m_prepareThreshold)
+            flags |= QueryExecutor.QUERY_ONESHOT;
 
         if (connection.getAutoCommit())
             flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
