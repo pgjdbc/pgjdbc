@@ -25,9 +25,6 @@ public class PG_Stream
 	private BufferedOutputStream pg_output;
 	private byte[] byte_buf = new byte[8*1024];
 
-	BytePoolDim1 bytePoolDim1 = new BytePoolDim1();
-	BytePoolDim2 bytePoolDim2 = new BytePoolDim2();
-
 	/*
 	 * Constructor:  Connect to the PostgreSQL back end and return
 	 * a stream connection.
@@ -69,7 +66,7 @@ public class PG_Stream
 	 */
 	public void SendInteger(int val, int siz) throws IOException
 	{
-		byte[] buf = bytePoolDim1.allocByte(siz);
+		byte[] buf = new byte[siz];
 
 		while (siz-- > 0)
 		{
@@ -272,7 +269,7 @@ public class PG_Stream
 	{
 		int i, bim = (nf + 7) / 8;
 		byte[] bitmask = Receive(bim);
-		byte[][] answer = bytePoolDim2.allocByte(nf);
+		byte[][] answer = new byte[nf][0];
 
 		int whichbit = 0x80;
 		int whichbyte = 0;
@@ -310,7 +307,7 @@ public class PG_Stream
 	 */
 	private byte[] Receive(int siz) throws SQLException
 	{
-		byte[] answer = bytePoolDim1.allocByte(siz);
+		byte[] answer = new byte[siz];
 		Receive(answer, 0, siz);
 		return answer;
 	}
