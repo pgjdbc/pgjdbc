@@ -18,6 +18,26 @@ public class JBuilderTest extends TestCase {
     super(name);
   }
 
+  // Set up the fixture for this testcase: the tables for this test.
+  protected void setUp() throws Exception {
+  	Connection con = JDBC2Tests.openDB();
+
+	JDBC2Tests.createTable( con, "test_c", 
+	    "source text,cost money,imageid int4" );
+
+	JDBC2Tests.closeDB(con);
+  }
+
+  // Tear down the fixture for this test case.
+  protected void tearDown() throws Exception {
+  	Connection con = JDBC2Tests.openDB();
+	Statement stmt = con.createStatement();
+
+	stmt.executeUpdate("DROP TABLE test_c");
+	stmt.close();
+    JDBC2Tests.closeDB(con);
+  }
+
   /**
    * This tests that Money types work. JDBCExplorer barfs if this fails.
    */
