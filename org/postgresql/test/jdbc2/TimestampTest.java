@@ -24,8 +24,6 @@ public class TimestampTest extends TestCase
 	protected void setUp() throws Exception
 	{
 		con = TestUtil.openDB();
-		Statement stmt = con.createStatement();
-
 		TestUtil.createTable(con, TSWTZ_TABLE, "ts timestamp with time zone");
 		TestUtil.createTable(con, TSWOTZ_TABLE, "ts timestamp without time zone");
 	}

@@ -12,8 +12,7 @@
  */
 package org.postgresql.util;
 
-import java.sql.*;
-import java.util.*;
+import java.util.Vector;
 
 /*
  * It's mainly used by the geometric classes, but is useful in parsing any

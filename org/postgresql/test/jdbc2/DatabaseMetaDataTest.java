@@ -337,7 +337,7 @@ public class DatabaseMetaDataTest extends TestCase
 		{
 			DatabaseMetaData dbmd = con.getMetaData();
 			assertNotNull(dbmd);
-			ResultSet rs = dbmd.getBestRowIdentifier(null,null,"pg_type",dbmd.bestRowSession,false);
+			ResultSet rs = dbmd.getBestRowIdentifier(null,null,"pg_type",DatabaseMetaData.bestRowSession,false);
 			rs.close();
 		} catch (SQLException sqle) {
 			fail(sqle.getMessage());

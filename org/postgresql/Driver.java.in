@@ -198,7 +198,8 @@ public class Driver implements java.sql.Driver
 	public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) throws SQLException
 	{
 		//This method isn't really implemented
-		Properties p = parseURL(url, info);
+		//we just parse the URL to ensure it is valid
+		parseURL(url, info);
 		return new DriverPropertyInfo[0];
 	}
 
@@ -261,8 +262,6 @@ public class Driver implements java.sql.Driver
 	{
 		int state = -1;
 		Properties urlProps = new Properties(defaults);
-		String key = "";
-		String value = "";
 
 		String l_urlServer = url;
 		String l_urlArgs = "";

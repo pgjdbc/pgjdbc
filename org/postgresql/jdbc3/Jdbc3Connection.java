@@ -1,10 +1,7 @@
 package org.postgresql.jdbc3;
 
 
-import java.sql.*;
-import java.util.Vector;
-import java.util.Hashtable;
-import org.postgresql.core.Field;
+import java.sql.SQLException;
 
 /* $Header$
  * This class implements the java.sql.Connection interface for JDBC3.

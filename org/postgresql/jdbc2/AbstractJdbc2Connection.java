@@ -1,10 +1,11 @@
 package org.postgresql.jdbc2;
 
 
-import java.io.*;
-import java.net.ConnectException;
-import java.sql.*;
-import org.postgresql.util.PSQLException;
+import java.io.PrintWriter;
+import java.sql.DriverManager;
+import java.sql.SQLData;
+import java.sql.SQLException;
+import java.sql.Types;
 
 /* $Header$
  * This class defines methods of the jdbc2 specification.  This class extends

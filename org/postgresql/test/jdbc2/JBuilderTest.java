@@ -1,9 +1,11 @@
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.test.TestUtil;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
+
 import junit.framework.TestCase;
-import java.sql.*;
-import java.math.BigDecimal;
 
 /*
  * $Id$
@@ -54,7 +56,7 @@ public class JBuilderTest extends TestCase
 
 			while (rs.next())
 			{
-				double bd = rs.getDouble(1);
+				rs.getDouble(1);
 			}
 
 			rs.close();

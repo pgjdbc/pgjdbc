@@ -12,11 +12,10 @@
  */
 package org.postgresql.geometric;
 
-import java.io.Serializable;
-import java.sql.SQLException;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
-import org.postgresql.util.PSQLException;
+import java.io.Serializable;
+import java.sql.SQLException;
 
 public class PGpolygon extends PGobject implements Serializable, Cloneable
 {

@@ -38,7 +38,7 @@ public class MiscTest extends TestCase
 
 			while (rs.next())
 			{
-				String s = rs.getString(1);
+				rs.getString(1);
 			}
 
 			rs.close();

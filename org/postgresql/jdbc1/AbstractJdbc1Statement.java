@@ -1,17 +1,29 @@
 package org.postgresql.jdbc1;
 
-import java.io.*;
-
-import java.math.BigDecimal;
-import java.sql.*;
-import java.util.Vector;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseResultSet;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Field;
 import org.postgresql.core.QueryExecutor;
-import org.postgresql.largeobject.*;
-import org.postgresql.util.*;
+import org.postgresql.largeobject.LargeObject;
+import org.postgresql.largeobject.LargeObjectManager;
+import org.postgresql.util.PGbytea;
+import org.postgresql.util.PGobject;
+import org.postgresql.util.PSQLException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
+import java.sql.CallableStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLWarning;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.util.Vector;
 
 /* $Header$
  * This class defines methods of the jdbc1 specification.  This class is
