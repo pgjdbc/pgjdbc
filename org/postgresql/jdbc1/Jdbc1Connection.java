@@ -21,7 +21,7 @@ public class Jdbc1Connection extends org.postgresql.jdbc1.AbstractJdbc1Connectio
 
 	public java.sql.PreparedStatement prepareStatement(String sql) throws SQLException
 	{
-		return new org.postgresql.jdbc1.PreparedStatement(this, sql);
+		return new org.postgresql.jdbc1.Jdbc1PreparedStatement(this, sql);
 	}
 
 //BJL TODO - merge callable statement logic from jdbc2 to jdbc1

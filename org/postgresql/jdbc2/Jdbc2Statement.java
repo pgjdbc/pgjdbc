@@ -13,9 +13,7 @@ public class Jdbc2Statement extends org.postgresql.jdbc2.AbstractJdbc2Statement 
 
 	public Jdbc2Statement (Jdbc2Connection c)
 	{
-		connection = c;
-		resultsettype = java.sql.ResultSet.TYPE_SCROLL_INSENSITIVE;
-		concurrency = java.sql.ResultSet.CONCUR_READ_ONLY;
+		super(c);
 	}
 
 }

@@ -13,7 +13,7 @@ public class Jdbc1Statement extends org.postgresql.jdbc1.AbstractJdbc1Statement 
 
 	public Jdbc1Statement (Jdbc1Connection c)
 	{
-		connection = c;
+	    super(c);
 	}
 
 }

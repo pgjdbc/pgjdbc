@@ -24,7 +24,7 @@ public class Jdbc2Connection extends org.postgresql.jdbc2.AbstractJdbc2Connectio
 
         public java.sql.PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency) throws SQLException
         {
-                org.postgresql.jdbc2.PreparedStatement s = new org.postgresql.jdbc2.PreparedStatement(this, sql);
+                Jdbc2PreparedStatement s = new Jdbc2PreparedStatement(this, sql);
                 s.setResultSetType(resultSetType);
                 s.setResultSetConcurrency(resultSetConcurrency);
                 return s;

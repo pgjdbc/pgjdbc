@@ -20,7 +20,7 @@ import org.postgresql.util.PSQLException;
  */
 public class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.AbstractJdbc1ResultSet
 {
-	protected Jdbc2Statement statement;
+	protected Statement statement;
 
 	protected String sqlQuery=null;
 
@@ -373,7 +373,7 @@ public class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.AbstractJdbc1Re
 	}
 
 	// This one needs some thought, as not all ResultSets come from a statement
-	public java.sql.Statement getStatement() throws SQLException
+	public Statement getStatement() throws SQLException
 	{
 		return statement;
 	}
@@ -740,7 +740,7 @@ public class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.AbstractJdbc1Re
 	 * It's used currently by getStatement() but may also with the new core
 	 * package.
 	 */
-	public void setStatement(Jdbc2Statement statement)
+	public void setStatement(Statement statement)
 	{
 		this.statement = statement;
 	}
