@@ -26,6 +26,7 @@
   <property name="database" value="jdbc:postgresql:test" />
   <property name="username" value="test" />
   <property name="password" value="password" />
+  <property name="tablename" value="jdbctest" />
   <property name="junit.ui" value="textui" />
 
   <!--
