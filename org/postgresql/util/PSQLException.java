@@ -127,12 +127,4 @@ public class PSQLException extends SQLException
 	{
 		return message;
 	}
-
-	/*
-	 * Overides Object
-	 */
-	public String toString()
-	{
-		return message != null ? message : "";
-	}
 }

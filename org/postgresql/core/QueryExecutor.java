@@ -192,7 +192,7 @@ public class QueryExecutor
 
 			// did we get an error during this query?
 			if ( errorMessage != null )
-				throw new SQLException( errorMessage.toString() );
+				throw new SQLException( errorMessage.toString().trim() );
 
 
 			//if an existing result set was passed in reuse it, else
@@ -283,7 +283,7 @@ public class QueryExecutor
 
 			// did we get an error during this query?
 			if ( errorMessage != null )
-				throw new SQLException( errorMessage.toString() );
+				throw new SQLException( errorMessage.toString().trim() );
 
 
 			//if an existing result set was passed in reuse it, else
