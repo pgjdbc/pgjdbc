@@ -1083,7 +1083,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 				rows.setElementAt( rowBuffer, current_row );
 				if ( Driver.logDebug )
 					Driver.debug("done updates");
-
+				updateValues.clear();
 				doingUpdates = false;
 			}
 			catch (Exception e)
