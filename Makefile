@@ -56,7 +56,7 @@ postgresql.jar: $(OBJS)
 clean:
 	$(FIND) . -name "*~" -exec $(RM) {} \;
 	$(FIND) . -name "*.class" -exec $(RM) {} \;
-	$(RM) postgres.jar
+	$(RM) postgresql.jar
 
 #######################################################################
 # This helps make workout what classes are from what source files
