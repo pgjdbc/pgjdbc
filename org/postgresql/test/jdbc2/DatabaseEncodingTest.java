@@ -6,6 +6,7 @@ import java.sql.*;
 
 /*
  * Test case for Dario's encoding problems.
+ * Ensure the driver's own utf-8 decode method works.
  */
 public class DatabaseEncodingTest extends TestCase
 {
@@ -16,7 +17,7 @@ public class DatabaseEncodingTest extends TestCase
 		super(name);
 	}
 
-	private static final int STEP = 30;
+	private static final int STEP = 300;
 
 	// Set up the fixture for this testcase: a connection to a database with
 	// a table for this test.
@@ -26,11 +27,15 @@ public class DatabaseEncodingTest extends TestCase
 		TestUtil.createTable(con,
 							 "testdbencoding",
 							 "unicode_ordinal integer primary key not null, unicode_string varchar(" + STEP + ")");
+		// disabling auto commit makes the test run faster
+		// by not committing each insert individually.
+		con.setAutoCommit(false);
 	}
 
 	// Tear down the fixture for this test case.
 	protected void tearDown() throws Exception
 	{
+		con.setAutoCommit(true);
 		TestUtil.dropTable(con, "testdbencoding");
 		TestUtil.closeDB(con);
 	}
@@ -59,8 +64,6 @@ public class DatabaseEncodingTest extends TestCase
 		}
 
 		rs.close();
-
-		con.setAutoCommit(false); // Go faster!
 
 		// Create data.
 		// NB: we only test up to d800 as code points above that are
