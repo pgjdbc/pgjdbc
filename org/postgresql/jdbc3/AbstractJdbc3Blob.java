@@ -3,14 +3,16 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Blob.java,v 1.5 2005/01/11 08:25:46 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Blob.java,v 1.6 2005/02/15 08:56:26 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.jdbc3;
 
 
-import java.sql.*;
+import java.sql.SQLException;
+
+import org.postgresql.largeobject.LargeObject;
 
 public abstract class AbstractJdbc3Blob extends org.postgresql.jdbc2.AbstractJdbc2Blob
 {
@@ -37,10 +39,12 @@ public abstract class AbstractJdbc3Blob extends org.postgresql.jdbc2.AbstractJdb
      */
     public int setBytes(long pos, byte[] bytes) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "setBytes(long,byte[]");
+        return setBytes(pos, bytes, 0, bytes.length);
     }
 
-    /**
+    
+
+   /**
      * Writes all or part of the given <code>byte</code> array to the
      * <code>BLOB</code> value that this <code>Blob</code> object represents
      * and returns the number of bytes written.
@@ -63,7 +67,11 @@ public abstract class AbstractJdbc3Blob extends org.postgresql.jdbc2.AbstractJdb
      */
     public int setBytes(long pos, byte[] bytes, int offset, int len) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "setBytes(long,byte[],int,int)");
+        assertPosition(pos);
+        LargeObject lo = getLO();
+        lo.seek((int) pos);
+        lo.write(bytes, offset, len);
+        return len;
     }
 
     /**
@@ -82,7 +90,10 @@ public abstract class AbstractJdbc3Blob extends org.postgresql.jdbc2.AbstractJdb
      */
     public java.io.OutputStream setBinaryStream(long pos) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "setBinaryStream(long)");
+        assertPosition(pos);
+        LargeObject lo = getLO();
+        lo.seek((int) pos);
+        return lo.getOutputStream();
     }
 
     /**

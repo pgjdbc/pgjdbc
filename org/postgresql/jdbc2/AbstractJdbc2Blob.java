@@ -3,59 +3,24 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Blob.java,v 1.7 2005/01/11 08:25:45 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Blob.java,v 1.8 2005/02/15 08:56:25 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.jdbc2;
 
-import org.postgresql.PGConnection;
-import org.postgresql.largeobject.LargeObject;
-import org.postgresql.largeobject.LargeObjectManager;
-import java.io.InputStream;
-import java.sql.Blob;
 import java.sql.SQLException;
 
-public abstract class AbstractJdbc2Blob
+import org.postgresql.PGConnection;
+import org.postgresql.largeobject.LargeObject;
+
+public abstract class AbstractJdbc2Blob extends AbstractJdbc2BlobClob
 {
     private LargeObject lo;
 
     public AbstractJdbc2Blob(PGConnection conn, int oid) throws SQLException
     {
-        LargeObjectManager lom = conn.getLargeObjectAPI();
-        this.lo = lom.open(oid);
-    }
-
-    public long length() throws SQLException
-    {
-        return lo.size();
-    }
-
-    public InputStream getBinaryStream() throws SQLException
-    {
-        return lo.getInputStream();
-    }
-
-    public byte[] getBytes(long pos, int length) throws SQLException
-    {
-        lo.seek((int)pos, LargeObject.SEEK_SET);
-        return lo.read(length);
-    }
-
-    /*
-     * For now, this is not implemented.
-     */
-    public long position(byte[] pattern, long start) throws SQLException
-    {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "position(byte[],long)");
-    }
-
-    /*
-     * This should be simply passing the byte value of the pattern Blob
-     */
-    public long position(Blob pattern, long start) throws SQLException
-    {
-        return position(pattern.getBytes(0, (int)pattern.length()), start);
+        super(conn, oid);
     }
 
 }
