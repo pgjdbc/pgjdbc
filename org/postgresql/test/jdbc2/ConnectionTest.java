@@ -227,10 +227,8 @@ public class ConnectionTest extends TestCase
 	/*
 	 * Transaction Isolation Levels
 	 */
-	public void testTransactionIsolation()
+	public void testTransactionIsolation() throws SQLException
 	{
-		try
-		{
 			Connection con = TestUtil.openDB();
 
 			// PostgreSQL defaults to READ COMMITTED
@@ -245,41 +243,7 @@ public class ConnectionTest extends TestCase
 						 con.getTransactionIsolation());
 
 
-			// Note the behavior on when a transaction starts is different
-			// under 7.3 than previous versions.  In 7.3 a transaction 
-			// starts with the first sql command, whereas previously 
-			// you were always in a transaction in autocommit=false
-            // so we issue a select to ensure we are in a transaction
             Statement stmt = con.createStatement();
-            stmt.executeQuery("select 1");
-
-			// Now change the default for future transactions
-			con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
-
-			// Since the call to setTransactionIsolation() above was made
-		   	// inside the transaction, the isolation level of the current
-		   	// transaction did not change. It affects only future ones.
-		   	// This behaviour is recommended by the JDBC spec.
-		   	assertEquals(Connection.TRANSACTION_READ_COMMITTED,
-						 con.getTransactionIsolation());
-
-		   	// Begin a new transaction
-		   	con.commit();
-            stmt.executeQuery("select 1");
-
-			// Now we should see the new isolation level
-			assertEquals(Connection.TRANSACTION_SERIALIZABLE,
-						 con.getTransactionIsolation());
-
-			// Repeat the steps above with the transition back to
-			// READ COMMITTED.
-			con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
-			assertEquals(Connection.TRANSACTION_SERIALIZABLE,
-						 con.getTransactionIsolation());
-			con.commit();
-			assertEquals(Connection.TRANSACTION_READ_COMMITTED,
-						 con.getTransactionIsolation());
-
 			// Now run some tests with autocommit enabled.
 			con.setAutoCommit(true);
 
@@ -312,11 +276,6 @@ public class ConnectionTest extends TestCase
 						 con.getTransactionIsolation());
 
 			TestUtil.closeDB(con);
-		}
-		catch ( SQLException ex )
-		{
-			fail( ex.getMessage() );
-		}
 	}
 
 	/*

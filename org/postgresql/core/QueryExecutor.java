@@ -42,6 +42,14 @@ public class QueryExecutor
         qe.connection = statement.getPGConnection();
 		qe.pgStream = qe.connection.getPGStream();
 
+		if (!qe.connection.getAutoCommit() && !qe.connection.getInTransaction()) {
+			qe.connection.setInTransaction(true);
+			QueryExecutor.execute(new String[] {"BEGIN;"}, new Object[0], statement);
+			if (!qe.connection.haveMinimumServerVersion("7.1")) {
+				QueryExecutor.execute(new String[] {qe.connection.getPre71IsolationLevelSQL()}, new Object[0], statement);
+			}
+		}
+
 		return qe.execute();
 	}
 
@@ -65,6 +73,14 @@ public class QueryExecutor
 
         qe.connection = qe.statement.getPGConnection();
 		qe.pgStream = 	qe.connection.getPGStream();
+
+		if (!qe.connection.getAutoCommit() && !qe.connection.getInTransaction()) {
+			qe.connection.setInTransaction(true);
+			QueryExecutor.execute(new String[] {"BEGIN;"}, new Object[0], rs);
+			if (!qe.connection.haveMinimumServerVersion("7.1")) {
+				QueryExecutor.execute(new String[] {qe.connection.getPre71IsolationLevelSQL()}, new Object[0], rs);
+			}
+		}
 
 		qe.execute();
 	}

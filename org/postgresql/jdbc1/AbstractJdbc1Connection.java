@@ -73,6 +73,7 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 	public boolean CONNECTION_BAD = false;
 
 	public boolean autoCommit = true;
+	public boolean inTransaction = false;
 	public boolean readOnly = false;
 
 	public Driver this_driver;
@@ -1231,21 +1232,10 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 	{
 		if (this.autoCommit == autoCommit)
 			return ;
-		if (autoCommit)
+		if (autoCommit && inTransaction)
 		{
-				execSQL("end");
-		}
-		else
-		{
-			if (haveMinimumServerVersion("7.1"))
-			{
-				execSQL("begin;");
-			}
-			else
-			{
-				execSQL("begin");
-				execSQL(getPre71IsolationLevelSQL(isolationLevel));
-			}
+			execSQL("end");
+			inTransaction = false;
 		}
 		this.autoCommit = autoCommit;
 	}
@@ -1259,6 +1249,16 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 	public boolean getAutoCommit()
 	{
 		return this.autoCommit;
+	}
+
+	public boolean getInTransaction()
+	{
+		return this.inTransaction;
+	}
+
+	public void setInTransaction(boolean inTransaction)
+	{
+		this.inTransaction = inTransaction;
 	}
 
 	/*
@@ -1275,16 +1275,9 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 	{
 		if (autoCommit)
 			return ;
-		//TODO: delay starting new transaction until first command
-		if (haveMinimumServerVersion("7.1"))
-		{
-			execSQL("commit;begin;");
-		}
-		else
-		{
-			execSQL("commit");
-			execSQL("begin");
-			execSQL(getPre71IsolationLevelSQL(isolationLevel));
+		if (inTransaction) {
+			execSQL("commit;");
+			inTransaction = false;
 		}
 	}
 
@@ -1300,16 +1293,9 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 	{
 		if (autoCommit)
 			return ;
-		//TODO: delay starting transaction until first command
-		if (haveMinimumServerVersion("7.1"))
-		{
-			execSQL("rollback; begin;");
-		}
-		else
-		{
-			execSQL("rollback");
-			execSQL("begin");
-			execSQL(getPre71IsolationLevelSQL(isolationLevel));
+		if (inTransaction) {
+			execSQL("rollback;");
+			inTransaction = false;
 		}
 	}
 
@@ -1369,6 +1355,9 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 	 */
 	public void setTransactionIsolation(int level) throws SQLException
 	{
+		if (inTransaction) {
+			throw new PSQLException("postgresql.con.changeisolevel");
+		}
 		//In 7.1 and later versions of the server it is possible using
 		//the "set session" command to set this once for all future txns
 		//however in 7.0 and prior versions it is necessary to set it in
@@ -1379,13 +1368,24 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 
 		if (!haveMinimumServerVersion("7.1"))
 		{
-			isolationLevelSQL = getPre71IsolationLevelSQL(level);
+			// do nothing because we will do this on each transaction
+			// still we want to check that it is a valid level.
+			String name = getIsolationLevelName(level);
 		}
 		else
 		{
 			isolationLevelSQL = "SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL " + getIsolationLevelName(level);
+			// We want to run this statement outside of any transactions
+			// so that it can't be rolled back or anything.
+			// The inTransaction check at the top makes this
+			// autocommit flipping legal.
+			boolean origAutoCommit = autoCommit;
+			if (autoCommit == false) {
+				setAutoCommit(true);
+			}
+			execSQL(isolationLevelSQL);
+			setAutoCommit(origAutoCommit);
 		}
-		execSQL(isolationLevelSQL);
 		isolationLevel = level;
 	}
 
@@ -1414,9 +1414,9 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 	 * servers, and should be removed when support for these older
 	 * servers are dropped
 	 */
-	protected String getPre71IsolationLevelSQL(int level) throws SQLException
+	public String getPre71IsolationLevelSQL() throws SQLException
 	{
-		return "SET TRANSACTION ISOLATION LEVEL " + getIsolationLevelName(level);
+		return "SET TRANSACTION ISOLATION LEVEL " + getIsolationLevelName(isolationLevel);
 	}
 
 	/*

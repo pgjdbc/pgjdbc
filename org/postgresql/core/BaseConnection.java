@@ -28,6 +28,9 @@ public interface BaseConnection extends PGConnection
 	public Statement createStatement() throws SQLException;
 	public BaseResultSet execSQL(String s) throws SQLException;
 	public boolean getAutoCommit();
+	public boolean getInTransaction();
+	public void setInTransaction(boolean b);
+	public String getPre71IsolationLevelSQL() throws SQLException;
 	public String getCursorName() throws SQLException;
 	public Encoding getEncoding() throws SQLException;
 	public DatabaseMetaData getMetaData() throws SQLException;
