@@ -939,7 +939,11 @@ public abstract class AbstractJdbc1Connection implements org.postgresql.PGConnec
                 //We do the select to ensure a transaction is in process
 				//before we do the commit to avoid warning messages
 				//from issuing a commit without a transaction in process
-				ExecSQL("select 1; commit; set autocommit = on;");
+				//NOTE this is done in two network roundtrips to work around
+				//a server bug in 7.3 where the select wouldn't actually start
+				//a new transaction if in the same command as the commit
+				ExecSQL("select 1;");
+				ExecSQL("commit; set autocommit = on;");
 			}
 			else
 			{
