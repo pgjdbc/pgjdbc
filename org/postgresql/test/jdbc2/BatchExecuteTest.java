@@ -55,6 +55,15 @@ public class BatchExecuteTest extends TestCase
 		assertTrue(dbmd.supportsBatchUpdates());
 	}
 
+	public void testEmptyClearBatch() throws Exception
+	{
+		Statement stmt = con.createStatement();
+		stmt.clearBatch(); // No-op.
+
+		PreparedStatement ps = con.prepareStatement("SELECT ?");
+		ps.clearBatch(); // No-op.
+	}
+
 	private void assertCol1HasValue(int expected) throws Exception
 	{
 		Statement getCol1 = con.createStatement();
