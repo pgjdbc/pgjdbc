@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.12 2004/12/22 22:59:05 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.13 2005/01/11 08:25:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -267,13 +267,15 @@ public class StatementTest extends TestCase
         Statement stmt = con.createStatement();
         ResultSet rs = stmt.executeQuery("select {fn curdate()},{fn curtime()}" +
                 ",{fn dayname({fn now()})}, {fn dayofmonth({fn now()})}" +
-                ",{fn dayofweek({fn now()})},{fn dayofyear({fn now()})}" +
+                ",{fn dayofweek({ts '2005-01-17 12:00:00'})},{fn dayofyear({fn now()})}" +
                 ",{fn hour({fn now()})},{fn minute({fn now()})}" +
                 ",{fn month({fn now()})}" +
                 ",{fn monthname({fn now()})},{fn quarter({fn now()})}" +
                 ",{fn second({fn now()})},{fn week({fn now()})}" +
                 ",{fn year({fn now()})} ");
         assertTrue(rs.next());
+        // ensure sunday =>1 and monday =>2
+        assertEquals(2,rs.getInt(5));
     }
     
     public void testSystemFunctions() throws SQLException

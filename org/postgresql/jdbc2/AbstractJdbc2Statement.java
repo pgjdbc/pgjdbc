@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.62 2005/01/14 01:20:19 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.63 2005/01/15 07:53:02 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -756,12 +756,21 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                         {
                             state = ESC_TIMEDATE;
                             i++;
+                            newsql.append("DATE ");
                             break;
                         }
                         else if (next == 't' || next == 'T')
                         {
                             state = ESC_TIMEDATE;
-                            i += (nextnext == 's' || nextnext == 'S') ? 2 : 1;
+                            if (nextnext == 's' || nextnext == 'S'){
+                                // timestamp constant
+                                i+=2;
+                                newsql.append("TIMESTAMP ");
+                            }else{
+                                // time constant
+                                i++;
+                                newsql.append("TIME ");
+                            }
                             break;
                         }
                         else if ( next == 'f' || next == 'F' )

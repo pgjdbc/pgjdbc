@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/EscapedFunctions.java,v 1.2 2005/01/11 08:25:46 jurka Exp $
+* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/EscapedFunctions.java,v 1.3 2005/01/14 01:20:20 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -399,13 +399,14 @@ public class EscapedFunctions {
         return "extract(day from "+parsedArgs.get(0)+")";
     }
 
-    /** dayofweek translation */
+    /** dayofweek translation 
+     * adding 1 to postgresql function since we expect values from 1 to 7 */
     public static String sqldayofweek(List parsedArgs) throws SQLException{
         if (parsedArgs.size()!=1){
             throw new PSQLException(GT.tr("{0} function takes one and only one argument.","dayofweek"),
                                     PSQLState.SYNTAX_ERROR);
         }
-        return "extract(dow from "+parsedArgs.get(0)+")";
+        return "extract(dow from "+parsedArgs.get(0)+")+1";
     }
 
     /** dayofyear translation */
