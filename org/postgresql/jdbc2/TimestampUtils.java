@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.8 2004/12/20 08:37:13 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.9 2004/12/22 09:23:57 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -158,7 +158,7 @@ public class TimestampUtils {
                 }
             }
         } catch (NumberFormatException nfe) {
-            throw new PSQLException(GT.tr("Bad value for type {0} : {1}}", new Object[]{type,s}), PSQLState.BAD_DATETIME_FORMAT, nfe);
+            throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{type,s}), PSQLState.BAD_DATETIME_FORMAT, nfe);
         }
     
         return nanos;
