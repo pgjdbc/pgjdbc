@@ -69,6 +69,7 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 
 	public void addBatch(String p_sql) throws SQLException
 	{
+		checkClosed();
 		if (batch == null)
 			batch = new Vector();
         Object[] l_statement = new Object[] {new String[] {p_sql}, new Object[0], new String[0]};
@@ -82,6 +83,7 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 
 	public int[] executeBatch() throws SQLException
 	{
+		checkClosed();
 		if (batch == null)
 			batch = new Vector();
 		int size = batch.size();
@@ -160,22 +162,26 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 
 	public void setFetchSize(int rows) throws SQLException
 	{
+		checkClosed();
 		if (rows<0) throw new PSQLException("postgresql.input.fetch.gt0");
 		super.fetchSize = rows;
 	}
 
 	public void setResultSetConcurrency(int value) throws SQLException
 	{
+		checkClosed();
 		concurrency = value;
 	}
 
 	public void setResultSetType(int value) throws SQLException
 	{
+		checkClosed();
 		resultsettype = value;
 	}
 
 	public void addBatch() throws SQLException
 	{
+		checkClosed();
 		if (batch == null)
 			batch = new Vector();
 
@@ -195,6 +201,7 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 
 	public ResultSetMetaData getMetaData() throws SQLException
 	{
+		checkClosed();
 		ResultSet rs = getResultSet();
 		if (rs != null)
 			return rs.getMetaData();
@@ -205,11 +212,13 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 
 	public void setArray(int i, java.sql.Array x) throws SQLException
 	{
+		checkClosed();
 		setString(i, x.toString());
 	}
 
 	public void setBlob(int i, Blob x) throws SQLException
 	{
+		checkClosed();
 		InputStream l_inStream = x.getBinaryStream();
 		LargeObjectManager lom = connection.getLargeObjectAPI();
 		int oid = lom.create();
@@ -251,6 +260,7 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 
 	public void setCharacterStream(int i, java.io.Reader x, int length) throws SQLException
 	{
+		checkClosed();
 		if (connection.haveMinimumCompatibleVersion("7.2"))
 		{
 			//Version 7.2 supports CharacterStream for for the PG text types
@@ -306,6 +316,7 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 
 	public void setClob(int i, Clob x) throws SQLException
 	{
+		checkClosed();
 		InputStream l_inStream = x.getAsciiStream();
 		int l_length = (int) x.length();
 		LargeObjectManager lom = connection.getLargeObjectAPI();
@@ -337,6 +348,7 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 
 	public void setNull(int i, int t, String s) throws SQLException
 	{
+		checkClosed();
 		setNull(i, t);
 	}
 
@@ -347,6 +359,7 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 
 	public void setDate(int i, java.sql.Date d, java.util.Calendar cal) throws SQLException
 	{
+		checkClosed();
 		if (cal == null)
 			setDate(i, d);
 		else
@@ -358,6 +371,7 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 
 	public void setTime(int i, Time t, java.util.Calendar cal) throws SQLException
 	{
+		checkClosed();
 		if (cal == null)
 			setTime(i, t);
 		else
@@ -369,6 +383,7 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 
 	public void setTimestamp(int i, Timestamp t, java.util.Calendar cal) throws SQLException
 	{
+		checkClosed();
 		if (cal == null)
 			setTimestamp(i, t);
 		else
@@ -387,6 +402,7 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 
 	public java.math.BigDecimal getBigDecimal(int parameterIndex) throws SQLException
 	{
+		checkClosed();
 		checkIndex (parameterIndex, Types.NUMERIC, "BigDecimal");
 		return ((BigDecimal)callResult);
 	}
