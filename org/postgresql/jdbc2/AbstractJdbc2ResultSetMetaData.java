@@ -356,7 +356,7 @@ public abstract class AbstractJdbc2ResultSetMetaData
 				if (f != null) {
 					// no specified precision or scale
 					if (f.getMod() == -1) {
-						return 1000;
+						return -1;
 					}
 					return ((0xFFFF0000)&f.getMod()) >> 16;
 				} else {
@@ -398,7 +398,7 @@ public abstract class AbstractJdbc2ResultSetMetaData
 				if (f != null) {
 					// no specified precision or scale
 					if (f.getMod() == -1) {
-						return 1000;
+						return -1;
 					}
 					return (((0x0000FFFF)&f.getMod()) - 4);
 				} else {
