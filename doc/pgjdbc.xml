@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!--
   Copyright (c) 2004-2005, PostgreSQL Global Development Group
-  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.19 2005/01/17 23:21:17 jurka Exp $
+  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.20 2005/01/21 11:53:27 jurka Exp $
 -->
 
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN" "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">
@@ -1463,6 +1463,590 @@ conn.commit();
   </example>
  </chapter>
 
+<chapter id="escapes">
+   <title><acronym>JDBC</acronym> escapes</title>
+
+   <para>
+   The <acronym>JDBC</acronym> specification (like the <acronym>ODBC</acronym>
+   specification) acknowledges the fact that some vendor specific
+   <acronym>SQL</acronym> may be required for certain <acronym>RDBMS</acronym>
+   features.  To aid developers in writing portable <acronym>JDBC</acronym>
+   applications across multiple database products, a special escape syntax is
+   used to specify the generic commands the developer wants to be run.  The
+   <acronym>JDBC</acronym> driver translates these escape sequences into
+   native syntax for its specific database.
+   For more information consult the section 4.1.5 from the
+   <ulink url="http://java.sun.com/j2se/1.4.2/docs/guide/jdbc/getstart/statement.html#999472"><acronym>JDBC</acronym> Technology Guide</ulink>
+   (bundled with the <productname>Sun</productname> <acronym>JRE</acronym>
+   documentation) and the section 13.4 from the
+   <ulink url="http://java.sun.com/products/jdbc/download.html#corespec30"><acronym>JDBC</acronym> 3.0 specification</ulink>.
+   </para>
+
+   <para>
+   The parsing of the sql statements for these escapes can be disabled using <literal>Statement.setEscapeProcessing(false)</literal>. 
+   </para>
+
+   <para>
+   <literal>Connection.nativeSQL(String sql)</literal> provides another way to have escapes processed.
+   It translates the given <acronym>SQL</acronym> to a <acronym>SQL</acronym> suitable for the <productname>PostgreSQL</productname> backend.
+   </para>
+
+   <example id="escape-use-example">
+    <title>Using jdbc escapes</title>
+   <para>
+   To use the <acronym>JDBC</acronym> escapes, you simply write your <acronym>SQL</acronym> replacing date/time literal
+   values, outer join and functions by the <acronym>JDBC</acronym> escape syntax.
+   For example :
+<programlisting>
+ResultSet rs = st.executeQuery("SELECT {fn week({d '2005-01-24'})}");
+</programlisting>
+is the portable version for
+<programlisting>
+ResultSet rs = st.executeQuery("SELECT extract(week from DATE '2005-01-24')");
+</programlisting>
+  </para>
+   </example>
+
+   <sect1 id="like-escape">
+    <title>Escape for like escape character</title>
+    <para>
+    You can specify which escape character to use in strings comparison (with <literal>LIKE</literal>) to protect wildcards
+    characters ('%' and '_') by adding the following escape : <literal>{escape 'escape-character'}</literal>.
+    The driver supports this only at the end of the comparison expression.
+    </para>
+
+   <para>
+   For example, you can compare string values using '|' as escape character to protect '_' :
+<programlisting>
+rs = stmt.executeQuery("select str2 from comparisontest where str1 like '|_abcd' {escape '|'} ");
+</programlisting>
+   </para>
+   </sect1>
+
+    <sect1 id="outer-joins-escape">
+    <title>Escape for outer joins</title>
+    <para>
+    You can specify outer joins using the following syntax:
+    <literal>{oj table (LEFT|RIGHT|FULL) OUTER JOIN (table | outer-join) 
+	ON search-condition  }</literal>
+    </para>
+
+    <para>
+    For example :
+<programlisting>
+rs = stmt.executeQuery( "select * from {oj a left outer join b on (a.i=b.i)} ");
+</programlisting>
+    </para>
+   </sect1>
+
+   <sect1 id="escapes-datetime">
+    <title>Date-time escapes</title>
+     <para>
+     The <acronym>JDBC</acronym> specification defines escapes for specifying date, time and timestamp values which are supported by the
+     driver.
+     </para>
+     
+     <variablelist>
+      <varlistentry>
+       <term>date</term>
+       <listitem>
+	<para>
+       <literal>{d 'yyyy-mm-dd'}</literal> which is translated to <literal>DATE 'yyyy-mm-dd'</literal>
+	</para>
+       </listitem>
+      </varlistentry>
+      <varlistentry>
+       <term>time</term>
+        <listitem>
+        <para><literal>{t 'hh:mm:ss'}</literal> which is translated to <literal>TIME 'hh:mm:ss'</literal></para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+       <term>timestamp</term>
+        <listitem><para>
+        <literal>{ts 'yyyy-mm-dd hh:mm:ss.f...'}</literal> which is translated to <literal>TIMESTAMP 'yyyy-mm-dd hh:mm:ss.f'</literal>
+    
+       The fractional seconds (.f...) portion of the TIMESTAMP can be omitted. </para>
+        </listitem>
+       </varlistentry>
+     </variablelist>
+    </sect1>
+  
+    <sect1 id="escaped-functions">
+     <title>Escaped scalar functions</title>
+     
+     <para>
+     The <acronym>JDBC</acronym> specification defines functions with an escape call syntax : <literal>{fn function_name(arguments)}</literal>.
+     The following tables show which functions are supported by the <productname>Postgres<acronym>SQL</acronym></productname> driver. 
+     The driver supports the nesting and the mixing of escaped functions and escaped values.
+     The appendix C of the <acronym>JDBC</acronym> specification describes the functions.
+     </para>
+
+     <para>
+     Some functions in the following tables are translated but not reported as supported because they are
+     duplicating or changing ther order of the arguments. While this is harmless for literal values or 
+     columns, it will cause problems when using prepared statements. 
+     For example "<literal>{fn right(?,?)}</literal>" will be translated to "<literal>substring(? from (length(?)+1-?))</literal>".
+    As you can see the translated <acronym>SQL</acronym> requires more parameters than before the translation but the
+    driver will not automatically handle this.
+     </para>
+
+   <table id="escape-numeric-functions-table">
+    <title>Supported escaped numeric functions</title>
+  
+    <tgroup cols="4">
+     <thead>
+      <row>
+       <entry>function</entry>
+       <entry>reported as supported</entry>
+       <entry>translation</entry>
+       <entry>comments</entry>
+      </row>
+     </thead>
+ 
+     <tbody>
+      <row>
+       <entry>abs(arg1)</entry>
+       <entry>yes</entry>
+       <entry>abs(arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>acos(arg1)</entry>
+       <entry>yes</entry>
+       <entry>acos(arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>asin(arg1)</entry>
+       <entry>yes</entry>
+       <entry>asin(arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>atan(arg1)</entry>
+       <entry>yes</entry>
+       <entry>atan(arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>atan2(arg1,arg2)</entry>
+       <entry>yes</entry>
+       <entry>atan2(arg1,arg2)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>ceiling(arg1)</entry>
+       <entry>yes</entry>
+       <entry>ceil(arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>cos(arg1)</entry>
+       <entry>yes</entry>
+       <entry>cos(arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>cot(arg1)</entry>
+       <entry>yes</entry>
+       <entry>cot(arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>degrees(arg1)</entry>
+       <entry>yes</entry>
+       <entry>degrees(arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>exp(arg1)</entry>
+       <entry>yes</entry>
+       <entry>exp(arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>floor(arg1)</entry>
+       <entry>yes</entry>
+       <entry>floor(arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>log(arg1)</entry>
+       <entry>yes</entry>
+       <entry>ln(arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>log10(arg1)</entry>
+       <entry>yes</entry>
+       <entry>log(arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>mod(arg1,arg2)</entry>
+       <entry>yes</entry>
+       <entry>mod(arg1,arg2)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>pi(arg1)</entry>
+       <entry>yes</entry>
+       <entry>pi(arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>power(arg1,arg2)</entry>
+       <entry>yes</entry>
+       <entry>pow(arg1,arg2)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>radians(arg1)</entry>
+       <entry>yes</entry>
+       <entry>radians(arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>rand()</entry>
+       <entry>yes</entry>
+       <entry>random()</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>rand(arg1)</entry>
+       <entry>yes</entry>
+       <entry>setseed(arg1)*0+random()</entry>
+       <entry>The seed is initialized with the given argument and a new randow value is returned.</entry>
+      </row>
+      <row>
+       <entry>round(arg1,arg2)</entry>
+       <entry>yes</entry>
+       <entry>round(arg1,arg2)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>sign(arg1)</entry>
+       <entry>yes</entry>
+       <entry>sign(arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>sin(arg1)</entry>
+       <entry>yes</entry>
+       <entry>sin(arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>sqrt(arg1)</entry>
+       <entry>yes</entry>
+       <entry>sqrt(arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>tan(arg1)</entry>
+       <entry>yes</entry>
+       <entry>tan(arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>truncate(arg1,arg2)</entry>
+       <entry>yes</entry>
+       <entry>trunc(arg1,arg2)</entry>
+       <entry></entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </table>
+
+
+   <table id="escape-string-functions-table">
+    <title>Supported escaped string functions</title>
+  
+    <tgroup cols="4">
+     <thead>
+      <row>
+       <entry>function</entry>
+       <entry>reported as supported</entry>
+       <entry>translation</entry>
+       <entry>comments</entry>
+      </row>
+     </thead>
+ 
+     <tbody>
+      <row>
+       <entry>ascii(arg1)</entry>
+       <entry>yes</entry>
+       <entry>ascii(arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>char(arg1)</entry>
+       <entry>yes</entry>
+       <entry>chr(arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>concat(arg1,arg2...)</entry>
+       <entry>yes</entry>
+       <entry>(arg1||arg2...)</entry>
+       <entry>The <acronym>JDBC</acronym> specification only require the two arguments version, but supporting more arguments was so easy...</entry>
+      </row>
+      <row>
+       <entry>insert(arg1,arg2,arg3,arg4)</entry>
+       <entry>no</entry>
+       <entry>overlay(arg1 placing arg4 from arg2 for arg3)</entry>
+       <entry>This function is not reported as supported since it changes the order of the arguments which can be a problem (for prepared statements by example).</entry>
+      </row>
+      <row>
+       <entry>lcase(arg1)</entry>
+       <entry>yes</entry>
+       <entry>lower(arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>left(arg1,arg2)</entry>
+       <entry>yes</entry>
+       <entry>substring(arg1 for arg2)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>length(arg1)</entry>
+       <entry>yes</entry>
+       <entry>length(trim(trailing from arg1))</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>locate(arg1,arg2)</entry>
+       <entry>no</entry>
+       <entry>position(arg1 in arg2)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>locate(arg1,arg2,arg3)</entry>
+       <entry>no</entry>
+       <entry>(arg2*sign(position(arg1 in substring(arg2 from arg3)+position(arg1 in substring(arg2 from arg3))</entry>
+       <entry>Not reported as supported since the three arguments version duplicate and change the order of the arguments.</entry>
+      </row>
+      <row>
+       <entry>ltrim(arg1)</entry>
+       <entry>yes</entry>
+       <entry>trim(leading from arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>repeat(arg1,arg2)</entry>
+       <entry>yes</entry>
+       <entry>repeat(arg1,arg2)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>replace(arg1,arg2,arg3)</entry>
+       <entry>yes</entry>
+       <entry>replace(arg1,arg2,arg3)</entry>
+       <entry>Only reported as supported by 7.3 and above servers.</entry>
+      </row>
+      <row>
+       <entry>right(arg1,arg2)</entry>
+       <entry>no</entry>
+       <entry>substring(arg1 from (length(arg1)+1-arg2))</entry>
+       <entry>Not reported as supported since arg2 is duplicated.</entry>
+      </row>
+      <row>
+       <entry>rtrim(arg1)</entry>
+       <entry>yes</entry>
+       <entry>trim(trailing from arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>space(arg1)</entry>
+       <entry>yes</entry>
+       <entry>repeat(' ',arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>substring(arg1,arg2)</entry>
+       <entry>yes</entry>
+       <entry>substr(arg1,arg2)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>substring(arg1,arg2,arg3)</entry>
+       <entry>yes</entry>
+       <entry>substr(arg1,arg2,arg3)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>ucase(arg1)</entry>
+       <entry>yes</entry>
+       <entry>upper(arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>soundex(arg1)</entry>
+       <entry>no</entry>
+       <entry>soundex(arg1)</entry>
+       <entry>Not reported as supported since it requires the fuzzystrmatch contrib module.</entry>
+      </row>
+      <row>
+       <entry>difference(arg1,arg2)</entry>
+       <entry>no</entry>
+       <entry>difference(arg1,arg2)</entry>
+       <entry>Not reported as supported since it requires the fuzzystrmatch contrib module.</entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </table>
+
+
+   <table id="escape-datetime-functions-table">
+    <title>Supported escaped date/time functions</title>
+  
+    <tgroup cols="4">
+     <thead>
+      <row>
+       <entry>function</entry>
+       <entry>reported as supported</entry>
+       <entry>translation</entry>
+       <entry>comments</entry>
+      </row>
+     </thead>
+ 
+     <tbody>
+      <row>
+       <entry>curdate()</entry>
+       <entry>yes</entry>
+       <entry>current_date</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>curtime()</entry>
+       <entry>yes</entry>
+       <entry>current_time</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>dayname(arg1)</entry>
+       <entry>yes</entry>
+       <entry>to_char(arg1,'Day')</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>dayofmonth(arg1)</entry>
+       <entry>yes</entry>
+       <entry>extract(day from arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>dayofweek(arg1)</entry>
+       <entry>yes</entry>
+       <entry>extract(dow from arg1)+1</entry>
+       <entry>We must add 1 to be in the expected 1-7 range.</entry>
+      </row>
+      <row>
+       <entry>dayofyear(arg1)</entry>
+       <entry>yes</entry>
+       <entry>extract(doy from arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>hour(arg1)</entry>
+       <entry>yes</entry>
+       <entry>extract(hour from arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>minute(arg1)</entry>
+       <entry>yes</entry>
+       <entry>extract(minute from arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>month(arg1)</entry>
+       <entry>yes</entry>
+       <entry>extract(month from arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>monthname(arg1)</entry>
+       <entry>yes</entry>
+       <entry>to_char(arg1,'Month')</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>now()</entry>
+       <entry>yes</entry>
+       <entry>now()</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>quarter(arg1)</entry>
+       <entry>yes</entry>
+       <entry>extract(quarter from arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>second(arg1)</entry>
+       <entry>yes</entry>
+       <entry>extract(second from arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>week(arg1)</entry>
+       <entry>yes</entry>
+       <entry>extract(week from arg1)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>year(arg1)</entry>
+       <entry>yes</entry>
+       <entry>extract(year from arg1)</entry>
+       <entry></entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </table>
+
+
+   <table id="escape-misc-functions-table">
+    <title>Supported escaped misc functions</title>
+  
+    <tgroup cols="4">
+     <thead>
+      <row>
+       <entry>function</entry>
+       <entry>reported as supported</entry>
+       <entry>translation</entry>
+       <entry>comments</entry>
+      </row>
+     </thead>
+ 
+     <tbody>
+      <row>
+       <entry>database()</entry>
+       <entry>yes</entry>
+       <entry>current_database()</entry>
+       <entry>Only reported as supported by 7.3 and above servers.</entry>
+      </row>
+      <row>
+       <entry>ifnull(arg1,arg2)</entry>
+       <entry>yes</entry>
+       <entry>coalesce(arg1,arg2)</entry>
+       <entry></entry>
+      </row>
+      <row>
+       <entry>user()</entry>
+       <entry>yes</entry>
+       <entry>user</entry>
+       <entry></entry>
+      </row>
+     </tbody>
+    </tgroup>
+   </table>
+
+
+  </sect1>
+ </chapter> 
 
  <chapter id="ext">
   <title><productname>PostgreSQL</productname> Extensions to the
