@@ -7,7 +7,7 @@
  * Copyright (c) 2004, Open Cloud Limited.
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgjdbc/org/postgresql/core/v2/QueryExecutorImpl.java,v 1.3 2004/10/10 15:39:36 jurka Exp $
+ *	  $PostgreSQL: pgjdbc/org/postgresql/core/v2/QueryExecutorImpl.java,v 1.4 2004/10/25 20:58:55 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -69,10 +69,10 @@ public class QueryExecutorImpl implements QueryExecutor {
 					public void handleCommandStatus(String status, int updateCount, long insertOID) {
 						if (!sawBegin) {
 							if (!status.equals("BEGIN"))
-								handleError(new SQLException("Expected command status BEGIN, got " + status));
+								handleError(new SQLException(GT.tr("Expected command status BEGIN, got {0}.", status)));
 							sawBegin = true;
 						} else {
-							handleError(new SQLException("Unexpected command status: " + status));
+							handleError(new SQLException(GT.tr("Unexpected command status: {0}.", status)));
 						}
 					}
 
@@ -278,7 +278,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 					public void handleCommandStatus(String status, int updateCount, long insertOID) {
 						if (!sawBegin) {
 							if (!status.equals("BEGIN"))
-								handleError(new SQLException("Expected command status BEGIN, got " + status));
+								handleError(new SQLException(GT.tr("Expected command status BEGIN, got {0}.", status)));
 							sawBegin = true;
 						} else {
 							delegateHandler.handleCommandStatus(status, updateCount, insertOID);

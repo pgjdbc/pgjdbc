@@ -14,7 +14,7 @@ import org.postgresql.util.PSQLState;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.GT;
 
-/* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.40 2004/10/22 21:48:19 jurka Exp $
+/* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.41 2004/10/24 19:42:45 jurka Exp $
  * This class defines methods of the jdbc2 specification.
  * The real Statement class (for jdbc2) is org.postgresql.jdbc2.Jdbc2Statement
  */
@@ -2299,7 +2299,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
 		public void handleCommandStatus(String status, int updateCount, long insertOID) {
 			if (resultIndex >= updateCounts.length) {
-				handleError(new SQLException("Too many update results were returned"));
+				handleError(new SQLException(GT.tr("Too many update results were returned.")));
 				return;
 			}
 

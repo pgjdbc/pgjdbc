@@ -5,6 +5,7 @@ import java.sql.*;
 import java.util.*;
 import java.lang.reflect.*;
 import org.postgresql.PGConnection;
+import org.postgresql.util.GT;
 
 /**
  * PostgreSQL implementation of the PooledConnection interface.  This shouldn't
@@ -97,7 +98,7 @@ public class PooledConnectionImpl implements PooledConnection
 		if (con == null)
 		{
 			// Before throwing the exception, let's notify the registered listeners about the error
-			final SQLException sqlException = new SQLException("This PooledConnection has already been closed!");
+			final SQLException sqlException = new SQLException(GT.tr("This PooledConnection has already been closed."));
 			fireConnectionFatalError(sqlException);
 			throw sqlException;
 		}
@@ -236,7 +237,7 @@ public class PooledConnectionImpl implements PooledConnection
 			}
 			if (con == null && !method.getName().equals("close"))
 			{
-				throw new SQLException(automatic ? "Connection has been closed automatically because a new connection was opened for the same PooledConnection or the PooledConnection has been closed" : "Connection has been closed");
+				throw new SQLException(automatic ? GT.tr("Connection has been closed automatically because a new connection was opened for the same PooledConnection or the PooledConnection has been closed.") : GT.tr("Connection has been closed."));
 			}
 			if (method.getName().equals("close"))
 			{
@@ -379,7 +380,7 @@ public class PooledConnectionImpl implements PooledConnection
             }
             if (st == null || con.isClosed())
             {
-                throw new SQLException("Statement has been closed");
+                throw new SQLException(GT.tr("Statement has been closed."));
             }
             else if (method.getName().equals("getConnection"))
             {

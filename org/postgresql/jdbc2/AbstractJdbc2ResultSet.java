@@ -8,7 +8,7 @@
  * Copyright (c) 2003, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql-server/src/interfaces/jdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.27 2003/11/29 19:52:10 pgsql Exp $
+ *	  $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.54 2004/10/17 12:19:38 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -1519,7 +1519,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
 		if ( i < 1 )
 		{
-			throw new SQLException("No Primary Keys");
+			throw new SQLException(GT.tr("No primary key found for table {0}.", tableName));
 		}
 
 		updateable = primaryKeys.size() > 0;
@@ -1668,7 +1668,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 		}
 
 		public void handleCommandStatus(String status, int updateCount, long insertOID) {
-			handleError(new SQLException("unexpected command status"));
+			handleError(new SQLException(GT.tr("Unexpected command status: {0}.", status)));
 		}
 
 		public void handleWarning(SQLWarning warning) {
