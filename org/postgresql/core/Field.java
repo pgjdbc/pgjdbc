@@ -6,7 +6,7 @@
  * Copyright (c) 2003, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $Header$
+ *	  $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/core/Field.java,v 1.2 2003/05/29 03:21:32 barry Exp $
  *
  *-------------------------------------------------------------------------
  */

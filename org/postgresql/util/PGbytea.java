@@ -6,7 +6,7 @@
  * Copyright (c) 2003, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $Header$
+ *	  $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/util/PGbytea.java,v 1.8 2003/05/29 04:48:33 barry Exp $
  *
  *-------------------------------------------------------------------------
  */

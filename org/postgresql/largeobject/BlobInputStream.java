@@ -6,7 +6,7 @@
  * Copyright (c) 2003, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $Header$
+ *	  $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/largeobject/BlobInputStream.java,v 1.5 2003/03/07 18:39:45 barry Exp $
  *
  *-------------------------------------------------------------------------
  */

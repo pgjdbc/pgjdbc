@@ -4,7 +4,7 @@
 #
 # Copyright (c) 2001, PostgreSQL Global Development Group
 #
-# $Header$
+# $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/Makefile,v 1.38 2003/02/12 06:13:04 barry Exp $
 #
 #-------------------------------------------------------------------------
 

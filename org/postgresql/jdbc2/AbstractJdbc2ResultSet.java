@@ -9,7 +9,7 @@
  * Copyright (c) 2003, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $Header$
+ *	  $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.26 2003/11/03 15:28:26 davec Exp $
  *
  *-------------------------------------------------------------------------
  */

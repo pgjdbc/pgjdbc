@@ -6,7 +6,7 @@ import java.util.Vector;
 import java.util.Hashtable;
 import org.postgresql.core.Field;
 
-/* $Header$
+/* $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/jdbc2/Jdbc2Connection.java,v 1.7 2003/03/07 18:39:45 barry Exp $
  * This class implements the java.sql.Connection interface for JDBC2.
  * However most of the implementation is really done in
  * org.postgresql.jdbc2.AbstractJdbc2Connection or one of it's parents

@@ -7,7 +7,7 @@
  * Copyright (c) 2003, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $Header$
+ *	  $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/util/PSQLException.java,v 1.13 2003/09/08 17:30:22 barry Exp $
  *
  *-------------------------------------------------------------------------
  */

@@ -8,7 +8,7 @@
  * Copyright (c) 2003, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $Header$
+ *	  $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/PGStatement.java,v 1.7 2003/03/07 18:39:41 barry Exp $
  *
  *-------------------------------------------------------------------------
  */

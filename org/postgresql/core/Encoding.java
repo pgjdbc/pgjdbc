@@ -6,7 +6,7 @@
  * Copyright (c) 2003, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $Header$
+ *	  $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/core/Encoding.java,v 1.12 2003/09/08 17:30:22 barry Exp $
  *
  *-------------------------------------------------------------------------
  */

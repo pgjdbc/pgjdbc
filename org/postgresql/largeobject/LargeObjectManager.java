@@ -11,7 +11,7 @@
  * Copyright (c) 2003, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $Header$
+ *	  $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/largeobject/LargeObjectManager.java,v 1.10 2003/03/07 18:39:45 barry Exp $
  *
  *-------------------------------------------------------------------------
  */

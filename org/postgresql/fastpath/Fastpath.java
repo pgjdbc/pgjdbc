@@ -6,7 +6,7 @@
  * Copyright (c) 2003, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $Header$
+ *	  $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/fastpath/Fastpath.java,v 1.16 2003/09/13 04:02:13 barry Exp $
  *
  *-------------------------------------------------------------------------
  */

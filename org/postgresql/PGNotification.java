@@ -6,7 +6,7 @@
  * Copyright (c) 2003, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $Header$
+ *	  $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/PGNotification.java,v 1.3 2003/03/07 18:39:41 barry Exp $
  *
  *-------------------------------------------------------------------------
  */

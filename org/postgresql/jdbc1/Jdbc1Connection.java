@@ -6,7 +6,7 @@ import java.sql.*;
 import org.postgresql.core.Field;
 import org.postgresql.util.PSQLException;
 
-/* $Header$
+/* $PostgreSQL: /cvsroot/pgsql-server/src/interfaces/jdbc/org/postgresql/jdbc1/Jdbc1Connection.java,v 1.7 2003/03/07 18:39:44 barry Exp $
  * This class implements the java.sql.Connection interface for JDBC1.
  * However most of the implementation is really done in
  * org.postgresql.jdbc1.AbstractJdbc1Connection
