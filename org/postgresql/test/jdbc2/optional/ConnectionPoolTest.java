@@ -423,6 +423,29 @@ public class ConnectionPoolTest extends BaseDataSourceTest
     }
 
     /**
+     * Ensure that a statement created from a pool can be used
+     * like any other statement in regard to pg extensions.
+     */
+    public void testStatementsProxyPGStatement() {
+	try {
+	    PooledConnection pc = getPooledConnection();
+	    con = pc.getConnection();
+	    
+	    Statement s = con.createStatement();
+	    boolean b = ((org.postgresql.PGStatement)s).isUseServerPrepare();
+
+	    PreparedStatement ps = con.prepareStatement("select 'x'");
+	    b = ((org.postgresql.PGStatement)ps).isUseServerPrepare();
+
+            CallableStatement cs = con.prepareCall("select 'x'");
+	    b = ((org.postgresql.PGStatement)cs).isUseServerPrepare();
+
+	} catch (SQLException e) {
+	    fail(e.getMessage());
+	}
+    }
+
+    /**
 	 * Helper class to remove a listener during event dispatching.
 	 */
 	private class RemoveClose implements ConnectionEventListener
