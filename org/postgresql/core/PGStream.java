@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/PGStream.java,v 1.12 2005/01/10 15:30:10 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/PGStream.java,v 1.13 2005/01/11 08:25:43 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -347,18 +347,13 @@ public class PGStream
         int l_msgSize = ReceiveIntegerR(4);
         int i;
         int l_nf = ReceiveIntegerR(2);
-        byte[][] answer = new byte[l_nf][0];
+        byte[][] answer = new byte[l_nf][];
 
         for (i = 0 ; i < l_nf ; ++i)
         {
             int l_size = ReceiveIntegerR(4);
-            boolean isNull = l_size == -1;
-            if (isNull)
-                answer[i] = null;
-            else
-            {
+            if (l_size != -1)
                 answer[i] = Receive(l_size);
-            }
         }
 
         return answer;
@@ -379,7 +374,7 @@ public class PGStream
     {
         int i, bim = (nf + 7) / 8;
         byte[] bitmask = Receive(bim);
-        byte[][] answer = new byte[nf][0];
+        byte[][] answer = new byte[nf][];
 
         int whichbit = 0x80;
         int whichbyte = 0;
@@ -393,9 +388,7 @@ public class PGStream
                 ++whichbyte;
                 whichbit = 0x80;
             }
-            if (isNull)
-                answer[i] = null;
-            else
+            if (!isNull)
             {
                 int len = ReceiveIntegerR(4);
                 if (!bin)
