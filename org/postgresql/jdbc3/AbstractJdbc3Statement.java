@@ -3,7 +3,7 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Statement.java,v 1.12 2004/11/07 22:16:26 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Statement.java,v 1.13 2004/11/09 08:50:07 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -32,20 +32,12 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
     public AbstractJdbc3Statement (AbstractJdbc3Connection c, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
     {
         super(c, rsType, rsConcurrency);
-
-        if (rsHoldability != ResultSet.CLOSE_CURSORS_AT_COMMIT)
-            throw new PSQLException(GT.tr("ResultSet holdability of HOLD_CURSORS_OVER_COMMIT is not supported."), PSQLState.NOT_IMPLEMENTED);
-
         this.rsHoldability = rsHoldability;
     }
 
     public AbstractJdbc3Statement(AbstractJdbc3Connection connection, String sql, boolean isCallable, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
     {
         super(connection, sql, isCallable, rsType, rsConcurrency);
-
-        if (rsHoldability != ResultSet.CLOSE_CURSORS_AT_COMMIT)
-            throw new PSQLException(GT.tr("ResultSet holdability of HOLD_CURSORS_OVER_COMMIT is not supported."), PSQLState.NOT_IMPLEMENTED);
-
         this.rsHoldability = rsHoldability;
     }
 
@@ -1450,5 +1442,9 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
             sqlType = Types.BIT;
         }
         super.registerOutParameter(parameterIndex, sqlType);
+    }
+
+    protected boolean wantsHoldableResultSet() {
+        return rsHoldability == ResultSet.HOLD_CURSORS_OVER_COMMIT;
     }
 }
