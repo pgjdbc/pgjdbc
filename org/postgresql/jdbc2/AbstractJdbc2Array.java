@@ -3,7 +3,7 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Array.java,v 1.8 2004/11/10 20:43:45 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Array.java,v 1.9 2004/11/10 21:20:53 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -22,6 +22,7 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Vector;
+import java.util.GregorianCalendar;
 
 /**
  * Array is used collect one column of query result data.
@@ -162,6 +163,7 @@ public class AbstractJdbc2Array
             throw new PSQLException(GT.tr("The array index is out of range: {0}, number of elements: {1}.", new Object[]{new Long(index + count), new Long(arrayContents.length)}), PSQLState.DATA_ERROR);
 
         int i = 0;
+        GregorianCalendar cal = null;
         switch ( getBaseType() )
         {
         case Types.BIT:
@@ -203,18 +205,21 @@ public class AbstractJdbc2Array
             break;
         case Types.DATE:
             retVal = new java.sql.Date[ count ];
+            cal = new GregorianCalendar();
             for ( ; count > 0; count-- )
-                ((java.sql.Date[])retVal)[i++] = AbstractJdbc2ResultSet.toDate( arrayContents[(int)index++] );
+                ((java.sql.Date[])retVal)[i++] = TimestampUtils.toDate(cal, arrayContents[(int)index++] );
             break;
         case Types.TIME:
             retVal = new java.sql.Time[ count ];
+            cal = new GregorianCalendar();
             for ( ; count > 0; count-- )
-                ((java.sql.Time[])retVal)[i++] = TimestampUtils.toTime( arrayContents[(int)index++], getBaseTypeName() );
+                ((java.sql.Time[])retVal)[i++] = TimestampUtils.toTime(cal, arrayContents[(int)index++] );
             break;
         case Types.TIMESTAMP:
             retVal = new Timestamp[ count ];
+            cal = new GregorianCalendar();
             for ( ; count > 0; count-- )
-                ((java.sql.Timestamp[])retVal)[i++] = TimestampUtils.toTimestamp( arrayContents[(int)index++], getBaseTypeName() );
+                ((java.sql.Timestamp[])retVal)[i++] = TimestampUtils.toTimestamp(cal, arrayContents[(int)index++] );
             break;
 
             // Other datatypes not currently supported.  If you are really using other types ask

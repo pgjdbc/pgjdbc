@@ -3,315 +3,427 @@
 * Copyright (c) 2003-2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.5 2004/11/09 08:49:32 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.6 2004/11/10 20:43:45 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.jdbc2;
 
 import java.sql.*;
-import java.text.SimpleDateFormat;
-import java.text.ParseException;
 
-import org.postgresql.Driver;
-import org.postgresql.util.*;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
+import java.util.TimeZone;
+import java.util.SimpleTimeZone;
+
+import org.postgresql.util.GT;
+import org.postgresql.util.PSQLState;
+import org.postgresql.util.PSQLException;
+
 
 /**
  * Misc utils for handling time and date values.
- * Extracted from AbstractJdbc2ResultSet.
  */
 public class TimestampUtils {
-    private static StringBuffer sbuf = new StringBuffer();
-    private static SimpleDateFormat tstzFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z");
-    private static SimpleDateFormat tsFormat = new SimpleDateFormat ("yyyy-MM-dd HH:mm:ss");
-    private static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
+
+    /**
+     * Load date/time information into the provided calendar
+     * returning the fractional seconds.
+     */
+    private static int loadCalendar(GregorianCalendar cal, String s) throws SQLException {
+        int slen = s.length();
+
+        // java doesn't have a concept of postgres's infinity
+        // so there's not much we can do here.
+        if ((slen == 8 && s.equals("infinity")) || (slen == 9 && s.equals("-infinity"))) {
+            throw new PSQLException(GT.tr("Inifite value found for timestamp.  Java has no corresponding representation."));
+        }
+
+        // Zero out all the fields.
+        cal.setTime(new java.util.Date(0));
+
+        int nanos = 0;
+
+        try {
+    
+            int start = 0;
+            int end = firstNonDigit(s, start);
+    
+            int num = number(s, start, end);
+            char sep = charAt(s, end);
+    
+            // Read date
+            if (sep == '-') {
+                cal.set(Calendar.YEAR, num);
+                start = end + 1;
+    
+                // read month
+                end = firstNonDigit(s, start);
+                num = number(s, start, end);
+                cal.set(Calendar.MONTH, num-1);
+                start = end + 1;
+    
+                // read date
+                end = firstNonDigit(s, start);
+                num = number(s, start, end);
+                cal.set(Calendar.DAY_OF_MONTH, num);
+                start = end + 1;
+    
+                while (charAt(s, start) == ' ') {
+                    start++;
+                }
+    
+                end = firstNonDigit(s, start);
+                try {
+                    num = number(s, start, end);
+                } catch(NumberFormatException nfe) {
+                    // Ignore this, we don't know if a time, an
+                    // era, or nothing is coming next, but we
+                    // must be prepared for a time by parsing
+                    // this as a number.
+                }
+                sep = charAt(s, end);
+            }
+    
+            // Read time
+            if (sep == ':') {
+                // we've already read in num.
+                cal.set(Calendar.HOUR_OF_DAY, num);
+                start = end + 1;
+    
+                // minutes
+                end = firstNonDigit(s, start);
+                num = number(s, start, end);
+                cal.set(Calendar.MINUTE, num);
+                start = end + 1;
+    
+                // seconds
+                end = firstNonDigit(s, start);
+                num = number(s, start, end);
+                cal.set(Calendar.SECOND, num);
+                start = end + 1;
+    
+                sep = charAt(s, end);
+    
+                // Fractional seconds.
+                if (sep == '.') {
+                    end = firstNonDigit(s, start);
+                    num = number(s, start, end);
+                    int numlength = 9 - s.substring(start, end).length();
+                    for (int i=0; i<numlength; i++) {
+                        num *= 10;
+                    }
+                    nanos = num;
+                    start = end + 1;
+                    sep = charAt(s, end);
+                }
+            }
+    
+            // Timezone
+            if (sep == '-' || sep == '+') {
+                int tzsign = (sep == '-') ? -1 : 1;
+    
+                end = firstNonDigit(s, start);
+                int tzhr = number(s, start, end);
+                start = end + 1;
+    
+                end = firstNonDigit(s, start);
+                sep = charAt(s, end);
+    
+                int tzmin = 0;
+                if (sep == ':') {
+                    tzmin = number(s, start, end);
+                    start = end + 1;
+                }
+    
+                int tzoffset = tzsign * tzhr * 60 + tzmin;
+                // offset is in milliseconds.
+                tzoffset *= 60 * 1000;
+    
+                cal.set(Calendar.ZONE_OFFSET, tzoffset);
+                cal.set(Calendar.DST_OFFSET, 0);
+    
+                while (charAt(s, start) == ' ') {
+                    start++;
+                }
+            }
+    
+            if (start < slen) {
+                String era = s.substring(start);
+                if (era.equals("AD")) {
+                    cal.set(Calendar.ERA, GregorianCalendar.AD);
+                } else if (era.equals("BC")) {
+                    cal.set(Calendar.ERA, GregorianCalendar.BC);
+                }
+            }
+        } catch (NumberFormatException nfe) {
+            throw new PSQLException(GT.tr("Bad date/time/timestamp representation: {0}", s), PSQLState.BAD_DATETIME_FORMAT, nfe);
+        }
+    
+        return nanos;
+    }
+    
     /**
     * Parse a string and return a timestamp representing its value.
     *
-    * The driver is set to return ISO date formated strings. We modify this
-    * string from the ISO format to a format that Java can understand. Java
-    * expects timezone info as 'GMT+09:00' where as ISO gives '+09'.
-    * Java also expects fractional seconds to 3 places where postgres
-    * will give, none, 2 or 6 depending on the time and postgres version.
-    * From version 7.2 postgres returns fractional seconds to 6 places.
-    *
-    * According to the Timestamp documentation, fractional digits are kept
-    * in the nanos field of Timestamp and not in the milliseconds of Date.
-    * Thus, parsing for fractional digits is entirely separated from the
-    * rest.
-    *
-    * The method assumes that there are no more than 9 fractional
-    * digits given. Undefined behavior if this is not the case.
-    *
     * @param s      The ISO formated date string to parse.
-    * @param pgDataType The (server) type of the date string.
     *
     * @return null if s is null or a timestamp of the parsed string s.
     *
     * @throws SQLException if there is a problem parsing s.
     **/
-    public static Timestamp toTimestamp(String s, String pgDataType) throws SQLException
+    public static Timestamp toTimestamp(GregorianCalendar cal, String s) throws SQLException
     {
         if (s == null)
             return null;
 
-        s = s.trim();
+        synchronized(cal) {
+            cal.set(Calendar.ZONE_OFFSET, 0);
+            cal.set(Calendar.DST_OFFSET, 0);
+            int nanos = loadCalendar(cal, s);
 
-        // We must be synchronized here incase more theads access the ResultSet
-        // bad practice but possible. Anyhow this is to protect sbuf and
-        // SimpleDateFormat objects
-        synchronized (sbuf)
-        {
-            SimpleDateFormat df = null;
-            if ( Driver.logDebug )
-                Driver.debug("the data from the DB is " + s);
-
-            sbuf.setLength(0);
-
-            // Copy s into sbuf for parsing.
-            sbuf.append(s);
-            int slen = s.length();
-
-            // For a Timestamp, the fractional seconds are stored in the
-            // nanos field. As a DateFormat is used for parsing which can
-            // only parse to millisecond precision and which returns a
-            // Date object, the fractional second parsing is completely
-            // separate.
-            int nanos = 0;
-
-            if (slen > 19)
-            {
-                // The len of the ISO string to the second value is 19 chars. If
-                // greater then 19, there may be tz info and perhaps fractional
-                // second info which we need to change to java to read it.
-
-                // cut the copy to second value "2001-12-07 16:29:22"
-                int i = 19;
-                sbuf.setLength(i);
-
-                char c = s.charAt(i++);
-                if (c == '.')
-                {
-                    // Found a fractional value.
-                    final int start = i;
-                    while (true)
-                    {
-                        c = s.charAt(i++);
-                        if (!Character.isDigit(c))
-                            break;
-                        if (i == slen)
-                        {
-                            i++;
-                            break;
-                        }
-                    }
-
-                    // The range [start, i - 1) contains all fractional digits.
-                    final int end = i - 1;
-                    try
-                    {
-                        nanos = Integer.parseInt(s.substring(start, end));
-                    }
-                    catch (NumberFormatException e)
-                    {
-                        throw new PSQLException(GT.tr("Could not extract nanoseconds from {0}.", s.substring(start, end)), PSQLState.UNEXPECTED_ERROR, e);
-                    }
-
-                    // The nanos field stores nanoseconds. Adjust the parsed
-                    // value to the correct magnitude.
-                    for (int digitsToNano = 9 - (end - start);
-                            digitsToNano > 0; --digitsToNano)
-                        nanos *= 10;
-                }
-
-                if (i < slen)
-                {
-                    // prepend the GMT part and then add the remaining bit of
-                    // the string.
-                    sbuf.append(" GMT");
-                    sbuf.append(c);
-                    sbuf.append(s.substring(i, slen));
-
-                    // Lastly, if the tz part doesn't specify the :MM part then
-                    // we add ":00" for java.
-                    if (slen - i < 5)
-                        sbuf.append(":00");
-
-                    // we'll use this dateformat string to parse the result.
-                    df = tstzFormat;
-                }
-                else
-                {
-                    // Just found fractional seconds but no timezone.
-                    //If timestamptz then we use GMT, else local timezone
-                    if (pgDataType.equals("timestamptz"))
-                    {
-                        sbuf.append(" GMT");
-                        df = tstzFormat;
-                    }
-                    else
-                    {
-                        df = tsFormat;
-                    }
-                }
-            }
-            else if (slen == 19)
-            {
-                // No tz or fractional second info.
-                //If timestamptz then we use GMT, else local timezone
-                if (pgDataType.equals("timestamptz"))
-                {
-                    sbuf.append(" GMT");
-                    df = tstzFormat;
-                }
-                else
-                {
-                    df = tsFormat;
-                }
-            }
-            else
-            {
-                if (slen == 8 && s.equals("infinity"))
-                    //java doesn't have a concept of postgres's infinity
-                    //so set to an arbitrary future date
-                    s = "9999-01-01";
-                if (slen == 9 && s.equals("-infinity"))
-                    //java doesn't have a concept of postgres's infinity
-                    //so set to an arbitrary old date
-                    s = "0001-01-01";
-
-                // We must just have a date. This case is
-                // needed if this method is called on a date
-                // column
-                if ( pgDataType.compareTo("date") == 0 )
-                {
-                    df = dateFormat;
-                }
-                else
-                {
-                    try
-                    {
-                        df = new SimpleDateFormat();
-                        s = parseTime(s, df);
-                        java.util.Date d = df.parse(s);
-                        return new Timestamp( d.getTime() );
-                    }
-                    catch ( ParseException ex )
-                    {
-                        throw new PSQLException(GT.tr("The timestamp given {0} does not match the format required: {1}.",
-                                                      new Object[]{s, df}),
-                                                PSQLState.BAD_DATETIME_FORMAT,
-                                                ex);
-                    }
-                }
-            }
-
-            try
-            {
-                // All that's left is to parse the string and return the ts.
-                if ( Driver.logDebug )
-                    Driver.debug("the data after parsing is "
-                                 + sbuf.toString() + " with " + nanos + " nanos");
-
-                Timestamp result = new Timestamp(df.parse(sbuf.toString()).getTime());
-                result.setNanos(nanos);
-                return result;
-            }
-            catch (ParseException e)
-            {
-                throw new PSQLException(GT.tr("The timestamp given {0} does not match the format required: {1}.", new Object[]{sbuf.toString(), df}), PSQLState.BAD_DATETIME_FORMAT, e);
-            }
+            Timestamp result = new Timestamp(cal.getTime().getTime());
+            result.setNanos(nanos);
+            return result;
         }
     }
 
-    /* parse out the various endings of a time string
-     *
-     *    hh:mm:ss.SSS+/-HH:MM
-     *
-     *    Everything after the last s is optional
-     *    we will return a string with everything filled in so that a
-     *    SimpleDateFormat (hh:mm:ss.SSS z) will parse the date
-     *    This function expects the string to begin with the string after the last s
-     */
-    private static String parseTime( String s, SimpleDateFormat df ) throws ParseException
+    public static Time toTime(GregorianCalendar cal, String s) throws SQLException
     {
-        StringBuffer sb = new StringBuffer(s.substring(0, 8));
-        StringBuffer timeFormat = new StringBuffer("HH:mm:ss");
-
-        int msIndex = s.indexOf('.');
-        int tzIndex = s.indexOf('-');
-        if ( tzIndex == -1 )
-            tzIndex = s.indexOf('+');
-
-        if ( msIndex != -1 )
-        {
-            String microseconds = s.substring(msIndex + 1, tzIndex != -1 ? tzIndex : s.length());
-            int msec = 0;
-
-            // I want to have a peek at the 4th digit to see if we round up
-
-            for ( int i = 0; i < (microseconds.length() > 3 ? 4 : microseconds.length()) ; i++ )
-            {
-                int digit = Character.digit(microseconds.charAt(i), 10);
-                if (digit == -1)
-                    throw new ParseException(s, tzIndex);
-                if ( i == 0 )
-                    msec += digit * 100;
-                else if ( i == 1 )
-                    msec += digit * 10;
-                else if ( i == 2 )
-                    msec += digit;
-                else if ( i == 3 && digit >= 5)
-                    msec += 1;
-
-            }
-            sb.append('.').append( msec );
-            timeFormat.append(".SSS");
-        }
-
-        if ( tzIndex != -1 )
-        { // we have a time zone
-            String tz = s.substring(tzIndex);
-            sb.append(" GMT").append(tz);
-            if (tz.length() < 6)
-                sb.append(":00");
-            timeFormat.append( " z" );
-        }
-        df.applyPattern(timeFormat.toString());
-        return sb.toString();
-    }
-
-    public static Time toTime(String s, String pgDataType) throws SQLException {
         if (s == null)
-            return null; // SQL NULL
+            return null;
 
-        SimpleDateFormat df = null;
-        try
-        {
-            s = s.trim();
+        synchronized(cal) {
+            cal.set(Calendar.ZONE_OFFSET, 0);
+            cal.set(Calendar.DST_OFFSET, 0);
+            int nanos = loadCalendar(cal, s);
 
-            if (s.length() == 8)
-            {
-                //value is a time value
-                return java.sql.Time.valueOf(s);
-            }
-
-            if ( !pgDataType.startsWith("timestamp") )
-            {
-                df = new SimpleDateFormat();
-                s = parseTime(s, df);
-                java.util.Date d = df.parse(s);
-                return new java.sql.Time( d.getTime() );
-            }
-
-            //value is a timestamp
-            return new java.sql.Time(toTimestamp(s, pgDataType).getTime());
-        }
-        catch (ParseException e)
-        {
-            throw new PSQLException(GT.tr("The time given {0} does not match the format required: {1}.", new Object[]{s, df}), PSQLState.BAD_DATETIME_FORMAT);
+            cal.set(Calendar.YEAR, 1970);
+            cal.set(Calendar.MONTH, 0);
+            cal.set(Calendar.DAY_OF_MONTH, 1);
+            cal.set(Calendar.ERA, GregorianCalendar.AD);
+            cal.set(Calendar.MILLISECOND, (nanos + 500000) / 1000000);
+            Time result = new Time(cal.getTime().getTime());
+            return result;
         }
     }
-}
 
+    public static Date toDate(GregorianCalendar cal, String s) throws SQLException
+    {
+        if (s == null)
+            return null;
+
+        synchronized(cal) {
+            cal.set(Calendar.ZONE_OFFSET, 0);
+            cal.set(Calendar.DST_OFFSET, 0);
+            loadCalendar(cal, s);
+
+            // zero out non-date things.
+            cal.set(Calendar.HOUR_OF_DAY, 0);
+            cal.set(Calendar.MINUTE, 0);
+            cal.set(Calendar.SECOND, 0);
+            cal.set(Calendar.MILLISECOND, 0);
+            Date result = new Date(cal.getTime().getTime());
+            return result;
+        }
+    }
+
+    public static String toString(StringBuffer sbuf, Timestamp x) {
+        GregorianCalendar cal = new GregorianCalendar();
+        cal.setTime(x);
+
+        synchronized(sbuf) {
+            sbuf.setLength(0);
+            appendDate(sbuf, cal);
+            sbuf.append(' ');
+            appendTime(sbuf, cal, x.getNanos());
+            appendTimeZone(sbuf, x);
+            appendEra(sbuf, cal);
+            return sbuf.toString();
+        }
+    }
+
+    public static String toString(StringBuffer sbuf, Date x) {
+        GregorianCalendar cal = new GregorianCalendar();
+        cal.setTime(x);
+
+        synchronized(sbuf) {
+            sbuf.setLength(0);
+            appendDate(sbuf, cal);
+            appendEra(sbuf, cal);
+            return sbuf.toString();
+        }
+    }
+
+    public static String toString(StringBuffer sbuf, Time x) {
+        GregorianCalendar cal = new GregorianCalendar();
+        cal.setTime(x);
+
+        synchronized(sbuf) {
+            sbuf.setLength(0);
+            appendTime(sbuf, cal, cal.get(Calendar.MILLISECOND) * 1000000);
+            // Doesn't work on <= 7.3 for time, only for timetz
+            //appendTimeZone(sbuf, x);
+            return sbuf.toString();
+        }
+    }
+
+    private static void appendDate(StringBuffer sbuf, Calendar cal)
+    {
+        int l_year = cal.get(Calendar.YEAR);
+        // always use at least four digits for the year so very
+        // early years, like 2, don't get misinterpreted
+        //
+        int l_yearlen = String.valueOf(l_year).length();
+        for (int i = 4; i > l_yearlen; i--)
+        {
+            sbuf.append("0");
+        }
+
+        sbuf.append(l_year);
+        sbuf.append('-');
+        int l_month = cal.get(Calendar.MONTH) + 1;
+        if (l_month < 10)
+            sbuf.append('0');
+        sbuf.append(l_month);
+        sbuf.append('-');
+        int l_day = cal.get(Calendar.DAY_OF_MONTH);
+        if (l_day < 10)
+            sbuf.append('0');
+        sbuf.append(l_day);
+    }
+
+    private static void appendTime(StringBuffer sbuf, Calendar cal, int nanos)
+    {
+        int hours = cal.get(Calendar.HOUR_OF_DAY);
+        if (hours < 10)
+            sbuf.append('0');
+        sbuf.append(hours);
+
+        sbuf.append(':');
+        int minutes = cal.get(Calendar.MINUTE);
+        if (minutes < 10)
+            sbuf.append('0');
+        sbuf.append(minutes);
+
+        sbuf.append(':');
+        int seconds = cal.get(Calendar.SECOND);
+        if (seconds < 10)
+            sbuf.append('0');
+        sbuf.append(seconds);
+
+        // Add nanoseconds.
+        // This won't work for server versions < 7.2 which only want
+        // a two digit fractional second, but we don't need to support 7.1
+        // anymore and getting the version number here is difficult.
+        //
+        char[] decimalStr = {'0', '0', '0', '0', '0', '0', '0', '0', '0'};
+        char[] nanoStr = Integer.toString(nanos).toCharArray();
+        System.arraycopy(nanoStr, 0, decimalStr, decimalStr.length - nanoStr.length, nanoStr.length);
+        sbuf.append('.');
+        sbuf.append(decimalStr, 0, 6);
+    }
+
+    private static void appendTimeZone(StringBuffer sbuf, java.util.Date x)
+    {
+        //add timezone offset
+        int offset = -(x.getTimezoneOffset());
+        int absoff = Math.abs(offset);
+        int hours = absoff / 60;
+        int mins = absoff - hours * 60;
+
+        sbuf.append((offset >= 0) ? "+" : "-");
+
+        if (hours < 10)
+            sbuf.append('0');
+        sbuf.append(hours);
+
+        if (mins < 10)
+            sbuf.append('0');
+        sbuf.append(mins);
+    }
+
+    private static void appendEra(StringBuffer sbuf, Calendar cal)
+    {
+        if (cal.get(Calendar.ERA) == GregorianCalendar.BC) {
+            sbuf.append(" BC");
+        }
+    }
+
+    private static int firstNonDigit(String s, int start)
+    {
+        int slen = s.length();
+        for (int i=start; i<slen; i++) {
+            if (!Character.isDigit(s.charAt(i))) {
+                return i;
+            }
+        }
+        return slen; 
+    }
+
+    private static int number(String s, int start, int end) {
+        if (start >= end) {
+            throw new NumberFormatException();
+        }
+        String num = s.substring(start, end);
+        return Integer.parseInt(num);
+    }
+
+    private static char charAt(String s, int pos) {
+        if (pos >= 0 && pos < s.length()) {
+            return s.charAt(pos);
+        }
+        return '\0';
+    }
+
+    private static String testData[] = {
+        "2004-12-10 22:58:49.964907-09",
+        "0027-12-10 22:59:29-09 BC",
+        "0027-12-10 BC",
+        "14034-12-10",
+        "23:01:05.372441-09",
+        "23:01:05",
+        "23:01:05.123",
+        "00:00:00.01"
+    };
+
+    private static int testTypes[] = {
+        Types.TIMESTAMP,
+        Types.TIMESTAMP,
+        Types.DATE,
+        Types.DATE,
+        Types.TIME,
+        Types.TIME,
+        Types.TIME,
+        Types.TIME
+    };
+
+    public static void main(String args[]) throws Exception {
+        StringBuffer sbuf = new StringBuffer();
+        GregorianCalendar cal = new GregorianCalendar();
+
+        for (int i=0; i<testData.length; i++) {
+            String data = testData[i];
+            System.out.println("Orig: " + data);
+
+            String result = null;
+            switch (testTypes[i]) {
+                case Types.TIMESTAMP:
+                    result = toString(sbuf, toTimestamp(cal, data));
+                    break;
+                case Types.TIME:
+                    result = toString(sbuf, toTime(cal, data));
+                    break;
+                case Types.DATE:
+                    result = toString(sbuf, toDate(cal, data));
+                    break;
+            }
+            System.out.println(result);
+            System.out.println();
+        }
+
+        System.out.println(toString(sbuf, new Timestamp(0)));
+    }
+
+}

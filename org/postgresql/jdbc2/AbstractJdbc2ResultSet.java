@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.63 2004/11/19 03:18:51 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.64 2004/12/17 21:24:29 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.StringTokenizer;
 import java.util.Vector;
+import java.util.GregorianCalendar;
 import org.postgresql.Driver;
 import org.postgresql.core.*;
 import org.postgresql.largeobject.*;
@@ -67,7 +68,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     protected boolean wasNullFlag = false; // the flag for wasNull()
     protected boolean onInsertRow = false;  // are we on the insert row (for JDBC2 updatable resultsets)?
 
-    private StringBuffer sbuf = null;
+    private GregorianCalendar calendar = null;
     public byte[][] rowBuffer = null;       // updateable rowbuffer
 
     protected int fetchSize;       // Current fetch size (might be 0).
@@ -1751,10 +1752,6 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         return statement;
     }
 
-    public StringBuffer getStringBuffer() {
-        return sbuf;
-    }
-
     //
     // Backwards compatibility with PGRefCursorResultSet
     //
@@ -2047,26 +2044,26 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     public java.sql.Date getDate(int columnIndex) throws SQLException
     {
-        return toDate( getString(columnIndex) );
+        checkResultSet(columnIndex);
+        if (calendar == null)
+            calendar = new GregorianCalendar();
+        return TimestampUtils.toDate(calendar, getString(columnIndex));
     }
 
     public Time getTime(int columnIndex) throws SQLException
     {
         checkResultSet(columnIndex);
-        return TimestampUtils.toTime( getString(columnIndex), getPGType(columnIndex) );
+        if (calendar == null)
+            calendar = new GregorianCalendar();
+        return TimestampUtils.toTime(calendar, getString(columnIndex));
     }
 
     public Timestamp getTimestamp(int columnIndex) throws SQLException
     {
         this.checkResultSet(columnIndex);
-        int sqlType = getSQLType(columnIndex);
-
-        if ( sqlType == Types.TIME )
-        {
-            Time time = TimestampUtils.toTime(getString( columnIndex ), getPGType(columnIndex));
-            return new Timestamp(time.getTime() );
-        }
-        return TimestampUtils.toTimestamp(getString(columnIndex), getPGType(columnIndex));
+        if (calendar == null)
+            calendar = new GregorianCalendar();
+        return TimestampUtils.toTimestamp(calendar, getString(columnIndex));
     }
 
     public InputStream getAsciiStream(int columnIndex) throws SQLException
@@ -2593,23 +2590,6 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             }
         }
         return 0;  // SQL NULL
-    }
-
-    public static java.sql.Date toDate(String s) throws SQLException
-    {
-        if (s == null)
-            return null;
-        // length == 10: SQL Date
-        // length >  10: SQL Timestamp, assumes PGDATESTYLE=ISO
-        try
-        {
-            s = s.trim();
-            return java.sql.Date.valueOf((s.length() == 10) ? s : s.substring(0, 10));
-        }
-        catch (NumberFormatException e)
-        {
-            throw new PSQLException(GT.tr("Bad date: {0}", s), PSQLState.BAD_DATETIME_FORMAT);
-        }
     }
 
     private boolean isColumnTrimmable(int columnIndex) throws SQLException

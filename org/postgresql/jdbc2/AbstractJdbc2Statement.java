@@ -3,7 +3,7 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.52 2004/12/14 06:23:40 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.53 2004/12/14 06:28:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -17,6 +17,8 @@ import java.math.*;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Vector;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 
 import org.postgresql.Driver;
 import org.postgresql.largeobject.*;
@@ -71,7 +73,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     private static final short ESC_OUTERJOIN = 5;
 
     // Some performance caches
-    private StringBuffer sbuf = new StringBuffer(32);
+    private StringBuffer sbuf = new StringBuffer(35);
+    private GregorianCalendar calendar = null;
 
     protected final Query preparedQuery;              // Query fragments for prepared statement.
     protected final ParameterList preparedParameters; // Parameter values for prepared statement.
@@ -1172,7 +1175,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         }
         else
         {
-            bindString(parameterIndex, x.toString(), Oid.DATE);
+            bindString(parameterIndex, TimestampUtils.toString(sbuf, x), Oid.DATE);
         }
     }
 
@@ -1193,7 +1196,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         }
         else
         {
-            bindString(parameterIndex, x.toString(), Oid.TIME);
+            bindString(parameterIndex, TimestampUtils.toString(sbuf, x), Oid.TIME);
         }
     }
 
@@ -1214,106 +1217,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         }
         else
         {
-            // Use the shared StringBuffer
-            synchronized (sbuf)
-            {
-                sbuf.setLength(0);
-                sbuf.ensureCapacity(32);
-                //format the timestamp
-                //we do our own formating so that we can get a format
-                //that works with both timestamp with time zone and
-                //timestamp without time zone datatypes.
-                //The format is '2002-01-01 23:59:59.123456-0130'
-                //we need to include the local time and timezone offset
-                //so that timestamp without time zone works correctly
-                int l_year = x.getYear() + 1900;
-
-                // always use four digits for the year so very
-                // early years, like 2, don't get misinterpreted
-                int l_yearlen = String.valueOf(l_year).length();
-                for (int i = 4; i > l_yearlen; i--)
-                {
-                    sbuf.append("0");
-                }
-
-                sbuf.append(l_year);
-                sbuf.append('-');
-                int l_month = x.getMonth() + 1;
-                if (l_month < 10)
-                    sbuf.append('0');
-                sbuf.append(l_month);
-                sbuf.append('-');
-                int l_day = x.getDate();
-                if (l_day < 10)
-                    sbuf.append('0');
-                sbuf.append(l_day);
-                sbuf.append(' ');
-                int l_hours = x.getHours();
-                if (l_hours < 10)
-                    sbuf.append('0');
-                sbuf.append(l_hours);
-                sbuf.append(':');
-                int l_minutes = x.getMinutes();
-                if (l_minutes < 10)
-                    sbuf.append('0');
-                sbuf.append(l_minutes);
-                sbuf.append(':');
-                int l_seconds = x.getSeconds();
-                if (l_seconds < 10)
-                    sbuf.append('0');
-                sbuf.append(l_seconds);
-                // Make decimal from nanos.
-                char[] l_decimal = {'0', '0', '0', '0', '0', '0', '0', '0', '0'};
-                char[] l_nanos = Integer.toString(x.getNanos()).toCharArray();
-                System.arraycopy(l_nanos, 0, l_decimal, l_decimal.length - l_nanos.length, l_nanos.length);
-                sbuf.append('.');
-                if (connection.haveMinimumServerVersion("7.2"))
-                {
-                    sbuf.append(l_decimal, 0, 6);
-                }
-                else
-                {
-                    // Because 7.1 include bug that "hh:mm:59.999" becomes "hh:mm:60.00".
-                    sbuf.append(l_decimal, 0, 2);
-                }
-                //add timezone offset
-                int l_offset = -(x.getTimezoneOffset());
-                int l_houros = l_offset / 60;
-                if (l_houros >= 0)
-                {
-                    sbuf.append('+');
-                }
-                else
-                {
-                    sbuf.append('-');
-                }
-                if (l_houros > -10 && l_houros < 10)
-                    sbuf.append('0');
-                if (l_houros >= 0)
-                {
-                    sbuf.append(l_houros);
-                }
-                else
-                {
-                    sbuf.append( -l_houros);
-                }
-                int l_minos = l_offset - (l_houros * 60);
-                if (l_minos != 0)
-                {
-                    if (l_minos > -10 && l_minos < 10)
-                        sbuf.append('0');
-                    if (l_minos >= 0)
-                    {
-                        sbuf.append(l_minos);
-                    }
-                    else
-                    {
-                        sbuf.append( -l_minos);
-                    }
-                }
-                bindString(parameterIndex, sbuf.toString(), Oid.TIMESTAMPTZ);
-            }
-
+            bindString(parameterIndex, TimestampUtils.toString(sbuf, x), Oid.TIMESTAMPTZ);
         }
     }
 
@@ -1597,7 +1501,14 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                 setDate(parameterIndex, (java.sql.Date)x);
             else
             {
-                java.sql.Date tmpd = (x instanceof java.util.Date) ? new java.sql.Date(((java.util.Date)x).getTime()) : dateFromString(x.toString());
+                java.sql.Date tmpd;
+                if (x instanceof java.util.Date) {
+                    tmpd = new java.sql.Date(((java.util.Date)x).getTime());
+                } else {
+                    if (calendar == null)
+                        calendar = new GregorianCalendar();
+                    tmpd = TimestampUtils.toDate(calendar, x.toString());
+                }
                 setDate(parameterIndex, tmpd);
             }
             break;
@@ -1606,7 +1517,14 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                 setTime(parameterIndex, (java.sql.Time)x);
             else
             {
-                java.sql.Time tmpt = (x instanceof java.util.Date) ? new java.sql.Time(((java.util.Date)x).getTime()) : timeFromString(x.toString());
+                java.sql.Time tmpt;
+                if (x instanceof java.util.Date) {
+                    tmpt = new java.sql.Time(((java.util.Date)x).getTime());
+                } else {
+                    if (calendar == null)
+                        calendar = new GregorianCalendar();
+                    tmpt = TimestampUtils.toTime(calendar, x.toString());
+                }
                 setTime(parameterIndex, tmpt);
             }
             break;
@@ -1615,7 +1533,15 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                 setTimestamp(parameterIndex , (java.sql.Timestamp)x);
             else
             {
-                java.sql.Timestamp tmpts = (x instanceof java.util.Date) ? new java.sql.Timestamp(((java.util.Date)x).getTime()) : timestampFromString(x.toString());
+                java.sql.Timestamp tmpts;
+                if (x instanceof java.util.Date) {
+                    tmpts = new java.sql.Timestamp(((java.util.Date)x).getTime());
+                } else {
+                    if (calendar == null) {
+                        calendar = new GregorianCalendar();
+                    }
+                    tmpts = TimestampUtils.toTimestamp(calendar, x.toString());
+                }
                 setTimestamp(parameterIndex, tmpts);
             }
             break;
@@ -2329,127 +2255,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
     protected void checkClosed() throws SQLException
     {
-        //need to add to errors.properties.
         if (isClosed)
             throw new PSQLException(GT.tr("This statement has been closed."));
-    }
-
-    private java.sql.Date dateFromString (String s) throws SQLException
-    {
-        int timezone = 0;
-        long millis = 0;
-        long localoffset = 0;
-        int timezoneLocation = (s.indexOf('+') == -1) ? s.lastIndexOf("-") : s.indexOf('+');
-        //if the last index of '-' or '+' is past 8. we are guaranteed that it is a timezone marker
-        //shortest = yyyy-m-d
-        //longest = yyyy-mm-dd
-        try
-        {
-            timezone = (timezoneLocation > 7) ? timezoneLocation : s.length();
-            millis = java.sql.Date.valueOf(s.substring(0, timezone)).getTime();
-        }
-        catch (Exception e)
-        {
-            throw new PSQLException(GT.tr("The given date {0} does not match the format required: {1}.",
-                                          new Object[] { s , "yyyy-MM-dd[-tz]" }),
-                                    PSQLState.BAD_DATETIME_FORMAT, e);
-        }
-        timezone = 0;
-        if (timezoneLocation > 7 && timezoneLocation + 3 == s.length())
-        {
-            timezone = Integer.parseInt(s.substring(timezoneLocation + 1, s.length()));
-            localoffset = java.util.Calendar.getInstance().getTimeZone().getRawOffset();
-            if (java.util.Calendar.getInstance().getTimeZone().inDaylightTime(new java.sql.Date(millis)))
-                localoffset += 60 * 60 * 1000;
-            if (s.charAt(timezoneLocation) == '+')
-                timezone *= -1;
-        }
-        millis = millis + timezone * 60 * 60 * 1000 + localoffset;
-        return new java.sql.Date(millis);
-    }
-
-    private java.sql.Time timeFromString (String s) throws SQLException
-    {
-        int timezone = 0;
-        long millis = 0;
-        long localoffset = 0;
-        int timezoneLocation = (s.indexOf('+') == -1) ? s.lastIndexOf("-") : s.indexOf('+');
-        //if the index of the last '-' or '+' is greater than 0 that means this time has a timezone.
-        //everything earlier than that position, we treat as the time and parse it as such.
-        try
-        {
-            timezone = (timezoneLocation == -1) ? s.length() : timezoneLocation;
-            millis = java.sql.Time.valueOf(s.substring(0, timezone)).getTime();
-        }
-        catch (Exception e)
-        {
-            throw new PSQLException(GT.tr("The time given {0} does not match the format required: {1}.",
-                                          new Object[] { s, "HH:mm:ss[-tz]" }),
-                                    PSQLState.BAD_DATETIME_FORMAT, e);
-        }
-        timezone = 0;
-        if (timezoneLocation != -1 && timezoneLocation + 3 == s.length())
-        {
-            timezone = Integer.parseInt(s.substring(timezoneLocation + 1, s.length()));
-            localoffset = java.util.Calendar.getInstance().getTimeZone().getRawOffset();
-            if (java.util.Calendar.getInstance().getTimeZone().inDaylightTime(new java.sql.Date(millis)))
-                localoffset += 60 * 60 * 1000;
-            if (s.charAt(timezoneLocation) == '+')
-                timezone *= -1;
-        }
-        millis = millis + timezone * 60 * 60 * 1000 + localoffset;
-        return new java.sql.Time(millis);
-    }
-
-    private java.sql.Timestamp timestampFromString (String s) throws SQLException
-    {
-        int timezone = 0;
-        long millis = 0;
-        long localoffset = 0;
-        int nanosVal = 0;
-        int timezoneLocation = (s.indexOf('+') == -1) ? s.lastIndexOf("-") : s.indexOf('+');
-        int nanospos = s.indexOf(".");
-        //if there is a '.', that means there are nanos info, and we take the timestamp up to that point
-        //if not, then we check to see if the last +/- (to indicate a timezone) is greater than 8
-        //8 is because the shortest date, will have last '-' at position 7. e.g yyyy-x-x
-        try
-        {
-            if (nanospos != -1)
-                timezone = nanospos;
-            else if (timezoneLocation > 8)
-                timezone = timezoneLocation;
-            else
-                timezone = s.length();
-            millis = java.sql.Timestamp.valueOf(s.substring(0, timezone)).getTime();
-        }
-        catch (Exception e)
-        {
-            throw new PSQLException(GT.tr("The timestamp given {0} does not match the format required: {1}.",
-                                          new Object[] { s, "yyyy-MM-dd HH:mm:ss[.xxxxxx][-tz]" }),
-                                    PSQLState.BAD_DATETIME_FORMAT, e);
-        }
-        timezone = 0;
-        if (nanospos != -1)
-        {
-            int tmploc = (timezoneLocation > 8) ? timezoneLocation : s.length();
-            nanosVal = Integer.parseInt(s.substring(nanospos + 1, tmploc));
-            int diff = 8 - ((tmploc - 1) - (nanospos + 1));
-            for (int i = 0;i < diff;i++)
-                nanosVal *= 10;
-        }
-        if (timezoneLocation > 8 && timezoneLocation + 3 == s.length())
-        {
-            timezone = Integer.parseInt(s.substring(timezoneLocation + 1, s.length()));
-            localoffset = java.util.Calendar.getInstance().getTimeZone().getRawOffset();
-            if (java.util.Calendar.getInstance().getTimeZone().inDaylightTime(new java.sql.Date(millis)))
-                localoffset += 60 * 60 * 1000;
-            if (s.charAt(timezoneLocation) == '+')
-                timezone *= -1;
-        }
-        millis = millis + timezone * 60 * 60 * 1000 + localoffset;
-        java.sql.Timestamp tmpts = new java.sql.Timestamp(millis);
-        tmpts.setNanos(nanosVal);
-        return tmpts;
     }
 
     // ** JDBC 2 Extensions **
