@@ -47,7 +47,7 @@ public abstract class AbstractJdbc1Statement implements org.postgresql.PGStateme
 	private String[] m_origSqlFragments;
 	private String[] m_executeSqlFragments;
 	protected Object[] m_binds = new Object[0];
-	private String[] m_bindTypes = new String[0];
+	protected String[] m_bindTypes = new String[0];
 	private String m_statementName = null;
 	private boolean m_useServerPrepare = false;
 	private static int m_preparedCount = 1;
