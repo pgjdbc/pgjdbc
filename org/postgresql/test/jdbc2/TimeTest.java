@@ -36,6 +36,10 @@ public class TimeTest extends TestCase
 		TestUtil.closeDB(con);
 	}
 
+	private long extractMillis(long time) {
+		return (time >= 0) ? (time % 1000) : (time % 1000 + 1000);
+	}
+
     /*
     *
     * Test use of calendar
@@ -78,32 +82,32 @@ public class TimeTest extends TestCase
 
            time = rs.getTime(1);
            assertNotNull(time);
-           assertEquals(100, time.getTime() % 1000);
+           assertEquals(100, extractMillis(time.getTime()));
            timestamp = rs.getTimestamp(1);
            assertNotNull(timestamp);
 
-	   // Pre 1.4 JVM's considered the nanos field completely separate
-	   // and wouldn't return it in getTime()
-	   if (TestUtil.haveMinimumJVMVersion("1.4")) {
-               assertEquals(100, timestamp.getTime() % 1000);
-	   } else {
-	       assertEquals(100, (timestamp.getTime() + timestamp.getNanos() / 1000000) % 1000);
-	   }
+		   // Pre 1.4 JVM's considered the nanos field completely separate
+		   // and wouldn't return it in getTime()
+		   if (TestUtil.haveMinimumJVMVersion("1.4")) {
+			   assertEquals(100, extractMillis(timestamp.getTime()));
+		   } else {
+			   assertEquals(100, extractMillis(timestamp.getTime() + timestamp.getNanos() / 1000000));
+		   }
            assertEquals(100000000, timestamp.getNanos());
 
            timetz = rs.getTime(2);
            assertNotNull(timetz);
-           assertEquals(10, timetz.getTime() % 1000);
+           assertEquals(10, extractMillis(timetz.getTime()));
            timestamptz = rs.getTimestamp(2);
            assertNotNull(timestamptz);
 
-	   // Pre 1.4 JVM's considered the nanos field completely separate
-	   // and wouldn't return it in getTime()
-	   if (TestUtil.haveMinimumJVMVersion("1.4")) {
-               assertEquals(10, timestamptz.getTime() % 1000);
-	   } else {
-	       assertEquals(10, (timestamptz.getTime() + timestamptz.getNanos() / 1000000) % 1000);
-	   }
+		   // Pre 1.4 JVM's considered the nanos field completely separate
+		   // and wouldn't return it in getTime()
+		   if (TestUtil.haveMinimumJVMVersion("1.4")) {
+               assertEquals(10, extractMillis(timestamptz.getTime()));
+		   } else {
+			   assertEquals(10, extractMillis(timestamptz.getTime() + timestamptz.getNanos() / 1000000));
+		   }
            assertEquals(10000000, timestamptz.getNanos());
 
            assertTrue(rs.next());
