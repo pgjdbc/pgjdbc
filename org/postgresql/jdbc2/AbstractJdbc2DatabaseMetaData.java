@@ -132,7 +132,7 @@ public abstract class AbstractJdbc2DatabaseMetaData extends org.postgresql.jdbc1
             sql += " when typname = '"+ AbstractJdbc2Connection.jdbc2Types[i] + "' then " + AbstractJdbc2Connection.jdbc2Typei[i] ;
         }
 
-        sql += "else " + java.sql.Types.OTHER + " end from pg_type where oid=t.typbasetype) "
+        sql += " else " + java.sql.Types.OTHER + " end from pg_type where oid=t.typbasetype) "
             + "else null end as base_type "
             + "from pg_catalog.pg_type t, pg_catalog.pg_namespace n where t.typnamespace = n.oid and n.nspname != 'pg_catalog' and n.nspname != 'pg_toast'";
 
@@ -141,32 +141,25 @@ public abstract class AbstractJdbc2DatabaseMetaData extends org.postgresql.jdbc1
 		String toAdd = "";
         if ( types != null )
         {
-            toAdd += " and ( ";
+            toAdd += " and (false ";
             for (int i = 0; i < types.length; i++)
             {
-                toAdd += " t.typtype = ";
                 switch (types[i] )
                 {
                     case java.sql.Types.STRUCT:
-                        toAdd += "'c'";
+                        toAdd += " or t.typtype = 'c'";
                         break;
                     case java.sql.Types.DISTINCT:
-                        toAdd += "'d'";
+                        toAdd += " or t.typtype = 'd'";
                         break;
-
-                    case java.sql.Types.JAVA_OBJECT:
-                    default:
-                        toAdd += "'j'";  // this is totally bogus, but we need to fill in the other side of the equals, just in case
-                        break;
-                }
-                if ( i+1 < types.length )
-                {
-                    toAdd += " or ";
                 }
             }
             toAdd += " ) ";
-        }
-        // spec says that if typeNamePattern is not null then the schema and catalog are ignored
+        } else {
+	    toAdd += " and t.typtype IN ('c','d') ";
+	}
+        // spec says that if typeNamePattern is a fully qualified name
+	// then the schema and catalog are ignored
 
         if (typeNamePattern != null)
         {
