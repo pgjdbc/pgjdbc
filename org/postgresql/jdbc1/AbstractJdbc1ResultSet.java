@@ -797,8 +797,8 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 	{
 		if (s != null)
 		{
-			int c = s.charAt(0);
-			return ((c == 't') || (c == 'T') || (c == '1'));
+			s = s.trim();
+			return (s.equalsIgnoreCase("true") || s.equals("1") || s.equalsIgnoreCase("t"));
 		}
 		return false;		// SQL NULL
 	}
