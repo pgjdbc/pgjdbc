@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.61 2004/11/10 20:43:45 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.62 2004/11/17 02:43:49 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -652,6 +652,11 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public synchronized void cancelRowUpdates()
     throws SQLException
     {
+        if (onInsertRow)
+        {
+            throw new PSQLException(GT.tr("Cannot call cancelRowUpdates() when on the insert row."));
+        }
+
         if (doingUpdates)
         {
             doingUpdates = false;
@@ -1182,6 +1187,12 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     throws SQLException
     {
         checkUpdateable();
+
+        if (onInsertRow)
+        {
+            throw new PSQLException(GT.tr("Cannot call updateRow() when on the insert row."));
+        }
+
         if (isBeforeFirst() || isAfterLast() || rows.size() == 0)
         {
             throw new PSQLException(GT.tr("Cannot update the ResultSet because it is either before the start or after the end of the results."));

@@ -3,7 +3,7 @@
 * Copyright (c) 2001-2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/UpdateableResultTest.java,v 1.13 2004/11/07 22:17:04 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/UpdateableResultTest.java,v 1.14 2004/11/09 08:55:16 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -326,4 +326,34 @@ public class UpdateableResultTest extends TestCase
         st.close();
     }
 
+    public void testInsertRowIllegalMethods() throws Exception
+    {
+        Statement st = con.createStatement( ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE );
+        ResultSet rs = st.executeQuery( "select * from updateable");
+        assertNotNull(rs);
+        rs.moveToInsertRow();
+
+        try {
+            rs.cancelRowUpdates();
+            fail("expected an exception when calling cancelRowUpdates() on the insert row");
+        } catch (SQLException e) {}
+
+        try {
+            rs.updateRow();
+            fail("expected an exception when calling updateRow() on the insert row");
+        } catch (SQLException e) {}
+
+        try {
+            rs.deleteRow();
+            fail("expected an exception when calling deleteRow() on the insert row");
+        } catch (SQLException e) {}
+
+        try {
+            rs.refreshRow();
+            fail("expected an exception when calling refreshRow() on the insert row");
+        } catch (SQLException e) {}
+
+        rs.close();
+        st.close();
+    }
 }
