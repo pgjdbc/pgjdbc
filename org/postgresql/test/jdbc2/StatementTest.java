@@ -95,7 +95,7 @@ public class StatementTest extends TestCase
         assertEquals(1,count);
 
 
-        ResultSet rs = stmt.executeQuery( "select {fn 'version()'} as version" );
+        ResultSet rs = stmt.executeQuery( "select {fn version()} as version" );
         assertTrue(rs.next());
 
         count= stmt.executeUpdate( "create temp table b (i int)" );
