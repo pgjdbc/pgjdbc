@@ -175,10 +175,15 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 	/** 
 	 * Simple query execution.
 	 */
-	public ResultSet execSQLQuery(String s) throws SQLException
-	{
-		Statement stat = (Statement) createStatement();
-		boolean hasResultSet = stat.execute(s);
+	public ResultSet execSQLQuery(String s) throws SQLException {
+		BaseStatement stat = (BaseStatement) createStatement();
+		boolean hasResultSet = stat.executeWithFlags(s, QueryExecutor.QUERY_SUPPRESS_BEGIN);
+
+		while (!hasResultSet && stat.getUpdateCount() != -1)
+			hasResultSet = stat.getMoreResults();
+
+		if (!hasResultSet)
+			throw new PSQLException("postgresql.stat.noresult", PSQLState.NO_DATA);
 
 		// Transfer warnings to the connection, since the user never
 		// has a chance to see the statement itself.
@@ -186,21 +191,13 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 		if (warnings != null)
 			addWarning(warnings);
 
-		while (!hasResultSet && stat.getUpdateCount() != -1)
-			hasResultSet = stat.getMoreResults();
-
 		return stat.getResultSet();
 	}
 
-    public void execSQLUpdate(String s) throws SQLException
-	{
-		execSQLUpdate(s, 0);
-	}
-
-    private void execSQLUpdate(String s, int flags) throws SQLException
-	{
+    public void execSQLUpdate(String s) throws SQLException {
 		BaseStatement stmt = (BaseStatement) createStatement();
-		stmt.executeWithFlags(s, QueryExecutor.QUERY_NO_METADATA | QueryExecutor.QUERY_NO_RESULTS | flags);
+		if (stmt.executeWithFlags(s, QueryExecutor.QUERY_NO_METADATA | QueryExecutor.QUERY_NO_RESULTS | QueryExecutor.QUERY_SUPPRESS_BEGIN))
+			throw new PSQLException("postgresql.stat.result");
 
 		// Transfer warnings to the connection, since the user never
 		// has a chance to see the statement itself.
@@ -526,7 +523,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
 		if (haveMinimumServerVersion("7.4") && readOnly != this.readOnly) {
 			String readOnlySql = "SET SESSION CHARACTERISTICS AS TRANSACTION " + (readOnly ? "READ ONLY" : "READ WRITE");
-			execSQLUpdate(readOnlySql, QueryExecutor.QUERY_SUPPRESS_BEGIN); // No BEGIN regardles of our autocommit setting
+			execSQLUpdate(readOnlySql); // nb: no BEGIN triggered.
 		}
 
 		this.readOnly = readOnly;
@@ -633,26 +630,32 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 	public int getTransactionIsolation() throws SQLException
 	{
 		String level = null;
-		Statement stmt = createStatement();
 
-		if (haveMinimumServerVersion("7.3")) {
-			ResultSet rs = stmt.executeQuery("SHOW TRANSACTION ISOLATION LEVEL");
+		if (haveMinimumServerVersion("7.3")) {			
+			// 7.3+ returns the level as a query result.
+			ResultSet rs = execSQLQuery("SHOW TRANSACTION ISOLATION LEVEL"); // nb: no BEGIN triggered
 			if (rs.next())
 				level = rs.getString(1);
-
-			// Transfer warnings to the connection, since the user never
-			// has a chance to see the statement itself.
-			SQLWarning warnings = stmt.getWarnings();
-			if (warnings != null)
-				addWarning(warnings);
+			rs.close();
 		} else {
-			stmt.executeUpdate("SHOW TRANSACTION ISOLATION LEVEL");
-			SQLWarning warning = stmt.getWarnings();
+			// 7.2 returns the level as an INFO message. Ew.
+			// We juggle the warning chains a bit here.
+
+			// Swap out current warnings.
+			SQLWarning saveWarnings = getWarnings();
+			clearWarnings();
+
+			// Run the query any examine any resulting warnings.
+			execSQLUpdate("SHOW TRANSACTION ISOLATION LEVEL"); // nb: no BEGIN triggered
+			SQLWarning warning = getWarnings();
 			if (warning != null)
 				level = warning.getMessage();
-		}
 
-		stmt.close();
+			// Swap original warnings back.
+			clearWarnings();
+			if (saveWarnings != null)
+				addWarning(saveWarnings);
+		}
 
 		// XXX revisit: throw exception instead of silently eating the error in unkwon cases?
 		if (level == null)
@@ -694,7 +697,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 			throw new PSQLException("postgresql.con.isolevel", PSQLState.TRANSACTION_STATE_INVALID, new Integer(level));
 
 		String isolationLevelSQL = "SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL " + isolationLevelName;
-		execSQLUpdate(isolationLevelSQL, QueryExecutor.QUERY_SUPPRESS_BEGIN); // No BEGIN regardles of our autocommit setting
+		execSQLUpdate(isolationLevelSQL); // nb: no BEGIN triggered
 	}
 
 	protected String getIsolationLevelName(int level)
@@ -887,7 +890,10 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
 			query.setString(1, typeName);
 
-			BaseResultSet result = (BaseResultSet)query.executeQuery();
+			if (! ((BaseStatement)query).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN) )
+				throw new PSQLException("postgresql.stat.noresult", PSQLState.NO_DATA);
+
+			ResultSet result = query.getResultSet();
 			if (result.next()) {
 				oid = result.getInt(1);
 				oidTypeCache.put(new Integer(oid), typeName);
@@ -926,7 +932,10 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
 			query.setInt(1, oid);
 
-			ResultSet result = query.executeQuery();
+			if (! ((BaseStatement)query).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN) )
+				throw new PSQLException("postgresql.stat.noresult", PSQLState.NO_DATA);
+
+			ResultSet result = query.getResultSet();
 			if (result.next()) {
 				typeName = result.getString(1);
 				typeOidCache.put(typeName, new Integer(oid));

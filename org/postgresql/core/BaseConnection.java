@@ -31,6 +31,7 @@ public interface BaseConnection extends PGConnection, Connection
 
 	/**
 	 * Execute a SQL query that returns a single resultset.
+	 * Never causes a new transaction to be started regardless of the autocommit setting.
 	 *
 	 * @param s the query to execute
 	 * @return the (non-null) returned resultset
@@ -40,6 +41,7 @@ public interface BaseConnection extends PGConnection, Connection
 
 	/**
 	 * Execute a SQL query that does not return results.
+	 * Never causes a new transaction to be started regardless of the autocommit setting.
 	 *
 	 * @param s the query to execute
 	 * @throws SQLException if something goes wrong.

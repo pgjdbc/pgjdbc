@@ -53,4 +53,13 @@ public interface BaseStatement extends PGStatement, Statement
 	 * @throws SQLException if something goes wrong.
 	 */
 	public boolean executeWithFlags(String p_sql, int flags) throws SQLException;
+
+	/**
+	 * Execute a prepared query, passing additional query flags.
+	 *
+	 * @param flags additional {@link QueryExecutor} flags for execution; these
+	 *  are bitwise-ORed into the default flags.
+	 * @throws SQLException if something goes wrong.
+	 */
+	public boolean executeWithFlags(int flags) throws SQLException;
 }

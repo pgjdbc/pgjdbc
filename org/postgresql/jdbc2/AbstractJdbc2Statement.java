@@ -282,7 +282,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 		return executeWithFlags(0);
 	}
 
-	private boolean executeWithFlags(int flags) throws SQLException
+	public boolean executeWithFlags(int flags) throws SQLException
 	{
         checkClosed();
 		if (isFunction && !returnTypeSet)
