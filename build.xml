@@ -83,8 +83,10 @@
 
   <!-- This target removes any class files from the build directory -->
   <target name="clean">
-    <delete dir="${dest}" />
-    <delete dir="${jars}" />
+    <delete>
+	<fileset dir="${dest}" />
+    	<fileset dir="${jars}" />
+    </delete>
     <delete file="${package}/Driver.java" />
   </target>
 
