@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.31 2004/11/09 08:54:19 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.32 2005/01/11 08:25:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -33,7 +33,7 @@ public class DatabaseMetaDataTest extends TestCase
     protected void setUp() throws Exception
     {
         con = TestUtil.openDB();
-        TestUtil.createTable( con, "testmetadata", "id int4, name text, updated timestamp" );
+        TestUtil.createTable( con, "testmetadata", "id int4, name text, updated timestamp, colour text, quest text" );
         TestUtil.dropSequence( con, "sercoltest_b_seq");
         TestUtil.dropSequence( con, "sercoltest_c_seq");
         TestUtil.createTable( con, "sercoltest", "a int, b serial, c bigserial");
@@ -358,10 +358,52 @@ public class DatabaseMetaDataTest extends TestCase
 
     public void testIndexInfo() throws SQLException
     {
-        // At the moment just test that no exceptions are thrown KJ
+        Statement stmt = con.createStatement();
+        stmt.execute("create index idx_id on testmetadata (id)");
+        stmt.execute("create index idx_func_single on testmetadata (upper(colour))");
+        if (TestUtil.haveMinimumServerVersion(con, "7.4")) {
+            stmt.execute("create index idx_func_multi on testmetadata (upper(colour), upper(quest))");
+            stmt.execute("create index idx_func_mixed on testmetadata (colour, upper(quest))");
+        }
+
         DatabaseMetaData dbmd = con.getMetaData();
         assertNotNull(dbmd);
-        ResultSet rs = dbmd.getIndexInfo(null, null, "pg_class", false, false);
+        ResultSet rs = dbmd.getIndexInfo(null, null, "testmetadata", false, false);
+
+        if (TestUtil.haveMinimumServerVersion(con, "7.4")) {
+            assertTrue(rs.next());
+            assertEquals("idx_func_mixed", rs.getString("INDEX_NAME"));
+            assertEquals(1, rs.getInt("ORDINAL_POSITION"));
+            assertEquals("colour", rs.getString("COLUMN_NAME"));
+
+            assertTrue(rs.next());
+            assertEquals("idx_func_mixed", rs.getString("INDEX_NAME"));
+            assertEquals(2, rs.getInt("ORDINAL_POSITION"));
+            assertEquals("upper(quest)", rs.getString("COLUMN_NAME"));
+
+            assertTrue(rs.next());
+            assertEquals("idx_func_multi", rs.getString("INDEX_NAME"));
+            assertEquals(1, rs.getInt("ORDINAL_POSITION"));
+            assertEquals("upper(colour)", rs.getString("COLUMN_NAME"));
+
+            assertTrue(rs.next());
+            assertEquals("idx_func_multi", rs.getString("INDEX_NAME"));
+            assertEquals(2, rs.getInt("ORDINAL_POSITION"));
+            assertEquals("upper(quest)", rs.getString("COLUMN_NAME"));
+        }
+
+        assertTrue(rs.next());
+        assertEquals("idx_func_single", rs.getString("INDEX_NAME"));
+        assertEquals(1, rs.getInt("ORDINAL_POSITION"));
+        assertEquals("upper(colour)", rs.getString("COLUMN_NAME"));
+
+        assertTrue(rs.next());
+        assertEquals("idx_id", rs.getString("INDEX_NAME"));
+        assertEquals(1, rs.getInt("ORDINAL_POSITION"));
+        assertEquals("id", rs.getString("COLUMN_NAME"));
+
+        assertTrue(!rs.next());
+
         rs.close();
     }
 

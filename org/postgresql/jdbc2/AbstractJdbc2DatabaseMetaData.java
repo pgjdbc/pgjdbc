@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.17 2004/12/14 06:23:40 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.18 2005/01/11 08:25:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -3842,11 +3842,29 @@ public abstract class AbstractJdbc2DatabaseMetaData
         String select;
         String from;
         String where = "";
+
+        /* This is a complicated function because we have three possible
+         * situations:
+         * <= 7.2 no schemas, single column functional index
+         * 7.3 schemas, single column functional index
+         * >= 7.4 schemas, multi-column expressional index
+         *
+         * with the single column functional index we need an extra
+         * join to the table's pg_attribute data to get the column
+         * the function operates on.
+         */
         if (connection.haveMinimumServerVersion("7.3"))
         {
             select = "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, ";
-            from = " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class ct, pg_catalog.pg_class ci, pg_catalog.pg_index i, pg_catalog.pg_attribute a, pg_catalog.pg_am am ";
+            from = " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class ct, pg_catalog.pg_class ci, pg_catalog.pg_attribute a, pg_catalog.pg_am am ";
             where = " AND n.oid = ct.relnamespace ";
+
+            if (!connection.haveMinimumServerVersion("7.4")) {
+                from += ", pg_catalog.pg_attribute ai, pg_catalog.pg_index i LEFT JOIN pg_catalog.pg_proc ip ON (i.indproc = ip.oid) ";
+                where += " AND ai.attnum = i.indkey[0] AND ai.attrelid = ct.oid ";
+            } else {
+                from += ", pg_catalog.pg_index i ";
+            }
             if (schema != null && ! "".equals(schema))
             {
                 where += " AND n.nspname = '" + escapeQuotes(schema) + "' ";
@@ -3855,7 +3873,8 @@ public abstract class AbstractJdbc2DatabaseMetaData
         else
         {
             select = "SELECT NULL AS TABLE_CAT, NULL AS TABLE_SCHEM, ";
-            from = " FROM pg_class ct, pg_class ci, pg_index i, pg_attribute a, pg_am am ";
+            from = " FROM pg_class ct, pg_class ci, pg_attribute a, pg_am am, pg_attribute ai, pg_index i LEFT JOIN pg_proc ip ON (i.indproc = ip.oid) ";
+            where = " AND ai.attnum = i.indkey[0] AND ai.attrelid = ct.oid ";
         }
 
         String sql = select +
@@ -3867,9 +3886,19 @@ public abstract class AbstractJdbc2DatabaseMetaData
                      " ELSE " + java.sql.DatabaseMetaData.tableIndexOther +
                      " END " +
                      " END AS TYPE, " +
-                     " a.attnum AS ORDINAL_POSITION, " +
-                     " a.attname AS COLUMN_NAME, " +
-                     " NULL AS ASC_OR_DESC, " +
+                     " a.attnum AS ORDINAL_POSITION, ";
+
+        if( connection.haveMinimumServerVersion("7.4"))
+        {
+            sql += " CASE i.indexprs WHEN null THEN a.attname ELSE pg_get_indexdef(ci.oid,a.attnum,false) END AS COLUMN_NAME, ";
+        }
+        else
+        {
+            sql += " CASE i.indproc WHEN 0 THEN a.attname ELSE ip.proname || '(' || ai.attname || ')' END AS COLUMN_NAME, ";
+        }
+
+
+        sql += " NULL AS ASC_OR_DESC, " +
                      " ci.reltuples AS CARDINALITY, " +
                      " ci.relpages AS PAGES, " +
                      " NULL AS FILTER_CONDITION " +
