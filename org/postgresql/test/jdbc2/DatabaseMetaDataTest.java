@@ -114,7 +114,7 @@ public class DatabaseMetaDataTest extends TestCase
 				assertTrue( fkColumnName.equals( "m" ) || fkColumnName.equals( "n" ) ) ;
 
 				String fkName = rs.getString( "FK_NAME" );
-				if (TestUtil.haveMinimumServerVersion(con1,"7.5")) {
+				if (TestUtil.haveMinimumServerVersion(con1,"8.0")) {
 					assertEquals("ww_m_fkey", fkName);
 				} else if (TestUtil.haveMinimumServerVersion(con1,"7.3")) {
 					assertTrue(fkName.startsWith("$1"));

@@ -103,7 +103,7 @@ JAVACMD=$JAVA_HOME/bin/java
     <filename>postgresql.jar</filename> if you built from source, otherwise
     it will likely be named with the following convention:
     <filename>pg<replaceable>[server version]</replaceable>.<replaceable>[buildnumber]</replaceable>jdbc<replaceable>[JDBC version]</replaceable>.jar</filename>,
-    for example pg75.304.jdbc3.jar)
+    for example pg80.304.jdbc3.jar)
     needs to be included in the class path, either by putting it in the
     <envar>CLASSPATH</envar> environment variable, or by using flags on the
     <command>java</command> command line.

@@ -1586,7 +1586,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
 		if (level == Connection.TRANSACTION_SERIALIZABLE ||
 				level == Connection.TRANSACTION_READ_COMMITTED)
 			return true;
-		else if (connection.haveMinimumServerVersion("7.5") && (level == Connection.TRANSACTION_READ_UNCOMMITTED || level == Connection.TRANSACTION_REPEATABLE_READ))
+		else if (connection.haveMinimumServerVersion("8.0") && (level == Connection.TRANSACTION_READ_UNCOMMITTED || level == Connection.TRANSACTION_REPEATABLE_READ))
 			return true;
 		else
 			return false;

@@ -702,15 +702,15 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
 	protected String getIsolationLevelName(int level)
 	{
-		boolean pg75 = haveMinimumServerVersion("7.5");
+		boolean pg80 = haveMinimumServerVersion("8.0");
 
 		if (level == Connection.TRANSACTION_READ_COMMITTED) {
 			return "READ COMMITTED";
 		} else if (level == Connection.TRANSACTION_SERIALIZABLE) {
 			return "SERIALIZABLE";
-		} else if (pg75 && level == Connection.TRANSACTION_READ_UNCOMMITTED) {
+		} else if (pg80 && level == Connection.TRANSACTION_READ_UNCOMMITTED) {
 			return "READ UNCOMMITTED";
-		} else if (pg75 && level == Connection.TRANSACTION_REPEATABLE_READ) {
+		} else if (pg80 && level == Connection.TRANSACTION_REPEATABLE_READ) {
 			return "REPEATABLE READ";
 		}
 

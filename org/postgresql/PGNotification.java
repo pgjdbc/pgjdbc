@@ -31,7 +31,7 @@ public interface PGNotification
 	 * Currently, this feature is unimplemented and always returns
 	 * an empty String.
 	 *
-	 * @since 7.5
+	 * @since 8.0
 	 */
 	public String getParameter();
 
