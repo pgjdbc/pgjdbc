@@ -172,23 +172,23 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 	public void setBlob(int i, Blob x) throws SQLException
 	{
 		InputStream l_inStream = x.getBinaryStream();
-		int l_length = (int) x.length();
 		LargeObjectManager lom = connection.getLargeObjectAPI();
 		int oid = lom.create();
 		LargeObject lob = lom.open(oid);
 		OutputStream los = lob.getOutputStream();
+		byte[] buf = new byte[4096];
 		try
 		{
 			// could be buffered, but then the OutputStream returned by LargeObject
 			// is buffered internally anyhow, so there would be no performance
 			// boost gained, if anything it would be worse!
-			int c = l_inStream.read();
-			int p = 0;
-			while (c > -1 && p < l_length)
+			int bytesRemaining = (int)x.length();
+			int numRead = l_inStream.read(buf,0,Math.min(buf.length,bytesRemaining));
+			while (numRead != -1 && bytesRemaining > 0)
 			{
-				los.write(c);
-				c = l_inStream.read();
-				p++;
+			        bytesRemaining -= numRead;
+				los.write(buf,0,numRead);
+				numRead = l_inStream.read(buf,0,Math.min(buf.length,bytesRemaining));
 			}
 			los.close();
 		}

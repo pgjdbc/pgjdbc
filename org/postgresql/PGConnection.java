@@ -68,5 +68,14 @@ public interface PGConnection
      */
     public Object getObject(String type, String value) throws SQLException;
 
+
+    /*
+     * This method returns any notifications that have been received 
+     * since the last call to this method.
+     * Returns null if there have been no notifications.
+     */
+    public PGNotification[] getNotifications();
+
+
 }
 

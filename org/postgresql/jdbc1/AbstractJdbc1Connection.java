@@ -6,6 +6,7 @@ import java.net.ConnectException;
 import java.sql.*;
 import java.util.*;
 import org.postgresql.Driver;
+import org.postgresql.PGNotification;
 import org.postgresql.PG_Stream;
 import org.postgresql.core.*;
 import org.postgresql.fastpath.Fastpath;
@@ -33,6 +34,8 @@ public abstract class AbstractJdbc1Connection implements org.postgresql.PGConnec
         // The PID an cancellation key we get from the backend process
         protected int pid;
         protected int ckey;
+
+        private Vector m_notifications;
 
         /*
          The encoding to use for this connection.
@@ -1309,7 +1312,22 @@ public abstract class AbstractJdbc1Connection implements org.postgresql.PGConnec
 												Types.TIMESTAMP, Types.TIMESTAMP, Types.TIMESTAMP
 											};
 
+    //Methods to support postgres notifications
+    public void addNotification(org.postgresql.PGNotification p_notification) {
+	if (m_notifications == null) 
+	    m_notifications = new Vector();
+        m_notifications.addElement(p_notification);
+    }
 
+    public PGNotification[] getNotifications() {
+        PGNotification[] l_return = null;
+	if (m_notifications != null) {
+            l_return = new PGNotification[m_notifications.size()];
+            m_notifications.copyInto(l_return);
+	}
+        m_notifications = null;
+	return l_return;
+    }
 }
 
 

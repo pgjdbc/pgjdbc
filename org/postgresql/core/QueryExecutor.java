@@ -75,6 +75,7 @@ public class QueryExecutor
                                         case 'A':	// Asynchronous Notify
                                                 int pid = pg_stream.ReceiveInteger(4);
                                                 String msg = pg_stream.ReceiveString(connection.getEncoding());
+						connection.addNotification(new org.postgresql.core.Notification(msg, pid));
                                                 break;
                                         case 'B':	// Binary Data Transfer
                                                 receiveTuple(true);
