@@ -271,36 +271,12 @@
     </javac>
   </target>
 
-
-
-  <!-- Install the jar files -->
-  <target name="install" depends="all" if="install.directory">
-    <copy todir="${install.directory}" overwrite="true">
-      <fileset dir="${jardir}" includes="&jarfiles;" />
-    </copy>
-  </target>
-
-
-  <!-- Uninstall the jar file -->
-  <target name="uninstall" if="install.directory">
-    <delete>
-      <fileset dir="${install.directory}" includes="&jarfiles;" />
-    </delete>
-  </target>
-
-
-
   <!-- This target removes any class files from the build directory -->
   <target name="clean">
     <delete quiet="true" dir="${builddir}" />
     <delete quiet="true" dir="${jardir}" />
     <delete quiet="true" file="${package}/Driver.java" />
   </target>
-
-  <target name="clean_all" depends="clean">
-    <delete quiet="true" file="build.properties" />
-  </target>
-
 
   <!-- This compiles and executes the JUnit tests -->
 
@@ -357,7 +333,7 @@
     </junit>
   </target>
   
-  <!-- This is the target invoked by the Makefile -->
+  <!-- Build and run the tests. -->
   <target name="test" depends="testjar,runtest"/>
 
 </project>

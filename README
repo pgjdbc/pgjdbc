@@ -15,6 +15,10 @@ The Driver's home page is:
 
 	http://jdbc.postgresql.org/
 
+The CVS repository is available:
+
+	http://gborg.postgresql.org/project/pgjdbc/projdisplay.php
+
 ---------------------------------------------------------------------------
 
 COMPILING
@@ -24,17 +28,9 @@ http://jakarta.apache.org/ant/index.html and download the binary. Being pure
 java it will run on virtually all java platforms. If you have any problems
 please email the jdbc list.
 
-Once you have ANT, run the configure script in the top-level directory with
-the --with-java option.  Then proceed with 'make' and 'make install' as
-usual.  This will compile the correct driver for your JVM, and build a .jar
-file (Java ARchive) called postgresql.jar.  The file will be installed in
-the directory PREFIX/share/java.
-
-That jar file will contain the driver for _your_ version of the JDK.
-
-If you would like to use ANT directly, first invoke 'make build.properties'
-after running the configure script with the java option. This will create a
-needed Java properties file from the configured information.
+Once you have ANT, simple run ant in the top level directory.  This will
+compile the correct driver for your JVM, and build a .jar file (Java ARchive)
+called postgresql.jar.
 
 REMEMBER: Once you have compiled the driver, it will work on ALL platforms
 that support that version of the API. You don't need to build it for each
