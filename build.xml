@@ -8,7 +8,7 @@
 
   This file now requires Ant 1.4.1.  2002-04-18
 
-  $PostgreSQL: pgjdbc/build.xml,v 1.58 2004/11/07 22:15:24 jurka Exp $
+  $PostgreSQL: pgjdbc/build.xml,v 1.59 2005/01/11 08:25:42 jurka Exp $
 
 -->
 
@@ -330,17 +330,15 @@
        built, and not whatever happens to be in builddir. -->
 
   <!-- This compiles and builds the test jarfile. -->  
-  <target name="testjar" depends="jar" if="junit">
+  <target name="testjar" depends="jar">
+    <fail message="JUnit could not be found in your classpath.  You must download and install it from http://junit.org to build and run the test suite." unless="junit" />
     <mkdir dir="${builddir}/tests"/>
     <javac srcdir="${srcdir}" destdir="${builddir}/tests" debug="${debug}">
       <include name="${package}/test/**" />
 
-      <exclude name="${package}/test/jdbc2/**" unless="junit" />
       <exclude name="${package}/test/jdbc2/optional/**" unless="jdbc2optionaltests" />
       <exclude name="${package}/test/jdbc3/**" unless="jdbc3tests" />
       <exclude name="${package}/test/util/**" unless="jdbc2optionaltests" />
-      <exclude name="${package}/test/util/Jdbc23*.java" if="jdbc3g" />
-      <exclude name="${package}/test/util/Jdbc3g*.java" unless="jdbc3g" />
 
       <classpath>
         <pathelement location="${jardir}/postgresql.jar"/>
@@ -350,7 +348,8 @@
   </target>
     
   <!-- This actually runs the tests -->
-  <target name="runtest" depends="testjar" if="junit.task">
+  <target name="runtest" depends="testjar">
+    <fail message="Your version of ant doesn't seem to have the junit task available.  I looked for org.apache.tools.ant.taskdefs.optional.junit.JUnitTask, but I couldn't find it." unless="junit.task" />
     <junit>
       <formatter type="brief" usefile="false"/>
 
