@@ -3,7 +3,7 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Connection.java,v 1.11 2004/11/07 22:16:25 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Connection.java,v 1.12 2004/11/09 08:50:07 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -51,6 +51,7 @@ public abstract class AbstractJdbc3Connection extends org.postgresql.jdbc2.Abstr
         {
         case ResultSet.CLOSE_CURSORS_AT_COMMIT:
             rsHoldability = holdability;
+            break;
         default:
             throw new PSQLException(GT.tr("ResultSet holdability of HOLD_CURSORS_OVER_COMMIT is not supported."), PSQLState.NOT_IMPLEMENTED);
         }

@@ -3,7 +3,7 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Array.java,v 1.6 2004/11/07 22:15:57 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Array.java,v 1.7 2004/11/09 08:48:29 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -271,8 +271,10 @@ public class AbstractJdbc2Array
                 tuple[1] = conn.encodeString( (booleanArray[i] ? "YES" : "NO") ); // Value
                 rows.addElement(tuple);
             }
+            break;
         case Types.SMALLINT:
             fields[1] = new Field("VALUE", Oid.INT2, 2);
+            break;
         case Types.INTEGER:
             int[] intArray = (int[]) array;
             if ( fields[1] == null )
@@ -331,6 +333,7 @@ public class AbstractJdbc2Array
             break;
         case Types.CHAR:
             fields[1] = new Field("VALUE", Oid.BPCHAR, 1);
+            break;
         case Types.VARCHAR:
             String[] strArray = (String[]) array;
             if ( fields[1] == null )

@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.4 2004/11/07 22:16:21 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.5 2004/11/09 08:49:32 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -236,8 +236,8 @@ public class TimestampUtils {
      */
     private static String parseTime( String s, SimpleDateFormat df ) throws ParseException
     {
-        StringBuffer sbuf = new StringBuffer(s.substring(0, 8));
-        StringBuffer dateFormat = new StringBuffer("HH:mm:ss");
+        StringBuffer sb = new StringBuffer(s.substring(0, 8));
+        StringBuffer timeFormat = new StringBuffer("HH:mm:ss");
 
         int msIndex = s.indexOf('.');
         int tzIndex = s.indexOf('-');
@@ -266,20 +266,20 @@ public class TimestampUtils {
                     msec += 1;
 
             }
-            sbuf.append('.').append( msec );
-            dateFormat.append(".SSS");
+            sb.append('.').append( msec );
+            timeFormat.append(".SSS");
         }
 
         if ( tzIndex != -1 )
         { // we have a time zone
             String tz = s.substring(tzIndex);
-            sbuf.append(" GMT").append(tz);
+            sb.append(" GMT").append(tz);
             if (tz.length() < 6)
-                sbuf.append(":00");
-            dateFormat.append( " z" );
+                sb.append(":00");
+            timeFormat.append( " z" );
         }
-        df.applyPattern(dateFormat.toString());
-        return sbuf.toString();
+        df.applyPattern(timeFormat.toString());
+        return sb.toString();
     }
 
     public static Time toTime(String s, String pgDataType) throws SQLException {

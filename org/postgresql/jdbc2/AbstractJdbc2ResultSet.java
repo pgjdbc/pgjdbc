@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.59 2004/11/07 22:16:04 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.60 2004/11/09 08:48:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1673,9 +1673,11 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                 case Types.TINYINT:
                 case Types.OTHER:
                     rowBuffer[columnIndex] = connection.encodeString(String.valueOf( valueObject));
+                    break;
 
                 case Types.NULL:
-                    continue;
+                    // Should never happen?
+                    break;
 
                 default:
                     rowBuffer[columnIndex] = (byte[]) valueObject;

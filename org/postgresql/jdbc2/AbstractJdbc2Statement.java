@@ -3,7 +3,7 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.47 2004/11/07 22:16:07 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.48 2004/11/09 08:48:54 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1479,6 +1479,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             break;
         case Types.CHAR:
             setString(parameterIndex, x.toString(), Oid.BPCHAR);
+            break;
         case Types.VARCHAR:
         case Types.LONGVARCHAR:
             setString(parameterIndex, x.toString());

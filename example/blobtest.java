@@ -109,13 +109,13 @@ public class blobtest
         // copy the data
         System.out.println("Copying file to large object");
         byte buf[] = new byte[2048];
-        int s, tl = 0;
-        while ((s = fis.read(buf, 0, 2048)) > 0)
+        int size, tl = 0;
+        while ((size = fis.read(buf, 0, 2048)) > 0)
         {
-            System.out.println("Block size=" + s + " offset=" + tl);
+            System.out.println("Block size=" + size + " offset=" + tl);
             //System.out.write(buf);
-            obj.write(buf, 0, s);
-            tl += s;
+            obj.write(buf, 0, size);
+            tl += size;
         }
         DriverManager.println("Copied " + tl + " bytes");
 
@@ -142,17 +142,17 @@ public class blobtest
         // copy the data
         System.out.println("Copying large object to file");
         byte buf[] = new byte[512];
-        int s = obj.size();
+        int size = obj.size();
         int tl = 0;
-        while (s > 0)
+        while (size > 0)
         {
             int rs = buf.length;
-            if (s < rs)
-                rs = s;
+            if (size < rs)
+                rs = size;
             obj.read(buf, 0, rs);
             fos.write(buf, 0, rs);
             tl += rs;
-            s -= rs;
+            size -= rs;
         }
         DriverManager.println("Copied " + tl + "/" + obj.size() + " bytes");
 
