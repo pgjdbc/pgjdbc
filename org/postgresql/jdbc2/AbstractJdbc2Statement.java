@@ -14,7 +14,7 @@ import org.postgresql.util.PSQLState;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.GT;
 
-/* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.42 2004/10/25 22:43:21 jurka Exp $
+/* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.43 2004/10/28 01:55:13 oliver Exp $
  * This class defines methods of the jdbc2 specification.
  * The real Statement class (for jdbc2) is org.postgresql.jdbc2.Jdbc2Statement
  */
@@ -660,32 +660,29 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 							if (i + 1 < len)
 							{
 								char next = p_sql.charAt(i + 1);
-								if (next == 'd')
+								char nextnext = (i + 2 < len) ? p_sql.charAt(i + 2) : '\0';
+								if (next == 'd' || next == 'D')
 								{
 									state = ESC_TIMEDATE;
 									i++;
 									break;
 								}
-								else if (next == 't')
+								else if (next == 't' || next == 'T')
 								{
 									state = ESC_TIMEDATE;
-									i += (i + 2 < len && p_sql.charAt(i + 2) == 's') ? 2 : 1;
+									i += (nextnext == 's' || nextnext == 'S') ? 2 : 1;
 									break;
 								}
-                                else if ( next == 'f')
+                                else if ( next == 'f' || next == 'F' )
                                 {
                                     state = ESC_FUNCTION;
-                                    i +=
-                                        (i + 2 < len && p_sql.charAt(i + 2) == 'n') ?
-                                        2 : 1;
+                                    i += (nextnext == 'n' || nextnext == 'F') ? 2 : 1;
                                     break;
                                 }
-                                else if ( next == 'o' )
+                                else if ( next == 'o' || next == 'O' )
                                 {
                                     state = ESC_OUTERJOIN;
-                                    i +=
-                                        (i + 2 < len && p_sql.charAt(i + 2) == 'j') ?
-                                        2 : 1;
+                                    i += (nextnext == 'j' || nextnext == 'J') ? 2 : 1;
                                     break;
                                 }
 
