@@ -112,12 +112,12 @@ public abstract class Connection
       throw new PSQLException("postgresql.con.pass");
     
     this_driver = d;
-    this_url = new String(url);
-    PG_DATABASE = new String(database);
-    PG_PASSWORD = new String(info.getProperty("password"));
-    PG_USER = new String(info.getProperty("user"));
+    this_url = url;
+    PG_DATABASE = database;
+    PG_PASSWORD = info.getProperty("password");
+    PG_USER = info.getProperty("user");
     PG_PORT = port;
-    PG_HOST = new String(host);
+    PG_HOST = host;
     PG_STATUS = CONNECTION_BAD;
 
     encoding = info.getProperty("charSet");  // could be null
