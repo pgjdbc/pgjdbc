@@ -252,7 +252,7 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 						
 					case 'N':
 						// Server does not support ssl
-						throw new PSQLException("postgresql.con.sslnotsupported");
+						throw new PSQLException("postgresql.con.sslnotsupported", PSQLState.CONNECTION_FAILURE);
 						
 					case 'S':
 						// Server supports ssl
@@ -262,7 +262,7 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 						break;
 
 					default:
-						throw new PSQLException("postgresql.con.sslfail");
+						throw new PSQLException("postgresql.con.sslfail", PSQLState.CONNECTION_FAILURE);
 					}
 			}
 		}
@@ -559,7 +559,7 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 						
 					case 'N':
 						// Server does not support ssl
-						throw new PSQLException("postgresql.con.sslnotsupported");
+						throw new PSQLException("postgresql.con.sslnotsupported", PSQLState.CONNECTION_FAILURE);
 						
 					case 'S':
 						// Server supports ssl
@@ -569,7 +569,7 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 						break;
 
 					default:
-						throw new PSQLException("postgresql.con.sslfail");
+						throw new PSQLException("postgresql.con.sslfail", PSQLState.CONNECTION_FAILURE);
 					}
 			}
 		}
@@ -1610,7 +1610,7 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 				}
 				BaseResultSet result = execSQL(sql);
 				if (result.getColumnCount() != 1 || result.getTupleCount() != 1) {
-					throw new PSQLException("postgresql.unexpected");
+					throw new PSQLException("postgresql.unexpected", PSQLState.UNEXPECTED_ERROR);
 				}
 				result.next();
 				pgType = result.getString(1);
@@ -1651,7 +1651,7 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 				}
 				BaseResultSet result = execSQL(sql);
 				if (result.getColumnCount() != 1 || result.getTupleCount() != 1)
-					throw new PSQLException("postgresql.unexpected");
+					throw new PSQLException("postgresql.unexpected", PSQLState.UNEXPECTED_ERROR);
 				result.next();
 				oid = Integer.parseInt(result.getString(1));
 				typeOidCache.put(typeName, new Integer(oid));

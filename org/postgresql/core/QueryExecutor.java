@@ -340,7 +340,7 @@ public class QueryExecutor
 		}
 		catch (IOException e)
 		{
-			throw new PSQLException("postgresql.con.ioerror", e);
+			throw new PSQLException("postgresql.con.ioerror", PSQLState.CONNECTION_FAILURE_DURING_TRANSACTION, e);
 		}
 	}
 
@@ -370,7 +370,7 @@ public class QueryExecutor
 		}
 		catch (IOException e)
 		{
-			throw new PSQLException("postgresql.con.ioerror", e);
+			throw new PSQLException("postgresql.con.ioerror", PSQLState.CONNECTION_FAILURE_DURING_TRANSACTION, e);
 		}
 	}
 

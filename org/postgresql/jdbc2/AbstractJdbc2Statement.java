@@ -227,7 +227,7 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 		}
 		catch (IOException se)
 		{
-			throw new PSQLException("postgresql.unusual", se);
+			throw new PSQLException("postgresql.unusual", PSQLState.UNEXPECTED_ERROR, se);
 		}
 		finally
 		{
@@ -259,7 +259,7 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 			}
 			catch (IOException l_ioe)
 			{
-				throw new PSQLException("postgresql.unusual", l_ioe);
+				throw new PSQLException("postgresql.unusual", PSQLState.UNEXPECTED_ERROR, l_ioe);
 			}
 			setString(i, new String(l_chars, 0, l_charsRead));
 		}
@@ -289,7 +289,7 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 			}
 			catch (IOException se)
 			{
-				throw new PSQLException("postgresql.unusual", se);
+				throw new PSQLException("postgresql.unusual", PSQLState.UNEXPECTED_ERROR, se);
 			}
 			// lob is closed by the stream so don't call lob.close()
 			setInt(i, oid);
@@ -321,7 +321,7 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 		}
 		catch (IOException se)
 		{
-			throw new PSQLException("postgresql.unusual", se);
+			throw new PSQLException("postgresql.unusual", PSQLState.UNEXPECTED_ERROR, se);
 		}
 		// lob is closed by the stream so don't call lob.close()
 		setInt(i, oid);
