@@ -2500,7 +2500,7 @@ WHERE
 		f[13] = new Field(connection, "DEFERRABILITY", iInt2Oid, 2);
 
 		java.sql.ResultSet rs = connection.ExecSQL(
-                "SELECT "
+                "SELECT distinct "
                   + "c.relname as prelname, "
                   + "c2.relname as frelname, "
                   + "t.tgconstrname, "
@@ -2676,8 +2676,8 @@ WHERE
       tuple[7] = fkeyColumns.toString().getBytes(); //FKCOLUMN_NAME
 
       tuple[8] =  rs.getBytes(4); //KEY_SEQ
-      tuple[11] = rs.getBytes(5); //FK_NAME
-      tuple[12] = rs.getBytes(3); //PK_NAME
+      tuple[11] = rs.getBytes(3); //FK_NAME
+      tuple[12] = rs.getBytes(5); //PK_NAME
 
       // DEFERRABILITY
       int deferrability = importedKeyNotDeferrable;
