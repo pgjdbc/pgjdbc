@@ -1,7 +1,7 @@
 # Brazilian Portuguese message translation for the PostgreSQL JDBC driver
 # This file is distributed under the same license as the package.
 #
-# $PostgreSQL: pgjdbc/org/postgresql/translation/pt_BR.po,v 1.5 2004/11/07 22:17:11 jurka Exp $
+# $PostgreSQL: pgjdbc/org/postgresql/translation/pt_BR.po,v 1.8 2005/01/08 19:33:57 jurka Exp $
 #
 # Euler Taveira de Oliveira <eulerto@yahoo.com.br>, 2004.
 #
@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PostgreSQL 8.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-01-08 11:21-0800\n"
+"POT-Creation-Date: 2005-01-09 14:09-0200\n"
 "PO-Revision-Date: 2004-11-25 02:41-0300\n"
 "Last-Translator: Euler Taveira de Oliveira <eulerto@yahoo.com.br>\n"
 "Language-Team: Brazilian Portuguese <desenvolvimento-postgresql@listas."
@@ -198,7 +198,7 @@ msgstr "Zero bytes não podem ocorrer em parâmetros de cadeia de caracteres."
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:192
 msgid "Unable to bind parameter values for statement."
-msgstr ""
+msgstr "Não foi possível ligar valores de parâmetro para comando."
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:762
 #, java-format
@@ -206,6 +206,9 @@ msgid ""
 "Bind message length {0} too long.  This can be caused by very large or "
 "incorrect length specifications on InputStream parameters."
 msgstr ""
+"Tamanho de mensagem de ligação {0} é muito longo. Isso pode ser causado "
+"por especificações de tamanho incorretas ou muito grandes nos parâmetros "
+"do InputStream."
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1196
 #, java-format
@@ -213,6 +216,8 @@ msgid ""
 "The server''s client_encoding parameter was changed to {0}. The JDBC driver "
 "requires client_encoding to be UNICODE for correct operation."
 msgstr ""
+"O parâmetro do servidor client_encoding foi alterado para {0}. O driver JDBC "
+"requer que o client_encoding seja UNICODE para operação normal."
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1203
 #, java-format
@@ -220,11 +225,12 @@ msgid ""
 "The server''s DateStyle parameter was changed to {0}. The JDBC driver "
 "requires DateStyle to begin with ISO for correct operation."
 msgstr ""
+"O parâmetro do servidor DateStyle foi alterado para {0}. O driver JDBC "
+"requer que o DateStyle começe com ISO para operação normal."
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1247
-#, fuzzy
 msgid "The driver currently does not support COPY operations."
-msgstr "O driver não suporta SSL."
+msgstr "O driver atualmente não suporta operações COPY."
 
 #: org/postgresql/ds/PGPoolingDataSource.java:408
 msgid "DataSource has been closed."
@@ -859,65 +865,3 @@ msgstr "Local: Arquivo: {0}, Rotina: {1}, Linha: {2}"
 #, java-format
 msgid "Server SQLState: {0}"
 msgstr "SQLState: {0}"
-
-#~ msgid "Conversion of box failed: {0}."
-#~ msgstr "Conversão de box falhou: {0}."
-
-#~ msgid "Conversion of circle failed: {0}."
-#~ msgstr "Conversão de circle falhou: {0}."
-
-#~ msgid "Conversion of line failed: {0}."
-#~ msgstr "Conversão de line falhou: {0}."
-
-#~ msgid "Conversion of point failed: {0}."
-#~ msgstr "Conversão de point falhou: {0}."
-
-#~ msgid "The JVM claims not to support the ASCII encoding."
-#~ msgstr "A JVM reclamou que não suporta a codificação ASCII."
-
-#~ msgid "Bad byte: {0}"
-#~ msgstr "Byte inválido: {0}"
-
-#~ msgid "Bad short: {0}"
-#~ msgstr "Short inválido: {0}"
-
-#~ msgid "The JVM claims not to support the UTF-8 encoding."
-#~ msgstr "A JVM reclamou que não suporta a codificação UTF-8."
-
-#~ msgid "Bad int: {0}"
-#~ msgstr "Int inválido: {0}"
-
-#~ msgid "Bad long: {0}"
-#~ msgstr "Long inválido: {0}"
-
-#~ msgid "Bad BigDecimal: {0}"
-#~ msgstr "BigDecimal inválido: {0}"
-
-#~ msgid "Bad float: {0}"
-#~ msgstr "Float inválido: {0}"
-
-#~ msgid "Bad double: {0}"
-#~ msgstr "Double inválido: {0}"
-
-#~ msgid "Bad date: {0}"
-#~ msgstr "Date inválido: {0}"
-
-#~ msgid "Cannot cast an instance of {0} to Types.OTHER"
-#~ msgstr "Não pode converter uma instância de {0} para Types.OTHER"
-
-#~ msgid "The given date {0} does not match the format required: {1}."
-#~ msgstr "A data informada {0} não corresponde ao formato requerido: {1}."
-
-#~ msgid "The time given {0} does not match the format required: {1}."
-#~ msgstr "A hora informada {0} não corresponde ao formato requerido: {1}."
-
-#~ msgid "The timestamp given {0} does not match the format required: {1}."
-#~ msgstr ""
-#~ "O timestamp informado {0} não corresponde ao formato requerido: {1}."
-
-#~ msgid "Could not extract nanoseconds from {0}."
-#~ msgstr "Não pôde extrair nanosegundos de {0}."
-
-#~ msgid "ResultSet holdability of HOLD_CURSORS_OVER_COMMIT is not supported."
-#~ msgstr ""
-#~ "Durabilidade do ResultSet em HOLD_CURSORS_OVER_COMMIT não é suportada."
