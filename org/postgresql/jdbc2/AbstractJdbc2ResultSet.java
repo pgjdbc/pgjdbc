@@ -778,7 +778,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 		}
 		catch (IOException ie)
 		{
-			throw new PSQLException("postgresql.updateable.ioerror" + ie);
+			throw new PSQLException("postgresql.updateable.ioerror", ie);
 		}
 
 		updateValue(columnIndex, theData);
@@ -811,7 +811,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 		}
 		catch (IOException ie)
 		{
-			throw new PSQLException("postgresql.updateable.ioerror" + ie);
+			throw new PSQLException("postgresql.updateable.ioerror", ie);
 		}
 		updateValue(columnIndex, theData);
 	}
@@ -858,7 +858,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 		}
 		catch (IOException ie)
 		{
-			throw new PSQLException("postgresql.updateable.ioerror" + ie);
+			throw new PSQLException("postgresql.updateable.ioerror", ie);
 		}
 		updateValue(columnIndex, theData);
 	}
