@@ -14,7 +14,7 @@ import org.postgresql.util.PSQLState;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.GT;
 
-/* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.39 2004/10/22 21:36:08 jurka Exp $
+/* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.40 2004/10/22 21:48:19 jurka Exp $
  * This class defines methods of the jdbc2 specification.
  * The real Statement class (for jdbc2) is org.postgresql.jdbc2.Jdbc2Statement
  */
@@ -799,9 +799,11 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 				oid = Oid.NUMERIC;
 				break;
 			case Types.CHAR:
+				oid = Oid.BPCHAR;
+				break;
 			case Types.VARCHAR:
 			case Types.LONGVARCHAR:
-				oid = Oid.TEXT;
+				oid = Oid.VARCHAR;
 				break;
 			case Types.DATE:
 				oid = Oid.DATE;
@@ -964,7 +966,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	public void setString(int parameterIndex, String x) throws SQLException
 	{
 		checkClosed();
-		setString(parameterIndex, x, Oid.TEXT);
+		setString(parameterIndex, x, Oid.VARCHAR);
 	}
 
 	protected void setString(int parameterIndex, String x, int oid) throws SQLException
@@ -1215,7 +1217,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 					break;
 			}
 
-			setString(parameterIndex, new String(l_chars, 0, l_charsRead), Oid.TEXT);
+			setString(parameterIndex, new String(l_chars, 0, l_charsRead), Oid.VARCHAR);
 		}
 		catch (UnsupportedEncodingException l_uee)
 		{
@@ -1438,6 +1440,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 				bindLiteral(parameterIndex, numericValueOf(x), Oid.NUMERIC);
 				break;
 			case Types.CHAR:
+				setString(parameterIndex, x.toString(), Oid.BPCHAR);
 			case Types.VARCHAR:
 			case Types.LONGVARCHAR:
 				setString(parameterIndex, x.toString());

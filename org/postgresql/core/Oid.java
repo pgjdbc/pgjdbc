@@ -19,7 +19,7 @@ public class Oid {
 	public static final int TIMESTAMP = 1114;
 	public static final int TIMESTAMPTZ = 1184;
 	public static final int BYTEA = 17;
-	public static final int CHAR = 18;
 	public static final int VARCHAR = 1043;
 	public static final int OID = 26;
+	public static final int BPCHAR = 1042;
 }

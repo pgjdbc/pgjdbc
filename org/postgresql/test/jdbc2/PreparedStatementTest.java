@@ -21,11 +21,13 @@ public class PreparedStatementTest extends TestCase
 	{
 		conn = TestUtil.openDB();
 		TestUtil.createTable(conn, "streamtable", "bin bytea, str text");
+		TestUtil.createTable(conn, "texttable", "ch char(3), te text, vc varchar(3)");
 	}
 
 	protected void tearDown() throws SQLException
 	{
 		TestUtil.dropTable(conn, "streamtable");
+		TestUtil.dropTable(conn, "texttable");
 		TestUtil.closeDB(conn);
 	}
 
@@ -158,6 +160,28 @@ public class PreparedStatementTest extends TestCase
 		pstmt.setBytes(1,null);
 		pstmt.setAsciiStream(2, is, length);
 		pstmt.executeUpdate();
+		pstmt.close();
+	}
+
+	public void testTrailingSpaces() throws SQLException {
+		PreparedStatement pstmt = conn.prepareStatement("INSERT INTO texttable (ch, te, vc) VALUES (?, ?, ?) ");
+		String str = "a  ";
+		pstmt.setString(1, str);
+		pstmt.setString(2, str);
+		pstmt.setString(3, str);
+		pstmt.executeUpdate();
+		pstmt.close();
+
+		pstmt = conn.prepareStatement("SELECT ch, te, vc FROM texttable WHERE ch=? AND te=? AND vc=?");
+		pstmt.setString(1, str);
+		pstmt.setString(2, str);
+		pstmt.setString(3, str);
+		ResultSet rs = pstmt.executeQuery();
+		assertTrue(rs.next());
+		assertEquals(str, rs.getString(1));
+		assertEquals(str, rs.getString(2));
+		assertEquals(str, rs.getString(3));
+		rs.close();
 		pstmt.close();
 	}
 }

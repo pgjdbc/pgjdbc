@@ -319,7 +319,7 @@ public class AbstractJdbc2Array
 				}
 				break;
 			case Types.CHAR:
-				fields[1] = new Field("VALUE", Oid.CHAR, 1);
+				fields[1] = new Field("VALUE", Oid.BPCHAR, 1);
 			case Types.VARCHAR:
 				String[] strArray = (String[]) array;
 				if ( fields[1] == null )
