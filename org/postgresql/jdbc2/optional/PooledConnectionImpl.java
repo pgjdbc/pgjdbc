@@ -369,8 +369,8 @@ public class PooledConnectionImpl implements PooledConnection
                 } finally {
                     con = null;
                     st = null;
-                    return null;
                 }
+		return null;
             }
             else if (method.getName().equals("getConnection"))
             {
