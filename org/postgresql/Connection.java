@@ -951,7 +951,7 @@ public abstract class Connection
         public int getTransactionIsolation() throws SQLException
         {
                 clearWarnings();
-                ExecSQL("show xactisolevel");
+                ExecSQL("show transaction isolation level");
 
                 SQLWarning warning = getWarnings();
                 if (warning != null)
