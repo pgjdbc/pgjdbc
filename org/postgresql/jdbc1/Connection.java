@@ -180,7 +180,7 @@ public class Connection extends org.postgresql.Connection implements java.sql.Co
 				"bool",
 				"date",
 				"time",
-				"abstime", "timestamp"
+				"abstime", "timestamp", "timestamptz"
 			};
 
 	/*
@@ -204,7 +204,7 @@ public class Connection extends org.postgresql.Connection implements java.sql.Co
 												Types.BIT,
 												Types.DATE,
 												Types.TIME,
-												Types.TIMESTAMP, Types.TIMESTAMP
+												Types.TIMESTAMP, Types.TIMESTAMP, Types.TIMESTAMP
 											};
 
 
