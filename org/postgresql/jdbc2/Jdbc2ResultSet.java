@@ -3,7 +3,7 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/Jdbc2ResultSet.java,v 1.13 2004/11/07 22:16:19 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/Jdbc2ResultSet.java,v 1.14 2004/11/09 08:49:21 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -30,11 +30,13 @@ public class Jdbc2ResultSet extends org.postgresql.jdbc2.AbstractJdbc2ResultSet 
 
     public ResultSetMetaData getMetaData() throws SQLException
     {
+        checkClosed();
         return new Jdbc2ResultSetMetaData(connection, fields);
     }
 
     public java.sql.Clob getClob(int i) throws SQLException
     {
+        checkResultSet(i);
         wasNullFlag = (this_row[i - 1] == null);
         if (wasNullFlag)
             return null;
@@ -44,6 +46,7 @@ public class Jdbc2ResultSet extends org.postgresql.jdbc2.AbstractJdbc2ResultSet 
 
     public java.sql.Blob getBlob(int i) throws SQLException
     {
+        checkResultSet(i);
         wasNullFlag = (this_row[i - 1] == null);
         if (wasNullFlag)
             return null;
@@ -53,6 +56,7 @@ public class Jdbc2ResultSet extends org.postgresql.jdbc2.AbstractJdbc2ResultSet 
 
     public java.sql.Array createArray(int i) throws SQLException
     {
+        checkResultSet(i);
         return new org.postgresql.jdbc2.Jdbc2Array(connection, i, fields[i - 1], this);
     }
 

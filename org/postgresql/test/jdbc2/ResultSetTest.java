@@ -3,7 +3,7 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ResultSetTest.java,v 1.22 2004/11/07 22:16:56 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ResultSetTest.java,v 1.23 2004/11/09 08:54:55 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -642,5 +642,38 @@ public class ResultSetTest extends TestCase
         catch (SQLException sqle)
         {
         }
+    }
+
+    public void testClosedResult() throws SQLException
+    {
+        Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        ResultSet rs = stmt.executeQuery("SELECT id FROM testrs");
+        rs.close();
+
+        rs.close();  // Closing twice is allowed.
+        try { rs.getInt(1); fail("Expected SQLException"); }
+            catch (SQLException e) { }
+        try { rs.getInt("id"); fail("Expected SQLException"); }
+            catch (SQLException e) { }
+        try { rs.getType(); fail("Expected SQLException"); }
+            catch (SQLException e) { }
+        try { rs.wasNull(); fail("Expected SQLException"); }
+            catch (SQLException e) { }
+        try { rs.absolute(3); fail("Expected SQLException"); }
+            catch (SQLException e) { }
+        try { rs.isBeforeFirst(); fail("Expected SQLException"); }
+            catch (SQLException e) { }
+        try { rs.setFetchSize(10); fail("Expected SQLException"); }
+            catch (SQLException e) { }
+        try { rs.getMetaData(); fail("Expected SQLException"); }
+            catch (SQLException e) { }
+        try { rs.rowUpdated(); fail("Expected SQLException"); }
+            catch (SQLException e) { }
+        try { rs.updateInt(1,1); fail("Expected SQLException"); }
+            catch (SQLException e) { }
+        try { rs.moveToInsertRow(); fail("Expected SQLException"); }
+            catch (SQLException e) { }
+        try { rs.clearWarnings(); fail("Expected SQLException"); }
+            catch (SQLException e) { }
     }
 }

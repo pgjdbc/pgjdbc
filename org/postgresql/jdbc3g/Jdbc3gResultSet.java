@@ -3,7 +3,7 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3g/Jdbc3gResultSet.java,v 1.2 2004/11/07 22:16:36 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3g/Jdbc3gResultSet.java,v 1.3 2004/11/09 08:51:30 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -30,11 +30,13 @@ public class Jdbc3gResultSet extends org.postgresql.jdbc3.AbstractJdbc3ResultSet
 
     public java.sql.ResultSetMetaData getMetaData() throws SQLException
     {
+        checkClosed();
         return new Jdbc3gResultSetMetaData(connection, fields);
     }
 
     public java.sql.Clob getClob(int i) throws SQLException
     {
+        checkResultSet(i);
         wasNullFlag = (this_row[i - 1] == null);
         if (wasNullFlag)
             return null;
@@ -44,6 +46,7 @@ public class Jdbc3gResultSet extends org.postgresql.jdbc3.AbstractJdbc3ResultSet
 
     public java.sql.Blob getBlob(int i) throws SQLException
     {
+        checkResultSet(i);
         wasNullFlag = (this_row[i - 1] == null);
         if (wasNullFlag)
             return null;
@@ -53,6 +56,7 @@ public class Jdbc3gResultSet extends org.postgresql.jdbc3.AbstractJdbc3ResultSet
 
     public Array createArray(int i) throws SQLException
     {
+        checkResultSet(i);
         return new Jdbc3gArray(connection, i, fields[i - 1], this);
     }
 

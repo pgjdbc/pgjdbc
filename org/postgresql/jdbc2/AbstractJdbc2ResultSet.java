@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.62 2004/11/17 02:43:49 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.63 2004/11/19 03:18:51 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -172,6 +172,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     private void checkScrollable() throws SQLException
     {
+        checkClosed();
         if (resultsettype == ResultSet.TYPE_FORWARD_ONLY)
             throw new PSQLException(GT.tr("Operation requires a scrollable ResultSet, but this ResultSet is FORWARD_ONLY."));
     }
@@ -364,6 +365,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     public int getConcurrency() throws SQLException
     {
+        checkClosed();
         return resultsetconcurrency;
     }
 
@@ -429,6 +431,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     public int getFetchDirection() throws SQLException
     {
+        checkClosed();
         return fetchdirection;
     }
 
@@ -446,6 +449,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
      */
     public Object getObjectImpl(int i, java.util.Map map) throws SQLException
     {
+        checkClosed();
         throw org.postgresql.Driver.notImplemented();
     }
 
@@ -458,6 +462,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     public Ref getRef(int i) throws SQLException
     {
+        checkClosed();
         //The backend doesn't yet have SQL3 REF types
         throw org.postgresql.Driver.notImplemented();
     }
@@ -465,6 +470,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     public int getRow() throws SQLException
     {
+        checkClosed();
+
         if (onInsertRow)
             return 0;
 
@@ -480,18 +487,21 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     // This one needs some thought, as not all ResultSets come from a statement
     public Statement getStatement() throws SQLException
     {
+        checkClosed();
         return (Statement) statement;
     }
 
 
     public int getType() throws SQLException
     {
+        checkClosed();
         return resultsettype;
     }
 
 
     public boolean isAfterLast() throws SQLException
     {
+        checkClosed();
         if (onInsertRow)
             return false;
 
@@ -502,6 +512,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     public boolean isBeforeFirst() throws SQLException
     {
+        checkClosed();
         if (onInsertRow)
             return false;
 
@@ -511,6 +522,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     public boolean isFirst() throws SQLException
     {
+        checkClosed();
         if (onInsertRow)
             return false;
 
@@ -520,6 +532,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     public boolean isLast() throws SQLException
     {
+        checkClosed();
         if (onInsertRow)
             return false;
 
@@ -633,6 +646,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     public void setFetchDirection(int direction) throws SQLException
     {
+        checkClosed();
         switch (direction)
         {
         case ResultSet.FETCH_FORWARD:
@@ -652,6 +666,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public synchronized void cancelRowUpdates()
     throws SQLException
     {
+        checkClosed();
         if (onInsertRow)
         {
             throw new PSQLException(GT.tr("Cannot call cancelRowUpdates() when on the insert row."));
@@ -875,18 +890,21 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     public boolean rowDeleted() throws SQLException
     {
+        checkClosed();
         return false;
     }
 
 
     public boolean rowInserted() throws SQLException
     {
+        checkClosed();
         return false;
     }
 
 
     public boolean rowUpdated() throws SQLException
     {
+        checkClosed();
         return false;
     }
 
@@ -1472,6 +1490,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     boolean isUpdateable() throws SQLException
     {
+        checkClosed();
 
         if (updateable)
             return true;
@@ -1743,6 +1762,10 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     private String refCursorName;
 
     public String getRefCursor() {
+        // Can't check this because the PGRefCursorResultSet
+	// interface doesn't allow throwing a SQLException
+        //
+        // checkClosed();
         return refCursorName;
     }
 
@@ -1752,6 +1775,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     public void setFetchSize(int rows) throws SQLException
     {
+        checkClosed();
         if (rows < 0)
             throw new PSQLException(GT.tr("Fetch size must be a value greater to or equal to 0."));
         fetchSize = rows;
@@ -1759,13 +1783,13 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     public int getFetchSize() throws SQLException
     {
+        checkClosed();
         return fetchSize;
     }
 
     public boolean next() throws SQLException
     {
-        if (rows == null)
-            throw new PSQLException(GT.tr("This ResultSet is closed."), PSQLState.CONNECTION_DOES_NOT_EXIST);
+        checkClosed();
 
         if (onInsertRow)
             throw new PSQLException(GT.tr("Can''t use relative move methods while on the insert row."));
@@ -1818,14 +1842,13 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public void close() throws SQLException
     {
         //release resources held (memory for tuples)
-        if (rows != null)
-        {
-            rows = null;
-        }
+	rows = null;
+	// Do we want to explicitly close the cursor object? KJJ
     }
 
     public boolean wasNull() throws SQLException
     {
+        checkClosed();
         return wasNullFlag;
     }
 
@@ -2223,11 +2246,13 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     public SQLWarning getWarnings() throws SQLException
     {
+        checkClosed();
         return warnings;
     }
 
     public void clearWarnings() throws SQLException
     {
+        checkClosed();
         warnings = null;
     }
 
@@ -2241,6 +2266,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     public String getCursorName() throws SQLException
     {
+        checkClosed();
         return null;
     }
 
@@ -2294,6 +2320,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
      */
     public int findColumn(String columnName) throws SQLException
     {
+        checkClosed();
         if (columnNameIndexMap == null)
         {
             columnNameIndexMap = new HashMap(fields.length * 2);
@@ -2376,6 +2403,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     private void checkUpdateable() throws SQLException
     {
+        checkClosed();
+
         if (!isUpdateable())
             throw new PSQLException(GT.tr("ResultSet is not updateable.  The query that generated this result set must select only one table, and must select all primary keys from that table. See the JDBC 2.1 API Specification, section 5.6 for more details."));
 
@@ -2386,9 +2415,14 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         }
     }
 
+    protected void checkClosed() throws SQLException {
+        if (rows == null)
+            throw new PSQLException(GT.tr("This ResultSet is closed."), PSQLState.CONNECTION_DOES_NOT_EXIST);
+    }
 
     protected void checkResultSet( int column ) throws SQLException
     {
+        checkClosed();
         if ( this_row == null )
             throw new PSQLException(GT.tr("ResultSet not positioned properly, perhaps you need to call next."));
         if ( column < 1 || column > fields.length )
