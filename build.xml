@@ -29,17 +29,7 @@
   <property file="build.local.properties" />
   <property file="build.properties"/>
 
-  <!--
-    This is a simpler method than utils.CheckVersion
-    It defaults to jdbc1, but builds jdbc2 if the java.lang.Byte class is
-    in the CLASSPATH (ie JDK1.2 or later), and then enterprise if the
-    javax.sql.DataSource class is present.
-    Important: This must have the following order: jdbc1, jdbc2, jdbc3
-  -->
   <target name="check_versions">
-    <condition property="jdbc1">
-      <equals arg1="${ant.java.version}" arg2="1.1"/>
-    </condition>
     <condition property="jdbc2">
       <or>
         <equals arg1="${ant.java.version}" arg2="1.2"/>
@@ -130,18 +120,14 @@
 
        <!--      
        Each jdbcN subpackage is used only if the driver supports *at least* that
-       revision of JDBC. That is, a JDBC1 build uses only jdbc1, a JDBC2 build
-       uses both jdbc1 and jdbc2, etc.
+       revision of JDBC. That is, a JDBC2 build uses only jdbc2, a JDBC3 build
+       uses both jdbc2 and jdbc3, etc.
   
        Within those subpackages, classes beginning with "JdbcN" are assumed to be
        the concrete implementations for JDBC version N and are built only if the
-       driver supports *exactly* that version. For example, jdbc1/Jdbc1Statement.java
-       is built only if the driver build is a JDBC1 build.
+       driver supports *exactly* that version. For example, jdbc2/Jdbc2Statement.java
+       is built only if the driver build is a JDBC2 build.
        -->
- 
-       <!-- jdbc1 subpackage -->
-       <include name="${package}/jdbc1/**"/>
-       <exclude name="${package}/jdbc1/Jdbc1*.java" unless="jdbc1"/>
  
        <!-- jdbc2 subpackage -->
        <include name="${package}/jdbc2/**" if="jdbc2"/>
@@ -174,9 +160,6 @@
   <target name="driver" depends="prepare,check_versions,check_driver"
           unless="driver.uptodate">
     <!-- determine the edition text -->
-    <condition property="edition" value="JDBC1">
-        <equals arg1="${jdbc1}" arg2="true"/>
-    </condition>
     <condition property="edition" value="JDBC2">
         <equals arg1="${jdbc2}" arg2="true"/>
     </condition>
@@ -191,9 +174,6 @@
     </condition>
 
     <!-- determine the connection class -->
-    <condition property="connectclass" value="org.postgresql.jdbc1.Jdbc1Connection">
-        <equals arg1="${jdbc1}" arg2="true"/>
-    </condition>
     <condition property="connectclass" value="org.postgresql.jdbc2.Jdbc2Connection">
         <equals arg1="${jdbc2}" arg2="true"/>
     </condition>
@@ -287,7 +267,6 @@
     <javac srcdir="${srcdir}" destdir="${builddir}" debug="${debug}">
       <include name="example/**" />
       <exclude name="example/corba/**"/>
-      <exclude name="example/blobtest.java" if="jdbc1"/>
     </javac>
   </target>
 

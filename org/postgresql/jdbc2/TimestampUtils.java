@@ -10,7 +10,7 @@
  *
  *-------------------------------------------------------------------------
  */
-package org.postgresql.jdbc1;
+package org.postgresql.jdbc2;
 
 import java.sql.*;
 import java.text.SimpleDateFormat;
@@ -21,7 +21,7 @@ import org.postgresql.util.*;
 
 /**
  * Misc utils for handling time and date values.
- * Extracted from AbstractJdbc1ResultSet.
+ * Extracted from AbstractJdbc2ResultSet.
  */
 public class TimestampUtils {
 	private static StringBuffer sbuf = new StringBuffer();

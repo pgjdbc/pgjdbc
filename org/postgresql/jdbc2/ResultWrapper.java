@@ -10,7 +10,7 @@
  *
  *-------------------------------------------------------------------------
  */
-package org.postgresql.jdbc1;
+package org.postgresql.jdbc2;
 
 import java.sql.*;
 
