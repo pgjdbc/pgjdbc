@@ -62,7 +62,7 @@ public class PGbytea
 	{
 		if (p_buf == null)
 			return null;
-		StringBuffer l_strbuf = new StringBuffer();
+		StringBuffer l_strbuf = new StringBuffer(p_buf.length);
 		for (int i = 0; i < p_buf.length; i++)
 		{
 			int l_int = (int)p_buf[i];

@@ -40,7 +40,7 @@ public abstract class AbstractJdbc1Statement implements org.postgresql.PGStateme
 	private static final short ESC_TIMEDATE = 3;
 
 	// Some performance caches
-	private StringBuffer sbuf = new StringBuffer();
+	private StringBuffer sbuf = new StringBuffer(32);
 
         //Used by the preparedstatement style methods
 	protected String sql;
@@ -498,7 +498,7 @@ public abstract class AbstractJdbc1Statement implements org.postgresql.PGStateme
 	{
 		// Since escape codes can only appear in SQL CODE, we keep track
 		// of if we enter a string or not.
-		StringBuffer newsql = new StringBuffer();
+		StringBuffer newsql = new StringBuffer(sql.length());
 		short state = IN_SQLCODE;
 
 		int i = -1;
@@ -736,6 +736,7 @@ public abstract class AbstractJdbc1Statement implements org.postgresql.PGStateme
 			synchronized (sbuf)
 			{
 				sbuf.setLength(0);
+                                sbuf.ensureCapacity(x.length());
 				int i;
 
 				sbuf.append('\'');
@@ -852,6 +853,7 @@ public abstract class AbstractJdbc1Statement implements org.postgresql.PGStateme
 			synchronized (sbuf)
 			{
 				sbuf.setLength(0);
+                                sbuf.ensureCapacity(32);
 				sbuf.append("'");
                                 //format the timestamp
                                 //we do our own formating so that we can get a format

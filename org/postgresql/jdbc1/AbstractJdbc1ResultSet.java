@@ -851,9 +851,10 @@ public abstract class AbstractJdbc1ResultSet
 
 			// If first time, create the buffer, otherwise clear it.
 			if (rs.sbuf == null)
-				rs.sbuf = new StringBuffer();
-			else
+				rs.sbuf = new StringBuffer(32);
+			else {
 				rs.sbuf.setLength(0);
+			}
 
 			// Copy s into sbuf for parsing.
 			rs.sbuf.append(s);
