@@ -1,7 +1,7 @@
 package org.postgresql.test.jdbc2.optional;
 
 import org.postgresql.jdbc2.optional.ConnectionPool;
-import org.postgresql.test.JDBC2Tests;
+import org.postgresql.test.TestUtil;
 import javax.sql.*;
 import java.sql.*;
 
@@ -31,7 +31,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest
 		if (bds == null)
 		{
 			bds = new ConnectionPool();
-			String db = JDBC2Tests.getURL();
+			String db = TestUtil.getURL();
 			if (db.indexOf('/') > -1)
 			{
 				db = db.substring(db.lastIndexOf('/') + 1);
@@ -41,8 +41,8 @@ public class ConnectionPoolTest extends BaseDataSourceTest
 				db = db.substring(db.lastIndexOf(':') + 1);
 			}
 			bds.setDatabaseName(db);
-			bds.setUser(JDBC2Tests.getUser());
-			bds.setPassword(JDBC2Tests.getPassword());
+			bds.setUser(TestUtil.getUser());
+			bds.setPassword(TestUtil.getPassword());
 		}
 	}
 

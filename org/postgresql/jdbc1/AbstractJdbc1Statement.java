@@ -170,6 +170,7 @@ public abstract class AbstractJdbc1Statement implements org.postgresql.PGStateme
 	{
 		String l_sql = replaceProcessing(p_sql);
 		m_sqlFragments = new String[] {l_sql};
+		m_binds = new Object[0];
 		//If we have already created a server prepared statement, we need
 		//to deallocate the existing one
 		if (m_statementName != null) {
@@ -213,6 +214,7 @@ public abstract class AbstractJdbc1Statement implements org.postgresql.PGStateme
 	{
 		String l_sql = replaceProcessing(p_sql);
 		m_sqlFragments = new String[] {l_sql};
+		m_binds = new Object[0];
 		//If we have already created a server prepared statement, we need
 		//to deallocate the existing one
 		if (m_statementName != null) {
@@ -1775,6 +1777,12 @@ public abstract class AbstractJdbc1Statement implements org.postgresql.PGStateme
 	 */
 	private String modifyJdbcCall(String p_sql) throws SQLException
 	{
+		//Check that this is actually a call which should start with a {
+        //if not do nothing and treat this as a standard prepared sql
+		if (!p_sql.trim().startsWith("{")) {
+			return p_sql;
+		}
+
 		// syntax checking is not complete only a few basics :(
 		originalSql = p_sql; // save for error msgs..
 		String l_sql = p_sql;

@@ -1546,14 +1546,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 				case Types.REAL:
 				case Types.TINYINT:
 
-					try
-					{
-						rowBuffer[columnIndex] = String.valueOf( updateValues.get( columnName ) ).getBytes(connection.getEncoding().name() );
-					}
-					catch ( UnsupportedEncodingException ex)
-					{
-						throw new SQLException("Unsupported Encoding " + connection.getEncoding().name());
-					}
+					rowBuffer[columnIndex] = connection.getEncoding().encode(String.valueOf( updateValues.get( columnName ) ));
 
 				case Types.NULL:
 					continue;

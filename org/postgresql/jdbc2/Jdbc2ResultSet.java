@@ -25,11 +25,19 @@ public class Jdbc2ResultSet extends org.postgresql.jdbc2.AbstractJdbc2ResultSet 
 
 	public java.sql.Clob getClob(int i) throws SQLException
 	{
+		wasNullFlag = (this_row[i - 1] == null);
+		if (wasNullFlag)
+			return null;
+
 		return new org.postgresql.jdbc2.Jdbc2Clob(connection, getInt(i));
 	}
 
 	public java.sql.Blob getBlob(int i) throws SQLException
 	{
+		wasNullFlag = (this_row[i - 1] == null);
+		if (wasNullFlag)
+			return null;
+
 		return new org.postgresql.jdbc2.Jdbc2Blob(connection, getInt(i));
 	}
 
