@@ -108,6 +108,14 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	protected Object callResult;
 	protected int maxfieldSize = 0;
 
+	public BaseResultSet createDriverResultSet(Field[] fields, Vector tuples) throws SQLException
+	{
+		for (int i=0; i<fields.length; i++) {
+			fields[i].setFromServer(false);
+		}
+		return createResultSet(fields,tuples,"OK",1,0,false);
+	}
+
 	public abstract BaseResultSet createResultSet(Field[] fields, Vector tuples, String status, int updateCount, long insertOID, boolean binaryCursor) throws SQLException;
 
 	public AbstractJdbc1Statement (BaseConnection connection)

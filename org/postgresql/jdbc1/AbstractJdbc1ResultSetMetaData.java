@@ -4,15 +4,17 @@ package org.postgresql.jdbc1;
 import org.postgresql.core.Field;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
-import java.sql.SQLException;
-import java.sql.Types;
-import java.util.Vector;
+
+import java.sql.*;
+import java.util.*;
 
 public abstract class AbstractJdbc1ResultSetMetaData
 {
-
 	protected Vector rows;
 	protected Field[] fields;
+
+	private Hashtable tableNameCache;
+	private Hashtable schemaNameCache;
 
 	/*
 	 *	Initialise for a result with a tuple set and
@@ -131,13 +133,9 @@ public abstract class AbstractJdbc1ResultSetMetaData
 	 */
 	public int isNullable(int column) throws SQLException
 	{
-		/*
-		 * TODO This needs a real implementation, taking into account columns
-		 * defined with NOT NULL or PRIMARY KEY, CHECK constraints, views,
-		 * functions etc.
-		 */
-		return java.sql.ResultSetMetaData.columnNullableUnknown;
-	}
+		Field field = getField(column);
+		return field.getNullable();
+  	}
 
 	/*
 	 * Is the column a signed number? In PostgreSQL, all numbers
@@ -225,16 +223,16 @@ public abstract class AbstractJdbc1ResultSetMetaData
 	}
 
 	/*
-	 * What is the suggested column title for use in printouts and
-	 * displays?  We suggest the ColumnName!
-	 *
 	 * @param column the first column is 1, the second is 2, etc.
 	 * @return the column label
 	 * @exception SQLException if a database access error occurs
 	 */
 	public String getColumnLabel(int column) throws SQLException
 	{
-		return getColumnName(column);
+		Field f = getField(column);
+		if (f != null)
+			return f.getName();
+		return "field" + column;
 	}
 
 	/*
@@ -246,25 +244,57 @@ public abstract class AbstractJdbc1ResultSetMetaData
 	 */
 	public String getColumnName(int column) throws SQLException
 	{
-		Field f = getField(column);
-		if (f != null)
-			return f.getName();
-		return "field" + column;
+		Field field = getField(column);
+		return field.getColumnName();
 	}
 
 	/*
-	 * What is a column's table's schema?  This relies on us knowing
-	 * the table name....which I don't know how to do as yet.  The 
-	 * JDBC specification allows us to return "" if this is not
-	 * applicable.
-	 *
 	 * @param column the first column is 1, the second is 2...
-	 * @return the Schema
+	 * @return the Schema Name
 	 * @exception SQLException if a database access error occurs
 	 */
 	public String getSchemaName(int column) throws SQLException
 	{
-		return "";
+		Field field = getField(column);
+		if (field.getTableOid() == 0)
+		{
+			return "";
+		}
+		Integer tableOid = new Integer(field.getTableOid());
+		if (schemaNameCache == null)
+		{
+			schemaNameCache = new Hashtable();
+		}
+		String schemaName = (String) schemaNameCache.get(tableOid);
+		if (schemaName != null)
+		{
+			return schemaName;
+		} else
+		{
+			java.sql.Connection con = (java.sql.Connection) field.getConn();
+			ResultSet res = null;
+			PreparedStatement ps = null;
+			try
+			{
+				String sql = "SELECT n.nspname FROM pg_catalog.pg_class c, pg_catalog.pg_namespace n WHERE n.oid = c.relnamespace AND c.oid = ?;";
+				ps = con.prepareStatement(sql);
+				ps.setInt(1, tableOid.intValue());
+				res = ps.executeQuery();
+				schemaName = "";
+				if (res.next())
+				{
+					schemaName = res.getString(1);
+				}
+				schemaNameCache.put(tableOid, schemaName);
+				return schemaName;
+			} finally
+			{
+				if (res != null)
+					res.close();
+				if (ps != null)
+					ps.close();
+			}
+		}
 	}
 
 	/*
@@ -341,17 +371,51 @@ public abstract class AbstractJdbc1ResultSetMetaData
 	}
 
 	/*
-	 * Whats a column's table's name?  How do I find this out?	Both
-	 * getSchemaName() and getCatalogName() rely on knowing the table
-	 * Name, so we need this before we can work on them.
-	 *
 	 * @param column the first column is 1, the second is 2...
 	 * @return column name, or "" if not applicable
 	 * @exception SQLException if a database access error occurs
 	 */
 	public String getTableName(int column) throws SQLException
 	{
-		return "";
+		Field field = getField(column);
+		if (field.getTableOid() == 0)
+		{
+			return "";
+		}
+		Integer tableOid = new Integer(field.getTableOid());
+		if (tableNameCache == null)
+		{
+			tableNameCache = new Hashtable();
+		}
+		String tableName = (String) tableNameCache.get(tableOid);
+		if (tableName != null)
+		{
+			return tableName;
+		} else
+		{
+			java.sql.Connection con = (java.sql.Connection) field.getConn();
+			ResultSet res = null;
+			PreparedStatement ps = null;
+			try
+			{
+				ps = con.prepareStatement("SELECT relname FROM pg_catalog.pg_class WHERE oid = ?");
+				ps.setInt(1, tableOid.intValue());
+				res = ps.executeQuery();
+				tableName = "";
+				if (res.next())
+				{
+					tableName = res.getString(1);
+				}
+				tableNameCache.put(tableOid, tableName);
+				return tableName;
+			} finally
+			{
+				if (res != null)
+					res.close();
+				if (ps != null)
+					ps.close();
+			}
+		}
 	}
 
 	/*

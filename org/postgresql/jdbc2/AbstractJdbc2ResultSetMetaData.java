@@ -119,23 +119,6 @@ public abstract class AbstractJdbc2ResultSetMetaData extends org.postgresql.jdbc
 	}
 
 	/*
-	 * Indicates the nullability of values in the designated column.
-	 *
-	 * @param column the first column is 1, the second is 2...
-	 * @return one of the columnNullable values
-	 * @exception SQLException if a database access error occurs
-	 */
-	public int isNullable(int column) throws SQLException
-	{
-		/*
-		 * TODO This needs a real implementation, taking into account columns
-		 * defined with NOT NULL or PRIMARY KEY, CHECK constraints, views,
-		 * functions etc.
-		 */
-		return java.sql.ResultSetMetaData.columnNullableUnknown;
-	}
-
-	/*
 	 * Is the column a signed number? In PostgreSQL, all numbers
 	 * are signed, so this is trivial.	However, strings are not
 	 * signed (duh!)
@@ -221,49 +204,6 @@ public abstract class AbstractJdbc2ResultSetMetaData extends org.postgresql.jdbc
 	}
 
 	/*
-	 * What is the suggested column title for use in printouts and
-	 * displays?  We suggest the ColumnName!
-	 *
-	 * @param column the first column is 1, the second is 2, etc.
-	 * @return the column label
-	 * @exception SQLException if a database access error occurs
-	 */
-	public String getColumnLabel(int column) throws SQLException
-	{
-		return getColumnName(column);
-	}
-
-	/*
-	 * What's a column's name?
-	 *
-	 * @param column the first column is 1, the second is 2, etc.
-	 * @return the column name
-	 * @exception SQLException if a database access error occurs
-	 */
-	public String getColumnName(int column) throws SQLException
-	{
-		Field f = getField(column);
-		if (f != null)
-			return f.getName();
-		return "field" + column;
-	}
-
-	/*
-	 * What is a column's table's schema?  This relies on us knowing
-	 * the table name....which I don't know how to do as yet.  The 
-	 * JDBC specification allows us to return "" if this is not
-	 * applicable.
-	 *
-	 * @param column the first column is 1, the second is 2...
-	 * @return the Schema
-	 * @exception SQLException if a database access error occurs
-	 */
-	public String getSchemaName(int column) throws SQLException
-	{
-		return "";
-	}
-
-	/*
 	 * What is a column's number of decimal digits.
 	 *
 	 * @param column the first column is 1, the second is 2...
@@ -336,19 +276,6 @@ public abstract class AbstractJdbc2ResultSetMetaData extends org.postgresql.jdbc
 		}
 	}
 
-	/*
-	 * Whats a column's table's name?  How do I find this out?	Both
-	 * getSchemaName() and getCatalogName() rely on knowing the table
-	 * Name, so we need this before we can work on them.
-	 *
-	 * @param column the first column is 1, the second is 2...
-	 * @return column name, or "" if not applicable
-	 * @exception SQLException if a database access error occurs
-	 */
-	public String getTableName(int column) throws SQLException
-	{
-		return "";
-	}
 
 	/*
 	 * What's a column's table's catalog name?  As with getSchemaName(),

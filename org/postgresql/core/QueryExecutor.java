@@ -468,7 +468,6 @@ public class QueryExecutor
 	private void receiveFieldsV3() throws SQLException
 	{
 		//TODO: use the msgSize
-		//TODO: use the tableOid, and tablePosition
 		if (fields != null)
 			throw new PSQLException("postgresql.con.multres", PSQLState.CONNECTION_FAILURE);
 		int l_msgSize = pgStream.ReceiveIntegerR(4);
@@ -477,15 +476,14 @@ public class QueryExecutor
 
 		for (int i = 0; i < fields.length; i++)
 		{
-			String typeName = pgStream.ReceiveString(connection.getEncoding());
+			String columnLabel = pgStream.ReceiveString(connection.getEncoding());
 			int tableOid = pgStream.ReceiveIntegerR(4);
-			int tablePosition = pgStream.ReceiveIntegerR(2);
+			short positionInTable = (short)pgStream.ReceiveIntegerR(2);
 			int typeOid = pgStream.ReceiveIntegerR(4);
 			int typeLength = pgStream.ReceiveIntegerR(2);
 			int typeModifier = pgStream.ReceiveIntegerR(4);
 			int formatType = pgStream.ReceiveIntegerR(2);
-			//TODO: use the extra values coming back
-			fields[i] = new Field(connection, typeName, typeOid, typeLength, typeModifier);
+			fields[i] = new Field(connection, columnLabel, typeOid, typeLength, typeModifier, tableOid, positionInTable);
 		}
 	}
 	/*
@@ -501,11 +499,11 @@ public class QueryExecutor
 
 		for (int i = 0; i < fields.length; i++)
 		{
-			String typeName = pgStream.ReceiveString(connection.getEncoding());
+			String columnLabel = pgStream.ReceiveString(connection.getEncoding());
 			int typeOid = pgStream.ReceiveIntegerR(4);
 			int typeLength = pgStream.ReceiveIntegerR(2);
 			int typeModifier = pgStream.ReceiveIntegerR(4);
-			fields[i] = new Field(connection, typeName, typeOid, typeLength, typeModifier);
+			fields[i] = new Field(connection, columnLabel, typeOid, typeLength, typeModifier);
 		}
 	}
 }

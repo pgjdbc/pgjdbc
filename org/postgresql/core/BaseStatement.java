@@ -18,6 +18,8 @@ import java.util.Vector;
 
 public interface BaseStatement extends org.postgresql.PGStatement
 {
+	public BaseResultSet createDriverResultSet(Field[] fields, Vector tuples) throws SQLException;
+
         public BaseResultSet createResultSet(Field[] fields, Vector tuples, String status, int updateCount, long insertOID, boolean binaryCursor) throws SQLException;
         public PGRefCursorResultSet createRefCursorResultSet(String cursorName) throws SQLException;
 
