@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.16 2004/12/11 03:31:52 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.17 2005/01/11 08:25:44 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1190,7 +1190,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                     if (Driver.logDebug)
                         Driver.debug(" <=BE ParameterStatus(" + name + " = " + value + ")");
 
-                    if (name.equals("client_encoding") && !value.equals("UNICODE") && !allowEncodingChanges)
+                    if (name.equals("client_encoding") && !value.equalsIgnoreCase("UNICODE") && !allowEncodingChanges)
                     {
                         protoConnection.close(); // we're screwed now; we can't trust any subsequent string.
                         handler.handleError(new PSQLException(GT.tr("The server''s client_encoding parameter was changed to {0}. The JDBC driver requires client_encoding to be UNICODE for correct operation.", value), PSQLState.CONNECTION_FAILURE));
