@@ -2523,10 +2523,20 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 			//handling very large values.  Thus the implementation ends up calling
 			//setString() since there is no current way to stream the value to the server
 			char[] l_chars = new char[length];
-			int l_charsRead;
+			int l_charsRead = 0;
 			try
 			{
-				l_charsRead = x.read(l_chars, 0, length);
+				while(true)
+				{
+					int n = x.read(l_chars, l_charsRead, length - l_charsRead);
+					if (n == -1)
+						break;
+
+					l_charsRead += n;
+
+					if (l_charsRead == length)
+						break;
+				}
 			}
 			catch (IOException l_ioe)
 			{
