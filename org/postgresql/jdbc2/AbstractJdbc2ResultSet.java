@@ -1009,7 +1009,9 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 				{
 
 					String column = (String) columns.nextElement();
-					updateSQL.append( column + "= ?");
+					updateSQL.append("\"");
+					updateSQL.append( column );
+					updateSQL.append("\" = ?");
 
 					if ( i < numColumns - 1 )
 					{
@@ -1026,7 +1028,9 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 				{
 
 					PrimaryKey primaryKey = ((PrimaryKey) primaryKeys.get(i));
-					updateSQL.append(primaryKey.name).append("= ?");
+					updateSQL.append("\"");
+					updateSQL.append(primaryKey.name);
+					updateSQL.append("\" = ?");
 
 					if ( i < numKeys - 1 )
 					{
@@ -1328,7 +1332,16 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 		else
 		{
 			// otherwise go and get the primary keys and create a hashtable of keys
-			java.sql.ResultSet rs = ((java.sql.Connection) connection).getMetaData().getPrimaryKeys("", "", tableName);
+			// if the user has supplied a quoted table name
+			// remove the quotes, but preserve the case.
+			// otherwise fold to lower case.
+			String quotelessTableName;
+			if (tableName.startsWith("\"") && tableName.endsWith("\"")) {
+				quotelessTableName = tableName.substring(1,tableName.length()-1);
+			} else {
+				quotelessTableName = tableName.toLowerCase();
+			}
+			java.sql.ResultSet rs = ((java.sql.Connection) connection).getMetaData().getPrimaryKeys("", "", quotelessTableName);
 
 
 			for (; rs.next(); i++ )
