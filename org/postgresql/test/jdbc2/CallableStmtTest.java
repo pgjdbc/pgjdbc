@@ -3,7 +3,7 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CallableStmtTest.java,v 1.8 2004/11/09 08:54:08 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CallableStmtTest.java,v 1.9 2004/12/14 06:23:40 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -95,7 +95,7 @@ public class CallableStmtTest extends TestCase
         call.setBigDecimal (2, new java.math.BigDecimal(4));
         call.registerOutParameter (1, Types.NUMERIC);
         call.execute ();
-	assertEquals(new java.math.BigDecimal(42), call.getBigDecimal(1));
+        assertEquals(new java.math.BigDecimal(42), call.getBigDecimal(1));
     }
     
     public void testGetNumericWithoutArg () throws Throwable
@@ -103,7 +103,7 @@ public class CallableStmtTest extends TestCase
         CallableStatement call = con.prepareCall (func + pkgName + "getNumericWithoutArg () }");
         call.registerOutParameter (1, Types.NUMERIC);
         call.execute ();
-	assertEquals(new java.math.BigDecimal(42), call.getBigDecimal(1));
+        assertEquals(new java.math.BigDecimal(42), call.getBigDecimal(1));
     }
 
     public void testGetString () throws Throwable

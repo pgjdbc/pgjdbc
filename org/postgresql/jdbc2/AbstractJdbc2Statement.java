@@ -3,7 +3,7 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.51 2004/12/11 04:13:35 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.52 2004/12/14 06:23:40 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -702,8 +702,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         int nestedParenthesis=0;
         boolean endOfNested=false;
 
-	// because of the ++i loop
-	i--;
+        // because of the ++i loop
+        i--;
         while (!endOfNested && ++i < len)
         {
             char c = p_sql.charAt(i);
@@ -755,7 +755,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                             break;
                         }
                     }
-		}
+                }
                 newsql.append(c);
                 break;
 

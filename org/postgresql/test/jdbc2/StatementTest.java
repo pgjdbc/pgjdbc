@@ -3,7 +3,7 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.9 2004/11/09 08:55:11 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.10 2004/12/14 06:23:40 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -125,7 +125,7 @@ public class StatementTest extends TestCase
         // check nested and multiple escaped functions
         rs = stmt.executeQuery( "select {fn version()} as version, {fn log({fn log(3.0)})} as log" );
         assertTrue(rs.next());
-	assertEquals(Math.log(Math.log(3)), rs.getDouble(2), 0.00001);
+        assertEquals(Math.log(Math.log(3)), rs.getDouble(2), 0.00001);
 
         stmt.executeUpdate("UPDATE escapetest SET \")\" = 'a', \"\"\"){a}'\" = 'b'");
         
