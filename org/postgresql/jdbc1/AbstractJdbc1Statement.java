@@ -63,7 +63,7 @@ public abstract class AbstractJdbc1Statement implements org.postgresql.PGStateme
 
 	//Used by the callablestatement style methods
 	private static final String JDBC_SYNTAX = "{[? =] call <some_function> ([? [,?]*]) }";
-	private static final String RESULT_COLUMN = "result";
+	private static final String RESULT_ALIAS = "result";
 	private String originalSql = "";
 	private boolean isFunction;
 	// functionReturnType contains the user supplied value to check
@@ -1957,6 +1957,7 @@ public abstract class AbstractJdbc1Statement implements org.postgresql.PGStateme
 	 * {? = call <some_function> (?, [?,..]) }
 	 * into the PostgreSQL format which is
 	 * select <some_function> (?, [?, ...]) as result
+	 * or select * from <some_function> (?, [?, ...]) as result (7.3)
 	 *
 	 */
 	private String modifyJdbcCall(String p_sql) throws SQLException
@@ -2000,7 +2001,11 @@ public abstract class AbstractJdbc1Statement implements org.postgresql.PGStateme
 		// sure that the parameter numbers are the same as in the original
 		// sql we add a dummy parameter in this case
 		l_sql = (isFunction ? "?" : "") + l_sql.substring (index + 4);
-		l_sql = "select " + l_sql + " as " + RESULT_COLUMN + ";";
+		if (connection.haveMinimumServerVersion("7.3")) {
+			l_sql = "select * from " + l_sql + " as " + RESULT_ALIAS + ";";
+		} else {
+			l_sql = "select " + l_sql + " as " + RESULT_ALIAS + ";";
+		}
 		return l_sql;
 	}
 
