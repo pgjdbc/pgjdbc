@@ -99,6 +99,8 @@
       <exclude name="${package}/xa/**" unless="datasource" />
 
       <exclude name="${package}/test/**" unless="junit" />
+      <exclude name="${package}/test/jdbc2/**" unless="jdbc2" />
+      <exclude name="${package}/test/JDBC2Tests.java" unless="jdbc2" />
     </javac>
   </target>
 
