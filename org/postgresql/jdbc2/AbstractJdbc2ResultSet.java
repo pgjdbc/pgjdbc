@@ -188,6 +188,10 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 
 		current_row = internalIndex;
 		this_row = (byte[][]) rows.elementAt(internalIndex);
+
+		rowBuffer = new byte[this_row.length][];
+		System.arraycopy(this_row, 0, rowBuffer, 0, this_row.length);
+
 		return true;
 	}
 
