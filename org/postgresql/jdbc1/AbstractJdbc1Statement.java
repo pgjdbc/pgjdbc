@@ -816,6 +816,10 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	 */
 	public void close() throws SQLException
 	{
+		// closing an already closed Statement is a no-op.
+		if (isClosed)
+			return;
+
 		// Force the ResultSet to close
 		java.sql.ResultSet rs = getResultSet();
 		if (rs != null)
@@ -825,7 +829,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 
 		// Disasociate it from us (For Garbage Collection)
 		result = null;
-        isClosed=true;
+		isClosed=true;
 	}
 
  	/**

@@ -52,4 +52,14 @@ public class StatementTest extends TestCase
       }
   }
 
+  /**
+   * Closing a Statement twice is not an error.
+   */
+  public void testDoubleClose() throws SQLException
+  {
+     Statement stmt = con.createStatement();
+     stmt.close();
+     stmt.close();
+  }
+
 }

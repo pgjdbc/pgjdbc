@@ -347,4 +347,14 @@ public class ConnectionTest extends TestCase
 			assertTrue(ex.getMessage(), false);
 		}
 	}
+
+	/**
+	 * Closing a Connection more than once is not an error.
+	 */
+	public void testDoubleClose() throws SQLException
+	{
+		Connection con = TestUtil.openDB();
+		con.close();
+		con.close();
+	}
 }

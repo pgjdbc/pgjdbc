@@ -131,13 +131,6 @@ public class ConnectionPoolTest extends BaseDataSourceTest
 			}
 			catch (SQLException e)
 			{}
-			try
-			{
-				con.close();
-				fail("Original connection wrapper should be closed when new connection wrapper is generated");
-			}
-			catch (SQLException e)
-			{}
 			con2.close();
 			pc.close();
 		}
@@ -194,13 +187,8 @@ public class ConnectionPoolTest extends BaseDataSourceTest
 			con.close();
 			assertTrue(cc.getCount() == 2);
 			assertTrue(cc.getErrorCount() == 0);
-			try
-			{
-				con.close();
-				fail("Should not be able to close a connection wrapper twice");
-			}
-			catch (SQLException e)
-			{}
+			// a double close shouldn't fire additional events
+			con.close();
 			assertTrue(cc.getCount() == 2);
 			assertTrue(cc.getErrorCount() == 0);
 			pc.close();
