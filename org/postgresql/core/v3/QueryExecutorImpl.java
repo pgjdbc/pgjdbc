@@ -7,7 +7,7 @@
  * Copyright (c) 2004, Open Cloud Limited.
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.10 2004/10/25 22:48:03 jurka Exp $
+ *	  $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.11 2004/11/01 11:05:12 oliver Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -93,7 +93,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 				if (!inSingleQuotes && !inDoubleQuotes) {
 					fragmentList.add(query.substring(fragmentStart, i));
 					fragmentStart = i + 1;
-					if (fragmentList.size() > 1 || ((String)fragmentList.get(0)).length() > 0)
+					if (fragmentList.size() > 1 || ((String)fragmentList.get(0)).trim().length() > 0)
 						statementList.add(fragmentList.toArray(new String[fragmentList.size()]));
 					fragmentList.clear();
 				}
@@ -105,7 +105,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 		}
 
 		fragmentList.add(query.substring(fragmentStart));
-		if (fragmentList.size() > 1 || ((String)fragmentList.get(0)).length() > 0)
+		if (fragmentList.size() > 1 || ((String)fragmentList.get(0)).trim().length() > 0)
 			statementList.add(fragmentList.toArray(new String[fragmentList.size()]));
 
 		if (statementList.isEmpty())  // Empty query.
