@@ -692,4 +692,17 @@ public abstract class Connection
      * version (from jdbc1 or jdbc2) are returned.
      */
     protected abstract java.sql.ResultSet getResultSet(postgresql.Connection conn, Field[] fields, Vector tuples, String status, int updateCount) throws SQLException;
+    
+    /**
+     * Overides finalize(). If called, it closes the connection.
+     *
+     * This was done at the request of Rachel Greenham
+     * <rachel@enlarion.demon.co.uk> who hit a problem where multiple
+     * clients didn't close the connection, and once a fortnight enough
+     * clients were open to kill the postgres server.
+     */
+    public void finalize() throws Throwable
+    {
+	close();
+    }
 }
