@@ -157,7 +157,15 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 
 	public void setFetchDirection(int direction) throws SQLException
 	{
-		fetchdirection = direction;
+		switch(direction) {
+		case ResultSet.FETCH_FORWARD:
+		case ResultSet.FETCH_REVERSE:
+		case ResultSet.FETCH_UNKNOWN:
+			fetchdirection = direction;
+			break;
+		default:
+			throw new PSQLException("postgresql.res.badfetchdirection", null, new Integer(direction));
+		}
 	}
 
 	public void setFetchSize(int rows) throws SQLException

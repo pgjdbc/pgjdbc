@@ -86,7 +86,7 @@ public class ResultSetTest extends TestCase
 
 	public void testBackward() throws SQLException
 	{
-		Statement stmt = con.createStatement();
+		Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 		ResultSet rs = stmt.executeQuery("SELECT * FROM testrs");
 		rs.afterLast();
 		assertTrue(rs.previous());
@@ -96,8 +96,11 @@ public class ResultSetTest extends TestCase
 
 	public void testAbsolute() throws SQLException
 	{
-		Statement stmt = con.createStatement();
+		Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 		ResultSet rs = stmt.executeQuery("SELECT * FROM testrs");
+
+		assertTrue(!rs.absolute(0));
+		assertEquals(0, rs.getRow());
 
 		assertTrue(rs.absolute( -1));
 		assertEquals(6, rs.getRow());
@@ -120,7 +123,7 @@ public class ResultSetTest extends TestCase
 
 	public void testEmptyResult() throws SQLException
 	{
-		Statement stmt = con.createStatement();
+		Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 		ResultSet rs = stmt.executeQuery("SELECT * FROM testrs where id=100");
 		rs.beforeFirst();
 		rs.afterLast();
@@ -342,4 +345,32 @@ public class ResultSetTest extends TestCase
 		stmt.close();
 	}
 
+	public void testForwardOnlyExceptions() throws SQLException
+	{
+		// Test that illegal operations on a TYPE_FORWARD_ONLY resultset
+		// correctly result in throwing an exception.
+		Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+		ResultSet rs = stmt.executeQuery("SELECT * FROM testnumeric");
+
+		try { rs.absolute(1);   fail("absolute() on a TYPE_FORWARD_ONLY resultset did not throw an exception"); } catch (SQLException e) {}
+		try { rs.afterLast();   fail("afterLast() on a TYPE_FORWARD_ONLY resultset did not throw an exception on a TYPE_FORWARD_ONLY resultset"); } catch (SQLException e) {}
+		try { rs.beforeFirst(); fail("beforeFirst() on a TYPE_FORWARD_ONLY resultset did not throw an exception"); } catch (SQLException e) {}
+		try { rs.first();       fail("first() on a TYPE_FORWARD_ONLY resultset did not throw an exception"); } catch (SQLException e) {}
+		try { rs.last();        fail("last() on a TYPE_FORWARD_ONLY resultset did not throw an exception"); } catch (SQLException e) {}
+		try { rs.previous();    fail("previous() on a TYPE_FORWARD_ONLY resultset did not throw an exception"); } catch (SQLException e) {}
+		try { rs.relative(1);   fail("relative() on a TYPE_FORWARD_ONLY resultset did not throw an exception"); } catch (SQLException e) {}
+
+		try {
+			rs.setFetchDirection(ResultSet.FETCH_REVERSE);
+			fail("setFetchDirection(FETCH_REVERSE) on a TYPE_FORWARD_ONLY resultset did not throw an exception");
+		} catch (SQLException e) {}
+
+		try {
+			rs.setFetchDirection(ResultSet.FETCH_UNKNOWN);
+			fail("setFetchDirection(FETCH_UNKNOWN) on a TYPE_FORWARD_ONLY resultset did not throw an exception");
+		} catch (SQLException e) {}
+
+		rs.close();
+		stmt.close();
+	}
 }

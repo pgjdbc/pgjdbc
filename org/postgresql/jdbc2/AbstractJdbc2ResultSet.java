@@ -173,14 +173,23 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 		}
 	}
 
+	private void checkScrollable() throws SQLException
+	{
+		if (resultsettype == ResultSet.TYPE_FORWARD_ONLY)
+			throw new PSQLException("postgresql.res.notscrollable");
+	}
 
 	public boolean absolute(int index) throws SQLException
 	{
+		checkScrollable();
+
 		// index is 1-based, but internally we use 0-based indices
 		int internalIndex;
 
-		if (index == 0)
-			throw new SQLException("Cannot move to index of 0");
+		if (index == 0) {
+			beforeFirst();
+			return false;
+		}
 
 		final int rows_size = rows.size();
 
@@ -222,6 +231,8 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 
 	public void afterLast() throws SQLException
 	{
+		checkScrollable();
+
 		final int rows_size = rows.size();
 		if (rows_size > 0)
 			current_row = rows_size;
@@ -230,6 +241,8 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 
 	public void beforeFirst() throws SQLException
 	{
+		checkScrollable();
+
 		if (rows.size() > 0)
 			current_row = -1;
 	}
@@ -237,6 +250,8 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 
 	public boolean first() throws SQLException
 	{
+		checkScrollable();
+
 		if (rows.size() <= 0)
 			return false;
 
@@ -487,6 +502,8 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 
 	public boolean last() throws SQLException
 	{
+		checkScrollable();
+
 		final int rows_size = rows.size();
 		if (rows_size <= 0)
 			return false;
@@ -503,6 +520,8 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 
 	public boolean previous() throws SQLException
 	{
+		checkScrollable();
+
 		if (current_row-1 < 0) {
 			current_row = -1;
 			return false;
@@ -518,6 +537,8 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 
 	public boolean relative(int rows) throws SQLException
 	{
+		checkScrollable();
+
 		//have to add 1 since absolute expects a 1-based index
 		return absolute(current_row + 1 + rows);
 	}
@@ -525,6 +546,19 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 
 	public void setFetchDirection(int direction) throws SQLException
 	{
+		switch (direction) {
+		case ResultSet.FETCH_FORWARD:
+			break;
+		case ResultSet.FETCH_REVERSE:
+		case ResultSet.FETCH_UNKNOWN:
+			checkScrollable();
+			break;
+		default:
+			throw new PSQLException("postgresql.res.badfetchdirection",
+									null,
+									new Integer(direction));
+		}
+
 		this.fetchdirection = direction;
 	}
 
@@ -997,7 +1031,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 
 			AbstractJdbc2ResultSet rs = (AbstractJdbc2ResultSet) selectStatement.executeQuery();
 
-			if ( rs.first() )
+			if ( rs.next() )
 			{
 				rowBuffer = rs.rowBuffer;
 			}
@@ -1011,6 +1045,9 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 			selectStatement.close();
 			selectStatement = null;
 
+		}
+		catch (SQLException e) {
+			throw e;
 		}
 		catch (Exception e)
 		{
