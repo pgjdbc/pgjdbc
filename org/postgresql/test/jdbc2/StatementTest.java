@@ -3,7 +3,7 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.10 2004/12/14 06:23:40 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.11 2004/12/14 06:28:32 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -210,7 +210,7 @@ public class StatementTest extends TestCase
         assertEquals(Math.PI, rs.getDouble(1), 0.00001);
         assertEquals(Math.pow(7,-2.3), rs.getDouble(2), 0.00001);
         assertEquals(-Math.PI, rs.getDouble(3), 0.00001);
-        assertEquals(0.622468634332748, rs.getDouble(4), 0.00001);
+        rs.getDouble(4);  // for random all we can test is that it returns something
         assertEquals(3.13, rs.getDouble(5), 0.00001);
 
         rs = stmt.executeQuery("select {fn sign(-2.3)}, {fn sin(-2.3)}," +
