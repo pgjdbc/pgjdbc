@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.64 2004/12/17 21:24:29 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.65 2004/12/18 03:36:34 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -97,13 +97,14 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     public java.net.URL getURL(int columnIndex) throws SQLException
     {
-        return null;
+        checkClosed();
+        throw org.postgresql.Driver.notImplemented();
     }
 
 
     public java.net.URL getURL(String columnName) throws SQLException
     {
-        return null;
+        return getURL(findColumn(columnName));
     }
 
     protected Object internalGetObject(int columnIndex, Field field) throws SQLException
