@@ -46,7 +46,7 @@ public class QueryExecutor
 	private boolean binaryCursor = false;
 	private String status = null;
 	private int update_count = 1;
-	private int insert_oid = 0;
+	private long insert_oid = 0;
 	private int maxRows;
 
 	/*
@@ -173,7 +173,7 @@ public class QueryExecutor
 			}
 			if (status.startsWith("INSERT"))
 			{
-				insert_oid = Integer.parseInt(status.substring(1 + status.indexOf(' '),
+				insert_oid = Long.parseLong(status.substring(1 + status.indexOf(' '),
 											  status.lastIndexOf(' ')));
 			}
 		}

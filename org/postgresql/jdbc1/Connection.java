@@ -131,7 +131,7 @@ public class Connection extends org.postgresql.Connection implements java.sql.Co
 	 * This overides the method in org.postgresql.Connection and returns a
 	 * ResultSet.
 	 */
-	public java.sql.ResultSet getResultSet(org.postgresql.Connection conn, java.sql.Statement stat, Field[] fields, Vector tuples, String status, int updateCount, int insertOID, boolean binaryCursor) throws SQLException
+	public java.sql.ResultSet getResultSet(org.postgresql.Connection conn, java.sql.Statement stat, Field[] fields, Vector tuples, String status, int updateCount, long insertOID, boolean binaryCursor) throws SQLException
 	{
 		// in jdbc1 stat is ignored.
 		return new org.postgresql.jdbc1.ResultSet((org.postgresql.jdbc1.Connection)conn, fields, tuples, status, updateCount, insertOID, binaryCursor);
