@@ -15,7 +15,7 @@ import org.postgresql.core.Field;
 public class Jdbc2Statement extends org.postgresql.jdbc2.AbstractJdbc2Statement implements java.sql.Statement
 {
 
-	public Jdbc2Statement (Jdbc2Connection c)
+	public Jdbc2Statement (Jdbc2Connection c) throws SQLException
 	{
 		super(c);
 	}
