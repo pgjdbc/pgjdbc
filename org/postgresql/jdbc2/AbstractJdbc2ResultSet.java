@@ -493,6 +493,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 		if (--current_row < 0)
 			return false;
 		this_row = (byte[][]) rows.elementAt(current_row);
+		rowBuffer = new byte[this_row.length][];
 		System.arraycopy(this_row, 0, rowBuffer, 0, this_row.length);
 		return true;
 	}
