@@ -120,7 +120,7 @@
     <javac srcdir="${src}" destdir="${dest}">
       <include name="example/**" />
       <exclude name="example/corba/**"/>
-      <exclude name="example/blobtest.java" unless="jdk1.2+" />
+      <exclude name="example/blobtest.java" unless="jdk1.2+"/>
     </javac>
   </target>
 
