@@ -253,6 +253,8 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 
 	public java.sql.Array getArray(int i) throws SQLException
 	{
+		checkResultSet( i );
+
 		wasNullFlag = (this_row[i - 1] == null);
 		if (wasNullFlag)
 			return null;
