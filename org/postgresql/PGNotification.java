@@ -27,5 +27,12 @@ public interface PGNotification
 	 */
 	public int getPID();
 
+	/**
+	 * Returns additional information from the notifying process.
+	 * Currently, this feature is unimplemented and always returns
+	 * an empty String.
+	 */
+	public String getParameter();
+
 }
 

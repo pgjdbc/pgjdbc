@@ -86,25 +86,6 @@ public class PGStream
 	}
 
 	/*
-	 * Sends an integer to the back end
-	 *
-	 * @param val the integer to be sent
-	 * @param siz the length of the integer in bytes (size of structure)
-	 * @exception IOException if an I/O error occurs
-	 */
-	public void SendIntegerR(int val, int siz) throws IOException
-	{
-		byte[] buf = new byte[siz];
-
-		for (int i = 0; i < siz; i++)
-		{
-			buf[i] = (byte)(val & 0xff);
-			val >>= 8;
-		}
-		Send(buf);
-	}
-
-	/*
 	 * Send an array of bytes to the backend
 	 *
 	 * @param buf The array of bytes to be sent
@@ -172,35 +153,6 @@ public class PGStream
 			throw new PSQLException("postgresql.stream.ioerror", PSQLState.COMMUNICATION_ERROR, e);
 		}
 		return c;
-	}
-
-	/*
-	 * Receives an integer from the backend
-	 *
-	 * @param siz length of the integer in bytes
-	 * @return the integer received from the backend
-	 * @exception SQLException if an I/O error occurs
-	 */
-	public int ReceiveInteger(int siz) throws SQLException
-	{
-		int n = 0;
-
-		try
-		{
-			for (int i = 0 ; i < siz ; i++)
-			{
-				int b = pg_input.read();
-
-				if (b < 0)
-					throw new PSQLException("postgresql.stream.eof", PSQLState.COMMUNICATION_ERROR);
-				n = n | (b << (8 * i)) ;
-			}
-		}
-		catch (IOException e)
-		{
-			throw new PSQLException("postgresql.stream.ioerror", PSQLState.COMMUNICATION_ERROR, e);
-		}
-		return n;
 	}
 
 	/*

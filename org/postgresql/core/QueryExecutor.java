@@ -129,9 +129,11 @@ public class QueryExecutor
 				switch (c)
 				{
 					case 'A':	// Asynchronous Notify
-						int pid = pgStream.ReceiveInteger(4);
+						int msglen = pgStream.ReceiveIntegerR(4);
+						int pid = pgStream.ReceiveIntegerR(4);
 						String msg = pgStream.ReceiveString(connection.getEncoding());
-						connection.addNotification(new org.postgresql.core.Notification(msg, pid));
+						String param = pgStream.ReceiveString(connection.getEncoding());
+						connection.addNotification(new org.postgresql.core.Notification(msg, pid, param));
 						break;
 					case 'B':	// Binary Data Transfer
 						receiveTupleV3(true);
@@ -237,7 +239,7 @@ public class QueryExecutor
 				switch (c)
 				{
 					case 'A':	// Asynchronous Notify
-						int pid = pgStream.ReceiveInteger(4);
+						int pid = pgStream.ReceiveIntegerR(4);
 						String msg = pgStream.ReceiveString(connection.getEncoding());
 						connection.addNotification(new org.postgresql.core.Notification(msg, pid));
 						break;
