@@ -83,18 +83,18 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 			String[] l_origBindTypes = m_bindTypes;
 
 			for (i = 0;i < size;i++) {
-                //set state from batch
-                Object[] l_statement = (Object[])batch.elementAt(i);
+				//set state from batch
+				Object[] l_statement = (Object[])batch.elementAt(i);
 				this.m_sqlFragments = (String[])l_statement[0];
 				this.m_binds = (Object[])l_statement[1];
 				this.m_bindTypes = (String[])l_statement[2];
 				result[i] = this.executeUpdate();
 			}
 
-            //restore state of statement
-            String[] m_sqlFragments = l_origSqlFragments;
-			Object[] m_binds = l_origBinds;
-			String[] m_bindTypes = l_origBindTypes;
+			//restore state of statement
+			m_sqlFragments = l_origSqlFragments;
+			m_binds = l_origBinds;
+			m_bindTypes = l_origBindTypes;
 
 		}
 		catch (SQLException e)
