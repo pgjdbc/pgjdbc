@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.66 2004/12/18 03:49:20 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.67 2004/12/22 09:23:57 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1841,7 +1841,10 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     {
         //release resources held (memory for tuples)
 	rows = null;
-	// Do we want to explicitly close the cursor object? KJJ
+        if (cursor != null) {
+            cursor.close();
+            cursor = null;
+        }
     }
 
     public boolean wasNull() throws SQLException

@@ -3,7 +3,7 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.55 2004/12/20 08:37:13 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.56 2004/12/22 09:23:57 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -78,6 +78,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
     protected final Query preparedQuery;              // Query fragments for prepared statement.
     protected final ParameterList preparedParameters; // Parameter values for prepared statement.
+    protected Query lastSimpleQuery;
 
     protected int m_prepareThreshold;                // Reuse threshold to enable use of PREPARE
     protected int m_useCount = 0;                    // Number of times this statement has been used
@@ -105,6 +106,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         this.connection = c;
         this.preparedQuery = null;
         this.preparedParameters = null;
+        this.lastSimpleQuery = null;
         resultsettype = rsType;
         concurrency = rsConcurrency;
     }
@@ -112,6 +114,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public AbstractJdbc2Statement(AbstractJdbc2Connection connection, String sql, boolean isCallable, int rsType, int rsConcurrency) throws SQLException
     {
         this.connection = connection;
+        this.lastSimpleQuery = null;
 
         String parsed_sql = replaceProcessing(sql);
         if (isCallable)
@@ -301,6 +304,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         p_sql = replaceProcessing(p_sql);
         Query simpleQuery = connection.getQueryExecutor().createSimpleQuery(p_sql);
         execute(simpleQuery, null, QueryExecutor.QUERY_ONESHOT | flags);
+        this.lastSimpleQuery = simpleQuery;
         return (result != null && result.getResultSet() != null);
     }
 
@@ -352,6 +356,10 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             firstUnclosedResult = firstUnclosedResult.getNext();
         }
 
+        if (lastSimpleQuery != null) {
+            lastSimpleQuery.close();
+            lastSimpleQuery = null;
+        }
 
         // Enable cursor-based resultset if possible.
         if (fetchSize > 0 && !wantsScrollableResultSet() && !connection.getAutoCommit() && !wantsHoldableResultSet())
@@ -637,6 +645,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             firstUnclosedResult = firstUnclosedResult.getNext();
         }
 
+        if (lastSimpleQuery != null)
+            lastSimpleQuery.close();
 
         if (preparedQuery != null)
             preparedQuery.close();
