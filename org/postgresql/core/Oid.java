@@ -5,6 +5,7 @@ package org.postgresql.core;
  * use.
  */
 public class Oid {
+	public static final int INVALID = 0;
 	public static final int INT2 = 21;
 	public static final int INT4 = 23;
 	public static final int INT8 = 20;

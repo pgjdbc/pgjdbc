@@ -871,7 +871,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 	public int getPGType(String typeName) throws SQLException
 	{
 		if (typeName == null)
-			return 0;
+			return Oid.INVALID;
 
 		synchronized (this) {
 			Integer oidValue = (Integer) typeOidCache.get(typeName);
@@ -879,7 +879,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 				return oidValue.intValue();
 
 			// it's not in the cache, so perform a query, and add the result to the cache
-			int oid = 0;
+			int oid = Oid.INVALID;
 
 			PreparedStatement query;
 			if (haveMinimumServerVersion("7.3"))
@@ -912,7 +912,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 	 */
 	public String getPGType(int oid) throws SQLException
 	{
-		if (oid == 0)
+		if (oid == Oid.INVALID)
 			return null;
 
 		synchronized (this) {

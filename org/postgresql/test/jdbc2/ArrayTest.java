@@ -3,12 +3,12 @@ package org.postgresql.test.jdbc2;
 import org.postgresql.test.TestUtil;
 import java.sql.*;
 import java.math.BigDecimal;
+import java.util.Map;
 
 import junit.framework.TestCase;
 
 public class ArrayTest extends TestCase
 {
-
 	private Connection conn;
 
 	public ArrayTest(String name)
@@ -19,12 +19,7 @@ public class ArrayTest extends TestCase
 	protected void setUp() throws SQLException
 	{
 		conn = TestUtil.openDB();
-
 		TestUtil.createTable(conn, "arrtest", "intarr int[], decarr decimal(2,1)[], strarr text[]");
-		Statement stmt = conn.createStatement();
-		// you need a lot of backslashes to get a double quote in.
-		stmt.executeUpdate("INSERT INTO arrtest VALUES ('{1,2,3}','{3.1,1.4}', '{abc,f''a,\"fa\\\\\"b\",def}')");
-		stmt.close();
 	}
 
 	protected void tearDown() throws SQLException
@@ -35,6 +30,10 @@ public class ArrayTest extends TestCase
 
 	public void testRetrieveArrays() throws SQLException {
 		Statement stmt = conn.createStatement();
+
+		// you need a lot of backslashes to get a double quote in.
+		stmt.executeUpdate("INSERT INTO arrtest VALUES ('{1,2,3}','{3.1,1.4}', '{abc,f''a,\"fa\\\\\"b\",def}')");
+
 		ResultSet rs = stmt.executeQuery("SELECT intarr, decarr, strarr FROM arrtest");
 		assertTrue(rs.next());
 
@@ -66,6 +65,10 @@ public class ArrayTest extends TestCase
 
 	public void testRetrieveResultSets() throws SQLException {
 		Statement stmt = conn.createStatement();
+
+		// you need a lot of backslashes to get a double quote in.
+		stmt.executeUpdate("INSERT INTO arrtest VALUES ('{1,2,3}','{3.1,1.4}', '{abc,f''a,\"fa\\\\\"b\",def}')");
+
 		ResultSet rs = stmt.executeQuery("SELECT intarr, decarr, strarr FROM arrtest");
 		assertTrue(rs.next());
 
@@ -113,5 +116,51 @@ public class ArrayTest extends TestCase
 		stmt.close();
 	}
 
+	private static class SimpleArray implements Array {
+		SimpleArray(int baseType, String baseTypeName, String value) {
+			this.baseType = baseType;
+			this.baseTypeName = baseTypeName;
+			this.value = value;
+		}
+
+		public Object getArray() { throw new UnsupportedOperationException(); }
+		public Object getArray(long index, int count) { throw new UnsupportedOperationException(); }
+		public Object getArray(long index, int count, Map map) { throw new UnsupportedOperationException(); }
+		public Object getArray(Map map) { throw new UnsupportedOperationException(); }
+		public ResultSet getResultSet() { throw new UnsupportedOperationException(); }
+		public ResultSet getResultSet(long index, int count) { throw new UnsupportedOperationException(); }
+		public ResultSet getResultSet(long index, int count, Map map) { throw new UnsupportedOperationException(); }
+		public ResultSet getResultSet(Map map) { throw new UnsupportedOperationException(); }
+
+		public int getBaseType() { return baseType; }
+		public String getBaseTypeName() { return baseTypeName; }
+
+		public String toString() { return value; }
+
+		private final int baseType;
+		private final String baseTypeName;
+		private final String value;
+	}
+		
+
+	public void testSetArray() throws SQLException {
+		PreparedStatement stmt = conn.prepareStatement("INSERT INTO arrtest(intarr) VALUES (?)");
+		stmt.setArray(1, new SimpleArray(Types.INTEGER, "int4", "{1,2,3}"));
+		stmt.executeUpdate();
+
+		Statement select = conn.createStatement();
+		ResultSet rs = select.executeQuery("SELECT intarr FROM arrtest");
+		assertTrue(rs.next());
+
+		Array result = rs.getArray(1);
+		assertEquals(Types.INTEGER, result.getBaseType());
+		assertEquals("int4", result.getBaseTypeName());
+
+		int intarr[] = (int[])result.getArray();
+		assertEquals(3,intarr.length);
+		assertEquals(1,intarr[0]);
+		assertEquals(2,intarr[1]);
+		assertEquals(3,intarr[2]);
+	}
 }
 
