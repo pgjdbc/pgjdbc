@@ -31,7 +31,7 @@ public class PGcircle extends PGobject implements Serializable, Cloneable
 	/*
 	 * This is the radius
 	 */
-	double radius;
+	public double radius;
 
 	/*
 	 * @param x coordinate of centre
