@@ -27,33 +27,26 @@ public class MiscTest extends TestCase
 	 *
 	 * Added Feb 13 2001
 	 */
-	public void testDatabaseSelectNullBug()
+	public void testDatabaseSelectNullBug() throws SQLException
 	{
-		try
+		Connection con = TestUtil.openDB();
+
+		Statement st = con.createStatement();
+		ResultSet rs = st.executeQuery("select datname from pg_database");
+		assertNotNull(rs);
+
+		while (rs.next())
 		{
-			Connection con = TestUtil.openDB();
-
-			Statement st = con.createStatement();
-			ResultSet rs = st.executeQuery("select datname from pg_database");
-			assertNotNull(rs);
-
-			while (rs.next())
-			{
-				rs.getString(1);
-			}
-
-			rs.close();
-			st.close();
-
-			TestUtil.closeDB(con);
+			rs.getString(1);
 		}
-		catch (Exception ex)
-		{
-			fail(ex.getMessage());
-		}
+
+		rs.close();
+		st.close();
+
+		TestUtil.closeDB(con);
 	}
 
-	public void testError()
+	public void testError() throws SQLException
 	{
 		Connection con = TestUtil.openDB();
 		try
@@ -78,13 +71,9 @@ public class MiscTest extends TestCase
 				fail(ioe.getMessage());
 			}
 		}
-		try
-		{
-			con.commit();
-			con.close();
-		}
-		catch ( Exception ex)
-		{}
+
+		con.commit();
+		con.close();
 	}
 
 	public void xtestLocking()

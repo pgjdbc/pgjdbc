@@ -60,7 +60,7 @@ public class TestUtil
 	/*
 	 * Helper - opens a connection.
 	 */
-	public static java.sql.Connection openDB()
+	public static java.sql.Connection openDB() throws SQLException
 	{
 		return openDB(new Properties());
 	}
@@ -69,107 +69,65 @@ public class TestUtil
 	 * Helper - opens a connection with the allowance for passing
 	 * additional parameters, like "compatible".
 	 */
-	public static java.sql.Connection openDB(Properties props)
+	public static java.sql.Connection openDB(Properties props) throws SQLException
 	{
 		props.setProperty("user",getUser());
 		props.setProperty("password",getPassword());
-		try
-		{
-			Class.forName("org.postgresql.Driver");
-			return java.sql.DriverManager.getConnection(getURL(), props);
-		}
-		catch (ClassNotFoundException ex)
-		{
-			TestCase.fail(ex.getMessage());
-		}
-		catch (SQLException ex)
-		{
-			TestCase.fail(ex.getMessage());
-		}
-		return null;
+
+		// this allows loads the class.
+		org.postgresql.Driver.setLogLevel(org.postgresql.Driver.INFO);
+		return java.sql.DriverManager.getConnection(getURL(), props);
 	}
 
 	/*
-	 * Helper - closes an open connection. This rewrites SQLException to a failed
-	 * assertion. It's static so other classes can use it.
+	 * Helper - closes an open connection.
 	 */
-	public static void closeDB(Connection con)
+	public static void closeDB(Connection con) throws SQLException
 	{
-		try
-		{
-			if (con != null)
-				con.close();
-		}
-		catch (SQLException ex)
-		{
-			TestCase.fail(ex.getMessage());
-		}
+		if (con != null)
+			con.close();
 	}
 
 	/*
 	 * Helper - creates a test table for use by a test
 	 */
 	public static void createTable(Connection con,
-								   String table,
-								   String columns)
+					   String table,
+					   String columns) throws SQLException
 	{
-		try
-		{
-			Statement st = con.createStatement();
-			try
-			{
-				// Drop the table
-				dropTable(con, table);
-
-				// Now create the table
-				st.executeUpdate("create table " + table + " (" + columns + ")");
-			}
-			finally
-			{
-				st.close();
-			}
-		}
-		catch (SQLException ex)
-		{
-			TestCase.fail(ex.getMessage());
+		Statement st = con.createStatement();
+		try {
+			// Drop the table
+			dropTable(con, table);
+			
+			// Now create the table
+			st.executeUpdate("create table " + table + " (" + columns + ")");
+		} finally {
+			st.close();
 		}
 	}
 
 	/*
 	 * Helper - drops a table
 	 */
-	public static void dropTable(Connection con, String table)
+	public static void dropTable(Connection con, String table) throws SQLException
 	{
-		try
-		{
-			Statement stmt = con.createStatement();
-			try
-			{
-				String sql = "DROP TABLE " + table;
-				if (haveMinimumServerVersion(con,"7.3")) {
-					sql += " CASCADE ";
-				}
-				stmt.executeUpdate(sql);
+		Statement stmt = con.createStatement();
+		try {
+			String sql = "DROP TABLE " + table;
+			if (haveMinimumServerVersion(con,"7.3")) {
+				sql += " CASCADE ";
 			}
-			catch (SQLException ex)
-			{
-				// Since every create table issues a drop table
-				// it's easy to get a table doesn't exist error.
-				// we want to ignore these, but if we're in a
-				// transaction we need to restart.
-				// If the test case wants to catch this error
-				// itself it should issue the drop SQL directly.
-				if (ex.getMessage().indexOf("does not exist") != -1) {
-					if (!con.getAutoCommit()) {
-						con.rollback();
-					}
-
-				}
-			}
-		}
-		catch (SQLException ex)
-		{
-			TestCase.fail(ex.getMessage());
+			stmt.executeUpdate(sql);
+		} catch (SQLException ex) {
+			// Since every create table issues a drop table
+			// it's easy to get a table doesn't exist error.
+			// we want to ignore these, but if we're in a
+			// transaction we need to restart.
+			// If the test case wants to catch errors
+			// itself it should issue the drop SQL directly.
+			if (!con.getAutoCommit())
+				con.rollback();
 		}
 	}
 
