@@ -23,6 +23,10 @@
   <property name="package" value="org/postgresql" />
   <property name="debug" value="on" />
 
+  <!-- default build parameters are in build.properties, these may be
+       overridden by local configuration settings in build.local.properties
+  -->
+  <property file="build.local.properties" />
   <property file="build.properties"/>
 
   <!--
@@ -154,6 +158,7 @@
       <srcfiles dir=".">
       <include name="${package}/Driver.java.in"/>
       <include name="build.properties"/>
+      <include name="build.local.properties" />
       </srcfiles>
     </uptodate>
   </target>
@@ -342,6 +347,47 @@
      <param name="base.dir" expression="${builddir}/doc/"/>
    </xslt>
    <delete file="${builddir}/doc/pgjdbc.html"/>
+  </target>
+
+  <!-- Blah. Can't reference an external XML catalog until Ant 1.6.
+       So instead we copy the contents of ${docbook.dtd}/catalog.xml
+       here, in the form that Ant's xmlcatalog element wants. -->
+  <xmlcatalog id="docbook-catalog">  
+    <dtd publicId="-//OASIS//DTD DocBook XML V4.2//EN"
+      location="${docbook.dtd}/docbookx.dtd"/>
+    <entity publicId="-//OASIS//DTD DocBook CALS Table Model V4.2//EN"
+      location="${docbook.dtd}/calstblx.dtd"/>
+    <entity publicId="-//OASIS//DTD XML Exchange Table Model 19990315//EN"
+      location="${docbook.dtd}/soextblx.dtd"/>
+    <entity publicId="-//OASIS//ELEMENTS DocBook Information Pool V4.2//EN"
+      location="${docbook.dtd}/dbpoolx.mod"/>    
+    <entity publicId="-//OASIS//ELEMENTS DocBook Document Hierarchy V4.2//EN"
+      location="${docbook.dtd}/dbhierx.mod"/>    
+    <entity publicId="-//OASIS//ENTITIES DocBook Additional General Entities V4.2//EN"
+      location="${docbook.dtd}/dbgenent.mod"/>    
+    <entity publicId="-//OASIS//ENTITIES DocBook Notations V4.2//EN"
+      location="${docbook.dtd}/dbnotnx.mod"/>
+    <entity publicId="-//OASIS//ENTITIES DocBook Character Entities V4.2//EN"
+      location="${docbook.dtd}/dbcentx.mod"/>
+  </xmlcatalog>
+
+  <!-- Validate but don't process the documentation.
+       This target expects the DocBook XML DTDs, available at
+       http://www.docbook.org/xml/4.2/docbook-xml-4.2.zip, to be
+       present in ${docbook.dtd}. If they're not present, they will
+       be fetched on each validation from www.oasis-open.org.
+
+       Note that if the DTD fetch fails, validation fails with a fairly
+       useless error message. Run ant with -verbose to get a more useful
+       error. You'll need to set the java properties http.proxyHost and
+       http.proxyPort if you need to go via a proxy to fetch the DTDs.
+  -->
+       
+  <target name="validate-doc" depends="prepare">
+    <xmlvalidate warn="true">
+      <fileset dir="doc" includes="*.xml"/>
+      <xmlcatalog refid="docbook-catalog"/>
+    </xmlvalidate>
   </target>
 
 </project>
