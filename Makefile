@@ -29,7 +29,7 @@ install: installdirs
 	  -Dinstall.directory=$(javadir) $(properties)
 
 installdirs:
-	$(mkinstalldirs) $(javadir)
+	$(mkinstalldirs) $(javadir) 
 
 uninstall:
 	$(ANT) -buildfile $(srcdir)/build.xml uninstall \
@@ -39,4 +39,4 @@ clean distclean maintainer-clean:
 	$(ANT) -buildfile $(srcdir)/build.xml clean
 
 check: all
-	$(ANT) -buildfile $(srcdir)/build.xml test
+	$(ANT) -buildfile $(srcdir)/build.xml test $(properties)

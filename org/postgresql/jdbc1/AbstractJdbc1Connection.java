@@ -367,10 +367,16 @@ public abstract class AbstractJdbc1Connection implements org.postgresql.PGConnec
 		//jdbc by default assumes autocommit is on until setAutoCommit(false)
 		//is called.  Therefore we need to ensure a new connection is 
 		//initialized to autocommit on.
+		//We also set the client encoding so that the driver only needs 
+		//to deal with utf8.  We can only do this in 7.3 because multibyte 
+		//support is now always included
 		if (haveMinimumServerVersion("7.3")) 
 		{
 			java.sql.ResultSet acRset =
-				ExecSQL("show autocommit");
+				ExecSQL("set client_encoding = 'UNICODE'; show autocommit");
+
+			//set encoding to be unicode
+			encoding = Encoding.getEncoding("UNICODE", null);
 
 			if (!acRset.next())
 			{
