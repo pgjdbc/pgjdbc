@@ -2146,6 +2146,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData
 			tuple[16] = r.getBytes(5);				// ordinal position
 			tuple[17] = (nullFlag.equals("f") ? "YES" : "NO").getBytes();	// Is nullable
 
+			v.addElement(tuple);
 		}
 		r.close();
 
