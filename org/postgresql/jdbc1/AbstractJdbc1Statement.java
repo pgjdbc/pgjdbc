@@ -1245,14 +1245,21 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 				}
 				else
 				{
-					sbuf.append( -l_houros);
+					sbuf.append(-l_houros);
 				}
 				int l_minos = l_offset - (l_houros * 60);
 				if (l_minos != 0)
 				{
-					if (l_minos < 10)
+					if (l_minos > -10 && l_minos < 10)
 						sbuf.append('0');
-					sbuf.append(l_minos);
+					if (l_minos >= 0)
+					{
+						sbuf.append(l_minos);
+					}
+					else
+					{
+						sbuf.append(-l_minos);
+					}
 				}
 				sbuf.append("'");
 				bind(parameterIndex, sbuf.toString(), PG_TIMESTAMPTZ);
