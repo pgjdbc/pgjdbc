@@ -23,8 +23,6 @@ import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.*;
-import java.util.Enumeration;
-import java.util.Hashtable;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.StringTokenizer;
@@ -43,16 +41,16 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 {
 
 	//needed for updateable result set support
-	protected boolean updateable = false;
-	protected boolean doingUpdates = false;
-	protected Hashtable updateValues = new Hashtable();
+	private boolean updateable = false;
+	private boolean doingUpdates = false;
+	private HashMap updateValues = null;
 	private boolean usingOID = false;	// are we using the OID for the primary key?
 	private Vector primaryKeys;    // list of primary keys
 	private boolean singleTable = false;
-	protected String tableName = null;
-	protected PreparedStatement updateStatement = null;
-	protected PreparedStatement insertStatement = null;
-	protected PreparedStatement deleteStatement = null;
+	private String tableName = null;
+	private PreparedStatement updateStatement = null;
+	private PreparedStatement insertStatement = null;
+	private PreparedStatement deleteStatement = null;
 	private PreparedStatement selectStatement = null;
 	private int resultsettype;
 	private int resultsetconcurrency;
@@ -729,12 +727,12 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 			StringBuffer insertSQL = new StringBuffer("INSERT INTO ").append(tableName).append(" (");
 			StringBuffer paramSQL = new StringBuffer(") values (" );
 
-			Enumeration columnNames = updateValues.keys();
+			Iterator columnNames = updateValues.keySet().iterator();
 			int numColumns = updateValues.size();
 
-			for ( int i = 0; columnNames.hasMoreElements(); i++ )
+			for ( int i = 0; columnNames.hasNext(); i++ )
 			{
-				String columnName = (String) columnNames.nextElement();
+				String columnName = (String) columnNames.next();
 
 				insertSQL.append("\"");
 				insertSQL.append( columnName );
@@ -754,11 +752,11 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 			insertSQL.append(paramSQL.toString());
 			insertStatement = ((java.sql.Connection) connection).prepareStatement(insertSQL.toString());
 
-			Enumeration keys = updateValues.keys();
+			Iterator keys = updateValues.keySet().iterator();
 
-			for ( int i = 1; keys.hasMoreElements(); i++)
+			for ( int i = 1; keys.hasNext(); i++)
 			{
-				String key = (String) keys.nextElement();
+				String key = (String) keys.next();
 				Object o = updateValues.get(key);
 				if (o instanceof NullObject)
 					insertStatement.setNull(i,java.sql.Types.NULL);
@@ -1179,12 +1177,12 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 				StringBuffer updateSQL = new StringBuffer("UPDATE " + tableName + " SET  ");
 
 				int numColumns = updateValues.size();
-				Enumeration columns = updateValues.keys();
+				Iterator columns = updateValues.keySet().iterator();
 
-				for (int i = 0; columns.hasMoreElements(); i++ )
+				for (int i = 0; columns.hasNext(); i++ )
 				{
 
-					String column = (String) columns.nextElement();
+					String column = (String) columns.next();
 					updateSQL.append("\"");
 					updateSQL.append( column );
 					updateSQL.append("\" = ?");
@@ -1615,11 +1613,11 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 	private void updateRowBuffer() throws SQLException
 	{
 
-		Enumeration columns = updateValues.keys();
+		Iterator columns = updateValues.keySet().iterator();
 
-		while ( columns.hasMoreElements() )
+		while ( columns.hasNext() )
 		{
-			String columnName = (String) columns.nextElement();
+			String columnName = (String) columns.next();
 			int columnIndex = findColumn( columnName ) - 1;
 
 			Object valueObject = updateValues.get(columnName);
@@ -2326,6 +2324,11 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 	{
 		if (!isUpdateable())
 			throw new PSQLException(GT.tr("ResultSet is not updateable.  The query that generated this result set must select only one table, and must select all primary keys from that table. See the JDBC 2.1 API Specification, section 5.6 for more details."));
+
+		if (updateValues == null) {
+			// allow every column to be updated without a rehash.
+			updateValues = new HashMap((int)(fields.length / 0.75), 0.75f);
+		}
 	}
 
 
