@@ -137,7 +137,8 @@ EX=	example/basic.class \
 	example/datestyle.class \
 	example/psql.class \
 	example/ImageViewer.class \
-	example/metadata.class
+	example/metadata.class \
+	example/threadsafe.class
 #	example/Objects.class
 
 # This rule builds the examples
@@ -160,7 +161,9 @@ examples:	postgresql.jar $(EX)
 	@echo "  example.psql         Simple java implementation of psql"
 	@echo "  example.Objects      Demonstrates Object Serialisation"
 	@echo " "
+	@echo These are not really examples, but tests various parts of the driver
 	@echo "  example.metadata     Tests various metadata methods"
+	@echo "  example.threadsafe   Tests the driver's thread safety"
 	@echo ------------------------------------------------------------
 	@echo
 
@@ -170,6 +173,6 @@ example/datestyle.class:		example/datestyle.java
 example/psql.class:			example/psql.java
 example/ImageViewer.class:		example/ImageViewer.java
 #example/Objects.class:			example/Objects.java
-
+example/threadsafe.class:		example/threadsafe.java
 example/metadata.class:			example/metadata.java
 #######################################################################
