@@ -291,12 +291,15 @@ public class Connection extends org.postgresql.Connection implements java.sql.Co
     "float8",
     "bpchar","char","char2","char4","char8","char16",
     "varchar","text","name","filename",
+    "bytea",
     "bool",
     "date",
     "time",
     "abstime","timestamp",
-    "_bool", "_char", "_int2", "_int4", "_text", "_oid", "_varchar", "_int8",
-    "_float4", "_float8", "_abstime", "_date", "_time", "_timestamp", "_numeric"
+    "_bool", "_char", "_int2", "_int4", "_text", 
+    "_oid", "_varchar", "_int8", "_float4", "_float8", 
+    "_abstime", "_date", "_time", "_timestamp", "_numeric", 
+    "_bytea"
   };
 
   /**
@@ -316,12 +319,15 @@ public class Connection extends org.postgresql.Connection implements java.sql.Co
     Types.DOUBLE,
     Types.CHAR,Types.CHAR,Types.CHAR,Types.CHAR,Types.CHAR,Types.CHAR,
     Types.VARCHAR,Types.VARCHAR,Types.VARCHAR,Types.VARCHAR,
+    Types.BINARY,
     Types.BIT,
     Types.DATE,
     Types.TIME,
     Types.TIMESTAMP,Types.TIMESTAMP,
-    Types.ARRAY, Types.ARRAY, Types.ARRAY, Types.ARRAY, Types.ARRAY, Types.ARRAY, Types.ARRAY, Types.ARRAY,
-    Types.ARRAY, Types.ARRAY, Types.ARRAY, Types.ARRAY, Types.ARRAY, Types.ARRAY, Types.ARRAY
+    Types.ARRAY, Types.ARRAY, Types.ARRAY, Types.ARRAY, Types.ARRAY, 
+    Types.ARRAY, Types.ARRAY, Types.ARRAY, Types.ARRAY, Types.ARRAY, 
+    Types.ARRAY, Types.ARRAY, Types.ARRAY, Types.ARRAY, Types.ARRAY,
+    Types.ARRAY
   };
 
 
