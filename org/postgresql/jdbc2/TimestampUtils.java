@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.11 2005/01/11 08:25:46 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.12 2005/01/14 01:20:20 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -16,6 +16,7 @@ import java.util.GregorianCalendar;
 import java.util.TimeZone;
 import java.util.SimpleTimeZone;
 
+import org.postgresql.PGStatement;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLException;
@@ -26,20 +27,12 @@ import org.postgresql.util.PSQLException;
  */
 public class TimestampUtils {
 
-
     /**
      * Load date/time information into the provided calendar
      * returning the fractional seconds.
      */
     private static int loadCalendar(GregorianCalendar cal, String s, String type) throws SQLException {
         int slen = s.length();
-
-        // java doesn't have a concept of postgres's infinity
-        // so there's not much we can do here.
-        if ((slen == 8 && s.equals("infinity")) || (slen == 9 && s.equals("-infinity"))) {
-            throw new PSQLException(GT.tr("Infinite value found for timestamp.  Java has no corresponding representation."),
-                                    PSQLState.DATETIME_OVERFLOW);
-        }
 
         // Zero out all the fields.
         cal.setTime(new java.util.Date(0));
@@ -179,6 +172,17 @@ public class TimestampUtils {
         if (s == null)
             return null;
 
+        int slen = s.length();
+
+        // convert postgres's infinity values to internal infinity magic value
+        if (slen == 8 && s.equals("infinity")) {
+            return new Timestamp(PGStatement.DATE_POSITIVE_INFINITY);
+        }
+
+        if (slen == 9 && s.equals("-infinity")) {
+            return new Timestamp(PGStatement.DATE_NEGATIVE_INFINITY);
+        }
+
         synchronized(cal) {
             cal.set(Calendar.ZONE_OFFSET, 0);
             cal.set(Calendar.DST_OFFSET, 0);
@@ -194,6 +198,15 @@ public class TimestampUtils {
     {
         if (s == null)
             return null;
+
+        int slen = s.length();
+
+        // infinity cannot be represented as Time
+        // so there's not much we can do here.
+        if ((slen == 8 && s.equals("infinity")) || (slen == 9 && s.equals("-infinity"))) {
+            throw new PSQLException(GT.tr("Infinite value found for timestamp/date. This cannot be represented as time."),
+                                    PSQLState.DATETIME_OVERFLOW);
+        }
 
         synchronized(cal) {
             cal.set(Calendar.ZONE_OFFSET, 0);
@@ -214,6 +227,17 @@ public class TimestampUtils {
     {
         if (s == null)
             return null;
+
+        int slen = s.length();
+
+        // convert postgres's infinity values to internal infinity magic value
+        if (slen == 8 && s.equals("infinity")) {
+            return new Date(PGStatement.DATE_POSITIVE_INFINITY);
+        }
+
+        if (slen == 9 && s.equals("-infinity")) {
+            return new Date(PGStatement.DATE_NEGATIVE_INFINITY);
+        }
 
         synchronized(cal) {
             cal.set(Calendar.ZONE_OFFSET, 0);
@@ -236,11 +260,17 @@ public class TimestampUtils {
                 cal.setTime(x);
                 sbuf.setLength(0);
 
-                appendDate(sbuf, cal);
-                sbuf.append(' ');
-                appendTime(sbuf, cal, x.getNanos());
-                appendTimeZone(sbuf, x);
-                appendEra(sbuf, cal);
+                if (x.getTime() == PGStatement.DATE_POSITIVE_INFINITY) {
+                    sbuf.append("infinity");
+                } else if (x.getTime() == PGStatement.DATE_NEGATIVE_INFINITY) {
+                    sbuf.append("-infinity");
+                } else {
+                    appendDate(sbuf, cal);
+                    sbuf.append(' ');
+                    appendTime(sbuf, cal, x.getNanos());
+                    appendTimeZone(sbuf, x);
+                    appendEra(sbuf, cal);
+                }
                 return sbuf.toString();
             }
         }
@@ -252,8 +282,14 @@ public class TimestampUtils {
                 cal.setTime(x);
                 sbuf.setLength(0);
 
-                appendDate(sbuf, cal);
-                appendEra(sbuf, cal);
+                if (x.getTime() == PGStatement.DATE_POSITIVE_INFINITY) {
+                    sbuf.append("infinity");
+                } else if (x.getTime() == PGStatement.DATE_NEGATIVE_INFINITY) {
+                    sbuf.append("-infinity");
+                } else {
+                    appendDate(sbuf, cal);
+                    appendEra(sbuf, cal);
+                }
                 return sbuf.toString();
             }
         }

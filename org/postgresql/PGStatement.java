@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/PGStatement.java,v 1.12 2004/11/09 08:43:50 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/PGStatement.java,v 1.13 2005/01/11 08:25:43 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -18,6 +18,15 @@ import java.sql.*;
  */
 public interface PGStatement
 {
+    // We can't use Long.MAX_VALUE or Long.MIN_VALUE for java.sql.date
+    // because this would break the 'normalization contract' of the
+    // java.sql.Date API.
+    // The follow values are the nearest MAX/MIN values with hour,
+    // minute, second, millisecond set to 0 - this is used for
+    // -infinity / infinity representation in Java
+    public static final long DATE_POSITIVE_INFINITY = 9223372036825200000l;
+    public static final long DATE_NEGATIVE_INFINITY = -9223372036832400000l;
+
 
     /**
      * Returns the Last inserted/updated oid.
