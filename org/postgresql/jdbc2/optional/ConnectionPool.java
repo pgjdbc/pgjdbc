@@ -4,6 +4,9 @@ import javax.sql.ConnectionPoolDataSource;
 import javax.sql.PooledConnection;
 import java.sql.SQLException;
 import java.io.Serializable;
+import java.io.ObjectOutputStream;
+import java.io.ObjectInputStream;
+import java.io.IOException;
 
 /**
  * PostgreSQL implementation of ConnectionPoolDataSource.  The app server or
@@ -79,4 +82,15 @@ public class ConnectionPool extends BaseDataSource implements Serializable, Conn
 		this.defaultAutoCommit = defaultAutoCommit;
 	}
 
+	private void writeObject(ObjectOutputStream out) throws IOException
+	{
+		writeBaseObject(out);
+		out.writeBoolean(defaultAutoCommit);
+	}
+
+	private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException
+	{
+		readBaseObject(in);
+		defaultAutoCommit = in.readBoolean();
+	}
 }

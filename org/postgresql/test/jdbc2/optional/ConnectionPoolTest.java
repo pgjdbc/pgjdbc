@@ -4,6 +4,7 @@ import org.postgresql.jdbc2.optional.ConnectionPool;
 import org.postgresql.test.TestUtil;
 import javax.sql.*;
 import java.sql.*;
+import java.io.*;
 
 /**
  * Tests for the ConnectionPoolDataSource and PooledConnection
@@ -493,4 +494,31 @@ public class ConnectionPoolTest extends BaseDataSourceTest
 			count = errorCount = 0;
 		}
 	}
+
+	public void testSerializable() throws IOException, ClassNotFoundException
+	{
+		ConnectionPool pool = new ConnectionPool();
+		pool.setDefaultAutoCommit(false);
+		pool.setServerName("db.myhost.com");
+		pool.setDatabaseName("mydb");
+		pool.setUser("user");
+		pool.setPassword("pass");
+		pool.setPortNumber(1111);
+
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		ObjectOutputStream oos = new ObjectOutputStream(baos);
+		oos.writeObject(pool);
+
+		ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+		ObjectInputStream ois = new ObjectInputStream(bais);
+		ConnectionPool pool2 = (ConnectionPool)ois.readObject();
+
+		assertEquals(pool.isDefaultAutoCommit(),pool2.isDefaultAutoCommit());
+		assertEquals(pool.getServerName(),pool2.getServerName());
+		assertEquals(pool.getDatabaseName(),pool2.getDatabaseName());
+		assertEquals(pool.getUser(),pool2.getUser());
+		assertEquals(pool.getPassword(),pool2.getPassword());
+		assertEquals(pool.getPortNumber(),pool2.getPortNumber());
+	}
+
 }
