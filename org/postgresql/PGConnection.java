@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/PGConnection.java,v 1.11 2004/11/09 08:43:38 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/PGConnection.java,v 1.12 2005/01/11 08:25:43 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -46,7 +46,7 @@ public interface PGConnection
      * more unique data types. It is approximately equivalent to
      * <code>addDataType(type, Class.forName(name))</code>.
      *
-     * @deprecated As of build 303, replaced by
+     * @deprecated As of 8.0, replaced by
      *   {@link #addDataType(String,Class)}. This deprecated method does not
      *   work correctly for registering classes that cannot be directly loaded
      *   by the JDBC driver's classloader.
@@ -73,7 +73,7 @@ public interface PGConnection
      *
      * <p>The handling class must extend org.postgresql.util.PGobject
      *
-     * @since build 303
+     * @since 8.0 
      *
      * @param type the PostgreSQL type to register
      * @param klass the class implementing the Java representation of the type;
