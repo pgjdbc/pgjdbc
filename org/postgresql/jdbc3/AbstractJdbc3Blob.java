@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Blob.java,v 1.4 2004/11/09 08:50:07 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Blob.java,v 1.5 2005/01/11 08:25:46 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -37,7 +37,7 @@ public abstract class AbstractJdbc3Blob extends org.postgresql.jdbc2.AbstractJdb
      */
     public int setBytes(long pos, byte[] bytes) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setBytes(long,byte[]");
     }
 
     /**
@@ -63,7 +63,7 @@ public abstract class AbstractJdbc3Blob extends org.postgresql.jdbc2.AbstractJdb
      */
     public int setBytes(long pos, byte[] bytes, int offset, int len) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setBytes(long,byte[],int,int)");
     }
 
     /**
@@ -82,7 +82,7 @@ public abstract class AbstractJdbc3Blob extends org.postgresql.jdbc2.AbstractJdb
      */
     public java.io.OutputStream setBinaryStream(long pos) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setBinaryStream(long)");
     }
 
     /**
@@ -97,7 +97,7 @@ public abstract class AbstractJdbc3Blob extends org.postgresql.jdbc2.AbstractJdb
      */
     public void truncate(long len) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "truncate(long)");
     }
 
 }

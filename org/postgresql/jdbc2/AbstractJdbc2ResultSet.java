@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.70 2005/01/14 01:20:19 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.71 2005/01/27 22:07:33 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -98,7 +98,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public java.net.URL getURL(int columnIndex) throws SQLException
     {
         checkClosed();
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getURL(int)");
     }
 
 
@@ -453,7 +453,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public Object getObjectImpl(int i, java.util.Map map) throws SQLException
     {
         checkClosed();
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getObjectImpl(int,Map)");
     }
 
 
@@ -467,7 +467,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     {
         checkClosed();
         //The backend doesn't yet have SQL3 REF types
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getRef(int)");
     }
 
 

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Statement.java,v 1.15 2005/01/11 08:25:46 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Statement.java,v 1.16 2005/02/01 07:27:54 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -348,7 +348,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public void setURL(int parameterIndex, java.net.URL x) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setURL(int,URL)");
     }
 
     /**
@@ -403,7 +403,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
     public void registerOutParameter(String parameterName, int sqlType)
     throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "registerOutParameter(String,int)");
     }
 
     /**
@@ -430,7 +430,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
     public void registerOutParameter(String parameterName, int sqlType, int scale)
     throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "registerOutParameter(String,int,int)");
     }
 
     /**
@@ -470,7 +470,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
     public void registerOutParameter (String parameterName, int sqlType, String typeName)
     throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "registerOutParameter(String,int,String)");
     }
 
     /**
@@ -489,7 +489,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public java.net.URL getURL(int parameterIndex) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getURL(String)");
     }
 
     /**
@@ -506,7 +506,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public void setURL(String parameterName, java.net.URL val) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setURL(String,URL)");
     }
 
     /**
@@ -521,7 +521,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public void setNull(String parameterName, int sqlType) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setNull(String,int)");
     }
 
     /**
@@ -537,7 +537,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public void setBoolean(String parameterName, boolean x) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setBoolean(String,boolean)");
     }
 
     /**
@@ -553,7 +553,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public void setByte(String parameterName, byte x) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setByte(String,byte)");
     }
 
     /**
@@ -569,7 +569,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public void setShort(String parameterName, short x) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setShort(String,short)");
     }
 
     /**
@@ -585,7 +585,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public void setInt(String parameterName, int x) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setInt(String,int)");
     }
 
     /**
@@ -601,7 +601,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public void setLong(String parameterName, long x) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setLong(String,long)");
     }
 
     /**
@@ -617,7 +617,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public void setFloat(String parameterName, float x) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setFloat(String,float)");
     }
 
     /**
@@ -633,7 +633,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public void setDouble(String parameterName, double x) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setDouble(String,double)");
     }
 
     /**
@@ -650,7 +650,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public void setBigDecimal(String parameterName, BigDecimal x) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setBigDecimal(String,BigDecimal)");
     }
 
     /**
@@ -669,7 +669,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public void setString(String parameterName, String x) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setString(String,String)");
     }
 
     /**
@@ -687,7 +687,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public void setBytes(String parameterName, byte x[]) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setBytes(String,byte)");
     }
 
     /**
@@ -704,7 +704,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
     public void setDate(String parameterName, java.sql.Date x)
     throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setDate(String,Date)");
     }
 
     /**
@@ -721,7 +721,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
     public void setTime(String parameterName, java.sql.Time x)
     throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setTime(String,Time)");
     }
 
     /**
@@ -739,7 +739,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
     public void setTimestamp(String parameterName, java.sql.Timestamp x)
     throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setTimestamp(String,Timestamp)");
     }
 
     /**
@@ -764,7 +764,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
     public void setAsciiStream(String parameterName, java.io.InputStream x, int length)
     throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setAsciiStream(String,InputStream,int)");
     }
 
     /**
@@ -788,7 +788,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
     public void setBinaryStream(String parameterName, java.io.InputStream x,
                                 int length) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setBinaryStream(String,InputStream,int)");
     }
 
     /**
@@ -826,7 +826,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
     public void setObject(String parameterName, Object x, int targetSqlType, int scale)
     throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setObject(String,Object,int,int)");
     }
 
     /**
@@ -845,7 +845,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
     public void setObject(String parameterName, Object x, int targetSqlType)
     throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setObject(String,Object,int)");
     }
 
     /**
@@ -882,7 +882,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public void setObject(String parameterName, Object x) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setObject(String,Object)");
     }
 
 
@@ -910,7 +910,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
                                    java.io.Reader reader,
                                    int length) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setCharacterStream(String,Reader,int)");
     }
 
     /**
@@ -934,7 +934,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
     public void setDate(String parameterName, java.sql.Date x, Calendar cal)
     throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setDate(String,Date,Calendar)");
     }
 
     /**
@@ -958,7 +958,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
     public void setTime(String parameterName, java.sql.Time x, Calendar cal)
     throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setTime(String,Time,Calendar)");
     }
 
     /**
@@ -982,7 +982,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
     public void setTimestamp(String parameterName, java.sql.Timestamp x, Calendar cal)
     throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setTimestamp(String,Timestamp,Calendar)");
     }
 
     /**
@@ -1017,7 +1017,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
     public void setNull (String parameterName, int sqlType, String typeName)
     throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setNull(String,int,String)");
     }
 
     /**
@@ -1039,7 +1039,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public String getString(String parameterName) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getString(String)");
     }
 
     /**
@@ -1054,7 +1054,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public boolean getBoolean(String parameterName) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getBoolean(String)");
     }
 
     /**
@@ -1069,7 +1069,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public byte getByte(String parameterName) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getByte(String)");
     }
 
     /**
@@ -1084,7 +1084,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public short getShort(String parameterName) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getShort(String)");
     }
 
     /**
@@ -1100,7 +1100,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public int getInt(String parameterName) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getInt(String)");
     }
 
     /**
@@ -1116,7 +1116,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public long getLong(String parameterName) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getLong(String)");
     }
 
     /**
@@ -1131,7 +1131,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public float getFloat(String parameterName) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getFloat(String)");
     }
 
     /**
@@ -1146,7 +1146,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public double getDouble(String parameterName) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getDouble(String)");
     }
 
     /**
@@ -1162,7 +1162,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public byte[] getBytes(String parameterName) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getBytes(String)");
     }
 
     /**
@@ -1177,7 +1177,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public java.sql.Date getDate(String parameterName) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getDate(String)");
     }
 
     /**
@@ -1192,7 +1192,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public java.sql.Time getTime(String parameterName) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getTime(String)");
     }
 
     /**
@@ -1207,7 +1207,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public java.sql.Timestamp getTimestamp(String parameterName) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getTimestamp(String)");
     }
 
     /**
@@ -1229,7 +1229,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public Object getObject(String parameterName) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getObject(String)");
     }
 
     /**
@@ -1245,7 +1245,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public BigDecimal getBigDecimal(String parameterName) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getBigDecimal(String)");
     }
 
     /**
@@ -1267,7 +1267,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public Object getObjectImpl (String parameterName, java.util.Map map) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getObject(String,Map)");
     }
 
     /**
@@ -1283,7 +1283,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public Ref getRef (String parameterName) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getRef(String)");
     }
 
     /**
@@ -1299,7 +1299,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public Blob getBlob (String parameterName) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getBlob(String)");
     }
 
     /**
@@ -1314,7 +1314,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public Clob getClob (String parameterName) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getClob(String)");
     }
 
     /**
@@ -1330,7 +1330,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public Array getArray (String parameterName) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getArray(String)");
     }
 
     /**
@@ -1355,7 +1355,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
     public java.sql.Date getDate(String parameterName, Calendar cal)
     throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getDate(String,Calendar)");
     }
 
     /**
@@ -1380,7 +1380,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
     public java.sql.Time getTime(String parameterName, Calendar cal)
     throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getTime(String,Calendar)");
     }
 
     /**
@@ -1406,7 +1406,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
     public java.sql.Timestamp getTimestamp(String parameterName, Calendar cal)
     throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getTimestamp(String,Calendar)");
     }
 
     /**
@@ -1424,7 +1424,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
      */
     public java.net.URL getURL(String parameterName) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getURL(String)");
     }
 
     public void setObject(int parameterIndex, Object x, int targetSqlType, int scale) throws SQLException

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.68 2005/02/01 07:27:54 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.69 2005/02/15 08:31:47 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2723,7 +2723,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
     public void setRef(int i, Ref x) throws SQLException
     {
-        throw Driver.notImplemented();
+        throw Driver.notImplemented(this.getClass(), "setRef(int,Ref)");
     }
 
     public void setDate(int i, java.sql.Date d, java.util.Calendar cal) throws SQLException
@@ -2780,22 +2780,22 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
     public Blob getBlob(int i) throws SQLException
     {
-        throw Driver.notImplemented();
+        throw Driver.notImplemented(this.getClass(), "getBlob(int)");
     }
 
     public Clob getClob(int i) throws SQLException
     {
-        throw Driver.notImplemented();
+        throw Driver.notImplemented(this.getClass(), "getClob(int)");
     }
 
     public Object getObjectImpl(int i, java.util.Map map) throws SQLException
     {
-        throw Driver.notImplemented();
+        throw Driver.notImplemented(this.getClass(), "getObjectImpl(int,Map)");
     }
 
     public Ref getRef(int i) throws SQLException
     {
-        throw Driver.notImplemented();
+        throw Driver.notImplemented(this.getClass(), "getRef(int)");
     }
 
     public java.sql.Date getDate(int i, java.util.Calendar cal) throws SQLException
@@ -2834,7 +2834,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     // no custom types allowed yet..
     public void registerOutParameter(int parameterIndex, int sqlType, String typeName) throws SQLException
     {
-        throw Driver.notImplemented();
+        throw Driver.notImplemented(this.getClass(), "registerOutParameter(int,int,String)");
     }
 
 

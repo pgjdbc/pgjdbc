@@ -3,12 +3,13 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Array.java,v 1.12 2005/01/11 08:25:45 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Array.java,v 1.13 2005/01/14 01:20:19 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.jdbc2;
 
+import org.postgresql.Driver;
 import org.postgresql.core.*;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -84,7 +85,7 @@ public class AbstractJdbc2Array
     public Object getArrayImpl(long index, int count, Map map) throws SQLException
     {
         if ( map != null ) // For now maps aren't supported.
-            throw org.postgresql.Driver.notImplemented();
+            throw org.postgresql.Driver.notImplemented(this.getClass(), "getArrayImpl(long,int,Map)");
 
         if (index < 1)
             throw new PSQLException(GT.tr("The array index is out of range: {0}", new Long(index)), PSQLState.DATA_ERROR);
@@ -226,7 +227,9 @@ public class AbstractJdbc2Array
             // Other datatypes not currently supported.  If you are really using other types ask
             // yourself if an array of non-trivial data types is really good database design.
         default:
-            throw org.postgresql.Driver.notImplemented();
+            if (Driver.logDebug)
+                Driver.debug("getArrayImpl(long,int,Map) with "+getBaseTypeName());
+            throw org.postgresql.Driver.notImplemented(this.getClass(), "getArrayImpl(long,int,Map)");
         }
         return retVal;
     }
@@ -405,7 +408,9 @@ public class AbstractJdbc2Array
             // Other datatypes not currently supported.  If you are really using other types ask
             // yourself if an array of non-trivial data types is really good database design.
         default:
-            throw org.postgresql.Driver.notImplemented();
+            if (Driver.logDebug)
+                Driver.debug("getResultSetImpl(long,int,Map) with "+getBaseTypeName());
+            throw org.postgresql.Driver.notImplemented(this.getClass(), "getResultSetImpl(long,int,Map)");
         }
         BaseStatement stat = (BaseStatement) conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
         return (ResultSet) stat.createDriverResultSet(fields, rows);

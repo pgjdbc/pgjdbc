@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Clob.java,v 1.6 2004/11/09 08:48:29 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Clob.java,v 1.7 2005/01/11 08:25:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -55,7 +55,7 @@ public class AbstractJdbc2Clob
      */
     public long position(String pattern, long start) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "position(String,long)");
     }
 
     /*
@@ -63,7 +63,7 @@ public class AbstractJdbc2Clob
      */
     public long position(Clob pattern, long start) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "position(Clob,start)");
     }
 
 }

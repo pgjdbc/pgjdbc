@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3ResultSet.java,v 1.10 2004/11/09 08:50:07 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3ResultSet.java,v 1.11 2005/01/11 08:25:46 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -44,7 +44,7 @@ public abstract class AbstractJdbc3ResultSet extends org.postgresql.jdbc2.Abstra
      */
     public java.net.URL getURL(int columnIndex) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getURL(int)");
     }
 
     /**
@@ -62,7 +62,7 @@ public abstract class AbstractJdbc3ResultSet extends org.postgresql.jdbc2.Abstra
      */
     public java.net.URL getURL(String columnName) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getURL(String)");
     }
 
     /**
@@ -79,7 +79,7 @@ public abstract class AbstractJdbc3ResultSet extends org.postgresql.jdbc2.Abstra
      */
     public void updateRef(int columnIndex, java.sql.Ref x) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "updateRef(int,Ref)");
     }
 
     /**
@@ -96,7 +96,7 @@ public abstract class AbstractJdbc3ResultSet extends org.postgresql.jdbc2.Abstra
      */
     public void updateRef(String columnName, java.sql.Ref x) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "updateRef(String,Ref)");
     }
 
     /**
@@ -113,7 +113,7 @@ public abstract class AbstractJdbc3ResultSet extends org.postgresql.jdbc2.Abstra
      */
     public void updateBlob(int columnIndex, java.sql.Blob x) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "updateBlob(int,Blob)");
     }
 
     /**
@@ -130,7 +130,7 @@ public abstract class AbstractJdbc3ResultSet extends org.postgresql.jdbc2.Abstra
      */
     public void updateBlob(String columnName, java.sql.Blob x) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "updateBlob(String,Blob)");
     }
 
     /**
@@ -147,7 +147,7 @@ public abstract class AbstractJdbc3ResultSet extends org.postgresql.jdbc2.Abstra
      */
     public void updateClob(int columnIndex, java.sql.Clob x) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "updateClob(int,Clob)");
     }
 
     /**
@@ -164,7 +164,7 @@ public abstract class AbstractJdbc3ResultSet extends org.postgresql.jdbc2.Abstra
      */
     public void updateClob(String columnName, java.sql.Clob x) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "updateClob(String,Clob)");
     }
 
     /**
@@ -181,7 +181,7 @@ public abstract class AbstractJdbc3ResultSet extends org.postgresql.jdbc2.Abstra
      */
     public void updateArray(int columnIndex, java.sql.Array x) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "updateArray(int,Array)");
     }
 
     /**
@@ -198,7 +198,7 @@ public abstract class AbstractJdbc3ResultSet extends org.postgresql.jdbc2.Abstra
      */
     public void updateArray(String columnName, java.sql.Array x) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented();
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "updateArray(String,Array)");
     }
 
 }
