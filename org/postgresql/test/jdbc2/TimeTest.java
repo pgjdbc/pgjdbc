@@ -44,11 +44,9 @@ public class TimeTest extends TestCase
     *
     * Test use of calendar
     */
-   public void testGetTimeZone()
+   public void testGetTimeZone() throws Exception
    {
        final Time midnight = new Time(0,0,0);
-       try
-       {
            Statement stmt = con.createStatement();
            Calendar cal = Calendar.getInstance();
 
@@ -59,7 +57,7 @@ public class TimeTest extends TestCase
            /* set the time to midnight to make this easy */
            assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testtime", "'00:00:00','00:00:00'")));
            assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testtime", "'00:00:00.1','00:00:00.01'")));
-           assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testtime", "now(),now()")));
+           assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testtime", "CAST(CAST(now() AS timestamp without time zone) AS time),now()")));
            ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testtime", "tm,tz"));
            assertNotNull(rs);
            assertTrue(rs.next());
@@ -121,12 +119,6 @@ public class TimeTest extends TestCase
            assertNotNull(timetz);
            timestamptz = rs.getTimestamp(2);
            assertNotNull(timestamptz);
-
-       }
-       catch ( Exception ex )
-       {
-           fail( ex.getMessage() );
-       }
    }
 	/*
 	 * Tests the time methods in ResultSet
