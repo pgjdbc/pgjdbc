@@ -125,7 +125,7 @@ public abstract class AbstractJdbc1Connection implements org.postgresql.PGConnec
                 }
 
                 //Read loglevel arg and set the loglevel based on this value
-                //in addition to setting the log level enable output to 
+                //in addition to setting the log level enable output to
                 //standard out if no other printwriter is set
                 String l_logLevelProp = info.getProperty("loglevel","0");
                 int l_logLevel = 0;
@@ -180,6 +180,7 @@ public abstract class AbstractJdbc1Connection implements org.postgresql.PGConnec
                         {
                                 int beresp = pg_stream.ReceiveChar();
                                 String salt = null;
+                                byte [] md5Salt = new byte[4];
                                 switch (beresp)
                                 {
                                         case 'E':
@@ -207,12 +208,12 @@ public abstract class AbstractJdbc1Connection implements org.postgresql.PGConnec
                                                 // Or get the md5 password salt if there is one
                                                 if (areq == AUTH_REQ_MD5)
                                                 {
-                                                        byte[] rst = new byte[4];
-                                                        rst[0] = (byte)pg_stream.ReceiveChar();
-                                                        rst[1] = (byte)pg_stream.ReceiveChar();
-                                                        rst[2] = (byte)pg_stream.ReceiveChar();
-                                                        rst[3] = (byte)pg_stream.ReceiveChar();
-                                                        salt = new String(rst, 0, 4);
+
+                                                        md5Salt[0] = (byte)pg_stream.ReceiveChar();
+                                                        md5Salt[1] = (byte)pg_stream.ReceiveChar();
+                                                        md5Salt[2] = (byte)pg_stream.ReceiveChar();
+                                                        md5Salt[3] = (byte)pg_stream.ReceiveChar();
+                                                        salt = new String(md5Salt, 0, 4);
                                                         if (org.postgresql.Driver.logDebug) org.postgresql.Driver.debug("MD5 salt=" + salt);
                                                 }
 
@@ -249,7 +250,7 @@ public abstract class AbstractJdbc1Connection implements org.postgresql.PGConnec
 
                                                         case AUTH_REQ_MD5:
                                                                 if (org.postgresql.Driver.logDebug) org.postgresql.Driver.debug("postgresql: MD5");
-                                                                byte[] digest = MD5Digest.encode(PG_USER, password, salt);
+                                                                byte[] digest = MD5Digest.encode(PG_USER, password, md5Salt);
                                                                 pg_stream.SendInteger(5 + digest.length, 4);
                                                                 pg_stream.Send(digest);
                                                                 pg_stream.SendInteger(0, 1);
@@ -1217,7 +1218,7 @@ public abstract class AbstractJdbc1Connection implements org.postgresql.PGConnec
 		return (pg_stream == null);
 	}
 
-	/* 
+	/*
 	 * This implemetation uses the jdbc1Types array to support the jdbc1
 	 * datatypes.  Basically jdbc1 and jdbc2 are the same, except that
 	 * jdbc2 adds the Array types.
