@@ -3,7 +3,7 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.53 2004/12/14 06:28:31 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.54 2004/12/18 03:36:34 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1175,7 +1175,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         }
         else
         {
-            bindString(parameterIndex, TimestampUtils.toString(sbuf, x), Oid.DATE);
+            if (calendar == null)
+                calendar = new GregorianCalendar();
+            bindString(parameterIndex, TimestampUtils.toString(sbuf, calendar, x), Oid.DATE);
         }
     }
 
@@ -1196,7 +1198,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         }
         else
         {
-            bindString(parameterIndex, TimestampUtils.toString(sbuf, x), Oid.TIME);
+            if (calendar == null)
+                calendar = new GregorianCalendar();
+            bindString(parameterIndex, TimestampUtils.toString(sbuf, calendar, x), Oid.TIME);
         }
     }
 
@@ -1217,7 +1221,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         }
         else
         {
-            bindString(parameterIndex, TimestampUtils.toString(sbuf, x), Oid.TIMESTAMPTZ);
+            if (calendar == null)
+                calendar = new GregorianCalendar();
+            bindString(parameterIndex, TimestampUtils.toString(sbuf, calendar, x), Oid.TIMESTAMPTZ);
         }
     }
 

@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.6 2004/11/10 20:43:45 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.7 2004/12/18 03:36:34 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -229,43 +229,46 @@ public class TimestampUtils {
         }
     }
 
-    public static String toString(StringBuffer sbuf, Timestamp x) {
-        GregorianCalendar cal = new GregorianCalendar();
-        cal.setTime(x);
-
+    public static String toString(StringBuffer sbuf, GregorianCalendar cal, Timestamp x) {
         synchronized(sbuf) {
-            sbuf.setLength(0);
-            appendDate(sbuf, cal);
-            sbuf.append(' ');
-            appendTime(sbuf, cal, x.getNanos());
-            appendTimeZone(sbuf, x);
-            appendEra(sbuf, cal);
-            return sbuf.toString();
+            synchronized(cal) {
+                cal.setTime(x);
+                sbuf.setLength(0);
+
+                appendDate(sbuf, cal);
+                sbuf.append(' ');
+                appendTime(sbuf, cal, x.getNanos());
+                appendTimeZone(sbuf, x);
+                appendEra(sbuf, cal);
+                return sbuf.toString();
+            }
         }
     }
 
-    public static String toString(StringBuffer sbuf, Date x) {
-        GregorianCalendar cal = new GregorianCalendar();
-        cal.setTime(x);
-
+    public static String toString(StringBuffer sbuf, GregorianCalendar cal, Date x) {
         synchronized(sbuf) {
-            sbuf.setLength(0);
-            appendDate(sbuf, cal);
-            appendEra(sbuf, cal);
-            return sbuf.toString();
+            synchronized(cal) {
+                cal.setTime(x);
+                sbuf.setLength(0);
+
+                appendDate(sbuf, cal);
+                appendEra(sbuf, cal);
+                return sbuf.toString();
+            }
         }
     }
 
-    public static String toString(StringBuffer sbuf, Time x) {
-        GregorianCalendar cal = new GregorianCalendar();
-        cal.setTime(x);
-
+    public static String toString(StringBuffer sbuf, GregorianCalendar cal, Time x) {
         synchronized(sbuf) {
-            sbuf.setLength(0);
-            appendTime(sbuf, cal, cal.get(Calendar.MILLISECOND) * 1000000);
-            // Doesn't work on <= 7.3 for time, only for timetz
-            //appendTimeZone(sbuf, x);
-            return sbuf.toString();
+            synchronized(cal) {
+                cal.setTime(x);
+                sbuf.setLength(0);
+
+                appendTime(sbuf, cal, cal.get(Calendar.MILLISECOND) * 1000000);
+                // Doesn't work on <= 7.3 for time, only for timetz
+                //appendTimeZone(sbuf, x);
+                return sbuf.toString();
+            }
         }
     }
 
@@ -410,20 +413,20 @@ public class TimestampUtils {
             String result = null;
             switch (testTypes[i]) {
                 case Types.TIMESTAMP:
-                    result = toString(sbuf, toTimestamp(cal, data));
+                    result = toString(sbuf, cal, toTimestamp(cal, data));
                     break;
                 case Types.TIME:
-                    result = toString(sbuf, toTime(cal, data));
+                    result = toString(sbuf, cal, toTime(cal, data));
                     break;
                 case Types.DATE:
-                    result = toString(sbuf, toDate(cal, data));
+                    result = toString(sbuf, cal, toDate(cal, data));
                     break;
             }
             System.out.println(result);
             System.out.println();
         }
 
-        System.out.println(toString(sbuf, new Timestamp(0)));
+        System.out.println(toString(sbuf, cal, new Timestamp(0)));
     }
 
 }
