@@ -143,13 +143,17 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 		PG_HOST = host;
 		PG_STATUS = CONNECTION_BAD;
 
-		if (info.getProperty("ssl") != null && Driver.sslEnabled())
+		useSSL = false;
+		if (info.getProperty("ssl") != null)
 		{
-			useSSL = true;
-		}
-		else
-		{
-			useSSL = false;
+			if (Driver.sslEnabled())
+			{
+				useSSL = true;
+			}
+			else
+			{
+				throw new PSQLException("postgresql.con.driversslnotsupported", PSQLState.CONNECTION_FAILURE);
+			}
 		}
 
 		if (info.getProperty("compatible") == null)
