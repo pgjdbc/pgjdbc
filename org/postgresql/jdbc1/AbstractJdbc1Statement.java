@@ -526,7 +526,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 			callResult = result.getObject(1);
 			int columnType = result.getMetaData().getColumnType(1);
 			if (columnType != functionReturnType)
-				throw new PSQLException ("postgresql.call.wrongrtntype",
+				throw new PSQLException ("postgresql.call.wrongrtntype", PSQLState.DATA_TYPE_MISMATCH,
 										 new Object[]{
 											 "java.sql.Types=" + columnType, "java.sql.Types=" + functionReturnType });
 			result.close ();

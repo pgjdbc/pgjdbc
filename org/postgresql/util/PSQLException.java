@@ -224,6 +224,8 @@ public class PSQLException extends SQLException
 	
 	public String getSQLState()
 	{
+		if (state == null)
+			return PSQLState.UNKNOWN_STATE.getState();
 		return state.getState();
 	}
 }
