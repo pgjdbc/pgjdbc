@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!--
   Copyright (c) 2004-2005, PostgreSQL Global Development Group
-  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.18 2005/01/17 10:51:38 jurka Exp $
+  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.19 2005/01/17 23:21:17 jurka Exp $
 -->
 
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN" "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">
@@ -898,7 +898,7 @@ st.close();
    </example>
    </sect1>
 
-   <sect1>
+   <sect1 id="statement">
     <title>Using the <classname>Statement</classname> or <classname>PreparedStatement</classname> Interface</title>
 
     <para>
@@ -947,7 +947,7 @@ st.close();
     </para>
    </sect1>
 
-   <sect1>
+   <sect1 id="resultset">
     <title>Using the <classname>ResultSet</classname> Interface</title>
 
     <para>
@@ -1479,7 +1479,7 @@ conn.commit();
    Objects, etc.
   </para>
 
-  <sect1>
+  <sect1 id="extensions">
    <title>Accessing the Extensions</title>
 
    <para>
@@ -1497,7 +1497,7 @@ Fastpath fp = ((org.postgresql.PGConnection)db).getFastpathAPI();
   </sect1>
 
 
-  <sect1>
+  <sect1 id="geometric">
    <title>Geometric Data Types</title>
 
    <para>
@@ -1568,7 +1568,7 @@ public class GeometricTest {
   </sect1>
 
 
-  <sect1>
+  <sect1 id="largeobjects">
    <title>Large Objects</title>
 
    <para>
