@@ -12,21 +12,23 @@ subdir = src/interfaces/jdbc
 top_builddir = ../../..
 include $(top_builddir)/src/Makefile.global
 
-majorversion := $(shell echo $(VERSION) | sed 's/^\([0-9][0-9]*\)\..*$$/\1/')
-minorversion := $(shell echo $(VERSION) | sed 's/^[0-9][0-9]*\.\([0-9][0-9]*\).*$$/\1/')
+majorversion:= $(shell echo $(VERSION) | sed 's/^\([0-9][0-9]*\)\..*$$/\1/')
+minorversion:= $(shell echo $(VERSION) | sed 's/^[0-9][0-9]*\.\([0-9][0-9]*\).*$$/\1/')
 
-properties := -Dmajor=$(majorversion) -Dminor=$(minorversion) \
-		-Dfullversion=$(VERSION) \
-		-Ddef_pgport=$(DEF_PGPORT) \
-		-Denable_debug=$(enable_debug)
+build.properties: $(top_builddir)/src/Makefile.global
+	echo "# This file was created by 'make build.properties'." > build.properties
+	echo major=$(majorversion) >> build.properties
+	echo minor=$(minorversion) >> build.properties
+	echo fullversion=$(VERSION) >> build.properties
+	echo def_pgport=$(DEF_PGPORT) >> build.properties
+	echo enable_debug=$(enable_debug) >> build.properties
 
-all:
-	$(ANT) -buildfile $(srcdir)/build.xml all \
-	  $(properties)
+all: build.properties
+	$(ANT) -buildfile $(srcdir)/build.xml all
 
-install: installdirs
+install: installdirs build.properties
 	$(ANT) -buildfile $(srcdir)/build.xml install \
-	  -Dinstall.directory=$(javadir) $(properties)
+	  -Dinstall.directory=$(javadir)
 
 installdirs:
 	$(mkinstalldirs) $(javadir) 
@@ -36,7 +38,7 @@ uninstall:
 	  -Dinstall.directory=$(javadir)
 
 clean distclean maintainer-clean:
-	$(ANT) -buildfile $(srcdir)/build.xml clean
+	$(ANT) -buildfile $(srcdir)/build.xml clean_all
 
-check: all
-	$(ANT) -buildfile $(srcdir)/build.xml test $(properties)
+check: build.properties
+	$(ANT) -buildfile $(srcdir)/build.xml test
