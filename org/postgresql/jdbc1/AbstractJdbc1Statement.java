@@ -129,6 +129,7 @@ public abstract class AbstractJdbc1Statement implements org.postgresql.PGStateme
 	{
 		String l_sql = replaceProcessing(p_sql);
 		m_sqlFragments = new String[] {l_sql};
+		m_binds = new Object[0];
 		//If we have already created a server prepared statement, we need
 		//to deallocate the existing one
 		if (m_statementName != null) {
