@@ -92,6 +92,11 @@ public class PGObjectFactory implements ObjectFactory
 		}
 		ds.setServerName(getProperty(ref, "serverName"));
 		ds.setUser(getProperty(ref, "user"));
+
+		String prepareThreshold = getProperty(ref, "prepareThreshold");
+		if (prepareThreshold != null)
+			ds.setPrepareThreshold(Integer.parseInt(prepareThreshold));
+
 		return ds;
 	}
 

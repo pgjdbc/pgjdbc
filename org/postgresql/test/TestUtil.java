@@ -14,7 +14,7 @@ public class TestUtil
 	 */
 	public static String getURL()
 	{
-		return "jdbc:postgresql://"+getServer()+":"+getPort()+"/"+getDatabase();
+		return "jdbc:postgresql://"+getServer()+":"+getPort()+"/"+getDatabase()+"?prepareThreshold="+getPrepareThreshold();
 	}
 
 	/*
@@ -31,6 +31,14 @@ public class TestUtil
 	public static int getPort()
 	{
 		return Integer.parseInt(System.getProperty("port"));
+	}
+
+	/*
+	 * Returns the server side prepared statement threshold.
+	 */
+	public static int getPrepareThreshold()
+	{
+		return Integer.parseInt(System.getProperty("preparethreshold"));
 	}
 
 	/*

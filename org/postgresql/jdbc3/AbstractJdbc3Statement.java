@@ -13,7 +13,7 @@ import java.util.Calendar;
 public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.AbstractJdbc2Statement
 {
 
-	public AbstractJdbc3Statement (AbstractJdbc3Connection c)
+	public AbstractJdbc3Statement (AbstractJdbc3Connection c) throws SQLException
 	{
 		super(c);
 	}

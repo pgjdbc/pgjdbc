@@ -82,7 +82,8 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	private short m_isSingleSelect = UNKNOWN;      // Is the query a single SELECT?
 	private short m_isSingleStatement = UNKNOWN;   // Is the query a single statement?
 
-	private boolean m_useServerPrepare = false;
+	private int m_prepareThreshold;                // Reuse threshold to enable use of PREPARE
+	private int m_useCount = 1;                    // Number of times this statement has been reused (plus 1)
 
     // m_preparedCount is used for naming of auto-cursors and must
     // be synchronized so that multiple threads using the same
@@ -118,14 +119,15 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 
 	public abstract BaseResultSet createResultSet(Field[] fields, Vector tuples, String status, int updateCount, long insertOID) throws SQLException;
 
-	public AbstractJdbc1Statement (BaseConnection connection)
+	public AbstractJdbc1Statement (BaseConnection connection) throws SQLException
 	{
 		this.connection = connection;
+		setPrepareThreshold(connection.getPrepareThreshold());
 	}
 
 	public AbstractJdbc1Statement (BaseConnection connection, String p_sql) throws SQLException
 	{
-		this.connection = connection;
+		this(connection);
 		parseSqlStmt(p_sql);  // this allows Callable stmt to override
 	}
 
@@ -194,7 +196,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 	 * Deallocate resources allocated for the current query
 	 * in preparation for replacing it with a new query.
 	 */
-	private void deallocateQuery()
+	protected void deallocateQuery()
 	{
 		//If we have already created a server prepared statement, we need
 		//to deallocate the existing one
@@ -213,6 +215,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 		m_cursorName = null; // automatically closed at end of txn anyway
 		m_executeSqlFragments = null;
 		m_isSingleStatement = m_isSingleSelect = m_isSingleDML = UNKNOWN;
+		m_useCount = 1;
 	}
 
 	/*
@@ -529,6 +532,7 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 		// Get the actual query fragments to run (might be a transformed version of
 		// the original fragments)
 		String[] fragments = getQueryFragments();
+		++m_useCount; // We used this statement once more.
 
 		// New in 7.1, pass Statement so that ExecSQL can customise to it
 		result = QueryExecutor.execute(fragments,
@@ -2251,27 +2255,29 @@ public abstract class AbstractJdbc1Statement implements BaseStatement
 			throw new PSQLException("postgresql.call.noinout", PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
 	}
 
+	public void setPrepareThreshold(int newThreshold) throws SQLException {
+		if (newThreshold < 0)
+			newThreshold = 0;
 
+		if (!connection.haveMinimumServerVersion("7.3"))
+			newThreshold = 0;
 
-    public void setUseServerPrepare(boolean flag) throws SQLException
-    {
-        checkClosed();
-        //Server side prepared statements were introduced in 7.3
-        if (connection.haveMinimumServerVersion("7.3")) {
-			if (m_useServerPrepare != flag)
-				deallocateQuery();
-			m_useServerPrepare = flag;
-		} else {
-			//This is a pre 7.3 server so no op this method
-			//which means we will never turn on the flag to use server
-			//prepared statements and thus regular processing will continue
-		}
+		this.m_prepareThreshold = newThreshold;
+		if (m_statementName != null && !isUseServerPrepare())
+			deallocateQuery();
 	}
 
-	public boolean isUseServerPrepare()
-	{
-		return m_useServerPrepare;
+	public int getPrepareThreshold() {
+		return m_prepareThreshold;
 	}
+
+ 	public void setUseServerPrepare(boolean flag) throws SQLException {
+ 		setPrepareThreshold(flag ? 1 : 0);
+ 	}
+
+ 	public boolean isUseServerPrepare() {
+ 		return m_prepareThreshold > 0 && m_useCount >= m_prepareThreshold;
+ 	}
 
 	protected void checkClosed() throws SQLException
 	{

@@ -23,12 +23,19 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 	protected int concurrency;		 // is it updateable or not?
 	protected int fetchdirection;		 // fetch direction hint (ignored.)
 
-	public AbstractJdbc2Statement (AbstractJdbc2Connection c)
+	private final static int BATCH_UNKNOWN = 1;
+	private final static int BATCH_PREPARED = 2;
+	private final static int BATCH_STRING = 3;
+
+	private int batchType;
+
+	public AbstractJdbc2Statement (AbstractJdbc2Connection c) throws SQLException
 	{
 		super(c);
 		fetchdirection = ResultSet.FETCH_FORWARD;
 		resultsettype = ResultSet.TYPE_FORWARD_ONLY;
 		concurrency = ResultSet.CONCUR_READ_ONLY;
+		batchType = BATCH_UNKNOWN;
 	}
 
 	public AbstractJdbc2Statement(AbstractJdbc2Connection connection, String sql) throws SQLException
@@ -37,6 +44,7 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 		fetchdirection = ResultSet.FETCH_FORWARD;
 		resultsettype = ResultSet.TYPE_FORWARD_ONLY;
 		concurrency = ResultSet.CONCUR_READ_ONLY;
+		batchType = BATCH_UNKNOWN;
 	}
 
 	// Overriddes JDBC1 implementation.
@@ -70,6 +78,11 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 	public void addBatch(String p_sql) throws SQLException
 	{
 		checkClosed();
+		if (batchType == BATCH_PREPARED) {
+			throw new PSQLException("postgresql.stmt.mixedbatch");
+		} else if (batchType == BATCH_UNKNOWN) {
+			batchType = BATCH_STRING;
+		}
 		if (batch == null)
 			batch = new Vector();
         Object[] l_statement = new Object[] {new String[] {p_sql}, new Object[0], new String[0]};
@@ -79,6 +92,7 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 	public void clearBatch() throws SQLException
 	{
 		batch = null;
+		batchType = BATCH_UNKNOWN;
 	}
 
 	public int[] executeBatch() throws SQLException
@@ -102,6 +116,9 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 				this.m_sqlFragments = (String[])l_statement[0];
 				this.m_binds = (Object[])l_statement[1];
 				this.m_bindTypes = (String[])l_statement[2];
+				if (batchType == BATCH_STRING) {
+					deallocateQuery();
+				}
 				result[i] = this.executeUpdate();
 			}
 
@@ -125,7 +142,7 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 		}
 		finally
 		{
-			batch.removeAllElements();
+			clearBatch();
 		}
 		return result;
 	}
@@ -193,6 +210,11 @@ public abstract class AbstractJdbc2Statement extends org.postgresql.jdbc1.Abstra
 		if (batch == null)
 			batch = new Vector();
 
+		if (batchType == BATCH_STRING) {
+			throw new PSQLException("postgresql.stmt.mixedbatch");
+		} else if (batchType == BATCH_UNKNOWN) {
+			batchType = BATCH_PREPARED;
+		}
 		//we need to create copies, otherwise the values can be changed
 		Object[] l_newSqlFragments = null;
 		if (m_sqlFragments != null) { 

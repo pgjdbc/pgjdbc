@@ -15,7 +15,7 @@ import org.postgresql.core.Field;
 public class Jdbc3Statement extends org.postgresql.jdbc3.AbstractJdbc3Statement implements java.sql.Statement
 {
 
-	public Jdbc3Statement (Jdbc3Connection c)
+	public Jdbc3Statement (Jdbc3Connection c) throws SQLException
 	{
 		super(c);
 	}

@@ -70,7 +70,7 @@ public class DriverTest extends TestCase
 			con.close();
 
 			// Test with the username in the url
-			con = DriverManager.getConnection(TestUtil.getURL() + "?user=" + TestUtil.getUser() + "&password=" + TestUtil.getPassword());
+			con = DriverManager.getConnection(TestUtil.getURL() + "&user=" + TestUtil.getUser() + "&password=" + TestUtil.getPassword());
 			assertNotNull(con);
 			con.close();
 		}

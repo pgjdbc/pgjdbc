@@ -55,6 +55,7 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 	protected boolean PG_STATUS;
 	protected String compatible;
 	protected boolean useSSL;
+	protected int prepareThreshold;
 
 	// The PID an cancellation key we get from the backend process
 	protected int pid;
@@ -67,7 +68,7 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 	 */
 	private Encoding encoding = Encoding.defaultEncoding();
 
-	private String dbVersionNumber;
+	private String dbVersionNumber = "0.0"; // Dummy version until we really know.
 
 	public boolean CONNECTION_OK = true;
 	public boolean CONNECTION_BAD = false;
@@ -189,6 +190,14 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 			enableDriverManagerLogging();
 		}
 
+		prepareThreshold = 0;
+		try {
+			prepareThreshold = Integer.parseInt(info.getProperty("prepareThreshold", "0"));
+		} catch (Exception e) {}
+		
+		if (prepareThreshold < 0)
+			prepareThreshold = 0;
+		
 		//Print out the driver version number
 		if (Driver.logInfo)
 			Driver.info(Driver.getVersion());
@@ -196,6 +205,7 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 			Driver.debug("    ssl = " + useSSL);
 			Driver.debug("    compatible = " + compatible);
 			Driver.debug("    loglevel = " + l_logLevel);
+			Driver.debug("    prepare threshold = " + prepareThreshold);
 		}
 
 		// Now make the initial connection
@@ -1805,6 +1815,14 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 		m_notifications = null;
 		return l_return;
 	}
+
+	public int getPrepareThreshold() {
+		return prepareThreshold;
+	}
+	
+	public void setPrepareThreshold(int newThreshold) {
+		this.prepareThreshold = (newThreshold <= 0 ? 0 : newThreshold);
+	}	
 }
 
 

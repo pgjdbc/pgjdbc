@@ -33,6 +33,7 @@ public class SimpleDataSourceTest extends BaseDataSourceTest
 			bds.setDatabaseName(TestUtil.getDatabase());
 			bds.setUser(TestUtil.getUser());
 			bds.setPassword(TestUtil.getPassword());
+			bds.setPrepareThreshold(TestUtil.getPrepareThreshold());
 		}
 	}
 }

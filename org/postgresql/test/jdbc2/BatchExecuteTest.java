@@ -134,6 +134,33 @@ public class BatchExecuteTest extends TestCase
 		stmt.close();
 	}
 
+	public void testMixedStatements() throws Exception
+	{
+		PreparedStatement pstmt = con.prepareStatement("UPDATE testbatch SET col1 = col1 + ? WHERE PK = ?" );
+		pstmt.setInt(1,1);
+		pstmt.setInt(2,1);
+		pstmt.addBatch();
+
+		try {
+			pstmt.addBatch("UPDATE testbatch SET col1 = 3");
+			fail("Should have thrown an exception about mixed batch types.");
+		} catch (SQLException sqle) { }
+
+		pstmt.clearBatch();
+
+		pstmt.addBatch("UPDATE testbatch SET col1 = 3");
+
+		pstmt.setInt(1,1);
+		pstmt.setInt(2,1);
+		try {
+			pstmt.addBatch();
+			fail("Should have thrown an exception about mixed batch types.");
+		} catch (SQLException sqle) { }
+
+		pstmt.close();
+
+	}
+
 	public void testPreparedStatement() throws Exception
 	{
 		PreparedStatement pstmt = con.prepareStatement(

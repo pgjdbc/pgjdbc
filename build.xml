@@ -320,6 +320,7 @@
   <property name="username" value="test" />
   <!-- Password must be something.  Doesn't matter if trust is used! -->
   <property name="password" value="password" />
+  <property name="preparethreshold" value="0" />
 
   <!-- The tests now build to a separate directory and jarfile from the
        driver build, to ensure we're really testing against the jar we just
@@ -353,6 +354,7 @@
       <sysproperty key="database" value="${database}" />
       <sysproperty key="username" value="${username}" />
       <sysproperty key="password" value="${password}" />
+      <sysproperty key="preparethreshold" value="${preparethreshold}" />
 
       <classpath>
         <pathelement location="${jardir}/postgresql.jar" />

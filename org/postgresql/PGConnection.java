@@ -63,7 +63,23 @@ public interface PGConnection
          * @see org.postgresql.util.PGobject
          */
         public void addDataType(String type, String name);
-
+	
+	/**
+	 * Set the default statement reuse threshold before enabling server-side
+	 * prepare. See {@link org.postgresql.PGStatement#setPrepareThreshold(int)} for 
+	 * details.
+	 *
+	 * @param threshold the new threshold
+	 */
+	public void setPrepareThreshold(int threshold);
+	
+	/**
+	 * Get the default server-side prepare reuse threstold for statements created
+	 * from this connection.
+	 *
+	 * @return the current threshold
+	 */
+	public int getPrepareThreshold();
 
 	/** @deprecated */
 	public Encoding getEncoding() throws SQLException;

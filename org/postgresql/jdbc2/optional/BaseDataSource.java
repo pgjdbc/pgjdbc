@@ -40,6 +40,7 @@ public abstract class BaseDataSource implements Referenceable
 	private String user;
 	private String password;
 	private int portNumber;
+	private int prepareThreshold;
 
 	/**
 	 * Gets a connection to the PostgreSQL database.  The database is identified by the
@@ -230,11 +231,34 @@ public abstract class BaseDataSource implements Referenceable
 	}
 
 	/**
+	 * Sets the default threshold for enabling server-side prepare.
+	 * See {@link org.postgresql.PGConnection#setPrepareThreshold(int)} for details.
+	 *
+	 * @param count the number of times a statement object must be reused before server-side
+	 *   prepare is enabled.
+	 */
+	public void setPrepareThreshold(int count)
+	{
+		this.prepareThreshold = count;
+	}
+	
+	/**
+	 * Gets the default threshold for enabling server-side prepare.
+	 *
+	 * @see #setServerPrepareThreshold(int)
+	 */
+	public int getPrepareThreshold()
+	{
+		return prepareThreshold;
+	}
+	
+	/**
 	 * Generates a DriverManager URL from the other properties supplied.
 	 */
 	private String getUrl()
 	{
-		return "jdbc:postgresql://" + serverName + (portNumber == 0 ? "" : ":" + portNumber) + "/" + databaseName;
+		return "jdbc:postgresql://" + serverName + (portNumber == 0 ? "" : ":" + portNumber) + "/" + databaseName + 
+			(prepareThreshold == 0 ? "" : "?prepareThreshold=" + prepareThreshold);
 	}
 
     /**
@@ -263,6 +287,8 @@ public abstract class BaseDataSource implements Referenceable
 		{
 			ref.add(new StringRefAddr("password", password));
 		}
+		if (prepareThreshold != 0)
+			ref.add(new StringRefAddr("prepareThreshold", Integer.toString(prepareThreshold)));
 		return ref;
 	}
 
@@ -273,6 +299,7 @@ public abstract class BaseDataSource implements Referenceable
 		out.writeObject(user);
 		out.writeObject(password);
 		out.writeInt(portNumber);
+		out.writeInt(prepareThreshold);
 	}
 
 	protected void readBaseObject(ObjectInputStream in) throws IOException, ClassNotFoundException
@@ -282,6 +309,7 @@ public abstract class BaseDataSource implements Referenceable
 		user = (String)in.readObject();
 		password = (String)in.readObject();
 		portNumber = in.readInt();
+		prepareThreshold = in.readInt();
 	}
 
 }

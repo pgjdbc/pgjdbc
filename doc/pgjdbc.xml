@@ -2,7 +2,7 @@
 <!-- $Header$ -->
 
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN" "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd" [
-  <!ENTITY majorversion "7.4">
+  <!ENTITY majorversion "7.5devel">
 ]>
 
 <book id="jdbc">
@@ -451,6 +451,19 @@ Connection conn = DriverManager.getConnection(url);
          with multibyte support compiled by default and the driver uses
          its character set translation facilities instead of trying to do
          it itself.
+        </para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
+       <term><varname>prepareThreshold</varname> = <type>int</type></term>
+       <listitem>
+        <para>
+         Determine the number of <classname>PreparedStatement</classname>
+         executions required before switching over to use server side prepared
+         statements.  The default is zero meaning never use server side
+         prepared statements.  More information on server side prepared
+         statements is available in <xref linkend="server-prepare" />.
         </para>
        </listitem>
       </varlistentry>
@@ -1201,6 +1214,133 @@ Fastpath fp = ((org.postgresql.PGConnection)db).getFastpathAPI();
     opening and deleting large objects, and <classname>LargeObject</classname> which deals
     with an individual object.
    </para>
+  </sect1>
+
+  <sect1 id="server-prepare">
+   <title>Server Prepared Statements</title>
+
+   <para>Starting with <productname>PostgreSQL</productname> version 7.3 the server allows clients to compile sql statements that are expected to be reused to avoid the overhead of parsing and planning the statement for every execution.  This functionality is available at the <acronym>SQL</acronym> level via PREPARE and EXECUTE, but as Java developers we really just want to use the standard <classname>PreparedStatement</classname> interface.</para>
+
+   <para>There are a number of ways to enable server side prepared statements depending on your application's needs.  The general method is to set a threshold for a <classname>PreparedStatement</classname>.  An internal counter keeps track of how many times the statement has been executed and when it reaches the threshold it will start to use server side prepared statements.</para>
+
+   <note>
+    <para>
+     Server side prepared statements have a number of limitations that can potentially make using them impossible depending on your applications needs.  Carefully read these limitations especially if you are enabling them globally and not in a specific location.
+     <itemizedlist>
+
+      <listitem>
+       <para>
+        The affected row count returned by a server prepared
+        statement issuing <function>executeUpdate()</function> will
+        always be zero when connected to a 7.3 or 7.4 server.  New
+        backend functionality introduced in 7.5 is required to return
+        the correct affected row count.
+       </para>
+      </listitem>
+
+      <listitem>
+       <para>
+        Certain features of <classname>ResultSetMetaData</classname> are
+        not available on a <classname>ResultSet</classname> produced by
+        a server side prepared statement, notably retrieving column
+        information such as <function>isNullable</function>,
+        <function>getColumnName</function>,
+        <function>getTableName</function>, and
+        <function>getSchemaName</function>.
+       </para>
+      </listitem>
+
+      <listitem>
+       <para>
+        Certain type conversions that were possible without a server
+        prepared statement will not work, notably conversions between bit
+        and boolean.
+       </para>
+      </listitem>
+
+     </itemizedlist>
+    </para>
+   </note>
+
+
+   <example>
+    <title>Using server side prepared statements</title>
+
+<programlisting>
+import java.sql.*;
+
+public class ServerSidePreparedStatement
+{
+
+	public static void main(String args[]) throws Exception
+	{
+		Class.forName("org.postgresql.Driver");
+		String url = "jdbc:postgresql://localhost:5432/test";
+		Connection conn = DriverManager.getConnection(url,"test","");
+
+		PreparedStatement pstmt = conn.prepareStatement("SELECT ?");
+
+		// cast to the pg extension interface
+		org.postgresql.PGStatement pgstmt = (org.postgresql.PGStatement)pstmt;
+
+		// on the third execution start using server side statements
+		pgstmt.setPrepareThreshold(3);
+
+		for (int i=1; i&lt;=5; i++)
+		{
+			pstmt.setInt(1,i);
+			boolean usingServerPrepare = pgstmt.isUseServerPrepare();
+			ResultSet rs = pstmt.executeQuery();
+			rs.next();
+			System.out.println("Execution: "+i+", Used server side: " + usingServerPrepare + ", Result: "+rs.getInt(1));
+			rs.close();
+		}
+
+		pstmt.close();
+		conn.close();
+	}
+}
+</programlisting>
+
+<para>Which produces the expected result of using server side prepared statements upon the third execution.</para>
+
+<programlisting>
+Execution: 1, Used server side: false, Result: 1
+Execution: 2, Used server side: false, Result: 2
+Execution: 3, Used server side: true, Result: 3
+Execution: 4, Used server side: true, Result: 4
+Execution: 5, Used server side: true, Result: 5
+</programlisting>
+
+   </example>
+
+   <para>The example shown above requires the programmer to use <productname>PostgreSQL</productname> specific code in a supposedly portable API which is not ideal.  Also it sets the threshold only for that particular statement which is some extra typing if we wanted to use that threshold for every statement.  Let's take a look at the other ways to set the threshold to enable server side prepared statements.  There is already a hierarchy in place above a <classname>PreparedStatement</classname>, the <classname>Connection</classname> it was created from, and above that the source of the connection be it a <classname>Datasource</classname> or a <acronym>URL</acronym>.  The server side prepared statement threshold can be set at any of these levels such that the value will be the default for all of it's children.</para>
+
+<programlisting>
+// pg extension interfaces
+org.postgresql.PGConnection pgconn;
+org.postgresql.PGStatement pgstmt;
+
+// set a prepared statement threshold for connections created from this url
+String url = "jdbc:postgresql://localhost:5432/test?prepareThreshold=3";
+
+// see that the connection has picked up the correct threshold from the url
+Connection conn = DriverManager.getConnection(url,"test","");
+pgconn = (org.postgresql.PGConnection)conn;
+System.out.println(pgconn.getPrepareThreshold()); // Should be 3
+
+// see that the statement has picked up the correct threshold from the connection
+PreparedStatement pstmt = conn.prepareStatement("SELECT ?");
+pgstmt = (org.postgresql.PGStatement)pstmt;
+System.out.println(pgstmt.getPrepareThreshold()); // Should be 3
+
+// change the connection's threshold and ensure that new statements pick it up
+pgconn.setPrepareThreshold(5);
+PreparedStatement pstmt = conn.prepareStatement("SELECT ?");
+pgstmt = (org.postgresql.PGStatement)pstmt;
+System.out.println(pgstmt.getPrepareThreshold()); // Should be 5
+</programlisting>
+
   </sect1>
 
  </chapter>
