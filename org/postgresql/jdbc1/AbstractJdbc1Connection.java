@@ -349,9 +349,13 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 							md5Salt[1] = (byte)pgStream.ReceiveChar();
 							md5Salt[2] = (byte)pgStream.ReceiveChar();
 							md5Salt[3] = (byte)pgStream.ReceiveChar();
-							salt = new String(md5Salt, 0, 4);
-							if (Driver.logDebug)
-								Driver.debug("MD5 salt=" + salt);
+							if (Driver.logDebug) {
+								String md5SaltString = "";
+								for (int i=0; i<md5Salt.length; i++) {
+									md5SaltString += " " + md5Salt[i];
+								}
+								Driver.debug("MD5 salt=" + md5SaltString);
+							}
 						}
 
 						// now send the auth packet
@@ -631,9 +635,13 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 							md5Salt[1] = (byte)pgStream.ReceiveChar();
 							md5Salt[2] = (byte)pgStream.ReceiveChar();
 							md5Salt[3] = (byte)pgStream.ReceiveChar();
-							salt = new String(md5Salt, 0, 4);
-							if (Driver.logDebug)
-								Driver.debug("MD5 salt=" + salt);
+							if (Driver.logDebug) {
+								String md5SaltString = "";
+								for (int i=0; i<md5Salt.length; i++) {
+									md5SaltString += " " + md5Salt[i];
+								}
+								Driver.debug("MD5 salt=" + md5SaltString);
+							}
 						}
 
 						// now send the auth packet
