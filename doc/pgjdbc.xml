@@ -292,7 +292,10 @@ jdbc:postgresql://<replaceable class="parameter">host</replaceable>:<replaceable
       </term>
       <listitem>
        <para>
-        The host name of the server. Defaults to <literal>localhost</literal>.  To specify an IPv6 address your must enclose the <replaceable class="parameter">host</replaceable> parameter with square brackets, for example:
+        The host name of the server. Defaults to <literal>localhost</literal>.
+        To specify an IPv6 address your must enclose the
+        <replaceable class="parameter">host</replaceable> parameter
+        with square brackets, for example:
 <programlisting>
 jdbc:postgresql://[::1]:5740/accounting
 </programlisting>
@@ -786,9 +789,6 @@ st.close();
 	supplied string argument to uppercase.
 
 <programlisting>
-// Turn transactions off.
-con.setAutoCommit(false);
-// Procedure call.
 CallableStatement upperProc = con.prepareCall("{ ? = call upper( ? ) }");
 upperProc.registerOutParameter(1, Types.VARCHAR);
 upperProc.setString(2, "lowercase to uppercase");
@@ -1216,16 +1216,166 @@ Fastpath fp = ((org.postgresql.PGConnection)db).getFastpathAPI();
    </para>
   </sect1>
 
-  <sect1 id="server-prepare">
-   <title>Server Prepared Statements</title>
+  <sect1 id="listennotify">
+   <title>Listen / Notify</title>
 
-   <para>Starting with <productname>PostgreSQL</productname> version 7.3 the server allows clients to compile sql statements that are expected to be reused to avoid the overhead of parsing and planning the statement for every execution.  This functionality is available at the <acronym>SQL</acronym> level via PREPARE and EXECUTE, but as Java developers we really just want to use the standard <classname>PreparedStatement</classname> interface.</para>
+   <para>
+    Listen and Notify provide a simple form of signal or interprocess
+    communication mechanism for a collection of processes accessing
+    the same <productname>PostgreSQL</productname> database.  For more
+    information on notifications consult the main server documentation.
+    This section only deals with the <acronym>JDBC</acronym> specific
+    aspects of notifications.
+   </para>
 
-   <para>There are a number of ways to enable server side prepared statements depending on your application's needs.  The general method is to set a threshold for a <classname>PreparedStatement</classname>.  An internal counter keeps track of how many times the statement has been executed and when it reaches the threshold it will start to use server side prepared statements.</para>
+   <para>
+    Standard LISTEN, NOTIFY, and UNLISTEN commands are issued via the
+    standard <classname>Statement</classname> interface.  To retrieve
+    and process retrieved notifications the
+    <classname>Connection</classname> must be cast to the
+    <productname>PostgreSQL</productname> specific extension interface
+    <classname>PGConnection</classname>.  From there the
+    <function>getNotifications()</function> method can be used to retrieve
+    any outstanding notifications.
+   </para>
 
    <note>
     <para>
-     Server side prepared statements have a number of limitations that can potentially make using them impossible depending on your applications needs.  Carefully read these limitations especially if you are enabling them globally and not in a specific location.
+     A key limitation of the <acronym>JDBC</acronym> driver is that it
+     cannot receive asynchronous notifications and must poll the
+     backend to check if any notifications were issued.  
+    </para>
+   </note>
+
+   <example>
+    <title>Receiving Notifications</title>
+
+<programlisting>
+import java.sql.*;
+
+public class NotificationTest {
+
+	public static void main(String args[]) throws Exception {
+		Class.forName("org.postgresql.Driver");
+		String url = "jdbc:postgresql://localhost:5432/test";
+
+		// Create two distinct connections, one for the notifier
+		// and another for the listener to show the communication
+		// works across connections although this example would
+		// work fine with just one connection.
+		Connection lConn = DriverManager.getConnection(url,"test","");
+		Connection nConn = DriverManager.getConnection(url,"test","");
+
+		// Create two threads, one to issue notifications and
+		// the other to receive them.
+		Listener listener = new Listener(lConn);
+		Notifier notifier = new Notifier(nConn);
+		listener.start();
+		notifier.start();
+	}
+
+}
+
+class Listener extends Thread {
+
+	private Connection conn;
+	private org.postgresql.PGConnection pgconn;
+
+	Listener(Connection conn) throws SQLException {
+		this.conn = conn;
+		this.pgconn = (org.postgresql.PGConnection)conn;
+		Statement stmt = conn.createStatement();
+		stmt.execute("LISTEN mymessage");
+		stmt.close();
+	}
+
+	public void run() {
+		while (true) {
+			try {
+				// issue a dummy query to contact the backend
+				// and receive any pending notifications.
+				Statement stmt = conn.createStatement();
+				ResultSet rs = stmt.executeQuery("SELECT 1");
+				rs.close();
+				stmt.close();
+
+				org.postgresql.PGNotification notifications[] = pgconn.getNotifications();
+				if (notifications != null) {
+					for (int i=0; i&lt;notifications.length; i++) {
+						System.out.println("Got notification: " + notifications[i].getName());
+					}
+				}
+
+				// wait a while before checking again for new
+				// notifications
+				Thread.sleep(500);
+			} catch (SQLException sqle) {
+				sqle.printStackTrace();
+			} catch (InterruptedException ie) {
+				ie.printStackTrace();
+			}
+		}
+	}
+
+}
+
+class Notifier extends Thread {
+
+	private Connection conn;
+
+	public Notifier(Connection conn) {
+		this.conn = conn;
+	}
+
+	public void run() {
+		while (true) {
+			try {
+				Statement stmt = conn.createStatement();
+				stmt.execute("NOTIFY mymessage");
+				stmt.close();
+				Thread.sleep(2000);
+			} catch (SQLException sqle) {
+				sqle.printStackTrace();
+			} catch (InterruptedException ie) {
+				ie.printStackTrace();
+			}
+		}
+	}
+
+}
+</programlisting>
+   </example>
+  </sect1>
+
+  <sect1 id="server-prepare">
+   <title>Server Prepared Statements</title>
+
+   <para>
+    Starting with <productname>PostgreSQL</productname> version 7.3
+    the server allows clients to compile sql statements that are
+    expected to be reused to avoid the overhead of parsing and
+    planning the statement for every execution.  This functionality
+    is available at the <acronym>SQL</acronym> level via PREPARE and
+    EXECUTE, but as Java developers we really just want to use the
+    standard <classname>PreparedStatement</classname> interface.
+   </para>
+
+   <para>
+    There are a number of ways to enable server side prepared statements
+    depending on your application's needs.  The general method is to
+    set a threshold for a <classname>PreparedStatement</classname>.
+    An internal counter keeps track of how many times the statement has
+    been executed and when it reaches the threshold it will start to
+    use server side prepared statements.
+   </para>
+
+   <note>
+    <para>
+     Server side prepared statements have a number of limitations that
+     can potentially make using them impossible depending on your
+     applications needs.  Carefully read these limitations especially
+     if you are enabling them globally and not in a specific location.
+
      <itemizedlist>
 
       <listitem>
@@ -1314,7 +1464,21 @@ Execution: 5, Used server side: true, Result: 5
 
    </example>
 
-   <para>The example shown above requires the programmer to use <productname>PostgreSQL</productname> specific code in a supposedly portable API which is not ideal.  Also it sets the threshold only for that particular statement which is some extra typing if we wanted to use that threshold for every statement.  Let's take a look at the other ways to set the threshold to enable server side prepared statements.  There is already a hierarchy in place above a <classname>PreparedStatement</classname>, the <classname>Connection</classname> it was created from, and above that the source of the connection be it a <classname>Datasource</classname> or a <acronym>URL</acronym>.  The server side prepared statement threshold can be set at any of these levels such that the value will be the default for all of it's children.</para>
+   <para>
+    The example shown above requires the programmer to use
+    <productname>PostgreSQL</productname> specific code in a
+    supposedly portable API which is not ideal.  Also it sets the
+    threshold only for that particular statement which is some extra
+    typing if we wanted to use that threshold for every statement.
+    Let's take a look at the other ways to set the threshold to enable
+    server side prepared statements.  There is already a hierarchy in
+    place above a <classname>PreparedStatement</classname>, the
+    <classname>Connection</classname> it was created from, and above that
+    the source of the connection be it a <classname>Datasource</classname>
+    or a <acronym>URL</acronym>.  The server side prepared statement
+    threshold can be set at any of these levels such that the value
+    will be the default for all of it's children.
+   </para>
 
 <programlisting>
 // pg extension interfaces
