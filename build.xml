@@ -83,6 +83,10 @@
 
   <!-- This target removes any class files from the build directory -->
   <target name="clean">
+    <!-- 
+	This should be just 'delete', but ant 1.3 fails.  
+	This code doesn't delete the directories.  bjm 2001-05-25 
+    -->
     <delete>
 	<fileset dir="${dest}" />
     	<fileset dir="${jars}" />
