@@ -37,3 +37,4 @@ uninstall:
 
 clean distclean maintainer-clean:
 	$(ANT) -buildfile $(top_srcdir)/build.xml clean
+	rm -f org/postgresql/Driver.java
