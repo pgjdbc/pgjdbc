@@ -161,7 +161,6 @@ clean:
 # Java is unlike C in that one source file can generate several
 # _Different_ file names
 #
-postgresql/CallableStatement.class:	postgresql/CallableStatement.java
 postgresql/Connection.class:		postgresql/Connection.java
 postgresql/DatabaseMetaData.class:	postgresql/DatabaseMetaData.java
 postgresql/Driver.class:		postgresql/Driver.java
