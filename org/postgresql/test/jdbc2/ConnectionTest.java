@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ConnectionTest.java,v 1.18 2004/11/09 08:54:10 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ConnectionTest.java,v 1.19 2005/01/11 08:25:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -100,9 +100,11 @@ public class ConnectionTest extends TestCase
     /*
      * Test nativeSQL
      */
-    public void testNativeSQL()
+    public void testNativeSQL() throws SQLException
     {
-        // For now do nothing as it returns itself
+        // test a simple escape
+        Connection con = TestUtil.openDB();
+        assertEquals("DATE  '2005-01-24'",con.nativeSQL("{d '2005-01-24'}"));
     }
 
     /*

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.24 2005/01/11 08:25:45 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.25 2005/01/14 01:20:19 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -502,7 +502,9 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
      */
     public String nativeSQL(String sql) throws SQLException
     {
-        return sql;
+        StringBuffer buf = new StringBuffer(sql.length());
+        AbstractJdbc2Statement.parseSql(sql,0,buf,false);
+        return buf.toString();
     }
 
     /*

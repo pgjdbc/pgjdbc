@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.64 2005/01/18 21:33:17 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.65 2005/01/24 21:34:43 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -718,7 +718,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
      * @param stopOnComma should we stop after hitting the first comma in sql text?
      * @return the position we stopped processing at
      */
-    private int parseSql(String p_sql,int i,StringBuffer newsql, boolean stopOnComma)throws SQLException{
+    protected static int parseSql(String p_sql,int i,StringBuffer newsql, boolean stopOnComma)throws SQLException{
         short state = IN_SQLCODE;
         int len = p_sql.length();
         int nestedParenthesis=0;
@@ -848,7 +848,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
      * @param args the arguments for this functin
      * @return the right postgreSql sql
      */
-    protected String escapeFunction(String functionName, String args) throws SQLException{
+    protected static String escapeFunction(String functionName, String args) throws SQLException{
         // parse function arguments
         int len = args.length();
         int i=0;
