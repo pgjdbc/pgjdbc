@@ -14,7 +14,7 @@ import org.postgresql.util.PSQLState;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.GT;
 
-/* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.43 2004/10/28 01:55:13 oliver Exp $
+/* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.44 2004/10/30 15:45:50 jurka Exp $
  * This class defines methods of the jdbc2 specification.
  * The real Statement class (for jdbc2) is org.postgresql.jdbc2.Jdbc2Statement
  */
@@ -676,7 +676,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                                 else if ( next == 'f' || next == 'F' )
                                 {
                                     state = ESC_FUNCTION;
-                                    i += (nextnext == 'n' || nextnext == 'F') ? 2 : 1;
+                                    i += (nextnext == 'n' || nextnext == 'N') ? 2 : 1;
                                     break;
                                 }
                                 else if ( next == 'o' || next == 'O' )
