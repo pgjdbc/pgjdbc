@@ -145,6 +145,8 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
  			String cursorName = statement.getFetchingCursorName();
 			if (cursorName == null || lastFetchSize == 0 || rows.size() < lastFetchSize) {
 				current_row = rows.size();
+				this_row = null;
+				rowBuffer = null;
 				return false;  // Not doing a cursor-based fetch or the last fetch was the end of the query
 			}
 
@@ -168,8 +170,11 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 
   			// Test the new rows array.
  			lastFetchSize = fetchSize;
-  			if (rows.size() == 0)
+  			if (rows.size() == 0) {
+				this_row = null;
+				rowBuffer = null;
   				return false;
+			}
 
 			// Otherwise reset the counter and let it go on...
 			current_row = 0;
