@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.18 2005/01/12 10:25:51 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.19 2005/01/14 01:20:16 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -626,20 +626,28 @@ public class QueryExecutorImpl implements QueryExecutor {
     }
 
     private void sendParse(SimpleQuery query, SimpleParameterList params, boolean oneShot) throws IOException {
-        // Already parsed, or we have a Parse pending?
-        if (query.getStatementName() != null)
-            return ;
+        // Already parsed, or we have a Parse pending and the types are right?
+        int[] typeOIDs = params.getTypeOIDs();
+        if (query.isPreparedFor(typeOIDs))
+            return;
+
+        // Clean up any existing statement, as we can't use it.
+        query.unprepare();
 
         String statementName = null;
         if (!oneShot)
         {
             // Generate a statement name to use.
             statementName = "S_" + (nextUniqueID++);
+
+            // And prepare the new statement.
+            // NB: Must clone the OID array, as it's a direct reference to
+            // the SimpleParameterList's internal array that might be modified
+            // under us.
+            query.setStatementName(statementName, (int[])typeOIDs.clone());
         }
 
-        query.setStatementName(statementName);  // nb: might null it out; this is a deliberate safety net.
         byte[] encodedStatementName = query.getEncodedStatementName();
-
         String[] fragments = query.getFragments();
 
         if (Driver.logDebug)
@@ -1222,7 +1230,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                 while (parseIndex < pendingParseQueue.size())
                 {
                     SimpleQuery failedQuery = (SimpleQuery)pendingParseQueue.get(parseIndex++);
-                    failedQuery.setStatementName(null);
+                    failedQuery.unprepare();
                 }
 
                 pendingParseQueue.clear();   // No more ParseComplete messages expected.

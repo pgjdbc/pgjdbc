@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleQuery.java,v 1.5 2005/01/11 08:25:44 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleQuery.java,v 1.6 2005/01/27 20:59:02 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -51,12 +51,7 @@ class SimpleQuery implements V3Query {
     }
 
     public void close() {
-        if (cleanupRef != null)
-        {
-            cleanupRef.clear();
-            cleanupRef.enqueue();
-            cleanupRef = null;
-        }
+        unprepare();
     }
 
     //
@@ -67,17 +62,34 @@ class SimpleQuery implements V3Query {
         return null;
     }
 
+    //
+    // Implementation guts
+    //
+
     String[] getFragments() {
         return fragments;
     }
 
-    void setStatementName(String statementName) {
+    void setStatementName(String statementName, int[] paramTypes) {
         this.statementName = statementName;
-        this.encodedStatementName = (statementName == null ? null : Utils.encodeUTF8(statementName));
+        this.encodedStatementName = Utils.encodeUTF8(statementName);
+        this.preparedTypes = paramTypes;
     }
 
     String getStatementName() {
         return statementName;
+    }
+
+    boolean isPreparedFor(int[] paramTypes) {
+        if (statementName == null)
+            return false; // Not prepared.
+
+        // Check for compatible types.
+        for (int i = 0; i < paramTypes.length; ++i)
+            if (paramTypes[i] != preparedTypes[i])
+                return false;
+
+        return true;
     }
 
     byte[] getEncodedStatementName() {
@@ -88,10 +100,23 @@ class SimpleQuery implements V3Query {
         this.cleanupRef = cleanupRef;
     }
 
+    void unprepare() {
+        if (cleanupRef != null)
+        {
+            cleanupRef.clear();
+            cleanupRef.enqueue();
+            cleanupRef = null;
+        }
+
+        statementName = null;
+        encodedStatementName = null;
+    }
+
     private final String[] fragments;
     private String statementName;
     private byte[] encodedStatementName;
     private PhantomReference cleanupRef;
+    private int[] preparedTypes;
 
     final static SimpleParameterList NO_PARAMETERS = new SimpleParameterList(0);
 }

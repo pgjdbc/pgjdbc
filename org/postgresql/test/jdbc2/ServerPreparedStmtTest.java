@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ServerPreparedStmtTest.java,v 1.12 2004/11/09 08:55:00 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ServerPreparedStmtTest.java,v 1.13 2005/01/11 08:25:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -253,5 +253,24 @@ public class ServerPreparedStmtTest extends TestCase
         {
             TestUtil.dropTable(con, "testsps_multiple");
         }
+    }
+
+    public void testTypeChange() throws Exception {
+        PreparedStatement pstmt = con.prepareStatement("SELECT ?");
+        ((PGStatement)pstmt).setUseServerPrepare(true);
+        
+        // Prepare with int parameter.
+        pstmt.setInt(1, 1);
+        ResultSet rs = pstmt.executeQuery();
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+        assertTrue(!rs.next());
+        
+        // Change to text parameter, check it still works.
+        pstmt.setString(1, "test string");
+        rs = pstmt.executeQuery();
+        assertTrue(rs.next());
+        assertEquals("test string", rs.getString(1));
+        assertTrue(!rs.next());
     }
 }
