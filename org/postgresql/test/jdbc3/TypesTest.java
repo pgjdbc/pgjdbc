@@ -4,7 +4,7 @@ import java.sql.*;
 import junit.framework.TestCase;
 import org.postgresql.test.TestUtil;
 
-/* $PostgreSQL $ */
+/* $PostgreSQL$ */
 
 public class TypesTest extends TestCase {
 
