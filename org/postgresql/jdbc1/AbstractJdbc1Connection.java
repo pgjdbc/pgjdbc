@@ -1147,6 +1147,11 @@ public abstract class AbstractJdbc1Connection implements org.postgresql.PGConnec
 		return dbVersionNumber;
 	}
 
+	/**
+	 * Is the server we are connected to running at least this version?
+	 * This comparison method will fail whenever a major or minor version
+	 * goes to two digits (10.3.0) or (7.10.1).
+	 */
 	public boolean haveMinimumServerVersion(String ver) throws SQLException
 	{
 		return (getDBVersionNumber().compareTo(ver) >= 0);
@@ -1184,16 +1189,29 @@ public abstract class AbstractJdbc1Connection implements org.postgresql.PGConnec
 		// it's not in the cache, so perform a query, and add the result to the cache
 		if (sqlType == null)
 		{
-			ResultSet result = ExecSQL("select typname from pg_type where oid = " + oid);
-			if (((AbstractJdbc1ResultSet)result).getColumnCount() != 1 || ((AbstractJdbc1ResultSet)result).getTupleCount() != 1)
-				throw new PSQLException("postgresql.unexpected");
-			result.next();
-			String pgType = result.getString(1);
+			String pgType;
+			// The opaque type does not exist in the system catalogs.
+			if (oid == 0) {
+				pgType = "opaque";
+			} else {
+				String sql;
+				if (haveMinimumServerVersion("7.3")) {
+					sql = "SELECT typname FROM pg_catalog.pg_type WHERE oid = " +oid;
+				} else {
+					sql = "SELECT typname FROM pg_type WHERE oid = " +oid;
+				}
+				ResultSet result = ExecSQL(sql);
+				if (((AbstractJdbc1ResultSet)result).getColumnCount() != 1 || ((AbstractJdbc1ResultSet)result).getTupleCount() != 1) {
+					throw new PSQLException("postgresql.unexpected");
+				}
+				result.next();
+				pgType = result.getString(1);
+				result.close();
+			}
 			Integer iOid = new Integer(oid);
-			sqlType = new Integer(getSQLType(result.getString(1)));
+			sqlType = new Integer(getSQLType(pgType));
 			sqlTypeCache.put(iOid, sqlType);
 			pgTypeCache.put(iOid, pgType);
-			result.close();
 		}
 
 		return sqlType.intValue();
@@ -1217,8 +1235,13 @@ public abstract class AbstractJdbc1Connection implements org.postgresql.PGConnec
 			else
 			{
 				// it's not in the cache, so perform a query, and add the result to the cache
-				ResultSet result = ExecSQL("select oid from pg_type where typname='"
-										   + typeName + "'");
+				String sql;
+				if (haveMinimumServerVersion("7.3")) {
+					sql = "SELECT oid FROM pg_catalog.pg_type WHERE typname='" + typeName + "'";
+				} else {
+					sql = "SELECT oid FROM pg_type WHERE typname='" + typeName + "'";
+				}
+				ResultSet result = ExecSQL(sql);
 				if (((AbstractJdbc1ResultSet)result).getColumnCount() != 1 || ((AbstractJdbc1ResultSet)result).getTupleCount() != 1)
 					throw new PSQLException("postgresql.unexpected");
 				result.next();

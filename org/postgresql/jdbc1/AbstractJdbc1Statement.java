@@ -1757,8 +1757,8 @@ public abstract class AbstractJdbc1Statement implements org.postgresql.PGStateme
 	 */
 	private void setSerialize(int parameterIndex, long x, String classname) throws SQLException
 	{
-		// converts . to _, toLowerCase, and ensures length<32
-		String tablename = Serialize.toPostgreSQL( classname );
+		// converts . to _, toLowerCase, and ensures length < max name length
+		String tablename = Serialize.toPostgreSQL((java.sql.Connection)connection, classname );
 		DriverManager.println("setSerialize: setting " + x + "::" + tablename );
 
 		// OID reference to tablerow-type must be cast like:  <oid>::<tablename>
