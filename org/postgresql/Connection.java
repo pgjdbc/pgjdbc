@@ -267,7 +267,8 @@ public abstract class Connection
       //
       firstWarning = null;
 
-      java.sql.ResultSet initrset = ExecSQL("set datestyle to 'ISO'; select getdatabaseencoding()");
+      java.sql.ResultSet initrset = ExecSQL("set datestyle to 'ISO'; " +
+        "select case when pg_encoding_to_char(1) = 'SQL_ASCII' then 'UNKNOWN' else getdatabaseencoding() end");
 
       String dbEncoding = null;
       //retrieve DB properties
@@ -319,6 +320,11 @@ public abstract class Connection
 
         } else if (dbEncoding.equals("WIN")) {
           dbEncoding = "Cp1252";
+        } else if (dbEncoding.equals("UNKNOWN")) {
+          //This isn't a multibyte database so we don't have an encoding to use
+          //We leave dbEncoding null which will cause the default encoding for the
+          //JVM to be used
+          dbEncoding = null;
         } else {
           dbEncoding = null;
         }
