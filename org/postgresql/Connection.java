@@ -703,14 +703,14 @@ public abstract class Connection
     // the full class name of the handling class.
     //
     private static final String defaultObjectTypes[][] = {
-	{"box",		"postgresql.geometric.PGbox"},
-	{"circle",	"postgresql.geometric.PGcircle"},
-	{"line",	"postgresql.geometric.PGline"},
-	{"lseg",	"postgresql.geometric.PGlseg"},
-	{"path",	"postgresql.geometric.PGpath"},
-	{"point",	"postgresql.geometric.PGpoint"},
-	{"polygon",	"postgresql.geometric.PGpolygon"},
-	{"money",	"postgresql.util.PGmoney"}
+	{"box",		"org.postgresql.geometric.PGbox"},
+	{"circle",	"org.postgresql.geometric.PGcircle"},
+	{"line",	"org.postgresql.geometric.PGline"},
+	{"lseg",	"org.postgresql.geometric.PGlseg"},
+	{"path",	"org.postgresql.geometric.PGpath"},
+	{"point",	"org.postgresql.geometric.PGpoint"},
+	{"polygon",	"org.postgresql.geometric.PGpolygon"},
+	{"money",	"org.postgresql.util.PGmoney"}
     };
     
     // This initialises the objectTypes hashtable
