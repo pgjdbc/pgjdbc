@@ -29,14 +29,14 @@ public class StockServer
 			if (nameServiceObj == null)
 			{
 				System.err.println("nameServiceObj = null");
-				return ;
+				return;
 			}
 
 			org.omg.CosNaming.NamingContext nameService = org.omg.CosNaming.NamingContextHelper.narrow(nameServiceObj);
 			if (nameService == null)
 			{
 				System.err.println("nameService = null");
-				return ;
+				return;
 			}
 
 			// bind the dispenser into the naming service

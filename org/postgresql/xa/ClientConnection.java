@@ -464,7 +464,7 @@ final class ClientConnection
 	throws SQLException
 	{
 		if ( _xaConn == null )
-			return ;
+			return;
 
 		// Notify the XA connection that we are no longer going
 		// to be used. Whether the underlying connection is released,

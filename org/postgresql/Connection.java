@@ -817,7 +817,7 @@ public abstract class Connection
 	public void setAutoCommit(boolean autoCommit) throws SQLException
 	{
 		if (this.autoCommit == autoCommit)
-			return ;
+			return;
 		if (autoCommit)
 			ExecSQL("end");
 		else
@@ -860,7 +860,7 @@ public abstract class Connection
 	public void commit() throws SQLException
 	{
 		if (autoCommit)
-			return ;
+			return;
 		if (haveMinimumServerVersion("7.1"))
 		{
 			ExecSQL("commit;begin;" + getIsolationLevelSQL());
@@ -884,7 +884,7 @@ public abstract class Connection
 	public void rollback() throws SQLException
 	{
 		if (autoCommit)
-			return ;
+			return;
 		if (haveMinimumServerVersion("7.1"))
 		{
 			ExecSQL("rollback; begin;" + getIsolationLevelSQL());
