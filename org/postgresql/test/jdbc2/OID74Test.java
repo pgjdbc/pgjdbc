@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/OID74Test.java,v 1.9 2004/11/09 08:54:44 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/OID74Test.java,v 1.10 2005/01/11 08:25:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -49,6 +49,10 @@ public class OID74Test extends TestCase
     public void testSetNull() throws SQLException {
         PreparedStatement pstmt = conn.prepareStatement("INSERT INTO temp VALUES (?)");
         pstmt.setNull(1, Types.VARBINARY);
+        pstmt.executeUpdate();
+        pstmt.setNull(1, Types.BLOB);
+        pstmt.executeUpdate();
+        pstmt.setNull(1, Types.CLOB);
         pstmt.executeUpdate();
         pstmt.close();
     }

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.70 2005/02/15 08:56:26 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.71 2005/02/15 09:09:07 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -996,6 +996,10 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                 oid = Oid.OID;
             }
             break;
+	case Types.BLOB:
+	case Types.CLOB:
+	    oid = Oid.OID;
+	    break;
         case Types.OTHER:
             oid = Oid.INVALID;
             break;
