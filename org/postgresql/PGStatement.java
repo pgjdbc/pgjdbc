@@ -18,7 +18,7 @@ public interface PGStatement
 	 */
 	public long getLastOID() throws SQLException;
 
-	public void setUseServerPrepare(boolean flag);
+	public void setUseServerPrepare(boolean flag) throws SQLException;
 
 	public boolean isUseServerPrepare();
 
