@@ -25,13 +25,11 @@ import org.postgresql.largeobject.*;
  */
 public class PGclob implements java.sql.Clob
 {
-	private org.postgresql.Connection conn;
 	private int oid;
 	private LargeObject lo;
 
-	public PGclob(org.postgresql.Connection conn, int oid) throws SQLException
+	public PGclob(org.postgresql.PGConnection conn, int oid) throws SQLException
 	{
-		this.conn = conn;
 		this.oid = oid;
 		LargeObjectManager lom = conn.getLargeObjectAPI();
 		this.lo = lom.open(oid);

@@ -95,7 +95,7 @@ public class BlobTest extends TestCase
 	 */
 	private int uploadFile(String file, int method) throws Exception
 	{
-		LargeObjectManager lom = ((org.postgresql.Connection)con).getLargeObjectAPI();
+		LargeObjectManager lom = ((org.postgresql.PGConnection)con).getLargeObjectAPI();
 
 		FileInputStream fis = new FileInputStream(file);
 
@@ -160,7 +160,7 @@ public class BlobTest extends TestCase
 	{
 		boolean result = true;
 
-		LargeObjectManager lom = ((org.postgresql.Connection)con).getLargeObjectAPI();
+		LargeObjectManager lom = ((org.postgresql.PGConnection)con).getLargeObjectAPI();
 
 		Statement st = con.createStatement();
 		ResultSet rs = st.executeQuery(JDBC2Tests.selectSQL("testblob", "id,lo"));

@@ -199,13 +199,13 @@ public class ConnectionTest extends TestCase
 			String testStr = "This Is OuR TeSt message";
 
 			// The connection must be ours!
-			assertTrue(con instanceof org.postgresql.Connection);
+			assertTrue(con instanceof org.postgresql.PGConnection);
 
 			// Clear any existing warnings
 			con.clearWarnings();
 
 			// Set the test warning
-			((org.postgresql.Connection)con).addWarning(testStr);
+			((org.postgresql.jdbc2.AbstractJdbc2Connection)con).addWarning(testStr);
 
 			// Retrieve it
 			SQLWarning warning = con.getWarnings();

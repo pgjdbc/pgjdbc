@@ -38,5 +38,5 @@ uninstall:
 clean distclean maintainer-clean:
 	$(ANT) -buildfile $(srcdir)/build.xml clean
 
-check:
+check: all
 	$(ANT) -buildfile $(srcdir)/build.xml test
