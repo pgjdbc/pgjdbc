@@ -518,7 +518,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 		{
 			doingUpdates = false;
 
-			clearRowBuffer();
+			clearRowBuffer(true);
 		}
 	}
 
@@ -661,7 +661,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 			this_row = rowBuffer;
 
 			// need to clear this in case of another insert
-			clearRowBuffer();
+			clearRowBuffer(false);
 
 
 		}
@@ -706,7 +706,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 
 
 		// make sure the underlying data is null
-		clearRowBuffer();
+		clearRowBuffer(false);
 
 		onInsertRow = true;
 		doingUpdates = false;
@@ -714,11 +714,16 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 	}
 
 
-	private synchronized void clearRowBuffer()
+	private synchronized void clearRowBuffer(boolean copyCurrentRow)
 	throws SQLException
 	{
 		// rowBuffer is the temporary storage for the row
 		rowBuffer = new byte[fields.length][];
+
+		// inserts want an empty array while updates want a copy of the current row
+		if (copyCurrentRow) {
+			System.arraycopy(this_row, 0, rowBuffer, 0, this_row.length);
+		}
 
 		// clear the updateValues hashTable for the next set of updates
 		updateValues.clear();
