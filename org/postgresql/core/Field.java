@@ -28,6 +28,7 @@ public class Field
 	private final String columnLabel; // Column label
 	private String columnName;        // Column name; null if undetermined
 	private Integer nullable;         // Is this column nullable? null if undetermined.
+	private Boolean autoIncrement;	  // Is this column automatically numbered?
 
 	private int format = TEXT_FORMAT;   // In the V3 protocol each field has a format
 					// 0 = text, 1 = binary
@@ -179,13 +180,56 @@ public class Field
 		}
 	}
 
+	public boolean getAutoIncrement(Connection con) throws SQLException
+	{
+		if (autoIncrement != null)
+			return autoIncrement.booleanValue();
+
+		if (tableOid == 0 || positionInTable == 0) {
+			autoIncrement = Boolean.FALSE;
+			return autoIncrement.booleanValue();
+		}
+               
+		ResultSet res = null;
+		PreparedStatement ps = null;
+		try
+		{
+			final String sql = "SELECT def.adsrc FROM pg_catalog.pg_class c " +
+				"JOIN pg_catalog.pg_attribute a ON (a.attrelid=c.oid) " +
+				"LEFT JOIN pg_catalog.pg_attrdef def ON (a.attrelid=def.adrelid AND a.attnum = def.adnum) " +
+				"WHERE c.oid = ? and a.attnum = ? AND def.adsrc LIKE '%nextval(%'";
+
+			ps = con.prepareStatement(sql);
+
+			ps.setInt(1, tableOid);
+			ps.setInt(2, positionInTable);
+			res = ps.executeQuery();
+
+			if (res.next()) {
+				autoIncrement = Boolean.TRUE;
+			}
+			else {
+				autoIncrement = Boolean.FALSE;
+			}
+			return autoIncrement.booleanValue();
+
+		} finally {
+			if (res != null)
+				res.close();
+			if (ps != null)
+				ps.close();
+		}
+	}
+
 	public String getColumnName(Connection con) throws SQLException
 	{
 		if (columnName != null)
 			return columnName;
 
-		if (tableOid == 0 || positionInTable == 0)
-			return "";
+		columnName = "";
+		if (tableOid == 0 || positionInTable == 0) {
+			return columnName;
+		}
 
 		ResultSet res = null;
 		PreparedStatement ps = null;
@@ -194,7 +238,6 @@ public class Field
 			ps.setInt(1, tableOid);
 			ps.setInt(2, positionInTable);
 			res = ps.executeQuery();
-			String columnName = "";
 			if (res.next())
 				columnName = res.getString(1);
 			

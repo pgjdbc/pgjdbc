@@ -31,14 +31,15 @@ public class ResultSetMetaDataTest extends TestCase
 		
 
 		TestUtil.createTable(conn, "timetest", "tm time(3), tmtz timetz, ts timestamp without time zone, tstz timestamp(6) with time zone");
-		Statement stmt2 = conn.createStatement();
-		stmt2.close();
+
+		TestUtil.createTable(conn, "serialtest", "a serial, b bigserial, c int");
 	}
 
 	protected void tearDown() throws Exception
 	{
 		TestUtil.dropTable(conn, "rsmd1");
 		TestUtil.dropTable(conn, "timetest");
+		TestUtil.dropTable(conn, "serialtest");
 		rs.close();
 		stmt.close();
 		TestUtil.closeDB(conn);
@@ -138,6 +139,21 @@ public class ResultSetMetaDataTest extends TestCase
 		assertEquals(21, rsmd2.getColumnDisplaySize(2));
 		assertEquals(26, rsmd2.getColumnDisplaySize(3));
 		assertEquals(32, rsmd2.getColumnDisplaySize(4));
+
+		rs2.close();
+		stmt2.close();
+	}
+
+	public void testIsAutoIncrement() throws SQLException {
+		Statement stmt2 = conn.createStatement();
+		ResultSet rs2 = stmt2.executeQuery("SELECT c,b,a FROM serialtest");
+		ResultSetMetaData rsmd2 = rs2.getMetaData();
+
+		assertTrue(!rsmd2.isAutoIncrement(1));
+		if (TestUtil.haveMinimumServerVersion(conn,"7.4")) {
+			assertTrue(rsmd2.isAutoIncrement(2));
+			assertTrue(rsmd2.isAutoIncrement(3));
+		}
 
 		rs2.close();
 		stmt2.close();

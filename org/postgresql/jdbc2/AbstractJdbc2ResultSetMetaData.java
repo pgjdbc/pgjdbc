@@ -48,7 +48,8 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
 	 */
 	public boolean isAutoIncrement(int column) throws SQLException
 	{
-		return false;
+		Field field = getField(column);
+		return field.getAutoIncrement(connection);
 	}
 
 	/*
