@@ -3,7 +3,7 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3DatabaseMetaData.java,v 1.7 2004/11/07 22:16:25 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3DatabaseMetaData.java,v 1.8 2004/11/09 08:50:07 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -31,7 +31,7 @@ public abstract class AbstractJdbc3DatabaseMetaData extends org.postgresql.jdbc2
      */
     public boolean supportsSavepoints() throws SQLException
     {
-        return false;
+        return connection.haveMinimumServerVersion("8.0");
     }
 
     /**
