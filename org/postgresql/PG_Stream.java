@@ -371,5 +371,4 @@ public class PG_Stream
 		pg_input.close();
 		connection.close();
 	}
-
 }

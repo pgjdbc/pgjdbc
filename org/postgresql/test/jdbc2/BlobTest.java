@@ -108,36 +108,36 @@ public class BlobTest extends TestCase
 
 		switch (method)
 		{
-		case LOOP:
-			buf = new byte[2048];
-			t = 0;
-			while ((s = fis.read(buf, 0, buf.length)) > 0)
-			{
-				t += s;
-				blob.write(buf, 0, s);
-			}
-			break;
+			case LOOP:
+				buf = new byte[2048];
+				t = 0;
+				while ((s = fis.read(buf, 0, buf.length)) > 0)
+				{
+					t += s;
+					blob.write(buf, 0, s);
+				}
+				break;
 
-		case NATIVE_STREAM:
-			os = blob.getOutputStream();
-			s = fis.read();
-			while (s > -1)
-			{
-				os.write(s);
+			case NATIVE_STREAM:
+				os = blob.getOutputStream();
 				s = fis.read();
-			}
-			os.close();
-			break;
+				while (s > -1)
+				{
+					os.write(s);
+					s = fis.read();
+				}
+				os.close();
+				break;
 
-		case JDBC_STREAM:
-			File f = new File(file);
-			PreparedStatement ps = con.prepareStatement(JDBC2Tests.insertSQL("testblob", "?"));
-			ps.setBinaryStream(1, fis, (int) f.length());
-			ps.execute();
-			break;
+			case JDBC_STREAM:
+				File f = new File(file);
+				PreparedStatement ps = con.prepareStatement(JDBC2Tests.insertSQL("testblob", "?"));
+				ps.setBinaryStream(1, fis, (int) f.length());
+				ps.execute();
+				break;
 
-		default:
-			assertTrue("Unknown method in uploadFile", false);
+			default:
+				assertTrue("Unknown method in uploadFile", false);
 		}
 
 		blob.close();

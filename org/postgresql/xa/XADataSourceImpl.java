@@ -379,6 +379,7 @@ public abstract class XADataSourceImpl
 			// Look for all connections inside a transaction that
 			// should have timed out by now.
 
+
 			timeout = System.currentTimeMillis();
 			enum = _txConnections.elements();
 			while ( enum.hasMoreElements() )

@@ -137,6 +137,7 @@ public class basic
 		// Now run the query again, showing a more efficient way of getting the
 		// result if you don't know what column number a value is in
 
+
 		System.out.println("performing another query");
 		rs = st.executeQuery("select * from basic where b>1");
 		if (rs != null)
@@ -162,6 +163,7 @@ public class basic
 		}
 
 		// Now test maxrows by setting it to 3 rows
+
 
 		st.setMaxRows(3);
 		System.out.println("performing a query limited to " + st.getMaxRows());

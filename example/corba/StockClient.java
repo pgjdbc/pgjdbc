@@ -116,29 +116,29 @@ public class StockClient
 			int i = getMenu("Main", 5);
 			switch (i)
 			{
-			case 0:
-				run = false;
-				break;
+				case 0:
+					run = false;
+					break;
 
-			case 1:
-				displayItem();
-				break;
+				case 1:
+					displayItem();
+					break;
 
-			case 2:
-				bookOut();
-				break;
+				case 2:
+					bookOut();
+					break;
 
-			case 3:
-				bookIn();
-				break;
+				case 3:
+					bookIn();
+					break;
 
-			case 4:
-				order(0);
-				break;
+				case 4:
+					order(0);
+					break;
 
-			case 5:
-				displayAll();
-				break;
+				case 5:
+					displayAll();
+					break;
 			}
 		}
 	}
