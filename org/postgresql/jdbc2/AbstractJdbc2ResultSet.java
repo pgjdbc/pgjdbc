@@ -471,7 +471,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 		if (current_row < 0 || current_row >= rows_size)
 			return 0;
 
-		return current_row + 1;
+		return row_offset + current_row + 1;
 	}
 
 

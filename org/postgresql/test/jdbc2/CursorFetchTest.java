@@ -384,4 +384,18 @@ public class CursorFetchTest extends TestCase
 		assertEquals(10, count);
 	}
 
+	public void testGetRow() throws SQLException
+	{
+		Statement stmt = con.createStatement();
+		stmt.setFetchSize(1);
+		ResultSet rs = stmt.executeQuery("SELECT 1 UNION SELECT 2 UNION SELECT 3");
+		int count = 0;
+		while (rs.next()) {
+			count++;
+			assertEquals(count, rs.getInt(1));
+			assertEquals(count, rs.getRow());
+		}
+		assertEquals(3, count);
+	}
+
 }
