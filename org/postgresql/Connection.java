@@ -315,16 +315,6 @@ public abstract class Connection
 		switch (beresp)
 		{
 			case 'Z':
-
-                              try
-                                 {
-                                    pg_stream.SendChar('Q');
-                                    pg_stream.SendChar(' ');
-                                    pg_stream.SendChar(0);
-                                    pg_stream.flush();
-                                 } catch (IOException e) {
-                                    throw new PSQLException("postgresql.con.ioerror",e);
-                                 }
 				break;
 			case 'E':
 			case 'N':

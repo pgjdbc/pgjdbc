@@ -57,6 +57,7 @@ public class QueryExecutor
 
 		int fqp = 0;
 		boolean hfr = false;
+		int lastMessage = 0;
 
 		synchronized (pg_stream)
 		{
@@ -112,11 +113,26 @@ public class QueryExecutor
 						receiveFields();
 						break;
 					case 'Z':		 // backend ready for query, ignore for now :-)
+						if ( lastMessage == 'Z' )
+ 			                        {
+						     try
+                        			     {
+                                    			pg_stream.SendChar('Q');
+                                    			pg_stream.SendChar(' ');
+                                    			pg_stream.SendChar(0);
+                                    			pg_stream.flush();
+                                 		     } catch (IOException e) {
+                                    			throw new PSQLException("postgresql.con.ioerror",e);
+                                 		     }
+                              			     fqp++;
+                           			}
+ 					
 						break;
 					default:
 						throw new PSQLException("postgresql.con.type",
 												new Character((char) c));
 				}
+				lastMessage = c;
 			}
 			return connection.getResultSet(connection, statement, fields, tuples, status, update_count, insert_oid, binaryCursor);
 		}
