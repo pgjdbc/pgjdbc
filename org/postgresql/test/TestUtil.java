@@ -99,13 +99,37 @@ public class TestUtil
 		try {
 			// Drop the table
 			dropTable(con, table);
-			
+
 			// Now create the table
 			st.executeUpdate("create table " + table + " (" + columns + ")");
 		} finally {
 			st.close();
 		}
 	}
+
+        /**
+         * Helper creates a temporary table
+         * @param con Connection
+         * @param table String
+         * @param columns String
+         * @throws SQLException
+         */
+
+        public static void createTempTable( Connection con,
+                                            String table,
+                                           String columns) throws SQLException
+        {
+                Statement st = con.createStatement();
+                try {
+                        // Drop the table
+                        dropTable(con, table);
+
+                        // Now create the table
+                        st.executeUpdate("create temp table " + table + " (" + columns + ")");
+                } finally {
+                        st.close();
+                }
+        }
 
 	/*
 	 * Helper - drops a table
