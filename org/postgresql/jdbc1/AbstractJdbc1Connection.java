@@ -1109,7 +1109,7 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 	 */
 	public void close() throws SQLException
 	{
-		if (haveMinimumCompatibleVersion("7.4")) {
+		if (getPGProtocolVersionMajor() == 3) {
 			closeV3();
 		} else {
 			closeV2();

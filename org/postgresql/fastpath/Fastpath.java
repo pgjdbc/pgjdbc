@@ -63,7 +63,7 @@ public class Fastpath
 	 */
 	public Object fastpath(int fnid, boolean resulttype, FastpathArg[] args) throws SQLException
 	{
-		if (conn.haveMinimumCompatibleVersion("7.4")) {
+		if (conn.getPGProtocolVersionMajor() == 3) {
 			return fastpathV3(fnid, resulttype, args);
 		} else {
 			return fastpathV2(fnid, resulttype, args);
