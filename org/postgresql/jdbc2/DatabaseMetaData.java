@@ -2716,7 +2716,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData
 				"a.amname, " +
 				"x.indkey, " +
 				"c.reltuples, " +
-				"c.relpages " +
+				"c.relpages, " +
+                                "x.indexrelid " +
 				"FROM pg_index x, pg_class c, pg_class i, pg_am a " +
 				"WHERE ((c.relname = '" + tableName.toLowerCase() + "') " +
 				" AND (c.oid = x.indrelid) " +
@@ -2750,7 +2751,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData
 				Integer.toString(tableIndexHashed).getBytes() :
                 Integer.toString(tableIndexOther).getBytes();
             tuple[7] = Integer.toString(i + 1).getBytes();
-            java.sql.ResultSet columnNameRS = connection.ExecSQL("select a.attname FROM pg_attribute a, pg_class c WHERE (a.attnum = " + columnOrdinals[i] + ") AND (a.attrelid = " + r.getInt(8) + ")");
+            java.sql.ResultSet columnNameRS = connection.ExecSQL("select a.attname FROM pg_attribute a WHERE (a.attnum = " + columnOrdinals[i] + ") AND (a.attrelid = " + r.getInt(9) + ")");
             columnNameRS.next();
             tuple[8] = columnNameRS.getBytes(1);
             tuple[9] = null;  // sort sequence ???
