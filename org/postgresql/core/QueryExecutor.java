@@ -104,6 +104,7 @@ public class QueryExecutor
 
 						errorMessage.append(pg_stream.ReceiveString(connection.getEncoding()));
 						// keep processing
+						hfr = true;
 						break;
 
 					case 'I':	// Empty Query
