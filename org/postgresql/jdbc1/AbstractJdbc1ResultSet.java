@@ -137,11 +137,13 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 		if (rows == null)
 			throw new PSQLException("postgresql.con.closed", PSQLState.CONNECTION_DOES_NOT_EXIST);
 
-		if (++current_row >= rows.size())
+		if (current_row+1 >= rows.size())
 		{
  			String cursorName = statement.getFetchingCursorName();
-			if (cursorName == null || lastFetchSize == 0 || rows.size() < lastFetchSize)
+			if (cursorName == null || lastFetchSize == 0 || rows.size() < lastFetchSize) {
+				current_row = rows.size();
 				return false;  // Not doing a cursor-based fetch or the last fetch was the end of the query
+			}
  
   			// Use the ref to the statement to get
   			// the details we need to do another cursor
@@ -167,6 +169,8 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 
 			// Otherwise reset the counter and let it go on...
 			current_row = 0;
+		} else {
+			current_row++;
 		}
 
 		this_row = (byte [][])rows.elementAt(current_row);

@@ -489,8 +489,12 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 
 	public boolean previous() throws SQLException
 	{
-		if (--current_row < 0)
+		if (current_row-1 < 0) {
+			current_row = -1;
 			return false;
+		} else {
+			current_row--;
+		}
 		this_row = (byte[][]) rows.elementAt(current_row);
 		rowBuffer = new byte[this_row.length][];
 		System.arraycopy(this_row, 0, rowBuffer, 0, this_row.length);
