@@ -44,10 +44,12 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 	protected int updateCount;		// How many rows did we get back?
 	protected long insertOID;		// The oid of an inserted row
 	protected int current_row;		// Our pointer to where we are at
+	protected int row_offset;       // Offset into the actual resultset of row 0
 	protected byte[][] this_row;		// the current row result
 	protected BaseConnection connection;	// the connection which we returned from
 	protected SQLWarning warnings = null;	// The warning chain
 	protected boolean wasNullFlag = false;	// the flag for wasNull()
+	protected boolean onInsertRow = false;  // are we on the insert row (for JDBC2 updatable resultsets)?
 
 	// We can chain multiple resultSets together - this points to
 	// next resultSet in the chain.
@@ -61,8 +63,8 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
  	private SimpleDateFormat m_dateFormat = null;
 
 
-	private int fetchSize;      // Fetch size for next read (might be 0).
-	private int lastFetchSize;  // Fetch size of last read (might be 0).
+	protected int fetchSize;      // Fetch size for next read (might be 0).
+	protected int lastFetchSize;  // Fetch size of last read (might be 0).
 
 	public abstract ResultSetMetaData getMetaData() throws SQLException;
 
@@ -83,6 +85,7 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 		this.insertOID = insertOID;
 		this.this_row = null;
 		this.current_row = -1;
+		this.row_offset = 0;
 
 		this.lastFetchSize = this.fetchSize = (statement == null ? 0 : statement.getFetchSize());
 	}
@@ -133,6 +136,9 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
 	{
 		if (rows == null)
 			throw new PSQLException("postgresql.con.closed", PSQLState.CONNECTION_DOES_NOT_EXIST);
+		
+		if (onInsertRow)
+			throw new PSQLException("postgresql.res.oninsertrow");
 
 		if (current_row+1 >= rows.size())
 		{
@@ -155,6 +161,7 @@ public abstract class AbstractJdbc1ResultSet implements BaseResultSet
  				("FETCH FORWARD " + fetchSize + " FROM " + cursorName)
  			};
 
+			row_offset += rows.size(); // We are discarding some data.
   			QueryExecutor.execute(sql,
  								  new String[0],
   								  this);

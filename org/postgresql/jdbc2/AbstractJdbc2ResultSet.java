@@ -29,6 +29,7 @@ import org.postgresql.Driver;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Field;
 import org.postgresql.core.Encoding;
+import org.postgresql.core.QueryExecutor;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -39,7 +40,6 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 	//needed for updateable result set support
 	protected boolean updateable = false;
 	protected boolean doingUpdates = false;
-	protected boolean onInsertRow = false;
 	protected Hashtable updateValues = new Hashtable();
 	private boolean usingOID = false;	// are we using the OID for the primary key?
 	private Vector primaryKeys;    // list of primary keys
@@ -224,6 +224,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 
 		rowBuffer = new byte[this_row.length][];
 		System.arraycopy(this_row, 0, rowBuffer, 0, this_row.length);
+		onInsertRow = false;
 
 		return true;
 	}
@@ -236,6 +237,8 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 		final int rows_size = rows.size();
 		if (rows_size > 0)
 			current_row = rows_size;
+
+		onInsertRow = false;
 	}
 
 
@@ -245,6 +248,8 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 
 		if (rows.size() > 0)
 			current_row = -1;
+
+		onInsertRow = false;
 	}
 
 
@@ -261,6 +266,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 
 		rowBuffer = new byte[this_row.length][];
 		System.arraycopy(this_row, 0, rowBuffer, 0, this_row.length);
+		onInsertRow = false;
 
 		return true;
 	}
@@ -452,6 +458,9 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 
 	public int getRow() throws SQLException
 	{
+		if (onInsertRow)
+			return 0;
+
 		final int rows_size = rows.size();
 
 		if (current_row < 0 || current_row >= rows_size)
@@ -476,6 +485,9 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 
 	public boolean isAfterLast() throws SQLException
 	{
+		if (onInsertRow)
+			return false;
+
 		final int rows_size = rows.size();
 		return (current_row >= rows_size && rows_size > 0);
 	}
@@ -483,22 +495,73 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 
 	public boolean isBeforeFirst() throws SQLException
 	{
-		return (current_row < 0 && rows.size() > 0);
+		if (onInsertRow)
+			return false;
+
+		return ((row_offset + current_row) < 0 && rows.size() > 0);
 	}
 
 
 	public boolean isFirst() throws SQLException
 	{
-		return (current_row == 0 && rows.size() >= 0);
+		if (onInsertRow)
+			return false;
+
+		return ((row_offset + current_row) == 0);
 	}
 
 
 	public boolean isLast() throws SQLException
 	{
-		final int rows_size = rows.size();
-		return (current_row == rows_size - 1 && rows_size > 0);
-	}
+		if (onInsertRow)
+			return false;
 
+		final int rows_size = rows.size();
+
+		if (rows_size == 0)
+			return false; // No rows.
+
+		if (current_row != (rows_size - 1))
+			return false; // Not on the last row of this block.
+
+		// We are on the last row of the current block.
+		String cursorName = statement.getFetchingCursorName();
+		if (cursorName == null || lastFetchSize == 0 || rows_size < lastFetchSize) {
+			// This is the last block and therefore the last row.
+			return true;
+		}
+
+		// Now the more painful case begins.
+		// We are on the last row of the current block, but we don't know if the
+		// current block is the last block; we must try to fetch some more data to
+		// find out.
+
+		// We do a fetch of the next block, then prepend the current row to that
+		// block (so current_row == 0). This works as the current row
+		// must be the last row of the current block if we got this far.
+
+		byte[][] saveThisRow = this_row;   // Cleared by reInit().
+
+		String[] sql = new String[] {
+			fetchSize == 0 ? ("FETCH FORWARD ALL FROM " + cursorName) :
+			"FETCH FORWARD " + fetchSize + " FROM " + cursorName
+		};
+
+
+		QueryExecutor.execute(sql,
+							  new String[0],
+							  this);
+		
+		// Now prepend our one saved row and move to it.
+		rows.insertElementAt(saveThisRow, 0);
+		current_row = 0;
+		this_row = saveThisRow;
+		row_offset += (rows_size - 1);  // We discarded all but one row of the last block.
+		lastFetchSize = (fetchSize == 0 ? 0 : fetchSize + 1); // There should be one more row than we fetched.
+
+		// Finally, now we can tell if we're the last row or not.
+		return (rows.size() == 1);
+	}
 
 	public boolean last() throws SQLException
 	{
@@ -513,6 +576,7 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 
 		rowBuffer = new byte[this_row.length][];
 		System.arraycopy(this_row, 0, rowBuffer, 0, this_row.length);
+		onInsertRow = false;
 
 		return true;
 	}
@@ -521,6 +585,9 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 	public boolean previous() throws SQLException
 	{
 		checkScrollable();
+
+		if (onInsertRow)
+			throw new PSQLException("postgresql.res.oninsertrow");
 
 		if (current_row-1 < 0) {
 			current_row = -1;
@@ -538,6 +605,9 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 	public boolean relative(int rows) throws SQLException
 	{
 		checkScrollable();
+
+		if (onInsertRow)
+			throw new PSQLException("postgresql.res.oninsertrow");
 
 		//have to add 1 since absolute expects a 1-based index
 		return absolute(current_row + 1 + rows);

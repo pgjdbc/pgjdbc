@@ -247,6 +247,96 @@ public class CursorFetchTest extends TestCase
 		assertEquals(100, count);
 	}
 
+	public void testSingleRowResultPositioning() throws Exception
+	{
+		String msg;
+		createRows(1);
+
+		int[] sizes = { 0, 1, 10 };
+		for (int i = 0; i < sizes.length; ++i) {
+			Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+			stmt.setFetchSize(sizes[i]);
+
+			// Create a one row result set.
+			ResultSet rs = stmt.executeQuery("select * from test_fetch order by value");
+
+			msg = "before-first row positioning error with fetchsize=" + sizes[i];
+			assertTrue(msg, rs.isBeforeFirst());
+			assertTrue(msg, !rs.isAfterLast());
+			assertTrue(msg, !rs.isFirst());
+			assertTrue(msg, !rs.isLast());
+
+			msg = "row 1 positioning error with fetchsize=" + sizes[i];
+			assertTrue(msg, rs.next());
+			
+			assertTrue(msg, !rs.isBeforeFirst());
+			assertTrue(msg, !rs.isAfterLast());
+			assertTrue(msg, rs.isFirst());
+			assertTrue(msg, rs.isLast());
+			assertEquals(msg, 0, rs.getInt(1));
+
+			msg = "after-last row positioning error with fetchsize=" + sizes[i];
+			assertTrue(msg, !rs.next());
+
+			assertTrue(msg, !rs.isBeforeFirst());
+			assertTrue(msg, rs.isAfterLast());
+			assertTrue(msg, !rs.isFirst());
+			assertTrue(msg, !rs.isLast());
+
+			rs.close();
+			stmt.close();
+		}
+	}
+
+	public void testMultiRowResultPositioning() throws Exception
+	{
+		String msg;
+
+		createRows(100);
+
+		int[] sizes = { 0, 1, 10, 100 };
+		for (int i = 0; i < sizes.length; ++i) {
+			Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+			stmt.setFetchSize(sizes[i]);
+
+			ResultSet rs = stmt.executeQuery("select * from test_fetch order by value");
+			msg = "before-first row positioning error with fetchsize=" + sizes[i];
+			assertTrue(msg, rs.isBeforeFirst());
+			assertTrue(msg, !rs.isAfterLast());
+			assertTrue(msg, !rs.isFirst());
+			assertTrue(msg, !rs.isLast());
+
+			for (int j = 0; j < 100; ++j) {
+				msg = "row " + j + " positioning error with fetchsize=" + sizes[i];
+				assertTrue(msg, rs.next());
+				assertEquals(msg, j, rs.getInt(1));				
+				
+				assertTrue(msg, !rs.isBeforeFirst());
+				assertTrue(msg, !rs.isAfterLast());
+				if (j == 0)
+					assertTrue(msg, rs.isFirst());
+				else
+					assertTrue(msg, !rs.isFirst());
+
+				if (j == 99)
+					assertTrue(msg, rs.isLast());
+				else
+					assertTrue(msg, !rs.isLast());
+			}
+
+			msg = "after-last row positioning error with fetchsize=" + sizes[i];
+			assertTrue(msg, !rs.next());
+
+			assertTrue(msg, !rs.isBeforeFirst());
+			assertTrue(msg, rs.isAfterLast());
+			assertTrue(msg, !rs.isFirst());
+			assertTrue(msg, !rs.isLast());
+
+			rs.close();
+			stmt.close();
+		}
+	}
+
 	// Test odd queries that should not be transformed into cursor-based fetches.
 	public void testInsert() throws Exception
 	{

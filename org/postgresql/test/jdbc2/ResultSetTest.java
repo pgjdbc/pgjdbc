@@ -333,14 +333,54 @@ public class ResultSetTest extends TestCase
 		Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
 		// Create a one row result set.
 		ResultSet rs = stmt.executeQuery("SELECT * FROM pg_database WHERE datname='template1'");
+
 		assertTrue(rs.isBeforeFirst());
+		assertTrue(!rs.isAfterLast());
+		assertTrue(!rs.isFirst());
+		assertTrue(!rs.isLast());
+
 		assertTrue(rs.next());
+
+		assertTrue(!rs.isBeforeFirst());
+		assertTrue(!rs.isAfterLast());
 		assertTrue(rs.isFirst());
 		assertTrue(rs.isLast());
+
 		assertTrue(!rs.next());
+
+		assertTrue(!rs.isBeforeFirst());
 		assertTrue(rs.isAfterLast());
+		assertTrue(!rs.isFirst());
+		assertTrue(!rs.isLast());
+
 		assertTrue(rs.previous());
+
+		assertTrue(!rs.isBeforeFirst());
+		assertTrue(!rs.isAfterLast());
+		assertTrue(rs.isFirst());
+		assertTrue(rs.isLast());
+
 		assertTrue(rs.absolute(1));
+
+		assertTrue(!rs.isBeforeFirst());
+		assertTrue(!rs.isAfterLast());
+		assertTrue(rs.isFirst());
+		assertTrue(rs.isLast());
+
+		assertTrue(!rs.absolute(0));
+
+		assertTrue(rs.isBeforeFirst());
+		assertTrue(!rs.isAfterLast());
+		assertTrue(!rs.isFirst());
+		assertTrue(!rs.isLast());
+
+		assertTrue(!rs.absolute(2));
+
+		assertTrue(!rs.isBeforeFirst());
+		assertTrue(rs.isAfterLast());
+		assertTrue(!rs.isFirst());
+		assertTrue(!rs.isLast());
+
 		rs.close();
 		stmt.close();
 	}
