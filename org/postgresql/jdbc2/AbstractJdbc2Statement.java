@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.63 2005/01/15 07:53:02 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.64 2005/01/18 21:33:17 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -923,8 +923,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     /*
      * Set a parameter to SQL NULL
      *
-     * <p><B>Note:</B> You must specify the parameters SQL type (although
-     * PostgreSQL ignores it)
+     * <p><B>Note:</B> You must specify the parameter's SQL type.
      *
      * @param parameterIndex the first parameter is 1, etc...
      * @param sqlType the SQL type code defined in java.sql.Types
@@ -991,7 +990,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             break;
         case Types.OTHER:
             // We cannot determine an appropriate OID in this case.
-            throw new PSQLException(GT.tr("setNull(i,Types.OTHER) is not supported; use setObject(i,nullobject,Types.OTHER) instead."), PSQLState.INVALID_PARAMETER_TYPE);
+            throw new PSQLException(GT.tr("setNull(i,Types.OTHER) is not supported. Instead, use setObject(i,obj,Types.OTHER) where ((PGobject)obj).getValue()==null."), PSQLState.INVALID_PARAMETER_TYPE);
         default:
             // Bad Types value.
             throw new PSQLException(GT.tr("Unknown Types value."), PSQLState.INVALID_PARAMETER_TYPE);
