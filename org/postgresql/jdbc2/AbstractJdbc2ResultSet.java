@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.65 2004/12/18 03:36:34 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.66 2004/12/18 03:49:20 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -943,7 +943,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         }
         catch (UnsupportedEncodingException uee)
         {
-            throw new PSQLException(GT.tr("The JVM claims not to support the ASCII encoding."), PSQLState.UNEXPECTED_ERROR, uee);
+            throw new PSQLException(GT.tr("The JVM claims not to support the encoding: {0}","ASCII"), PSQLState.UNEXPECTED_ERROR, uee);
         }
         catch (IOException ie)
         {
@@ -1903,14 +1903,14 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
                     if ( gt > 0 || lt < 0 )
                     {
-                        throw new PSQLException(GT.tr("Bad byte: {0}", s),
+                        throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{"byte",s}),
                                                 PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
                     }
                     return i.byteValue();
                 }
                 catch ( NumberFormatException ex )
                 {
-                    throw new PSQLException(GT.tr("Bad byte: {0}", s),
+                    throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{"byte",s}),
                                             PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
                 }
             }
@@ -1943,7 +1943,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
                     if ( gt > 0 || lt < 0 )
                     {
-                        throw new PSQLException(GT.tr("Bad short: {0}", s),
+                        throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{"short",s}),
                                                 PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
                     }
                     return i.shortValue();
@@ -1951,7 +1951,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                 }
                 catch ( NumberFormatException ne )
                 {
-                    throw new PSQLException(GT.tr("Bad short: {0}", s),
+                    throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{"short",s}),
                                             PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
                 }
             }
@@ -2088,7 +2088,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             }
             catch (UnsupportedEncodingException l_uee)
             {
-                throw new PSQLException(GT.tr("The JVM claims not to support the ASCII encoding."), PSQLState.UNEXPECTED_ERROR, l_uee);
+                throw new PSQLException(GT.tr("The JVM claims not to support the encoding: {0}","ASCII"), PSQLState.UNEXPECTED_ERROR, l_uee);
             }
         }
         else
@@ -2119,7 +2119,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             }
             catch (UnsupportedEncodingException l_uee)
             {
-                throw new PSQLException(GT.tr("The JVM claims not to support the UTF-8 encoding."), PSQLState.UNEXPECTED_ERROR, l_uee);
+                throw new PSQLException(GT.tr("The JVM claims not to support the encoding: {0}","UTF-8"), PSQLState.UNEXPECTED_ERROR, l_uee);
             }
         }
         else
@@ -2474,7 +2474,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
                     if (gt > 0 || lt < 0)
                     {
-                        throw new PSQLException(GT.tr("Bad int: {0}", s),
+                        throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{"int",s}),
                                                 PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
                     }
                     return i.intValue();
@@ -2482,7 +2482,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                 }
                 catch ( NumberFormatException ne )
                 {
-                    throw new PSQLException(GT.tr("Bad int: {0}", s),
+                    throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{"int",s}),
                                             PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
                 }
             }
@@ -2512,14 +2512,14 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
                     if ( gt > 0 || lt < 0 )
                     {
-                        throw new PSQLException(GT.tr("Bad long: {0}", s),
+                        throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{"long",s}),
                                                 PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
                     }
                     return i.longValue();
                 }
                 catch ( NumberFormatException ne )
                 {
-                    throw new PSQLException(GT.tr("Bad long: {0}", s),
+                    throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{"long",s}),
                                             PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
                 }
             }
@@ -2539,7 +2539,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             }
             catch (NumberFormatException e)
             {
-                throw new PSQLException(GT.tr("Bad BigDecimal: {0}", s),
+                throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{"BigDecimal",s}),
                                         PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
             }
             if (scale == -1)
@@ -2550,7 +2550,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             }
             catch (ArithmeticException e)
             {
-                throw new PSQLException(GT.tr("Bad BigDecimal: {0}", s),
+                throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{"BigDecimal",s}),
                                         PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
             }
         }
@@ -2568,7 +2568,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             }
             catch (NumberFormatException e)
             {
-                throw new PSQLException(GT.tr("Bad float: {0}", s),
+                throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{"float",s}),
                                         PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
             }
         }
@@ -2586,7 +2586,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             }
             catch (NumberFormatException e)
             {
-                throw new PSQLException(GT.tr("Bad double: {0}", s),
+                throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{"double",s}),
                                         PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
             }
         }

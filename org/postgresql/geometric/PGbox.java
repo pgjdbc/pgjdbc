@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/geometric/PGbox.java,v 1.10 2004/11/07 22:15:51 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/geometric/PGbox.java,v 1.11 2004/11/09 08:47:52 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -81,7 +81,7 @@ public class PGbox extends PGobject implements Serializable, Cloneable
     {
         PGtokenizer t = new PGtokenizer(value, ',');
         if (t.getSize() != 2)
-            throw new PSQLException(GT.tr("Conversion of box failed: {0}.", value), PSQLState.DATA_TYPE_MISMATCH);
+            throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", new Object[]{type,value}), PSQLState.DATA_TYPE_MISMATCH);
 
         point[0] = new PGpoint(t.getToken(0));
         point[1] = new PGpoint(t.getToken(1));

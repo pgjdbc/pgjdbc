@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.7 2004/12/18 03:36:34 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.8 2004/12/20 08:37:13 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -31,7 +31,7 @@ public class TimestampUtils {
      * Load date/time information into the provided calendar
      * returning the fractional seconds.
      */
-    private static int loadCalendar(GregorianCalendar cal, String s) throws SQLException {
+    private static int loadCalendar(GregorianCalendar cal, String s, String type) throws SQLException {
         int slen = s.length();
 
         // java doesn't have a concept of postgres's infinity
@@ -158,7 +158,7 @@ public class TimestampUtils {
                 }
             }
         } catch (NumberFormatException nfe) {
-            throw new PSQLException(GT.tr("Bad date/time/timestamp representation: {0}", s), PSQLState.BAD_DATETIME_FORMAT, nfe);
+            throw new PSQLException(GT.tr("Bad value for type {0} : {1}}", new Object[]{type,s}), PSQLState.BAD_DATETIME_FORMAT, nfe);
         }
     
         return nanos;
@@ -181,7 +181,7 @@ public class TimestampUtils {
         synchronized(cal) {
             cal.set(Calendar.ZONE_OFFSET, 0);
             cal.set(Calendar.DST_OFFSET, 0);
-            int nanos = loadCalendar(cal, s);
+            int nanos = loadCalendar(cal, s, "timestamp");
 
             Timestamp result = new Timestamp(cal.getTime().getTime());
             result.setNanos(nanos);
@@ -197,7 +197,7 @@ public class TimestampUtils {
         synchronized(cal) {
             cal.set(Calendar.ZONE_OFFSET, 0);
             cal.set(Calendar.DST_OFFSET, 0);
-            int nanos = loadCalendar(cal, s);
+            int nanos = loadCalendar(cal, s, "time");
 
             cal.set(Calendar.YEAR, 1970);
             cal.set(Calendar.MONTH, 0);
@@ -217,7 +217,7 @@ public class TimestampUtils {
         synchronized(cal) {
             cal.set(Calendar.ZONE_OFFSET, 0);
             cal.set(Calendar.DST_OFFSET, 0);
-            loadCalendar(cal, s);
+            loadCalendar(cal, s, "date");
 
             // zero out non-date things.
             cal.set(Calendar.HOUR_OF_DAY, 0);

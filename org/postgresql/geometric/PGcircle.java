@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/geometric/PGcircle.java,v 1.12 2004/11/07 22:15:51 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/geometric/PGcircle.java,v 1.13 2004/11/09 08:47:53 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -81,7 +81,7 @@ public class PGcircle extends PGobject implements Serializable, Cloneable
     {
         PGtokenizer t = new PGtokenizer(PGtokenizer.removeAngle(s), ',');
         if (t.getSize() != 2)
-            throw new PSQLException(GT.tr("Conversion of circle failed: {0}.", s), PSQLState.DATA_TYPE_MISMATCH);
+            throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", new Object[]{type,s}), PSQLState.DATA_TYPE_MISMATCH);
 
         try
         {
@@ -90,7 +90,7 @@ public class PGcircle extends PGobject implements Serializable, Cloneable
         }
         catch (NumberFormatException e)
         {
-            throw new PSQLException(GT.tr("Conversion of circle failed: {0}.", s), PSQLState.DATA_TYPE_MISMATCH, e);
+            throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", new Object[]{type,s}), PSQLState.DATA_TYPE_MISMATCH, e);
         }
     }
 

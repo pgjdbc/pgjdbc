@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/geometric/PGline.java,v 1.10 2004/11/07 22:15:51 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/geometric/PGline.java,v 1.11 2004/11/09 08:47:57 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -79,7 +79,7 @@ public class PGline extends PGobject implements Serializable, Cloneable
     {
         PGtokenizer t = new PGtokenizer(PGtokenizer.removeBox(s), ',');
         if (t.getSize() != 2)
-            throw new PSQLException(GT.tr("Conversion of line failed: {0}.", s), PSQLState.DATA_TYPE_MISMATCH);
+            throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", new Object[]{type,s}), PSQLState.DATA_TYPE_MISMATCH);
 
         point[0] = new PGpoint(t.getToken(0));
         point[1] = new PGpoint(t.getToken(1));

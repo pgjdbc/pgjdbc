@@ -3,7 +3,7 @@
 * Copyright (c) 2004, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.54 2004/12/18 03:36:34 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.55 2004/12/20 08:37:13 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1566,7 +1566,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             }
             else
             {
-                throw new PSQLException(GT.tr("Cannot cast an instance of {0} to Types.BIT", x.getClass().getName()), PSQLState.INVALID_PARAMETER_TYPE);
+                throw new PSQLException(GT.tr("Cannot cast an instance of {0} to type {1}", new Object[]{x.getClass().getName(),"Types.BIT"}), PSQLState.INVALID_PARAMETER_TYPE);
             }
             break;
         case Types.BINARY:
@@ -1578,7 +1578,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             if (x instanceof PGobject)
                 setPGobject(parameterIndex, (PGobject)x);
             else
-                throw new PSQLException(GT.tr("Cannot cast an instance of {0} to Types.OTHER", x.getClass().getName()), PSQLState.INVALID_PARAMETER_TYPE);
+                throw new PSQLException(GT.tr("Cannot cast an instance of {0} to type {1}", new Object[]{x.getClass().getName(),"Types.OTHER"}), PSQLState.INVALID_PARAMETER_TYPE);
             break;
         default:
             throw new PSQLException(GT.tr("Unsupported Types value: {0}", new Integer(targetSqlType)), PSQLState.INVALID_PARAMETER_TYPE);
