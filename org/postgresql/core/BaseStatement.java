@@ -30,11 +30,11 @@ public interface BaseStatement extends org.postgresql.PGStatement
 	 */
 	public void addWarning(String p_warning) throws SQLException;
 	public void close() throws SQLException;
-	public int getFetchSize() throws SQLException;
+	public int getFetchSize();
  	public int getMaxFieldSize() throws SQLException;
 	public int getMaxRows() throws SQLException;
 	public int getResultSetConcurrency() throws SQLException;
-	public String getStatementName();
+	public String getFetchingCursorName();
 	public SQLWarning getWarnings() throws SQLException;
  	public void setMaxFieldSize(int max) throws SQLException;
 

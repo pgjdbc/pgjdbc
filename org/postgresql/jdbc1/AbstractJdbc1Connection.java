@@ -1270,10 +1270,9 @@ public abstract class AbstractJdbc1Connection implements BaseConnection
 	 * gets the current auto-commit state
 	 *
 	 * @return Current state of the auto-commit mode
-	 * @exception SQLException (why?)
 	 * @see setAutoCommit
 	 */
-	public boolean getAutoCommit() throws SQLException
+	public boolean getAutoCommit()
 	{
 		return this.autoCommit;
 	}

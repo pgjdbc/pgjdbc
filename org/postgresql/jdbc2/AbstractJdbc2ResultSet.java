@@ -389,13 +389,6 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 	}
 
 
-	public int getFetchSize() throws SQLException
-	{
-		// Returning the current batch size seems the right thing to do.
-		return rows.size();
-	}
-
-
 	public Object getObject(String columnName, java.util.Map map) throws SQLException
 	{
 		return getObject(findColumn(columnName), map);
@@ -515,13 +508,6 @@ public abstract class AbstractJdbc2ResultSet extends org.postgresql.jdbc1.Abstra
 	public void setFetchDirection(int direction) throws SQLException
 	{
 		throw new PSQLException("postgresql.psqlnotimp", PSQLState.NOT_IMPLEMENTED);
-	}
-
-
-	public void setFetchSize(int rows) throws SQLException
-	{
-		// Sub-classes should implement this as part of their cursor support
-		throw org.postgresql.Driver.notImplemented();
 	}
 
 

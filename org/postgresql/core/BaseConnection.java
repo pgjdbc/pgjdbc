@@ -26,7 +26,7 @@ public interface BaseConnection extends PGConnection
 	public void cancelQuery() throws SQLException;
 	public Statement createStatement() throws SQLException;
 	public BaseResultSet execSQL(String s) throws SQLException;
-	public boolean getAutoCommit() throws SQLException;
+	public boolean getAutoCommit();
 	public String getCursorName() throws SQLException;
 	public Encoding getEncoding() throws SQLException;
 	public DatabaseMetaData getMetaData() throws SQLException;
