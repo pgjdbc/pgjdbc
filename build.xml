@@ -79,7 +79,7 @@
 
   <!-- create the jar file -->
   <target name="jar" depends="compile,examples">
-    <jar jarfile="${jardir}/postgresql.jar" whenempty="fail">
+    <jar jarfile="${jardir}/postgresql.jar">
       <fileset dir="${builddir}">
         <include name="${package}/**/*.class" />
         <exclude name="${package}/test/**" />
@@ -90,7 +90,7 @@
       </fileset>
     </jar>
 
-    <jar jarfile="${jardir}/postgresql-examples.jar" whenempty="fail">
+    <jar jarfile="${jardir}/postgresql-examples.jar">
       <fileset dir="${builddir}">
         <include name="example/**/*.class" />
       </fileset>
