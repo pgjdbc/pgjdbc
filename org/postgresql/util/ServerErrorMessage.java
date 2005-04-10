@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/ServerErrorMessage.java,v 1.6 2005/01/11 08:25:49 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/util/ServerErrorMessage.java,v 1.7 2005/02/10 19:53:17 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -11,8 +11,9 @@ package org.postgresql.util;
 
 import org.postgresql.Driver;
 import java.util.Hashtable;
+import java.io.Serializable;
 
-public class ServerErrorMessage
+public class ServerErrorMessage implements Serializable
 {
 
     private static final Character SEVERITY = new Character('S');
@@ -25,6 +26,8 @@ public class ServerErrorMessage
     private static final Character LINE = new Character('L');
     private static final Character ROUTINE = new Character('R');
     private static final Character SQLSTATE = new Character('C');
+    private static final Character INTERNAL_POSITION = new Character('p');
+    private static final Character INTERNAL_QUERY = new Character('q');
 
     private Hashtable m_mesgParts;
 
@@ -62,6 +65,64 @@ public class ServerErrorMessage
         return (String)m_mesgParts.get(MESSAGE);
     }
 
+    public String getSeverity()
+    {
+        return (String)m_mesgParts.get(SEVERITY);
+    }
+
+    public String getDetail()
+    {
+        return (String)m_mesgParts.get(DETAIL);
+    }
+
+    public String getHint()
+    {
+        return (String)m_mesgParts.get(HINT);
+    }
+
+    public int getPosition()
+    {
+        return getIntegerPart(POSITION);
+    }
+
+    public String getWhere()
+    {
+        return (String)m_mesgParts.get(WHERE);
+    }
+
+    public String getFile()
+    {
+        return (String)m_mesgParts.get(FILE);
+    }
+
+    public int getLine()
+    {
+        return getIntegerPart(LINE);
+    }
+
+    public String getRoutine()
+    {
+        return (String)m_mesgParts.get(ROUTINE);
+    }
+
+    public String getInternalQuery()
+    {
+        return (String)m_mesgParts.get(INTERNAL_QUERY);
+    }
+
+    public int getInternalPosition()
+    {
+        return getIntegerPart(INTERNAL_POSITION);
+    }
+
+    private int getIntegerPart(Character c)
+    {
+        String s = (String)m_mesgParts.get(c);
+        if (s == null)
+            return 0;
+        return Integer.parseInt(s);
+    }
+
     public String toString()
     {
         //Now construct the message from what the server sent
@@ -71,6 +132,8 @@ public class ServerErrorMessage
         //  Hint: \n
         //  Position: \n
         //  Where: \n
+        //  Internal Query: \n
+        //  Internal Position: \n
         //  Location: File:Line:Routine \n
         //  SQLState: \n
         //
@@ -103,6 +166,13 @@ public class ServerErrorMessage
         }
         if (Driver.logDebug)
         {
+            String l_internalQuery = (String)m_mesgParts.get(INTERNAL_QUERY);
+            if (l_internalQuery != null)
+                l_totalMessage.append("\n  ").append(GT.tr("Internal Query: {0}", l_internalQuery));
+            String l_internalPosition = (String)m_mesgParts.get(INTERNAL_POSITION);
+            if (l_internalPosition != null)
+                l_totalMessage.append("\n  ").append(GT.tr("Internal Position: {0}", l_internalPosition));
+
             String l_file = (String)m_mesgParts.get(FILE);
             String l_line = (String)m_mesgParts.get(LINE);
             String l_routine = (String)m_mesgParts.get(ROUTINE);

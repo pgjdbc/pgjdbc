@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.20 2005/01/27 22:50:13 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.21 2005/02/01 07:27:54 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1468,7 +1468,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         if (Driver.logDebug)
             Driver.debug(" <=BE ErrorMessage(" + errorMsg.toString() + ")");
 
-        return new SQLException(errorMsg.toString(), errorMsg.getSQLState());
+        return new PSQLException(errorMsg);
     }
 
     private SQLWarning receiveNoticeResponse() throws IOException {

@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ConnectionFactoryImpl.java,v 1.8 2004/12/11 03:31:52 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ConnectionFactoryImpl.java,v 1.9 2005/01/11 08:25:44 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -272,7 +272,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 ServerErrorMessage errorMsg = new ServerErrorMessage(pgStream.ReceiveString(l_elen - 4));
                 if (Driver.logDebug)
                     Driver.debug(" <=BE ErrorMessage(" + errorMsg + ")");
-                throw new PSQLException(GT.tr("Connection rejected: {0}.", errorMsg), PSQLState.CONNECTION_REJECTED);
+                throw new PSQLException(errorMsg);
 
             case 'R':
                 // Authentication request.
@@ -440,7 +440,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 if (Driver.logDebug)
                     Driver.debug(" <=BE ErrorMessage(" + l_errorMsg + ")");
 
-                throw new PSQLException(GT.tr("Backend start-up failed: {0}.", l_errorMsg), new PSQLState(l_errorMsg.getSQLState()));
+                throw new PSQLException(l_errorMsg);
 
             case 'N':
                 // Warning
