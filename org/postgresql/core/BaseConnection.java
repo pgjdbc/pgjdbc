@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/BaseConnection.java,v 1.12 2004/11/09 08:44:12 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/BaseConnection.java,v 1.13 2005/01/11 08:25:43 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -66,6 +66,9 @@ public interface BaseConnection extends PGConnection, Connection
      * @throws SQLException if something goes wrong
      */
     public Object getObject(String type, String value) throws SQLException;
+
+
+    public String getJavaClass(int oid) throws SQLException;
 
     /**
      * Look up the postgresql type name for a given oid. This is the

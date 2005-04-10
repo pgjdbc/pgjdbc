@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.26 2005/01/25 06:21:21 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.27 2005/02/15 08:56:25 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -48,9 +48,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     /* Query that runs ROLLBACK */
     private final Query rollbackQuery;
 
-    // These are used to cache the oids to PGType mappings.
-    private Hashtable oidTypeCache = new Hashtable();   // oid -> PGType
-    private Hashtable typeOidCache = new Hashtable();  // PGType -> oid
+    private TypeInfoCache _typeCache;
 
     // Default statement prepare threshold.
     protected int prepareThreshold;
@@ -130,6 +128,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         rollbackQuery = getQueryExecutor().createSimpleQuery("ROLLBACK");
 
         // Initialize object handling
+        _typeCache = new TypeInfoCache(this);
         initObjectTypes(info);
     }
 
@@ -370,12 +369,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
         try
         {
-            Class klass;
-
-            synchronized (objectTypes)
-            {
-                klass = (Class)objectTypes.get(type);
-            }
+            Class klass = _typeCache.getPGobject(type);
 
             // If className is not null, then try to instantiate it,
             // It must be basetype PGobject
@@ -425,17 +419,8 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
     public void addDataType(String type, Class klass) throws SQLException
     {
-        if (!org.postgresql.util.PGobject.class.isAssignableFrom(klass))
-            throw new PSQLException(GT.tr("The class {0} does not implement org.postgresql.util.PGobject.", klass.toString()), PSQLState.INVALID_PARAMETER_TYPE);
-
-        synchronized (objectTypes)
-        {
-            objectTypes.put(type, klass);
-        }
+        _typeCache.addDataType(type, klass);
     }
-
-    // This holds the available types, a String to Class mapping.
-    private final HashMap objectTypes = new HashMap();
 
     // This initialises the objectTypes hashtable
     private void initObjectTypes(Properties info) throws SQLException
@@ -916,7 +901,12 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
      */
     public int getSQLType(int oid) throws SQLException
     {
-        return getSQLType(getPGType(oid));
+        return _typeCache.getSQLType(oid);
+    }
+
+    public Iterator getPGTypeNamesWithSQLTypes()
+    {
+        return _typeCache.getPGTypeNamesWithSQLTypes();
     }
 
     /*
@@ -926,40 +916,12 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
      */
     public int getPGType(String typeName) throws SQLException
     {
-        if (typeName == null)
-            return Oid.INVALID;
+        return _typeCache.getPGType(typeName);
+    }
 
-        synchronized (this)
-        {
-            Integer oidValue = (Integer) typeOidCache.get(typeName);
-            if (oidValue != null)
-                return oidValue.intValue();
-
-            // it's not in the cache, so perform a query, and add the result to the cache
-            int oid = Oid.INVALID;
-
-            PreparedStatement query;
-            if (haveMinimumServerVersion("7.3"))
-                query = prepareStatement("SELECT oid FROM pg_catalog.pg_type WHERE typname=?");
-            else
-                query = prepareStatement("SELECT oid FROM pg_type WHERE typname=?");
-
-            query.setString(1, typeName);
-
-            if (! ((BaseStatement)query).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN) )
-                throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-
-            ResultSet result = query.getResultSet();
-            if (result.next())
-            {
-                oid = result.getInt(1);
-                oidTypeCache.put(new Integer(oid), typeName);
-            }
-
-            typeOidCache.put(typeName, new Integer(oid));
-            result.close();
-            return oid;
-        }
+    public String getJavaClass(int oid) throws SQLException
+    {
+        return _typeCache.getJavaClass(oid);
     }
 
     /*
@@ -970,40 +932,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
      */
     public String getPGType(int oid) throws SQLException
     {
-        if (oid == Oid.INVALID)
-            return null;
-
-        synchronized (this)
-        {
-            String cachedValue = (String)oidTypeCache.get(new Integer(oid));
-            if (cachedValue != null)
-                return cachedValue;
-
-            // it's not in the cache, so perform a query, and add the result to the cache
-            String typeName = null;
-
-            PreparedStatement query;
-            if (haveMinimumServerVersion("7.3"))
-                query = prepareStatement("SELECT typname FROM pg_catalog.pg_type WHERE oid=?");
-            else
-                query = prepareStatement("SELECT typname FROM pg_type WHERE oid=?");
-
-            query.setInt(1, oid);
-
-            if (! ((BaseStatement)query).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN) )
-                throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-
-            ResultSet result = query.getResultSet();
-            if (result.next())
-            {
-                typeName = result.getString(1);
-                typeOidCache.put(typeName, new Integer(oid));
-            }
-
-            oidTypeCache.put(new Integer(oid), typeName);
-            result.close();
-            return typeName;
-        }
+        return _typeCache.getPGType(oid);
     }
 
     // This is a cache of the DatabaseMetaData instance for this connection
@@ -1088,85 +1017,10 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     }
 
 
-    /*
-     * This implemetation uses the jdbc2Types array to support the jdbc2
-     * datatypes.
-     */
     public int getSQLType(String pgTypeName)
     {
-        if (pgTypeName == null)
-            return Types.OTHER;
-
-        for (int i = 0;i < jdbc2Types.length;i++)
-            if (pgTypeName.equals(jdbc2Types[i]))
-                return jdbc2Typei[i];
-
-        return Types.OTHER;
+        return _typeCache.getSQLType(pgTypeName);
     }
 
-    /*
-     * This table holds the org.postgresql names for the types supported.
-     * Any types that map to Types.OTHER (eg POINT) don't go into this table.
-     * They default automatically to Types.OTHER
-     *
-     * Note: This must be in the same order as below.
-     *
-     * Tip: keep these grouped together by the Types. value
-     */
-    static final String jdbc2Types[] = {
-                                           "int2",
-                                           "int4", "oid",
-                                           "int8",
-                                           "cash", "money",
-                                           "numeric",
-                                           "float4",
-                                           "float8",
-                                           "bpchar", "char", "char2", "char4", "char8", "char16",
-                                           "varchar", "text", "name", "filename",
-                                           "bytea",
-                                           "bool",
-                                           "bit",
-                                           "date",
-                                           "time", "timetz",
-                                           "abstime", "timestamp", "timestamptz",
-                                           "_bool", "_char", "_int2", "_int4", "_text",
-                                           "_oid", "_varchar", "_int8", "_float4", "_float8",
-                                           "_abstime", "_date", "_time", "_timestamp", "_numeric",
-                                           "_bytea"
-                                       };
-
-    /*
-     * This table holds the JDBC type for each entry above.
-     *
-     * Note: This must be in the same order as above
-     *
-     * Tip: keep these grouped together by the Types. value
-     */
-    static final int jdbc2Typei[] = {
-                                        Types.SMALLINT,
-                                        Types.INTEGER, Types.INTEGER,
-                                        Types.BIGINT,
-                                        Types.DOUBLE, Types.DOUBLE,
-                                        Types.NUMERIC,
-                                        Types.REAL,
-                                        Types.DOUBLE,
-                                        Types.CHAR, Types.CHAR, Types.CHAR, Types.CHAR, Types.CHAR, Types.CHAR,
-                                        Types.VARCHAR, Types.VARCHAR, Types.VARCHAR, Types.VARCHAR,
-                                        Types.BINARY,
-                                        Types.BIT,
-                                        Types.BIT,
-                                        Types.DATE,
-                                        Types.TIME, Types.TIME,
-                                        Types.TIMESTAMP, Types.TIMESTAMP, Types.TIMESTAMP,
-                                        Types.ARRAY, Types.ARRAY, Types.ARRAY, Types.ARRAY, Types.ARRAY,
-                                        Types.ARRAY, Types.ARRAY, Types.ARRAY, Types.ARRAY, Types.ARRAY,
-                                        Types.ARRAY, Types.ARRAY, Types.ARRAY, Types.ARRAY, Types.ARRAY,
-                                        Types.ARRAY
-                                    };
-
-
-
-
 }
-
 

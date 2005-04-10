@@ -3,7 +3,7 @@
 * Copyright (c) 2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL$
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/PSQLParameterMetaData.java,v 1.1 2005/02/01 07:27:54 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -29,7 +29,7 @@ public class PSQLParameterMetaData implements ParameterMetaData {
 
     public String getParameterClassName(int param) throws SQLException {
         checkParamIndex(param);
-        return null;
+        return _connection.getJavaClass(_oids[param-1]);
     }
 
     public int getParameterCount() {

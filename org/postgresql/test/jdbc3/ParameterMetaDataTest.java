@@ -3,7 +3,7 @@
 * Copyright (c) 2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL$
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/ParameterMetaDataTest.java,v 1.1 2005/02/01 07:27:55 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -23,7 +23,7 @@ public class ParameterMetaDataTest extends TestCase {
 
     protected void setUp() throws SQLException {
         _conn = TestUtil.openDB();
-        TestUtil.createTable(_conn, "parametertest", "a int4, b float8, c text");
+        TestUtil.createTable(_conn, "parametertest", "a int4, b float8, c text, d point");
     }
 
     protected void tearDown() throws SQLException {
@@ -35,14 +35,19 @@ public class ParameterMetaDataTest extends TestCase {
         if (!TestUtil.haveMinimumServerVersion(_conn, "7.4"))
             return;
 
-        PreparedStatement pstmt = _conn.prepareStatement("SELECT a FROM parametertest WHERE b = ? AND c = ?");
+        PreparedStatement pstmt = _conn.prepareStatement("SELECT a FROM parametertest WHERE b = ? AND c = ? AND d >^ ? ");
         ParameterMetaData pmd = pstmt.getParameterMetaData();
 
-        assertEquals(2, pmd.getParameterCount());
+        assertEquals(3, pmd.getParameterCount());
         assertEquals(Types.DOUBLE, pmd.getParameterType(1));
         assertEquals("float8", pmd.getParameterTypeName(1));
+        assertEquals("java.lang.Double", pmd.getParameterClassName(1));
         assertEquals(Types.VARCHAR, pmd.getParameterType(2));
         assertEquals("text", pmd.getParameterTypeName(2));
+        assertEquals("java.lang.String", pmd.getParameterClassName(2));
+        assertEquals(Types.OTHER, pmd.getParameterType(3));
+        assertEquals("point", pmd.getParameterTypeName(3));
+        assertEquals("org.postgresql.geometric.PGpoint", pmd.getParameterClassName(3));
 
         pstmt.close();
     }

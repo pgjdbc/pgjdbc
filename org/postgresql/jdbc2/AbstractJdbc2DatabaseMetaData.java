@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.18 2005/01/11 08:25:45 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.19 2005/03/04 06:52:03 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -4057,9 +4057,10 @@ public abstract class AbstractJdbc2DatabaseMetaData
                      + "CASE WHEN t.typtype='c' then " + java.sql.Types.STRUCT + " else " + java.sql.Types.DISTINCT + " end as data_type, pg_catalog.obj_description(t.oid, 'pg_type')  "
                      + "as remarks, CASE WHEN t.typtype = 'd' then  (select CASE";
 
-        for ( int i = 0; i < AbstractJdbc2Connection.jdbc2Types.length; i++ )
-        {
-            sql += " when typname = '" + AbstractJdbc2Connection.jdbc2Types[i] + "' then " + AbstractJdbc2Connection.jdbc2Typei[i] ;
+        for (Iterator i = connection.getPGTypeNamesWithSQLTypes(); i.hasNext();) {
+            String pgType = (String)i.next();
+            int sqlType = connection.getSQLType(pgType);
+            sql += " when typname = '" + escapeQuotes(pgType) + "' then " + sqlType;
         }
 
         sql += " else " + java.sql.Types.OTHER + " end from pg_type where oid=t.typbasetype) "
