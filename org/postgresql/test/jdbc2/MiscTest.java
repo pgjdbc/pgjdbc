@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/MiscTest.java,v 1.16 2004/11/09 08:54:39 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/MiscTest.java,v 1.17 2005/01/11 08:25:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -76,6 +76,28 @@ public class MiscTest extends TestCase
         }
 
         con.commit();
+        con.close();
+    }
+
+    public void testWarning() throws Exception
+    {
+        Connection con = TestUtil.openDB();
+        Statement stmt = con.createStatement();
+        stmt.execute("CREATE TEMP TABLE t(a int primary key)");
+        SQLWarning warning = stmt.getWarnings();
+        // We should get a warning about primary key index creation
+        // it's possible we won't depending on the server's
+        // client_min_messages setting.
+        while (warning != null) {
+            // Verify that the SQLWarning is serializable.
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream(baos);
+            oos.writeObject(warning);
+            oos.close();
+            warning = warning.getNextWarning();
+        }
+
+        stmt.close();
         con.close();
     }
 

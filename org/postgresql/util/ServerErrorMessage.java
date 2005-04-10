@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/ServerErrorMessage.java,v 1.6 2005/01/11 08:25:49 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/util/ServerErrorMessage.java,v 1.6.2.1 2005/02/10 19:52:46 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -11,8 +11,9 @@ package org.postgresql.util;
 
 import org.postgresql.Driver;
 import java.util.Hashtable;
+import java.io.Serializable;
 
-public class ServerErrorMessage
+public class ServerErrorMessage implements Serializable
 {
 
     private static final Character SEVERITY = new Character('S');
