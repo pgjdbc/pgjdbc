@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/PGStream.java,v 1.13 2005/01/11 08:25:43 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/PGStream.java,v 1.14 2005/02/22 22:35:54 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -69,6 +69,19 @@ public class PGStream
 
     public Socket getSocket() {
         return connection;
+    }
+
+    /**
+     * Check for pending backend messages without blocking.
+     * Might return false when there actually are messages
+     * waiting, depending on the characteristics of the
+     * underlying socket. This is used to detect asynchronous
+     * notifies from the backend, when available.
+     *
+     * @return true if there is a pending backend message
+     */
+    public boolean hasMessagePending() throws IOException {
+        return connection.getInputStream().available() > 0;
     }
 
     /**

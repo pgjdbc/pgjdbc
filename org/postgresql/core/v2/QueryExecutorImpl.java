@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/QueryExecutorImpl.java,v 1.11 2005/02/10 19:53:17 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/QueryExecutorImpl.java,v 1.12 2005/02/15 08:56:25 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -146,6 +146,33 @@ public class QueryExecutorImpl implements QueryExecutor {
             params.writeV2FastpathValue(i, pgStream);
 
         pgStream.flush();
+    }
+
+    public synchronized void processNotifies() throws SQLException {
+        // Asynchronous notifies only arrive when we are not in a transaction
+        if (protoConnection.getTransactionState() != ProtocolConnection.TRANSACTION_IDLE)
+            return;
+            
+        try {
+            while (pgStream.hasMessagePending()) {
+                int c = pgStream.ReceiveChar();
+                switch (c) {
+                case 'A':  // Asynchronous Notify
+                    receiveAsyncNotify();
+                    break;
+                case 'E':  // Error Message
+                    throw receiveErrorMessage();
+                    // break;
+                case 'N':  // Error Notification
+                    protoConnection.addWarning(receiveNotification());
+                    break;
+                default:
+                    throw new PSQLException(GT.tr("Unknown Response Type {0}.", new Character((char) c)), PSQLState.CONNECTION_FAILURE);
+                }
+            }
+        } catch (IOException ioe) {
+            throw new PSQLException(GT.tr("An I/O error occured while sending to the backend."), PSQLState.CONNECTION_FAILURE, ioe);
+        }
     }
 
     private byte[] receiveFastpathResult() throws IOException, SQLException {

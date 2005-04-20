@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ProtocolConnectionImpl.java,v 1.4 2004/11/09 08:45:31 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ProtocolConnectionImpl.java,v 1.5 2005/01/11 08:25:43 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -56,8 +56,8 @@ class ProtocolConnectionImpl implements ProtocolConnection {
         return transactionState;
     }
 
-    public synchronized PGNotification[]
-    getNotifications() {
+    public synchronized PGNotification[] getNotifications() throws SQLException {
+        executor.processNotifies();
         PGNotification[] array = (PGNotification[])notifications.toArray(new PGNotification[notifications.size()]);
         notifications.clear();
         return array;

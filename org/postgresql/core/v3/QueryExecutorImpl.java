@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.21 2005/02/01 07:27:54 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.22 2005/04/10 16:44:13 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -524,6 +524,34 @@ public class QueryExecutorImpl implements QueryExecutor {
         pgStream.flush();
     }
 
+    public synchronized void processNotifies() throws SQLException {
+        // Asynchronous notifies only arrive when we are not in a transaction
+        if (protoConnection.getTransactionState() != ProtocolConnection.TRANSACTION_IDLE)
+            return;
+
+        try {
+            while (pgStream.hasMessagePending()) {
+                int c = pgStream.ReceiveChar();
+                switch (c) {
+                case 'A':  // Asynchronous Notify
+                    receiveAsyncNotify();
+                    break;
+                case 'E':  // Error Response (response to pretty much everything; backend then skips until Sync)
+                    throw receiveErrorResponse();
+                    // break;
+                case 'N':  // Notice Response (warnings / info)
+                    SQLWarning warning = receiveNoticeResponse();
+                    protoConnection.addWarning(warning);
+                    break;
+                default:
+                    throw new PSQLException(GT.tr("Unknown Response Type {0}.", new Character((char) c)), PSQLState.CONNECTION_FAILURE);
+                }
+            }
+        } catch (IOException ioe) {
+            throw new PSQLException(GT.tr("An I/O error occured while sending to the backend."), PSQLState.CONNECTION_FAILURE, ioe);
+        }
+    }
+    
     private byte[] receiveFastpathResult() throws IOException, SQLException {
         boolean endQuery = false;
         SQLException error = null;

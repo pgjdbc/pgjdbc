@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/PGConnection.java,v 1.12 2005/01/11 08:25:43 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/PGConnection.java,v 1.13 2005/01/17 09:51:40 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -27,7 +27,7 @@ public interface PGConnection
      * Returns null if there have been no notifications.
      * @since 7.3
      */
-    public PGNotification[] getNotifications();
+    public PGNotification[] getNotifications() throws SQLException;
 
     /**
      * This returns the LargeObject API for the current connection.
