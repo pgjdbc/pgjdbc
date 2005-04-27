@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.71 2005/02/15 09:09:07 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.72 2005/02/16 18:28:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2737,8 +2737,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             setDate(i, d);
         else
         {
-            cal = changeTime(d, cal, true);
-            setDate(i, new java.sql.Date(cal.getTime().getTime()));
+            Calendar _cal = (Calendar)cal.clone();
+            _cal = changeTime(d, cal, true);
+            setDate(i, new java.sql.Date(_cal.getTime().getTime()));
         }
     }
 
@@ -2749,8 +2750,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             setTime(i, t);
         else
         {
-            cal = changeTime(t, cal, true);
-            setTime(i, new java.sql.Time(cal.getTime().getTime()));
+            Calendar _cal = (Calendar)cal.clone();
+            _cal = changeTime(t, _cal, true);
+            setTime(i, new java.sql.Time(_cal.getTime().getTime()));
         }
     }
 
@@ -2761,8 +2763,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             setTimestamp(i, t);
         else
         {
-            cal = changeTime(t, cal, true);
-            setTimestamp(i, new java.sql.Timestamp(cal.getTime().getTime()));
+            Calendar _cal = (Calendar)cal.clone();
+            _cal = changeTime(t, _cal, true);
+            setTimestamp(i, new java.sql.Timestamp(_cal.getTime().getTime()));
         }
     }
 
