@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.19 2005/03/04 06:52:03 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.20 2005/04/10 21:54:16 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -45,20 +45,25 @@ public abstract class AbstractJdbc2DatabaseMetaData
     protected int getMaxIndexKeys() throws SQLException {
         if (INDEX_MAX_KEYS == 0)
         {
-            String from;
-            if (connection.haveMinimumServerVersion("7.3"))
-            {
-                from = "pg_catalog.pg_namespace n, pg_catalog.pg_type t1, pg_catalog.pg_type t2 WHERE t1.typnamespace=n.oid AND n.nspname='pg_catalog' AND ";
+            String sql;
+            if (connection.haveMinimumServerVersion("8.0")) {
+                sql = "SELECT setting FROM pg_catalog.pg_settings WHERE name='max_index_keys'";
+            } else {
+                String from;
+                if (connection.haveMinimumServerVersion("7.3"))
+                {
+                    from = "pg_catalog.pg_namespace n, pg_catalog.pg_type t1, pg_catalog.pg_type t2 WHERE t1.typnamespace=n.oid AND n.nspname='pg_catalog' AND ";
+                }
+                else
+                {
+                    from = "pg_type t1, pg_type t2 WHERE ";
+                }
+                sql = "SELECT t1.typlen/t2.typlen FROM " + from + " t1.typelem=t2.oid AND t1.typname='oidvector'";
             }
-            else
-            {
-                from = "pg_type t1, pg_type t2 WHERE ";
-            }
-            String sql = "SELECT t1.typlen/t2.typlen FROM " + from + " t1.typelem=t2.oid AND t1.typname='oidvector'";
             ResultSet rs = connection.createStatement().executeQuery(sql);
             if (!rs.next())
             {
-                throw new PSQLException(GT.tr("Unable to find datatypes oid and oidvector in the system catalogs."), PSQLState.UNEXPECTED_ERROR);
+                throw new PSQLException(GT.tr("Unable to determine a value for MaxIndexKeys due to missing system catalog data."), PSQLState.UNEXPECTED_ERROR);
             }
             INDEX_MAX_KEYS = rs.getInt(1);
             rs.close();
@@ -3203,8 +3208,13 @@ public abstract class AbstractJdbc2DatabaseMetaData
                          " FROM " +
                          " pg_catalog.pg_namespace pkn, pg_catalog.pg_class pkc, pg_catalog.pg_attribute pka, " +
                          " pg_catalog.pg_namespace fkn, pg_catalog.pg_class fkc, pg_catalog.pg_attribute fka, " +
-                         " pg_catalog.pg_constraint con, information_schema._pg_keypositions() pos(n), " +
-                         " pg_catalog.pg_depend dep, pg_catalog.pg_class pkic " +
+                         " pg_catalog.pg_constraint con, ";
+            if (connection.haveMinimumServerVersion("8.0")) {
+                sql += " pg_catalog.generate_series(1, " + getMaxIndexKeys() + ") pos(n), ";
+            } else {
+                sql += " information_schema._pg_keypositions() pos(n), ";
+            }
+            sql += " pg_catalog.pg_depend dep, pg_catalog.pg_class pkic " +
                          " WHERE pkn.oid = pkc.relnamespace AND pkc.oid = pka.attrelid AND pka.attnum = con.confkey[pos.n] AND con.confrelid = pkc.oid " +
                          " AND fkn.oid = fkc.relnamespace AND fkc.oid = fka.attrelid AND fka.attnum = con.conkey[pos.n] AND con.conrelid = fkc.oid " +
                          " AND con.contype = 'f' AND con.oid = dep.objid AND pkic.oid = dep.refobjid AND pkic.relkind = 'i' AND dep.classid = 'pg_constraint'::regclass::oid AND dep.refclassid = 'pg_class'::regclass::oid ";
