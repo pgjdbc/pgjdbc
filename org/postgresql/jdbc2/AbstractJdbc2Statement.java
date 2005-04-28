@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.68.2.3 2005/02/15 09:09:31 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.68.2.4 2005/02/16 18:30:27 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -996,10 +996,14 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                 oid = Oid.OID;
             }
             break;
-	case Types.BLOB:
-	case Types.CLOB:
-	    oid = Oid.OID;
-	    break;
+        case Types.BLOB:
+        case Types.CLOB:
+            oid = Oid.OID;
+            break;
+        case Types.ARRAY:
+        case Types.DISTINCT:
+        case Types.STRUCT:
+        case Types.NULL:
         case Types.OTHER:
             oid = Oid.INVALID;
             break;
@@ -2558,6 +2562,12 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     {
         checkClosed();
 
+        if (null == x)
+        {
+            setNull(i, Types.ARRAY);
+            return;
+        }
+
         // This only works for Array implementations that return a valid array
         // literal from Array.toString(), such as the implementation we return
         // from ResultSet.getArray(). Eventually we need a proper implementation
@@ -2576,6 +2586,13 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public void setBlob(int i, Blob x) throws SQLException
     {
         checkClosed();
+
+        if (x == null)
+        {
+            setNull(i, Types.BLOB);
+            return;
+        }
+
         InputStream l_inStream = x.getBinaryStream();
         LargeObjectManager lom = connection.getLargeObjectAPI();
         int oid = lom.create();
@@ -2620,6 +2637,16 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public void setCharacterStream(int i, java.io.Reader x, int length) throws SQLException
     {
         checkClosed();
+
+        if (x == null) {
+            if (connection.haveMinimumServerVersion("7.2")) {
+                setNull(i, Types.VARCHAR);
+            } else {
+                setNull(i, Types.CLOB);
+            }
+            return;
+        }
+
         if (length < 0)
             throw new PSQLException(GT.tr("Invalid stream length {0}.", new Integer(length)),
                                     PSQLState.INVALID_PARAMETER_VALUE);
@@ -2690,6 +2717,13 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public void setClob(int i, Clob x) throws SQLException
     {
         checkClosed();
+
+        if (x == null)
+        {
+            setNull(i, Types.CLOB);
+            return;
+        }
+
         InputStream l_inStream = x.getAsciiStream();
         int l_length = (int) x.length();
         LargeObjectManager lom = connection.getLargeObjectAPI();

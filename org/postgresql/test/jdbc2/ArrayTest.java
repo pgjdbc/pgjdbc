@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ArrayTest.java,v 1.7 2004/11/09 08:54:00 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ArrayTest.java,v 1.8 2005/01/11 08:25:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -36,6 +36,27 @@ public class ArrayTest extends TestCase
         TestUtil.dropTable(conn, "arrtest");
         TestUtil.closeDB(conn);
     }
+
+    public void testSetNull() throws SQLException {
+        PreparedStatement pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
+        pstmt.setNull(1, Types.ARRAY);
+        pstmt.setNull(2, Types.ARRAY);
+        pstmt.setNull(3, Types.ARRAY);
+        pstmt.executeUpdate();
+
+        pstmt.setObject(1, null, Types.ARRAY);
+        pstmt.setObject(2, null);
+        pstmt.setObject(3, null);
+        pstmt.executeUpdate();
+
+        pstmt.setArray(1, null);
+        pstmt.setArray(2, null);
+        pstmt.setArray(3, null);
+        pstmt.executeUpdate();
+
+        pstmt.close();
+    }
+
 
     public void testRetrieveArrays() throws SQLException {
         Statement stmt = conn.createStatement();
