@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/BlobTest.java,v 1.13 2004/11/09 08:54:01 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/BlobTest.java,v 1.14 2005/01/11 08:25:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -45,6 +45,29 @@ public class BlobTest extends TestCase
     {
         TestUtil.dropTable(con, "testblob");
         TestUtil.closeDB(con);
+    }
+
+    public void testSetNull() throws Exception
+    {
+        PreparedStatement pstmt = con.prepareStatement("INSERT INTO testblob(lo) VALUES (?)");
+
+        pstmt.setBlob(1, null);
+        pstmt.executeUpdate();
+
+        pstmt.setNull(1, Types.BLOB);
+        pstmt.executeUpdate();
+
+        pstmt.setObject(1, null, Types.BLOB);
+        pstmt.executeUpdate();
+
+        pstmt.setClob(1, null);
+        pstmt.executeUpdate();
+
+        pstmt.setNull(1, Types.CLOB);
+        pstmt.executeUpdate();
+
+        pstmt.setObject(1, null, Types.CLOB);
+        pstmt.executeUpdate();
     }
 
     /*
