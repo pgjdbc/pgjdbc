@@ -3,7 +3,7 @@
 * Copyright (c) 2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL$
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2BlobClob.java,v 1.1 2005/03/28 08:52:35 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -46,7 +46,8 @@ public class AbstractJdbc2BlobClob
 
     public byte[] getBytes(long pos, int length) throws SQLException
     {
-        lo.seek((int)pos, LargeObject.SEEK_SET);
+        assertPosition(pos);
+        lo.seek((int)(pos-1), LargeObject.SEEK_SET);
         return lo.read(length);
     }
 
@@ -67,12 +68,12 @@ public class AbstractJdbc2BlobClob
     {
         assertPosition(start, pattern.length);
 
-        int position = 0;
+        int position = 1;
         int patternIdx = 0;
         long result = -1;
-        int tmpPosition = 0;
+        int tmpPosition = 1;
 
-        for (LOIterator i = new LOIterator(start); i.hasNext(); position++)
+        for (LOIterator i = new LOIterator(start-1); i.hasNext(); position++)
         {
             byte b = i.next();
             if (b == pattern[patternIdx])
@@ -143,7 +144,7 @@ public class AbstractJdbc2BlobClob
      */
     public long position(Blob pattern, long start) throws SQLException
     {
-        return position(pattern.getBytes(0, (int)pattern.length()), start);
+        return position(pattern.getBytes(1, (int)pattern.length()), start);
     }
 
     /**
@@ -175,7 +176,11 @@ public class AbstractJdbc2BlobClob
      */
     protected void assertPosition(long pos, long len) throws SQLException
     {
-        if (pos + len > Integer.MAX_VALUE)
+        if (pos < 1)
+        {
+            throw new PSQLException(GT.tr("LOB positioning offsets start at 1."), PSQLState.INVALID_PARAMETER_VALUE);
+        }
+        if (pos + len - 1 > Integer.MAX_VALUE)
         {
             throw new PSQLException(GT.tr("PostgreSQL LOBs can only index to: {0}", new Integer(Integer.MAX_VALUE)), PSQLState.INVALID_PARAMETER_VALUE);
         }

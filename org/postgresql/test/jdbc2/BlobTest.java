@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/BlobTest.java,v 1.14 2005/01/11 08:25:48 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/BlobTest.java,v 1.15 2005/04/28 14:17:24 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -28,7 +28,6 @@ public class BlobTest extends TestCase
 
     private static final int LOOP = 0; // LargeObject API using loop
     private static final int NATIVE_STREAM = 1; // LargeObject API using OutputStream
-    private static final int JDBC_STREAM = 2; // JDBC API using OutputStream
 
     public BlobTest(String name)
     {
@@ -39,10 +38,12 @@ public class BlobTest extends TestCase
     {
         con = TestUtil.openDB();
         TestUtil.createTable(con, "testblob", "id name,lo oid");
+        con.setAutoCommit(false);
     }
 
     protected void tearDown() throws Exception
     {
+        con.setAutoCommit(true);
         TestUtil.dropTable(con, "testblob");
         TestUtil.closeDB(con);
     }
@@ -75,9 +76,6 @@ public class BlobTest extends TestCase
      */
     public void testUploadBlob_LOOP() throws Exception
     {
-        con.setAutoCommit(false);
-        assertTrue(!con.getAutoCommit());
-
         assertTrue(uploadFile("build.xml", LOOP) > 0);
 
         // Now compare the blob & the file. Note this actually tests the
@@ -85,8 +83,6 @@ public class BlobTest extends TestCase
         assertTrue(compareBlobsLOAPI());
         assertTrue(compareBlobs());
         assertTrue(compareClobs());
-
-        con.setAutoCommit(true);
     }
 
     /*
@@ -94,16 +90,28 @@ public class BlobTest extends TestCase
      */
     public void testUploadBlob_NATIVE() throws Exception
     {
-        con.setAutoCommit(false);
-        assertTrue(!con.getAutoCommit());
-
         assertTrue(uploadFile("build.xml", NATIVE_STREAM) > 0);
 
         // Now compare the blob & the file. Note this actually tests the
         // InputStream implementation!
         assertTrue(compareBlobs());
+    }
 
-        con.setAutoCommit(true);
+    public void testGetBytesOffset() throws Exception
+    {
+        assertTrue(uploadFile("build.xml", NATIVE_STREAM) > 0);
+
+        Statement stmt = con.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");
+        assertTrue(rs.next());
+
+        Blob lob = rs.getBlob(1);
+        byte data[] = lob.getBytes(2,4);
+        assertEquals(data.length, 4);
+        assertEquals(data[0], '?');
+        assertEquals(data[1], 'x');
+        assertEquals(data[2], 'm');
+        assertEquals(data[3], 'l');
     }
 
     /*
@@ -145,13 +153,6 @@ public class BlobTest extends TestCase
                 s = fis.read();
             }
             os.close();
-            break;
-
-        case JDBC_STREAM:
-            File f = new File(file);
-            PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("testblob", "?"));
-            ps.setBinaryStream(1, fis, (int) f.length());
-            ps.execute();
             break;
 
         default:

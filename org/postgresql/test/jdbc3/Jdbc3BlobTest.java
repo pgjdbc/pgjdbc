@@ -3,7 +3,7 @@
 * Copyright (c) 2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL$
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/Jdbc3BlobTest.java,v 1.1 2005/03/28 08:52:35 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -120,7 +120,7 @@ public class Jdbc3BlobTest extends TestCase
      */
     public void readWrite(byte[] data) throws SQLException
     {
-        readWrite(0, data);
+        readWrite(1, data);
     }
 
     /**
@@ -224,7 +224,7 @@ public class Jdbc3BlobTest extends TestCase
 
     public void readWriteStream(byte[] data) throws SQLException, IOException
     {
-        readWriteStream(0, data);
+        readWriteStream(1, data);
     }
 
 
@@ -263,7 +263,7 @@ public class Jdbc3BlobTest extends TestCase
         b = rs.getBlob("DATA");
         InputStream in = b.getBinaryStream();
         byte[] rspData = new byte[data.length];
-        in.skip(offset);
+        in.skip(offset-1);
         in.read(rspData);
         in.close();
 
@@ -289,7 +289,7 @@ public class Jdbc3BlobTest extends TestCase
 
         assertTrue(rs.next());
         Blob b = rs.getBlob("DATA");
-        b.setBytes(0, data);
+        b.setBytes(1, data);
 
         rs.close();
         ps.close();
@@ -299,7 +299,7 @@ public class Jdbc3BlobTest extends TestCase
 
         assertTrue(rs.next());
         b = rs.getBlob("DATA");
-        long position = b.position(pattern, 0);
+        long position = b.position(pattern, 1);
         byte[] rspData = b.getBytes(position, pattern.length);
         assertTrue("Request should be the same as the response", Arrays.equals(pattern, rspData));
 
