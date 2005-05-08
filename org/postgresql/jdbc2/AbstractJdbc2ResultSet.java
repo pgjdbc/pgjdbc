@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.71.2.1 2005/02/15 08:55:50 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.71.2.2 2005/03/23 19:48:17 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.StringTokenizer;
 import java.util.Vector;
+import java.util.Calendar;
 import java.util.GregorianCalendar;
 import org.postgresql.Driver;
 import org.postgresql.core.*;
@@ -383,8 +384,9 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         if (tmp == null)
             return null;
 
-        cal = org.postgresql.jdbc2.AbstractJdbc2Statement.changeTime(tmp, cal, false);
-        return new java.sql.Date(cal.getTime().getTime());
+	Calendar _cal = (Calendar)cal.clone();
+        _cal = org.postgresql.jdbc2.AbstractJdbc2Statement.changeTime(tmp, _cal, false);
+        return new java.sql.Date(_cal.getTime().getTime());
     }
 
 
@@ -396,8 +398,9 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         java.util.Date tmp = getTime(i);
         if (tmp == null)
             return null;
-        cal = org.postgresql.jdbc2.AbstractJdbc2Statement.changeTime(tmp, cal, false);
-        return new java.sql.Time(cal.getTime().getTime());
+	Calendar _cal = (Calendar)cal.clone();
+        _cal = org.postgresql.jdbc2.AbstractJdbc2Statement.changeTime(tmp, _cal, false);
+        return new java.sql.Time(_cal.getTime().getTime());
     }
 
 
@@ -409,8 +412,9 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         java.util.Date tmp = getTimestamp(i);
         if (tmp == null)
             return null;
-        cal = org.postgresql.jdbc2.AbstractJdbc2Statement.changeTime(tmp, cal, false);
-        return new java.sql.Timestamp(cal.getTime().getTime());
+	Calendar _cal = (Calendar)cal.clone();
+        _cal = org.postgresql.jdbc2.AbstractJdbc2Statement.changeTime(tmp, _cal, false);
+        return new java.sql.Timestamp(_cal.getTime().getTime());
     }
 
 

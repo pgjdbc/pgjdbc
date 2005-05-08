@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/TimestampTest.java,v 1.17 2005/01/11 08:25:48 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/TimestampTest.java,v 1.17.2.1 2005/02/15 08:32:17 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -14,6 +14,7 @@ import junit.framework.TestCase;
 
 import java.sql.*;
 import java.util.TimeZone;
+import java.util.Calendar;
 import java.util.GregorianCalendar;
 
 import org.postgresql.PGStatement;
@@ -46,6 +47,47 @@ public class TimestampTest extends TestCase
         TestUtil.dropTable(con, TSWTZ_TABLE);
         TestUtil.dropTable(con, TSWOTZ_TABLE);
         TestUtil.closeDB(con);
+    }
+
+    /**
+     * Ensure the driver doesn't modify a Calendar that is passed in.
+     */
+    public void testCalendarModification() throws SQLException
+    {
+        Calendar cal = Calendar.getInstance();
+        Calendar origCal = (Calendar)cal.clone();
+        PreparedStatement ps = con.prepareStatement("INSERT INTO " + TSWOTZ_TABLE + " VALUES (?)");
+
+        ps.setDate(1, new Date(0), cal);
+        ps.executeUpdate();
+        assertEquals(origCal, cal);
+
+        ps.setTimestamp(1, new Timestamp(0), cal);
+        ps.executeUpdate();
+        assertEquals(origCal, cal);
+
+        ps.setTime(1, new Time(0), cal);
+        // Can't actually execute this one because of type mismatch,
+        // but all we're really concerned about is the set call.
+        // ps.executeUpdate();
+        assertEquals(origCal, cal);
+
+        ps.close();
+        Statement stmt = con.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT ts FROM " + TSWOTZ_TABLE);
+        assertTrue(rs.next());
+
+        rs.getDate(1, cal);
+        assertEquals(origCal, cal);
+
+        rs.getTimestamp(1, cal);
+        assertEquals(origCal, cal);
+
+        rs.getTime(1, cal);
+        assertEquals(origCal, cal);
+
+        rs.close();
+        stmt.close();
     }
 
     public void testInfinity() throws SQLException
