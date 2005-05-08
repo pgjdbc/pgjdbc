@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/Jdbc3TestSuite.java,v 1.12 2005/02/01 07:27:55 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/Jdbc3TestSuite.java,v 1.13 2005/03/28 08:52:35 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -20,8 +20,9 @@ public class Jdbc3TestSuite extends TestSuite
     /*
      * The main entry point for JUnit
      */
-    public static TestSuite suite()
+    public static TestSuite suite() throws Exception
     {
+        Class.forName("org.postgresql.Driver");
         TestSuite suite = new TestSuite();
         suite.addTestSuite(Jdbc3SavepointTest.class);
         suite.addTestSuite(TypesTest.class);
