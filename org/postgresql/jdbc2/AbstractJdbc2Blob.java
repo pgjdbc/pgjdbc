@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Blob.java,v 1.7 2005/01/11 08:25:45 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Blob.java,v 1.7.2.1 2005/02/15 08:55:50 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -15,6 +15,10 @@ import org.postgresql.largeobject.LargeObjectManager;
 import java.io.InputStream;
 import java.sql.Blob;
 import java.sql.SQLException;
+
+import org.postgresql.util.GT;
+import org.postgresql.util.PSQLState;
+import org.postgresql.util.PSQLException;
 
 public abstract class AbstractJdbc2Blob
 {
@@ -38,7 +42,10 @@ public abstract class AbstractJdbc2Blob
 
     public byte[] getBytes(long pos, int length) throws SQLException
     {
-        lo.seek((int)pos, LargeObject.SEEK_SET);
+        if (pos < 1) {
+            throw new PSQLException(GT.tr("LOB positioning offsets start at 1."), PSQLState.INVALID_PARAMETER_VALUE);
+        }
+        lo.seek((int)(pos-1), LargeObject.SEEK_SET);
         return lo.read(length);
     }
 
@@ -55,7 +62,7 @@ public abstract class AbstractJdbc2Blob
      */
     public long position(Blob pattern, long start) throws SQLException
     {
-        return position(pattern.getBytes(0, (int)pattern.length()), start);
+        return position(pattern.getBytes(1, (int)pattern.length()), start);
     }
 
 }
