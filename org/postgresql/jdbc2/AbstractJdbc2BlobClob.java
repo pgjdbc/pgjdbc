@@ -3,7 +3,7 @@
 * Copyright (c) 2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2BlobClob.java,v 1.1 2005/03/28 08:52:35 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2BlobClob.java,v 1.2 2005/05/08 23:18:24 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -149,7 +149,6 @@ public class AbstractJdbc2BlobClob
 
     /**
      * Expose large object to derived classes.
-     * @return
      */
     protected LargeObject getLO()
     {
