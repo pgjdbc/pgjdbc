@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.20 2005/04/10 21:54:16 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.21 2005/04/28 14:56:56 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -573,9 +573,13 @@ public abstract class AbstractJdbc2DatabaseMetaData
      * Get all the "extra" characters that can be used in unquoted
      * identifier names (those beyond a-zA-Z0-9 and _)
      *
-     * <p>From the file src/backend/parser/scan.l, an identifier is
-     * {letter}{letter_or_digit} which makes it just those listed
-     * above.
+     * <p>Postgresql allows any high-bit character to be used
+     * in an unquoted identifer, so we can't possibly list them all.
+     *
+     * From the file src/backend/parser/scan.l, an identifier is
+     * ident_start [A-Za-z\200-\377_]
+     * ident_cont  [A-Za-z\200-\377_0-9\$]
+     * identifier  {ident_start}{ident_cont}* 
      *
      * @return a string containing the extra characters
      * @exception SQLException if a database access error occurs
