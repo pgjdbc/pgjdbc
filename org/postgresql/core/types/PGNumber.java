@@ -8,6 +8,7 @@ package org.postgresql.core.types;
 
 import java.sql.Types;
 
+import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -58,7 +59,7 @@ public class PGNumber implements PGType
         }
         catch( Exception ex )
         {
-            throw new PSQLException("Error", new PSQLState(""),ex);
+            throw new PSQLException(GT.tr("Cannot convert an instance of {0} to type {1}", new Object[]{val.getClass().getName(),"Types.OTHER"}), PSQLState.INVALID_PARAMETER_TYPE, ex);
         }
     }
     public String toString()
