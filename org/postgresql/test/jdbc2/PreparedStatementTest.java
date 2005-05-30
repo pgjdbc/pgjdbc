@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/PreparedStatementTest.java,v 1.9 2005/01/11 08:25:48 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/PreparedStatementTest.java,v 1.10 2005/02/01 07:27:54 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -14,6 +14,7 @@ import org.postgresql.test.util.BrokenInputStream;
 import junit.framework.TestCase;
 import java.io.*;
 import java.sql.*;
+import java.math.BigDecimal;
 
 
 public class PreparedStatementTest extends TestCase
@@ -295,5 +296,347 @@ public class PreparedStatementTest extends TestCase
             pstmt.executeUpdate();
             pstmt.close();
         }
+    }
+    public void testDouble() throws SQLException
+    {
+        PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE double_tab (max_double float, min_double float, null_value float)");
+        pstmt.executeUpdate();
+        pstmt.close();
+        
+        pstmt = conn.prepareStatement( "insert into double_tab values (?,?,?)");
+        pstmt.setDouble(1, 1.0E125);
+        pstmt.setDouble(2, 1.0E-130);
+        pstmt.setNull(3,Types.DOUBLE);
+        pstmt.executeUpdate();
+        pstmt.close();
+        
+        pstmt = conn.prepareStatement( "select * from double_tab");
+        ResultSet rs = pstmt.executeQuery();
+        assertTrue( rs.next());
+        double d = rs.getDouble(1);
+        assertTrue( rs.getDouble(1) == 1.0E125 );
+        assertTrue( rs.getDouble(2) == 1.0E-130 );
+        rs.getDouble(3);
+        assertTrue( rs.wasNull() );
+        rs.close();
+        pstmt.close();
+        
+    }
+    
+    public void testFloat() throws SQLException
+    {
+        PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE float_tab (max_float real, min_float real, null_value real)");
+        pstmt.executeUpdate();
+        pstmt.close();
+       
+        pstmt = conn.prepareStatement( "insert into float_tab values (?,?,?)");
+        pstmt.setFloat(1,(float)1.0E37 );
+        pstmt.setFloat(2, (float)1.0E-37);
+        pstmt.setNull(3,Types.FLOAT);
+        pstmt.executeUpdate();
+        pstmt.close();
+        
+        pstmt = conn.prepareStatement( "select * from float_tab");
+        ResultSet rs = pstmt.executeQuery();
+        assertTrue( rs.next());
+        float f = rs.getFloat(1);
+        assertTrue( "expected 1.0E37,received " + rs.getFloat(1), rs.getFloat(1) == (float)1.0E37 );
+        assertTrue( "expected 1.0E-37,received " + rs.getFloat(2), rs.getFloat(2) == (float)1.0E-37 );
+        rs.getDouble(3);
+        assertTrue( rs.wasNull() );
+        rs.close();
+        pstmt.close();
+        
+    }
+    
+    public void testBoolean() throws SQLException
+    {
+        PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE bool_tab (max_val boolean, min_val boolean, null_val boolean)");
+        pstmt.executeUpdate();
+        pstmt.close();
+       
+        pstmt = conn.prepareStatement( "insert into bool_tab values (?,?,?)");
+        pstmt.setBoolean(1,true );
+        pstmt.setBoolean(2, false);
+        pstmt.setNull(3,Types.BOOLEAN);
+        pstmt.executeUpdate();
+        pstmt.close();
+        
+        pstmt = conn.prepareStatement( "select * from bool_tab");
+        ResultSet rs = pstmt.executeQuery();
+        assertTrue( rs.next());
+
+        assertTrue( "expected true,received " + rs.getBoolean(1), rs.getBoolean(1) == true );
+        assertTrue( "expected false,received " + rs.getBoolean(2), rs.getBoolean(2) == false );
+        rs.getFloat(3);
+        assertTrue( rs.wasNull() );
+        rs.close();
+        pstmt.close();
+        
+    }
+    
+    public void testSetFloatInteger() throws SQLException
+    {
+        org.postgresql.Driver.logDebug=true;
+        PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE float_tab (max_val float8, min_val float, null_val float8)");
+        pstmt.executeUpdate();
+        pstmt.close();
+        
+        Integer maxInteger= new Integer(2147483647), minInteger = new Integer(-2147483648);
+        
+        Double maxFloat=new Double( 2147483647), minFloat = new Double( -2147483648 );
+        
+        pstmt = conn.prepareStatement( "insert into float_tab values (?,?,?)");
+        pstmt.setObject(1,maxInteger,Types.FLOAT );
+        pstmt.setObject(2,minInteger,Types.FLOAT);
+        pstmt.setNull(3,Types.FLOAT);
+        pstmt.executeUpdate();
+        pstmt.close();
+        
+        pstmt = conn.prepareStatement( "select * from float_tab");
+        ResultSet rs = pstmt.executeQuery();
+        assertTrue( rs.next());
+
+        assertTrue( "expected "+maxFloat+" ,received " + rs.getObject(1), ((Double)rs.getObject(1)).equals(maxFloat) );
+        assertTrue( "expected "+minFloat+" ,received " + rs.getObject(2), ((Double)rs.getObject(2)).equals( minFloat) );
+        rs.getFloat(3);
+        assertTrue( rs.wasNull() );
+        rs.close();
+        pstmt.close();
+        
+    }
+    public void testSetFloatString() throws SQLException
+    {
+        org.postgresql.Driver.logDebug=true;
+        PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE float_tab (max_val float8, min_val float8, null_val float8)");
+        pstmt.executeUpdate();
+        pstmt.close();
+        
+        String maxStringFloat = new String("1.0E37"), minStringFloat = new String("1.0E-37");
+        Double maxFloat=new Double(1.0E37), minFloat = new Double( 1.0E-37 );
+        
+        pstmt = conn.prepareStatement( "insert into float_tab values (?,?,?)");
+        pstmt.setObject(1,maxStringFloat,Types.FLOAT );
+        pstmt.setObject(2,minStringFloat,Types.FLOAT );
+        pstmt.setNull(3,Types.FLOAT);
+        pstmt.executeUpdate();
+        pstmt.close();
+        
+        pstmt = conn.prepareStatement( "select * from float_tab");
+        ResultSet rs = pstmt.executeQuery();
+        assertTrue( rs.next());
+
+        assertTrue( "expected true,received " + rs.getObject(1), ((Double)rs.getObject(1)).equals(maxFloat) );
+        assertTrue( "expected false,received " + rs.getBoolean(2), ((Double)rs.getObject(2)).equals( minFloat) );
+        rs.getFloat(3);
+        assertTrue( rs.wasNull() );
+        rs.close();
+        pstmt.close();
+        
+    }
+    
+    public void testSetFloatBigDecimal() throws SQLException
+    {
+        org.postgresql.Driver.logDebug=true;
+        PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE float_tab (max_val float8, min_val float8, null_val float8)");
+        pstmt.executeUpdate();
+        pstmt.close();
+        
+        BigDecimal maxBigDecimalFloat = new BigDecimal("1.0E37"), minBigDecimalFloat = new BigDecimal("1.0E-37");
+        Double maxFloat=new Double(1.0E37), minFloat = new Double( 1.0E-37 );
+        
+        pstmt = conn.prepareStatement( "insert into float_tab values (?,?,?)");
+        pstmt.setObject(1,maxBigDecimalFloat,Types.FLOAT );
+        pstmt.setObject(2,minBigDecimalFloat,Types.FLOAT );
+        pstmt.setNull(3,Types.FLOAT);
+        pstmt.executeUpdate();
+        pstmt.close();
+        
+        pstmt = conn.prepareStatement( "select * from float_tab");
+        ResultSet rs = pstmt.executeQuery();
+        assertTrue( rs.next());
+
+        assertTrue( "expected " + maxFloat + " ,received " + rs.getObject(1), ((Double)rs.getObject(1)).equals(maxFloat) );
+        assertTrue( "expected " + minFloat + " ,received " + rs.getObject(2), ((Double)rs.getObject(2)).equals( minFloat) );
+        rs.getFloat(3);
+        assertTrue( rs.wasNull() );
+        rs.close();
+        pstmt.close();
+        
+    }
+    public void testSetTinyIntFloat() throws SQLException
+    {
+        org.postgresql.Driver.logDebug=true;
+        PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE tiny_int (max_val int4, min_val int4, null_val int4)");
+        pstmt.executeUpdate();
+        pstmt.close();
+        
+        Integer maxInt = new Integer( 127 ), minInt = new Integer(-127);
+        Float maxIntFloat = new Float( 127 ), minIntFloat = new Float( -127 ); 
+        
+        pstmt = conn.prepareStatement( "insert into tiny_int values (?,?,?)");
+        pstmt.setObject(1,maxIntFloat,Types.TINYINT );
+        pstmt.setObject(2,minIntFloat,Types.TINYINT );
+        pstmt.setNull(3,Types.TINYINT);
+        pstmt.executeUpdate();
+        pstmt.close();
+        
+        pstmt = conn.prepareStatement( "select * from tiny_int");
+        ResultSet rs = pstmt.executeQuery();
+        assertTrue( rs.next());
+
+        assertTrue( "expected " + maxInt+" ,received " + rs.getObject(1), ((Integer)rs.getObject(1)).equals( maxInt ) );
+        assertTrue( "expected " + minInt+" ,received " + rs.getObject(2), ((Integer)rs.getObject(2)).equals( minInt ) );
+        rs.getFloat(3);
+        assertTrue( rs.wasNull() );
+        rs.close();
+        pstmt.close();
+        
+    }   
+
+    public void testSetSmallIntFloat() throws SQLException
+    {
+        org.postgresql.Driver.logDebug=true;
+        PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE small_int (max_val int4, min_val int4, null_val int4)");
+        pstmt.executeUpdate();
+        pstmt.close();
+        
+        Integer maxInt = new Integer( 32767 ), minInt = new Integer(-32768);
+        Float maxIntFloat = new Float( 32767 ), minIntFloat = new Float( -32768 ); 
+        
+        pstmt = conn.prepareStatement( "insert into small_int values (?,?,?)");
+        pstmt.setObject(1,maxIntFloat,Types.SMALLINT );
+        pstmt.setObject(2,minIntFloat,Types.SMALLINT );
+        pstmt.setNull(3,Types.TINYINT);
+        pstmt.executeUpdate();
+        pstmt.close();
+        
+        pstmt = conn.prepareStatement( "select * from small_int");
+        ResultSet rs = pstmt.executeQuery();
+        assertTrue( rs.next());
+
+        assertTrue( "expected " + maxInt+" ,received " + rs.getObject(1), ((Integer)rs.getObject(1)).equals( maxInt ) );
+        assertTrue( "expected " + minInt+" ,received " + rs.getObject(2), ((Integer)rs.getObject(2)).equals( minInt ) );
+        rs.getFloat(3);
+        assertTrue( rs.wasNull() );
+        rs.close();
+        pstmt.close();
+        
+    }   
+    public void testSetIntFloat() throws SQLException
+    {
+        org.postgresql.Driver.logDebug=true;
+        PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE int_TAB (max_val int4, min_val int4, null_val int4)");
+        pstmt.executeUpdate();
+        pstmt.close();
+        
+        Integer maxInt = new Integer( 1000 ), minInt = new Integer(-1000);
+        Float maxIntFloat = new Float( 1000 ), minIntFloat = new Float( -1000 ); 
+        
+        pstmt = conn.prepareStatement( "insert into int_tab values (?,?,?)");
+        pstmt.setObject(1,maxIntFloat,Types.INTEGER );
+        pstmt.setObject(2,minIntFloat,Types.INTEGER );
+        pstmt.setNull(3,Types.INTEGER);
+        pstmt.executeUpdate();
+        pstmt.close();
+        
+        pstmt = conn.prepareStatement( "select * from int_tab");
+        ResultSet rs = pstmt.executeQuery();
+        assertTrue( rs.next());
+
+        assertTrue( "expected " + maxInt+" ,received " + rs.getObject(1), ((Integer)rs.getObject(1)).equals( maxInt ) );
+        assertTrue( "expected " + minInt+" ,received " + rs.getObject(2), ((Integer)rs.getObject(2)).equals( minInt ) );
+        rs.getFloat(3);
+        assertTrue( rs.wasNull() );
+        rs.close();
+        pstmt.close();
+        
+    }
+    public void testSetBooleanDouble() throws SQLException
+    {
+        org.postgresql.Driver.logDebug=true;
+        PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE double_tab (max_val float, min_val float, null_val float)");
+        pstmt.executeUpdate();
+        pstmt.close();
+        
+        Boolean trueVal = Boolean.TRUE, falseVal = Boolean.FALSE;
+        Double dBooleanTrue = new Double(1), dBooleanFalse = new Double( 0 ); 
+        
+        pstmt = conn.prepareStatement( "insert into double_tab values (?,?,?)");
+        pstmt.setObject(1,trueVal,Types.DOUBLE );
+        pstmt.setObject(2,falseVal,Types.DOUBLE );
+        pstmt.setNull(3,Types.DOUBLE);
+        pstmt.executeUpdate();
+        pstmt.close();
+        
+        pstmt = conn.prepareStatement( "select * from double_tab");
+        ResultSet rs = pstmt.executeQuery();
+        assertTrue( rs.next());
+
+        assertTrue( "expected " + dBooleanTrue + " ,received " + rs.getObject(1), ((Double)rs.getObject(1)).equals( dBooleanTrue ) );
+        assertTrue( "expected " + dBooleanFalse + " ,received " + rs.getObject(2), ((Double)rs.getObject(2)).equals( dBooleanFalse ) );
+        rs.getFloat(3);
+        assertTrue( rs.wasNull() );
+        rs.close();
+        pstmt.close();
+        
+    }
+    public void testSetBooleanNumeric() throws SQLException
+    {
+        org.postgresql.Driver.logDebug=true;
+        PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE numeric_tab (max_val numeric(30,15), min_val numeric(30,15), null_val numeric(30,15))");
+        pstmt.executeUpdate();
+        pstmt.close();
+        
+        Boolean trueVal = Boolean.TRUE, falseVal = Boolean.FALSE;
+        BigDecimal dBooleanTrue = new BigDecimal(1), dBooleanFalse = new BigDecimal( 0 ); 
+        
+        pstmt = conn.prepareStatement( "insert into numeric_tab values (?,?,?)");
+        pstmt.setObject(1,trueVal,Types.NUMERIC,2 );
+        pstmt.setObject(2,falseVal,Types.NUMERIC,2 );
+        pstmt.setNull(3,Types.DOUBLE);
+        pstmt.executeUpdate();
+        pstmt.close();
+        
+        pstmt = conn.prepareStatement( "select * from numeric_tab");
+        ResultSet rs = pstmt.executeQuery();
+        assertTrue( rs.next());
+
+        assertTrue( "expected " + dBooleanTrue + " ,received " + rs.getObject(1), ((BigDecimal)rs.getObject(1)).compareTo( dBooleanTrue )==0 );
+        assertTrue( "expected " + dBooleanFalse + " ,received " + rs.getObject(2), ((BigDecimal)rs.getObject(2)).compareTo( dBooleanFalse )==0 );
+        rs.getFloat(3);
+        assertTrue( rs.wasNull() );
+        rs.close();
+        pstmt.close();
+        
+    }
+    public void testSetBooleanDecimal() throws SQLException
+    {
+        org.postgresql.Driver.logDebug=true;
+        PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE DECIMAL_TAB (max_val numeric(30,15), min_val numeric(30,15), null_val numeric(30,15))");
+        pstmt.executeUpdate();
+        pstmt.close();
+        
+        Boolean trueVal = Boolean.TRUE, falseVal = Boolean.FALSE;
+        BigDecimal dBooleanTrue = new BigDecimal(1), dBooleanFalse = new BigDecimal( 0 ); 
+        
+        pstmt = conn.prepareStatement( "insert into DECIMAL_TAB values (?,?,?)");
+        pstmt.setObject(1,trueVal,Types.DECIMAL,2 );
+        pstmt.setObject(2,falseVal,Types.DECIMAL,2 );
+        pstmt.setNull(3,Types.DOUBLE);
+        pstmt.executeUpdate();
+        pstmt.close();
+        
+        pstmt = conn.prepareStatement( "select * from DECIMAL_TAB");
+        ResultSet rs = pstmt.executeQuery();
+        assertTrue( rs.next());
+
+        assertTrue( "expected " + dBooleanTrue + " ,received " + rs.getObject(1), ((BigDecimal)rs.getObject(1)).compareTo( dBooleanTrue )==0 );
+        assertTrue( "expected " + dBooleanFalse + " ,received " + rs.getObject(2), ((BigDecimal)rs.getObject(2)).compareTo( dBooleanFalse )==0 );
+        rs.getFloat(3);
+        assertTrue( rs.wasNull() );
+        rs.close();
+        pstmt.close();
+        
     }
 }

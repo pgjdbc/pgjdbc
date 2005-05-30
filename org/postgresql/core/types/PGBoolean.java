@@ -1,0 +1,68 @@
+/*
+ * Created on May 15, 2005
+ *
+ * TODO To change the template for this generated file go to
+ * Window - Preferences - Java - Code Style - Code Templates
+ */
+package org.postgresql.core.types;
+
+import java.sql.Types;
+
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+
+/**
+ * @author davec
+ *
+ * TODO To change the template for this generated type comment go to
+ * Window - Preferences - Java - Code Style - Code Templates
+ */
+public class PGBoolean implements PGType 
+{
+    private Boolean val;
+    
+    public PGBoolean(Boolean x)
+    {
+        val = x;
+    }
+    public PGType castToServerType( int targetType ) throws PSQLException
+    {
+        try
+        {
+        switch ( targetType )
+        {
+            case Types.BIGINT:
+                return new PGLong(new Long( val.booleanValue()==true?1:0 ));
+            case Types.INTEGER:
+                return new PGInteger( new Integer(  val.booleanValue()==true?1:0  ) );
+            case Types.SMALLINT:
+            case Types.TINYINT:
+                return new PGShort( new Short( val.booleanValue()==true?(short)1:(short)0  ) );
+            case Types.VARCHAR:
+                return new PGString( toString() );
+            case Types.DOUBLE:
+            case Types.FLOAT:
+            		return new PGDouble( new Double(val.booleanValue()==true?1:0));
+            case Types.REAL:
+        		return new PGFloat( new Float(val.booleanValue()==true?1:0));
+            case Types.NUMERIC:
+            case Types.DECIMAL:
+                return new PGBigDecimal( new java.math.BigDecimal(val.booleanValue()==true?1:0));
+            
+            case Types.BOOLEAN:
+                return this;
+            default:
+                return new PGUnknown( val );
+        }
+        }
+        catch(Exception ex)
+        {
+            throw new PSQLException("Error", new PSQLState(""),ex);
+        }
+    }
+    public String toString()
+    {
+        return val.booleanValue()==true?"1":"0";
+    }
+    
+}

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.74 2005/04/28 14:17:24 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.75 2005/05/08 23:50:56 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -24,6 +24,7 @@ import org.postgresql.Driver;
 import org.postgresql.PGStatement;
 import org.postgresql.largeobject.*;
 import org.postgresql.core.*;
+import org.postgresql.core.types.*;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PGobject;
@@ -1466,21 +1467,21 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         preparedParameters.clear();
     }
 
-    // Helper method that extracts numeric values from an arbitary Object.
-    private String numericValueOf(Object x)
+    private PGType createInternalType( Object x, int targetType ) throws PSQLException
     {
-        if (x instanceof Boolean)
-            return ((Boolean)x).booleanValue() ? "1" : "0";
-        else if (x instanceof Integer || x instanceof Long ||
-                 x instanceof Double || x instanceof Short ||
-                 x instanceof Number || x instanceof Float)
-            return x.toString();
-        else
-            //ensure the value is a valid numeric value to avoid
-            //sql injection attacks
-            return new BigDecimal(x.toString()).toString();
+        if ( x instanceof Byte ) return new PGByte((Byte) x).castToServerType( targetType );
+        if ( x instanceof Short ) return new PGShort((Short) x).castToServerType( targetType );
+        if ( x instanceof Integer ) return new PGInteger((Integer) x).castToServerType( targetType );
+        if ( x instanceof Long ) return new PGLong( (Long) x).castToServerType( targetType );
+        if ( x instanceof Double ) return new PGDouble((Double)x).castToServerType( targetType );
+        if ( x instanceof Float ) return new PGFloat((Float)x).castToServerType( targetType );
+        if ( x instanceof BigDecimal) return new PGBigDecimal((BigDecimal)x).castToServerType( targetType );
+        // since all of the above are instances of Number make sure this is after them
+        if ( x instanceof Number ) return new PGNumber((Number)x).castToServerType( targetType );
+        if ( x instanceof Boolean) return new PGBoolean((Boolean) x ).castToServerType( targetType );
+        return new PGUnknown(x);
+        
     }
-
     // Helper method for setting parameters to PGobject subclasses.
     private void setPGobject(int parameterIndex, PGobject x) throws SQLException {
         String typename = x.getType();
@@ -1510,121 +1511,108 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
      *   * all other types this value will be ignored.
      * @exception SQLException if a database access error occurs
      */
-    public void setObject(int parameterIndex, Object x, int targetSqlType, int scale) throws SQLException
+    public void setObject(int parameterIndex, Object in, int targetSqlType, int scale) throws SQLException
     {
         checkClosed();
-        if (x == null)
+        if (in == null)
         {
             setNull(parameterIndex, targetSqlType);
             return ;
         }
-        switch (targetSqlType)
+
+    	Object pgType = createInternalType( in, targetSqlType );
+    	switch (targetSqlType)
         {
         case Types.INTEGER:
-            bindLiteral(parameterIndex, numericValueOf(x), Oid.INT4);
+            bindLiteral(parameterIndex, pgType.toString(), Oid.INT4);
             break;
         case Types.TINYINT:
         case Types.SMALLINT:
-            bindLiteral(parameterIndex, numericValueOf(x), Oid.INT2);
+            bindLiteral(parameterIndex, pgType.toString(), Oid.INT2);
             break;
         case Types.BIGINT:
-            bindLiteral(parameterIndex, numericValueOf(x), Oid.INT8);
+            bindLiteral(parameterIndex, pgType.toString(), Oid.INT8);
             break;
         case Types.REAL:
-        case Types.FLOAT:
-            bindLiteral(parameterIndex, numericValueOf(x), Oid.FLOAT4);
+            bindLiteral(parameterIndex, pgType.toString(), Oid.FLOAT4);
             break;
         case Types.DOUBLE:
-            bindLiteral(parameterIndex, numericValueOf(x), Oid.FLOAT8);
+        case Types.FLOAT:
+            bindLiteral(parameterIndex, pgType.toString(), Oid.FLOAT8);
             break;
         case Types.DECIMAL:
         case Types.NUMERIC:
-            bindLiteral(parameterIndex, numericValueOf(x), Oid.NUMERIC);
+            bindLiteral(parameterIndex, pgType.toString(), Oid.NUMERIC);
             break;
         case Types.CHAR:
-            setString(parameterIndex, x.toString(), Oid.BPCHAR);
+            setString(parameterIndex, pgType.toString(), Oid.BPCHAR);
             break;
         case Types.VARCHAR:
         case Types.LONGVARCHAR:
-            setString(parameterIndex, x.toString());
+            setString(parameterIndex, pgType.toString());
             break;
         case Types.DATE:
-            if (x instanceof java.sql.Date)
-                setDate(parameterIndex, (java.sql.Date)x);
+            if (in instanceof java.sql.Date)
+                setDate(parameterIndex, (java.sql.Date)in);
             else
             {
                 java.sql.Date tmpd;
-                if (x instanceof java.util.Date) {
-                    tmpd = new java.sql.Date(((java.util.Date)x).getTime());
+                if (in instanceof java.util.Date) {
+                    tmpd = new java.sql.Date(((java.util.Date)in).getTime());
                 } else {
                     if (calendar == null)
                         calendar = new GregorianCalendar();
-                    tmpd = TimestampUtils.toDate(calendar, x.toString());
+                    tmpd = TimestampUtils.toDate(calendar, in.toString());
                 }
                 setDate(parameterIndex, tmpd);
             }
             break;
         case Types.TIME:
-            if (x instanceof java.sql.Time)
-                setTime(parameterIndex, (java.sql.Time)x);
+            if (in instanceof java.sql.Time)
+                setTime(parameterIndex, (java.sql.Time)in);
             else
             {
                 java.sql.Time tmpt;
-                if (x instanceof java.util.Date) {
-                    tmpt = new java.sql.Time(((java.util.Date)x).getTime());
+                if (in instanceof java.util.Date) {
+                    tmpt = new java.sql.Time(((java.util.Date)in).getTime());
                 } else {
                     if (calendar == null)
                         calendar = new GregorianCalendar();
-                    tmpt = TimestampUtils.toTime(calendar, x.toString());
+                    tmpt = TimestampUtils.toTime(calendar, in.toString());
                 }
                 setTime(parameterIndex, tmpt);
             }
             break;
         case Types.TIMESTAMP:
-            if (x instanceof java.sql.Timestamp)
-                setTimestamp(parameterIndex , (java.sql.Timestamp)x);
+            if (in instanceof java.sql.Timestamp)
+                setTimestamp(parameterIndex , (java.sql.Timestamp)in);
             else
             {
                 java.sql.Timestamp tmpts;
-                if (x instanceof java.util.Date) {
-                    tmpts = new java.sql.Timestamp(((java.util.Date)x).getTime());
+                if (in instanceof java.util.Date) {
+                    tmpts = new java.sql.Timestamp(((java.util.Date)in).getTime());
                 } else {
                     if (calendar == null) {
                         calendar = new GregorianCalendar();
                     }
-                    tmpts = TimestampUtils.toTimestamp(calendar, x.toString());
+                    tmpts = TimestampUtils.toTimestamp(calendar, in.toString());
                 }
                 setTimestamp(parameterIndex, tmpts);
             }
             break;
         case Types.BIT:
-            if (x instanceof Boolean)
-            {
-                bindString(parameterIndex, ((Boolean)x).booleanValue() ? "1" : "0", Oid.BOOL);
-            }
-            else if (x instanceof String)
-            {
-                bindString(parameterIndex, Boolean.valueOf(x.toString()).booleanValue() ? "1" : "0", Oid.BOOL);
-            }
-            else if (x instanceof Number)
-            {
-                bindString(parameterIndex, ((Number)x).intValue() != 0 ? "1" : "0", Oid.BOOL);
-            }
-            else
-            {
-                throw new PSQLException(GT.tr("Cannot cast an instance of {0} to type {1}", new Object[]{x.getClass().getName(),"Types.BIT"}), PSQLState.INVALID_PARAMETER_TYPE);
-            }
+            bindLiteral(parameterIndex, pgType.toString(), Oid.BOOL);
             break;
         case Types.BINARY:
         case Types.VARBINARY:
         case Types.LONGVARBINARY:
-            setObject(parameterIndex, x);
+            setObject(parameterIndex, in);
             break;
         case Types.OTHER:
-            if (x instanceof PGobject)
-                setPGobject(parameterIndex, (PGobject)x);
+            if (in instanceof PGobject)
+                setPGobject(parameterIndex, (PGobject)in);
             else
-                throw new PSQLException(GT.tr("Cannot cast an instance of {0} to type {1}", new Object[]{x.getClass().getName(),"Types.OTHER"}), PSQLState.INVALID_PARAMETER_TYPE);
+                throw new PSQLException(GT.tr("Cannot cast an instance of {0} to type {1}", new Object[]{in.getClass().getName(),"Types.OTHER"}), PSQLState.INVALID_PARAMETER_TYPE);
             break;
         default:
             throw new PSQLException(GT.tr("Unsupported Types value: {0}", new Integer(targetSqlType)), PSQLState.INVALID_PARAMETER_TYPE);
