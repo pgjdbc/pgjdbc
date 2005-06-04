@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/EscapedFunctions.java,v 1.4 2005/01/18 21:33:17 oliver Exp $
+* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/EscapedFunctions.java,v 1.5 2005/01/25 06:49:28 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -354,7 +354,7 @@ public class EscapedFunctions {
     /** curdate to current_date translation */
     public static String sqlcurdate(List parsedArgs) throws SQLException{
         if (parsedArgs.size()!=0){
-            throw new PSQLException(GT.tr("{0} function doesn't take any argument.","curdate"),
+            throw new PSQLException(GT.tr("{0} function doesn''t take any argument.","curdate"),
                                     PSQLState.SYNTAX_ERROR);
         }
         return "current_date";
@@ -363,7 +363,7 @@ public class EscapedFunctions {
     /** curtime to current_time translation */
     public static String sqlcurtime(List parsedArgs) throws SQLException{
         if (parsedArgs.size()!=0){
-            throw new PSQLException(GT.tr("{0} function doesn't take any argument.","curtime"),
+            throw new PSQLException(GT.tr("{0} function doesn''t take any argument.","curtime"),
                                     PSQLState.SYNTAX_ERROR);
         }
         return "current_time";
@@ -481,7 +481,7 @@ public class EscapedFunctions {
     /** database translation */
     public static String sqldatabase(List parsedArgs) throws SQLException{
         if (parsedArgs.size()!=0){
-            throw new PSQLException(GT.tr("{0} function doesn't take any argument.","database"),
+            throw new PSQLException(GT.tr("{0} function doesn''t take any argument.","database"),
                                     PSQLState.SYNTAX_ERROR);
         }
         return "current_database()";
@@ -499,7 +499,7 @@ public class EscapedFunctions {
     /** user translation */
     public static String sqluser(List parsedArgs) throws SQLException{
         if (parsedArgs.size()!=0){
-            throw new PSQLException(GT.tr("{0} function doesn't take any argument.","user"),
+            throw new PSQLException(GT.tr("{0} function doesn''t take any argument.","user"),
                                     PSQLState.SYNTAX_ERROR);
         }
         return "user";
