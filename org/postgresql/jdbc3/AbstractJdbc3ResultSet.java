@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3ResultSet.java,v 1.11 2005/01/11 08:25:46 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3ResultSet.java,v 1.12 2005/02/15 08:56:26 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -27,6 +27,17 @@ public abstract class AbstractJdbc3ResultSet extends org.postgresql.jdbc2.Abstra
                                   ResultCursor cursor, int maxRows, int maxFieldSize, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
     {
         super (originalQuery, statement, fields, tuples, cursor, maxRows, maxFieldSize, rsType, rsConcurrency);
+    }
+
+    // Overrides JDBC2 version to support Types.BOOLEAN.
+    protected Object internalGetObject(int columnIndex, Field field) throws SQLException
+    {
+        switch (getSQLType(columnIndex)) {
+        case Types.BOOLEAN:
+            return new Boolean(getBoolean(columnIndex));
+        default:
+            return super.internalGetObject(columnIndex, field);
+        }
     }
 
     /**

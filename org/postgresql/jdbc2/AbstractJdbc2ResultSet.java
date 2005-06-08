@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.73 2005/03/23 19:47:44 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.74 2005/05/08 23:50:56 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -113,22 +113,26 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         switch (getSQLType(columnIndex))
         {
         case Types.BIT:
+            // Also Types.BOOLEAN in JDBC3
             return getBoolean(columnIndex) ? Boolean.TRUE : Boolean.FALSE;
+        case Types.TINYINT:
         case Types.SMALLINT:
-            return new Short(getShort(columnIndex));
         case Types.INTEGER:
             return new Integer(getInt(columnIndex));
         case Types.BIGINT:
             return new Long(getLong(columnIndex));
         case Types.NUMERIC:
+        case Types.DECIMAL:
             return getBigDecimal
                    (columnIndex, (field.getMod() == -1) ? -1 : ((field.getMod() - 4) & 0xffff));
         case Types.REAL:
             return new Float(getFloat(columnIndex));
+        case Types.FLOAT:
         case Types.DOUBLE:
             return new Double(getDouble(columnIndex));
         case Types.CHAR:
         case Types.VARCHAR:
+        case Types.LONGVARCHAR:
             return getString(columnIndex);
         case Types.DATE:
             return getDate(columnIndex);
@@ -138,9 +142,14 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             return getTimestamp(columnIndex);
         case Types.BINARY:
         case Types.VARBINARY:
+        case Types.LONGVARBINARY:
             return getBytes(columnIndex);
         case Types.ARRAY:
             return getArray(columnIndex);
+        case Types.CLOB:
+            return getClob(columnIndex);
+        case Types.BLOB:
+            return getBlob(columnIndex);
 
         default:
             String type = getPGType(columnIndex);
@@ -168,7 +177,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                 return rs;
             }
 
-            // Caller determines what to do (JDBC2 overrides in this case)
+            // Caller determines what to do (JDBC3 overrides in this case)
             return null;
         }
     }
