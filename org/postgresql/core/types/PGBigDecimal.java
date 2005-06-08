@@ -22,7 +22,7 @@ public class PGBigDecimal implements PGType
 {
     private BigDecimal val;
     
-    public PGBigDecimal( BigDecimal x )
+    protected PGBigDecimal( BigDecimal x )
     {
         // ensure the value is a valid numeric value to avoid
         // sql injection attacks
@@ -30,7 +30,7 @@ public class PGBigDecimal implements PGType
         
     }
 
-    public PGType castToServerType( int targetType ) throws PSQLException
+    public static PGType castToServerType( BigDecimal val, int targetType ) throws PSQLException
     {
         try
         {
@@ -47,13 +47,13 @@ public class PGBigDecimal implements PGType
             case Types.TINYINT:
                 return new PGShort( new Short( val.shortValue() ) );
             case Types.VARCHAR:
-                return new PGString( toString() );
+                return new PGString( val.toString() );
             case Types.DECIMAL:
             case Types.NUMERIC:
             case Types.DOUBLE:
             case Types.FLOAT:
             case Types.REAL:
-                return this;
+                return new PGBigDecimal( val );
             default:
                 return new PGUnknown(val);            
             }

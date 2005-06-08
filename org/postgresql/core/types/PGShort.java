@@ -22,11 +22,11 @@ import org.postgresql.util.PSQLState;
 public class PGShort implements PGType
 {
     Short val;
-    public PGShort( Short x )
+    protected  PGShort( Short x )
     {
         val = x;
     }
-    public PGType castToServerType( int targetType ) throws PSQLException
+    public static PGType castToServerType( Short val, int targetType ) throws PSQLException
     {
         try
         {
@@ -38,14 +38,14 @@ public class PGShort implements PGType
             
             case Types.SMALLINT:
             case Types.TINYINT:
-                return this;
+                return new PGShort(val);
             case Types.REAL:
                 return new PGFloat( new Float( val.floatValue() ) ); 
             case Types.DOUBLE:
             case Types.FLOAT:
                 return new PGDouble( new Double( val.doubleValue() ) );
             case Types.VARCHAR:
-                return new PGString ( toString() );
+                return new PGString ( val.toString() );
             case Types.DECIMAL:
             case Types.NUMERIC:
                 return new PGBigDecimal( new BigDecimal( val.toString()));

@@ -23,9 +23,9 @@ public class PGUnknown implements PGType
     {
         val = x;
     }
-    public PGType castToServerType(int targetType) 
+    public static PGType castToServerType(Object val, int targetType) 
     {
-        return this;
+        return new PGUnknown( val );
     }
     public String toString()
     {

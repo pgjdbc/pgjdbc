@@ -23,12 +23,12 @@ public class PGFloat implements PGType
 {
     private Float val;
     
-    public PGFloat( Float x )
+    protected PGFloat( Float x )
     {
         val = x;
     }
         
-    public PGType castToServerType( int targetType ) throws PSQLException
+    public static PGType castToServerType( Float val, int targetType ) throws PSQLException
     {
         try
         {
@@ -46,12 +46,12 @@ public class PGFloat implements PGType
             case Types.TINYINT:
                 return new PGShort(new Short( val.shortValue() ));
             case Types.VARCHAR:
-                return new PGString( toString() );
+                return new PGString( val.toString() );
             case Types.DOUBLE:
             case Types.FLOAT:
                 return( new PGDouble( new Double( val.doubleValue())));
             case Types.REAL:
-                return this;
+                return new PGFloat( val );
             case Types.DECIMAL:
             case Types.NUMERIC:
                 return new PGBigDecimal( new BigDecimal( val.toString()));

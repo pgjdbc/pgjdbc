@@ -31,7 +31,7 @@ public class PGByte implements PGType
     /* (non-Javadoc)
      * @see org.postgresql.types.PGType#castToServerType(int)
      */
-    public PGType castToServerType(int targetType) throws PSQLException
+    public static PGType castToServerType(Byte val, int targetType) throws PSQLException
     {
         try
         {
@@ -43,7 +43,7 @@ public class PGByte implements PGType
             
             case Types.SMALLINT:
             case Types.TINYINT:
-                return this;
+                return new PGByte( val );
             case Types.REAL:
                 return new PGFloat( new Float( val.floatValue() ) ); 
             case Types.DOUBLE:
@@ -53,7 +53,7 @@ public class PGByte implements PGType
             case Types.DECIMAL:
                 return new PGBigDecimal( new BigDecimal(val.toString()) );
             case Types.VARCHAR:
-                return new PGString ( toString() );
+                return new PGString ( val.toString() );
             default:
                 return new PGUnknown(val);
             }

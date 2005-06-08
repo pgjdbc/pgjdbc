@@ -22,12 +22,12 @@ public class PGLong implements PGType
 {
     private Long val;
     
-    public PGLong( Long x )
+    protected PGLong( Long x )
     {
         val = x;
     }
     
-    public PGType castToServerType( int targetType ) throws PSQLException 
+    public static PGType castToServerType(Long val, int targetType ) throws PSQLException 
     {
         try
         {
@@ -42,9 +42,9 @@ public class PGLong implements PGType
             case Types.DOUBLE:
                 return new PGDouble( new Double(val.doubleValue()) );
             case Types.VARCHAR:
-                return new PGString(toString());
+                return new PGString(val.toString());
             case Types.BIGINT:
-                return this;
+                return new PGLong( val );
             case Types.INTEGER:
                 return new PGInteger( new Integer( val.intValue()));
             case Types.SMALLINT:

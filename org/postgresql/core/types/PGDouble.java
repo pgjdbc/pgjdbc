@@ -23,12 +23,12 @@ public class PGDouble implements PGType
 {
     private Double val;
     
-    public PGDouble( Double x )
+    protected PGDouble( Double x )
     {
         val = x;
     }
         
-    public PGType castToServerType( int targetType ) throws PSQLException
+    public static PGType castToServerType( Double val, int targetType ) throws PSQLException
     {
         try
         {	
@@ -46,10 +46,10 @@ public class PGDouble implements PGType
             case Types.TINYINT:
                 return new PGShort( new Short( val.shortValue() ) );
             case Types.VARCHAR:
-                return new PGString( toString() );
+                return new PGString( val.toString() );
             case Types.DOUBLE:
             case Types.FLOAT:
-                return this;
+                return new PGDouble( val );
             case Types.REAL:
                 return new PGFloat( new Float( val.floatValue()));
             case Types.DECIMAL:

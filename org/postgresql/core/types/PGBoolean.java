@@ -26,7 +26,7 @@ public class PGBoolean implements PGType
     {
         val = x;
     }
-    public PGType castToServerType( int targetType ) throws PSQLException
+    public static PGType castToServerType( Boolean val, int targetType ) throws PSQLException
     {
         try
         {
@@ -40,7 +40,7 @@ public class PGBoolean implements PGType
             case Types.TINYINT:
                 return new PGShort( new Short( val.booleanValue()==true?(short)1:(short)0  ) );
             case Types.VARCHAR:
-                return new PGString( toString() );
+                return new PGString( val.booleanValue()==true?"1":"0" );
             case Types.DOUBLE:
             case Types.FLOAT:
             		return new PGDouble( new Double(val.booleanValue()==true?1:0));
@@ -51,7 +51,8 @@ public class PGBoolean implements PGType
                 return new PGBigDecimal( new java.math.BigDecimal(val.booleanValue()==true?1:0));
             
             case Types.BOOLEAN:
-                return this;
+            case Types.BIT:
+                return new PGBoolean( val );
             default:
                 return new PGUnknown( val );
         }

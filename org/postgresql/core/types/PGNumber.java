@@ -22,11 +22,11 @@ public class PGNumber implements PGType
 {
     private Number val;
     
-    public PGNumber( Number x )
+    protected PGNumber( Number x )
     {
         val = x;
     }
-    public PGType castToServerType( int targetType ) throws PSQLException
+    public static PGType castToServerType( Number val, int targetType ) throws PSQLException
     {
         try
         {
@@ -44,7 +44,7 @@ public class PGNumber implements PGType
             case Types.SMALLINT:
                 return new PGShort(new Short( val.shortValue() ));
             case Types.VARCHAR:
-                return new PGString( toString() );
+                return new PGString( val.toString() );
             case Types.DOUBLE:
             case Types.FLOAT:
                 return( new PGDouble( new Double( val.doubleValue())));
@@ -52,7 +52,7 @@ public class PGNumber implements PGType
                 return (new PGFloat( new Float( val.floatValue())));
             case Types.DECIMAL:
             case Types.NUMERIC:
-                return this;
+                return new PGNumber( val );
             default:
                 return new PGUnknown(val);                
             }

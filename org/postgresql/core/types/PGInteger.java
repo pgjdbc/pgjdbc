@@ -23,12 +23,12 @@ public class PGInteger implements PGType
 {
     private Integer val;
     
-    public PGInteger( Integer x )
+    protected PGInteger( Integer x )
     {
         val = x;
     }
     
-    public PGType castToServerType( int targetType ) throws PSQLException
+    public static PGType castToServerType( Integer val, int targetType ) throws PSQLException
     {
         try
         {
@@ -43,12 +43,12 @@ public class PGInteger implements PGType
             case Types.FLOAT:
                 return new PGDouble(new Double( val.doubleValue() ));
             case Types.VARCHAR:
-                return new PGString( toString() );
+                return new PGString( val.toString() );
             case Types.SMALLINT:
             case Types.TINYINT:
                 return new PGShort( new Short( val.shortValue() ));
             case Types.INTEGER:
-                return this;
+                return new PGInteger( val );
             case Types.DECIMAL:
             case Types.NUMERIC:
                 return new PGBigDecimal( new BigDecimal( val.toString()));

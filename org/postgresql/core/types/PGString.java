@@ -23,14 +23,14 @@ public class PGString implements PGType
 {
 
     String val;
-    public PGString( String x )
+    protected PGString( String x )
     {
         val = x;
     }
     /* (non-Javadoc)
      * @see org.postgresql.types.PGType#castToServerType(int)
      */
-    public PGType castToServerType(int targetType) throws PSQLException
+    public static PGType castToServerType(String val, int targetType) throws PSQLException
     {
         try
         {
@@ -48,7 +48,7 @@ public class PGString implements PGType
             return new PGBoolean( Boolean.FALSE);
             
             case Types.VARCHAR:
-                return this;
+                return new PGString(val);
             case Types.BIGINT:
                 return new PGLong( new Long(Long.parseLong( val )));
             case Types.INTEGER:

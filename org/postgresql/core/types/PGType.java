@@ -6,8 +6,6 @@
  */
 package org.postgresql.core.types;
 
-import org.postgresql.util.PSQLException;
-
 /**
  * @author davec
  *
@@ -16,6 +14,5 @@ import org.postgresql.util.PSQLException;
  */
 public interface PGType
 {
-    public PGType castToServerType( int targetType ) throws PSQLException;
     public String toString();
 }
