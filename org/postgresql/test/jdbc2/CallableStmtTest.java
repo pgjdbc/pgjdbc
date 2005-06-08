@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CallableStmtTest.java,v 1.12 2005/01/11 08:25:48 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CallableStmtTest.java,v 1.13 2005/02/10 19:53:17 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -39,7 +39,10 @@ public class CallableStmtTest extends TestCase
                       "return 42.42; end; ' LANGUAGE 'plpgsql';");
         stmt.execute ("CREATE OR REPLACE FUNCTION testspg__getInt (int) RETURNS int " +
                       " AS 'DECLARE inString alias for $1; begin " +
-                      "return 42; end;' LANGUAGE 'plpgsql';");
+                      "return 42; end;' LANGUAGE 'plpgsql';");      
+        stmt.execute ("CREATE OR REPLACE FUNCTION testspg__getShort (int2) RETURNS int2 " +
+                " AS 'DECLARE inString alias for $1; begin " +
+                "return 42; end;' LANGUAGE 'plpgsql';");
         stmt.execute ("CREATE OR REPLACE FUNCTION testspg__getNumeric (numeric) " +
                       "RETURNS numeric AS ' DECLARE inString alias for $1; " +
                       "begin return 42; end; ' LANGUAGE 'plpgsql';");
@@ -57,6 +60,7 @@ public class CallableStmtTest extends TestCase
         stmt.execute ("drop FUNCTION testspg__getString (varchar);");
         stmt.execute ("drop FUNCTION testspg__getDouble (float);");
         stmt.execute ("drop FUNCTION testspg__getInt (int);");
+        stmt.execute ("drop FUNCTION testspg__getShort(smallint)");
         stmt.execute ("drop FUNCTION testspg__getNumeric (numeric);");
         stmt.execute ("drop FUNCTION testspg__getNumericWithoutArg ();");
         stmt.execute ("DROP FUNCTION getarray();");
@@ -89,6 +93,14 @@ public class CallableStmtTest extends TestCase
         assertEquals(42, call.getInt(1));
     }
 
+    public void testGetShort () throws Throwable
+    {
+        CallableStatement call = con.prepareCall (func + pkgName + "getShort (?) }");
+        call.setShort (2, (short)4);
+        call.registerOutParameter (1, Types.SMALLINT);
+        call.execute ();
+        assertEquals(42, call.getShort(1));
+    }
     public void testGetNumeric () throws Throwable
     {
         CallableStatement call = con.prepareCall (func + pkgName + "getNumeric (?) }");

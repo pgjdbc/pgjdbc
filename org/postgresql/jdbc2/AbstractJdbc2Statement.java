@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.75 2005/05/08 23:50:56 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.76 2005/05/30 13:07:29 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1469,16 +1469,16 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
     private PGType createInternalType( Object x, int targetType ) throws PSQLException
     {
-        if ( x instanceof Byte ) return new PGByte((Byte) x).castToServerType( targetType );
-        if ( x instanceof Short ) return new PGShort((Short) x).castToServerType( targetType );
-        if ( x instanceof Integer ) return new PGInteger((Integer) x).castToServerType( targetType );
-        if ( x instanceof Long ) return new PGLong( (Long) x).castToServerType( targetType );
-        if ( x instanceof Double ) return new PGDouble((Double)x).castToServerType( targetType );
-        if ( x instanceof Float ) return new PGFloat((Float)x).castToServerType( targetType );
-        if ( x instanceof BigDecimal) return new PGBigDecimal((BigDecimal)x).castToServerType( targetType );
+        if ( x instanceof Byte ) return PGByte.castToServerType((Byte)x, targetType );
+        if ( x instanceof Short ) return PGShort.castToServerType((Short)x, targetType );
+        if ( x instanceof Integer ) return PGInteger.castToServerType((Integer)x, targetType );
+        if ( x instanceof Long ) return PGLong.castToServerType((Long)x, targetType );
+        if ( x instanceof Double ) return PGDouble.castToServerType((Double)x, targetType );
+        if ( x instanceof Float ) return PGFloat.castToServerType((Float)x, targetType );
+        if ( x instanceof BigDecimal) return PGBigDecimal.castToServerType((BigDecimal)x, targetType );
         // since all of the above are instances of Number make sure this is after them
-        if ( x instanceof Number ) return new PGNumber((Number)x).castToServerType( targetType );
-        if ( x instanceof Boolean) return new PGBoolean((Boolean) x ).castToServerType( targetType );
+        if ( x instanceof Number ) return PGNumber.castToServerType((Number)x, targetType );
+        if ( x instanceof Boolean) return PGBoolean.castToServerType((Boolean)x, targetType );
         return new PGUnknown(x);
         
     }
@@ -1799,7 +1799,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         checkIndex (parameterIndex, Types.SMALLINT, "Short");
         if (callResult == null)
             return 0;
-        return (short)((Short)callResult).intValue ();
+        return ((Integer)callResult).shortValue ();
     }
 
 
