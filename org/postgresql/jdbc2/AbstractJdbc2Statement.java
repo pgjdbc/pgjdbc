@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.68.2.5 2005/04/28 14:18:09 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.68.2.6 2005/05/08 23:52:00 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1811,7 +1811,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         checkIndex (parameterIndex, Types.SMALLINT, "Short");
         if (callResult == null)
             return 0;
-        return (short)((Short)callResult).intValue ();
+        return ((Integer)callResult).shortValue ();
     }
 
 
