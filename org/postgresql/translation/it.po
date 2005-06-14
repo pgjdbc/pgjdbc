@@ -4,14 +4,14 @@
 # First translation by Daniele Arduini <darduini@cinetica.it>
 # Updated by Giuseppe Sacco <eppesuig@debian.org>
 #
-# $PostgreSQL: pgjdbc/org/postgresql/translation/it.po,v 1.3 2005/06/04 18:46:25 jurka Exp $
+# $PostgreSQL: pgjdbc/org/postgresql/translation/it.po,v 1.2.2.2 2005/06/12 05:51:48 jurka Exp $
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: PostgreSQL JDBC Driver 8.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2005-06-11 22:49-0700\n"
-"PO-Revision-Date: 2005-06-10 14:14+0200\n"
+"PO-Revision-Date: 2005-06-12 08:53+0200\n"
 "Last-Translator: Giuseppe Sacco <eppesuig@debian.org>\n"
 "Language-Team: Italian <tp@lists.linux.it>\n"
 "MIME-Version: 1.0\n"
@@ -367,9 +367,8 @@ msgid "Unable to translate data into the desired encoding."
 msgstr "Impossibile tradurre i dati nella codifica richiesta."
 
 #: org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java:61
-#, fuzzy
 msgid "Unable to find datatypes oid and oidvector in the system catalogs."
-msgstr "Non è possibile trovare il datatype «name» nel catalogo di sistema."
+msgstr "Non è possibile trovare i datatype «oid» e «oidvector» nel catalogo di sistema."
 
 #: org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java:84
 msgid "Unable to find name datatype in the system catalogs."
