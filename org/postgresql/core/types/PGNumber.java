@@ -44,6 +44,7 @@ public class PGNumber implements PGType
             case Types.SMALLINT:
                 return new PGShort(new Short( val.shortValue() ));
             case Types.VARCHAR:
+            case Types.LONGVARCHAR:                
                 return new PGString( val.toString() );
             case Types.DOUBLE:
             case Types.FLOAT:

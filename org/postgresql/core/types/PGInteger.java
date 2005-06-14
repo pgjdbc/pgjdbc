@@ -43,6 +43,7 @@ public class PGInteger implements PGType
             case Types.FLOAT:
                 return new PGDouble(new Double( val.doubleValue() ));
             case Types.VARCHAR:
+            case Types.LONGVARCHAR:                
                 return new PGString( val.toString() );
             case Types.SMALLINT:
             case Types.TINYINT:

@@ -42,6 +42,7 @@ public class PGLong implements PGType
             case Types.DOUBLE:
                 return new PGDouble( new Double(val.doubleValue()) );
             case Types.VARCHAR:
+            case Types.LONGVARCHAR:                
                 return new PGString(val.toString());
             case Types.BIGINT:
                 return new PGLong( val );

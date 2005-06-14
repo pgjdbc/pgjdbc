@@ -53,6 +53,7 @@ public class PGByte implements PGType
             case Types.DECIMAL:
                 return new PGBigDecimal( new BigDecimal(val.toString()) );
             case Types.VARCHAR:
+            case Types.LONGVARCHAR:                
                 return new PGString ( val.toString() );
             default:
                 return new PGUnknown(val);

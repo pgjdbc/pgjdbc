@@ -40,7 +40,8 @@ public class PGBoolean implements PGType
             case Types.TINYINT:
                 return new PGShort( new Short( val.booleanValue()==true?(short)1:(short)0  ) );
             case Types.VARCHAR:
-                return new PGString( val.booleanValue()==true?"1":"0" );
+            case Types.LONGVARCHAR:                
+                return new PGString( val.booleanValue()==true?"true":"false" );
             case Types.DOUBLE:
             case Types.FLOAT:
             		return new PGDouble( new Double(val.booleanValue()==true?1:0));
@@ -64,7 +65,7 @@ public class PGBoolean implements PGType
     }
     public String toString()
     {
-        return val.booleanValue()==true?"1":"0";
+        return val.booleanValue()==true?"true":"false";
     }
     
 }

@@ -48,6 +48,7 @@ public class PGString implements PGType
             return new PGBoolean( Boolean.FALSE);
             
             case Types.VARCHAR:
+            case Types.LONGVARCHAR:                
                 return new PGString(val);
             case Types.BIGINT:
                 return new PGLong( new Long(Long.parseLong( val )));

@@ -45,6 +45,7 @@ public class PGShort implements PGType
             case Types.FLOAT:
                 return new PGDouble( new Double( val.doubleValue() ) );
             case Types.VARCHAR:
+            case Types.LONGVARCHAR:                
                 return new PGString ( val.toString() );
             case Types.DECIMAL:
             case Types.NUMERIC:

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CallableStmtTest.java,v 1.13 2005/02/10 19:53:17 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CallableStmtTest.java,v 1.14 2005/06/08 02:41:03 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -60,7 +60,7 @@ public class CallableStmtTest extends TestCase
         stmt.execute ("drop FUNCTION testspg__getString (varchar);");
         stmt.execute ("drop FUNCTION testspg__getDouble (float);");
         stmt.execute ("drop FUNCTION testspg__getInt (int);");
-        stmt.execute ("drop FUNCTION testspg__getShort(smallint)");
+        stmt.execute ("drop FUNCTION testspg__getShort(int2)");
         stmt.execute ("drop FUNCTION testspg__getNumeric (numeric);");
         stmt.execute ("drop FUNCTION testspg__getNumericWithoutArg ();");
         stmt.execute ("DROP FUNCTION getarray();");
