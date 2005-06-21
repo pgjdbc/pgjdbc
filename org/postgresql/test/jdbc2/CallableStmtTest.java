@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CallableStmtTest.java,v 1.12.2.1 2005/02/10 19:52:45 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CallableStmtTest.java,v 1.12.2.2 2005/06/08 16:21:02 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -95,11 +95,14 @@ public class CallableStmtTest extends TestCase
 
     public void testGetShort () throws Throwable
     {
-        CallableStatement call = con.prepareCall (func + pkgName + "getShort (?) }");
-        call.setShort (2, (short)4);
-        call.registerOutParameter (1, Types.SMALLINT);
-        call.execute ();
-        assertEquals(42, call.getShort(1));
+        if ( TestUtil.isProtocolVersion(con, 3) )
+        {    
+	        CallableStatement call = con.prepareCall (func + pkgName + "getShort (?) }");
+	        call.setShort (2, (short)4);
+	        call.registerOutParameter (1, Types.SMALLINT);
+	        call.execute ();
+	        assertEquals(42, call.getShort(1));
+        }
     }
     public void testGetNumeric () throws Throwable
     {

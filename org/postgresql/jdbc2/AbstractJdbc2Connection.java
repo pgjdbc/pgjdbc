@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.26 2005/01/25 06:21:21 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.26.2.1 2005/02/15 08:55:50 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1103,7 +1103,11 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
         return Types.OTHER;
     }
-
+    
+    public int getProtocolVersion()
+    {
+        return protoConnection.getProtocolVersion();
+    }
     /*
      * This table holds the org.postgresql names for the types supported.
      * Any types that map to Types.OTHER (eg POINT) don't go into this table.

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/TestUtil.java,v 1.16 2005/01/05 00:53:04 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/TestUtil.java,v 1.17 2005/01/11 08:25:47 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -11,6 +11,8 @@ package org.postgresql.test;
 
 import java.sql.*;
 import java.util.Properties;
+
+import org.postgresql.jdbc2.AbstractJdbc2Connection;
 
 /**
  * Utility class for JDBC tests
@@ -289,6 +291,16 @@ public class TestUtil
     public static boolean haveMinimumJVMVersion(String version) {
         String jvm = java.lang.System.getProperty("java.version");
         return (jvm.compareTo(version) >= 0);
+    }
+    
+    public static boolean isProtocolVersion( Connection con, int version )
+    {
+        if ( con instanceof AbstractJdbc2Connection )
+        {
+            return (version == ((AbstractJdbc2Connection)con).getProtocolVersion());
+          
+        }
+        return false;
     }
 
     /**
