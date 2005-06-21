@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/ProtocolConnection.java,v 1.4 2005/01/11 08:25:43 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/ProtocolConnection.java,v 1.5 2005/04/20 00:10:58 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -114,4 +114,10 @@ public interface ProtocolConnection {
      * @return true iff the connection is closed.
      */
     boolean isClosed();
+    
+    /**
+     * 
+     * @return the version of the implementation
+     */
+    public int getProtocolVersion();
 }

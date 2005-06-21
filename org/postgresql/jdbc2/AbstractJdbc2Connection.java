@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.28 2005/04/10 21:54:16 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.29 2005/04/20 00:10:58 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1021,6 +1021,10 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     {
         return _typeCache.getSQLType(pgTypeName);
     }
-
+    
+    public int getProtocolVersion()
+    {
+        return protoConnection.getProtocolVersion();
+    }
 }
 

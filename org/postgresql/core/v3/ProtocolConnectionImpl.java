@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ProtocolConnectionImpl.java,v 1.6 2005/01/11 08:25:44 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ProtocolConnectionImpl.java,v 1.7 2005/04/20 00:10:58 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -181,6 +181,11 @@ class ProtocolConnectionImpl implements ProtocolConnection {
     synchronized void setTransactionState(int state)
     {
         transactionState = state;
+    }
+    
+    public int getProtocolVersion()
+    {
+        return 3;
     }
 
     private String serverVersion;
