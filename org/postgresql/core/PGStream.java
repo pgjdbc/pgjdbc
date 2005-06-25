@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/PGStream.java,v 1.14 2005/02/22 22:35:54 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/PGStream.java,v 1.15 2005/04/20 00:10:58 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -81,7 +81,7 @@ public class PGStream
      * @return true if there is a pending backend message
      */
     public boolean hasMessagePending() throws IOException {
-        return connection.getInputStream().available() > 0;
+        return pg_input.available() > 0 || connection.getInputStream().available() > 0;
     }
 
     /**
