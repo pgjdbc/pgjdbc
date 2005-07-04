@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/Encoding.java,v 1.19 2004/11/09 08:44:23 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/Encoding.java,v 1.20 2005/01/11 08:25:43 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -23,7 +23,6 @@ import java.util.Hashtable;
  */
 public class Encoding
 {
-
     private static final Encoding DEFAULT_ENCODING = new Encoding(null);
 
     /*
@@ -36,6 +35,7 @@ public class Encoding
         // encodings found in backend/util/mb/encnames.c
         encodings.put("SQL_ASCII", new String[] { "ASCII", "us-ascii" });
         encodings.put("UNICODE", new String[] { "UTF-8", "UTF8" });
+        encodings.put("UTF8", new String[] { "UTF-8", "UTF8" }); // 8.1's canonical name for UNICODE changed.
         encodings.put("LATIN1", new String[] { "ISO8859_1" });
         encodings.put("LATIN2", new String[] { "ISO8859_2" });
         encodings.put("LATIN3", new String[] { "ISO8859_3" });
@@ -75,12 +75,10 @@ public class Encoding
     }
 
     private final String encoding;
-    private final boolean utf8;
 
-    private Encoding(String encoding)
+    protected Encoding(String encoding)
     {
         this.encoding = encoding;
-        this.utf8 = (encoding != null && (encoding.equals("UTF-8") || encoding.equals("UTF8")));
     }
 
     /**
@@ -93,7 +91,12 @@ public class Encoding
      */
     public static Encoding getJVMEncoding(String jvmEncoding) {
         if (isAvailable(jvmEncoding))
-            return new Encoding(jvmEncoding);
+        {
+            if (jvmEncoding.equals("UTF-8") || jvmEncoding.equals("UTF8"))
+                return new UTF8Encoding(jvmEncoding);
+            else
+                return new Encoding(jvmEncoding);
+        }
         else
             return defaultEncoding();
     }
@@ -175,9 +178,6 @@ public class Encoding
         if (encoding == null)
             return new String(encodedString, offset, length);
 
-        if (utf8)
-            return decodeUTF8(encodedString, offset, length);
-
         return new String(encodedString, offset, length, encoding);
     }
 
@@ -249,66 +249,6 @@ public class Encoding
         {
             return false;
         }
-    }
-
-    private char[] decoderArray = new char[1024];
-
-    /**
-     * Custom byte[] -> String conversion routine for UTF-8 only.
-    * This is about 30% faster than using the String(byte[],int,int,String)
-    * ctor, at least under JDK 1.4.2.
-    *
-    * @param data the array containing UTF8-encoded data
-    * @param offset the offset of the first byte in <code>data</code> to decode from
-    * @param length the number of bytes to decode
-    * @return a decoded string
-    * @throws IOException if something goes wrong
-     */
-    private synchronized String decodeUTF8(byte[] data, int offset, int length)
-    throws IOException {
-        char[] cdata = decoderArray;
-        if (cdata.length < length)
-            cdata = decoderArray = new char[length];
-
-        int in = offset;
-        int out = 0;
-        int end = length + offset;
-
-        try
-        {
-            while (in < end)
-            {
-                int ch = data[in++] & 0xff;
-                if (ch < 0x80)
-                {
-                    // Length 1: \u00000 .. \u0007f
-                }
-                else if (ch < 0xe0)
-                {
-                    // Length 2: \u00080 .. \u007ff
-                    ch = ((ch & 0x1f) << 6);
-                    ch = ch | (data[in++] & 0x3f);
-                }
-                else
-                {
-                    // Length 3: \u00800 .. \u0ffff
-                    ch = ((ch & 0x0f) << 12);
-                    ch = ch | ((data[in++] & 0x3f) << 6);
-                    ch = ch | (data[in++] & 0x3f);
-                }
-                cdata[out++] = (char)ch;
-            }
-        }
-        catch (ArrayIndexOutOfBoundsException a)
-        {
-            throw new IOException("UTF-8 string representation was truncated");
-        }
-
-        // Check if we ran past the end without seeing an exception.
-        if (in > end)
-            throw new IOException("UTF-8 string representation was truncated");
-
-        return new String(cdata, 0, out);
     }
 
     public String toString() {
