@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/V3ParameterList.java,v 1.3 2004/11/09 08:46:20 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/V3ParameterList.java,v 1.4 2005/01/11 08:25:44 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -39,4 +39,7 @@ interface V3ParameterList extends ParameterList {
      *   parameter list.
      */
     SimpleParameterList[] getSubparams();
+    
+   
+    
 }

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/BatchExecuteTest.java,v 1.11 2004/11/09 08:54:00 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/BatchExecuteTest.java,v 1.12 2005/01/11 08:25:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -29,6 +29,11 @@ public class BatchExecuteTest extends TestCase
     public BatchExecuteTest(String name)
     {
         super(name);
+        try
+        {
+            Class.forName("org.postgresql.Driver");
+        }
+        catch( Exception ex){}
     }
 
     // Set up the fixture for this testcase: a connection to a database with

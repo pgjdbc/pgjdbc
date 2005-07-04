@@ -3,11 +3,13 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/Jdbc3TestSuite.java,v 1.13 2005/03/28 08:52:35 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/Jdbc3TestSuite.java,v 1.14 2005/05/08 22:17:02 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.test.jdbc3;
+
+import org.postgresql.test.TestUtil;
 
 import junit.framework.TestSuite;
 
@@ -24,6 +26,21 @@ public class Jdbc3TestSuite extends TestSuite
     {
         Class.forName("org.postgresql.Driver");
         TestSuite suite = new TestSuite();
+        try
+        {
+            java.sql.Connection con = TestUtil.openDB();
+        
+            if ( TestUtil.haveMinimumServerVersion( con, "8.1") )
+            {
+                suite.addTestSuite(Jdbc3CallableStatementTest.class);
+            }
+            con.close();
+        }
+        catch (Exception ex )
+        {
+            ex.printStackTrace();
+        }
+        
         suite.addTestSuite(Jdbc3SavepointTest.class);
         suite.addTestSuite(TypesTest.class);
         suite.addTestSuite(ResultSetTest.class);

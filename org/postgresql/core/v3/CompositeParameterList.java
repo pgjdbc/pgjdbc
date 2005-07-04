@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/CompositeParameterList.java,v 1.6 2005/01/11 08:25:44 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/CompositeParameterList.java,v 1.7 2005/02/01 07:27:54 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -29,7 +29,7 @@ class CompositeParameterList implements V3ParameterList {
     CompositeParameterList(SimpleParameterList[] subparams, int[] offsets) {
         this.subparams = subparams;
         this.offsets = offsets;
-        this.total = offsets[offsets.length - 1] + subparams[offsets.length - 1].getParameterCount();
+        this.total = offsets[offsets.length - 1] + subparams[offsets.length - 1].getInParameterCount();
     }
 
     private final int findSubParam(int index) throws SQLException {
@@ -42,8 +42,17 @@ class CompositeParameterList implements V3ParameterList {
 
         throw new IllegalArgumentException("I am confused; can't find a subparam for index " + index);
     }
-
-    public int getParameterCount() {
+    public void registerOutParameter(int index, int sqlType)
+    {
+        
+    }
+    public int getDirection(int i)
+    {return 0;}
+    public int getParameterCount()
+    {
+        return total;
+    }
+    public int getInParameterCount() {
         return total;
     }
 

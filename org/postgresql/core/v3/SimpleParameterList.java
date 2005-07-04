@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleParameterList.java,v 1.7 2005/01/27 22:50:14 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleParameterList.java,v 1.8 2005/02/01 07:27:54 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -27,10 +27,26 @@ import org.postgresql.util.GT;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 class SimpleParameterList implements V3ParameterList {
+    
+    private final static int IN=1;
+    private final static int OUT=2;
+    private final static int INOUT=3;
+    // this is here to avoid creating objects for copy
+    // copy will simply discard them
+    
+    
+    
     SimpleParameterList(int paramCount) {
         this.paramValues = new Object[paramCount];
         this.paramTypes = new int[paramCount];
         this.encoded = new byte[paramCount][];
+        this.direction = new int[paramCount];
+    }
+        
+    
+    public void registerOutParameter( int index, int sqlType )
+    {
+        direction[index-1] |= OUT;
     }
 
     private void bind(int index, Object value, int oid) throws SQLException {
@@ -40,8 +56,9 @@ class SimpleParameterList implements V3ParameterList {
         --index;
 
         encoded[index] = null;
-        paramValues[index] = value;
-
+        paramValues[index] = value ;
+        direction[index] |= IN;
+        
         // If we are setting something to null, don't overwrite our existing type
         // for it.  We don't need the correct type info to send NULL and we
         // don't want to overwrite and require a reparse.
@@ -51,8 +68,21 @@ class SimpleParameterList implements V3ParameterList {
         paramTypes[index] = oid;
     }
 
-    public int getParameterCount() {
+    public int getParameterCount()
+    {
         return paramValues.length;
+    }
+    public int getInParameterCount() 
+    {
+        int count=0;
+        for( int i=0; i< paramTypes.length;i++)
+        {
+            if (direction[i] != OUT )
+            {
+                count++;
+            }
+        }
+        return count;
     }
 
     public void setIntParameter(int index, int value) throws SQLException {
@@ -86,7 +116,6 @@ class SimpleParameterList implements V3ParameterList {
 
     public String toString(int index) {
         --index;
-
         if (paramValues[index] == null)
             return "?";
         else if (paramValues[index] == NULL_OBJECT)
@@ -98,7 +127,7 @@ class SimpleParameterList implements V3ParameterList {
     public void checkAllParametersSet() throws SQLException {
         for (int i = 0; i < paramTypes.length; ++i)
         {
-            if (paramValues[i] == null)
+            if (direction[i] != OUT && paramValues[i] == null)
                 throw new PSQLException(GT.tr("No value specified for parameter {0}.", new Integer(i + 1)), PSQLState.INVALID_PARAMETER_VALUE);
         }
     }
@@ -127,11 +156,17 @@ class SimpleParameterList implements V3ParameterList {
     //
 
     int getTypeOID(int index) {
-        return paramTypes[index -1];
+        if (direction[index-1] == OUT)
+        {
+            paramTypes[index-1] = Oid.VOID;
+            paramValues[index-1] = "null";
+        }
+        	
+        return paramTypes[index-1];
     }
 
     boolean hasUnresolvedTypes() {
-        for (int i=0; i<paramTypes.length; i++) {
+        for (int i=0; i< paramTypes.length; i++) {
             if (paramTypes[i] == Oid.INVALID)
                 return true;
         }
@@ -148,18 +183,18 @@ class SimpleParameterList implements V3ParameterList {
     }
 
     boolean isNull(int index) {
-        return (paramValues[index -1] == NULL_OBJECT);
+        return (paramValues[index-1] == NULL_OBJECT);
     }
 
     boolean isBinary(int index) {
         // Currently, only StreamWrapper uses the binary parameter form.
-        return (paramValues[index -1] instanceof StreamWrapper);
+        return (paramValues[index-1] instanceof StreamWrapper);
     }
 
     int getV3Length(int index) {
         --index;
 
-        // Null?
+//      Null?
         if (paramValues[index] == NULL_OBJECT)
             throw new IllegalArgumentException("can't getV3Length() on a null parameter");
 
@@ -208,10 +243,13 @@ class SimpleParameterList implements V3ParameterList {
         pgStream.Send(encoded[index]);
     }
 
+    
+    
     public ParameterList copy() {
         SimpleParameterList newCopy = new SimpleParameterList(paramValues.length);
         System.arraycopy(paramValues, 0, newCopy.paramValues, 0, paramValues.length);
         System.arraycopy(paramTypes, 0, newCopy.paramTypes, 0, paramTypes.length);
+        System.arraycopy(direction, 0, newCopy.direction, 0, direction.length);
         return newCopy;
     }
 
@@ -219,20 +257,23 @@ class SimpleParameterList implements V3ParameterList {
         Arrays.fill(paramValues, null);
         Arrays.fill(paramTypes, 0);
         Arrays.fill(encoded, null);
+        Arrays.fill(direction, 0);
     }
-
     public SimpleParameterList[] getSubparams() {
         return null;
     }
 
     private final Object[] paramValues;
     private final int[] paramTypes;
+    private final int[] direction;
     private final byte[][] encoded;
-
+    
     /**
      * Marker object representing NULL; this distinguishes
      * "parameter never set" from "parameter set to null".
      */
     private final static Object NULL_OBJECT = new Object();
+
+    
 }
 

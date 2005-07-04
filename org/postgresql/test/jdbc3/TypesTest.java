@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/TypesTest.java,v 1.5 2004/11/09 08:56:33 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/TypesTest.java,v 1.6 2005/01/11 08:25:49 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -19,6 +19,14 @@ public class TypesTest extends TestCase {
 
     public TypesTest(String name) {
         super(name);
+        try
+        {
+            Class.forName("org.postgresql.Driver");
+        }
+        catch (Exception ex )
+        {
+            
+        }
     }
 
     protected void setUp() throws SQLException {
@@ -63,6 +71,14 @@ public class TypesTest extends TestCase {
         cs.execute();
         assertEquals(true, cs.getBoolean(1));
         cs.close();
+    }
+    public void testUnknownType() throws SQLException {
+        Statement stmt = _conn.createStatement();
+        
+        ResultSet rs = stmt.executeQuery("select 'foo1' as icon1, 'foo2' as icon2 ");
+        assertTrue(rs.next());
+        assertTrue("failed returned [" + rs.getString("icon1")+"]",rs.getString("icon1").equalsIgnoreCase("foo1"));
+        assertTrue("failed returned [" + rs.getString("icon2")+"]",rs.getString("icon2").equalsIgnoreCase("foo2"));
     }
 
 }

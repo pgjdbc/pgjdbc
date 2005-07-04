@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.29 2005/04/20 00:10:58 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.30 2005/06/21 18:07:08 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -15,6 +15,7 @@ import java.sql.*;
 import java.util.*;
 import org.postgresql.core.*;
 import org.postgresql.Driver;
+import org.postgresql.PGConnection;
 import org.postgresql.PGNotification;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.largeobject.LargeObjectManager;

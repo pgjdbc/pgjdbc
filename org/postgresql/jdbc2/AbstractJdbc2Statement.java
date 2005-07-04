@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.76 2005/05/30 13:07:29 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.77 2005/06/08 02:41:03 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -91,11 +91,11 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     // functionReturnType contains the user supplied value to check
     // testReturn contains a modified version to make it easier to
     // check the getXXX methods..
-    private int functionReturnType;
-    private int testReturn;
+    private int []functionReturnType;
+    private int []testReturn;
     // returnTypeSet is true when a proper call to registerOutParameter has been made
     private boolean returnTypeSet;
-    protected Object callResult;
+    protected Object []callResult;
     protected int maxfieldSize = 0;
 
     public ResultSet createDriverResultSet(Field[] fields, Vector tuples)
@@ -125,6 +125,10 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
         this.preparedQuery = connection.getQueryExecutor().createParameterizedQuery(parsed_sql);
         this.preparedParameters = preparedQuery.createParameterList();
+
+        this.testReturn = new int[preparedParameters.getInParameterCount()+1];
+        this.functionReturnType = new int[preparedParameters.getInParameterCount()+1];
+
 
         resultsettype = rsType;
         concurrency = rsConcurrency;
@@ -261,11 +265,14 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (preparedQuery != null)
             throw new PSQLException(GT.tr("Can''t use query methods that take a query string on a PreparedStatement."),
                                     PSQLState.WRONG_OBJECT_TYPE);
-
+        if( isFunction )
+        {
+            executeWithFlags(p_sql, 0);                
+            return 0;
+        }
         if (executeWithFlags(p_sql, QueryExecutor.QUERY_NO_RESULTS))
             throw new PSQLException(GT.tr("A result was returned when none was expected."),
-                                    PSQLState.TOO_MANY_RESULTS);
-
+                    				  PSQLState.TOO_MANY_RESULTS);
         return getUpdateCount();
     }
 
@@ -280,6 +287,11 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
      */
     public int executeUpdate() throws SQLException
     {
+        if( isFunction )
+        {
+            executeWithFlags(0);
+            return 0;
+        }
         if (executeWithFlags(QueryExecutor.QUERY_NO_RESULTS))
             throw new PSQLException(GT.tr("A result was returned when none was expected."),
                                     PSQLState.TOO_MANY_RESULTS);
@@ -325,13 +337,13 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public boolean executeWithFlags(int flags) throws SQLException
     {
         checkClosed();
-        if (isFunction && !returnTypeSet)
-            throw new PSQLException(GT.tr("A CallableStatement was declared, but no call to registerOutParameter(1, <some type>) was made."), PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
-
+   
         execute(preparedQuery, preparedParameters, flags);
 
-        // If we are executing a callable statement function set the return data
-        if (isFunction)
+        // If we are executing and there are out parameters 
+        // callable statement function set the return data
+        
+        if (isFunction && returnTypeSet )
         {
             if (result == null || result.getResultSet() == null)
                 throw new PSQLException(GT.tr("A CallableStatement was executed with nothing returned."), PSQLState.NO_DATA);
@@ -340,14 +352,34 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             if (!rs.next())
                 throw new PSQLException(GT.tr("A CallableStatement was executed with nothing returned."), PSQLState.NO_DATA);
 
-            callResult = rs.getObject(1);
-            int columnType = rs.getMetaData().getColumnType(1);
-            if (columnType != functionReturnType)
-                throw new PSQLException (GT.tr("A CallableStatement function was executed and the return was of type {0} however type {1} was registered.",
-                                               new Object[]{
-                                                   "java.sql.Types=" + columnType, "java.sql.Types=" + functionReturnType }),
-                                         PSQLState.DATA_TYPE_MISMATCH);
-
+            // figure out how many columns
+            int cols = rs.getMetaData().getColumnCount();
+            callResult = new Object[cols];
+            
+            // move them into the result set
+            for ( int i=0; i < cols; i++)
+            {
+                callResult[i] = rs.getObject(i+1);
+                int columnType = rs.getMetaData().getColumnType(1);
+                if (columnType != functionReturnType[i])
+                {
+                    // this is here for the sole purpose of passing the cts
+                    if ( columnType == Types.DOUBLE && functionReturnType[i] == Types.REAL )
+                    {
+                        // return it as a float
+                        if ( callResult[i] != null)
+                            callResult[i] = new Float(((Double)callResult[i]).floatValue());
+                    }
+                    else
+                    {    
+	                    throw new PSQLException (GT.tr("A CallableStatement function was executed and the return was of type {0} however type {1} was registered.",
+	                            new Object[]{
+	                                "java.sql.Types=" + columnType, "java.sql.Types=" + functionReturnType[i] }),
+	                      PSQLState.DATA_TYPE_MISMATCH);
+                    }
+                }
+                    
+            }
             rs.close();
             result = null;
             return false;
@@ -419,7 +451,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     }
 
     private boolean isClosed = false;
-
+    private int lastIndex = 0;
     /*
      * getUpdateCount returns the current result as an update count,
      * if the result is a ResultSet or there are no more results, -1
@@ -956,10 +988,10 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             oid = Oid.INT8;
             break;
         case Types.REAL:
-        case Types.FLOAT:
             oid = Oid.FLOAT4;
             break;
         case Types.DOUBLE:
+        case Types.FLOAT:				
             oid = Oid.FLOAT8;
             break;
         case Types.DECIMAL:
@@ -1013,7 +1045,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             throw new PSQLException(GT.tr("Unknown Types value."), PSQLState.INVALID_PARAMETER_TYPE);
         }
 
-        preparedParameters.setNull(adjustParamIndex(parameterIndex), oid);
+        preparedParameters.setNull( parameterIndex, oid);
     }
 
     /*
@@ -1097,7 +1129,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public void setFloat(int parameterIndex, float x) throws SQLException
     {
         checkClosed();
-        bindLiteral(parameterIndex, Float.toString(x), Oid.FLOAT4);
+        bindLiteral(parameterIndex, Float.toString(x), Oid.FLOAT8);
     }
 
     /*
@@ -1155,7 +1187,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         // if the passed string is null, then set this column to null
         checkClosed();
         if (x == null)
-            preparedParameters.setNull(adjustParamIndex(parameterIndex), oid);
+            preparedParameters.setNull( parameterIndex, oid);
         else
             bindString(parameterIndex, x, oid);
     }
@@ -1189,7 +1221,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             //Version 7.2 supports the bytea datatype for byte arrays
             byte[] copy = new byte[x.length];
             System.arraycopy(x, 0, copy, 0, x.length);
-            preparedParameters.setBytea(adjustParamIndex(parameterIndex), copy, 0, x.length);
+            preparedParameters.setBytea( parameterIndex, copy, 0, x.length);
         }
         else
         {
@@ -1417,7 +1449,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             //long binary datatype, but with toast the bytea datatype is capable of
             //handling very large values.
 
-            preparedParameters.setBytea(adjustParamIndex(parameterIndex), x, length);
+            preparedParameters.setBytea(parameterIndex, x, length);
         }
         else
         {
@@ -1514,108 +1546,111 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public void setObject(int parameterIndex, Object in, int targetSqlType, int scale) throws SQLException
     {
         checkClosed();
+
         if (in == null)
         {
             setNull(parameterIndex, targetSqlType);
             return ;
         }
 
-    	Object pgType = createInternalType( in, targetSqlType );
-    	switch (targetSqlType)
-        {
-        case Types.INTEGER:
-            bindLiteral(parameterIndex, pgType.toString(), Oid.INT4);
-            break;
-        case Types.TINYINT:
-        case Types.SMALLINT:
-            bindLiteral(parameterIndex, pgType.toString(), Oid.INT2);
-            break;
-        case Types.BIGINT:
-            bindLiteral(parameterIndex, pgType.toString(), Oid.INT8);
-            break;
-        case Types.REAL:
-            bindLiteral(parameterIndex, pgType.toString(), Oid.FLOAT4);
-            break;
-        case Types.DOUBLE:
-        case Types.FLOAT:
-            bindLiteral(parameterIndex, pgType.toString(), Oid.FLOAT8);
-            break;
-        case Types.DECIMAL:
-        case Types.NUMERIC:
-            bindLiteral(parameterIndex, pgType.toString(), Oid.NUMERIC);
-            break;
-        case Types.CHAR:
-            setString(parameterIndex, pgType.toString(), Oid.BPCHAR);
-            break;
-        case Types.VARCHAR:
-        case Types.LONGVARCHAR:
-            setString(parameterIndex, pgType.toString());
-            break;
-        case Types.DATE:
-            if (in instanceof java.sql.Date)
-                setDate(parameterIndex, (java.sql.Date)in);
-            else
-            {
-                java.sql.Date tmpd;
-                if (in instanceof java.util.Date) {
-                    tmpd = new java.sql.Date(((java.util.Date)in).getTime());
-                } else {
-                    if (calendar == null)
-                        calendar = new GregorianCalendar();
-                    tmpd = TimestampUtils.toDate(calendar, in.toString());
-                }
-                setDate(parameterIndex, tmpd);
-            }
-            break;
-        case Types.TIME:
-            if (in instanceof java.sql.Time)
-                setTime(parameterIndex, (java.sql.Time)in);
-            else
-            {
-                java.sql.Time tmpt;
-                if (in instanceof java.util.Date) {
-                    tmpt = new java.sql.Time(((java.util.Date)in).getTime());
-                } else {
-                    if (calendar == null)
-                        calendar = new GregorianCalendar();
-                    tmpt = TimestampUtils.toTime(calendar, in.toString());
-                }
-                setTime(parameterIndex, tmpt);
-            }
-            break;
-        case Types.TIMESTAMP:
-            if (in instanceof java.sql.Timestamp)
-                setTimestamp(parameterIndex , (java.sql.Timestamp)in);
-            else
-            {
-                java.sql.Timestamp tmpts;
-                if (in instanceof java.util.Date) {
-                    tmpts = new java.sql.Timestamp(((java.util.Date)in).getTime());
-                } else {
-                    if (calendar == null) {
-                        calendar = new GregorianCalendar();
-                    }
-                    tmpts = TimestampUtils.toTimestamp(calendar, in.toString());
-                }
-                setTimestamp(parameterIndex, tmpts);
-            }
-            break;
-        case Types.BIT:
-            bindLiteral(parameterIndex, pgType.toString(), Oid.BOOL);
-            break;
-        case Types.BINARY:
-        case Types.VARBINARY:
-        case Types.LONGVARBINARY:
-            setObject(parameterIndex, in);
-            break;
-        case Types.OTHER:
-            if (in instanceof PGobject)
-                setPGobject(parameterIndex, (PGobject)in);
-            else
-                throw new PSQLException(GT.tr("Cannot cast an instance of {0} to type {1}", new Object[]{in.getClass().getName(),"Types.OTHER"}), PSQLState.INVALID_PARAMETER_TYPE);
-            break;
-        default:
-            throw new PSQLException(GT.tr("Unsupported Types value: {0}", new Integer(targetSqlType)), PSQLState.INVALID_PARAMETER_TYPE);
+	    	Object pgType = createInternalType( in, targetSqlType );
+	    	switch (targetSqlType)
+	    {
+	        case Types.INTEGER:
+	            bindLiteral(parameterIndex, pgType.toString(), Oid.INT4);
+	            break;
+	        case Types.TINYINT:
+	        case Types.SMALLINT:
+	            bindLiteral(parameterIndex, pgType.toString(), Oid.INT2);
+	            break;
+	        case Types.BIGINT:
+	            bindLiteral(parameterIndex, pgType.toString(), Oid.INT8);
+	            break;
+	        case Types.REAL:
+	            //TODO: is this really necessary ?
+	            //bindLiteral(parameterIndex, new Float(pgType.toString()).toString(), Oid.FLOAT4);
+            		bindLiteral(parameterIndex, pgType.toString(), Oid.FLOAT4);
+	            break;
+	        case Types.DOUBLE:
+	        case Types.FLOAT:
+	            bindLiteral(parameterIndex, pgType.toString(), Oid.FLOAT8);
+	            break;
+	        case Types.DECIMAL:
+	        case Types.NUMERIC:
+	            bindLiteral(parameterIndex, pgType.toString(), Oid.NUMERIC);
+	            break;
+	        case Types.CHAR:
+	            setString(parameterIndex, pgType.toString(), Oid.BPCHAR);
+	            break;
+	        case Types.VARCHAR:
+	        case Types.LONGVARCHAR:
+	            setString(parameterIndex, pgType.toString());
+	            break;
+	        case Types.DATE:
+	            if (in instanceof java.sql.Date)
+	                setDate(parameterIndex, (java.sql.Date)in);
+	            else
+	            {
+	                java.sql.Date tmpd;
+	                if (in instanceof java.util.Date) {
+	                    tmpd = new java.sql.Date(((java.util.Date)in).getTime());
+	                } else {
+	                    if (calendar == null)
+	                        calendar = new GregorianCalendar();
+	                    tmpd = TimestampUtils.toDate(calendar, in.toString());
+	                }
+	                setDate(parameterIndex, tmpd);
+	            }
+	            break;
+	        case Types.TIME:
+	            if (in instanceof java.sql.Time)
+	                setTime(parameterIndex, (java.sql.Time)in);
+	            else
+	            {
+	                java.sql.Time tmpt;
+	                if (in instanceof java.util.Date) {
+	                    tmpt = new java.sql.Time(((java.util.Date)in).getTime());
+	                } else {
+	                    if (calendar == null)
+	                        calendar = new GregorianCalendar();
+	                    tmpt = TimestampUtils.toTime(calendar, in.toString());
+	                }
+	                setTime(parameterIndex, tmpt);
+	            }
+	            break;
+	        case Types.TIMESTAMP:
+	            if (in instanceof java.sql.Timestamp)
+	                setTimestamp(parameterIndex , (java.sql.Timestamp)in);
+	            else
+	            {
+	                java.sql.Timestamp tmpts;
+	                if (in instanceof java.util.Date) {
+	                    tmpts = new java.sql.Timestamp(((java.util.Date)in).getTime());
+	                } else {
+	                    if (calendar == null) {
+	                        calendar = new GregorianCalendar();
+	                    }
+	                    tmpts = TimestampUtils.toTimestamp(calendar, in.toString());
+	                }
+	                setTimestamp(parameterIndex, tmpts);
+	            }
+	            break;
+	        case Types.BIT:
+	            bindLiteral(parameterIndex, pgType.toString(), Oid.BOOL);
+	            break;
+	        case Types.BINARY:
+	        case Types.VARBINARY:
+	        case Types.LONGVARBINARY:
+	            setObject(parameterIndex, in);
+	            break;
+	        case Types.OTHER:
+	            if (in instanceof PGobject)
+	                setPGobject(parameterIndex, (PGobject)in);
+	            else
+	                throw new PSQLException(GT.tr("Cannot cast an instance of {0} to type {1}", new Object[]{in.getClass().getName(),"Types.OTHER"}), PSQLState.INVALID_PARAMETER_TYPE);
+	            break;
+	        default:
+	            throw new PSQLException(GT.tr("Unsupported Types value: {0}", new Integer(targetSqlType)), PSQLState.INVALID_PARAMETER_TYPE);
         }
     }
 
@@ -1685,20 +1720,45 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public void registerOutParameter(int parameterIndex, int sqlType) throws SQLException
     {
         checkClosed();
+        switch( sqlType )
+        {
+	        case Types.TINYINT:
+			    // we don't have a TINYINT type use SMALLINT
+			    	sqlType = Types.SMALLINT;
+			    	break;
+			case Types.LONGVARCHAR:
+			    sqlType = Types.VARCHAR;
+				break;
+			case Types.DECIMAL:
+			    sqlType = Types.NUMERIC;
+				break;
+			case Types.FLOAT:
+			    // float is the same as double
+			    sqlType = Types.DOUBLE;
+				break;
+			case Types.VARBINARY:
+			case Types.LONGVARBINARY:
+			    sqlType = Types.BINARY;
+				break;
+			default:
+			    break;
+        }
         if (!isFunction)
             throw new PSQLException (GT.tr("This statement does not declare an OUT parameter.  Use '{' ?= call ... '}' to declare one."), PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
         checkIndex(parameterIndex);
-
+        
+        preparedParameters.registerOutParameter( parameterIndex, sqlType );
         // functionReturnType contains the user supplied value to check
         // testReturn contains a modified version to make it easier to
         // check the getXXX methods..
-        functionReturnType = sqlType;
-        testReturn = sqlType;
-        if (functionReturnType == Types.CHAR ||
-                functionReturnType == Types.LONGVARCHAR)
-            testReturn = Types.VARCHAR;
-        else if (functionReturnType == Types.FLOAT)
-            testReturn = Types.REAL; // changes to streamline later error checking
+        functionReturnType[parameterIndex-1] = sqlType;
+        testReturn[parameterIndex-1] = sqlType;
+        
+        if (functionReturnType[parameterIndex-1] == Types.CHAR ||
+                functionReturnType[parameterIndex-1] == Types.LONGVARCHAR)
+            testReturn[parameterIndex-1] = Types.VARCHAR;
+        else if (functionReturnType[parameterIndex-1] == Types.FLOAT)
+            testReturn[parameterIndex-1] = Types.REAL; // changes to streamline later error checking
         returnTypeSet = true;
     }
 
@@ -1733,7 +1793,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public boolean wasNull() throws SQLException
     {
         // check to see if the last access threw an exception
-        return (callResult == null);
+        return (callResult[lastIndex-1] == null);
     }
 
     /*
@@ -1748,7 +1808,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     {
         checkClosed();
         checkIndex (parameterIndex, Types.VARCHAR, "String");
-        return (String)callResult;
+        return (String)callResult[parameterIndex-1];
     }
 
 
@@ -1763,9 +1823,10 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     {
         checkClosed();
         checkIndex (parameterIndex, Types.BIT, "Boolean");
-        if (callResult == null)
+        if (callResult[parameterIndex-1] == null)
             return false;
-        return ((Boolean)callResult).booleanValue ();
+        
+        return ((Boolean)callResult[parameterIndex-1]).booleanValue ();
     }
 
     /*
@@ -1778,12 +1839,14 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public byte getByte(int parameterIndex) throws SQLException
     {
         checkClosed();
-        checkIndex (parameterIndex, Types.TINYINT, "Byte");
-        // We expect the above checkIndex call to fail because
-        // we don't have an equivalent pg type for TINYINT.
-        // Possibly "char" (not char(N)), could be used, but
-        // for the moment we just bail out.
-        throw new PSQLException(GT.tr("Something unusual has occured to cause the driver to fail. Please report this exception."), PSQLState.UNEXPECTED_ERROR);
+        // fake tiny int with smallint
+        checkIndex (parameterIndex, Types.SMALLINT, "Byte");
+        
+        if (callResult[parameterIndex-1] == null)
+            return 0;
+        
+        return ((Integer)callResult[parameterIndex-1]).byteValue();
+  
     }
 
     /*
@@ -1797,9 +1860,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     {
         checkClosed();
         checkIndex (parameterIndex, Types.SMALLINT, "Short");
-        if (callResult == null)
+        if (callResult[parameterIndex-1] == null)
             return 0;
-        return ((Integer)callResult).shortValue ();
+        return ((Integer)callResult[parameterIndex-1]).shortValue ();
     }
 
 
@@ -1814,9 +1877,10 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     {
         checkClosed();
         checkIndex (parameterIndex, Types.INTEGER, "Int");
-        if (callResult == null)
+        if (callResult[parameterIndex-1] == null)
             return 0;
-        return ((Integer)callResult).intValue ();
+        
+        return ((Integer)callResult[parameterIndex-1]).intValue ();
     }
 
     /*
@@ -1830,9 +1894,10 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     {
         checkClosed();
         checkIndex (parameterIndex, Types.BIGINT, "Long");
-        if (callResult == null)
+        if (callResult[parameterIndex-1] == null)
             return 0;
-        return ((Long)callResult).longValue ();
+        
+        return ((Long)callResult[parameterIndex-1]).longValue ();
     }
 
     /*
@@ -1846,9 +1911,10 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     {
         checkClosed();
         checkIndex (parameterIndex, Types.REAL, "Float");
-        if (callResult == null)
+        if (callResult[parameterIndex-1] == null)
             return 0;
-        return ((Float)callResult).floatValue ();
+
+        return ((Float)callResult[parameterIndex-1]).floatValue ();
     }
 
     /*
@@ -1862,9 +1928,10 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     {
         checkClosed();
         checkIndex (parameterIndex, Types.DOUBLE, "Double");
-        if (callResult == null)
+        if (callResult[parameterIndex-1] == null)
             return 0;
-        return ((Double)callResult).doubleValue ();
+        
+        return ((Double)callResult[parameterIndex-1]).doubleValue ();
     }
 
     /*
@@ -1883,7 +1950,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     {
         checkClosed();
         checkIndex (parameterIndex, Types.NUMERIC, "BigDecimal");
-        return ((BigDecimal)callResult);
+        return ((BigDecimal)callResult[parameterIndex-1]);
     }
 
     /*
@@ -1898,7 +1965,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     {
         checkClosed();
         checkIndex (parameterIndex, Types.VARBINARY, Types.BINARY, "Bytes");
-        return ((byte [])callResult);
+        return ((byte [])callResult[parameterIndex-1]);
     }
 
 
@@ -1912,8 +1979,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public java.sql.Date getDate(int parameterIndex) throws SQLException
     {
         checkClosed();
-        checkIndex (parameterIndex, Types.DATE, "Date");
-        return (java.sql.Date)callResult;
+        checkIndex (parameterIndex, Types.DATE, "Date");     
+        return (java.sql.Date)callResult[parameterIndex-1];
     }
 
     /*
@@ -1927,7 +1994,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     {
         checkClosed();
         checkIndex (parameterIndex, Types.TIME, "Time");
-        return (java.sql.Time)callResult;
+        return (java.sql.Time)callResult[parameterIndex-1];
     }
 
     /*
@@ -1942,7 +2009,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     {
         checkClosed();
         checkIndex (parameterIndex, Types.TIMESTAMP, "Timestamp");
-        return (java.sql.Timestamp)callResult;
+        return (java.sql.Timestamp)callResult[parameterIndex-1];
     }
 
     // getObject returns a Java object for the parameter.
@@ -1969,8 +2036,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     throws SQLException
     {
         checkClosed();
-        checkIndex (parameterIndex);
-        return callResult;
+        checkIndex (parameterIndex);        
+        return callResult[parameterIndex-1];
     }
 
     /*
@@ -1985,16 +2052,6 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         return preparedQuery.toString(preparedParameters);
     }
 
-    private int adjustParamIndex(int paramIndex) throws SQLException {
-        if (!isFunction)
-            return paramIndex;
-
-        if (paramIndex == 1) // need to registerOut instead
-            throw new PSQLException (GT.tr("Cannot call setXXX(1, ..) on a CallableStatement.  This is an output that must be configured with registerOutParameter instead."),
-                                     PSQLState.INVALID_PARAMETER_VALUE);
-
-        return paramIndex - 1;
-    }
 
     /*
         * Note if s is a String it should be escaped by the caller to avoid SQL
@@ -2004,7 +2061,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
      */
     private void bindLiteral(int paramIndex, String s, int oid) throws SQLException
     {
-        preparedParameters.setLiteralParameter(adjustParamIndex(paramIndex), s, oid);
+        preparedParameters.setLiteralParameter(paramIndex, s, oid);
     }
 
     /*
@@ -2014,7 +2071,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
      */
     private void bindString(int paramIndex, String s, int oid) throws SQLException
     {
-        preparedParameters.setStringParameter(adjustParamIndex(paramIndex), s, oid);
+        preparedParameters.setStringParameter( paramIndex, s, oid);
     }
 
     /**
@@ -2037,7 +2094,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         int len = p_sql.length();
         int state = 1;
         boolean inQuotes = false, inEscape = false;
-
+        boolean outParmBeforeFunc = false;
         int startIndex = -1, endIndex = -1;
         boolean syntaxError = false;
         int i = 0;
@@ -2068,7 +2125,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             case 2:  // After {, looking for ? or =, skipping whitespace
                 if (ch == '?')
                 {
-                    isFunction = true;   // { ? = call ... }  -- function with one out parameter
+                    outParmBeforeFunc = isFunction = true;   // { ? = call ... }  -- function with one out parameter
                     ++i;
                     ++state;
                 }
@@ -2121,6 +2178,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             case 5:  // Should be at 'call ' either at start of string or after ?=
                 if ((ch == 'c' || ch == 'C') && i + 4 <= len && p_sql.substring(i, i + 4).equalsIgnoreCase("call"))
                 {
+                    isFunction=true;
                     i += 4;
                     ++state;
                 }
@@ -2220,7 +2278,35 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
         if (connection.haveMinimumServerVersion("7.3"))
         {
-            return "select * from " + p_sql.substring(startIndex, endIndex) + " as result";
+            StringBuffer sb = new StringBuffer(p_sql.substring(startIndex, endIndex ));
+            if ( outParmBeforeFunc )
+            {
+    	        // move the single out parameter into the function call 
+    	        // so that it can be treated like all other parameters
+    	        boolean needComma=false;
+    	        
+    	        
+    	        int opening = sb.indexOf("(")+1;
+    	        int closing = sb.indexOf(")");
+    	        for ( int j=opening; j< closing;j++ )
+    	        {
+    	            if ( !Character.isWhitespace(sb.charAt(j)) )
+    	            {
+    	                needComma = true;
+    	                break;
+    	            }
+    	        }
+    	        if ( needComma ) 
+    	        {
+    	            sb.insert(opening, "?,");       
+    	        }
+    	        else
+    	        {
+    	            sb.insert(opening, "?");
+    	        }
+    	        
+            }
+            return "select * from " + sb.toString() + " as result";
         }
         else
         {
@@ -2235,7 +2321,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     throws SQLException
     {
         checkIndex (parameterIndex);
-        if (type1 != this.testReturn && type2 != this.testReturn)
+        if (type1 != this.testReturn[parameterIndex-1] && type2 != this.testReturn[parameterIndex-1])
             throw new PSQLException(GT.tr("Parameter of type {0} was registered, but call to get{1} (sqltype={2}) was made.",
                                           new Object[]{"java.sql.Types=" + testReturn,
                                                        getName,
@@ -2249,9 +2335,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     throws SQLException
     {
         checkIndex (parameterIndex);
-        if (type != this.testReturn)
+        if (type != this.testReturn[parameterIndex-1])
             throw new PSQLException(GT.tr("Parameter of type {0} was registered, but call to get{1} (sqltype={2}) was made.",
-                                          new Object[]{"java.sql.Types=" + testReturn,
+                                          new Object[]{"java.sql.Types=" + testReturn[parameterIndex-1],
                                                        getName,
                                                        "java.sql.Types=" + type}),
                                     PSQLState.MOST_SPECIFIC_TYPE_DOES_NOT_MATCH);
@@ -2265,8 +2351,11 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     {
         if (!isFunction)
             throw new PSQLException(GT.tr("A CallableStatement was declared, but no call to registerOutParameter(1, <some type>) was made."), PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
+        lastIndex =  parameterIndex;
+        /*
         if (parameterIndex != 1)
             throw new PSQLException (GT.tr("PostgreSQL only supports a single OUT function return value at index 1."), PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
+        */
     }
 
     public void setPrepareThreshold(int newThreshold) throws SQLException {
@@ -2797,14 +2886,14 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     {
         checkClosed();
         checkIndex(i, Types.ARRAY, "Array");
-        return (Array)callResult;
+        return (Array)callResult[i-1];
     }
 
     public java.math.BigDecimal getBigDecimal(int parameterIndex) throws SQLException
     {
         checkClosed();
         checkIndex (parameterIndex, Types.NUMERIC, "BigDecimal");
-        return ((BigDecimal)callResult);
+        return ((BigDecimal)callResult[parameterIndex-1]);
     }
 
     public Blob getBlob(int i) throws SQLException

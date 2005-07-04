@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CallableStmtTest.java,v 1.15 2005/06/14 19:32:28 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CallableStmtTest.java,v 1.16 2005/06/21 18:07:08 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -46,11 +46,12 @@ public class CallableStmtTest extends TestCase
         stmt.execute ("CREATE OR REPLACE FUNCTION testspg__getNumeric (numeric) " +
                       "RETURNS numeric AS ' DECLARE inString alias for $1; " +
                       "begin return 42; end; ' LANGUAGE 'plpgsql';");
+        
         stmt.execute ("CREATE OR REPLACE FUNCTION testspg__getNumericWithoutArg() " +
                 "RETURNS numeric AS '  " +
                 "begin return 42; end; ' LANGUAGE 'plpgsql';");
-        stmt.execute("CREATE OR REPLACE FUNCTION getarray() RETURNS int[] as 'SELECT ''{1,2}''::int[];' LANGUAGE 'sql'");
-        stmt.execute("CREATE OR REPLACE FUNCTION raisenotice() RETURNS int as 'BEGIN RAISE NOTICE ''hello'';  RAISE NOTICE ''goodbye''; RETURN 1; END;' LANGUAGE 'plpgsql'");
+        stmt.execute("CREATE OR REPLACE FUNCTION testspg__getarray() RETURNS int[] as 'SELECT ''{1,2}''::int[];' LANGUAGE 'sql'");
+        stmt.execute("CREATE OR REPLACE FUNCTION testspg__raisenotice() RETURNS int as 'BEGIN RAISE NOTICE ''hello'';  RAISE NOTICE ''goodbye''; RETURN 1; END;' LANGUAGE 'plpgsql'");
         stmt.close ();
     }
 
@@ -62,9 +63,10 @@ public class CallableStmtTest extends TestCase
         stmt.execute ("drop FUNCTION testspg__getInt (int);");
         stmt.execute ("drop FUNCTION testspg__getShort(int2)");
         stmt.execute ("drop FUNCTION testspg__getNumeric (numeric);");
+  
         stmt.execute ("drop FUNCTION testspg__getNumericWithoutArg ();");
-        stmt.execute ("DROP FUNCTION getarray();");
-        stmt.execute ("DROP FUNCTION raisenotice();");
+        stmt.execute ("DROP FUNCTION testspg__getarray();");
+        stmt.execute ("DROP FUNCTION testspg__raisenotice();");
         TestUtil.closeDB(con);
     }
 
@@ -75,6 +77,7 @@ public class CallableStmtTest extends TestCase
     //testGetString ();
     //}
 
+    
     public void testGetDouble () throws Throwable
     {
         CallableStatement call = con.prepareCall (func + pkgName + "getDouble (?) }");
@@ -133,7 +136,7 @@ public class CallableStmtTest extends TestCase
 
     public void testGetArray() throws SQLException
     {
-        CallableStatement call = con.prepareCall("{ ? = call getarray()}");
+        CallableStatement call = con.prepareCall(func + pkgName + "getarray()}");
         call.registerOutParameter(1, Types.ARRAY);
         call.execute();
         Array arr = call.getArray(1);
@@ -147,7 +150,7 @@ public class CallableStmtTest extends TestCase
 
     public void testRaiseNotice() throws SQLException
     {
-        CallableStatement call = con.prepareCall("{? = call raisenotice()}");
+        CallableStatement call = con.prepareCall(func + pkgName + "raisenotice()}");
         call.registerOutParameter(1, Types.INTEGER);
         call.execute();
         SQLWarning warn = call.getWarnings();

@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/FastpathParameterList.java,v 1.6 2005/01/11 08:25:43 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/FastpathParameterList.java,v 1.7 2005/02/01 07:27:54 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -34,14 +34,20 @@ class FastpathParameterList implements ParameterList {
         this.paramValues = new Object[paramCount];
     }
 
-    public int getParameterCount() {
+    public void registerOutParameter(int index, int sqlType ){}
+    public void registerOutParameter(int index, int sqlType, int precision ){};
+    
+    public int getInParameterCount() {
         return paramValues.length;
     }
-
+    public int getParameterCount()
+    {
+        return paramValues.length;
+    }
     public int[] getTypeOIDs() {
         return null;
     }
-
+    
     public void setIntParameter(int index, int value) throws SQLException {
         if (index < 1 || index > paramValues.length)
             throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE );
