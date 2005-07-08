@@ -32,27 +32,26 @@ public class PGShort implements PGType
         {
             switch ( targetType )
             {
-            case Types.BOOLEAN:
-            case Types.BIT:
-                return new PGBoolean( val.shortValue() == 0?Boolean.FALSE:Boolean.TRUE );
-            
-            case Types.SMALLINT:
-            case Types.TINYINT:
-                return new PGShort(val);
-            case Types.REAL:
-                return new PGFloat( new Float( val.floatValue() ) ); 
-            case Types.DOUBLE:
-            case Types.FLOAT:
-                return new PGDouble( new Double( val.doubleValue() ) );
-            case Types.VARCHAR:
-            case Types.LONGVARCHAR:                
-                return new PGString ( val.toString() );
-            case Types.DECIMAL:
-            case Types.NUMERIC:
-                return new PGBigDecimal( new BigDecimal( val.toString()));
-            default:
-                return new PGUnknown(val);
-            }
+	            case Types.BIT:
+	                return new PGBoolean( val.shortValue() == 0?Boolean.FALSE:Boolean.TRUE );
+	            
+	            case Types.SMALLINT:
+	            case Types.TINYINT:
+	                return new PGShort(val);
+	            case Types.REAL:
+	                return new PGFloat( new Float( val.floatValue() ) ); 
+	            case Types.DOUBLE:
+	            case Types.FLOAT:
+	                return new PGDouble( new Double( val.doubleValue() ) );
+	            case Types.VARCHAR:
+	            case Types.LONGVARCHAR:                
+	                return new PGString ( val.toString() );
+	            case Types.DECIMAL:
+	            case Types.NUMERIC:
+	                return new PGBigDecimal( new BigDecimal( val.toString()));
+	            default:
+	                return new PGUnknown(val);
+	            }
         }
         catch (Exception ex)
         {

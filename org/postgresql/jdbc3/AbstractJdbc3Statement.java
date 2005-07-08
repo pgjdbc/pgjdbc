@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Statement.java,v 1.17 2005/02/15 08:56:26 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Statement.java,v 1.18 2005/07/04 18:50:29 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1445,18 +1445,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
         super.setNull(parameterIndex, sqlType);
     }
 
-    public void registerOutParameter(int parameterIndex, int sqlType) throws SQLException
-    {
-        switch( sqlType )
-        {
-        		case Types.BOOLEAN:
-        		    	sqlType = Types.BIT;
-        			break;
-    			default:
-        		
-        }
-        super.registerOutParameter(parameterIndex, sqlType);
-    }
+    
 
     protected boolean wantsHoldableResultSet() {
         return rsHoldability == ResultSet.HOLD_CURSORS_OVER_COMMIT;

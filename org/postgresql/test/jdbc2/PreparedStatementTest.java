@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/PreparedStatementTest.java,v 1.11 2005/05/30 13:07:29 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/PreparedStatementTest.java,v 1.12 2005/07/04 18:50:29 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -365,7 +365,7 @@ public class PreparedStatementTest extends TestCase
         pstmt = conn.prepareStatement( "insert into bool_tab values (?,?,?)");
         pstmt.setBoolean(1,true );
         pstmt.setBoolean(2, false);
-        pstmt.setNull(3,Types.BOOLEAN);
+        pstmt.setNull(3,Types.BIT);
         pstmt.executeUpdate();
         pstmt.close();
         

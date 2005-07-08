@@ -34,30 +34,29 @@ public class PGFloat implements PGType
         {
             switch ( targetType )
             {
-            case Types.BOOLEAN:
-            case Types.BIT:
-                return new PGBoolean( val.floatValue() == 0?Boolean.FALSE:Boolean.TRUE );
-            
-            case Types.BIGINT:
-                return new PGLong(new Long( val.longValue() ));
-            case Types.INTEGER:
-                return new PGInteger(new Integer( val.intValue() ) );
-            case Types.SMALLINT:
-            case Types.TINYINT:
-                return new PGShort(new Short( val.shortValue() ));
-            case Types.VARCHAR:
-            case Types.LONGVARCHAR:                
-                return new PGString( val.toString() );
-            case Types.DOUBLE:
-            case Types.FLOAT:
-                return( new PGDouble( new Double( val.doubleValue())));
-            case Types.REAL:
-                return new PGFloat( val );
-            case Types.DECIMAL:
-            case Types.NUMERIC:
-                return new PGBigDecimal( new BigDecimal( val.toString()));
-            default:
-                return new PGUnknown(val);            
+	            case Types.BIT:
+	                return new PGBoolean( val.floatValue() == 0?Boolean.FALSE:Boolean.TRUE );
+	            
+	            case Types.BIGINT:
+	                return new PGLong(new Long( val.longValue() ));
+	            case Types.INTEGER:
+	                return new PGInteger(new Integer( val.intValue() ) );
+	            case Types.SMALLINT:
+	            case Types.TINYINT:
+	                return new PGShort(new Short( val.shortValue() ));
+	            case Types.VARCHAR:
+	            case Types.LONGVARCHAR:                
+	                return new PGString( val.toString() );
+	            case Types.DOUBLE:
+	            case Types.FLOAT:
+	                return( new PGDouble( new Double( val.doubleValue())));
+	            case Types.REAL:
+	                return new PGFloat( val );
+	            case Types.DECIMAL:
+	            case Types.NUMERIC:
+	                return new PGBigDecimal( new BigDecimal( val.toString()));
+	            default:
+	                return new PGUnknown(val);            
             }
         }
         catch( Exception ex)

@@ -36,38 +36,37 @@ public class PGString implements PGType
         {
             switch (targetType )
             {
-            case Types.BOOLEAN:
-            case Types.BIT:
-            {
-                if ( val.equalsIgnoreCase("true") || val.equalsIgnoreCase("1") || val.equalsIgnoreCase("t"))
-                    return new PGBoolean( Boolean.TRUE );
-                if ( val.equalsIgnoreCase("false") || val.equalsIgnoreCase("0") || val.equalsIgnoreCase("f"))
-                    return new PGBoolean( Boolean.FALSE);
-            }
-            
-            return new PGBoolean( Boolean.FALSE);
-            
-            case Types.VARCHAR:
-            case Types.LONGVARCHAR:                
-                return new PGString(val);
-            case Types.BIGINT:
-                return new PGLong( new Long(Long.parseLong( val )));
-            case Types.INTEGER:
-                return new PGInteger( new Integer(Integer.parseInt( val )));
-            case Types.TINYINT:
-                return new PGShort( new Short( Short.parseShort( val )));
-            case Types.FLOAT:
-            case Types.DOUBLE:
-                return new PGDouble( new Double(Double.parseDouble( val )));
-            case Types.REAL:
-                return new PGFloat( new Float( Float.parseFloat( val )));
-            case Types.NUMERIC:
-            case Types.DECIMAL:
-                return new PGBigDecimal( new BigDecimal( val));
-            default:
-                return new PGUnknown( val );
-            
-            }
+	            case Types.BIT:
+	            {
+	                if ( val.equalsIgnoreCase("true") || val.equalsIgnoreCase("1") || val.equalsIgnoreCase("t"))
+	                    return new PGBoolean( Boolean.TRUE );
+	                if ( val.equalsIgnoreCase("false") || val.equalsIgnoreCase("0") || val.equalsIgnoreCase("f"))
+	                    return new PGBoolean( Boolean.FALSE);
+	            }
+	            
+	            return new PGBoolean( Boolean.FALSE);
+	            
+	            case Types.VARCHAR:
+	            case Types.LONGVARCHAR:                
+	                return new PGString(val);
+	            case Types.BIGINT:
+	                return new PGLong( new Long(Long.parseLong( val )));
+	            case Types.INTEGER:
+	                return new PGInteger( new Integer(Integer.parseInt( val )));
+	            case Types.TINYINT:
+	                return new PGShort( new Short( Short.parseShort( val )));
+	            case Types.FLOAT:
+	            case Types.DOUBLE:
+	                return new PGDouble( new Double(Double.parseDouble( val )));
+	            case Types.REAL:
+	                return new PGFloat( new Float( Float.parseFloat( val )));
+	            case Types.NUMERIC:
+	            case Types.DECIMAL:
+	                return new PGBigDecimal( new BigDecimal( val));
+	            default:
+	                return new PGUnknown( val );
+	            
+	            }
         }
         catch( Exception ex )
         {

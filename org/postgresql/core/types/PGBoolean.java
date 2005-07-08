@@ -51,7 +51,6 @@ public class PGBoolean implements PGType
             case Types.DECIMAL:
                 return new PGBigDecimal( new java.math.BigDecimal(val.booleanValue()==true?1:0));
             
-            case Types.BOOLEAN:
             case Types.BIT:
                 return new PGBoolean( val );
             default:

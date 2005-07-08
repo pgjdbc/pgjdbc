@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.77 2005/06/08 02:41:03 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.78 2005/07/04 18:50:29 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -64,7 +64,14 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
     /** The first unclosed result. */
     protected ResultWrapper firstUnclosedResult = null;
-
+    
+    /** used to differentiate between new function call
+     * logic and old function call logic
+     * will be set to true if the server is < 8.1 or 
+     * if we are using v2 protocol
+     */
+    protected boolean adjustIndex = false;
+    
     // Static variables for parsing SQL when replaceProcessing is true.
     private static final short IN_SQLCODE = 0;
     private static final short IN_STRING = 1;
@@ -1044,7 +1051,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             // Bad Types value.
             throw new PSQLException(GT.tr("Unknown Types value."), PSQLState.INVALID_PARAMETER_TYPE);
         }
-
+        if ( adjustIndex )
+            parameterIndex--;
         preparedParameters.setNull( parameterIndex, oid);
     }
 
@@ -1100,7 +1108,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
      */
     public void setInt(int parameterIndex, int x) throws SQLException
     {
-        checkClosed();
+        checkClosed();         
         bindLiteral(parameterIndex, Integer.toString(x), Oid.INT4);
     }
 
@@ -1161,9 +1169,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (x == null)
             setNull(parameterIndex, Types.DECIMAL);
         else
-        {
             bindLiteral(parameterIndex, x.toString(), Oid.NUMERIC);
-        }
     }
 
     /*
@@ -1187,7 +1193,11 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         // if the passed string is null, then set this column to null
         checkClosed();
         if (x == null)
+        {
+            if ( adjustIndex )
+                parameterIndex--;   
             preparedParameters.setNull( parameterIndex, oid);
+        }
         else
             bindString(parameterIndex, x, oid);
     }
@@ -1717,7 +1727,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
      * registerOutParameter that accepts a scale value
      * @exception SQLException if a database-access error occurs.
      */
-    public void registerOutParameter(int parameterIndex, int sqlType) throws SQLException
+    public void registerOutParameter(int parameterIndex, int sqlType, boolean setPreparedParameters) throws SQLException
     {
         checkClosed();
         switch( sqlType )
@@ -1747,7 +1757,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             throw new PSQLException (GT.tr("This statement does not declare an OUT parameter.  Use '{' ?= call ... '}' to declare one."), PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
         checkIndex(parameterIndex);
         
-        preparedParameters.registerOutParameter( parameterIndex, sqlType );
+        if( setPreparedParameters )
+            preparedParameters.registerOutParameter( parameterIndex, sqlType );
         // functionReturnType contains the user supplied value to check
         // testReturn contains a modified version to make it easier to
         // check the getXXX methods..
@@ -1776,9 +1787,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
      * @exception SQLException if a database-access error occurs.
      */
     public void registerOutParameter(int parameterIndex, int sqlType,
-                                     int scale) throws SQLException
+                                     int scale, boolean setPreparedParameters) throws SQLException
     {
-        registerOutParameter (parameterIndex, sqlType); // ignore for now..
+        registerOutParameter (parameterIndex, sqlType, setPreparedParameters); // ignore for now..
     }
 
     /*
@@ -2061,6 +2072,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
      */
     private void bindLiteral(int paramIndex, String s, int oid) throws SQLException
     {
+        if(adjustIndex)
+            paramIndex--;
         preparedParameters.setLiteralParameter(paramIndex, s, oid);
     }
 
@@ -2071,6 +2084,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
      */
     private void bindString(int paramIndex, String s, int oid) throws SQLException
     {
+        if (adjustIndex)
+            paramIndex--;
         preparedParameters.setStringParameter( paramIndex, s, oid);
     }
 
@@ -2276,34 +2291,35 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             throw new PSQLException (GT.tr("Malformed function or procedure escape syntax at offset {0}.", new Integer(i)),
                                      PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
 
-        if (connection.haveMinimumServerVersion("7.3"))
+        if (connection.haveMinimumServerVersion("8.1"))
         {
-            StringBuffer sb = new StringBuffer(p_sql.substring(startIndex, endIndex ));
+            String s = p_sql.substring(startIndex, endIndex );
+            StringBuffer sb = new StringBuffer(s);
             if ( outParmBeforeFunc )
             {
-    	        // move the single out parameter into the function call 
-    	        // so that it can be treated like all other parameters
-    	        boolean needComma=false;
-    	        
-    	        
-    	        int opening = sb.indexOf("(")+1;
-    	        int closing = sb.indexOf(")");
-    	        for ( int j=opening; j< closing;j++ )
-    	        {
-    	            if ( !Character.isWhitespace(sb.charAt(j)) )
-    	            {
-    	                needComma = true;
-    	                break;
-    	            }
-    	        }
-    	        if ( needComma ) 
-    	        {
-    	            sb.insert(opening, "?,");       
-    	        }
-    	        else
-    	        {
-    	            sb.insert(opening, "?");
-    	        }
+	    	        // move the single out parameter into the function call 
+	    	        // so that it can be treated like all other parameters
+	    	        boolean needComma=false;
+	    	        
+	    	        // have to use String.indexOf for java 2
+	    	        int opening = s.indexOf('(')+1;
+	    	        int closing = s.indexOf(')');
+	    	        for ( int j=opening; j< closing;j++ )
+	    	        {
+	    	            if ( !Character.isWhitespace(sb.charAt(j)) )
+	    	            {
+	    	                needComma = true;
+	    	                break;
+	    	            }
+	    	        }
+	    	        if ( needComma ) 
+	    	        {
+	    	            sb.insert(opening, "?,");       
+	    	        }
+	    	        else
+	    	        {
+	    	            sb.insert(opening, "?");
+	    	        }
     	        
             }
             return "select * from " + sb.toString() + " as result";

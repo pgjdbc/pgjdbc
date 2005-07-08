@@ -33,29 +33,28 @@ public class PGLong implements PGType
         {
             switch ( targetType )
             {
-            case Types.BOOLEAN:
-            case Types.BIT:
-                return new PGBoolean(val.longValue()==0?Boolean.FALSE:Boolean.TRUE);
-            case Types.REAL:
-                return new PGFloat( new Float(val.floatValue()) );
-            case Types.FLOAT:
-            case Types.DOUBLE:
-                return new PGDouble( new Double(val.doubleValue()) );
-            case Types.VARCHAR:
-            case Types.LONGVARCHAR:                
-                return new PGString(val.toString());
-            case Types.BIGINT:
-                return new PGLong( val );
-            case Types.INTEGER:
-                return new PGInteger( new Integer( val.intValue()));
-            case Types.SMALLINT:
-            case Types.TINYINT:
-                return new PGShort( new Short( val.shortValue() ));
-            case Types.DECIMAL:
-            case Types.NUMERIC:
-                return new PGBigDecimal( new BigDecimal( val.toString())); 
-            default:
-                return new PGUnknown(val);
+	            case Types.BIT:
+	                return new PGBoolean(val.longValue()==0?Boolean.FALSE:Boolean.TRUE);
+	            case Types.REAL:
+	                return new PGFloat( new Float(val.floatValue()) );
+	            case Types.FLOAT:
+	            case Types.DOUBLE:
+	                return new PGDouble( new Double(val.doubleValue()) );
+	            case Types.VARCHAR:
+	            case Types.LONGVARCHAR:                
+	                return new PGString(val.toString());
+	            case Types.BIGINT:
+	                return new PGLong( val );
+	            case Types.INTEGER:
+	                return new PGInteger( new Integer( val.intValue()));
+	            case Types.SMALLINT:
+	            case Types.TINYINT:
+	                return new PGShort( new Short( val.shortValue() ));
+	            case Types.DECIMAL:
+	            case Types.NUMERIC:
+	                return new PGBigDecimal( new BigDecimal( val.toString())); 
+	            default:
+	                return new PGUnknown(val);
             }
         }
         catch( Exception ex )

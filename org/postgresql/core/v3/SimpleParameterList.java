@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleParameterList.java,v 1.8 2005/02/01 07:27:54 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleParameterList.java,v 1.9 2005/07/04 18:50:29 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -44,8 +44,11 @@ class SimpleParameterList implements V3ParameterList {
     }
         
     
-    public void registerOutParameter( int index, int sqlType )
+    public void registerOutParameter( int index, int sqlType ) throws SQLException
     {
+        if (index < 1 || index > paramValues.length)
+            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE );
+
         direction[index-1] |= OUT;
     }
 

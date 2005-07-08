@@ -37,26 +37,25 @@ public class PGByte implements PGType
         {
             switch ( targetType )
             {
-            case Types.BOOLEAN:
-            case Types.BIT:
-                return new PGBoolean( val.byteValue() == 0?Boolean.FALSE:Boolean.TRUE );
-            
-            case Types.SMALLINT:
-            case Types.TINYINT:
-                return new PGByte( val );
-            case Types.REAL:
-                return new PGFloat( new Float( val.floatValue() ) ); 
-            case Types.DOUBLE:
-            case Types.FLOAT:
-                return new PGDouble( new Double( val.doubleValue() ) );
-            case Types.NUMERIC:
-            case Types.DECIMAL:
-                return new PGBigDecimal( new BigDecimal(val.toString()) );
-            case Types.VARCHAR:
-            case Types.LONGVARCHAR:                
-                return new PGString ( val.toString() );
-            default:
-                return new PGUnknown(val);
+	            case Types.BIT:
+	                return new PGBoolean( val.byteValue() == 0?Boolean.FALSE:Boolean.TRUE );
+	            
+	            case Types.SMALLINT:
+	            case Types.TINYINT:
+	                return new PGByte( val );
+	            case Types.REAL:
+	                return new PGFloat( new Float( val.floatValue() ) ); 
+	            case Types.DOUBLE:
+	            case Types.FLOAT:
+	                return new PGDouble( new Double( val.doubleValue() ) );
+	            case Types.NUMERIC:
+	            case Types.DECIMAL:
+	                return new PGBigDecimal( new BigDecimal(val.toString()) );
+	            case Types.VARCHAR:
+	            case Types.LONGVARCHAR:                
+	                return new PGString ( val.toString() );
+	            default:
+	                return new PGUnknown(val);
             }
         }
         catch( Exception ex )
