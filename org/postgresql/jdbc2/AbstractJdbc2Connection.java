@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.30 2005/06/21 18:07:08 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.31 2005/07/04 18:50:29 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -124,6 +124,9 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
             Driver.debug("    prepare threshold = " + prepareThreshold);
         }
 
+        // Initialize timestamp stuff
+        timestampUtils = new TimestampUtils(haveMinimumServerVersion("7.4"));
+
         // Initialize common queries.
         commitQuery = getQueryExecutor().createSimpleQuery("COMMIT");
         rollbackQuery = getQueryExecutor().createSimpleQuery("ROLLBACK");
@@ -132,6 +135,9 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         _typeCache = new TypeInfoCache(this);
         initObjectTypes(info);
     }
+
+    private final TimestampUtils timestampUtils;
+    public TimestampUtils getTimestampUtils() { return timestampUtils; }
 
     /*
      * The current type mappings

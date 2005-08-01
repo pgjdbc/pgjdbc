@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.74 2005/05/08 23:50:56 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.75 2005/06/08 01:44:02 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -24,6 +24,7 @@ import java.util.StringTokenizer;
 import java.util.Vector;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.TimeZone;
 import org.postgresql.Driver;
 import org.postgresql.core.*;
 import org.postgresql.largeobject.*;
@@ -139,7 +140,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         case Types.TIME:
             return getTime(columnIndex);
         case Types.TIMESTAMP:
-            return getTimestamp(columnIndex);
+            return getTimestamp(columnIndex, null);
         case Types.BINARY:
         case Types.VARBINARY:
         case Types.LONGVARBINARY:
@@ -385,45 +386,37 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     public java.sql.Date getDate(int i, java.util.Calendar cal) throws SQLException
     {
-        // apply available calendar if there is no timezone information
-        if (cal == null || getPGType(i).endsWith("tz") )
-            return getDate(i);
+        this.checkResultSet(i);
 
-        java.util.Date tmp = getDate(i);
-        if (tmp == null)
-            return null;
+        if (cal != null)
+            cal = (Calendar)cal.clone();
 
-	Calendar _cal = (Calendar)cal.clone();
-        _cal = org.postgresql.jdbc2.AbstractJdbc2Statement.changeTime(tmp, _cal, false);
-        return new java.sql.Date(_cal.getTime().getTime());
+        return connection.getTimestampUtils().toDate(cal, getString(i));
     }
 
 
     public Time getTime(int i, java.util.Calendar cal) throws SQLException
     {
-        // apply available calendar if there is no timezone information
-        if (cal == null || getPGType(i).endsWith("tz") )
-            return getTime(i);
-        java.util.Date tmp = getTime(i);
-        if (tmp == null)
-            return null;
-	Calendar _cal = (Calendar)cal.clone();
-        _cal = org.postgresql.jdbc2.AbstractJdbc2Statement.changeTime(tmp, _cal, false);
-        return new java.sql.Time(_cal.getTime().getTime());
+        this.checkResultSet(i);
+
+        if (cal != null)
+            cal = (Calendar)cal.clone();
+
+        return connection.getTimestampUtils().toTime(cal, getString(i));
     }
 
 
     public Timestamp getTimestamp(int i, java.util.Calendar cal) throws SQLException
     {
-        // apply available calendar if there is no timezone information
-        if (cal == null || getPGType(i).endsWith("tz") )
-            return getTimestamp(i);
-        java.util.Date tmp = getTimestamp(i);
-        if (tmp == null)
-            return null;
-	Calendar _cal = (Calendar)cal.clone();
-        _cal = org.postgresql.jdbc2.AbstractJdbc2Statement.changeTime(tmp, _cal, false);
-        return new java.sql.Timestamp(_cal.getTime().getTime());
+        this.checkResultSet(i);
+
+        if (cal != null)
+            cal = (Calendar)cal.clone();
+
+        // If this is actually a timestamptz, the server-provided timezone will override
+        // the one we pass in, which is the desired behaviour. Otherwise, we'll
+        // interpret the timezone-less value in the provided timezone.
+        return connection.getTimestampUtils().toTimestamp(cal, getString(i));
     }
 
 
@@ -2082,26 +2075,17 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     public java.sql.Date getDate(int columnIndex) throws SQLException
     {
-        checkResultSet(columnIndex);
-        if (calendar == null)
-            calendar = new GregorianCalendar();
-        return TimestampUtils.toDate(calendar, getString(columnIndex));
+        return getDate(columnIndex, null);
     }
 
     public Time getTime(int columnIndex) throws SQLException
     {
-        checkResultSet(columnIndex);
-        if (calendar == null)
-            calendar = new GregorianCalendar();
-        return TimestampUtils.toTime(calendar, getString(columnIndex));
+        return getTime(columnIndex, null);
     }
 
     public Timestamp getTimestamp(int columnIndex) throws SQLException
     {
-        this.checkResultSet(columnIndex);
-        if (calendar == null)
-            calendar = new GregorianCalendar();
-        return TimestampUtils.toTimestamp(calendar, getString(columnIndex));
+        return getTimestamp(columnIndex, null);
     }
 
     public InputStream getAsciiStream(int columnIndex) throws SQLException
@@ -2251,17 +2235,17 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     public java.sql.Date getDate(String columnName) throws SQLException
     {
-        return getDate(findColumn(columnName));
+        return getDate(findColumn(columnName), null);
     }
 
     public Time getTime(String columnName) throws SQLException
     {
-        return getTime(findColumn(columnName));
+        return getTime(findColumn(columnName), null);
     }
 
     public Timestamp getTimestamp(String columnName) throws SQLException
     {
-        return getTimestamp(findColumn(columnName));
+        return getTimestamp(findColumn(columnName), null);
     }
 
     public InputStream getAsciiStream(String columnName) throws SQLException

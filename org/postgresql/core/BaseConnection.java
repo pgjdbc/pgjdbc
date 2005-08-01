@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/BaseConnection.java,v 1.13 2005/01/11 08:25:43 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/BaseConnection.java,v 1.14 2005/04/10 21:54:16 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -11,6 +11,7 @@ package org.postgresql.core;
 
 import java.sql.*;
 import org.postgresql.PGConnection;
+import org.postgresql.jdbc2.TimestampUtils;
 
 /**
  * Driver-internal connection interface. Application code should not use
@@ -139,4 +140,7 @@ public interface BaseConnection extends PGConnection, Connection
      * @throws SQException if something goes wrong.
      */
     public byte[] encodeString(String str) throws SQLException;
+
+    // Ew. Quick hack to give access to the connection-specific utils implementation.
+    public TimestampUtils getTimestampUtils();
 }

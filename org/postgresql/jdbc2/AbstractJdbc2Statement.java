@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.78 2005/07/04 18:50:29 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.79 2005/07/08 17:38:29 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -18,7 +18,6 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Vector;
 import java.util.Calendar;
-import java.util.GregorianCalendar;
 
 import org.postgresql.Driver;
 import org.postgresql.PGStatement;
@@ -84,7 +83,6 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     
     // Some performance caches
     private StringBuffer sbuf = new StringBuffer(35);
-    private GregorianCalendar calendar = null;
 
     protected final Query preparedQuery;              // Query fragments for prepared statement.
     protected final ParameterList preparedParameters; // Parameter values for prepared statement.
@@ -1255,17 +1253,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
      */
     public void setDate(int parameterIndex, java.sql.Date x) throws SQLException
     {
-        checkClosed();
-        if (null == x)
-        {
-            setNull(parameterIndex, Types.DATE);
-        }
-        else
-        {
-            if (calendar == null)
-                calendar = new GregorianCalendar();
-            bindString(parameterIndex, TimestampUtils.toString(sbuf, calendar, x), Oid.DATE);
-        }
+        setDate(parameterIndex, x, null);
     }
 
     /*
@@ -1278,17 +1266,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
      */
     public void setTime(int parameterIndex, Time x) throws SQLException
     {
-        checkClosed();
-        if (null == x)
-        {
-            setNull(parameterIndex, Types.TIME);
-        }
-        else
-        {
-            if (calendar == null)
-                calendar = new GregorianCalendar();
-            bindString(parameterIndex, TimestampUtils.toString(sbuf, calendar, x), Oid.TIME);
-        }
+        setTime(parameterIndex, x, null);
     }
 
     /*
@@ -1301,17 +1279,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
      */
     public void setTimestamp(int parameterIndex, Timestamp x) throws SQLException
     {
-        checkClosed();
-        if (null == x)
-        {
-            setNull(parameterIndex, Types.TIMESTAMP);
-        }
-        else
-        {
-            if (calendar == null)
-                calendar = new GregorianCalendar();
-            bindString(parameterIndex, TimestampUtils.toString(sbuf, calendar, x), Oid.TIMESTAMPTZ);
-        }
+        setTimestamp(parameterIndex, x, null);
     }
 
     private void setCharacterStreamPost71(int parameterIndex, InputStream x, int length, String encoding) throws SQLException
@@ -1605,9 +1573,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	                if (in instanceof java.util.Date) {
 	                    tmpd = new java.sql.Date(((java.util.Date)in).getTime());
 	                } else {
-	                    if (calendar == null)
-	                        calendar = new GregorianCalendar();
-	                    tmpd = TimestampUtils.toDate(calendar, in.toString());
+	                    tmpd = connection.getTimestampUtils().toDate(null, in.toString());
 	                }
 	                setDate(parameterIndex, tmpd);
 	            }
@@ -1621,9 +1587,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	                if (in instanceof java.util.Date) {
 	                    tmpt = new java.sql.Time(((java.util.Date)in).getTime());
 	                } else {
-	                    if (calendar == null)
-	                        calendar = new GregorianCalendar();
-	                    tmpt = TimestampUtils.toTime(calendar, in.toString());
+	                    tmpt = connection.getTimestampUtils().toTime(null, in.toString());
 	                }
 	                setTime(parameterIndex, tmpt);
 	            }
@@ -1637,10 +1601,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	                if (in instanceof java.util.Date) {
 	                    tmpts = new java.sql.Timestamp(((java.util.Date)in).getTime());
 	                } else {
-	                    if (calendar == null) {
-	                        calendar = new GregorianCalendar();
-	                    }
-	                    tmpts = TimestampUtils.toTimestamp(calendar, in.toString());
+	                    tmpts = connection.getTimestampUtils().toTimestamp(null, in.toString());
 	                }
 	                setTimestamp(parameterIndex, tmpts);
 	            }
@@ -2860,40 +2821,100 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public void setDate(int i, java.sql.Date d, java.util.Calendar cal) throws SQLException
     {
         checkClosed();
-        if (cal == null)
-            setDate(i, d);
-        else
+
+        if (d == null)
         {
-            Calendar _cal = (Calendar)cal.clone();
-            _cal = changeTime(d, _cal, true);
-            setDate(i, new java.sql.Date(_cal.getTime().getTime()));
+            setNull(i, Types.DATE);
+            return;
         }
+
+        
+        if (cal != null)
+            cal = (Calendar)cal.clone();
+
+        // We must use INVALID here, or inserting a Date-with-timezone into a
+        // timestamptz field does an unexpected rotation by the server's TimeZone:
+        //
+        // We want to interpret 2005/01/01 with calendar +0100 as
+        // "local midnight in +0100", but if we go via date it interprets it
+        // as local midnight in the server's timezone:
+
+        // template1=# select '2005-01-01+0100'::timestamptz;
+        //       timestamptz       
+        // ------------------------
+        //  2005-01-01 02:00:00+03
+        // (1 row)
+
+        // template1=# select '2005-01-01+0100'::date::timestamptz;
+        //       timestamptz       
+        // ------------------------
+        //  2005-01-01 00:00:00+03
+        // (1 row)
+
+        bindString(i, connection.getTimestampUtils().toString(cal, d), Oid.INVALID);
     }
 
     public void setTime(int i, Time t, java.util.Calendar cal) throws SQLException
     {
         checkClosed();
-        if (cal == null)
-            setTime(i, t);
-        else
+
+        if (t == null)
         {
-            Calendar _cal = (Calendar)cal.clone();
-            _cal = changeTime(t, _cal, true);
-            setTime(i, new java.sql.Time(_cal.getTime().getTime()));
+            setNull(i, Types.TIME);
+            return;
         }
+
+        if (cal != null)
+            cal = (Calendar)cal.clone();
+
+        // We don't need INVALID here as we only support inserting a Time into
+        // 'time' and 'timetz' columns.
+        bindString(i, connection.getTimestampUtils().toString(cal, t), Oid.INVALID);
     }
 
     public void setTimestamp(int i, Timestamp t, java.util.Calendar cal) throws SQLException
     {
         checkClosed();
-        if (cal == null)
-            setTimestamp(i, t);
-        else
-        {
-            Calendar _cal = (Calendar)cal.clone();
-            _cal = changeTime(t, _cal, true);
-            setTimestamp(i, new java.sql.Timestamp(_cal.getTime().getTime()));
+
+        if (t == null) {
+            setNull(i, Types.TIMESTAMP);
+            return;
         }
+
+        if (cal != null)
+            cal = (Calendar)cal.clone();
+
+        // Use INVALID as a compromise to get both TIMESTAMP and TIMESTAMPTZ working.
+        // This is because you get this in a +1300 timezone:
+        // 
+        // template1=# select '2005-01-01 15:00:00 +1000'::timestamptz;
+        //       timestamptz       
+        // ------------------------
+        //  2005-01-01 18:00:00+13
+        // (1 row)
+
+        // template1=# select '2005-01-01 15:00:00 +1000'::timestamp;
+        //       timestamp      
+        // ---------------------
+        //  2005-01-01 15:00:00
+        // (1 row)        
+
+        // template1=# select '2005-01-01 15:00:00 +1000'::timestamptz::timestamp;
+        //       timestamp      
+        // ---------------------
+        //  2005-01-01 18:00:00
+        // (1 row)
+        
+        // So we want to avoid doing a timestamptz -> timestamp conversion, as that
+        // will first convert the timestamptz to an equivalent time in the server's
+        // timezone (+1300, above), then turn it into a timestamp with the "wrong"
+        // time compared to the string we originally provided. But going straight
+        // to timestamp is OK as the input parser for timestamp just throws away
+        // the timezone part entirely. Since we don't know ahead of time what type
+        // we're actually dealing with, INVALID seems the lesser evil, even if it
+        // does give more scope for type-mismatch errors being silently hidden.
+
+        bindString(i, connection.getTimestampUtils().toString(cal, t), Oid.INVALID); // Let the server infer the right type.
     }
 
     // ** JDBC 2 Extensions for CallableStatement**

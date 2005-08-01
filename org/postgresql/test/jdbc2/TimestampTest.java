@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/TimestampTest.java,v 1.18 2005/02/15 08:31:48 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/TimestampTest.java,v 1.19 2005/05/08 23:50:56 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -19,6 +19,7 @@ import java.util.GregorianCalendar;
 
 import org.postgresql.PGStatement;
 import org.postgresql.jdbc2.TimestampUtils;
+import org.postgresql.core.BaseConnection;
 
 /*
  * Test get/setTimestamp for both timestamp with time zone and
@@ -151,6 +152,7 @@ public class TimestampTest extends TestCase
     public void testGetTimestampWTZ() throws SQLException
     {
         Statement stmt = con.createStatement();
+        TimestampUtils tsu = ((BaseConnection)con).getTimestampUtils();
 
         //Insert the three timestamp values in raw pg format
         assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + TS1WTZ_PGFORMAT + "'")));
@@ -165,14 +167,14 @@ public class TimestampTest extends TestCase
         assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + TS2WTZ_PGFORMAT + "'")));
         assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + TS3WTZ_PGFORMAT + "'")));
         assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + TS4WTZ_PGFORMAT + "'")));
-        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + new java.sql.Timestamp(tmpDate1.getTime()) + "'")));
-        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + new java.sql.Timestamp(tmpDate2.getTime()) + "'")));
-        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + new java.sql.Timestamp(tmpDate3.getTime()) + "'")));
-        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + new java.sql.Timestamp(tmpDate4.getTime()) + "'")));
-        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + new java.sql.Timestamp(tmpTime1.getTime()) + "'")));
-        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + new java.sql.Timestamp(tmpTime2.getTime()) + "'")));
-        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + new java.sql.Timestamp(tmpTime3.getTime()) + "'")));
-        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + new java.sql.Timestamp(tmpTime4.getTime()) + "'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + tsu.toString(null, new java.sql.Timestamp(tmpDate1.getTime())) + "'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + tsu.toString(null, new java.sql.Timestamp(tmpDate2.getTime())) + "'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + tsu.toString(null, new java.sql.Timestamp(tmpDate3.getTime())) + "'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + tsu.toString(null, new java.sql.Timestamp(tmpDate4.getTime())) + "'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + tsu.toString(null, new java.sql.Timestamp(tmpTime1.getTime())) + "'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + tsu.toString(null, new java.sql.Timestamp(tmpTime2.getTime())) + "'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + tsu.toString(null, new java.sql.Timestamp(tmpTime3.getTime())) + "'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + tsu.toString(null, new java.sql.Timestamp(tmpTime4.getTime())) + "'")));
 
 
         // Fall through helper
@@ -262,6 +264,7 @@ public class TimestampTest extends TestCase
     public void testGetTimestampWOTZ() throws SQLException
     {
         Statement stmt = con.createStatement();
+        TimestampUtils tsu = ((BaseConnection)con).getTimestampUtils();
 
         //Insert the three timestamp values in raw pg format
         assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + TS1WOTZ_PGFORMAT + "'")));
@@ -282,18 +285,18 @@ public class TimestampTest extends TestCase
         assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + TS4WOTZ_PGFORMAT + "'")));
         assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + TS5WOTZ_PGFORMAT + "'")));
         assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + TS6WOTZ_PGFORMAT + "'")));
-        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + new java.sql.Timestamp(tmpDate1WOTZ.getTime()) + "'")));
-        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + new java.sql.Timestamp(tmpDate2WOTZ.getTime()) + "'")));
-        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + new java.sql.Timestamp(tmpDate3WOTZ.getTime()) + "'")));
-        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + new java.sql.Timestamp(tmpDate4WOTZ.getTime()) + "'")));
-        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + TimestampUtils.toString(new StringBuffer(), new GregorianCalendar(), new java.sql.Timestamp(tmpDate5WOTZ.getTime())) + "'")));
-        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + TimestampUtils.toString(new StringBuffer(), new GregorianCalendar(), new java.sql.Timestamp(tmpDate6WOTZ.getTime())) + "'")));
-        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + new java.sql.Timestamp(tmpTime1WOTZ.getTime()) + "'")));
-        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + new java.sql.Timestamp(tmpTime2WOTZ.getTime()) + "'")));
-        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + new java.sql.Timestamp(tmpTime3WOTZ.getTime()) + "'")));
-        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + new java.sql.Timestamp(tmpTime4WOTZ.getTime()) + "'")));
-        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + TimestampUtils.toString(new StringBuffer(), new GregorianCalendar(), new java.sql.Timestamp(tmpTime5WOTZ.getTime())) + "'")));
-        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + TimestampUtils.toString(new StringBuffer(), new GregorianCalendar(), new java.sql.Timestamp(tmpTime6WOTZ.getTime())) + "'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + tsu.toString(null, new java.sql.Timestamp(tmpDate1WOTZ.getTime())) + "'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + tsu.toString(null, new java.sql.Timestamp(tmpDate2WOTZ.getTime())) + "'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + tsu.toString(null, new java.sql.Timestamp(tmpDate3WOTZ.getTime())) + "'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + tsu.toString(null, new java.sql.Timestamp(tmpDate4WOTZ.getTime())) + "'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + tsu.toString(null, new java.sql.Timestamp(tmpDate5WOTZ.getTime())) + "'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + tsu.toString(null, new java.sql.Timestamp(tmpDate6WOTZ.getTime())) + "'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + tsu.toString(null, new java.sql.Timestamp(tmpTime1WOTZ.getTime())) + "'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + tsu.toString(null, new java.sql.Timestamp(tmpTime2WOTZ.getTime())) + "'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + tsu.toString(null, new java.sql.Timestamp(tmpTime3WOTZ.getTime())) + "'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + tsu.toString(null, new java.sql.Timestamp(tmpTime4WOTZ.getTime())) + "'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + tsu.toString(null, new java.sql.Timestamp(tmpTime5WOTZ.getTime())) + "'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + tsu.toString(null, new java.sql.Timestamp(tmpTime6WOTZ.getTime())) + "'")));
 
         // Fall through helper
         timestampTestWOTZ();

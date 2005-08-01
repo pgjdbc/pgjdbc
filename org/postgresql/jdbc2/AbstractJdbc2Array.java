@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Array.java,v 1.13 2005/01/14 01:20:19 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Array.java,v 1.14 2005/02/15 08:56:25 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -207,21 +207,18 @@ public class AbstractJdbc2Array
             break;
         case Types.DATE:
             retVal = new java.sql.Date[ count ];
-            cal = new GregorianCalendar();
             for ( ; count > 0; count-- )
-                ((java.sql.Date[])retVal)[i++] = TimestampUtils.toDate(cal, arrayContents[(int)index++] );
+                ((java.sql.Date[])retVal)[i++] = conn.getTimestampUtils().toDate(null, arrayContents[(int)index++] );
             break;
         case Types.TIME:
             retVal = new java.sql.Time[ count ];
-            cal = new GregorianCalendar();
             for ( ; count > 0; count-- )
-                ((java.sql.Time[])retVal)[i++] = TimestampUtils.toTime(cal, arrayContents[(int)index++] );
+                ((java.sql.Time[])retVal)[i++] = conn.getTimestampUtils().toTime(null, arrayContents[(int)index++] );
             break;
         case Types.TIMESTAMP:
             retVal = new Timestamp[ count ];
-            cal = new GregorianCalendar();
             for ( ; count > 0; count-- )
-                ((java.sql.Timestamp[])retVal)[i++] = TimestampUtils.toTimestamp(cal, arrayContents[(int)index++] );
+                ((java.sql.Timestamp[])retVal)[i++] = conn.getTimestampUtils().toTimestamp(null, arrayContents[(int)index++] );
             break;
 
             // Other datatypes not currently supported.  If you are really using other types ask
@@ -286,8 +283,6 @@ public class AbstractJdbc2Array
 
     public java.sql.ResultSet getResultSetImpl(long index, int count, java.util.Map map) throws SQLException
     {
-        StringBuffer sbuf = null;
-        GregorianCalendar cal = null;
         Object array = getArrayImpl( index, count, map );
         Vector rows = new Vector();
         Field[] fields = new Field[2];
@@ -367,40 +362,34 @@ public class AbstractJdbc2Array
             break;
         case Types.DATE:
             java.sql.Date[] dateArray = (java.sql.Date[]) array;
-            sbuf = new StringBuffer(35);
-            cal = new GregorianCalendar();
             fields[1] = new Field("VALUE", Oid.DATE, 4);
             for ( int i = 0; i < dateArray.length; i++ )
             {
                 byte[][] tuple = new byte[2][0];
                 tuple[0] = conn.encodeString( Integer.toString((int)index + i) ); // Index
-                tuple[1] = conn.encodeString( TimestampUtils.toString(sbuf, cal, dateArray[i]) ); // Value
+                tuple[1] = conn.encodeString( conn.getTimestampUtils().toString(null, dateArray[i]) ); // Value
                 rows.addElement(tuple);
             }
             break;
         case Types.TIME:
-            sbuf = new StringBuffer(35);
-            cal = new GregorianCalendar();
             java.sql.Time[] timeArray = (java.sql.Time[]) array;
             fields[1] = new Field("VALUE", Oid.TIME, 8);
             for ( int i = 0; i < timeArray.length; i++ )
             {
                 byte[][] tuple = new byte[2][0];
                 tuple[0] = conn.encodeString( Integer.toString((int)index + i) ); // Index
-                tuple[1] = conn.encodeString( TimestampUtils.toString(sbuf, cal, timeArray[i]) ); // Value
+                tuple[1] = conn.encodeString( conn.getTimestampUtils().toString(null, timeArray[i]) ); // Value
                 rows.addElement(tuple);
             }
             break;
         case Types.TIMESTAMP:
-            sbuf = new StringBuffer(35);
-            cal = new GregorianCalendar();
             java.sql.Timestamp[] timestampArray = (java.sql.Timestamp[]) array;
             fields[1] = new Field("VALUE", Oid.TIMESTAMPTZ, 8);
             for ( int i = 0; i < timestampArray.length; i++ )
             {
                 byte[][] tuple = new byte[2][0];
                 tuple[0] = conn.encodeString( Integer.toString((int)index + i) ); // Index
-                tuple[1] = conn.encodeString( TimestampUtils.toString(sbuf, cal, timestampArray[i]) ); // Value
+                tuple[1] = conn.encodeString( conn.getTimestampUtils().toString(null, timestampArray[i]) ); // Value
                 rows.addElement(tuple);
             }
             break;
