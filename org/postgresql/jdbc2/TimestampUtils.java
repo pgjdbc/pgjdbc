@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.13 2005/02/15 08:31:47 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.14 2005/08/01 06:54:14 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -48,7 +48,6 @@ public class TimestampUtils {
         zoneID.append(sign < 0 ? '-' : '+');
         if (hr < 10) zoneID.append('0');
         zoneID.append(hr);
-        zoneID.append(':');
         if (min < 10) zoneID.append('0');
         zoneID.append(min);
         
@@ -165,8 +164,8 @@ public class TimestampUtils {
                 int tzhr = number(s, start, end);
                 start = end + 1;
     
-                end = firstNonDigit(s, start);
                 sep = charAt(s, end);
+                end = firstNonDigit(s, start);
     
                 int tzmin = 0;
                 if (sep == ':') {

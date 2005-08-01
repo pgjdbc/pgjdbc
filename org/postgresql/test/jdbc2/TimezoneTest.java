@@ -3,7 +3,7 @@
 * Copyright (c) 2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL$
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/TimezoneTest.java,v 1.1 2005/08/01 06:54:15 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -78,7 +78,7 @@ public class TimezoneTest extends TestCase
         TimeZone.setDefault(TimeZone.getTimeZone("GMT+01")); // Arbitary timezone that doesn't match our test timezones
 
         con = TestUtil.openDB();
-        TestUtil.createTable(con, "testtimestamp2",
+        TestUtil.createTable(con, "testtimezone",
                              "seq int4, tstz timestamp with time zone, ts timestamp without time zone, t time without time zone, tz time with time zone, d date");
         
         // This is not obvious, but the "gmt-3" timezone is actually 3 hours *ahead* of GMT
@@ -96,14 +96,14 @@ public class TimezoneTest extends TestCase
         //System.err.println("++++++ TESTS END (" + getName() + ") ++++++");
         TimeZone.setDefault(saveTZ);
 
-        TestUtil.dropTable(con, "testtimestamp2");
+        TestUtil.dropTable(con, "testtimezone");
     }
 
     public void testGetTimestamp() throws Exception
     {
-        con.createStatement().executeUpdate("INSERT INTO testtimestamp2(tstz,ts,t,tz,d) VALUES('2005-01-01 15:00:00 +0300', '2005-01-01 15:00:00', '15:00:00', '15:00:00 +0300', '2005-01-01')");
+        con.createStatement().executeUpdate("INSERT INTO testtimezone(tstz,ts,t,tz,d) VALUES('2005-01-01 15:00:00 +0300', '2005-01-01 15:00:00', '15:00:00', '15:00:00 +0300', '2005-01-01')");
 
-        ResultSet rs = con.createStatement().executeQuery("SELECT tstz,ts,t,tz,d from testtimestamp2");
+        ResultSet rs = con.createStatement().executeQuery("SELECT tstz,ts,t,tz,d from testtimezone");
 
         assertTrue(rs.next());
         assertEquals("2005-01-01 15:00:00+03", rs.getString(1));
@@ -179,9 +179,9 @@ public class TimezoneTest extends TestCase
 
     public void testGetDate() throws Exception
     {
-        con.createStatement().executeUpdate("INSERT INTO testtimestamp2(tstz,ts,d) VALUES('2005-01-01 15:00:00 +0300', '2005-01-01 15:00:00', '2005-01-01')");
+        con.createStatement().executeUpdate("INSERT INTO testtimezone(tstz,ts,d) VALUES('2005-01-01 15:00:00 +0300', '2005-01-01 15:00:00', '2005-01-01')");
 
-        ResultSet rs = con.createStatement().executeQuery("SELECT tstz,ts,d from testtimestamp2");
+        ResultSet rs = con.createStatement().executeQuery("SELECT tstz,ts,d from testtimezone");
 
         assertTrue(rs.next());
         assertEquals("2005-01-01 15:00:00+03", rs.getString(1));
@@ -232,9 +232,9 @@ public class TimezoneTest extends TestCase
     public void testGetTime() throws Exception
     {
 
-        con.createStatement().executeUpdate("INSERT INTO testtimestamp2(tstz,ts,t,tz) VALUES('2005-01-01 15:00:00 +0300', '2005-01-01 15:00:00', '15:00:00', '15:00:00 +0300')");
+        con.createStatement().executeUpdate("INSERT INTO testtimezone(tstz,ts,t,tz) VALUES('2005-01-01 15:00:00 +0300', '2005-01-01 15:00:00', '15:00:00', '15:00:00 +0300')");
 
-        ResultSet rs = con.createStatement().executeQuery("SELECT tstz,ts,t,tz from testtimestamp2");
+        ResultSet rs = con.createStatement().executeQuery("SELECT tstz,ts,t,tz from testtimezone");
 
         assertTrue(rs.next());
         assertEquals("2005-01-01 15:00:00+03", rs.getString(1));
@@ -295,7 +295,7 @@ public class TimezoneTest extends TestCase
 
     public void testSetTimestamp() throws Exception
     {
-        PreparedStatement insertTimestamp = con.prepareStatement("INSERT INTO testtimestamp2(seq,tstz,ts,t,tz,d) VALUES (?,?,?,?,?,?)");
+        PreparedStatement insertTimestamp = con.prepareStatement("INSERT INTO testtimezone(seq,tstz,ts,t,tz,d) VALUES (?,?,?,?,?,?)");
         int seq = 1;
 
         Timestamp instant = new Timestamp(1104580800000L); // 2005-01-01 12:00:00 UTC
@@ -354,7 +354,7 @@ public class TimezoneTest extends TestCase
         //
 
         seq = 1;
-        ResultSet rs = con.createStatement().executeQuery("SELECT seq,tstz,ts,t,tz,d FROM testtimestamp2 ORDER BY seq");
+        ResultSet rs = con.createStatement().executeQuery("SELECT seq,tstz,ts,t,tz,d FROM testtimezone ORDER BY seq");
 
         assertTrue(rs.next());
         assertEquals(seq++, rs.getInt(1));
@@ -403,7 +403,7 @@ public class TimezoneTest extends TestCase
 
     public void testSetDate() throws Exception
     {
-        PreparedStatement insertTimestamp = con.prepareStatement("INSERT INTO testtimestamp2(seq,tstz,ts,d) VALUES (?,?,?,?)");
+        PreparedStatement insertTimestamp = con.prepareStatement("INSERT INTO testtimezone(seq,tstz,ts,d) VALUES (?,?,?,?)");
 
         int seq = 1;
         
@@ -458,7 +458,7 @@ public class TimezoneTest extends TestCase
         //
 
         seq = 1;
-        ResultSet rs = con.createStatement().executeQuery("SELECT seq,tstz,ts,d FROM testtimestamp2 ORDER BY seq");
+        ResultSet rs = con.createStatement().executeQuery("SELECT seq,tstz,ts,d FROM testtimezone ORDER BY seq");
 
         assertTrue(rs.next());
         assertEquals(seq++, rs.getInt(1));
@@ -503,7 +503,7 @@ public class TimezoneTest extends TestCase
             return;
         }
 
-        PreparedStatement insertTimestamp = con.prepareStatement("INSERT INTO testtimestamp2(seq,t,tz) VALUES (?,?,?)");
+        PreparedStatement insertTimestamp = con.prepareStatement("INSERT INTO testtimezone(seq,t,tz) VALUES (?,?,?)");
 
         int seq = 1;
         
@@ -551,7 +551,7 @@ public class TimezoneTest extends TestCase
         //
 
         seq = 1;
-        ResultSet rs = con.createStatement().executeQuery("SELECT seq,t,tz FROM testtimestamp2 ORDER BY seq");
+        ResultSet rs = con.createStatement().executeQuery("SELECT seq,t,tz FROM testtimezone ORDER BY seq");
 
         assertTrue(rs.next());
         assertEquals(seq++, rs.getInt(1));
@@ -579,5 +579,14 @@ public class TimezoneTest extends TestCase
         assertEquals("15:00:00+13", rs.getString(3));
 
         assertTrue(!rs.next());        
+    }
+
+    public void testHalfHourTimezone() throws Exception
+    {
+        // Check our parser handles a timezone like e.g. 03:30 correctly
+        ResultSet rs = con.createStatement().executeQuery("SELECT '1969-12-31 20:30:00-03:30'::text");
+
+        assertTrue(rs.next());
+        assertEquals(0L, rs.getTimestamp(1).getTime());
     }
 }
