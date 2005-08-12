@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.68.2.6 2005/05/08 23:52:00 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.68.2.7 2005/06/08 16:21:01 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -356,6 +356,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     }
 
     protected void execute(Query queryToExecute, ParameterList queryParameters, int flags) throws SQLException {
+        // Every statement execution clears any previous warnings.
+        clearWarnings();
+
         // Close any existing resultsets associated with this statement.
         while (firstUnclosedResult != null)
         {
@@ -2411,6 +2414,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public int[] executeBatch() throws SQLException
     {
         checkClosed();
+
+        // Every statement execution clears any previous warnings.
+	clearWarnings();
 
         if (batchStatements == null || batchStatements.isEmpty())
             return new int[0];
