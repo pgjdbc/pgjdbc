@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.14 2005/01/18 21:33:18 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.15 2005/01/27 11:30:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -306,5 +306,16 @@ public class StatementTest extends TestCase
             assertEquals(TestUtil.getDatabase(),rs.getString(1));
         }
     }
-    
+
+    public void testWarningsAreCleared() throws SQLException
+    {
+        Statement stmt = con.createStatement();
+        // Will generate a NOTICE: for primary key index creation
+        stmt.execute("CREATE TEMP TABLE unused (a int primary key)");
+        stmt.executeQuery("SELECT 1");
+	// Executing another query should clear the warning from the first one.
+        assertNull(stmt.getWarnings());
+        stmt.close();
+    }
+
 }
