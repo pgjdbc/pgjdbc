@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/TimestampTest.java,v 1.19 2005/05/08 23:50:56 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/TimestampTest.java,v 1.20 2005/08/01 06:54:15 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -416,22 +416,22 @@ public class TimestampTest extends TestCase
             assertTrue(rs.next());
             t = rs.getTimestamp(1);
             assertNotNull(t);
-            assertTrue(t.equals(TS1WTZ));
+            assertEquals(TS1WTZ, t);
 
             assertTrue(rs.next());
             t = rs.getTimestamp(1);
             assertNotNull(t);
-            assertTrue(t.equals(TS2WTZ));
+            assertEquals(TS2WTZ, t);
 
             assertTrue(rs.next());
             t = rs.getTimestamp(1);
             assertNotNull(t);
-            assertTrue(t.equals(TS3WTZ));
+            assertEquals(TS3WTZ, t);
 
             assertTrue(rs.next());
             t = rs.getTimestamp(1);
             assertNotNull(t);
-            assertTrue(t.equals(TS4WTZ));
+            assertEquals(TS4WTZ, t);
         }
 
         // Testing for Date

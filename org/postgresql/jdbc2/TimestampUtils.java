@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.14 2005/08/01 06:54:14 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.15 2005/08/01 23:30:00 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -83,113 +83,150 @@ public class TimestampUtils {
         // This is pretty gross..
         ParsedTimestamp result = new ParsedTimestamp();
 
+        // We try to parse these fields in order; all are optional
+        // (but some combinations don't make sense, e.g. if you have
+        //  both date and time then they must be whitespace-separated).
+        // At least one of date and time must be present.
+
+        //   leading whitespace
+        //   yyyy-mm-dd
+        //   whitespace
+        //   hh:mm:ss
+        //   whitespace
+        //   timezone in one of the formats:  +hh, -hh, +hh:mm, -hh:mm
+        //   whitespace
+        //   if date is present, an era specifier: AD or BC
+        //   trailing whitespace
+
         try {
-    
-            int start = 0;
+            int start = skipWhitespace(s, 0);   // Skip leading whitespace
             int end = firstNonDigit(s, start);
+            int num;
+            char sep;
     
-            int num = number(s, start, end);
-            char sep = charAt(s, end);
-    
-            // Read date
-            if (sep == '-') {
+            // Possibly read date.
+            if (charAt(s, end) == '-') {
+                //
+                // Date
+                //
                 result.hasDate = true;
-                result.year = num;
-                start = end + 1;
-    
-                // read month
+
+                // year
+                result.year = number(s, start, end);
+                start = end + 1; // Skip '-'
+
+                // month
                 end = firstNonDigit(s, start);
                 result.month = number(s, start, end);
-                start = end + 1;
+
+                sep = charAt(s, end);
+                if (sep != '-')
+                    throw new NumberFormatException("Expected date to be dash-separated, got '" + sep + "'");
+
+                start = end + 1; // Skip '-'
     
-                // read date
+                // day of month
                 end = firstNonDigit(s, start);
                 result.day = number(s, start, end);
-                start = end + 1;
     
-                while (charAt(s, start) == ' ') {
-                    start++;
-                }
-    
-                end = firstNonDigit(s, start);
-                try {
-                    num = number(s, start, end);
-                } catch(NumberFormatException nfe) {
-                    // Ignore this, we don't know if a time, an
-                    // era, or nothing is coming next, but we
-                    // must be prepared for a time by parsing
-                    // this as a number.
-                }
-                sep = charAt(s, end);
+                start = skipWhitespace(s, end); // Skip trailing whitespace
             }
-    
-            // Read time
-            if (sep == ':') {
-                // we've already read in num.
+
+            // Possibly read time.
+            if (Character.isDigit(charAt(s, start))) {
+                //
+                // Time.
+                //
+
                 result.hasTime = true;
-                result.hour = num;
-                start = end + 1;
-    
+
+                // Hours
+
+                end = firstNonDigit(s, start);
+                result.hour = number(s, start, end);
+
+                sep = charAt(s, end);
+                if (sep != ':')
+                    throw new NumberFormatException("Expected time to be colon-separated, got '" + sep + "'");
+
+                start = end + 1; // Skip ':'
+
                 // minutes
+
                 end = firstNonDigit(s, start);
                 result.minute = number(s, start, end);
-                start = end + 1;
+
+                sep = charAt(s, end);
+                if (sep != ':')
+                    throw new NumberFormatException("Expected time to be colon-separated, got '" + sep + "'");
+
+                start = end + 1; // Skip ':'
     
                 // seconds
+
                 end = firstNonDigit(s, start);
                 result.second = number(s, start, end);
-                start = end + 1;
-    
-                sep = charAt(s, end);
+                start = end;
     
                 // Fractional seconds.
-                if (sep == '.') {
-                    end = firstNonDigit(s, start);
-                    num = number(s, start, end);
-                    int numlength = 9 - s.substring(start, end).length();
-                    for (int i=0; i<numlength; i++) {
+                if (charAt(s, start) == '.') {
+                    end = firstNonDigit(s, start+1); // Skip '.'
+                    num = number(s, start+1, end);
+
+                    for (int numlength = (end - (start+1)); numlength < 9; ++numlength)
                         num *= 10;
-                    }
+
                     result.nanos = num;
-                    start = end + 1;
-                    sep = charAt(s, end);
+                    start = end;
                 }
+
+                start = skipWhitespace(s, start); // Skip trailing whitespace
             }
     
-            // Timezone
+            // Possibly read timezone.
+            sep = charAt(s, start);
             if (sep == '-' || sep == '+') {
                 int tzsign = (sep == '-') ? -1 : 1;
+                int tzhr, tzmin;
     
-                end = firstNonDigit(s, start);
-                int tzhr = number(s, start, end);
-                start = end + 1;
+                end = firstNonDigit(s, start+1);    // Skip +/-
+                tzhr = number(s, start+1, end);
+                start = end;
     
-                sep = charAt(s, end);
-                end = firstNonDigit(s, start);
-    
-                int tzmin = 0;
+                sep = charAt(s, start);
                 if (sep == ':') {
-                    tzmin = number(s, start, end);
-                    start = end + 1;
+                    end = firstNonDigit(s, start+1);  // Skip ':'
+                    tzmin = number(s, start+1, end);
+                    start = end;
+                } else {
+                    tzmin = 0;
                 }
                
                 // Setting offset does not seem to work correctly in all
                 // cases.. So get a fresh calendar for a synthetic timezone
                 // instead
                 result.tz = getCalendar(tzsign, tzhr, tzmin);
-                while (charAt(s, start) == ' ') {
-                    start++;
-                }
+
+                start = skipWhitespace(s, start);  // Skip trailing whitespace
             }
     
-            if (start < slen) {
+            if (result.hasDate && start < slen) {
                 String eraString = s.substring(start);
-                if (eraString.equals("AD")) {
+                if (eraString.startsWith("AD")) {
                     result.era = GregorianCalendar.AD;
-                } else if (eraString.equals("BC")) {
+                    start += 2;
+                } else if (eraString.startsWith("BC")) {
                     result.era = GregorianCalendar.BC;
+                    start += 2;
                 }
             }
+
+            if (start < slen)
+                throw new NumberFormatException("Trailing junk on timestamp: '" + s.substring(start) + "'");
+
+            if (!result.hasTime && !result.hasDate)
+                throw new NumberFormatException("Timestamp has neither date nor time");
+
         } catch (NumberFormatException nfe) {
             throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{type,s}), PSQLState.BAD_DATETIME_FORMAT, nfe);
         }
@@ -518,6 +555,16 @@ public class TimestampUtils {
         if (cal.get(Calendar.ERA) == GregorianCalendar.BC) {
             sb.append(" BC");
         }
+    }
+
+    private static int skipWhitespace(String s, int start)
+    {
+        int slen = s.length();
+        for (int i=start; i<slen; i++) {
+            if (!Character.isSpace(s.charAt(i)))
+                return i;
+        }
+        return slen;
     }
 
     private static int firstNonDigit(String s, int start)

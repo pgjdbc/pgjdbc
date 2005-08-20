@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.75 2005/06/08 01:44:02 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.76 2005/08/01 06:54:14 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1707,8 +1707,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                 rowBuffer[columnIndex] = null;
             }
             else
-            {
-
+            {                
                 switch ( getSQLType(columnIndex + 1) )
                 {
 
@@ -1717,9 +1716,6 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                 case Types.DOUBLE:
                 case Types.BIT:
                 case Types.VARCHAR:
-                case Types.DATE:
-                case Types.TIME:
-                case Types.TIMESTAMP:
                 case Types.SMALLINT:
                 case Types.FLOAT:
                 case Types.INTEGER:
@@ -1729,6 +1725,26 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                 case Types.TINYINT:
                 case Types.OTHER:
                     rowBuffer[columnIndex] = connection.encodeString(String.valueOf( valueObject));
+                    break;
+
+                //
+                // toString() isn't enough for date and time types; we must format it correctly
+                // or we won't be able to re-parse it.
+                //
+
+                case Types.DATE:
+                    rowBuffer[columnIndex] =
+                        connection.encodeString(connection.getTimestampUtils().toString(null, (Date)valueObject));
+                    break;
+
+                case Types.TIME:
+                    rowBuffer[columnIndex] =
+                        connection.encodeString(connection.getTimestampUtils().toString(null, (Time)valueObject));
+                    break;
+
+                case Types.TIMESTAMP:
+                    rowBuffer[columnIndex] =
+                        connection.encodeString(connection.getTimestampUtils().toString(null, (Timestamp)valueObject));
                     break;
 
                 case Types.NULL:
