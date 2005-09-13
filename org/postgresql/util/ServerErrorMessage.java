@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/ServerErrorMessage.java,v 1.7 2005/02/10 19:53:17 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/util/ServerErrorMessage.java,v 1.8 2005/04/10 16:44:13 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -149,11 +149,11 @@ public class ServerErrorMessage implements Serializable
         l_message = (String)m_mesgParts.get(MESSAGE);
         if (l_message != null)
             l_totalMessage.append(l_message);
+        l_message = (String)m_mesgParts.get(DETAIL);
+        if (l_message != null)
+            l_totalMessage.append("\n  ").append(GT.tr("Detail: {0}", l_message));
         if (Driver.logInfo)
         {
-            l_message = (String)m_mesgParts.get(DETAIL);
-            if (l_message != null)
-                l_totalMessage.append("\n  ").append(GT.tr("Detail: {0}", l_message));
             l_message = (String)m_mesgParts.get(HINT);
             if (l_message != null)
                 l_totalMessage.append("\n  ").append(GT.tr("Hint: {0}", l_message));
