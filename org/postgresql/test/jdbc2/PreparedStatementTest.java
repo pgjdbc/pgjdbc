@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/PreparedStatementTest.java,v 1.12 2005/07/04 18:50:29 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/PreparedStatementTest.java,v 1.13 2005/07/08 17:38:31 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -384,7 +384,6 @@ public class PreparedStatementTest extends TestCase
     
     public void testSetFloatInteger() throws SQLException
     {
-        org.postgresql.Driver.logDebug=true;
         PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE float_tab (max_val float8, min_val float, null_val float8)");
         pstmt.executeUpdate();
         pstmt.close();
@@ -414,7 +413,6 @@ public class PreparedStatementTest extends TestCase
     }
     public void testSetFloatString() throws SQLException
     {
-        org.postgresql.Driver.logDebug=true;
         PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE float_tab (max_val float8, min_val float8, null_val float8)");
         pstmt.executeUpdate();
         pstmt.close();
@@ -444,7 +442,6 @@ public class PreparedStatementTest extends TestCase
     
     public void testSetFloatBigDecimal() throws SQLException
     {
-        org.postgresql.Driver.logDebug=true;
         PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE float_tab (max_val float8, min_val float8, null_val float8)");
         pstmt.executeUpdate();
         pstmt.close();
@@ -473,7 +470,6 @@ public class PreparedStatementTest extends TestCase
     }
     public void testSetTinyIntFloat() throws SQLException
     {
-        org.postgresql.Driver.logDebug=true;
         PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE tiny_int (max_val int4, min_val int4, null_val int4)");
         pstmt.executeUpdate();
         pstmt.close();
@@ -503,7 +499,6 @@ public class PreparedStatementTest extends TestCase
 
     public void testSetSmallIntFloat() throws SQLException
     {
-        org.postgresql.Driver.logDebug=true;
         PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE small_int (max_val int4, min_val int4, null_val int4)");
         pstmt.executeUpdate();
         pstmt.close();
@@ -532,7 +527,6 @@ public class PreparedStatementTest extends TestCase
     }   
     public void testSetIntFloat() throws SQLException
     {
-        org.postgresql.Driver.logDebug=true;
         PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE int_TAB (max_val int4, min_val int4, null_val int4)");
         pstmt.executeUpdate();
         pstmt.close();
@@ -561,7 +555,6 @@ public class PreparedStatementTest extends TestCase
     }
     public void testSetBooleanDouble() throws SQLException
     {
-        org.postgresql.Driver.logDebug=true;
         PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE double_tab (max_val float, min_val float, null_val float)");
         pstmt.executeUpdate();
         pstmt.close();
@@ -590,7 +583,6 @@ public class PreparedStatementTest extends TestCase
     }
     public void testSetBooleanNumeric() throws SQLException
     {
-        org.postgresql.Driver.logDebug=true;
         PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE numeric_tab (max_val numeric(30,15), min_val numeric(30,15), null_val numeric(30,15))");
         pstmt.executeUpdate();
         pstmt.close();
@@ -619,7 +611,6 @@ public class PreparedStatementTest extends TestCase
     }
     public void testSetBooleanDecimal() throws SQLException
     {
-        org.postgresql.Driver.logDebug=true;
         PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE DECIMAL_TAB (max_val numeric(30,15), min_val numeric(30,15), null_val numeric(30,15))");
         pstmt.executeUpdate();
         pstmt.close();
