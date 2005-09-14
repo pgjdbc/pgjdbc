@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.22 2005/05/25 17:15:52 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.23 2005/07/04 18:50:29 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2275,6 +2275,10 @@ public abstract class AbstractJdbc2DatabaseMetaData
      * Get the catalog names available in this database.  The results
      * are ordered by catalog name.
      *
+     * Postgresql does not support multiple catalogs from a single
+     * connection, so to reduce confusion we only return the current
+     * catalog.
+     *
      * <P>The catalog column is:
      * <OL>
      * <LI><B>TABLE_CAT</B> String => catalog name
@@ -2285,16 +2289,14 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public java.sql.ResultSet getCatalogs() throws SQLException
     {
-        String sql;
-        if (connection.haveMinimumServerVersion("7.3"))
-        {
-            sql = "SELECT datname AS TABLE_CAT FROM pg_catalog.pg_database ORDER BY TABLE_CAT";
-        }
-        else
-        {
-            sql = "SELECT datname AS TABLE_CAT FROM pg_database ORDER BY TABLE_CAT";
-        }
-        return createMetaDataStatement().executeQuery(sql);
+        Field f[] = new Field[1];
+        Vector v = new Vector();
+        f[0] = new Field(new String("TABLE_CAT"), Oid.VARCHAR, getMaxNameLength());
+        byte[][] tuple = new byte[1][];
+        tuple[0] = connection.encodeString(connection.getCatalog());
+        v.addElement(tuple);
+
+        return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, v);
     }
 
     /*

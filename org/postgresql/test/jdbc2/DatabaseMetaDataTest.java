@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.32 2005/01/11 08:25:48 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.33 2005/03/04 06:52:04 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -455,25 +455,10 @@ public class DatabaseMetaDataTest extends TestCase
     public void testCatalogs() throws SQLException
     {
         DatabaseMetaData dbmd = con.getMetaData();
-        assertNotNull(dbmd);
         ResultSet rs = dbmd.getCatalogs();
-        boolean foundTemplate0 = false;
-        boolean foundTemplate1 = false;
-        while (rs.next())
-        {
-            String database = rs.getString("TABLE_CAT");
-            if ("template0".equals(database))
-            {
-                foundTemplate0 = true;
-            }
-            else if ("template1".equals(database))
-            {
-                foundTemplate1 = true;
-            }
-        }
-        rs.close();
-        assertTrue(foundTemplate0);
-        assertTrue(foundTemplate1);
+        assertTrue(rs.next());
+        assertEquals(con.getCatalog(), rs.getString(1));
+        assertTrue(!rs.next());
     }
 
     public void testSchemas() throws Exception
