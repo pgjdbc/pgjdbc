@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.68.2.7 2005/06/08 16:21:01 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.68.2.8 2005/08/12 18:22:30 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1622,6 +1622,24 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         case Types.VARBINARY:
         case Types.LONGVARBINARY:
             setObject(parameterIndex, x);
+            break;
+        case Types.BLOB:
+            if (x instanceof Blob)
+                setBlob(parameterIndex, (Blob)x);
+            else
+                throw new PSQLException(GT.tr("Cannot cast an instance of {0} to type {1}", new Object[]{x.getClass().getName(),"Types.BLOB"}), PSQLState.INVALID_PARAMETER_TYPE);
+            break;
+        case Types.CLOB:
+            if (x instanceof Clob)
+                setClob(parameterIndex, (Clob)x);
+            else
+                throw new PSQLException(GT.tr("Cannot cast an instance of {0} to type {1}", new Object[]{x.getClass().getName(),"Types.CLOB"}), PSQLState.INVALID_PARAMETER_TYPE);
+            break;
+        case Types.ARRAY:
+            if (x instanceof Array)
+                setArray(parameterIndex, (Array)x);
+            else
+                throw new PSQLException(GT.tr("Cannot cast an instance of {0} to type {1}", new Object[]{x.getClass().getName(),"Types.ARRAY"}), PSQLState.INVALID_PARAMETER_TYPE);
             break;
         case Types.OTHER:
             if (x instanceof PGobject)

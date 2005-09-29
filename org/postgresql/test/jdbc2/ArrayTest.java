@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ArrayTest.java,v 1.8 2005/01/11 08:25:48 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ArrayTest.java,v 1.8.2.1 2005/04/28 14:18:09 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -156,6 +156,9 @@ public class ArrayTest extends TestCase
 
         PreparedStatement pstmt = conn.prepareStatement("INSERT INTO arrtest(intarr) VALUES (?)");
         pstmt.setArray(1, arr);
+        pstmt.executeUpdate();
+
+        pstmt.setObject(1, arr, Types.ARRAY);
         pstmt.executeUpdate();
         pstmt.close();
 
