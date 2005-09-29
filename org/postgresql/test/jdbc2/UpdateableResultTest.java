@@ -3,7 +3,7 @@
 * Copyright (c) 2001-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/UpdateableResultTest.java,v 1.20 2005/03/23 19:47:45 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/UpdateableResultTest.java,v 1.21 2005/07/04 18:50:30 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -402,5 +402,25 @@ public class UpdateableResultTest extends TestCase
             rs.moveToInsertRow();
             fail("expected an exception when calling moveToInsertRow() on a read-only resultset");
         } catch (SQLException e) {}
+    }
+
+    public void testBadColumnIndexes() throws Exception
+    {
+        Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+                                           ResultSet.CONCUR_UPDATABLE);
+        ResultSet rs = st.executeQuery( "select * from updateable");
+        rs.moveToInsertRow();
+        try {
+            rs.updateInt(0,1);
+            fail("Should have thrown an exception on bad column index.");
+        } catch (SQLException sqle) { }
+        try {
+            rs.updateString(1000,"hi");
+            fail("Should have thrown an exception on bad column index.");
+        } catch (SQLException sqle) { }
+        try {
+            rs.updateNull(1000);
+            fail("Should have thrown an exception on bad column index.");
+        } catch (SQLException sqle) { }
     }
 }
