@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/PGInterval.java,v 1.7 2005/04/29 20:41:44 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/util/PGInterval.java,v 1.8 2005/05/09 03:17:19 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -104,7 +104,8 @@ public class PGInterval extends PGobject implements Serializable, Cloneable
 
                 if ((i & 1) == 1)
                 {
-                    if (token.indexOf(':') == -1)
+                    int endHours = token.indexOf(':'); 
+                    if (endHours == -1)
                     {
                         valueToken = token;
                         continue;
@@ -114,9 +115,14 @@ public class PGInterval extends PGobject implements Serializable, Cloneable
                     // ISO intervals
                     int offset = (token.charAt(0) == '-') ? 1 : 0;
 
-                    hours    = nullSafeIntGet(token.substring(offset+0, offset+2));
-                    minutes  = nullSafeIntGet(token.substring(offset+3, offset+5));
-                    seconds  = nullSafeDoubleGet(token.substring(offset+6, token.length()));
+                    hours    = nullSafeIntGet(token.substring(offset+0, endHours));
+                    minutes  = nullSafeIntGet(token.substring(endHours+1, endHours+3));
+
+                    // Pre 7.4 servers do not put second information into the results
+                    // unless it is non-zero.
+                    int endMinutes = token.indexOf(':', endHours+1);
+                    if (endMinutes != -1)
+                        seconds  = nullSafeDoubleGet(token.substring(endMinutes+1));
 
                     if (offset == 1)
                     {

@@ -3,7 +3,7 @@
 * Copyright (c) 2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL$
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/IntervalTest.java,v 1.1 2005/04/29 20:41:43 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -61,6 +61,23 @@ public class IntervalTest extends TestCase
         assertTrue(!rs.next());
         rs.close();
         stmt.close();
+    }
+
+    public void testDaysHours() throws SQLException
+    {
+        Statement stmt = _conn.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT '101:12:00'::interval");
+        assertTrue(rs.next());
+        PGInterval i = (PGInterval)rs.getObject(1);
+        // 8.1 servers store hours and days separately.
+        if (TestUtil.haveMinimumServerVersion(_conn, "8.1")) {
+            assertEquals(0, i.getDays());
+            assertEquals(101, i.getHours());
+        } else {
+            assertEquals(4, i.getDays());
+            assertEquals(5, i.getHours());
+        }
+        assertEquals(12, i.getMinutes());
     }
 
     public void testAddRounding() {
