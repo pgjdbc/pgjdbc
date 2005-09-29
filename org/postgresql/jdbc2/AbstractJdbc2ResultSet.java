@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.71.2.3 2005/05/08 23:52:00 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.71.2.4 2005/06/08 01:48:14 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1034,8 +1034,6 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public synchronized void updateBoolean(int columnIndex, boolean x)
     throws SQLException
     {
-        if ( Driver.logDebug )
-            Driver.debug("updating boolean " + fields[columnIndex - 1].getColumnName(connection) + "=" + x);
         updateValue(columnIndex, new Boolean(x));
     }
 
@@ -1100,8 +1098,6 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public synchronized void updateDouble(int columnIndex, double x)
     throws SQLException
     {
-        if ( Driver.logDebug )
-            Driver.debug("updating double " + fields[columnIndex - 1].getColumnName(connection) + "=" + x);
         updateValue(columnIndex, new Double(x));
     }
 
@@ -1109,8 +1105,6 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public synchronized void updateFloat(int columnIndex, float x)
     throws SQLException
     {
-        if ( Driver.logDebug )
-            Driver.debug("updating float " + fields[columnIndex - 1].getColumnName(connection) + "=" + x);
         updateValue(columnIndex, new Float(x));
     }
 
@@ -1118,8 +1112,6 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public synchronized void updateInt(int columnIndex, int x)
     throws SQLException
     {
-        if ( Driver.logDebug )
-            Driver.debug("updating int " + fields[columnIndex - 1].getColumnName(connection) + "=" + x);
         updateValue(columnIndex, new Integer(x));
     }
 
@@ -1127,8 +1119,6 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public synchronized void updateLong(int columnIndex, long x)
     throws SQLException
     {
-        if ( Driver.logDebug )
-            Driver.debug("updating long " + fields[columnIndex - 1].getColumnName(connection) + "=" + x);
         updateValue(columnIndex, new Long(x));
     }
 
@@ -1136,6 +1126,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public synchronized void updateNull(int columnIndex)
     throws SQLException
     {
+        checkColumnIndex(columnIndex);
         String columnTypeName = connection.getPGType(fields[columnIndex - 1].getOID());
         updateValue(columnIndex, new NullObject(columnTypeName));
     }
@@ -1144,8 +1135,6 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public synchronized void updateObject(int columnIndex, Object x)
     throws SQLException
     {
-        if ( Driver.logDebug )
-            Driver.debug("updating object " + fields[columnIndex - 1].getColumnName(connection) + " = " + x);
         updateValue(columnIndex, x);
     }
 
@@ -1336,8 +1325,6 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public synchronized void updateShort(int columnIndex, short x)
     throws SQLException
     {
-        if ( Driver.logDebug )
-            Driver.debug("in update Short " + fields[columnIndex - 1].getColumnName(connection) + " = " + x);
         updateValue(columnIndex, new Short(x));
     }
 
@@ -1345,8 +1332,6 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public synchronized void updateString(int columnIndex, String x)
     throws SQLException
     {
-        if ( Driver.logDebug )
-            Driver.debug("in update String " + fields[columnIndex - 1].getColumnName(connection) + " = " + x);
         updateValue(columnIndex, x);
     }
 
@@ -1354,8 +1339,6 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public synchronized void updateTime(int columnIndex, Time x)
     throws SQLException
     {
-        if ( Driver.logDebug )
-            Driver.debug("in update Time " + fields[columnIndex - 1].getColumnName(connection) + " = " + x);
         updateValue(columnIndex, x);
     }
 
@@ -1363,8 +1346,6 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public synchronized void updateTimestamp(int columnIndex, Timestamp x)
     throws SQLException
     {
-        if ( Driver.logDebug )
-            Driver.debug("updating Timestamp " + fields[columnIndex - 1].getColumnName(connection) + " = " + x);
         updateValue(columnIndex, x);
 
     }
@@ -2457,14 +2438,18 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             throw new PSQLException(GT.tr("This ResultSet is closed."), PSQLState.CONNECTION_DOES_NOT_EXIST);
     }
 
+    protected void checkColumnIndex(int column) throws SQLException
+    {
+        if ( column < 1 || column > fields.length )
+            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(column), new Integer(fields.length)}), PSQLState.INVALID_PARAMETER_VALUE );
+    }
+
     protected void checkResultSet( int column ) throws SQLException
     {
         checkClosed();
         if ( this_row == null )
             throw new PSQLException(GT.tr("ResultSet not positioned properly, perhaps you need to call next."),
                                     PSQLState.INVALID_CURSOR_STATE);
-        if ( column < 1 || column > fields.length )
-            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(column), new Integer(fields.length)}), PSQLState.INVALID_PARAMETER_VALUE );
     }
 
     //----------------- Formatting Methods -------------------
@@ -2686,6 +2671,9 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             throw new PSQLException(GT.tr("Cannot update the ResultSet because it is either before the start or after the end of the results."),
                                     PSQLState.INVALID_CURSOR_STATE);
         }
+
+        checkColumnIndex(columnIndex);
+
         doingUpdates = !onInsertRow;
         if (value == null)
             updateNull(columnIndex);
