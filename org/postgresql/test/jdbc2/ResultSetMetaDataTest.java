@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ResultSetMetaDataTest.java,v 1.10 2005/01/11 08:25:48 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ResultSetMetaDataTest.java,v 1.11 2005/02/01 07:27:55 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -33,6 +33,7 @@ public class ResultSetMetaDataTest extends TestCase
         TestUtil.dropSequence( conn, "serialtest_a_seq");
         TestUtil.dropSequence( conn, "serialtest_b_seq");
         TestUtil.createTable(conn, "serialtest", "a serial, b bigserial, c int");
+        TestUtil.createTable(conn, "alltypes", "bool boolean, i2 int2, i4 int4, i8 int8, num numeric(10,2), re real, fl float, ch char(3), vc varchar(3), tx text, d date, t time without time zone, tz time with time zone, ts timestamp without time zone, tsz timestamp with time zone, bt bytea");
     }
 
     protected void tearDown() throws Exception
@@ -40,6 +41,7 @@ public class ResultSetMetaDataTest extends TestCase
         TestUtil.dropTable(conn, "rsmd1");
         TestUtil.dropTable(conn, "timetest");
         TestUtil.dropTable(conn, "serialtest");
+        TestUtil.dropTable(conn, "alltypes");
         TestUtil.dropSequence( conn, "serialtest_a_seq");
         TestUtil.dropSequence( conn, "serialtest_b_seq");
         TestUtil.closeDB(conn);
@@ -180,6 +182,17 @@ public class ResultSetMetaDataTest extends TestCase
 
         rs.close();
         stmt.close();
+    }
+
+    public void testClassesMatch() throws SQLException {
+        Statement stmt = conn.createStatement();
+        stmt.executeUpdate("INSERT INTO alltypes (bool, i2, i4, i8, num, re, fl, ch, vc, tx, d, t, tz, ts, tsz, bt) VALUES ('t', 2, 4, 8, 3.1, 3.14, 3.141, 'c', 'vc', 'tx', '2004-04-09', '09:01:00', '11:11:00-01','2004-04-09 09:01:00','1999-09-19 14:23:12-09', '\\\\123')");
+        ResultSet rs = stmt.executeQuery("SELECT * FROM alltypes");
+        ResultSetMetaData rsmd = rs.getMetaData();
+        assertTrue(rs.next());
+        for (int i=0; i<rsmd.getColumnCount(); i++) {
+            assertEquals(rs.getObject(i+1).getClass().getName(), rsmd.getColumnClassName(i+1));
+        }
     }
 
 }
