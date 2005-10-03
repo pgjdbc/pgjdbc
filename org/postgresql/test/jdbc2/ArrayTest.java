@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ArrayTest.java,v 1.8.2.1 2005/04/28 14:18:09 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ArrayTest.java,v 1.8.2.2 2005/09/29 20:40:29 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -160,21 +160,28 @@ public class ArrayTest extends TestCase
 
         pstmt.setObject(1, arr, Types.ARRAY);
         pstmt.executeUpdate();
+
+        pstmt.setObject(1, arr);
+        pstmt.executeUpdate();
+
         pstmt.close();
 
         Statement select = conn.createStatement();
         ResultSet rs = select.executeQuery("SELECT intarr FROM arrtest");
-        assertTrue(rs.next());
+        int resultCount = 0;
+        while(rs.next()) {
+            resultCount++;
+            Array result = rs.getArray(1);
+            assertEquals(Types.INTEGER, result.getBaseType());
+            assertEquals("int4", result.getBaseTypeName());
 
-        Array result = rs.getArray(1);
-        assertEquals(Types.INTEGER, result.getBaseType());
-        assertEquals("int4", result.getBaseTypeName());
-
-        int intarr[] = (int[])result.getArray();
-        assertEquals(3, intarr.length);
-        assertEquals(1, intarr[0]);
-        assertEquals(2, intarr[1]);
-        assertEquals(3, intarr[2]);
+            int intarr[] = (int[])result.getArray();
+            assertEquals(3, intarr.length);
+            assertEquals(1, intarr[0]);
+            assertEquals(2, intarr[1]);
+            assertEquals(3, intarr[2]);
+        }
+        assertEquals(3, resultCount);
     }
 
     /**
