@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/BlobTest.java,v 1.16 2005/05/08 23:18:25 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/BlobTest.java,v 1.17 2005/09/29 20:49:23 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -80,22 +80,32 @@ public class BlobTest extends TestCase
         PreparedStatement pstmt = con.prepareStatement("INSERT INTO testblob(id, lo) VALUES(?,?)");
 
         Blob blob = rs.getBlob(1);
-        pstmt.setString(1,"2");
+        pstmt.setString(1,"setObjectTypeBlob");
         pstmt.setObject(2, blob, Types.BLOB);
         assertEquals(1, pstmt.executeUpdate());
 
+	blob = rs.getBlob(1);
+        pstmt.setString(1,"setObjectBlob");
+        pstmt.setObject(2, blob);
+        assertEquals(1, pstmt.executeUpdate());
+
         blob = rs.getBlob(1);
-        pstmt.setString(1,"3");
+        pstmt.setString(1,"setBlob");
         pstmt.setBlob(2, blob);
         assertEquals(1, pstmt.executeUpdate());
 
         Clob clob = rs.getClob(1);
-        pstmt.setString(1,"4");
+        pstmt.setString(1,"setObjectTypeClob");
         pstmt.setObject(2, clob, Types.CLOB);
         assertEquals(1, pstmt.executeUpdate());
 
         clob = rs.getClob(1);
-        pstmt.setString(1,"5");
+        pstmt.setString(1,"setObjectClob");
+        pstmt.setObject(2, clob);
+        assertEquals(1, pstmt.executeUpdate());
+ 
+        clob = rs.getClob(1);
+        pstmt.setString(1,"setClob");
         pstmt.setClob(2, clob);
         assertEquals(1, pstmt.executeUpdate());
     }
