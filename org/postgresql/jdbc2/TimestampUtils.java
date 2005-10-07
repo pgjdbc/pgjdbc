@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.15 2005/08/01 23:30:00 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.16 2005/08/20 23:08:31 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -314,7 +314,7 @@ public class TimestampUtils {
         useCal.set(Calendar.SECOND,       ts.second);
         useCal.set(Calendar.MILLISECOND,  0);
         
-        Timestamp result = new Timestamp(useCal.getTimeInMillis());
+        Timestamp result = new Timestamp(useCal.getTime().getTime());
         result.setNanos(ts.nanos);
         showParse("timestamp", s, cal, result, useCal);
         return result;
@@ -351,7 +351,7 @@ public class TimestampUtils {
             useCal.set(Calendar.YEAR,         ts.year);
             useCal.set(Calendar.MONTH,        ts.month-1);
             useCal.set(Calendar.DAY_OF_MONTH, ts.day);
-            cal.setTimeInMillis(useCal.getTimeInMillis());
+            cal.setTime(new Date(useCal.getTime().getTime()));
             useCal = cal;
         }
         
@@ -360,7 +360,7 @@ public class TimestampUtils {
         useCal.set(Calendar.MONTH,        0);
         useCal.set(Calendar.DAY_OF_MONTH, 1);                
         
-        Time result = new Time(useCal.getTimeInMillis());
+        Time result = new Time(useCal.getTime().getTime());
         showParse("time", s, cal, result, useCal);
         return result;
     }
@@ -398,7 +398,7 @@ public class TimestampUtils {
             useCal.set(Calendar.MINUTE,       ts.minute);
             useCal.set(Calendar.SECOND,       ts.second);
             useCal.set(Calendar.MILLISECOND,  (ts.nanos + 500000) / 1000000);
-            cal.setTimeInMillis(useCal.getTimeInMillis());
+            cal.setTime(new Date(useCal.getTime().getTime()));
             useCal = cal;
         }
         
@@ -407,7 +407,7 @@ public class TimestampUtils {
         useCal.set(Calendar.SECOND,       0);
         useCal.set(Calendar.MILLISECOND,  0);
         
-        Date result = new Date(useCal.getTimeInMillis());
+        Date result = new Date(useCal.getTime().getTime());
         showParse("date", s, cal, result, useCal);
         return result;
     }
