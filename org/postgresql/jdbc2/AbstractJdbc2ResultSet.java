@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.77 2005/08/20 23:08:31 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.78 2005/09/29 22:13:24 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2392,15 +2392,16 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             return s;
 
         // Handle Money
-        if (s.charAt(0) == '(')
+        char ch = s.charAt(0);
+        if (ch == '(')
         {
             s = "-" + PGtokenizer.removePara(s).substring(1);
         }
-        if (s.charAt(0) == '$')
+        if (ch == '$')
         {
             s = s.substring(1);
         }
-        else if (s.charAt(0) == '-' && s.charAt(1) == '$')
+        else if (ch == '-' && s.charAt(1) == '$')
         {
             s = "-" + s.substring(2);
         }
@@ -2589,7 +2590,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             try
             {
                 s = s.trim();
-                return Float.valueOf(s).floatValue();
+                return Float.parseFloat(s);
             }
             catch (NumberFormatException e)
             {
@@ -2607,7 +2608,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             try
             {
                 s = s.trim();
-                return Double.valueOf(s).doubleValue();
+                return Double.parseDouble(s);
             }
             catch (NumberFormatException e)
             {

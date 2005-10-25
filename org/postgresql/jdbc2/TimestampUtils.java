@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.16 2005/08/20 23:08:31 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.17 2005/10/07 04:27:16 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -77,8 +77,9 @@ public class TimestampUtils {
      * Load date/time information into the provided calendar
      * returning the fractional seconds.
      */
-    private ParsedTimestamp loadCalendar(Calendar defaultTz, String s, String type) throws SQLException {
-        int slen = s.length();
+    private ParsedTimestamp loadCalendar(Calendar defaultTz, String str, String type) throws SQLException {
+        char []s = str.toCharArray();
+        int slen = s.length;
 
         // This is pretty gross..
         ParsedTimestamp result = new ParsedTimestamp();
@@ -211,7 +212,7 @@ public class TimestampUtils {
             }
     
             if (result.hasDate && start < slen) {
-                String eraString = s.substring(start);
+                String eraString = new String(s, start, slen - start) ;
                 if (eraString.startsWith("AD")) {
                     result.era = GregorianCalendar.AD;
                     start += 2;
@@ -222,7 +223,7 @@ public class TimestampUtils {
             }
 
             if (start < slen)
-                throw new NumberFormatException("Trailing junk on timestamp: '" + s.substring(start) + "'");
+                throw new NumberFormatException("Trailing junk on timestamp: '" + new String(s, start, end - start) + "'");
 
             if (!result.hasTime && !result.hasDate)
                 throw new NumberFormatException("Timestamp has neither date nor time");
@@ -557,38 +558,42 @@ public class TimestampUtils {
         }
     }
 
-    private static int skipWhitespace(String s, int start)
+    private static int skipWhitespace(char []s, int start)
     {
-        int slen = s.length();
+        int slen = s.length;
         for (int i=start; i<slen; i++) {
-            if (!Character.isSpace(s.charAt(i)))
+            if (!Character.isSpace(s[i]))
                 return i;
         }
         return slen;
     }
 
-    private static int firstNonDigit(String s, int start)
+    private static int firstNonDigit(char []s, int start)
     {
-        int slen = s.length();
+        int slen = s.length;
         for (int i=start; i<slen; i++) {
-            if (!Character.isDigit(s.charAt(i))) {
+            if (!Character.isDigit(s[i])) {
                 return i;
             }
         }
         return slen; 
     }
 
-    private static int number(String s, int start, int end) {
+    private static int number(char []s, int start, int end) {
         if (start >= end) {
             throw new NumberFormatException();
         }
-        String num = s.substring(start, end);
-        return Integer.parseInt(num);
+        int n=0;
+        for ( int i=start; i < end; i++)
+        {
+            n = 10 * n + (s[i]-'0'); 
+        }
+        return n;
     }
 
-    private static char charAt(String s, int pos) {
-        if (pos >= 0 && pos < s.length()) {
-            return s.charAt(pos);
+    private static char charAt(char []s, int pos) {
+        if (pos >= 0 && pos < s.length) {
+            return s[pos];
         }
         return '\0';
     }
