@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.22 2005/04/10 16:44:13 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.23 2005/04/20 00:10:58 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -59,17 +59,19 @@ public class QueryExecutorImpl implements QueryExecutor {
         // also break the query into separate statements.
 
         ArrayList statementList = new ArrayList();
-        ArrayList fragmentList = new ArrayList();
+        ArrayList fragmentList = new ArrayList(15);
 
         boolean inQuotes = false;
         int fragmentStart = 0;
 
         boolean inSingleQuotes = false;
         boolean inDoubleQuotes = false;
-
-        for (int i = 0; i < query.length(); ++i)
+        
+        char []aChars = query.toCharArray();
+        
+        for (int i = 0; i < aChars.length; ++i)
         {
-            char c = query.charAt(i);
+            char c = aChars[i];
 
             switch (c)
             {
