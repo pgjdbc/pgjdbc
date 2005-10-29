@@ -19,12 +19,12 @@ public class PGXADataSource extends BaseDataSource implements Referenceable, XAD
 {
     /**
      * Gets a connection to the PostgreSQL database.  The database is identified by the
-     * DataSource properties serverName, databaseName, and portNumber.	The user to
+     * DataSource properties serverName, databaseName, and portNumber. The user to
      * connect as is identified by the DataSource properties user and password.
      *
      * @return A valid database connection.
      * @throws SQLException
-     *		   Occurs when the database connection cannot be established.
+     *     Occurs when the database connection cannot be established.
      */
     public XAConnection getXAConnection() throws SQLException
     {
@@ -33,13 +33,13 @@ public class PGXADataSource extends BaseDataSource implements Referenceable, XAD
 
     /**
      * Gets a XA-enabled connection to the PostgreSQL database.  The database is identified by the
-     * DataSource properties serverName, databaseName, and portNumber.	The user to
+     * DataSource properties serverName, databaseName, and portNumber. The user to
      * connect as is identified by the arguments user and password, which override
      * the DataSource properties by the same name.
      *
      * @return A valid database connection.
      * @throws SQLException
-     *		   Occurs when the database connection cannot be established.
+     *     Occurs when the database connection cannot be established.
      */
     public XAConnection getXAConnection(String user, String password) throws SQLException
     {

@@ -10,22 +10,22 @@ import javax.transaction.xa.XAException;
  * @author Michael S. Allman
  */
 public class PGXAException extends XAException {
-	PGXAException(String message, int errorCode) {
-		super(message);
+    PGXAException(String message, int errorCode) {
+        super(message);
 
-		this.errorCode = errorCode;
-	}
+        this.errorCode = errorCode;
+    }
 
-	PGXAException(String message, Throwable cause, int errorCode) {
-		super(message);
+    PGXAException(String message, Throwable cause, int errorCode) {
+        super(message);
 
-		initCause(cause);
-		this.errorCode = errorCode;
-	}
+        initCause(cause);
+        this.errorCode = errorCode;
+    }
 
-	PGXAException(Throwable cause, int errorCode) {
-		super(errorCode);
+    PGXAException(Throwable cause, int errorCode) {
+        super(errorCode);
 
-		initCause(cause);
-	}
+        initCause(cause);
+    }
 }
