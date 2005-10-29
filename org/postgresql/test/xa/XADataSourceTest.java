@@ -48,21 +48,18 @@ public class XADataSourceTest extends TestCase {
 
 		clearAllPrepared();
 		
-		_conn.setAutoCommit(false);
-		
 		xaconn = _ds.getXAConnection();
 		xaRes = xaconn.getXAResource();
 		conn = xaconn.getConnection();
     }
 
     protected void tearDown() throws SQLException {
-        _conn.setAutoCommit(true);
+		xaconn.close();
 		clearAllPrepared();		
 
 		TestUtil.dropTable(_conn, "testxa1");
         TestUtil.closeDB(_conn);
 		
-		xaconn.close();
     }
 
 	private void clearAllPrepared() throws SQLException
