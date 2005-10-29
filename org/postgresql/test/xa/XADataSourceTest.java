@@ -34,9 +34,11 @@ public class XADataSourceTest extends TestCase {
 		
 		_ds = new PGXADataSource();
 		((PGXADataSource)_ds).setServerName(TestUtil.getServer());
+		((PGXADataSource)_ds).setPortNumber(TestUtil.getPort());
 		((PGXADataSource)_ds).setUser(TestUtil.getUser());
 		((PGXADataSource)_ds).setPassword(TestUtil.getPassword());
 		((PGXADataSource)_ds).setDatabaseName(TestUtil.getDatabase());
+		((PGXADataSource)_ds).setPrepareThreshold(TestUtil.getPrepareThreshold());
     }
 
     protected void setUp() throws SQLException {
