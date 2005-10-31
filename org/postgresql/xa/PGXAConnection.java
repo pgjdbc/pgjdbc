@@ -273,7 +273,7 @@ public class PGXAConnection extends PooledConnectionImpl implements XAConnection
 
         try
         {
-            if (xid.equals(currentXid))
+            if (currentXid != null && xid.equals(currentXid))
             {
                 state = STATE_IDLE;
                 currentXid = null;
@@ -335,7 +335,7 @@ public class PGXAConnection extends PooledConnectionImpl implements XAConnection
         try
         {
             // Check preconditions
-            if (currentXid == null || currentXid.equals(xid))
+            if (currentXid == null || !currentXid.equals(xid))
             {
                 // In fact, we don't know if xid is bogus, or if it just wasn't associated with this connection.
                 // Assume it's our fault.
