@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/PGInterval.java,v 1.8 2005/05/09 03:17:19 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/util/PGInterval.java,v 1.9 2005/09/29 21:42:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -12,6 +12,7 @@ package org.postgresql.util;
 import java.io.Serializable;
 import java.sql.SQLException;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.StringTokenizer;
@@ -29,7 +30,13 @@ public class PGInterval extends PGobject implements Serializable, Cloneable
     private int minutes;
     private double seconds;
 
-    private final static DecimalFormat secondsFormat = new DecimalFormat("#.00####");
+    private final static DecimalFormat secondsFormat;
+    static {
+        secondsFormat = new DecimalFormat("#.00####");
+        DecimalFormatSymbols dfs = secondsFormat.getDecimalFormatSymbols();
+        dfs.setDecimalSeparator('.');
+        secondsFormat.setDecimalFormatSymbols(dfs);
+    }
 
 
     /**
