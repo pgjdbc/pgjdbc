@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.78 2005/09/29 22:13:24 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.79 2005/10/25 22:44:27 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2451,6 +2451,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         if ( this_row == null )
             throw new PSQLException(GT.tr("ResultSet not positioned properly, perhaps you need to call next."),
                                     PSQLState.INVALID_CURSOR_STATE);
+        checkColumnIndex(column);
     }
 
     //----------------- Formatting Methods -------------------
