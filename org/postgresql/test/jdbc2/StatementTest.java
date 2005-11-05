@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.15 2005/01/27 11:30:48 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.15.2.1 2005/08/12 18:22:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -316,6 +316,25 @@ public class StatementTest extends TestCase
 	// Executing another query should clear the warning from the first one.
         assertNull(stmt.getWarnings());
         stmt.close();
+    }
+
+    /**
+     * The parser tries to break multiple statements into individual
+     * queries as required by the V3 extended query protocol.  It can
+     * be a little overzealous sometimes and this test ensures we
+     * keep multiple rule actions together in one statement.
+     */
+    public void testParsingSemiColons() throws SQLException
+    {
+        Statement stmt = con.createStatement();
+        stmt.execute("CREATE RULE r1 AS ON INSERT TO escapetest DO (DELETE FROM test_statement ; INSERT INTO test_statement VALUES (1); INSERT INTO test_statement VALUES (2); );");
+        stmt.executeUpdate("INSERT INTO escapetest(ts) VALUES (NULL)");
+        ResultSet rs = stmt.executeQuery("SELECT i from test_statement ORDER BY i");
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+        assertTrue(rs.next());
+        assertEquals(2, rs.getInt(1));
+        assertTrue(!rs.next());
     }
 
 }
