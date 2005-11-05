@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ResultSetTest.java,v 1.24 2004/12/17 21:24:30 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ResultSetTest.java,v 1.25 2005/01/11 08:25:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -641,6 +641,23 @@ public class ResultSetTest extends TestCase
         }
         catch (SQLException sqle)
         {
+        }
+    }
+
+    public void testGetOutOfBounds() throws SQLException
+    {
+        Statement stmt = con.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT id FROM testrs");
+        assertTrue(rs.next());
+
+        try {
+            rs.getInt(-9);
+        } catch (SQLException sqle) {
+        }
+
+        try {
+                rs.getInt(1000);
+        } catch (SQLException sqle) {
         }
     }
 
