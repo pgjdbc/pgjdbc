@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.23 2005/04/20 00:10:58 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.24 2005/10/25 22:43:02 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -66,6 +66,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
         boolean inSingleQuotes = false;
         boolean inDoubleQuotes = false;
+        int inParen = 0;
         
         char []aChars = query.toCharArray();
         
@@ -96,8 +97,18 @@ public class QueryExecutorImpl implements QueryExecutor {
                 }
                 break;
 
-            case ';':
+            case '(':
                 if (!inSingleQuotes && !inDoubleQuotes)
+                        inParen++;
+                break;
+
+            case ')':
+                if (!inSingleQuotes && !inDoubleQuotes)
+                        inParen--;
+                break;
+
+            case ';':
+                if (!inSingleQuotes && !inDoubleQuotes && inParen == 0)
                 {
                     fragmentList.add(query.substring(fragmentStart, i));
                     fragmentStart = i + 1;
