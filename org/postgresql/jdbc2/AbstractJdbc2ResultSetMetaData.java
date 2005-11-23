@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSetMetaData.java,v 1.17.2.1 2005/09/29 23:03:40 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSetMetaData.java,v 1.17.2.2 2005/11/23 21:51:55 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -262,7 +262,7 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
             int precision = (typmod >> 16) & 0xffff;
             int scale = typmod & 0xffff;
             // sign + digits + decimal point if necessary
-            return 1 + precision + (scale != 0) ? 1 : 0;
+            return 1 + precision + (scale != 0 ? 1 : 0);
         }
 
         // if we don't know better
