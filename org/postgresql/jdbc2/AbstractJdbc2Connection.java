@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.32 2005/08/01 06:54:14 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.33 2005/11/23 19:24:54 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -137,7 +137,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         _typeCache = new TypeInfoCache(this);
         initObjectTypes(info);
 
-        if (Boolean.parseBoolean(info.getProperty("logUnclosedConnections"))) {
+        if (Boolean.valueOf(info.getProperty("logUnclosedConnections")).booleanValue()) {
             java.io.CharArrayWriter caw = new java.io.CharArrayWriter(1024);
             Exception e = new Exception();
             e.printStackTrace(new java.io.PrintWriter(caw));
