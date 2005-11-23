@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSetMetaData.java,v 1.17 2005/01/11 08:25:46 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSetMetaData.java,v 1.18 2005/09/29 23:04:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -253,15 +253,30 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
 
         // variable length fields
         typmod -= 4;
-        if (type_name.equals( "bpchar" )
-                || type_name.equals( "varchar" ))
+        if (type_name.equals( "bpchar" ) || type_name.equals( "varchar" )) {
+            if (typmod < 0)
+                return Integer.MAX_VALUE;
             return typmod; // VARHDRSZ=sizeof(int32)=4
-        if (type_name.equals( "numeric" ))
-            return ( (typmod >> 16) & 0xffff )
-                   + 1 + ( typmod & 0xffff ); // DECIMAL(p,s) = (p digits).(s digits)
+        }
+
+        if (type_name.equals( "numeric" )) {
+            if (typmod + 4 == -1)
+                return 1002;  // digits + sign + decimal point
+            int precision = (typmod >> 16) & 0xffff;
+            int scale = (typmod & 0xffff);
+            // sign + digits + decimal point (only if we have nonzero scale)
+            return 1 + precision + (scale != 0 ? 1 : 0);
+        }
+
+        if (type_name.equals("text") || type_name.equals("bytea"))
+            return Integer.MAX_VALUE;
 
         // if we don't know better
-        return f.getLength();
+        int size = f.getLength();
+        if (size < 0) {
+            size = Integer.MAX_VALUE;
+        }
+        return size;
     }
 
     /*

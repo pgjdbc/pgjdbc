@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ResultSetMetaDataTest.java,v 1.11 2005/02/01 07:27:55 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ResultSetMetaDataTest.java,v 1.12 2005/09/29 23:04:46 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -34,6 +34,7 @@ public class ResultSetMetaDataTest extends TestCase
         TestUtil.dropSequence( conn, "serialtest_b_seq");
         TestUtil.createTable(conn, "serialtest", "a serial, b bigserial, c int");
         TestUtil.createTable(conn, "alltypes", "bool boolean, i2 int2, i4 int4, i8 int8, num numeric(10,2), re real, fl float, ch char(3), vc varchar(3), tx text, d date, t time without time zone, tz time with time zone, ts timestamp without time zone, tsz timestamp with time zone, bt bytea");
+        TestUtil.createTable(conn, "sizetest", "fixedchar char(5), fixedvarchar varchar(5), unfixedvarchar varchar, txt text, bytearr bytea, num64 numeric(6,4), num60 numeric(6,0), num numeric, ip inet");
     }
 
     protected void tearDown() throws Exception
@@ -42,6 +43,7 @@ public class ResultSetMetaDataTest extends TestCase
         TestUtil.dropTable(conn, "timetest");
         TestUtil.dropTable(conn, "serialtest");
         TestUtil.dropTable(conn, "alltypes");
+        TestUtil.dropTable(conn, "sizetest");
         TestUtil.dropSequence( conn, "serialtest_a_seq");
         TestUtil.dropSequence( conn, "serialtest_b_seq");
         TestUtil.closeDB(conn);
@@ -166,6 +168,22 @@ public class ResultSetMetaDataTest extends TestCase
 
         rs.close();
         stmt.close();
+    }
+
+    public void testColumnDisplaySize() throws SQLException {
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT fixedchar, fixedvarchar, unfixedvarchar, txt, bytearr, num64, num60, num, ip FROM sizetest");
+        ResultSetMetaData rsmd = rs.getMetaData();
+
+        assertEquals(5, rsmd.getColumnDisplaySize(1));
+        assertEquals(5, rsmd.getColumnDisplaySize(2));
+        assertEquals(Integer.MAX_VALUE, rsmd.getColumnDisplaySize(3));
+        assertEquals(Integer.MAX_VALUE, rsmd.getColumnDisplaySize(4));
+        assertEquals(Integer.MAX_VALUE, rsmd.getColumnDisplaySize(5));
+        assertEquals(8, rsmd.getColumnDisplaySize(6));
+        assertEquals(7, rsmd.getColumnDisplaySize(7));
+        assertEquals(1002, rsmd.getColumnDisplaySize(8));
+        assertEquals(Integer.MAX_VALUE, rsmd.getColumnDisplaySize(9));
     }
 
     public void testIsAutoIncrement() throws SQLException {
