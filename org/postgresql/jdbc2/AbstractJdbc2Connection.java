@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.31 2005/07/04 18:50:29 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.32 2005/08/01 06:54:14 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -36,6 +36,8 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
     /* URL we were created via */
     private final String creatingURL;
+
+    private final String openStackTrace;
 
     /* Actual network handler */
     private final ProtocolConnection protoConnection;
@@ -134,6 +136,16 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         // Initialize object handling
         _typeCache = new TypeInfoCache(this);
         initObjectTypes(info);
+
+        if (Boolean.parseBoolean(info.getProperty("logUnclosedConnections"))) {
+            java.io.CharArrayWriter caw = new java.io.CharArrayWriter(1024);
+            Exception e = new Exception();
+            e.printStackTrace(new java.io.PrintWriter(caw));
+            openStackTrace = caw.toString();
+            enableDriverManagerLogging();
+        } else {
+            openStackTrace = null;
+        }
     }
 
     private final TimestampUtils timestampUtils;
@@ -795,6 +807,10 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
      */
     public void finalize() throws Throwable
     {
+        if (openStackTrace != null && !isClosed()) {
+            DriverManager.println(GT.tr("Finalizing a Connection that was never closed.  Connection was opened here:"));
+            DriverManager.println(openStackTrace);
+        }
         close();
     }
 

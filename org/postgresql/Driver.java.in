@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.64 2005/02/02 23:30:30 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.65 2005/02/15 08:56:24 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -414,6 +414,8 @@ public class Driver implements java.sql.Driver
                   new String[] { "0", "1", "2" } },
                 { "allowEncodingChanges", Boolean.FALSE,
                   "Allow the user to change the client_encoding variable." },
+                { "logUnclosedConnections", Boolean.FALSE,
+                  "When connections that are not explicitly closed are garbage collected, log the stacktrace from the opening of the connection to trace the leak source."},
                 { "prepareThreshold", Boolean.FALSE,
                   "Default statement prepare threshold (numeric)." },
                 { "charSet", Boolean.FALSE,
