@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/ServerErrorMessage.java,v 1.8 2005/04/10 16:44:13 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/util/ServerErrorMessage.java,v 1.9 2005/09/13 22:31:23 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -29,14 +29,16 @@ public class ServerErrorMessage implements Serializable
     private static final Character INTERNAL_POSITION = new Character('p');
     private static final Character INTERNAL_QUERY = new Character('q');
 
-    private Hashtable m_mesgParts;
+    private final Hashtable m_mesgParts = new Hashtable();
+    private final int verbosity;
 
-    public ServerErrorMessage(String p_serverError)
+    public ServerErrorMessage(String p_serverError, int verbosity)
     {
+        this.verbosity = verbosity;
+
         char[] l_chars = p_serverError.toCharArray();
         int l_pos = 0;
         int l_length = l_chars.length;
-        m_mesgParts = new Hashtable();
         while (l_pos < l_length)
         {
             char l_mesgType = l_chars[l_pos];
@@ -152,7 +154,7 @@ public class ServerErrorMessage implements Serializable
         l_message = (String)m_mesgParts.get(DETAIL);
         if (l_message != null)
             l_totalMessage.append("\n  ").append(GT.tr("Detail: {0}", l_message));
-        if (Driver.logInfo)
+        if (verbosity > 0)
         {
             l_message = (String)m_mesgParts.get(HINT);
             if (l_message != null)
@@ -164,7 +166,7 @@ public class ServerErrorMessage implements Serializable
             if (l_message != null)
                 l_totalMessage.append("\n  ").append(GT.tr("Where: {0}", l_message));
         }
-        if (Driver.logDebug)
+        if (verbosity > 2)
         {
             String l_internalQuery = (String)m_mesgParts.get(INTERNAL_QUERY);
             if (l_internalQuery != null)

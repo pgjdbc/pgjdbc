@@ -8,7 +8,7 @@
 
   This file now requires Ant 1.4.1.  2002-04-18
 
-  $PostgreSQL: pgjdbc/build.xml,v 1.63 2005/02/01 07:27:53 jurka Exp $
+  $PostgreSQL: pgjdbc/build.xml,v 1.64 2005/10/29 01:14:49 davec Exp $
 
 -->
 
@@ -328,6 +328,7 @@
   <!-- Password must be something.  Doesn't matter if trust is used! -->
   <property name="password" value="password" />
   <property name="preparethreshold" value="0" />
+  <property name="loglevel" value="0" />
 
   <!-- The tests now build to a separate directory and jarfile from the
        driver build, to ensure we're really testing against the jar we just
@@ -354,6 +355,8 @@
   <!-- This actually runs the tests -->
   <target name="runtest" depends="testjar">
     <fail message="Your version of ant doesn't seem to have the junit task available.  I looked for org.apache.tools.ant.taskdefs.optional.junit.JUnitTask, but I couldn't find it." unless="junit.task" />
+
+    <delete file="postgresql-jdbc-tests.debug.txt"/>
     <junit>
       <formatter type="brief" usefile="false"/>
 
@@ -363,6 +366,7 @@
       <sysproperty key="username" value="${username}" />
       <sysproperty key="password" value="${password}" />
       <sysproperty key="preparethreshold" value="${preparethreshold}" />
+      <sysproperty key="loglevel" value="${loglevel}" />
 
       <classpath>
         <pathelement location="${jardir}/postgresql.jar" />

@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/fastpath/Fastpath.java,v 1.31 2005/01/11 08:25:45 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/fastpath/Fastpath.java,v 1.32 2005/01/14 01:20:18 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -12,7 +12,6 @@ package org.postgresql.fastpath;
 import java.sql.SQLException;
 import java.sql.ResultSet;
 import java.util.Hashtable;
-import org.postgresql.Driver;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ParameterList;
@@ -105,8 +104,8 @@ public class Fastpath
      */
     public Object fastpath(String name, boolean resulttype, FastpathArg[] args) throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("Fastpath: calling " + name);
+        if (connection.getLogger().logDebug())
+            connection.getLogger().debug("Fastpath: calling " + name);
         return fastpath(getID(name), resulttype, args);
     }
 

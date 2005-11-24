@@ -3,7 +3,7 @@
 * Copyright (c) 2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL$
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/LoginTimeoutTest.java,v 1.1 2005/02/02 23:30:32 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -24,6 +24,10 @@ public class LoginTimeoutTest extends TestCase
     public LoginTimeoutTest(String name)
     {
         super(name);
+    }
+
+    public void setUp() throws Exception {
+        TestUtil.initDriver(); // Set up log levels, etc.
     }
 
     public void testIntTimeout() throws Exception {

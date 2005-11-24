@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ConnectionFactoryImpl.java,v 1.7 2004/11/17 02:43:48 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ConnectionFactoryImpl.java,v 1.8 2005/01/11 08:25:43 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -40,14 +40,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     private static final int AUTH_REQ_MD5 = 5;
     private static final int AUTH_REQ_SCM = 6;
 
-    public ProtocolConnection openConnectionImpl(String host, int port, String user, String database, Properties info) throws SQLException {
+    public ProtocolConnection openConnectionImpl(String host, int port, String user, String database, Properties info, Logger logger) throws SQLException {
         // Extract interesting values from the info properties:
         //  - the SSL setting
         boolean requireSSL = (info.getProperty("ssl") != null);
         boolean trySSL = requireSSL; // XXX temporary until we revisit the ssl property values
 
-        if (Driver.logDebug)
-            Driver.debug("Trying to establish a protocol version 2 connection to " + host + ":" + port);
+        if (logger.logDebug())
+            logger.debug("Trying to establish a protocol version 2 connection to " + host + ":" + port);
 
         if (!Driver.sslEnabled())
         {
@@ -67,20 +67,20 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
             // Construct and send an ssl startup packet if requested.
             if (trySSL)
-                newStream = enableSSL(newStream, requireSSL, info);
+                newStream = enableSSL(newStream, requireSSL, info, logger);
 
             // Construct and send a startup packet.
-            sendStartupPacket(newStream, user, database);
+            sendStartupPacket(newStream, user, database, logger);
 
             // Do authentication (until AuthenticationOk).
-            doAuthentication(newStream, user, info.getProperty("password"));
+            doAuthentication(newStream, user, info.getProperty("password"), logger);
 
             // Do final startup.
-            ProtocolConnectionImpl protoConnection = new ProtocolConnectionImpl(newStream, user, database);
-            readStartupMessages(newStream, protoConnection);
+            ProtocolConnectionImpl protoConnection = new ProtocolConnectionImpl(newStream, user, database, logger);
+            readStartupMessages(newStream, protoConnection, logger);
 
             // Run some initial queries
-            runInitialQueries(protoConnection, info.getProperty("charSet"));
+            runInitialQueries(protoConnection, info.getProperty("charSet"), logger);
 
             // And we're done.
             return protoConnection;
@@ -124,9 +124,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         }
     }
 
-    private PGStream enableSSL(PGStream pgStream, boolean requireSSL, Properties info) throws IOException, SQLException {
-        if (Driver.logDebug)
-            Driver.debug(" FE=> SSLRequest");
+    private PGStream enableSSL(PGStream pgStream, boolean requireSSL, Properties info, Logger logger) throws IOException, SQLException {
+        if (logger.logDebug())
+            logger.debug(" FE=> SSLRequest");
 
         // Send SSL request packet
         pgStream.SendInteger4(8);
@@ -139,8 +139,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         switch (beresp)
         {
         case 'E':
-            if (Driver.logDebug)
-                Driver.debug(" <=BE SSLError");
+            if (logger.logDebug())
+                logger.debug(" <=BE SSLError");
 
             // Server doesn't even know about the SSL handshake protocol
             if (requireSSL)
@@ -151,8 +151,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             return new PGStream(pgStream.getHost(), pgStream.getPort());
 
         case 'N':
-            if (Driver.logDebug)
-                Driver.debug(" <=BE SSLRefused");
+            if (logger.logDebug())
+                logger.debug(" <=BE SSLRefused");
 
             // Server does not support ssl
             if (requireSSL)
@@ -161,11 +161,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             return pgStream;
 
         case 'S':
-            if (Driver.logDebug)
-                Driver.debug(" <=BE SSLOk");
+            if (logger.logDebug())
+                logger.debug(" <=BE SSLOk");
 
             // Server supports ssl
-            Driver.makeSSL(pgStream, info);
+            Driver.makeSSL(pgStream, info, logger);
             return pgStream;
 
         default:
@@ -173,7 +173,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         }
     }
 
-    private void sendStartupPacket(PGStream pgStream, String user, String database) throws IOException {
+    private void sendStartupPacket(PGStream pgStream, String user, String database, Logger logger) throws IOException {
         //  4: total size including self
         //  2: protocol major
         //  2: protocol minor
@@ -183,8 +183,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         // 64: unused
         // 64: tty
 
-        if (Driver.logDebug)
-            Driver.debug(" FE=> StartupPacket(user=" + user + ",database=" + database + ")");
+        if (logger.logDebug())
+            logger.debug(" FE=> StartupPacket(user=" + user + ",database=" + database + ")");
 
         pgStream.SendInteger4(4 + 4 + 64 + 32 + 64 + 64 + 64);
         pgStream.SendInteger2(2); // protocol major
@@ -197,7 +197,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         pgStream.flush();
     }
 
-    private void doAuthentication(PGStream pgStream, String user, String password) throws IOException, SQLException
+    private void doAuthentication(PGStream pgStream, String user, String password, Logger logger) throws IOException, SQLException
     {
         // Now get the response from the backend, either an error message
         // or an authentication request
@@ -216,8 +216,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 // "User authentication failed"
                 //
                 String errorMsg = pgStream.ReceiveString();
-                if (Driver.logDebug)
-                    Driver.debug(" <=BE ErrorMessage(" + errorMsg + ")");
+                if (logger.logDebug())
+                    logger.debug(" <=BE ErrorMessage(" + errorMsg + ")");
                 throw new PSQLException(GT.tr("Connection rejected: {0}.", errorMsg), PSQLState.CONNECTION_REJECTED);
 
             case 'R':
@@ -232,8 +232,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                     {
                         String salt = pgStream.ReceiveString(2);
 
-                        if (Driver.logDebug)
-                            Driver.debug(" <=BE AuthenticationReqCrypt(salt='" + salt + "')");
+                        if (logger.logDebug())
+                            logger.debug(" <=BE AuthenticationReqCrypt(salt='" + salt + "')");
 
                         if (password == null)
                             throw new PSQLException(GT.tr("The server requested password-based authentication, but no password was provided."), PSQLState.CONNECTION_REJECTED);
@@ -241,8 +241,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                         String result = UnixCrypt.crypt(salt, password);
                         byte[] encodedResult = result.getBytes("US-ASCII");
 
-                        if (Driver.logDebug)
-                            Driver.debug(" FE=> Password(crypt='" + result + "')");
+                        if (logger.logDebug())
+                            logger.debug(" FE=> Password(crypt='" + result + "')");
 
                         pgStream.SendInteger4(4 + encodedResult.length + 1);
                         pgStream.Send(encodedResult);
@@ -255,15 +255,15 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 case AUTH_REQ_MD5:
                     {
                         byte[] md5Salt = pgStream.Receive(4);
-                        if (Driver.logDebug)
-                            Driver.debug(" <=BE AuthenticationReqMD5(salt=" + Utils.toHexString(md5Salt) + ")");
+                        if (logger.logDebug())
+                            logger.debug(" <=BE AuthenticationReqMD5(salt=" + Utils.toHexString(md5Salt) + ")");
 
                         if (password == null)
                             throw new PSQLException(GT.tr("The server requested password-based authentication, but no password was provided."), PSQLState.CONNECTION_REJECTED);
 
                         byte[] digest = MD5Digest.encode(user, password, md5Salt);
-                        if (Driver.logDebug)
-                            Driver.debug(" FE=> Password(md5digest=" + new String(digest, "US-ASCII") + ")");
+                        if (logger.logDebug())
+                            logger.debug(" FE=> Password(md5digest=" + new String(digest, "US-ASCII") + ")");
 
                         pgStream.SendInteger4(4 + digest.length + 1);
                         pgStream.Send(digest);
@@ -275,14 +275,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
                 case AUTH_REQ_PASSWORD:
                     {
-                        if (Driver.logDebug)
-                            Driver.debug(" <=BE AuthenticationReqPassword");
+                        if (logger.logDebug())
+                            logger.debug(" <=BE AuthenticationReqPassword");
 
                         if (password == null)
                             throw new PSQLException(GT.tr("The server requested password-based authentication, but no password was provided."), PSQLState.CONNECTION_REJECTED);
 
-                        if (Driver.logDebug)
-                            Driver.debug(" FE=> Password(password=<not shown>)");
+                        if (logger.logDebug())
+                            logger.debug(" FE=> Password(password=<not shown>)");
 
                         byte[] encodedPassword = password.getBytes("US-ASCII");
                         pgStream.SendInteger4(4 + encodedPassword.length + 1);
@@ -294,14 +294,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                     }
 
                 case AUTH_REQ_OK:
-                    if (Driver.logDebug)
-                        Driver.debug(" <=BE AuthenticationOk");
+                    if (logger.logDebug())
+                        logger.debug(" <=BE AuthenticationOk");
 
                     return ; // We're done.
 
                 default:
-                    if (Driver.logDebug)
-                        Driver.debug(" <=BE AuthenticationReq (unsupported type " + ((int)areq) + ")");
+                    if (logger.logDebug())
+                        logger.debug(" <=BE AuthenticationReq (unsupported type " + ((int)areq) + ")");
 
                     throw new PSQLException(GT.tr("The authentication type {0} is not supported. Check that you have configured the pg_hba.conf file to include the client''s IP address or subnet, and that it is using an authentication scheme supported by the driver.", new Integer(areq)), PSQLState.CONNECTION_REJECTED);
                 }
@@ -314,35 +314,35 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         }
     }
 
-    private void readStartupMessages(PGStream pgStream, ProtocolConnectionImpl protoConnection) throws IOException, SQLException {
+    private void readStartupMessages(PGStream pgStream, ProtocolConnectionImpl protoConnection, Logger logger) throws IOException, SQLException {
         while (true)
         {
             int beresp = pgStream.ReceiveChar();
             switch (beresp)
             {
             case 'Z':  // ReadyForQuery
-                if (Driver.logDebug)
-                    Driver.debug(" <=BE ReadyForQuery");
+                if (logger.logDebug())
+                    logger.debug(" <=BE ReadyForQuery");
                 return ;
 
             case 'K':  // BackendKeyData
                 int pid = pgStream.ReceiveIntegerR(4);
                 int ckey = pgStream.ReceiveIntegerR(4);
-                if (Driver.logDebug)
-                    Driver.debug(" <=BE BackendKeyData(pid=" + pid + ",ckey=" + ckey + ")");
+                if (logger.logDebug())
+                    logger.debug(" <=BE BackendKeyData(pid=" + pid + ",ckey=" + ckey + ")");
                 protoConnection.setBackendKeyData(pid, ckey);
                 break;
 
             case 'E':  // ErrorResponse
                 String errorMsg = pgStream.ReceiveString();
-                if (Driver.logDebug)
-                    Driver.debug(" <=BE ErrorResponse(" + errorMsg + ")");
+                if (logger.logDebug())
+                    logger.debug(" <=BE ErrorResponse(" + errorMsg + ")");
                 throw new PSQLException(GT.tr("Backend start-up failed: {0}.", errorMsg), PSQLState.CONNECTION_UNABLE_TO_CONNECT);
 
             case 'N':  // NoticeResponse
                 String warnMsg = pgStream.ReceiveString();
-                if (Driver.logDebug)
-                    Driver.debug(" <=BE NoticeResponse(" + warnMsg + ")");
+                if (logger.logDebug())
+                    logger.debug(" <=BE NoticeResponse(" + warnMsg + ")");
                 protoConnection.addWarning(new SQLWarning(warnMsg));
                 break;
 
@@ -419,7 +419,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         return (byte[][]) tuples.elementAt(0);
     }
 
-    private void runInitialQueries(ProtocolConnectionImpl protoConnection, String charSet) throws SQLException, IOException {
+    private void runInitialQueries(ProtocolConnectionImpl protoConnection, String charSet, Logger logger) throws SQLException, IOException {
         byte[][] results = runSetupQuery(protoConnection, "set datestyle = 'ISO'; select version(), case when pg_encoding_to_char(1) = 'SQL_ASCII' then 'UNKNOWN' else getdatabaseencoding() end", true);
 
         String rawDbVersion = protoConnection.getEncoding().decode(results[0]);
@@ -436,8 +436,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // The begin/commit is to avoid leaving a transaction open if we're talking to a
             // 7.3 server that defaults to autocommit = off.
 
-            if (Driver.logDebug)
-                Driver.debug("Switching to UNICODE client_encoding");
+            if (logger.logDebug())
+                logger.debug("Switching to UNICODE client_encoding");
 
             runSetupQuery(protoConnection, "begin; set autocommit = on; set client_encoding = 'UNICODE'; commit", false);
             protoConnection.setEncoding(Encoding.getDatabaseEncoding("UNICODE"));
@@ -445,10 +445,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         else
         {
             String dbEncoding = (results[1] == null ? null : protoConnection.getEncoding().decode(results[1]));
-            if (Driver.logDebug)
+            if (logger.logDebug())
             {
-                Driver.debug("Specified charset:  " + charSet);
-                Driver.debug("Database encoding: " + dbEncoding);
+                logger.debug("Specified charset:  " + charSet);
+                logger.debug("Database encoding: " + dbEncoding);
             }
 
             if (charSet != null)
@@ -469,7 +469,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             }
         }
 
-        if (Driver.logDebug)
-            Driver.debug("Connection encoding (using JVM's nomenclature): " + protoConnection.getEncoding());
+        if (logger.logDebug())
+            logger.debug("Connection encoding (using JVM's nomenclature): " + protoConnection.getEncoding());
     }
 }

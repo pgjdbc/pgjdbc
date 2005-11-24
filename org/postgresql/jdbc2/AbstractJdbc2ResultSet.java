@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.79 2005/10/25 22:44:27 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.80 2005/11/05 09:24:15 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -25,7 +25,6 @@ import java.util.Vector;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
-import org.postgresql.Driver;
 import org.postgresql.core.*;
 import org.postgresql.largeobject.*;
 import org.postgresql.util.PGobject;
@@ -1180,8 +1179,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                 selectSQL.append(" and ");
             }
         }
-        if ( Driver.logDebug )
-            Driver.debug("selecting " + selectSQL.toString());
+        if ( connection.getLogger().logDebug() )
+            connection.getLogger().debug("selecting " + selectSQL.toString());
         selectStatement = ((java.sql.Connection) connection).prepareStatement(selectSQL.toString());
 
 
@@ -1199,8 +1198,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
         rows.setElementAt( rowBuffer, current_row );
         this_row = rowBuffer;
-        if ( Driver.logDebug )
-            Driver.debug("done updates");
+
+        connection.getLogger().debug("done updates");
 
         rs.close();
         selectStatement.close();
@@ -1269,8 +1268,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                         updateSQL.append(" and ");
                     }
                 }
-                if ( Driver.logDebug )
-                    Driver.debug("updating " + updateSQL.toString());
+                if ( connection.getLogger().logDebug() )
+                    connection.getLogger().debug("updating " + updateSQL.toString());
                 updateStatement = ((java.sql.Connection) connection).prepareStatement(updateSQL.toString());
 
                 int i = 0;
@@ -1292,21 +1291,16 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                 updateStatement = null;
                 updateRowBuffer();
 
-
-                if ( Driver.logDebug )
-                    Driver.debug("copying data");
+                connection.getLogger().debug("copying data");
                 System.arraycopy(rowBuffer, 0, this_row, 0, rowBuffer.length);
 
                 rows.setElementAt( rowBuffer, current_row );
-                if ( Driver.logDebug )
-                    Driver.debug("done updates");
+                connection.getLogger().debug("done updates");
                 updateValues.clear();
                 doingUpdates = false;
             }
             catch (SQLException e)
             {
-                if ( Driver.logDebug )
-                    Driver.debug(e.getClass().getName() + e);
                 throw e;
             }
 
@@ -1501,20 +1495,17 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         if (updateable)
             return true;
 
-        if ( Driver.logDebug )
-            Driver.debug("checking if rs is updateable");
+        connection.getLogger().debug("checking if rs is updateable");
 
         parseQuery();
 
         if ( singleTable == false )
         {
-            if ( Driver.logDebug )
-                Driver.debug("not a single table");
+            connection.getLogger().debug("not a single table");
             return false;
         }
 
-        if ( Driver.logDebug )
-            Driver.debug("getting primary keys");
+        connection.getLogger().debug("getting primary keys");
 
         //
         // Contains the primary key?
@@ -1569,8 +1560,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             rs.close();
         }
 
-        if ( Driver.logDebug )
-            Driver.debug( "no of keys=" + i );
+        if ( connection.getLogger().logDebug() )
+            connection.getLogger().debug( "no of keys=" + i );
 
         if ( i < 1 )
         {
@@ -1580,8 +1571,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
         updateable = primaryKeys.size() > 0;
 
-        if ( Driver.logDebug )
-            Driver.debug( "checking primary key " + updateable );
+        if ( connection.getLogger().logDebug() )
+            connection.getLogger().debug( "checking primary key " + updateable );
 
         return updateable;
     }

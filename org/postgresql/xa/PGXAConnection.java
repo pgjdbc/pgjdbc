@@ -3,6 +3,7 @@ package org.postgresql.xa;
 import org.postgresql.Driver;
 import org.postgresql.ds.common.PooledConnectionImpl;
 import org.postgresql.core.BaseConnection;
+import org.postgresql.core.Logger;
 
 import org.postgresql.util.GT;
 
@@ -33,6 +34,7 @@ public class PGXAConnection extends PooledConnectionImpl implements XAConnection
      * COMMIT PREPARED/ROLLBACK PREPARED commands.
      */
     private BaseConnection conn;
+    private Logger logger;
 
     private Xid currentXid;
 
@@ -43,7 +45,7 @@ public class PGXAConnection extends PooledConnectionImpl implements XAConnection
     private static final int STATE_ENDED = 2;
 
     private void debug(String s) {
-        Driver.debug("XAResource " + Integer.toHexString(this.hashCode()) + ": " + s);
+        logger.debug("XAResource " + Integer.toHexString(this.hashCode()) + ": " + s);
     }
 
     PGXAConnection(BaseConnection conn) throws SQLException
@@ -83,7 +85,7 @@ public class PGXAConnection extends PooledConnectionImpl implements XAConnection
      * 1. Connection is associated with the transaction
      */
     public void start(Xid xid, int flags) throws XAException {
-        if (Driver.logDebug)
+        if (logger.logDebug())
             debug("starting transaction xid = " + xid);
 
         // Check preconditions
@@ -122,7 +124,7 @@ public class PGXAConnection extends PooledConnectionImpl implements XAConnection
      * 1. connection is disassociated from the transaction.
      */
     public void end(Xid xid, int flags) throws XAException {
-        if (Driver.logDebug)
+        if (logger.logDebug())
             debug("ending transaction xid = " + xid);
 
         // Check preconditions
@@ -159,7 +161,7 @@ public class PGXAConnection extends PooledConnectionImpl implements XAConnection
      * 1. Transaction is prepared
      */
     public int prepare(Xid xid) throws XAException {
-        if (Driver.logDebug)
+        if (logger.logDebug())
             debug("preparing transaction xid = " + xid);
 
         // Check preconditions
@@ -266,7 +268,7 @@ public class PGXAConnection extends PooledConnectionImpl implements XAConnection
      * 1. Transaction is rolled back and disassociated from connection
      */
     public void rollback(Xid xid) throws XAException {
-        if (Driver.logDebug)
+        if (logger.logDebug())
             debug("rolling back xid = " + xid);
 
         // We don't explicitly check precondition 1.
@@ -309,7 +311,7 @@ public class PGXAConnection extends PooledConnectionImpl implements XAConnection
     }
 
     public void commit(Xid xid, boolean onePhase) throws XAException {
-        if (Driver.logDebug)
+        if (logger.logDebug())
             debug("committing xid = " + xid + (onePhase ? " (one phase) " : " (two phase)"));
 
         if (xid == null)

@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/PSQLException.java.in,v 1.10 2005/01/14 01:20:25 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/util/PSQLException.java.in,v 1.11 2005/04/10 16:44:13 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -13,7 +13,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
 import java.io.IOException;
 import java.sql.SQLException;
-import org.postgresql.Driver;
 
 public class PSQLException extends SQLException
 {
@@ -24,8 +23,6 @@ public class PSQLException extends SQLException
     {
         super(addCauseToMessage(msg, cause), state == null ? null : state.getState());
         initCause(cause); // Calls either the 1.4 Throwable impl or our impl below.
-        if (Driver.logDebug)
-            Driver.debug("Exception: " + this);
 
     }
 

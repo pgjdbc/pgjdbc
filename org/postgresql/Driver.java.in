@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.65 2005/02/15 08:56:24 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.66 2005/11/23 19:24:53 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -22,6 +22,8 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLDriverVersion;
 import org.postgresql.util.GT;
+
+import org.postgresql.core.Logger;
 
 /**
  * The Java SQL framework allows for multiple database drivers.  Each
@@ -49,8 +51,9 @@ public class Driver implements java.sql.Driver
 
     public static final int DEBUG = 2;
     public static final int INFO = 1;
-    public static boolean logDebug = false;
-    public static boolean logInfo = false;
+
+    private static final Logger logger = new Logger();
+    private static boolean logLevelSet = false;
 
     static
     {
@@ -91,6 +94,23 @@ public class Driver implements java.sql.Driver
             throw (IOException)e.getException();
         }
 
+        // Use the loglevel from the default properties (if any)
+        // as the driver-wide default unless someone explicitly called
+        // setLogLevel() already.
+        synchronized (Driver.class) {
+            if (!logLevelSet) {
+                String driverLogLevel = defaultProperties.getProperty("loglevel");
+                if (driverLogLevel != null) {
+                    try {
+                        setLogLevel(Integer.parseInt(driverLogLevel));
+                    } catch (Exception l_e) {
+                        // XXX revisit
+                        // invalid value for loglevel; ignore it
+                    }
+                }
+            }
+        }
+
         return defaultProperties;
     }
 
@@ -110,13 +130,11 @@ public class Driver implements java.sql.Driver
             cl = ClassLoader.getSystemClassLoader();
 
         if (cl == null) {
-            if (Driver.logDebug)
-                Driver.debug("Can't find a classloader for the Driver; not loading driver configuration");
+            logger.debug("Can't find a classloader for the Driver; not loading driver configuration");
             return merged; // Give up on finding defaults.
         }
 
-        if (Driver.logDebug)
-            Driver.debug("Loading driver configuration via classloader " + cl);
+        logger.debug("Loading driver configuration via classloader " + cl);
 
         // When loading the driver config files we don't want settings found
         // in later files in the classpath to override settings specified in
@@ -131,8 +149,7 @@ public class Driver implements java.sql.Driver
 
         for (int i=urls.size()-1; i>=0; i--) {
             URL url = (URL)urls.get(i);
-            if (Driver.logDebug)
-                Driver.debug("Loading driver configuration from: " + url);
+            logger.debug("Loading driver configuration from: " + url);
             InputStream is = url.openStream();
             merged.load(is);
             is.close();
@@ -223,14 +240,12 @@ public class Driver implements java.sql.Driver
         // parse URL and add more properties
         if ((props = parseURL(url, props)) == null)
         {
-            if (Driver.logDebug)
-                Driver.debug("Error in url" + url);
+            logger.debug("Error in url: " + url);
             return null;
         }
         try
         {
-            if (Driver.logDebug)
-                Driver.debug("connect " + url);
+            logger.debug("Connecting with URL: " + url);
 
             // Enforce login timeout, if specified, by running the connection
             // attempt in a separate thread. If we hit the timeout without the
@@ -250,16 +265,14 @@ public class Driver implements java.sql.Driver
         }
         catch (PSQLException ex1)
         {
+            logger.debug("Connection error:", ex1);
             // re-throw the exception, otherwise it will be caught next, and a
             // org.postgresql.unusual error will be returned instead.
             throw ex1;
         }
         catch (Exception ex2)
         {
-            if (Driver.logDebug)
-            {
-                Driver.debug("error", ex2);
-            }
+            logger.debug("Unexpected connection error:", ex2);
             throw new PSQLException(GT.tr("Something unusual has occured to cause the driver to fail. Please report this exception."),
                                     PSQLState.UNEXPECTED_ERROR, ex2);
         }
@@ -710,10 +723,8 @@ public class Driver implements java.sql.Driver
      */
     public static SQLException notImplemented(Class callClass, String functionName)
     {
-        String message = GT.tr("Method {0} is not yet implemented.",callClass.getName()+"."+functionName);
-        if (Driver.logDebug)
-            Driver.debug(message);
-        return new PSQLException(message, PSQLState.NOT_IMPLEMENTED);
+        return new PSQLException(GT.tr("Method {0} is not yet implemented.", callClass.getName() + "." + functionName),
+                                 PSQLState.NOT_IMPLEMENTED);
     }
 
     /**
@@ -725,65 +736,21 @@ public class Driver implements java.sql.Driver
     */
     public static void setLogLevel(int logLevel)
     {
-        logDebug = (logLevel >= DEBUG) ? true : false;
-        logInfo = (logLevel >= INFO) ? true : false;
-    }
-    /**
-     * logging message at the debug level
-     * messages will be printed if the logging level is less or equal to DEBUG
-     */
-    public static void debug(String msg)
-    {
-        if (logDebug)
-        {
-            DriverManager.println(msg);
-        }
-    }
-    /**
-     * logging message at the debug level
-     * messages will be printed if the logging level is less or equal to DEBUG
-     */
-    public static void debug(String msg, Exception ex)
-    {
-        if (logDebug)
-        {
-            DriverManager.println(msg);
-            if (ex != null)
-            {
-                DriverManager.println(ex.toString());
-            }
-        }
-    }
-    /**
-     * logging message at info level
-     * messages will be printed if the logging level is less or equal to INFO
-     */
-    public static void info(String msg)
-    {
-        if (logInfo)
-        {
-            DriverManager.println(msg);
-        }
-    }
-    /**
-     * logging message at info level
-     * messages will be printed if the logging level is less or equal to INFO
-     */
-    public static void info(String msg, Exception ex)
-    {
-        if (logInfo)
-        {
-            DriverManager.println(msg);
-            if (ex != null)
-            {
-                DriverManager.println(ex.toString());
-            }
+        synchronized (Driver.class) {
+            logger.setLogLevel(logLevel);
+            logLevelSet = true;
         }
     }
 
+    public static int getLogLevel()
+    {
+        synchronized (Driver.class) {
+            return logger.getLogLevel();
+        }
+    }
 
-    public static void makeSSL(org.postgresql.core.PGStream stream, Properties info) throws IOException, SQLException {
-        @SSL@ org.postgresql.ssl.MakeSSL.convert(stream, info);
+    public static void makeSSL(org.postgresql.core.PGStream stream, Properties info, Logger logger) throws IOException, SQLException {
+        @SSL@ org.postgresql.ssl.MakeSSL.convert(stream, info, logger);
     }
 
     public static boolean sslEnabled() {

@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/QueryExecutorImpl.java,v 1.12 2005/02/15 08:56:25 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/QueryExecutorImpl.java,v 1.13 2005/04/20 00:10:58 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.io.Writer;
 import java.sql.*;
 
-import org.postgresql.Driver;
 import org.postgresql.core.*;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -25,9 +24,10 @@ import org.postgresql.util.GT;
  * QueryExecutor implementation for the V2 protocol.
  */
 public class QueryExecutorImpl implements QueryExecutor {
-    public QueryExecutorImpl(ProtocolConnectionImpl protoConnection, PGStream pgStream) {
+    public QueryExecutorImpl(ProtocolConnectionImpl protoConnection, PGStream pgStream, Logger logger) {
         this.protoConnection = protoConnection;
         this.pgStream = pgStream;
+        this.logger = logger;
     }
 
     //
@@ -55,8 +55,8 @@ public class QueryExecutorImpl implements QueryExecutor {
         if (protoConnection.getTransactionState() == ProtocolConnection.TRANSACTION_IDLE && !suppressBegin)
         {
 
-            if (Driver.logDebug)
-                Driver.debug("Issuing BEGIN before fastpath call.");
+            if (logger.logDebug())
+                logger.debug("Issuing BEGIN before fastpath call.");
 
             ResultHandler handler = new ResultHandler() {
                                         private boolean sawBegin = false;
@@ -134,8 +134,8 @@ public class QueryExecutorImpl implements QueryExecutor {
         // Send call.
         int count = params.getParameterCount();
 
-        if (Driver.logDebug)
-            Driver.debug(" FE=> FastpathCall(fnid=" + fnid + ",paramCount=" + count + ")");
+        if (logger.logDebug())
+            logger.debug(" FE=> FastpathCall(fnid=" + fnid + ",paramCount=" + count + ")");
 
         pgStream.SendChar('F');
         pgStream.SendChar(0);
@@ -207,8 +207,8 @@ public class QueryExecutorImpl implements QueryExecutor {
                 c = pgStream.ReceiveChar();
                 if (c == 'G')
                 {
-                    if (Driver.logDebug)
-                        Driver.debug(" <=BE FastpathResult");
+                    if (logger.logDebug())
+                        logger.debug(" <=BE FastpathResult");
 
                     // Result.
                     int len = pgStream.ReceiveIntegerR(4);
@@ -217,8 +217,8 @@ public class QueryExecutorImpl implements QueryExecutor {
                 }
                 else
                 {
-                    if (Driver.logDebug)
-                        Driver.debug(" <=BE FastpathVoidResult");
+                    if (logger.logDebug())
+                        logger.debug(" <=BE FastpathVoidResult");
                 }
 
                 if (c != '0')
@@ -227,8 +227,8 @@ public class QueryExecutorImpl implements QueryExecutor {
                 break;
 
             case 'Z':
-                if (Driver.logDebug)
-                    Driver.debug(" <=BE ReadyForQuery");
+                if (logger.logDebug())
+                    logger.debug(" <=BE ReadyForQuery");
                 endQuery = true;
                 break;
 
@@ -376,8 +376,8 @@ public class QueryExecutorImpl implements QueryExecutor {
      * Send a query to the backend.
      */
     protected void sendQuery(V2Query query, SimpleParameterList params, String queryPrefix) throws IOException {
-        if (Driver.logDebug)
-            Driver.debug(" FE=> Query(\"" + (queryPrefix == null ? "" : queryPrefix) + query.toString(params) + "\")");
+        if (logger.logDebug())
+            logger.debug(" FE=> Query(\"" + (queryPrefix == null ? "" : queryPrefix) + query.toString(params) + "\")");
 
         pgStream.SendChar('Q');
 
@@ -418,8 +418,8 @@ public class QueryExecutorImpl implements QueryExecutor {
                     if (fields == null)
                         throw new IOException("Data transfer before field metadata");
 
-                    if (Driver.logDebug)
-                        Driver.debug(" <=BE BinaryRow");
+                    if (logger.logDebug())
+                        logger.debug(" <=BE BinaryRow");
 
                     Object tuple = pgStream.ReceiveTupleV2(fields.length, true);
                     for (int i = 0; i < fields.length; i++)
@@ -432,8 +432,8 @@ public class QueryExecutorImpl implements QueryExecutor {
             case 'C':  // Command Status
                 String status = pgStream.ReceiveString();
 
-                if (Driver.logDebug)
-                    Driver.debug(" <=BE CommandStatus(" + status + ")");
+                if (logger.logDebug())
+                    logger.debug(" <=BE CommandStatus(" + status + ")");
 
                 if (fields != null)
                 {
@@ -452,8 +452,8 @@ public class QueryExecutorImpl implements QueryExecutor {
                     if (fields == null)
                         throw new IOException("Data transfer before field metadata");
 
-                    if (Driver.logDebug)
-                        Driver.debug(" <=BE DataRow");
+                    if (logger.logDebug())
+                        logger.debug(" <=BE DataRow");
 
                     Object tuple = pgStream.ReceiveTupleV2(fields.length, false);
                     if (maxRows == 0 || tuples.size() < maxRows)
@@ -468,8 +468,8 @@ public class QueryExecutorImpl implements QueryExecutor {
                 break;
 
             case 'I':  // Empty Query
-                if (Driver.logDebug)
-                    Driver.debug(" <=BE EmptyQuery");
+                if (logger.logDebug())
+                    logger.debug(" <=BE EmptyQuery");
                 /* discard */
                 pgStream.ReceiveIntegerR(4);
                 break;
@@ -480,8 +480,8 @@ public class QueryExecutorImpl implements QueryExecutor {
 
             case 'P':  // Portal Name
                 String portalName = pgStream.ReceiveString();
-                if (Driver.logDebug)
-                    Driver.debug(" <=BE PortalName(" + portalName + ")");
+                if (logger.logDebug())
+                    logger.debug(" <=BE PortalName(" + portalName + ")");
                 break;
 
             case 'T':  // MetaData Field Description
@@ -490,8 +490,8 @@ public class QueryExecutorImpl implements QueryExecutor {
                 break;
 
             case 'Z':
-                if (Driver.logDebug)
-                    Driver.debug(" <=BE ReadyForQuery");
+                if (logger.logDebug())
+                    logger.debug(" <=BE ReadyForQuery");
                 endQuery = true;
                 break;
 
@@ -510,8 +510,8 @@ public class QueryExecutorImpl implements QueryExecutor {
         int size = pgStream.ReceiveIntegerR(2);
         Field[] fields = new Field[size];
 
-        if (Driver.logDebug)
-            Driver.debug(" <=BE RowDescription(" + fields.length + ")");
+        if (logger.logDebug())
+            logger.debug(" <=BE RowDescription(" + fields.length + ")");
 
         for (int i = 0; i < fields.length; i++)
         {
@@ -529,16 +529,16 @@ public class QueryExecutorImpl implements QueryExecutor {
         int pid = pgStream.ReceiveIntegerR(4);
         String msg = pgStream.ReceiveString();
 
-        if (Driver.logDebug)
-            Driver.debug(" <=BE AsyncNotify(pid=" + pid + ",msg=" + msg + ")");
+        if (logger.logDebug())
+            logger.debug(" <=BE AsyncNotify(pid=" + pid + ",msg=" + msg + ")");
 
         protoConnection.addNotification(new org.postgresql.core.Notification(msg, pid));
     }
 
     private SQLException receiveErrorMessage() throws IOException {
         String errorMsg = pgStream.ReceiveString().trim();
-        if (Driver.logDebug)
-            Driver.debug(" <=BE ErrorResponse(" + errorMsg + ")");
+        if (logger.logDebug())
+            logger.debug(" <=BE ErrorResponse(" + errorMsg + ")");
         return new PSQLException(errorMsg, PSQLState.UNKNOWN_STATE);
     }
 
@@ -551,8 +551,8 @@ public class QueryExecutorImpl implements QueryExecutor {
         //
         int severityMark = warnMsg.indexOf(":");
         warnMsg = warnMsg.substring(severityMark+1).trim();
-        if (Driver.logDebug)
-            Driver.debug(" <=BE NoticeResponse(" + warnMsg + ")");
+        if (logger.logDebug())
+            logger.debug(" <=BE NoticeResponse(" + warnMsg + ")");
         return new SQLWarning(warnMsg);
     }
 
@@ -585,5 +585,6 @@ public class QueryExecutorImpl implements QueryExecutor {
 
     private final ProtocolConnectionImpl protoConnection;
     private final PGStream pgStream;
+    private final Logger logger;
 }
 

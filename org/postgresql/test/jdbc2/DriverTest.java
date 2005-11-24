@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DriverTest.java,v 1.11 2004/11/09 08:54:25 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DriverTest.java,v 1.12 2005/01/11 08:25:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -29,8 +29,10 @@ public class DriverTest extends TestCase
      * This tests the acceptsURL() method with a couple of well and poorly
      * formed jdbc urls.
      */
-    public void testAcceptsURL() throws SQLException
+    public void testAcceptsURL() throws Exception
     {
+        TestUtil.initDriver(); // Set up log levels, etc.
+
         // Load the driver (note clients should never do it this way!)
         org.postgresql.Driver drv = new org.postgresql.Driver();
         assertNotNull(drv);
@@ -58,7 +60,7 @@ public class DriverTest extends TestCase
      */
     public void testConnect() throws Exception
     {
-        Class.forName("org.postgresql.Driver");
+        TestUtil.initDriver(); // Set up log levels, etc.
 
         // Test with the url, username & password
         Connection con = DriverManager.getConnection(TestUtil.getURL(), TestUtil.getUser(), TestUtil.getPassword());

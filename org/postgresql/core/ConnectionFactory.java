@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/ConnectionFactory.java,v 1.6 2005/01/11 08:25:43 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/ConnectionFactory.java,v 1.7 2005/01/14 01:20:14 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -49,10 +49,11 @@ public abstract class ConnectionFactory {
      * @param database the database on the server to connect to; may not be null.
      * @param info extra properties controlling the connection;
      *    notably, "password" if present supplies the password to authenticate with.
+     * @param logger the logger to use for this connection
      * @return the new, initialized, connection
      * @throws SQLException if the connection could not be established.
      */
-    public static ProtocolConnection openConnection(String host, int port, String user, String database, Properties info) throws SQLException {
+    public static ProtocolConnection openConnection(String host, int port, String user, String database, Properties info, Logger logger) throws SQLException {
         String protoName = info.getProperty("protocolVersion");
 
         for (int i = 0; i < versions.length; ++i)
@@ -62,7 +63,7 @@ public abstract class ConnectionFactory {
                 continue;
 
             ConnectionFactory factory = (ConnectionFactory) versions[i][1];
-            ProtocolConnection connection = factory.openConnectionImpl(host, port, user, database, info);
+            ProtocolConnection connection = factory.openConnectionImpl(host, port, user, database, info, logger);
             if (connection != null)
                 return connection;
         }
@@ -81,10 +82,11 @@ public abstract class ConnectionFactory {
      * @param database the database on the server to connect to; may not be null.
      * @param info extra properties controlling the connection;
      *    notably, "password" if present supplies the password to authenticate with.
+     * @param logger the logger to use for this connection
      * @return the new, initialized, connection, or <code>null</code> if this protocol
      *    version is not supported by the server.
      * @throws SQLException if the connection could not be established for a reason other
      *    than protocol version incompatibility.
      */
-    public abstract ProtocolConnection openConnectionImpl(String host, int port, String user, String database, Properties info) throws SQLException;
+    public abstract ProtocolConnection openConnectionImpl(String host, int port, String user, String database, Properties info, Logger logger) throws SQLException;
 }

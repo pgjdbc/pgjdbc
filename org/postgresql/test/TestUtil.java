@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/TestUtil.java,v 1.18 2005/06/21 18:07:08 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/TestUtil.java,v 1.19 2005/07/04 18:50:29 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -29,7 +29,7 @@ public class TestUtil
         			+ getServer() + ":" 
         			+ getPort() + "/" 
         			+ getDatabase() 
-        			+ "?prepareThreshold=" + getPrepareThreshold();
+        			+ "?prepareThreshold=" + getPrepareThreshold() + "&loglevel=" + getLogLevel();
     }
 
     /*
@@ -81,9 +81,36 @@ public class TestUtil
     }
 
     /*
+     * Returns the log level to use
+     */
+    public static int getLogLevel()
+    {
+        return Integer.parseInt(System.getProperty("loglevel"));
+    }
+
+    private static boolean initialized = false;
+    public static void initDriver() throws Exception
+    {
+        synchronized (TestUtil.class) {
+            if (initialized)
+                return;
+
+            if (getLogLevel() > 0) { 
+                // Ant's junit task likes to buffer stdout/stderr and tends to run out of memory.
+                // So we put debugging output to a file instead.
+                java.io.Writer output = new java.io.FileWriter("postgresql-jdbc-tests.debug.txt", true);
+                java.sql.DriverManager.setLogWriter(new java.io.PrintWriter(output,true));
+            }
+            
+            org.postgresql.Driver.setLogLevel(getLogLevel()); // Also loads and registers driver.
+            initialized = true;
+        }
+    }        
+
+    /*
      * Helper - opens a connection.
      */
-    public static java.sql.Connection openDB() throws SQLException
+    public static java.sql.Connection openDB() throws Exception
     {
         return openDB(new Properties());
     }
@@ -92,15 +119,14 @@ public class TestUtil
      * Helper - opens a connection with the allowance for passing
      * additional parameters, like "compatible".
      */
-    public static java.sql.Connection openDB(Properties props) throws SQLException
+    public static java.sql.Connection openDB(Properties props) throws Exception
     {
+        initDriver();
+
         props.setProperty("user", getUser());
         props.setProperty("password", getPassword());
 
-        // this allows loads the class.
-        //  org.postgresql.Driver.setLogLevel(org.postgresql.Driver.DEBUG);
-        //  java.sql.DriverManager.setLogWriter(new java.io.PrintWriter(System.err));
-        return java.sql.DriverManager.getConnection(getURL(), props);
+        return DriverManager.getConnection(getURL(), props);
     }
 
     /*

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.33 2005/11/23 19:24:54 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.34 2005/11/23 19:31:30 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -31,8 +31,16 @@ import org.postgresql.util.GT;
 public abstract class AbstractJdbc2Connection implements BaseConnection
 {
     //
+    // Driver-wide connection ID counter, used for logging
+    //
+    private static int nextConnectionID = 1;
+
+    //
     // Data initialized on construction:
     //
+
+    // Per-connection logger
+    private final Logger logger;
 
     /* URL we were created via */
     private final String creatingURL;
@@ -72,32 +80,28 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     {
         this.creatingURL = url;
 
-        //Read loglevel arg and set the loglevel based on this value
-        //in addition to setting the log level enable output to
-        //standard out if no other printwriter is set
+        // Read loglevel arg and set the loglevel based on this value;
+        // In addition to setting the log level, enable output to
+        // standard out if no other printwriter is set
 
-        // XXX revisit: need a debug level *per connection*.
-
-        int logLevel = 0;
-        try
-        {
-            logLevel = Integer.parseInt(info.getProperty("loglevel", "0"));
-            if (logLevel > Driver.DEBUG || logLevel < Driver.INFO)
-            {
-                logLevel = 0;
+        int logLevel = Driver.getLogLevel();
+        String connectionLogLevel = info.getProperty("loglevel");
+        if (connectionLogLevel != null) {
+            try {
+                logLevel = Integer.parseInt(connectionLogLevel);
+            } catch (Exception l_e) {
+                // XXX revisit
+                // invalid value for loglevel; ignore it
             }
         }
-        catch (Exception l_e)
-        {
-            // XXX revisit
-            // invalid value for loglevel; ignore it
+
+        synchronized (AbstractJdbc2Connection.class) {
+            logger = new Logger(nextConnectionID++);
+            logger.setLogLevel(logLevel);
         }
 
         if (logLevel > 0)
-        {
-            Driver.setLogLevel(logLevel);
             enableDriverManagerLogging();
-        }
 
         prepareThreshold = 5;
         try
@@ -111,19 +115,19 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         }
 
         //Print out the driver version number
-        if (Driver.logInfo)
-            Driver.info(Driver.getVersion());
+        if (logger.logInfo())
+            logger.info(Driver.getVersion());
 
         // Now make the initial connection and set up local state
-        this.protoConnection = ConnectionFactory.openConnection(host, port, user, database, info);
+        this.protoConnection = ConnectionFactory.openConnection(host, port, user, database, info, logger);
         this.dbVersionNumber = protoConnection.getServerVersion();
         this.compatible = info.getProperty("compatible", Driver.MAJORVERSION + "." + Driver.MINORVERSION);
 
-        if (Driver.logDebug)
+        if (logger.logDebug())
         {
-            Driver.debug("    compatible = " + compatible);
-            Driver.debug("    loglevel = " + logLevel);
-            Driver.debug("    prepare threshold = " + prepareThreshold);
+            logger.debug("    compatible = " + compatible);
+            logger.debug("    loglevel = " + logLevel);
+            logger.debug("    prepare threshold = " + prepareThreshold);
         }
 
         // Initialize timestamp stuff
@@ -375,16 +379,16 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
             if (d != null)
             {
                 // Handle the type (requires SQLInput & SQLOutput classes to be implemented)
-                if (Driver.logDebug)
-                    Driver.debug("getObject(String,String) with custom typemap");
+                if (logger.logDebug())
+                    logger.debug("getObject(String,String) with custom typemap");
                 throw org.postgresql.Driver.notImplemented(this.getClass(), "getObject(String,String)");
             }
         }
 
         PGobject obj = null;
 
-        if (Driver.logDebug)
-            Driver.debug("Constructing object from type=" + type + " value=<" + value + ">");
+        if (logger.logDebug())
+            logger.debug("Constructing object from type=" + type + " value=<" + value + ">");
 
         try
         {
@@ -1026,6 +1030,10 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         typemap = map;
     }
 
+    public Logger getLogger()
+    {
+        return logger;
+    }
 
 
     //Because the get/setLogStream methods are deprecated in JDBC2

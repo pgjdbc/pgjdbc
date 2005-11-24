@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/largeobject/LargeObjectManager.java,v 1.18 2005/01/11 08:25:47 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/largeobject/LargeObjectManager.java,v 1.19 2005/01/14 01:20:22 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -141,8 +141,8 @@ public class LargeObjectManager
 
         fp.addFunctions(res);
         res.close();
-        if (Driver.logDebug)
-            Driver.debug("Large Object initialised");
+
+        conn.getLogger().debug("Large Object initialised");
     }
 
     /**

@@ -4,14 +4,13 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ProtocolConnectionImpl.java,v 1.7 2005/04/20 00:10:58 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ProtocolConnectionImpl.java,v 1.8 2005/06/21 18:07:09 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.core.v3;
 
 import org.postgresql.PGNotification;
-import org.postgresql.Driver;
 import org.postgresql.core.*;
 
 import java.sql.*;
@@ -25,11 +24,12 @@ import java.util.Properties;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 class ProtocolConnectionImpl implements ProtocolConnection {
-    ProtocolConnectionImpl(PGStream pgStream, String user, String database, Properties info) {
+    ProtocolConnectionImpl(PGStream pgStream, String user, String database, Properties info, Logger logger) {
         this.pgStream = pgStream;
         this.user = user;
         this.database = database;
-        this.executor = new QueryExecutorImpl(this, pgStream, info);
+        this.logger = logger;
+        this.executor = new QueryExecutorImpl(this, pgStream, info, logger);
     }
 
     public String getHost() {
@@ -81,8 +81,8 @@ class ProtocolConnectionImpl implements ProtocolConnection {
         // Now we need to construct and send a cancel packet
         try
         {
-            if (Driver.logDebug)
-                Driver.debug(" FE=> CancelRequest(pid=" + cancelPid + ",ckey=" + cancelKey + ")");
+            if (logger.logDebug())
+                logger.debug(" FE=> CancelRequest(pid=" + cancelPid + ",ckey=" + cancelKey + ")");
 
             cancelStream = new PGStream(pgStream.getHost(), pgStream.getPort());
             cancelStream.SendInteger4(16);
@@ -97,8 +97,8 @@ class ProtocolConnectionImpl implements ProtocolConnection {
         catch (IOException e)
         {
             // Safe to ignore.
-            if (Driver.logDebug)
-                Driver.debug("Ignoring exception on cancel request:", e);
+            if (logger.logDebug())
+                logger.debug("Ignoring exception on cancel request:", e);
         }
         finally
         {
@@ -122,8 +122,8 @@ class ProtocolConnectionImpl implements ProtocolConnection {
 
         try
         {
-            if (Driver.logDebug)
-                Driver.debug(" FE=> Terminate");
+            if (logger.logDebug())
+                logger.debug(" FE=> Terminate");
 
             pgStream.SendChar('X');
             pgStream.SendInteger4(4);
@@ -133,8 +133,8 @@ class ProtocolConnectionImpl implements ProtocolConnection {
         catch (IOException ioe)
         {
             // Forget it.
-            if (Driver.logDebug)
-                Driver.debug("Discarding IOException on close:", ioe);
+            if (logger.logDebug())
+                logger.debug("Discarding IOException on close:", ioe);
         }
 
         closed = true;
@@ -203,4 +203,5 @@ class ProtocolConnectionImpl implements ProtocolConnection {
     private final String user;
     private final String database;
     private final QueryExecutorImpl executor;
+    private final Logger logger;
 }
