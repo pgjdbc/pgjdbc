@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/Oid.java,v 1.8 2005/04/10 21:54:16 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/Oid.java,v 1.9 2005/07/04 18:50:28 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -14,7 +14,7 @@ package org.postgresql.core;
  * use.
  */
 public class Oid {
-    public static final int INVALID = 0;
+    public static final int UNSPECIFIED = 0;
     public static final int INT2 = 21;
     public static final int INT4 = 23;
     public static final int INT8 = 20;

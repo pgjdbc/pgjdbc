@@ -3,7 +3,7 @@
  * Copyright (c) 2005, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *   $PostgreSQL$
+ *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.1 2005/04/10 21:54:16 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -140,7 +140,7 @@ public class TypeInfoCache {
         if (!((BaseStatement)_getOidStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN))
             throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
 
-        oid = new Integer(Oid.INVALID);
+        oid = new Integer(Oid.UNSPECIFIED);
         ResultSet rs = _getOidStatement.getResultSet();
         if (rs.next()) {
             oid = new Integer(rs.getInt(1));
@@ -154,7 +154,7 @@ public class TypeInfoCache {
 
     public String getPGType(int oid) throws SQLException
     {
-        if (oid == Oid.INVALID)
+        if (oid == Oid.UNSPECIFIED)
             return null;
 
         String pgTypeName = (String)_oidToPgName.get(new Integer(oid));

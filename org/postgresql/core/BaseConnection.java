@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/BaseConnection.java,v 1.15 2005/08/01 06:54:14 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/BaseConnection.java,v 1.16 2005/11/24 02:29:20 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -146,4 +146,7 @@ public interface BaseConnection extends PGConnection, Connection
 
     // Get the per-connection logger.
     public Logger getLogger();
+
+    // Get the bind-string-as-varchar config flag
+    public boolean getStringVarcharFlag();
 }

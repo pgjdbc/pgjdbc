@@ -3,7 +3,7 @@
 * Copyright (c) 2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL$
+*   $PostgreSQL: pgjdbc/org/postgresql/core/Logger.java,v 1.1 2005/11/24 02:29:20 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -21,10 +21,10 @@ import org.postgresql.Driver;
  * Poor man's logging infrastructure. This just deals with maintaining a per-
  * connection ID and log level, and timestamping output.
  */
-public class Logger {
+public final class Logger {
     // For brevity we only log the time, not date or timezone (the main reason
-    // for the timestamp is to see delays etc. between log lines, not to pin down
-    // an instant in time)
+    // for the timestamp is to see delays etc. between log lines, not to pin
+    // down an instant in time)
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss.SSS ");
     private final FieldPosition dummyPosition = new FieldPosition(0);
     private final StringBuffer buffer = new StringBuffer();

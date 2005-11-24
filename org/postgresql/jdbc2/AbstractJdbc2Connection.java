@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.34 2005/11/23 19:31:30 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.35 2005/11/24 02:29:21 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -45,7 +45,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     /* URL we were created via */
     private final String creatingURL;
 
-    private final String openStackTrace;
+    private Throwable openStackTrace;
 
     /* Actual network handler */
     private final ProtocolConnection protoConnection;
@@ -67,6 +67,9 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     public boolean autoCommit = true;
     // Connection's readonly state.
     public boolean readOnly = false;
+
+    // Bind String to UNSPECIFIED or VARCHAR?
+    public final boolean bindStringAsVarchar;
 
     // Current warnings; there might be more on protoConnection too.
     public SQLWarning firstWarning = null;
@@ -130,6 +133,23 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
             logger.debug("    prepare threshold = " + prepareThreshold);
         }
 
+        //
+        // String -> text or unknown?
+        //
+
+        String stringType = info.getProperty("stringtype");
+        if (stringType != null) {
+            if (stringType.equalsIgnoreCase("unspecified"))
+                bindStringAsVarchar = false;
+            else if (stringType.equalsIgnoreCase("varchar"))
+                bindStringAsVarchar = true;
+            else
+                throw new PSQLException(GT.tr("Unsupported value for stringtype parameter: {0}", stringType),
+                                        PSQLState.INVALID_PARAMETER_VALUE);
+        } else {
+            bindStringAsVarchar = haveMinimumCompatibleVersion("8.0");
+        }
+
         // Initialize timestamp stuff
         timestampUtils = new TimestampUtils(haveMinimumServerVersion("7.4"));
 
@@ -142,13 +162,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         initObjectTypes(info);
 
         if (Boolean.valueOf(info.getProperty("logUnclosedConnections")).booleanValue()) {
-            java.io.CharArrayWriter caw = new java.io.CharArrayWriter(1024);
-            Exception e = new Exception();
-            e.printStackTrace(new java.io.PrintWriter(caw));
-            openStackTrace = caw.toString();
-            enableDriverManagerLogging();
-        } else {
-            openStackTrace = null;
+            openStackTrace = new Throwable("Connection was created at this point:");
         }
     }
 
@@ -498,6 +512,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     public void close()
     {
         protoConnection.close();
+        openStackTrace = null;
     }
 
     /*
@@ -807,14 +822,13 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
      * This was done at the request of Rachel Greenham
      * <rachel@enlarion.demon.co.uk> who hit a problem where multiple
      * clients didn't close the connection, and once a fortnight enough
-     * clients were open to kill the org.postgres server.
+     * clients were open to kill the postgres server.
      */
     public void finalize() throws Throwable
     {
-        if (openStackTrace != null && !isClosed()) {
-            DriverManager.println(GT.tr("Finalizing a Connection that was never closed.  Connection was opened here:"));
-            DriverManager.println(openStackTrace);
-        }
+        if (openStackTrace != null)
+            logger.info(GT.tr("Finalizing a Connection that was never closed:"), openStackTrace);
+
         close();
     }
 
@@ -1043,7 +1057,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     {
         if (DriverManager.getLogWriter() == null)
         {
-            DriverManager.setLogWriter(new PrintWriter(System.out));
+            DriverManager.setLogWriter(new PrintWriter(System.out, true));
         }
     }
 
@@ -1057,5 +1071,9 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     {
         return protoConnection.getProtocolVersion();
     }
-}
 
+    public boolean getStringVarcharFlag()
+    {
+        return bindStringAsVarchar;
+    }
+}

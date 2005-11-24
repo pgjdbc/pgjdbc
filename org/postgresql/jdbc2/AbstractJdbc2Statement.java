@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.83 2005/09/29 20:49:22 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.84 2005/10/03 17:27:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1047,7 +1047,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         case Types.STRUCT:
         case Types.NULL:
         case Types.OTHER:
-            oid = Oid.INVALID;
+            oid = Oid.UNSPECIFIED;
             break;
         default:
             // Bad Types value.
@@ -1187,7 +1187,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public void setString(int parameterIndex, String x) throws SQLException
     {
         checkClosed();
-        setString(parameterIndex, x, Oid.VARCHAR);
+        setString(parameterIndex, x, (connection.getStringVarcharFlag() ? Oid.VARCHAR : Oid.UNSPECIFIED));
     }
 
     protected void setString(int parameterIndex, String x, int oid) throws SQLException
@@ -1500,7 +1500,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     private void setPGobject(int parameterIndex, PGobject x) throws SQLException {
         String typename = x.getType();
         int oid = connection.getPGType(typename);
-        if (oid == Oid.INVALID)
+        if (oid == Oid.UNSPECIFIED)
             throw new PSQLException(GT.tr("Unknown type {0}.", typename), PSQLState.INVALID_PARAMETER_TYPE);
 
         setString(parameterIndex, x.getValue(), oid);
@@ -1566,7 +1566,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	            break;
 	        case Types.VARCHAR:
 	        case Types.LONGVARCHAR:
-	            setString(parameterIndex, pgType.toString());
+	            setString(parameterIndex, pgType.toString(), Oid.VARCHAR);
 	            break;
 	        case Types.DATE:
 	            if (in instanceof java.sql.Date)
@@ -2662,7 +2662,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         // backend looks for array types.
         String typename = "_" + x.getBaseTypeName();
         int oid = connection.getPGType(typename);
-        if (oid == Oid.INVALID)
+        if (oid == Oid.UNSPECIFIED)
             throw new PSQLException(GT.tr("Unknown type {0}.", typename), PSQLState.INVALID_PARAMETER_TYPE);
 
         setString(i, x.toString(), oid);
@@ -2863,7 +2863,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (cal != null)
             cal = (Calendar)cal.clone();
 
-        // We must use INVALID here, or inserting a Date-with-timezone into a
+        // We must use UNSPECIFIED here, or inserting a Date-with-timezone into a
         // timestamptz field does an unexpected rotation by the server's TimeZone:
         //
         // We want to interpret 2005/01/01 with calendar +0100 as
@@ -2882,7 +2882,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         //  2005-01-01 00:00:00+03
         // (1 row)
 
-        bindString(i, connection.getTimestampUtils().toString(cal, d), Oid.INVALID);
+        bindString(i, connection.getTimestampUtils().toString(cal, d), Oid.UNSPECIFIED);
     }
 
     public void setTime(int i, Time t, java.util.Calendar cal) throws SQLException
@@ -2898,9 +2898,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (cal != null)
             cal = (Calendar)cal.clone();
 
-        // We don't need INVALID here as we only support inserting a Time into
-        // 'time' and 'timetz' columns.
-        bindString(i, connection.getTimestampUtils().toString(cal, t), Oid.INVALID);
+        bindString(i, connection.getTimestampUtils().toString(cal, t), Oid.UNSPECIFIED);
     }
 
     public void setTimestamp(int i, Timestamp t, java.util.Calendar cal) throws SQLException
@@ -2915,7 +2913,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (cal != null)
             cal = (Calendar)cal.clone();
 
-        // Use INVALID as a compromise to get both TIMESTAMP and TIMESTAMPTZ working.
+        // Use UNSPECIFIED as a compromise to get both TIMESTAMP and TIMESTAMPTZ working.
         // This is because you get this in a +1300 timezone:
         // 
         // template1=# select '2005-01-01 15:00:00 +1000'::timestamptz;
@@ -2942,10 +2940,10 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         // time compared to the string we originally provided. But going straight
         // to timestamp is OK as the input parser for timestamp just throws away
         // the timezone part entirely. Since we don't know ahead of time what type
-        // we're actually dealing with, INVALID seems the lesser evil, even if it
+        // we're actually dealing with, UNSPECIFIED seems the lesser evil, even if it
         // does give more scope for type-mismatch errors being silently hidden.
 
-        bindString(i, connection.getTimestampUtils().toString(cal, t), Oid.INVALID); // Let the server infer the right type.
+        bindString(i, connection.getTimestampUtils().toString(cal, t), Oid.UNSPECIFIED); // Let the server infer the right type.
     }
 
     // ** JDBC 2 Extensions for CallableStatement**

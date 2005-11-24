@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleParameterList.java,v 1.9 2005/07/04 18:50:29 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleParameterList.java,v 1.10 2005/07/08 17:38:29 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -28,21 +28,16 @@ import org.postgresql.util.GT;
  */
 class SimpleParameterList implements V3ParameterList {
     
-    private final static int IN=1;
-    private final static int OUT=2;
-    private final static int INOUT=3;
-    // this is here to avoid creating objects for copy
-    // copy will simply discard them
-    
-    
-    
+    private final static int IN = 1;
+    private final static int OUT = 2;
+    private final static int INOUT = IN|OUT;
+
     SimpleParameterList(int paramCount) {
         this.paramValues = new Object[paramCount];
         this.paramTypes = new int[paramCount];
         this.encoded = new byte[paramCount][];
         this.direction = new int[paramCount];
-    }
-        
+    }        
     
     public void registerOutParameter( int index, int sqlType ) throws SQLException
     {
@@ -62,10 +57,11 @@ class SimpleParameterList implements V3ParameterList {
         paramValues[index] = value ;
         direction[index] |= IN;
         
-        // If we are setting something to null, don't overwrite our existing type
-        // for it.  We don't need the correct type info to send NULL and we
-        // don't want to overwrite and require a reparse.
-        if (oid == Oid.INVALID && paramTypes[index] != Oid.INVALID)
+        // If we are setting something to an UNSPECIFIED NULL, don't overwrite
+        // our existing type for it.  We don't need the correct type info to
+        // send this value, and we don't want to overwrite and require a
+        // reparse.
+        if (oid == Oid.UNSPECIFIED && paramTypes[index] != Oid.UNSPECIFIED && value == NULL_OBJECT)
             return;
 
         paramTypes[index] = oid;
@@ -170,7 +166,7 @@ class SimpleParameterList implements V3ParameterList {
 
     boolean hasUnresolvedTypes() {
         for (int i=0; i< paramTypes.length; i++) {
-            if (paramTypes[i] == Oid.INVALID)
+            if (paramTypes[i] == Oid.UNSPECIFIED)
                 return true;
         }
         return false;
@@ -178,7 +174,7 @@ class SimpleParameterList implements V3ParameterList {
 
     void setResolvedType(int index, int oid) {
         // only allow overwriting an unknown value
-        if (paramTypes[index-1] == Oid.INVALID) {
+        if (paramTypes[index-1] == Oid.UNSPECIFIED) {
             paramTypes[index-1] = oid;
         } else if (paramTypes[index-1] != oid) {
             throw new IllegalArgumentException("Can't change resolved type for param: " + index + " from " + paramTypes[index] + " to " + oid);
@@ -197,7 +193,7 @@ class SimpleParameterList implements V3ParameterList {
     int getV3Length(int index) {
         --index;
 
-//      Null?
+        // Null?
         if (paramValues[index] == NULL_OBJECT)
             throw new IllegalArgumentException("can't getV3Length() on a null parameter");
 
@@ -276,7 +272,5 @@ class SimpleParameterList implements V3ParameterList {
      * "parameter never set" from "parameter set to null".
      */
     private final static Object NULL_OBJECT = new Object();
-
-    
 }
 

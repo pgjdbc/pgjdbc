@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.66 2005/11/23 19:24:53 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.67 2005/11/24 02:29:20 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -422,7 +422,7 @@ public class Driver implements java.sql.Driver
                   "Provide a SSLSocketFactory class when using SSL." },
                 { "sslfactoryarg", Boolean.FALSE,
                   "Argument forwarded to constructor of SSLSocketFactory class." },
-                { "logLevel", Boolean.FALSE,
+                { "loglevel", Boolean.FALSE,
                   "Control the driver's log verbosity: 0 is off, 1 is INFO, 2 is DEBUG.",
                   new String[] { "0", "1", "2" } },
                 { "allowEncodingChanges", Boolean.FALSE,
@@ -435,9 +435,12 @@ public class Driver implements java.sql.Driver
                   "When connecting to a pre-7.3 server, the database encoding to assume is in use." },
                 { "compatible", Boolean.FALSE,
                   "Force compatibility of some features with an older version of the driver.",
-                  new String[] { "7.1", "7.2", "7.3" } },
+                  new String[] { "7.1", "7.2", "7.3", "7.4", "8.0", "8.1" } },
                 { "loginTimeout", Boolean.FALSE,
-                  "The login timeout, in seconds; 0 means no timeout beyond the normal TCP connection timout." }
+                  "The login timeout, in seconds; 0 means no timeout beyond the normal TCP connection timout." },
+                { "stringtype", Boolean.FALSE,
+                  "The type to bind String parameters as (usually 'varchar'; 'unspecified' allows implicit casting to other types)",
+                  new String[] { "varchar", "unspecified" } },
             };
 
     /**
@@ -661,7 +664,6 @@ public class Driver implements java.sql.Driver
         }
 
         return urlProps;
-
     }
 
     /**
