@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.33 2005/03/04 06:52:04 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.34 2005/09/14 19:08:50 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -54,7 +54,7 @@ public class DatabaseMetaDataTest extends TestCase
         TestUtil.closeDB( con );
     }
 
-    public void testTables() throws SQLException
+    public void testTables() throws Exception
     {
         DatabaseMetaData dbmd = con.getMetaData();
         assertNotNull(dbmd);
@@ -86,7 +86,7 @@ public class DatabaseMetaDataTest extends TestCase
         assertEquals( java.sql.Types.TIMESTAMP, rs.getInt("DATA_TYPE") );
     }
 
-    public void testCrossReference() throws SQLException
+    public void testCrossReference() throws Exception
     {
         Connection con1 = TestUtil.openDB();
 
@@ -141,7 +141,7 @@ public class DatabaseMetaDataTest extends TestCase
         TestUtil.dropTable( con1, "ww" );
     }
 
-    public void testForeignKeyActions() throws SQLException
+    public void testForeignKeyActions() throws Exception
     {
         Connection conn = TestUtil.openDB();
         TestUtil.createTable(conn, "pkt", "id int primary key");
@@ -166,7 +166,7 @@ public class DatabaseMetaDataTest extends TestCase
         TestUtil.dropTable(conn, "pkt");
     }
 
-    public void testForeignKeysToUniqueIndexes() throws SQLException
+    public void testForeignKeysToUniqueIndexes() throws Exception
     {
         if (!TestUtil.haveMinimumServerVersion(con, "7.4"))
             return ;
@@ -192,7 +192,7 @@ public class DatabaseMetaDataTest extends TestCase
         con1.close();
     }
 
-    public void testMultiColumnForeignKeys() throws SQLException
+    public void testMultiColumnForeignKeys() throws Exception
     {
         Connection con1 = TestUtil.openDB();
         TestUtil.createTable( con1, "pkt", "a int not null, b int not null, CONSTRAINT pkt_pk PRIMARY KEY (a,b)");
@@ -224,7 +224,7 @@ public class DatabaseMetaDataTest extends TestCase
         con1.close();
     }
 
-    public void testForeignKeys() throws SQLException
+    public void testForeignKeys() throws Exception
     {
         Connection con1 = TestUtil.openDB();
         TestUtil.createTable( con1, "people", "id int4 primary key, name text" );

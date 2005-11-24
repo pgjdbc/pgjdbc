@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ResultSetTest.java,v 1.25 2005/01/11 08:25:48 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ResultSetTest.java,v 1.26 2005/11/05 09:24:15 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -29,7 +29,7 @@ public class ResultSetTest extends TestCase
         super(name);
     }
 
-    protected void setUp() throws SQLException
+    protected void setUp() throws Exception
     {
         con = TestUtil.openDB();
         Statement stmt = con.createStatement();

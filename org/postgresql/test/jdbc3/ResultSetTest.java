@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/ResultSetTest.java,v 1.1 2004/12/11 04:13:46 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/ResultSetTest.java,v 1.2 2005/01/11 08:25:49 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -21,7 +21,7 @@ public class ResultSetTest extends TestCase {
         super(name);
     }
 
-    protected void setUp() throws SQLException {
+    protected void setUp() throws Exception {
         _conn = TestUtil.openDB();
         Statement stmt = _conn.createStatement();
         stmt.execute("CREATE TEMP TABLE hold(a int)");

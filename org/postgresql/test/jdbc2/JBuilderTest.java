@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/JBuilderTest.java,v 1.12 2004/11/09 08:54:35 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/JBuilderTest.java,v 1.13 2005/01/11 08:25:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -49,7 +49,7 @@ public class JBuilderTest extends TestCase
     /*
      * This tests that Money types work. JDBCExplorer barfs if this fails.
      */
-    public void testMoney() throws SQLException
+    public void testMoney() throws Exception
     {
         Connection con = TestUtil.openDB();
 

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/TypesTest.java,v 1.6 2005/01/11 08:25:49 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/TypesTest.java,v 1.7 2005/07/04 18:50:30 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -29,7 +29,7 @@ public class TypesTest extends TestCase {
         }
     }
 
-    protected void setUp() throws SQLException {
+    protected void setUp() throws Exception {
         _conn = TestUtil.openDB();
         Statement stmt = _conn.createStatement();
         stmt.execute("CREATE OR REPLACE FUNCTION return_bool(boolean) RETURNS boolean AS 'BEGIN RETURN $1; END;' LANGUAGE 'plpgsql'");

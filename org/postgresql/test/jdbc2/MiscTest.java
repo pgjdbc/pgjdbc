@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/MiscTest.java,v 1.17 2005/01/11 08:25:48 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/MiscTest.java,v 1.18 2005/04/10 16:44:13 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -34,7 +34,7 @@ public class MiscTest extends TestCase
      *
      * Added Feb 13 2001
      */
-    public void testDatabaseSelectNullBug() throws SQLException
+    public void testDatabaseSelectNullBug() throws Exception
     {
         Connection con = TestUtil.openDB();
 
@@ -101,7 +101,7 @@ public class MiscTest extends TestCase
         con.close();
     }
 
-    public void xtestLocking() throws SQLException
+    public void xtestLocking() throws Exception
     {
         Connection con = TestUtil.openDB();
         Connection con2 = TestUtil.openDB();

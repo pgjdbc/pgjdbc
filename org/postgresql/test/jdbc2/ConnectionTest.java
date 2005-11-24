@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ConnectionTest.java,v 1.19 2005/01/11 08:25:48 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ConnectionTest.java,v 1.20 2005/01/25 06:21:22 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -55,7 +55,7 @@ public class ConnectionTest extends TestCase
     /*
      * Tests the two forms of createStatement()
      */
-    public void testCreateStatement() throws SQLException
+    public void testCreateStatement() throws Exception
     {
         Connection conn = TestUtil.openDB();
 
@@ -73,7 +73,7 @@ public class ConnectionTest extends TestCase
     /*
      * Tests the two forms of prepareStatement()
      */
-    public void testPrepareStatement() throws SQLException
+    public void testPrepareStatement() throws Exception
     {
         Connection conn = TestUtil.openDB();
 
@@ -100,7 +100,7 @@ public class ConnectionTest extends TestCase
     /*
      * Test nativeSQL
      */
-    public void testNativeSQL() throws SQLException
+    public void testNativeSQL() throws Exception
     {
         // test a simple escape
         Connection con = TestUtil.openDB();
@@ -110,7 +110,7 @@ public class ConnectionTest extends TestCase
     /*
      * Test autoCommit (both get & set)
      */
-    public void testTransactions() throws SQLException
+    public void testTransactions() throws Exception
     {
         Connection con = TestUtil.openDB();
         Statement st;
@@ -152,7 +152,7 @@ public class ConnectionTest extends TestCase
     /*
      * Simple test to see if isClosed works.
      */
-    public void testIsClosed() throws SQLException
+    public void testIsClosed() throws Exception
     {
         Connection con = TestUtil.openDB();
 
@@ -168,7 +168,7 @@ public class ConnectionTest extends TestCase
     /*
      * Test the warnings system
      */
-    public void testWarnings() throws SQLException
+    public void testWarnings() throws Exception
     {
         Connection con = TestUtil.openDB();
 
@@ -198,7 +198,7 @@ public class ConnectionTest extends TestCase
     /*
      * Transaction Isolation Levels
      */
-    public void testTransactionIsolation() throws SQLException
+    public void testTransactionIsolation() throws Exception
     {
         Connection con = TestUtil.openDB();
 
@@ -272,7 +272,7 @@ public class ConnectionTest extends TestCase
     /*
      * JDBC2 Type mappings
      */
-    public void testTypeMaps() throws SQLException
+    public void testTypeMaps() throws Exception
     {
         Connection con = TestUtil.openDB();
 
@@ -294,7 +294,7 @@ public class ConnectionTest extends TestCase
     /**
      * Closing a Connection more than once is not an error.
      */
-    public void testDoubleClose() throws SQLException
+    public void testDoubleClose() throws Exception
     {
         Connection con = TestUtil.openDB();
         con.close();

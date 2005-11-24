@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ArrayTest.java,v 1.10 2005/09/29 20:49:23 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ArrayTest.java,v 1.11 2005/10/03 17:27:32 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -25,7 +25,7 @@ public class ArrayTest extends TestCase
         super(name);
     }
 
-    protected void setUp() throws SQLException
+    protected void setUp() throws Exception
     {
         conn = TestUtil.openDB();
         TestUtil.createTable(conn, "arrtest", "intarr int[], decarr decimal(2,1)[], strarr text[]");

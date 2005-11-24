@@ -41,7 +41,7 @@ public class XADataSourceTest extends TestCase {
         ((PGXADataSource)_ds).setPrepareThreshold(TestUtil.getPrepareThreshold());
     }
 
-    protected void setUp() throws SQLException {
+    protected void setUp() throws Exception {
         _conn = TestUtil.openDB();
 
         TestUtil.createTable(_conn, "testxa1", "foo int");
