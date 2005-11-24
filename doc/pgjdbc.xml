@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!--
   Copyright (c) 2004-2005, PostgreSQL Global Development Group
-  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.25 2005/04/10 15:15:05 jurka Exp $
+  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.26 2005/11/23 19:24:55 jurka Exp $
 -->
 
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN" "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">
@@ -454,8 +454,9 @@ Connection conn = DriverManager.getConnection(url);
        <listitem>
         <para>
          Act like an older version of the driver to retain compatibility with
-         older applications.  At the moment this controls two driver behaviors,
-         the connection protocol and the handling of binary data fields.
+         older applications.  At the moment this controls two driver behaviors:
+         the handling of binary data fields, and the handling of parameters set
+         via <function>setString()</function>
         </para>
         <para>
          Older versions of the driver used this property to also control the
@@ -466,6 +467,11 @@ Connection conn = DriverManager.getConnection(url);
          Information on binary data handling is detailed in
          <xref linkend="binary-data" />.  To force the use of
          Large Objects set the compatible property to 7.1.
+        </para>
+        <para>
+         When <varname>compatible</varname> is set to <literal>7.4</literal> or
+         below, the default for the <varname>stringtype</varname> parameter is
+         changed to <literal>unspecified</literal>.
         </para>
        </listitem>
       </varlistentry>
@@ -580,6 +586,23 @@ Connection conn = DriverManager.getConnection(url);
 	 Specify how long to wait for establishment of a database connection.
 	 The timeout is specified in seconds.
 	</para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
+       <term><varname>stringtype</varname> = <type>String</type></term>
+       <listitem>
+        <para>
+         Specify the type to use when binding <classname>PreparedStatement</classname> parameters
+         set via <function>setString()</function>. If <varname>stringtype</varname> is set to
+         <literal>varchar</literal> (the default), such parameters will be sent to the server as
+         <type>varchar</type> parameters. If <varname>stringtype</varname> is set to
+         <literal>unspecified</literal>, parameters will be sent to the server as untyped values,
+         and the server will attempt to infer an appropriate type. This is useful if you have an
+         existing application that uses <function>setString()</function> to set parameters that
+         are actually some other type, such as integers, and you are unable to change the
+         application to use an appropriate method such as <function>setInt()</function>.                                    
+        </para>
        </listitem>
       </varlistentry>
 
