@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.35 2005/11/24 02:29:21 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.36 2005/11/24 06:18:28 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -163,6 +163,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
         if (Boolean.valueOf(info.getProperty("logUnclosedConnections")).booleanValue()) {
             openStackTrace = new Throwable("Connection was created at this point:");
+            enableDriverManagerLogging();
         }
     }
 
@@ -827,7 +828,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     public void finalize() throws Throwable
     {
         if (openStackTrace != null)
-            logger.info(GT.tr("Finalizing a Connection that was never closed:"), openStackTrace);
+            logger.log(GT.tr("Finalizing a Connection that was never closed:"), openStackTrace);
 
         close();
     }
