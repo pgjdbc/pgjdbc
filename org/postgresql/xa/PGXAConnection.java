@@ -33,8 +33,8 @@ public class PGXAConnection extends PooledConnectionImpl implements XAConnection
      * Underlying physical database connection. It's used for issuing PREPARE TRANSACTION/
      * COMMIT PREPARED/ROLLBACK PREPARED commands.
      */
-    private BaseConnection conn;
-    private Logger logger;
+    private final BaseConnection conn;
+    private final Logger logger;
 
     private Xid currentXid;
 
