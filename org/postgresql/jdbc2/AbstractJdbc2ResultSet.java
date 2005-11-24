@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.80 2005/11/05 09:24:15 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.81 2005/11/24 02:29:21 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1225,87 +1225,70 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                                     PSQLState.INVALID_CURSOR_STATE);
         }
 
-        if (doingUpdates)
+        if (!doingUpdates)
+            return; // No work pending.
+
+        StringBuffer updateSQL = new StringBuffer("UPDATE " + tableName + " SET  ");
+        
+        int numColumns = updateValues.size();
+        Iterator columns = updateValues.keySet().iterator();
+        
+        for (int i = 0; columns.hasNext(); i++ )
         {
-
-            try
-            {
-
-                StringBuffer updateSQL = new StringBuffer("UPDATE " + tableName + " SET  ");
-
-                int numColumns = updateValues.size();
-                Iterator columns = updateValues.keySet().iterator();
-
-                for (int i = 0; columns.hasNext(); i++ )
-                {
-
-                    String column = (String) columns.next();
-                    updateSQL.append("\"");
-                    updateSQL.append( column );
-                    updateSQL.append("\" = ?");
-
-                    if ( i < numColumns - 1 )
-                    {
-
-                        updateSQL.append(", ");
-                    }
-
-                }
-                updateSQL.append( " WHERE " );
-
-                int numKeys = primaryKeys.size();
-
-                for ( int i = 0; i < numKeys; i++ )
-                {
-
-                    PrimaryKey primaryKey = ((PrimaryKey) primaryKeys.get(i));
-                    updateSQL.append("\"");
-                    updateSQL.append(primaryKey.name);
-                    updateSQL.append("\" = ?");
-
-                    if ( i < numKeys - 1 )
-                    {
-                        updateSQL.append(" and ");
-                    }
-                }
-                if ( connection.getLogger().logDebug() )
-                    connection.getLogger().debug("updating " + updateSQL.toString());
-                updateStatement = ((java.sql.Connection) connection).prepareStatement(updateSQL.toString());
-
-                int i = 0;
-                Iterator iterator = updateValues.values().iterator();
-                for (; iterator.hasNext(); i++)
-                {
-                    Object o = iterator.next();
-                    updateStatement.setObject( i + 1, o );
-
-                }
-                for ( int j = 0; j < numKeys; j++, i++)
-                {
-                    updateStatement.setObject( i + 1, ((PrimaryKey) primaryKeys.get(j)).getValue() );
-                }
-
-                updateStatement.executeUpdate();
-                updateStatement.close();
-
-                updateStatement = null;
-                updateRowBuffer();
-
-                connection.getLogger().debug("copying data");
-                System.arraycopy(rowBuffer, 0, this_row, 0, rowBuffer.length);
-
-                rows.setElementAt( rowBuffer, current_row );
-                connection.getLogger().debug("done updates");
-                updateValues.clear();
-                doingUpdates = false;
-            }
-            catch (SQLException e)
-            {
-                throw e;
-            }
-
+            String column = (String) columns.next();
+            updateSQL.append("\"");
+            updateSQL.append( column );
+            updateSQL.append("\" = ?");
+            
+            if ( i < numColumns - 1 )
+                updateSQL.append(", ");                
         }
+        
+        updateSQL.append( " WHERE " );
+        
+        int numKeys = primaryKeys.size();
+        
+        for ( int i = 0; i < numKeys; i++ )
+        {                
+            PrimaryKey primaryKey = ((PrimaryKey) primaryKeys.get(i));
+            updateSQL.append("\"");
+            updateSQL.append(primaryKey.name);
+            updateSQL.append("\" = ?");
+            
+            if ( i < numKeys - 1 )
+                updateSQL.append(" and ");
+        }
+        
+        if ( connection.getLogger().logDebug() )
+            connection.getLogger().debug("updating " + updateSQL.toString());
+        updateStatement = ((java.sql.Connection) connection).prepareStatement(updateSQL.toString());
+        
+        int i = 0;
+        Iterator iterator = updateValues.values().iterator();
+        for (; iterator.hasNext(); i++)
+        {
+            Object o = iterator.next();
+            updateStatement.setObject( i + 1, o );                
+        }
+        
+        for ( int j = 0; j < numKeys; j++, i++)
+        {
+            updateStatement.setObject( i + 1, ((PrimaryKey) primaryKeys.get(j)).getValue() );
+        }
+            
+        updateStatement.executeUpdate();
+        updateStatement.close();
+        updateStatement = null;
 
+        updateRowBuffer();
+        
+        connection.getLogger().debug("copying data");
+        System.arraycopy(rowBuffer, 0, this_row, 0, rowBuffer.length);        
+        rows.setElementAt( rowBuffer, current_row );
+
+        connection.getLogger().debug("done updates");
+        updateValues.clear();
+        doingUpdates = false;
     }
 
 
@@ -1518,17 +1501,9 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
 
         usingOID = false;
-        int oidIndex = 0;
-        try
-        {
-            oidIndex = findColumn( "oid" );
-        }
-        catch (SQLException l_se)
-        {
-            //Ignore if column oid isn't selected
-        }
-        int i = 0;
+        int oidIndex = findColumnIndex( "oid" ); // 0 if not present
 
+        int i = 0;
 
         // if we find the oid then just use it
 
@@ -2328,6 +2303,16 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public int findColumn(String columnName) throws SQLException
     {
         checkClosed();
+
+        int col = findColumnIndex(columnName);
+        if (col == 0)
+            throw new PSQLException (GT.tr("The column name {0} was not found in this ResultSet.", columnName),
+                                     PSQLState.UNDEFINED_COLUMN);
+        return col;
+    }
+
+    private int findColumnIndex(String columnName)
+    {
         if (columnNameIndexMap == null)
         {
             columnNameIndexMap = new HashMap(fields.length * 2);
@@ -2350,8 +2335,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             return index.intValue();
         }
 
-        throw new PSQLException (GT.tr("The column name {0} was not found in this ResultSet.", columnName),
-                                 PSQLState.UNDEFINED_COLUMN);
+        return 0;
     }
 
     /*
