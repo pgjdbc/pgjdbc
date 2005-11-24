@@ -54,6 +54,7 @@ public class PGXAConnection extends PooledConnectionImpl implements XAConnection
         this.conn = conn;
         this.conn.setAutoCommit(false);
         this.state = STATE_IDLE;
+	this.logger = conn.getLogger();
     }
 
 
