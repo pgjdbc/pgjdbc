@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataPropertiesTest.java,v 1.7 2004/11/09 08:54:17 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataPropertiesTest.java,v 1.8 2005/01/11 08:25:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -65,8 +65,8 @@ public class DatabaseMetaDataPropertiesTest extends TestCase
         // This should always be false for postgresql (at least for 7.x)
         assertTrue(!dbmd.isReadOnly());
 
-        // does the backend support this yet? The protocol does...
-        assertTrue(!dbmd.supportsMultipleResultSets());
+        // we support multiple resultsets via multiple statements in one execute() now
+        assertTrue(dbmd.supportsMultipleResultSets());
 
         // yes, as multiple backends can have transactions open
         assertTrue(dbmd.supportsMultipleTransactions());

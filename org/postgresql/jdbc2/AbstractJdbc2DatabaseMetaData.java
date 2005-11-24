@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.23 2005/07/04 18:50:29 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.24 2005/09/14 19:08:50 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -104,8 +104,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean allProceduresAreCallable() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("allProceduresAreCallable");
         return true;  // For now...
     }
 
@@ -118,8 +116,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean allTablesAreSelectable() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("allTablesAreSelectable");
         return true;  // For now...
     }
 
@@ -131,10 +127,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public String getURL() throws SQLException
     {
-        String url = connection.getURL();
-        if (Driver.logDebug)
-            Driver.debug("getURL " + url);
-        return url;
+        return connection.getURL();
     }
 
     /*
@@ -145,10 +138,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public String getUserName() throws SQLException
     {
-        String userName = connection.getUserName();
-        if (Driver.logDebug)
-            Driver.debug("getUserName " + userName);
-        return userName;
+        return connection.getUserName();
     }
 
     /*
@@ -159,10 +149,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean isReadOnly() throws SQLException
     {
-        boolean isReadOnly = connection.isReadOnly();
-        if (Driver.logDebug)
-            Driver.debug("isReadOnly " + isReadOnly);
-        return isReadOnly;
+        return connection.isReadOnly();
     }
 
     /*
@@ -173,10 +160,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean nullsAreSortedHigh() throws SQLException
     {
-        boolean nullSortedHigh = connection.haveMinimumServerVersion("7.2");
-        if (Driver.logDebug)
-            Driver.debug("nullsAreSortedHigh " + nullSortedHigh);
-        return nullSortedHigh;
+        return connection.haveMinimumServerVersion("7.2");
     }
 
     /*
@@ -187,8 +171,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean nullsAreSortedLow() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("nullsAreSortedLow false");
         return false;
     }
 
@@ -200,8 +182,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean nullsAreSortedAtStart() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("nullsAreSortedAtStart false");
         return false;
     }
 
@@ -213,10 +193,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean nullsAreSortedAtEnd() throws SQLException
     {
-        boolean nullsAreSortedAtEnd = ! connection.haveMinimumServerVersion("7.2");
-        if (Driver.logDebug)
-            Driver.debug("nullsAreSortedAtEnd " + nullsAreSortedAtEnd);
-        return nullsAreSortedAtEnd;
+        return !connection.haveMinimumServerVersion("7.2");
     }
 
     /*
@@ -228,8 +205,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public String getDatabaseProductName() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("getDatabaseProductName PostgresSQL");
         return "PostgreSQL";
     }
 
@@ -241,10 +216,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public String getDatabaseProductVersion() throws SQLException
     {
-        String versionNumber = connection.getDBVersionNumber();
-        if (Driver.logDebug)
-            Driver.debug("getDatabaseProductVersion " + versionNumber);
-        return versionNumber;
+        return connection.getDBVersionNumber();
     }
 
     /*
@@ -256,10 +228,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public String getDriverName() throws SQLException
     {
-        String driverName = "PostgreSQL Native Driver";
-        if (Driver.logDebug)
-            Driver.debug("getDriverName" + driverName);
-        return driverName;
+        return "PostgreSQL Native Driver";
     }
 
     /*
@@ -271,10 +240,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public String getDriverVersion() throws SQLException
     {
-        String driverVersion = Driver.getVersion();
-        if (Driver.logDebug)
-            Driver.debug("getDriverVersion " + driverVersion);
-        return driverVersion;
+        return Driver.getVersion();
     }
 
     /*
@@ -306,8 +272,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean usesLocalFiles() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("usesLocalFiles " + false);
         return false;
     }
 
@@ -320,8 +284,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean usesLocalFilePerTable() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("usesLocalFilePerTable " + false);
         return false;
     }
 
@@ -335,8 +297,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsMixedCaseIdentifiers() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("supportsMixedCaseIdentifiers " + false);
         return false;
     }
 
@@ -348,8 +308,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean storesUpperCaseIdentifiers() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("storesUpperCaseIdentifiers " + false);
         return false;
     }
 
@@ -361,8 +319,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean storesLowerCaseIdentifiers() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("storesLowerCaseIdentifiers " + true);
         return true;
     }
 
@@ -374,8 +330,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean storesMixedCaseIdentifiers() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("storesMixedCaseIdentifiers " + false);
         return false;
     }
 
@@ -389,8 +343,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsMixedCaseQuotedIdentifiers() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("supportsMixedCaseQuotedIdentifiers " + true);
         return true;
     }
 
@@ -402,8 +354,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean storesUpperCaseQuotedIdentifiers() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("storesUpperCaseQuotedIdentifiers " + false);
         return false;
     }
 
@@ -415,8 +365,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean storesLowerCaseQuotedIdentifiers() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("storesLowerCaseQuotedIdentifiers " + false);
         return false;
     }
 
@@ -428,8 +376,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean storesMixedCaseQuotedIdentifiers() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("storesMixedCaseQuotedIdentifiers " + false);
         return false;
     }
 
@@ -443,8 +389,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public String getIdentifierQuoteString() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("getIdentifierQuoteString \"" );
         return "\"";
     }
 
@@ -475,8 +419,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public String getNumericFunctions() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("getNumericFunctions");
         return EscapedFunctions.ABS+','+EscapedFunctions.ACOS+
         ','+EscapedFunctions.ASIN+','+EscapedFunctions.ATAN+
         ','+EscapedFunctions.ATAN2+','+EscapedFunctions.CEILING+
@@ -494,8 +436,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
     public String getStringFunctions() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("getStringFunctions");
         String funcs = EscapedFunctions.ASCII+','+EscapedFunctions.CHAR+
         ','+EscapedFunctions.CONCAT+
         ','+EscapedFunctions.LCASE+','+EscapedFunctions.LEFT+
@@ -521,8 +461,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
     public String getSystemFunctions() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("getSystemFunctions");
         if (connection.haveMinimumServerVersion("7.3")){
             return EscapedFunctions.DATABASE+','+EscapedFunctions.IFNULL+
                 ','+EscapedFunctions.USER;
@@ -534,8 +472,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
     public String getTimeDateFunctions() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("getTimeDateFunctions");
         return EscapedFunctions.CURDATE+','+EscapedFunctions.CURTIME+
         ','+EscapedFunctions.DAYNAME+','+EscapedFunctions.DAYOFMONTH+
         ','+EscapedFunctions.DAYOFWEEK+','+EscapedFunctions.DAYOFYEAR+
@@ -555,9 +491,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public String getSearchStringEscape() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("getSearchStringEscape");
-
         // Java's parse takes off two backslashes
         // and then pg's input parser takes off another layer
         // so we need many backslashes here.
@@ -586,8 +519,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public String getExtraNameCharacters() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("getExtraNameCharacters");
         return "";
     }
 
@@ -600,8 +531,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsAlterTableWithAddColumn() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("supportsAlterTableWithAddColumn " + true);
         return true;
     }
 
@@ -613,10 +542,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsAlterTableWithDropColumn() throws SQLException
     {
-        boolean dropColumn = connection.haveMinimumServerVersion("7.3");
-        if (Driver.logDebug)
-            Driver.debug("supportsAlterTableWithDropColumn " + dropColumn);
-        return dropColumn;
+        return connection.haveMinimumServerVersion("7.3");
     }
 
     /*
@@ -639,8 +565,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsColumnAliasing() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("supportsColumnAliasing " + true);
         return true;
     }
 
@@ -653,22 +577,16 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean nullPlusNonNullIsNull() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("nullPlusNonNullIsNull " + true);
         return true;
     }
 
     public boolean supportsConvert() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("supportsConvert " + false);
         return false;
     }
 
     public boolean supportsConvert(int fromType, int toType) throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("supportsConvert " + false);
         return false;
     }
 
@@ -681,8 +599,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsTableCorrelationNames() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("supportsTableCorrelationNames " + true);
         return true;
     }
 
@@ -695,8 +611,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsDifferentTableCorrelationNames() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("supportsDifferentTableCorrelationNames " + false);
         return false;
     }
 
@@ -710,8 +624,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsExpressionsInOrderBy() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("supportsExpressionsInOrderBy " + true);
         return true;
     }
 
@@ -723,10 +635,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsOrderByUnrelated() throws SQLException
     {
-        boolean supportsOrderByUnrelated = connection.haveMinimumServerVersion("6.4");
-        if (Driver.logDebug)
-            Driver.debug("supportsOrderByUnrelated " + supportsOrderByUnrelated);
-        return supportsOrderByUnrelated;
+        return connection.haveMinimumServerVersion("6.4");
     }
 
     /*
@@ -738,8 +647,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsGroupBy() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("supportsGroupBy " + true);
         return true;
     }
 
@@ -751,10 +658,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsGroupByUnrelated() throws SQLException
     {
-        boolean supportsGroupByUnrelated = connection.haveMinimumServerVersion("6.4");
-        if (Driver.logDebug)
-            Driver.debug("supportsGroupByUnrelated " + supportsGroupByUnrelated);
-        return supportsGroupByUnrelated;
+        return connection.haveMinimumServerVersion("6.4");
     }
 
     /*
@@ -769,10 +673,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsGroupByBeyondSelect() throws SQLException
     {
-        boolean supportsGroupByBeyondSelect = connection.haveMinimumServerVersion("6.4");
-        if (Driver.logDebug)
-            Driver.debug("supportsGroupByUnrelated " + supportsGroupByBeyondSelect);
-        return supportsGroupByBeyondSelect;
+        return connection.haveMinimumServerVersion("6.4");
     }
 
     /*
@@ -784,25 +685,18 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsLikeEscapeClause() throws SQLException
     {
-        boolean supportsLikeEscapeClause = connection.haveMinimumServerVersion("7.1");
-        if (Driver.logDebug)
-            Driver.debug("supportsLikeEscapeClause " + supportsLikeEscapeClause);
-        return supportsLikeEscapeClause;
+        return connection.haveMinimumServerVersion("7.1");
     }
 
     /*
      * Are multiple ResultSets from a single execute supported?
-     * Well, I implemented it, but I dont think this is possible from
-     * the back ends point of view.
      *
      * @return true if so
      * @exception SQLException if a database access error occurs
      */
     public boolean supportsMultipleResultSets() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("supportsMultipleResultSets " + false);
-        return false;
+        return true;
     }
 
     /*
@@ -815,8 +709,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsMultipleTransactions() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("supportsMultipleTransactions " + true);
         return true;
     }
 
@@ -832,8 +724,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsNonNullableColumns() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("supportsNonNullableColumns true");
         return true;
     }
 
@@ -851,8 +741,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsMinimumSQLGrammar() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("supportsMinimumSQLGrammar TRUE");
         return true;
     }
 
@@ -865,8 +753,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsCoreSQLGrammar() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("supportsCoreSQLGrammar FALSE ");
         return false;
     }
 
@@ -880,8 +766,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsExtendedSQLGrammar() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("supportsExtendedSQLGrammar FALSE");
         return false;
     }
 
@@ -899,10 +783,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsANSI92EntryLevelSQL() throws SQLException
     {
-        boolean schemas = connection.haveMinimumServerVersion("7.3");
-        if (Driver.logDebug)
-            Driver.debug("supportsANSI92EntryLevelSQL " + schemas);
-        return schemas;
+        return connection.haveMinimumServerVersion("7.3");
     }
 
     /*
@@ -914,8 +795,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsANSI92IntermediateSQL() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("supportsANSI92IntermediateSQL false ");
         return false;
     }
 
@@ -927,8 +806,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsANSI92FullSQL() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("supportsANSI92FullSQL false ");
         return false;
     }
 
@@ -941,8 +818,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsIntegrityEnhancementFacility() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("supportsIntegrityEnhancementFacility true ");
         return true;
     }
 
@@ -954,10 +829,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsOuterJoins() throws SQLException
     {
-        boolean supportsOuterJoins = connection.haveMinimumServerVersion("7.1");
-        if (Driver.logDebug)
-            Driver.debug("supportsOuterJoins " + supportsOuterJoins);
-        return supportsOuterJoins;
+        return connection.haveMinimumServerVersion("7.1");
     }
 
     /*
@@ -968,10 +840,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsFullOuterJoins() throws SQLException
     {
-        boolean supportsFullOuterJoins = connection.haveMinimumServerVersion("7.1");
-        if (Driver.logDebug)
-            Driver.debug("supportsFullOuterJoins " + supportsFullOuterJoins);
-        return supportsFullOuterJoins;
+        return connection.haveMinimumServerVersion("7.1");
     }
 
     /*
@@ -982,10 +851,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsLimitedOuterJoins() throws SQLException
     {
-        boolean supportsLimitedOuterJoins = connection.haveMinimumServerVersion("7.1");
-        if (Driver.logDebug)
-            Driver.debug("supportsFullOuterJoins " + supportsLimitedOuterJoins);
-        return supportsLimitedOuterJoins;
+        return connection.haveMinimumServerVersion("7.1");
     }
 
     /*
@@ -998,8 +864,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public String getSchemaTerm() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("getSchemaTerm schema");
         return "schema";
     }
 
@@ -1012,8 +876,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public String getProcedureTerm() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("getProcedureTerm function ");
         return "function";
     }
 
@@ -1025,8 +887,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public String getCatalogTerm() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("getCatalogTerm database ");
         return "database";
     }
 
@@ -1039,10 +899,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean isCatalogAtStart() throws SQLException
     {
-        // return true here; we return false for every other catalog function
-        // so it won't matter what we return here D.C.
-        if (Driver.logDebug)
-            Driver.debug("isCatalogAtStart not implemented");
         return true;
     }
 
@@ -1054,10 +910,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public String getCatalogSeparator() throws SQLException
     {
-        // Give them something to work with here
-        // everything else returns false so it won't matter what we return here D.C.
-        if (Driver.logDebug)
-            Driver.debug("getCatalogSeparator not implemented ");
         return ".";
     }
 
@@ -1069,10 +921,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsSchemasInDataManipulation() throws SQLException
     {
-        boolean schemas = connection.haveMinimumServerVersion("7.3");
-        if (Driver.logDebug)
-            Driver.debug("supportsSchemasInDataManipulation " + schemas);
-        return schemas;
+        return connection.haveMinimumServerVersion("7.3");
     }
 
     /*
@@ -1083,10 +932,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsSchemasInProcedureCalls() throws SQLException
     {
-        boolean schemas = connection.haveMinimumServerVersion("7.3");
-        if (Driver.logDebug)
-            Driver.debug("supportsSchemasInProcedureCalls " + schemas);
-        return schemas;
+        return connection.haveMinimumServerVersion("7.3");
     }
 
     /*
@@ -1097,11 +943,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsSchemasInTableDefinitions() throws SQLException
     {
-        boolean schemas = connection.haveMinimumServerVersion("7.3");
-
-        if (Driver.logDebug)
-            Driver.debug("supportsSchemasInTableDefinitions " + schemas);
-        return schemas;
+        return connection.haveMinimumServerVersion("7.3");
     }
 
     /*
@@ -1112,10 +954,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsSchemasInIndexDefinitions() throws SQLException
     {
-        boolean schemas = connection.haveMinimumServerVersion("7.3");
-        if (Driver.logDebug)
-            Driver.debug("supportsSchemasInIndexDefinitions " + schemas);
-        return schemas;
+        return connection.haveMinimumServerVersion("7.3");
     }
 
     /*
@@ -1126,10 +965,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsSchemasInPrivilegeDefinitions() throws SQLException
     {
-        boolean schemas = connection.haveMinimumServerVersion("7.3");
-        if (Driver.logDebug)
-            Driver.debug("supportsSchemasInPrivilegeDefinitions " + schemas);
-        return schemas;
+        return connection.haveMinimumServerVersion("7.3");
     }
 
     /*
@@ -1140,8 +976,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsCatalogsInDataManipulation() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("supportsCatalogsInDataManipulation false");
         return false;
     }
 
@@ -1153,8 +987,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsCatalogsInProcedureCalls() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("supportsCatalogsInDataManipulation false");
         return false;
     }
 
@@ -1166,8 +998,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsCatalogsInTableDefinitions() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("supportsCatalogsInTableDefinitions false");
         return false;
     }
 
@@ -1179,8 +1009,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsCatalogsInIndexDefinitions() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("supportsCatalogsInIndexDefinitions false");
         return false;
     }
 
@@ -1192,8 +1020,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsCatalogsInPrivilegeDefinitions() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("supportsCatalogsInPrivilegeDefinitions false");
         return false;
     }
 
@@ -1206,8 +1032,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsPositionedDelete() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("supportsPositionedDelete false");
         return false;   // For now...
     }
 
@@ -1219,8 +1043,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsPositionedUpdate() throws SQLException
     {
-        if (Driver.logDebug)
-            Driver.debug("supportsPositionedUpdate false");
         return false;   // For now...
     }
 
@@ -1584,18 +1406,14 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
     /*
      * How many active statements can we have open at one time to
-     * this database?  Basically, since each Statement downloads
-     * the results as the query is executed, we can have many. However,
-     * we can only really have one statement per connection going
-     * at once (since they are executed serially) - so we return
-     * one.
+     * this database? We're only limited by Java heap space really.
      *
      * @return the maximum
      * @exception SQLException if a database access error occurs
      */
     public int getMaxStatements() throws SQLException
     {
-        return 1;
+        return 0;
     }
 
     /*
@@ -1634,8 +1452,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
 
     /*
-     * What is the database's default transaction isolation level?  We
-     * do not support this, so all transactions are SERIALIZABLE.
+     * What is the database's default transaction isolation level?
      *
      * @return the default isolation level
      * @exception SQLException if a database access error occurs
@@ -1662,6 +1479,8 @@ public abstract class AbstractJdbc2DatabaseMetaData
     /*
      * Does the database support the given transaction isolation level?
      * We only support TRANSACTION_SERIALIZABLE and TRANSACTION_READ_COMMITTED
+     * before 8.0; from 8.0 READ_UNCOMMITTED and REPEATABLE_READ are accepted aliases
+     * for READ_COMMITTED.
      *
      * @param level the values are defined in java.sql.Connection
      * @return true if so
@@ -1671,7 +1490,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
     public boolean supportsTransactionIsolationLevel(int level) throws SQLException
     {
         if (level == Connection.TRANSACTION_SERIALIZABLE ||
-                level == Connection.TRANSACTION_READ_COMMITTED)
+            level == Connection.TRANSACTION_READ_COMMITTED)
             return true;
         else if (connection.haveMinimumServerVersion("8.0") && (level == Connection.TRANSACTION_READ_UNCOMMITTED || level == Connection.TRANSACTION_REPEATABLE_READ))
             return true;
