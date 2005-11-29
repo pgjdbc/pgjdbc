@@ -8,12 +8,12 @@
 
   This file now requires Ant 1.4.1.  2002-04-18
 
-  $PostgreSQL: pgjdbc/build.xml,v 1.64 2005/10/29 01:14:49 davec Exp $
+  $PostgreSQL: pgjdbc/build.xml,v 1.65 2005/11/24 02:29:19 oliver Exp $
 
 -->
 
 <!DOCTYPE project [
-  <!ENTITY jarfiles "postgresql.jar,postgresql-examples.jar">
+  <!ENTITY jarfiles "postgresql.jar">
 ]>
 
 <project name="postgresqlJDBC" default="all" basedir=".">
@@ -80,7 +80,7 @@
 
 
   <!-- create the jar file -->
-  <target name="jar" depends="compile,examples">
+  <target name="jar" depends="compile">
     <jar jarfile="${jardir}/postgresql.jar">
       <fileset dir="${builddir}">
         <include name="${package}/**/*.class" />
@@ -88,16 +88,6 @@
 
       <fileset dir="${srcdir}">
         <include name="${package}/translation/*.class" />
-      </fileset>
-    </jar>
-
-    <jar jarfile="${jardir}/postgresql-examples.jar">
-      <fileset dir="${builddir}">
-        <include name="example/**/*.class" />
-      </fileset>
-
-      <fileset dir="${srcdir}">
-        <include name="example/*.properties" />
       </fileset>
     </jar>
   </target>
@@ -289,26 +279,6 @@
     <mkdir dir="${jardir}" />
   </target>
 
-
-  <!-- This builds the examples -->
-  <target name="examples" depends="compile">
-    <javac srcdir="${srcdir}" destdir="${builddir}" debug="${debug}">
-      <include name="example/**" />
-      <exclude name="example/corba/**"/>
-    </javac>
-  </target>
-
-
-  <!-- Builds the corba example -->
-  <target name="corba" if="jdbc2">
-    <exec dir="${srcdir}/example/corba" executable="idl2java">
-      <arg value="stock.idl" />
-    </exec>
-
-    <javac srcdir="${srcdir}" destdir="${builddir}" debug="${debug}">
-      <include name="example/corba/**" />
-    </javac>
-  </target>
 
   <!-- This target removes any class files from the build directory -->
   <target name="clean">
