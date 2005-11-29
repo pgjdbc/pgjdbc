@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.17 2004/12/14 06:23:40 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.18 2005/01/11 08:25:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2156,27 +2156,24 @@ public abstract class AbstractJdbc2DatabaseMetaData
             }
         }
 
-        if (types == null)
-        {
-            types = defaultTableTypes;
-        }
         if (tableNamePattern != null)
         {
             select += " AND c.relname LIKE '" + escapeQuotes(tableNamePattern) + "' ";
         }
-        String sql = select;
-        sql += " AND (false ";
-        for (int i = 0; i < types.length; i++)
-        {
-            Hashtable clauses = (Hashtable)tableTypeClauses.get(types[i]);
-            if (clauses != null)
+        if (types != null) {
+            select += " AND (false ";
+            for (int i = 0; i < types.length; i++)
             {
-                String clause = (String)clauses.get(useSchemas);
-                sql += " OR ( " + clause + " ) ";
+                Hashtable clauses = (Hashtable)tableTypeClauses.get(types[i]);
+                if (clauses != null)
+                {
+                    String clause = (String)clauses.get(useSchemas);
+                    select += " OR ( " + clause + " ) ";
+                }
             }
+            select += ") ";
         }
-        sql += ") ";
-        sql += orderby;
+        String sql = select + orderby;
 
         return createMetaDataStatement().executeQuery(sql);
     }
@@ -2229,12 +2226,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
         ht.put("SCHEMAS", "c.relkind = 'i' AND n.nspname LIKE 'pg\\\\_temp\\\\_%' ");
         ht.put("NOSCHEMAS", "c.relkind = 'i' AND c.relname LIKE 'pg\\\\_temp\\\\_%' ");
     }
-
-    // These are the default tables, used when NULL is passed to getTables
-    // The choice of these provide the same behaviour as psql's \d
-    private static final String defaultTableTypes[] = {
-                "TABLE", "VIEW", "INDEX", "SEQUENCE", "TEMPORARY TABLE"
-            };
 
     /*
      * Get the schema names available in this database.  The results
