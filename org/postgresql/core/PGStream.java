@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/PGStream.java,v 1.15 2005/04/20 00:10:58 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/PGStream.java,v 1.16 2005/06/25 00:53:15 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -21,6 +21,8 @@ import java.net.Socket;
 import java.sql.*;
 
 import org.postgresql.util.GT;
+import org.postgresql.util.PSQLState;
+import org.postgresql.util.PSQLException;
 
 /**
  * Wrapper around the raw connection to the server that implements some basic
@@ -498,6 +500,18 @@ public class PGStream
         if (encodingWriter != null)
             encodingWriter.flush();
         pg_output.flush();
+    }
+
+    /**
+     * Consume an expected EOF from the backend
+     * @exception SQLException if we get something other than an EOF
+     */
+    public void ReceiveEOF() throws SQLException, IOException
+    {
+        int c = pg_input.read();
+        if (c < 0)
+            return;
+        throw new PSQLException(GT.tr("Expected an EOF from server, got: {0}", new Integer(c)), PSQLState.COMMUNICATION_ERROR);
     }
 
     /**
