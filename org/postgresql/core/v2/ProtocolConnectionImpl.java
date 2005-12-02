@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ProtocolConnectionImpl.java,v 1.5 2005/01/11 08:25:43 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ProtocolConnectionImpl.java,v 1.5.2.1 2005/06/21 20:11:53 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -93,6 +93,7 @@ class ProtocolConnectionImpl implements ProtocolConnection {
             cancelStream.SendInteger4(cancelPid);
             cancelStream.SendInteger4(cancelKey);
             cancelStream.flush();
+            cancelStream.ReceiveEOF();
             cancelStream.close();
             cancelStream = null;
         }
