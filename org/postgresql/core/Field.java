@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/Field.java,v 1.9 2004/11/09 08:44:27 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/Field.java,v 1.10 2005/01/11 08:25:43 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -57,9 +57,9 @@ public class Field
      * @param oid the OID of the field
      * @param len the length of the field
      */
-    public Field(String name, int oid, int length)
+    public Field(String name, int oid)
     {
-        this(name, name, oid, length, 0, 0, 0);
+        this(name, oid, 0, -1);
     }
 
     /*

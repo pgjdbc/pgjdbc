@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Array.java,v 1.15 2005/08/01 06:54:14 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Array.java,v 1.16 2005/11/24 02:29:21 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -285,12 +285,12 @@ public class AbstractJdbc2Array
         Object array = getArrayImpl( index, count, map );
         Vector rows = new Vector();
         Field[] fields = new Field[2];
-        fields[0] = new Field("INDEX", Oid.INT2, 2);
+        fields[0] = new Field("INDEX", Oid.INT2);
         switch ( getBaseType() )
         {
         case Types.BIT:
             boolean[] booleanArray = (boolean[]) array;
-            fields[1] = new Field("VALUE", Oid.BOOL, 1);
+            fields[1] = new Field("VALUE", Oid.BOOL);
             for ( int i = 0; i < booleanArray.length; i++ )
             {
                 byte[][] tuple = new byte[2][0];
@@ -300,16 +300,16 @@ public class AbstractJdbc2Array
             }
             break;
         case Types.SMALLINT:
-            fields[1] = new Field("VALUE", Oid.INT2, 2);
+            fields[1] = new Field("VALUE", Oid.INT2);
             fillIntegerResultSet(index, (int[])array, rows);
             break;
         case Types.INTEGER:
-            fields[1] = new Field("VALUE", Oid.INT4, 4);
+            fields[1] = new Field("VALUE", Oid.INT4);
             fillIntegerResultSet(index, (int[])array, rows);
             break;
         case Types.BIGINT:
             long[] longArray = (long[]) array;
-            fields[1] = new Field("VALUE", Oid.INT8, 8);
+            fields[1] = new Field("VALUE", Oid.INT8);
             for ( int i = 0; i < longArray.length; i++ )
             {
                 byte[][] tuple = new byte[2][0];
@@ -320,7 +320,7 @@ public class AbstractJdbc2Array
             break;
         case Types.NUMERIC:
             BigDecimal[] bdArray = (BigDecimal[]) array;
-            fields[1] = new Field("VALUE", Oid.NUMERIC, -1);
+            fields[1] = new Field("VALUE", Oid.NUMERIC);
             for ( int i = 0; i < bdArray.length; i++ )
             {
                 byte[][] tuple = new byte[2][0];
@@ -331,7 +331,7 @@ public class AbstractJdbc2Array
             break;
         case Types.REAL:
             float[] floatArray = (float[]) array;
-            fields[1] = new Field("VALUE", Oid.FLOAT4, 4);
+            fields[1] = new Field("VALUE", Oid.FLOAT4);
             for ( int i = 0; i < floatArray.length; i++ )
             {
                 byte[][] tuple = new byte[2][0];
@@ -342,7 +342,7 @@ public class AbstractJdbc2Array
             break;
         case Types.DOUBLE:
             double[] doubleArray = (double[]) array;
-            fields[1] = new Field("VALUE", Oid.FLOAT8, 8);
+            fields[1] = new Field("VALUE", Oid.FLOAT8);
             for ( int i = 0; i < doubleArray.length; i++ )
             {
                 byte[][] tuple = new byte[2][0];
@@ -352,16 +352,16 @@ public class AbstractJdbc2Array
             }
             break;
         case Types.CHAR:
-            fields[1] = new Field("VALUE", Oid.BPCHAR, 1);
+            fields[1] = new Field("VALUE", Oid.BPCHAR);
             fillStringResultSet(index, (String[])array, rows);
             break;
         case Types.VARCHAR:
-            fields[1] = new Field("VALUE", Oid.VARCHAR, -1);
+            fields[1] = new Field("VALUE", Oid.VARCHAR);
             fillStringResultSet(index, (String[])array, rows);
             break;
         case Types.DATE:
             java.sql.Date[] dateArray = (java.sql.Date[]) array;
-            fields[1] = new Field("VALUE", Oid.DATE, 4);
+            fields[1] = new Field("VALUE", Oid.DATE);
             for ( int i = 0; i < dateArray.length; i++ )
             {
                 byte[][] tuple = new byte[2][0];
@@ -372,7 +372,7 @@ public class AbstractJdbc2Array
             break;
         case Types.TIME:
             java.sql.Time[] timeArray = (java.sql.Time[]) array;
-            fields[1] = new Field("VALUE", Oid.TIME, 8);
+            fields[1] = new Field("VALUE", Oid.TIME);
             for ( int i = 0; i < timeArray.length; i++ )
             {
                 byte[][] tuple = new byte[2][0];
@@ -383,7 +383,7 @@ public class AbstractJdbc2Array
             break;
         case Types.TIMESTAMP:
             java.sql.Timestamp[] timestampArray = (java.sql.Timestamp[]) array;
-            fields[1] = new Field("VALUE", Oid.TIMESTAMPTZ, 8);
+            fields[1] = new Field("VALUE", Oid.TIMESTAMPTZ);
             for ( int i = 0; i < timestampArray.length; i++ )
             {
                 byte[][] tuple = new byte[2][0];

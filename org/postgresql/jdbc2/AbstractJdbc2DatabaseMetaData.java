@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.25 2005/11/24 02:07:03 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.26 2005/11/29 06:01:44 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1711,19 +1711,19 @@ public abstract class AbstractJdbc2DatabaseMetaData
         Field f[] = new Field[13];
         Vector v = new Vector();  // The new ResultSet tuple stuff
 
-        f[0] = new Field("PROCEDURE_CAT", Oid.VARCHAR, getMaxNameLength());
-        f[1] = new Field("PROCEDURE_SCHEM", Oid.VARCHAR, getMaxNameLength());
-        f[2] = new Field("PROCEDURE_NAME", Oid.VARCHAR, getMaxNameLength());
-        f[3] = new Field("COLUMN_NAME", Oid.VARCHAR, getMaxNameLength());
-        f[4] = new Field("COLUMN_TYPE", Oid.INT2, 2);
-        f[5] = new Field("DATA_TYPE", Oid.INT2, 2);
-        f[6] = new Field("TYPE_NAME", Oid.VARCHAR, getMaxNameLength());
-        f[7] = new Field("PRECISION", Oid.INT4, 4);
-        f[8] = new Field("LENGTH", Oid.INT4, 4);
-        f[9] = new Field("SCALE", Oid.INT2, 2);
-        f[10] = new Field("RADIX", Oid.INT2, 2);
-        f[11] = new Field("NULLABLE", Oid.INT2, 2);
-        f[12] = new Field("REMARKS", Oid.VARCHAR, getMaxNameLength());
+        f[0] = new Field("PROCEDURE_CAT", Oid.VARCHAR);
+        f[1] = new Field("PROCEDURE_SCHEM", Oid.VARCHAR);
+        f[2] = new Field("PROCEDURE_NAME", Oid.VARCHAR);
+        f[3] = new Field("COLUMN_NAME", Oid.VARCHAR);
+        f[4] = new Field("COLUMN_TYPE", Oid.INT2);
+        f[5] = new Field("DATA_TYPE", Oid.INT2);
+        f[6] = new Field("TYPE_NAME", Oid.VARCHAR);
+        f[7] = new Field("PRECISION", Oid.INT4);
+        f[8] = new Field("LENGTH", Oid.INT4);
+        f[9] = new Field("SCALE", Oid.INT2);
+        f[10] = new Field("RADIX", Oid.INT2);
+        f[11] = new Field("NULLABLE", Oid.INT2);
+        f[12] = new Field("REMARKS", Oid.VARCHAR);
 
         String sql;
         if (connection.haveMinimumServerVersion("7.3"))
@@ -2101,7 +2101,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
     {
         Field f[] = new Field[1];
         Vector v = new Vector();
-        f[0] = new Field(new String("TABLE_CAT"), Oid.VARCHAR, getMaxNameLength());
+        f[0] = new Field(new String("TABLE_CAT"), Oid.VARCHAR);
         byte[][] tuple = new byte[1][];
         tuple[0] = connection.encodeString(connection.getCatalog());
         v.addElement(tuple);
@@ -2136,7 +2136,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
         Field f[] = new Field[1];
         Vector v = new Vector();
-        f[0] = new Field(new String("TABLE_TYPE"), Oid.VARCHAR, getMaxNameLength());
+        f[0] = new Field(new String("TABLE_TYPE"), Oid.VARCHAR);
         for (i = 0; i < types.length; i++)
         {
             byte[][] tuple = new byte[1][];
@@ -2200,24 +2200,24 @@ public abstract class AbstractJdbc2DatabaseMetaData
         Vector v = new Vector();  // The new ResultSet tuple stuff
         Field f[] = new Field[18];  // The field descriptors for the new ResultSet
 
-        f[0] = new Field("TABLE_CAT", Oid.VARCHAR, getMaxNameLength());
-        f[1] = new Field("TABLE_SCHEM", Oid.VARCHAR, getMaxNameLength());
-        f[2] = new Field("TABLE_NAME", Oid.VARCHAR, getMaxNameLength());
-        f[3] = new Field("COLUMN_NAME", Oid.VARCHAR, getMaxNameLength());
-        f[4] = new Field("DATA_TYPE", Oid.INT2, 2);
-        f[5] = new Field("TYPE_NAME", Oid.VARCHAR, getMaxNameLength());
-        f[6] = new Field("COLUMN_SIZE", Oid.INT4, 4);
-        f[7] = new Field("BUFFER_LENGTH", Oid.VARCHAR, getMaxNameLength());
-        f[8] = new Field("DECIMAL_DIGITS", Oid.INT4, 4);
-        f[9] = new Field("NUM_PREC_RADIX", Oid.INT4, 4);
-        f[10] = new Field("NULLABLE", Oid.INT4, 4);
-        f[11] = new Field("REMARKS", Oid.VARCHAR, getMaxNameLength());
-        f[12] = new Field("COLUMN_DEF", Oid.VARCHAR, getMaxNameLength());
-        f[13] = new Field("SQL_DATA_TYPE", Oid.INT4, 4);
-        f[14] = new Field("SQL_DATETIME_SUB", Oid.INT4, 4);
-        f[15] = new Field("CHAR_OCTET_LENGTH", Oid.VARCHAR, getMaxNameLength());
-        f[16] = new Field("ORDINAL_POSITION", Oid.INT4, 4);
-        f[17] = new Field("IS_NULLABLE", Oid.VARCHAR, getMaxNameLength());
+        f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
+        f[1] = new Field("TABLE_SCHEM", Oid.VARCHAR);
+        f[2] = new Field("TABLE_NAME", Oid.VARCHAR);
+        f[3] = new Field("COLUMN_NAME", Oid.VARCHAR);
+        f[4] = new Field("DATA_TYPE", Oid.INT2);
+        f[5] = new Field("TYPE_NAME", Oid.VARCHAR);
+        f[6] = new Field("COLUMN_SIZE", Oid.INT4);
+        f[7] = new Field("BUFFER_LENGTH", Oid.VARCHAR);
+        f[8] = new Field("DECIMAL_DIGITS", Oid.INT4);
+        f[9] = new Field("NUM_PREC_RADIX", Oid.INT4);
+        f[10] = new Field("NULLABLE", Oid.INT4);
+        f[11] = new Field("REMARKS", Oid.VARCHAR);
+        f[12] = new Field("COLUMN_DEF", Oid.VARCHAR);
+        f[13] = new Field("SQL_DATA_TYPE", Oid.INT4);
+        f[14] = new Field("SQL_DATETIME_SUB", Oid.INT4);
+        f[15] = new Field("CHAR_OCTET_LENGTH", Oid.VARCHAR);
+        f[16] = new Field("ORDINAL_POSITION", Oid.INT4);
+        f[17] = new Field("IS_NULLABLE", Oid.VARCHAR);
 
         String sql;
         if (connection.haveMinimumServerVersion("7.3"))
@@ -2387,14 +2387,14 @@ public abstract class AbstractJdbc2DatabaseMetaData
         if (columnNamePattern == null)
             columnNamePattern = "%";
 
-        f[0] = new Field("TABLE_CAT", Oid.VARCHAR, getMaxNameLength());
-        f[1] = new Field("TABLE_SCHEM", Oid.VARCHAR, getMaxNameLength());
-        f[2] = new Field("TABLE_NAME", Oid.VARCHAR, getMaxNameLength());
-        f[3] = new Field("COLUMN_NAME", Oid.VARCHAR, getMaxNameLength());
-        f[4] = new Field("GRANTOR", Oid.VARCHAR, getMaxNameLength());
-        f[5] = new Field("GRANTEE", Oid.VARCHAR, getMaxNameLength());
-        f[6] = new Field("PRIVILEGE", Oid.VARCHAR, getMaxNameLength());
-        f[7] = new Field("IS_GRANTABLE", Oid.VARCHAR, getMaxNameLength());
+        f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
+        f[1] = new Field("TABLE_SCHEM", Oid.VARCHAR);
+        f[2] = new Field("TABLE_NAME", Oid.VARCHAR);
+        f[3] = new Field("COLUMN_NAME", Oid.VARCHAR);
+        f[4] = new Field("GRANTOR", Oid.VARCHAR);
+        f[5] = new Field("GRANTEE", Oid.VARCHAR);
+        f[6] = new Field("PRIVILEGE", Oid.VARCHAR);
+        f[7] = new Field("IS_GRANTABLE", Oid.VARCHAR);
 
         String sql;
         if (connection.haveMinimumServerVersion("7.3"))
@@ -2506,13 +2506,13 @@ public abstract class AbstractJdbc2DatabaseMetaData
         Field f[] = new Field[7];
         Vector v = new Vector();
 
-        f[0] = new Field("TABLE_CAT", Oid.VARCHAR, getMaxNameLength());
-        f[1] = new Field("TABLE_SCHEM", Oid.VARCHAR, getMaxNameLength());
-        f[2] = new Field("TABLE_NAME", Oid.VARCHAR, getMaxNameLength());
-        f[3] = new Field("GRANTOR", Oid.VARCHAR, getMaxNameLength());
-        f[4] = new Field("GRANTEE", Oid.VARCHAR, getMaxNameLength());
-        f[5] = new Field("PRIVILEGE", Oid.VARCHAR, getMaxNameLength());
-        f[6] = new Field("IS_GRANTABLE", Oid.VARCHAR, getMaxNameLength());
+        f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
+        f[1] = new Field("TABLE_SCHEM", Oid.VARCHAR);
+        f[2] = new Field("TABLE_NAME", Oid.VARCHAR);
+        f[3] = new Field("GRANTOR", Oid.VARCHAR);
+        f[4] = new Field("GRANTEE", Oid.VARCHAR);
+        f[5] = new Field("PRIVILEGE", Oid.VARCHAR);
+        f[6] = new Field("IS_GRANTABLE", Oid.VARCHAR);
 
         String sql;
         if (connection.haveMinimumServerVersion("7.3"))
@@ -2768,14 +2768,14 @@ public abstract class AbstractJdbc2DatabaseMetaData
         Field f[] = new Field[8];
         Vector v = new Vector();  // The new ResultSet tuple stuff
 
-        f[0] = new Field("SCOPE", Oid.INT2, 2);
-        f[1] = new Field("COLUMN_NAME", Oid.VARCHAR, getMaxNameLength());
-        f[2] = new Field("DATA_TYPE", Oid.INT2, 2);
-        f[3] = new Field("TYPE_NAME", Oid.VARCHAR, getMaxNameLength());
-        f[4] = new Field("COLUMN_SIZE", Oid.INT4, 4);
-        f[5] = new Field("BUFFER_LENGTH", Oid.INT4, 4);
-        f[6] = new Field("DECIMAL_DIGITS", Oid.INT2, 2);
-        f[7] = new Field("PSEUDO_COLUMN", Oid.INT2, 2);
+        f[0] = new Field("SCOPE", Oid.INT2);
+        f[1] = new Field("COLUMN_NAME", Oid.VARCHAR);
+        f[2] = new Field("DATA_TYPE", Oid.INT2);
+        f[3] = new Field("TYPE_NAME", Oid.VARCHAR);
+        f[4] = new Field("COLUMN_SIZE", Oid.INT4);
+        f[5] = new Field("BUFFER_LENGTH", Oid.INT4);
+        f[6] = new Field("DECIMAL_DIGITS", Oid.INT2);
+        f[7] = new Field("PSEUDO_COLUMN", Oid.INT2);
 
         /* At the moment this simply returns a table's primary key,
          * if there is one.  I believe other unique indexes, ctid,
@@ -2857,14 +2857,14 @@ public abstract class AbstractJdbc2DatabaseMetaData
         Field f[] = new Field[8];
         Vector v = new Vector();  // The new ResultSet tuple stuff
 
-        f[0] = new Field("SCOPE", Oid.INT2, 2);
-        f[1] = new Field("COLUMN_NAME", Oid.VARCHAR, getMaxNameLength());
-        f[2] = new Field("DATA_TYPE", Oid.INT2, 2);
-        f[3] = new Field("TYPE_NAME", Oid.VARCHAR, getMaxNameLength());
-        f[4] = new Field("COLUMN_SIZE", Oid.INT4, 4);
-        f[5] = new Field("BUFFER_LENGTH", Oid.INT4, 4);
-        f[6] = new Field("DECIMAL_DIGITS", Oid.INT2, 2);
-        f[7] = new Field("PSEUDO_COLUMN", Oid.INT2, 2);
+        f[0] = new Field("SCOPE", Oid.INT2);
+        f[1] = new Field("COLUMN_NAME", Oid.VARCHAR);
+        f[2] = new Field("DATA_TYPE", Oid.INT2);
+        f[3] = new Field("TYPE_NAME", Oid.VARCHAR);
+        f[4] = new Field("COLUMN_SIZE", Oid.INT4);
+        f[5] = new Field("BUFFER_LENGTH", Oid.INT4);
+        f[6] = new Field("DECIMAL_DIGITS", Oid.INT2);
+        f[7] = new Field("PSEUDO_COLUMN", Oid.INT2);
 
         byte tuple[][] = new byte[8][];
 
@@ -2965,20 +2965,20 @@ public abstract class AbstractJdbc2DatabaseMetaData
     {
         Field f[] = new Field[14];
 
-        f[0] = new Field("PKTABLE_CAT", Oid.VARCHAR, getMaxNameLength());
-        f[1] = new Field("PKTABLE_SCHEM", Oid.VARCHAR, getMaxNameLength());
-        f[2] = new Field("PKTABLE_NAME", Oid.VARCHAR, getMaxNameLength());
-        f[3] = new Field("PKCOLUMN_NAME", Oid.VARCHAR, getMaxNameLength());
-        f[4] = new Field("FKTABLE_CAT", Oid.VARCHAR, getMaxNameLength());
-        f[5] = new Field("FKTABLE_SCHEM", Oid.VARCHAR, getMaxNameLength());
-        f[6] = new Field("FKTABLE_NAME", Oid.VARCHAR, getMaxNameLength());
-        f[7] = new Field("FKCOLUMN_NAME", Oid.VARCHAR, getMaxNameLength());
-        f[8] = new Field("KEY_SEQ", Oid.INT2, 2);
-        f[9] = new Field("UPDATE_RULE", Oid.INT2, 2);
-        f[10] = new Field("DELETE_RULE", Oid.INT2, 2);
-        f[11] = new Field("FK_NAME", Oid.VARCHAR, getMaxNameLength());
-        f[12] = new Field("PK_NAME", Oid.VARCHAR, getMaxNameLength());
-        f[13] = new Field("DEFERRABILITY", Oid.INT2, 2);
+        f[0] = new Field("PKTABLE_CAT", Oid.VARCHAR);
+        f[1] = new Field("PKTABLE_SCHEM", Oid.VARCHAR);
+        f[2] = new Field("PKTABLE_NAME", Oid.VARCHAR);
+        f[3] = new Field("PKCOLUMN_NAME", Oid.VARCHAR);
+        f[4] = new Field("FKTABLE_CAT", Oid.VARCHAR);
+        f[5] = new Field("FKTABLE_SCHEM", Oid.VARCHAR);
+        f[6] = new Field("FKTABLE_NAME", Oid.VARCHAR);
+        f[7] = new Field("FKCOLUMN_NAME", Oid.VARCHAR);
+        f[8] = new Field("KEY_SEQ", Oid.INT2);
+        f[9] = new Field("UPDATE_RULE", Oid.INT2);
+        f[10] = new Field("DELETE_RULE", Oid.INT2);
+        f[11] = new Field("FK_NAME", Oid.VARCHAR);
+        f[12] = new Field("PK_NAME", Oid.VARCHAR);
+        f[13] = new Field("DEFERRABILITY", Oid.INT2);
 
 
         String select;
@@ -3529,24 +3529,24 @@ public abstract class AbstractJdbc2DatabaseMetaData
         Field f[] = new Field[18];
         Vector v = new Vector();  // The new ResultSet tuple stuff
 
-        f[0] = new Field("TYPE_NAME", Oid.VARCHAR, getMaxNameLength());
-        f[1] = new Field("DATA_TYPE", Oid.INT2, 2);
-        f[2] = new Field("PRECISION", Oid.INT4, 4);
-        f[3] = new Field("LITERAL_PREFIX", Oid.VARCHAR, getMaxNameLength());
-        f[4] = new Field("LITERAL_SUFFIX", Oid.VARCHAR, getMaxNameLength());
-        f[5] = new Field("CREATE_PARAMS", Oid.VARCHAR, getMaxNameLength());
-        f[6] = new Field("NULLABLE", Oid.INT2, 2);
-        f[7] = new Field("CASE_SENSITIVE", Oid.BOOL, 1);
-        f[8] = new Field("SEARCHABLE", Oid.INT2, 2);
-        f[9] = new Field("UNSIGNED_ATTRIBUTE", Oid.BOOL, 1);
-        f[10] = new Field("FIXED_PREC_SCALE", Oid.BOOL, 1);
-        f[11] = new Field("AUTO_INCREMENT", Oid.BOOL, 1);
-        f[12] = new Field("LOCAL_TYPE_NAME", Oid.VARCHAR, getMaxNameLength());
-        f[13] = new Field("MINIMUM_SCALE", Oid.INT2, 2);
-        f[14] = new Field("MAXIMUM_SCALE", Oid.INT2, 2);
-        f[15] = new Field("SQL_DATA_TYPE", Oid.INT4, 4);
-        f[16] = new Field("SQL_DATETIME_SUB", Oid.INT4, 4);
-        f[17] = new Field("NUM_PREC_RADIX", Oid.INT4, 4);
+        f[0] = new Field("TYPE_NAME", Oid.VARCHAR);
+        f[1] = new Field("DATA_TYPE", Oid.INT2);
+        f[2] = new Field("PRECISION", Oid.INT4);
+        f[3] = new Field("LITERAL_PREFIX", Oid.VARCHAR);
+        f[4] = new Field("LITERAL_SUFFIX", Oid.VARCHAR);
+        f[5] = new Field("CREATE_PARAMS", Oid.VARCHAR);
+        f[6] = new Field("NULLABLE", Oid.INT2);
+        f[7] = new Field("CASE_SENSITIVE", Oid.BOOL);
+        f[8] = new Field("SEARCHABLE", Oid.INT2);
+        f[9] = new Field("UNSIGNED_ATTRIBUTE", Oid.BOOL);
+        f[10] = new Field("FIXED_PREC_SCALE", Oid.BOOL);
+        f[11] = new Field("AUTO_INCREMENT", Oid.BOOL);
+        f[12] = new Field("LOCAL_TYPE_NAME", Oid.VARCHAR);
+        f[13] = new Field("MINIMUM_SCALE", Oid.INT2);
+        f[14] = new Field("MAXIMUM_SCALE", Oid.INT2);
+        f[15] = new Field("SQL_DATA_TYPE", Oid.INT4);
+        f[16] = new Field("SQL_DATETIME_SUB", Oid.INT4);
+        f[17] = new Field("NUM_PREC_RADIX", Oid.INT4);
 
         String sql;
         if (connection.haveMinimumServerVersion("7.3"))
