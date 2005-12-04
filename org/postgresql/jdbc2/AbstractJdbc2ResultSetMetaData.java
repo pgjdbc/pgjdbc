@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSetMetaData.java,v 1.18 2005/09/29 23:04:45 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSetMetaData.java,v 1.19 2005/11/23 21:45:08 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -72,22 +72,8 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
      */
     public boolean isCaseSensitive(int column) throws SQLException
     {
-        int sql_type = getSQLType(column);
-
-        switch (sql_type)
-        {
-        case Types.SMALLINT:
-        case Types.INTEGER:
-        case Types.FLOAT:
-        case Types.REAL:
-        case Types.DOUBLE:
-        case Types.DATE:
-        case Types.TIME:
-        case Types.TIMESTAMP:
-            return false;
-        default:
-            return true;
-        }
+        Field field = getField(column);
+        return TypeInfoCache.isCaseSensitive(field.getOID());
     }
 
     /*
@@ -104,17 +90,7 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
      */
     public boolean isSearchable(int column) throws SQLException
     {
-        int sql_type = getSQLType(column);
-
-        // This switch is pointless, I know - but it is a set-up
-        // for further expansion.
-        switch (sql_type)
-        {
-        case Types.OTHER:
-            return true;
-        default:
-            return true;
-        }
+        return true;
     }
 
     /*
@@ -157,23 +133,8 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
      */
     public boolean isSigned(int column) throws SQLException
     {
-        int sql_type = getSQLType(column);
-
-        switch (sql_type)
-        {
-        case Types.SMALLINT:
-        case Types.INTEGER:
-        case Types.FLOAT:
-        case Types.REAL:
-        case Types.DOUBLE:
-            return true;
-        case Types.DATE:
-        case Types.TIME:
-        case Types.TIMESTAMP:
-            return false; // I don't know about these?
-        default:
-            return false;
-        }
+        Field field = getField(column);
+        return TypeInfoCache.isSigned(field.getOID());
     }
 
     /*
@@ -185,98 +146,8 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
      */
     public int getColumnDisplaySize(int column) throws SQLException
     {
-        Field f = getField(column);
-        String type_name = getPGType(column);
-        int typmod = f.getMod();
-
-        // I looked at other JDBC implementations and couldn't find a consistent
-        // interpretation of the "display size" for numeric values, so this is our's
-        // FIXME: currently, only types with a SQL92 or SQL3 pendant are implemented - jens@jens.de
-
-        // fixed length data types
-        if (type_name.equals( "int2" ))
-            return 6;  // -32768 to +32768 (5 digits and a sign)
-        if (type_name.equals( "int4" )
-                || type_name.equals( "oid" ))
-            return 11; // -2147483648 to +2147483647
-        if (type_name.equals( "int8" ))
-            return 20; // -9223372036854775808 to +9223372036854775807
-        if (type_name.equals( "money" ))
-            return 12; // MONEY = DECIMAL(9,2)
-        if (type_name.equals( "float4" ))
-            return 11; // i checked it out ans wasn't able to produce more than 11 digits
-        if (type_name.equals( "float8" ))
-            return 20; // dito, 20
-        if (type_name.equals( "char" ))
-            return 1;
-        if (type_name.equals( "bool" ))
-            return 1;
-
-        int secondSize;
-        switch (typmod)
-        {
-        case 0:
-            secondSize = 0;
-            break;
-        case - 1:
-            // six digits plus the decimal point
-            secondSize = 7;
-            break;
-        default:
-            // with an odd scale an even number of digits
-            // are always show so timestamp(1) will print
-            // two fractional digits.
-            secondSize = typmod + (typmod % 2) + 1;
-            break;
-        }
-
-        if (type_name.equals( "date" ))
-            return 13; // "01/01/4713 BC" - "31/12/32767"
-
-        // If we knew the timezone we could avoid having to possibly
-        // account for fractional hour offsets (which adds three chars).
-        //
-        // Also the range of timestamp types is not exactly clear.
-        // 4 digits is the common case for a year, but there are
-        // version/compilation dependencies on the exact date ranges,
-        // (notably --enable-integer-datetimes), but for now we'll
-        // just ignore them and assume that a year is four digits.
-        //
-        if (type_name.equals( "time" ))
-            return 8 + secondSize;  // 00:00:00 + seconds
-        if (type_name.equals( "timetz" ))
-            return 8 + secondSize + 6; // 00:00.00 + .000000 + -00:00
-        if (type_name.equals( "timestamp" ))
-            return 19 + secondSize; // 0000-00-00 00:00:00 + .000000;
-        if (type_name.equals( "timestamptz" ))
-            return 19 + secondSize + 6; // 0000-00-00 00:00:00 + .000000 + -00:00;
-
-        // variable length fields
-        typmod -= 4;
-        if (type_name.equals( "bpchar" ) || type_name.equals( "varchar" )) {
-            if (typmod < 0)
-                return Integer.MAX_VALUE;
-            return typmod; // VARHDRSZ=sizeof(int32)=4
-        }
-
-        if (type_name.equals( "numeric" )) {
-            if (typmod + 4 == -1)
-                return 1002;  // digits + sign + decimal point
-            int precision = (typmod >> 16) & 0xffff;
-            int scale = (typmod & 0xffff);
-            // sign + digits + decimal point (only if we have nonzero scale)
-            return 1 + precision + (scale != 0 ? 1 : 0);
-        }
-
-        if (type_name.equals("text") || type_name.equals("bytea"))
-            return Integer.MAX_VALUE;
-
-        // if we don't know better
-        int size = f.getLength();
-        if (size < 0) {
-            size = Integer.MAX_VALUE;
-        }
-        return size;
+        Field field = getField(column);
+        return TypeInfoCache.getDisplaySize(field.getOID(), field.getMod());
     }
 
     /*
@@ -286,10 +157,8 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
      */
     public String getColumnLabel(int column) throws SQLException
     {
-        Field f = getField(column);
-        if (f != null)
-            return f.getColumnLabel();
-        return "field" + column;
+        Field field = getField(column);
+        return field.getColumnLabel();
     }
 
     /*
@@ -373,40 +242,8 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
      */
     public int getPrecision(int column) throws SQLException
     {
-        int sql_type = getSQLType(column);
-
-        switch (sql_type)
-        {
-        case Types.SMALLINT:
-            return 5;
-        case Types.INTEGER:
-            return 10;
-        case Types.REAL:
-            return 8;
-        case Types.FLOAT:
-            return 16;
-        case Types.DOUBLE:
-            return 16;
-        case Types.VARCHAR:
-            return 0;
-        case Types.NUMERIC:
-            Field f = getField(column);
-            if (f != null)
-            {
-                // no specified precision or scale
-                if (f.getMod() == -1)
-                {
-                    return -1;
-                }
-                return ((0xFFFF0000)&f.getMod()) >> 16;
-            }
-            else
-            {
-                return 0;
-            }
-        default:
-            return 0;
-        }
+        Field field = getField(column);
+        return TypeInfoCache.getPrecision(field.getOID(), field.getMod());
     }
 
     /*
@@ -419,52 +256,8 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
      */
     public int getScale(int column) throws SQLException
     {
-        int sql_type = getSQLType(column);
-
-        switch (sql_type)
-        {
-        case Types.SMALLINT:
-            return 0;
-        case Types.INTEGER:
-            return 0;
-        case Types.REAL:
-            return 8;
-        case Types.FLOAT:
-            return 16;
-        case Types.DOUBLE:
-            return 16;
-        case Types.VARCHAR:
-            return 0;
-        case Types.NUMERIC:
-            Field f = getField(column);
-            if (f != null)
-            {
-                // no specified precision or scale
-                if (f.getMod() == -1)
-                {
-                    return -1;
-                }
-                return (((0x0000FFFF)&f.getMod()) - 4);
-            }
-            else
-            {
-                return 0;
-            }
-        case Types.TIME:
-        case Types.TIMESTAMP:
-            int typmod = -1;
-
-            Field fld = getField(column);
-            if (fld != null)
-                typmod = fld.getMod();
-
-            if (typmod == -1)
-                return 6;
-
-            return typmod;
-        default:
-            return 0;
-        }
+        Field field = getField(column);
+        return TypeInfoCache.getScale(field.getOID(), field.getMod());
     }
 
     /*
@@ -658,44 +451,21 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
     public String getColumnClassName(int column) throws SQLException
     {
         Field field = getField(column);
-        int sql_type = getSQLType(column);
+        String result = connection.getJavaClass(field.getOID());
 
-        switch (sql_type)
-        {
-        case Types.BIT:
-            return ("java.lang.Boolean");
-        case Types.SMALLINT:
-        case Types.INTEGER:
-            return ("java.lang.Integer");
-        case Types.BIGINT:
-            return ("java.lang.Long");
-        case Types.NUMERIC:
-            return ("java.math.BigDecimal");
-        case Types.REAL:
-            return ("java.lang.Float");
-        case Types.DOUBLE:
-            return ("java.lang.Double");
-        case Types.CHAR:
-        case Types.VARCHAR:
-            return ("java.lang.String");
-        case Types.DATE:
-            return ("java.sql.Date");
-        case Types.TIME:
-            return ("java.sql.Time");
-        case Types.TIMESTAMP:
-            return ("java.sql.Timestamp");
-        case Types.BINARY:
-        case Types.VARBINARY:
-            return ("[B");
-        case Types.ARRAY:
-            return ("java.sql.Array");
-        default:
-            String type = getPGType(column);
-            if ("unknown".equals(type))
-            {
-                return ("java.lang.String");
-            }
-            return ("java.lang.Object");
+        if (result != null)
+            return result;
+
+        int sqlType = getSQLType(column);
+        switch(sqlType) {
+            case Types.ARRAY:
+                return ("java.sql.Array");
+            default:
+                String type = getPGType(column);
+                if ("unknown".equals(type)) {
+                    return ("java.lang.String");
+                }
+                return ("java.lang.Object");
         }
     }
 }

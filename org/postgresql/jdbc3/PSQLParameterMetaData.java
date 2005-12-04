@@ -3,7 +3,7 @@
 * Copyright (c) 2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/PSQLParameterMetaData.java,v 1.1 2005/02/01 07:27:54 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/PSQLParameterMetaData.java,v 1.2 2005/04/10 21:54:16 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -16,6 +16,7 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLException;
 import org.postgresql.core.BaseConnection;
+import org.postgresql.jdbc2.TypeInfoCache;
 
 public class PSQLParameterMetaData implements ParameterMetaData {
 
@@ -74,7 +75,7 @@ public class PSQLParameterMetaData implements ParameterMetaData {
     // pg doesn't have unsigned numbers
     public boolean isSigned(int param) throws SQLException {
         checkParamIndex(param);
-        return true;
+        return TypeInfoCache.isSigned(_oids[param-1]);
     }
 
     private void checkParamIndex(int param) throws PSQLException {

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ResultSetMetaDataTest.java,v 1.12 2005/09/29 23:04:46 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ResultSetMetaDataTest.java,v 1.13 2005/11/23 21:45:09 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -161,10 +161,10 @@ public class ResultSetMetaDataTest extends TestCase
         assertEquals(6, rsmd.getScale(3));
         assertEquals(6, rsmd.getScale(4));
 
-        assertEquals(13, rsmd.getColumnDisplaySize(1));
+        assertEquals(12, rsmd.getColumnDisplaySize(1));
         assertEquals(21, rsmd.getColumnDisplaySize(2));
-        assertEquals(26, rsmd.getColumnDisplaySize(3));
-        assertEquals(32, rsmd.getColumnDisplaySize(4));
+        assertEquals(29, rsmd.getColumnDisplaySize(3));
+        assertEquals(35, rsmd.getColumnDisplaySize(4));
 
         rs.close();
         stmt.close();
@@ -182,7 +182,7 @@ public class ResultSetMetaDataTest extends TestCase
         assertEquals(Integer.MAX_VALUE, rsmd.getColumnDisplaySize(5));
         assertEquals(8, rsmd.getColumnDisplaySize(6));
         assertEquals(7, rsmd.getColumnDisplaySize(7));
-        assertEquals(1002, rsmd.getColumnDisplaySize(8));
+        assertEquals(131089, rsmd.getColumnDisplaySize(8));
         assertEquals(Integer.MAX_VALUE, rsmd.getColumnDisplaySize(9));
     }
 

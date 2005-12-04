@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.26 2005/11/29 06:01:44 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.27 2005/12/03 21:44:12 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -36,8 +36,6 @@ public abstract class AbstractJdbc2DatabaseMetaData
                                            "vacuum,verbose,version";
 
     protected final AbstractJdbc2Connection connection; // The connection association
-
-    protected static final int VARHDRSZ = 4; // length for int4
 
     private int NAMEDATALEN = 0; // length for name datatype
     private int INDEX_MAX_KEYS = 0; // maximum number of keys in an index.
@@ -2278,6 +2276,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         {
             byte[][] tuple = new byte[18][];
             int typeOid = rs.getInt("atttypid");
+            int typeMod = rs.getInt("atttypmod");
 
             tuple[0] = null;     // Catalog name, not supported
             tuple[1] = rs.getBytes("nspname"); // Schema
@@ -2286,6 +2285,8 @@ public abstract class AbstractJdbc2DatabaseMetaData
             tuple[4] = connection.encodeString(Integer.toString(connection.getSQLType(typeOid)));
             String pgType = connection.getPGType(typeOid);
             tuple[5] = connection.encodeString(pgType); // Type name
+            tuple[7] = null;      // Buffer length
+
 
             String defval = rs.getString("adsrc");
 
@@ -2303,35 +2304,22 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 }
             }
 
-            // by default no decimal_digits
-            // if the type is numeric or decimal we will
-            // overwrite later.
-            tuple[8] = connection.encodeString("0");
+            int decimalDigits = TypeInfoCache.getScale(typeOid, typeMod);
+            int columnSize = TypeInfoCache.getPrecision(typeOid, typeMod);
+            if (columnSize == 0) {
+                columnSize = TypeInfoCache.getDisplaySize(typeOid, typeMod);
+            }
 
-            if (pgType.equals("bpchar") || pgType.equals("varchar"))
+            tuple[6] = connection.encodeString(Integer.toString(columnSize));
+            tuple[8] = connection.encodeString(Integer.toString(decimalDigits));
+
+            // Everything is base 10 unless we override later.
+            tuple[9] = connection.encodeString("10");
+
+            if (pgType.equals("bit") || pgType.equals("varbit"))
             {
-                int atttypmod = rs.getInt("atttypmod");
-                tuple[6] = connection.encodeString(Integer.toString(atttypmod != -1 ? atttypmod - VARHDRSZ : 0));
-            }
-            else if (pgType.equals("numeric") || pgType.equals("decimal"))
-            {
-                int attypmod = rs.getInt("atttypmod") - VARHDRSZ;
-                tuple[6] = connection.encodeString(Integer.toString( ( attypmod >> 16 ) & 0xffff ));
-                tuple[8] = connection.encodeString(Integer.toString(attypmod & 0xffff));
-                tuple[9] = connection.encodeString("10");
-            }
-            else if (pgType.equals("bit") || pgType.equals("varbit"))
-            {
-                tuple[6] = rs.getBytes("atttypmod");
                 tuple[9] = connection.encodeString("2");
             }
-            else
-            {
-                tuple[6] = rs.getBytes("attlen");
-                tuple[9] = connection.encodeString("10");
-            }
-
-            tuple[7] = null;      // Buffer length
 
             tuple[10] = connection.encodeString(Integer.toString(rs.getBoolean("attnotnull") ? java.sql.DatabaseMetaData.columnNoNulls : java.sql.DatabaseMetaData.columnNullable)); // Nullable
             tuple[11] = rs.getBytes("description");    // Description (if any)
@@ -2797,7 +2785,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         {
             from = " FROM pg_class ct, pg_class ci, pg_attribute a, pg_index i ";
         }
-        String sql = "SELECT a.attname, a.atttypid " +
+        String sql = "SELECT a.attname, a.atttypid, a.atttypmod " +
                      from +
                      " WHERE ct.oid=i.indrelid AND ci.oid=i.indexrelid " +
                      " AND a.attrelid=ci.oid AND i.indisprimary " +
@@ -2809,14 +2797,20 @@ public abstract class AbstractJdbc2DatabaseMetaData
         while (rs.next())
         {
             byte tuple[][] = new byte[8][];
-            int columnTypeOid = rs.getInt("atttypid");
+            int typeOid = rs.getInt("atttypid");
+            int typeMod = rs.getInt("atttypmod");
+            int decimalDigits = TypeInfoCache.getScale(typeOid, typeMod);
+            int columnSize = TypeInfoCache.getPrecision(typeOid, typeMod);
+            if (columnSize == 0) {
+                columnSize = TypeInfoCache.getDisplaySize(typeOid, typeMod);
+            }
             tuple[0] = connection.encodeString(Integer.toString(scope));
             tuple[1] = rs.getBytes("attname");
-            tuple[2] = connection.encodeString(Integer.toString(connection.getSQLType(columnTypeOid)));
-            tuple[3] = connection.encodeString(connection.getPGType(columnTypeOid));
-            tuple[4] = null;
-            tuple[5] = null;
-            tuple[6] = null;
+            tuple[2] = connection.encodeString(Integer.toString(connection.getSQLType(typeOid)));
+            tuple[3] = connection.encodeString(connection.getPGType(typeOid));
+            tuple[4] = connection.encodeString(Integer.toString(columnSize));
+            tuple[5] = null; // unused
+            tuple[6] = connection.encodeString(Integer.toString(decimalDigits));
             tuple[7] = connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.bestRowNotPseudo));
             v.addElement(tuple);
         }
@@ -3551,39 +3545,43 @@ public abstract class AbstractJdbc2DatabaseMetaData
         String sql;
         if (connection.haveMinimumServerVersion("7.3"))
         {
-            sql = "SELECT typname FROM pg_catalog.pg_type";
+            sql = "SELECT typname,oid FROM pg_catalog.pg_type";
         }
         else
         {
-            sql = "SELECT typname FROM pg_type";
+            sql = "SELECT typname,oid FROM pg_type";
         }
 
         ResultSet rs = connection.createStatement().executeQuery(sql);
         // cache some results, this will keep memory useage down, and speed
         // things up a little.
-        byte b9[] = connection.encodeString("9");
+        byte bZero[] = connection.encodeString("0");
         byte b10[] = connection.encodeString("10");
         byte bf[] = connection.encodeString("f");
         byte bt[] = connection.encodeString("t");
-        byte bnn[] = connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.typeNoNulls));
-        byte bts[] = connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.typeSearchable));
+        byte bNullable[] = connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.typeNullable));
+        byte bSearchable[] = connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.typeSearchable));
 
         while (rs.next())
         {
             byte[][] tuple = new byte[18][];
             String typname = rs.getString(1);
+            int typeOid = rs.getInt(2);
+
             tuple[0] = connection.encodeString(typname);
             tuple[1] = connection.encodeString(Integer.toString(connection.getSQLType(typname)));
-            tuple[2] = b9; // for now
-            tuple[6] = bnn; // for now
-            tuple[7] = bf; // false for now - not case sensitive
-            tuple[8] = bts;
-            tuple[9] = bf; // false for now - it's signed
+            tuple[2] = connection.encodeString(Integer.toString(TypeInfoCache.getMaximumPrecision(typeOid)));
+            tuple[6] = bNullable; // all types can be null
+            tuple[7] = TypeInfoCache.isCaseSensitive(typeOid) ? bt : bf;
+            tuple[8] = bSearchable; // any thing can be used in the WHERE clause
+            tuple[9] = TypeInfoCache.isSigned(typeOid) ? bt : bf;
             tuple[10] = bf; // false for now - must handle money
             tuple[11] = bf; // false - it isn't autoincrement
+            tuple[13] = bZero; // min scale is zero
+            // only numeric can supports a scale.
+            tuple[14] = (typeOid == Oid.NUMERIC) ? connection.encodeString("1000") : bZero;
 
             // 12 - LOCAL_TYPE_NAME is null
-            // 13 & 14 ?
             // 15 & 16 are unused so we return null
             tuple[17] = b10; // everything is base 10
             v.addElement(tuple);

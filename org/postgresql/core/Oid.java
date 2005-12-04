@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/Oid.java,v 1.9 2005/07/04 18:50:28 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/Oid.java,v 1.10 2005/11/24 06:18:28 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -36,5 +36,8 @@ public class Oid {
     public static final int NAME = 19;
     public static final int BIT = 1560;
     public static final int VOID = 2278;
+    public static final int INTERVAL = 1186;
+    public static final int CHAR = 18; // This is not char(N), this is "char" a single byte type.
+    public static final int VARBIT = 1562;
 
 }
