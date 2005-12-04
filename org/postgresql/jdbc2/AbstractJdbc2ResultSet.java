@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.79 2005/10/25 22:44:27 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.80 2005/11/05 09:24:15 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -459,6 +459,9 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public Object getObjectImpl(int i, java.util.Map map) throws SQLException
     {
         checkClosed();
+        if (map == null || map.isEmpty()) {
+            return getObject(i);
+        }
         throw org.postgresql.Driver.notImplemented(this.getClass(), "getObjectImpl(int,Map)");
     }
 
