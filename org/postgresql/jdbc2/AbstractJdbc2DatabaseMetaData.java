@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.24 2005/09/14 19:08:50 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.24.2.1 2005/11/29 06:02:16 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2505,6 +2505,22 @@ public abstract class AbstractJdbc2DatabaseMetaData
             {
                 tuple[6] = rs.getBytes("atttypmod");
                 tuple[9] = connection.encodeString("2");
+            }
+            else if (pgType.equals("time") || pgType.equals("timetz") || pgType.equals("timestamp") || pgType.equals("timestamptz")) {
+                int scale = rs.getInt("atttypmod");
+                if (scale == -1)
+                    scale = 6;
+                tuple[8] = connection.encodeString(Integer.toString(scale));
+                tuple[6] = rs.getBytes("attlen");
+            }
+            else if (pgType.equals("interval")) {
+                int scale = rs.getInt("atttypmod");
+                if (scale == -1)
+                        scale = 6;
+                else
+                        scale = scale & 0xFFFF;
+                tuple[8] = connection.encodeString(Integer.toString(scale));
+                tuple[6] = rs.getBytes("attlen");
             }
             else
             {

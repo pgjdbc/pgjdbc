@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSetMetaData.java,v 1.18 2005/09/29 23:04:45 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSetMetaData.java,v 1.18.2.1 2005/11/23 21:54:02 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -364,6 +364,7 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
     public int getPrecision(int column) throws SQLException
     {
         int sql_type = getSQLType(column);
+        Field field;
 
         switch (sql_type)
         {
@@ -371,24 +372,35 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
             return 5;
         case Types.INTEGER:
             return 10;
+        case Types.BIGINT:
+            return 19;
         case Types.REAL:
             return 8;
         case Types.FLOAT:
             return 16;
         case Types.DOUBLE:
             return 16;
+        case Types.CHAR:
         case Types.VARCHAR:
-            return 0;
+            field = getField(column);
+            int typmod = -1;
+            if (field != null)
+            {
+                typmod = field.getMod();
+            }
+            if (typmod == -1)
+                return 0;
+            return field.getMod() - 4;
         case Types.NUMERIC:
-            Field f = getField(column);
-            if (f != null)
+            field = getField(column);
+            if (field != null)
             {
                 // no specified precision or scale
-                if (f.getMod() == -1)
+                if (field.getMod() == -1)
                 {
                     return -1;
                 }
-                return ((0xFFFF0000)&f.getMod()) >> 16;
+                return ((0xFFFF0000)&field.getMod()) >> 16;
             }
             else
             {
@@ -411,30 +423,27 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
     {
         int sql_type = getSQLType(column);
 
+        Field field;
+        int typmod;
+
         switch (sql_type)
         {
-        case Types.SMALLINT:
-            return 0;
-        case Types.INTEGER:
-            return 0;
         case Types.REAL:
             return 8;
         case Types.FLOAT:
             return 16;
         case Types.DOUBLE:
             return 16;
-        case Types.VARCHAR:
-            return 0;
         case Types.NUMERIC:
-            Field f = getField(column);
-            if (f != null)
+            field = getField(column);
+            if (field != null)
             {
                 // no specified precision or scale
-                if (f.getMod() == -1)
+                if (field.getMod() == -1)
                 {
                     return -1;
                 }
-                return (((0x0000FFFF)&f.getMod()) - 4);
+                return (((0x0000FFFF)&field.getMod()) - 4);
             }
             else
             {
@@ -442,16 +451,31 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
             }
         case Types.TIME:
         case Types.TIMESTAMP:
-            int typmod = -1;
-
-            Field fld = getField(column);
-            if (fld != null)
-                typmod = fld.getMod();
+            typmod = -1;
+            field = getField(column);
+            if (field != null)
+                typmod = field.getMod();
 
             if (typmod == -1)
                 return 6;
 
             return typmod;
+        case Types.OTHER:
+            String type = getColumnTypeName(column);
+
+            if ("interval".equals(type)) {
+                typmod = -1;
+                field = getField(column);
+                if (field != null)
+                    typmod = field.getMod();
+
+                if (typmod == -1)
+                    return 6;
+
+                return typmod & 0xFFFF;
+            }
+
+            return 0;
         default:
             return 0;
         }
