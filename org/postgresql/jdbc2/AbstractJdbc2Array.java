@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Array.java,v 1.16 2005/11/24 02:29:21 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Array.java,v 1.17 2005/12/03 21:44:12 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -83,7 +83,7 @@ public class AbstractJdbc2Array
 
     public Object getArrayImpl(long index, int count, Map map) throws SQLException
     {
-        if ( map != null ) // For now maps aren't supported.
+        if ( map != null && !map.isEmpty()) // For now maps aren't supported.
             throw org.postgresql.Driver.notImplemented(this.getClass(), "getArrayImpl(long,int,Map)");
 
         if (index < 1)
