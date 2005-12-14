@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/Jdbc3CallableStatement.java,v 1.12 2005/07/08 17:38:30 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/Jdbc3CallableStatement.java,v 1.13 2005/07/16 12:17:48 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -19,8 +19,10 @@ class Jdbc3CallableStatement extends Jdbc3PreparedStatement implements CallableS
     {
         super(connection, sql, true, rsType, rsConcurrency, rsHoldability);
         if ( !connection.haveMinimumServerVersion("8.1") || connection.getProtocolVersion() == 2)
-        {
-            adjustIndex = true;
+        {            
+            // if there is no out parameter before the function determined by modifyJdbcCall then do not
+            // set adjustIndex to true
+            adjustIndex = outParmBeforeFunc;
         }
     }
    
