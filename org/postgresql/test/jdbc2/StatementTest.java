@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.15.2.1 2005/08/12 18:22:31 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.15.2.2 2005/11/05 09:27:56 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -92,6 +92,14 @@ public class StatementTest extends TestCase
         assertEquals(2, rs.getInt(1));
         rs.close();
         stmt.close();
+    }
+
+    public void testEmptyQuery() throws SQLException
+    {
+        Statement stmt = con.createStatement();
+        stmt.execute("");
+        assertNull(stmt.getResultSet());
+        assertTrue(!stmt.getMoreResults());
     }
 
     public void testUpdateCount() throws SQLException

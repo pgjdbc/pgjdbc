@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/QueryExecutorImpl.java,v 1.10.2.1 2005/02/10 19:52:45 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/QueryExecutorImpl.java,v 1.10.2.2 2005/02/15 08:55:50 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -443,8 +443,9 @@ public class QueryExecutorImpl implements QueryExecutor {
             case 'I':  // Empty Query
                 if (Driver.logDebug)
                     Driver.debug(" <=BE EmptyQuery");
-                /* discard */
-                pgStream.ReceiveIntegerR(4);
+                c = pgStream.ReceiveChar();
+                if (c != 0)
+                    throw new IOException("Expected \\0 after EmptyQuery, got: " + c);
                 break;
 
             case 'N':  // Error Notification
