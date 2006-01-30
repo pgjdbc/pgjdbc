@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CallableStmtTest.java,v 1.16 2005/06/21 18:07:08 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CallableStmtTest.java,v 1.17 2005/07/04 18:50:29 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -37,6 +37,9 @@ public class CallableStmtTest extends TestCase
         stmt.execute ("CREATE OR REPLACE FUNCTION testspg__getDouble (float) " +
                       "RETURNS float AS ' DECLARE inString alias for $1; begin " +
                       "return 42.42; end; ' LANGUAGE 'plpgsql';");
+        stmt.execute ("CREATE OR REPLACE FUNCTION testspg__getVoid (float) " +
+                "RETURNS void AS ' DECLARE inString alias for $1; begin " +
+                " return; end; ' LANGUAGE 'plpgsql';");
         stmt.execute ("CREATE OR REPLACE FUNCTION testspg__getInt (int) RETURNS int " +
                       " AS 'DECLARE inString alias for $1; begin " +
                       "return 42; end;' LANGUAGE 'plpgsql';");      
@@ -60,6 +63,7 @@ public class CallableStmtTest extends TestCase
         Statement stmt = con.createStatement ();
         stmt.execute ("drop FUNCTION testspg__getString (varchar);");
         stmt.execute ("drop FUNCTION testspg__getDouble (float);");
+        stmt.execute( "drop FUNCTION testspg__getVoid(float);");
         stmt.execute ("drop FUNCTION testspg__getInt (int);");
         stmt.execute ("drop FUNCTION testspg__getShort(int2)");
         stmt.execute ("drop FUNCTION testspg__getNumeric (numeric);");
@@ -85,6 +89,15 @@ public class CallableStmtTest extends TestCase
         call.registerOutParameter (1, Types.DOUBLE);
         call.execute ();
         assertEquals(42.42, call.getDouble(1), 0.00001);
+        
+        // test without an out parameter
+        call = con.prepareCall( "{ call " + pkgName + "getDouble(?) }");
+        call.setDouble( 1, (double)3.04 );
+        call.execute();
+        
+        call = con.prepareCall( "{ call " + pkgName + "getVoid(?) }");
+        call.setDouble( 1, (double)3.04 );
+        call.execute();
     }
 
     public void testGetInt () throws Throwable

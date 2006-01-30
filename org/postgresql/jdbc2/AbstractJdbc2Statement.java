@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.84 2005/10/03 17:27:31 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.84.2.1 2005/12/04 21:41:21 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -68,8 +68,15 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
      * logic and old function call logic
      * will be set to true if the server is < 8.1 or 
      * if we are using v2 protocol
+     * There is an exception to this where we are using v3, and the
+     * call does not have an out parameter before the call
      */
     protected boolean adjustIndex = false;
+    
+    /*
+     * Used to set adjustIndex above
+     */
+    protected boolean outParmBeforeFunc=false;
     
     // Static variables for parsing SQL when replaceProcessing is true.
     private static final short IN_SQLCODE = 0;
@@ -2098,7 +2105,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         int len = p_sql.length();
         int state = 1;
         boolean inQuotes = false, inEscape = false;
-        boolean outParmBeforeFunc = false;
+        outParmBeforeFunc = false;
         int startIndex = -1, endIndex = -1;
         boolean syntaxError = false;
         int i = 0;

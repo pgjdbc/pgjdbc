@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3g/Jdbc3gCallableStatement.java,v 1.4 2005/01/11 08:25:47 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3g/Jdbc3gCallableStatement.java,v 1.5 2005/08/12 18:09:02 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -19,7 +19,9 @@ class Jdbc3gCallableStatement extends Jdbc3gPreparedStatement implements Callabl
         super(connection, sql, true, rsType, rsConcurrency, rsHoldability);
         if ( !connection.haveMinimumServerVersion("8.1") || connection.getProtocolVersion() == 2)
         {
-            adjustIndex = true;
+            // if there is no out parameter before the function determined by modifyJdbcCall then do not
+            // set adjustIndex to true
+            adjustIndex = outParmBeforeFunc;
         }
     }
 
