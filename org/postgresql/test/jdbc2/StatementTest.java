@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.17 2005/11/05 09:27:13 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.18 2005/12/15 23:27:01 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -343,6 +343,15 @@ public class StatementTest extends TestCase
         assertTrue(rs.next());
         assertEquals(2, rs.getInt(1));
         assertTrue(!rs.next());
+    }
+
+    public void testUnbalancedParensParseError() throws SQLException
+    {
+        Statement stmt = con.createStatement();
+        try {
+            stmt.executeQuery("SELECT i FROM test_statement WHERE (1 > 0)) ORDER BY i");
+            fail("Should have thrown a parse error.");
+        } catch (SQLException sqle) { }
     }
 
 }
