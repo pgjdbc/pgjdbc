@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.68.2.10 2005/10/03 17:26:36 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.68.2.11 2005/12/04 21:41:36 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -701,8 +701,21 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         {
             // Since escape codes can only appear in SQL CODE, we keep track
             // of if we enter a string or not.
-            StringBuffer newsql = new StringBuffer(p_sql.length());
-            parseSql(p_sql,0,newsql,false);
+            int len = p_sql.length();
+            StringBuffer newsql = new StringBuffer(len);
+            int i=0;
+            while (i<len){
+                i=parseSql(p_sql,i,newsql,false);
+                // We need to loop here in case we encounter invalid
+                // SQL, consider: SELECT a FROM t WHERE (1 > 0)) ORDER BY a
+                // We can't ending replacing after the extra closing paren
+                // because that changes a syntax error to a valid query
+                // that isn't what the user specified.
+                if (i < len) {
+                    newsql.append(p_sql.charAt(i));
+                    i++;
+                }
+            }
             return newsql.toString();
         }
         else
@@ -868,7 +881,6 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             StringBuffer arg = new StringBuffer();
             int lastPos=i;
             i=parseSql(args,i,arg,true);
-            int nestedCount=0;
             if (lastPos!=i){
                 parsedArgs.add(arg);
             }
