@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.27 2005/12/03 21:44:12 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.28 2005/12/04 20:14:28 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1561,18 +1561,14 @@ public abstract class AbstractJdbc2DatabaseMetaData
     protected static String escapeQuotes(String s) {
         StringBuffer sb = new StringBuffer();
         int length = s.length();
-        char prevChar = ' ';
-        char prevPrevChar = ' ';
         for (int i = 0; i < length; i++)
         {
             char c = s.charAt(i);
-            sb.append(c);
-            if (c == '\'' && (prevChar != '\\' || (prevChar == '\\' && prevPrevChar == '\\')))
+            if (c == '\'' || c == '\\')
             {
-                sb.append("'");
+                sb.append('\\');
             }
-            prevPrevChar = prevChar;
-            prevChar = c;
+            sb.append(c);
         }
         return sb.toString();
     }
