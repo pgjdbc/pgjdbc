@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.31 2004/11/09 08:54:19 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.32 2005/01/11 08:25:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -37,6 +37,8 @@ public class DatabaseMetaDataTest extends TestCase
         TestUtil.dropSequence( con, "sercoltest_b_seq");
         TestUtil.dropSequence( con, "sercoltest_c_seq");
         TestUtil.createTable( con, "sercoltest", "a int, b serial, c bigserial");
+        TestUtil.createTable( con, "\"a\\\"", "a int4");
+        TestUtil.createTable( con, "\"a'\"", "a int4");
 
         Statement stmt = con.createStatement();
         //we add the following comments to ensure the joins to the comments
@@ -50,6 +52,8 @@ public class DatabaseMetaDataTest extends TestCase
         TestUtil.dropTable( con, "sercoltest");
         TestUtil.dropSequence( con, "sercoltest_b_seq");
         TestUtil.dropSequence( con, "sercoltest_c_seq");
+        TestUtil.dropTable( con, "\"a\\\"");
+        TestUtil.dropTable( con, "\"a'\"");
 
         TestUtil.closeDB( con );
     }
@@ -479,6 +483,16 @@ public class DatabaseMetaDataTest extends TestCase
             assertTrue(!foundPublic);
             assertTrue(!foundPGCatalog);
         }
+    }
+
+    public void testEscaping() throws SQLException {
+        DatabaseMetaData dbmd = con.getMetaData();
+        ResultSet rs = dbmd.getTables( null, null, "a'", new String[] {"TABLE"});
+        assertTrue(rs.next());
+        rs = dbmd.getTables( null, null, "a\\\\", new String[] {"TABLE"});
+        assertTrue(rs.next());
+        rs = dbmd.getTables( null, null, "a\\", new String[] {"TABLE"});
+        assertTrue(!rs.next());
     }
 
     public void testSearchStringEscape() throws Exception {
