@@ -3,7 +3,7 @@
  * Copyright (c) 2005, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.2 2005/11/24 06:18:29 oliver Exp $
+ *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.3 2005/12/04 20:14:29 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -30,7 +30,7 @@ import org.postgresql.util.PSQLException;
 public class TypeInfoCache {
 
     // pgname (String) -> java.sql.Types (Integer)
-    private static Map _pgNameToSQLType;
+    private Map _pgNameToSQLType;
 
     // pgname (String) -> java class name (String)
     // ie "text" -> "java.lang.String"
