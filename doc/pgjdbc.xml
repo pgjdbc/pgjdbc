@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!--
   Copyright (c) 2004-2005, PostgreSQL Global Development Group
-  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.26 2005/11/23 19:24:55 jurka Exp $
+  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.27 2005/11/24 06:36:03 oliver Exp $
 -->
 
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN" "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">
@@ -2039,6 +2039,18 @@ rs = stmt.executeQuery( "select * from {oj a left outer join b on (a.i=b.i)} ");
        <entry>yes</entry>
        <entry>extract(year from arg1)</entry>
        <entry></entry>
+      </row>
+      <row>
+       <entry>timestampadd(argIntervalType,argCount,argTimeStamp)</entry>
+       <entry>yes</entry>
+       <entry>('(interval according to argIntervalType and argCount)'+argTimeStamp)</entry>
+       <entry>an argIntervalType value of <classname>SQL_TSI_FRAC_SECOND</classname> is not implemented since backend does not support it</entry>
+      </row>
+      <row>
+       <entry>timestampdiff(argIntervalType,argTimeStamp1,argTimeStamp2)</entry>
+       <entry>not</entry>
+       <entry>extract((interval according to argIntervalType) from argTimeStamp2-argTimeStamp1  )</entry>
+       <entry>only an argIntervalType value of <classname>SQL_TSI_FRAC_SECOND</classname>,<classname>SQL_TSI_FRAC_MINUTE</classname>,<classname>SQL_TSI_FRAC_HOUR</classname> or <classname>SQL_TSI_FRAC_DAY</classname> is supported </entry>
       </row>
      </tbody>
     </tgroup>

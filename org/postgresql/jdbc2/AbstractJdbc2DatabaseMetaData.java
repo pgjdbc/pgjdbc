@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.28 2005/12/04 20:14:28 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.29 2006/02/03 21:10:15 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -477,7 +477,8 @@ public abstract class AbstractJdbc2DatabaseMetaData
         ','+EscapedFunctions.MONTH+
         ','+EscapedFunctions.MONTHNAME+','+EscapedFunctions.NOW+
         ','+EscapedFunctions.QUARTER+','+EscapedFunctions.SECOND+
-        ','+EscapedFunctions.WEEK+','+EscapedFunctions.YEAR;
+        ','+EscapedFunctions.WEEK+','+EscapedFunctions.YEAR+
+        ','+EscapedFunctions.TIMESTAMPADD; //+','+EscapedFunctions.TIMESTAMPDIFF;
     }
 
     /*

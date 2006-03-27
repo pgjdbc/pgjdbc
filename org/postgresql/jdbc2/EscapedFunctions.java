@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/EscapedFunctions.java,v 1.5 2005/01/25 06:49:28 jurka Exp $
+* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/EscapedFunctions.java,v 1.6 2005/06/04 18:24:08 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -90,8 +90,25 @@ public class EscapedFunctions {
     public final static String SECOND="second";
     public final static String WEEK="week";
     public final static String YEAR="year";
-    // TODO : timestampadd and timestampdiff
+    // for timestampadd and timestampdiff the fractional part of second is not supported
+    // by the backend
+    // timestampdiff is very partially supported
+    public final static String TIMESTAMPADD="timestampadd";
+    public final static String TIMESTAMPDIFF="timestampdiff";
 
+    // constants for timestampadd and timestampdiff
+    public final static String SQL_TSI_ROOT="SQL_TSI_";
+    public final static String SQL_TSI_DAY="DAY";
+    public final static String SQL_TSI_FRAC_SECOND="FRAC_SECOND";
+    public final static String SQL_TSI_HOUR="HOUR";
+    public final static String SQL_TSI_MINUTE="MINUTE";
+    public final static String SQL_TSI_MONTH="MONTH";
+    public final static String SQL_TSI_QUARTER="QUARTER";
+    public final static String SQL_TSI_SECOND="SECOND";
+    public final static String SQL_TSI_WEEK="WEEK";
+    public final static String SQL_TSI_YEAR="YEAR";
+
+    
     // system functions
     public final static String DATABASE="database";
     public final static String IFNULL="ifnull";

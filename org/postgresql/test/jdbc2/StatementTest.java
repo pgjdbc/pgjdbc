@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.18 2005/12/15 23:27:01 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.19 2006/02/01 18:52:13 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -297,6 +297,38 @@ public class StatementTest extends TestCase
         assertTrue(rs.next());
         // ensure sunday =>1 and monday =>2
         assertEquals(2,rs.getInt(5));
+        // second
+        rs = stmt.executeQuery("select {fn timestampdiff(SQL_TSI_SECOND,{fn now()},{fn timestampadd(SQL_TSI_SECOND,3,{fn now()})})} ");
+        assertTrue(rs.next());
+        assertEquals(3,rs.getInt(1));
+        //      MINUTE
+        rs = stmt.executeQuery("select {fn timestampdiff(SQL_TSI_MINUTE,{fn now()},{fn timestampadd(SQL_TSI_MINUTE,3,{fn now()})})} ");
+        assertTrue(rs.next());
+        assertEquals(3,rs.getInt(1));
+        //      HOUR
+        rs = stmt.executeQuery("select {fn timestampdiff(SQL_TSI_HOUR,{fn now()},{fn timestampadd(SQL_TSI_HOUR,3,{fn now()})})} ");
+        assertTrue(rs.next());
+        assertEquals(3,rs.getInt(1));
+        //      day
+        rs = stmt.executeQuery("select {fn timestampdiff(SQL_TSI_DAY,{fn now()},{fn timestampadd(SQL_TSI_DAY,-3,{fn now()})})} ");
+        assertTrue(rs.next());
+        assertEquals(-3,rs.getInt(1));
+        //      WEEK => extract week from interval is not supported by backend
+        //rs = stmt.executeQuery("select {fn timestampdiff(SQL_TSI_WEEK,{fn now()},{fn timestampadd(SQL_TSI_WEEK,3,{fn now()})})} ");
+        //assertTrue(rs.next());
+        //assertEquals(3,rs.getInt(1));
+        //      MONTH => backend assume there are 0 month in an interval of 92 days...
+        //rs = stmt.executeQuery("select {fn timestampdiff(SQL_TSI_MONTH,{fn now()},{fn timestampadd(SQL_TSI_MONTH,3,{fn now()})})} ");
+        //assertTrue(rs.next());
+        //assertEquals(3,rs.getInt(1));
+        //      QUARTER => backend assume there are 1 quater even in 270 days...
+        //rs = stmt.executeQuery("select {fn timestampdiff(SQL_TSI_QUARTER,{fn now()},{fn timestampadd(SQL_TSI_QUARTER,3,{fn now()})})} ");
+        //assertTrue(rs.next());
+        //assertEquals(3,rs.getInt(1));
+        //      YEAR
+        //rs = stmt.executeQuery("select {fn timestampdiff(SQL_TSI_YEAR,{fn now()},{fn timestampadd(SQL_TSI_YEAR,3,{fn now()})})} ");
+        //assertTrue(rs.next());
+        //assertEquals(3,rs.getInt(1));
     }
     
     public void testSystemFunctions() throws SQLException
