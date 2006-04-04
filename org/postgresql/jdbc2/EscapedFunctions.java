@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/EscapedFunctions.java,v 1.6 2005/06/04 18:24:08 jurka Exp $
+* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/EscapedFunctions.java,v 1.7 2006/03/27 12:07:57 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -493,6 +493,89 @@ public class EscapedFunctions {
                                     PSQLState.SYNTAX_ERROR);
         }
         return "extract(year from "+parsedArgs.get(0)+")";
+    }
+    
+    /** time stamp add */
+    public static String sqltimestampadd(List parsedArgs) throws SQLException{
+        if (parsedArgs.size()!=3){
+            throw new PSQLException(GT.tr("{0} function takes three and only three arguments.","timestampadd"),
+                                    PSQLState.SYNTAX_ERROR);
+        }
+        String interval = EscapedFunctions.constantToInterval(parsedArgs.get(0).toString(),parsedArgs.get(1).toString());
+        StringBuffer buf = new StringBuffer();
+        buf.append("(interval ").append(interval)
+        	.append("+").append(parsedArgs.get(2)).append(")");
+        return buf.toString();
+    }
+    
+    private final static String constantToInterval(String type,String value)throws SQLException{
+    	if (!type.startsWith(SQL_TSI_ROOT))
+    		throw new PSQLException(GT.tr("Interval {0} not yet implemented",type),
+                    PSQLState.SYNTAX_ERROR);
+    	String shortType = type.substring(SQL_TSI_ROOT.length());
+    	if (SQL_TSI_DAY.equalsIgnoreCase(shortType))
+    		return "'"+value+" day'";
+    	else if (SQL_TSI_SECOND.equalsIgnoreCase(shortType))
+    		return "'"+value+" second'";
+    	else if (SQL_TSI_HOUR.equalsIgnoreCase(shortType))
+    		return "'"+value+" hour'";
+    	else if (SQL_TSI_MINUTE.equalsIgnoreCase(shortType))
+    		return "'"+value+" minute'";
+    	else if (SQL_TSI_MONTH.equalsIgnoreCase(shortType))
+    		return "'"+value+" month'";
+    	else if (SQL_TSI_QUARTER.equalsIgnoreCase(shortType))
+    		return "'"+ Integer.valueOf(value).intValue()*3+" month'";
+    	else if (SQL_TSI_WEEK.equalsIgnoreCase(shortType))
+    		return "'"+value+" week'";
+    	else if (SQL_TSI_YEAR.equalsIgnoreCase(shortType))
+    		return "'"+value+" year'";
+    	else if (SQL_TSI_FRAC_SECOND.equalsIgnoreCase(shortType))
+    		throw new PSQLException(GT.tr("Interval {0} not yet implemented","SQL_TSI_FRAC_SECOND"),
+                    PSQLState.SYNTAX_ERROR);
+    	else throw new PSQLException(GT.tr("Interval {0} not yet implemented",type),
+                PSQLState.SYNTAX_ERROR);
+    }
+    
+    
+    /** time stamp diff */
+    public static String sqltimestampdiff(List parsedArgs) throws SQLException{
+        if (parsedArgs.size()!=3){
+            throw new PSQLException(GT.tr("{0} function takes three and only three arguments.","timestampdiff"),
+                                    PSQLState.SYNTAX_ERROR);
+        }
+        String datePart = EscapedFunctions.constantToDatePart(parsedArgs.get(0).toString());
+        StringBuffer buf = new StringBuffer();
+        buf.append("extract( ").append(datePart)
+        .append(" from (").append(parsedArgs.get(2)).append("-").append(parsedArgs.get(1)).append("))");
+        return buf.toString();
+    }
+    
+    private final static String constantToDatePart(String type)throws SQLException{
+    	if (!type.startsWith(SQL_TSI_ROOT))
+    		throw new PSQLException(GT.tr("Interval {0} not yet implemented",type),
+                    PSQLState.SYNTAX_ERROR);
+    	String shortType = type.substring(SQL_TSI_ROOT.length());
+    	if (SQL_TSI_DAY.equalsIgnoreCase(shortType))
+    		return "day";
+    	else if (SQL_TSI_SECOND.equalsIgnoreCase(shortType))
+    		return "second";
+    	else if (SQL_TSI_HOUR.equalsIgnoreCase(shortType))
+    		return "hour";
+    	else if (SQL_TSI_MINUTE.equalsIgnoreCase(shortType))
+    		return "minute";
+    	/*else if (SQL_TSI_MONTH.equalsIgnoreCase(shortType))
+    		return "month";
+    	else if (SQL_TSI_QUARTER.equalsIgnoreCase(shortType))
+    		return "quarter";
+    	else if (SQL_TSI_WEEK.equalsIgnoreCase(shortType))
+    		return "week";
+    	else if (SQL_TSI_YEAR.equalsIgnoreCase(shortType))
+    		return "year";*/
+    	else if (SQL_TSI_FRAC_SECOND.equalsIgnoreCase(shortType))
+    		throw new PSQLException(GT.tr("Interval {0} not yet implemented","SQL_TSI_FRAC_SECOND"),
+                    PSQLState.SYNTAX_ERROR);
+    	else throw new PSQLException(GT.tr("Interval {0} not yet implemented",type),
+                PSQLState.SYNTAX_ERROR);
     }
     
     /** database translation */
