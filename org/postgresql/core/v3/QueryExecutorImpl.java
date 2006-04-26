@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.24 2005/10/25 22:43:02 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.25 2005/11/05 09:27:13 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -680,6 +680,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
         // Clean up any existing statement, as we can't use it.
         query.unprepare();
+        processDeadParsedQueries();
 
         String statementName = null;
         if (!oneShot)
@@ -766,7 +767,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         for (int i = 1; i <= params.getParameterCount(); ++i)
             pgStream.SendInteger4(params.getTypeOID(i));
 
-        pendingParseQueue.add(query);
+        pendingParseQueue.add(new Object[]{query, query.getStatementName()});
     }
 
     private void sendBind(SimpleQuery query, SimpleParameterList params, Portal portal) throws IOException {
@@ -1084,8 +1085,7 @@ public class QueryExecutorImpl implements QueryExecutor {
     private final HashMap parsedQueryMap = new HashMap();
     private final ReferenceQueue parsedQueryCleanupQueue = new ReferenceQueue();
 
-    private void registerParsedQuery(SimpleQuery query) {
-        String statementName = query.getStatementName();
+    private void registerParsedQuery(SimpleQuery query, String statementName) {
         if (statementName == null)
             return ;
 
@@ -1170,11 +1170,14 @@ public class QueryExecutorImpl implements QueryExecutor {
             case '1':    // Parse Complete (response to Parse)
                 pgStream.ReceiveIntegerR(4); // len, discarded
 
-                SimpleQuery parsedQuery = (SimpleQuery)pendingParseQueue.get(parseIndex++);
-                if (Driver.logDebug)
-                    Driver.debug(" <=BE ParseComplete [" + parsedQuery.getStatementName() + "]");
+                Object[] parsedQueryAndStatement = (Object[])pendingParseQueue.get(parseIndex++);
+                SimpleQuery parsedQuery = (SimpleQuery)parsedQueryAndStatement[0];
+                String parsedStatementName = (String)parsedQueryAndStatement[1];
 
-                registerParsedQuery(parsedQuery);
+                if (Driver.logDebug)
+                    Driver.debug(" <=BE ParseComplete [" + parsedStatementName + "]");
+
+                registerParsedQuery(parsedQuery, parsedStatementName);
                 break;
 
             case 't':    // ParameterDescription
@@ -1367,7 +1370,8 @@ public class QueryExecutorImpl implements QueryExecutor {
                 // Reset the statement name of Parses that failed.
                 while (parseIndex < pendingParseQueue.size())
                 {
-                    SimpleQuery failedQuery = (SimpleQuery)pendingParseQueue.get(parseIndex++);
+                    Object[] failedQueryAndStatement = (Object[])pendingParseQueue.get(parseIndex++);
+                    SimpleQuery failedQuery = (SimpleQuery)failedQueryAndStatement[0];
                     failedQuery.unprepare();
                 }
 
