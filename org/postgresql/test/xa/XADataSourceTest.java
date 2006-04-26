@@ -142,6 +142,19 @@ public class XADataSourceTest extends TestCase {
         xaRes.commit(xid, false);
     }
 
+    public void testCloseBeforeCommit() throws Exception {
+        Xid xid = new CustomXid(5);
+        xaRes.start(xid, XAResource.TMNOFLAGS);
+        assertEquals(1, conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES (1)"));
+        conn.close();
+        xaRes.end(xid, XAResource.TMSUCCESS);
+        xaRes.commit(xid, true);
+
+        ResultSet rs = _conn.createStatement().executeQuery("SELECT foo FROM testxa1");
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+    }
+
     public void testRecover() throws Exception {
         Xid xid = new CustomXid(12345);
         xaRes.start(xid, XAResource.TMNOFLAGS);
