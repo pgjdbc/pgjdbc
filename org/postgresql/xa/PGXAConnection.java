@@ -50,7 +50,7 @@ public class PGXAConnection extends PooledConnectionImpl implements XAConnection
 
     PGXAConnection(BaseConnection conn) throws SQLException
     {
-        super(conn, false);
+        super(conn, false, true);
         this.conn = conn;
         this.conn.setAutoCommit(false);
         this.state = STATE_IDLE;

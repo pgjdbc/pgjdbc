@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/PooledConnectionImpl.java,v 1.9 2005/01/14 01:20:17 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/PooledConnectionImpl.java,v 1.10 2005/01/17 10:59:04 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -32,16 +32,23 @@ public class PooledConnectionImpl implements PooledConnection
     private List listeners = new LinkedList();
     private Connection con;
     private ConnectionHandler last;
-    private boolean autoCommit;
+    private final boolean autoCommit;
+    private final boolean isXA;
 
     /**
      * Creates a new PooledConnection representing the specified physical
      * connection.
      */
-    public PooledConnectionImpl(Connection con, boolean autoCommit)
+    public PooledConnectionImpl(Connection con, boolean autoCommit, boolean isXA)
     {
         this.con = con;
         this.autoCommit = autoCommit;
+        this.isXA = isXA;
+    }
+
+    public PooledConnectionImpl(Connection con, boolean autoCommit)
+    {
+        this(con, autoCommit, false);
     }
 
     /**
@@ -306,7 +313,7 @@ public class PooledConnectionImpl implements PooledConnection
                     return null;
 
                 SQLException ex = null;
-                if (!con.getAutoCommit())
+                if (!isXA && !con.getAutoCommit())
                 {
                     try
                     {
