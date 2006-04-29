@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/QueryExecutorImpl.java,v 1.13 2005/04/20 00:10:58 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/QueryExecutorImpl.java,v 1.13.2.1 2005/12/15 23:28:51 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -421,7 +421,15 @@ public class QueryExecutorImpl implements QueryExecutor {
                     if (Driver.logDebug)
                         Driver.debug(" <=BE BinaryRow");
 
-                    Object tuple = pgStream.ReceiveTupleV2(fields.length, true);
+                    Object tuple = null;
+                    try {
+                        tuple = pgStream.ReceiveTupleV2(fields.length, true);
+                    } catch(OutOfMemoryError oome) {
+                        if (maxRows == 0 || tuples.size() < maxRows) {
+                            handler.handleError(new PSQLException(GT.tr("Ran out of memory retrieving query results."), PSQLState.OUT_OF_MEMORY, oome));
+                        }
+                    }
+
                     for (int i = 0; i < fields.length; i++)
                         fields[i].setFormat(Field.BINARY_FORMAT); //Set the field to binary format
                     if (maxRows == 0 || tuples.size() < maxRows)
@@ -455,7 +463,13 @@ public class QueryExecutorImpl implements QueryExecutor {
                     if (Driver.logDebug)
                         Driver.debug(" <=BE DataRow");
 
-                    Object tuple = pgStream.ReceiveTupleV2(fields.length, false);
+                    Object tuple = null;
+                    try {
+                        tuple = pgStream.ReceiveTupleV2(fields.length, false);
+                    } catch(OutOfMemoryError oome) {
+                        if (maxRows == 0 || tuples.size() < maxRows)
+                            handler.handleError(new PSQLException(GT.tr("Ran out of memory retrieving query results."), PSQLState.OUT_OF_MEMORY, oome));
+                    }
                     if (maxRows == 0 || tuples.size() < maxRows)
                         tuples.addElement(tuple);
                 }
