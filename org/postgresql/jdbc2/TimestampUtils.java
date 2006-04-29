@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.17 2005/10/07 04:27:16 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.18 2005/10/25 22:44:27 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -229,7 +229,7 @@ public class TimestampUtils {
                 throw new NumberFormatException("Timestamp has neither date nor time");
 
         } catch (NumberFormatException nfe) {
-            throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{type,s}), PSQLState.BAD_DATETIME_FORMAT, nfe);
+            throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{type,str}), PSQLState.BAD_DATETIME_FORMAT, nfe);
         }
 
         return result;
