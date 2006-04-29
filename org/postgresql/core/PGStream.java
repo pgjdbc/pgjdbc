@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/PGStream.java,v 1.17 2005/12/02 03:05:06 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/PGStream.java,v 1.18 2006/04/29 00:06:52 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

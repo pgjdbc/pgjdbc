@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.28 2006/04/26 20:06:50 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.29 2006/04/29 00:06:52 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

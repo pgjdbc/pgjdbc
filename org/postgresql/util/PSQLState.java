@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/PSQLState.java,v 1.9 2005/01/15 07:53:03 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/util/PSQLState.java,v 1.10 2006/04/29 00:06:52 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
