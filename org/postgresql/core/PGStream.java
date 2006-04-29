@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/PGStream.java,v 1.13 2005/01/11 08:25:43 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/PGStream.java,v 1.13.2.1 2005/12/02 03:06:55 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -343,7 +343,7 @@ public class PGStream
      * an array of bytearrays
      * @exception IOException if a data I/O error occurs
      */
-    public byte[][] ReceiveTupleV3() throws IOException
+    public byte[][] ReceiveTupleV3() throws IOException, OutOfMemoryError
     {
         //TODO: use l_msgSize
         int l_msgSize = ReceiveIntegerR(4);
@@ -351,17 +351,23 @@ public class PGStream
         int l_nf = ReceiveIntegerR(2);
         byte[][] answer = new byte[l_nf][0];
 
+        OutOfMemoryError oom = null;
         for (i = 0 ; i < l_nf ; ++i)
         {
             int l_size = ReceiveIntegerR(4);
-            boolean isNull = l_size == -1;
-            if (isNull)
-                answer[i] = null;
-            else
-            {
-                answer[i] = Receive(l_size);
+            if (l_size != -1) {
+                try {
+                    answer[i] = new byte[l_size];
+                    Receive(answer[i], 0, l_size);
+                } catch(OutOfMemoryError oome) {
+                    oom = oome;
+                    Skip(l_size);
+                }
             }
         }
+  
+        if (oom != null)
+            throw oom;
 
         return answer;
     }
@@ -377,7 +383,7 @@ public class PGStream
      * an array of bytearrays
      * @exception IOException if a data I/O error occurs
      */
-    public byte[][] ReceiveTupleV2(int nf, boolean bin) throws IOException
+    public byte[][] ReceiveTupleV2(int nf, boolean bin) throws IOException, OutOfMemoryError
     {
         int i, bim = (nf + 7) / 8;
         byte[] bitmask = Receive(bim);
@@ -386,6 +392,7 @@ public class PGStream
         int whichbit = 0x80;
         int whichbyte = 0;
 
+        OutOfMemoryError oom = null;
         for (i = 0 ; i < nf ; ++i)
         {
             boolean isNull = ((bitmask[whichbyte] & whichbit) == 0);
@@ -404,9 +411,19 @@ public class PGStream
                     len -= 4;
                 if (len < 0)
                     len = 0;
-                answer[i] = Receive(len);
+                try {
+                    answer[i] = new byte[len];
+                    Receive(answer[i], 0, len);
+                } catch(OutOfMemoryError oome) {
+                    oom = oome;
+                    Skip(len);
+                }
             }
         }
+
+        if (oom != null)
+            throw oom;
+
         return answer;
     }
 
@@ -444,6 +461,14 @@ public class PGStream
             s += w;
         }
     }
+
+    public void Skip(int size) throws IOException {
+        long s = 0;
+        while (s < size) {
+            s += pg_input.skip(size - s);
+        }
+    }
+
 
     /**
      * Copy data from an input stream to the connection.
