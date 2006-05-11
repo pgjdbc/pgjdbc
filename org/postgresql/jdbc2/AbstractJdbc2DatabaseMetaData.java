@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.29 2006/02/03 21:10:15 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.30 2006/03/27 12:07:57 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -470,15 +470,22 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
     public String getTimeDateFunctions() throws SQLException
     {
-        return EscapedFunctions.CURDATE+','+EscapedFunctions.CURTIME+
+        String timeDateFuncs = EscapedFunctions.CURDATE+','+EscapedFunctions.CURTIME+
         ','+EscapedFunctions.DAYNAME+','+EscapedFunctions.DAYOFMONTH+
         ','+EscapedFunctions.DAYOFWEEK+','+EscapedFunctions.DAYOFYEAR+
         ','+EscapedFunctions.HOUR+','+EscapedFunctions.MINUTE+
         ','+EscapedFunctions.MONTH+
         ','+EscapedFunctions.MONTHNAME+','+EscapedFunctions.NOW+
         ','+EscapedFunctions.QUARTER+','+EscapedFunctions.SECOND+
-        ','+EscapedFunctions.WEEK+','+EscapedFunctions.YEAR+
-        ','+EscapedFunctions.TIMESTAMPADD; //+','+EscapedFunctions.TIMESTAMPDIFF;
+        ','+EscapedFunctions.WEEK+','+EscapedFunctions.YEAR;
+
+        if (connection.haveMinimumServerVersion("8.0")) {
+            timeDateFuncs += ','+EscapedFunctions.TIMESTAMPADD;
+        }
+
+        //+','+EscapedFunctions.TIMESTAMPDIFF;
+
+        return timeDateFuncs;
     }
 
     /*

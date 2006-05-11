@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.19 2006/02/01 18:52:13 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.20 2006/03/27 12:07:58 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -297,6 +297,13 @@ public class StatementTest extends TestCase
         assertTrue(rs.next());
         // ensure sunday =>1 and monday =>2
         assertEquals(2,rs.getInt(5));
+
+	// Prior to 8.0 there is not an interval + timestamp operator,
+        // so timestampadd does not work.
+        //
+        if (!TestUtil.haveMinimumServerVersion(con, "8.0"))
+            return;
+
         // second
         rs = stmt.executeQuery("select {fn timestampdiff(SQL_TSI_SECOND,{fn now()},{fn timestampadd(SQL_TSI_SECOND,3,{fn now()})})} ");
         assertTrue(rs.next());
