@@ -3,7 +3,7 @@
 * Copyright (c) 2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/ParameterMetaDataTest.java,v 1.2 2005/04/10 21:54:17 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/ParameterMetaDataTest.java,v 1.3 2005/11/24 02:31:44 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -32,7 +32,7 @@ public class ParameterMetaDataTest extends TestCase {
     }
 
     public void testParameterMD() throws SQLException {
-        if (!TestUtil.haveMinimumServerVersion(_conn, "7.4"))
+        if (!TestUtil.isProtocolVersion(_conn, 3))
             return;
 
         PreparedStatement pstmt = _conn.prepareStatement("SELECT a FROM parametertest WHERE b = ? AND c = ? AND d >^ ? ");
@@ -53,7 +53,7 @@ public class ParameterMetaDataTest extends TestCase {
     }
 
     public void testFailsOnBadIndex() throws SQLException {
-        if (!TestUtil.haveMinimumServerVersion(_conn, "7.4"))
+        if (!TestUtil.isProtocolVersion(_conn, 3))
             return;
 
         PreparedStatement pstmt = _conn.prepareStatement("SELECT a FROM parametertest WHERE b = ? AND c = ?");
@@ -70,7 +70,7 @@ public class ParameterMetaDataTest extends TestCase {
 
     // Make sure we work when mashing two queries into a single statement.
     public void testMultiStatement() throws SQLException {
-        if (!TestUtil.haveMinimumServerVersion(_conn, "7.4"))
+        if (!TestUtil.isProtocolVersion(_conn, 3))
             return;
 
         PreparedStatement pstmt = _conn.prepareStatement("SELECT a FROM parametertest WHERE b = ? AND c = ? ; SELECT b FROM parametertest WHERE a = ?");

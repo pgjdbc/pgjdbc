@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/PreparedStatementTest.java,v 1.14 2005/09/14 19:04:00 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/PreparedStatementTest.java,v 1.15 2005/11/24 02:31:43 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -126,7 +126,7 @@ public class PreparedStatementTest extends TestCase
         // introducing a syntax error to force the query to fail, but
         // that seems dangerous.
         //
-        if (!TestUtil.haveMinimumServerVersion(conn, "7.4"))
+        if (!TestUtil.isProtocolVersion(conn, 3))
         {
             return ;
         }

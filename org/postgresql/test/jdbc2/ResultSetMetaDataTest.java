@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ResultSetMetaDataTest.java,v 1.13 2005/11/23 21:45:09 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ResultSetMetaDataTest.java,v 1.14 2005/12/04 20:14:30 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -58,7 +58,7 @@ public class ResultSetMetaDataTest extends TestCase
     }
 
     public void testPreparedResultSet() throws SQLException {
-        if (!TestUtil.haveMinimumServerVersion(conn, "7.4"))
+        if (!TestUtil.isProtocolVersion(conn, 3))
             return;
 
         PreparedStatement pstmt = conn.prepareStatement("SELECT a,b,c,a+c as total,oid,b as d FROM rsmd1 WHERE b = ?");
@@ -76,7 +76,7 @@ public class ResultSetMetaDataTest extends TestCase
 
         assertEquals("a", rsmd.getColumnName(1));
         assertEquals("oid", rsmd.getColumnName(5));
-        if (TestUtil.haveMinimumServerVersion(conn, "7.4"))
+        if (TestUtil.isProtocolVersion(conn, 3))
         {
             assertEquals("", pgrsmd.getBaseColumnName(4));
             assertEquals("b", pgrsmd.getBaseColumnName(6));
@@ -94,7 +94,7 @@ public class ResultSetMetaDataTest extends TestCase
 
         assertEquals("", rsmd.getSchemaName(1));
         assertEquals("", rsmd.getSchemaName(4));
-        if (TestUtil.haveMinimumServerVersion(conn, "7.4"))
+        if (TestUtil.isProtocolVersion(conn, 3))
         {
             assertEquals("public", pgrsmd.getBaseSchemaName(1));
             assertEquals("", pgrsmd.getBaseSchemaName(4));
@@ -102,13 +102,13 @@ public class ResultSetMetaDataTest extends TestCase
 
         assertEquals("", rsmd.getTableName(1));
         assertEquals("", rsmd.getTableName(4));
-        if (TestUtil.haveMinimumServerVersion(conn, "7.4"))
+        if (TestUtil.isProtocolVersion(conn, 3))
         {
             assertEquals("rsmd1", pgrsmd.getBaseTableName(1));
             assertEquals("", pgrsmd.getBaseTableName(4));
         }
 
-        if (TestUtil.haveMinimumServerVersion(conn, "7.4"))
+        if (TestUtil.isProtocolVersion(conn, 3))
         {
             assertEquals(ResultSetMetaData.columnNoNulls, rsmd.isNullable(1));
             assertEquals(ResultSetMetaData.columnNullable, rsmd.isNullable(2));
@@ -192,7 +192,7 @@ public class ResultSetMetaDataTest extends TestCase
         ResultSetMetaData rsmd = rs.getMetaData();
 
         assertTrue(!rsmd.isAutoIncrement(1));
-        if (TestUtil.haveMinimumServerVersion(conn, "7.4"))
+        if (TestUtil.isProtocolVersion(conn, 3))
         {
             assertTrue(rsmd.isAutoIncrement(2));
             assertTrue(rsmd.isAutoIncrement(3));

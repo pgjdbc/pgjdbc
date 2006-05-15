@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/TypesTest.java,v 1.7 2005/07/04 18:50:30 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/TypesTest.java,v 1.8 2005/11/24 02:31:44 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -58,7 +58,7 @@ public class TypesTest extends TestCase {
         // Only the V3 protocol return will be strongly typed.
         // The V2 path will return a String because it doesn't know
         // any better.
-        if (TestUtil.haveMinimumServerVersion(_conn, "7.4"))
+        if (TestUtil.isProtocolVersion(_conn, 3))
         {
             assertTrue(!((Boolean)rs.getObject(4)).booleanValue());
         }
