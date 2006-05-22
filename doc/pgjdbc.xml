@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!--
   Copyright (c) 2004-2005, PostgreSQL Global Development Group
-  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.24 2005/03/04 07:10:13 jurka Exp $
+  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.25 2005/04/10 15:15:05 jurka Exp $
 -->
 
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN" "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">
@@ -1056,22 +1056,6 @@ st.close();
 
   <chapter id="callproc">
     <title>Calling Stored Functions</title>
-
-    <para><productname>PostgreSQL's</productname> <acronym>JDBC</acronym>
-      driver fully supports calling <productname>PostgreSQL</productname>
-      stored functions.
-    
-      <note>
-       <para>
-        The <classname>CallableStatement</classname> support is only as good as
-        the backend support for stored procedures.
-        <productname>PostgreSQL</productname> does not support functions that
-        have output parameters.  This means you may not use
-        <function>registerOutParameter</function> for anything other than the
-        function's return value.
-       </para>
-      </note>
-    </para>
 
     <example id="call-function-example">
       <title>Calling a built in stored function</title>
