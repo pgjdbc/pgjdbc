@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/ParameterList.java,v 1.7 2005/07/04 18:50:28 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/ParameterList.java,v 1.8 2005/07/08 17:38:28 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -40,13 +40,18 @@ public interface ParameterList {
     int getParameterCount();
     
     /**
-     * Get the number of parameters in this list. This value may be different,
-     * and might be zero.
+     * Get the number of IN parameters in this list. 
      * 
-     * @return the number of in parameters in this list
+     * @return the number of IN parameters in this list
      */
     int getInParameterCount();
 
+    /**
+     * Get the number of OUT parameters in this list. 
+     * 
+     * @return the number of OUT parameters in this list
+     */
+    int getOutParameterCount();
 
     /**
      * Return the oids of the parameters in this list.  May be null for

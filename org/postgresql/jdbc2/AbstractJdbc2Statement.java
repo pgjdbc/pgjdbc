@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.84.2.2 2006/01/30 20:10:41 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.84.2.3 2006/02/01 18:52:30 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -138,8 +138,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         this.preparedQuery = connection.getQueryExecutor().createParameterizedQuery(parsed_sql);
         this.preparedParameters = preparedQuery.createParameterList();
 
-        this.testReturn = new int[preparedParameters.getInParameterCount()+1];
-        this.functionReturnType = new int[preparedParameters.getInParameterCount()+1];
+        int inParamCount =  preparedParameters.getInParameterCount() + 1;
+        this.testReturn = new int[inParamCount];
+        this.functionReturnType = new int[inParamCount];
 
 
         resultsettype = rsType;
@@ -366,27 +367,41 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
             // figure out how many columns
             int cols = rs.getMetaData().getColumnCount();
-            callResult = new Object[cols];
+            
+            int outParameterCount = preparedParameters.getOutParameterCount() ;
+            
+            if ( cols != outParameterCount )
+                throw new PSQLException(GT.tr("A CallableStatement was excecuted with an invalid number of parameters"),PSQLState.SYNTAX_ERROR);
+            
+            // allocate enough space for all possible parameters without regard to in/out            
+            callResult = new Object[preparedParameters.getParameterCount()+1];
             
             // move them into the result set
-            for ( int i=0; i < cols; i++)
+            for ( int i=0,j=0; i < cols; i++,j++)
             {
-                callResult[i] = rs.getObject(i+1);
-                int columnType = rs.getMetaData().getColumnType(1);
-                if (columnType != functionReturnType[i])
+                // find the next out parameter, the assumption is that the functionReturnType 
+                // array will be initialized with 0 and only out parameters will have values
+                // other than 0. 0 is the value for java.sql.Types.NULL, which should not 
+                // conflict
+                while( j< functionReturnType.length && functionReturnType[j]==0) j++;
+                
+                callResult[j] = rs.getObject(i+1);
+                int columnType = rs.getMetaData().getColumnType(i+1);
+
+                if (columnType != functionReturnType[j])
                 {
                     // this is here for the sole purpose of passing the cts
-                    if ( columnType == Types.DOUBLE && functionReturnType[i] == Types.REAL )
+                    if ( columnType == Types.DOUBLE && functionReturnType[j] == Types.REAL )
                     {
                         // return it as a float
-                        if ( callResult[i] != null)
-                            callResult[i] = new Float(((Double)callResult[i]).floatValue());
+                        if ( callResult[j] != null)
+                            callResult[j] = new Float(((Double)callResult[j]).floatValue());
                     }
                     else
                     {    
-	                    throw new PSQLException (GT.tr("A CallableStatement function was executed and the return was of type {0} however type {1} was registered.",
-	                            new Object[]{
-	                                "java.sql.Types=" + columnType, "java.sql.Types=" + functionReturnType[i] }),
+	                    throw new PSQLException (GT.tr("A CallableStatement function was executed and the out parameter {0} was of type {1} however type {2} was registered.",
+	                            new Object[]{""+i+1,
+	                                "java.sql.Types=" + columnType, "java.sql.Types=" + functionReturnType[j] }),
 	                      PSQLState.DATA_TYPE_MISMATCH);
                     }
                 }

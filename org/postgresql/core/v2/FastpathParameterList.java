@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/FastpathParameterList.java,v 1.7 2005/02/01 07:27:54 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/FastpathParameterList.java,v 1.8 2005/07/04 18:50:28 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -39,6 +39,10 @@ class FastpathParameterList implements ParameterList {
     
     public int getInParameterCount() {
         return paramValues.length;
+    }
+    public int getOutParameterCount()
+    {
+        return 0;
     }
     public int getParameterCount()
     {

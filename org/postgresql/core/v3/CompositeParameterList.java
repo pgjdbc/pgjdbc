@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/CompositeParameterList.java,v 1.7 2005/02/01 07:27:54 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/CompositeParameterList.java,v 1.8 2005/07/04 18:50:29 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -54,6 +54,10 @@ class CompositeParameterList implements V3ParameterList {
     }
     public int getInParameterCount() {
         return total;
+    }
+    public int getOutParameterCount()
+    {
+        return 0;
     }
 
     public int[] getTypeOIDs() {
