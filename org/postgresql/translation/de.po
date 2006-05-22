@@ -4,7 +4,7 @@
 # German message translation for the PostgreSQL JDBC driver
 # This file is distributed under the same license as the package.
 #
-# $PostgreSQL: pgjdbc/org/postgresql/translation/de.po,v 1.5 2005/01/15 20:24:22 jurka Exp $
+# $PostgreSQL: pgjdbc/org/postgresql/translation/de.po,v 1.5.4.1 2006/05/22 04:14:25 jurka Exp $
 # Andre Bialojahn <ab.spamnews@freenet.de>, 2005, 2006.
 #
 msgid ""
@@ -168,7 +168,7 @@ msgid ""
 "it is using an authentication scheme supported by the driver."
 msgstr ""
 "Der Authentifizierungstyp {0} wird nicht unterstützt. Stellen Sie sicher, "
-"dass die Datei 'pg_hba.conf' die IP-Adresse oder das Subnetz  des Clients "
+"dass die Datei ''pg_hba.conf'' die IP-Adresse oder das Subnetz  des Clients "
 "beinhaltet und dass der Client ein Authentifizierungsschema nutzt, das vom "
 "Treiber unterstützt wird."
 
@@ -289,7 +289,7 @@ msgid ""
 "The server''s client_encoding parameter was changed to {0}. The JDBC driver "
 "requires client_encoding to be UNICODE for correct operation."
 msgstr ""
-"Der Parameter 'client_encoding' wurde auf dem Server auf {0} verändert. Der "
+"Der Parameter ''client_encoding'' wurde auf dem Server auf {0} verändert. Der "
 "JDBC-Treiber setzt für korrektes Funktionieren die Einstellung UNICODE "
 "voraus."
 
@@ -299,8 +299,8 @@ msgid ""
 "The server''s DateStyle parameter was changed to {0}. The JDBC driver "
 "requires DateStyle to begin with ISO for correct operation."
 msgstr ""
-"Der Parameter 'Date Style' wurde auf dem Server auf {0} verändert. Der JDBC-"
-"Treiber setzt für korrekte Funktion voraus, daß 'Date Style' mit 'ISO' "
+"Der Parameter ''Date Style'' wurde auf dem Server auf {0} verändert. Der JDBC-"
+"Treiber setzt für korrekte Funktion voraus, daß ''Date Style'' mit ''ISO'' "
 "beginnt."
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1410
@@ -478,11 +478,11 @@ msgstr "Unzulässige Richtungskonstante bei fetch: {0}."
 
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:687
 msgid "Cannot call cancelRowUpdates() when on the insert row."
-msgstr "'cancelRowUpdates()' kann in der Einfügezeile nicht aufgerufen werden."
+msgstr "''cancelRowUpdates()'' kann in der Einfügezeile nicht aufgerufen werden."
 
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:707
 msgid "Cannot call deleteRow() when on the insert row."
-msgstr "'deleteRow()' kann in der Einfügezeile nicht aufgerufen werden."
+msgstr "''deleteRow()'' kann in der Einfügezeile nicht aufgerufen werden."
 
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:713
 msgid ""
@@ -490,7 +490,7 @@ msgid ""
 "deleteRow() here."
 msgstr ""
 "Die augenblickliche Position ist vor dem Beginn des ResultSets.  Dort kann "
-"'deleteRow()' nicht aufgerufen werden."
+"''deleteRow()'' nicht aufgerufen werden."
 
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:718
 msgid ""
@@ -498,7 +498,7 @@ msgid ""
 "deleteRow() here."
 msgstr ""
 "Die augenblickliche Position ist hinter dem Ende des ResultSets.  Dort kann "
-"'deleteRow()' nicht aufgerufen werden."
+"''deleteRow()'' nicht aufgerufen werden."
 
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:723
 msgid "There are no rows in this ResultSet."
@@ -538,7 +538,7 @@ msgstr "Die EInfügezeile kann nicht aufgefrischt werden."
 
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1222
 msgid "Cannot call updateRow() when on the insert row."
-msgstr "'updateRow()' kann in der Einfügezeile nicht aufgerufen werden."
+msgstr "''updateRow()'' kann in der Einfügezeile nicht aufgerufen werden."
 
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1228
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2676
@@ -616,7 +616,7 @@ msgstr "Dieses ResultSet ist geschlossen."
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2455
 msgid "ResultSet not positioned properly, perhaps you need to call next."
 msgstr ""
-"Das ResultSet ist nicht richtig positioniert. Eventuell muß 'next' "
+"Das ResultSet ist nicht richtig positioniert. Eventuell muß ''next'' "
 "aufgerufen werden."
 
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:235
@@ -702,7 +702,7 @@ msgid ""
 "with an explicit Types value to specify the type to use."
 msgstr ""
 "Der in SQL für eine Instanz von {0} zu verwendende Datentyp kann nicht "
-"abgeleitet werden. Benutzen Sie 'setObject()' mit einem expliziten Typ, um "
+"abgeleitet werden. Benutzen Sie ''setObject()'' mit einem expliziten Typ, um "
 "ihn festzulegen."
 
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1765
@@ -735,7 +735,7 @@ msgid ""
 "<some type>) was made."
 msgstr ""
 "Ein CallableStatement wurde deklariert, aber kein Aufruf von "
-"'registerOutParameter(1, <some type>)' erfolgte."
+"''registerOutParameter(1, <some type>)'' erfolgte."
 
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2409
 msgid "This statement has been closed."
@@ -750,7 +750,7 @@ msgstr "Zu viele Updateergebnisse wurden zurückgegeben."
 msgid ""
 "Batch entry {0} {1} was aborted.  Call getNextException to see the cause."
 msgstr ""
-"Batch-Eintrag {0} {1} wurde abgebrochen.  Rufen Sie 'getNextException' auf, "
+"Batch-Eintrag {0} {1} wurde abgebrochen.  Rufen Sie ''getNextException'' auf, "
 "um die Ursache zu erfahren."
 
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2725
@@ -799,7 +799,7 @@ msgstr "Die {0}-Funktion erwartet genau zwei Argumente."
 #: org/postgresql/jdbc2/EscapedFunctions.java:178
 msgid "rand function only takes zero or one argument(the seed)."
 msgstr ""
-"Die Funktion 'rand' erwartet kein oder genau ein Argument (den 'seed')."
+"Die Funktion ''rand'' erwartet kein oder genau ein Argument (den ''seed'')."
 
 #: org/postgresql/jdbc2/EscapedFunctions.java:225
 #, java-format
@@ -824,13 +824,13 @@ msgstr "Die {0}-Funktion akzeptiert kein Argument."
 msgid ""
 "Infinite value found for timestamp/date. This cannot be represented as time."
 msgstr ""
-"Für den Zeitstempel oder das Datum wurde der Wert 'unendlich' angefunden. "
+"Für den Zeitstempel oder das Datum wurde der Wert ''unendlich'' angefunden. "
 "Dies kann nicht als Zeit repräsentiert werden."
 
 #: org/postgresql/jdbc2/TypeInfoCache.java:110
 #, java-format
 msgid "The class {0} does not implement org.postgresql.util.PGobject."
-msgstr "Die Klasse {0} implementiert nicht 'org.postgresql.util.PGobject'."
+msgstr "Die Klasse {0} implementiert nicht ''org.postgresql.util.PGobject''."
 
 #: org/postgresql/jdbc3/AbstractJdbc3Connection.java:59
 #, java-format
@@ -847,7 +847,7 @@ msgstr "Der Server unterstützt keine Rettungspunkte vor Version 8."
 #: org/postgresql/jdbc3/AbstractJdbc3Connection.java:97
 #: org/postgresql/jdbc3/AbstractJdbc3Connection.java:128
 msgid "Cannot establish a savepoint in auto-commit mode."
-msgstr "Ein Rettungspunkt kann im Modus 'auto-commit' nicht erstellt werden."
+msgstr "Ein Rettungspunkt kann im Modus ''auto-commit'' nicht erstellt werden."
 
 #: org/postgresql/jdbc3/AbstractJdbc3Connection.java:352
 #: org/postgresql/jdbc3/AbstractJdbc3Connection.java:400
@@ -891,7 +891,7 @@ msgstr "Die LargeObject-API konnte nicht initialisiert werden."
 #: org/postgresql/largeobject/LargeObjectManager.java:200
 msgid "Large Objects may not be used in auto-commit mode."
 msgstr ""
-"LargeObjects (LOB) dürfen im Modus 'auto-commit' nicht verwendet werden."
+"LargeObjects (LOB) dürfen im Modus ''auto-commit'' nicht verwendet werden."
 
 #: org/postgresql/ssl/MakeSSL.java:61
 #, java-format
@@ -1075,22 +1075,22 @@ msgstr "Heuristisches Commit/Rollback wird nicht unterstützt."
 #~ "setNull(i,Types.OTHER) is not supported; use setObject(i,nullobject,Types."
 #~ "OTHER) instead."
 #~ msgstr ""
-#~ "'setNull(i, Types.OTHER)' wird nicht unterstützt; benutzen Sie "
-#~ "stattdessen 'setObject(i, nullobject, Types.OTHER)'."
+#~ "''setNull(i, Types.OTHER)'' wird nicht unterstützt; benutzen Sie "
+#~ "stattdessen ''setObject(i, nullobject, Types.OTHER)''."
 
 #~ msgid ""
 #~ "setObject(i,null) is not supported. Instead, use setNull(i,type) or "
 #~ "setObject(i,null,type)"
 #~ msgstr ""
-#~ "'setObejct(i, null)' ist nicht unterstützt. Benutzen Sie 'setNull(i, "
-#~ "type)' oder 'setObject(i, null, type)' stattdessen."
+#~ "''setObejct(i, null)'' ist nicht unterstützt. Benutzen Sie ''setNull(i, "
+#~ "type)'' oder ''setObject(i, null, type)'' stattdessen."
 
 #~ msgid ""
 #~ "Cannot call setXXX(1, ..) on a CallableStatement.  This is an output that "
 #~ "must be configured with registerOutParameter instead."
 #~ msgstr ""
-#~ "'setXXX(1, ..)' kann auf einem CallableStatement nicht aufgerufen werden. "
-#~ "Diese Ausgabe muss stattdessen mit 'registerOutParameter' konfiguriert "
+#~ "''setXXX(1, ..)'' kann auf einem CallableStatement nicht aufgerufen werden. "
+#~ "Diese Ausgabe muss stattdessen mit ''registerOutParameter'' konfiguriert "
 #~ "werden."
 
 #~ msgid ""

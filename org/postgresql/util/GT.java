@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/GT.java,v 1.5 2004/11/09 08:57:30 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/util/GT.java,v 1.6 2005/01/11 08:25:49 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -23,7 +23,8 @@ import java.util.MissingResourceException;
 
 public class GT {
 
-    private static GT _gt = new GT();
+    private final static GT _gt = new GT();
+    private final static Object noargs[] = new Object[0];
 
     public final static String tr(String message) {
         return _gt.translate(message, null);
@@ -67,9 +68,17 @@ public class GT {
             }
         }
 
+        // If we don't have any parameters we still need to run
+        // this through the MessageFormat(ter) to allow the same
+        // quoting and escaping rules to be used for all messages.
+        //
+        if (args == null) {
+            args = noargs;
+        }
+
         // Replace placeholders with arguments
         //
-        if (args != null && message != null)
+        if (message != null)
         {
             message = MessageFormat.format(message, args);
         }
