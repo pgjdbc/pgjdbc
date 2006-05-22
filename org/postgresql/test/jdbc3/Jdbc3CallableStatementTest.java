@@ -11,10 +11,12 @@ import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PSQLState;
 
 import junit.framework.TestCase;
 
@@ -26,6 +28,7 @@ import junit.framework.TestCase;
  */
 public class Jdbc3CallableStatementTest extends TestCase
 {
+        
     Connection con;
 
     /* (non-Javadoc)
@@ -37,8 +40,10 @@ public class Jdbc3CallableStatementTest extends TestCase
         Statement stmt = con.createStatement ();
         stmt.execute("create temp table numeric_tab (MAX_VAL NUMERIC(30,15), MIN_VAL NUMERIC(30,15), NULL_VAL NUMERIC(30,15) NULL)");
         stmt.execute("insert into numeric_tab values ( 999999999999999,0.000000000000001, null)");
+        stmt.execute("CREATE OR REPLACE FUNCTION myiofunc(a INOUT int, b OUT int) AS 'BEGIN b := a; a := 1; END;' LANGUAGE plpgsql");
+        stmt.execute("CREATE OR REPLACE FUNCTION myif(a INOUT int, b IN int) AS 'BEGIN a := b; END;' LANGUAGE plpgsql");
 
-        boolean ret = stmt.execute("create or replace function "
+        stmt.execute("create or replace function "
                     			 + "Numeric_Proc( OUT IMAX NUMERIC(30,15), OUT IMIN NUMERIC(30,15), OUT INUL NUMERIC(30,15))  as "
                     			 + "'begin " 
                     			 + 	"select max_val into imax from numeric_tab;"
@@ -48,7 +53,34 @@ public class Jdbc3CallableStatementTest extends TestCase
                     			 + " end;' "
                     			 + "language 'plpgsql';");
         
+        stmt.execute( "CREATE OR REPLACE FUNCTION test_somein_someout("
+                + "pa IN int4,"
+                + "pb OUT varchar,"  
+                + "pc OUT int8)"
+                + " AS "
+                
+                + "'begin "
+                + "pb := ''out'';"
+                + "pc := pa + 1;"
+                + "end;'"
 
+                + "LANGUAGE 'plpgsql' VOLATILE;"
+
+                 );  
+        stmt.execute("CREATE OR REPLACE FUNCTION test_allinout("
+                + "pa INOUT int4,"
+                + "pb INOUT varchar," 
+                + "pc INOUT int8)"
+                + " AS " 
+                + "'begin "
+                + "pa := pa + 1;"
+                + "pb := ''foo out'';"
+                + "pc := pa + 1;"
+                + "end;'"
+                + "LANGUAGE 'plpgsql' VOLATILE;"
+            );
+        
+        
     }
     /* (non-Javadoc)
      * @see junit.framework.TestCase#tearDown()
@@ -57,14 +89,82 @@ public class Jdbc3CallableStatementTest extends TestCase
     {
         Statement stmt = con.createStatement();
         stmt.execute("drop function Numeric_Proc(out decimal, out decimal, out decimal)");
+        stmt.execute("drop function test_somein_someout(int4)");
+        stmt.execute("drop function test_allinout( inout int4, inout varchar, inout int8)");
+        stmt.execute("drop function myiofunc(a INOUT int, b OUT int) ");
+        stmt.execute("drop function myif(a INOUT int, b IN int)");
         stmt.close();
         
     }
-    
-    public void testNumeric() throws Throwable
+    public void testSomeInOut() throws Throwable
     {
+        
+                   
+        CallableStatement call = con.prepareCall( "{ call test_somein_someout(?,?,?) }" ) ;
+        
+        call.registerOutParameter(2,Types.VARCHAR);
+        call.registerOutParameter(3,Types.BIGINT);
+        call.setInt(1,20);
+        call.execute();
+    
+    }
+    public void testNotEnoughParameters() throws Throwable
+    {
+        
+        CallableStatement cs = con.prepareCall("{call myiofunc(?,?)}");
+        cs.setInt(1,2);
+        cs.registerOutParameter(2,Types.INTEGER);
         try
         {
+            cs.execute();
+            fail("Should throw an exception ");
+        }
+        catch( SQLException ex)
+        {
+            assertTrue(ex.getSQLState().equalsIgnoreCase(PSQLState.SYNTAX_ERROR.getState()));
+        }
+        
+    }
+    public void testTooManyParameters() throws Throwable
+    {
+
+        CallableStatement cs = con.prepareCall("{call myif(?,?)}");
+        try
+        {
+            cs.setInt(1,1);
+            cs.setInt(2,2);
+            cs.registerOutParameter(1,Types.INTEGER);
+            cs.registerOutParameter(2,Types.INTEGER);
+            cs.execute();
+            fail("should throw an exception");
+        }
+        catch( SQLException ex )
+        {
+            assertTrue(ex.getSQLState().equalsIgnoreCase(PSQLState.SYNTAX_ERROR.getState()));
+        }
+        
+    }
+    public void testAllInOut() throws Throwable
+    {
+        
+        CallableStatement call = con.prepareCall( "{ call test_allinout(?,?,?) }" ) ;
+        
+        call.registerOutParameter(1,Types.INTEGER);
+        call.registerOutParameter(2,Types.VARCHAR);
+        call.registerOutParameter(3,Types.BIGINT);
+        call.setInt(1,20);
+        call.setString(2,"hi");
+        call.setInt(3,123);
+        call.execute();
+        call.getInt(1);
+        call.getString(2);
+        call.getLong(3);
+   
+    }
+
+    public void testNumeric() throws Throwable
+    {
+        
         CallableStatement call = con.prepareCall( "{ call Numeric_Proc(?,?,?) }" ) ;
     
         call.registerOutParameter(1,Types.NUMERIC,15);
@@ -78,7 +178,7 @@ public class Jdbc3CallableStatementTest extends TestCase
     
         ret=call.getBigDecimal(2);
         assertTrue ("correct return from getNumeric ()",
-                                      ret.equals (new java.math.BigDecimal("0.000000000000001")));
+                                  ret.equals (new java.math.BigDecimal("0.000000000000001")));
         try
         {
             ret = call.getBigDecimal(3);
@@ -87,28 +187,26 @@ public class Jdbc3CallableStatementTest extends TestCase
             assertTrue("This should be null",call.wasNull());
         }
     
-        }
-        catch(Exception ex)
-        {
-            fail(ex.getMessage());
-        }
+        
+        
     }
     public void testGetObjectDecimal() throws Throwable
     {
         try
         {
-        Statement stmt = con.createStatement();
-        stmt.execute("create temp table decimal_tab ( max_val numeric(30,15), min_val numeric(30,15), nul_val numeric(30,15) )");
-        stmt.execute("insert into decimal_tab values (999999999999999.000000000000000,0.000000000000001,null)");
-        boolean ret = stmt.execute("create or replace function "
-   			 + "decimal_proc( OUT pmax numeric, OUT pmin numeric, OUT nval numeric)  as "
-   			 + "'begin " 
-   			 + 	"select max_val into pmax from decimal_tab;"
-   			+ 	"select min_val into pmin from decimal_tab;"
-  			 + 	"select nul_val into nval from decimal_tab;"
-  			 		
-   			 + " end;' "
-   			 + "language 'plpgsql';");
+            Statement stmt = con.createStatement();
+            stmt.execute("create temp table decimal_tab ( max_val numeric(30,15), min_val numeric(30,15), nul_val numeric(30,15) )");
+            stmt.execute("insert into decimal_tab values (999999999999999.000000000000000,0.000000000000001,null)");
+    
+            boolean ret = stmt.execute("create or replace function "
+       			 + "decimal_proc( OUT pmax numeric, OUT pmin numeric, OUT nval numeric)  as "
+       			 + "'begin " 
+       			 + 	"select max_val into pmax from decimal_tab;"
+       			+ 	"select min_val into pmin from decimal_tab;"
+      			 + 	"select nul_val into nval from decimal_tab;"
+      			 		
+       			 + " end;' "
+       			 + "language 'plpgsql';");
         }
         catch (Exception ex)
         {
@@ -234,10 +332,7 @@ public class Jdbc3CallableStatementTest extends TestCase
             cstmt.getBoolean(3);
             assertTrue(cstmt.wasNull());
         }
-        catch ( Exception ex )
-        {
-            fail(ex.getMessage());
-        }
+        
         finally
         {
             try
