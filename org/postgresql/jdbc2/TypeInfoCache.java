@@ -3,7 +3,7 @@
  * Copyright (c) 2005, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.1 2005/04/10 21:54:16 jurka Exp $
+ *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.1.2.1 2006/02/09 16:29:20 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -30,7 +30,7 @@ import org.postgresql.util.PSQLException;
 public class TypeInfoCache {
 
     // pgname (String) -> java.sql.Types (Integer)
-    private Map _pgNameToSQLType;
+    private static final Map _pgNameToSQLType;
 
     // pgname (String) -> java class name (String)
     // ie "text" -> "java.lang.String"
@@ -48,7 +48,7 @@ public class TypeInfoCache {
     private PreparedStatement _getOidStatement;
     private PreparedStatement _getNameStatement;
 
-    private static Object types[][] = {
+    private static final Object types[][] = {
         {"int2", new Integer(Oid.INT2), new Integer(Types.SMALLINT), "java.lang.Short"},
         {"int4", new Integer(Oid.INT4), new Integer(Types.INTEGER), "java.lang.Integer"},
         {"oid", new Integer(Oid.OID), new Integer(Types.INTEGER), "java.lang.Integer"},
@@ -71,28 +71,40 @@ public class TypeInfoCache {
         {"timestamptz", new Integer(Oid.TIMESTAMPTZ), new Integer(Types.TIMESTAMP), "java.sql.Timestamp"}
     };
 
+    static
+    {
+        Map pgNameToSQLType = new HashMap();
+        for (int i=0; i<types.length; i++) {
+            pgNameToSQLType.put(types[i][0], types[i][2]);
+            String arrayType = "_" + types[i][0];
+            pgNameToSQLType.put(arrayType, new Integer(Types.ARRAY));
+        }
+        // needs to be unmodifiable because the iterator is returned
+        // getPGTypeNamesWithSQLTypes() if the content of the map
+        // should ever need to be modified, this could be changed
+        // into a synchronizedMap()
+        _pgNameToSQLType = Collections.unmodifiableMap(pgNameToSQLType);
+    }
+
     public TypeInfoCache(BaseConnection conn)
     {
         _conn = conn;
-        _oidToPgName = Collections.synchronizedMap(new HashMap());
-        _pgNameToOid = Collections.synchronizedMap(new HashMap());
-        _pgNameToSQLType = Collections.synchronizedMap(new HashMap());
-        _pgNameToJavaClass = Collections.synchronizedMap(new HashMap());
-        _pgNameToPgObject = Collections.synchronizedMap(new HashMap());
+        _oidToPgName = new HashMap();
+        _pgNameToOid = new HashMap();
+        _pgNameToJavaClass = new HashMap();
+        _pgNameToPgObject = new HashMap();
 
         for (int i=0; i<types.length; i++) {
-            _pgNameToSQLType.put(types[i][0], types[i][2]);
             _pgNameToJavaClass.put(types[i][0], types[i][3]);
             _pgNameToOid.put(types[i][0], types[i][1]);
             _oidToPgName.put(types[i][1], types[i][0]);
             
             String arrayType = "_" + types[i][0];
-            _pgNameToSQLType.put(arrayType, new Integer(Types.ARRAY));
             _pgNameToJavaClass.put(arrayType, "java.sql.Array");
         }
     }
 
-    public void addDataType(String type, Class klass) throws SQLException
+    public synchronized void addDataType(String type, Class klass) throws SQLException
     {
         if (!PGobject.class.isAssignableFrom(klass))
             throw new PSQLException(GT.tr("The class {0} does not implement org.postgresql.util.PGobject.", klass.toString()), PSQLState.INVALID_PARAMETER_TYPE);
@@ -101,25 +113,28 @@ public class TypeInfoCache {
         _pgNameToJavaClass.put(type, klass.getName());
     }
 
-    public Iterator getPGTypeNamesWithSQLTypes()
+    public static Iterator getPGTypeNamesWithSQLTypes()
     {
+        // the map is unmodfiable
         return _pgNameToSQLType.keySet().iterator();
     }
 
+    // no need to synchronize because getSQLType uses an unmodfiable map
     public int getSQLType(int oid) throws SQLException
     {
         return getSQLType(getPGType(oid));
     }
 
-    public int getSQLType(String pgTypeName)
+    public static int getSQLType(String pgTypeName)
     {
+        // map is unmodifiable, no need to synchronize
         Integer i = (Integer)_pgNameToSQLType.get(pgTypeName);
         if (i != null)
             return i.intValue();
         return Types.OTHER;
     }
 
-    public int getPGType(String pgTypeName) throws SQLException
+    public synchronized int getPGType(String pgTypeName) throws SQLException
     {
         Integer oid = (Integer)_pgNameToOid.get(pgTypeName);
         if (oid != null)
@@ -152,7 +167,7 @@ public class TypeInfoCache {
         return oid.intValue();
     }
 
-    public String getPGType(int oid) throws SQLException
+    public synchronized String getPGType(int oid) throws SQLException
     {
         if (oid == Oid.INVALID)
             return null;
@@ -187,12 +202,12 @@ public class TypeInfoCache {
         return pgTypeName;
     }
 
-    public Class getPGobject(String type)
+    public synchronized Class getPGobject(String type)
     {
         return (Class)_pgNameToPgObject.get(type);
     }
 
-    public String getJavaClass(int oid) throws SQLException
+    public synchronized String getJavaClass(int oid) throws SQLException
     {
         String pgTypeName = getPGType(oid);
         return (String)_pgNameToJavaClass.get(pgTypeName);
