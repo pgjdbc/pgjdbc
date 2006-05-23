@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/PGStream.java,v 1.13.2.2 2006/04/29 00:07:10 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/PGStream.java,v 1.13.2.3 2006/04/29 13:31:28 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -349,7 +349,7 @@ public class PGStream
         int l_msgSize = ReceiveIntegerR(4);
         int i;
         int l_nf = ReceiveIntegerR(2);
-        byte[][] answer = new byte[l_nf][0];
+        byte[][] answer = new byte[l_nf][];
 
         OutOfMemoryError oom = null;
         for (i = 0 ; i < l_nf ; ++i)
@@ -365,7 +365,7 @@ public class PGStream
                 }
             }
         }
-  
+
         if (oom != null)
             throw oom;
 
@@ -387,7 +387,7 @@ public class PGStream
     {
         int i, bim = (nf + 7) / 8;
         byte[] bitmask = Receive(bim);
-        byte[][] answer = new byte[nf][0];
+        byte[][] answer = new byte[nf][];
 
         int whichbit = 0x80;
         int whichbyte = 0;
@@ -402,9 +402,7 @@ public class PGStream
                 ++whichbyte;
                 whichbit = 0x80;
             }
-            if (isNull)
-                answer[i] = null;
-            else
+            if (!isNull)
             {
                 int len = ReceiveIntegerR(4);
                 if (!bin)
