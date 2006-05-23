@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleParameterList.java,v 1.10 2005/07/08 17:38:29 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleParameterList.java,v 1.10.2.1 2006/05/22 09:56:32 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -85,6 +85,9 @@ class SimpleParameterList implements V3ParameterList {
                 count++;
             }
         }
+        // Every function has at least one output.
+        if (count == 0)
+            count = 1;
         return count;
         
     }
