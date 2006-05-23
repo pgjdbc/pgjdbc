@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.84.2.3 2006/02/01 18:52:30 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.84.2.4 2006/05/22 09:56:34 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2314,7 +2314,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             throw new PSQLException (GT.tr("Malformed function or procedure escape syntax at offset {0}.", new Integer(i)),
                                      PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
 
-        if (connection.haveMinimumServerVersion("8.1"))
+        if (connection.haveMinimumServerVersion("8.1") && ((AbstractJdbc2Connection)connection).getProtocolVersion() == 3)
         {
             String s = p_sql.substring(startIndex, endIndex );
             StringBuffer sb = new StringBuffer(s);
