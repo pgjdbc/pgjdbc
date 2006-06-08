@@ -3,29 +3,29 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3g/Jdbc3gStatement.java,v 1.4 2005/01/11 08:25:47 jurka Exp $
+*   $PostgreSQL$
 *
 *-------------------------------------------------------------------------
 */
-package org.postgresql.jdbc3g;
+package org.postgresql.jdbc4;
 
 import java.sql.*;
 import java.util.Vector;
 import org.postgresql.core.*;
 
 /**
- * This class implements the java.sql.Statement interface for JDBC3.
+ * This class implements the java.sql.Statement interface for JDBC4.
  * However most of the implementation is really done in
- * org.postgresql.jdbc3.AbstractJdbc3Statement or one of it's parents
+ * org.postgresql.jdbc4.AbstractJdbc4Statement or one of it's parents
  */
-class Jdbc3gStatement extends org.postgresql.jdbc3.AbstractJdbc3Statement implements Statement
+class Jdbc4Statement extends AbstractJdbc4Statement implements Statement
 {
-    Jdbc3gStatement (Jdbc3gConnection c, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
+    Jdbc4Statement (Jdbc4Connection c, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
     {
         super(c, rsType, rsConcurrency, rsHoldability);
     }
 
-    protected Jdbc3gStatement(Jdbc3gConnection connection, String sql, boolean isCallable, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
+    protected Jdbc4Statement(Jdbc4Connection connection, String sql, boolean isCallable, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
     {
         super(connection, sql, isCallable, rsType, rsConcurrency, rsHoldability);
     }
@@ -33,7 +33,7 @@ class Jdbc3gStatement extends org.postgresql.jdbc3.AbstractJdbc3Statement implem
     public ResultSet createResultSet (Query originalQuery, Field[] fields, Vector tuples, ResultCursor cursor)
     throws SQLException
     {
-        Jdbc3gResultSet newResult = new Jdbc3gResultSet(originalQuery, this, fields, tuples, cursor,
+        Jdbc4ResultSet newResult = new Jdbc4ResultSet(originalQuery, this, fields, tuples, cursor,
                                     getMaxRows(), getMaxFieldSize(),
                                     getResultSetType(), getResultSetConcurrency(), getResultSetHoldability());
         newResult.setFetchSize(getFetchSize());
@@ -43,7 +43,7 @@ class Jdbc3gStatement extends org.postgresql.jdbc3.AbstractJdbc3Statement implem
 
     public ParameterMetaData createParameterMetaData(BaseConnection conn, int oids[]) throws SQLException
     {
-        return new Jdbc3gParameterMetaData(conn, oids);
+        return new Jdbc4ParameterMetaData(conn, oids);
     }
 
 }

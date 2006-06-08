@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Statement.java,v 1.19 2005/07/08 17:38:30 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Statement.java,v 1.20 2005/07/16 12:17:48 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -18,6 +18,7 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.Field;
+import org.postgresql.core.BaseConnection;
 import org.postgresql.util.GT;
 
 /**
@@ -369,11 +370,13 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
 
         int oids[] = preparedParameters.getTypeOIDs();
         if (oids != null)
-            return new PSQLParameterMetaData(connection, oids);
+            return createParameterMetaData(connection, oids);
 
         return null;
 
     }
+
+    public abstract ParameterMetaData createParameterMetaData(BaseConnection conn, int oids[]) throws SQLException;
 
     /**
      * Registers the OUT parameter named

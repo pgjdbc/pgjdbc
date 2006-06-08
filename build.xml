@@ -8,7 +8,7 @@
 
   This file now requires Ant 1.4.1.  2002-04-18
 
-  $PostgreSQL: pgjdbc/build.xml,v 1.67 2006/04/29 02:18:47 jurka Exp $
+  $PostgreSQL: pgjdbc/build.xml,v 1.68 2006/05/15 09:35:57 jurka Exp $
 
 -->
 
@@ -44,22 +44,36 @@
     <condition property="jdbc3g">
 	<equals arg1="${java.specification.version}" arg2="1.5"/>
     </condition>
-    <condition property="jdbc3any">
-      <or>
-        <isset property="jdbc3" />
-        <isset property="jdbc3g" />
-      </or>
-    </condition>
     <condition property="jdbc4">
         <equals arg1="${java.specification.version}" arg2="1.6"/>
     </condition>
+    <condition property="jdbc3any">
+      <or>
+        <isset property="jdbc3" />
+	<isset property="jdbc3g" />
+      </or>
+    </condition>
+    <condition property="jdbc3plus">
+      <or>
+        <isset property="jdbc3" />
+	<isset property="jdbc3g" />
+	<isset property="jdbc4" />
+      </or>
+    </condition>
 
-    <fail if="jdbc4" message="Building with JDK 1.6 not currently supported." />
-
-    <available property="datasource" classname="javax.sql.DataSource"/>
+    <available property="datasourceclass" classname="javax.sql.DataSource"/>
     <available property="ssl" classname="javax.net.ssl.SSLContext"/>
     <available property="junit" classname="junit.framework.Test"/>
     <available property="junit.task" classname="org.apache.tools.ant.taskdefs.optional.junit.JUnitTask"/>
+
+    <condition property="datasource">
+      <and>
+        <isset property="datasourceclass" />
+        <not>
+          <isset property="jdbc4" />
+        </not>
+      </and>
+    </condition>
 
     <condition property="jdbc2optionaltests">
       <and>
@@ -70,7 +84,7 @@
 
     <condition property="jdbc3tests">
       <and>
-        <isset property="jdbc3any"/>
+        <isset property="jdbc3plus"/>
         <isset property="datasource"/>
         <isset property="junit"/>
       </and>
@@ -124,17 +138,13 @@
        -->
  
        <!-- jdbc2 subpackage -->
-       <include name="${package}/jdbc2/**" if="jdbc2"/>
-       <include name="${package}/jdbc2/**" if="jdbc3"/>
-       <include name="${package}/jdbc2/**" if="jdbc3g"/>
+       <include name="${package}/jdbc2/**"/>
        <exclude name="${package}/jdbc2/Jdbc2*.java" unless="jdbc2"/>
  
        <!-- jdbc3 subpackage -->
-       <include name="${package}/jdbc3/Abstract*.java" if="jdbc3any" />
-       <include name="${package}/jdbc3/PSQLSavepoint.java" if="jdcb3any" />
-       <include name="${package}/jdbc3/PSQLParameterMetaData.java" if="jdbc3any" />
+       <include name="${package}/jdbc3/Abstract*.java" if="jdbc3plus" />
+       <include name="${package}/jdbc3/PSQLSavepoint.java" if="jdbcplus" />
 
-       
        <include name="${package}/jdbc3/Jdbc3Array.java" if="jdbc3"/>
        <include name="${package}/jdbc3/Jdbc3Blob.java" if="jdbc3"/>
        <include name="${package}/jdbc3/Jdbc3CallableStatement.java" if="jdbc3"/>
@@ -149,6 +159,10 @@
        <!-- jdbc3g subpackage -->
        <include name="${package}/jdbc3g/*.java" if="jdbc3g" />
        <exclude name="${package}/jdbc3g/Jdbc3g*.java" unless="jdbc3g" />
+
+       <!-- jdbc4 subpackage -->
+       <include name="${package}/jdbc4/*.java" if="jdbc4" />
+       <exclude name="${package}/jdcb4/Jdbc4*.java" unless="jdbc4" />
 
        <!-- ssl -->
        <include name="${package}/ssl/*.java" if="ssl" />
@@ -200,6 +214,9 @@
     <condition property="edition" value="JDBC3g">
     	<equals arg1="${jdbc3g}" arg2="true" />
     </condition>
+    <condition property="edition" value="JDBC4">
+	<equals arg1="${jdbc4}" arg2="true" />
+    </condition>
 
     <!-- determine the connection class -->
     <condition property="connectclass" value="org.postgresql.jdbc2.Jdbc2Connection">
@@ -211,16 +228,19 @@
     <condition property="connectclass" value="org.postgresql.jdbc3g.Jdbc3gConnection">
         <equals arg1="${jdbc3g}" arg2="true"/>
     </condition>
+    <condition property="connectclass" value="org.postgresql.jdbc4.Jdbc4Connection">
+	<equals arg1="${jdbc4}" arg2="true" />
+    </condition>
 
     <!-- Determine if we have Throwable.initCause() 
          if so we use it in org.postgresql.util.PSQLException
          instead of appending any nested exception to the message. -->
     <condition property="noInitCause" value="//">
-      <equals arg1="${jdbc3any}" arg2="true" />
+      <equals arg1="${jdbc3plus}" arg2="true" />
     </condition>
     
     <condition property="noInitCause" value="">
-      <not><equals arg1="${jdbc3any}" arg2="true" /></not>
+      <not><equals arg1="${jdbc3plus}" arg2="true" /></not>
     </condition>
 
     <!-- determine the ssl status -->
@@ -320,6 +340,7 @@
       <exclude name="${package}/test/jdbc2/optional/**" unless="jdbc2optionaltests" />
       <exclude name="${package}/test/jdbc3/**" unless="jdbc3tests" />
       <exclude name="${package}/test/util/**" unless="jdbc2optionaltests" />
+      <exclude name="${package}/test/xa/**" unless="jdbc3any" />
 
       <classpath>
         <pathelement location="${jardir}/postgresql.jar"/>

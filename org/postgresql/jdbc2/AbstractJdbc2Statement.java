@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.89 2006/05/15 09:35:57 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.90 2006/05/22 09:52:37 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -480,7 +480,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         // No-op.
     }
 
-    private boolean isClosed = false;
+    protected boolean isClosed = false;
     private int lastIndex = 0;
     /*
      * getUpdateCount returns the current result as an update count,

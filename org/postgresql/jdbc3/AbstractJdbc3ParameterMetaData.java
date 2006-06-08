@@ -3,7 +3,7 @@
 * Copyright (c) 2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/PSQLParameterMetaData.java,v 1.2 2005/04/10 21:54:16 jurka Exp $
+*   $PostgreSQL$
 *
 *-------------------------------------------------------------------------
 */
@@ -18,12 +18,12 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.jdbc2.TypeInfoCache;
 
-public class PSQLParameterMetaData implements ParameterMetaData {
+public abstract class AbstractJdbc3ParameterMetaData {
 
     private final BaseConnection _connection;
     private final int _oids[];
 
-    public PSQLParameterMetaData(BaseConnection connection, int oids[]) {
+    public AbstractJdbc3ParameterMetaData(BaseConnection connection, int oids[]) {
         _connection = connection;
         _oids = oids;
     }
