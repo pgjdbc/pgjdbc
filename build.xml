@@ -8,7 +8,7 @@
 
   This file now requires Ant 1.4.1.  2002-04-18
 
-  $PostgreSQL: pgjdbc/build.xml,v 1.68 2006/05/15 09:35:57 jurka Exp $
+  $PostgreSQL: pgjdbc/build.xml,v 1.69 2006/06/08 10:34:50 jurka Exp $
 
 -->
 
@@ -416,6 +416,7 @@
 	<exclude name="jdbc2/Jdbc2*.java" unless="jdbc2" />
 	<exclude name="jdbc3/Jdbc3*.java" unless="jdbc3" />
 	<exclude name="jdbc3g/Jdbc3g*.java" unless="jdbc3g" />
+	<exclude name="jdbc4/*.java" unless="jdbc4" />
         <exclude name="test/**/*.java"/>
       </fileset>
     </javadoc>
