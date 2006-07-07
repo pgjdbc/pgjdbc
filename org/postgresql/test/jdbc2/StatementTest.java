@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.17.2.1 2005/12/15 23:28:56 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.17.2.2 2006/02/01 18:52:30 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -79,18 +79,24 @@ public class StatementTest extends TestCase
     public void testMultiExecute() throws SQLException
     {
         Statement stmt = con.createStatement();
-        stmt.execute("SELECT 1; SELECT 2");
+        assertTrue(stmt.execute("SELECT 1; UPDATE test_statement SET i=1; SELECT 2"));
 
         ResultSet rs = stmt.getResultSet();
         assertTrue(rs.next());
         assertEquals(1, rs.getInt(1));
         rs.close();
 
+        assertTrue(!stmt.getMoreResults());
+        assertEquals(0, stmt.getUpdateCount());
+
         assertTrue(stmt.getMoreResults());
         rs = stmt.getResultSet();
         assertTrue(rs.next());
         assertEquals(2, rs.getInt(1));
         rs.close();
+
+        assertTrue(!stmt.getMoreResults());
+        assertEquals(-1, stmt.getUpdateCount());
         stmt.close();
     }
 
