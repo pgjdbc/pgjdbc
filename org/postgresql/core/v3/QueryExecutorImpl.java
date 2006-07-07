@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.21.2.3 2006/04/29 00:07:10 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.21.2.4 2006/04/29 13:31:28 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1204,6 +1204,8 @@ public class QueryExecutorImpl implements QueryExecutor {
                     if (fields != null || tuples != null)
                     { // There was a resultset.
                         handler.handleResultRows(currentQuery, fields, tuples, null);
+                        fields = null;
+                        tuples = null;
                     }
                 }
                 break;
@@ -1241,6 +1243,8 @@ public class QueryExecutorImpl implements QueryExecutor {
                     if (fields != null || tuples != null)
                     { // There was a resultset.
                         handler.handleResultRows(currentQuery, fields, tuples, null);
+                        fields = null;
+                        tuples = null;
                     }
                     else
                     {
@@ -1338,6 +1342,8 @@ public class QueryExecutorImpl implements QueryExecutor {
                     if (fields != null || tuples != null)
                     { // There was a resultset.
                         handler.handleResultRows(currentQuery, fields, tuples, null);
+                        fields = null;
+                        tuples = null;
                     }
                 }
                 break;
