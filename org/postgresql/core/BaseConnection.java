@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/BaseConnection.java,v 1.12 2004/11/09 08:44:12 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/BaseConnection.java,v 1.13 2005/01/11 08:25:43 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -34,6 +34,8 @@ public interface BaseConnection extends PGConnection, Connection
      * @throws SQLException if something goes wrong.
      */
     public ResultSet execSQLQuery(String s) throws SQLException;
+
+    public ResultSet execSQLQuery(String s, int resultSetType, int resultSetConcurrency) throws SQLException;
 
     /**
      * Execute a SQL query that does not return results.
