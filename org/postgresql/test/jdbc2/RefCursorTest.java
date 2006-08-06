@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/RefCursorTest.java,v 1.5 2005/01/11 08:25:48 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/RefCursorTest.java,v 1.6 2005/01/30 11:04:55 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -34,7 +34,7 @@ public class RefCursorTest extends TestCase
         con = TestUtil.openDB();
         Statement stmt = con.createStatement();
 
-        TestUtil.createTable(con, "testrs", "id integer");
+        TestUtil.createTable(con, "testrs", "id integer primary key");
 
         stmt.executeUpdate("INSERT INTO testrs VALUES (1)");
         stmt.executeUpdate("INSERT INTO testrs VALUES (2)");
@@ -126,6 +126,20 @@ public class RefCursorTest extends TestCase
         rs.close();
 
         call.close();
+    }
+
+    public void testResultType() throws SQLException
+    {
+        CallableStatement call = con.prepareCall("{ ? = call testspg__getRefcursor () }", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        call.registerOutParameter(1, Types.OTHER);
+        call.execute();
+        ResultSet rs = (ResultSet) call.getObject(1);
+
+        assertEquals(rs.getType(), ResultSet.TYPE_SCROLL_INSENSITIVE);
+        assertEquals(rs.getConcurrency(), ResultSet.CONCUR_READ_ONLY);
+
+        assertTrue(rs.last());
+        assertEquals(6, rs.getRow());
     }
 
 }
