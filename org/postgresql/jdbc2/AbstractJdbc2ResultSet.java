@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.82 2005/11/24 11:24:49 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.83 2005/12/04 21:40:33 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -172,7 +172,10 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                 // new xact anyway since holdable cursor state isn't affected
                 // by xact boundaries. If our caller didn't commit at all, or
                 // autocommit was on, then we wouldn't issue a BEGIN anyway.
-                ResultSet rs = connection.execSQLQuery(fetchSql);
+                //
+                // We take the scrollability from the statement, but until
+                // we have updatable cursors it must be readonly.
+                ResultSet rs = connection.execSQLQuery(fetchSql, resultsettype, ResultSet.CONCUR_READ_ONLY);
                 ((AbstractJdbc2ResultSet)rs).setRefCursor(cursorName);
                 return rs;
             }

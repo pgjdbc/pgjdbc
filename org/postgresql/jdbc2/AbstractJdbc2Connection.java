@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.36 2005/11/24 06:18:28 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.37 2005/11/24 06:44:21 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -221,11 +221,15 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
     }
 
+    public ResultSet execSQLQuery(String s) throws SQLException {
+        return execSQLQuery(s, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+    }
+
     /**
      * Simple query execution.
      */
-    public ResultSet execSQLQuery(String s) throws SQLException {
-        BaseStatement stat = (BaseStatement) createStatement();
+    public ResultSet execSQLQuery(String s, int resultSetType, int resultSetConcurrency) throws SQLException {
+        BaseStatement stat = (BaseStatement) createStatement(resultSetType, resultSetConcurrency);
         boolean hasResultSet = stat.executeWithFlags(s, QueryExecutor.QUERY_SUPPRESS_BEGIN);
 
         while (!hasResultSet && stat.getUpdateCount() != -1)
