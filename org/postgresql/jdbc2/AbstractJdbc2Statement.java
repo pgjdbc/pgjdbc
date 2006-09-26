@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.90 2006/05/22 09:52:37 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.91 2006/06/08 10:34:50 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -911,7 +911,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                 // go to the end of the function copying anything found
                 i++;
                 while (i<len && p_sql.charAt(i)!='}')
-                    newsql.append(p_sql.charAt(i));
+                    newsql.append(p_sql.charAt(i++));
                 state = IN_SQLCODE; // end of escaped function (or query)
                 break;
             case ESC_TIMEDATE:       
