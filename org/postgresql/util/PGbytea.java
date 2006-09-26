@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/PGbytea.java,v 1.11 2004/11/09 08:57:30 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/util/PGbytea.java,v 1.12 2005/01/11 08:25:49 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -16,6 +16,7 @@ import java.sql.*;
  */
 public class PGbytea
 {
+    private static final int MAX_3_BUFF_SIZE = 2 * 1024 * 1024;
 
     /*
      * Converts a PG bytea raw value (i.e. the raw binary representation
@@ -25,8 +26,36 @@ public class PGbytea
     {
         if (s == null)
             return null;
-        int slength = s.length;
-        byte[] buf = new byte[slength];
+        final int slength = s.length;
+        byte[] buf = null;
+        int correctSize = slength;
+        if (slength > MAX_3_BUFF_SIZE)
+        {
+            // count backslash escapes, they will be either
+            // backslashes or an octal escape \\ or \003
+            //
+            for (int i = 0; i < slength; ++i)
+            {
+                byte current = s[i];
+                if (current == '\\')
+                {
+                    byte next = s[ ++i ];
+                    if (next == '\\')
+                    {
+                        --correctSize;
+                    }
+                    else
+                    {
+                        correctSize -= 3;
+                    }
+                }
+            }
+            buf = new byte[correctSize];
+        }
+        else
+        {
+            buf = new byte[slength];
+        }
         int bufpos = 0;
         int thebyte;
         byte nextbyte;
@@ -54,6 +83,10 @@ public class PGbytea
             {
                 buf[bufpos++] = nextbyte;
             }
+        }
+        if (bufpos == correctSize)
+        {
+            return buf;
         }
         byte[] l_return = new byte[bufpos];
         System.arraycopy(buf, 0, l_return, 0, bufpos);
@@ -103,6 +136,4 @@ public class PGbytea
         }
         return l_strbuf.toString();
     }
-
-
 }
