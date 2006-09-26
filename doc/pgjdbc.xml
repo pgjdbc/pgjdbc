@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!--
   Copyright (c) 2004-2005, PostgreSQL Global Development Group
-  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.22.2.1 2005/02/02 20:06:11 jurka Exp $
+  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.22.2.2 2005/04/10 15:15:32 jurka Exp $
 -->
 
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN" "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">
@@ -546,8 +546,10 @@ Connection conn = DriverManager.getConnection(url);
         <para>
          Determine the number of <classname>PreparedStatement</classname>
          executions required before switching over to use server side prepared
-         statements.  The default is zero meaning never use server side
-         prepared statements.  More information on server side prepared
+         statements.  The default is five, meaning start using server side
+	 prepared statements on the fifth execution of the same
+	 <classname>PreparedStatement</classname> object.  More
+	 information on server side prepared
          statements is available in <xref linkend="server-prepare" />.
         </para>
        </listitem>
