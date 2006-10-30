@@ -3,13 +3,12 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/PGStream.java,v 1.18 2006/04/29 00:06:52 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/PGStream.java,v 1.19 2006/04/29 13:30:23 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.core;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -37,7 +36,7 @@ public class PGStream
     private final int port;
 
     private Socket connection;
-    private InputStream pg_input;
+    private VisibleBufferedInputStream pg_input;
     private OutputStream pg_output;
     private byte[] streamBuffer;
 
@@ -103,7 +102,7 @@ public class PGStream
         connection.setTcpNoDelay(true);
 
         // Buffer sizes submitted by Sverre H Huseby <sverrehu@online.no>
-        pg_input = new BufferedInputStream(connection.getInputStream(), 8192);
+        pg_input = new VisibleBufferedInputStream(connection.getInputStream(), 8192);
         pg_output = new BufferedOutputStream(connection.getOutputStream(), 8192);
 
         if (encoding != null)
@@ -268,14 +267,15 @@ public class PGStream
      */
     public int ReceiveIntegerR(int siz) throws IOException
     {
+        if (!pg_input.ensureBytes(siz)) {
+            throw new EOFException();
+        }
         int n = 0;
 
         for (int i = 0 ; i < siz ; i++)
         {
-            int b = pg_input.read();
+            int b = pg_input.readRaw() & 0xFF;
 
-            if (b < 0)
-                throw new EOFException();
             n = b | (n << 8);
         }
 
@@ -290,8 +290,6 @@ public class PGStream
 
     }
 
-    private byte[] byte_buf = new byte[8*1024];
-
     /**
      * Receives a fixed-size string from the backend.
      *
@@ -299,11 +297,14 @@ public class PGStream
      * @return the decoded string
      */
     public String ReceiveString(int len) throws IOException {
-        if (len > byte_buf.length)
-            byte_buf = new byte[len];
+        if (!pg_input.ensureBytes(len)) {
+            throw new EOFException();
+        }
 
-        Receive(byte_buf, 0, len);
-        return encoding.decode(byte_buf, 0, len);
+        String res = encoding.decode(pg_input.getBuffer(), pg_input.getIndex(),
+                                     len);
+        pg_input.skip(len);
+        return res;
     }
 
     /**
@@ -315,36 +316,11 @@ public class PGStream
      */
     public String ReceiveString() throws IOException
     {
-        int i = 0;
-        byte[] rst = byte_buf;
-        int buflen = rst.length;
-
-        while (true)
-        {
-            int c = pg_input.read();
-
-            if (c < 0)
-                throw new EOFException();
-
-            if (c == 0)
-                break;
-
-            if (i == buflen)
-            {
-                // Grow the buffer.
-                buflen *= 2;     // 100% bigger
-                if (buflen <= 0) // Watch for overflow
-                    throw new IOException("Impossibly long string");
-
-                byte[] newrst = new byte[buflen];
-                System.arraycopy(rst, 0, newrst, 0, i);
-                rst = newrst;
-            }
-
-            rst[i++] = (byte)c;
-        }
-
-        return encoding.decode(rst, 0, i);
+        int len = pg_input.scanCStringLength();
+        String res = encoding.decode(pg_input.getBuffer(), pg_input.getIndex(),
+                                     len - 1);
+        pg_input.skip(len);
+        return res;
     }
 
     /**

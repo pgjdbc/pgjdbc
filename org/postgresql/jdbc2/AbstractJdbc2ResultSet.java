@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.83 2005/12/04 21:40:33 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.84 2006/08/06 18:11:33 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1960,12 +1960,147 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     public int getInt(int columnIndex) throws SQLException
     {
+        Encoding encoding = connection.getEncoding();
+        if (encoding.hasAsciiNumbers()) {
+            try {
+                return getFastInt(columnIndex);
+            } catch (NumberFormatException ex) {
+            }
+        }
         return toInt( getFixedString(columnIndex) );
     }
 
     public long getLong(int columnIndex) throws SQLException
     {
+        Encoding encoding = connection.getEncoding();
+        if (encoding.hasAsciiNumbers()) {
+            try {
+                return getFastLong(columnIndex);
+            } catch (NumberFormatException ex) {
+            }
+        }
         return toLong( getFixedString(columnIndex) );
+    }
+        
+    private static final NumberFormatException FAST_NUMBER_FAILED = 
+        new NumberFormatException();
+
+    /**
+     * Optimised byte[] to number parser.
+     * 
+     * @param columnIndex The column to parse.
+     * @return The parsed number.
+     * @throws SQLException If an error occurs while fetching column.
+     * @throws NumberFormatException If the number is invalid or the
+     * out of range for fast parsing. The value must then be parsed by
+     * {@link #toLong(String)}.
+     */
+    private long getFastLong(int columnIndex) throws SQLException,
+        NumberFormatException {
+
+        checkResultSet( columnIndex );
+        
+        columnIndex--;
+        if (this_row[columnIndex] == null) {
+            return 0; // SQL NULL
+        }
+        
+        byte[] bytes = this_row[columnIndex];
+        
+        if (bytes.length == 0) {
+            throw FAST_NUMBER_FAILED;
+        }
+        
+        long val = 0;
+        int start;
+        boolean neg;
+        if (bytes[0] == '-') {
+            neg = true;
+            start = 1;
+            if (bytes.length > 19) {
+                throw FAST_NUMBER_FAILED;
+            }
+        } else {
+            start = 0;
+            neg = false;
+            if (bytes.length > 18) {
+                throw FAST_NUMBER_FAILED;
+            }
+        }
+        
+        while (start < bytes.length) {
+            byte b = bytes[start++];
+            if (b < '0' || b > '9') {
+                throw FAST_NUMBER_FAILED;
+            }
+            
+            val *= 10;
+            val += b - '0';
+        }
+        
+        if (neg) {
+            val = -val;
+        }        
+        
+        return val;
+    }
+
+    /**
+     * Optimised byte[] to number parser.
+     * 
+     * @param columnIndex The column to parse.
+     * @return The parsed number.
+     * @throws SQLException If an error occurs while fetching column.
+     * @throws NumberFormatException If the number is invalid or the
+     * out of range for fast parsing. The value must then be parsed by
+     * {@link #toLong(String)}.
+     */
+    private int getFastInt(int columnIndex) throws SQLException {
+        checkResultSet( columnIndex );
+        
+        columnIndex--;
+        if (this_row[columnIndex] == null) {
+            return 0; // SQL NULL
+        }
+        
+        byte[] bytes = this_row[columnIndex];
+        
+        if (bytes.length == 0) {
+            throw FAST_NUMBER_FAILED;
+        }
+        
+        int val = 0;
+        int start;
+        boolean neg;
+        if (bytes[0] == '-') {
+            neg = true;
+            start = 1;
+            if (bytes.length > 10) {
+                throw FAST_NUMBER_FAILED;
+            }
+        } else {
+            start = 0;
+            neg = false;
+            if (bytes.length > 9) {
+                throw FAST_NUMBER_FAILED;
+            }
+        }
+        
+        while (start < bytes.length) {
+            byte b = bytes[start++];
+            if (b < '0' || b > '9') {
+                throw FAST_NUMBER_FAILED;
+            }
+            
+            val *= 10;
+            val += b - '0';
+        }
+        
+        if (neg) {
+            val = -val;
+        }        
+        
+        return val;
     }
 
     public float getFloat(int columnIndex) throws SQLException
@@ -2361,12 +2496,12 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
      */
     public String getFixedString(int col) throws SQLException
     {
-        String s = getString(col);
-
         // Handle SQL Null
         wasNullFlag = (this_row[col - 1] == null);
         if (wasNullFlag)
             return null;
+
+        String s = getString(col);
 
         // if we don't have at least 2 characters it can't be money.
         if (s.length() < 2)
@@ -2374,11 +2509,18 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
         // Handle Money
         char ch = s.charAt(0);
+        
+        // optimise for non-money type: return immediately with one check
+        // if the first char cannot be '(', '$' or '-'
+        if (ch > '-') {
+            return s;
+        }
+        
         if (ch == '(')
         {
             s = "-" + PGtokenizer.removePara(s).substring(1);
         }
-        if (ch == '$')
+        else if (ch == '$')
         {
             s = s.substring(1);
         }

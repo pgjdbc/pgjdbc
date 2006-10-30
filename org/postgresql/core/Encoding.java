@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/Encoding.java,v 1.20 2005/01/11 08:25:43 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/Encoding.java,v 1.21 2005/07/04 02:18:32 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -16,7 +16,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.io.IOException;
-import java.util.Hashtable;
+import java.util.HashMap;
 
 /**
  * Representation of a particular character encoding.
@@ -28,7 +28,7 @@ public class Encoding
     /*
      * Preferred JVM encodings for backend encodings.
      */
-    private static final Hashtable encodings = new Hashtable();
+    private static final HashMap encodings = new HashMap();
 
     static {
         //Note: this list should match the set of supported server
@@ -75,10 +75,22 @@ public class Encoding
     }
 
     private final String encoding;
+    private final boolean fastASCIINumbers;
 
     protected Encoding(String encoding)
     {
         this.encoding = encoding;
+        fastASCIINumbers = testAsciiNumbers();
+    }
+    
+    /**
+     * Returns true if this encoding has characters
+     * '-' and '0'..'9' in exactly same posision as ascii.
+     *  
+     * @return true if the bytes can be scanned directly for ascii numbers.
+     */
+    public boolean hasAsciiNumbers() {
+        return fastASCIINumbers;
     }
 
     /**
@@ -115,9 +127,9 @@ public class Encoding
         // encoding in the JVM we use that. Otherwise we fall back
         // to the default encoding of the JVM.
 
-        if (encodings.containsKey(databaseEncoding))
+        String[] candidates = (String[]) encodings.get(databaseEncoding);
+        if (candidates != null)
         {
-            String[] candidates = (String[]) encodings.get(databaseEncoding);
             for (int i = 0; i < candidates.length; i++)
             {
                 if (isAvailable(candidates[i]))
@@ -253,5 +265,29 @@ public class Encoding
 
     public String toString() {
         return (encoding == null ? "<default JVM encoding>" : encoding);
+    }
+    
+    /**
+     * Checks weather this encoding is compatible with ASCII for the number
+     * characters '-' and '0'..'9'. Where compatible means that they are encoded
+     * with exactly same values. 
+     * 
+     * @return If faster ASCII number parsing can be used with this encoding.
+     */
+    private boolean testAsciiNumbers() {
+        // TODO: test all postgres supported encoding to see if there are
+        // any which do _not_ have ascii numbers in same location
+        // at least all the encoding listed in the encodings hashmap have
+        // working ascii numbers
+	try {
+	    String test = "-0123456789";
+	    byte[] bytes = encode(test);
+	    String res = new String(bytes, "US-ASCII");
+	    return test.equals(res);
+	} catch (java.io.UnsupportedEncodingException e) {
+	    return false;
+	} catch (IOException e) {
+	    return false;
+	}
     }
 }
