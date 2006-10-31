@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/BlobTest.java,v 1.17 2005/09/29 20:49:23 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/BlobTest.java,v 1.18 2005/10/03 17:27:33 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -52,7 +52,7 @@ public class BlobTest extends TestCase
     {
         PreparedStatement pstmt = con.prepareStatement("INSERT INTO testblob(lo) VALUES (?)");
 
-        pstmt.setBlob(1, null);
+        pstmt.setBlob(1, (Blob)null);
         pstmt.executeUpdate();
 
         pstmt.setNull(1, Types.BLOB);
@@ -61,7 +61,7 @@ public class BlobTest extends TestCase
         pstmt.setObject(1, null, Types.BLOB);
         pstmt.executeUpdate();
 
-        pstmt.setClob(1, null);
+        pstmt.setClob(1, (Clob)null);
         pstmt.executeUpdate();
 
         pstmt.setNull(1, Types.CLOB);

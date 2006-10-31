@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL$
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4Statement.java,v 1.1 2006/06/08 10:34:52 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -50,6 +50,41 @@ abstract class AbstractJdbc4Statement extends org.postgresql.jdbc3.AbstractJdbc3
         throw org.postgresql.Driver.notImplemented(this.getClass(), "setNCharacterStream(int, Reader, long)");
     }
 
+    public void setNCharacterStream(int parameterIndex, Reader value) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setNCharacterStream(int, Reader)");
+    }
+
+    public void setCharacterStream(int parameterIndex, Reader value, long length) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setCharacterStream(int, Reader, long)");
+    }
+
+    public void setCharacterStream(int parameterIndex, Reader value) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setCharacterStream(int, Reader)");
+    }
+
+    public void setBinaryStream(int parameterIndex, InputStream value, long length) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setBinaryStream(int, InputStream, long)");
+    }
+
+    public void setBinaryStream(int parameterIndex, InputStream value) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setBinaryStream(int, InputStream)");
+    }
+
+    public void setAsciiStream(int parameterIndex, InputStream value, long length) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setAsciiStream(int, InputStream, long)");
+    }
+
+    public void setAsciiStream(int parameterIndex, InputStream value) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setAsciiStream(int, InputStream)");
+    }
+
     public void setNClob(int parameterIndex, NClob value) throws SQLException
     {
         throw org.postgresql.Driver.notImplemented(this.getClass(), "setNClob(int, NClob)");
@@ -60,14 +95,29 @@ abstract class AbstractJdbc4Statement extends org.postgresql.jdbc3.AbstractJdbc3
         throw org.postgresql.Driver.notImplemented(this.getClass(), "setClob(int, Reader, long)");
     }
 
+    public void setClob(int parameterIndex, Reader reader) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setClob(int, Reader)");
+    }
+
     public void setBlob(int parameterIndex, InputStream inputStream, long length) throws SQLException
     {
         throw org.postgresql.Driver.notImplemented(this.getClass(), "setBlob(int, InputStream, long)");
     }
 
+    public void setBlob(int parameterIndex, InputStream inputStream) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setBlob(int, InputStream)");
+    }
+
     public void setNClob(int parameterIndex, Reader reader, long length) throws SQLException
     {
         throw org.postgresql.Driver.notImplemented(this.getClass(), "setNClob(int, Reader, long)");
+    }
+
+    public void setNClob(int parameterIndex, Reader reader) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setNClob(int, Reader)");
     }
 
     public void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SQLException
@@ -112,6 +162,41 @@ abstract class AbstractJdbc4Statement extends org.postgresql.jdbc3.AbstractJdbc3
         throw org.postgresql.Driver.notImplemented(this.getClass(), "setNCharacterStream(String, Reader, long)");
     }
 
+    public void setNCharacterStream(String parameterName, Reader value) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setNCharacterStream(String, Reader)");
+    }
+
+    public void setCharacterStream(String parameterName, Reader value, long length) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setCharacterStream(String, Reader, long)");
+    }
+
+    public void setCharacterStream(String parameterName, Reader value) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setCharacterStream(String, Reader)");
+    }
+
+    public void setBinaryStream(String parameterName, InputStream value, long length) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setBinaryStream(String, InputStream, long)");
+    }
+
+    public void setBinaryStream(String parameterName, InputStream value) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setBinaryStream(String, InputStream)");
+    }
+
+    public void setAsciiStream(String parameterName, InputStream value, long length) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setAsciiStream(String, InputStream, long)");
+    }
+
+    public void setAsciiStream(String parameterName, InputStream value) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setAsciiStream(String, InputStream)");
+    }
+
     public void setNClob(String parameterName, NClob value) throws SQLException
     {
         throw org.postgresql.Driver.notImplemented(this.getClass(), "setNClob(String, NClob)");
@@ -122,14 +207,29 @@ abstract class AbstractJdbc4Statement extends org.postgresql.jdbc3.AbstractJdbc3
         throw org.postgresql.Driver.notImplemented(this.getClass(), "setClob(String, Reader, long)");
     }
 
+    public void setClob(String parameterName, Reader reader) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setClob(String, Reader)");
+    }
+
     public void setBlob(String parameterName, InputStream inputStream, long length) throws SQLException
     {
         throw org.postgresql.Driver.notImplemented(this.getClass(), "setBlob(String, InputStream, long)");
     }
 
+    public void setBlob(String parameterName, InputStream inputStream) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setBlob(String, InputStream)");
+    }
+
     public void setNClob(String parameterName, Reader reader, long length) throws SQLException
     {
         throw org.postgresql.Driver.notImplemented(this.getClass(), "setNClob(String, Reader, long)");
+    }
+
+    public void setNClob(String parameterName, Reader reader) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setNClob(String, Reader)");
     }
 
     public NClob getNClob(int parameterIndex) throws SQLException
@@ -202,9 +302,9 @@ abstract class AbstractJdbc4Statement extends org.postgresql.jdbc3.AbstractJdbc3
         throw org.postgresql.Driver.notImplemented(this.getClass(), "isWrapperFor(Class<?>)");
     }
 
-    public Object unwrap(Class<?> iface) throws SQLException
+    public <T> T unwrap(Class<T> iface) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "unwrap(Class<?>)");
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "unwrap(Class<T>)");
     }
 
 }

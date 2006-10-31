@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL$
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4ResultSet.java,v 1.1 2006/06/08 10:34:52 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -12,6 +12,7 @@ package org.postgresql.jdbc4;
 
 import java.sql.*;
 import java.io.Reader;
+import java.io.InputStream;
 import java.util.Vector;
 import org.postgresql.core.*;
 
@@ -73,6 +74,26 @@ abstract class AbstractJdbc4ResultSet extends org.postgresql.jdbc3.AbstractJdbc3
         updateNClob(findColumn(columnName), nClob);
     }
 
+    public void updateNClob(int columnIndex, Reader reader) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "updateNClob(int, Reader)");
+    }
+
+    public void updateNClob(String columnName, Reader reader) throws SQLException
+    {
+        updateNClob(columnName, reader);
+    }
+
+    public void updateNClob(int columnIndex, Reader reader, long length) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "updateNClob(int, Reader, long)");
+    }
+
+    public void updateNClob(String columnName, Reader reader, long length) throws SQLException
+    {
+        updateNClob(findColumn(columnName), reader, length);
+    }
+
     public NClob getNClob(int columnIndex) throws SQLException
     {
         throw org.postgresql.Driver.notImplemented(this.getClass(), "getNClob(int)");
@@ -81,6 +102,46 @@ abstract class AbstractJdbc4ResultSet extends org.postgresql.jdbc3.AbstractJdbc3
     public NClob getNClob(String columnName) throws SQLException
     {
         return getNClob(findColumn(columnName));
+    }
+
+    public void updateBlob(int columnIndex, InputStream inputStream, long length) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "updateBlob(int, InputStream, long)");
+    }
+
+    public void updateBlob(String columnName, InputStream inputStream, long length) throws SQLException
+    {
+        updateBlob(findColumn(columnName), inputStream, length);
+    }
+
+    public void updateBlob(int columnIndex, InputStream inputStream) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "updateBlob(int, InputStream)");
+    }
+
+    public void updateBlob(String columnName, InputStream inputStream) throws SQLException
+    {
+        updateBlob(findColumn(columnName), inputStream);
+    }
+
+    public void updateClob(int columnIndex, Reader reader, long length) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "updateClob(int, Reader, long)");
+    }
+
+    public void updateClob(String columnName, Reader reader, long length) throws SQLException
+    {
+        updateClob(findColumn(columnName), reader, length);
+    }
+
+    public void updateClob(int columnIndex, Reader reader) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "updateClob(int, Reader)");
+    }
+
+    public void updateClob(String columnName, Reader reader) throws SQLException
+    {
+        updateClob(findColumn(columnName), reader);
     }
 
     public SQLXML getSQLXML(int columnIndex) throws SQLException
@@ -133,14 +194,94 @@ abstract class AbstractJdbc4ResultSet extends org.postgresql.jdbc3.AbstractJdbc3
         updateNCharacterStream(findColumn(columnName), x, length);
     }
 
+    public void updateNCharacterStream(int columnIndex, Reader x) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "updateNCharacterStream(int, Reader)");
+    }
+
+    public void updateNCharacterStream(String columnName, Reader x) throws SQLException
+    {
+        updateNCharacterStream(findColumn(columnName), x);
+    }
+
+    public void updateNCharacterStream(int columnIndex, Reader x, long length) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "updateNCharacterStream(int, Reader, long)");
+    }
+
+    public void updateNCharacterStream(String columnName, Reader x, long length) throws SQLException
+    {
+        updateNCharacterStream(findColumn(columnName), x, length);
+    }
+
+    public void updateCharacterStream(int columnIndex, Reader reader, long length) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "updateCharaceterStream(int, Reader, long)");
+    }
+
+    public void updateCharacterStream(String columnName, Reader reader, long length) throws SQLException
+    {
+        updateCharacterStream(findColumn(columnName), reader, length);
+    }
+
+    public void updateCharacterStream(int columnIndex, Reader reader) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "updateCharaceterStream(int, Reader)");
+    }
+
+    public void updateCharacterStream(String columnName, Reader reader) throws SQLException
+    {
+        updateCharacterStream(findColumn(columnName), reader);
+    }
+
+    public void updateBinaryStream(int columnIndex, InputStream inputStream, long length) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "updateBinaryStream(int, InputStream, long)");
+    }
+
+    public void updateBinaryStream(String columnName, InputStream inputStream, long length) throws SQLException
+    {
+        updateBinaryStream(findColumn(columnName), inputStream, length);
+    }
+
+    public void updateBinaryStream(int columnIndex, InputStream inputStream) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "updateBinaryStream(int, InputStream)");
+    }
+
+    public void updateBinaryStream(String columnName, InputStream inputStream) throws SQLException
+    {
+        updateBinaryStream(findColumn(columnName), inputStream);
+    }
+
+    public void updateAsciiStream(int columnIndex, InputStream inputStream, long length) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "updateAsciiStream(int, InputStream, long)");
+    }
+
+    public void updateAsciiStream(String columnName, InputStream inputStream, long length) throws SQLException
+    {
+        updateAsciiStream(findColumn(columnName), inputStream, length);
+    }
+
+    public void updateAsciiStream(int columnIndex, InputStream inputStream) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "updateAsciiStream(int, InputStream)");
+    }
+
+    public void updateAsciiStream(String columnName, InputStream inputStream) throws SQLException
+    {
+        updateAsciiStream(findColumn(columnName), inputStream);
+    }
+
     public boolean isWrapperFor(Class<?> iface) throws SQLException
     {
         throw org.postgresql.Driver.notImplemented(this.getClass(), "isWrapperFor(Class<?>)");
     }
 
-    public Object unwrap(Class<?> iface) throws SQLException
+    public <T> T unwrap(Class<T> iface) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "unwrap(Class<?>)");
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "unwrap(Class<T>)");
     }
 
 }

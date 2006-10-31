@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DateTest.java,v 1.11 2004/12/18 03:36:41 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DateTest.java,v 1.12 2005/01/11 08:25:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -99,7 +99,7 @@ public class DateTest extends TestCase
         ps.setObject(1, java.sql.Timestamp.valueOf("1970-11-30 3:00:00"), java.sql.Types.DATE);
         assertEquals(1, ps.executeUpdate());
 
-        ps.setObject(1, java.sql.Timestamp.valueOf("1988-1-1 13:00:00"), java.sql.Types.DATE);
+        ps.setObject(1, java.sql.Timestamp.valueOf("1988-01-01 13:00:00"), java.sql.Types.DATE);
         assertEquals(1, ps.executeUpdate());
 
         ps.setObject(1, java.sql.Timestamp.valueOf("2003-07-09 12:00:00"), java.sql.Types.DATE);

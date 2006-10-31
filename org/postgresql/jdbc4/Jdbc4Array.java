@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL$
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/Jdbc4Array.java,v 1.1 2006/06/08 10:34:52 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -39,6 +39,11 @@ public class Jdbc4Array extends org.postgresql.jdbc2.AbstractJdbc2Array implemen
     public ResultSet getResultSet(long index, int count, Map < String, Class < ? >> map) throws SQLException
     {
         return getResultSetImpl(index, count, map);
+    }
+
+    public void free() throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "free()");
     }
 
 }

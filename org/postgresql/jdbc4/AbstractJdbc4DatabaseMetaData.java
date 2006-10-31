@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL$
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4DatabaseMetaData.java,v 1.1 2006/06/08 10:34:52 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -54,9 +54,19 @@ public class AbstractJdbc4DatabaseMetaData extends org.postgresql.jdbc3.Abstract
         throw org.postgresql.Driver.notImplemented(this.getClass(), "isWrapperFor(Class<?>)");
     }
 
-    public Object unwrap(Class<?> iface) throws SQLException
+    public <T> T unwrap(Class<T> iface) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "unwrap(Class<?>)");
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "unwrap(Class<T>)");
+    }
+
+    public ResultSet getFunctions(String catalog, String schemaPattern, String functionNamePattern) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getFunction(String, String, String)");
+    }
+
+    public ResultSet getFunctionColumns(String catalog, String schemaPattern, String functionNamePattern, String columnNamePattern) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getFunctionColumns(String, String, String, String)");
     }
 
 }

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL$
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4Connection.java,v 1.1 2006/06/08 10:34:51 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -38,20 +38,29 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3.AbstractJdbc
         throw org.postgresql.Driver.notImplemented(this.getClass(), "createSQLXML()");
     }
 
+    public Struct createStruct(String typeName, Object[] attributes) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "createStruct(String, Object[])");
+    }
+
+    public Array createArrayOf(String typeName, Object[] elements) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "createArrayOf(String, Object[])");
+    }
+
     public boolean isValid(int timeout) throws SQLException
     {
         throw org.postgresql.Driver.notImplemented(this.getClass(), "isValid(int)");
     }
 
-    public void setClientInfo(String name, String value) throws SQLException
+    public void setClientInfo(String name, String value) throws SQLClientInfoException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "setClientInfo(String, String)");
+        throw new SQLClientInfoException("Not implemented.", null);
     }
 
-    public void setClientInfo(Properties properties) throws ClientInfoException
+    public void setClientInfo(Properties properties) throws SQLClientInfoException
     {
-        // KJJ
-        throw new ClientInfoException("notImplemented - Connection.setClientInfo(Properties)", null);
+        throw new SQLClientInfoException("Not implemented.", null);
     }
 
     public String getClientInfo(String name) throws SQLException
@@ -74,9 +83,9 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3.AbstractJdbc
         throw org.postgresql.Driver.notImplemented(this.getClass(), "isWrapperFor(Class<?>)");
     }
 
-    public Object unwrap(Class<?> iface) throws SQLException
+    public <T> T unwrap(Class<T> iface) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "unwrap(Class<?>)");
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "unwrap(Class<T>)");
     }
 
 
