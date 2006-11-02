@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/V2Query.java,v 1.4 2004/11/09 08:45:31 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/V2Query.java,v 1.5 2005/01/11 08:25:43 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -29,34 +29,35 @@ class V2Query implements Query {
         Vector v = new Vector();
         int lastParmEnd = 0;
 
-        boolean inSingleQuotes = false;
-        boolean inDoubleQuotes = false;
+        char []aChars = query.toCharArray();
 
-        for (int i = 0; i < query.length(); ++i)
+        for (int i = 0; i < aChars.length; ++i)
         {
-            char c = query.charAt(i);
-
-            switch (c)
+            switch (aChars[i])
             {
-            case '\\':
-                if (inSingleQuotes)
-                    ++i; // Skip one character.
+            case '\'': // single-quotes
+                i = Parser.parseSingleQuotes(aChars, i);
                 break;
 
-            case '\'':
-                inSingleQuotes = !inDoubleQuotes && !inSingleQuotes;
+            case '"': // double-quotes
+                i = Parser.parseDoubleQuotes(aChars, i);
                 break;
 
-            case '"':
-                inDoubleQuotes = !inSingleQuotes && !inDoubleQuotes;
+            case '-': // possibly -- style comment
+                i = Parser.parseLineComment(aChars, i);
+                break;
+
+            case '/': // possibly /* */ style comment
+                i = Parser.parseBlockComment(aChars, i);
+                break;
+            
+            case '$': // possibly dollar quote start
+                i = Parser.parseDollarQuotes(aChars, i);
                 break;
 
             case '?':
-                if (!inSingleQuotes && !inDoubleQuotes)
-                {
-                    v.addElement(query.substring (lastParmEnd, i));
-                    lastParmEnd = i + 1;
-                }
+                v.addElement(query.substring (lastParmEnd, i));
+                lastParmEnd = i + 1;
                 break;
 
             default:

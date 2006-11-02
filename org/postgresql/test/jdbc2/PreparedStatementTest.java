@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/PreparedStatementTest.java,v 1.15 2005/11/24 02:31:43 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/PreparedStatementTest.java,v 1.16 2006/05/15 09:35:57 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -304,6 +304,71 @@ public class PreparedStatementTest extends TestCase
             pstmt.close();
         }
     }
+    
+    public void testDollarQuotes() throws SQLException {
+        // dollar-quotes are supported in the backend since version 8.0
+        if (!TestUtil.haveMinimumServerVersion(conn, "8.0"))
+            return;
+
+        PreparedStatement st;
+        ResultSet rs;
+        
+        st = conn.prepareStatement("SELECT $$;$$ WHERE $x$?$x$=$_0$?$_0$ AND $$?$$=?");
+        st.setString(1, "?");
+        rs = st.executeQuery();
+        assertTrue(rs.next());
+        assertEquals(";", rs.getString(1));
+        assertFalse(rs.next());
+        st.close();
+        
+        st = conn.prepareStatement(
+                  "SELECT $__$;$__$ WHERE ''''=$q_1$'$q_1$ AND ';'=?;"
+                + "SELECT $x$$a$;$x $a$$x$ WHERE $$;$$=? OR ''=$c$c$;$c$;"
+                + "SELECT ?");
+        st.setString(1, ";");
+        st.setString(2, ";");
+        st.setString(3, "$a$ $a$");
+        
+        assertTrue(st.execute());
+        rs = st.getResultSet();
+        assertTrue(rs.next());
+        assertEquals(";", rs.getString(1));
+        assertFalse(rs.next());
+        
+        assertTrue(st.getMoreResults());
+        rs = st.getResultSet();
+        assertTrue(rs.next());
+        assertEquals("$a$;$x $a$", rs.getString(1));
+        assertFalse(rs.next());
+        
+        assertTrue(st.getMoreResults());
+        rs = st.getResultSet();
+        assertTrue(rs.next());
+        assertEquals("$a$ $a$", rs.getString(1));
+        assertFalse(rs.next());
+        st.close();
+    }
+    
+    public void testComments() throws SQLException {
+        PreparedStatement st;
+        ResultSet rs;
+
+        st = conn.prepareStatement("SELECT /*?*/ /*/*/*/**/*/*/*/1;SELECT ?;--SELECT ?");
+        st.setString(1, "a");
+        assertTrue(st.execute());
+        assertTrue(st.getMoreResults());
+        assertFalse(st.getMoreResults());
+        st.close();
+        
+        st = conn.prepareStatement("SELECT /**/'?'/*/**/*/ WHERE '?'=/*/*/*?*/*/*/--?\n?");
+        st.setString(1, "?");
+        rs = st.executeQuery();
+        assertTrue(rs.next());
+        assertEquals("?", rs.getString(1));
+        assertFalse(rs.next());
+        st.close();        
+    }
+    
     public void testDouble() throws SQLException
     {
         PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE double_tab (max_double float, min_double float, null_value float)");

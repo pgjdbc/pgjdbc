@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.21 2006/05/11 01:29:43 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.22 2006/07/07 01:12:23 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -388,6 +388,53 @@ public class StatementTest extends TestCase
         assertTrue(rs.next());
         assertEquals(2, rs.getInt(1));
         assertTrue(!rs.next());
+    }
+
+    public void testParsingDollarQuotes() throws SQLException
+    {
+        // dollar-quotes are supported in the backend since version 8.0
+        if (!TestUtil.haveMinimumServerVersion(con, "8.0"))
+            return;
+        
+        Statement st = con.createStatement();
+        ResultSet rs;
+
+        rs = st.executeQuery("SELECT '$a$ ; $a$'");
+        assertTrue(rs.next());
+        assertEquals("$a$ ; $a$", rs.getObject(1));
+        rs.close();
+        
+        rs = st.executeQuery("SELECT $$;$$");
+        assertTrue(rs.next());
+        assertEquals(";", rs.getObject(1));
+        rs.close();
+        
+        rs = st.executeQuery("SELECT $OR$$a$'$b$a$$OR$ WHERE '$a$''$b$a$'=$OR$$a$'$b$a$$OR$OR ';'=''");
+        assertTrue(rs.next());
+        assertEquals("$a$'$b$a$", rs.getObject(1));
+        assertFalse(rs.next());
+        rs.close();
+
+        rs = st.executeQuery("SELECT $B$;$b$B$");
+        assertTrue(rs.next());
+        assertEquals(";$b", rs.getObject(1));
+        rs.close();
+
+        rs = st.executeQuery("SELECT $c$c$;$c$");
+        assertTrue(rs.next());
+        assertEquals("c$;", rs.getObject(1));
+        rs.close();
+
+        rs = st.executeQuery("SELECT $A0$;$A0$ WHERE ''=$t$t$t$ OR ';$t$'=';$t$'");
+        assertTrue(rs.next());
+        assertEquals(";", rs.getObject(1));
+        assertFalse(rs.next());
+        rs.close();
+        
+        st.executeQuery("SELECT /* */$$;$$/**//*;*/").close();
+        st.executeQuery("SELECT /* */--;\n$$a$$/**/--\n--;\n").close();
+
+        st.close();
     }
 
     public void testUnbalancedParensParseError() throws SQLException

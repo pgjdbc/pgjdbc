@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.30 2006/04/29 13:30:24 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.31 2006/07/07 01:12:23 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -63,54 +63,53 @@ public class QueryExecutorImpl implements QueryExecutor {
         ArrayList statementList = new ArrayList();
         ArrayList fragmentList = new ArrayList(15);
 
-        boolean inQuotes = false;
         int fragmentStart = 0;
-
-        boolean inSingleQuotes = false;
-        boolean inDoubleQuotes = false;
         int inParen = 0;
-        
+
         char []aChars = query.toCharArray();
-        
+
         for (int i = 0; i < aChars.length; ++i)
         {
-            char c = aChars[i];
-
-            switch (c)
+            switch (aChars[i])
             {
-            case '\\':
-                if (inSingleQuotes)
-                    ++i; // Skip one character.
+            case '\'': // single-quotes
+                i = Parser.parseSingleQuotes(aChars, i);
                 break;
 
-            case '\'':
-                inSingleQuotes = !inDoubleQuotes && !inSingleQuotes;
+            case '"': // double-quotes
+                i = Parser.parseDoubleQuotes(aChars, i);
                 break;
 
-            case '"':
-                inDoubleQuotes = !inSingleQuotes && !inDoubleQuotes;
+            case '-': // possibly -- style comment
+                i = Parser.parseLineComment(aChars, i);
+                break;
+
+            case '/': // possibly /* */ style comment
+                i = Parser.parseBlockComment(aChars, i);
+                break;
+            
+            case '$': // possibly dollar quote start
+                i = Parser.parseDollarQuotes(aChars, i);
+                break;
+
+            case '(':
+                inParen++;
+                break;
+
+            case ')':
+                inParen--;
                 break;
 
             case '?':
-                if (withParameters && !inSingleQuotes && !inDoubleQuotes)
+                if (withParameters)
                 {
                     fragmentList.add(query.substring(fragmentStart, i));
                     fragmentStart = i + 1;
                 }
                 break;
 
-            case '(':
-                if (!inSingleQuotes && !inDoubleQuotes)
-                        inParen++;
-                break;
-
-            case ')':
-                if (!inSingleQuotes && !inDoubleQuotes)
-                        inParen--;
-                break;
-
             case ';':
-                if (!inSingleQuotes && !inDoubleQuotes && inParen == 0)
+                if (inParen == 0)
                 {
                     fragmentList.add(query.substring(fragmentStart, i));
                     fragmentStart = i + 1;
