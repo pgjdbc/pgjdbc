@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CallableStmtTest.java,v 1.17 2005/07/04 18:50:29 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CallableStmtTest.java,v 1.18 2005/12/14 14:26:08 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -173,6 +173,41 @@ public class CallableStmtTest extends TestCase
         assertNotNull(warn);
         assertEquals("goodbye", warn.getMessage());
         assertEquals(1, call.getInt(1));
+    }
+
+    public void testWasNullBeforeFetch() throws SQLException {
+        CallableStatement cs = con.prepareCall("{? = call lower(?)}");
+        cs.registerOutParameter(1, Types.VARCHAR);
+        cs.setString(2, "Hi");
+        try {
+            cs.wasNull();
+            fail("expected exception");
+        } catch(Exception e) {
+            assertTrue(e instanceof SQLException);
+        }
+    }
+
+    public void testFetchBeforeExecute() throws SQLException {
+        CallableStatement cs = con.prepareCall("{? = call lower(?)}");
+        cs.registerOutParameter(1, Types.VARCHAR);
+        cs.setString(2, "Hi");
+        try {
+            cs.getString(1);
+            fail("expected exception");
+        } catch(Exception e) {
+            assertTrue(e instanceof SQLException);
+        }
+    }
+
+    public void testFetchWithNoResults() throws SQLException {
+        CallableStatement cs = con.prepareCall("{call now()}");
+        cs.execute();
+        try {
+            cs.getObject(1);
+            fail("expected exception");
+        } catch(Exception e) {
+            assertTrue(e instanceof SQLException);
+        }
     }
 
     public void testBadStmt () throws Throwable

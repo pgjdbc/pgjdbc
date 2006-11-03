@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.91 2006/06/08 10:34:50 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.92 2006/09/26 04:42:18 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -372,7 +372,10 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             
             if ( cols != outParameterCount )
                 throw new PSQLException(GT.tr("A CallableStatement was excecuted with an invalid number of parameters"),PSQLState.SYNTAX_ERROR);
-            
+           
+            // reset last result fetched (for wasNull)
+            lastIndex = 0;
+
             // allocate enough space for all possible parameters without regard to in/out            
             callResult = new Object[preparedParameters.getParameterCount()+1];
             
@@ -1778,7 +1781,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         }
         if (!isFunction)
             throw new PSQLException (GT.tr("This statement does not declare an OUT parameter.  Use '{' ?= call ... '}' to declare one."), PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
-        checkIndex(parameterIndex);
+        checkIndex(parameterIndex, false);
         
         if( setPreparedParameters )
             preparedParameters.registerOutParameter( parameterIndex, sqlType );
@@ -1826,6 +1829,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
      */
     public boolean wasNull() throws SQLException
     {
+        if (lastIndex == 0)
+            throw new PSQLException(GT.tr("wasNull cannot be call before fetching a result."), PSQLState.OBJECT_NOT_IN_STATE);
+
         // check to see if the last access threw an exception
         return (callResult[lastIndex-1] == null);
     }
@@ -2382,19 +2388,29 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                                     PSQLState.MOST_SPECIFIC_TYPE_DOES_NOT_MATCH);
     }
 
+    private void checkIndex (int parameterIndex) throws SQLException
+    {
+        checkIndex(parameterIndex, true);
+    }
+
     /** helperfunction for the getXXX calls to check isFunction and index == 1
      * @param parameterIndex index of getXXX (index)
      * check to make sure is a function and index == 1
      */
-    private void checkIndex (int parameterIndex) throws SQLException
+    private void checkIndex (int parameterIndex, boolean fetchingData) throws SQLException
     {
         if (!isFunction)
             throw new PSQLException(GT.tr("A CallableStatement was declared, but no call to registerOutParameter(1, <some type>) was made."), PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
-        lastIndex =  parameterIndex;
-        /*
-        if (parameterIndex != 1)
-            throw new PSQLException (GT.tr("PostgreSQL only supports a single OUT function return value at index 1."), PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
-        */
+
+        if (fetchingData) {
+            if (!returnTypeSet)
+                throw new PSQLException(GT.tr("No function outputs were registered."), PSQLState.OBJECT_NOT_IN_STATE);
+
+            if (callResult == null)
+                throw new PSQLException(GT.tr("Results cannot be retrieved from a CallableStatement before it is executed."), PSQLState.NO_DATA);
+
+            lastIndex = parameterIndex;
+        }
     }
 
     public void setPrepareThreshold(int newThreshold) throws SQLException {
