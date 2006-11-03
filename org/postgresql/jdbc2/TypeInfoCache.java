@@ -3,7 +3,7 @@
  * Copyright (c) 2005, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.4 2006/02/09 16:29:06 jurka Exp $
+ *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.5 2006/05/22 04:07:06 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -217,28 +217,58 @@ public class TypeInfoCache {
         switch (oid) {
             case Oid.INT2:
                 return 5;
+
+            case Oid.OID:
             case Oid.INT4:
                 return 10;
+
             case Oid.INT8:
                 return 19;
+
             case Oid.FLOAT4:
                 // For float4 and float8, we can normally only get 6 and 15
                 // significant digits out, but extra_float_digits may raise
                 // that number by up to two digits.
                 return 8;
+
             case Oid.FLOAT8:
                 return 17;
+
             case Oid.NUMERIC:
                 if (typmod == -1)
-                    return -1;
+                    return 0;
                 return ((typmod-4) & 0xFFFF0000) >> 16;
-            case Oid.VARCHAR:
+
+            case Oid.CHAR:
+            case Oid.BOOL:
+                return 1;
+
             case Oid.BPCHAR:
+            case Oid.VARCHAR:
                 if (typmod == -1)
-                    return -1;
-                return typmod-4;
+                    return 0;
+                return typmod - 4;
+
+            // datetime types get the
+            // "length in characters of the String representation"
+            case Oid.DATE:
+            case Oid.TIME:
+            case Oid.TIMETZ:
+            case Oid.INTERVAL:
+            case Oid.TIMESTAMP:
+            case Oid.TIMESTAMPTZ:
+                return getDisplaySize(oid, typmod);
+
             case Oid.BIT:
                 return typmod;
+
+            case Oid.VARBIT:
+                if (typmod == -1)
+                    return 0;
+                return typmod;
+
+            case Oid.TEXT:
+            case Oid.BYTEA:
             default:
                 return 0;
         }
@@ -252,7 +282,7 @@ public class TypeInfoCache {
                 return 17;
             case Oid.NUMERIC:
                 if (typmod == -1)
-                    return -1;
+                    return 0;
                 return (typmod-4) & 0xFFFF;
             case Oid.TIME:
             case Oid.TIMETZ:
@@ -272,12 +302,16 @@ public class TypeInfoCache {
 
     public static boolean isCaseSensitive(int oid) {
         switch(oid) {
+            case Oid.OID:
             case Oid.INT2:
             case Oid.INT4:
             case Oid.INT8:
             case Oid.FLOAT4:
             case Oid.FLOAT8:
             case Oid.NUMERIC:
+            case Oid.BOOL:
+            case Oid.BIT:
+            case Oid.VARBIT:
             case Oid.DATE:
             case Oid.TIME:
             case Oid.TIMETZ:
@@ -379,9 +413,12 @@ public class TypeInfoCache {
                 return 1 + precision + (scale != 0 ? 1 : 0);
             case Oid.BIT:
                 return typmod;
+            case Oid.VARBIT:
+                if (typmod == -1)
+                    return Integer.MAX_VALUE;
+                return typmod;
             case Oid.TEXT:
             case Oid.BYTEA:
-            case Oid.VARBIT:
                 return Integer.MAX_VALUE;
             default:
                 return Integer.MAX_VALUE;
@@ -405,6 +442,7 @@ public class TypeInfoCache {
             case Oid.VARCHAR:
                 return 10485760;
             case Oid.BIT:
+            case Oid.VARBIT:
                 return 83886080;
             default:
                 return 0;
