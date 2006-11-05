@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.93 2006/11/03 04:44:50 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.94 2006/11/05 05:44:23 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -88,9 +88,6 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     private static final short ESC_OUTERJOIN = 5;
     private static final short ESC_ESCAPECHAR = 7;
     
-    // Some performance caches
-    private StringBuffer sbuf = new StringBuffer(35);
-
     protected final Query preparedQuery;              // Query fragments for prepared statement.
     protected final ParameterList preparedParameters; // Parameter values for prepared statement.
     protected Query lastSimpleQuery;

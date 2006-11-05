@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.84 2006/08/06 18:11:33 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.85 2006/10/30 18:30:16 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -23,7 +23,6 @@ import java.util.Iterator;
 import java.util.StringTokenizer;
 import java.util.Vector;
 import java.util.Calendar;
-import java.util.GregorianCalendar;
 import java.util.TimeZone;
 import org.postgresql.core.*;
 import org.postgresql.largeobject.*;
@@ -69,7 +68,6 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     protected boolean wasNullFlag = false; // the flag for wasNull()
     protected boolean onInsertRow = false;  // are we on the insert row (for JDBC2 updatable resultsets)?
 
-    private GregorianCalendar calendar = null;
     public byte[][] rowBuffer = null;       // updateable rowbuffer
 
     protected int fetchSize;       // Current fetch size (might be 0).
