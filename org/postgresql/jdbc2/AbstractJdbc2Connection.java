@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.37 2005/11/24 06:44:21 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.38 2006/08/06 18:11:33 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -829,7 +829,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
      * clients didn't close the connection, and once a fortnight enough
      * clients were open to kill the postgres server.
      */
-    public void finalize() throws Throwable
+    protected void finalize() throws Throwable
     {
         if (openStackTrace != null)
             logger.log(GT.tr("Finalizing a Connection that was never closed:"), openStackTrace);
