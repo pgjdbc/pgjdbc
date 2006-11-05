@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.85 2006/10/30 18:30:16 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.86 2006/11/05 05:58:22 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2583,8 +2583,11 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         {
             s = s.trim();
 
-            if (s.equalsIgnoreCase("true") || s.equalsIgnoreCase("t"))
+            if (s.equalsIgnoreCase("t") || s.equalsIgnoreCase("true") || s.equals("1"))
                 return true;
+
+            if (s.equalsIgnoreCase("f") || s.equalsIgnoreCase("false") || s.equals("0"))
+                return false;
 
             try
             {
