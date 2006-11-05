@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.92 2006/09/26 04:42:18 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.93 2006/11/03 04:44:50 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2368,7 +2368,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         checkIndex (parameterIndex);
         if (type1 != this.testReturn[parameterIndex-1] && type2 != this.testReturn[parameterIndex-1])
             throw new PSQLException(GT.tr("Parameter of type {0} was registered, but call to get{1} (sqltype={2}) was made.",
-                                          new Object[]{"java.sql.Types=" + testReturn,
+                                          new Object[]{"java.sql.Types=" + testReturn[parameterIndex-1],
                                                        getName,
                                                        "java.sql.Types=" + type1}),
                                     PSQLState.MOST_SPECIFIC_TYPE_DOES_NOT_MATCH);
