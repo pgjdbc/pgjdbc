@@ -26,6 +26,9 @@ class RecoveredXid implements Xid {
         if (o == this) // optimization for the common case.
             return true;
 
+        if (!(o instanceof Xid))
+            return false;
+
         Xid other = (Xid) o;
         if (other.getFormatId() != formatId)
             return false;
