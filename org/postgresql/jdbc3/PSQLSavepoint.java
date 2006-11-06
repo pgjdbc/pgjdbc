@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/PSQLSavepoint.java,v 1.6 2005/01/14 01:20:21 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/PSQLSavepoint.java,v 1.7 2005/01/15 07:53:03 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -70,18 +70,18 @@ public class PSQLSavepoint implements Savepoint {
         if (_isNamed)
         {
             // We need to quote and escape the name in case it
-            // contains spaces/quotes/backslashes.
+            // contains spaces/quotes/etc.
             //
             StringBuffer sb = new StringBuffer(_name.length() + 2);
-            sb.append("\"");
+            sb.append('"');
             for (int i = 0; i < _name.length(); i++)
             {
                 char c = _name.charAt(i);
-                if (c == '\\' || c == '"')
+                if (c == '"')
                     sb.append(c);
                 sb.append(c);
             }
-            sb.append("\"");
+            sb.append('"');
             return sb.toString();
         }
 
