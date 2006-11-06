@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/PGbytea.java,v 1.12 2005/01/11 08:25:49 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/util/PGbytea.java,v 1.13 2006/09/26 06:52:34 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -116,7 +116,7 @@ public class PGbytea
             if (l_int < 040 || l_int > 0176)
             {
                 //escape charcter with the form \000, but need two \\ because of
-                //the parser
+                //the Java parser
                 l_strbuf.append("\\");
                 l_strbuf.append((char)(((l_int >> 6) & 0x3) + 48));
                 l_strbuf.append((char)(((l_int >> 3) & 0x7) + 48));
@@ -125,7 +125,7 @@ public class PGbytea
             else if (p_buf[i] == (byte)'\\')
             {
                 //escape the backslash character as \\, but need four \\\\ because
-                //of the parser
+                //of the Java parser
                 l_strbuf.append("\\\\");
             }
             else
