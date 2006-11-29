@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CallableStmtTest.java,v 1.18 2005/12/14 14:26:08 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CallableStmtTest.java,v 1.19 2006/11/03 04:44:50 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -37,9 +37,11 @@ public class CallableStmtTest extends TestCase
         stmt.execute ("CREATE OR REPLACE FUNCTION testspg__getDouble (float) " +
                       "RETURNS float AS ' DECLARE inString alias for $1; begin " +
                       "return 42.42; end; ' LANGUAGE 'plpgsql';");
-        stmt.execute ("CREATE OR REPLACE FUNCTION testspg__getVoid (float) " +
+        if (TestUtil.haveMinimumServerVersion(con, "7.3")) {
+            stmt.execute ("CREATE OR REPLACE FUNCTION testspg__getVoid (float) " +
                 "RETURNS void AS ' DECLARE inString alias for $1; begin " +
                 " return; end; ' LANGUAGE 'plpgsql';");
+        }
         stmt.execute ("CREATE OR REPLACE FUNCTION testspg__getInt (int) RETURNS int " +
                       " AS 'DECLARE inString alias for $1; begin " +
                       "return 42; end;' LANGUAGE 'plpgsql';");      
@@ -63,7 +65,9 @@ public class CallableStmtTest extends TestCase
         Statement stmt = con.createStatement ();
         stmt.execute ("drop FUNCTION testspg__getString (varchar);");
         stmt.execute ("drop FUNCTION testspg__getDouble (float);");
-        stmt.execute( "drop FUNCTION testspg__getVoid(float);");
+        if (TestUtil.haveMinimumServerVersion(con, "7.3")) {
+            stmt.execute( "drop FUNCTION testspg__getVoid(float);");
+        }
         stmt.execute ("drop FUNCTION testspg__getInt (int);");
         stmt.execute ("drop FUNCTION testspg__getShort(int2)");
         stmt.execute ("drop FUNCTION testspg__getNumeric (numeric);");
@@ -95,9 +99,11 @@ public class CallableStmtTest extends TestCase
         call.setDouble( 1, (double)3.04 );
         call.execute();
         
-        call = con.prepareCall( "{ call " + pkgName + "getVoid(?) }");
-        call.setDouble( 1, (double)3.04 );
-        call.execute();
+        if (TestUtil.haveMinimumServerVersion(con, "7.3")) {
+            call = con.prepareCall( "{ call " + pkgName + "getVoid(?) }");
+            call.setDouble( 1, (double)3.04 );
+            call.execute();
+        }
     }
 
     public void testGetInt () throws Throwable
