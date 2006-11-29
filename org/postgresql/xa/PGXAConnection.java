@@ -1,7 +1,7 @@
 package org.postgresql.xa;
 
 import org.postgresql.Driver;
-import org.postgresql.ds.common.PooledConnectionImpl;
+import org.postgresql.ds.PGPooledConnection;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Logger;
 
@@ -27,7 +27,7 @@ import javax.transaction.xa.XAException;
  * 
  * @author Heikki Linnakangas (heikki.linnakangas@iki.fi)
  */
-public class PGXAConnection extends PooledConnectionImpl implements XAConnection, XAResource
+public class PGXAConnection extends PGPooledConnection implements XAConnection, XAResource
 {
     /**
      * Underlying physical database connection. It's used for issuing PREPARE TRANSACTION/

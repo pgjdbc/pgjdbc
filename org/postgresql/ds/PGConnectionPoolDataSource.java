@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/PGConnectionPoolDataSource.java,v 1.2 2005/01/11 08:25:44 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/PGConnectionPoolDataSource.java,v 1.3 2005/01/14 01:20:17 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -57,7 +57,7 @@ public class PGConnectionPoolDataSource extends BaseDataSource implements Serial
      */
     public PooledConnection getPooledConnection() throws SQLException
     {
-        return new PooledConnectionImpl(getConnection(), defaultAutoCommit);
+        return new PGPooledConnection(getConnection(), defaultAutoCommit);
     }
 
     /**
@@ -69,7 +69,7 @@ public class PGConnectionPoolDataSource extends BaseDataSource implements Serial
      */
     public PooledConnection getPooledConnection(String user, String password) throws SQLException
     {
-        return new PooledConnectionImpl(getConnection(user, password), defaultAutoCommit);
+        return new PGPooledConnection(getConnection(user, password), defaultAutoCommit);
     }
 
     /**
