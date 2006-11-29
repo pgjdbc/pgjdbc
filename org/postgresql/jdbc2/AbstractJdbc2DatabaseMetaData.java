@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.30 2006/03/27 12:07:57 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.31 2006/05/11 01:29:43 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1886,7 +1886,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         {
             useSchemas = "SCHEMAS";
             select = "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, c.relname AS TABLE_NAME, " +
-                     " CASE n.nspname LIKE 'pg\\\\_%' OR n.nspname = 'information_schema' " +
+                     " CASE n.nspname ~ '^pg_' OR n.nspname = 'information_schema' " +
                      " WHEN true THEN CASE " +
                      " WHEN n.nspname = 'pg_catalog' OR n.nspname = 'information_schema' THEN CASE c.relkind " +
                      "  WHEN 'r' THEN 'SYSTEM TABLE' " +
@@ -1930,14 +1930,14 @@ public abstract class AbstractJdbc2DatabaseMetaData
         {
             useSchemas = "NOSCHEMAS";
             String tableType = "" +
-                               " CASE c.relname LIKE 'pg\\\\_%' " +
-                               " WHEN true THEN CASE c.relname LIKE 'pg\\\\_toast\\\\_%' " +
+                               " CASE c.relname ~ '^pg_' " +
+                               " WHEN true THEN CASE c.relname ~ '^pg_toast_' " +
                                " WHEN true THEN CASE c.relkind " +
                                "  WHEN 'r' THEN 'SYSTEM TOAST TABLE' " +
                                "  WHEN 'i' THEN 'SYSTEM TOAST INDEX' " +
                                "  ELSE NULL " +
                                "  END " +
-                               " WHEN false THEN CASE c.relname LIKE 'pg\\\\_temp\\\\_%' " +
+                               " WHEN false THEN CASE c.relname ~ '^pg_temp_' " +
                                "  WHEN true THEN CASE c.relkind " +
                                "   WHEN 'r' THEN 'TEMPORARY TABLE' " +
                                "   WHEN 'i' THEN 'TEMPORARY INDEX' " +
@@ -2013,16 +2013,16 @@ public abstract class AbstractJdbc2DatabaseMetaData
         tableTypeClauses = new Hashtable();
         Hashtable ht = new Hashtable();
         tableTypeClauses.put("TABLE", ht);
-        ht.put("SCHEMAS", "c.relkind = 'r' AND n.nspname NOT LIKE 'pg\\\\_%' AND n.nspname <> 'information_schema'");
-        ht.put("NOSCHEMAS", "c.relkind = 'r' AND c.relname NOT LIKE 'pg\\\\_%'");
+        ht.put("SCHEMAS", "c.relkind = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
+        ht.put("NOSCHEMAS", "c.relkind = 'r' AND c.relname !~ '^pg_'");
         ht = new Hashtable();
         tableTypeClauses.put("VIEW", ht);
         ht.put("SCHEMAS", "c.relkind = 'v' AND n.nspname <> 'pg_catalog' AND n.nspname <> 'information_schema'");
-        ht.put("NOSCHEMAS", "c.relkind = 'v' AND c.relname NOT LIKE 'pg\\\\_%'");
+        ht.put("NOSCHEMAS", "c.relkind = 'v' AND c.relname !~ '^pg_'");
         ht = new Hashtable();
         tableTypeClauses.put("INDEX", ht);
-        ht.put("SCHEMAS", "c.relkind = 'i' AND n.nspname NOT LIKE 'pg\\\\_%' AND n.nspname <> 'information_schema'");
-        ht.put("NOSCHEMAS", "c.relkind = 'i' AND c.relname NOT LIKE 'pg\\\\_%'");
+        ht.put("SCHEMAS", "c.relkind = 'i' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
+        ht.put("NOSCHEMAS", "c.relkind = 'i' AND c.relname !~ '^pg_'");
         ht = new Hashtable();
         tableTypeClauses.put("SEQUENCE", ht);
         ht.put("SCHEMAS", "c.relkind = 'S'");
@@ -2030,31 +2030,31 @@ public abstract class AbstractJdbc2DatabaseMetaData
         ht = new Hashtable();
         tableTypeClauses.put("SYSTEM TABLE", ht);
         ht.put("SCHEMAS", "c.relkind = 'r' AND (n.nspname = 'pg_catalog' OR n.nspname = 'information_schema')");
-        ht.put("NOSCHEMAS", "c.relkind = 'r' AND c.relname LIKE 'pg\\\\_%' AND c.relname NOT LIKE 'pg\\\\_toast\\\\_%' AND c.relname NOT LIKE 'pg\\\\_temp\\\\_%'");
+        ht.put("NOSCHEMAS", "c.relkind = 'r' AND c.relname ~ '^pg_' AND c.relname !~ '^pg_toast_' AND c.relname !~ '^pg_temp_'");
         ht = new Hashtable();
         tableTypeClauses.put("SYSTEM TOAST TABLE", ht);
         ht.put("SCHEMAS", "c.relkind = 'r' AND n.nspname = 'pg_toast'");
-        ht.put("NOSCHEMAS", "c.relkind = 'r' AND c.relname LIKE 'pg\\\\_toast\\\\_%'");
+        ht.put("NOSCHEMAS", "c.relkind = 'r' AND c.relname ~ '^pg_toast_'");
         ht = new Hashtable();
         tableTypeClauses.put("SYSTEM TOAST INDEX", ht);
         ht.put("SCHEMAS", "c.relkind = 'i' AND n.nspname = 'pg_toast'");
-        ht.put("NOSCHEMAS", "c.relkind = 'i' AND c.relname LIKE 'pg\\\\_toast\\\\_%'");
+        ht.put("NOSCHEMAS", "c.relkind = 'i' AND c.relname ~ '^pg_toast_'");
         ht = new Hashtable();
         tableTypeClauses.put("SYSTEM VIEW", ht);
         ht.put("SCHEMAS", "c.relkind = 'v' AND (n.nspname = 'pg_catalog' OR n.nspname = 'information_schema') ");
-        ht.put("NOSCHEMAS", "c.relkind = 'v' AND c.relname LIKE 'pg\\\\_%'");
+        ht.put("NOSCHEMAS", "c.relkind = 'v' AND c.relname ~ '^pg_'");
         ht = new Hashtable();
         tableTypeClauses.put("SYSTEM INDEX", ht);
         ht.put("SCHEMAS", "c.relkind = 'i' AND (n.nspname = 'pg_catalog' OR n.nspname = 'information_schema') ");
-        ht.put("NOSCHEMAS", "c.relkind = 'v' AND c.relname LIKE 'pg\\\\_%' AND c.relname NOT LIKE 'pg\\\\_toast\\\\_%' AND c.relname NOT LIKE 'pg\\\\_temp\\\\_%'");
+        ht.put("NOSCHEMAS", "c.relkind = 'v' AND c.relname ~ '^pg_' AND c.relname !~ '^pg_toast_' AND c.relname !~ '^pg_temp_'");
         ht = new Hashtable();
         tableTypeClauses.put("TEMPORARY TABLE", ht);
-        ht.put("SCHEMAS", "c.relkind = 'r' AND n.nspname LIKE 'pg\\\\_temp\\\\_%' ");
-        ht.put("NOSCHEMAS", "c.relkind = 'r' AND c.relname LIKE 'pg\\\\_temp\\\\_%' ");
+        ht.put("SCHEMAS", "c.relkind = 'r' AND n.nspname ~ '^pg_temp_' ");
+        ht.put("NOSCHEMAS", "c.relkind = 'r' AND c.relname ~ '^pg_temp_' ");
         ht = new Hashtable();
         tableTypeClauses.put("TEMPORARY INDEX", ht);
-        ht.put("SCHEMAS", "c.relkind = 'i' AND n.nspname LIKE 'pg\\\\_temp\\\\_%' ");
-        ht.put("NOSCHEMAS", "c.relkind = 'i' AND c.relname LIKE 'pg\\\\_temp\\\\_%' ");
+        ht.put("SCHEMAS", "c.relkind = 'i' AND n.nspname ~ '^pg_temp_' ");
+        ht.put("NOSCHEMAS", "c.relkind = 'i' AND c.relname ~ '^pg_temp_' ");
     }
 
     /*
@@ -2074,7 +2074,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         String sql;
         if (connection.haveMinimumServerVersion("7.3"))
         {
-            sql = "SELECT nspname AS TABLE_SCHEM FROM pg_catalog.pg_namespace WHERE nspname <> 'pg_toast' AND nspname NOT LIKE 'pg\\\\_temp\\\\_%' ORDER BY TABLE_SCHEM";
+            sql = "SELECT nspname AS TABLE_SCHEM FROM pg_catalog.pg_namespace WHERE nspname <> 'pg_toast' AND nspname !~ '^pg_temp_' ORDER BY TABLE_SCHEM";
         }
         else
         {
@@ -3114,14 +3114,14 @@ public abstract class AbstractJdbc2DatabaseMetaData
                      + "(t1.tgrelid=c1.oid "
                      + "AND t1.tgisconstraint "
                      + "AND t1.tgconstrrelid=c2.oid "
-                     + "AND p1.proname LIKE 'RI\\\\_FKey\\\\_%\\\\_upd') "
+                     + "AND p1.proname ~ '^RI_FKey_.*_upd$') "
 
                      + "AND "
                      // isolate the delete rule
                      + "(t2.tgrelid=c1.oid "
                      + "AND t2.tgisconstraint "
                      + "AND t2.tgconstrrelid=c2.oid "
-                     + "AND p2.proname LIKE 'RI\\\\_FKey\\\\_%\\\\_del') "
+                     + "AND p2.proname ~ '^RI_FKey_.*_del$') "
 
                      + "AND i.indisprimary "
                      + where;
