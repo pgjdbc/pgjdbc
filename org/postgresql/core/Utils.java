@@ -4,12 +4,18 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*        $PostgreSQL: pgjdbc/org/postgresql/core/Utils.java,v 1.3 2004/11/09 08:44:57 jurka Exp $
+*        $PostgreSQL: pgjdbc/org/postgresql/core/Utils.java,v 1.4 2005/01/11 08:25:43 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
 
 package org.postgresql.core;
+
+import java.sql.SQLException;
+
+import org.postgresql.util.GT;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 /**
  * Collection of utilities used by the protocol-level code.
@@ -52,5 +58,58 @@ public class Utils {
             // Javadoc says that UTF-8 *must* be supported by all JVMs, so we don't try to be clever here.
             throw new RuntimeException("Unexpected exception: UTF-8 charset not supported: " + e);
         }
+    }
+    
+    /**
+     * Escape the given string <tt>value</tt> and append it to the string buffer
+     * <tt>sbuf</tt>. If <tt>sbuf</tt> is <tt>null</tt>, a new StringBuffer will be
+     * returned. The argument <tt>standardConformingStrings</tt> defines whether the
+     * backend expects standard-conforming string literals or allows backslash
+     * escape sequences.
+     * 
+     * @param sbuf the string buffer to append to; or <tt>null</tt>
+     * @param value the string value
+     * @param standardConformingStrings
+     * @return the sbuf argument; or a new string buffer for sbuf == null
+     * @throws SQLException if the string contains a <tt>\0</tt> character
+     */
+    public static StringBuffer appendEscapedString(StringBuffer sbuf, String value,
+                                                   boolean standardConformingStrings)
+                                                   throws SQLException {
+        if (sbuf == null)
+            sbuf = new StringBuffer(value.length() * 11 / 10); // Add 10% for escaping.
+        
+        if (standardConformingStrings)
+        {
+            // With standard_conforming_strings on, escape only single-quotes.
+            for (int i = 0; i < value.length(); ++i)
+            {
+                char ch = value.charAt(i);
+                if (ch == '\0')
+                    throw new PSQLException(GT.tr("Zero bytes may not occur in string parameters."), PSQLState.INVALID_PARAMETER_VALUE);
+                if (ch == '\'')
+                    sbuf.append('\'');
+                sbuf.append(ch);
+            }
+        }
+        else
+        {
+            // With standard_conforming_string off, escape backslashes and
+            // single-quotes, but still escape single-quotes by doubling, to
+            // avoid a security hazard if the reported value of
+            // standard_conforming_strings is incorrect, or an error if
+            // backslash_quote is off.
+            for (int i = 0; i < value.length(); ++i)
+            {
+                char ch = value.charAt(i);
+                if (ch == '\0')
+                    throw new PSQLException(GT.tr("Zero bytes may not occur in string parameters."), PSQLState.INVALID_PARAMETER_VALUE);
+                if (ch == '\\' || ch == '\'')
+                    sbuf.append(ch);
+                sbuf.append(ch);
+            }
+        }
+        
+        return sbuf;
     }
 }

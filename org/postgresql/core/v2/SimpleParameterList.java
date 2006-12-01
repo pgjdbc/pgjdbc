@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/SimpleParameterList.java,v 1.7 2005/07/04 18:50:28 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/SimpleParameterList.java,v 1.8 2006/05/22 09:52:36 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -28,8 +28,9 @@ import org.postgresql.util.GT;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 class SimpleParameterList implements ParameterList {
-    SimpleParameterList(int paramCount) {
+    SimpleParameterList(int paramCount, boolean useEStringSyntax) {
         this.paramValues = new Object[paramCount];
+        this.useEStringSyntax = useEStringSyntax;
     }
     public void registerOutParameter(int index, int sqlType ){};
     public void registerOutParameter(int index, int sqlType, int precision ){};
@@ -62,16 +63,11 @@ class SimpleParameterList implements ParameterList {
 
     public void setStringParameter(int index, String value, int oid) throws SQLException {
         StringBuffer sbuf = new StringBuffer(2 + value.length() * 11 / 10); // Add 10% for escaping.
+
+        if (useEStringSyntax)
+            sbuf.append(' ').append('E');
         sbuf.append('\'');
-        for (int i = 0; i < value.length(); ++i)
-        {
-            char ch = value.charAt(i);
-            if (ch == '\0')
-                throw new PSQLException(GT.tr("Zero bytes may not occur in string parameters."), PSQLState.INVALID_PARAMETER_VALUE);
-            if (ch == '\\' || ch == '\'')
-                sbuf.append('\\');
-            sbuf.append(ch);
-        }
+        Utils.appendEscapedString(sbuf, value, false);
         sbuf.append('\'');
 
         setLiteralParameter(index, sbuf.toString(), oid);
@@ -113,13 +109,19 @@ class SimpleParameterList implements ParameterList {
     /**
      * Send a streamable bytea encoded as a text representation with an arbitary encoding.
      */
-    private static void streamBytea(StreamWrapper param, Writer encodingWriter) throws IOException {
+    private void streamBytea(StreamWrapper param, Writer encodingWriter) throws IOException {
         // NB: we escape everything in this path, as I don't like assuming
         // that byte values 32..127 will make it through the encoding
         // unscathed..
 
         InputStream stream = param.getStream();
         char[] buffer = new char[] { '\\', '\\', 0, 0, 0 };
+
+        if (useEStringSyntax)
+        {
+            encodingWriter.write(' ');
+            encodingWriter.write('E');
+        }
 
         encodingWriter.write('\'');
         for (int remaining = param.getLength(); remaining > 0; --remaining)
@@ -157,7 +159,7 @@ class SimpleParameterList implements ParameterList {
     }
 
     public ParameterList copy() {
-        SimpleParameterList newCopy = new SimpleParameterList(paramValues.length);
+        SimpleParameterList newCopy = new SimpleParameterList(paramValues.length, useEStringSyntax);
         System.arraycopy(paramValues, 0, newCopy.paramValues, 0, paramValues.length);
         return newCopy;
     }
@@ -167,6 +169,8 @@ class SimpleParameterList implements ParameterList {
     }
 
     private final Object[] paramValues;
+    
+    private final boolean useEStringSyntax;
 
     /* Object representing NULL; conveniently, String streams exactly as we want it to. *
      * nb: we explicitly say "new String" to avoid interning giving us an object that

@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ConnectionFactoryImpl.java,v 1.10 2005/04/10 16:44:13 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ConnectionFactoryImpl.java,v 1.11 2005/11/24 02:29:21 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -469,6 +469,15 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                     if (!value.equals("UNICODE"))
                         throw new PSQLException(GT.tr("Protocol error.  Session setup failed."), PSQLState.CONNECTION_UNABLE_TO_CONNECT);
                     pgStream.setEncoding(Encoding.getDatabaseEncoding("UNICODE"));
+                }
+                else if (name.equals("standard_conforming_strings"))
+                {
+                    if (value.equals("on"))
+                        protoConnection.setStandardConformingStrings(true);
+                    else if (value.equals("off"))
+                        protoConnection.setStandardConformingStrings(false);
+                    else
+                        throw new PSQLException(GT.tr("Protocol error.  Session setup failed."), PSQLState.CONNECTION_UNABLE_TO_CONNECT);
                 }
 
                 break;

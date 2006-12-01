@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.31 2006/07/07 01:12:23 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.32 2006/11/02 15:31:14 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -56,7 +56,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         return parseQuery(sql, true);
     }
 
-    private static Query parseQuery(String query, boolean withParameters) {
+    private Query parseQuery(String query, boolean withParameters) {
         // Parse query and find parameter placeholders;
         // also break the query into separate statements.
 
@@ -66,6 +66,8 @@ public class QueryExecutorImpl implements QueryExecutor {
         int fragmentStart = 0;
         int inParen = 0;
 
+        boolean standardConformingStrings = protoConnection.getStandardConformingStrings();
+        
         char []aChars = query.toCharArray();
 
         for (int i = 0; i < aChars.length; ++i)
@@ -73,7 +75,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             switch (aChars[i])
             {
             case '\'': // single-quotes
-                i = Parser.parseSingleQuotes(aChars, i);
+                i = Parser.parseSingleQuotes(aChars, i, standardConformingStrings);
                 break;
 
             case '"': // double-quotes
@@ -1359,6 +1361,20 @@ public class QueryExecutorImpl implements QueryExecutor {
                         protoConnection.close(); // we're screwed now; we can't trust any subsequent date.
                         handler.handleError(new PSQLException(GT.tr("The server''s DateStyle parameter was changed to {0}. The JDBC driver requires DateStyle to begin with ISO for correct operation.", value), PSQLState.CONNECTION_FAILURE));
                         endQuery = true;
+                    }
+                    
+                    if (name.equals("standard_conforming_strings"))
+                    {
+                        if (value.equals("on"))
+                            protoConnection.setStandardConformingStrings(true);
+                        else if (value.equals("off"))
+                            protoConnection.setStandardConformingStrings(false);
+                        else
+                        {
+                            protoConnection.close(); // we're screwed now; we don't know how to escape string literals
+                            handler.handleError(new PSQLException(GT.tr("The server''s standard_conforming_strings parameter was reported as {0}. The JDBC driver expected on or off.", value), PSQLState.CONNECTION_FAILURE));
+                            endQuery = true;
+                        }
                     }
                 }
                 break;

@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/V2Query.java,v 1.5 2005/01/11 08:25:43 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/V2Query.java,v 1.6 2006/11/02 15:31:14 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -17,7 +17,12 @@ import org.postgresql.core.*;
  * Query implementation for all queries via the V2 protocol.
  */
 class V2Query implements Query {
-    V2Query(String query, boolean withParameters) {
+    V2Query(String query, boolean withParameters, ProtocolConnection pconn) {
+
+        useEStringSyntax = pconn.getServerVersion() != null
+                && pconn.getServerVersion().compareTo("8.1") > 0;
+        boolean stdStrings = pconn.getStandardConformingStrings();
+
         if (!withParameters)
         {
             fragments = new String[] { query };
@@ -36,7 +41,7 @@ class V2Query implements Query {
             switch (aChars[i])
             {
             case '\'': // single-quotes
-                i = Parser.parseSingleQuotes(aChars, i);
+                i = Parser.parseSingleQuotes(aChars, i, stdStrings);
                 break;
 
             case '"': // double-quotes
@@ -76,7 +81,7 @@ class V2Query implements Query {
         if (fragments.length == 1)
             return NO_PARAMETERS;
 
-        return new SimpleParameterList(fragments.length - 1);
+        return new SimpleParameterList(fragments.length - 1, useEStringSyntax);
     }
 
     public String toString(ParameterList parameters) {
@@ -99,8 +104,10 @@ class V2Query implements Query {
         return fragments;
     }
 
-    private static final ParameterList NO_PARAMETERS = new SimpleParameterList(0);
+    private static final ParameterList NO_PARAMETERS = new SimpleParameterList(0, false);
 
     private final String[] fragments;      // Query fragments, length == # of parameters + 1
+    
+    private final boolean useEStringSyntax; // whether escaped string syntax should be used
 }
 

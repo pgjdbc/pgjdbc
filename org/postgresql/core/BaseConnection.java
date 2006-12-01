@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/BaseConnection.java,v 1.17 2005/11/24 06:18:28 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/BaseConnection.java,v 1.18 2006/08/06 18:11:33 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -139,9 +139,34 @@ public interface BaseConnection extends PGConnection, Connection
      *
      * @param str the string to encode
      * @return an encoded representation of the string
-     * @throws SQException if something goes wrong.
+     * @throws SQLException if something goes wrong.
      */
     public byte[] encodeString(String str) throws SQLException;
+
+    /**
+     * Escapes a string for use as string-literal within an SQL command. The
+     * method chooses the applicable escaping rules based on the value of
+     * {@link #getStandardConformingStrings()}.
+     * 
+     * @param str a string value
+     * @return the escaped representation of the string
+     * @throws SQLException if the string contains a <tt>\0</tt> character
+     */
+    public String escapeString(String str) throws SQLException;
+
+    /**
+     * Returns whether the server treats string-literals according to the SQL
+     * standard or if it uses traditional PostgreSQL escaping rules. Versions
+     * up to 8.1 always treated backslashes as escape characters in
+     * string-literals. Since 8.2, this depends on the value of the
+     * <tt>standard_conforming_strings<tt> server variable.
+     * 
+     * @return true if the server treats string literals according to the SQL
+     *   standard
+     * 
+     * @see ProtocolConnection#getStandardConformingStrings()
+     */
+    public boolean getStandardConformingStrings();
 
     // Ew. Quick hack to give access to the connection-specific utils implementation.
     public TimestampUtils getTimestampUtils();

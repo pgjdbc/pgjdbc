@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ConnectionFactoryImpl.java,v 1.8 2005/01/11 08:25:43 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ConnectionFactoryImpl.java,v 1.9 2005/11/24 02:29:20 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -471,5 +471,17 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
         if (logger.logDebug())
             logger.debug("Connection encoding (using JVM's nomenclature): " + protoConnection.getEncoding());
+        
+        if (dbVersion.compareTo("8.1") >= 0)
+        {
+            // Server versions since 8.1 report standard_conforming_strings
+            results = runSetupQuery(protoConnection, "select current_setting('standard_conforming_strings')", true);
+            String value = protoConnection.getEncoding().decode(results[0]);
+            protoConnection.setStandardConformingStrings(value.equalsIgnoreCase("on"));
+        }
+        else
+        {
+            protoConnection.setStandardConformingStrings(false);
+        }
     }
 }

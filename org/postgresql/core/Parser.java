@@ -3,7 +3,7 @@
 * Copyright (c) 2006, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL$
+*   $PostgreSQL: pgjdbc/org/postgresql/core/Parser.java,v 1.1 2006/11/02 15:31:14 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -24,20 +24,49 @@ public class Parser {
      * one. The caller must call the method a second time for the second
      * part of the quoted string.
      */
-    public static int parseSingleQuotes(final char[] query, int offset) {
-        while (++offset < query.length)
+    public static int parseSingleQuotes(final char[] query, int offset,
+                                        boolean standardConformingStrings) {
+        // check for escape string syntax (E'')
+        if (standardConformingStrings
+                && offset >= 2
+                && (query[offset-1] == 'e' || query[offset-1] == 'E')
+                && charTerminatesIdentifier(query[offset-2]))
         {
-            switch (query[offset])
+            standardConformingStrings = false;
+        }
+        
+        if (standardConformingStrings)
+        {
+            // do NOT treat backslashes as escape characters
+            while (++offset < query.length)
             {
-            case '\\':
-                ++offset;
-                break;
-            case '\'':
-                return offset;
-            default:
-                break;
+                switch (query[offset])
+                {
+                case '\'':
+                    return offset;
+                default:
+                    break;
+                }
             }
         }
+        else
+        {
+            // treat backslashes as escape characters
+            while (++offset < query.length)
+            {
+                switch (query[offset])
+                {
+                case '\\':
+                    ++offset;
+                    break;
+                case '\'':
+                    return offset;
+                default:
+                    break;
+                }
+            }
+        }
+        
         return query.length;
     }
 
@@ -154,6 +183,33 @@ public class Parser {
         }
         return offset;
     }
+    
+    /**
+     * @return true if the character is a whitespace character as defined
+     *         in the backend's parser
+     */
+    public static boolean isSpace(char c) {
+       return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f';
+    }
+    
+    /**
+     * @return true if the given character is a valid character for an
+     *         operator in the backend's parser
+     */
+    public static boolean isOperatorChar(char c) {
+        /*
+         * Extracted from operators defined by {self} and {op_chars}
+         * in pgsql/src/backend/parser/scan.l.
+         */
+        return ",()[].;:+-*/%^<>=~!@#&|`?".indexOf(c) != -1;
+    }
+
+    /**
+     * @return true if the character terminates an identifier
+     */
+    public static boolean charTerminatesIdentifier(char c) {
+        return c == '"' || isSpace(c) || isOperatorChar(c);
+    }
 
     /**
      * Checks if a character is valid as the start of a dollar quoting tag.
@@ -187,7 +243,7 @@ public class Parser {
 
     /**
      * Compares two sub-arrays of the given character array for equalness.
-     * If the length is zero, the result is true, if and only if the offsets
+     * If the length is zero, the result is true if and only if the offsets
      * are within the bounds of the array.
      * 
      * @param arr  a char array

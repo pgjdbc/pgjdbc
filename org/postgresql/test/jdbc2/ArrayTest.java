@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ArrayTest.java,v 1.11 2005/10/03 17:27:32 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ArrayTest.java,v 1.12 2005/11/24 02:31:43 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -62,7 +62,8 @@ public class ArrayTest extends TestCase
         Statement stmt = conn.createStatement();
 
         // you need a lot of backslashes to get a double quote in.
-        stmt.executeUpdate("INSERT INTO arrtest VALUES ('{1,2,3}','{3.1,1.4}', '{abc,f''a,\"fa\\\\\"b\",def}')");
+        stmt.executeUpdate("INSERT INTO arrtest VALUES ('{1,2,3}','{3.1,1.4}', '"
+                + TestUtil.escapeString(conn, "{abc,f'a,\"fa\\\"b\",def}") + "')");
 
         ResultSet rs = stmt.executeQuery("SELECT intarr, decarr, strarr FROM arrtest");
         assertTrue(rs.next());
@@ -97,7 +98,8 @@ public class ArrayTest extends TestCase
         Statement stmt = conn.createStatement();
 
         // you need a lot of backslashes to get a double quote in.
-        stmt.executeUpdate("INSERT INTO arrtest VALUES ('{1,2,3}','{3.1,1.4}', '{abc,f''a,\"fa\\\\\"b\",def}')");
+        stmt.executeUpdate("INSERT INTO arrtest VALUES ('{1,2,3}','{3.1,1.4}', '" +
+                TestUtil.escapeString(conn, "{abc,f'a,\"fa\\\"b\",def}") + "')");
 
         ResultSet rs = stmt.executeQuery("SELECT intarr, decarr, strarr FROM arrtest");
         assertTrue(rs.next());

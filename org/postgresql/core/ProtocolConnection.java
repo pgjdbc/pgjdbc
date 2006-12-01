@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/ProtocolConnection.java,v 1.5 2005/04/20 00:10:58 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/ProtocolConnection.java,v 1.6 2005/06/21 18:07:08 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -67,6 +67,18 @@ public interface ProtocolConnection {
      * @return the current encoding in use by this connection
      */
     Encoding getEncoding();
+    
+    /**
+     * Returns whether the server treats string-literals according to the SQL
+     * standard or if it uses traditional PostgreSQL escaping rules. Versions
+     * up to 8.1 always treated backslashes as escape characters in
+     * string-literals. Since 8.2, this depends on the value of the
+     * <tt>standard_conforming_strings<tt> server variable.
+     * 
+     * @return true if the server treats string literals according to the SQL
+     *   standard
+     */
+    boolean getStandardConformingStrings();
 
     /**
      * Get the current transaction state of this connection.

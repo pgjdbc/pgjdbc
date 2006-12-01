@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ProtocolConnectionImpl.java,v 1.8 2005/11/24 02:29:20 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ProtocolConnectionImpl.java,v 1.9 2005/12/02 03:05:07 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -49,6 +49,11 @@ class ProtocolConnectionImpl implements ProtocolConnection {
 
     public String getServerVersion() {
         return serverVersion;
+    }
+
+    public synchronized boolean getStandardConformingStrings()
+    {
+        return standardConformingStrings;
     }
 
     public synchronized int getTransactionState()
@@ -166,6 +171,10 @@ class ProtocolConnectionImpl implements ProtocolConnection {
         this.cancelKey = cancelKey;
     }
 
+    synchronized void setStandardConformingStrings(boolean value) {
+        standardConformingStrings = value;
+    }
+
     //
     // Package-private accessors called by the query executor
     //
@@ -197,6 +206,7 @@ class ProtocolConnectionImpl implements ProtocolConnection {
     private int cancelPid;
     private int cancelKey;
 
+    private boolean standardConformingStrings;
     private int transactionState;
     private SQLWarning warnings;
 

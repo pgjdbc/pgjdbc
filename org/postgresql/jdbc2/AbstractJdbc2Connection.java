@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.38 2006/08/06 18:11:33 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.39 2006/11/05 06:14:18 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -533,7 +533,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     public String nativeSQL(String sql) throws SQLException
     {
         StringBuffer buf = new StringBuffer(sql.length());
-        AbstractJdbc2Statement.parseSql(sql,0,buf,false);
+        AbstractJdbc2Statement.parseSql(sql,0,buf,false,getStandardConformingStrings());
         return buf.toString();
     }
 
@@ -936,6 +936,15 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         {
             throw new PSQLException(GT.tr("Unable to translate data into the desired encoding."), PSQLState.DATA_ERROR, ioe);
         }
+    }
+
+    public String escapeString(String str) throws SQLException {
+        return Utils.appendEscapedString(null, str,
+                protoConnection.getStandardConformingStrings()).toString();
+    }
+
+    public boolean getStandardConformingStrings() {
+        return protoConnection.getStandardConformingStrings();
     }
 
     /*

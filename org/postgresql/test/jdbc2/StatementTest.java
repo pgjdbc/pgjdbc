@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.22 2006/07/07 01:12:23 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.23 2006/11/02 15:31:14 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -152,7 +152,7 @@ public class StatementTest extends TestCase
         // check "difficult" values
         rs = stmt.executeQuery("select {fn concat(')',escapetest.\")\")} as concat" +
                 ", {fn concat('{','}')} " +
-                ", {fn concat('\\'','\"')} " +
+                ", {fn concat('''','\"')} " +
                 ", {fn concat(\"\"\"){a}'\", '''}''')} " +
                 " FROM escapetest");
         assertTrue(rs.next());

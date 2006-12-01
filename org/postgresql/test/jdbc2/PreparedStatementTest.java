@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/PreparedStatementTest.java,v 1.16 2006/05/15 09:35:57 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/PreparedStatementTest.java,v 1.17 2006/11/02 15:31:14 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -262,6 +262,16 @@ public class PreparedStatementTest extends TestCase
                                    "double \\\\ backslash",
                                    "double \" quote",
                                };
+        
+        String[] testStringsStdConf = new String[] {
+                                    "bare ? question mark",
+                                    "quoted '' single quote",
+                                    "doubled '' single quote",
+                                    "octal 0 constant",
+                                    "escaped ? question mark",
+                                    "double \\ backslash",
+                                    "double \" quote",
+                                };
 
         String[] expected = new String[] {
                                 "bare ? question mark",
@@ -273,14 +283,60 @@ public class PreparedStatementTest extends TestCase
                                 "double \" quote",
                             };
 
-        for (int i = 0; i < testStrings.length; ++i)
+        if (! TestUtil.haveMinimumServerVersion(conn, "8.2"))
         {
-            PreparedStatement pstmt = conn.prepareStatement("SELECT '" + testStrings[i] + "'");
-            ResultSet rs = pstmt.executeQuery();
-            assertTrue(rs.next());
-            assertEquals(expected[i], rs.getString(1));
-            rs.close();
-            pstmt.close();
+            for (int i = 0; i < testStrings.length; ++i)
+            {
+                PreparedStatement pstmt = conn.prepareStatement("SELECT '" + testStrings[i] + "'");
+                ResultSet rs = pstmt.executeQuery();
+                assertTrue(rs.next());
+                assertEquals(expected[i], rs.getString(1));
+                rs.close();
+                pstmt.close();
+            }
+        }
+        else
+        {
+            boolean oldStdStrings = TestUtil.getStandardConformingStrings(conn);
+            Statement stmt = conn.createStatement();
+
+            // Test with standard_conforming_strings turned off.
+            stmt.execute("SET standard_conforming_strings TO off");
+            for (int i = 0; i < testStrings.length; ++i)
+            {
+                PreparedStatement pstmt = conn.prepareStatement("SELECT '" + testStrings[i] + "'");
+                ResultSet rs = pstmt.executeQuery();
+                assertTrue(rs.next());
+                assertEquals(expected[i], rs.getString(1));
+                rs.close();
+                pstmt.close();
+            }
+
+            // Test with standard_conforming_strings turned off...
+            // ... using the escape string syntax (E'').
+            stmt.execute("SET standard_conforming_strings TO on");
+            for (int i = 0; i < testStrings.length; ++i)
+            {
+                PreparedStatement pstmt = conn.prepareStatement("SELECT E'" + testStrings[i] + "'");
+                ResultSet rs = pstmt.executeQuery();
+                assertTrue(rs.next());
+                assertEquals(expected[i], rs.getString(1));
+                rs.close();
+                pstmt.close();
+            }
+            // ... using standard conforming input strings.
+            for (int i = 0; i < testStrings.length; ++i)
+            {
+                PreparedStatement pstmt = conn.prepareStatement("SELECT '" + testStringsStdConf[i] + "'");
+                ResultSet rs = pstmt.executeQuery();
+                assertTrue(rs.next());
+                assertEquals(expected[i], rs.getString(1));
+                rs.close();
+                pstmt.close();
+            }
+            
+            stmt.execute("SET standard_conforming_strings TO " + (oldStdStrings ? "on" : "off"));
+            stmt.close();
         }
     }
 

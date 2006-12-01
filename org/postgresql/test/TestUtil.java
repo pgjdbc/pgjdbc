@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/TestUtil.java,v 1.20 2005/11/24 02:29:22 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/TestUtil.java,v 1.21 2006/05/15 09:35:57 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -316,6 +316,24 @@ public class TestUtil
         return s.substring(s.length() - l);
     }
 
+    public static String escapeString(Connection con, String value) throws SQLException
+    {
+        if (con instanceof org.postgresql.jdbc2.AbstractJdbc2Connection)
+        {
+            return ((org.postgresql.jdbc2.AbstractJdbc2Connection)con).escapeString(value);
+        }
+        return value;
+    }
+    
+    public static boolean getStandardConformingStrings(Connection con)
+    {
+        if (con instanceof org.postgresql.jdbc2.AbstractJdbc2Connection)
+        {
+            return ((org.postgresql.jdbc2.AbstractJdbc2Connection)con).getStandardConformingStrings();
+        }
+        return false;
+    }
+    
     /**
      * Determine if the given connection is connected to a server with
      * a version of at least the given version.

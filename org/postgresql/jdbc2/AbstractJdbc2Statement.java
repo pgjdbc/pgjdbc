@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.94 2006/11/05 05:44:23 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.95 2006/11/05 05:58:22 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -766,7 +766,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             StringBuffer newsql = new StringBuffer(len);
             int i=0;
             while (i<len){
-                i=parseSql(p_sql,i,newsql,false);
+                i=parseSql(p_sql,i,newsql,false,connection.getStandardConformingStrings());
                 // We need to loop here in case we encounter invalid
                 // SQL, consider: SELECT a FROM t WHERE (1 > 0)) ORDER BY a
                 // We can't ending replacing after the extra closing paren
@@ -795,9 +795,11 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
      * @param i starting position for replacing
      * @param newsql where to write the replaced output
      * @param stopOnComma should we stop after hitting the first comma in sql text?
+     * @param stdStrings whether standard_conforming_strings is on
      * @return the position we stopped processing at
      */
-    protected static int parseSql(String p_sql,int i,StringBuffer newsql, boolean stopOnComma)throws SQLException{
+    protected static int parseSql(String p_sql,int i,StringBuffer newsql, boolean stopOnComma,
+                                  boolean stdStrings)throws SQLException{
         short state = IN_SQLCODE;
         int len = p_sql.length();
         int nestedParenthesis=0;
@@ -877,7 +879,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             case IN_STRING:
                 if (c == '\'')       // end of string?
                     state = IN_SQLCODE;
-                else if (c == '\\')      // a backslash?
+                else if (c == '\\' && !stdStrings)      // a backslash?
                     state = BACKSLASH;
 
                 newsql.append(c);
@@ -904,9 +906,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                     // extract arguments
                     i= posArgs+1;// we start the scan after the first (
                     StringBuffer args=new StringBuffer();
-                    i = parseSql(p_sql,i,args,false);
+                    i = parseSql(p_sql,i,args,false,stdStrings);
                     // translate the function and parse arguments
-                    newsql.append(escapeFunction(functionName,args.toString()));
+                    newsql.append(escapeFunction(functionName,args.toString(),stdStrings));
                 }
                 // go to the end of the function copying anything found
                 i++;
@@ -931,9 +933,10 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
      * generate sql for escaped functions
      * @param functionName the escaped function name
      * @param args the arguments for this functin
+     * @param stdStrings whether standard_conforming_strings is on
      * @return the right postgreSql sql
      */
-    protected static String escapeFunction(String functionName, String args) throws SQLException{
+    protected static String escapeFunction(String functionName, String args, boolean stdStrings) throws SQLException{
         // parse function arguments
         int len = args.length();
         int i=0;
@@ -941,7 +944,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         while (i<len){
             StringBuffer arg = new StringBuffer();
             int lastPos=i;
-            i=parseSql(args,i,arg,true);
+            i=parseSql(args,i,arg,true,stdStrings);
             if (lastPos!=i){
                 parsedArgs.add(arg);
             }
@@ -2132,6 +2135,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
         isFunction = false;
 
+        boolean stdStrings = connection.getStandardConformingStrings();
+
         int len = p_sql.length();
         int state = 1;
         boolean inQuotes = false, inEscape = false;
@@ -2253,7 +2258,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                     inQuotes = !inQuotes;
                     ++i;
                 }
-                else if (inQuotes && ch == '\\')
+                else if (inQuotes && ch == '\\' && !stdStrings)
                 {
                     // Backslash in string constant, skip next character.
                     i += 2;

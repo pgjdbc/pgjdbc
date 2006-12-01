@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.31 2006/05/11 01:29:43 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.32 2006/11/29 04:47:32 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -505,7 +505,12 @@ public abstract class AbstractJdbc2DatabaseMetaData
         // and " mycol LIKE ? " which using the V3 protocol would skip
         // pg's input parser, but I don't know what we can do about that.
         //
-        return "\\\\";
+        // Since PostgreSQL 8.2, the option standard_conforming_strings
+        // controls whether backslashes are treated as escape characters.
+        // If this option is on, pg's parser takes a backslash literally
+        // even in string constants embedded into the query text.
+        //
+        return connection.getStandardConformingStrings() ? "\\" : "\\\\";
     }
 
     /*
@@ -1564,21 +1569,10 @@ public abstract class AbstractJdbc2DatabaseMetaData
     }
 
     /**
-     * Escape single quotes with another single quote.
+     * Escape single quotes with another single quote, escape backslashes as needed.
      */
-    protected static String escapeQuotes(String s) {
-        StringBuffer sb = new StringBuffer();
-        int length = s.length();
-        for (int i = 0; i < length; i++)
-        {
-            char c = s.charAt(i);
-            if (c == '\'' || c == '\\')
-            {
-                sb.append('\\');
-            }
-            sb.append(c);
-        }
-        return sb.toString();
+    protected String escapeQuotes(String s) throws SQLException {
+        return connection.escapeString(s);
     }
 
     /*
