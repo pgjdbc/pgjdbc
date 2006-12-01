@@ -217,6 +217,37 @@ public class XADataSourceTest extends TestCase {
         xaRes.rollback(xid);
     }
 
+    public void testAutoCommit() throws Exception {
+        Xid xid = new CustomXid(6);
+
+        assertTrue(conn.getAutoCommit());
+
+        xaRes.start(xid, XAResource.TMNOFLAGS);
+        assertFalse(conn.getAutoCommit());
+        xaRes.end(xid, XAResource.TMSUCCESS);
+        assertFalse(conn.getAutoCommit());
+        xaRes.commit(xid, true);
+        assertTrue(conn.getAutoCommit());
+
+        xaRes.start(xid, XAResource.TMNOFLAGS);
+        xaRes.end(xid, XAResource.TMSUCCESS);
+        xaRes.prepare(xid);
+        assertTrue(conn.getAutoCommit());
+        xaRes.commit(xid, false);
+        assertTrue(conn.getAutoCommit());
+
+        xaRes.start(xid, XAResource.TMNOFLAGS);
+        xaRes.end(xid, XAResource.TMSUCCESS);
+        xaRes.rollback(xid);
+        assertTrue(conn.getAutoCommit());
+
+        xaRes.start(xid, XAResource.TMNOFLAGS);
+        xaRes.end(xid, XAResource.TMSUCCESS);
+        xaRes.prepare(xid);
+        xaRes.rollback(xid);
+        assertTrue(conn.getAutoCommit());
+    }
+
     /* We don't support transaction interleaving.
     public void testInterleaving1() throws Exception {
      Xid xid1 = new CustomXid(1);
