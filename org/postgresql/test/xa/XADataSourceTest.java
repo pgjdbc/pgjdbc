@@ -248,6 +248,16 @@ public class XADataSourceTest extends TestCase {
         assertTrue(conn.getAutoCommit());
     }
 
+    public void testEndThenJoin() throws XAException {
+        Xid xid = new CustomXid(5);
+
+        xaRes.start(xid, XAResource.TMNOFLAGS);
+        xaRes.end(xid, XAResource.TMSUCCESS);
+        xaRes.start(xid, XAResource.TMJOIN);
+        xaRes.end(xid, XAResource.TMSUCCESS);
+        xaRes.commit(xid, true);
+    }
+
     /* We don't support transaction interleaving.
     public void testInterleaving1() throws Exception {
      Xid xid1 = new CustomXid(1);

@@ -78,8 +78,11 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
      * 4. the TM hasn't seen the xid before
      *
      * Implementation deficiency preconditions:
-     * 1. flags must be TMNOFLAGS
-     * 2. Previous transaction using the connection must be committed or prepared or rolled back
+     * 1. TMRESUME not supported.
+     * 2. if flags is TMJOIN, we must be in ended state,
+     *    and xid must be the current transaction
+     * 3. unless flags is TMJOIN, previous transaction using the 
+     *    connection must be committed or prepared or rolled back
      * 
      * Postconditions:
      * 1. Connection is associated with the transaction
@@ -101,9 +104,18 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         // We can't check precondition 4 easily, so we don't. Duplicate xid will be catched in prepare phase.
 
         // Check implementation deficiency preconditions
-        if (flags != TMNOFLAGS)
-            throw new PGXAException(GT.tr("suspend/resume and join not implemented"), XAException.XAER_RMERR);
-        if (state == STATE_ENDED)
+        if (flags == TMRESUME)
+            throw new PGXAException(GT.tr("suspend/resume not implemented"), XAException.XAER_RMERR);
+
+        // It's ok to join an ended transaction. WebLogic does that.
+        if (flags == TMJOIN)
+        {
+            if (state != STATE_ENDED)
+                throw new PGXAException(GT.tr("Transaction interleaving not implemented"), XAException.XAER_RMERR);
+
+            if (!xid.equals(currentXid))
+                throw new PGXAException(GT.tr("Transaction interleaving not implemented"), XAException.XAER_RMERR);
+        } else if(state == STATE_ENDED)
             throw new PGXAException(GT.tr("Transaction interleaving not implemented"), XAException.XAER_RMERR);
 
         try
