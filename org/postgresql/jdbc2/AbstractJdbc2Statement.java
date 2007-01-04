@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.95 2006/11/05 05:58:22 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.96 2006/12/01 08:53:46 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -3039,66 +3039,53 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
     public java.sql.Date getDate(int i, java.util.Calendar cal) throws SQLException
     {
-        if (cal == null)
-            return getDate(i);
-        java.util.Date tmp = getDate(i);
-        if (tmp == null)
+        checkClosed();
+        checkIndex(i, Types.DATE, "Date");
+
+        if (callResult[i-1] == null)
             return null;
-        cal = changeTime(tmp, cal, false);
-        return new java.sql.Date(cal.getTime().getTime());
+
+        if (cal != null)
+            cal = (Calendar)cal.clone();
+
+        String value = callResult[i-1].toString();
+        return connection.getTimestampUtils().toDate(cal, value);
     }
 
     public Time getTime(int i, java.util.Calendar cal) throws SQLException
     {
-        if (cal == null)
-            return getTime(i);
-        java.util.Date tmp = getTime(i);
-        if (tmp == null)
+        checkClosed();
+        checkIndex(i, Types.TIME, "Time");
+
+        if (callResult[i-1] == null)
             return null;
-        cal = changeTime(tmp, cal, false);
-        return new java.sql.Time(cal.getTime().getTime());
+
+        if (cal != null)
+            cal = (Calendar)cal.clone();
+
+        String value = callResult[i-1].toString();
+        return connection.getTimestampUtils().toTime(cal, value);
     }
 
     public Timestamp getTimestamp(int i, java.util.Calendar cal) throws SQLException
     {
-        if (cal == null)
-            return getTimestamp(i);
-        java.util.Date tmp = getTimestamp(i);
-        if (tmp == null)
+        checkClosed();
+        checkIndex(i, Types.TIMESTAMP, "Timestamp");
+
+        if (callResult[i-1] == null)
             return null;
-        cal = changeTime(tmp, cal, false);
-        return new java.sql.Timestamp(cal.getTime().getTime());
+
+        if (cal != null)
+            cal = (Calendar)cal.clone();
+
+        String value = callResult[i-1].toString();
+        return connection.getTimestampUtils().toTimestamp(cal, value);
     }
 
     // no custom types allowed yet..
     public void registerOutParameter(int parameterIndex, int sqlType, String typeName) throws SQLException
     {
         throw Driver.notImplemented(this.getClass(), "registerOutParameter(int,int,String)");
-    }
-
-
-    static java.util.Calendar changeTime(java.util.Date t, java.util.Calendar cal, boolean Add)
-    {
-        long millis = t.getTime();
-
-        if (millis == PGStatement.DATE_POSITIVE_INFINITY ||
-            millis == PGStatement.DATE_NEGATIVE_INFINITY)
-        {
-            cal.setTime(t);
-            return cal;
-        }
-
-        int localoffset = t.getTimezoneOffset() * 60 * 1000 * -1;
-        int caloffset = cal.getTimeZone().getRawOffset();
-        if (cal.getTimeZone().inDaylightTime(t))
-            millis += 60 * 60 * 1000;
-        caloffset = (Add) ? (caloffset - localoffset) : -1 * (caloffset - localoffset);
-        java.util.Date tmpDate = new java.util.Date();
-        tmpDate.setTime(millis - caloffset);
-        cal.setTime(tmpDate);
-        //  cal.setTimeInMillis(millis-caloffset);
-        tmpDate = null;
-        return cal;
     }
 
 }
