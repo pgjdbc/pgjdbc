@@ -3,7 +3,7 @@
 * Copyright (c) 2001-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/UpdateableResultTest.java,v 1.19.2.1 2005/03/23 19:48:18 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/UpdateableResultTest.java,v 1.19.2.2 2005/09/29 22:12:16 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -17,6 +17,7 @@ import java.io.ByteArrayInputStream;
 import java.io.Reader;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
+import java.util.TimeZone;
 
 import org.postgresql.test.TestUtil;
 
@@ -32,7 +33,7 @@ public class UpdateableResultTest extends TestCase
     protected void setUp() throws Exception
     {
         con = TestUtil.openDB();
-        TestUtil.createTable(con, "updateable", "id int primary key, name text, notselected text", true);
+        TestUtil.createTable(con, "updateable", "id int primary key, name text, notselected text, ts timestamp with time zone", true);
         TestUtil.createTable(con, "second", "id1 int primary key, name1 text");
         TestUtil.createTable(con, "stream", "id int primary key, asi text, chr text, bin bytea");
 
@@ -184,6 +185,28 @@ public class UpdateableResultTest extends TestCase
 
         rs.close();
         stmt.close();
+    }
+
+    public void testUpdateTimestamp() throws SQLException
+    {
+        TimeZone origTZ = TimeZone.getDefault();
+        try {
+            // We choose a timezone which has a partial hour portion
+            // Asia/Tehran is +3:30
+            TimeZone.setDefault(TimeZone.getTimeZone("Asia/Tehran"));
+            Timestamp ts = Timestamp.valueOf("2006-11-20 16:17:18");
+
+            Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+            ResultSet rs = stmt.executeQuery("SELECT id, ts FROM updateable");
+            rs.moveToInsertRow();
+            rs.updateInt(1,1);
+            rs.updateTimestamp(2,ts);
+            rs.insertRow();
+            rs.first();
+            assertEquals(ts, rs.getTimestamp(2));
+        } finally {
+          TimeZone.setDefault(origTZ);
+        }
     }
 
     public void testUpdateStreams() throws SQLException, UnsupportedEncodingException
