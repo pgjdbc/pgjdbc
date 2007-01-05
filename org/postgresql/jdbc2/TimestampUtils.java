@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.18 2005/10/25 22:44:27 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.18.2.1 2006/04/29 02:33:52 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -545,6 +545,8 @@ public class TimestampUtils {
         if (hours < 10)
             sb.append('0');
         sb.append(hours);
+
+        sb.append(':');
 
         if (mins < 10)
             sb.append('0');
