@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.87 2006/11/05 07:45:16 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.88 2006/12/01 10:27:05 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2160,7 +2160,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             {
                 //Version 7.1 and earlier supports LargeObjects for byte arrays
                 // Handle OID's as BLOBS
-                if ( fields[columnIndex - 1].getOID() == 26)
+                if ( fields[columnIndex - 1].getOID() == Oid.OID)
                 {
                     LargeObjectManager lom = connection.getLargeObjectAPI();
                     LargeObject lob = lom.open(getInt(columnIndex));
@@ -2276,7 +2276,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         else
         {
             // In 7.1 Handle as BLOBS so return the LargeObject input stream
-            if ( fields[columnIndex - 1].getOID() == 26)
+            if ( fields[columnIndex - 1].getOID() == Oid.OID)
             {
                 LargeObjectManager lom = connection.getLargeObjectAPI();
                 LargeObject lob = lom.open(getInt(columnIndex));
