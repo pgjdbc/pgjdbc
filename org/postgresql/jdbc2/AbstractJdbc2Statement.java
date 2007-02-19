@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.84.2.7 2006/11/05 05:44:44 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.84.2.8 2007/01/04 21:59:26 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1273,11 +1273,11 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         {
             //Version 7.1 and earlier support done as LargeObjects
             LargeObjectManager lom = connection.getLargeObjectAPI();
-            int oid = lom.create();
+            long oid = lom.createLO();
             LargeObject lob = lom.open(oid);
             lob.write(x);
             lob.close();
-            setInt(parameterIndex, oid);
+            setLong(parameterIndex, oid);
         }
     }
 
@@ -1473,7 +1473,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             //but the jdbc spec indicates that streams should be
             //available for LONGVARBINARY instead
             LargeObjectManager lom = connection.getLargeObjectAPI();
-            int oid = lom.create();
+            long oid = lom.createLO();
             LargeObject lob = lom.open(oid);
             OutputStream los = lob.getOutputStream();
             try
@@ -1496,7 +1496,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                 throw new PSQLException(GT.tr("Provided InputStream failed."), PSQLState.UNEXPECTED_ERROR, se);
             }
             // lob is closed by the stream so don't call lob.close()
-            setInt(parameterIndex, oid);
+            setLong(parameterIndex, oid);
         }
     }
 
@@ -2714,7 +2714,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
         InputStream l_inStream = x.getBinaryStream();
         LargeObjectManager lom = connection.getLargeObjectAPI();
-        int oid = lom.create();
+        long oid = lom.createLO();
         LargeObject lob = lom.open(oid);
         OutputStream los = lob.getOutputStream();
         byte[] buf = new byte[4096];
@@ -2750,7 +2750,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             {
             }
         }
-        setInt(i, oid);
+        setLong(i, oid);
     }
 
     public void setCharacterStream(int i, java.io.Reader x, int length) throws SQLException
@@ -2806,7 +2806,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             //but the jdbc spec indicates that streams should be
             //available for LONGVARCHAR instead
             LargeObjectManager lom = connection.getLargeObjectAPI();
-            int oid = lom.create();
+            long oid = lom.createLO();
             LargeObject lob = lom.open(oid);
             OutputStream los = lob.getOutputStream();
             try
@@ -2829,7 +2829,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                 throw new PSQLException(GT.tr("Unexpected error writing large object to database."), PSQLState.UNEXPECTED_ERROR, se);
             }
             // lob is closed by the stream so don't call lob.close()
-            setInt(i, oid);
+            setLong(i, oid);
         }
     }
 
@@ -2846,7 +2846,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         InputStream l_inStream = x.getAsciiStream();
         int l_length = (int) x.length();
         LargeObjectManager lom = connection.getLargeObjectAPI();
-        int oid = lom.create();
+        long oid = lom.createLO();
         LargeObject lob = lom.open(oid);
         OutputStream los = lob.getOutputStream();
         try
@@ -2869,7 +2869,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             throw new PSQLException(GT.tr("Unexpected error writing large object to database."), PSQLState.UNEXPECTED_ERROR, se);
         }
         // lob is closed by the stream so don't call lob.close()
-        setInt(i, oid);
+        setLong(i, oid);
     }
 
     public void setNull(int i, int t, String s) throws SQLException

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Clob.java,v 1.5 2005/01/11 08:25:46 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Clob.java,v 1.6 2005/02/15 08:56:26 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -15,7 +15,7 @@ import java.sql.*;
 public abstract class AbstractJdbc3Clob extends org.postgresql.jdbc2.AbstractJdbc2Clob
 {
 
-    public AbstractJdbc3Clob(org.postgresql.PGConnection conn, int oid) throws SQLException
+    public AbstractJdbc3Clob(org.postgresql.PGConnection conn, long oid) throws SQLException
     {
         super(conn, oid);
     }

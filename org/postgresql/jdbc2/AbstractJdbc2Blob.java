@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Blob.java,v 1.8 2005/02/15 08:56:25 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Blob.java,v 1.9 2005/03/28 08:52:35 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -18,7 +18,7 @@ public abstract class AbstractJdbc2Blob extends AbstractJdbc2BlobClob
 {
     private LargeObject lo;
 
-    public AbstractJdbc2Blob(PGConnection conn, int oid) throws SQLException
+    public AbstractJdbc2Blob(PGConnection conn, long oid) throws SQLException
     {
         super(conn, oid);
     }

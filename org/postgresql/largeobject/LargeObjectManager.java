@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/largeobject/LargeObjectManager.java,v 1.18 2005/01/11 08:25:47 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/largeobject/LargeObjectManager.java,v 1.19 2005/01/14 01:20:22 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -152,8 +152,22 @@ public class LargeObjectManager
      * @param oid of large object
      * @return LargeObject instance providing access to the object
      * @exception SQLException on error
+     * @deprecated As of 8.3, replaced by {@link #open(long)}
      */
     public LargeObject open(int oid) throws SQLException
+    {
+        return open((long)oid);
+    }
+
+    /**
+     * This opens an existing large object, based on its OID. This method
+     * assumes that READ and WRITE access is required (the default).
+     *
+     * @param oid of large object
+     * @return LargeObject instance providing access to the object
+     * @exception SQLException on error
+     */
+    public LargeObject open(long oid) throws SQLException
     {
         return open(oid, READWRITE);
     }
@@ -165,8 +179,22 @@ public class LargeObjectManager
      * @param mode mode of open
      * @return LargeObject instance providing access to the object
      * @exception SQLException on error
+     * @deprecated As of 8.3, replaced by {@link #open(long, int)}
      */
     public LargeObject open(int oid, int mode) throws SQLException
+    {
+        return open((long)oid, mode);
+    }
+
+    /**
+     * This opens an existing large object, based on its OID
+     *
+     * @param oid of large object
+     * @param mode mode of open
+     * @return LargeObject instance providing access to the object
+     * @exception SQLException on error
+     */
+    public LargeObject open(long oid, int mode) throws SQLException
     {
         if (conn.getAutoCommit())
             throw new PSQLException(GT.tr("Large Objects may not be used in auto-commit mode."),
@@ -181,10 +209,23 @@ public class LargeObjectManager
      *
      * @return oid of new object
      * @exception SQLException on error
+     * @deprecated As of 8.3, replaced by {@link #createLO()}
      */
     public int create() throws SQLException
     {
         return create(READWRITE);
+    }
+
+    /**
+     * This creates a large object, returning its OID.
+     *
+     * <p>It defaults to READWRITE for the new object's attributes.
+     *
+     * @return oid of new object
+     */
+    public long createLO() throws SQLException
+    {
+        return createLO(READWRITE);
     }
 
     /**
@@ -194,14 +235,28 @@ public class LargeObjectManager
      * @return oid of new object
      * @exception SQLException on error
      */
-    public int create(int mode) throws SQLException
+    public long createLO(int mode) throws SQLException
     {
         if (conn.getAutoCommit())
             throw new PSQLException(GT.tr("Large Objects may not be used in auto-commit mode."),
                                     PSQLState.NO_ACTIVE_SQL_TRANSACTION);
         FastpathArg args[] = new FastpathArg[1];
         args[0] = new FastpathArg(mode);
-        return fp.getInteger("lo_creat", args);
+        return fp.getOID("lo_creat", args);
+    }
+
+    /**
+     * This creates a large object, returning its OID
+     *
+     * @param mode a bitmask describing different attributes of the new object
+     * @return oid of new object
+     * @exception SQLException on error
+     * @deprecated As of 8.3, replaced by {@link #createLO(int)}
+     */
+    public int create(int mode) throws SQLException
+    {
+        long oid = createLO(mode);
+        return (int)oid;
     }
 
     /**
@@ -210,10 +265,10 @@ public class LargeObjectManager
      * @param oid describing object to delete
      * @exception SQLException on error
      */
-    public void delete(int oid) throws SQLException
+    public void delete(long oid) throws SQLException
     {
         FastpathArg args[] = new FastpathArg[1];
-        args[0] = new FastpathArg(oid);
+        args[0] = Fastpath.createOIDArg(oid);
         fp.fastpath("lo_unlink", false, args);
     }
 
@@ -225,10 +280,37 @@ public class LargeObjectManager
      *
      * @param oid describing object to delete
      * @exception SQLException on error
+     * @deprecated As of 8.3, replaced by {@link #unlink(long)}
      */
     public void unlink(int oid) throws SQLException
     {
+        delete((long)oid);
+    }
+
+    /**
+     * This deletes a large object.
+     *
+     * <p>It is identical to the delete method, and is supplied as the C API uses
+     * unlink.
+     *
+     * @param oid describing object to delete
+     * @exception SQLException on error
+     */
+    public void unlink(long oid) throws SQLException
+    {
         delete(oid);
+    }
+
+    /**
+     * This deletes a large object.
+     *
+     * @param oid describing object to delete
+     * @exception SQLException on error
+     * @deprecated As of 8.3, replaced by {@link #delete(long)}
+     */
+    public void delete(int oid) throws SQLException
+    {
+        delete((long)oid);
     }
 
 }
