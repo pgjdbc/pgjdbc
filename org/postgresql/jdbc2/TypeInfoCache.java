@@ -3,7 +3,7 @@
  * Copyright (c) 2005, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.5 2006/05/22 04:07:06 jurka Exp $
+ *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.6 2006/11/03 07:15:16 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -51,7 +51,7 @@ public class TypeInfoCache {
     private static final Object types[][] = {
         {"int2", new Integer(Oid.INT2), new Integer(Types.SMALLINT), "java.lang.Integer"},
         {"int4", new Integer(Oid.INT4), new Integer(Types.INTEGER), "java.lang.Integer"},
-        {"oid", new Integer(Oid.OID), new Integer(Types.INTEGER), "java.lang.Integer"},
+        {"oid", new Integer(Oid.OID), new Integer(Types.BIGINT), "java.lang.Long"},
         {"int8", new Integer(Oid.INT8), new Integer(Types.BIGINT), "java.lang.Long"},
         {"money", new Integer(Oid.MONEY), new Integer(Types.DOUBLE), "java.lang.Double"},
         {"numeric", new Integer(Oid.NUMERIC), new Integer(Types.NUMERIC), "java.math.BigDecimal"},
