@@ -3,12 +3,11 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Blob.java,v 1.9 2007/02/19 06:00:25 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Blob.java,v 1.10 2007/02/19 17:21:12 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.jdbc3;
-
 
 import java.sql.SQLException;
 
@@ -69,27 +68,6 @@ public abstract class AbstractJdbc3Blob extends org.postgresql.jdbc2.AbstractJdb
         lo.seek((int) (pos-1));
         lo.write(bytes, offset, len);
         return len;
-    }
-
-    /**
-     * Retrieves a stream that can be used to write to the <code>BLOB</code>
-     * value that this <code>Blob</code> object represents.  The stream begins
-     * at position <code>pos</code>.
-     *
-     * @param pos the position in the <code>BLOB</code> value at which
-     *    to start writing
-     * @return a <code>java.io.OutputStream</code> object to which data can
-     *     be written
-     * @exception SQLException if there is an error accessing the
-     *     <code>BLOB</code> value
-     * @see #getBinaryStream
-     * @since 1.4
-     */
-    public synchronized java.io.OutputStream setBinaryStream(long pos) throws SQLException
-    {
-        assertPosition(pos);
-        lo.seek((int) (pos-1));
-        return lo.getOutputStream();
     }
 
     /**

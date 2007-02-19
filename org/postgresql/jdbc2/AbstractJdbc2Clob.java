@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Clob.java,v 1.9 2007/02/19 06:00:24 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Clob.java,v 1.10 2007/02/19 17:21:12 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -27,14 +27,12 @@ public class AbstractJdbc2Clob extends AbstractJdbc2BlobClob
 
     public synchronized InputStream getAsciiStream() throws SQLException
     {
-        checkFreed();
-        return lo.getInputStream();
+        return getBinaryStream();
     }
 
     public synchronized Reader getCharacterStream() throws SQLException
     {
-        checkFreed();
-        return new InputStreamReader(lo.getInputStream());
+        return new InputStreamReader(getBinaryStream());
     }
 
     public synchronized String getSubString(long i, int j) throws SQLException

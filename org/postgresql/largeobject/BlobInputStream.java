@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/largeobject/BlobInputStream.java,v 1.9 2004/11/09 08:52:08 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/largeobject/BlobInputStream.java,v 1.10 2005/01/11 08:25:47 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -68,6 +68,7 @@ public class BlobInputStream extends InputStream
      */
     public int read() throws java.io.IOException
     {
+        checkClosed();
         try
         {
             if (buffer == null || bpos >= buffer.length)
@@ -110,14 +111,16 @@ public class BlobInputStream extends InputStream
      */
     public void close() throws IOException
     {
-        try
-        {
-            lo.close();
-            lo = null;
-        }
-        catch (SQLException se)
-        {
-            throw new IOException(se.toString());
+        if (lo != null) {
+            try
+            {
+                lo.close();
+                lo = null;
+            }
+            catch (SQLException se)
+            {
+                throw new IOException(se.toString());
+            }
         }
     }
 
@@ -138,8 +141,7 @@ public class BlobInputStream extends InputStream
      * remember any data at all if more than <code>readlimit</code> bytes are
      * read from the stream before <code>reset</code> is called.
      *
-     * <p> The <code>mark</code> method of <code>InputStream</code> does
-     * nothing.
+     * <p> Marking a closed stream should not have any effect on the stream.
      *
      * @param readlimit the maximum limit of bytes that can be read before
      *      the mark position becomes invalid.
@@ -153,7 +155,8 @@ public class BlobInputStream extends InputStream
         }
         catch (SQLException se)
         {
-            //throw new IOException(se.toString());
+            // Can't throw this because mark API doesn't allow it.
+            // throw new IOException(se.toString());
         }
     }
 
@@ -167,6 +170,7 @@ public class BlobInputStream extends InputStream
     public synchronized void reset()
     throws IOException
     {
+        checkClosed();
         try
         {
             lo.seek(mpos);
@@ -191,4 +195,11 @@ public class BlobInputStream extends InputStream
     {
         return true;
     }
+
+    private void checkClosed() throws IOException
+    {
+        if (lo == null)
+            throw new IOException("BlobOutputStream is closed");
+    }
+
 }

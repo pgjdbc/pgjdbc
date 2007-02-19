@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/largeobject/LargeObject.java,v 1.17 2005/01/14 01:20:22 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/largeobject/LargeObject.java,v 1.18 2007/02/19 06:00:33 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -60,9 +60,10 @@ public class LargeObject
      */
     public static final int SEEK_END = 2;
 
-    private Fastpath fp; // Fastpath API to use
-    private long oid; // OID of this object
-    private int fd; // the descriptor of the open large object
+    private final Fastpath fp; // Fastpath API to use
+    private final long oid; // OID of this object
+    private final int mode; // read/write mode of this object
+    private final int fd; // the descriptor of the open large object
 
     private BlobOutputStream os;  // The current output stream
 
@@ -84,11 +85,17 @@ public class LargeObject
     {
         this.fp = fp;
         this.oid = oid;
+        this.mode = mode;
 
         FastpathArg args[] = new FastpathArg[2];
         args[0] = Fastpath.createOIDArg(oid);
         args[1] = new FastpathArg(mode);
         this.fd = fp.getInteger("lo_open", args);
+    }
+
+    public LargeObject copy() throws SQLException
+    {
+        return new LargeObject(fp, oid, mode);
     }
 
     /** Release large object resources during garbage cleanup */

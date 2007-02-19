@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/largeobject/BlobOutputStream.java,v 1.10 2004/11/09 08:52:08 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/largeobject/BlobOutputStream.java,v 1.11 2005/01/11 08:25:47 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -62,6 +62,7 @@ public class BlobOutputStream extends OutputStream
 
     public void write(int b) throws java.io.IOException
     {
+        checkClosed();
         try
         {
             if (bpos >= bsize)
@@ -79,6 +80,7 @@ public class BlobOutputStream extends OutputStream
 
     public void write(byte[] buf, int off, int len) throws java.io.IOException
     {
+        checkClosed();
         try
         {
             // If we have any internally buffered data, send it first
@@ -109,6 +111,7 @@ public class BlobOutputStream extends OutputStream
      */
     public void flush() throws IOException
     {
+        checkClosed();
         try
         {
             if (bpos > 0)
@@ -133,16 +136,24 @@ public class BlobOutputStream extends OutputStream
      */
     public void close() throws IOException
     {
-        try
-        {
-            flush();
-            lo.close();
-            lo = null;
+        if (lo != null) {
+            try
+            {
+                flush();
+                lo.close();
+                lo = null;
+            }
+            catch (SQLException se)
+            {
+                throw new IOException(se.toString());
+            }
         }
-        catch (SQLException se)
-        {
-            throw new IOException(se.toString());
-        }
+    }
+
+    private void checkClosed() throws IOException
+    {
+        if (lo == null)
+            throw new IOException("BlobOutputStream is closed");
     }
 
 }

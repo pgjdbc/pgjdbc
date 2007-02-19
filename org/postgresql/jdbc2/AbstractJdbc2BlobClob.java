@@ -3,15 +3,18 @@
 * Copyright (c) 2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2BlobClob.java,v 1.4 2007/02/19 06:00:24 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2BlobClob.java,v 1.5 2007/02/19 17:21:12 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.jdbc2;
 
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.sql.Blob;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Iterator;
 
 import org.postgresql.PGConnection;
 import org.postgresql.largeobject.LargeObject;
@@ -23,9 +26,6 @@ import org.postgresql.util.PSQLException;
 /**
  * This class holds all of the methods common to both Blobs and Clobs.
  *
- * At the moment only Blob uses this, but the intention is that Clob
- * eventually will once we figure out what to do with encodings.
- * 
  * @author Michael Barker <mailto:mike@middlesoft.co.uk>
  *
  */
@@ -33,10 +33,17 @@ public class AbstractJdbc2BlobClob
 {
     protected LargeObject lo;
 
+    /**
+     * We create separate LargeObjects for methods that use streams
+     * so they won't interfere with each other.
+     */
+    private ArrayList subLOs;
+
     public AbstractJdbc2BlobClob(PGConnection conn, long oid) throws SQLException
     {
         LargeObjectManager lom = conn.getLargeObjectAPI();
         this.lo = lom.open(oid);
+        subLOs = new ArrayList();
     }
 
     public synchronized void free() throws SQLException
@@ -45,6 +52,12 @@ public class AbstractJdbc2BlobClob
             lo.close();
             lo = null;
         }
+        Iterator i = subLOs.iterator();
+        while (i.hasNext()) {
+            LargeObject subLO = (LargeObject)i.next();
+            subLO.close();
+        }
+        subLOs = null;
     }
 
     public synchronized long length() throws SQLException
@@ -64,9 +77,20 @@ public class AbstractJdbc2BlobClob
     public synchronized InputStream getBinaryStream() throws SQLException
     {
         checkFreed();
-        return lo.getInputStream();
+        LargeObject subLO = lo.copy();
+        subLOs.add(subLO);
+        subLO.seek(0, LargeObject.SEEK_SET);
+        return subLO.getInputStream();
     }
 
+    public synchronized OutputStream setBinaryStream(long pos) throws SQLException
+    {
+        assertPosition(pos);
+        LargeObject subLO = lo.copy();
+        subLOs.add(subLO);
+        subLO.seek((int)(pos-1));
+        return subLO.getOutputStream();
+    }
 
     /**
      * Iterate over the buffer looking for the specified pattern

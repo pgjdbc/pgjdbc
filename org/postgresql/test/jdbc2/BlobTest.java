@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/BlobTest.java,v 1.19 2006/10/31 06:12:47 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/BlobTest.java,v 1.20 2007/02/19 06:00:38 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -151,6 +151,54 @@ public class BlobTest extends TestCase
         assertEquals(data[1], 'x');
         assertEquals(data[2], 'm');
         assertEquals(data[3], 'l');
+    }
+
+    public void testMultipleStreams() throws Exception
+    {
+        assertTrue(uploadFile("build.xml", NATIVE_STREAM) > 0);
+
+        Statement stmt = con.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");
+        assertTrue(rs.next());
+
+        Blob lob = rs.getBlob(1);
+        byte data[] = new byte[2];
+
+        InputStream is = lob.getBinaryStream();
+        assertEquals(data.length, is.read(data));
+        assertEquals(data[0], '<');
+        assertEquals(data[1], '?');
+        is.close();
+
+        is = lob.getBinaryStream();
+        assertEquals(data.length, is.read(data));
+        assertEquals(data[0], '<');
+        assertEquals(data[1], '?');
+        is.close();
+    }
+
+    public void testParallelStreams() throws Exception
+    {
+        assertTrue(uploadFile("build.xml", NATIVE_STREAM) > 0);
+
+        Statement stmt = con.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");
+        assertTrue(rs.next());
+
+        Blob lob = rs.getBlob(1);
+        InputStream is1 = lob.getBinaryStream();
+        InputStream is2 = lob.getBinaryStream();
+
+        while (true) {
+            int i1 = is1.read();
+            int i2 = is2.read();
+            assertEquals(i1, i2);
+            if (i1 == -1)
+                break;
+        }
+
+        is1.close();
+        is2.close();
     }
 
     /*
