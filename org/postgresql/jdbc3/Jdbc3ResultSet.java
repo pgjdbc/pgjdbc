@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/Jdbc3ResultSet.java,v 1.12 2004/12/17 21:24:30 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/Jdbc3ResultSet.java,v 1.13 2005/01/11 08:25:47 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -41,7 +41,7 @@ public class Jdbc3ResultSet extends org.postgresql.jdbc3.AbstractJdbc3ResultSet 
         if (wasNullFlag)
             return null;
 
-        return new Jdbc3Clob(connection, getInt(i));
+        return new Jdbc3Clob(connection, getLong(i));
     }
 
     public java.sql.Blob getBlob(int i) throws SQLException
@@ -51,7 +51,7 @@ public class Jdbc3ResultSet extends org.postgresql.jdbc3.AbstractJdbc3ResultSet 
         if (wasNullFlag)
             return null;
 
-        return new Jdbc3Blob(connection, getInt(i));
+        return new Jdbc3Blob(connection, getLong(i));
     }
 
     public Array createArray(int i) throws SQLException

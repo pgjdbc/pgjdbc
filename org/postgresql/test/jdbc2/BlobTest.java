@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/BlobTest.java,v 1.18 2005/10/03 17:27:33 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/BlobTest.java,v 1.19 2006/10/31 06:12:47 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -158,13 +158,13 @@ public class BlobTest extends TestCase
      * because it always works, and we can use it as a base to test the new
      * methods.
      */
-    private int uploadFile(String file, int method) throws Exception
+    private long uploadFile(String file, int method) throws Exception
     {
         LargeObjectManager lom = ((org.postgresql.PGConnection)con).getLargeObjectAPI();
 
         FileInputStream fis = new FileInputStream(file);
 
-        int oid = lom.create(LargeObjectManager.READWRITE);
+        long oid = lom.createLO(LargeObjectManager.READWRITE);
         LargeObject blob = lom.open(oid);
 
         int s, t;
@@ -227,7 +227,7 @@ public class BlobTest extends TestCase
         while (rs.next())
         {
             String file = rs.getString(1);
-            int oid = rs.getInt(2);
+            long oid = rs.getLong(2);
 
             FileInputStream fis = new FileInputStream(file);
             LargeObject blob = lom.open(oid);
