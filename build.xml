@@ -8,7 +8,7 @@
 
   This file now requires Ant 1.4.1.  2002-04-18
 
-  $PostgreSQL: pgjdbc/build.xml,v 1.70 2006/07/03 15:11:58 jurka Exp $
+  $PostgreSQL: pgjdbc/build.xml,v 1.71 2006/11/29 04:00:15 jurka Exp $
 
 -->
 
@@ -80,8 +80,14 @@
     <condition property="jdbc3tests">
       <and>
         <isset property="jdbc3plus"/>
-        <isset property="datasource"/>
         <isset property="junit"/>
+      </and>
+    </condition>
+
+    <condition property="jdbc4tests">
+      <and>
+        <isset property="jdbc4" />
+        <isset property="junit" />
       </and>
     </condition>
   </target>
@@ -393,6 +399,7 @@
       <exclude name="${package}/test/jdbc3/**" unless="jdbc3tests" />
       <exclude name="${package}/test/util/**" unless="jdbc2optionaltests" />
       <exclude name="${package}/test/xa/**" unless="jdbc3plus" />
+      <exclude name="${package}/test/jdbc4/**" unless="jdbc4tests" />
 
       <classpath>
         <pathelement location="${jardir}/postgresql.jar"/>
@@ -428,6 +435,7 @@
       <test name="org.postgresql.test.jdbc2.optional.OptionalTestSuite" if="jdbc2optionaltests"/>
       <test name="org.postgresql.test.jdbc3.Jdbc3TestSuite" if="jdbc3tests"/>
       <test name="org.postgresql.test.xa.XATestSuite" if="jdbc3tests"/>
+      <test name="org.postgresql.test.jdbc4.Jdbc4TestSuite" if="jdbc4tests" />
     </junit>
   </target>
   

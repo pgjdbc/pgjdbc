@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4Blob.java,v 1.1 2006/06/08 10:34:51 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4Blob.java,v 1.2 2007/02/19 06:00:32 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -20,14 +20,10 @@ public class AbstractJdbc4Blob extends org.postgresql.jdbc3.AbstractJdbc3Blob
         super(conn, oid);
     }
 
-    public java.io.InputStream getBinaryStream(long pos, long length) throws SQLException
+    public synchronized java.io.InputStream getBinaryStream(long pos, long length) throws SQLException
     {
+        checkFreed();
         throw org.postgresql.Driver.notImplemented(this.getClass(), "getBinaryStream(long, long)");
-    }
-
-    public void free() throws SQLException
-    {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "free()");
     }
 
 }

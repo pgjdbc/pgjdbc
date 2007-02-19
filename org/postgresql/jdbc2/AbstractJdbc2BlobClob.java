@@ -3,7 +3,7 @@
 * Copyright (c) 2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2BlobClob.java,v 1.3 2005/05/09 03:17:18 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2BlobClob.java,v 1.4 2007/02/19 06:00:24 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -31,7 +31,7 @@ import org.postgresql.util.PSQLException;
  */
 public class AbstractJdbc2BlobClob
 {
-    private LargeObject lo;
+    protected LargeObject lo;
 
     public AbstractJdbc2BlobClob(PGConnection conn, long oid) throws SQLException
     {
@@ -39,12 +39,21 @@ public class AbstractJdbc2BlobClob
         this.lo = lom.open(oid);
     }
 
-    public long length() throws SQLException
+    public synchronized void free() throws SQLException
     {
+        if (lo != null) {
+            lo.close();
+            lo = null;
+        }
+    }
+
+    public synchronized long length() throws SQLException
+    {
+        checkFreed();
         return lo.size();
     }
 
-    public byte[] getBytes(long pos, int length) throws SQLException
+    public synchronized byte[] getBytes(long pos, int length) throws SQLException
     {
         assertPosition(pos);
         lo.seek((int)(pos-1), LargeObject.SEEK_SET);
@@ -52,8 +61,9 @@ public class AbstractJdbc2BlobClob
     }
 
 
-    public InputStream getBinaryStream() throws SQLException
+    public synchronized InputStream getBinaryStream() throws SQLException
     {
+        checkFreed();
         return lo.getInputStream();
     }
 
@@ -64,7 +74,7 @@ public class AbstractJdbc2BlobClob
      * @param pattern A pattern of bytes to search the blob for.
      * @param start The position to start reading from.
      */
-    public long position(byte[] pattern, long start) throws SQLException
+    public synchronized long position(byte[] pattern, long start) throws SQLException
     {
         assertPosition(start, pattern.length);
 
@@ -142,17 +152,9 @@ public class AbstractJdbc2BlobClob
     /**
      * This is simply passing the byte value of the pattern Blob
      */
-    public long position(Blob pattern, long start) throws SQLException
+    public synchronized long position(Blob pattern, long start) throws SQLException
     {
         return position(pattern.getBytes(1, (int)pattern.length()), start);
-    }
-
-    /**
-     * Expose large object to derived classes.
-     */
-    protected LargeObject getLO()
-    {
-       return lo;
     }
 
     /**
@@ -175,6 +177,7 @@ public class AbstractJdbc2BlobClob
      */
     protected void assertPosition(long pos, long len) throws SQLException
     {
+        checkFreed();
         if (pos < 1)
         {
             throw new PSQLException(GT.tr("LOB positioning offsets start at 1."), PSQLState.INVALID_PARAMETER_VALUE);
@@ -183,6 +186,16 @@ public class AbstractJdbc2BlobClob
         {
             throw new PSQLException(GT.tr("PostgreSQL LOBs can only index to: {0}", new Integer(Integer.MAX_VALUE)), PSQLState.INVALID_PARAMETER_VALUE);
         }
+    }
+
+    /**
+     * Checks that this LOB hasn't been free()d already.
+     * @throws SQLException if LOB has been freed.
+     */
+    protected void checkFreed() throws SQLException
+    {
+        if (lo == null)
+            throw new PSQLException(GT.tr("free() was called on this LOB previously"), PSQLState.OBJECT_NOT_IN_STATE);
     }
 
 }

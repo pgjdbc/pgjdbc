@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Clob.java,v 1.6 2005/02/15 08:56:26 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Clob.java,v 1.7 2007/02/19 06:00:25 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -35,8 +35,9 @@ public abstract class AbstractJdbc3Clob extends org.postgresql.jdbc2.AbstractJdb
      *
      * @since 1.4
      */
-    public int setString(long pos, String str) throws SQLException
+    public synchronized int setString(long pos, String str) throws SQLException
     {
+        checkFreed();
         throw org.postgresql.Driver.notImplemented(this.getClass(), "setString(long,str)");
     }
 
@@ -58,8 +59,9 @@ public abstract class AbstractJdbc3Clob extends org.postgresql.jdbc2.AbstractJdb
      *
      * @since 1.4
      */
-    public int setString(long pos, String str, int offset, int len) throws SQLException
+    public synchronized int setString(long pos, String str, int offset, int len) throws SQLException
     {
+        checkFreed();
         throw org.postgresql.Driver.notImplemented(this.getClass(), "setString(long,String,int,int)");
     }
 
@@ -77,8 +79,9 @@ public abstract class AbstractJdbc3Clob extends org.postgresql.jdbc2.AbstractJdb
      *
      * @since 1.4
      */
-    public java.io.OutputStream setAsciiStream(long pos) throws SQLException
+    public synchronized java.io.OutputStream setAsciiStream(long pos) throws SQLException
     {
+        checkFreed();
         throw org.postgresql.Driver.notImplemented(this.getClass(), "setAsciiStream(long)");
     }
 
@@ -97,8 +100,9 @@ public abstract class AbstractJdbc3Clob extends org.postgresql.jdbc2.AbstractJdb
      *
      * @since 1.4
      */
-    public java.io.Writer setCharacterStream(long pos) throws SQLException
+    public synchronized java.io.Writer setCharacterStream(long pos) throws SQLException
     {
+        checkFreed();
         throw org.postgresql.Driver.notImplemented(this.getClass(), "setCharacteStream(long)");
     }
 
@@ -106,15 +110,16 @@ public abstract class AbstractJdbc3Clob extends org.postgresql.jdbc2.AbstractJdb
      * Truncates the <code>CLOB</code> value that this <code>Clob</code>
      * designates to have a length of <code>len</code>
      * characters.
-     * @param len the length, in bytes, to which the <code>CLOB</code> value
+     * @param len the length, in characters, to which the <code>CLOB</code> value
      *    should be truncated
      * @exception SQLException if there is an error accessing the
      *     <code>CLOB</code> value
      *
      * @since 1.4
      */
-    public void truncate(long len) throws SQLException
+    public synchronized void truncate(long len) throws SQLException
     {
+        checkFreed();
         throw org.postgresql.Driver.notImplemented(this.getClass(), "truncate(long)");
     }
 

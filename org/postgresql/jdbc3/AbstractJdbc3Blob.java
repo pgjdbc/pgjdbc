@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Blob.java,v 1.8 2005/05/08 23:18:24 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Blob.java,v 1.9 2007/02/19 06:00:25 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -11,8 +11,6 @@ package org.postgresql.jdbc3;
 
 
 import java.sql.SQLException;
-
-import org.postgresql.largeobject.LargeObject;
 
 public abstract class AbstractJdbc3Blob extends org.postgresql.jdbc2.AbstractJdbc2Blob
 {
@@ -37,7 +35,7 @@ public abstract class AbstractJdbc3Blob extends org.postgresql.jdbc2.AbstractJdb
      * @see #getBytes
      * @since 1.4
      */
-    public int setBytes(long pos, byte[] bytes) throws SQLException
+    public synchronized int setBytes(long pos, byte[] bytes) throws SQLException
     {
         return setBytes(pos, bytes, 0, bytes.length);
     }
@@ -65,10 +63,9 @@ public abstract class AbstractJdbc3Blob extends org.postgresql.jdbc2.AbstractJdb
      * @see #getBytes
      * @since 1.4
      */
-    public int setBytes(long pos, byte[] bytes, int offset, int len) throws SQLException
+    public synchronized int setBytes(long pos, byte[] bytes, int offset, int len) throws SQLException
     {
         assertPosition(pos);
-        LargeObject lo = getLO();
         lo.seek((int) (pos-1));
         lo.write(bytes, offset, len);
         return len;
@@ -88,10 +85,9 @@ public abstract class AbstractJdbc3Blob extends org.postgresql.jdbc2.AbstractJdb
      * @see #getBinaryStream
      * @since 1.4
      */
-    public java.io.OutputStream setBinaryStream(long pos) throws SQLException
+    public synchronized java.io.OutputStream setBinaryStream(long pos) throws SQLException
     {
         assertPosition(pos);
-        LargeObject lo = getLO();
         lo.seek((int) (pos-1));
         return lo.getOutputStream();
     }
@@ -106,8 +102,9 @@ public abstract class AbstractJdbc3Blob extends org.postgresql.jdbc2.AbstractJdb
      *     <code>BLOB</code> value
      * @since 1.4
      */
-    public void truncate(long len) throws SQLException
+    public synchronized void truncate(long len) throws SQLException
     {
+        checkFreed();
         throw org.postgresql.Driver.notImplemented(this.getClass(), "truncate(long)");
     }
 
