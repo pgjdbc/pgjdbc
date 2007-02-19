@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL$
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4Blob.java,v 1.1 2006/06/08 10:34:51 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -15,7 +15,7 @@ import java.sql.*;
 public class AbstractJdbc4Blob extends org.postgresql.jdbc3.AbstractJdbc3Blob
 {
 
-    public AbstractJdbc4Blob(org.postgresql.PGConnection conn, int oid) throws SQLException
+    public AbstractJdbc4Blob(org.postgresql.PGConnection conn, long oid) throws SQLException
     {
         super(conn, oid);
     }

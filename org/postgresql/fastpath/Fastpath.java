@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/fastpath/Fastpath.java,v 1.32 2005/01/14 01:20:18 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/fastpath/Fastpath.java,v 1.33 2005/11/24 02:29:21 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -30,6 +30,11 @@ import org.postgresql.util.GT;
  */
 public class Fastpath
 {
+    // Java passes oids around as longs, but in the backend
+    // it's an unsigned int, so we use this to make the conversion
+    // of long -> signed int which the backend interprets as unsigned.
+    private final static long NUM_OIDS = 4294967296L; // 2^32
+
     // This maps the functions names to their id's (possible unique just
     // to a connection).
     private final Hashtable func = new Hashtable();
@@ -126,6 +131,20 @@ public class Fastpath
     }
 
     /**
+     * This convenience method assumes that the return value is an oid.
+     * @param name Function name
+     * @param args Function arguments
+     * @exception SQLException if a database-access error occurs or no result
+     */
+    public long getOID(String name, FastpathArg[] args) throws SQLException
+    {
+        long oid = getInteger(name, args);
+        if (oid < 0)
+            oid += NUM_OIDS;
+        return oid;
+    }
+
+    /**
      * This convenience method assumes that the return value is not an Integer
      * @param name Function name
      * @param args Function arguments
@@ -219,5 +238,19 @@ public class Fastpath
 
         return id.intValue();
     }
+
+    /**
+     * Creates a FastpathArg with an oid parameter.
+     * This is here instead of a constructor of FastpathArg
+     * because the constructor can't tell the difference between
+     * an long that's really int8 and a long thats an oid.
+     */
+    public static FastpathArg createOIDArg(long oid)
+    {
+        if (oid > Integer.MAX_VALUE)
+            oid -= NUM_OIDS;
+        return new FastpathArg((int)oid);
+    }
+
 }
 

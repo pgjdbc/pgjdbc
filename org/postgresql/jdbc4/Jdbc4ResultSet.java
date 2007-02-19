@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL$
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/Jdbc4ResultSet.java,v 1.1 2006/06/08 10:34:52 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -41,7 +41,7 @@ public class Jdbc4ResultSet extends AbstractJdbc4ResultSet implements java.sql.R
         if (wasNullFlag)
             return null;
 
-        return new Jdbc4Clob(connection, getInt(i));
+        return new Jdbc4Clob(connection, getLong(i));
     }
 
     public java.sql.Blob getBlob(int i) throws SQLException
@@ -51,7 +51,7 @@ public class Jdbc4ResultSet extends AbstractJdbc4ResultSet implements java.sql.R
         if (wasNullFlag)
             return null;
 
-        return new Jdbc4Blob(connection, getInt(i));
+        return new Jdbc4Blob(connection, getLong(i));
     }
 
     public Array createArray(int i) throws SQLException

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Clob.java,v 1.7 2005/01/11 08:25:45 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Clob.java,v 1.8 2005/02/15 08:56:25 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -23,7 +23,7 @@ public class AbstractJdbc2Clob
 {
     private LargeObject lo;
 
-    public AbstractJdbc2Clob(PGConnection conn, int oid) throws SQLException
+    public AbstractJdbc2Clob(PGConnection conn, long oid) throws SQLException
     {
         LargeObjectManager lom = conn.getLargeObjectAPI();
         this.lo = lom.open(oid);

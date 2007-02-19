@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/largeobject/LargeObject.java,v 1.16 2005/01/11 08:25:47 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/largeobject/LargeObject.java,v 1.17 2005/01/14 01:20:22 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -61,7 +61,7 @@ public class LargeObject
     public static final int SEEK_END = 2;
 
     private Fastpath fp; // Fastpath API to use
-    private int oid; // OID of this object
+    private long oid; // OID of this object
     private int fd; // the descriptor of the open large object
 
     private BlobOutputStream os;  // The current output stream
@@ -80,13 +80,13 @@ public class LargeObject
      * @exception SQLException if a database-access error occurs.
      * @see org.postgresql.largeobject.LargeObjectManager
      */
-    protected LargeObject(Fastpath fp, int oid, int mode) throws SQLException
+    protected LargeObject(Fastpath fp, long oid, int mode) throws SQLException
     {
         this.fp = fp;
         this.oid = oid;
 
         FastpathArg args[] = new FastpathArg[2];
-        args[0] = new FastpathArg(oid);
+        args[0] = Fastpath.createOIDArg(oid);
         args[1] = new FastpathArg(mode);
         this.fd = fp.getInteger("lo_open", args);
     }
@@ -104,8 +104,17 @@ public class LargeObject
 
     /**
      * @return the OID of this LargeObject
+     * @deprecated As of 8.3, replaced by {@link #getLongOID()}
      */
     public int getOID()
+    {
+        return (int)oid;
+    }
+
+    /**
+     * @return the OID of this LargeObject
+     */
+    public long getLongOID()
     {
         return oid;
     }
