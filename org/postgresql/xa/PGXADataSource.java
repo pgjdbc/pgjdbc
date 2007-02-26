@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 
 import javax.naming.Referenceable;
+import javax.naming.Reference;
 import javax.sql.XAConnection;
 import javax.sql.XADataSource;
 
@@ -49,5 +50,15 @@ public class PGXADataSource extends BaseDataSource implements Referenceable, XAD
 
     public String getDescription() {
         return "JDBC3 XA-enabled DataSource from " + org.postgresql.Driver.getVersion();
+    }
+
+    /**
+     * Generates a reference using the appropriate object factory.
+     */
+    protected Reference createReference() {
+        return new Reference(
+                   getClass().getName(),
+                   PGXADataSourceFactory.class.getName(),
+                   null);
     }
 }
