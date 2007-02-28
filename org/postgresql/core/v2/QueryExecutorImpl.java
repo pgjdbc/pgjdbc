@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/QueryExecutorImpl.java,v 1.17 2006/04/29 13:30:24 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/QueryExecutorImpl.java,v 1.18 2006/12/01 08:53:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -211,7 +211,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                         logger.debug(" <=BE FastpathResult");
 
                     // Result.
-                    int len = pgStream.ReceiveIntegerR(4);
+                    int len = pgStream.ReceiveInteger4();
                     result = pgStream.Receive(len);
                     c = pgStream.ReceiveChar();
                 }
@@ -522,7 +522,7 @@ public class QueryExecutorImpl implements QueryExecutor {
      */
     private Field[] receiveFields() throws IOException
     {
-        int size = pgStream.ReceiveIntegerR(2);
+        int size = pgStream.ReceiveInteger2();
         Field[] fields = new Field[size];
 
         if (logger.logDebug())
@@ -531,9 +531,9 @@ public class QueryExecutorImpl implements QueryExecutor {
         for (int i = 0; i < fields.length; i++)
         {
             String columnLabel = pgStream.ReceiveString();
-            int typeOid = pgStream.ReceiveIntegerR(4);
-            int typeLength = pgStream.ReceiveIntegerR(2);
-            int typeModifier = pgStream.ReceiveIntegerR(4);
+            int typeOid = pgStream.ReceiveInteger4();
+            int typeLength = pgStream.ReceiveInteger2();
+            int typeModifier = pgStream.ReceiveInteger4();
             fields[i] = new Field(columnLabel, columnLabel, typeOid, typeLength, typeModifier, 0, 0);
         }
 
@@ -541,7 +541,7 @@ public class QueryExecutorImpl implements QueryExecutor {
     }
 
     private void receiveAsyncNotify() throws IOException {
-        int pid = pgStream.ReceiveIntegerR(4);
+        int pid = pgStream.ReceiveInteger4();
         String msg = pgStream.ReceiveString();
 
         if (logger.logDebug())

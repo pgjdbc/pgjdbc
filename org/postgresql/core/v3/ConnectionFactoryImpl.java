@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ConnectionFactoryImpl.java,v 1.11 2005/11/24 02:29:21 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ConnectionFactoryImpl.java,v 1.12 2006/12/01 08:53:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -261,7 +261,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 // The most common one to be thrown here is:
                 // "User authentication failed"
                 //
-                int l_elen = pgStream.ReceiveIntegerR(4);
+                int l_elen = pgStream.ReceiveInteger4();
                 if (l_elen > 30000)
                 {
                     // if the error length is > than 30000 we assume this is really a v2 protocol
@@ -277,10 +277,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             case 'R':
                 // Authentication request.
                 // Get the message length
-                int l_msgLen = pgStream.ReceiveIntegerR(4);
+                int l_msgLen = pgStream.ReceiveInteger4();
 
                 // Get the type of request
-                int areq = pgStream.ReceiveIntegerR(4);
+                int areq = pgStream.ReceiveInteger4();
 
                 // Process the request.
                 switch (areq)
@@ -391,7 +391,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             {
             case 'Z':
                 // Ready For Query; we're done.
-                if (pgStream.ReceiveIntegerR(4) != 5)
+                if (pgStream.ReceiveInteger4() != 5)
                     throw new IOException("unexpected length of ReadyForQuery packet");
 
                 char tStatus = (char)pgStream.ReceiveChar();
@@ -419,12 +419,12 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
             case 'K':
                 // BackendKeyData
-                int l_msgLen = pgStream.ReceiveIntegerR(4);
+                int l_msgLen = pgStream.ReceiveInteger4();
                 if (l_msgLen != 12)
                     throw new PSQLException(GT.tr("Protocol error.  Session setup failed."), PSQLState.CONNECTION_UNABLE_TO_CONNECT);
 
-                int pid = pgStream.ReceiveIntegerR(4);
-                int ckey = pgStream.ReceiveIntegerR(4);
+                int pid = pgStream.ReceiveInteger4();
+                int ckey = pgStream.ReceiveInteger4();
 
                 if (logger.logDebug())
                     logger.debug(" <=BE BackendKeyData(pid=" + pid + ",ckey=" + ckey + ")");
@@ -434,7 +434,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
             case 'E':
                 // Error
-                int l_elen = pgStream.ReceiveIntegerR(4);
+                int l_elen = pgStream.ReceiveInteger4();
                 ServerErrorMessage l_errorMsg = new ServerErrorMessage(pgStream.ReceiveString(l_elen - 4), logger.getLogLevel());
 
                 if (logger.logDebug())
@@ -444,7 +444,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
             case 'N':
                 // Warning
-                int l_nlen = pgStream.ReceiveIntegerR(4);
+                int l_nlen = pgStream.ReceiveInteger4();
                 ServerErrorMessage l_warnMsg = new ServerErrorMessage(pgStream.ReceiveString(l_nlen - 4), logger.getLogLevel());
 
                 if (logger.logDebug())
@@ -455,7 +455,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
             case 'S':
                 // ParameterStatus
-                int l_len = pgStream.ReceiveIntegerR(4);
+                int l_len = pgStream.ReceiveInteger4();
                 String name = pgStream.ReceiveString();
                 String value = pgStream.ReceiveString();
 

@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/PGStream.java,v 1.19 2006/04/29 13:30:23 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/PGStream.java,v 1.20 2006/10/30 18:30:16 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -35,6 +35,9 @@ public class PGStream
     private final String host;
     private final int port;
 
+    private final byte[] _int4buf;
+    private final byte[] _int2buf;
+
     private Socket connection;
     private VisibleBufferedInputStream pg_input;
     private OutputStream pg_output;
@@ -58,6 +61,9 @@ public class PGStream
 
         changeSocket(new Socket(host, port));
         setEncoding(Encoding.getJVMEncoding("US-ASCII"));
+
+        _int2buf = new byte[2];
+        _int4buf = new byte[4];
     }
 
     public String getHost() {
@@ -165,7 +171,7 @@ public class PGStream
      */
     public void SendChar(int val) throws IOException
     {
-        pg_output.write((byte)val);
+        pg_output.write(val);
     }
 
     /**
@@ -176,10 +182,11 @@ public class PGStream
      */
     public void SendInteger4(int val) throws IOException
     {
-        SendChar((val >> 24)&255);
-        SendChar((val >> 16)&255);
-        SendChar((val >> 8)&255);
-        SendChar(val&255);
+        _int4buf[0] = (byte)(val >>> 24);
+        _int4buf[1] = (byte)(val >>> 16);
+        _int4buf[2] = (byte)(val >>> 8);
+        _int4buf[3] = (byte)(val);
+        pg_output.write(_int4buf);
     }
 
     /**
@@ -193,8 +200,9 @@ public class PGStream
         if (val < Short.MIN_VALUE || val > Short.MAX_VALUE)
             throw new IOException("Tried to send an out-of-range integer as a 2-byte value: " + val);
 
-        SendChar((val >> 8)&255);
-        SendChar(val&255);
+        _int2buf[0] = (byte)(val >>> 8);
+        _int2buf[1] = (byte)val;
+        pg_output.write(_int2buf);
     }
 
     /**
@@ -232,15 +240,11 @@ public class PGStream
      */
     public void Send(byte buf[], int off, int siz) throws IOException
     {
-        int i;
-
-        pg_output.write(buf, off, ((buf.length - off) < siz ? (buf.length - off) : siz));
-        if ((buf.length - off) < siz)
+	int bufamt = buf.length - off;
+        pg_output.write(buf, off, bufamt < siz ? bufamt : siz);
+        for (int i = bufamt ; i < siz ; ++i)
         {
-            for (i = buf.length - off ; i < siz ; ++i)
-            {
-                pg_output.write(0);
-            }
+            pg_output.write(0);
         }
     }
 
@@ -259,35 +263,31 @@ public class PGStream
     }
 
     /**
-     * Receives an integer from the backend
+     * Receives a four byte integer from the backend
      *
-     * @param siz length of the integer in bytes
      * @return the integer received from the backend
      * @exception IOException if an I/O error occurs
      */
-    public int ReceiveIntegerR(int siz) throws IOException
+    public int ReceiveInteger4() throws IOException
     {
-        if (!pg_input.ensureBytes(siz)) {
+        if (pg_input.read(_int4buf) != 4)
             throw new EOFException();
-        }
-        int n = 0;
 
-        for (int i = 0 ; i < siz ; i++)
-        {
-            int b = pg_input.readRaw() & 0xFF;
+        return (_int4buf[0] & 0xFF) << 24 | (_int4buf[1] & 0xFF) << 16 | (_int4buf[2] & 0xFF) << 8 | _int4buf[3] & 0xFF;
+    }
 
-            n = b | (n << 8);
-        }
+    /**
+     * Receives a two byte integer from the backend
+     *
+     * @return the integer received from the backend
+     * @exception IOException if an I/O error occurs
+     */
+    public int ReceiveInteger2() throws IOException
+    {
+        if (pg_input.read(_int2buf) != 2)
+            throw new EOFException();
 
-        switch (siz) {
-            case 1:
-                return (int)((byte)n);
-            case 2:
-                return (int)((short)n);
-            default:
-                return n;
-        }
-
+        return (_int2buf[0] & 0xFF) << 8 | _int2buf[1] & 0xFF;
     }
 
     /**
@@ -335,15 +335,15 @@ public class PGStream
     public byte[][] ReceiveTupleV3() throws IOException, OutOfMemoryError
     {
         //TODO: use l_msgSize
-        int l_msgSize = ReceiveIntegerR(4);
+        int l_msgSize = ReceiveInteger4();
         int i;
-        int l_nf = ReceiveIntegerR(2);
+        int l_nf = ReceiveInteger2();
         byte[][] answer = new byte[l_nf][];
 
         OutOfMemoryError oom = null;
         for (i = 0 ; i < l_nf ; ++i)
         {
-            int l_size = ReceiveIntegerR(4);
+            int l_size = ReceiveInteger4();
             if (l_size != -1) {
                 try {
                     answer[i] = new byte[l_size];
@@ -393,7 +393,7 @@ public class PGStream
             }
             if (!isNull)
             {
-                int len = ReceiveIntegerR(4);
+                int len = ReceiveInteger4();
                 if (!bin)
                     len -= 4;
                 if (len < 0)

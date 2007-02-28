@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ConnectionFactoryImpl.java,v 1.9 2005/11/24 02:29:20 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ConnectionFactoryImpl.java,v 1.10 2006/12/01 08:53:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -223,7 +223,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             case 'R':
                 // Authentication request.
                 // Get the type of request
-                int areq = pgStream.ReceiveIntegerR(4);
+                int areq = pgStream.ReceiveInteger4();
 
                 // Process the request.
                 switch (areq)
@@ -326,8 +326,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 return ;
 
             case 'K':  // BackendKeyData
-                int pid = pgStream.ReceiveIntegerR(4);
-                int ckey = pgStream.ReceiveIntegerR(4);
+                int pid = pgStream.ReceiveInteger4();
+                int ckey = pgStream.ReceiveInteger4();
                 if (logger.logDebug())
                     logger.debug(" <=BE BackendKeyData(pid=" + pid + ",ckey=" + ckey + ")");
                 protoConnection.setBackendKeyData(pid, ckey);

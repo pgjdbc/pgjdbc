@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.32 2006/11/02 15:31:14 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.33 2006/12/01 08:53:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -602,8 +602,8 @@ public class QueryExecutorImpl implements QueryExecutor {
                 break;
 
             case 'V':  // FunctionCallResponse
-                int msgLen = pgStream.ReceiveIntegerR(4);
-                int valueLen = pgStream.ReceiveIntegerR(4);
+                int msgLen = pgStream.ReceiveInteger4();
+                int valueLen = pgStream.ReceiveInteger4();
 
                 if (logger.logDebug())
                     logger.debug(" <=BE FunctionCallResponse(" + valueLen + " bytes)");
@@ -1170,7 +1170,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                 break;
 
             case '1':    // Parse Complete (response to Parse)
-                pgStream.ReceiveIntegerR(4); // len, discarded
+                pgStream.ReceiveInteger4(); // len, discarded
 
                 Object[] parsedQueryAndStatement = (Object[])pendingParseQueue.get(parseIndex++);
 
@@ -1184,7 +1184,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                 break;
 
             case 't':    // ParameterDescription
-                pgStream.ReceiveIntegerR(4); // len, discarded
+                pgStream.ReceiveInteger4(); // len, discarded
 
                 if (logger.logDebug())
                     logger.debug(" <=BE ParameterDescription");
@@ -1195,9 +1195,9 @@ public class QueryExecutorImpl implements QueryExecutor {
                     SimpleParameterList params = (SimpleParameterList)describeData[1];
                     boolean describeOnly = ((Boolean)describeData[2]).booleanValue();
 
-                    int numParams = pgStream.ReceiveIntegerR(2);
+                    int numParams = pgStream.ReceiveInteger2();
                     for (int i=1; i<=numParams; i++) {
-                        int typeOid = pgStream.ReceiveIntegerR(4);
+                        int typeOid = pgStream.ReceiveInteger4();
                         params.setResolvedType(i, typeOid);
                     }
                     query.setStatementTypes((int[])params.getTypeOIDs().clone());
@@ -1210,7 +1210,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                 break;
 
             case '2':    // Bind Complete  (response to Bind)
-                pgStream.ReceiveIntegerR(4); // len, discarded
+                pgStream.ReceiveInteger4(); // len, discarded
 
                 Portal boundPortal = (Portal)pendingBindQueue.get(bindIndex++);
                 if (logger.logDebug())
@@ -1220,13 +1220,13 @@ public class QueryExecutorImpl implements QueryExecutor {
                 break;
 
             case '3':    // Close Complete (response to Close)
-                pgStream.ReceiveIntegerR(4); // len, discarded
+                pgStream.ReceiveInteger4(); // len, discarded
                 if (logger.logDebug())
                     logger.debug(" <=BE CloseComplete");
                 break;
 
             case 'n':    // No Data        (response to Describe)
-                pgStream.ReceiveIntegerR(4); // len, discarded
+                pgStream.ReceiveInteger4(); // len, discarded
                 if (logger.logDebug())
                     logger.debug(" <=BE NoData");
 
@@ -1247,7 +1247,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                 // nb: this appears *instead* of CommandStatus.
                 // Must be a SELECT if we suspended, so don't worry about it.
 
-                pgStream.ReceiveIntegerR(4); // len, discarded
+                pgStream.ReceiveInteger4(); // len, discarded
                 if (logger.logDebug())
                     logger.debug(" <=BE PortalSuspended");
 
@@ -1320,7 +1320,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                 break;
 
             case 'I':  // Empty Query (end of Execute)
-                pgStream.ReceiveIntegerR(4);
+                pgStream.ReceiveInteger4();
 
                 if (logger.logDebug())
                     logger.debug(" <=BE EmptyQuery");
@@ -1343,7 +1343,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
             case 'S':    // Parameter Status
                 {
-                    int l_len = pgStream.ReceiveIntegerR(4);
+                    int l_len = pgStream.ReceiveInteger4();
                     String name = pgStream.ReceiveString();
                     String value = pgStream.ReceiveString();
                     if (logger.logDebug())
@@ -1426,7 +1426,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                     // so we don't need to send a CopyFail; the server will fail the copy
                     // automatically when it sees the next message.
 
-                    int l_len = pgStream.ReceiveIntegerR(4);
+                    int l_len = pgStream.ReceiveInteger4();
                     /* discard */
                     pgStream.Receive(l_len);
 
@@ -1496,8 +1496,8 @@ public class QueryExecutorImpl implements QueryExecutor {
      */
     private Field[] receiveFields() throws IOException
     {
-        int l_msgSize = pgStream.ReceiveIntegerR(4);
-        int size = pgStream.ReceiveIntegerR(2);
+        int l_msgSize = pgStream.ReceiveInteger4();
+        int size = pgStream.ReceiveInteger2();
         Field[] fields = new Field[size];
 
         if (logger.logDebug())
@@ -1506,12 +1506,12 @@ public class QueryExecutorImpl implements QueryExecutor {
         for (int i = 0; i < fields.length; i++)
         {
             String columnLabel = pgStream.ReceiveString();
-            int tableOid = pgStream.ReceiveIntegerR(4);
-            short positionInTable = (short)pgStream.ReceiveIntegerR(2);
-            int typeOid = pgStream.ReceiveIntegerR(4);
-            int typeLength = pgStream.ReceiveIntegerR(2);
-            int typeModifier = pgStream.ReceiveIntegerR(4);
-            int formatType = pgStream.ReceiveIntegerR(2);
+            int tableOid = pgStream.ReceiveInteger4();
+            short positionInTable = (short)pgStream.ReceiveInteger2();
+            int typeOid = pgStream.ReceiveInteger4();
+            int typeLength = pgStream.ReceiveInteger2();
+            int typeModifier = pgStream.ReceiveInteger4();
+            int formatType = pgStream.ReceiveInteger2();
             fields[i] = new Field(columnLabel,
                                   null,  /* name not yet determined */
                                   typeOid, typeLength, typeModifier, tableOid, positionInTable);
@@ -1522,8 +1522,8 @@ public class QueryExecutorImpl implements QueryExecutor {
     }
 
     private void receiveAsyncNotify() throws IOException {
-        int msglen = pgStream.ReceiveIntegerR(4);
-        int pid = pgStream.ReceiveIntegerR(4);
+        int msglen = pgStream.ReceiveInteger4();
+        int pid = pgStream.ReceiveInteger4();
         String msg = pgStream.ReceiveString();
         String param = pgStream.ReceiveString();
         protoConnection.addNotification(new org.postgresql.core.Notification(msg, pid, param));
@@ -1538,7 +1538,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         // so, append messages to a string buffer and keep processing
         // check at the bottom to see if we need to throw an exception
 
-        int elen = pgStream.ReceiveIntegerR(4);
+        int elen = pgStream.ReceiveInteger4();
         String totalMessage = pgStream.ReceiveString(elen - 4);
         ServerErrorMessage errorMsg = new ServerErrorMessage(totalMessage, logger.getLogLevel());
 
@@ -1549,7 +1549,7 @@ public class QueryExecutorImpl implements QueryExecutor {
     }
 
     private SQLWarning receiveNoticeResponse() throws IOException {
-        int nlen = pgStream.ReceiveIntegerR(4);
+        int nlen = pgStream.ReceiveInteger4();
         ServerErrorMessage warnMsg = new ServerErrorMessage(pgStream.ReceiveString(nlen - 4), logger.getLogLevel());
 
         if (logger.logDebug())
@@ -1560,7 +1560,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
     private String receiveCommandStatus() throws IOException {
         //TODO: better handle the msg len
-        int l_len = pgStream.ReceiveIntegerR(4);
+        int l_len = pgStream.ReceiveInteger4();
         //read l_len -5 bytes (-4 for l_len and -1 for trailing \0)
         String status = pgStream.ReceiveString(l_len - 5);
         //now read and discard the trailing \0
@@ -1596,7 +1596,7 @@ public class QueryExecutorImpl implements QueryExecutor {
     }
 
     private void receiveRFQ() throws IOException {
-        if (pgStream.ReceiveIntegerR(4) != 5)
+        if (pgStream.ReceiveInteger4() != 5)
             throw new IOException("unexpected length of ReadyForQuery message");
 
         char tStatus = (char)pgStream.ReceiveChar();
