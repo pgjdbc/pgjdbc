@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.89 2007/02/18 23:33:58 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.90 2007/02/19 06:00:24 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -174,6 +174,11 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                 // We take the scrollability from the statement, but until
                 // we have updatable cursors it must be readonly.
                 ResultSet rs = connection.execSQLQuery(fetchSql, resultsettype, ResultSet.CONCUR_READ_ONLY);
+                //
+                // In long running transactions these backend cursors take up memory space
+                // we could close in rs.close(), but if the transaction is closed before the result set, then
+                // the cursor no longer exists
+                connection.execSQLUpdate("close \"" + cursorName +'"');
                 ((AbstractJdbc2ResultSet)rs).setRefCursor(cursorName);
                 return rs;
             }
@@ -1834,11 +1839,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public void close() throws SQLException
     {
         //release resources held (memory for tuples)
-	rows = null;
-        if (cursor != null) {
-            cursor.close();
-            cursor = null;
-        }
+        rows = null;        
+        
     }
 
     public boolean wasNull() throws SQLException
