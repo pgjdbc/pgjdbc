@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.91 2007/03/02 01:27:55 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.92 2007/03/29 03:13:15 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -161,7 +161,9 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             {
                 // Fetch all results.
                 String cursorName = getString(columnIndex);
-                String fetchSql = "FETCH ALL IN \"" + cursorName + "\"";
+
+                StringBuffer sb = new StringBuffer("FETCH ALL IN ");
+                Utils.appendEscapedIdentifier(sb, cursorName);
 
                 // nb: no BEGIN triggered here. This is fine. If someone
                 // committed, and the cursor was not holdable (closing the
@@ -173,12 +175,16 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                 //
                 // We take the scrollability from the statement, but until
                 // we have updatable cursors it must be readonly.
-                ResultSet rs = connection.execSQLQuery(fetchSql, resultsettype, ResultSet.CONCUR_READ_ONLY);
+                ResultSet rs = connection.execSQLQuery(sb.toString(), resultsettype, ResultSet.CONCUR_READ_ONLY);
                 //
                 // In long running transactions these backend cursors take up memory space
                 // we could close in rs.close(), but if the transaction is closed before the result set, then
                 // the cursor no longer exists
-                connection.execSQLUpdate("close \"" + cursorName +'"');
+
+                sb.setLength(0);
+                sb.append("CLOSE ");
+                Utils.appendEscapedIdentifier(sb, cursorName);
+                connection.execSQLUpdate(sb.toString());
                 ((AbstractJdbc2ResultSet)rs).setRefCursor(cursorName);
                 return rs;
             }
@@ -739,9 +745,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
             for ( int i = 0; i < numKeys; i++ )
             {
-                deleteSQL.append("\"");
-                deleteSQL.append( ((PrimaryKey) primaryKeys.get(i)).name );
-                deleteSQL.append("\" = ?");
+                Utils.appendEscapedIdentifier(deleteSQL, ((PrimaryKey)primaryKeys.get(i)).name);
+                deleteSQL.append(" = ?");
                 if ( i < numKeys - 1 )
                 {
                     deleteSQL.append( " and " );
@@ -797,9 +802,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             {
                 String columnName = (String) columnNames.next();
 
-                insertSQL.append("\"");
-                insertSQL.append( columnName );
-                insertSQL.append("\"");
+                Utils.appendEscapedIdentifier(insertSQL, columnName);
                 if ( i < numColumns - 1 )
                 {
                     insertSQL.append(", ");
@@ -1245,9 +1248,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         for (int i = 0; columns.hasNext(); i++ )
         {
             String column = (String) columns.next();
-            updateSQL.append("\"");
-            updateSQL.append( column );
-            updateSQL.append("\" = ?");
+            Utils.appendEscapedIdentifier(updateSQL, column);
+            updateSQL.append(" = ?");
             
             if ( i < numColumns - 1 )
                 updateSQL.append(", ");                
@@ -1260,9 +1262,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         for ( int i = 0; i < numKeys; i++ )
         {                
             PrimaryKey primaryKey = ((PrimaryKey) primaryKeys.get(i));
-            updateSQL.append("\"");
-            updateSQL.append(primaryKey.name);
-            updateSQL.append("\" = ?");
+            Utils.appendEscapedIdentifier(updateSQL, primaryKey.name);
+            updateSQL.append(" = ?");
             
             if ( i < numKeys - 1 )
                 updateSQL.append(" and ");

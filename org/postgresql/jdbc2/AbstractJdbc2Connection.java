@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.39 2006/11/05 06:14:18 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.40 2006/12/01 08:53:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -939,7 +939,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     }
 
     public String escapeString(String str) throws SQLException {
-        return Utils.appendEscapedString(null, str,
+        return Utils.appendEscapedLiteral(null, str,
                 protoConnection.getStandardConformingStrings()).toString();
     }
 

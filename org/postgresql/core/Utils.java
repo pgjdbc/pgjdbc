@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*        $PostgreSQL: pgjdbc/org/postgresql/core/Utils.java,v 1.4 2005/01/11 08:25:43 jurka Exp $
+*        $PostgreSQL: pgjdbc/org/postgresql/core/Utils.java,v 1.5 2006/12/01 08:53:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -61,7 +61,7 @@ public class Utils {
     }
     
     /**
-     * Escape the given string <tt>value</tt> and append it to the string buffer
+     * Escape the given literal <tt>value</tt> and append it to the string buffer
      * <tt>sbuf</tt>. If <tt>sbuf</tt> is <tt>null</tt>, a new StringBuffer will be
      * returned. The argument <tt>standardConformingStrings</tt> defines whether the
      * backend expects standard-conforming string literals or allows backslash
@@ -73,7 +73,7 @@ public class Utils {
      * @return the sbuf argument; or a new string buffer for sbuf == null
      * @throws SQLException if the string contains a <tt>\0</tt> character
      */
-    public static StringBuffer appendEscapedString(StringBuffer sbuf, String value,
+    public static StringBuffer appendEscapedLiteral(StringBuffer sbuf, String value,
                                                    boolean standardConformingStrings)
                                                    throws SQLException {
         if (sbuf == null)
@@ -110,6 +110,40 @@ public class Utils {
             }
         }
         
+        return sbuf;
+    }
+
+    /**
+     * Escape the given identifier <tt>value</tt> and append it to the string
+     * buffer * <tt>sbuf</tt>. If <tt>sbuf</tt> is <tt>null</tt>, a new
+     * StringBuffer will be returned.  This method is different from
+     * appendEscapedLiteral in that it includes the quoting required for the
+     * identifier while appendEscapedLiteral does not.
+     * 
+     * @param sbuf the string buffer to append to; or <tt>null</tt>
+     * @param value the string value
+     * @return the sbuf argument; or a new string buffer for sbuf == null
+     * @throws SQLException if the string contains a <tt>\0</tt> character
+     */
+    public static StringBuffer appendEscapedIdentifier(StringBuffer sbuf, String value)
+                                                   throws SQLException {
+        if (sbuf == null)
+            sbuf = new StringBuffer(2 + value.length() * 11 / 10); // Add 10% for escaping.
+
+        sbuf.append('"');
+
+        for (int i = 0; i < value.length(); ++i)
+        {
+            char ch = value.charAt(i);
+            if (ch == '\0')
+                throw new PSQLException(GT.tr("Zero bytes may not occur in identifiers."), PSQLState.INVALID_PARAMETER_VALUE);
+            if (ch == '"')
+                sbuf.append(ch);
+            sbuf.append(ch);
+        }
+
+        sbuf.append('"');
+
         return sbuf;
     }
 }

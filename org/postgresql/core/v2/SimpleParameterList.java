@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/SimpleParameterList.java,v 1.8 2006/05/22 09:52:36 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/SimpleParameterList.java,v 1.9 2006/12/01 08:53:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -67,7 +67,7 @@ class SimpleParameterList implements ParameterList {
         if (useEStringSyntax)
             sbuf.append(' ').append('E');
         sbuf.append('\'');
-        Utils.appendEscapedString(sbuf, value, false);
+        Utils.appendEscapedLiteral(sbuf, value, false);
         sbuf.append('\'');
 
         setLiteralParameter(index, sbuf.toString(), oid);
