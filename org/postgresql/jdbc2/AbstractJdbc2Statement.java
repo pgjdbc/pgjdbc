@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.84.2.8 2007/01/04 21:59:26 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.84.2.9 2007/02/19 06:05:01 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -400,7 +400,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                     else
                     {    
 	                    throw new PSQLException (GT.tr("A CallableStatement function was executed and the out parameter {0} was of type {1} however type {2} was registered.",
-	                            new Object[]{""+i+1,
+	                            new Object[]{new Integer(i+1),
 	                                "java.sql.Types=" + columnType, "java.sql.Types=" + functionReturnType[j] }),
 	                      PSQLState.DATA_TYPE_MISMATCH);
                     }
