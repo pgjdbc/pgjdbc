@@ -3,7 +3,7 @@
 * Copyright (c) 2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/Jdbc3BlobTest.java,v 1.2 2005/05/08 23:18:25 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/Jdbc3BlobTest.java,v 1.3 2005/11/24 02:31:44 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -112,6 +112,41 @@ public class Jdbc3BlobTest extends TestCase
         readWrite(data);
     }
 
+    public void testTruncate() throws SQLException
+    {
+        if (!TestUtil.haveMinimumServerVersion(_conn, "8.3"))
+            return;
+
+        byte data[] = new byte[100];
+        for (byte i=0; i<data.length; i++) {
+            data[i] = i;
+        }
+        readWrite(data);
+
+        PreparedStatement ps = _conn.prepareStatement(SELECT);
+        ResultSet rs = ps.executeQuery();
+        
+        assertTrue(rs.next());
+        Blob blob = rs.getBlob("DATA");
+
+        assertEquals(100, blob.length());
+
+        blob.truncate(50);
+        assertEquals(50, blob.length());
+
+        blob.truncate(150);
+        assertEquals(150, blob.length());
+
+        data = blob.getBytes(1, 200);
+        assertEquals(150, data.length);
+        for (byte i=0; i<50; i++) {
+            assertEquals(i, data[i]);
+        }
+
+        for (int i=50; i<150; i++) {
+            assertEquals(0, data[i]);
+        }
+    }
 
     /**
      * 
@@ -277,8 +312,6 @@ public class Jdbc3BlobTest extends TestCase
     {
         byte[] data = "abcdefghijklmnopqrstuvwxyx0123456789".getBytes();
         byte[] pattern = "def".getBytes();
-
-        String insert = "INSERT INTO " + TABLE + " VALUES (1, lo_creat(-1))";
 
         PreparedStatement ps = _conn.prepareStatement(INSERT);
         ps.executeUpdate();

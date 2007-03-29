@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Blob.java,v 1.10 2007/02/19 17:21:12 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Blob.java,v 1.11 2007/02/19 18:35:28 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -14,7 +14,7 @@ import java.sql.SQLException;
 public abstract class AbstractJdbc3Blob extends org.postgresql.jdbc2.AbstractJdbc2Blob
 {
 
-    public AbstractJdbc3Blob(org.postgresql.PGConnection conn, long oid) throws SQLException
+    public AbstractJdbc3Blob(org.postgresql.core.BaseConnection conn, long oid) throws SQLException
     {
         super(conn, oid);
     }
@@ -68,22 +68,6 @@ public abstract class AbstractJdbc3Blob extends org.postgresql.jdbc2.AbstractJdb
         lo.seek((int) (pos-1));
         lo.write(bytes, offset, len);
         return len;
-    }
-
-    /**
-     * Truncates the <code>BLOB</code> value that this <code>Blob</code>
-     * object represents to be <code>len</code> bytes in length.
-     *
-     * @param len the length, in bytes, to which the <code>BLOB</code> value
-     *    that this <code>Blob</code> object represents should be truncated
-     * @exception SQLException if there is an error accessing the
-     *     <code>BLOB</code> value
-     * @since 1.4
-     */
-    public synchronized void truncate(long len) throws SQLException
-    {
-        checkFreed();
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "truncate(long)");
     }
 
 }

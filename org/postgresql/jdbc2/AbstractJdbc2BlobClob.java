@@ -3,7 +3,7 @@
 * Copyright (c) 2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2BlobClob.java,v 1.5 2007/02/19 17:21:12 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2BlobClob.java,v 1.6 2007/02/19 18:35:28 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -16,7 +16,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import org.postgresql.PGConnection;
+import org.postgresql.core.BaseConnection;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.util.GT;
@@ -31,6 +31,7 @@ import org.postgresql.util.PSQLException;
  */
 public class AbstractJdbc2BlobClob
 {
+    protected BaseConnection conn;
     protected LargeObject lo;
 
     /**
@@ -39,8 +40,9 @@ public class AbstractJdbc2BlobClob
      */
     private ArrayList subLOs;
 
-    public AbstractJdbc2BlobClob(PGConnection conn, long oid) throws SQLException
+    public AbstractJdbc2BlobClob(BaseConnection conn, long oid) throws SQLException
     {
+        this.conn = conn;
         LargeObjectManager lom = conn.getLargeObjectAPI();
         this.lo = lom.open(oid);
         subLOs = new ArrayList();
@@ -58,6 +60,22 @@ public class AbstractJdbc2BlobClob
             subLO.close();
         }
         subLOs = null;
+    }
+
+    /**
+     * For Blobs this should be in bytes while for Clobs it should be
+     * in characters.  Since we really haven't figured out how to handle
+     * character sets for Clobs the current implementation uses bytes for
+     * both Blobs and Clobs.
+     */
+    public synchronized void truncate(long len) throws SQLException
+    {
+        checkFreed();
+        if (!conn.haveMinimumServerVersion("8.3"))
+            throw new PSQLException(GT.tr("Truncation of large objects is only implemented in 8.3 and later servers."), PSQLState.NOT_IMPLEMENTED);
+
+        assertPosition(len);
+        lo.truncate((int)len);
     }
 
     public synchronized long length() throws SQLException

@@ -3,14 +3,14 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Clob.java,v 1.10 2007/02/19 17:21:12 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Clob.java,v 1.11 2007/02/19 18:35:28 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.jdbc2;
 
 
-import org.postgresql.PGConnection;
+import org.postgresql.core.BaseConnection;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
@@ -20,7 +20,7 @@ import java.sql.SQLException;
 public class AbstractJdbc2Clob extends AbstractJdbc2BlobClob
 {
 
-    public AbstractJdbc2Clob(PGConnection conn, long oid) throws SQLException
+    public AbstractJdbc2Clob(BaseConnection conn, long oid) throws SQLException
     {
         super(conn, oid);
     }

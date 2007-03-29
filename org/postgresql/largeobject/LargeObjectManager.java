@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/largeobject/LargeObjectManager.java,v 1.20 2005/11/24 02:29:22 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/largeobject/LargeObjectManager.java,v 1.21 2007/02/19 06:00:38 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -127,7 +127,8 @@ public class LargeObjectManager
                " or proname = 'lo_lseek'" +
                " or proname = 'lo_tell'" +
                " or proname = 'loread'" +
-               " or proname = 'lowrite'";
+               " or proname = 'lowrite'" +
+               " or proname = 'lo_truncate'";
 
         if (conn.getMetaData().supportsSchemasInTableDefinitions())
         {

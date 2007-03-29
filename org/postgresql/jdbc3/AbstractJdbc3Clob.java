@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Clob.java,v 1.7 2007/02/19 06:00:25 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3Clob.java,v 1.8 2007/02/19 17:21:12 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -15,7 +15,7 @@ import java.sql.*;
 public abstract class AbstractJdbc3Clob extends org.postgresql.jdbc2.AbstractJdbc2Clob
 {
 
-    public AbstractJdbc3Clob(org.postgresql.PGConnection conn, long oid) throws SQLException
+    public AbstractJdbc3Clob(org.postgresql.core.BaseConnection conn, long oid) throws SQLException
     {
         super(conn, oid);
     }
@@ -104,23 +104,6 @@ public abstract class AbstractJdbc3Clob extends org.postgresql.jdbc2.AbstractJdb
     {
         checkFreed();
         throw org.postgresql.Driver.notImplemented(this.getClass(), "setCharacteStream(long)");
-    }
-
-    /**
-     * Truncates the <code>CLOB</code> value that this <code>Clob</code>
-     * designates to have a length of <code>len</code>
-     * characters.
-     * @param len the length, in characters, to which the <code>CLOB</code> value
-     *    should be truncated
-     * @exception SQLException if there is an error accessing the
-     *     <code>CLOB</code> value
-     *
-     * @since 1.4
-     */
-    public synchronized void truncate(long len) throws SQLException
-    {
-        checkFreed();
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "truncate(long)");
     }
 
 }

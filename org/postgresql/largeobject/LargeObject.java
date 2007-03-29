@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/largeobject/LargeObject.java,v 1.18 2007/02/19 06:00:33 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/largeobject/LargeObject.java,v 1.19 2007/02/19 18:35:29 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -288,6 +288,20 @@ public class LargeObject
         int sz = tell();
         seek(cp, SEEK_SET);
         return sz;
+    }
+
+    /**
+     * Truncates the large object to the given length in bytes.
+     * If the number of bytes is larger than the current large
+     * object length, the large object will be filled with zero
+     * bytes.  This method does not modify the current file offset.
+     */
+    public void truncate(int len) throws SQLException
+    {
+        FastpathArg args[] = new FastpathArg[2];
+        args[0] = new FastpathArg(fd);
+        args[1] = new FastpathArg(len);
+        fp.getInteger("lo_truncate", args);
     }
 
     /**
