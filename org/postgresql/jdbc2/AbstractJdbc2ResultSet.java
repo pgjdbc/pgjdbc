@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.90 2007/02/19 06:00:24 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.91 2007/03/02 01:27:55 davec Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1840,7 +1840,10 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     {
         //release resources held (memory for tuples)
         rows = null;        
-        
+        if (cursor != null) {
+            cursor.close();
+            cursor = null;
+        }
     }
 
     public boolean wasNull() throws SQLException
