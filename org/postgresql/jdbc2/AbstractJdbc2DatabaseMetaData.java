@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.32 2006/11/29 04:47:32 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.33 2006/12/01 08:53:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -497,20 +497,18 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public String getSearchStringEscape() throws SQLException
     {
-        // Java's parse takes off two backslashes
-        // and then pg's input parser takes off another layer
-        // so we need many backslashes here.
-        //
-        // This would work differently if you used a PreparedStatement
-        // and " mycol LIKE ? " which using the V3 protocol would skip
-        // pg's input parser, but I don't know what we can do about that.
-        //
-        // Since PostgreSQL 8.2, the option standard_conforming_strings
-        // controls whether backslashes are treated as escape characters.
-        // If this option is on, pg's parser takes a backslash literally
-        // even in string constants embedded into the query text.
-        //
-        return connection.getStandardConformingStrings() ? "\\" : "\\\\";
+        // This method originally returned "\\\\" assuming that it
+        // would be fed directly into pg's input parser so it would
+        // need two backslashes.  This isn't how it's supposed to be
+        // used though.  If passed as a PreparedStatement parameter
+        // or fed to a DatabaseMetaData method then double backslashes
+        // are incorrect.  If you're feeding something directly into
+        // a query you are responsible for correctly escaping it.
+        // With 8.2+ this escaping is a little trickier because you
+        // must know the setting of standard_conforming_strings, but
+        // that's not our problem.
+
+        return "\\";
     }
 
     /*
