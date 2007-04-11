@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.35 2005/11/24 02:31:43 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.36 2006/02/03 21:10:15 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -524,12 +524,16 @@ public class DatabaseMetaDataTest extends TestCase
 
     public void testSearchStringEscape() throws Exception {
         DatabaseMetaData dbmd = con.getMetaData();
-        Statement stmt = con.createStatement();
-        ResultSet rs = stmt.executeQuery("SELECT 'a' LIKE '" + dbmd.getSearchStringEscape() + "_'");
+        String pattern = dbmd.getSearchStringEscape() + "_";
+        PreparedStatement pstmt = con.prepareStatement("SELECT 'a' LIKE ?, '_' LIKE ?");
+        pstmt.setString(1, pattern);
+        pstmt.setString(2, pattern);
+        ResultSet rs = pstmt.executeQuery();
         assertTrue (rs.next());
         assertTrue(!rs.getBoolean(1));
+        assertTrue(rs.getBoolean(2));
         rs.close();
-        stmt.close();
+        pstmt.close();
     }
 
     public void testGetUDTQualified() throws Exception
