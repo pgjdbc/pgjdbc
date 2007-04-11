@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/PGInterval.java,v 1.10 2005/11/01 21:29:31 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/util/PGInterval.java,v 1.11 2007/04/11 06:54:38 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -332,6 +332,39 @@ public class PGInterval extends PGobject implements Serializable, Cloneable
         cal.setTime(date);
         add(cal);
         date.setTime(cal.getTime().getTime());
+    }
+
+    /**
+     * Add this interval's value to the passed interval.
+     * This is backwards to what I would expect, but
+     * this makes it match the other existing add methods.
+     */
+    public void add(PGInterval interval)
+    {
+        interval.setYears(interval.getYears() + getYears());
+        interval.setMonths(interval.getMonths() + getMonths());
+        interval.setDays(interval.getDays() + getDays());
+        interval.setHours(interval.getHours() + getHours());
+        interval.setMinutes(interval.getMinutes() + getMinutes());
+        interval.setSeconds(interval.getSeconds() + getSeconds());
+    }
+
+    /**
+     * Scale this interval by an integer factor.  The server
+     * can scale by arbitrary factors, but that would require
+     * adjusting the call signatures for all the existing methods
+     * like getDays() or providing our own justification of fractional
+     * intervals.  Neither of these seem like a good idea without a
+     * strong use case.
+     */
+    public void scale(int factor)
+    {
+        setYears(factor * getYears());
+        setMonths(factor * getMonths());
+        setDays(factor * getDays());
+        setHours(factor * getHours());
+        setMinutes(factor * getMinutes());
+        setSeconds(factor * getSeconds());
     }
 
     /**
