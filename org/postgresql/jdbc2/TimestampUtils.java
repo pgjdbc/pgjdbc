@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.20 2007/01/05 00:34:06 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.21 2007/04/16 17:05:52 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -33,15 +33,17 @@ public class TimestampUtils {
     private Calendar calCache;
     private int calCacheZone;
 
-    private boolean min74;
+    private final boolean min74;
+    private final boolean min82;
 
-    TimestampUtils(boolean min74) {
+    TimestampUtils(boolean min74, boolean min82) {
         this.min74 = min74;
+        this.min82 = min82;
     }
 
-    private Calendar getCalendar(int sign, int hr, int min) {
-        int unified = sign * (hr * 100 + min);
-        if (calCache != null && calCacheZone == unified)
+    private Calendar getCalendar(int sign, int hr, int min, int sec) {
+        int rawOffset = sign * (((hr * 60 + min) * 60 + sec) * 1000);
+        if (calCache != null && calCacheZone == rawOffset)
             return calCache;
                 
         StringBuffer zoneID = new StringBuffer("GMT");
@@ -50,10 +52,12 @@ public class TimestampUtils {
         zoneID.append(hr);
         if (min < 10) zoneID.append('0');
         zoneID.append(min);
+        if (sec < 10) zoneID.append('0');
+        zoneID.append(sec);
         
-        TimeZone syntheticTZ = TimeZone.getTimeZone(zoneID.toString());
+        TimeZone syntheticTZ = new SimpleTimeZone(rawOffset, zoneID.toString());
         calCache = new GregorianCalendar(syntheticTZ);
-        calCacheZone = unified;
+        calCacheZone = rawOffset;
         return calCache;
     }
         
@@ -188,7 +192,7 @@ public class TimestampUtils {
             sep = charAt(s, start);
             if (sep == '-' || sep == '+') {
                 int tzsign = (sep == '-') ? -1 : 1;
-                int tzhr, tzmin;
+                int tzhr, tzmin, tzsec;
     
                 end = firstNonDigit(s, start+1);    // Skip +/-
                 tzhr = number(s, start+1, end);
@@ -202,11 +206,21 @@ public class TimestampUtils {
                 } else {
                     tzmin = 0;
                 }
-               
+
+                tzsec = 0;
+                if (min82) {
+                    sep = charAt(s, start);
+                    if (sep == ':') {
+                        end = firstNonDigit(s, start+1);  // Skip ':'
+                        tzsec = number(s, start+1, end);
+                        start = end;
+                    }
+                }
+
                 // Setting offset does not seem to work correctly in all
                 // cases.. So get a fresh calendar for a synthetic timezone
                 // instead
-                result.tz = getCalendar(tzsign, tzhr, tzmin);
+                result.tz = getCalendar(tzsign, tzhr, tzmin, tzsec);
 
                 start = skipWhitespace(s, start);  // Skip trailing whitespace
             }
@@ -532,13 +546,14 @@ public class TimestampUtils {
         sb.append(decimalStr, 0, 6);
     }
 
-    private static void appendTimeZone(StringBuffer sb, java.util.Calendar cal)
+    private void appendTimeZone(StringBuffer sb, java.util.Calendar cal)
     {
-        int offset = (cal.get(Calendar.ZONE_OFFSET) + cal.get(Calendar.DST_OFFSET)) / 1000 / 60;
+        int offset = (cal.get(Calendar.ZONE_OFFSET) + cal.get(Calendar.DST_OFFSET)) / 1000;
 
         int absoff = Math.abs(offset);
-        int hours = absoff / 60;
-        int mins = absoff - hours * 60;
+        int hours = absoff / 60 / 60;
+        int mins = (absoff - hours * 60 * 60) / 60;
+        int secs = absoff - hours * 60 * 60 - mins * 60;
 
         sb.append((offset >= 0) ? " +" : " -");
 
@@ -551,6 +566,13 @@ public class TimestampUtils {
         if (mins < 10)
             sb.append('0');
         sb.append(mins);
+
+        if (min82) {
+            sb.append(':');
+            if (secs < 10)
+                sb.append('0');
+            sb.append(secs);
+        }
     }
 
     private static void appendEra(StringBuffer sb, Calendar cal)

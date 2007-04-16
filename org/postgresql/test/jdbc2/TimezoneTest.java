@@ -3,7 +3,7 @@
 * Copyright (c) 2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/TimezoneTest.java,v 1.2 2005/08/01 23:30:01 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/TimezoneTest.java,v 1.3 2005/09/14 00:06:19 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -646,10 +646,25 @@ public class TimezoneTest extends TestCase
 
     public void testHalfHourTimezone() throws Exception
     {
-        // Check our parser handles a timezone like e.g. 03:30 correctly
-        ResultSet rs = con.createStatement().executeQuery("SELECT '1969-12-31 20:30:00-03:30'::text");
-
+        Statement stmt = con.createStatement();
+        stmt.execute("SET TimeZone = 'GMT+3:30'");
+        ResultSet rs = stmt.executeQuery("SELECT '1969-12-31 20:30:00'::timestamptz");
         assertTrue(rs.next());
         assertEquals(0L, rs.getTimestamp(1).getTime());
     }
+
+    public void testTimezoneWithSeconds() throws SQLException
+    {
+        if (!TestUtil.haveMinimumServerVersion(con, "8.2"))
+            return;
+
+        Statement stmt = con.createStatement();
+        stmt.execute("SET TimeZone = 'Europe/Helsinki'");
+        ResultSet rs = stmt.executeQuery("SELECT '1920-01-01'::timestamptz");
+        rs.next();
+        // select extract(epoch from '1920-01-01'::timestamptz - 'epoch'::timestamptz) * 1000;
+
+        assertEquals(-1577929192000L, rs.getTimestamp(1).getTime());
+    }
+
 }
