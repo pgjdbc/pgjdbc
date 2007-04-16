@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/EscapedFunctions.java,v 1.7 2006/03/27 12:07:57 davec Exp $
+* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/EscapedFunctions.java,v 1.8 2006/04/04 22:52:42 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -42,7 +42,6 @@ public class EscapedFunctions {
     public final static String PI="pi";
     public final static String POWER="power";
     public final static String RADIANS="radians";
-    public final static String RAND="rand";
     public final static String ROUND="round";
     public final static String SIGN="sign";
     public final static String SIN="sin";
@@ -183,18 +182,6 @@ public class EscapedFunctions {
         }
         buf.append(parsedArgs.get(0)).append(',').append(parsedArgs.get(1));
         return buf.append(')').toString();
-    }
-    
-    /** rand to setSeed + random translation */
-    public static String sqlrand(List parsedArgs) throws SQLException{
-        if (parsedArgs.size()==0){
-            return "random()";
-        }else if (parsedArgs.size()==1){
-            return "(setseed("+parsedArgs.get(0)+")*0+random())";
-        }else{
-            throw new PSQLException(GT.tr("rand function only takes zero or one argument(the seed)."),
-                                    PSQLState.SYNTAX_ERROR);
-        }
     }
     
     /** truncate to trunc translation */

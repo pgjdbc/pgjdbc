@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.23 2006/11/02 15:31:14 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.24 2006/12/01 08:53:46 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -232,13 +232,12 @@ public class StatementTest extends TestCase
         assertEquals(1, rs.getDouble(5), 0.00001);
 
         rs = stmt.executeQuery("select {fn pi()}, {fn power(7,-2.3)}," +
-            " {fn radians(-180)},{fn rand(-2.3)},{fn round(3.1294,2)}");
+            " {fn radians(-180)},{fn round(3.1294,2)}");
         assertTrue(rs.next());
         assertEquals(Math.PI, rs.getDouble(1), 0.00001);
         assertEquals(Math.pow(7,-2.3), rs.getDouble(2), 0.00001);
         assertEquals(-Math.PI, rs.getDouble(3), 0.00001);
-        rs.getDouble(4);  // for random all we can test is that it returns something
-        assertEquals(3.13, rs.getDouble(5), 0.00001);
+        assertEquals(3.13, rs.getDouble(4), 0.00001);
 
         rs = stmt.executeQuery("select {fn sign(-2.3)}, {fn sin(-2.3)}," +
             " {fn sqrt(2.3)},{fn tan(-2.3)},{fn truncate(3.1294,2)}");

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.33 2006/12/01 08:53:45 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.34 2007/04/11 07:33:19 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -425,7 +425,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         ','+EscapedFunctions.FLOOR+','+EscapedFunctions.LOG+
         ','+EscapedFunctions.LOG10+','+EscapedFunctions.MOD+
         ','+EscapedFunctions.PI+','+EscapedFunctions.POWER+
-        ','+EscapedFunctions.RADIANS+','+EscapedFunctions.RAND+
+        ','+EscapedFunctions.RADIANS+
         ','+EscapedFunctions.ROUND+','+EscapedFunctions.SIGN+
         ','+EscapedFunctions.SIN+','+EscapedFunctions.SQRT+
         ','+EscapedFunctions.TAN+','+EscapedFunctions.TRUNCATE;
