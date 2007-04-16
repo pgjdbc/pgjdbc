@@ -3,7 +3,7 @@
 * Copyright (c) 2001-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/UpdateableResultTest.java,v 1.22 2005/09/29 22:13:25 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/UpdateableResultTest.java,v 1.22.2.1 2007/01/05 00:34:20 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -39,7 +39,7 @@ public class UpdateableResultTest extends TestCase
     protected void setUp() throws Exception
     {
         con = TestUtil.openDB();
-        TestUtil.createTable(con, "updateable", "id int primary key, name text, notselected text, ts timestamp with time zone", true);
+        TestUtil.createTable(con, "updateable", "id int primary key, name text, notselected text, ts timestamp with time zone, intarr int[]", true);
         TestUtil.createTable(con, "second", "id1 int primary key, name1 text");
         TestUtil.createTable(con, "stream", "id int primary key, asi text, chr text, bin bytea");
 
@@ -445,5 +445,36 @@ public class UpdateableResultTest extends TestCase
             rs.updateNull(1000);
             fail("Should have thrown an exception on bad column index.");
         } catch (SQLException sqle) { }
+    }
+
+    public void testArray() throws SQLException {
+        Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        stmt.executeUpdate("INSERT INTO updateable (id, intarr) VALUES (1, '{1,2,3}'::int4[])");
+        ResultSet rs = stmt.executeQuery("SELECT id, intarr FROM updateable");
+        assertTrue(rs.next());
+        rs.updateObject(2, rs.getArray(2));
+        rs.updateRow();
+
+        Array arr = rs.getArray(2);
+        assertEquals(Types.INTEGER, arr.getBaseType());
+        int intarr[] = (int[])arr.getArray();
+        assertEquals(3, intarr.length);
+        assertEquals(1, intarr[0]);
+        assertEquals(2, intarr[1]);
+        assertEquals(3, intarr[2]);
+        rs.close();
+
+        rs = stmt.executeQuery("SELECT id,intarr FROM updateable");
+        assertTrue(rs.next());
+        arr = rs.getArray(2);
+        assertEquals(Types.INTEGER, arr.getBaseType());
+        intarr = (int[])arr.getArray();
+        assertEquals(3, intarr.length);
+        assertEquals(1, intarr[0]);
+        assertEquals(2, intarr[1]);
+        assertEquals(3, intarr[2]);
+        
+        rs.close();
+        stmt.close();
     }
 }
