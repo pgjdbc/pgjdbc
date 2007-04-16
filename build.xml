@@ -8,7 +8,7 @@
 
   This file now requires Ant 1.4.1.  2002-04-18
 
-  $PostgreSQL: pgjdbc/build.xml,v 1.71 2006/11/29 04:00:15 jurka Exp $
+  $PostgreSQL: pgjdbc/build.xml,v 1.72 2007/02/19 17:21:12 jurka Exp $
 
 -->
 
@@ -413,8 +413,13 @@
     <fail message="Your version of ant doesn't seem to have the junit task available.  I looked for org.apache.tools.ant.taskdefs.optional.junit.JUnitTask, but I couldn't find it." unless="junit.task" />
 
     <delete file="postgresql-jdbc-tests.debug.txt"/>
+
+    <property name="testResultsDir" value="${builddir}/testresults" />
+    <mkdir dir="${testResultsDir}" />
+ 
     <junit>
       <formatter type="brief" usefile="false"/>
+      <formatter type="xml" usefile="true" />
 
       <sysproperty key="server" value="${server}" />
       <sysproperty key="port" value="${port}" />
@@ -431,11 +436,11 @@
         <pathelement path="${java.class.path}" />
       </classpath>
 
-      <test name="org.postgresql.test.jdbc2.Jdbc2TestSuite" if="junit" />
-      <test name="org.postgresql.test.jdbc2.optional.OptionalTestSuite" if="jdbc2optionaltests"/>
-      <test name="org.postgresql.test.jdbc3.Jdbc3TestSuite" if="jdbc3tests"/>
-      <test name="org.postgresql.test.xa.XATestSuite" if="jdbc3tests"/>
-      <test name="org.postgresql.test.jdbc4.Jdbc4TestSuite" if="jdbc4tests" />
+      <test name="org.postgresql.test.jdbc2.Jdbc2TestSuite" if="junit" outfile="${testResultsDir}/jdbc2"/>
+      <test name="org.postgresql.test.jdbc2.optional.OptionalTestSuite" if="jdbc2optionaltests" outfile="${testResultsDir}/jdbc2optional"/>
+      <test name="org.postgresql.test.jdbc3.Jdbc3TestSuite" if="jdbc3tests" outfile="${testResultsDir}/jdbc3"/>
+      <test name="org.postgresql.test.xa.XATestSuite" if="jdbc3tests" outfile="${testResultsDir}/xa"/>
+      <test name="org.postgresql.test.jdbc4.Jdbc4TestSuite" if="jdbc4tests" outfile="${testResultsDir}/jdbc4"/>
     </junit>
   </target>
   
