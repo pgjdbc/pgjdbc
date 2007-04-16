@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.19 2006/04/29 02:33:46 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.20 2007/01/05 00:34:06 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -223,7 +223,7 @@ public class TimestampUtils {
             }
 
             if (start < slen)
-                throw new NumberFormatException("Trailing junk on timestamp: '" + new String(s, start, end - start) + "'");
+                throw new NumberFormatException("Trailing junk on timestamp: '" + new String(s, start, slen - start) + "'");
 
             if (!result.hasTime && !result.hasDate)
                 throw new NumberFormatException("Timestamp has neither date nor time");
