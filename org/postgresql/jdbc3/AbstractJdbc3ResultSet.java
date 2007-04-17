@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3ResultSet.java,v 1.11.2.1 2005/02/15 08:55:51 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3ResultSet.java,v 1.11.2.2 2005/06/08 01:48:15 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -192,7 +192,7 @@ public abstract class AbstractJdbc3ResultSet extends org.postgresql.jdbc2.Abstra
      */
     public void updateArray(int columnIndex, java.sql.Array x) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "updateArray(int,Array)");
+        updateObject(columnIndex, x);
     }
 
     /**
@@ -209,7 +209,7 @@ public abstract class AbstractJdbc3ResultSet extends org.postgresql.jdbc2.Abstra
      */
     public void updateArray(String columnName, java.sql.Array x) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "updateArray(String,Array)");
+        updateArray(findColumn(columnName), x);
     }
 
 }
