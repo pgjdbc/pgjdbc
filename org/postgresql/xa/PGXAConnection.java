@@ -48,9 +48,8 @@ public class PGXAConnection extends PooledConnectionImpl implements XAConnection
 
     PGXAConnection(BaseConnection conn) throws SQLException
     {
-        super(conn, false, true);
+        super(conn, true, true);
         this.conn = conn;
-        this.conn.setAutoCommit(false);
         this.state = STATE_IDLE;
     }
 
@@ -103,6 +102,15 @@ public class PGXAConnection extends PooledConnectionImpl implements XAConnection
             throw new PGXAException(GT.tr("suspend/resume and join not implemented"), XAException.XAER_RMERR);
         if (state == STATE_ENDED)
             throw new PGXAException(GT.tr("Transaction interleaving not implemented"), XAException.XAER_RMERR);
+
+        try
+        {
+            conn.setAutoCommit(false);
+        }
+        catch (SQLException ex)
+        {
+            throw new PGXAException(GT.tr("Error disabling autocommit"), ex, XAException.XAER_RMERR);
+        }
 
         // Preconditions are met, Associate connection with the transaction
         state = STATE_ACTIVE;
@@ -190,6 +198,7 @@ public class PGXAConnection extends PooledConnectionImpl implements XAConnection
             {
                 stmt.close();
             }
+            conn.setAutoCommit(true);
 
             return XA_OK;
         }
@@ -278,27 +287,21 @@ public class PGXAConnection extends PooledConnectionImpl implements XAConnection
                 state = STATE_IDLE;
                 currentXid = null;
                 conn.rollback();
+                conn.setAutoCommit(true);
             }
             else
             {
                 String s = RecoveredXid.xidToString(xid);
 
                 conn.setAutoCommit(true);
+                Statement stmt = conn.createStatement();
                 try
                 {
-                    Statement stmt = conn.createStatement();
-                    try
-                    {
-                        stmt.executeUpdate("ROLLBACK PREPARED '" + s + "'");
-                    }
-                    finally
-                    {
-                        stmt.close();
-                    }
+                    stmt.executeUpdate("ROLLBACK PREPARED '" + s + "'");
                 }
                 finally
                 {
-                    conn.setAutoCommit(false);
+                    stmt.close();
                 }
             }
         }
@@ -350,6 +353,7 @@ public class PGXAConnection extends PooledConnectionImpl implements XAConnection
             currentXid = null;
 
             conn.commit();
+            conn.setAutoCommit(true);
         }
         catch (SQLException ex)
         {
@@ -378,21 +382,14 @@ public class PGXAConnection extends PooledConnectionImpl implements XAConnection
             String s = RecoveredXid.xidToString(xid);
 
             conn.setAutoCommit(true);
+            Statement stmt = conn.createStatement();
             try
             {
-                Statement stmt = conn.createStatement();
-                try
-                {
-                    stmt.executeUpdate("COMMIT PREPARED '" + s + "'");
-                }
-                finally
-                {
-                    stmt.close();
-                }
+                stmt.executeUpdate("COMMIT PREPARED '" + s + "'");
             }
             finally
             {
-                conn.setAutoCommit(false);
+                stmt.close();
             }
         }
         catch (SQLException ex)
