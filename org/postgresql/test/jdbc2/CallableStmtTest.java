@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CallableStmtTest.java,v 1.19 2006/11/03 04:44:50 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CallableStmtTest.java,v 1.20 2006/11/29 04:34:29 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -30,6 +30,7 @@ public class CallableStmtTest extends TestCase
     protected void setUp() throws Exception
     {
         con = TestUtil.openDB();
+        TestUtil.createTable(con, "int_table", "id int");
         Statement stmt = con.createStatement ();
         stmt.execute ("CREATE OR REPLACE FUNCTION testspg__getString (varchar) " +
                       "RETURNS varchar AS ' DECLARE inString alias for $1; begin " +
@@ -57,12 +58,14 @@ public class CallableStmtTest extends TestCase
                 "begin return 42; end; ' LANGUAGE 'plpgsql';");
         stmt.execute("CREATE OR REPLACE FUNCTION testspg__getarray() RETURNS int[] as 'SELECT ''{1,2}''::int[];' LANGUAGE 'sql'");
         stmt.execute("CREATE OR REPLACE FUNCTION testspg__raisenotice() RETURNS int as 'BEGIN RAISE NOTICE ''hello'';  RAISE NOTICE ''goodbye''; RETURN 1; END;' LANGUAGE 'plpgsql'");
+        stmt.execute("CREATE OR REPLACE FUNCTION testspg__insertInt(int) RETURNS int as 'BEGIN INSERT INTO int_table(id) VALUES ($1); RETURN 1; END;' LANGUAGE 'plpgsql'");
         stmt.close ();
     }
 
     protected void tearDown() throws Exception
     {
         Statement stmt = con.createStatement ();
+        TestUtil.dropTable(con, "int_table");
         stmt.execute ("drop FUNCTION testspg__getString (varchar);");
         stmt.execute ("drop FUNCTION testspg__getDouble (float);");
         if (TestUtil.haveMinimumServerVersion(con, "7.3")) {
@@ -75,16 +78,13 @@ public class CallableStmtTest extends TestCase
         stmt.execute ("drop FUNCTION testspg__getNumericWithoutArg ();");
         stmt.execute ("DROP FUNCTION testspg__getarray();");
         stmt.execute ("DROP FUNCTION testspg__raisenotice();");
+        stmt.execute ("DROP FUNCTION testspg__insertInt(int);");
         TestUtil.closeDB(con);
     }
 
 
     final String func = "{ ? = call ";
     final String pkgName = "testspg__";
-    // protected void runTest () throws Throwable {
-    //testGetString ();
-    //}
-
     
     public void testGetDouble () throws Throwable
     {
@@ -234,6 +234,29 @@ public class CallableStmtTest extends TestCase
         catch (SQLException e)
         {
         }
+    }
+
+    public void testBatchCall() throws SQLException
+    {
+        CallableStatement call = con.prepareCall ("{ call " + pkgName + "insertInt(?) }");
+        call.setInt(1, 1);
+        call.addBatch();
+        call.setInt(1, 2);
+        call.addBatch();
+        call.setInt(1, 3);
+        call.addBatch();
+        call.executeBatch();
+        call.close();
+
+        Statement stmt = con.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT id FROM int_table ORDER BY id");
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+        assertTrue(rs.next());
+        assertEquals(2, rs.getInt(1));
+        assertTrue(rs.next());
+        assertEquals(3, rs.getInt(1));
+        assertTrue(!rs.next());
     }
 
 }
