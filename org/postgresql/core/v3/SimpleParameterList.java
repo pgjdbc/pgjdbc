@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleParameterList.java,v 1.7 2005/01/27 22:50:14 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleParameterList.java,v 1.8 2005/02/01 07:27:54 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -143,7 +143,7 @@ class SimpleParameterList implements V3ParameterList {
         if (paramTypes[index-1] == Oid.INVALID) {
             paramTypes[index-1] = oid;
         } else if (paramTypes[index-1] != oid) {
-            throw new IllegalArgumentException("Can't change resolved type for param: " + index + " from " + paramTypes[index] + " to " + oid);
+            throw new IllegalArgumentException("Can't change resolved type for param: " + index + " from " + paramTypes[index-1] + " to " + oid);
         }
     }
 
