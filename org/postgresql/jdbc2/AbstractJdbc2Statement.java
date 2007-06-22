@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.96.2.2 2007/02/19 06:04:48 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.96.2.3 2007/03/29 04:27:57 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1721,6 +1721,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             setTimestamp(parameterIndex, (Timestamp)x);
         else if (x instanceof Boolean)
             setBoolean(parameterIndex, ((Boolean)x).booleanValue());
+        else if (x instanceof Byte)
+            setByte(parameterIndex, ((Byte)x).byteValue());
         else if (x instanceof Blob)
             setBlob(parameterIndex, (Blob)x);
         else if (x instanceof Clob)
