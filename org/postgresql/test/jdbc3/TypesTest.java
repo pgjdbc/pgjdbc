@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/TypesTest.java,v 1.8 2005/11/24 02:31:44 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/TypesTest.java,v 1.9 2006/05/15 09:35:57 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -62,6 +62,20 @@ public class TypesTest extends TestCase {
         {
             assertTrue(!((Boolean)rs.getObject(4)).booleanValue());
         }
+    }
+
+    public void testPreparedByte() throws SQLException {
+        PreparedStatement pstmt = _conn.prepareStatement("SELECT ?,?");
+        pstmt.setByte(1, (byte)1);
+        pstmt.setObject(2, Byte.valueOf((byte)2));
+        ResultSet rs = pstmt.executeQuery();
+        assertTrue(rs.next());
+        assertEquals((byte)1, rs.getByte(1));
+        assertFalse(rs.wasNull());
+        assertEquals((byte)2, rs.getByte(2));
+        assertFalse(rs.wasNull());
+        rs.close();
+        pstmt.close();
     }
 
     public void testCallableBoolean() throws SQLException {
