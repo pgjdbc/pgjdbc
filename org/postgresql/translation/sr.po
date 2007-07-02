@@ -1,7 +1,7 @@
 # Serbian message translation for the PostgreSQL JDBC driver
 # This file is distributed under the same license as the package.
 #
-# $PostgreSQL: pgjdbc/org/postgresql/translation/pt_SR.po,v 1.13 2006/07/03 14:52:59 jurka Exp $
+# $PostgreSQL: pgjdbc/org/postgresql/translation/sr.po,v 1.1 2007/01/04 20:28:37 jurka Exp $
 #
 # Bojan Skaljac <skaljac@gmail.com> 2006.
 #
@@ -9,9 +9,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PostgreSQL 8.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2007-01-04 12:30-0800\n"
-"PO-Revision-Date: 2006-11-29 13:52+0100\n"
-"Last-Translator: Skaljac Bojan <skaljac@gmail.com>\n"
+"POT-Creation-Date: 2007-07-02 13:14-0700\n"
+"PO-Revision-Date: 2007-06-27 09:22+0100\n"
+"Last-Translator: Mile Kitic <mile@kitic.com>\n"
 "Language-Team: Srpski <skaljac@gmail.com>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
@@ -197,7 +197,7 @@ msgstr "Nepredviđen rezultat je vraćen od strane upita."
 #: org/postgresql/core/v3/CompositeParameterList.java:37
 #: org/postgresql/core/v3/SimpleParameterList.java:45
 #: org/postgresql/core/v3/SimpleParameterList.java:52
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2568
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2569
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSetMetaData.java:418
 #, java-format
 msgid "The column index is out of range: {0}, number of columns: {1}."
@@ -220,7 +220,7 @@ msgstr "Očekivan status komande je BEGIN, a dobijeno je {0}."
 
 #: org/postgresql/core/v2/QueryExecutorImpl.java:78
 #: org/postgresql/core/v3/QueryExecutorImpl.java:440
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1722
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1723
 #, java-format
 msgid "Unexpected command status: {0}."
 msgstr "Neočekivan komandni status: {0}."
@@ -295,13 +295,13 @@ msgstr ""
 "počinje sa ISO za uspešno završavanje operacije."
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1375
-#, fuzzy, java-format
+#, java-format
 msgid ""
 "The server''s standard_conforming_strings parameter was reported as {0}. The "
 "JDBC driver expected on or off."
 msgstr ""
-"Serverov client_encoding parametar je promenjen u  {0}.JDBC darajver zahteva "
-"UNICODE client_encoding  za uspešno izvršavanje operacije."
+"Serverov standard_conforming_strings parametar javlja {0}. JDBC drajver "
+"ocekuje on ili off."
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1433
 msgid "The driver currently does not support COPY operations."
@@ -331,14 +331,14 @@ msgstr "Statemen je već zatvoren."
 msgid "DataSource has been closed."
 msgstr "DataSource je zatvoren."
 
-#: org/postgresql/fastpath/Fastpath.java:76
-#: org/postgresql/fastpath/Fastpath.java:123
+#: org/postgresql/fastpath/Fastpath.java:81
+#: org/postgresql/fastpath/Fastpath.java:128
 #, java-format
 msgid "Fastpath call {0} - No result was returned and we expected an integer."
 msgstr ""
 "Fastpath poziv {0} - Nikakav rezultat nije vraćen a očekivan je integer."
 
-#: org/postgresql/fastpath/Fastpath.java:218
+#: org/postgresql/fastpath/Fastpath.java:237
 #, java-format
 msgid "The fastpath function {0} is unknown."
 msgstr "Fastpath funkcija {0} je nepoznata."
@@ -397,7 +397,7 @@ msgstr "Nikakav rezultat nije vraćen od strane upita."
 #: org/postgresql/jdbc2/AbstractJdbc2Connection.java:253
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:284
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:306
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2494
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2496
 msgid "A result was returned when none was expected."
 msgstr "Rezultat vraćen ali nikakav rezultat nije očekivan."
 
@@ -463,13 +463,13 @@ msgstr "Neočekivana greška prilikom dekodiranja karaktera iz velikog objekta."
 
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:627
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:653
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1786
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1787
 msgid "Can''t use relative move methods while on the insert row."
 msgstr ""
 "Ne može se koristiti metod relativnog pomeranja prilikom ubacivanja redova."
 
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:673
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2644
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2646
 #, java-format
 msgid "Invalid fetch direction constant: {0}."
 msgstr "Pogrešna konstanta za direkciju donošenja: {0}."
@@ -512,8 +512,8 @@ msgstr ""
 "Morate specificirati barem jednu vrednost za kolonu da bi ste ubacili red."
 
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:965
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2216
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2247
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2217
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2248
 #, java-format
 msgid "The JVM claims not to support the encoding: {0}"
 msgstr "JVM tvrdi da ne podržava encoding: {0}"
@@ -526,7 +526,7 @@ msgid "Provided InputStream failed."
 msgstr "Pribaljeni InputStream zakazao."
 
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1082
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2817
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2819
 msgid "Provided Reader failed."
 msgstr "Pribavljeni čitač (Reader) zakazao."
 
@@ -539,7 +539,7 @@ msgid "Cannot call updateRow() when on the insert row."
 msgstr "Nije moguće pozvati updateRow() prilikom ubacivanja redova."
 
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1228
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2799
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2800
 msgid ""
 "Cannot update the ResultSet because it is either before the start or after "
 "the end of the results."
@@ -555,12 +555,12 @@ msgstr "ResultSets sa osobinom CONCUR_READ_ONLY ne moeže biti ažuriran."
 msgid "No primary key found for table {0}."
 msgstr "Nije pronađen ključ za tabelu {0}."
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1770
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2653
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1771
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2655
 msgid "Fetch size must be a value greater to or equal to 0."
 msgstr "Doneta veličina mora biti vrednost veća ili jednaka 0."
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1864
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1865
 msgid ""
 "Invalid character data was found.  This is most likely caused by stored data "
 "containing characters that are invalid for the character set the database "
@@ -572,29 +572,29 @@ msgstr ""
 "kojima je baza kreirana.  Npr. Čuvanje 8bit podataka u SQL_ASCII bazi "
 "podataka."
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1903
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1910
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1943
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1951
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2630
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2638
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2668
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2675
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2695
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2706
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2724
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2742
-#: org/postgresql/jdbc2/TimestampUtils.java:232
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1904
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1911
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1944
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1952
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2631
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2639
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2669
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2676
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2696
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2707
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2725
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2743
+#: org/postgresql/jdbc2/TimestampUtils.java:246
 #, java-format
 msgid "Bad value for type {0} : {1}"
 msgstr "Pogrešna vrednost za tip {0} : {1}"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2450
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2451
 #, java-format
 msgid "The column name {0} was not found in this ResultSet."
 msgstr "Ime kolone {0} nije pronadjeno u ResultSet."
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2550
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2551
 msgid ""
 "ResultSet is not updateable.  The query that generated this result set must "
 "select only one table, and must select all primary keys from that table. See "
@@ -605,11 +605,11 @@ msgstr ""
 "tabele. Pogledajte API specifikaciju za JDBC 2.1, sekciju 5.6 za više "
 "detalja."
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2562
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2563
 msgid "This ResultSet is closed."
 msgstr "ResultSet je zatvoren."
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2575
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2576
 msgid "ResultSet not positioned properly, perhaps you need to call next."
 msgstr ""
 "ResultSet nije pravilno pozicioniran, možda je potrebno da pozovete next."
@@ -617,7 +617,7 @@ msgstr ""
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:233
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:276
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:326
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2453
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2455
 msgid ""
 "Can''t use query methods that take a query string on a PreparedStatement."
 msgstr ""
@@ -666,7 +666,7 @@ msgstr "Nepoznata vrednost za Types."
 
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1335
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1460
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2788
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2790
 #, java-format
 msgid "Invalid stream length {0}."
 msgstr "Nevažeća dužina toka {0}."
@@ -677,7 +677,7 @@ msgid "The JVM claims not to support the {0} encoding."
 msgstr "JVM tvrdi da ne podržava {0} encoding."
 
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1541
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2718
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2720
 #, java-format
 msgid "Unknown type {0}."
 msgstr "Nepoznat tip {0}."
@@ -695,7 +695,7 @@ msgstr "Nije moguće kastovati instancu {0} u tip {1}"
 msgid "Unsupported Types value: {0}"
 msgstr "Za tip nije podržana vrednost: {0}"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1735
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1737
 #, java-format
 msgid ""
 "Can''t infer the SQL type to use for an instance of {0}. Use setObject() "
@@ -704,7 +704,7 @@ msgstr ""
 "Nije moguće zaključiti SQL tip koji bi se koristio sa instancom {0}. "
 "Koristite setObject() sa zadatim eksplicitnim tipom vrednosti."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1783
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1785
 msgid ""
 "This statement does not declare an OUT parameter.  Use '{' ?= call ... '}' "
 "to declare one."
@@ -712,17 +712,17 @@ msgstr ""
 "Izraz ne deklariše izlazni parametar. Koristite '{' ?= poziv ... '}' za "
 "deklarisanje."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1833
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1835
 msgid "wasNull cannot be call before fetching a result."
-msgstr ""
+msgstr "wasNull nemože biti pozvan pre zahvatanja rezultata."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2322
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2324
 #, java-format
 msgid "Malformed function or procedure escape syntax at offset {0}."
 msgstr "Pogrešna sintaksa u funkciji ili proceduri na poziciji {0}."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2372
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2386
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2374
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2388
 #, java-format
 msgid ""
 "Parameter of type {0} was registered, but call to get{1} (sqltype={2}) was "
@@ -731,7 +731,7 @@ msgstr ""
 "Parametar tipa {0} je registrovan,ali poziv za get{1} (sql tip={2}) je "
 "izvršen."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2405
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2407
 msgid ""
 "A CallableStatement was declared, but no call to registerOutParameter(1, "
 "<some type>) was made."
@@ -739,24 +739,25 @@ msgstr ""
 "CallableStatement jedeklarisan ali nije bilo poziva registerOutParameter (1, "
 "<neki_tip>)."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2409
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2411
 msgid "No function outputs were registered."
-msgstr ""
+msgstr "Nije registrovan nikakv izlaz iz funkcije."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2412
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2414
 msgid ""
 "Results cannot be retrieved from a CallableStatement before it is executed."
 msgstr ""
+"Razultat nemože da se primi iz CallableStatement pre nego što se on izvrši."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2442
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2444
 msgid "This statement has been closed."
 msgstr "Statement je zatvoren."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2501
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2503
 msgid "Too many update results were returned."
 msgstr "Previše rezultata za ažuriranje je vraćeno."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2530
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2532
 #, java-format
 msgid ""
 "Batch entry {0} {1} was aborted.  Call getNextException to see the cause."
@@ -764,9 +765,9 @@ msgstr ""
 "Smeša prijava {0} {1} je odbačena. Pozovite getNextException da proverite "
 "rezlog."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2758
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2847
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2887
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2760
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2849
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2889
 msgid "Unexpected error writing large object to database."
 msgstr "Neočekivana greška prilikom upisa velikog objekta u bazu podataka."
 
@@ -844,7 +845,7 @@ msgstr "Funkcija {0} prima tri i samo tri parametra."
 msgid "Interval {0} not yet implemented"
 msgstr "Interval {0} još nije implementiran."
 
-#: org/postgresql/jdbc2/TimestampUtils.java:334
+#: org/postgresql/jdbc2/TimestampUtils.java:348
 msgid ""
 "Infinite value found for timestamp/date. This cannot be represented as time."
 msgstr ""
@@ -909,8 +910,8 @@ msgstr "Nije moguće izvaditi ime tačke snimanja koja nema ime."
 msgid "Failed to initialize LargeObject API"
 msgstr "Propao pokušaj inicijalizacije LargeObject API-ja."
 
-#: org/postgresql/largeobject/LargeObjectManager.java:172
 #: org/postgresql/largeobject/LargeObjectManager.java:200
+#: org/postgresql/largeobject/LargeObjectManager.java:241
 msgid "Large Objects may not be used in auto-commit mode."
 msgstr "Veliki objekti (Large Object) se nemogu koristiti u auto-commit modu."
 
@@ -1012,9 +1013,8 @@ msgid "Transaction interleaving not implemented"
 msgstr "Preplitanje transakcija nije implementirano."
 
 #: org/postgresql/xa/PGXAConnection.java:127
-#, fuzzy
 msgid "Error disabling autocommit"
-msgstr "Kreška prilikom commit-a iz jedne faze."
+msgstr "Greška u isključivanju autokomita"
 
 #: org/postgresql/xa/PGXAConnection.java:160
 msgid "tried to call end without corresponding start call"
@@ -1078,6 +1078,18 @@ msgstr ""
 #: org/postgresql/xa/PGXAConnection.java:427
 msgid "Heuristic commit/rollback not supported"
 msgstr "Heuristički commit/rollback nije podržan."
+
+#~ msgid "Zero bytes may not occur in identifiers."
+#~ msgstr "Nula bajtovji se ne smeju pojavljivati u identifikatorima."
+
+#~ msgid ""
+#~ "Truncation of large objects is only implemented in 8.3 and later servers."
+#~ msgstr ""
+#~ "Skraćivanje velikih objekata je implementirano samo u 8.3 i novijim "
+#~ "serverima."
+
+#~ msgid "free() was called on this LOB previously"
+#~ msgstr "free() je pozvan na ovom LOB-u prethodno"
 
 #~ msgid "suspend/resume and join not implemented"
 #~ msgstr "obustavljanje/nastavljanje i spajanje nije implementirano."
