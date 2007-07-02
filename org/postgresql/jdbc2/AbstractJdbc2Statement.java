@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.100 2007/05/07 13:10:34 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.101 2007/06/22 21:37:35 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2659,9 +2659,12 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
         result = null;
         
-        ResultHandler handler = isFunction 
-                            ? new CallableBatchResultHandler(queries, parameterLists, updateCounts )
-                            : new BatchResultHandler(queries, parameterLists, updateCounts);
+        ResultHandler handler;
+	if (isFunction) {
+		handler = new CallableBatchResultHandler(queries, parameterLists, updateCounts );
+	} else {
+		handler = new BatchResultHandler(queries, parameterLists, updateCounts);
+	}
         
         connection.getQueryExecutor().execute(queries,
                                               parameterLists,
