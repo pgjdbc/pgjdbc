@@ -36,6 +36,27 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     private final BaseConnection conn;
     private final Logger logger;
 
+    /*
+     * PGXAConnection-object can be in one of three states:
+     *
+     * IDLE
+     * Not associated with a XA-transaction. You can still call 
+     * getConnection and use the connection outside XA. currentXid is null. 
+     * autoCommit is true on a connection by getConnection, per normal JDBC
+     * rules, though the caller can change it to false and manage transactions
+     * itself using Connection.commit and rollback.
+     *
+     * ACTIVE
+     * start has been called, and we're associated with an XA transaction.
+     * currentXid is valid. autoCommit is false on a connection returned by
+     * getConnection, and should not be messed with by the caller or the XA
+     * transaction will be broken.
+     *
+     * ENDED
+     * end has been called, but the transaction has not yet been prepared.
+     * currentXid is still valid. You shouldn't use the connection for anything
+     * else than issuing a XAResource.commit or rollback.
+     */
     private Xid currentXid;
 
     private int state;
@@ -61,7 +82,20 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
 
     public Connection getConnection() throws SQLException
     {
-        return super.getConnection();
+        Connection conn = super.getConnection();
+
+        // When we're outside an XA transaction, autocommit
+        // is supposed to be true, per usual JDBC convention.
+        // When an XA transaction is in progress, it should be
+        // false.
+
+        // super.getConnection rolls back any previous transaction, and resets
+        // autocommit to true, so we have to set it to false before handing the
+        // connection to the caller, if an XA transaction is active.
+        if(state == STATE_ACTIVE)
+            conn.setAutoCommit(false);
+
+        return conn;
     }
 
     public XAResource getXAResource() {
