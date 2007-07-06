@@ -220,8 +220,11 @@ public class XADataSourceTest extends TestCase {
     public void testAutoCommit() throws Exception {
         Xid xid = new CustomXid(6);
 
+        // When not in an XA transaction, autocommit should be true
+        // per normal JDBC rules.
         assertTrue(conn.getAutoCommit());
 
+        // When in an XA transaction, autocommit should be false
         xaRes.start(xid, XAResource.TMNOFLAGS);
         assertFalse(conn.getAutoCommit());
         xaRes.end(xid, XAResource.TMSUCCESS);
@@ -236,12 +239,28 @@ public class XADataSourceTest extends TestCase {
         xaRes.commit(xid, false);
         assertTrue(conn.getAutoCommit());
 
+        // Check that autocommit is reset to true after a 1-phase rollback
         xaRes.start(xid, XAResource.TMNOFLAGS);
         xaRes.end(xid, XAResource.TMSUCCESS);
         xaRes.rollback(xid);
         assertTrue(conn.getAutoCommit());
 
+        // Check that autocommit is reset to true after a 2-phase rollback
         xaRes.start(xid, XAResource.TMNOFLAGS);
+        xaRes.end(xid, XAResource.TMSUCCESS);
+        xaRes.prepare(xid);
+        xaRes.rollback(xid);
+        assertTrue(conn.getAutoCommit());
+
+        // Check that autoCommit is set correctly after a getConnection-call
+        conn = xaconn.getConnection();
+        assertTrue(conn.getAutoCommit());
+
+        xaRes.start(xid, XAResource.TMNOFLAGS);
+
+        conn = xaconn.getConnection();
+        assertFalse(conn.getAutoCommit());
+
         xaRes.end(xid, XAResource.TMSUCCESS);
         xaRes.prepare(xid);
         xaRes.rollback(xid);
