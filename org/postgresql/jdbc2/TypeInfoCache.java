@@ -3,7 +3,7 @@
  * Copyright (c) 2005, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.6 2006/11/03 07:15:16 jurka Exp $
+ *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.7 2007/02/19 05:57:53 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -57,6 +57,7 @@ public class TypeInfoCache {
         {"numeric", new Integer(Oid.NUMERIC), new Integer(Types.NUMERIC), "java.math.BigDecimal"},
         {"float4", new Integer(Oid.FLOAT4), new Integer(Types.REAL), "java.lang.Float"},
         {"float8", new Integer(Oid.FLOAT8), new Integer(Types.DOUBLE), "java.lang.Double"},
+	{"char", new Integer(Oid.CHAR), new Integer(Types.CHAR), "java.lang.String"},
         {"bpchar", new Integer(Oid.BPCHAR), new Integer(Types.CHAR), "java.lang.String"},
         {"varchar", new Integer(Oid.VARCHAR), new Integer(Types.VARCHAR), "java.lang.String"},
         {"text", new Integer(Oid.TEXT), new Integer(Types.VARCHAR), "java.lang.String"},

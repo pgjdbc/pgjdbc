@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.34 2007/04/11 07:33:19 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.35 2007/04/16 16:16:21 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1722,8 +1722,16 @@ public abstract class AbstractJdbc2DatabaseMetaData
         String sql;
         if (connection.haveMinimumServerVersion("7.3"))
         {
-            sql = "SELECT n.nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid " +
-                  " FROM pg_catalog.pg_proc p,pg_catalog.pg_namespace n, pg_catalog.pg_type t " +
+            sql = "SELECT n.nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid ";
+
+            if (connection.haveMinimumServerVersion("8.1"))
+                sql += ", p.proargnames, p.proargmodes, p.proallargtypes  ";
+            else if (connection.haveMinimumServerVersion("8.0"))
+                sql += ", p.proargnames, NULL AS proargmodes, NULL AS proallargtypes ";
+            else
+                sql += ", NULL AS proargnames, NULL AS proargmodes, NULL AS proallargtypes ";
+
+            sql += " FROM pg_catalog.pg_proc p, pg_catalog.pg_namespace n, pg_catalog.pg_type t " +
                   " WHERE p.pronamespace=n.oid AND p.prorettype=t.oid ";
             if (schemaPattern != null && !"".equals(schemaPattern))
             {
@@ -1737,7 +1745,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         }
         else
         {
-            sql = "SELECT NULL AS nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid " +
+            sql = "SELECT NULL AS nspname,p.proname,p.prorettype,p.proargtypes,t.typtype,t.typrelid, NULL AS proargnames, NULL AS proargmodes, NULL AS proallargtypes " +
                   " FROM pg_proc p,pg_type t " +
                   " WHERE p.prorettype=t.oid ";
             if (procedureNamePattern != null)
@@ -1755,16 +1763,36 @@ public abstract class AbstractJdbc2DatabaseMetaData
             int returnType = rs.getInt("prorettype");
             String returnTypeType = rs.getString("typtype");
             int returnTypeRelid = rs.getInt("typrelid");
+
             String strArgTypes = rs.getString("proargtypes");
             StringTokenizer st = new StringTokenizer(strArgTypes);
             Vector argTypes = new Vector();
             while (st.hasMoreTokens())
             {
-                argTypes.addElement(new Integer(st.nextToken()));
+                argTypes.addElement(new Long(st.nextToken()));
+            }
+
+            String argNames[] = null;
+            Array argNamesArray = rs.getArray("proargnames");
+            if (argNamesArray != null)
+                argNames = (String[])argNamesArray.getArray();
+
+            String argModes[] = null;
+            Array argModesArray = rs.getArray("proargmodes");
+            if (argModesArray != null)
+                argModes = (String[])argModesArray.getArray();
+
+            int numArgs = argTypes.size();
+
+            long allArgTypes[] = null;
+            Array allArgTypesArray = rs.getArray("proallargtypes");
+            if (allArgTypesArray != null) {
+                allArgTypes = (long[])allArgTypesArray.getArray();
+                numArgs = allArgTypes.length;
             }
 
             // decide if we are returning a single column result.
-            if (!returnTypeType.equals("c"))
+            if (returnTypeType.equals("b") || returnTypeType.equals("d") || (returnTypeType.equals("p") && argModesArray == null))
             {
                 byte[][] tuple = new byte[13][];
                 tuple[0] = null;
@@ -1784,30 +1812,47 @@ public abstract class AbstractJdbc2DatabaseMetaData
             }
 
             // Add a row for each argument.
-            for (int i = 0; i < argTypes.size(); i++)
+            for (int i = 0; i < numArgs; i++)
             {
-                int argOid = ((Integer)argTypes.elementAt(i)).intValue();
                 byte[][] tuple = new byte[13][];
                 tuple[0] = null;
                 tuple[1] = schema;
                 tuple[2] = procedureName;
-                tuple[3] = connection.encodeString("$" + (i + 1));
-                tuple[4] = connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.procedureColumnIn));
+
+                if (argNames != null)
+                    tuple[3] = connection.encodeString(argNames[i]);
+                else
+                    tuple[3] = connection.encodeString("$" + (i + 1));
+
+                int columnMode = DatabaseMetaData.procedureColumnIn;
+                if (argModes != null && argModes[i].equals("o"))
+                    columnMode = DatabaseMetaData.procedureColumnOut;
+                else if (argModes != null && argModes[i].equals("b"))
+                    columnMode = DatabaseMetaData.procedureColumnInOut;
+
+                tuple[4] = connection.encodeString(Integer.toString(columnMode));
+
+                int argOid;
+                if (allArgTypes != null)
+                    argOid = (int)allArgTypes[i];
+                else
+                    argOid = ((Long)argTypes.elementAt(i)).intValue();
+
                 tuple[5] = connection.encodeString(Integer.toString(connection.getSQLType(argOid)));
                 tuple[6] = connection.encodeString(connection.getPGType(argOid));
                 tuple[7] = null;
                 tuple[8] = null;
                 tuple[9] = null;
                 tuple[10] = null;
-                tuple[11] = connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.procedureNullableUnknown));
+                tuple[11] = connection.encodeString(Integer.toString(DatabaseMetaData.procedureNullableUnknown));
                 tuple[12] = null;
                 v.addElement(tuple);
             }
 
             // if we are returning a multi-column result.
-            if (returnTypeType.equals("c"))
+            if (returnTypeType.equals("c") || (returnTypeType.equals("p") && argModesArray != null))
             {
-                String columnsql = "SELECT a.attname,a.atttypid FROM pg_catalog.pg_attribute a WHERE a.attrelid = " + returnTypeRelid + " ORDER BY a.attnum ";
+                String columnsql = "SELECT a.attname,a.atttypid FROM pg_catalog.pg_attribute a WHERE a.attrelid = " + returnTypeRelid + " AND a.attnum > 0 ORDER BY a.attnum ";
                 ResultSet columnrs = connection.createStatement().executeQuery(columnsql);
                 while (columnrs.next())
                 {
@@ -1828,6 +1873,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                     tuple[12] = null;
                     v.addElement(tuple);
                 }
+                columnrs.close();
             }
         }
         rs.close();

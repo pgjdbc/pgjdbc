@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.36 2006/02/03 21:10:15 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.37 2007/04/11 07:33:20 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -33,7 +33,7 @@ public class DatabaseMetaDataTest extends TestCase
     protected void setUp() throws Exception
     {
         con = TestUtil.openDB();
-        TestUtil.createTable( con, "testmetadata", "id int4, name text, updated timestamp, colour text, quest text" );
+        TestUtil.createTable( con, "testmetadata", "id int4, name text, updated timestamptz, colour text, quest text" );
         TestUtil.dropSequence( con, "sercoltest_b_seq");
         TestUtil.dropSequence( con, "sercoltest_c_seq");
         TestUtil.createTable( con, "sercoltest", "a int, b serial, c bigserial");
@@ -45,15 +45,39 @@ public class DatabaseMetaDataTest extends TestCase
         //are done correctly. This ensures we correctly test that case.
         stmt.execute("comment on table testmetadata is 'this is a table comment'");
         stmt.execute("comment on column testmetadata.id is 'this is a column comment'");
+
+        stmt.execute("CREATE OR REPLACE FUNCTION f1(int, varchar) RETURNS int AS 'SELECT 1;' LANGUAGE 'SQL'");
+        if (TestUtil.haveMinimumServerVersion(con, "8.0")) {
+            stmt.execute("CREATE OR REPLACE FUNCTION f2(a int, b varchar) RETURNS int AS 'SELECT 1;' LANGUAGE 'SQL'");
+        }
+        if (TestUtil.haveMinimumServerVersion(con, "8.1")) {
+            stmt.execute("CREATE OR REPLACE FUNCTION f3(IN a int, INOUT b varchar, OUT c timestamptz) AS $f$ BEGIN b := 'a'; c := now(); return; END; $f$ LANGUAGE 'plpgsql'");
+        }
+        stmt.execute("CREATE OR REPLACE FUNCTION f4(int) RETURNS testmetadata AS 'SELECT 1, ''a''::text, now(), ''c''::text, ''q''::text' LANGUAGE 'SQL'");
+        stmt.close();
     }
+
     protected void tearDown() throws Exception
     {
+        // Drop function first because it depends on the
+        // testmetadata table's type
+        Statement stmt = con.createStatement();
+        stmt.execute("DROP FUNCTION f4(int)");
+
         TestUtil.dropTable( con, "testmetadata" );
         TestUtil.dropTable( con, "sercoltest");
         TestUtil.dropSequence( con, "sercoltest_b_seq");
         TestUtil.dropSequence( con, "sercoltest_c_seq");
         TestUtil.dropTable( con, "\"a\\\"");
         TestUtil.dropTable( con, "\"a'\"");
+
+        stmt.execute("DROP FUNCTION f1(int, varchar)");
+        if (TestUtil.haveMinimumServerVersion(con, "8.0")) {
+            stmt.execute("DROP FUNCTION f2(int, varchar)");
+        }
+        if (TestUtil.haveMinimumServerVersion(con, "8.1")) {
+            stmt.execute("DROP FUNCTION f3(int, varchar)");
+        }
 
         TestUtil.closeDB( con );
     }
@@ -420,12 +444,114 @@ public class DatabaseMetaDataTest extends TestCase
         rs.close();
     }
 
-    public void testProcedureColumns() throws SQLException
+    public void testFuncWithoutNames() throws SQLException
     {
-        // At the moment just test that no exceptions are thrown KJ
         DatabaseMetaData dbmd = con.getMetaData();
         assertNotNull(dbmd);
-        ResultSet rs = dbmd.getProcedureColumns(null, null, null, null);
+        ResultSet rs = dbmd.getProcedureColumns(null, null, "f1", null);
+
+        assertTrue(rs.next());
+        assertEquals("returnValue", rs.getString(4));
+        assertEquals(DatabaseMetaData.procedureColumnReturn, rs.getInt(5));
+
+        assertTrue(rs.next());
+        assertEquals("$1", rs.getString(4));
+        assertEquals(DatabaseMetaData.procedureColumnIn, rs.getInt(5));
+        assertEquals(Types.INTEGER, rs.getInt(6));
+
+        assertTrue(rs.next());
+        assertEquals("$2", rs.getString(4));
+        assertEquals(DatabaseMetaData.procedureColumnIn, rs.getInt(5));
+        assertEquals(Types.VARCHAR, rs.getInt(6));
+
+        assertTrue(!rs.next());
+
+        rs.close();
+    }
+
+    public void testFuncWithNames() throws SQLException
+    {
+        if (!TestUtil.haveMinimumServerVersion(con, "8.0"))
+            return;
+
+        DatabaseMetaData dbmd = con.getMetaData();
+        ResultSet rs = dbmd.getProcedureColumns(null, null, "f2", null);
+
+        assertTrue(rs.next());
+
+        assertTrue(rs.next());
+        assertEquals("a", rs.getString(4));
+
+        assertTrue(rs.next());
+        assertEquals("b", rs.getString(4));
+
+        assertTrue(!rs.next());
+        
+        rs.close();
+    }
+
+    public void testFuncWithDirection() throws SQLException
+    {
+        if (!TestUtil.haveMinimumServerVersion(con, "8.1"))
+            return;
+
+        DatabaseMetaData dbmd = con.getMetaData();
+        ResultSet rs = dbmd.getProcedureColumns(null, null, "f3", null);
+
+        assertTrue(rs.next());
+        assertEquals("a", rs.getString(4));
+        assertEquals(DatabaseMetaData.procedureColumnIn, rs.getInt(5));
+        assertEquals(Types.INTEGER, rs.getInt(6));
+
+        assertTrue(rs.next());
+        assertEquals("b", rs.getString(4));
+        assertEquals(DatabaseMetaData.procedureColumnInOut, rs.getInt(5));
+        assertEquals(Types.VARCHAR, rs.getInt(6));
+
+        assertTrue(rs.next());
+        assertEquals("c", rs.getString(4));
+        assertEquals(DatabaseMetaData.procedureColumnOut, rs.getInt(5));
+        assertEquals(Types.TIMESTAMP, rs.getInt(6));
+
+        rs.close();
+    }
+
+    public void testFuncReturningComposite() throws SQLException
+    {
+        DatabaseMetaData dbmd = con.getMetaData();
+        ResultSet rs = dbmd.getProcedureColumns(null, null, "f4", null);
+
+        assertTrue(rs.next());
+        assertEquals("$1", rs.getString(4));
+        assertEquals(DatabaseMetaData.procedureColumnIn, rs.getInt(5));
+        assertEquals(Types.INTEGER, rs.getInt(6));
+
+        assertTrue(rs.next());
+        assertEquals("id", rs.getString(4));
+        assertEquals(DatabaseMetaData.procedureColumnResult, rs.getInt(5));
+        assertEquals(Types.INTEGER, rs.getInt(6));
+
+        assertTrue(rs.next());
+        assertEquals("name", rs.getString(4));
+        assertEquals(DatabaseMetaData.procedureColumnResult, rs.getInt(5));
+        assertEquals(Types.VARCHAR, rs.getInt(6));
+
+        assertTrue(rs.next());
+        assertEquals("updated", rs.getString(4));
+        assertEquals(DatabaseMetaData.procedureColumnResult, rs.getInt(5));
+        assertEquals(Types.TIMESTAMP, rs.getInt(6));
+
+        assertTrue(rs.next());
+        assertEquals("colour", rs.getString(4));
+        assertEquals(DatabaseMetaData.procedureColumnResult, rs.getInt(5));
+        assertEquals(Types.VARCHAR, rs.getInt(6));
+
+        assertTrue(rs.next());
+        assertEquals("quest", rs.getString(4));
+        assertEquals(DatabaseMetaData.procedureColumnResult, rs.getInt(5));
+        assertEquals(Types.VARCHAR, rs.getInt(6));
+
+        assertTrue(!rs.next());
         rs.close();
     }
 
