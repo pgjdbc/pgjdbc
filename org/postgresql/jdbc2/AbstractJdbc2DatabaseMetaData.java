@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.18.2.2 2005/12/04 20:23:47 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.18.2.3 2006/02/03 21:10:44 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1981,7 +1981,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
             // if we are returning a multi-column result.
             if (returnTypeType.equals("c"))
             {
-                String columnsql = "SELECT a.attname,a.atttypid FROM pg_catalog.pg_attribute a WHERE a.attrelid = " + returnTypeRelid + " ORDER BY a.attnum ";
+                String columnsql = "SELECT a.attname,a.atttypid FROM pg_catalog.pg_attribute a WHERE a.attrelid = " + returnTypeRelid + " AND a.attnum > 0 ORDER BY a.attnum ";
                 ResultSet columnrs = connection.createStatement().executeQuery(columnsql);
                 while (columnrs.next())
                 {
