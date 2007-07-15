@@ -338,7 +338,7 @@ public class Jdbc3CallableStatementTest extends TestCase
             try
             {
                 Statement dstmt = con.createStatement();
-                dstmt.execute("drop function bit_proc()");
+                dstmt.execute("drop function insert_bit(boolean, boolean, boolean)");
             }
             catch (Exception ex){}
         }
@@ -393,7 +393,7 @@ public class Jdbc3CallableStatementTest extends TestCase
             try
             {
                 Statement dstmt = con.createStatement();
-                dstmt.execute("drop function bit_proc()");
+                dstmt.execute("drop function update_bit(boolean, boolean, boolean)");
             }
             catch (Exception ex){}
         }
@@ -553,7 +553,7 @@ public class Jdbc3CallableStatementTest extends TestCase
 		+ "return 0;"
 		+ " end;' "
 		+ "language 'plpgsql';";
-   	private final String dropUpdateReal = "drop function update_real_proc()";
+   	private final String dropUpdateReal = "drop function update_real_proc(float, float)";
    	private final double [] doubleValues =  {1.0E125, 1.0E-130};
    	private final float [] realValues = {(float)1.0E37,(float)1.0E-37};
    	private final int []intValues = {2147483647,-2147483648};
@@ -654,7 +654,7 @@ public class Jdbc3CallableStatementTest extends TestCase
             try
             {
                 Statement dstmt = con.createStatement();
-                dstmt.execute("drop function longvarbinary_proc()");
+                dstmt.execute("drop function updatefloat_proc(float, float)");
             }
             catch (Exception ex){}
         }
