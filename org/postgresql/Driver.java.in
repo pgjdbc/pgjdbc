@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.67 2005/11/24 02:29:20 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.68 2005/11/24 06:18:28 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -703,11 +703,17 @@ public class Driver implements java.sql.Driver
      */
     private static long timeout(Properties props)
     {
-        try {
-            return (long) (Float.parseFloat(props.getProperty("loginTimeout", "0")) * 1000);
-        } catch (NumberFormatException e) {
-            return 0;
+        String timeout = props.getProperty("loginTimeout");
+        if (timeout != null) {
+            try {
+                return (long) (Float.parseFloat(timeout) * 1000);
+            } catch (NumberFormatException e) {
+                // Log level isn't set yet, so this doesn't actually 
+                // get printed.
+                logger.debug("Couldn't parse loginTimeout value: " + timeout);
+            }
         }
+        return DriverManager.getLoginTimeout() * 1000;
     }
 
     /*
