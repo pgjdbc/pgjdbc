@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/geometric/PGline.java,v 1.12 2004/12/22 09:23:57 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/geometric/PGline.java,v 1.13 2005/01/11 08:25:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -104,9 +104,17 @@ public class PGline extends PGobject implements Serializable, Cloneable
         return point[0].hashCode() ^ point[1].hashCode();
     }
 
-    public Object clone()
+    public Object clone() throws CloneNotSupportedException
     {
-        return new PGline((PGpoint)point[0].clone(), (PGpoint)point[1].clone());
+        PGline newPGline = (PGline) super.clone();
+        if( newPGline.point != null )
+        {
+            newPGline.point = (PGpoint[]) newPGline.point.clone();
+            for( int i = 0; i < newPGline.point.length; ++i )
+                if( newPGline.point[i] != null )
+                    newPGline.point[i] = (PGpoint) newPGline.point[i].clone();
+        }
+        return newPGline;
     }
 
     /**

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/PGInterval.java,v 1.11 2007/04/11 06:54:38 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/util/PGInterval.java,v 1.12 2007/04/11 08:31:51 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -435,16 +435,6 @@ public class PGInterval extends PGobject implements Serializable, Cloneable
                 days) * 31 +
                 months) * 31 +
                 years) * 31;
-    }
-
-    /**
-     * This clones the interval
-     *
-     * @return Cloned interval
-     */
-    public Object clone()
-    {
-        return new PGInterval(years, months, days, hours, minutes, seconds);
     }
 
 }

@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/geometric/PGbox.java,v 1.12 2004/12/22 09:23:56 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/geometric/PGbox.java,v 1.13 2005/01/11 08:25:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -130,9 +130,17 @@ public class PGbox extends PGobject implements Serializable, Cloneable
         return point[0].hashCode() ^ point[1].hashCode();
     }
 
-    public Object clone()
+    public Object clone() throws CloneNotSupportedException
     {
-        return new PGbox((PGpoint)point[0].clone(), (PGpoint)point[1].clone());
+        PGbox newPGbox = (PGbox) super.clone();
+        if( newPGbox.point != null )
+        {
+            newPGbox.point = (PGpoint[]) newPGbox.point.clone();
+            for( int i = 0; i < newPGbox.point.length; ++i )
+                if( newPGbox.point[i] != null )
+                    newPGbox.point[i] = (PGpoint) newPGbox.point[i].clone();
+        }
+        return newPGbox;
     }
 
     /**

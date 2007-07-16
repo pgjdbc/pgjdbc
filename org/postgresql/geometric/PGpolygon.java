@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/geometric/PGpolygon.java,v 1.10 2004/11/09 08:48:04 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/geometric/PGpolygon.java,v 1.11 2005/01/11 08:25:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -98,12 +98,17 @@ public class PGpolygon extends PGobject implements Serializable, Cloneable
         return hash;
     }
 
-    public Object clone()
+    public Object clone() throws CloneNotSupportedException
     {
-        PGpoint ary[] = new PGpoint[points.length];
-        for (int i = 0;i < points.length;i++)
-            ary[i] = (PGpoint)points[i].clone();
-        return new PGpolygon(ary);
+        PGpolygon newPGpolygon = (PGpolygon) super.clone();        
+        if( newPGpolygon.points != null )
+        {
+            newPGpolygon.points = (PGpoint[]) newPGpolygon.points.clone();
+            for( int i = 0; i < newPGpolygon.points.length; ++i )
+                if( newPGpolygon.points[i] != null )
+                    newPGpolygon.points[i] = (PGpoint) newPGpolygon.points[i].clone();
+        }
+        return newPGpolygon;
     }
 
     /**

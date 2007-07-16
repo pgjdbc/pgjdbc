@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/geometric/PGcircle.java,v 1.14 2004/12/22 09:23:56 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/geometric/PGcircle.java,v 1.15 2005/01/11 08:25:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -114,9 +114,12 @@ public class PGcircle extends PGobject implements Serializable, Cloneable
         return (int) (center.hashCode() ^ v ^ (v >>> 32));
     }
 
-    public Object clone()
+    public Object clone() throws CloneNotSupportedException
     {
-        return new PGcircle((PGpoint)center.clone(), radius);
+        PGcircle newPGcircle = (PGcircle) super.clone();
+        if( newPGcircle.center != null )
+            newPGcircle.center = (PGpoint) newPGcircle.center.clone();
+        return newPGcircle;
     }
 
     /**

@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/geometric/PGlseg.java,v 1.12 2004/12/22 09:23:57 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/geometric/PGlseg.java,v 1.13 2005/01/11 08:25:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -102,9 +102,17 @@ public class PGlseg extends PGobject implements Serializable, Cloneable
         return point[0].hashCode() ^ point[1].hashCode();
     }
 
-    public Object clone()
+    public Object clone() throws CloneNotSupportedException
     {
-        return new PGlseg((PGpoint)point[0].clone(), (PGpoint)point[1].clone());
+        PGlseg newPGlseg = (PGlseg) super.clone();
+        if( newPGlseg.point != null )
+        {
+            newPGlseg.point = (PGpoint[]) newPGlseg.point.clone();
+            for( int i = 0; i < newPGlseg.point.length; ++i )
+                if( newPGlseg.point[i] != null )
+                    newPGlseg.point[i] = (PGpoint) newPGlseg.point[i].clone();
+        }
+        return newPGlseg;
     }
 
     /**
