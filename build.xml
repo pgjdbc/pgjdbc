@@ -8,7 +8,7 @@
 
   This file now requires Ant 1.4.1.  2002-04-18
 
-  $PostgreSQL: pgjdbc/build.xml,v 1.73 2007/04/16 23:52:50 jurka Exp $
+  $PostgreSQL: pgjdbc/build.xml,v 1.74 2007/04/24 18:19:02 jurka Exp $
 
 -->
 
@@ -109,6 +109,9 @@
       <fileset dir="${srcdir}">
         <include name="${package}/translation/*.class" />
       </fileset>
+
+      <metainf dir="META-INF">
+      </metainf>
     </jar>
   </target>
 
