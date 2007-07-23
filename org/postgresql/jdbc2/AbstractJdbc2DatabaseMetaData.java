@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.24.2.3 2006/02/03 21:10:29 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.24.2.4 2007/07/15 15:10:18 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -3909,7 +3909,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
         if( connection.haveMinimumServerVersion("7.4"))
         {
-            sql += " CASE i.indexprs WHEN null THEN a.attname ELSE pg_get_indexdef(ci.oid,a.attnum,false) END AS COLUMN_NAME, ";
+            sql += " CASE WHEN i.indexprs IS NULL THEN a.attname ELSE pg_get_indexdef(ci.oid,a.attnum,false) END AS COLUMN_NAME, ";
         }
         else
         {
