@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.96 2007/07/27 10:15:32 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.97 2007/07/27 22:32:29 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2884,7 +2884,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     // values but retains column type info.
     //
 
-    class NullObject extends PGobject {
+    static class NullObject extends PGobject {
         NullObject(String type) {
             setType(type);
         }

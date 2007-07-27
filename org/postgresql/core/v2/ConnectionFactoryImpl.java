@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ConnectionFactoryImpl.java,v 1.10 2006/12/01 08:53:45 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ConnectionFactoryImpl.java,v 1.11 2007/02/28 06:11:00 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -352,7 +352,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         }
     }
 
-    private class SimpleResultHandler implements ResultHandler {
+    private static class SimpleResultHandler implements ResultHandler {
         private SQLException error;
         private Vector tuples;
         private final ProtocolConnectionImpl protoConnection;
