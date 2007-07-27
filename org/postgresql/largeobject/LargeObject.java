@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/largeobject/LargeObject.java,v 1.19 2007/02/19 18:35:29 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/largeobject/LargeObject.java,v 1.20 2007/03/29 06:13:54 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -98,16 +98,19 @@ public class LargeObject
         return new LargeObject(fp, oid, mode);
     }
 
-    /** Release large object resources during garbage cleanup */
-    protected void finalize() throws SQLException
-    {
-        //This code used to call close() however that was problematic
-        //because the scope of the fd is a transaction, thus if commit
-        //or rollback was called before garbage collection ran then
-        //the call to close would error out with an invalid large object
-        //handle.  So this method now does nothing and lets the server
-        //handle cleanup when it ends the transaction.
-    }
+    /* Release large object resources during garbage cleanup.
+     *
+     * This code used to call close() however that was problematic
+     * because the scope of the fd is a transaction, thus if commit
+     * or rollback was called before garbage collection ran then
+     * the call to close would error out with an invalid large object
+     * handle.  So this method now does nothing and lets the server
+     * handle cleanup when it ends the transaction.
+     *
+     * protected void finalize() throws SQLException
+     * {
+     * }
+     */
 
     /**
      * @return the OID of this LargeObject
