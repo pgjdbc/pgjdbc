@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.84.2.10 2007/03/29 04:28:02 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.84.2.11 2007/06/22 21:37:47 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2442,6 +2442,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             batchStatements = new ArrayList();
             batchParameters = new ArrayList();
         }
+
+        p_sql = replaceProcessing(p_sql);
 
         batchStatements.add(connection.getQueryExecutor().createSimpleQuery(p_sql));
         batchParameters.add(null);
