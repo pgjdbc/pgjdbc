@@ -1,6 +1,5 @@
 package org.postgresql.xa;
 
-import org.postgresql.Driver;
 import org.postgresql.ds.PGPooledConnection;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Logger;

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.102 2007/07/02 19:22:16 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.103 2007/07/27 09:01:44 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -20,7 +20,6 @@ import java.util.Vector;
 import java.util.Calendar;
 
 import org.postgresql.Driver;
-import org.postgresql.PGStatement;
 import org.postgresql.largeobject.*;
 import org.postgresql.core.*;
 import org.postgresql.core.types.*;

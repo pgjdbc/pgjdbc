@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ssl/MakeSSL.java,v 1.4 2005/01/11 08:25:47 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ssl/MakeSSL.java,v 1.5 2005/11/24 02:29:22 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -15,7 +15,6 @@ import java.net.Socket;
 import java.lang.reflect.Constructor;
 import javax.net.ssl.SSLSocketFactory;
 
-import org.postgresql.Driver;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.Logger;
 import org.postgresql.util.GT;

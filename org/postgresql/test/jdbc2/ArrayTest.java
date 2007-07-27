@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ArrayTest.java,v 1.12 2005/11/24 02:31:43 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ArrayTest.java,v 1.13 2006/12/01 08:53:46 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -12,7 +12,6 @@ package org.postgresql.test.jdbc2;
 import org.postgresql.test.TestUtil;
 import java.sql.*;
 import java.math.BigDecimal;
-import java.util.Map;
 
 import junit.framework.TestCase;
 

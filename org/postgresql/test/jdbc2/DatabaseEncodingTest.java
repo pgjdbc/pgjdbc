@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseEncodingTest.java,v 1.5 2005/01/11 08:25:48 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseEncodingTest.java,v 1.6 2005/07/04 02:18:32 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -13,7 +13,6 @@ import org.postgresql.test.TestUtil;
 import junit.framework.TestCase;
 import java.sql.*;
 import org.postgresql.core.Encoding;
-import org.postgresql.PGConnection;
 import java.io.IOException;
 import java.util.Arrays;
 

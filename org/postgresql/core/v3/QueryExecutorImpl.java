@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.33 2006/12/01 08:53:45 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.34 2007/02/28 06:11:00 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -21,7 +21,6 @@ import java.lang.ref.*;
 
 import java.io.IOException;
 import java.sql.*;
-import org.postgresql.Driver;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLWarning;
 import org.postgresql.util.PSQLState;

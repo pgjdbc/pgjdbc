@@ -3,13 +3,12 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL$
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/jdbc23/AbstractJdbc23SimpleDataSource.java,v 1.1 2006/11/29 04:03:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.ds.jdbc23;
 
-import javax.sql.DataSource;
 import java.io.Serializable;
 import java.io.ObjectOutputStream;
 import java.io.ObjectInputStream;

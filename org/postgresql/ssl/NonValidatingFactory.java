@@ -3,14 +3,13 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ssl/NonValidatingFactory.java,v 1.4 2005/01/11 08:25:47 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ssl/NonValidatingFactory.java,v 1.5 2005/01/17 09:52:13 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.ssl;
 
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import java.security.cert.X509Certificate;

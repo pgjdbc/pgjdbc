@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.94 2007/04/16 16:36:41 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.95 2007/07/27 08:54:54 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -23,7 +23,6 @@ import java.util.Iterator;
 import java.util.StringTokenizer;
 import java.util.Vector;
 import java.util.Calendar;
-import java.util.TimeZone;
 import org.postgresql.core.*;
 import org.postgresql.largeobject.*;
 import org.postgresql.util.PGobject;

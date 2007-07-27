@@ -3,13 +3,12 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/ServerErrorMessage.java,v 1.9 2005/09/13 22:31:23 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/util/ServerErrorMessage.java,v 1.10 2005/11/24 02:29:23 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.util;
 
-import org.postgresql.Driver;
 import java.util.Hashtable;
 import java.io.Serializable;
 

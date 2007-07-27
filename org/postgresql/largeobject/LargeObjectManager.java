@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/largeobject/LargeObjectManager.java,v 1.21 2007/02/19 06:00:38 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/largeobject/LargeObjectManager.java,v 1.22 2007/03/29 06:13:54 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -12,7 +12,6 @@ package org.postgresql.largeobject;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import org.postgresql.Driver;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.fastpath.FastpathArg;

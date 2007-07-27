@@ -3,13 +3,12 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.24 2006/12/01 08:53:46 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.25 2007/04/16 16:16:22 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.test.jdbc2;
 
-import org.postgresql.jdbc2.AbstractJdbc2Connection;
 import org.postgresql.test.TestUtil;
 import junit.framework.*;
 import java.sql.*;

@@ -3,17 +3,13 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/Jdbc2CallableStatement.java,v 1.12 2005/07/08 17:38:30 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/Jdbc2CallableStatement.java,v 1.13 2006/01/30 20:09:05 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.jdbc2;
 
-import java.io.InputStream;
-import java.io.Reader;
-import java.math.BigDecimal;
 import java.sql.*;
-import java.util.Calendar;
 import java.util.Map;
 
 class Jdbc2CallableStatement extends Jdbc2PreparedStatement implements CallableStatement

@@ -3,7 +3,7 @@
 * Copyright (c) 2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/TimezoneTest.java,v 1.3 2005/09/14 00:06:19 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/TimezoneTest.java,v 1.4 2007/04/16 18:31:38 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -15,10 +15,6 @@ import junit.framework.TestCase;
 import java.sql.*;
 import java.util.TimeZone;
 import java.util.Calendar;
-import java.util.GregorianCalendar;
-
-import org.postgresql.PGStatement;
-import org.postgresql.jdbc2.TimestampUtils;
 
 /*
  * Tests for time and date types with calendars involved.
