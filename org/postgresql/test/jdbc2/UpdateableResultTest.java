@@ -3,13 +3,15 @@
 * Copyright (c) 2001-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/UpdateableResultTest.java,v 1.22.4.1 2007/01/05 00:34:13 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/UpdateableResultTest.java,v 1.22.4.2 2007/04/16 16:36:49 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.test.jdbc2;
 
 import java.sql.*;
+import java.util.Arrays;
+
 import junit.framework.TestCase;
 
 import java.io.InputStream;
@@ -217,6 +219,9 @@ public class UpdateableResultTest extends TestCase
 
     public void testUpdateStreams() throws SQLException, UnsupportedEncodingException
     {
+        String string = "Hello";
+        byte[] bytes = new byte[]{0,'\\',(byte) 128,(byte) 255};
+
         Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
         ResultSet rs = stmt.executeQuery("SELECT id, asi, chr, bin FROM stream");
 
@@ -227,6 +232,13 @@ public class UpdateableResultTest extends TestCase
         rs.updateBinaryStream("bin", null, 0);
         rs.insertRow();
 
+        rs.moveToInsertRow();
+        rs.updateInt(1, 3);
+        rs.updateAsciiStream("asi", new ByteArrayInputStream(string.getBytes("US-ASCII")), 5);
+        rs.updateCharacterStream("chr", new StringReader(string), 5);
+        rs.updateBinaryStream("bin", new ByteArrayInputStream(bytes), bytes.length);
+        rs.insertRow();
+
         rs.beforeFirst();
         rs.next();
 
@@ -235,29 +247,31 @@ public class UpdateableResultTest extends TestCase
         assertNull(rs.getString(3));
         assertNull(rs.getBytes(4));
 
-        String string = "Hello";
-        InputStream asi = new ByteArrayInputStream(string.getBytes("US-ASCII"));
-        Reader chr = new StringReader(string);
-        InputStream bin = new ByteArrayInputStream(string.getBytes("US-ASCII"));
-
         rs.updateInt("id", 2);
-        rs.updateAsciiStream("asi", asi, 5);
-        rs.updateCharacterStream("chr", chr, 5);
-        rs.updateBinaryStream("bin", bin, 5);
+        rs.updateAsciiStream("asi", new ByteArrayInputStream(string.getBytes("US-ASCII")), 5);
+        rs.updateCharacterStream("chr", new StringReader(string), 5);
+        rs.updateBinaryStream("bin", new ByteArrayInputStream(bytes), bytes.length);
         rs.updateRow();
 
         assertEquals(2, rs.getInt(1));
         assertEquals(string, rs.getString(2));
         assertEquals(string, rs.getString(3));
-        assertEquals(string, rs.getString(4));
+        assertEquals(Arrays.toString(bytes), Arrays.toString(rs.getBytes(4)));
 
         rs.refreshRow();
 
         assertEquals(2, rs.getInt(1));
         assertEquals(string, rs.getString(2));
         assertEquals(string, rs.getString(3));
-        assertEquals(string, rs.getString(4));
+        assertEquals(Arrays.toString(bytes), Arrays.toString(rs.getBytes(4)));
 
+        rs.next();
+
+        assertEquals(3, rs.getInt(1));
+        assertEquals(string, rs.getString(2));
+        assertEquals(string, rs.getString(3));
+        assertEquals(Arrays.toString(bytes), Arrays.toString(rs.getBytes(4)));
+        
         rs.close();
         stmt.close();
     }
