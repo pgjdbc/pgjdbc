@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4ResultSet.java,v 1.1 2006/06/08 10:34:52 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4ResultSet.java,v 1.2 2006/10/31 06:12:47 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -81,7 +81,7 @@ abstract class AbstractJdbc4ResultSet extends org.postgresql.jdbc3.AbstractJdbc3
 
     public void updateNClob(String columnName, Reader reader) throws SQLException
     {
-        updateNClob(columnName, reader);
+        updateNClob(findColumn(columnName), reader);
     }
 
     public void updateNClob(int columnIndex, Reader reader, long length) throws SQLException
