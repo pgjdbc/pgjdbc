@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.93 2007/03/29 04:54:06 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.94 2007/04/16 16:36:41 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -65,7 +65,12 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     protected int row_offset;               // Offset of row 0 in the actual resultset
     protected byte[][] this_row;      // copy of the current result row
     protected SQLWarning warnings = null; // The warning chain
-    protected boolean wasNullFlag = false; // the flag for wasNull()
+    /**
+     * True if the last obtained column value was SQL NULL as specified by
+     * {@link #wasNull}. The value is always updated by the
+     * {@link #checkResultSet} method.
+     */
+    protected boolean wasNullFlag = false;
     protected boolean onInsertRow = false;  // are we on the insert row (for JDBC2 updatable resultsets)?
 
     public byte[][] rowBuffer = null;       // updateable rowbuffer
@@ -308,8 +313,6 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public java.sql.Array getArray(int i) throws SQLException
     {
         checkResultSet( i );
-
-        wasNullFlag = (this_row[i - 1] == null);
         if (wasNullFlag)
             return null;
 
@@ -347,7 +350,6 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public java.io.Reader getCharacterStream(int i) throws SQLException
     {
         checkResultSet( i );
-        wasNullFlag = (this_row[i - 1] == null);
         if (wasNullFlag)
             return null;
 
@@ -397,7 +399,9 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     public java.sql.Date getDate(int i, java.util.Calendar cal) throws SQLException
     {
-        this.checkResultSet(i);
+        checkResultSet(i);
+        if (wasNullFlag)
+            return null;
 
         if (cal != null)
             cal = (Calendar)cal.clone();
@@ -408,7 +412,9 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     public Time getTime(int i, java.util.Calendar cal) throws SQLException
     {
-        this.checkResultSet(i);
+        checkResultSet(i);
+        if (wasNullFlag)
+            return null;
 
         if (cal != null)
             cal = (Calendar)cal.clone();
@@ -419,7 +425,9 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     public Timestamp getTimestamp(int i, java.util.Calendar cal) throws SQLException
     {
-        this.checkResultSet(i);
+        checkResultSet(i);
+        if (wasNullFlag)
+            return null;
 
         if (cal != null)
             cal = (Calendar)cal.clone();
@@ -1857,7 +1865,6 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public String getString(int columnIndex) throws SQLException
     {
         checkResultSet( columnIndex );
-        wasNullFlag = (this_row[columnIndex - 1] == null);
         if (wasNullFlag)
             return null;
 
@@ -1874,6 +1881,10 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     public boolean getBoolean(int columnIndex) throws SQLException
     {
+        checkResultSet(columnIndex);
+        if (wasNullFlag)
+            return false; // SQL NULL
+        
         return toBoolean( getString(columnIndex) );
     }
 
@@ -1882,6 +1893,10 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     public byte getByte(int columnIndex) throws SQLException
     {
+        checkResultSet(columnIndex);
+        if (wasNullFlag)
+            return 0; // SQL NULL
+
         String s = getString(columnIndex);
 
         if (s != null )
@@ -1927,6 +1942,10 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     public short getShort(int columnIndex) throws SQLException
     {
+        checkResultSet(columnIndex);
+        if (wasNullFlag)
+            return 0; // SQL NULL
+
         String s = getFixedString(columnIndex);
 
         if (s != null)
@@ -1965,6 +1984,10 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     public int getInt(int columnIndex) throws SQLException
     {
+        checkResultSet(columnIndex);
+        if (wasNullFlag)
+            return 0; // SQL NULL
+
         Encoding encoding = connection.getEncoding();
         if (encoding.hasAsciiNumbers()) {
             try {
@@ -1977,6 +2000,10 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     public long getLong(int columnIndex) throws SQLException
     {
+        checkResultSet(columnIndex);
+        if (wasNullFlag)
+            return 0; // SQL NULL
+
         Encoding encoding = connection.getEncoding();
         if (encoding.hasAsciiNumbers()) {
             try {
@@ -1987,11 +2014,18 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         return toLong( getFixedString(columnIndex) );
     }
         
+    /**
+     * A dummy exception thrown when fast byte[] to number parsing fails and
+     * no value can be returned. The exact stack trace does not matter because
+     * the exception is always caught and is not visible to users.
+     */
     private static final NumberFormatException FAST_NUMBER_FAILED = 
         new NumberFormatException();
 
     /**
-     * Optimised byte[] to number parser.
+     * Optimised byte[] to number parser.  This code does not
+     * handle null values, so the caller must do checkResultSet
+     * and handle null values prior to calling this function.
      * 
      * @param columnIndex The column to parse.
      * @return The parsed number.
@@ -2002,16 +2036,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
      */
     private long getFastLong(int columnIndex) throws SQLException,
         NumberFormatException {
-
-        checkResultSet( columnIndex );
         
-        columnIndex--;
-        wasNullFlag = (this_row[columnIndex] == null);
-        if (wasNullFlag) {
-            return 0; // SQL NULL
-        }
-        
-        byte[] bytes = this_row[columnIndex];
+        byte[] bytes = this_row[columnIndex - 1];
         
         if (bytes.length == 0) {
             throw FAST_NUMBER_FAILED;
@@ -2052,25 +2078,21 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     }
 
     /**
-     * Optimised byte[] to number parser.
+     * Optimised byte[] to number parser.  This code does not
+     * handle null values, so the caller must do checkResultSet
+     * and handle null values prior to calling this function.
      * 
      * @param columnIndex The column to parse.
      * @return The parsed number.
      * @throws SQLException If an error occurs while fetching column.
      * @throws NumberFormatException If the number is invalid or the
      * out of range for fast parsing. The value must then be parsed by
-     * {@link #toLong(String)}.
+     * {@link #toInt(String)}.
      */
-    private int getFastInt(int columnIndex) throws SQLException {
-        checkResultSet( columnIndex );
+    private int getFastInt(int columnIndex) throws SQLException,
+        NumberFormatException {
         
-        columnIndex--;
-        wasNullFlag = (this_row[columnIndex] == null);
-        if (wasNullFlag) {
-            return 0; // SQL NULL
-        }
-        
-        byte[] bytes = this_row[columnIndex];
+        byte[] bytes = this_row[columnIndex - 1];
         
         if (bytes.length == 0) {
             throw FAST_NUMBER_FAILED;
@@ -2112,16 +2134,28 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     public float getFloat(int columnIndex) throws SQLException
     {
+        checkResultSet(columnIndex);
+        if (wasNullFlag)
+            return 0; // SQL NULL
+
         return toFloat( getFixedString(columnIndex) );
     }
 
     public double getDouble(int columnIndex) throws SQLException
     {
+        checkResultSet(columnIndex);
+        if (wasNullFlag)
+            return 0; // SQL NULL
+
         return toDouble( getFixedString(columnIndex) );
     }
 
     public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException
     {
+        checkResultSet(columnIndex);
+        if (wasNullFlag)
+            return null;
+        
         return toBigDecimal( getFixedString(columnIndex), scale );
     }
 
@@ -2143,45 +2177,43 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public byte[] getBytes(int columnIndex) throws SQLException
     {
         checkResultSet( columnIndex );
-        wasNullFlag = (this_row[columnIndex - 1] == null);
-        if (!wasNullFlag)
+        if (wasNullFlag)
+            return null;
+
+        if (fields[columnIndex - 1].getFormat() == Field.BINARY_FORMAT)
         {
-            if (fields[columnIndex - 1].getFormat() == Field.BINARY_FORMAT)
+            //If the data is already binary then just return it
+            return this_row[columnIndex - 1];
+        }
+        else if (connection.haveMinimumCompatibleVersion("7.2"))
+        {
+            //Version 7.2 supports the bytea datatype for byte arrays
+            if (fields[columnIndex - 1].getOID() == Oid.BYTEA)
             {
-                //If the data is already binary then just return it
-                return this_row[columnIndex - 1];
-            }
-            else if (connection.haveMinimumCompatibleVersion("7.2"))
-            {
-                //Version 7.2 supports the bytea datatype for byte arrays
-                if (fields[columnIndex - 1].getOID() == Oid.BYTEA)
-                {
-                    return trimBytes(columnIndex, PGbytea.toBytes(this_row[columnIndex - 1]));
-                }
-                else
-                {
-                    return trimBytes(columnIndex, this_row[columnIndex - 1]);
-                }
+                return trimBytes(columnIndex, PGbytea.toBytes(this_row[columnIndex - 1]));
             }
             else
             {
-                //Version 7.1 and earlier supports LargeObjects for byte arrays
-                // Handle OID's as BLOBS
-                if ( fields[columnIndex - 1].getOID() == Oid.OID)
-                {
-                    LargeObjectManager lom = connection.getLargeObjectAPI();
-                    LargeObject lob = lom.open(getLong(columnIndex));
-                    byte buf[] = lob.read(lob.size());
-                    lob.close();
-                    return trimBytes(columnIndex, buf);
-                }
-                else
-                {
-                    return trimBytes(columnIndex, this_row[columnIndex - 1]);
-                }
+                return trimBytes(columnIndex, this_row[columnIndex - 1]);
             }
         }
-        return null;
+        else
+        {
+            //Version 7.1 and earlier supports LargeObjects for byte arrays
+            // Handle OID's as BLOBS
+            if ( fields[columnIndex - 1].getOID() == Oid.OID)
+            {
+                LargeObjectManager lom = connection.getLargeObjectAPI();
+                LargeObject lob = lom.open(getLong(columnIndex));
+                byte buf[] = lob.read(lob.size());
+                lob.close();
+                return trimBytes(columnIndex, buf);
+            }
+            else
+            {
+                return trimBytes(columnIndex, this_row[columnIndex - 1]);
+            }
+        }
     }
 
     public java.sql.Date getDate(int columnIndex) throws SQLException
@@ -2202,7 +2234,6 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public InputStream getAsciiStream(int columnIndex) throws SQLException
     {
         checkResultSet( columnIndex );
-        wasNullFlag = (this_row[columnIndex - 1] == null);
         if (wasNullFlag)
             return null;
 
@@ -2233,7 +2264,6 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public InputStream getUnicodeStream(int columnIndex) throws SQLException
     {
         checkResultSet( columnIndex );
-        wasNullFlag = (this_row[columnIndex - 1] == null);
         if (wasNullFlag)
             return null;
 
@@ -2264,7 +2294,6 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public InputStream getBinaryStream(int columnIndex) throws SQLException
     {
         checkResultSet( columnIndex );
-        wasNullFlag = (this_row[columnIndex - 1] == null);
         if (wasNullFlag)
             return null;
 
@@ -2419,8 +2448,6 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         Field field;
 
         checkResultSet(columnIndex);
-
-        wasNullFlag = (this_row[columnIndex - 1] == null);
         if (wasNullFlag)
             return null;
 
@@ -2503,12 +2530,9 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
      */
     public String getFixedString(int col) throws SQLException
     {
-        // Handle SQL Null
-        wasNullFlag = (this_row[col - 1] == null);
-        if (wasNullFlag)
-            return null;
-
         String s = getString(col);
+        if (s == null)
+            return null;
 
         // if we don't have at least 2 characters it can't be money.
         if (s.length() < 2)
@@ -2575,6 +2599,14 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(column), new Integer(fields.length)}), PSQLState.INVALID_PARAMETER_VALUE );
     }
 
+    /**
+     * Checks that the result set is not closed, it's positioned on a
+     * valid row and that the given column number is valid. Also
+     * updates the {@link #wasNullFlag} to correct value.
+     * 
+     * @param column The column number to check. Range starts from 1.
+     * @throws SQLException If state or column is invalid.
+     */
     protected void checkResultSet( int column ) throws SQLException
     {
         checkClosed();
@@ -2582,6 +2614,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             throw new PSQLException(GT.tr("ResultSet not positioned properly, perhaps you need to call next."),
                                     PSQLState.INVALID_CURSOR_STATE);
         checkColumnIndex(column);
+        wasNullFlag = (this_row[column - 1] == null);
     }
 
     //----------------- Formatting Methods -------------------
