@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.71.2.8 2006/08/06 18:11:52 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.71.2.9 2007/04/16 16:37:04 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1730,6 +1730,20 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                     // Should never happen?
                     break;
 
+                case Types.BINARY:
+                case Types.LONGVARBINARY:
+                case Types.VARBINARY:
+                    if (fields[columnIndex].getFormat() == Field.BINARY_FORMAT) {
+                        rowBuffer[columnIndex] = (byte[]) valueObject;
+                    } else {
+                        try {
+                            rowBuffer[columnIndex] = PGbytea.toPGString((byte[]) valueObject).getBytes("ISO-8859-1");
+                        } catch (UnsupportedEncodingException e) {
+                            throw new PSQLException(GT.tr("The JVM claims not to support the encoding: {0}", "ISO-8859-1"), PSQLState.UNEXPECTED_ERROR, e);
+                        }
+                    }
+                    break;
+ 
                 default:
                     rowBuffer[columnIndex] = (byte[]) valueObject;
                 }
