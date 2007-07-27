@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.7 2005/02/02 23:30:31 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.8 2007/07/16 05:16:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -49,6 +49,8 @@ public abstract class BaseDataSource implements Referenceable
     private int portNumber;
     private int prepareThreshold;
     private int loginTimeout; // in seconds
+    private boolean ssl = false;
+    private String sslfactory;
 
     /**
      * Gets a connection to the PostgreSQL database.  The database is identified by the
@@ -261,13 +263,68 @@ public abstract class BaseDataSource implements Referenceable
     }
 
     /**
+     * Set whether the connection will be SSL encrypted or not.
+     *
+     * @param enabled if <CODE>true</CODE>, connect with SSL.
+     */
+    public void setSsl(boolean enabled)
+    {
+        this.ssl = enabled;
+    }
+
+    /**
+     * Gets SSL encryption setting.
+     *
+     * @return <CODE>true</CODE> if connections will be encrypted with SSL.
+     */
+    public boolean getSsl()
+    {
+        return this.ssl;
+    }
+
+    /**
+     * Set the name of the {@link javax.net.ssl.SSLSocketFactory} to use for connections.
+     * Use <CODE>org.postgresql.ssl.NonValidatingFactory</CODE> if you don't want certificate validation.
+     *
+     * @param classname name of a subclass of <CODE>javax.net.ssl.SSLSocketFactory</CODE> or <CODE>null</CODE> for the default implementation.
+     */
+    public void setSslfactory(String classname)
+    {
+        this.sslfactory = classname;
+    }
+
+    /**
+     * Gets the name of the {@link javax.net.ssl.SSLSocketFactory} used for connections.
+     *
+     * @return name of the class or <CODE>null</CODE> if the default implementation is used.
+     */
+    public String getSslfactory()
+    {
+        return this.sslfactory;
+    }
+
+    /**
      * Generates a DriverManager URL from the other properties supplied.
      */
     private String getUrl()
     {
-        return
-            "jdbc:postgresql://" + serverName + (portNumber == 0 ? "" : ":" + portNumber) + "/" + databaseName +
-            "?loginTimeout=" + loginTimeout + "&prepareThreshold=" + prepareThreshold;
+        StringBuffer sb = new StringBuffer(100);
+        sb.append("jdbc:postgresql://");
+        sb.append(serverName);
+        if (portNumber != 0) {
+            sb.append(":").append(portNumber);
+        }
+        sb.append("/").append(databaseName);
+        sb.append("?loginTimeout=").append(loginTimeout);
+        sb.append("&prepareThreshold=").append(prepareThreshold);
+        if (ssl) {
+            sb.append("&ssl=true");
+            if (sslfactory != null) {
+                sb.append("&sslfactory=").append(sslfactory);
+            }
+        }
+
+        return sb.toString();
     }
 
     /**
