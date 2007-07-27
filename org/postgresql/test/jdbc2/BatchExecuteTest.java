@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/BatchExecuteTest.java,v 1.13 2005/07/04 18:50:29 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/BatchExecuteTest.java,v 1.14 2005/08/12 18:21:11 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -255,6 +255,29 @@ public class BatchExecuteTest extends TestCase
         // Execute an empty batch to clear warnings.
         stmt.executeBatch();
         assertNull(stmt.getWarnings());
+        stmt.close();
+    }
+
+    public void testBatchEscapeProcessing() throws SQLException
+    {
+        Statement stmt = con.createStatement();
+        stmt.execute("CREATE TEMP TABLE batchescape (d date)");
+
+        stmt.addBatch("INSERT INTO batchescape (d) VALUES ({d '2007-11-20'})");
+        stmt.executeBatch();
+
+        PreparedStatement pstmt = con.prepareStatement("INSERT INTO batchescape (d) VALUES ({d '2007-11-20'})");
+        pstmt.addBatch();
+        pstmt.executeBatch();
+        pstmt.close();
+
+        ResultSet rs = stmt.executeQuery("SELECT d FROM batchescape");
+        assertTrue(rs.next());
+        assertEquals("2007-11-20", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("2007-11-20", rs.getString(1));
+        assertTrue(!rs.next());
+        rs.close();
         stmt.close();
     }
 
