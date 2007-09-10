@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.36 2007/07/15 15:33:33 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.37 2007/07/23 17:30:38 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2141,7 +2141,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
     {
         Field f[] = new Field[1];
         Vector v = new Vector();
-        f[0] = new Field(new String("TABLE_CAT"), Oid.VARCHAR);
+        f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
         byte[][] tuple = new byte[1][];
         tuple[0] = connection.encodeString(connection.getCatalog());
         v.addElement(tuple);
@@ -2176,7 +2176,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
         Field f[] = new Field[1];
         Vector v = new Vector();
-        f[0] = new Field(new String("TABLE_TYPE"), Oid.VARCHAR);
+        f[0] = new Field("TABLE_TYPE", Oid.VARCHAR);
         for (i = 0; i < types.length; i++)
         {
             byte[][] tuple = new byte[1][];
