@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.37 2007/07/23 17:30:38 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.38 2007/09/10 08:29:26 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2743,7 +2743,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      * usernames who have that permission.
      */
     protected Hashtable parseACL(String aclArray, String owner) {
-        if (aclArray == null || aclArray == "")
+        if (aclArray == null)
         {
             //null acl is a shortcut for owner having full privs
             aclArray = "{" + owner + "=arwdRxt}";
