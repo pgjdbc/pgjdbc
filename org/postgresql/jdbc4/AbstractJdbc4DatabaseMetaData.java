@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4DatabaseMetaData.java,v 1.2 2006/10/31 06:12:47 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4DatabaseMetaData.java,v 1.3 2006/12/01 12:01:53 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -11,7 +11,7 @@ package org.postgresql.jdbc4;
 
 import java.sql.*;
 
-public class AbstractJdbc4DatabaseMetaData extends org.postgresql.jdbc3.AbstractJdbc3DatabaseMetaData
+public abstract class AbstractJdbc4DatabaseMetaData extends org.postgresql.jdbc3.AbstractJdbc3DatabaseMetaData
 {
 
     public AbstractJdbc4DatabaseMetaData(AbstractJdbc4Connection conn)

@@ -3,7 +3,7 @@
 * Copyright (c) 2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2BlobClob.java,v 1.6 2007/02/19 18:35:28 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2BlobClob.java,v 1.7 2007/03/29 06:13:53 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -29,7 +29,7 @@ import org.postgresql.util.PSQLException;
  * @author Michael Barker <mailto:mike@middlesoft.co.uk>
  *
  */
-public class AbstractJdbc2BlobClob
+public abstract class AbstractJdbc2BlobClob
 {
     protected BaseConnection conn;
     protected LargeObject lo;

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/jdbc23/AbstractJdbc23SimpleDataSource.java,v 1.1 2006/11/29 04:03:48 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/jdbc23/AbstractJdbc23SimpleDataSource.java,v 1.2 2007/07/27 10:15:32 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -24,7 +24,7 @@ import org.postgresql.ds.common.*;
  *
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  */
-public class AbstractJdbc23SimpleDataSource extends BaseDataSource implements Serializable
+public abstract class AbstractJdbc23SimpleDataSource extends BaseDataSource implements Serializable
 {
     /**
      * Gets a description of this DataSource.
