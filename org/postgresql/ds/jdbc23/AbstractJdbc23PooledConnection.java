@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL$
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/jdbc23/AbstractJdbc23PooledConnection.java,v 1.1 2006/11/29 04:03:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -323,7 +323,7 @@ public abstract class AbstractJdbc23PooledConnection
                 }
                 con.clearWarnings();
                 con = null;
-                proxy = null;
+                this.proxy = null;
                 last = null;
                 fireConnectionClosed();
                 if (ex != null)
