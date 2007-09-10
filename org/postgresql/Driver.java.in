@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.68 2005/11/24 06:18:28 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.69 2007/07/16 05:16:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -269,6 +269,10 @@ public class Driver implements java.sql.Driver
             // re-throw the exception, otherwise it will be caught next, and a
             // org.postgresql.unusual error will be returned instead.
             throw ex1;
+        }
+        catch (java.security.AccessControlException ace)
+        {
+            throw new PSQLException(GT.tr("Your security policy has prevented the connection from being attempted.  You probably need to grant the connect java.net.SocketPermission to the database server host and port that you wish to connect to."), PSQLState.UNEXPECTED_ERROR, ace);
         }
         catch (Exception ex2)
         {
