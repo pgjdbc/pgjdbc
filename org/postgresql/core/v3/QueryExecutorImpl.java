@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.25.2.3 2006/04/29 13:31:19 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.25.2.4 2006/07/07 01:12:34 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -918,7 +918,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             pgStream.Send(encodedStatementName);    // Statement name
         pgStream.SendChar(0);                       // end message
 
-        pendingDescribeStatementQueue.add(new Object[]{query, params, new Boolean(describeOnly)});
+        pendingDescribeStatementQueue.add(new Object[]{query, params, new Boolean(describeOnly), query.getStatementName()});
     }
 
     private void sendExecute(Query query, Portal portal, int limit) throws IOException {
@@ -1191,13 +1191,22 @@ public class QueryExecutorImpl implements QueryExecutor {
                     SimpleQuery query = (SimpleQuery)describeData[0];
                     SimpleParameterList params = (SimpleParameterList)describeData[1];
                     boolean describeOnly = ((Boolean)describeData[2]).booleanValue();
+                    String origStatementName = (String)describeData[3];
 
                     int numParams = pgStream.ReceiveIntegerR(2);
                     for (int i=1; i<=numParams; i++) {
                         int typeOid = pgStream.ReceiveIntegerR(4);
                         params.setResolvedType(i, typeOid);
                     }
-                    query.setStatementTypes((int[])params.getTypeOIDs().clone());
+
+                    // Since we can issue multiple Parse and DescribeStatement
+                    // messages in a single network trip, we need to make
+                    // sure the describe results we requested are still
+                    // applicable to the latest parsed query.
+                    //
+                    if ((origStatementName == null && query.getStatementName() == null) || (origStatementName != null && origStatementName.equals(query.getStatementName()))) {
+                        query.setStatementTypes((int[])params.getTypeOIDs().clone());
+		    }
 
                     if (describeOnly)
                         doneAfterRowDescNoData = true;
