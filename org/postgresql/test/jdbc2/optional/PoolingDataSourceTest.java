@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/optional/PoolingDataSourceTest.java,v 1.6 2004/11/09 08:55:49 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/optional/PoolingDataSourceTest.java,v 1.7 2005/01/11 08:25:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -34,11 +34,11 @@ public class PoolingDataSourceTest extends BaseDataSourceTest
 
     protected void tearDown() throws Exception
     {
-        super.tearDown();
         if (bds instanceof PoolingDataSource)
         {
             ((PoolingDataSource) bds).close();
         }
+        super.tearDown();
     }
 
     /**

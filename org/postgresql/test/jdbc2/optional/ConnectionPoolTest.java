@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/optional/ConnectionPoolTest.java,v 1.14 2005/01/11 03:28:15 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/optional/ConnectionPoolTest.java,v 1.15 2005/01/11 08:25:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -14,6 +14,7 @@ import org.postgresql.ds.PGConnectionPoolDataSource;
 import org.postgresql.test.TestUtil;
 import javax.sql.*;
 import java.sql.*;
+import java.util.*;
 import java.io.*;
 
 /**
@@ -25,6 +26,8 @@ import java.io.*;
  */
 public class ConnectionPoolTest extends BaseDataSourceTest
 {
+    private ArrayList connections = new ArrayList();
+    
     /**
      * Constructor required by JUnit
      */
@@ -48,6 +51,19 @@ public class ConnectionPoolTest extends BaseDataSourceTest
             bds.setPassword(TestUtil.getPassword());
         }
     }
+    
+    protected void tearDown() throws Exception
+    {
+        for (Iterator i = connections.iterator(); i.hasNext(); ) {
+            PooledConnection c = (PooledConnection) i.next();
+            try {
+                c.close();
+            } catch (Exception ex) {
+                // close throws nullptr or other evil things if the connection
+                // is already closed
+            }
+        }
+    }
 
     /**
      * Though the normal client interface is to grab a Connection, in
@@ -61,7 +77,9 @@ public class ConnectionPoolTest extends BaseDataSourceTest
         // jdbc.optional.ConnectionPool because our ObjectFactory
         // returns only the top level class, not the specific
         // jdbc2/jdbc3 implementations.
-        return ((PGConnectionPoolDataSource)bds).getPooledConnection();
+        PooledConnection c = ((PGConnectionPoolDataSource)bds).getPooledConnection();
+        connections.add(c);
+        return c; 
     }
 
     /**
@@ -320,7 +338,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest
         try
         {
             PooledConnection pc = getPooledConnection();
-            Connection con = pc.getConnection();
+            con = pc.getConnection();
             assertTrue(!con.isClosed());
             con.close();
             assertTrue(con.isClosed());
@@ -346,7 +364,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest
         try
         {
             PooledConnection pc = getPooledConnection();
-            Connection con = pc.getConnection();
+            con = pc.getConnection();
             Statement s = con.createStatement();
             Connection conRetrieved = s.getConnection();
 
@@ -368,7 +386,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest
         try
         {
             PooledConnection pc = getPooledConnection();
-            Connection con = pc.getConnection();
+            con = pc.getConnection();
             s = con.createStatement();
         }
         catch (SQLException e)
@@ -400,7 +418,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest
         try
         {
             PooledConnection pc = getPooledConnection();
-            Connection con = pc.getConnection();
+            con = pc.getConnection();
             PreparedStatement s = con.prepareStatement("select 'x'");
             Connection conRetrieved = s.getConnection();
 
@@ -422,7 +440,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest
         try
         {
             PooledConnection pc = getPooledConnection();
-            Connection con = pc.getConnection();
+            con = pc.getConnection();
             CallableStatement s = con.prepareCall("select 'x'");
             Connection conRetrieved = s.getConnection();
 

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ConnectionTest.java,v 1.20 2005/01/25 06:21:22 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ConnectionTest.java,v 1.21 2005/11/24 02:31:43 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -22,6 +22,8 @@ import java.sql.*;
 public class ConnectionTest extends TestCase
 {
 
+    private Connection con;
+
     /*
      * Constructor
      */
@@ -33,7 +35,7 @@ public class ConnectionTest extends TestCase
     // Set up the fixture for this testcase: the tables for this test.
     protected void setUp() throws Exception
     {
-        Connection con = TestUtil.openDB();
+        con = TestUtil.openDB();
 
         TestUtil.createTable(con, "test_a", "imagename name,image oid,id int4");
         TestUtil.createTable(con, "test_c", "source text,cost money,imageid int4");
@@ -44,7 +46,9 @@ public class ConnectionTest extends TestCase
     // Tear down the fixture for this test case.
     protected void tearDown() throws Exception
     {
-        Connection con = TestUtil.openDB();
+        TestUtil.closeDB(con);
+        
+        con = TestUtil.openDB();
 
         TestUtil.dropTable(con, "test_a");
         TestUtil.dropTable(con, "test_c");
@@ -57,15 +61,15 @@ public class ConnectionTest extends TestCase
      */
     public void testCreateStatement() throws Exception
     {
-        Connection conn = TestUtil.openDB();
+        con = TestUtil.openDB();
 
         // A standard Statement
-        Statement stat = conn.createStatement();
+        Statement stat = con.createStatement();
         assertNotNull(stat);
         stat.close();
 
         // Ask for Updateable ResultSets
-        stat = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        stat = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
         assertNotNull(stat);
         stat.close();
     }
@@ -75,17 +79,17 @@ public class ConnectionTest extends TestCase
      */
     public void testPrepareStatement() throws Exception
     {
-        Connection conn = TestUtil.openDB();
+        con = TestUtil.openDB();
 
         String sql = "select source,cost,imageid from test_c";
 
         // A standard Statement
-        PreparedStatement stat = conn.prepareStatement(sql);
+        PreparedStatement stat = con.prepareStatement(sql);
         assertNotNull(stat);
         stat.close();
 
         // Ask for Updateable ResultSets
-        stat = conn.prepareStatement(sql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        stat = con.prepareStatement(sql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
         assertNotNull(stat);
         stat.close();
     }
@@ -103,7 +107,7 @@ public class ConnectionTest extends TestCase
     public void testNativeSQL() throws Exception
     {
         // test a simple escape
-        Connection con = TestUtil.openDB();
+        con = TestUtil.openDB();
         assertEquals("DATE  '2005-01-24'",con.nativeSQL("{d '2005-01-24'}"));
     }
 
@@ -112,7 +116,7 @@ public class ConnectionTest extends TestCase
      */
     public void testTransactions() throws Exception
     {
-        Connection con = TestUtil.openDB();
+        con = TestUtil.openDB();
         Statement st;
         ResultSet rs;
 
@@ -154,7 +158,7 @@ public class ConnectionTest extends TestCase
      */
     public void testIsClosed() throws Exception
     {
-        Connection con = TestUtil.openDB();
+        con = TestUtil.openDB();
 
         // Should not say closed
         assertTrue(!con.isClosed());
@@ -170,7 +174,7 @@ public class ConnectionTest extends TestCase
      */
     public void testWarnings() throws Exception
     {
-        Connection con = TestUtil.openDB();
+        con = TestUtil.openDB();
 
         String testStr = "This Is OuR TeSt message";
 
@@ -200,7 +204,7 @@ public class ConnectionTest extends TestCase
      */
     public void testTransactionIsolation() throws Exception
     {
-        Connection con = TestUtil.openDB();
+        con = TestUtil.openDB();
 
         // PostgreSQL defaults to READ COMMITTED
         assertEquals(Connection.TRANSACTION_READ_COMMITTED,
@@ -274,7 +278,7 @@ public class ConnectionTest extends TestCase
      */
     public void testTypeMaps() throws Exception
     {
-        Connection con = TestUtil.openDB();
+        con = TestUtil.openDB();
 
         // preserve the current map
         java.util.Map oldmap = con.getTypeMap();
@@ -296,7 +300,7 @@ public class ConnectionTest extends TestCase
      */
     public void testDoubleClose() throws Exception
     {
-        Connection con = TestUtil.openDB();
+        con = TestUtil.openDB();
         con.close();
         con.close();
     }

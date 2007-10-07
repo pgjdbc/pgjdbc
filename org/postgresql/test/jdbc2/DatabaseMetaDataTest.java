@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.37 2007/04/11 07:33:20 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.38 2007/07/15 15:33:33 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -167,6 +167,7 @@ public class DatabaseMetaDataTest extends TestCase
 
         TestUtil.dropTable( con1, "vv" );
         TestUtil.dropTable( con1, "ww" );
+        TestUtil.closeDB(con1);
     }
 
     public void testForeignKeyActions() throws Exception
@@ -192,6 +193,7 @@ public class DatabaseMetaDataTest extends TestCase
         TestUtil.dropTable(conn, "fkt2");
         TestUtil.dropTable(conn, "fkt1");
         TestUtil.dropTable(conn, "pkt");
+        TestUtil.closeDB(conn);
     }
 
     public void testForeignKeysToUniqueIndexes() throws Exception
@@ -310,7 +312,7 @@ public class DatabaseMetaDataTest extends TestCase
         TestUtil.dropTable( con1, "users" );
         TestUtil.dropTable( con1, "people" );
         TestUtil.dropTable( con1, "policy" );
-
+        TestUtil.closeDB(con1);
     }
 
     public void testColumns() throws SQLException

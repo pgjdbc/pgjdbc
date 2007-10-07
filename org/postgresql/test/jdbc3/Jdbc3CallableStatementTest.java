@@ -94,12 +94,11 @@ public class Jdbc3CallableStatementTest extends TestCase
         stmt.execute("drop function myiofunc(a INOUT int, b OUT int) ");
         stmt.execute("drop function myif(a INOUT int, b IN int)");
         stmt.close();
-        
+        TestUtil.closeDB(con);
     }
+
     public void testSomeInOut() throws Throwable
     {
-        
-                   
         CallableStatement call = con.prepareCall( "{ call test_somein_someout(?,?,?) }" ) ;
         
         call.registerOutParameter(2,Types.VARCHAR);

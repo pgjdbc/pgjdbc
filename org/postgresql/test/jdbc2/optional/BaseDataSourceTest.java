@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/optional/BaseDataSourceTest.java,v 1.10 2004/11/09 08:55:39 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/optional/BaseDataSourceTest.java,v 1.11 2005/01/11 08:25:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -62,6 +62,7 @@ public abstract class BaseDataSourceTest extends TestCase
      */
     protected void tearDown() throws Exception
     {
+        TestUtil.closeDB(con);
         con = TestUtil.openDB();
         TestUtil.dropTable(con, "poolingtest");
         TestUtil.closeDB(con);

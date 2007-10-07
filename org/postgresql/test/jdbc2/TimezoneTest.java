@@ -3,7 +3,7 @@
 * Copyright (c) 2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/TimezoneTest.java,v 1.4 2007/04/16 18:31:38 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/TimezoneTest.java,v 1.5 2007/07/27 10:15:36 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -93,6 +93,7 @@ public class TimezoneTest extends TestCase
         TimeZone.setDefault(saveTZ);
 
         TestUtil.dropTable(con, "testtimezone");
+        TestUtil.closeDB(con);
     }
 
     public void testGetTimestamp() throws Exception
