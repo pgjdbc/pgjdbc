@@ -3,13 +3,16 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4DatabaseMetaData.java,v 1.3 2006/12/01 12:01:53 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4DatabaseMetaData.java,v 1.4 2007/09/10 08:35:42 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.jdbc4;
 
 import java.sql.*;
+
+import java.util.Vector;
+import org.postgresql.core.*;
 
 public abstract class AbstractJdbc4DatabaseMetaData extends org.postgresql.jdbc3.AbstractJdbc3DatabaseMetaData
 {
@@ -41,7 +44,15 @@ public abstract class AbstractJdbc4DatabaseMetaData extends org.postgresql.jdbc3
 
     public ResultSet getClientInfoProperties() throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "getClientInfoProperties()");
+        Field f[] = new Field[4];
+        f[0] = new Field("NAME", Oid.VARCHAR);
+        f[1] = new Field("MAX_LEN", Oid.INT4);
+        f[2] = new Field("DEFAULT_VALUE", Oid.VARCHAR);
+        f[3] = new Field("DESCRIPTION", Oid.VARCHAR);
+
+        Vector v = new Vector();
+        // Currently we don't support any properties.
+        return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, v);
     }
 
     public boolean providesQueryObjectGenerator() throws SQLException
