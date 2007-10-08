@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ConnectionFactoryImpl.java,v 1.11 2007/02/28 06:11:00 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ConnectionFactoryImpl.java,v 1.12 2007/07/27 22:55:28 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -439,7 +439,13 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             if (logger.logDebug())
                 logger.debug("Switching to UNICODE client_encoding");
 
-            runSetupQuery(protoConnection, "begin; set autocommit = on; set client_encoding = 'UNICODE'; commit", false);
+            String sql = "begin; set autocommit = on; set client_encoding = 'UNICODE'; ";
+            if (dbVersion.compareTo("7.4") >= 0) {
+                sql += "SET extra_float_digits=2; ";
+            }
+            sql += "commit";
+
+            runSetupQuery(protoConnection, sql, false);
             protoConnection.setEncoding(Encoding.getDatabaseEncoding("UNICODE"));
         }
         else

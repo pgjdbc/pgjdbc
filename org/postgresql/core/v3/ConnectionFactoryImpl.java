@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ConnectionFactoryImpl.java,v 1.12 2006/12/01 08:53:45 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ConnectionFactoryImpl.java,v 1.13 2007/02/28 06:11:00 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -85,7 +85,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                                     { "user", user },
                                     { "database", database },
                                     { "client_encoding", "UNICODE" },
-                                    { "DateStyle", "ISO" }
+                                    { "DateStyle", "ISO" },
+                                    { "extra_float_digits", "2" }
                                 };
 
             sendStartupPacket(newStream, params, logger);
