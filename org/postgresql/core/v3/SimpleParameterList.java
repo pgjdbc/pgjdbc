@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleParameterList.java,v 1.13 2006/05/23 23:05:21 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleParameterList.java,v 1.14 2007/06/13 07:25:01 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -147,6 +147,18 @@ class SimpleParameterList implements V3ParameterList {
         }
     }
 
+    public void convertFunctionOutParameters()
+    {
+        for (int i=0; i<paramTypes.length; ++i)
+        {
+            if (direction[i] == OUT)
+            {
+                paramTypes[i] = Oid.VOID;
+                paramValues[i] = "null";
+            }
+        }
+    }
+
     //
     // bytea helper
     //
@@ -171,12 +183,6 @@ class SimpleParameterList implements V3ParameterList {
     //
 
     int getTypeOID(int index) {
-        if (direction[index-1] == OUT)
-        {
-            paramTypes[index-1] = Oid.VOID;
-            paramValues[index-1] = "null";
-        }
-        	
         return paramTypes[index-1];
     }
 

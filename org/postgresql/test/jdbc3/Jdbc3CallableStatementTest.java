@@ -1,9 +1,12 @@
-/*
- * Created on Jun 21, 2005
- *
- * TODO To change the template for this generated file go to
- * Window - Preferences - Java - Code Style - Code Templates
- */
+/*-------------------------------------------------------------------------
+*
+* Copyright (c) 2005-2007, PostgreSQL Global Development Group
+*
+* IDENTIFICATION
+*   $PostgreSQL$
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.test.jdbc3;
 
 import java.math.BigDecimal;
@@ -23,8 +26,6 @@ import junit.framework.TestCase;
 /**
  * @author davec
  *
- * TODO To change the template for this generated type comment go to
- * Window - Preferences - Java - Code Style - Code Templates
  */
 public class Jdbc3CallableStatementTest extends TestCase
 {
@@ -1099,4 +1100,19 @@ public class Jdbc3CallableStatementTest extends TestCase
             catch (Exception ex){}
         }
     }           
+
+    public void testMultipleOutExecutions() throws SQLException
+    {
+        CallableStatement cs = con.prepareCall("{call myiofunc(?, ?)}");
+        for (int i=0; i<10; i++) {
+            cs.registerOutParameter(1, Types.INTEGER);
+            cs.registerOutParameter(2, Types.INTEGER);
+            cs.setInt(1, i);
+            cs.execute();
+            assertEquals(1, cs.getInt(1));
+            assertEquals(i, cs.getInt(2));
+            cs.clearParameters();
+        }
+    }
+
 }
