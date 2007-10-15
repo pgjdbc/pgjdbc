@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.25.2.4 2006/07/07 01:12:34 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.25.2.5 2007/09/24 12:34:20 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -173,6 +173,8 @@ public class QueryExecutorImpl implements QueryExecutor {
             parameters = SimpleQuery.NO_PARAMETERS;
 
         boolean describeOnly = (QUERY_DESCRIBE_ONLY & flags) != 0;
+
+        ((V3ParameterList)parameters).convertFunctionOutParameters();
 
         // Check parameters are all set..
         if (!describeOnly)
