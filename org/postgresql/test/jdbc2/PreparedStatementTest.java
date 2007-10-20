@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/PreparedStatementTest.java,v 1.17 2006/11/02 15:31:14 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/PreparedStatementTest.java,v 1.18 2006/12/01 08:53:46 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -402,6 +402,27 @@ public class PreparedStatementTest extends TestCase
         assertTrue(rs.next());
         assertEquals("$a$ $a$", rs.getString(1));
         assertFalse(rs.next());
+        st.close();
+    }
+    
+    public void testDollarQuotesAndIdentifiers() throws SQLException {
+        // dollar-quotes are supported in the backend since version 8.0
+        if (!TestUtil.haveMinimumServerVersion(conn, "8.0"))
+            return;
+        
+        PreparedStatement st;
+        
+        conn.createStatement().execute("CREATE TEMP TABLE a$b$c(a varchar, b varchar)");
+        st = conn.prepareStatement("INSERT INTO a$b$c (a, b) VALUES (?, ?)");
+        st.setString(1, "a");
+        st.setString(2, "b");
+        st.executeUpdate();
+        st.close();
+
+        conn.createStatement().execute("CREATE TEMP TABLE e$f$g(h varchar, e$f$g varchar) ");
+        st = conn.prepareStatement("UPDATE e$f$g SET h = ? || e$f$g");
+        st.setString(1, "a");
+        st.executeUpdate();
         st.close();
     }
     
