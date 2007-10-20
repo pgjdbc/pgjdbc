@@ -3,7 +3,7 @@
 * Copyright (c) 2006, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/Parser.java,v 1.1 2006/11/02 15:31:14 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/Parser.java,v 1.2 2006/12/01 08:53:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -89,7 +89,8 @@ public class Parser {
      * character.
      */
     public static int parseDollarQuotes(final char[] query, int offset) {
-        if (offset + 1 < query.length)
+        if (offset + 1 < query.length
+                && (offset == 0 || !isIdentifierContChar(query[offset-1])))
         {
             int endIdx = -1;
             if (query[offset + 1] == '$')
@@ -205,6 +206,37 @@ public class Parser {
     }
 
     /**
+     * Checks if a character is valid as the start of an identifier.
+     * 
+     * @param c the character to check
+     * @return true if valid as first character of an identifier; false if not
+     */
+    public static boolean isIdentifierStartChar(char c) {
+        /*
+         * Extracted from {ident_start} and {ident_cont} in
+         * pgsql/src/backend/parser/scan.l:
+         * ident_start    [A-Za-z\200-\377_]
+         * ident_cont     [A-Za-z\200-\377_0-9\$]
+         */
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+                || c == '_' || c > 127 ;
+    }
+    
+    /**
+     * Checks if a character is valid as the second or later character of an
+     * identifier.
+     * 
+     * @param c the character to check
+     * @return true if valid as second or later character of an identifier; false if not
+     */
+    public static boolean isIdentifierContChar(char c) {
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+                || c == '_' || c > 127
+                || (c >= '0' && c <= '9')
+                || c == '$';
+    }
+    
+    /**
      * @return true if the character terminates an identifier
      */
     public static boolean charTerminatesIdentifier(char c) {
@@ -228,7 +260,7 @@ public class Parser {
     }
 
     /**
-     * Checks if a character is valid as the second or latter character of a
+     * Checks if a character is valid as the second or later character of a
      * dollar quoting tag.
      * 
      * @param c the character to check
