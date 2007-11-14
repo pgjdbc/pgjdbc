@@ -250,21 +250,21 @@ public class UpdateableResultTest extends TestCase
         assertEquals(2, rs.getInt(1));
         assertEquals(string, rs.getString(2));
         assertEquals(string, rs.getString(3));
-        assertEquals(bytes, rs.getBytes(4));
+        assertTrue(Arrays.equals(bytes, rs.getBytes(4)));
 
         rs.refreshRow();
 
         assertEquals(2, rs.getInt(1));
         assertEquals(string, rs.getString(2));
         assertEquals(string, rs.getString(3));
-        assertEquals(bytes, rs.getBytes(4));
+        assertTrue(Arrays.equals(bytes, rs.getBytes(4)));
 
         rs.next();
 
         assertEquals(3, rs.getInt(1));
         assertEquals(string, rs.getString(2));
         assertEquals(string, rs.getString(3));
-        assertEquals(bytes, rs.getBytes(4));
+        assertTrue(Arrays.equals(bytes, rs.getBytes(4)));
         
         rs.close();
         stmt.close();
