@@ -81,18 +81,17 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
 
     public Connection getConnection() throws SQLException
     {
+        if (logger.logDebug())
+            debug("PGXAConnection.getConnection called");
+
         Connection conn = super.getConnection();
 
         // When we're outside an XA transaction, autocommit
         // is supposed to be true, per usual JDBC convention.
         // When an XA transaction is in progress, it should be
         // false.
-
-        // super.getConnection rolls back any previous transaction, and resets
-        // autocommit to true, so we have to set it to false before handing the
-        // connection to the caller, if an XA transaction is active.
-        if(state == STATE_ACTIVE)
-            conn.setAutoCommit(false);
+        if(state == STATE_IDLE)
+            conn.setAutoCommit(true);
 
         return conn;
     }
