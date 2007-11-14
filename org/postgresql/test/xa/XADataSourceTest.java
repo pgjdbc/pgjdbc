@@ -258,13 +258,43 @@ public class XADataSourceTest extends TestCase {
 
         xaRes.start(xid, XAResource.TMNOFLAGS);
 
+        conn.createStatement().executeQuery("SELECT * FROM testxa1");
+
+        java.sql.Timestamp ts1 = getTransactionTimestamp(conn);
+
+        conn.close();
         conn = xaconn.getConnection();
         assertFalse(conn.getAutoCommit());
+
+        java.sql.Timestamp ts2 = getTransactionTimestamp(conn);
+
+        /* Check that we're still in the same transaction. 
+         * close+getConnection() should not rollback the XA-transaction
+         * implicitly.
+         */
+        assertEquals(ts1, ts2);
 
         xaRes.end(xid, XAResource.TMSUCCESS);
         xaRes.prepare(xid);
         xaRes.rollback(xid);
         assertTrue(conn.getAutoCommit());
+    }
+
+    /**
+     * Get the time the current transaction was started from the server. 
+     *
+     * This can be used to check that transaction doesn't get committed/
+     * rolled back inadvertently, by calling this once before and after the
+     * suspected piece of code, and check that they match. It's a bit iffy,
+     * conceivably you might get the same timestamp anyway if the
+     * suspected piece of code runs fast enough, and/or the server clock
+     * is very coarse grained. But it'll do for testing purposes.
+     */
+    private static java.sql.Timestamp getTransactionTimestamp(Connection conn) throws SQLException
+    {
+        ResultSet rs = conn.createStatement().executeQuery("SELECT now()");
+        rs.next();
+        return rs.getTimestamp(1);
     }
 
     public void testEndThenJoin() throws XAException {

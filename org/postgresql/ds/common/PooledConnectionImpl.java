@@ -142,7 +142,13 @@ public class PooledConnectionImpl implements PooledConnection
                 }
                 con.clearWarnings();
             }
-            con.setAutoCommit(autoCommit);
+            /*
+             * In XA-mode, autocommit is handled in PGXAConnection,
+             * because it depends on whether an XA-transaction is open
+             * or not
+             */
+            if (!isXA)
+                con.setAutoCommit(autoCommit);
         }
         catch (SQLException sqlException)
         {
