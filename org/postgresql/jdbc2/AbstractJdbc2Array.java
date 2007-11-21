@@ -103,6 +103,8 @@ public class AbstractJdbc2Array
             StringBuffer sbuf = new StringBuffer();
             boolean foundOpen = false;
             boolean insideString = false;
+            boolean isQuoted = false;
+            boolean haveMinServerVersion82 = conn.haveMinimumServerVersion("8.2");
 
             /**
              * Starting with 8.0 non-standard (beginning index
@@ -142,6 +144,7 @@ public class AbstractJdbc2Array
                 else if (chars[i] == '"')
                 {
                     insideString = !insideString;
+                    isQuoted = true;
                     continue;
                 }
                 else if (!insideString && (chars[i] == ',' || chars[i] == '}') ||
@@ -149,8 +152,9 @@ public class AbstractJdbc2Array
                 {
                     if ( chars[i] != '"' && chars[i] != '}' && chars[i] != ',' )
                         sbuf.append(chars[i]);
-                    array.add( sbuf.toString() );
+                    array.add( sbuf.toString().equals("NULL") && !isQuoted && haveMinServerVersion82 ? null : sbuf.toString() );
                     sbuf = new StringBuffer();
+                    isQuoted = false;
                     continue;
                 }
                 sbuf.append( chars[i] );

@@ -57,6 +57,95 @@ public class ArrayTest extends TestCase
         pstmt.close();
     }
 
+    public void testNullElementsPre82() throws SQLException {
+        if (TestUtil.haveMinimumServerVersion(conn, "8.2"))
+            return;
+
+        Statement stmt = conn.createStatement();
+
+        ResultSet rs = stmt.executeQuery("SELECT '{a,null,\"null\"}'::text[]");
+        assertTrue(rs.next());
+
+        Array arr = rs.getArray(1);
+        String s[] = (String[]) arr.getArray();
+        assertEquals(3, s.length);
+        assertEquals("a", s[0]);
+        assertEquals("null", s[1]);
+        assertEquals("null", s[2]);
+
+        rs.close();
+        stmt.close();
+    }
+
+    public void testWriteNullElements() throws SQLException {
+        if (!TestUtil.haveMinimumServerVersion(conn, "8.2"))
+            return;
+
+        Statement stmt = conn.createStatement();
+
+        ResultSet rs = stmt.executeQuery("SELECT ARRAY[1,NULL,2], ARRAY['a',NULL,'null']");
+        assertTrue(rs.next());
+
+        PreparedStatement pstmt = conn.prepareStatement("SELECT ?,?");
+        pstmt.setArray(1, rs.getArray(1));
+        pstmt.setArray(2, rs.getArray(2));
+        rs.close();
+        stmt.close();
+        rs = pstmt.executeQuery();
+
+        assertTrue(rs.next());
+
+        Array intArr = rs.getArray(1);
+        int[] ia = (int[]) intArr.getArray();
+        assertEquals(3, ia.length);
+        assertEquals(1, ia[0]);
+        assertEquals(0, ia[1]);
+        assertEquals(2, ia[2]);
+
+        Array strArr1 = rs.getArray(2);
+        String[] sa1 = (String[]) strArr1.getArray();
+        assertEquals(3, sa1.length);
+        assertEquals("a", sa1[0]);
+        assertNull(sa1[1]);
+        assertEquals("null", sa1[2]);
+
+        rs.close();
+        pstmt.close();
+    }
+
+    public void testReadNullElements() throws SQLException {
+        if (!TestUtil.haveMinimumServerVersion(conn, "8.2"))
+            return;
+
+        Statement stmt = conn.createStatement();
+
+        ResultSet rs = stmt.executeQuery("SELECT ARRAY[1,NULL,2], ARRAY['a',NULL,'null'], '{a,\"NULL\",b}'::text[]");
+        assertTrue(rs.next());
+
+        Array intArr = rs.getArray(1);
+        int[] ia = (int[]) intArr.getArray();
+        assertEquals(3, ia.length);
+        assertEquals(1, ia[0]);
+        assertEquals(0, ia[1]);
+        assertEquals(2, ia[2]);
+
+        Array strArr1 = rs.getArray(2);
+        String[] sa1 = (String[]) strArr1.getArray();
+        assertEquals(3, sa1.length);
+        assertEquals("a", sa1[0]);
+        assertNull(sa1[1]);
+        assertEquals("null", sa1[2]);
+
+        Array strArr2 = rs.getArray(3);
+        String[] sa2 = (String[]) strArr2.getArray();
+        assertEquals(3, sa2.length);
+        assertEquals("a", sa2[0]);
+        assertEquals("NULL", sa2[1]);
+        assertEquals("b", sa2[2]);
+
+        rs.close();
+        stmt.close();
+    }
 
     public void testRetrieveArrays() throws SQLException {
         Statement stmt = conn.createStatement();
