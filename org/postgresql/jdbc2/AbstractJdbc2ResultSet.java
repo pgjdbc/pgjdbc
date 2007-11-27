@@ -46,6 +46,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     private boolean usingOID = false; // are we using the OID for the primary key?
     private Vector primaryKeys;    // list of primary keys
     private boolean singleTable = false;
+    private String onlyTable = "";
     private String tableName = null;
     private PreparedStatement updateStatement = null;
     private PreparedStatement insertStatement = null;
@@ -733,7 +734,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         {
 
 
-            StringBuffer deleteSQL = new StringBuffer("DELETE FROM " ).append(tableName).append(" where " );
+            StringBuffer deleteSQL = new StringBuffer("DELETE FROM " ).append(onlyTable).append(tableName).append(" where " );
 
             for ( int i = 0; i < numKeys; i++ )
             {
@@ -1171,7 +1172,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             }
 
         }
-        selectSQL.append(" from " ).append(tableName).append(" where ");
+        selectSQL.append(" from " ).append(onlyTable).append(tableName).append(" where ");
 
         int numKeys = primaryKeys.size();
 
@@ -1238,7 +1239,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             try
             {
 
-                StringBuffer updateSQL = new StringBuffer("UPDATE " + tableName + " SET  ");
+                StringBuffer updateSQL = new StringBuffer("UPDATE " + onlyTable + tableName + " SET  ");
 
                 int numColumns = updateValues.size();
                 Iterator columns = updateValues.keySet().iterator();
@@ -1665,6 +1666,10 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                 if (name.toLowerCase().equals("from"))
                 {
                     tableName = st.nextToken();
+                    if (tableName.toLowerCase().equals("only")) {
+                        tableName = st.nextToken();
+                        onlyTable = "ONLY ";
+                    }
                     tableFound = true;
                 }
             }
