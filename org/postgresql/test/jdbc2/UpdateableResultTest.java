@@ -482,22 +482,22 @@ public class UpdateableResultTest extends TestCase
 
         Array arr = rs.getArray(2);
         assertEquals(Types.INTEGER, arr.getBaseType());
-        int intarr[] = (int[])arr.getArray();
+        Integer intarr[] = (Integer[])arr.getArray();
         assertEquals(3, intarr.length);
-        assertEquals(1, intarr[0]);
-        assertEquals(2, intarr[1]);
-        assertEquals(3, intarr[2]);
+        assertEquals(1, intarr[0].intValue());
+        assertEquals(2, intarr[1].intValue());
+        assertEquals(3, intarr[2].intValue());
         rs.close();
 
         rs = stmt.executeQuery("SELECT id,intarr FROM updateable");
         assertTrue(rs.next());
         arr = rs.getArray(2);
         assertEquals(Types.INTEGER, arr.getBaseType());
-        intarr = (int[])arr.getArray();
+        intarr = (Integer[])arr.getArray();
         assertEquals(3, intarr.length);
-        assertEquals(1, intarr[0]);
-        assertEquals(2, intarr[1]);
-        assertEquals(3, intarr[2]);
+        assertEquals(1, intarr[0].intValue());
+        assertEquals(2, intarr[1].intValue());
+        assertEquals(3, intarr[2].intValue());
         
         rs.close();
         stmt.close();

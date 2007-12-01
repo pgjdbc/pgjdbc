@@ -1784,10 +1784,22 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
             int numArgs = argTypes.size();
 
-            long allArgTypes[] = null;
+            Long allArgTypes[] = null;
             Array allArgTypesArray = rs.getArray("proallargtypes");
             if (allArgTypesArray != null) {
-                allArgTypes = (long[])allArgTypesArray.getArray();
+                // Depending on what the user has selected we'll get
+                // either long[] or Long[] back, and there's no
+                // obvious way for the driver to override this for
+                // it's own usage.
+                if (connection.haveMinimumCompatibleVersion("8.3")) {
+                    allArgTypes = (Long[])allArgTypesArray.getArray();
+                } else {
+                    long tempAllArgTypes[] = (long[])allArgTypesArray.getArray();
+                    allArgTypes = new Long[tempAllArgTypes.length];
+                    for (int i=0; i<tempAllArgTypes.length; i++) {
+                        allArgTypes[i] = new Long(tempAllArgTypes[i]);
+                    }
+                }
                 numArgs = allArgTypes.length;
             }
 
@@ -1834,7 +1846,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
                 int argOid;
                 if (allArgTypes != null)
-                    argOid = (int)allArgTypes[i];
+                    argOid = allArgTypes[i].intValue();
                 else
                     argOid = ((Long)argTypes.elementAt(i)).intValue();
 

@@ -989,6 +989,11 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         return _typeCache.getPGType(oid);
     }
 
+    public int getPGArrayElement (int oid) throws SQLException
+    {
+        return _typeCache.getPGArrayElement(oid);
+    }
+
     // This is a cache of the DatabaseMetaData instance for this connection
     protected java.sql.DatabaseMetaData metadata;
 
@@ -1075,7 +1080,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     }
 
 
-    public int getSQLType(String pgTypeName)
+    public int getSQLType(String pgTypeName) throws SQLException
     {
         return _typeCache.getSQLType(pgTypeName);
     }

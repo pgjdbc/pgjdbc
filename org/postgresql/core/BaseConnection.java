@@ -94,6 +94,15 @@ public interface BaseConnection extends PGConnection, Connection
     public int getPGType(String pgTypeName) throws SQLException;
 
     /**
+     * Look up the oid of base type for a given postgresql array type oid.
+     *
+     * @param oid the array type's OID
+     * @return oid the base type's OID, or 0 if unknown
+     * @throws SQLException if something goes wrong
+     */
+    public int getPGArrayElement(int oid) throws SQLException;
+
+    /**
      * Look up the SQL typecode for a given type oid.
      *
      * @param oid the type's OID

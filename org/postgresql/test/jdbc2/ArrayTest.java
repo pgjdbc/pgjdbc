@@ -69,11 +69,11 @@ public class ArrayTest extends TestCase
 
         Array arr = rs.getArray(1);
         assertEquals(Types.INTEGER, arr.getBaseType());
-        int intarr[] = (int[])arr.getArray();
+        Integer intarr[] = (Integer[])arr.getArray();
         assertEquals(3, intarr.length);
-        assertEquals(1, intarr[0]);
-        assertEquals(2, intarr[1]);
-        assertEquals(3, intarr[2]);
+        assertEquals(1, intarr[0].intValue());
+        assertEquals(2, intarr[1].intValue());
+        assertEquals(3, intarr[2].intValue());
 
         arr = rs.getArray(2);
         assertEquals(Types.NUMERIC, arr.getBaseType());
@@ -176,11 +176,11 @@ public class ArrayTest extends TestCase
             assertEquals(Types.INTEGER, result.getBaseType());
             assertEquals("int4", result.getBaseTypeName());
 
-            int intarr[] = (int[])result.getArray();
+            Integer intarr[] = (Integer[])result.getArray();
             assertEquals(3, intarr.length);
-            assertEquals(1, intarr[0]);
-            assertEquals(2, intarr[1]);
-            assertEquals(3, intarr[2]);
+            assertEquals(1, intarr[0].intValue());
+            assertEquals(2, intarr[1].intValue());
+            assertEquals(3, intarr[2].intValue());
         }
         assertEquals(3, resultCount);
     }
@@ -198,12 +198,163 @@ public class ArrayTest extends TestCase
         ResultSet rs = stmt.executeQuery("SELECT intarr FROM arrtest");
         assertTrue(rs.next());
         Array result = rs.getArray(1);
-        int intarr[] = (int[])result.getArray();
+        Integer intarr[] = (Integer[])result.getArray();
         assertEquals(4, intarr.length);
         for (int i = 0; i < intarr.length; i++)
         {
-            assertEquals(i, intarr[i]);
+            assertEquals(i, intarr[i].intValue());
         }
     }
+
+    public void testMultiDimensionalArray() throws SQLException {
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT '{{1,2},{3,4}}'::int[]");
+        assertTrue(rs.next());
+        Array arr = rs.getArray(1);
+        Object oa[] = (Object [])arr.getArray();
+        assertEquals(2, oa.length);
+        Integer i0[] = (Integer []) oa[0];
+        assertEquals(2, i0.length);
+        assertEquals(1, i0[0].intValue());
+        assertEquals(2, i0[1].intValue());
+        Integer i1[] = (Integer []) oa[1];
+        assertEquals(2, i1.length);
+        assertEquals(3, i1[0].intValue());
+        assertEquals(4, i1[1].intValue());
+        rs.close();
+        stmt.close();
+    }
+
+    public void testNullValues() throws SQLException {
+        if (!TestUtil.haveMinimumServerVersion(conn, "8.2"))
+            return;
+
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT ARRAY[1,NULL,3]");
+        assertTrue(rs.next());
+        Array arr = rs.getArray(1);
+        Integer i[] = (Integer[])arr.getArray();
+        assertEquals(3, i.length);
+        assertEquals(1, i[0].intValue());
+        assertNull(i[1]);
+        assertEquals(3, i[2].intValue());
+    }
+
+    public void testUnknownArrayType() throws SQLException {
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT relacl FROM pg_class WHERE relacl IS NOT NULL LIMIT 1");
+        ResultSetMetaData rsmd = rs.getMetaData();
+        assertEquals(Types.ARRAY, rsmd.getColumnType(1));
+
+        assertTrue(rs.next());
+        Array arr = rs.getArray(1);
+        assertEquals("aclitem", arr.getBaseTypeName());
+
+        ResultSet arrRS = arr.getResultSet();
+        ResultSetMetaData arrRSMD = arrRS.getMetaData();
+        assertEquals("aclitem", arrRSMD.getColumnTypeName(2));
+    }
+
+    public void testRecursiveResultSets() throws SQLException {
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT '{{1,2},{3,4}}'::int[]");
+        assertTrue(rs.next());
+        Array arr = rs.getArray(1);
+
+        ResultSet arrRS = arr.getResultSet();
+        ResultSetMetaData arrRSMD = arrRS.getMetaData();
+        assertEquals(Types.ARRAY, arrRSMD.getColumnType(2));
+        assertEquals("_int4", arrRSMD.getColumnTypeName(2));
+
+        assertTrue(arrRS.next());
+        assertEquals(1, arrRS.getInt(1));
+        Array a1 = arrRS.getArray(2);
+        ResultSet a1RS = a1.getResultSet();
+        ResultSetMetaData a1RSMD = a1RS.getMetaData();
+        assertEquals(Types.INTEGER, a1RSMD.getColumnType(2));
+        assertEquals("int4", a1RSMD.getColumnTypeName(2));
+
+        assertTrue(a1RS.next());
+        assertEquals(1, a1RS.getInt(2));
+        assertTrue(a1RS.next());
+        assertEquals(2, a1RS.getInt(2));
+        assertTrue(!a1RS.next());
+        a1RS.close();
+
+        assertTrue(arrRS.next());
+        assertEquals(2, arrRS.getInt(1));
+        Array a2 = arrRS.getArray(2);
+        ResultSet a2RS = a2.getResultSet();
+
+        assertTrue(a2RS.next());
+        assertEquals(3, a2RS.getInt(2));
+        assertTrue(a2RS.next());
+        assertEquals(4, a2RS.getInt(2));
+        assertTrue(!a2RS.next());
+        a2RS.close();
+
+        arrRS.close();
+        rs.close();
+        stmt.close();
+    }
+
+    public void testNullString() throws SQLException
+    {
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT '{a,NULL}'::text[]");
+        assertTrue(rs.next());
+        Array arr = rs.getArray(1);
+
+        String s[] = (String [])arr.getArray();
+        assertEquals(2, s.length);
+        assertEquals("a", s[0]);
+        if (TestUtil.haveMinimumServerVersion(conn, "8.2")) {
+            assertNull(s[1]);
+        } else {
+            assertEquals("NULL", s[1]);
+        }
+    }
+
+    public void testEscaping() throws SQLException
+    {
+        Statement stmt = conn.createStatement();
+        String sql = "SELECT ";
+        if (TestUtil.haveMinimumServerVersion(conn, "8.1")) {
+            sql += 'E';
+        }
+        // Uggg.  Three levels of escaping: Java, string literal, array.
+        sql += "'{{c\\\\\"d, ''}, {\"\\\\\\\\\",\"''\"}}'::text[]";
+
+        ResultSet rs = stmt.executeQuery(sql);
+        assertTrue(rs.next());
+
+        Array arr = rs.getArray(1);
+        String s[][] = (String[][])arr.getArray();
+        assertEquals("c\"d", s[0][0]);
+        assertEquals("'", s[0][1]);
+        assertEquals("\\", s[1][0]);
+        assertEquals("'", s[1][1]);
+
+        ResultSet arrRS = arr.getResultSet();
+
+        assertTrue(arrRS.next());
+        Array a1 = arrRS.getArray(2);
+        ResultSet rs1 = a1.getResultSet();
+        assertTrue(rs1.next());
+        assertEquals("c\"d", rs1.getString(2));
+        assertTrue(rs1.next());
+        assertEquals("'", rs1.getString(2));
+        assertTrue(!rs1.next());
+
+        assertTrue(arrRS.next());
+        Array a2 = arrRS.getArray(2);
+        ResultSet rs2 = a2.getResultSet();
+        assertTrue(rs2.next());
+        assertEquals("\\", rs2.getString(2));
+        assertTrue(rs2.next());
+        assertEquals("'", rs2.getString(2));
+        assertTrue(!rs2.next());
+    }
+
 }
 
