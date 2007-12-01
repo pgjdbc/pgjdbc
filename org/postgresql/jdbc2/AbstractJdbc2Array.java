@@ -548,8 +548,7 @@ ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects
     public String getBaseTypeName() throws SQLException
     {
         buildArrayList();
-        if (arrayList.dimensionsCount > 1) return connection.getPGType(field.getOID());
-        else return connection.getPGType(connection.getPGArrayElement(field.getOID()));
+        return connection.getPGType(connection.getPGArrayElement(field.getOID()));
     }
 
     public java.sql.ResultSet getResultSet() throws SQLException

@@ -356,5 +356,27 @@ public class ArrayTest extends TestCase
         assertTrue(!rs2.next());
     }
 
+    public void testWriteMultiDimensional() throws SQLException
+    {
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT '{{1,2},{3,4}}'::int[]");
+        assertTrue(rs.next());
+        Array arr = rs.getArray(1);
+        rs.close();
+        stmt.close();
+
+        PreparedStatement pstmt = conn.prepareStatement("SELECT ?");
+        pstmt.setArray(1, arr);
+        rs = pstmt.executeQuery();
+        assertTrue(rs.next());
+        arr = rs.getArray(1);
+
+        Integer i[][] = (Integer[][])arr.getArray();
+        assertEquals(1, i[0][0].intValue());
+        assertEquals(2, i[0][1].intValue());
+        assertEquals(3, i[1][0].intValue());
+        assertEquals(4, i[1][1].intValue());
+    }
+
 }
 
