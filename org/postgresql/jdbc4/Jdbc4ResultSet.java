@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/Jdbc4ResultSet.java,v 1.2 2007/02/19 06:00:32 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/Jdbc4ResultSet.java,v 1.3 2007/07/27 08:54:54 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -55,7 +55,9 @@ public class Jdbc4ResultSet extends AbstractJdbc4ResultSet implements java.sql.R
     public Array createArray(int i) throws SQLException
     {
         checkResultSet(i);
-        return new Jdbc4Array(connection, i, fields[i - 1], this);
+        int oid = fields[i - 1].getOID();
+        String value = getFixedString(i);
+        return new Jdbc4Array(connection, oid, value);
     }
 
     public Object getObject(String s, Map < String, Class < ? >> map) throws SQLException

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/Jdbc2ResultSet.java,v 1.17 2007/02/19 06:00:24 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/Jdbc2ResultSet.java,v 1.18 2007/07/27 08:54:54 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -55,7 +55,9 @@ public class Jdbc2ResultSet extends org.postgresql.jdbc2.AbstractJdbc2ResultSet 
     public java.sql.Array createArray(int i) throws SQLException
     {
         checkResultSet(i);
-        return new org.postgresql.jdbc2.Jdbc2Array(connection, i, fields[i - 1], this);
+        int oid = fields[i - 1].getOID();
+        String value = getFixedString(i);
+        return new Jdbc2Array(connection, oid, value);
     }
 
     public Object getObject(String s, Map map) throws SQLException

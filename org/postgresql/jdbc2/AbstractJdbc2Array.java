@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Array.java,v 1.18 2005/12/04 21:40:33 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Array.java,v 1.21 2007/12/01 11:07:12 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -61,9 +61,9 @@ public abstract class AbstractJdbc2Array
     private BaseConnection connection = null;
 
     /**
-     * The Field descriptor for the field to load into this Array.
+     * The OID of this field.
      */
-    private Field field = null;
+    private int oid;
 
     /**
      * Field value as String.
@@ -98,10 +98,10 @@ public abstract class AbstractJdbc2Array
      * @param field the Field descriptor for the field to load into this Array
      * @param result the ResultSet from which to get the data for this Array
      */
-    public AbstractJdbc2Array(BaseConnection connection, int index, Field field, BaseResultSet result) throws SQLException {
+    public AbstractJdbc2Array(BaseConnection connection, int oid, String fieldString) throws SQLException {
         this.connection = connection;
-        this.field = field;
-        this.fieldString = result.getFixedString(index);
+        this.oid = oid;
+        this.fieldString = fieldString;
         this.useObjects = connection.haveMinimumCompatibleVersion("8.3");
         this.haveMinServer82 = connection.haveMinimumServerVersion("8.2");
     }
@@ -319,7 +319,7 @@ public abstract class AbstractJdbc2Array
         int length = 0;
 
         // array elements type
-        final int type = connection.getSQLType(connection.getPGArrayElement(field.getOID()));
+        final int type = connection.getSQLType(connection.getPGArrayElement(oid));
 
         if (type == Types.BIT)
         {
@@ -548,7 +548,7 @@ ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects
     public String getBaseTypeName() throws SQLException
     {
         buildArrayList();
-        return connection.getPGType(connection.getPGArrayElement(field.getOID()));
+        return connection.getPGType(connection.getPGArrayElement(oid));
     }
 
     public java.sql.ResultSet getResultSet() throws SQLException
@@ -602,7 +602,7 @@ ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects
         if (arrayList.dimensionsCount <= 1)
         {
             // array element type
-            final int baseOid = connection.getPGArrayElement(field.getOID());
+            final int baseOid = connection.getPGArrayElement(oid);
             fields[0] = new Field("INDEX", Oid.INT4);
             fields[1] = new Field("VALUE", baseOid);
 
@@ -621,7 +621,7 @@ ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects
         else
         {
             fields[0] = new Field("INDEX", Oid.INT4);
-            fields[1] = new Field("VALUE", field.getOID());
+            fields[1] = new Field("VALUE", oid);
             for (int i = 0; i < count; i++)
             {
                 int offset = (int)index + i;
@@ -672,7 +672,7 @@ ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects
         return b.toString();
     }
 
-    private static void escapeArrayElement(StringBuffer b, String s)
+    public static void escapeArrayElement(StringBuffer b, String s)
     {
         b.append('"');
         for (int j = 0; j < s.length(); j++) {

@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/PSQLState.java,v 1.10 2006/04/29 00:06:52 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/util/PSQLState.java,v 1.11 2006/04/29 13:30:24 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -70,6 +70,7 @@ public class PSQLState implements java.io.Serializable
     public final static PSQLState NUMERIC_CONSTANT_OUT_OF_RANGE = new PSQLState("42820");
     public final static PSQLState DATA_TYPE_MISMATCH = new PSQLState("42821");
     public final static PSQLState UNDEFINED_FUNCTION = new PSQLState("42883");
+    public final static PSQLState INVALID_NAME = new PSQLState("42602");
 
     public final static PSQLState OUT_OF_MEMORY = new PSQLState("53200");
     public final static PSQLState OBJECT_NOT_IN_STATE = new PSQLState("55000");

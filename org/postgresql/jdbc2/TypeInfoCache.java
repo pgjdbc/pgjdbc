@@ -3,7 +3,7 @@
  * Copyright (c) 2005, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.7 2007/02/19 05:57:53 jurka Exp $
+ *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.9 2007/12/01 08:28:58 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -82,6 +82,23 @@ public class TypeInfoCache {
         {"timestamp", new Integer(Oid.TIMESTAMP), new Integer(Types.TIMESTAMP), "java.sql.Timestamp", new Integer(Oid.TIMESTAMP_ARRAY)},
         {"timestamptz", new Integer(Oid.TIMESTAMPTZ), new Integer(Types.TIMESTAMP), "java.sql.Timestamp", new Integer(Oid.TIMESTAMPTZ_ARRAY)}
     };
+
+    /**
+     * PG maps several alias to real type names.  When we do queries
+     * against pg_catalog, we must use the real type, not an alias, so
+     * use this mapping.
+     */
+    private final static HashMap typeAliases;
+    static {
+        typeAliases = new HashMap();
+        typeAliases.put("smallint", "int2");
+        typeAliases.put("integer", "int4");
+        typeAliases.put("int", "int4");
+        typeAliases.put("bigint", "int8");
+        typeAliases.put("float", "float8");
+        typeAliases.put("boolean", "bool");
+        typeAliases.put("decimal", "numeric");
+    }
 
     public TypeInfoCache(BaseConnection conn)
     {
@@ -302,6 +319,13 @@ public class TypeInfoCache {
         }
 
         return result;
+    }
+
+    public static String getTypeForAlias(String alias) {
+        String type = (String) typeAliases.get(alias);
+        if (type != null)
+            return type;
+        return alias;
     }
 
     public static int getPrecision(int oid, int typmod) {

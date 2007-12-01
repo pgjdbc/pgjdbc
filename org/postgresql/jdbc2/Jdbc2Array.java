@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/Jdbc2Array.java,v 1.3 2004/11/09 08:49:01 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/Jdbc2Array.java,v 1.4 2005/01/11 08:25:46 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -16,9 +16,9 @@ import java.sql.ResultSet;
 
 public class Jdbc2Array extends AbstractJdbc2Array implements java.sql.Array
 {
-    public Jdbc2Array(BaseConnection conn, int idx, Field field, BaseResultSet rs) throws SQLException
+    public Jdbc2Array(BaseConnection conn, int oid, String fieldString) throws SQLException
     {
-        super(conn, idx, field, rs);
+        super(conn, oid, fieldString);
     }
 
     public Object getArray(Map map) throws SQLException

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4Connection.java,v 1.2 2006/10/31 06:12:46 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4Connection.java,v 1.3 2007/10/07 19:40:02 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -15,7 +15,11 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Properties;
 
+import org.postgresql.core.Oid;
 import org.postgresql.util.GT;
+import org.postgresql.util.PSQLState;
+import org.postgresql.util.PSQLException;
+import org.postgresql.jdbc2.AbstractJdbc2Array;
 
 abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3.AbstractJdbc3Connection
 {
@@ -52,7 +56,39 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3.AbstractJdbc
 
     public Array createArrayOf(String typeName, Object[] elements) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "createArrayOf(String, Object[])");
+        int oid = getPGArrayType(typeName);
+        if (oid == Oid.UNSPECIFIED)
+            throw new PSQLException(GT.tr("Unable to find server array type for provided name {0}.", typeName), PSQLState.INVALID_NAME);
+
+        StringBuffer sb = new StringBuffer();
+        appendArray(sb, elements);
+
+        // This will not work once we have a JDBC 5,
+        // but it'll do for now.
+        return new Jdbc4Array(this, oid, sb.toString());
+    }
+
+    private static void appendArray(StringBuffer sb, Object elements)
+    {
+        sb.append('{');
+
+        int nElements = java.lang.reflect.Array.getLength(elements);
+        for (int i=0; i<nElements; i++) {
+            if (i > 0) {
+                sb.append(',');
+            }
+
+            Object o = java.lang.reflect.Array.get(elements, i);
+            if (o == null) {
+                sb.append("NULL");
+            } else if (o.getClass().isArray()) {
+                appendArray(sb, o);
+            } else {
+                String s = o.toString();
+                AbstractJdbc2Array.escapeArrayElement(sb, s);
+            }
+        }
+        sb.append('}');
     }
 
     public boolean isValid(int timeout) throws SQLException

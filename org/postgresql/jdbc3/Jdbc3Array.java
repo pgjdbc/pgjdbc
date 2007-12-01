@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/Jdbc3Array.java,v 1.3 2004/11/09 08:50:10 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/Jdbc3Array.java,v 1.4 2005/01/11 08:25:46 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -16,9 +16,9 @@ import java.sql.ResultSet;
 
 public class Jdbc3Array extends org.postgresql.jdbc2.AbstractJdbc2Array implements java.sql.Array
 {
-    public Jdbc3Array(BaseConnection conn, int idx, Field field, BaseResultSet rs) throws SQLException
+    public Jdbc3Array(BaseConnection conn, int oid, String fieldString) throws SQLException
     {
-        super(conn, idx, field, rs);
+        super(conn, oid, fieldString);
     }
 
     public Object getArray(Map map) throws SQLException

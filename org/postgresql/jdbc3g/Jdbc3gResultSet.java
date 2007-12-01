@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3g/Jdbc3gResultSet.java,v 1.6 2007/02/19 06:00:25 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3g/Jdbc3gResultSet.java,v 1.7 2007/07/27 08:54:54 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -55,7 +55,9 @@ public class Jdbc3gResultSet extends org.postgresql.jdbc3.AbstractJdbc3ResultSet
     public Array createArray(int i) throws SQLException
     {
         checkResultSet(i);
-        return new Jdbc3gArray(connection, i, fields[i - 1], this);
+        int oid = fields[i - 1].getOID();
+        String value = getFixedString(i);
+        return new Jdbc3gArray(connection, oid, value);
     }
 
     public Object getObject(String s, Map < String, Class < ? >> map) throws SQLException

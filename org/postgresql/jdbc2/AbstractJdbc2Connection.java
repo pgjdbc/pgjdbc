@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.42 2007/04/16 18:31:38 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.45 2007/12/01 09:17:28 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -969,6 +969,15 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     public int getPGType(String typeName) throws SQLException
     {
         return _typeCache.getPGType(typeName);
+    }
+
+    /**
+     * Return the oid of the array type of the given base type.
+     */
+    public int getPGArrayType(String elementTypeName) throws SQLException
+    {
+        elementTypeName = _typeCache.getTypeForAlias(elementTypeName);
+        return getPGType("_" + elementTypeName);
     }
 
     public String getJavaClass(int oid) throws SQLException
