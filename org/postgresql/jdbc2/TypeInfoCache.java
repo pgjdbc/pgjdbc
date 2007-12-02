@@ -3,7 +3,7 @@
  * Copyright (c) 2005, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.9 2007/12/01 08:28:58 jurka Exp $
+ *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.10 2007/12/01 12:50:44 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -213,7 +213,7 @@ public class TypeInfoCache {
         oid = new Integer(Oid.UNSPECIFIED);
         ResultSet rs = _getOidStatement.getResultSet();
         if (rs.next()) {
-            oid = new Integer(rs.getInt(1));
+            oid = new Integer((int)rs.getLong(1));
             _oidToPgName.put(oid, pgTypeName);
         }
         _pgNameToOid.put(pgTypeName, oid);
@@ -289,7 +289,7 @@ public class TypeInfoCache {
         if (!rs.next())
             throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
 
-        pgType = new Integer(rs.getInt(1));
+        pgType = new Integer((int)rs.getLong(1));
         _pgArrayToPgType.put(new Integer(oid), pgType);
         _pgNameToOid.put(rs.getString(2), pgType);
         _oidToPgName.put(pgType, rs.getString(2));

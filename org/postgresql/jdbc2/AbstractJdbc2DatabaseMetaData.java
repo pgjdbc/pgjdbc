@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.39 2007/09/10 08:36:43 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.41 2007/12/01 08:28:58 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1760,9 +1760,9 @@ public abstract class AbstractJdbc2DatabaseMetaData
         {
             byte schema[] = rs.getBytes("nspname");
             byte procedureName[] = rs.getBytes("proname");
-            int returnType = rs.getInt("prorettype");
+            int returnType = (int)rs.getLong("prorettype");
             String returnTypeType = rs.getString("typtype");
-            int returnTypeRelid = rs.getInt("typrelid");
+            int returnTypeRelid = (int)rs.getLong("typrelid");
 
             String strArgTypes = rs.getString("proargtypes");
             StringTokenizer st = new StringTokenizer(strArgTypes);
@@ -1872,7 +1872,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 ResultSet columnrs = connection.createStatement().executeQuery(columnsql);
                 while (columnrs.next())
                 {
-                    int columnTypeOid = columnrs.getInt("atttypid");
+                    int columnTypeOid = (int)columnrs.getLong("atttypid");
                     byte[][] tuple = new byte[13][];
                     tuple[0] = null;
                     tuple[1] = schema;
@@ -2333,7 +2333,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         while (rs.next())
         {
             byte[][] tuple = new byte[18][];
-            int typeOid = rs.getInt("atttypid");
+            int typeOid = (int)rs.getLong("atttypid");
             int typeMod = rs.getInt("atttypmod");
 
             tuple[0] = null;     // Catalog name, not supported
@@ -2855,7 +2855,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         while (rs.next())
         {
             byte tuple[][] = new byte[8][];
-            int typeOid = rs.getInt("atttypid");
+            int typeOid = (int)rs.getLong("atttypid");
             int typeMod = rs.getInt("atttypmod");
             int decimalDigits = TypeInfoCache.getScale(typeOid, typeMod);
             int columnSize = TypeInfoCache.getPrecision(typeOid, typeMod);
@@ -3624,7 +3624,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         {
             byte[][] tuple = new byte[18][];
             String typname = rs.getString(1);
-            int typeOid = rs.getInt(2);
+            int typeOid = (int)rs.getLong(2);
 
             tuple[0] = connection.encodeString(typname);
             tuple[1] = connection.encodeString(Integer.toString(connection.getSQLType(typname)));
