@@ -230,7 +230,7 @@ public class VisibleBufferedInputStream extends InputStream {
         n -= avail;
         index = 0;
         endIndex = 0;
-        return wrapped.skip(n);
+        return avail + wrapped.skip(n);
     }
 
     /**
