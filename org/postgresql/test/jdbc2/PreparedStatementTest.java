@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/PreparedStatementTest.java,v 1.18 2006/12/01 08:53:46 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/PreparedStatementTest.java,v 1.19 2007/10/20 17:01:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -39,12 +39,14 @@ public class PreparedStatementTest extends TestCase
         conn = TestUtil.openDB();
         TestUtil.createTable(conn, "streamtable", "bin bytea, str text");
         TestUtil.createTable(conn, "texttable", "ch char(3), te text, vc varchar(3)");
+        TestUtil.createTable(conn, "intervaltable", "i interval");
     }
 
     protected void tearDown() throws SQLException
     {
         TestUtil.dropTable(conn, "streamtable");
         TestUtil.dropTable(conn, "texttable");
+        TestUtil.dropTable(conn, "intervaltable");
         TestUtil.closeDB(conn);
     }
 
@@ -779,4 +781,20 @@ public class PreparedStatementTest extends TestCase
         pstmt.close();
         
     }
+
+    public void testUnknownSetObject() throws SQLException
+    {
+        PreparedStatement pstmt = conn.prepareStatement("INSERT INTO intervaltable(i) VALUES (?)");
+        pstmt.setString(1, "1 week");
+        try {
+            pstmt.executeUpdate();
+            fail("Should have failed with type mismatch.");
+        } catch (SQLException sqle) {
+        }
+
+        pstmt.setObject(1, "1 week", Types.OTHER);
+        pstmt.executeUpdate();
+        pstmt.close();
+    }
+
 }

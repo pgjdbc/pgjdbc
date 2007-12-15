@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.103 2007/07/27 09:01:44 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.104 2007/07/27 10:15:32 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1676,7 +1676,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	            if (in instanceof PGobject)
 	                setPGobject(parameterIndex, (PGobject)in);
 	            else
-	                throw new PSQLException(GT.tr("Cannot cast an instance of {0} to type {1}", new Object[]{in.getClass().getName(),"Types.OTHER"}), PSQLState.INVALID_PARAMETER_TYPE);
+                    bindString(parameterIndex, in.toString(), Oid.UNSPECIFIED);
 	            break;
 	        default:
 	            throw new PSQLException(GT.tr("Unsupported Types value: {0}", new Integer(targetSqlType)), PSQLState.INVALID_PARAMETER_TYPE);
