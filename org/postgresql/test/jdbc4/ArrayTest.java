@@ -3,7 +3,7 @@
 * Copyright (c) 2007, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL$
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc4/ArrayTest.java,v 1.1 2007/12/01 12:50:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -30,7 +30,7 @@ public class ArrayTest extends TestCase {
     }
 
     public void testCreateArrayOfInt() throws SQLException {
-        PreparedStatement pstmt = _conn.prepareStatement("SELECT ?");
+        PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::int[]");
         Integer in[] = new Integer[3];
         in[0] = 0;
         in[1] = -1;
@@ -49,7 +49,7 @@ public class ArrayTest extends TestCase {
     }
 
     public void testCreateArrayOfMultiString() throws SQLException {
-        PreparedStatement pstmt = _conn.prepareStatement("SELECT ?");
+        PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::text[]");
         String in[][] = new String[2][2];
         in[0][0] = "a";
         in[0][1] = "";
@@ -91,7 +91,7 @@ public class ArrayTest extends TestCase {
     }
 
     public void testCreateEmptyArrayOfIntViaAlias() throws SQLException {
-        PreparedStatement pstmt = _conn.prepareStatement("SELECT ?");
+        PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::int[]");
         Integer in[] = new Integer[0];
         pstmt.setArray(1, _conn.createArrayOf("integer", in));
 
