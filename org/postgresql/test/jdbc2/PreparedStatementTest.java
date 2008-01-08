@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/PreparedStatementTest.java,v 1.19 2007/10/20 17:01:48 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/PreparedStatementTest.java,v 1.20 2007/12/15 16:12:14 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -785,11 +785,15 @@ public class PreparedStatementTest extends TestCase
     public void testUnknownSetObject() throws SQLException
     {
         PreparedStatement pstmt = conn.prepareStatement("INSERT INTO intervaltable(i) VALUES (?)");
-        pstmt.setString(1, "1 week");
-        try {
-            pstmt.executeUpdate();
-            fail("Should have failed with type mismatch.");
-        } catch (SQLException sqle) {
+
+        if (TestUtil.isProtocolVersion(conn, 3))
+        {
+            pstmt.setString(1, "1 week");
+            try {
+                pstmt.executeUpdate();
+                fail("Should have failed with type mismatch.");
+            } catch (SQLException sqle) {
+            }
         }
 
         pstmt.setObject(1, "1 week", Types.OTHER);
