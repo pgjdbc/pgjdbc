@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2004-2005, PostgreSQL Global Development Group
+* Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ConnectionTest.java,v 1.21 2005/11/24 02:31:43 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ConnectionTest.java,v 1.22 2007/10/07 23:32:46 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

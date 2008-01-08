@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2004-2005, PostgreSQL Global Development Group
+* Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/PSQLWarning.java,v 1.5 2005/02/10 19:53:17 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/util/PSQLWarning.java,v 1.6 2005/04/10 16:44:13 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

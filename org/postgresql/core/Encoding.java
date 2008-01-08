@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2003-2005, PostgreSQL Global Development Group
+* Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/Encoding.java,v 1.21 2005/07/04 02:18:32 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/Encoding.java,v 1.22 2006/10/30 18:30:16 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

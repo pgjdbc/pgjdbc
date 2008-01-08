@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2003-2005, PostgreSQL Global Development Group
+* Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/BaseResultSet.java,v 1.8 2004/11/09 08:44:12 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/BaseResultSet.java,v 1.9 2005/01/11 08:25:43 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

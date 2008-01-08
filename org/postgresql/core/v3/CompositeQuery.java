@@ -1,10 +1,10 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2004-2005, PostgreSQL Global Development Group
+* Copyright (c) 2004-2008, PostgreSQL Global Development Group
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/CompositeQuery.java,v 1.3 2004/11/09 08:45:59 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/CompositeQuery.java,v 1.4 2005/01/11 08:25:44 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

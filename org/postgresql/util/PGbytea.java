@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2003-2005, PostgreSQL Global Development Group
+* Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/PGbytea.java,v 1.13 2006/09/26 06:52:34 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/util/PGbytea.java,v 1.14 2006/11/06 05:49:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

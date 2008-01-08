@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2003-2005, PostgreSQL Global Development Group
+* Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/largeobject/BlobInputStream.java,v 1.10 2005/01/11 08:25:47 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/largeobject/BlobInputStream.java,v 1.11 2007/02/19 18:35:29 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

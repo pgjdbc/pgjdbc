@@ -1,10 +1,10 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2004-2005, PostgreSQL Global Development Group
+* Copyright (c) 2004-2008, PostgreSQL Global Development Group
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*        $PostgreSQL: pgjdbc/org/postgresql/core/Utils.java,v 1.5 2006/12/01 08:53:45 jurka Exp $
+*        $PostgreSQL: pgjdbc/org/postgresql/core/Utils.java,v 1.6 2007/03/29 04:54:06 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

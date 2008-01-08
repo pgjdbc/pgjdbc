@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2008, PostgreSQL Global Development Group
+* Copyright (c) 2008-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL$
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/DatabaseMetaDataTest.java,v 1.1 2008/01/08 06:47:57 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

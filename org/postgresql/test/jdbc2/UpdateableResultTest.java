@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2001-2005, PostgreSQL Global Development Group
+* Copyright (c) 2001-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/UpdateableResultTest.java,v 1.24 2007/04/16 16:36:41 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/UpdateableResultTest.java,v 1.29 2007/12/01 08:28:58 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

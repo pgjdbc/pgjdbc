@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2006, PostgreSQL Global Development Group
+* Copyright (c) 2006-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/Parser.java,v 1.2 2006/12/01 08:53:45 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/Parser.java,v 1.3 2007/10/20 17:01:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
