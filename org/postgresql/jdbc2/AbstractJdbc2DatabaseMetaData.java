@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.41 2007/12/01 08:28:58 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.42 2007/12/02 06:48:43 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2203,6 +2203,198 @@ public abstract class AbstractJdbc2DatabaseMetaData
         return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, v);
     }
 
+    protected java.sql.ResultSet getColumns(int jdbcVersion, String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException
+    {
+        int numberOfFields;
+        if (jdbcVersion >= 4) {
+            numberOfFields = 23;
+        } else if (jdbcVersion >= 3) {
+            numberOfFields = 22;
+        } else {
+            numberOfFields = 18;
+        }
+        Vector v = new Vector();  // The new ResultSet tuple stuff
+        Field f[] = new Field[numberOfFields];  // The field descriptors for the new ResultSet
+
+        f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
+        f[1] = new Field("TABLE_SCHEM", Oid.VARCHAR);
+        f[2] = new Field("TABLE_NAME", Oid.VARCHAR);
+        f[3] = new Field("COLUMN_NAME", Oid.VARCHAR);
+        f[4] = new Field("DATA_TYPE", Oid.INT2);
+        f[5] = new Field("TYPE_NAME", Oid.VARCHAR);
+        f[6] = new Field("COLUMN_SIZE", Oid.INT4);
+        f[7] = new Field("BUFFER_LENGTH", Oid.VARCHAR);
+        f[8] = new Field("DECIMAL_DIGITS", Oid.INT4);
+        f[9] = new Field("NUM_PREC_RADIX", Oid.INT4);
+        f[10] = new Field("NULLABLE", Oid.INT4);
+        f[11] = new Field("REMARKS", Oid.VARCHAR);
+        f[12] = new Field("COLUMN_DEF", Oid.VARCHAR);
+        f[13] = new Field("SQL_DATA_TYPE", Oid.INT4);
+        f[14] = new Field("SQL_DATETIME_SUB", Oid.INT4);
+        f[15] = new Field("CHAR_OCTET_LENGTH", Oid.VARCHAR);
+        f[16] = new Field("ORDINAL_POSITION", Oid.INT4);
+        f[17] = new Field("IS_NULLABLE", Oid.VARCHAR);
+
+        if (jdbcVersion >= 3) {
+            f[18] = new Field("SCOPE_CATLOG", Oid.VARCHAR);
+            f[19] = new Field("SCOPE_SCHEMA", Oid.VARCHAR);
+            f[20] = new Field("SCOPE_TABLE", Oid.VARCHAR);
+            f[21] = new Field("SOURCE_DATA_TYPE", Oid.INT2);
+        }
+
+        if (jdbcVersion >= 4) {
+            f[22] = new Field("IS_AUTOINCREMENT", Oid.VARCHAR);
+        }
+
+        String sql;
+        if (connection.haveMinimumServerVersion("7.3"))
+        {
+            sql = "SELECT n.nspname,c.relname,a.attname,a.atttypid,a.attnotnull,a.atttypmod,a.attlen,a.attnum,def.adsrc,dsc.description,t.typbasetype,t.typtype " +
+                  " FROM pg_catalog.pg_namespace n " +
+                  " JOIN pg_catalog.pg_class c ON (c.relnamespace = n.oid) " +
+                  " JOIN pg_catalog.pg_attribute a ON (a.attrelid=c.oid) " +
+                  " JOIN pg_catalog.pg_type t ON (a.atttypid = t.oid) " +
+                  " LEFT JOIN pg_catalog.pg_attrdef def ON (a.attrelid=def.adrelid AND a.attnum = def.adnum) " +
+                  " LEFT JOIN pg_catalog.pg_description dsc ON (c.oid=dsc.objoid AND a.attnum = dsc.objsubid) " +
+                  " LEFT JOIN pg_catalog.pg_class dc ON (dc.oid=dsc.classoid AND dc.relname='pg_class') " +
+                  " LEFT JOIN pg_catalog.pg_namespace dn ON (dc.relnamespace=dn.oid AND dn.nspname='pg_catalog') " +
+                  " WHERE a.attnum > 0 AND NOT a.attisdropped ";
+            if (schemaPattern != null && !"".equals(schemaPattern))
+            {
+                sql += " AND n.nspname LIKE '" + escapeQuotes(schemaPattern) + "' ";
+            }
+        }
+        else if (connection.haveMinimumServerVersion("7.2"))
+        {
+            sql = "SELECT NULL::text AS nspname,c.relname,a.attname,a.atttypid,a.attnotnull,a.atttypmod,a.attlen,a.attnum,def.adsrc,dsc.description,NULL::oid AS typbasetype,t.typtype " +
+                  " FROM pg_class c " +
+                  " JOIN pg_attribute a ON (a.attrelid=c.oid) " +
+                  " LEFT JOIN pg_attrdef def ON (a.attrelid=def.adrelid AND a.attnum = def.adnum) " +
+                  " LEFT JOIN pg_description dsc ON (c.oid=dsc.objoid AND a.attnum = dsc.objsubid) " +
+                  " LEFT JOIN pg_class dc ON (dc.oid=dsc.classoid AND dc.relname='pg_class') " +
+                  " WHERE a.attnum > 0 ";
+        }
+        else if (connection.haveMinimumServerVersion("7.1"))
+        {
+            sql = "SELECT NULL::text AS nspname,c.relname,a.attname,a.atttypid,a.attnotnull,a.atttypmod,a.attlen,a.attnum,def.adsrc,dsc.description,NULL::oid AS typbasetype, 'b' AS typtype  " +
+                  " FROM pg_class c " +
+                  " JOIN pg_attribute a ON (a.attrelid=c.oid) " +
+                  " LEFT JOIN pg_attrdef def ON (a.attrelid=def.adrelid AND a.attnum = def.adnum) " +
+                  " LEFT JOIN pg_description dsc ON (a.oid=dsc.objoid) " +
+                  " WHERE a.attnum > 0 ";
+        }
+        else
+        {
+            // if < 7.1 then don't get defaults or descriptions.
+            sql = "SELECT NULL::text AS nspname,c.relname,a.attname,a.atttypid,a.attnotnull,a.atttypmod,a.attlen,a.attnum,NULL AS adsrc,NULL AS description,NULL AS typbasetype, 'b' AS typtype " +
+                  " FROM pg_class c, pg_attribute a " +
+                  " WHERE a.attrelid=c.oid AND a.attnum > 0 ";
+        }
+
+        if (tableNamePattern != null && !"".equals(tableNamePattern))
+        {
+            sql += " AND c.relname LIKE '" + escapeQuotes(tableNamePattern) + "' ";
+        }
+        if (columnNamePattern != null && !"".equals(columnNamePattern))
+        {
+            sql += " AND a.attname LIKE '" + escapeQuotes(columnNamePattern) + "' ";
+        }
+        sql += " ORDER BY nspname,relname,attnum ";
+
+        ResultSet rs = connection.createStatement().executeQuery(sql);
+        while (rs.next())
+        {
+            byte[][] tuple = new byte[numberOfFields][];
+            int typeOid = (int)rs.getLong("atttypid");
+            int typeMod = rs.getInt("atttypmod");
+
+            tuple[0] = null;     // Catalog name, not supported
+            tuple[1] = rs.getBytes("nspname"); // Schema
+            tuple[2] = rs.getBytes("relname"); // Table name
+            tuple[3] = rs.getBytes("attname"); // Column name
+
+            String typtype = rs.getString("typtype");
+            int sqlType;
+            if ("c".equals(typtype)) {
+                sqlType = Types.STRUCT;
+            } else if ("d".equals(typtype)) {
+                sqlType = Types.DISTINCT;
+            } else {
+                sqlType = connection.getSQLType(typeOid);
+            }
+
+            tuple[4] = connection.encodeString(Integer.toString(sqlType));
+            String pgType = connection.getPGType(typeOid);
+            tuple[5] = connection.encodeString(pgType); // Type name
+            tuple[7] = null;      // Buffer length
+
+
+            String defval = rs.getString("adsrc");
+
+            if ( defval != null )
+            {
+                if ( pgType.equals("int4") )
+                {
+                    if (defval.indexOf("nextval(") != -1)
+                        tuple[5] = connection.encodeString("serial"); // Type name == serial
+                }
+                else if ( pgType.equals("int8") )
+                {
+                    if (defval.indexOf("nextval(") != -1)
+                        tuple[5] = connection.encodeString("bigserial"); // Type name == bigserial
+                }
+            }
+
+            int decimalDigits = TypeInfoCache.getScale(typeOid, typeMod);
+            int columnSize = TypeInfoCache.getPrecision(typeOid, typeMod);
+            if (columnSize == 0) {
+                columnSize = TypeInfoCache.getDisplaySize(typeOid, typeMod);
+            }
+
+            tuple[6] = connection.encodeString(Integer.toString(columnSize));
+            tuple[8] = connection.encodeString(Integer.toString(decimalDigits));
+
+            // Everything is base 10 unless we override later.
+            tuple[9] = connection.encodeString("10");
+
+            if (pgType.equals("bit") || pgType.equals("varbit"))
+            {
+                tuple[9] = connection.encodeString("2");
+            }
+
+            tuple[10] = connection.encodeString(Integer.toString(rs.getBoolean("attnotnull") ? java.sql.DatabaseMetaData.columnNoNulls : java.sql.DatabaseMetaData.columnNullable)); // Nullable
+            tuple[11] = rs.getBytes("description");    // Description (if any)
+            tuple[12] = rs.getBytes("adsrc");    // Column default
+            tuple[13] = null;      // sql data type (unused)
+            tuple[14] = null;      // sql datetime sub (unused)
+            tuple[15] = tuple[6];     // char octet length
+            tuple[16] = rs.getBytes("attnum");  // ordinal position
+            tuple[17] = connection.encodeString(rs.getBoolean("attnotnull") ? "NO" : "YES"); // Is nullable
+
+            if (jdbcVersion >= 3) {
+                int baseTypeOid = (int) rs.getLong("typbasetype");
+
+                tuple[18] = null; // SCOPE_CATLOG
+                tuple[19] = null; // SCOPE_SCHEMA
+                tuple[20] = null; // SCOPE_TABLE
+                tuple[21] = baseTypeOid == 0 ? null : connection.encodeString(Integer.toString(connection.getSQLType(baseTypeOid))); // SOURCE_DATA_TYPE
+            }
+
+            if (jdbcVersion >= 4) {
+                String autoinc = "NO";
+                if (defval != null && defval.indexOf("nextval(") != -1) {
+                    autoinc = "YES";
+                }
+                tuple[22] = connection.encodeString(autoinc);
+            }
+
+            v.addElement(tuple);
+        }
+        rs.close();
+
+        return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, v);
+    }
+
     /*
      * Get a description of table columns available in a catalog.
      *
@@ -2253,146 +2445,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public java.sql.ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException
     {
-        Vector v = new Vector();  // The new ResultSet tuple stuff
-        Field f[] = new Field[18];  // The field descriptors for the new ResultSet
-
-        f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
-        f[1] = new Field("TABLE_SCHEM", Oid.VARCHAR);
-        f[2] = new Field("TABLE_NAME", Oid.VARCHAR);
-        f[3] = new Field("COLUMN_NAME", Oid.VARCHAR);
-        f[4] = new Field("DATA_TYPE", Oid.INT2);
-        f[5] = new Field("TYPE_NAME", Oid.VARCHAR);
-        f[6] = new Field("COLUMN_SIZE", Oid.INT4);
-        f[7] = new Field("BUFFER_LENGTH", Oid.VARCHAR);
-        f[8] = new Field("DECIMAL_DIGITS", Oid.INT4);
-        f[9] = new Field("NUM_PREC_RADIX", Oid.INT4);
-        f[10] = new Field("NULLABLE", Oid.INT4);
-        f[11] = new Field("REMARKS", Oid.VARCHAR);
-        f[12] = new Field("COLUMN_DEF", Oid.VARCHAR);
-        f[13] = new Field("SQL_DATA_TYPE", Oid.INT4);
-        f[14] = new Field("SQL_DATETIME_SUB", Oid.INT4);
-        f[15] = new Field("CHAR_OCTET_LENGTH", Oid.VARCHAR);
-        f[16] = new Field("ORDINAL_POSITION", Oid.INT4);
-        f[17] = new Field("IS_NULLABLE", Oid.VARCHAR);
-
-        String sql;
-        if (connection.haveMinimumServerVersion("7.3"))
-        {
-            sql = "SELECT n.nspname,c.relname,a.attname,a.atttypid,a.attnotnull,a.atttypmod,a.attlen,a.attnum,def.adsrc,dsc.description " +
-                  " FROM pg_catalog.pg_namespace n " +
-                  " JOIN pg_catalog.pg_class c ON (c.relnamespace = n.oid) " +
-                  " JOIN pg_catalog.pg_attribute a ON (a.attrelid=c.oid) " +
-                  " LEFT JOIN pg_catalog.pg_attrdef def ON (a.attrelid=def.adrelid AND a.attnum = def.adnum) " +
-                  " LEFT JOIN pg_catalog.pg_description dsc ON (c.oid=dsc.objoid AND a.attnum = dsc.objsubid) " +
-                  " LEFT JOIN pg_catalog.pg_class dc ON (dc.oid=dsc.classoid AND dc.relname='pg_class') " +
-                  " LEFT JOIN pg_catalog.pg_namespace dn ON (dc.relnamespace=dn.oid AND dn.nspname='pg_catalog') " +
-                  " WHERE a.attnum > 0 AND NOT a.attisdropped ";
-            if (schemaPattern != null && !"".equals(schemaPattern))
-            {
-                sql += " AND n.nspname LIKE '" + escapeQuotes(schemaPattern) + "' ";
-            }
-        }
-        else if (connection.haveMinimumServerVersion("7.2"))
-        {
-            sql = "SELECT NULL::text AS nspname,c.relname,a.attname,a.atttypid,a.attnotnull,a.atttypmod,a.attlen,a.attnum,def.adsrc,dsc.description " +
-                  " FROM pg_class c " +
-                  " JOIN pg_attribute a ON (a.attrelid=c.oid) " +
-                  " LEFT JOIN pg_attrdef def ON (a.attrelid=def.adrelid AND a.attnum = def.adnum) " +
-                  " LEFT JOIN pg_description dsc ON (c.oid=dsc.objoid AND a.attnum = dsc.objsubid) " +
-                  " LEFT JOIN pg_class dc ON (dc.oid=dsc.classoid AND dc.relname='pg_class') " +
-                  " WHERE a.attnum > 0 ";
-        }
-        else if (connection.haveMinimumServerVersion("7.1"))
-        {
-            sql = "SELECT NULL::text AS nspname,c.relname,a.attname,a.atttypid,a.attnotnull,a.atttypmod,a.attlen,a.attnum,def.adsrc,dsc.description " +
-                  " FROM pg_class c " +
-                  " JOIN pg_attribute a ON (a.attrelid=c.oid) " +
-                  " LEFT JOIN pg_attrdef def ON (a.attrelid=def.adrelid AND a.attnum = def.adnum) " +
-                  " LEFT JOIN pg_description dsc ON (a.oid=dsc.objoid) " +
-                  " WHERE a.attnum > 0 ";
-        }
-        else
-        {
-            // if < 7.1 then don't get defaults or descriptions.
-            sql = "SELECT NULL::text AS nspname,c.relname,a.attname,a.atttypid,a.attnotnull,a.atttypmod,a.attlen,a.attnum,NULL AS adsrc,NULL AS description " +
-                  " FROM pg_class c, pg_attribute a " +
-                  " WHERE a.attrelid=c.oid AND a.attnum > 0 ";
-        }
-
-        if (tableNamePattern != null && !"".equals(tableNamePattern))
-        {
-            sql += " AND c.relname LIKE '" + escapeQuotes(tableNamePattern) + "' ";
-        }
-        if (columnNamePattern != null && !"".equals(columnNamePattern))
-        {
-            sql += " AND a.attname LIKE '" + escapeQuotes(columnNamePattern) + "' ";
-        }
-        sql += " ORDER BY nspname,relname,attnum ";
-
-        ResultSet rs = connection.createStatement().executeQuery(sql);
-        while (rs.next())
-        {
-            byte[][] tuple = new byte[18][];
-            int typeOid = (int)rs.getLong("atttypid");
-            int typeMod = rs.getInt("atttypmod");
-
-            tuple[0] = null;     // Catalog name, not supported
-            tuple[1] = rs.getBytes("nspname"); // Schema
-            tuple[2] = rs.getBytes("relname"); // Table name
-            tuple[3] = rs.getBytes("attname"); // Column name
-            tuple[4] = connection.encodeString(Integer.toString(connection.getSQLType(typeOid)));
-            String pgType = connection.getPGType(typeOid);
-            tuple[5] = connection.encodeString(pgType); // Type name
-            tuple[7] = null;      // Buffer length
-
-
-            String defval = rs.getString("adsrc");
-
-            if ( defval != null )
-            {
-                if ( pgType.equals("int4") )
-                {
-                    if (defval.indexOf("nextval(") != -1)
-                        tuple[5] = connection.encodeString("serial"); // Type name == serial
-                }
-                else if ( pgType.equals("int8") )
-                {
-                    if (defval.indexOf("nextval(") != -1)
-                        tuple[5] = connection.encodeString("bigserial"); // Type name == bigserial
-                }
-            }
-
-            int decimalDigits = TypeInfoCache.getScale(typeOid, typeMod);
-            int columnSize = TypeInfoCache.getPrecision(typeOid, typeMod);
-            if (columnSize == 0) {
-                columnSize = TypeInfoCache.getDisplaySize(typeOid, typeMod);
-            }
-
-            tuple[6] = connection.encodeString(Integer.toString(columnSize));
-            tuple[8] = connection.encodeString(Integer.toString(decimalDigits));
-
-            // Everything is base 10 unless we override later.
-            tuple[9] = connection.encodeString("10");
-
-            if (pgType.equals("bit") || pgType.equals("varbit"))
-            {
-                tuple[9] = connection.encodeString("2");
-            }
-
-            tuple[10] = connection.encodeString(Integer.toString(rs.getBoolean("attnotnull") ? java.sql.DatabaseMetaData.columnNoNulls : java.sql.DatabaseMetaData.columnNullable)); // Nullable
-            tuple[11] = rs.getBytes("description");    // Description (if any)
-            tuple[12] = rs.getBytes("adsrc");    // Column default
-            tuple[13] = null;      // sql data type (unused)
-            tuple[14] = null;      // sql datetime sub (unused)
-            tuple[15] = tuple[6];     // char octet length
-            tuple[16] = rs.getBytes("attnum");  // ordinal position
-            tuple[17] = connection.encodeString(rs.getBoolean("attnotnull") ? "NO" : "YES"); // Is nullable
-
-            v.addElement(tuple);
-        }
-        rs.close();
-
-        return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, v);
+        return getColumns(2, catalog, schemaPattern, tableNamePattern, columnNamePattern);
     }
 
     /*
