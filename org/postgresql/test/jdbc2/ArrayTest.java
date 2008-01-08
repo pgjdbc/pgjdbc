@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ArrayTest.java,v 1.13 2006/12/01 08:53:46 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ArrayTest.java,v 1.16 2007/12/01 11:07:13 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -365,7 +365,11 @@ public class ArrayTest extends TestCase
         rs.close();
         stmt.close();
 
-        PreparedStatement pstmt = conn.prepareStatement("SELECT ?");
+        String sql = "SELECT ?";
+        if (TestUtil.isProtocolVersion(conn, 2)) {
+            sql = "SELECT ?::int[]";
+        }
+        PreparedStatement pstmt = conn.prepareStatement(sql);
         pstmt.setArray(1, arr);
         rs = pstmt.executeQuery();
         assertTrue(rs.next());
