@@ -693,4 +693,16 @@ public class ResultSetTest extends TestCase
         try { rs.clearWarnings(); fail("Expected SQLException"); }
             catch (SQLException e) { }
     }
+
+    /*
+     * The JDBC spec says when you have duplicate column names,
+     * the first one should be returned.
+     */
+    public void testDuplicateColumnNameOrder() throws SQLException
+    {
+        Statement stmt = con.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT 1 AS a, 2 AS a");
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt("a"));
+    }
 }
