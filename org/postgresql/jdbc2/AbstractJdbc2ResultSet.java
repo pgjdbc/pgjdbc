@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.99 2007/11/27 19:33:04 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.100 2008/01/08 06:56:28 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2509,7 +2509,10 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         if (columnNameIndexMap == null)
         {
             columnNameIndexMap = new HashMap(fields.length * 2);
-            for (int i = 0; i < fields.length; i++)
+            // The JDBC spec says when you have duplicate columns names,
+            // the first one should be returned.  So load the map in
+            // reverse order so the first ones will overwrite later ones.
+            for (int i = fields.length - 1; i >= 0; i--)
             {
                 columnNameIndexMap.put(fields[i].getColumnLabel().toLowerCase(), new Integer(i + 1));
             }

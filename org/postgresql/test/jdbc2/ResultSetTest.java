@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ResultSetTest.java,v 1.27 2005/11/24 02:31:43 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ResultSetTest.java,v 1.28 2008/01/08 06:56:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -692,5 +692,17 @@ public class ResultSetTest extends TestCase
             catch (SQLException e) { }
         try { rs.clearWarnings(); fail("Expected SQLException"); }
             catch (SQLException e) { }
+    }
+
+    /*
+     * The JDBC spec says when you have duplicate column names,
+     * the first one should be returned.
+     */
+    public void testDuplicateColumnNameOrder() throws SQLException
+    {
+        Statement stmt = con.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT 1 AS a, 2 AS a");
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt("a"));
     }
 }
