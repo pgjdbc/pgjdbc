@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.105 2007/12/15 16:12:14 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.106 2008/01/08 06:56:28 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -598,6 +598,10 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (seconds < 0)
             throw new PSQLException(GT.tr("Query timeout must be a value greater than or equals to 0."),
                                     PSQLState.INVALID_PARAMETER_VALUE);
+
+        if (seconds > 0)
+            throw Driver.notImplemented(this.getClass(), "setQueryTimeout(int)");
+
         timeout = seconds;
     }
 
