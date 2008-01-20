@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.39 2007/10/07 23:32:46 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.40 2008/01/08 06:56:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -391,6 +391,7 @@ public class DatabaseMetaDataTest extends TestCase
         Statement stmt = con.createStatement();
         stmt.execute("create index idx_id on testmetadata (id)");
         stmt.execute("create index idx_func_single on testmetadata (upper(colour))");
+        stmt.execute("create unique index idx_un_id on testmetadata(id)");
         if (TestUtil.haveMinimumServerVersion(con, "7.4")) {
             stmt.execute("create index idx_func_multi on testmetadata (upper(colour), upper(quest))");
             stmt.execute("create index idx_func_mixed on testmetadata (colour, upper(quest))");
@@ -399,6 +400,12 @@ public class DatabaseMetaDataTest extends TestCase
         DatabaseMetaData dbmd = con.getMetaData();
         assertNotNull(dbmd);
         ResultSet rs = dbmd.getIndexInfo(null, null, "testmetadata", false, false);
+
+        assertTrue(rs.next());
+        assertEquals("idx_un_id", rs.getString("INDEX_NAME"));
+        assertEquals(1, rs.getInt("ORDINAL_POSITION"));
+        assertEquals("id", rs.getString("COLUMN_NAME"));
+        assertTrue(!rs.getBoolean("NON_UNIQUE"));
 
         if (TestUtil.haveMinimumServerVersion(con, "7.4")) {
             assertTrue(rs.next());
@@ -431,6 +438,7 @@ public class DatabaseMetaDataTest extends TestCase
         assertEquals("idx_id", rs.getString("INDEX_NAME"));
         assertEquals(1, rs.getInt("ORDINAL_POSITION"));
         assertEquals("id", rs.getString("COLUMN_NAME"));
+        assertTrue(rs.getBoolean("NON_UNIQUE"));
 
         assertTrue(!rs.next());
 
