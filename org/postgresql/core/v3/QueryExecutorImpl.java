@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.37 2007/10/15 08:06:24 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.38 2008/01/08 06:56:27 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1425,23 +1425,46 @@ public class QueryExecutorImpl implements QueryExecutor {
                 break;
 
             case 'G':  // CopyInResponse
+                if (logger.logDebug()) {
+                    logger.debug(" <=BE CopyInResponse");
+                    logger.debug(" FE=> CopyFail");
+                }
+
+                // COPY sub-protocol is not implemented yet
+                // We'll send a CopyFail message for COPY FROM STDIN so that
+                // server does not wait for the data.
+
+                byte[] buf = Utils.encodeUTF8("The JDBC driver currently does not support COPY operations.");
+                pgStream.SendChar('f');
+                pgStream.SendInteger4(buf.length + 4 + 1);
+                pgStream.Send(buf);
+                pgStream.SendChar(0);
+                pgStream.flush();
+                sendSync();     // send sync message
+                skipMessage();  // skip the response message
+                break;
+
             case 'H':  // CopyOutResponse
+                if (logger.logDebug())
+                    logger.debug(" <=BE CopyOutResponse");
+ 
+                skipMessage();
+                // In case of CopyOutResponse, we cannot abort data transfer,
+                // so just throw an error and ignore CopyData messages
+                handler.handleError(new PSQLException(GT.tr("The driver currently does not support COPY operations."), PSQLState.NOT_IMPLEMENTED));
+                break;
+
             case 'c':  // CopyDone
+                skipMessage();
+                if (logger.logDebug()) {
+                    logger.debug(" <=BE CopyDone");
+                }
+                break;
+
             case 'd':  // CopyData
-                {
-                    // COPY FROM STDIN / COPY TO STDOUT, neither of which are currently
-                    // supported.
-
-                    // CopyInResponse can only occur in response to an Execute we sent.
-                    // Every Execute we send is followed by either a Bind or a ClosePortal,
-                    // so we don't need to send a CopyFail; the server will fail the copy
-                    // automatically when it sees the next message.
-
-                    int l_len = pgStream.ReceiveInteger4();
-                    /* discard */
-                    pgStream.Receive(l_len);
-
-                    handler.handleError(new PSQLException(GT.tr("The driver currently does not support COPY operations."), PSQLState.NOT_IMPLEMENTED));
+                skipMessage();
+                if (logger.logDebug()) {
+                    logger.debug(" <=BE CopyData");
                 }
                 break;
 
@@ -1452,6 +1475,16 @@ public class QueryExecutorImpl implements QueryExecutor {
         }
     }
 
+    /**
+     * Ignore the response message by reading the message length and skipping
+     * over those bytes in the communication stream.
+     */
+    private void skipMessage() throws IOException {
+        int l_len = pgStream.ReceiveInteger4();        
+        // skip l_len-4 (length includes the 4 bytes for message length itself
+        pgStream.Skip(l_len - 4);
+    }
+ 
     public synchronized void fetch(ResultCursor cursor, ResultHandler handler, int fetchSize)
     throws SQLException {
         final Portal portal = (Portal)cursor;
