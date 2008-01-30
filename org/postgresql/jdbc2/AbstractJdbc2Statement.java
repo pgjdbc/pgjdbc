@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.96.2.4 2007/06/22 21:37:40 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.96.2.5 2007/07/27 09:01:53 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2546,6 +2546,72 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         }
     }
 
+    private class CallableBatchResultHandler implements ResultHandler {
+        private BatchUpdateException batchException = null;
+        private int resultIndex = 0;
+
+        private final Query[] queries;
+        private final ParameterList[] parameterLists;
+        private final int[] updateCounts;
+
+        CallableBatchResultHandler(Query[] queries, ParameterList[] parameterLists, int[] updateCounts) {
+            this.queries = queries;
+            this.parameterLists = parameterLists;
+            this.updateCounts = updateCounts;
+        }
+
+        public void handleResultRows(Query fromQuery, Field[] fields, Vector tuples, ResultCursor cursor) 
+        {
+            
+        }
+
+        public void handleCommandStatus(String status, int updateCount, long insertOID) {
+            if (resultIndex >= updateCounts.length)
+            {
+                handleError(new PSQLException(GT.tr("Too many update results were returned."),
+                                              PSQLState.TOO_MANY_RESULTS));
+                return ;
+            }
+
+            updateCounts[resultIndex++] = updateCount;
+        }
+
+        public void handleWarning(SQLWarning warning) {
+            AbstractJdbc2Statement.this.addWarning(warning);
+        }
+
+        public void handleError(SQLException newError) {
+            if (batchException == null)
+            {
+                int[] successCounts;
+
+                if (resultIndex >= updateCounts.length)
+                    successCounts = updateCounts;
+                else
+                {
+                    successCounts = new int[resultIndex];
+                    System.arraycopy(updateCounts, 0, successCounts, 0, resultIndex);
+                }
+
+                String queryString = "<unknown>";
+                if (resultIndex < queries.length)
+                    queryString = queries[resultIndex].toString(parameterLists[resultIndex]);
+
+                batchException = new BatchUpdateException(GT.tr("Batch entry {0} {1} was aborted.  Call getNextException to see the cause.",
+                                 new Object[]{ new Integer(resultIndex),
+                                               queryString}),
+                                 successCounts);
+            }
+
+            batchException.setNextException(newError);
+        }
+
+        public void handleCompletion() throws SQLException {
+            if (batchException != null)
+                throw batchException;
+        }
+    }
+
     public int[] executeBatch() throws SQLException
     {
         checkClosed();
@@ -2592,7 +2658,14 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
 
         result = null;
-        BatchResultHandler handler = new BatchResultHandler(queries, parameterLists, updateCounts);
+
+		ResultHandler handler;
+		if (isFunction) {
+			handler = new CallableBatchResultHandler(queries, parameterLists, updateCounts );
+		} else {
+			handler = new BatchResultHandler(queries, parameterLists, updateCounts);
+		}
+		
         connection.getQueryExecutor().execute(queries,
                                               parameterLists,
                                               handler,
