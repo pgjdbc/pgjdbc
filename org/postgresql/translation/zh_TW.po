@@ -1,113 +1,185 @@
 # Traditional Chinese message translation for the PostgreSQL JDBC driver
 # This file is distributed under the same license as the package.
 #
-# $PostgreSQL: pgjdbc/org/postgresql/translation/zh_TW.po,v 1.2 2004/11/07 22:17:13 jurka Exp $
+# $PostgreSQL: pgjdbc/org/postgresql/translation/zh_TW.po,v 1.3 2004/11/11 09:38:19 jurka Exp $
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: PostgreSQL JDBC Driver 8.0\n"
+"Project-Id-Version: PostgreSQL JDBC Driver 8.3\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-11-11 01:36-0800\n"
-"PO-Revision-Date: 2004-11-11 23:55-0700\n"
-"Last-Translator: Zhenbang Wei <forth@zbwei.net>\n"
-"Language-Team: Traditional Chinese <forth@zbwei.net>\n"
+"POT-Creation-Date: 2008-01-30 02:07-0700\n"
+"PO-Revision-Date: 2008-01-21 16:50+0800\n"
+"Last-Translator: 郭朝益(ChaoYi, Kuo) <Kuo.ChaoYi@gmail.com>\n"
+"Language-Team: The PostgreSQL Development Team <Kuo.ChaoYi@gmail.com>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: Chinese\n"
+"X-Poedit-Country: TAIWAN\n"
+"X-Poedit-SourceCharset: utf-8\n"
 
-#: org/postgresql/Driver.java.in:159
+#: org/postgresql/Driver.java.in:228
 msgid "Error loading default settings from driverconfig.properties"
 msgstr ""
 
-#: org/postgresql/Driver.java.in:197
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1716
+#: org/postgresql/Driver.java.in:275
+msgid ""
+"Your security policy has prevented the connection from being attempted.  You "
+"probably need to grant the connect java.net.SocketPermission to the database "
+"server host and port that you wish to connect to."
+msgstr ""
+
+#: org/postgresql/Driver.java.in:280 org/postgresql/Driver.java.in:344
 msgid ""
 "Something unusual has occured to cause the driver to fail. Please report "
 "this exception."
-msgstr "不明的原因導致驅動程式發生錯誤，請回報這個例外。"
+msgstr "不明的原因導致驅動程式造成失敗，請回報這個例外。"
 
-#: org/postgresql/Driver.java.in:516
-msgid "This method is not yet implemented."
-msgstr "這個方法尚未實作。"
+#: org/postgresql/Driver.java.in:352
+msgid "Connection attempt timed out."
+msgstr "Connection 嘗試逾時。"
 
-#: org/postgresql/core/ConnectionFactory.java:68
+#: org/postgresql/Driver.java.in:360
+msgid "Interrupted while attempting to connect."
+msgstr ""
+
+#: org/postgresql/Driver.java.in:738
 #, java-format
-msgid "No connection was able to be made for requested protocol {0}."
-msgstr "無法以要求的協定{0}建立連線。"
+msgid "Method {0} is not yet implemented."
+msgstr "這個 {0} 方法尚未被實作。"
 
-#: org/postgresql/core/PGStream.java:458
+#: org/postgresql/core/ConnectionFactory.java:71
+#, java-format
+msgid "A connection could not be made using the requested protocol {0}."
+msgstr "無法以要求的通訊協定 {0} 建立連線。"
+
+#: org/postgresql/core/PGStream.java:480
 #, java-format
 msgid "Premature end of input stream, expected {0} bytes, but only read {1}."
 msgstr ""
 
+#: org/postgresql/core/PGStream.java:520
+#, java-format
+msgid "Expected an EOF from server, got: {0}"
+msgstr ""
+
+#: org/postgresql/core/UTF8Encoding.java:30
+#, java-format
+msgid ""
+"Illegal UTF-8 sequence: byte {0} of {1} byte sequence is not 10xxxxxx: {2}"
+msgstr ""
+
+#: org/postgresql/core/UTF8Encoding.java:63
+#, java-format
+msgid "Illegal UTF-8 sequence: {0} bytes used to encode a {1} byte value: {2}"
+msgstr ""
+
+#: org/postgresql/core/UTF8Encoding.java:100
+#: org/postgresql/core/UTF8Encoding.java:127
+#, java-format
+msgid "Illegal UTF-8 sequence: initial byte is {0}: {1}"
+msgstr ""
+
+#: org/postgresql/core/UTF8Encoding.java:132
+#, java-format
+msgid "Illegal UTF-8 sequence: final value is out of range: {0}"
+msgstr ""
+
+#: org/postgresql/core/UTF8Encoding.java:147
+#, java-format
+msgid "Illegal UTF-8 sequence: final value is a surrogate value: {0}"
+msgstr ""
+
+#: org/postgresql/core/Utils.java:89 org/postgresql/core/Utils.java:106
+msgid "Zero bytes may not occur in string parameters."
+msgstr "字串參數不能有 0 個位元組。"
+
+#: org/postgresql/core/Utils.java:139
+msgid "Zero bytes may not occur in identifiers."
+msgstr "在標識識別符中不存在零位元組。"
+
+#: org/postgresql/core/types/PGBigDecimal.java:63
+#: org/postgresql/core/types/PGBoolean.java:62
+#: org/postgresql/core/types/PGByte.java:63
+#: org/postgresql/core/types/PGDouble.java:64
+#: org/postgresql/core/types/PGFloat.java:64
+#: org/postgresql/core/types/PGInteger.java:61
+#: org/postgresql/core/types/PGLong.java:62
+#: org/postgresql/core/types/PGNumber.java:62
+#: org/postgresql/core/types/PGShort.java:58
+#: org/postgresql/core/types/PGString.java:73
+#, java-format
+msgid "Cannot convert an instance of {0} to type {1}"
+msgstr "無法轉換 {0} 到類型 {1} 的實例"
+
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:55
 #: org/postgresql/core/v3/ConnectionFactoryImpl.java:66
 msgid "The driver does not support SSL."
-msgstr "驅動程式不支援SSL連線。"
+msgstr "驅動程式不支援 SSL 連線。"
 
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:93
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:122
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:123
 msgid ""
 "Connection refused. Check that the hostname and port are correct and that "
 "the postmaster is accepting TCP/IP connections."
-msgstr "連線被拒，請檢查主機名稱和埠號，並確定postmaster可以接受TCP/IP連線。"
+msgstr ""
+"連線被拒，請檢查主機名稱和埠號，並確定 postmaster 可以接受 TCP/IP 連線。"
 
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:108
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:136
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:137
 msgid "The connection attempt failed."
-msgstr "嘗試連線失敗。"
+msgstr "嘗試連線已失敗。"
 
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:147
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:159
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:174
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:186
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:175
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:187
 msgid "The server does not support SSL."
-msgstr "伺服器不支援SSL連線。"
+msgstr "伺服器不支援 SSL 連線。"
 
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:172
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:199
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:200
 msgid "An error occured while setting up the SSL connection."
-msgstr "進行SSL連線時發生錯誤。"
+msgstr "進行 SSL 連線時發生錯誤。"
 
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:221
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:275
 #, java-format
 msgid "Connection rejected: {0}."
-msgstr "連線被拒：{0}。"
+msgstr "連線已被拒絕：{0}。"
 
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:239
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:262
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:282
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:299
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:325
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:352
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:300
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:326
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:353
 msgid ""
 "The server requested password-based authentication, but no password was "
 "provided."
-msgstr "伺服器要求使用密碼驗證，但是並未提供密翩C"
+msgstr "伺服器要求使用密碼驗證，但是密碼並未提供。"
 
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:306
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:375
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:376
 #, java-format
 msgid ""
 "The authentication type {0} is not supported. Check that you have configured "
-"the pg_hba.conf file to include the client's IP address or Subnet, and that "
+"the pg_hba.conf file to include the client''s IP address or subnet, and that "
 "it is using an authentication scheme supported by the driver."
 msgstr ""
-"不支援{0}驗證，請確定您已經將客戶端的IP位址或網路區段以及驅動程式所支援的驗證"
-"類型加入pg_hba.conf。"
+"不支援 {0} 驗證型別。請核對您已經組態 pg_hba.conf 檔案包含客戶端的IP位址或網"
+"路區段，以及驅動程式所支援的驗證架構模式已被支援。"
 
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:312
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:350
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:381
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:424
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:470
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:479
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:382
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:425
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:471
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:481
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:489
 msgid "Protocol error.  Session setup failed."
-msgstr "通訊協定錯誤，session初始化失敗。"
+msgstr "通訊協定錯誤，Session 初始化失敗。"
 
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:340
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:443
 #, java-format
 msgid "Backend start-up failed: {0}."
 msgstr "後端啟動失敗：{0}。"
@@ -116,331 +188,374 @@ msgstr "後端啟動失敗：{0}。"
 msgid "An unexpected result was returned by a query."
 msgstr "傳回非預期的查詢結果。"
 
-#: org/postgresql/core/v2/FastpathParameterList.java:42
-#: org/postgresql/core/v2/FastpathParameterList.java:64
-#: org/postgresql/core/v2/FastpathParameterList.java:71
-#: org/postgresql/core/v2/SimpleParameterList.java:44
-#: org/postgresql/core/v2/SimpleParameterList.java:68
-#: org/postgresql/core/v2/SimpleParameterList.java:75
-#: org/postgresql/core/v2/SimpleParameterList.java:82
-#: org/postgresql/core/v3/CompositeParameterList.java:36
-#: org/postgresql/core/v3/SimpleParameterList.java:37
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2384
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSetMetaData.java:610
+#: org/postgresql/core/v2/FastpathParameterList.java:57
+#: org/postgresql/core/v2/FastpathParameterList.java:79
+#: org/postgresql/core/v2/FastpathParameterList.java:86
+#: org/postgresql/core/v2/SimpleParameterList.java:59
+#: org/postgresql/core/v2/SimpleParameterList.java:78
+#: org/postgresql/core/v2/SimpleParameterList.java:85
+#: org/postgresql/core/v2/SimpleParameterList.java:92
+#: org/postgresql/core/v3/CompositeParameterList.java:37
+#: org/postgresql/core/v3/SimpleParameterList.java:45
+#: org/postgresql/core/v3/SimpleParameterList.java:52
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2620
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSetMetaData.java:418
 #, java-format
 msgid "The column index is out of range: {0}, number of columns: {1}."
 msgstr "欄位索引超過許可範圍：{0}，欄位數：{1}。"
 
-#: org/postgresql/core/v2/FastpathParameterList.java:129
-#: org/postgresql/core/v2/SimpleParameterList.java:141
-#: org/postgresql/core/v3/SimpleParameterList.java:94
+#: org/postgresql/core/v2/FastpathParameterList.java:144
+#: org/postgresql/core/v2/SimpleParameterList.java:157
+#: org/postgresql/core/v3/SimpleParameterList.java:146
 #, java-format
 msgid "No value specified for parameter {0}."
-msgstr "未設定參數{0}的內容。"
+msgstr "未設定參數值 {0} 的內容。"
 
 #: org/postgresql/core/v2/QueryExecutorImpl.java:72
-#: org/postgresql/core/v2/QueryExecutorImpl.java:302
-#: org/postgresql/core/v3/QueryExecutorImpl.java:360
-#: org/postgresql/core/v3/QueryExecutorImpl.java:405
+#: org/postgresql/core/v2/QueryExecutorImpl.java:337
+#: org/postgresql/core/v3/QueryExecutorImpl.java:389
+#: org/postgresql/core/v3/QueryExecutorImpl.java:435
 #, java-format
 msgid "Expected command status BEGIN, got {0}."
 msgstr ""
 
-#: org/postgresql/core/v2/QueryExecutorImpl.java:77
-#: org/postgresql/core/v3/QueryExecutorImpl.java:410
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1699
+#: org/postgresql/core/v2/QueryExecutorImpl.java:78
+#: org/postgresql/core/v3/QueryExecutorImpl.java:441
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1755
 #, java-format
 msgid "Unexpected command status: {0}."
 msgstr ""
 
-#: org/postgresql/core/v2/QueryExecutorImpl.java:116
-#: org/postgresql/core/v2/QueryExecutorImpl.java:127
-#: org/postgresql/core/v2/QueryExecutorImpl.java:333
-#: org/postgresql/core/v3/QueryExecutorImpl.java:192
-#: org/postgresql/core/v3/QueryExecutorImpl.java:328
-#: org/postgresql/core/v3/QueryExecutorImpl.java:447
-#: org/postgresql/core/v3/QueryExecutorImpl.java:459
-#: org/postgresql/core/v3/QueryExecutorImpl.java:1296
+#: org/postgresql/core/v2/QueryExecutorImpl.java:118
+#: org/postgresql/core/v2/QueryExecutorImpl.java:129
+#: org/postgresql/core/v2/QueryExecutorImpl.java:174
+#: org/postgresql/core/v2/QueryExecutorImpl.java:369
+#: org/postgresql/core/v3/QueryExecutorImpl.java:218
+#: org/postgresql/core/v3/QueryExecutorImpl.java:357
+#: org/postgresql/core/v3/QueryExecutorImpl.java:479
+#: org/postgresql/core/v3/QueryExecutorImpl.java:491
+#: org/postgresql/core/v3/QueryExecutorImpl.java:568
+#: org/postgresql/core/v3/QueryExecutorImpl.java:1532
 msgid "An I/O error occured while sending to the backend."
-msgstr "傳送資料至後端時發生IO錯誤。"
+msgstr "傳送資料至後端時發生 I/O 錯誤。"
 
-#: org/postgresql/core/v2/QueryExecutorImpl.java:196
-#: org/postgresql/core/v2/QueryExecutorImpl.java:207
-#: org/postgresql/core/v3/QueryExecutorImpl.java:562
+#: org/postgresql/core/v2/QueryExecutorImpl.java:170
+#: org/postgresql/core/v2/QueryExecutorImpl.java:225
+#: org/postgresql/core/v2/QueryExecutorImpl.java:236
+#: org/postgresql/core/v3/QueryExecutorImpl.java:564
+#: org/postgresql/core/v3/QueryExecutorImpl.java:622
 #, java-format
 msgid "Unknown Response Type {0}."
-msgstr "不明的回應類型{0}。"
+msgstr "不明的回應類型 {0}。"
 
-#: org/postgresql/core/v2/QueryExecutorImpl.java:535
-#: org/postgresql/core/v3/QueryExecutorImpl.java:1398
+#: org/postgresql/core/v2/QueryExecutorImpl.java:429
+#: org/postgresql/core/v2/QueryExecutorImpl.java:471
+#: org/postgresql/core/v3/QueryExecutorImpl.java:1309
+msgid "Ran out of memory retrieving query results."
+msgstr ""
+
+#: org/postgresql/core/v2/QueryExecutorImpl.java:593
+#: org/postgresql/core/v3/QueryExecutorImpl.java:1634
 #, java-format
 msgid "Unable to interpret the update count in command completion tag: {0}."
 msgstr "無法解讀命令完成標籤中的更新計數：{0}。"
 
-#: org/postgresql/core/v2/SimpleParameterList.java:56
-msgid "Zero bytes may not occur in string parameters."
-msgstr "字串參數不能有0個位元組。"
-
-#: org/postgresql/core/v3/QueryExecutorImpl.java:186
+#: org/postgresql/core/v3/QueryExecutorImpl.java:212
 msgid "Unable to bind parameter values for statement."
 msgstr ""
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:756
+#: org/postgresql/core/v3/QueryExecutorImpl.java:826
 #, java-format
 msgid ""
 "Bind message length {0} too long.  This can be caused by very large or "
 "incorrect length specifications on InputStream parameters."
 msgstr ""
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:1190
+#: org/postgresql/core/v3/QueryExecutorImpl.java:1366
+#, java-format
 msgid ""
-"The server's client_encoding parameter was changed to {0}. The JDBC driver "
+"The server''s client_encoding parameter was changed to {0}. The JDBC driver "
 "requires client_encoding to be UNICODE for correct operation."
 msgstr ""
-"伺服器的client_encoding參數被改成{0}，JDBC驅動程式需要client_encoding為"
-"UNICODE以正確工作。"
+"這伺服器的 client_encoding 參數被改成 {0}，JDBC 驅動程式請求需要 "
+"client_encoding 為 UNICODE 以正確工作。"
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:1197
+#: org/postgresql/core/v3/QueryExecutorImpl.java:1373
+#, java-format
 msgid ""
-"The server's DateStyle parameter was changed to {0}. The JDBC driver "
+"The server''s DateStyle parameter was changed to {0}. The JDBC driver "
 "requires DateStyle to begin with ISO for correct operation."
 msgstr ""
-"伺服器的DateStyle參數被改成{0}，JDBC驅動程式需要DateStyle以ISO開頭以正確工"
-"作。"
+"這伺服器的 DateStyle 參數被更改成 {0}，JDBC 驅動程式請求需要 DateStyle 以 "
+"ISO 開頭以正確工作。"
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:1241
+#: org/postgresql/core/v3/QueryExecutorImpl.java:1386
+#, java-format
+msgid ""
+"The server''s standard_conforming_strings parameter was reported as {0}. The "
+"JDBC driver expected on or off."
+msgstr ""
+"這伺服器的 standard_conforming_strings 參數已回報為 {0}，JDBC 驅動程式已預期"
+"開啟或是關閉。"
+
+#: org/postgresql/core/v3/QueryExecutorImpl.java:1454
 msgid "The driver currently does not support COPY operations."
-msgstr "驅動程式目前不支援COPY操作。"
+msgstr "驅動程式目前不支援 COPY 操作。"
 
-#: org/postgresql/ds/PGPoolingDataSource.java:408
-#, fuzzy
-msgid "DataSource has been closed."
-msgstr "這個statement已經被關閉。"
-
-#: org/postgresql/ds/common/PooledConnectionImpl.java:110
-#, fuzzy
+#: org/postgresql/ds/jdbc23/AbstractJdbc23PooledConnection.java:114
 msgid "This PooledConnection has already been closed."
-msgstr "這個statement已經被關閉。"
+msgstr "這個 PooledConnection 已經被關閉。"
 
-#: org/postgresql/ds/common/PooledConnectionImpl.java:251
+#: org/postgresql/ds/jdbc23/AbstractJdbc23PooledConnection.java:308
 msgid ""
 "Connection has been closed automatically because a new connection was opened "
 "for the same PooledConnection or the PooledConnection has been closed."
 msgstr ""
+"Connection 已自動結束，因為一個新的  PooledConnection 連線被開啟或者或 "
+"PooledConnection 已被關閉。"
 
-#: org/postgresql/ds/common/PooledConnectionImpl.java:251
-#, fuzzy
+#: org/postgresql/ds/jdbc23/AbstractJdbc23PooledConnection.java:308
 msgid "Connection has been closed."
-msgstr "這個statement已經被關閉。"
+msgstr "Connection 已經被關閉。"
 
-#: org/postgresql/ds/common/PooledConnectionImpl.java:397
-#, fuzzy
+#: org/postgresql/ds/jdbc23/AbstractJdbc23PooledConnection.java:466
 msgid "Statement has been closed."
-msgstr "這個statement已經被關閉。"
+msgstr "Sstatement 已經被關閉。"
 
-#: org/postgresql/fastpath/Fastpath.java:77
-#: org/postgresql/fastpath/Fastpath.java:123
+#: org/postgresql/ds/jdbc23/AbstractJdbc23PoolingDataSource.java:413
+msgid "DataSource has been closed."
+msgstr "DataSource 已經被關閉。"
+
+#: org/postgresql/fastpath/Fastpath.java:81
+#: org/postgresql/fastpath/Fastpath.java:128
 #, java-format
 msgid "Fastpath call {0} - No result was returned and we expected an integer."
-msgstr "Fastpath呼叫{0} - 沒有傳回值，應該傳回一個整數。"
+msgstr "Fastpath 呼叫 {0} - 沒有傳回值，且應該傳回一個整數。"
 
-#: org/postgresql/fastpath/Fastpath.java:217
+#: org/postgresql/fastpath/Fastpath.java:237
 #, java-format
 msgid "The fastpath function {0} is unknown."
-msgstr "不明的fastpath函式{0}。"
+msgstr "不明的 fastpath 函式 {0}。"
 
 #: org/postgresql/geometric/PGbox.java:84
-#, java-format
-msgid "Conversion of box failed: {0}."
-msgstr "轉換box失敗：{0}"
-
 #: org/postgresql/geometric/PGcircle.java:84
 #: org/postgresql/geometric/PGcircle.java:93
-#, java-format
-msgid "Conversion of circle failed: {0}."
-msgstr "轉換circle失敗：{0}"
-
 #: org/postgresql/geometric/PGline.java:82
-#, java-format
-msgid "Conversion of line failed: {0}."
-msgstr "轉換line失敗：{0}"
-
 #: org/postgresql/geometric/PGlseg.java:79
+#: org/postgresql/geometric/PGpoint.java:85
 #, java-format
-msgid "Conversion of lseg failed: {0}."
-msgstr "轉換lseg失敗：{0}"
+msgid "Conversion to type {0} failed: {1}."
+msgstr "轉換型別 {0} 失敗：{1}。"
 
 #: org/postgresql/geometric/PGpath.java:83
 #, java-format
 msgid "Cannot tell if path is open or closed: {0}."
-msgstr "無法得知path是開啟或關閉：{0}。"
+msgstr "無法得知 path 是開啟或關閉：{0}。"
 
-#: org/postgresql/geometric/PGpoint.java:85
-#, java-format
-msgid "Conversion of point failed: {0}."
-msgstr "轉換point失敗：{0}"
-
-#: org/postgresql/jdbc2/AbstractJdbc2Array.java:89
+#: org/postgresql/jdbc2/AbstractJdbc2Array.java:136
+#: org/postgresql/jdbc2/AbstractJdbc2Array.java:581
 #, java-format
 msgid "The array index is out of range: {0}"
 msgstr "陣列索引超過許可範圍：{0}"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Array.java:162
+#: org/postgresql/jdbc2/AbstractJdbc2Array.java:147
+#: org/postgresql/jdbc2/AbstractJdbc2Array.java:594
 #, java-format
 msgid "The array index is out of range: {0}, number of elements: {1}."
-msgstr "陣列索引超過許可範圍：{0}，總長度：{1}。"
+msgstr "陣列索引超過許可範圍：{0}，元素數量：{1}。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:198
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:943
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:987
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:206
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:224
+#: org/postgresql/jdbc2/AbstractJdbc2BlobClob.java:75
+msgid ""
+"Truncation of large objects is only implemented in 8.3 and later servers."
+msgstr "大型物件的截斷(Truncation)僅被實作執行在 8.3 和後來的伺服器。"
+
+#: org/postgresql/jdbc2/AbstractJdbc2BlobClob.java:225
+msgid "LOB positioning offsets start at 1."
+msgstr ""
+
+#: org/postgresql/jdbc2/AbstractJdbc2BlobClob.java:229
+#, java-format
+msgid "PostgreSQL LOBs can only index to: {0}"
+msgstr "PostgreSQL LOBs 僅能索引到：{0}"
+
+#: org/postgresql/jdbc2/AbstractJdbc2BlobClob.java:240
+msgid "free() was called on this LOB previously"
+msgstr ""
+
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:146
+#, java-format
+msgid "Unsupported value for stringtype parameter: {0}"
+msgstr "字串型別參數值未被支持：{0}"
+
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:238
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:236
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:255
+#: org/postgresql/jdbc2/TypeInfoCache.java:173
+#: org/postgresql/jdbc2/TypeInfoCache.java:211
+#: org/postgresql/jdbc2/TypeInfoCache.java:249
+#: org/postgresql/jdbc2/TypeInfoCache.java:286
+#: org/postgresql/jdbc2/TypeInfoCache.java:290
 msgid "No results were returned by the query."
 msgstr "查詢沒有傳回任何結果。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:212
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:247
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:264
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2394
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:252
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:283
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:305
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2501
 msgid "A result was returned when none was expected."
-msgstr "傳回預期外的結果。"
+msgstr "傳回預期之外的結果。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:407
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:400
+msgid "Custom type maps are not supported."
+msgstr ""
+
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:443
 #, java-format
 msgid "Failed to create object for: {0}."
-msgstr "為{0}建立物件失敗"
+msgstr "為 {0} 建立物件失敗。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:426
-#, java-format
-msgid "The class {0} does not implement org.postgresql.util.PGobject."
-msgstr "類別{0}未實做org.postgresql.util.PGobject。"
-
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:467
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:494
 #, java-format
 msgid "Unable to load the class {0} responsible for the datatype {1}"
 msgstr ""
 
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:556
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:586
 msgid ""
 "Cannot change transaction read-only property in the middle of a transaction."
-msgstr "無法在交易過程中改變交易唯讀屬性。"
+msgstr "不能在事物交易過程中改變事物交易唯讀屬性。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:731
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:762
 msgid ""
 "Cannot change transaction isolation level in the middle of a transaction."
-msgstr "無法在交易過程中改變交易隔絕等級。"
+msgstr "不能在事務交易過程中改變事物交易隔絕等級。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:735
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:767
 #, java-format
 msgid "Transaction isolation level {0} not supported."
-msgstr "不支援交易隔絕等級{0}。"
+msgstr "不支援交易隔絕等級 {0} 。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:899
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:832
+msgid "Finalizing a Connection that was never closed:"
+msgstr ""
+
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:934
 msgid "Unable to translate data into the desired encoding."
 msgstr "無法將資料轉成目標編碼。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java:61
-msgid "Unable to find datatypes oid and oidvector in the system catalogs."
-msgstr "在系統catalog中找不到datatype的oid和oidvector。"
+#: org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java:64
+msgid ""
+"Unable to determine a value for MaxIndexKeys due to missing system catalog "
+"data."
+msgstr ""
 
-#: org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java:84
+#: org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java:87
 msgid "Unable to find name datatype in the system catalogs."
-msgstr "在系統catalog中找不到名稱datatype。"
+msgstr "在系統 catalog 中找不到名稱資料類型(datatype)。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:176
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:206
 msgid ""
 "Operation requires a scrollable ResultSet, but this ResultSet is "
 "FORWARD_ONLY."
-msgstr "操作需要可捲動ResultSet，但此ResultSet是FORWARD_ONLY。"
+msgstr "操作要求可捲動的 ResultSet，但此 ResultSet 是 FORWARD_ONLY。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:350
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:378
 msgid "Unexpected error while decoding character data from a large object."
-msgstr "從large object解碼字元資料時發生錯誤。"
+msgstr "從大型物件(large object)解碼字元資料時發生錯誤。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:602
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:627
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1760
-msgid "Can't use relative move methods while on the insert row."
-msgstr "不能在新增的資料上使用相對位置move方法。"
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:646
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:672
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1819
+msgid "Can''t use relative move methods while on the insert row."
+msgstr "不能在新增的資料列上使用相對位置 move 方法。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:645
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2534
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:692
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2726
 #, java-format
 msgid "Invalid fetch direction constant: {0}."
-msgstr "無效的fetch方向常數：{0}。"
+msgstr "無效的 fetch 方向常數：{0}。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:671
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:706
+msgid "Cannot call cancelRowUpdates() when on the insert row."
+msgstr "不能在新增的資料列上呼叫 cancelRowUpdates()。"
+
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:726
 msgid "Cannot call deleteRow() when on the insert row."
-msgstr "不能在新增的資料上呼叫deleteRow()。"
+msgstr "不能在新增的資料上呼叫 deleteRow()。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:676
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:732
 msgid ""
 "Currently positioned before the start of the ResultSet.  You cannot call "
 "deleteRow() here."
-msgstr "不能在ResultSet的第一筆資料之前呼叫deleteRow()。"
+msgstr "不能在 ResultSet 的第一筆資料之前呼叫 deleteRow()。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:680
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:737
 msgid ""
 "Currently positioned after the end of the ResultSet.  You cannot call "
 "deleteRow() here."
-msgstr "不能在ResultSet的最後一筆資料之後呼叫deleteRow()。"
+msgstr "不能在 ResultSet 的最後一筆資料之後呼叫 deleteRow()。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:684
-#, fuzzy
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:742
 msgid "There are no rows in this ResultSet."
-msgstr "ResultSet中找不到欄位名稱'{0}'。"
+msgstr "ResultSet 中找不到資料列。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:731
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:789
 msgid "Not on the insert row."
-msgstr "不在新增的資料上。"
+msgstr "不在新增的資料列上。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:735
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:793
 msgid "You must specify at least one column value to insert a row."
 msgstr ""
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:921
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2059
-msgid "The JVM claims not to support the ASCII encoding."
-msgstr "JVM不支援ASCII編碼。"
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:981
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1733
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2272
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2302
+#, java-format
+msgid "The JVM claims not to support the encoding: {0}"
+msgstr "JVM 聲明並不支援編碼：{0} 。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:925
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:968
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1255
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1383
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:985
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1028
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1373
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1502
 msgid "Provided InputStream failed."
-msgstr "提供的InputStream失敗。"
+msgstr "提供的 InputStream 已失敗。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1040
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2667
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1098
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2899
 msgid "Provided Reader failed."
-msgstr "提供的Reader失敗。"
+msgstr "提供的 Reader 已失敗。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1117
-msgid "Can't refresh the insert row."
-msgstr "不能重讀新增的資料。"
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1166
+msgid "Can''t refresh the insert row."
+msgstr "無法重讀新增的資料列。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1187
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2620
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1238
+msgid "Cannot call updateRow() when on the insert row."
+msgstr "不能在新增的資料列上呼叫 deleteRow()。"
+
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1244
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2860
 msgid ""
 "Cannot update the ResultSet because it is either before the start or after "
 "the end of the results."
-msgstr "無法更新ResultSet，可能在第一筆資料之前或最未筆資料之後。"
+msgstr "無法更新 ResultSet，可能在第一筆資料之前或最未筆資料之後。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1541
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1493
+msgid "ResultSets with concurrency CONCUR_READ_ONLY cannot be updated."
+msgstr "ResultSets 與並發同作(Concurrency) CONCUR_READ_ONLY 不能被更新。"
+
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1561
 #, java-format
 msgid "No primary key found for table {0}."
-msgstr ""
+msgstr "{0} 資料表中未找到主鍵(Primary key)。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1745
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2542
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1803
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2735
 msgid "Fetch size must be a value greater to or equal to 0."
-msgstr "資料讀取筆數(fetch size)必須大於或等於0。"
+msgstr "資料讀取筆數(fetch size)必須大於或等於 0。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1757
-msgid "This ResultSet is closed."
-msgstr "ResultSet已經被關閉。"
-
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1835
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1896
 msgid ""
 "Invalid character data was found.  This is most likely caused by stored data "
 "containing characters that are invalid for the character set the database "
@@ -448,361 +563,494 @@ msgid ""
 "SQL_ASCII database."
 msgstr ""
 "發現不合法的字元，可能的原因是欲儲存的資料中包含資料庫的字元集不支援的字碼，"
-"其中最常見例子的就是將8位元資料存入使用SQL_ASCII編碼的資料庫。"
+"其中最常見例子的就是將 8 位元資料存入使用 SQL_ASCII 編碼的資料庫中。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1874
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1881
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1943
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1950
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1987
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1995
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2691
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2699
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2729
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2736
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2756
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2767
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2785
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2803
+#: org/postgresql/jdbc2/TimestampUtils.java:246
 #, java-format
-msgid "Bad byte: {0}"
-msgstr "錯誤的byte：{0}"
+msgid "Bad value for type {0} : {1}"
+msgstr "不良的型別值 {0} : {1}"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1914
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1922
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2502
 #, java-format
-msgid "Bad short: {0}"
-msgstr "錯誤的short：{0}"
-
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2090
-msgid "The JVM claims not to support the UTF-8 encoding."
-msgstr "JVM不支援UTF-8編碼。"
-
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2308
-#, fuzzy, java-format
 msgid "The column name {0} was not found in this ResultSet."
-msgstr "ResultSet中找不到欄位名稱'{0}'。"
+msgstr "ResultSet 中找不到欄位名稱 {0}。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2369
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2602
 msgid ""
 "ResultSet is not updateable.  The query that generated this result set must "
 "select only one table, and must select all primary keys from that table. See "
 "the JDBC 2.1 API Specification, section 5.6 for more details."
 msgstr ""
-"不可更新的ResultSet。用來產生這個ResultSet的SQL指令只能操作一個資料表，並且必"
-"需選擇所有主鍵欄位，請參閱JDBC 2.1 API規格書5.6節。"
+"不可更新的 ResultSet。用來產生這個 ResultSet 的 SQL 命令只能操作一個資料表，"
+"並且必需選擇所有主鍵欄位，詳細請參閱 JDBC 2.1 API 規格書 5.6 節。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2382
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2614
+msgid "This ResultSet is closed."
+msgstr "這個 ResultSet 已經被關閉。"
+
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2635
 msgid "ResultSet not positioned properly, perhaps you need to call next."
-msgstr "查詢結果指標位置不正確，您也許需要呼叫ResultSet的next()方法。"
+msgstr "查詢結果指標位置不正確，您也許需要呼叫 ResultSet 的 next() 方法。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2434
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2442
-#, java-format
-msgid "Bad int: {0}"
-msgstr "錯誤的int：{0}"
-
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2472
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2479
-#, java-format
-msgid "Bad long: {0}"
-msgstr "錯誤的long：{0}"
-
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2499
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2510
-#, java-format
-msgid "Bad BigDecimal: {0}"
-msgstr "錯誤的BigDecimal：{0}"
-
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2528
-#, java-format
-msgid "Bad float: {0}"
-msgstr "錯誤的float：{0}"
-
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2546
-#, java-format
-msgid "Bad double: {0}"
-msgstr "錯誤的double： {0}"
-
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2566
-#, java-format
-msgid "Bad date: {0}"
-msgstr "錯誤的date：{0}"
-
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:203
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:244
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:283
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2354
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:232
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:275
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:325
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2458
 msgid ""
-"Can't use query methods that take a query string on a PreparedStatement."
-msgstr "對PreparedStatement不能使用接受查詢字串的查詢方法。"
+"Can''t use query methods that take a query string on a PreparedStatement."
+msgstr "在 PreparedStatement 上不能使用獲取查詢字串的查詢方法。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:209
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:227
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:239
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:258
 msgid "Multiple ResultSets were returned by the query."
-msgstr "查詢傳回多個ResultSet。"
+msgstr "查詢傳回多個 ResultSet。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:306
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2196
-msgid ""
-"A CallableStatement was declared, but no call to registerOutParameter(1, "
-"<some type>) was made."
-msgstr ""
-"已經宣告CallableStatement函式，但是尚未呼叫registerOutParameter (1, "
-"<some_type>)。"
-
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:314
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:318
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:358
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:362
 msgid "A CallableStatement was executed with nothing returned."
-msgstr "CallableStatement執行函式後沒有傳回值。"
+msgstr "一個 CallableStatement 執行函式後沒有傳回值。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:323
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:370
+msgid "A CallableStatement was excecuted with an invalid number of parameters"
+msgstr "一個 CallableStatement 已執行包括一個無效的參數數值"
+
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:401
 #, java-format
 msgid ""
-"A CallableStatement function was executed and the return was of type {0} "
-"however type {1} was registered."
-msgstr "CallableStatement執行函式後傳回值的型別是{0}，但是註冊的型別是{1}。"
-
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:469
-msgid "Maximum number of rows must be a value grater than or equal to 0."
-msgstr "最大資料讀取筆數必須大於或等於0。"
-
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:510
-msgid "Query timeout must be a value greater than or equals to 0."
-msgstr "查詢逾時等候時間必須大於或等於0。"
-
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:572
-msgid "The maximum field size must be a value greater than or equal to 0."
-msgstr "最大欄位容量必須大於或等於0。"
-
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:854
-msgid ""
-"setNull(i,Types.OTHER) is not supported; use setObject(i,nullobject,Types."
-"OTHER) instead."
+"A CallableStatement function was executed and the out parameter {0} was of "
+"type {1} however type {2} was registered."
 msgstr ""
+"一個 CallableStatement 執行函式後輸出的參數型別為 {1} 值為 {0}，但是已註冊的"
+"型別是 {2}。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:857
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:557
+msgid "Maximum number of rows must be a value grater than or equal to 0."
+msgstr "最大資料讀取筆數必須大於或等於 0。"
+
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:599
+msgid "Query timeout must be a value greater than or equals to 0."
+msgstr "查詢逾時等候時間必須大於或等於 0。"
+
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:667
+msgid "The maximum field size must be a value greater than or equal to 0."
+msgstr "最大欄位容量必須大於或等於 0。"
+
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1094
 msgid "Unknown Types value."
-msgstr "不明的型別。"
+msgstr "不明的型別值。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1221
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1345
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2639
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1338
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1463
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2870
 #, java-format
 msgid "Invalid stream length {0}."
-msgstr ""
+msgstr "無效的串流長度 {0}."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1251
-#, fuzzy, java-format
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1369
+#, java-format
 msgid "The JVM claims not to support the {0} encoding."
-msgstr "JVM不支援{0}編碼。"
-
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1425
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2586
-#, java-format
-msgid "Unknown type {0}."
-msgstr "不明的型別{0}"
-
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1529
-#, java-format
-msgid "Cannot cast an instance of {0} to Types.BIT"
-msgstr ""
-
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1541
-#, java-format
-msgid "Cannot cast an instance of {0} to Types.OTHER"
-msgstr ""
+msgstr "JVM 聲明並不支援 {0} 編碼。"
 
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1544
-#, fuzzy, java-format
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2800
+#, java-format
+msgid "Unknown type {0}."
+msgstr "不明的型別 {0}"
+
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1665
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1671
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1677
+#, java-format
+msgid "Cannot cast an instance of {0} to type {1}"
+msgstr "不能轉換一個 {0} 實例到型別 {1}"
+
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1686
+#, java-format
 msgid "Unsupported Types value: {0}"
-msgstr "不明的型別。"
+msgstr "未被支持的型別值：{0}"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1562
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1740
+#, java-format
 msgid ""
-"setObject(i,null) is not supported. Instead, use setNull(i,type) or setObject"
-"(i,null,type)"
+"Can''t infer the SQL type to use for an instance of {0}. Use setObject() "
+"with an explicit Types value to specify the type to use."
 msgstr ""
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1594
-msgid ""
-"Can't infer the SQL type to use for an instance of {0}. Use setObject() with "
-"an explicit Types value to specify the type to use."
-msgstr ""
-
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1619
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1788
 msgid ""
 "This statement does not declare an OUT parameter.  Use '{' ?= call ... '}' "
 "to declare one."
-msgstr "statement未宣告OUT參數，用'{' ?= call ... '}'宣告一個。"
+msgstr "這個 statement 未宣告 OUT 參數，使用 '{' ?= call ... '}' 宣告一個。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1923
-msgid ""
-"Cannot call setXXX(1, ..) on a CallableStatement.  This is an output that "
-"must be configured with registerOutParameter instead."
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1838
+msgid "wasNull cannot be call before fetching a result."
 msgstr ""
-"無法對CallableStatement呼叫setXXX(1, ..)，必須改用registerOutParameter設定。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2147
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2327
 #, java-format
 msgid "Malformed function or procedure escape syntax at offset {0}."
-msgstr "不正確的函式或程序escape語法於{0}。"
+msgstr "不正確的函式或程序 escape 語法於 {0}。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2168
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2182
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2377
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2391
 #, java-format
 msgid ""
 "Parameter of type {0} was registered, but call to get{1} (sqltype={2}) was "
 "made."
-msgstr "已註冊參數型別{0}，但是又呼叫了get{1}(sqltype={2})。"
+msgstr "已註冊參數型別 {0}，但是又呼叫了get{1}(sqltype={2})。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2198
-msgid "PostgreSQL only supports a single OUT function return value at index 1."
-msgstr "PostgreSQL只支援在索引1傳回一個值的單一OUT函式。"
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2410
+msgid ""
+"A CallableStatement was declared, but no call to registerOutParameter(1, "
+"<some type>) was made."
+msgstr ""
+"已經宣告 CallableStatement 函式，但是尚未呼叫 registerOutParameter (1, "
+"<some_type>) 。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2226
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2414
+msgid "No function outputs were registered."
+msgstr ""
+
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2417
+msgid ""
+"Results cannot be retrieved from a CallableStatement before it is executed."
+msgstr ""
+
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2447
 msgid "This statement has been closed."
-msgstr "這個statement已經被關閉。"
+msgstr "這個 statement 已經被關閉。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2245
-#, java-format
-msgid "The given date {0} does not match the format required: {1}."
-msgstr "傳入的日期{0}不符合要求的格式：{1}。"
-
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2278
-#: org/postgresql/jdbc2/TimestampUtils.java:313
-#, java-format
-msgid "The time given {0} does not match the format required: {1}."
-msgstr "傳入的時間{0}不符合要求的格式：{1}。"
-
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2319
-#: org/postgresql/jdbc2/TimestampUtils.java:202
-#: org/postgresql/jdbc2/TimestampUtils.java:223
-#, java-format
-msgid "The timestamp given {0} does not match the format required: {1}."
-msgstr "傳入的時間戳記{0}不符合要求的格式：{1}。"
-
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2400
-#, fuzzy
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2508
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2573
 msgid "Too many update results were returned."
-msgstr "查詢沒有傳回任何結果。"
+msgstr ""
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2428
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2537
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2602
 #, java-format
 msgid ""
 "Batch entry {0} {1} was aborted.  Call getNextException to see the cause."
-msgstr "批次處理忽略{0} {1}，呼叫getNextException以取得原因。"
+msgstr "批次處理 {0} {1} 被中止，呼叫 getNextException 以取得原因。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2619
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2697
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2730
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2840
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2929
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2969
 msgid "Unexpected error writing large object to database."
-msgstr "將large object寫入資料庫發生不明錯誤。"
+msgstr "將大型物件(large object)寫入資料庫時發生不明錯誤。"
 
-#: org/postgresql/jdbc2/TimestampUtils.java:118
+#: org/postgresql/jdbc2/EscapedFunctions.java:144
+#: org/postgresql/jdbc2/EscapedFunctions.java:156
+#: org/postgresql/jdbc2/EscapedFunctions.java:168
+#: org/postgresql/jdbc2/EscapedFunctions.java:205
+#: org/postgresql/jdbc2/EscapedFunctions.java:242
+#: org/postgresql/jdbc2/EscapedFunctions.java:266
+#: org/postgresql/jdbc2/EscapedFunctions.java:291
+#: org/postgresql/jdbc2/EscapedFunctions.java:315
+#: org/postgresql/jdbc2/EscapedFunctions.java:327
+#: org/postgresql/jdbc2/EscapedFunctions.java:351
+#: org/postgresql/jdbc2/EscapedFunctions.java:379
+#: org/postgresql/jdbc2/EscapedFunctions.java:388
+#: org/postgresql/jdbc2/EscapedFunctions.java:398
+#: org/postgresql/jdbc2/EscapedFunctions.java:407
+#: org/postgresql/jdbc2/EscapedFunctions.java:416
+#: org/postgresql/jdbc2/EscapedFunctions.java:425
+#: org/postgresql/jdbc2/EscapedFunctions.java:434
+#: org/postgresql/jdbc2/EscapedFunctions.java:443
+#: org/postgresql/jdbc2/EscapedFunctions.java:452
+#: org/postgresql/jdbc2/EscapedFunctions.java:461
+#: org/postgresql/jdbc2/EscapedFunctions.java:470
+#: org/postgresql/jdbc2/EscapedFunctions.java:479
 #, java-format
-msgid "Could not extract nanoseconds from {0}."
-msgstr "無法從{0}取得奈秒。"
+msgid "{0} function takes one and only one argument."
+msgstr "{0} 函式取得一個且僅有一個引數。"
 
-#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:56
-#: org/postgresql/jdbc3/AbstractJdbc3Statement.java:37
-#: org/postgresql/jdbc3/AbstractJdbc3Statement.java:47
-msgid "ResultSet holdability of HOLD_CURSORS_OVER_COMMIT is not supported."
-msgstr "ResultSet不支援HOLD_CURSORS_OVER_COMMIT。"
+#: org/postgresql/jdbc2/EscapedFunctions.java:180
+#: org/postgresql/jdbc2/EscapedFunctions.java:192
+#: org/postgresql/jdbc2/EscapedFunctions.java:254
+#: org/postgresql/jdbc2/EscapedFunctions.java:303
+#: org/postgresql/jdbc2/EscapedFunctions.java:580
+#, java-format
+msgid "{0} function takes two and only two arguments."
+msgstr "{0} 函式取得二個且僅有二個引數。"
 
-#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:91
-#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:121
-#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:154
-#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:175
+#: org/postgresql/jdbc2/EscapedFunctions.java:229
+#, java-format
+msgid "{0} function takes four and only four argument."
+msgstr "{0} 函式取得四個且僅有四個引數。"
+
+#: org/postgresql/jdbc2/EscapedFunctions.java:281
+#: org/postgresql/jdbc2/EscapedFunctions.java:341
+#, java-format
+msgid "{0} function takes two or three arguments."
+msgstr "{0} 函式取得二個或三個引數。"
+
+#: org/postgresql/jdbc2/EscapedFunctions.java:361
+#: org/postgresql/jdbc2/EscapedFunctions.java:370
+#: org/postgresql/jdbc2/EscapedFunctions.java:571
+#: org/postgresql/jdbc2/EscapedFunctions.java:589
+#, java-format
+msgid "{0} function doesn''t take any argument."
+msgstr "{0} 函式無法取得任何的引數。"
+
+#: org/postgresql/jdbc2/EscapedFunctions.java:488
+#: org/postgresql/jdbc2/EscapedFunctions.java:530
+#, java-format
+msgid "{0} function takes three and only three arguments."
+msgstr "{0} 函式取得三個且僅有三個引數。"
+
+#: org/postgresql/jdbc2/EscapedFunctions.java:500
+#: org/postgresql/jdbc2/EscapedFunctions.java:520
+#: org/postgresql/jdbc2/EscapedFunctions.java:522
+#: org/postgresql/jdbc2/EscapedFunctions.java:542
+#: org/postgresql/jdbc2/EscapedFunctions.java:562
+#: org/postgresql/jdbc2/EscapedFunctions.java:564
+#, java-format
+msgid "Interval {0} not yet implemented"
+msgstr "隔絕 {0} 尚未被實作。"
+
+#: org/postgresql/jdbc2/TimestampUtils.java:348
+msgid ""
+"Infinite value found for timestamp/date. This cannot be represented as time."
+msgstr ""
+
+#: org/postgresql/jdbc2/TypeInfoCache.java:133
+#, java-format
+msgid "The class {0} does not implement org.postgresql.util.PGobject."
+msgstr "類別 {0} 未實做 org.postgresql.util.PGobject。"
+
+#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:59
+#, java-format
+msgid "Unknown ResultSet holdability setting: {0}."
+msgstr "未知的 ResultSet 可適用的設置：{0}。"
+
+#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:95
+#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:126
+#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:160
+#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:181
 msgid "Server versions prior to 8.0 do not support savepoints."
-msgstr "8.0版之前的伺服器不支援儲存點。"
+msgstr "8.0 版之前的伺服器不支援儲存點(SavePints)。"
 
-#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:93
-#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:123
-#, fuzzy
+#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:97
+#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:128
 msgid "Cannot establish a savepoint in auto-commit mode."
-msgstr "在自動確認交易模式無法建立儲存點。"
+msgstr "在自動確認事物交易模式無法建立儲存點(Savepoint)。"
 
-#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:346
-#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:394
-#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:442
-#: org/postgresql/jdbc3/AbstractJdbc3Statement.java:146
-#: org/postgresql/jdbc3/AbstractJdbc3Statement.java:172
-#: org/postgresql/jdbc3/AbstractJdbc3Statement.java:197
-#: org/postgresql/jdbc3/AbstractJdbc3Statement.java:241
-#: org/postgresql/jdbc3/AbstractJdbc3Statement.java:284
-#: org/postgresql/jdbc3/AbstractJdbc3Statement.java:328
+#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:352
+#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:400
+#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:448
+#: org/postgresql/jdbc3/AbstractJdbc3Statement.java:139
+#: org/postgresql/jdbc3/AbstractJdbc3Statement.java:165
+#: org/postgresql/jdbc3/AbstractJdbc3Statement.java:190
+#: org/postgresql/jdbc3/AbstractJdbc3Statement.java:234
+#: org/postgresql/jdbc3/AbstractJdbc3Statement.java:277
+#: org/postgresql/jdbc3/AbstractJdbc3Statement.java:321
 msgid "Returning autogenerated keys is not supported."
-msgstr "不支援取得自動產生的編號。"
+msgstr ""
 
-#: org/postgresql/jdbc3/PSQLSavepoint.java:38
-#: org/postgresql/jdbc3/PSQLSavepoint.java:48
-#: org/postgresql/jdbc3/PSQLSavepoint.java:62
+#: org/postgresql/jdbc3/AbstractJdbc3ParameterMetaData.java:83
+#, java-format
+msgid "The parameter index is out of range: {0}, number of parameters: {1}."
+msgstr "參數索引超出許可範圍：{0}，參數總數：{1}。"
+
+#: org/postgresql/jdbc3/PSQLSavepoint.java:40
+#: org/postgresql/jdbc3/PSQLSavepoint.java:52
+#: org/postgresql/jdbc3/PSQLSavepoint.java:68
 msgid "Cannot reference a savepoint after it has been released."
-msgstr "無法使用已經被釋放的儲存點。"
+msgstr "無法參照已經被釋放的儲存點。"
 
-#: org/postgresql/jdbc3/PSQLSavepoint.java:41
+#: org/postgresql/jdbc3/PSQLSavepoint.java:44
 msgid "Cannot retrieve the id of a named savepoint."
-msgstr "無法取得已命名儲存點的id。"
+msgstr "無法取得已命名儲存點的 id。"
 
-#: org/postgresql/jdbc3/PSQLSavepoint.java:51
+#: org/postgresql/jdbc3/PSQLSavepoint.java:56
 msgid "Cannot retrieve the name of an unnamed savepoint."
-msgstr "無法取得未命名儲存點的名稱。"
+msgstr "無法取得未命名儲存點(Savepoint)的名稱。"
 
-#: org/postgresql/largeobject/LargeObjectManager.java:139
+#: org/postgresql/jdbc4/AbstractJdbc4Connection.java:61
+#, java-format
+msgid "Unable to find server array type for provided name {0}."
+msgstr ""
+
+#: org/postgresql/jdbc4/AbstractJdbc4Connection.java:103
+#: org/postgresql/jdbc4/AbstractJdbc4Connection.java:117
+msgid "ClientInfo property not supported."
+msgstr ""
+
+#: org/postgresql/largeobject/LargeObjectManager.java:140
 msgid "Failed to initialize LargeObject API"
-msgstr "初始化LargeObject API失敗"
+msgstr "初始化 LargeObject API 失敗"
 
-#: org/postgresql/largeobject/LargeObjectManager.java:171
-#: org/postgresql/largeobject/LargeObjectManager.java:198
-#, fuzzy
+#: org/postgresql/largeobject/LargeObjectManager.java:200
+#: org/postgresql/largeobject/LargeObjectManager.java:241
 msgid "Large Objects may not be used in auto-commit mode."
-msgstr "在自動確認交易模式無法建立儲存點。"
+msgstr "大型物件無法被使用在自動確認事物交易模式。"
 
-#: org/postgresql/ssl/MakeSSL.java:61
+#: org/postgresql/ssl/MakeSSL.java:59
 #, java-format
 msgid "The SSLSocketFactory class provided {0} could not be instantiated."
 msgstr ""
 
+#: org/postgresql/util/PGInterval.java:166
+msgid "Conversion of interval failed"
+msgstr "隔絕(Interval)轉換失敗。"
+
 #: org/postgresql/util/PGmoney.java:75
 msgid "Conversion of money failed."
-msgstr "轉換money失敗。"
+msgstr "money 轉換失敗。"
 
-#: org/postgresql/util/PSQLException.java.in:50
+#: org/postgresql/util/PSQLException.java.in:55
 #, java-format
 msgid "Exception: {0}"
 msgstr "例外：{0}"
 
-#: org/postgresql/util/PSQLException.java.in:51
+#: org/postgresql/util/PSQLException.java.in:56
 msgid "Stack Trace:"
-msgstr ""
+msgstr "堆疊追縱："
 
-#: org/postgresql/util/PSQLException.java.in:53
+#: org/postgresql/util/PSQLException.java.in:58
 msgid "End of Stack Trace"
-msgstr ""
+msgstr "堆疊追縱結束"
 
-#: org/postgresql/util/PSQLException.java.in:61
+#: org/postgresql/util/PSQLException.java.in:66
 #, java-format
 msgid "Exception generating stacktrace for: {0} encountered: {1}"
 msgstr ""
 
-#: org/postgresql/util/ServerErrorMessage.java:88
+#: org/postgresql/util/ServerErrorMessage.java:155
 #, java-format
 msgid "Detail: {0}"
-msgstr "Detail: {0}"
+msgstr "詳細：{0}"
 
-#: org/postgresql/util/ServerErrorMessage.java:91
+#: org/postgresql/util/ServerErrorMessage.java:160
 #, java-format
 msgid "Hint: {0}"
-msgstr "Hint: {0}"
+msgstr "建議：{0}"
 
-#: org/postgresql/util/ServerErrorMessage.java:94
+#: org/postgresql/util/ServerErrorMessage.java:163
 #, java-format
 msgid "Position: {0}"
-msgstr "Position: {0}"
+msgstr "位置：{0}"
 
-#: org/postgresql/util/ServerErrorMessage.java:97
+#: org/postgresql/util/ServerErrorMessage.java:166
 #, java-format
 msgid "Where: {0}"
-msgstr "Where: {0}"
+msgstr "在位置：{0}"
 
-#: org/postgresql/util/ServerErrorMessage.java:105
+#: org/postgresql/util/ServerErrorMessage.java:172
+#, java-format
+msgid "Internal Query: {0}"
+msgstr "內部查詢：{0}"
+
+#: org/postgresql/util/ServerErrorMessage.java:175
+#, java-format
+msgid "Internal Position: {0}"
+msgstr "內部位置：{0}"
+
+#: org/postgresql/util/ServerErrorMessage.java:181
 #, java-format
 msgid "Location: File: {0}, Routine: {1}, Line: {2}"
-msgstr "位置：檔案G{0}，常式：{1}，行：{2}"
+msgstr "位置：檔案：{0}，常式：{1}，行：{2}"
 
-#: org/postgresql/util/ServerErrorMessage.java:108
+#: org/postgresql/util/ServerErrorMessage.java:184
 #, java-format
 msgid "Server SQLState: {0}"
-msgstr "伺服器SQLState：{0}"
+msgstr "伺服器 SQLState：{0}"
 
-#~ msgid "No results where returned by the query."
-#~ msgstr "沒有傳回任何查詢結果。"
+#: org/postgresql/xa/PGXAConnection.java:128
+#: org/postgresql/xa/PGXAConnection.java:186
+msgid "Invalid flags"
+msgstr "無效的旗標"
+
+#: org/postgresql/xa/PGXAConnection.java:131
+#: org/postgresql/xa/PGXAConnection.java:189
+#: org/postgresql/xa/PGXAConnection.java:366
+msgid "xid must not be null"
+msgstr ""
+
+#: org/postgresql/xa/PGXAConnection.java:134
+msgid "Connection is busy with another transaction"
+msgstr ""
+
+#: org/postgresql/xa/PGXAConnection.java:140
+#: org/postgresql/xa/PGXAConnection.java:196
+msgid "suspend/resume not implemented"
+msgstr "暫停(suspend)/再繼續(resume)尚未被實作。"
+
+#: org/postgresql/xa/PGXAConnection.java:146
+#: org/postgresql/xa/PGXAConnection.java:149
+#: org/postgresql/xa/PGXAConnection.java:151
+msgid "Transaction interleaving not implemented"
+msgstr "事物交易隔絕(Transaction interleaving)未被實作。"
+
+#: org/postgresql/xa/PGXAConnection.java:159
+msgid "Error disabling autocommit"
+msgstr ""
+
+#: org/postgresql/xa/PGXAConnection.java:192
+msgid "tried to call end without corresponding start call"
+msgstr ""
+
+#: org/postgresql/xa/PGXAConnection.java:223
+msgid ""
+"Not implemented: Prepare must be issued using the same connection that "
+"started the transaction"
+msgstr ""
+
+#: org/postgresql/xa/PGXAConnection.java:227
+msgid "Prepare called before end"
+msgstr ""
+
+#: org/postgresql/xa/PGXAConnection.java:233
+msgid "Server versions prior to 8.1 do not support two-phase commit."
+msgstr "8.1 版之前的伺服器不支援二段式提交(Two-Phase Commit)。"
+
+#: org/postgresql/xa/PGXAConnection.java:254
+msgid "Error preparing transaction"
+msgstr ""
+
+#: org/postgresql/xa/PGXAConnection.java:269
+msgid "Invalid flag"
+msgstr "無效的旗標"
+
+#: org/postgresql/xa/PGXAConnection.java:309
+msgid "Error during recover"
+msgstr ""
+
+#: org/postgresql/xa/PGXAConnection.java:357
+msgid "Error rolling back prepared transaction"
+msgstr ""
+
+#: org/postgresql/xa/PGXAConnection.java:392
+msgid ""
+"Not implemented: one-phase commit must be issued using the same connection "
+"that was used to start it"
+msgstr ""
+
+#: org/postgresql/xa/PGXAConnection.java:396
+msgid "commit called before end"
+msgstr ""
+
+#: org/postgresql/xa/PGXAConnection.java:407
+msgid "Error during one-phase commit"
+msgstr ""
+
+#: org/postgresql/xa/PGXAConnection.java:426
+msgid ""
+"Not implemented: 2nd phase commit must be issued using an idle connection"
+msgstr ""
+
+#: org/postgresql/xa/PGXAConnection.java:459
+msgid "Heuristic commit/rollback not supported"
+msgstr ""
