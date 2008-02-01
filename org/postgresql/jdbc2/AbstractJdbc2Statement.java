@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.106 2008/01/08 06:56:28 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.107 2008/01/15 03:29:15 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -367,7 +367,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             int outParameterCount = preparedParameters.getOutParameterCount() ;
             
             if ( cols != outParameterCount )
-                throw new PSQLException(GT.tr("A CallableStatement was excecuted with an invalid number of parameters"),PSQLState.SYNTAX_ERROR);
+                throw new PSQLException(GT.tr("A CallableStatement was executed with an invalid number of parameters"),PSQLState.SYNTAX_ERROR);
            
             // reset last result fetched (for wasNull)
             lastIndex = 0;
