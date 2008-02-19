@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/EncodingTest.java,v 1.9 2005/01/11 08:25:48 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/EncodingTest.java,v 1.10 2008/01/08 06:56:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -13,6 +13,7 @@ package org.postgresql.test.jdbc2;
 import junit.framework.*;
 import org.postgresql.core.Encoding;
 import java.io.*;
+import java.util.Locale;
 
 /*
  * Tests for the Encoding class.
@@ -32,9 +33,9 @@ public class EncodingTest extends TestCase
     {
         Encoding encoding;
         encoding = Encoding.getDatabaseEncoding("UNICODE");
-        assertEquals("UTF", encoding.name().substring(0, 3).toUpperCase());
+        assertEquals("UTF", encoding.name().substring(0, 3).toUpperCase(Locale.US));
         encoding = Encoding.getDatabaseEncoding("SQL_ASCII");
-        assertTrue(encoding.name().toUpperCase().indexOf("ASCII") != -1);
+        assertTrue(encoding.name().toUpperCase(Locale.US).indexOf("ASCII") != -1);
         assertEquals("When encoding is unknown the default encoding should be used",
                      Encoding.defaultEncoding(),
                      Encoding.getDatabaseEncoding("UNKNOWN"));

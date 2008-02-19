@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/EscapedFunctions.java,v 1.9 2007/04/16 16:16:22 jurka Exp $
+* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/EscapedFunctions.java,v 1.10 2008/01/08 06:56:28 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -12,6 +12,7 @@ package org.postgresql.jdbc2;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.List;
 import java.util.Map;
 
@@ -129,10 +130,10 @@ public class EscapedFunctions {
             for (int i=0;i<arrayMeths.length;i++){
                 Method meth = arrayMeths[i];
                 if (meth.getName().startsWith("sql"))
-                    functionMap.put(meth.getName().toLowerCase(),meth);
+                    functionMap.put(meth.getName().toLowerCase(Locale.US),meth);
             }
         }
-        return (Method) functionMap.get("sql"+functionName.toLowerCase());
+        return (Method) functionMap.get("sql"+functionName.toLowerCase(Locale.US));
     }
 
     // ** numeric functions translations **
