@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.26.2.2 2005/06/21 20:11:52 davec Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.26.2.4 2007/12/01 09:18:06 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -707,7 +707,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         if (level == null)
             return Connection.TRANSACTION_READ_COMMITTED; // Best guess.
 
-        level = level.toUpperCase();
+        level = level.toUpperCase(Locale.US);
         if (level.indexOf("READ COMMITTED") != -1)
             return Connection.TRANSACTION_READ_COMMITTED;
         if (level.indexOf("READ UNCOMMITTED") != -1)
