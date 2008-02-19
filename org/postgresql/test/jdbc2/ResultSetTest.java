@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ResultSetTest.java,v 1.28 2008/01/08 06:56:31 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ResultSetTest.java,v 1.29 2008/01/14 10:23:49 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -14,6 +14,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.sql.SQLException;
+import java.util.Locale;
 
 import junit.framework.TestCase;
 
@@ -705,4 +706,23 @@ public class ResultSetTest extends TestCase
         assertTrue(rs.next());
         assertEquals(1, rs.getInt("a"));
     }
+
+    public void testTurkishLocale() throws SQLException
+    {
+        Locale current = Locale.getDefault();
+        try {
+            Locale.setDefault(new Locale("tr", "TR"));
+            Statement stmt = con.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT id FROM testrs");
+            int sum = 0;
+            while (rs.next()) {
+                sum += rs.getInt("ID");
+            }
+            rs.close();
+            assertEquals(25, sum);
+        } finally {
+            Locale.setDefault(current);
+        }
+    }
+
 }
