@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.88.2.2 2007/04/16 16:36:49 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.88.2.5 2008/01/14 10:23:58 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.StringTokenizer;
 import java.util.Vector;
 import java.util.Calendar;
+import java.util.Locale;
 import java.util.TimeZone;
 import org.postgresql.core.*;
 import org.postgresql.largeobject.*;
@@ -1627,10 +1628,10 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             name = st.nextToken();
             if ( !tableFound )
             {
-                if (name.toLowerCase().equals("from"))
+                if ("from".equalsIgnoreCase(name))
                 {
                     tableName = st.nextToken();
-                    if (tableName.toLowerCase().equals("only")) {
+                    if ("only".equalsIgnoreCase(tableName)) {
                         tableName = st.nextToken();
                         onlyTable = "ONLY ";
                     }
@@ -2482,7 +2483,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             // reverse order so the first ones will overwrite later ones.
             for (int i = fields.length - 1; i >= 0; i--)
             {
-                columnNameIndexMap.put(fields[i].getColumnLabel().toLowerCase(), new Integer(i + 1));
+                columnNameIndexMap.put(fields[i].getColumnLabel().toLowerCase(Locale.US), new Integer(i + 1));
             }
         }
 
@@ -2492,7 +2493,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             return index.intValue();
         }
 
-        index = (Integer)columnNameIndexMap.get(columnName.toLowerCase());
+        index = (Integer)columnNameIndexMap.get(columnName.toLowerCase(Locale.US));
         if (index != null)
         {
             columnNameIndexMap.put(columnName, index);
