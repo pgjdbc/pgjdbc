@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.101 2008/01/14 10:23:48 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.102 2008/02/19 06:12:24 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -50,8 +50,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     private PreparedStatement insertStatement = null;
     private PreparedStatement deleteStatement = null;
     private PreparedStatement selectStatement = null;
-    private int resultsettype;
-    private int resultsetconcurrency;
+    private final int resultsettype;
+    private final int resultsetconcurrency;
     private int fetchdirection = ResultSet.FETCH_UNKNOWN;
     protected final BaseConnection connection;  // the connection we belong to
     protected final BaseStatement statement;    // the statement we belong to
@@ -74,7 +74,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     protected boolean wasNullFlag = false;
     protected boolean onInsertRow = false;  // are we on the insert row (for JDBC2 updatable resultsets)?
 
-    public byte[][] rowBuffer = null;       // updateable rowbuffer
+    private byte[][] rowBuffer = null;       // updateable rowbuffer
 
     protected int fetchSize;       // Current fetch size (might be 0).
     protected ResultCursor cursor; // Cursor for fetching additional data.
@@ -250,10 +250,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         }
 
         current_row = internalIndex;
-        this_row = (byte[][]) rows.elementAt(internalIndex);
-
-        rowBuffer = new byte[this_row.length][];
-        System.arraycopy(this_row, 0, rowBuffer, 0, this_row.length);
+        initRowBuffer();
         onInsertRow = false;
 
         return true;
@@ -295,10 +292,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             return false;
 
         current_row = 0;
-        this_row = (byte[][]) rows.elementAt(current_row);
-
-        rowBuffer = new byte[this_row.length][];
-        System.arraycopy(this_row, 0, rowBuffer, 0, this_row.length);
+        initRowBuffer();
         onInsertRow = false;
 
         return true;
@@ -629,10 +623,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             return false;
 
         current_row = rows_size - 1;
-        this_row = (byte[][]) rows.elementAt(current_row);
-
-        rowBuffer = new byte[this_row.length][];
-        System.arraycopy(this_row, 0, rowBuffer, 0, this_row.length);
+        initRowBuffer();
         onInsertRow = false;
 
         return true;
@@ -658,9 +649,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         {
             current_row--;
         }
-        this_row = (byte[][]) rows.elementAt(current_row);
-        rowBuffer = new byte[this_row.length][];
-        System.arraycopy(this_row, 0, rowBuffer, 0, this_row.length);
+        initRowBuffer();
         return true;
     }
 
@@ -877,10 +866,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         }
         else
         {
-            this_row = (byte[][]) rows.elementAt(current_row);
-
-            rowBuffer = new byte[this_row.length][];
-            System.arraycopy(this_row, 0, rowBuffer, 0, this_row.length);
+            initRowBuffer();
         }
 
         onInsertRow = false;
@@ -1214,7 +1200,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
         if ( rs.next() )
         {
-            rowBuffer = rs.rowBuffer;
+            rowBuffer = rs.this_row;
         }
 
         rows.setElementAt( rowBuffer, current_row );
@@ -1787,7 +1773,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     public String getRefCursor() {
         // Can't check this because the PGRefCursorResultSet
-	// interface doesn't allow throwing a SQLException
+        // interface doesn't allow throwing a SQLException
         //
         // checkClosed();
         return refCursorName;
@@ -1858,10 +1844,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             current_row++;
         }
 
-        this_row = (byte [][])rows.elementAt(current_row);
-
-        rowBuffer = new byte[this_row.length][];
-        System.arraycopy(this_row, 0, rowBuffer, 0, this_row.length);
+        initRowBuffer();
         return true;
     }
 
@@ -2808,6 +2791,19 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         return 0;  // SQL NULL
     }
 
+    private void initRowBuffer()
+    {
+        this_row = (byte[][]) rows.elementAt(current_row);
+        // We only need a copy of the current row if we're going to
+        // modify it via an updatable resultset.
+        if (resultsetconcurrency == ResultSet.CONCUR_UPDATABLE) {
+            rowBuffer = new byte[this_row.length][];
+            System.arraycopy(this_row, 0, rowBuffer, 0, this_row.length);
+        } else {
+            rowBuffer = null;
+        }        
+    }
+    
     private boolean isColumnTrimmable(int columnIndex) throws SQLException
     {
         switch (getSQLType(columnIndex))
