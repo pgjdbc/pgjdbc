@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.40.2.2 2007/12/01 09:17:49 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.40.2.3 2008/02/19 06:12:41 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1009,6 +1009,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
     public PGNotification[] getNotifications() throws SQLException
     {
+        getQueryExecutor().processNotifies();
         // Backwards-compatibility hand-holding.
         PGNotification[] notifications = protoConnection.getNotifications();
         return (notifications.length == 0 ? null : notifications);
