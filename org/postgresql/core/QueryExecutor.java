@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/QueryExecutor.java,v 1.40 2005/02/01 07:27:53 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/QueryExecutor.java,v 1.41 2008/01/08 06:56:27 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -169,6 +169,15 @@ public interface QueryExecutor {
      * @return a new Query object
      */
     Query createParameterizedQuery(String sql); // Parsed for parameter placeholders ('?')
+
+    /**
+     * Prior to attempting to retrieve notifications, we need to pull
+     * any recently received notifications off of the network buffers.
+     * The notification retrieval in ProtocolConnection cannot do this
+     * as it is prone to deadlock, so the higher level caller must be
+     * responsible which requires exposing this method.
+     */
+    void processNotifies() throws SQLException;
 
     //
     // Fastpath interface.
