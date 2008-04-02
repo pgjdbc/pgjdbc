@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CallableStmtTest.java,v 1.19 2006/11/03 04:44:50 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CallableStmtTest.java,v 1.20 2006/11/29 04:34:29 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -81,10 +81,34 @@ public class CallableStmtTest extends TestCase
 
     final String func = "{ ? = call ";
     final String pkgName = "testspg__";
-    // protected void runTest () throws Throwable {
-    //testGetString ();
-    //}
 
+    public void testGetUpdateCount() throws SQLException
+    {
+        CallableStatement call = con.prepareCall (func + pkgName + "getDouble (?) }");
+        call.setDouble (2, (double)3.04);
+        call.registerOutParameter (1, Types.DOUBLE);
+        call.execute ();
+        assertEquals(-1, call.getUpdateCount());
+        assertNull(call.getResultSet());
+        assertEquals(42.42, call.getDouble(1), 0.00001);
+        call.close();
+        
+        // test without an out parameter
+        call = con.prepareCall( "{ call " + pkgName + "getDouble(?) }");
+        call.setDouble( 1, (double)3.04 );
+        call.execute();
+        assertEquals(-1, call.getUpdateCount());
+        ResultSet rs = call.getResultSet();
+        assertNotNull(rs);
+        assertTrue(rs.next());
+        assertEquals(42.42, rs.getDouble(1), 0.00001);
+        assertTrue(!rs.next());
+        rs.close();
+
+        assertEquals(-1, call.getUpdateCount());
+        assertTrue(!call.getMoreResults());
+        call.close();
+    }
     
     public void testGetDouble () throws Throwable
     {
