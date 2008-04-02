@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.107 2008/01/15 03:29:15 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.108 2008/02/01 10:38:03 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -492,13 +492,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public int getUpdateCount() throws SQLException
     {
         checkClosed();
-        if (result == null)
-            return -1;
-
-        if (isFunction)
-            return 1;
-
-        if (result.getResultSet() != null)
+        if (result == null || result.getResultSet() != null)
             return -1;
 
         return result.getUpdateCount();
