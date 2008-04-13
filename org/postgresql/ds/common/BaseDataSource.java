@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.9 2007/07/27 09:10:54 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.10 2008/01/08 06:56:27 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -357,6 +357,10 @@ public abstract class BaseDataSource implements Referenceable
         
         ref.add(new StringRefAddr("prepareThreshold", Integer.toString(prepareThreshold)));
         ref.add(new StringRefAddr("loginTimeout", Integer.toString(loginTimeout)));
+
+        ref.add(new StringRefAddr("ssl", Boolean.toString(ssl)));
+        ref.add(new StringRefAddr("sslfactory", sslfactory));
+
         return ref;
     }
 
@@ -369,6 +373,8 @@ public abstract class BaseDataSource implements Referenceable
         out.writeInt(portNumber);
         out.writeInt(prepareThreshold);
         out.writeInt(loginTimeout);
+        out.writeBoolean(ssl);
+        out.writeObject(sslfactory);
     }
 
     protected void readBaseObject(ObjectInputStream in) throws IOException, ClassNotFoundException
@@ -380,6 +386,8 @@ public abstract class BaseDataSource implements Referenceable
         portNumber = in.readInt();
         prepareThreshold = in.readInt();
         loginTimeout = in.readInt();
+        ssl = in.readBoolean();
+        sslfactory = (String)in.readObject();
     }
 
 }
