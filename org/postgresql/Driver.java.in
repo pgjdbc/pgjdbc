@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.71 2007/11/02 15:27:44 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.72 2008/01/08 06:56:26 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -442,6 +442,8 @@ public class Driver implements java.sql.Driver
                   new String[] { "7.1", "7.2", "7.3", "7.4", "8.0", "8.1", "8.2" } },
                 { "loginTimeout", Boolean.FALSE,
                   "The login timeout, in seconds; 0 means no timeout beyond the normal TCP connection timout." },
+                { "tcpKeepAlive", Boolean.FALSE,
+                  "Enable or disable TCP keep-alive probe." },
                 { "stringtype", Boolean.FALSE,
                   "The type to bind String parameters as (usually 'varchar'; 'unspecified' allows implicit casting to other types)",
                   new String[] { "varchar", "unspecified" } },

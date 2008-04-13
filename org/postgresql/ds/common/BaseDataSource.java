@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.10 2008/01/08 06:56:27 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.11 2008/04/13 15:49:16 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -51,6 +51,7 @@ public abstract class BaseDataSource implements Referenceable
     private int loginTimeout; // in seconds
     private boolean ssl = false;
     private String sslfactory;
+    private boolean tcpKeepAlive = false;
 
     /**
      * Gets a connection to the PostgreSQL database.  The database is identified by the
@@ -303,6 +304,16 @@ public abstract class BaseDataSource implements Referenceable
         return this.sslfactory;
     }
 
+    public void setTcpKeepAlive(boolean enabled)
+    {
+        tcpKeepAlive = enabled;
+    }
+
+    public boolean getTcpKeepAlive()
+    {
+        return tcpKeepAlive;
+    }
+
     /**
      * Generates a DriverManager URL from the other properties supplied.
      */
@@ -323,6 +334,7 @@ public abstract class BaseDataSource implements Referenceable
                 sb.append("&sslfactory=").append(sslfactory);
             }
         }
+        sb.append("&tcpkeepalive=").append(tcpKeepAlive);
 
         return sb.toString();
     }
@@ -361,6 +373,8 @@ public abstract class BaseDataSource implements Referenceable
         ref.add(new StringRefAddr("ssl", Boolean.toString(ssl)));
         ref.add(new StringRefAddr("sslfactory", sslfactory));
 
+        ref.add(new StringRefAddr("tcpKeepAlive", Boolean.toString(tcpKeepAlive));
+
         return ref;
     }
 
@@ -375,6 +389,7 @@ public abstract class BaseDataSource implements Referenceable
         out.writeInt(loginTimeout);
         out.writeBoolean(ssl);
         out.writeObject(sslfactory);
+        out.writeBoolean(tcpKeepAlive);
     }
 
     protected void readBaseObject(ObjectInputStream in) throws IOException, ClassNotFoundException
@@ -388,6 +403,7 @@ public abstract class BaseDataSource implements Referenceable
         loginTimeout = in.readInt();
         ssl = in.readBoolean();
         sslfactory = (String)in.readObject();
+        tcpKeepAlive = in.readBoolean();
     }
 
 }

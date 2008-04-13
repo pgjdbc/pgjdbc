@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ConnectionFactoryImpl.java,v 1.13 2007/10/08 01:49:59 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ConnectionFactoryImpl.java,v 1.14 2008/01/08 06:56:27 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -46,6 +46,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         boolean requireSSL = (info.getProperty("ssl") != null);
         boolean trySSL = requireSSL; // XXX temporary until we revisit the ssl property values
 
+        //  - the TCP keep alive setting
+        boolean requireTCPKeepAlive = (Boolean.valueOf(info.getProperty("tcpKeepAlive")).booleanValue());
+
         if (logger.logDebug())
             logger.debug("Trying to establish a protocol version 2 connection to " + host + ":" + port);
 
@@ -68,6 +71,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // Construct and send an ssl startup packet if requested.
             if (trySSL)
                 newStream = enableSSL(newStream, requireSSL, info, logger);
+
+            // Enable TCP keep-alive probe if required.
+            newStream.getSocket().setKeepAlive(requireTCPKeepAlive);
 
             // Construct and send a startup packet.
             sendStartupPacket(newStream, user, database, logger);

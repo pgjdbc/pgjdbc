@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!--
   Copyright (c) 2004-2008, PostgreSQL Global Development Group
-  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.32 2007/07/27 09:10:54 jurka Exp $
+  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.33 2008/01/08 06:56:26 jurka Exp $
 -->
 
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN" "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">
@@ -587,6 +587,16 @@ Connection conn = DriverManager.getConnection(url);
         <para>
 	 Specify how long to wait for establishment of a database connection.
 	 The timeout is specified in seconds.
+	</para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
+       <term><varname>tcpKeepAlive</varname> = <type>boolean</type></term>
+       <listitem>
+        <para>
+	 Enable or disable TCP keep-alive probe. The default is
+        <literal>false</literal>.
 	</para>
        </listitem>
       </varlistentry>
