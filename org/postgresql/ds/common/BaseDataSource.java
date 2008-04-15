@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.11 2008/04/13 15:49:16 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.12 2008/04/13 16:03:50 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -373,7 +373,7 @@ public abstract class BaseDataSource implements Referenceable
         ref.add(new StringRefAddr("ssl", Boolean.toString(ssl)));
         ref.add(new StringRefAddr("sslfactory", sslfactory));
 
-        ref.add(new StringRefAddr("tcpKeepAlive", Boolean.toString(tcpKeepAlive));
+        ref.add(new StringRefAddr("tcpKeepAlive", Boolean.toString(tcpKeepAlive)));
 
         return ref;
     }
