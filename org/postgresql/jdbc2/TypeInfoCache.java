@@ -3,7 +3,7 @@
  * Copyright (c) 2005-2008, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.13 2008/04/15 04:23:57 jurka Exp $
+ *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.14 2008/04/15 04:49:59 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -266,6 +266,21 @@ public class TypeInfoCache implements TypeInfo {
         return getPGType("_" + elementTypeName);
     }
 
+    /**
+     * Return the oid of the array's base element if it's an array,
+     * if not return the provided oid.  This doesn't do any database
+     * lookups, so it's only useful for the originally provided type
+     * mappings.  This is fine for it's intended uses where we only have
+     * intimate knowledge of types that are already known to the driver.
+     */
+    protected synchronized int convertArrayToBaseOid(int oid)
+    {
+        Integer i = (Integer)_pgArrayToPgType.get(new Integer(oid));
+        if (i == null)
+            return oid;
+        return i.intValue();
+    }
+
     public synchronized int getPGArrayElement (int oid) throws SQLException
     {
         if (oid == Oid.UNSPECIFIED)
@@ -336,6 +351,7 @@ public class TypeInfoCache implements TypeInfo {
     }
 
     public int getPrecision(int oid, int typmod) {
+        oid = convertArrayToBaseOid(oid);
         switch (oid) {
             case Oid.INT2:
                 return 5;
@@ -397,6 +413,7 @@ public class TypeInfoCache implements TypeInfo {
     }
 
     public int getScale(int oid, int typmod) {
+        oid = convertArrayToBaseOid(oid);
         switch(oid) {
             case Oid.FLOAT4:
                 return 8;
@@ -423,6 +440,7 @@ public class TypeInfoCache implements TypeInfo {
     }
 
     public boolean isCaseSensitive(int oid) {
+        oid = convertArrayToBaseOid(oid);
         switch(oid) {
             case Oid.OID:
             case Oid.INT2:
@@ -447,6 +465,7 @@ public class TypeInfoCache implements TypeInfo {
     }
 
     public boolean isSigned(int oid) {
+        oid = convertArrayToBaseOid(oid);
         switch(oid) {
             case Oid.INT2:
             case Oid.INT4:
@@ -461,6 +480,7 @@ public class TypeInfoCache implements TypeInfo {
     }
 
     public int getDisplaySize(int oid, int typmod) {
+        oid = convertArrayToBaseOid(oid);
         switch(oid) {
             case Oid.INT2:
                 return 6; // -32768 to +32767
@@ -548,6 +568,7 @@ public class TypeInfoCache implements TypeInfo {
     }
 
     public int getMaximumPrecision(int oid) {
+        oid = convertArrayToBaseOid(oid);
         switch(oid) {
             case Oid.NUMERIC:
                 return 1000;

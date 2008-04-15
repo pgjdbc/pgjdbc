@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.41 2008/01/20 15:13:29 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.42 2008/04/15 04:49:59 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -39,6 +39,7 @@ public class DatabaseMetaDataTest extends TestCase
         TestUtil.createTable( con, "sercoltest", "a int, b serial, c bigserial");
         TestUtil.createTable( con, "\"a\\\"", "a int4");
         TestUtil.createTable( con, "\"a'\"", "a int4");
+        TestUtil.createTable( con, "arraytable", "a numeric(5,2)[], b varchar(100)[]");
 
         Statement stmt = con.createStatement();
         //we add the following comments to ensure the joins to the comments
@@ -70,6 +71,7 @@ public class DatabaseMetaDataTest extends TestCase
         TestUtil.dropSequence( con, "sercoltest_c_seq");
         TestUtil.dropTable( con, "\"a\\\"");
         TestUtil.dropTable( con, "\"a'\"");
+        TestUtil.dropTable( con, "arraytable");
 
         stmt.execute("DROP FUNCTION f1(int, varchar)");
         if (TestUtil.haveMinimumServerVersion(con, "8.0")) {
@@ -919,6 +921,20 @@ public class DatabaseMetaDataTest extends TestCase
                 assertEquals("'", rs.getString("LITERAL_SUFFIX"));
             }
         }
+    }
+
+    public void testInformationAboutArrayTypes() throws SQLException
+    {
+        DatabaseMetaData dbmd = con.getMetaData();
+        ResultSet rs = dbmd.getColumns("", "", "arraytable", "");
+        assertTrue(rs.next());
+        assertEquals("a", rs.getString("COLUMN_NAME"));
+        assertEquals(5, rs.getInt("COLUMN_SIZE"));
+        assertEquals(2, rs.getInt("DECIMAL_DIGITS"));
+	assertTrue(rs.next());
+        assertEquals("b", rs.getString("COLUMN_NAME"));
+        assertEquals(100, rs.getInt("COLUMN_SIZE"));
+        assertTrue(!rs.next());
     }
 
 }
