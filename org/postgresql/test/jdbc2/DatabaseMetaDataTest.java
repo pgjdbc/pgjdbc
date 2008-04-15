@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.40 2008/01/08 06:56:31 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.41 2008/01/20 15:13:29 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -906,4 +906,19 @@ public class DatabaseMetaDataTest extends TestCase
             }
         }
     }
+
+    public void testTypeInfoQuoting() throws SQLException
+    {
+        DatabaseMetaData dbmd = con.getMetaData();
+        ResultSet rs = dbmd.getTypeInfo();
+        while (rs.next()) {
+            if ("int4".equals(rs.getString("TYPE_NAME"))) {
+                assertNull(rs.getString("LITERAL_PREFIX"));
+            } else if ("text".equals(rs.getString("TYPE_NAME"))) {
+                assertEquals("'", rs.getString("LITERAL_PREFIX"));
+                assertEquals("'", rs.getString("LITERAL_SUFFIX"));
+            }
+        }
+    }
+
 }

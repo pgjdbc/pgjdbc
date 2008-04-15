@@ -3,7 +3,7 @@
  * Copyright (c) 2005-2008, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.12 2008/01/08 06:56:29 jurka Exp $
+ *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.13 2008/04/15 04:23:57 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -569,6 +569,24 @@ public class TypeInfoCache implements TypeInfo {
             default:
                 return 0;
         }
+    }
+
+    public boolean requiresQuoting(int oid) throws SQLException
+    {
+        int sqlType = getSQLType(oid);
+        switch(sqlType) {
+            case Types.BIGINT:
+            case Types.DOUBLE:
+            case Types.FLOAT:
+            case Types.INTEGER:
+            case Types.REAL:
+            case Types.SMALLINT:
+            case Types.TINYINT:
+            case Types.NUMERIC:
+            case Types.DECIMAL:
+                return false;
+        }
+        return true;
     }
 
 }

@@ -3,7 +3,7 @@
 * Copyright (c) 2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL$
+*   $PostgreSQL: pgjdbc/org/postgresql/core/TypeInfo.java,v 1.1 2008/04/15 04:23:54 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -88,5 +88,7 @@ public interface TypeInfo
     public int getDisplaySize(int oid, int typmod);
 
     public int getMaximumPrecision(int oid);
+
+    public boolean requiresQuoting(int oid) throws SQLException;
 
 }

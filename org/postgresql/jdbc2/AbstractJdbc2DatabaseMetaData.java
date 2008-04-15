@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.44 2008/01/08 06:56:28 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.45 2008/04/15 04:23:57 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -3670,6 +3670,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         byte b10[] = connection.encodeString("10");
         byte bf[] = connection.encodeString("f");
         byte bt[] = connection.encodeString("t");
+        byte bliteral[] = connection.encodeString("'");
         byte bNullable[] = connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.typeNullable));
         byte bSearchable[] = connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.typeSearchable));
 
@@ -3682,6 +3683,13 @@ public abstract class AbstractJdbc2DatabaseMetaData
             tuple[0] = connection.encodeString(typname);
             tuple[1] = connection.encodeString(Integer.toString(connection.getTypeInfo().getSQLType(typname)));
             tuple[2] = connection.encodeString(Integer.toString(connection.getTypeInfo().getMaximumPrecision(typeOid)));
+
+            if (connection.getTypeInfo().requiresQuoting(typeOid))
+            {
+                tuple[3] = bliteral;
+                tuple[4] = bliteral;
+            }
+
             tuple[6] = bNullable; // all types can be null
             tuple[7] = connection.getTypeInfo().isCaseSensitive(typeOid) ? bt : bf;
             tuple[8] = bSearchable; // any thing can be used in the WHERE clause
