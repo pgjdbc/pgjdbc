@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/BaseConnection.java,v 1.20 2007/12/01 08:28:58 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/BaseConnection.java,v 1.21 2008/01/08 06:56:27 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -70,55 +70,9 @@ public interface BaseConnection extends PGConnection, Connection
      */
     public Object getObject(String type, String value) throws SQLException;
 
+    public Encoding getEncoding() throws SQLException;
 
-    public String getJavaClass(int oid) throws SQLException;
-
-    /**
-     * Look up the postgresql type name for a given oid. This is the
-     * inverse of {@link #getPGType(String)}.
-     *
-     * @param oid the type's OID
-     * @return the server type name for that OID, or null if unknown
-     * @throws SQLException if something goes wrong
-     */
-    public String getPGType(int oid) throws SQLException;
-
-    /**
-     * Look up the oid for a given postgresql type name. This is the
-     * inverse of {@link #getPGType(int)}.
-     *
-     * @param pgTypeName the server type name to look up
-     * @return oid the type's OID, or 0 if unknown
-     * @throws SQLException if something goes wrong
-     */
-    public int getPGType(String pgTypeName) throws SQLException;
-
-    /**
-     * Look up the oid of base type for a given postgresql array type oid.
-     *
-     * @param oid the array type's OID
-     * @return oid the base type's OID, or 0 if unknown
-     * @throws SQLException if something goes wrong
-     */
-    public int getPGArrayElement(int oid) throws SQLException;
-
-    /**
-     * Look up the SQL typecode for a given type oid.
-     *
-     * @param oid the type's OID
-     * @return the SQL typecode (a constant from {@link java.sql.Types}) for the type
-     * @throws SQLException if something goes wrong
-     */
-    public int getSQLType(int oid) throws SQLException;
-
-    /**
-     * Look up the SQL typecode for a given postgresql type name.
-     *
-     * @param pgTypeName the server type name to look up
-     * @return the SQL typecode (a constant from {@link java.sql.Types}) for the type
-     * @throws SQLException if something goes wrong
-     */
-    public int getSQLType(String pgTypeName) throws SQLException;
+    public TypeInfo getTypeInfo();
 
     /**
      * Check if we should use driver behaviour introduced in a particular

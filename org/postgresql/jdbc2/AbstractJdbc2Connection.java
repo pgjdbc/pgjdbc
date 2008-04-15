@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.48 2008/02/19 06:12:24 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.49 2008/04/01 07:19:21 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -58,7 +58,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     /* Query that runs ROLLBACK */
     private final Query rollbackQuery;
 
-    private TypeInfoCache _typeCache;
+    private TypeInfo _typeCache;
 
     // Default statement prepare threshold.
     protected int prepareThreshold;
@@ -157,7 +157,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         rollbackQuery = getQueryExecutor().createSimpleQuery("ROLLBACK");
 
         // Initialize object handling
-        _typeCache = new TypeInfoCache(this);
+        _typeCache = createTypeInfo(this);
         initObjectTypes(info);
 
         if (Boolean.valueOf(info.getProperty("logUnclosedConnections")).booleanValue()) {
@@ -442,6 +442,16 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         {
             throw new PSQLException(GT.tr("Failed to create object for: {0}.", type), PSQLState.CONNECTION_FAILURE, ex);
         }
+    }
+
+    protected TypeInfo createTypeInfo(BaseConnection conn)
+    {
+        return new TypeInfoCache(conn);
+    }
+
+    public TypeInfo getTypeInfo()
+    {
+        return _typeCache;
     }
 
     public void addDataType(String type, String name)
@@ -944,63 +954,6 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         return protoConnection.getStandardConformingStrings();
     }
 
-    /*
-     * This returns the java.sql.Types type for a PG type oid
-     *
-     * @param oid PostgreSQL type oid
-     * @return the java.sql.Types type
-     * @exception SQLException if a database access error occurs
-     */
-    public int getSQLType(int oid) throws SQLException
-    {
-        return _typeCache.getSQLType(oid);
-    }
-
-    public Iterator getPGTypeNamesWithSQLTypes()
-    {
-        return _typeCache.getPGTypeNamesWithSQLTypes();
-    }
-
-    /*
-     * This returns the oid for a given PG data type
-     * @param typeName PostgreSQL type name
-     * @return PostgreSQL oid value for a field of this type, or 0 if not found
-     */
-    public int getPGType(String typeName) throws SQLException
-    {
-        return _typeCache.getPGType(typeName);
-    }
-
-    /**
-     * Return the oid of the array type of the given base type.
-     */
-    public int getPGArrayType(String elementTypeName) throws SQLException
-    {
-        elementTypeName = _typeCache.getTypeForAlias(elementTypeName);
-        return getPGType("_" + elementTypeName);
-    }
-
-    public String getJavaClass(int oid) throws SQLException
-    {
-        return _typeCache.getJavaClass(oid);
-    }
-
-    /*
-     * We also need to get the PG type name as returned by the back end.
-     *
-     * @return the String representation of the type, or null if not fould
-     * @exception SQLException if a database access error occurs
-     */
-    public String getPGType(int oid) throws SQLException
-    {
-        return _typeCache.getPGType(oid);
-    }
-
-    public int getPGArrayElement (int oid) throws SQLException
-    {
-        return _typeCache.getPGArrayElement(oid);
-    }
-
     // This is a cache of the DatabaseMetaData instance for this connection
     protected java.sql.DatabaseMetaData metadata;
 
@@ -1087,12 +1040,6 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         }
     }
 
-
-    public int getSQLType(String pgTypeName) throws SQLException
-    {
-        return _typeCache.getSQLType(pgTypeName);
-    }
-    
     public int getProtocolVersion()
     {
         return protoConnection.getProtocolVersion();

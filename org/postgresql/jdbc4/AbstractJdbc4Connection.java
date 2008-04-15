@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4Connection.java,v 1.4 2007/12/01 12:50:45 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4Connection.java,v 1.5 2008/01/08 06:56:30 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -56,7 +56,7 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3.AbstractJdbc
 
     public Array createArrayOf(String typeName, Object[] elements) throws SQLException
     {
-        int oid = getPGArrayType(typeName);
+        int oid = getTypeInfo().getPGArrayType(typeName);
         if (oid == Oid.UNSPECIFIED)
             throw new PSQLException(GT.tr("Unable to find server array type for provided name {0}.", typeName), PSQLState.INVALID_NAME);
 

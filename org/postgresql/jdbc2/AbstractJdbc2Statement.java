@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.108 2008/02/01 10:38:03 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.109 2008/04/02 17:05:56 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1533,7 +1533,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     // Helper method for setting parameters to PGobject subclasses.
     private void setPGobject(int parameterIndex, PGobject x) throws SQLException {
         String typename = x.getType();
-        int oid = connection.getPGType(typename);
+        int oid = connection.getTypeInfo().getPGType(typename);
         if (oid == Oid.UNSPECIFIED)
             throw new PSQLException(GT.tr("Unknown type {0}.", typename), PSQLState.INVALID_PARAMETER_TYPE);
 
@@ -2789,7 +2789,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         // Use a typename that is "_" plus the base type; this matches how the
         // backend looks for array types.
         String typename = "_" + x.getBaseTypeName();
-        int oid = connection.getPGType(typename);
+        int oid = connection.getTypeInfo().getPGType(typename);
         if (oid == Oid.UNSPECIFIED)
             throw new PSQLException(GT.tr("Unknown type {0}.", typename), PSQLState.INVALID_PARAMETER_TYPE);
 

@@ -3,7 +3,7 @@
 * Copyright (c) 2005-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3ParameterMetaData.java,v 1.1 2006/06/08 10:34:50 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3ParameterMetaData.java,v 1.2 2008/01/08 06:56:29 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -30,7 +30,7 @@ public abstract class AbstractJdbc3ParameterMetaData {
 
     public String getParameterClassName(int param) throws SQLException {
         checkParamIndex(param);
-        return _connection.getJavaClass(_oids[param-1]);
+        return _connection.getTypeInfo().getJavaClass(_oids[param-1]);
     }
 
     public int getParameterCount() {
@@ -46,12 +46,12 @@ public abstract class AbstractJdbc3ParameterMetaData {
 
     public int getParameterType(int param) throws SQLException {
         checkParamIndex(param);
-        return _connection.getSQLType(_oids[param-1]);
+        return _connection.getTypeInfo().getSQLType(_oids[param-1]);
     }
 
     public String getParameterTypeName(int param) throws SQLException {
         checkParamIndex(param);
-        return _connection.getPGType(_oids[param-1]);
+        return _connection.getTypeInfo().getPGType(_oids[param-1]);
     }
 
     // we don't know this
@@ -75,7 +75,7 @@ public abstract class AbstractJdbc3ParameterMetaData {
     // pg doesn't have unsigned numbers
     public boolean isSigned(int param) throws SQLException {
         checkParamIndex(param);
-        return TypeInfoCache.isSigned(_oids[param-1]);
+        return _connection.getTypeInfo().isSigned(_oids[param-1]);
     }
 
     private void checkParamIndex(int param) throws PSQLException {

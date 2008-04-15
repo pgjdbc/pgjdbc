@@ -3,14 +3,13 @@
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/PGConnection.java,v 1.14 2005/04/20 00:10:58 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/PGConnection.java,v 1.15 2008/01/08 06:56:26 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql;
 
 import java.sql.*;
-import org.postgresql.core.Encoding;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.largeobject.LargeObjectManager;
 
@@ -105,24 +104,6 @@ public interface PGConnection
      * @return the current threshold
      */
     public int getPrepareThreshold();
-
-    /** @deprecated */
-    public Encoding getEncoding() throws SQLException;
-
-    /** @deprecated */
-    public int getSQLType(String pgTypeName) throws SQLException;
-
-    /** @deprecated */
-    public int getSQLType(int oid) throws SQLException;
-
-    /** @deprecated */
-    public String getPGType(int oid) throws SQLException;
-
-    /** @deprecated */
-    public int getPGType(String typeName) throws SQLException;
-
-    /** @deprecated */
-    public Object getObject(String type, String value) throws SQLException;
 
 }
 

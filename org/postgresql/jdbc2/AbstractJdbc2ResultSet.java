@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.102 2008/02/19 06:12:24 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.103 2008/02/20 17:17:08 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1126,7 +1126,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     throws SQLException
     {
         checkColumnIndex(columnIndex);
-        String columnTypeName = connection.getPGType(fields[columnIndex - 1].getOID());
+        String columnTypeName = connection.getTypeInfo().getPGType(fields[columnIndex - 1].getOID());
         updateValue(columnIndex, new NullObject(columnTypeName));
     }
 
@@ -2570,12 +2570,12 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     protected String getPGType( int column ) throws SQLException
     {
-        return connection.getPGType(fields[column - 1].getOID());
+        return connection.getTypeInfo().getPGType(fields[column - 1].getOID());
     }
 
     protected int getSQLType( int column ) throws SQLException
     {
-        return connection.getSQLType(fields[column - 1].getOID());
+        return connection.getTypeInfo().getSQLType(fields[column - 1].getOID());
     }
 
     private void checkUpdateable() throws SQLException

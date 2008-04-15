@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSetMetaData.java,v 1.20 2005/12/04 20:14:28 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSetMetaData.java,v 1.21 2008/01/08 06:56:28 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -73,7 +73,7 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
     public boolean isCaseSensitive(int column) throws SQLException
     {
         Field field = getField(column);
-        return TypeInfoCache.isCaseSensitive(field.getOID());
+        return connection.getTypeInfo().isCaseSensitive(field.getOID());
     }
 
     /*
@@ -134,7 +134,7 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
     public boolean isSigned(int column) throws SQLException
     {
         Field field = getField(column);
-        return TypeInfoCache.isSigned(field.getOID());
+        return connection.getTypeInfo().isSigned(field.getOID());
     }
 
     /*
@@ -147,7 +147,7 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
     public int getColumnDisplaySize(int column) throws SQLException
     {
         Field field = getField(column);
-        return TypeInfoCache.getDisplaySize(field.getOID(), field.getMod());
+        return connection.getTypeInfo().getDisplaySize(field.getOID(), field.getMod());
     }
 
     /*
@@ -243,7 +243,7 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
     public int getPrecision(int column) throws SQLException
     {
         Field field = getField(column);
-        return TypeInfoCache.getPrecision(field.getOID(), field.getMod());
+        return connection.getTypeInfo().getPrecision(field.getOID(), field.getMod());
     }
 
     /*
@@ -257,7 +257,7 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
     public int getScale(int column) throws SQLException
     {
         Field field = getField(column);
-        return TypeInfoCache.getScale(field.getOID(), field.getMod());
+        return connection.getTypeInfo().getScale(field.getOID(), field.getMod());
     }
 
     /*
@@ -421,12 +421,12 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
 
     protected String getPGType(int columnIndex) throws SQLException
     {
-        return connection.getPGType(getField(columnIndex).getOID());
+        return connection.getTypeInfo().getPGType(getField(columnIndex).getOID());
     }
 
     protected int getSQLType(int columnIndex) throws SQLException
     {
-        return connection.getSQLType(getField(columnIndex).getOID());
+        return connection.getTypeInfo().getSQLType(getField(columnIndex).getOID());
     }
 
 
@@ -451,7 +451,7 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
     public String getColumnClassName(int column) throws SQLException
     {
         Field field = getField(column);
-        String result = connection.getJavaClass(field.getOID());
+        String result = connection.getTypeInfo().getJavaClass(field.getOID());
 
         if (result != null)
             return result;

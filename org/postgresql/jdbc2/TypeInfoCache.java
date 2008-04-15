@@ -3,7 +3,7 @@
  * Copyright (c) 2005-2008, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.11 2007/12/02 06:48:43 jurka Exp $
+ *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.12 2008/01/08 06:56:29 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -22,12 +22,13 @@ import org.postgresql.core.Oid;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.QueryExecutor;
+import org.postgresql.core.TypeInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLException;
 
-public class TypeInfoCache {
+public class TypeInfoCache implements TypeInfo {
 
     // pgname (String) -> java.sql.Types (Integer)
     private Map _pgNameToSQLType;
@@ -141,7 +142,7 @@ public class TypeInfoCache {
         return _pgNameToSQLType.keySet().iterator();
     }
 
-    public synchronized int getSQLType(int oid) throws SQLException
+    public int getSQLType(int oid) throws SQLException
     {
         return getSQLType(getPGType(oid));
     }
@@ -259,6 +260,12 @@ public class TypeInfoCache {
         return pgTypeName;
     }
 
+    public int getPGArrayType(String elementTypeName) throws SQLException
+    {
+        elementTypeName = getTypeForAlias(elementTypeName);
+        return getPGType("_" + elementTypeName);
+    }
+
     public synchronized int getPGArrayElement (int oid) throws SQLException
     {
         if (oid == Oid.UNSPECIFIED)
@@ -321,14 +328,14 @@ public class TypeInfoCache {
         return result;
     }
 
-    public static String getTypeForAlias(String alias) {
+    public String getTypeForAlias(String alias) {
         String type = (String) typeAliases.get(alias);
         if (type != null)
             return type;
         return alias;
     }
 
-    public static int getPrecision(int oid, int typmod) {
+    public int getPrecision(int oid, int typmod) {
         switch (oid) {
             case Oid.INT2:
                 return 5;
@@ -389,7 +396,7 @@ public class TypeInfoCache {
         }
     }
 
-    public static int getScale(int oid, int typmod) {
+    public int getScale(int oid, int typmod) {
         switch(oid) {
             case Oid.FLOAT4:
                 return 8;
@@ -415,7 +422,7 @@ public class TypeInfoCache {
         }
     }
 
-    public static boolean isCaseSensitive(int oid) {
+    public boolean isCaseSensitive(int oid) {
         switch(oid) {
             case Oid.OID:
             case Oid.INT2:
@@ -439,7 +446,7 @@ public class TypeInfoCache {
         }
     }
 
-    public static boolean isSigned(int oid) {
+    public boolean isSigned(int oid) {
         switch(oid) {
             case Oid.INT2:
             case Oid.INT4:
@@ -453,7 +460,7 @@ public class TypeInfoCache {
         }
     }
 
-    public static int getDisplaySize(int oid, int typmod) {
+    public int getDisplaySize(int oid, int typmod) {
         switch(oid) {
             case Oid.INT2:
                 return 6; // -32768 to +32767
@@ -540,7 +547,7 @@ public class TypeInfoCache {
         }
     }
 
-    public static int getMaximumPrecision(int oid) {
+    public int getMaximumPrecision(int oid) {
         switch(oid) {
             case Oid.NUMERIC:
                 return 1000;

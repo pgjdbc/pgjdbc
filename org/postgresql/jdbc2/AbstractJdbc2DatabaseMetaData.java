@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.43 2008/01/08 06:47:57 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.44 2008/01/08 06:56:28 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1812,8 +1812,8 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 tuple[2] = procedureName;
                 tuple[3] = connection.encodeString("returnValue");
                 tuple[4] = connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.procedureColumnReturn));
-                tuple[5] = connection.encodeString(Integer.toString(connection.getSQLType(returnType)));
-                tuple[6] = connection.encodeString(connection.getPGType(returnType));
+                tuple[5] = connection.encodeString(Integer.toString(connection.getTypeInfo().getSQLType(returnType)));
+                tuple[6] = connection.encodeString(connection.getTypeInfo().getPGType(returnType));
                 tuple[7] = null;
                 tuple[8] = null;
                 tuple[9] = null;
@@ -1850,8 +1850,8 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 else
                     argOid = ((Long)argTypes.elementAt(i)).intValue();
 
-                tuple[5] = connection.encodeString(Integer.toString(connection.getSQLType(argOid)));
-                tuple[6] = connection.encodeString(connection.getPGType(argOid));
+                tuple[5] = connection.encodeString(Integer.toString(connection.getTypeInfo().getSQLType(argOid)));
+                tuple[6] = connection.encodeString(connection.getTypeInfo().getPGType(argOid));
                 tuple[7] = null;
                 tuple[8] = null;
                 tuple[9] = null;
@@ -1879,8 +1879,8 @@ public abstract class AbstractJdbc2DatabaseMetaData
                     tuple[2] = procedureName;
                     tuple[3] = columnrs.getBytes("attname");
                     tuple[4] = connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.procedureColumnResult));
-                    tuple[5] = connection.encodeString(Integer.toString(connection.getSQLType(columnTypeOid)));
-                    tuple[6] = connection.encodeString(connection.getPGType(columnTypeOid));
+                    tuple[5] = connection.encodeString(Integer.toString(connection.getTypeInfo().getSQLType(columnTypeOid)));
+                    tuple[6] = connection.encodeString(connection.getTypeInfo().getPGType(columnTypeOid));
                     tuple[7] = null;
                     tuple[8] = null;
                     tuple[9] = null;
@@ -2320,11 +2320,11 @@ public abstract class AbstractJdbc2DatabaseMetaData
             } else if ("d".equals(typtype)) {
                 sqlType = Types.DISTINCT;
             } else {
-                sqlType = connection.getSQLType(typeOid);
+                sqlType = connection.getTypeInfo().getSQLType(typeOid);
             }
 
             tuple[4] = connection.encodeString(Integer.toString(sqlType));
-            String pgType = connection.getPGType(typeOid);
+            String pgType = connection.getTypeInfo().getPGType(typeOid);
             tuple[5] = connection.encodeString(pgType); // Type name
             tuple[7] = null;      // Buffer length
 
@@ -2345,10 +2345,10 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 }
             }
 
-            int decimalDigits = TypeInfoCache.getScale(typeOid, typeMod);
-            int columnSize = TypeInfoCache.getPrecision(typeOid, typeMod);
+            int decimalDigits = connection.getTypeInfo().getScale(typeOid, typeMod);
+            int columnSize = connection.getTypeInfo().getPrecision(typeOid, typeMod);
             if (columnSize == 0) {
-                columnSize = TypeInfoCache.getDisplaySize(typeOid, typeMod);
+                columnSize = connection.getTypeInfo().getDisplaySize(typeOid, typeMod);
             }
 
             tuple[6] = connection.encodeString(Integer.toString(columnSize));
@@ -2377,7 +2377,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 tuple[18] = null; // SCOPE_CATLOG
                 tuple[19] = null; // SCOPE_SCHEMA
                 tuple[20] = null; // SCOPE_TABLE
-                tuple[21] = baseTypeOid == 0 ? null : connection.encodeString(Integer.toString(connection.getSQLType(baseTypeOid))); // SOURCE_DATA_TYPE
+                tuple[21] = baseTypeOid == 0 ? null : connection.encodeString(Integer.toString(connection.getTypeInfo().getSQLType(baseTypeOid))); // SOURCE_DATA_TYPE
             }
 
             if (jdbcVersion >= 4) {
@@ -2910,15 +2910,15 @@ public abstract class AbstractJdbc2DatabaseMetaData
             byte tuple[][] = new byte[8][];
             int typeOid = (int)rs.getLong("atttypid");
             int typeMod = rs.getInt("atttypmod");
-            int decimalDigits = TypeInfoCache.getScale(typeOid, typeMod);
-            int columnSize = TypeInfoCache.getPrecision(typeOid, typeMod);
+            int decimalDigits = connection.getTypeInfo().getScale(typeOid, typeMod);
+            int columnSize = connection.getTypeInfo().getPrecision(typeOid, typeMod);
             if (columnSize == 0) {
-                columnSize = TypeInfoCache.getDisplaySize(typeOid, typeMod);
+                columnSize = connection.getTypeInfo().getDisplaySize(typeOid, typeMod);
             }
             tuple[0] = connection.encodeString(Integer.toString(scope));
             tuple[1] = rs.getBytes("attname");
-            tuple[2] = connection.encodeString(Integer.toString(connection.getSQLType(typeOid)));
-            tuple[3] = connection.encodeString(connection.getPGType(typeOid));
+            tuple[2] = connection.encodeString(Integer.toString(connection.getTypeInfo().getSQLType(typeOid)));
+            tuple[3] = connection.encodeString(connection.getTypeInfo().getPGType(typeOid));
             tuple[4] = connection.encodeString(Integer.toString(columnSize));
             tuple[5] = null; // unused
             tuple[6] = connection.encodeString(Integer.toString(decimalDigits));
@@ -2985,7 +2985,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
         tuple[0] = null;
         tuple[1] = connection.encodeString("ctid");
-        tuple[2] = connection.encodeString(Integer.toString(connection.getSQLType("tid")));
+        tuple[2] = connection.encodeString(Integer.toString(connection.getTypeInfo().getSQLType("tid")));
         tuple[3] = connection.encodeString("tid");
         tuple[4] = null;
         tuple[5] = null;
@@ -3680,12 +3680,12 @@ public abstract class AbstractJdbc2DatabaseMetaData
             int typeOid = (int)rs.getLong(2);
 
             tuple[0] = connection.encodeString(typname);
-            tuple[1] = connection.encodeString(Integer.toString(connection.getSQLType(typname)));
-            tuple[2] = connection.encodeString(Integer.toString(TypeInfoCache.getMaximumPrecision(typeOid)));
+            tuple[1] = connection.encodeString(Integer.toString(connection.getTypeInfo().getSQLType(typname)));
+            tuple[2] = connection.encodeString(Integer.toString(connection.getTypeInfo().getMaximumPrecision(typeOid)));
             tuple[6] = bNullable; // all types can be null
-            tuple[7] = TypeInfoCache.isCaseSensitive(typeOid) ? bt : bf;
+            tuple[7] = connection.getTypeInfo().isCaseSensitive(typeOid) ? bt : bf;
             tuple[8] = bSearchable; // any thing can be used in the WHERE clause
-            tuple[9] = TypeInfoCache.isSigned(typeOid) ? bt : bf;
+            tuple[9] = connection.getTypeInfo().isSigned(typeOid) ? bt : bf;
             tuple[10] = bf; // false for now - must handle money
             tuple[11] = bf; // false - it isn't autoincrement
             tuple[13] = bZero; // min scale is zero
@@ -3992,9 +3992,9 @@ public abstract class AbstractJdbc2DatabaseMetaData
                      + "CASE WHEN t.typtype='c' then " + java.sql.Types.STRUCT + " else " + java.sql.Types.DISTINCT + " end as data_type, pg_catalog.obj_description(t.oid, 'pg_type')  "
                      + "as remarks, CASE WHEN t.typtype = 'd' then  (select CASE";
 
-        for (Iterator i = connection.getPGTypeNamesWithSQLTypes(); i.hasNext();) {
+        for (Iterator i = connection.getTypeInfo().getPGTypeNamesWithSQLTypes(); i.hasNext();) {
             String pgType = (String)i.next();
-            int sqlType = connection.getSQLType(pgType);
+            int sqlType = connection.getTypeInfo().getSQLType(pgType);
             sql += " when typname = '" + escapeQuotes(pgType) + "' then " + sqlType;
         }
 

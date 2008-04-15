@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Array.java,v 1.22 2007/12/01 12:50:44 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Array.java,v 1.23 2008/01/08 06:56:28 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -319,7 +319,7 @@ public abstract class AbstractJdbc2Array
         int length = 0;
 
         // array elements type
-        final int type = connection.getSQLType(connection.getPGArrayElement(oid));
+        final int type = connection.getTypeInfo().getSQLType(connection.getTypeInfo().getPGArrayElement(oid));
 
         if (type == Types.BIT)
         {
@@ -542,13 +542,14 @@ ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects
 
     public int getBaseType() throws SQLException
     {
-        return connection.getSQLType(getBaseTypeName());
+        return connection.getTypeInfo().getSQLType(getBaseTypeName());
     }
 
     public String getBaseTypeName() throws SQLException
     {
         buildArrayList();
-        return connection.getPGType(connection.getPGArrayElement(oid));
+        int elementOID = connection.getTypeInfo().getPGArrayElement(oid);
+        return connection.getTypeInfo().getPGType(elementOID);
     }
 
     public java.sql.ResultSet getResultSet() throws SQLException
@@ -602,7 +603,7 @@ ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects
         if (arrayList.dimensionsCount <= 1)
         {
             // array element type
-            final int baseOid = connection.getPGArrayElement(oid);
+            final int baseOid = connection.getTypeInfo().getPGArrayElement(oid);
             fields[0] = new Field("INDEX", Oid.INT4);
             fields[1] = new Field("VALUE", baseOid);
 
