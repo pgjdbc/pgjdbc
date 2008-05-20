@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/ServerErrorMessage.java,v 1.11 2007/07/27 10:15:39 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/util/ServerErrorMessage.java,v 1.12 2008/01/08 06:56:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -153,18 +153,17 @@ public class ServerErrorMessage implements Serializable
         l_message = (String)m_mesgParts.get(DETAIL);
         if (l_message != null)
             l_totalMessage.append("\n  ").append(GT.tr("Detail: {0}", l_message));
-        if (verbosity > 0)
-        {
-            l_message = (String)m_mesgParts.get(HINT);
-            if (l_message != null)
-                l_totalMessage.append("\n  ").append(GT.tr("Hint: {0}", l_message));
-            l_message = (String)m_mesgParts.get(POSITION);
-            if (l_message != null)
-                l_totalMessage.append("\n  ").append(GT.tr("Position: {0}", l_message));
-            l_message = (String)m_mesgParts.get(WHERE);
-            if (l_message != null)
-                l_totalMessage.append("\n  ").append(GT.tr("Where: {0}", l_message));
-        }
+
+        l_message = (String)m_mesgParts.get(HINT);
+        if (l_message != null)
+            l_totalMessage.append("\n  ").append(GT.tr("Hint: {0}", l_message));
+        l_message = (String)m_mesgParts.get(POSITION);
+        if (l_message != null)
+            l_totalMessage.append("\n  ").append(GT.tr("Position: {0}", l_message));
+        l_message = (String)m_mesgParts.get(WHERE);
+        if (l_message != null)
+            l_totalMessage.append("\n  ").append(GT.tr("Where: {0}", l_message));
+
         if (verbosity > 2)
         {
             String l_internalQuery = (String)m_mesgParts.get(INTERNAL_QUERY);
