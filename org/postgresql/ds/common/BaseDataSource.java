@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.12 2008/04/13 16:03:50 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.13 2008/04/15 03:12:42 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -52,6 +52,7 @@ public abstract class BaseDataSource implements Referenceable
     private boolean ssl = false;
     private String sslfactory;
     private boolean tcpKeepAlive = false;
+    private String compatible;
 
     /**
      * Gets a connection to the PostgreSQL database.  The database is identified by the
@@ -153,6 +154,16 @@ public abstract class BaseDataSource implements Referenceable
         {
             this.serverName = serverName;
         }
+    }
+
+    public String getCompatible()
+    {
+        return compatible;
+    }
+
+    public void setCompatible(String compatible)
+    {
+        this.compatible = compatible;
     }
 
     /**
@@ -335,6 +346,9 @@ public abstract class BaseDataSource implements Referenceable
             }
         }
         sb.append("&tcpkeepalive=").append(tcpKeepAlive);
+        if (compatible != null) {
+            sb.append("&compatible="+compatible);
+        }
 
         return sb.toString();
     }
@@ -374,6 +388,10 @@ public abstract class BaseDataSource implements Referenceable
         ref.add(new StringRefAddr("sslfactory", sslfactory));
 
         ref.add(new StringRefAddr("tcpKeepAlive", Boolean.toString(tcpKeepAlive)));
+        if (compatible != null)
+        {
+            ref.add(new StringRefAddr("compatible", compatible));
+        }
 
         return ref;
     }
@@ -390,6 +408,7 @@ public abstract class BaseDataSource implements Referenceable
         out.writeBoolean(ssl);
         out.writeObject(sslfactory);
         out.writeBoolean(tcpKeepAlive);
+        out.writeObject(compatible);
     }
 
     protected void readBaseObject(ObjectInputStream in) throws IOException, ClassNotFoundException
@@ -404,6 +423,7 @@ public abstract class BaseDataSource implements Referenceable
         ssl = in.readBoolean();
         sslfactory = (String)in.readObject();
         tcpKeepAlive = in.readBoolean();
+        compatible = (String)in.readObject();
     }
 
 }
