@@ -1,18 +1,18 @@
 # translation of head-de.po to Deutsch
 # German message translation for the PostgreSQL JDBC driver
 # This file is distributed under the same license as the package.
-#
-# $PostgreSQL: pgjdbc/org/postgresql/translation/de.po,v 1.8 2006/05/22 19:41:23 jurka Exp $
-# Andre Bialojahn <ab.spamnews@freenet.de>, 2005, 2006.
-#
+# 
+# $PostgreSQL: pgjdbc/org/postgresql/translation/de.po,v 1.9 2008/05/20 02:34:00 jurka Exp $
+# Andre Bialojahn <ab.spamnews@freenet.de>, 2005, 2006, 2008.
+# 
 msgid ""
 msgstr ""
 "Project-Id-Version: head-de\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2008-05-19 20:26-0600\n"
-"PO-Revision-Date: 2008-04-21 09:35+0100\n"
-"Last-Translator: André Bialojahn <ab.spamnews@freenet.de>\n"
-"Language-Team: Deutsch <ab.spamnews@freenet.de>\n"
+"POT-Creation-Date: 2008-09-18 17:59-0600\n"
+"PO-Revision-Date: 2008-09-12 14:22+0200\n"
+"Last-Translator: Andre Bialojahn <ab.spamnews@freenet.de>\n"
+"Language-Team: Deutsch\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=ISO-8859-1\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -40,7 +40,7 @@ msgid ""
 "Something unusual has occured to cause the driver to fail. Please report "
 "this exception."
 msgstr ""
-"Etwas Ungewöhnliches ist passiert, das den Treiber fehlschlagen liess. Bitte "
+"Etwas Ungewöhnliches ist passiert, das den Treiber fehlschlagen ließ. Bitte "
 "teilen Sie diesen Fehler mit."
 
 #: org/postgresql/Driver.java.in:352
@@ -187,8 +187,8 @@ msgid ""
 "it is using an authentication scheme supported by the driver."
 msgstr ""
 "Der Authentifizierungstyp {0} wird nicht unterstützt. Stellen Sie sicher, "
-"dass die Datei ''pg_hba.conf'' die IP-Adresse oder das Subnetz  des Clients "
-"beinhaltet und dass der Client ein Authentifizierungsschema nutzt, das vom "
+"dass die Datei ''pg_hba.conf'' die IP-Adresse oder das Subnetz des Clients "
+"enthält und dass der Client ein Authentifizierungsschema nutzt, das vom "
 "Treiber unterstützt wird."
 
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:318
@@ -225,7 +225,7 @@ msgstr "Eine Abfrage lieferte ein unerwartetes Resultat."
 #, java-format
 msgid "The column index is out of range: {0}, number of columns: {1}."
 msgstr ""
-"Der Spaltenindex {0} ist ausserhalb des gültigen Bereichs. Anzahl Spalten: "
+"Der Spaltenindex {0} ist außerhalb des gültigen Bereichs. Anzahl Spalten: "
 "{1}."
 
 #: org/postgresql/core/v2/FastpathParameterList.java:144
@@ -316,7 +316,7 @@ msgid ""
 "requires DateStyle to begin with ISO for correct operation."
 msgstr ""
 "Der Parameter ''Date Style'' wurde auf dem Server auf {0} verändert. Der "
-"JDBC-Treiber setzt für korrekte Funktion voraus, daß ''Date Style'' mit "
+"JDBC-Treiber setzt für korrekte Funktion voraus, dass ''Date Style'' mit "
 "''ISO'' beginnt."
 
 #: org/postgresql/core/v3/QueryExecutorImpl.java:1386
@@ -398,7 +398,8 @@ msgstr "Der Arrayindex ist außerhalb des gültigen Bereichs: {0}."
 #, java-format
 msgid "The array index is out of range: {0}, number of elements: {1}."
 msgstr ""
-"Der Arrayindex {0} ist außerhalb des gültigen Bereichs. Es gibt {1} Elemente."
+"Der Arrayindex {0} ist außerhalb des gültigen Bereichs. Vorhandene Elemente: "
+"{1}."
 
 #: org/postgresql/jdbc2/AbstractJdbc2BlobClob.java:75
 msgid ""
@@ -408,7 +409,7 @@ msgstr ""
 
 #: org/postgresql/jdbc2/AbstractJdbc2BlobClob.java:225
 msgid "LOB positioning offsets start at 1."
-msgstr "Positionsoffsets für LOBs beginnen bei 1. "
+msgstr "Positionsoffsets für LOBs beginnen bei 1."
 
 #: org/postgresql/jdbc2/AbstractJdbc2BlobClob.java:229
 #, java-format
@@ -586,7 +587,7 @@ msgstr "Der bereitgestellte Reader scheiterte."
 
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1153
 msgid "Can''t refresh the insert row."
-msgstr "Die EInfügezeile kann nicht aufgefrischt werden."
+msgstr "Die Einfügezeile kann nicht aufgefrischt werden."
 
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1225
 msgid "Cannot call updateRow() when on the insert row."
@@ -599,18 +600,18 @@ msgid ""
 "the end of the results."
 msgstr ""
 "Das ResultSet kann nicht aktualisiert werden, da es entweder vor oder nach "
-"dem Ende der Erebnisse ist."
+"dem Ende der Ergebnisse ist."
 
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1480
 msgid "ResultSets with concurrency CONCUR_READ_ONLY cannot be updated."
 msgstr ""
-"Auf ResultSets, deren Zugriffsart CONCUR_READ_ONLY ist, kann UPDATE nicht "
-"angewendet werden."
+"ResultSets, deren Zugriffsart CONCUR_READ_ONLY ist, können nicht "
+"aktualisiert werden."
 
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1548
 #, java-format
 msgid "No primary key found for table {0}."
-msgstr "Für die Tebelle {0} konnte kein Primärschlüssel gefunden werden."
+msgstr "Für die Tabelle {0} konnte kein Primärschlüssel gefunden werden."
 
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1790
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2729
@@ -668,13 +669,14 @@ msgstr "Dieses ResultSet ist geschlossen."
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2619
 msgid "ResultSet not positioned properly, perhaps you need to call next."
 msgstr ""
-"Das ResultSet ist nicht richtig positioniert. Eventuell muß ''next'' "
+"Das ResultSet ist nicht richtig positioniert. Eventuell muss ''next'' "
 "aufgerufen werden."
 
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:232
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:275
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:325
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2452
+#, fuzzy
 msgid ""
 "Can''t use query methods that take a query string on a PreparedStatement."
 msgstr ""
@@ -692,7 +694,6 @@ msgid "A CallableStatement was executed with nothing returned."
 msgstr "Ein CallableStatement wurde ausgeführt ohne etwas zurückzugeben."
 
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:370
-#, fuzzy
 msgid "A CallableStatement was executed with an invalid number of parameters"
 msgstr ""
 "Ein CallableStatement wurde mit einer falschen Anzahl Parameter ausgeführt."
@@ -708,11 +709,11 @@ msgstr ""
 
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:551
 msgid "Maximum number of rows must be a value grater than or equal to 0."
-msgstr "Die maximale Zeilenzahl muß ein Wert größer oder gleich Null sein."
+msgstr "Die maximale Zeilenzahl muss ein Wert größer oder gleich Null sein."
 
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:593
 msgid "Query timeout must be a value greater than or equals to 0."
-msgstr "Das Abfragetimeout muß ein Wert größer oder gleich Null sein."
+msgstr "Das Abfragetimeout muss ein Wert größer oder gleich Null sein."
 
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:661
 msgid "The maximum field size must be a value greater than or equal to 0."
@@ -861,7 +862,7 @@ msgstr ""
 #: org/postgresql/jdbc2/EscapedFunctions.java:480
 #, java-format
 msgid "{0} function takes one and only one argument."
-msgstr "Die {0}-Funktion erwartet nur genau ein Argument,"
+msgstr "Die {0}-Funktion erwartet nur genau ein Argument."
 
 #: org/postgresql/jdbc2/EscapedFunctions.java:181
 #: org/postgresql/jdbc2/EscapedFunctions.java:193
@@ -911,7 +912,7 @@ msgstr "Intervall {0} ist noch nicht implementiert."
 msgid ""
 "Infinite value found for timestamp/date. This cannot be represented as time."
 msgstr ""
-"Für den Zeitstempel oder das Datum wurde der Wert ''unendlich'' angefunden. "
+"Für den Zeitstempel oder das Datum wurde der Wert ''unendlich'' gefunden. "
 "Dies kann nicht als Zeit repräsentiert werden."
 
 #: org/postgresql/jdbc2/TypeInfoCache.java:134
@@ -929,7 +930,7 @@ msgstr "Unbekannte Einstellung für die Haltbarkeit des ResultSets: {0}."
 #: org/postgresql/jdbc3/AbstractJdbc3Connection.java:160
 #: org/postgresql/jdbc3/AbstractJdbc3Connection.java:181
 msgid "Server versions prior to 8.0 do not support savepoints."
-msgstr "Der Server unterstützt keine Rettungspunkte vor Version 8."
+msgstr "Der Server unterstützt keine Rettungspunkte vor Version 8.0."
 
 #: org/postgresql/jdbc3/AbstractJdbc3Connection.java:97
 #: org/postgresql/jdbc3/AbstractJdbc3Connection.java:128
@@ -964,7 +965,7 @@ msgstr ""
 
 #: org/postgresql/jdbc3/PSQLSavepoint.java:44
 msgid "Cannot retrieve the id of a named savepoint."
-msgstr "Die ID eines benamten Rettungspunktes kann nicht ermittelt werden,"
+msgstr "Die ID eines benamten Rettungspunktes kann nicht ermittelt werden."
 
 #: org/postgresql/jdbc3/PSQLSavepoint.java:56
 msgid "Cannot retrieve the name of an unnamed savepoint."
@@ -1022,44 +1023,44 @@ msgstr "Ende des Stack-Traces."
 #: org/postgresql/util/PSQLException.java.in:66
 #, java-format
 msgid "Exception generating stacktrace for: {0} encountered: {1}"
-msgstr "Beim Erstellen eines Stack-Traces für {0} trat eine Exceptin auf: {1}"
+msgstr "Beim Erstellen eines Stack-Traces für {0} trat eine Exception auf: {1}"
 
 #: org/postgresql/util/ServerErrorMessage.java:155
 #, java-format
 msgid "Detail: {0}"
 msgstr "Detail: {0}"
 
-#: org/postgresql/util/ServerErrorMessage.java:160
+#: org/postgresql/util/ServerErrorMessage.java:159
 #, java-format
 msgid "Hint: {0}"
 msgstr "Hinweis: {0}"
 
-#: org/postgresql/util/ServerErrorMessage.java:163
+#: org/postgresql/util/ServerErrorMessage.java:162
 #, java-format
 msgid "Position: {0}"
 msgstr "Position: {0}"
 
-#: org/postgresql/util/ServerErrorMessage.java:166
+#: org/postgresql/util/ServerErrorMessage.java:165
 #, java-format
 msgid "Where: {0}"
 msgstr "Wobei: {0}"
 
-#: org/postgresql/util/ServerErrorMessage.java:172
+#: org/postgresql/util/ServerErrorMessage.java:171
 #, java-format
 msgid "Internal Query: {0}"
 msgstr "Interne Abfrage: {0}"
 
-#: org/postgresql/util/ServerErrorMessage.java:175
+#: org/postgresql/util/ServerErrorMessage.java:174
 #, java-format
 msgid "Internal Position: {0}"
 msgstr "Interne Position: {0}"
 
-#: org/postgresql/util/ServerErrorMessage.java:181
+#: org/postgresql/util/ServerErrorMessage.java:180
 #, java-format
 msgid "Location: File: {0}, Routine: {1}, Line: {2}"
 msgstr "Ort: Datei: {0}, Routine: {1}, Zeile: {2}."
 
-#: org/postgresql/util/ServerErrorMessage.java:184
+#: org/postgresql/util/ServerErrorMessage.java:183
 #, java-format
 msgid "Server SQLState: {0}"
 msgstr "Server SQLState: {0}"
