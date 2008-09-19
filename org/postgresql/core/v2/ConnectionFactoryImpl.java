@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ConnectionFactoryImpl.java,v 1.14 2008/01/08 06:56:27 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ConnectionFactoryImpl.java,v 1.15 2008/04/13 16:03:49 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -195,8 +195,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         pgStream.SendInteger4(4 + 4 + 64 + 32 + 64 + 64 + 64);
         pgStream.SendInteger2(2); // protocol major
         pgStream.SendInteger2(0); // protocol minor
-        pgStream.Send(database.getBytes("US-ASCII"), 64);
-        pgStream.Send(user.getBytes("US-ASCII"), 32);
+        pgStream.Send(database.getBytes("UTF-8"), 64);
+        pgStream.Send(user.getBytes("UTF-8"), 32);
         pgStream.Send(new byte[64]);  // options
         pgStream.Send(new byte[64]);  // unused
         pgStream.Send(new byte[64]);  // tty
@@ -236,19 +236,18 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 {
                 case AUTH_REQ_CRYPT:
                     {
-                        String salt = pgStream.ReceiveString(2);
+                        byte salt[] = pgStream.Receive(2);
 
                         if (logger.logDebug())
-                            logger.debug(" <=BE AuthenticationReqCrypt(salt='" + salt + "')");
+                            logger.debug(" <=BE AuthenticationReqCrypt(salt='" + new String(salt, "US-ASCII") + "')");
 
                         if (password == null)
                             throw new PSQLException(GT.tr("The server requested password-based authentication, but no password was provided."), PSQLState.CONNECTION_REJECTED);
 
-                        String result = UnixCrypt.crypt(salt, password);
-                        byte[] encodedResult = result.getBytes("US-ASCII");
+                        byte[] encodedResult = UnixCrypt.crypt(salt, password.getBytes("UTF-8"));
 
                         if (logger.logDebug())
-                            logger.debug(" FE=> Password(crypt='" + result + "')");
+                            logger.debug(" FE=> Password(crypt='" + new String(encodedResult, "US-ASCII") + "')");
 
                         pgStream.SendInteger4(4 + encodedResult.length + 1);
                         pgStream.Send(encodedResult);
@@ -267,7 +266,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                         if (password == null)
                             throw new PSQLException(GT.tr("The server requested password-based authentication, but no password was provided."), PSQLState.CONNECTION_REJECTED);
 
-                        byte[] digest = MD5Digest.encode(user, password, md5Salt);
+                        byte[] digest = MD5Digest.encode(user.getBytes("UTF-8"), password.getBytes("UTF-8"), md5Salt);
                         if (logger.logDebug())
                             logger.debug(" FE=> Password(md5digest=" + new String(digest, "US-ASCII") + ")");
 
@@ -290,7 +289,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                         if (logger.logDebug())
                             logger.debug(" FE=> Password(password=<not shown>)");
 
-                        byte[] encodedPassword = password.getBytes("US-ASCII");
+                        byte[] encodedPassword = password.getBytes("UTF-8");
                         pgStream.SendInteger4(4 + encodedPassword.length + 1);
                         pgStream.Send(encodedPassword);
                         pgStream.SendChar(0);

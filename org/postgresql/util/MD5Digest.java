@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/MD5Digest.java,v 1.10 2005/01/11 08:25:49 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/util/MD5Digest.java,v 1.11 2008/01/08 06:56:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -35,7 +35,7 @@ public class MD5Digest
      *
      * @return A 35-byte array, comprising the string "md5" and an MD5 digest.
      */
-    public static byte[] encode(String user, String password, byte []salt)
+    public static byte[] encode(byte user[], byte password[], byte salt[])
     {
         MessageDigest md;
         byte[] temp_digest, pass_digest;
@@ -45,8 +45,8 @@ public class MD5Digest
         {
             md = MessageDigest.getInstance("MD5");
 
-            md.update(password.getBytes("US-ASCII"));
-            md.update(user.getBytes("US-ASCII"));
+            md.update(password);
+            md.update(user);
             temp_digest = md.digest();
 
             bytesToHex(temp_digest, hex_digest, 0);

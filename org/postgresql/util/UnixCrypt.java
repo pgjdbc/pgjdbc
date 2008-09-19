@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/UnixCrypt.java,v 1.8 2005/01/11 08:25:49 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/util/UnixCrypt.java,v 1.9 2008/01/08 06:56:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -368,7 +368,7 @@ public class UnixCrypt extends Object
             }
         };
 
-    private static final int cov_2char[] =
+    private static final byte cov_2byte[] =
         {
             0x2E, 0x2F, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35,
             0x36, 0x37, 0x38, 0x39, 0x41, 0x42, 0x43, 0x44,
@@ -592,30 +592,27 @@ public class UnixCrypt extends Object
      * @return A string consisting of the 2-character salt followed by the
      * encrypted password.
      */
-    public static final String crypt(String salt, String original)
+    public static final byte[] crypt(byte salt[], byte original[])
     {
-        while (salt.length() < 2)
-            salt += "A";
+        byte result[] = new byte[13];
 
-        StringBuffer buffer = new StringBuffer("             ");
+        byte byteZero = salt[0];
+        byte byteOne = salt[1];
 
-        char charZero = salt.charAt(0);
-        char charOne = salt.charAt(1);
+        result[0] = byteZero;
+        result[1] = byteOne;
 
-        buffer.setCharAt(0, charZero);
-        buffer.setCharAt(1, charOne);
-
-        int Eswap0 = con_salt[(int)charZero];
-        int Eswap1 = con_salt[(int)charOne] << 4;
+        int Eswap0 = con_salt[byteZero];
+        int Eswap1 = con_salt[byteOne] << 4;
 
         byte key[] = new byte[8];
 
         for (int i = 0; i < key.length; i ++)
             key[i] = (byte)0;
 
-        for (int i = 0; i < key.length && i < original.length(); i ++)
+        for (int i = 0; i < key.length && i < original.length; i ++)
         {
-            int iChar = (int)original.charAt(i);
+            int iChar = (int)original[i];
 
             key[i] = (byte)(iChar << 1);
         }
@@ -645,46 +642,11 @@ public class UnixCrypt extends Object
                     y++;
                     u = 0x80;
                 }
-                buffer.setCharAt(i, (char)cov_2char[c]);
+                result[i] = cov_2byte[c];
             }
         }
-        return (buffer.toString());
+        return result;
     }
 
-    /*
-     * <P>Encrypt a password given the cleartext password. This method
-     * generates a random salt using the 'java.util.Random' class.</P>
-     * @param original The password to be encrypted.
-     * @return A string consisting of the 2-character salt followed by the
-     * encrypted password.
-     */
-    public static final String crypt(String original)
-    {
-        java.util.Random randomGenerator = new java.util.Random();
-        int numSaltChars = saltChars.length;
-        String salt;
-
-        salt = (new StringBuffer()).append(saltChars[Math.abs(randomGenerator.nextInt()) % numSaltChars]).append(saltChars[Math.abs(randomGenerator.nextInt()) % numSaltChars]).toString();
-
-        return crypt(salt, original);
-    }
-
-    /*
-     * <P>Check that <I>enteredPassword</I> encrypts to
-     * <I>encryptedPassword</I>.</P>
-     * @param encryptedPassword The <I>encryptedPassword</I>. The first
-     * two characters are assumed to be the salt. This string would
-     * be the same as one found in a Unix <U>/etc/passwd</U> file.
-     * @param enteredPassword The password as entered by the user (or
-     * otherwise aquired).
-     * @return <B>true</B> if the password should be considered correct.
-     */
-    public final static boolean matches(String encryptedPassword, String enteredPassword)
-    {
-        String salt = encryptedPassword.substring(0, 3);
-        String newCrypt = crypt(salt, enteredPassword);
-
-        return newCrypt.equals(encryptedPassword);
-    }
 }
 
