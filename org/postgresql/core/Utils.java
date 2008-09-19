@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*        $PostgreSQL: pgjdbc/org/postgresql/core/Utils.java,v 1.6 2007/03/29 04:54:06 jurka Exp $
+*        $PostgreSQL: pgjdbc/org/postgresql/core/Utils.java,v 1.7 2008/01/08 06:56:27 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -12,6 +12,10 @@
 package org.postgresql.core;
 
 import java.sql.SQLException;
+
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
 
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -39,27 +43,31 @@ public class Utils {
     }
 
     /**
+     * Keep a local copy of the UTF-8 Charset so we can avoid
+     * synchronization overhead from looking up the Charset by
+     * name as String.getBytes(String) requires.
+     */
+    private final static Charset utf8Charset = Charset.forName("UTF-8");
+
+    /**
      * Encode a string as UTF-8.
      *
      * @param str the string to encode
      * @return the UTF-8 representation of <code>str</code>
      */
     public static byte[] encodeUTF8(String str) {
-        // It turns out that under 1.4.2, at least, calling getBytes() is
-        // faster than rolling our own converter (it uses direct buffers and, I suspect,
-        // a native helper -- and the cost of the encoding lookup is mitigated by a
-        // ThreadLocal that caches the last lookup). So we just do things the simple way here.
-        try
-        {
-            return str.getBytes("UTF-8");
-        }
-        catch (java.io.UnsupportedEncodingException e)
-        {
-            // Javadoc says that UTF-8 *must* be supported by all JVMs, so we don't try to be clever here.
-            throw new RuntimeException("Unexpected exception: UTF-8 charset not supported: " + e);
-        }
+        // Previously we just used str.getBytes("UTF-8"), but when
+        // the JVM is using more than one encoding the lookup cost
+        // makes that a loser to the below (even in the single thread case).
+        // When multiple threads are doing Charset lookups, they all get
+        // blocked and must wait, severely dropping throughput.
+        //
+        ByteBuffer buf = utf8Charset.encode(CharBuffer.wrap(str));
+        byte b[] = new byte[buf.limit()];
+        buf.get(b, 0, buf.limit());
+        return b;
     }
-    
+
     /**
      * Escape the given literal <tt>value</tt> and append it to the string buffer
      * <tt>sbuf</tt>. If <tt>sbuf</tt> is <tt>null</tt>, a new StringBuffer will be
