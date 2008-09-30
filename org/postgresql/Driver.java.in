@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.72 2008/01/08 06:56:26 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.73 2008/04/13 16:03:49 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -761,16 +761,6 @@ public class Driver implements java.sql.Driver
         synchronized (Driver.class) {
             return logger.getLogLevel();
         }
-    }
-
-    public static void makeSSL(org.postgresql.core.PGStream stream, Properties info, Logger logger) throws IOException, SQLException {
-        @SSL@ org.postgresql.ssl.MakeSSL.convert(stream, info, logger);
-    }
-
-    public static boolean sslEnabled() {
-        boolean l_return = false;
-        @SSL@ l_return = true;
-        return l_return;
     }
 
 }

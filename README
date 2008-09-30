@@ -110,11 +110,4 @@ Notes:
 ---------------------------------------------------------------------------
 
 That's the basics related to this driver. You'll need to read the JDBC Docs
-on how to use it. However, there are some examples included in the example
-directory.
-
-To run them, they follow the same syntax. For example, the basic example shows
-how to insert data, and perform queries:
-
-	java example.basic jdbc:postgresql:test user password
-
+on how to use it.

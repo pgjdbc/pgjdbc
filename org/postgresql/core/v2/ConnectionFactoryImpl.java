@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ConnectionFactoryImpl.java,v 1.15 2008/04/13 16:03:49 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ConnectionFactoryImpl.java,v 1.16 2008/09/19 22:50:38 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -51,13 +51,6 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
         if (logger.logDebug())
             logger.debug("Trying to establish a protocol version 2 connection to " + host + ":" + port);
-
-        if (!Driver.sslEnabled())
-        {
-            if (requireSSL)
-                throw new PSQLException(GT.tr("The driver does not support SSL."), PSQLState.CONNECTION_FAILURE);
-            trySSL = false;
-        }
 
         //
         // Establish a connection.
@@ -171,7 +164,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 logger.debug(" <=BE SSLOk");
 
             // Server supports ssl
-            Driver.makeSSL(pgStream, info, logger);
+            org.postgresql.ssl.MakeSSL.convert(pgStream, info, logger);
             return pgStream;
 
         default:

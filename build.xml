@@ -8,7 +8,7 @@
 
   This file now requires Ant 1.4.1.  2002-04-18
 
-  $PostgreSQL: pgjdbc/build.xml,v 1.79 2008/02/12 23:41:42 jurka Exp $
+  $PostgreSQL: pgjdbc/build.xml,v 1.80 2008/02/19 05:31:48 jurka Exp $
 
 -->
 
@@ -74,30 +74,11 @@
       </not>
     </condition>
 
+    <fail if="jdbc2" message="1.4 or higher JDK is required to build the JDBC driver." />
     <fail if="unknownjvm" message="Unknown JDK version." />
 
-    <available property="datasourceclass" classname="javax.sql.DataSource"/>
-    <available property="ssl" classname="javax.net.ssl.SSLContext"/>
     <available property="junit" classname="junit.framework.Test"/>
     <available property="junit.task" classname="org.apache.tools.ant.taskdefs.optional.junit.JUnitTask"/>
-
-    <condition property="datasource">
-      <isset property="datasourceclass" />
-    </condition>
-
-    <condition property="jdbc2optionaltests">
-      <and>
-        <isset property="datasource"/>
-        <isset property="junit"/>
-      </and>
-    </condition>
-
-    <condition property="jdbc3tests">
-      <and>
-        <isset property="jdbc3plus"/>
-        <isset property="junit"/>
-      </and>
-    </condition>
 
     <condition property="jdbc4tests">
       <and>
@@ -158,11 +139,10 @@
  
        <!-- jdbc2 subpackage -->
        <include name="${package}/jdbc2/**"/>
-       <exclude name="${package}/jdbc2/Jdbc2*.java" unless="jdbc2"/>
  
        <!-- jdbc3 subpackage -->
-       <include name="${package}/jdbc3/Abstract*.java" if="jdbc3plus" />
-       <include name="${package}/jdbc3/PSQLSavepoint.java" if="jdbc3plus" />
+       <include name="${package}/jdbc3/Abstract*.java" />
+       <include name="${package}/jdbc3/PSQLSavepoint.java" />
 
        <include name="${package}/jdbc3/Jdbc3Array.java" if="jdbc3"/>
        <include name="${package}/jdbc3/Jdbc3Blob.java" if="jdbc3"/>
@@ -184,21 +164,20 @@
        <exclude name="${package}/jdcb4/Jdbc4*.java" unless="jdbc4" />
 
        <!-- ssl -->
-       <include name="${package}/ssl/*.java" if="ssl" />
+       <include name="${package}/ssl/*.java" />
 
        <!-- datasource stuff -->
-       <exclude name="${package}/jdbc2/optional/**" unless="datasource"/>
        <include name="${package}/jdbc3/Jdbc3ConnectionPool.java" if="jdbc3any" />
        <include name="${package}/jdbc3/Jdbc3PoolingDataSource.java" if="jdbc3any" />
        <include name="${package}/jdbc3/Jdbc3SimpleDataSource.java" if="jdbc3any" />
 
-       <include name="${package}/ds/*.java" if="datasource" />
-       <include name="${package}/ds/common/*.java" if="datasource" />
-       <include name="${package}/ds/jdbc23/*.java" if="datasource" />
+       <include name="${package}/ds/*.java" />
+       <include name="${package}/ds/common/*.java" />
+       <include name="${package}/ds/jdbc23/*.java" />
        <include name="${package}/ds/jdbc4/*.java" if="jdbc4" />
 
        <!-- XA stuff -->
-       <include name="${package}/xa/*.java" if="jdbc3plus" />
+       <include name="${package}/xa/*.java" />
 
     </javac>
   </target>
@@ -206,7 +185,6 @@
   <target name="check_driver">
     <uptodate targetfile="${package}/Driver.java" property="driver.uptodate">
       <srcfiles dir=".">
-      <include name="${package}/util/PSQLException.java.in"/>
       <include name="${package}/Driver.java.in"/>
       <include name="${package}/ds/PGSimpleDataSource.java.in"/>
       <include name="${package}/ds/PGPoolingDataSource.java.in"/>
@@ -224,15 +202,6 @@
   <target name="driver" depends="prepare,check_versions,check_driver"
           unless="driver.uptodate">
     <!-- determine the edition text -->
-    <condition property="edition" value="JDBC2 Enterprise">
-      <and>
-        <available classname="javax.sql.DataSource" />
-        <equals arg1="${jdbc2}" arg2="true"/>
-      </and>
-    </condition>
-    <condition property="edition" value="JDBC2">
-        <equals arg1="${jdbc2}" arg2="true"/>
-    </condition>
     <condition property="edition" value="JDBC3">
         <equals arg1="${jdbc3}" arg2="true"/>
     </condition>
@@ -244,9 +213,6 @@
     </condition>
 
     <!-- determine the connection class -->
-    <condition property="connectclass" value="org.postgresql.jdbc2.Jdbc2Connection">
-        <equals arg1="${jdbc2}" arg2="true"/>
-    </condition>
     <condition property="connectclass" value="org.postgresql.jdbc3.Jdbc3Connection">
         <equals arg1="${jdbc3}" arg2="true"/>
     </condition>
@@ -259,7 +225,6 @@
 
     <condition property="simpledsclass" value="org.postgresql.ds.jdbc23.AbstractJdbc23SimpleDataSource">
         <or>
-            <equals arg1="${jdbc2}" arg2="true" />
             <equals arg1="${jdbc3}" arg2="true" />
             <equals arg1="${jdbc3g}" arg2="true" />
         </or>
@@ -270,7 +235,6 @@
 
     <condition property="poolingdsclass" value="org.postgresql.ds.jdbc23.AbstractJdbc23PoolingDataSource">
         <or>
-            <equals arg1="${jdbc2}" arg2="true" />
             <equals arg1="${jdbc3}" arg2="true" />
             <equals arg1="${jdbc3g}" arg2="true" />
         </or>
@@ -281,7 +245,6 @@
 
     <condition property="pooledconnclass" value="org.postgresql.ds.jdbc23.AbstractJdbc23PooledConnection">
         <or>
-            <equals arg1="${jdbc2}" arg2="true" />
             <equals arg1="${jdbc3}" arg2="true" />
             <equals arg1="${jdbc3g}" arg2="true" />
         </or>
@@ -290,46 +253,15 @@
         <equals arg1="${jdbc4}" arg2="true" />
     </condition>
 
-    <!-- Determine if we have Throwable.initCause() 
-         if so we use it in org.postgresql.util.PSQLException
-         instead of appending any nested exception to the message. -->
-    <condition property="noInitCause" value="//">
-      <equals arg1="${jdbc3plus}" arg2="true" />
-    </condition>
-    
-    <condition property="noInitCause" value="">
-      <not><equals arg1="${jdbc3plus}" arg2="true" /></not>
-    </condition>
-
-    <!-- determine the ssl status -->
-    <condition property="ssl_config" value="">
-        <equals arg1="${ssl}" arg2="true"/>
-    </condition>
-    <condition property="ssl_config" value="//">
-        <not>
-            <equals arg1="${ssl}" arg2="true"/>
-        </not>
-    </condition>
-    <condition property="ssl_edition" value="SSL">
-        <equals arg1="${ssl}" arg2="true"/>
-    </condition>
-    <condition property="ssl_edition" value="NO SSL">
-        <not>
-            <equals arg1="${ssl}" arg2="true"/>
-        </not>
-    </condition>
-
     <!-- Some defaults -->
     <filter token="MAJORVERSION" value="${major}" />
     <filter token="MINORVERSION" value="${minor}" />
-    <filter token="VERSION" value="PostgreSQL ${fullversion} ${edition} with ${ssl_edition}" />
+    <filter token="VERSION" value="PostgreSQL ${fullversion} ${edition}" />
     <filter token="JDBCCONNECTCLASS" value="${connectclass}" />
     <filter token="POOLING_DS_CLASS" value="${poolingdsclass}" />
     <filter token="SIMPLE_DS_CLASS" value="${simpledsclass}" />
     <filter token="POOLED_CONN_CLASS" value="${pooledconnclass}" />
     <filter token="DEF_PGPORT" value="${def_pgport}" />
-    <filter token="SSL" value="${ssl_config}" />
-    <filter token="NOINITCAUSE" value="${noInitCause}" />
 
      <fail unless="major" message="'major' undefined. Please follow the directions in README."/>
      <fail unless="minor" message="'minor' undefined. Please follow the directions in README."/>
@@ -344,10 +276,6 @@
           overwrite="true"
           tofile="${package}/Driver.java"
           filtering="yes" />
-    <copy file="${package}/util/PSQLException.java.in"
-          overwrite="true"
-          tofile="${package}/util/PSQLException.java"
-          filtering="yes" />
     <copy file="${package}/ds/PGPoolingDataSource.java.in"
           overwrite="true"
           tofile="${package}/ds/PGPoolingDataSource.java"
@@ -361,7 +289,7 @@
           tofile="${package}/ds/PGPooledConnection.java"
           filtering="yes" />
 
-    <echo message="Configured build for the ${edition} edition driver with ${ssl_edition}" />
+  <echo message="Configured build for the ${edition} edition driver." />
   </target>
 
 
@@ -383,7 +311,6 @@
     <delete quiet="true" dir="${builddir}" />
     <delete quiet="true" dir="${jardir}" />
     <delete quiet="true" file="${package}/Driver.java" />
-    <delete quiet="true" file="${package}/util/PSQLException.java" />
     <delete quiet="true" file="${package}/ds/PGPoolingDataSource.java" />
     <delete quiet="true" file="${package}/ds/PGSimpleDataSource.java" />
     <delete quiet="true" file="${package}/ds/PGPooledConnection.java" />
@@ -413,10 +340,6 @@
     <javac srcdir="${srcdir}" destdir="${builddir}/tests" debug="${debug}" source="${java.specification.version}">
       <include name="${package}/test/**" />
 
-      <exclude name="${package}/test/jdbc2/optional/**" unless="jdbc2optionaltests" />
-      <exclude name="${package}/test/jdbc3/**" unless="jdbc3tests" />
-      <exclude name="${package}/test/util/**" unless="jdbc2optionaltests" />
-      <exclude name="${package}/test/xa/**" unless="jdbc3plus" />
       <exclude name="${package}/test/jdbc4/**" unless="jdbc4tests" />
 
       <classpath>
@@ -454,10 +377,10 @@
         <pathelement path="${java.class.path}" />
       </classpath>
 
-      <test name="org.postgresql.test.jdbc2.Jdbc2TestSuite" if="junit" outfile="${testResultsDir}/jdbc2"/>
-      <test name="org.postgresql.test.jdbc2.optional.OptionalTestSuite" if="jdbc2optionaltests" outfile="${testResultsDir}/jdbc2optional"/>
-      <test name="org.postgresql.test.jdbc3.Jdbc3TestSuite" if="jdbc3tests" outfile="${testResultsDir}/jdbc3"/>
-      <test name="org.postgresql.test.xa.XATestSuite" if="jdbc3tests" outfile="${testResultsDir}/xa"/>
+      <test name="org.postgresql.test.jdbc2.Jdbc2TestSuite" outfile="${testResultsDir}/jdbc2"/>
+      <test name="org.postgresql.test.jdbc2.optional.OptionalTestSuite" outfile="${testResultsDir}/jdbc2optional"/>
+      <test name="org.postgresql.test.jdbc3.Jdbc3TestSuite" outfile="${testResultsDir}/jdbc3"/>
+      <test name="org.postgresql.test.xa.XATestSuite" outfile="${testResultsDir}/xa"/>
       <test name="org.postgresql.test.jdbc4.Jdbc4TestSuite" if="jdbc4tests" outfile="${testResultsDir}/jdbc4"/>
     </junit>
   </target>
@@ -479,11 +402,11 @@
         <include name="fastpath/*.java" />
         <include name="PG*.java" />
         <include name="util/PGobject.java" />
-	<include name="ssl/WrappedFactory.java" if="ssl" />
-	<include name="ssl/NonValidatingFactory.java" if="ssl" />
-        <include name="ds/PG*.java" if="datasource" />
-	<include name="ds/common/BaseDataSource.java" if="datasource" />
-	<include name="xa/PGXADataSource.java" if="jdbc3plus" />
+	<include name="ssl/WrappedFactory.java" />
+	<include name="ssl/NonValidatingFactory.java" />
+	<include name="ds/PG*.java" />
+	<include name="ds/common/BaseDataSource.java" />
+	<include name="xa/PGXADataSource.java" />
       </fileset>
     </javadoc>
   </target>
@@ -497,7 +420,6 @@
       </classpath>
       <fileset dir="${package}">
         <include name="**/*.java"/>
-	<exclude name="jdbc2/Jdbc2*.java" unless="jdbc2" />
 	<exclude name="jdbc3/Jdbc3*.java" unless="jdbc3" />
 	<exclude name="jdbc3g/Jdbc3g*.java" unless="jdbc3g" />
 	<exclude name="jdbc4/*.java" unless="jdbc4" />
