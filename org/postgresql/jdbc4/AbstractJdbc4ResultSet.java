@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4ResultSet.java,v 1.3 2007/07/27 10:22:29 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4ResultSet.java,v 1.4 2008/01/08 06:56:30 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -16,7 +16,7 @@ import java.io.InputStream;
 import java.util.Vector;
 import org.postgresql.core.*;
 
-abstract class AbstractJdbc4ResultSet extends org.postgresql.jdbc3.AbstractJdbc3ResultSet
+abstract class AbstractJdbc4ResultSet extends org.postgresql.jdbc3g.AbstractJdbc3gResultSet
 {
     AbstractJdbc4ResultSet(Query originalQuery, BaseStatement statement, Field[] fields, Vector tuples, ResultCursor cursor,
                     int maxRows, int maxFieldSize, int rsType, int rsConcurrency, int rsHoldability) throws SQLException

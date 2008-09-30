@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4Statement.java,v 1.2 2006/10/31 06:12:47 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4Statement.java,v 1.3 2008/01/08 06:56:30 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -14,7 +14,7 @@ import java.sql.*;
 import java.io.Reader;
 import java.io.InputStream;
 
-abstract class AbstractJdbc4Statement extends org.postgresql.jdbc3.AbstractJdbc3Statement
+abstract class AbstractJdbc4Statement extends org.postgresql.jdbc3g.AbstractJdbc3gStatement
 {
 
     private boolean poolable;

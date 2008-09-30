@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3g/Jdbc3gResultSet.java,v 1.8 2007/12/01 12:50:45 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3g/Jdbc3gResultSet.java,v 1.9 2008/01/08 06:56:30 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -20,7 +20,7 @@ import org.postgresql.core.*;
  * However most of the implementation is really done in
  * org.postgresql.jdbc3.AbstractJdbc3ResultSet or one of it's parents
  */
-public class Jdbc3gResultSet extends org.postgresql.jdbc3.AbstractJdbc3ResultSet implements java.sql.ResultSet
+public class Jdbc3gResultSet extends org.postgresql.jdbc3g.AbstractJdbc3gResultSet implements java.sql.ResultSet
 {
     Jdbc3gResultSet(Query originalQuery, BaseStatement statement, Field[] fields, Vector tuples, ResultCursor cursor,
                     int maxRows, int maxFieldSize, int rsType, int rsConcurrency, int rsHoldability) throws SQLException

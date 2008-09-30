@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.103 2008/02/20 17:17:08 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.104 2008/04/15 04:23:57 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -161,6 +161,9 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             // if the backend doesn't know the type then coerce to String
             if (type.equals("unknown"))
                 return getString(columnIndex);
+
+            if (type.equals("uuid"))
+                return getUUID(getString(columnIndex));
 
             // Specialized support for ref cursors is neater.
             if (type.equals("refcursor"))
@@ -2865,6 +2868,15 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             updateNull(columnIndex);
         else
             updateValues.put(fields[columnIndex - 1].getColumnName(connection), value);
+    }
+
+    /**
+     * Newer JVMs will return a java.util.UUID object, but it isn't
+     * available in older versions.
+     */
+    protected Object getUUID(String data) throws SQLException
+    {
+        return data;
     }
 
     private class PrimaryKey

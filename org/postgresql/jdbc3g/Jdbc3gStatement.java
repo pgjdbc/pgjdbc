@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3g/Jdbc3gStatement.java,v 1.5 2006/06/08 10:34:51 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3g/Jdbc3gStatement.java,v 1.6 2008/01/08 06:56:30 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -18,7 +18,7 @@ import org.postgresql.core.*;
  * However most of the implementation is really done in
  * org.postgresql.jdbc3.AbstractJdbc3Statement or one of it's parents
  */
-class Jdbc3gStatement extends org.postgresql.jdbc3.AbstractJdbc3Statement implements Statement
+class Jdbc3gStatement extends org.postgresql.jdbc3g.AbstractJdbc3gStatement implements Statement
 {
     Jdbc3gStatement (Jdbc3gConnection c, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
     {

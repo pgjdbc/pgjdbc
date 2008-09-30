@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/Oid.java,v 1.12 2007/12/01 08:28:58 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/Oid.java,v 1.13 2008/01/08 06:56:27 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -62,5 +62,7 @@ public class Oid {
     public static final int CHAR_ARRAY = 1002;
     public static final int VARBIT = 1562;
     public static final int VARBIT_ARRAY = 1563;
+    public static final int UUID = 2950;
+    public static final int UUID_ARRAY = 2951;
 
 }

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.109 2008/04/02 17:05:56 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.110 2008/04/15 04:23:57 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2098,7 +2098,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         * most calls to this method do not require escaping as the source
         * of the string is known safe (i.e. Integer.toString())
      */
-    private void bindLiteral(int paramIndex, String s, int oid) throws SQLException
+    protected void bindLiteral(int paramIndex, String s, int oid) throws SQLException
     {
         if(adjustIndex)
             paramIndex--;

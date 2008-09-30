@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.73 2008/04/13 16:03:49 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.74 2008/09/30 03:42:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -516,6 +516,15 @@ public class Driver implements java.sql.Driver
     public static String getVersion()
     {
         return "@VERSION@ (build " + PSQLDriverVersion.buildNumber + ")";
+    }
+
+    /**
+     * Returns the java.specification.version that the JDBC driver was
+     * built with.  For example: "1.5".
+     */
+    public static String getJavaBuildVersion()
+    {
+        return "@JAVAVERSION";
     }
 
     /**
