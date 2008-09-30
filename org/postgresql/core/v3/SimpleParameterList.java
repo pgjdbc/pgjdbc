@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleParameterList.java,v 1.15 2007/10/15 08:06:24 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleParameterList.java,v 1.16 2008/01/08 06:56:27 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -32,11 +32,12 @@ class SimpleParameterList implements V3ParameterList {
     private final static int OUT = 2;
     private final static int INOUT = IN|OUT;
 
-    SimpleParameterList(int paramCount) {
+    SimpleParameterList(int paramCount, ProtocolConnectionImpl protoConnection) {
         this.paramValues = new Object[paramCount];
         this.paramTypes = new int[paramCount];
         this.encoded = new byte[paramCount][];
         this.direction = new int[paramCount];
+        this.protoConnection = protoConnection;
     }        
     
     public void registerOutParameter( int index, int sqlType ) throws SQLException
@@ -135,8 +136,35 @@ class SimpleParameterList implements V3ParameterList {
             return "?";
         else if (paramValues[index] == NULL_OBJECT)
             return "NULL";
-        else
-            return paramValues[index].toString();
+        else {
+            String param = paramValues[index].toString();
+            boolean hasBackslash = param.indexOf('\\') != -1;
+
+            // add room for quotes + potential escaping.
+            StringBuffer p = new StringBuffer(3 + param.length() * 11 / 10);
+
+            boolean standardConformingStrings = false;
+            boolean supportsEStringSyntax = false;
+            if (protoConnection != null) {
+                standardConformingStrings = protoConnection.getStandardConformingStrings();
+                supportsEStringSyntax = protoConnection.getServerVersion().compareTo("8.1") >= 0;
+            }
+
+            if (hasBackslash && !standardConformingStrings && supportsEStringSyntax)
+                p.append('E');
+
+            p.append('\'');
+            try {
+                p = Utils.appendEscapedLiteral(p, paramValues[index].toString(), protoConnection.getStandardConformingStrings());
+            } catch (SQLException sqle) {
+                // This should only happen if we have an embedded null
+                // and there's not much we can do if we do hit one.
+                //
+                throw new IllegalArgumentException(sqle.toString());
+            }
+            p.append('\'');
+            return p.toString();
+        }
     }
 
     public void checkAllParametersSet() throws SQLException {
@@ -267,7 +295,7 @@ class SimpleParameterList implements V3ParameterList {
     
     
     public ParameterList copy() {
-        SimpleParameterList newCopy = new SimpleParameterList(paramValues.length);
+        SimpleParameterList newCopy = new SimpleParameterList(paramValues.length, protoConnection);
         System.arraycopy(paramValues, 0, newCopy.paramValues, 0, paramValues.length);
         System.arraycopy(paramTypes, 0, newCopy.paramTypes, 0, paramTypes.length);
         System.arraycopy(direction, 0, newCopy.direction, 0, direction.length);
@@ -288,6 +316,7 @@ class SimpleParameterList implements V3ParameterList {
     private final int[] paramTypes;
     private final int[] direction;
     private final byte[][] encoded;
+    private final ProtocolConnectionImpl protoConnection;
     
     /**
      * Marker object representing NULL; this distinguishes

@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleQuery.java,v 1.11 2006/08/06 18:02:45 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleQuery.java,v 1.12 2008/01/08 06:56:27 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -22,15 +22,18 @@ import java.lang.ref.PhantomReference;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 class SimpleQuery implements V3Query {
-    SimpleQuery(String[] fragments) {
+
+    SimpleQuery(String[] fragments, ProtocolConnectionImpl protoConnection)
+    {
         this.fragments = fragments;
+        this.protoConnection = protoConnection;
     }
 
     public ParameterList createParameterList() {
         if (fragments.length == 1)
             return NO_PARAMETERS;
 
-        return new SimpleParameterList(fragments.length - 1);
+        return new SimpleParameterList(fragments.length - 1, protoConnection);
     }
 
     public String toString(ParameterList parameters) {
@@ -122,12 +125,13 @@ class SimpleQuery implements V3Query {
     }
 
     private final String[] fragments;
+    private final ProtocolConnectionImpl protoConnection;
     private String statementName;
     private byte[] encodedStatementName;
     private PhantomReference cleanupRef;
     private int[] preparedTypes;
 
-    final static SimpleParameterList NO_PARAMETERS = new SimpleParameterList(0);
+    final static SimpleParameterList NO_PARAMETERS = new SimpleParameterList(0, null);
 }
 
 

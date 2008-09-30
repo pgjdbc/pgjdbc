@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.39 2008/01/28 10:08:57 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.40 2008/05/20 00:04:15 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -135,7 +135,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         if (statementList.size() == 1)
         {
             // Only one statement.
-            return new SimpleQuery((String[]) statementList.get(0));
+            return new SimpleQuery((String[]) statementList.get(0), protoConnection);
         }
 
         // Multiple statements.
@@ -146,7 +146,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         {
             String[] fragments = (String[]) statementList.get(i);
             offsets[i] = offset;
-            subqueries[i] = new SimpleQuery(fragments);
+            subqueries[i] = new SimpleQuery(fragments, protoConnection);
             offset += fragments.length - 1;
         }
 
@@ -493,7 +493,7 @@ public class QueryExecutorImpl implements QueryExecutor {
     }
 
     public ParameterList createFastpathParameters(int count) {
-        return new SimpleParameterList(count);
+        return new SimpleParameterList(count, protoConnection);
     }
 
     private void sendFastpathCall(int fnid, SimpleParameterList params) throws SQLException, IOException {
@@ -1675,7 +1675,7 @@ public class QueryExecutorImpl implements QueryExecutor {
     private final Logger logger;
     private final boolean allowEncodingChanges;
 
-    private final SimpleQuery beginTransactionQuery = new SimpleQuery(new String[] { "BEGIN" });
+    private final SimpleQuery beginTransactionQuery = new SimpleQuery(new String[] { "BEGIN" }, null);
 
-    private final static SimpleQuery EMPTY_QUERY = new SimpleQuery(new String[] { "" });
+    private final static SimpleQuery EMPTY_QUERY = new SimpleQuery(new String[] { "" }, null);
 }
