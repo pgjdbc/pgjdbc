@@ -3,7 +3,7 @@
 * Copyright (c) 2007-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc4/Jdbc4TestSuite.java,v 1.6 2008/09/30 04:34:51 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc4/Jdbc4TestSuite.java,v 1.7 2008/10/08 18:24:05 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -11,7 +11,7 @@ package org.postgresql.test.jdbc4;
 
 import junit.framework.TestSuite;
 
-import java.sql.Connection;
+import java.sql.*;
 import org.postgresql.test.TestUtil;
 
 /*
@@ -38,7 +38,9 @@ public class Jdbc4TestSuite extends TestSuite
             if (TestUtil.haveMinimumServerVersion(connection, "8.3"))
             {
                 suite.addTestSuite(UUIDTest.class);
-                suite.addTestSuite(XmlTest.class);
+                if (isXmlEnabled(connection)) {
+                    suite.addTestSuite(XmlTest.class);
+                }
             }
         }
         finally
@@ -48,5 +50,21 @@ public class Jdbc4TestSuite extends TestSuite
 
         return suite;
     }
+
+    /**
+     * Not all servers will have been complied --with-libxml.
+     */
+    private static boolean isXmlEnabled(Connection conn) {
+        try {
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT '<a>b</a>'::xml");
+            rs.close();
+            stmt.close();
+            return true;
+        } catch (SQLException sqle) {
+            return false;
+        }
+    }
+
 }
 
