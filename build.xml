@@ -8,7 +8,7 @@
 
   This file now requires Ant 1.4.1.  2002-04-18
 
-  $PostgreSQL: pgjdbc/build.xml,v 1.82 2008/09/30 04:34:50 jurka Exp $
+  $PostgreSQL: pgjdbc/build.xml,v 1.83 2008/10/08 18:24:04 jurka Exp $
 
 -->
 
@@ -376,12 +376,10 @@
         <pathelement location="${jardir}/postgresql-tests.jar" />
         <pathelement path="${java.class.path}" />
       </classpath>
-      <!--
       <test name="org.postgresql.test.jdbc2.Jdbc2TestSuite" outfile="${testResultsDir}/jdbc2"/>
       <test name="org.postgresql.test.jdbc2.optional.OptionalTestSuite" outfile="${testResultsDir}/jdbc2optional"/>
       <test name="org.postgresql.test.jdbc3.Jdbc3TestSuite" outfile="${testResultsDir}/jdbc3"/>
       <test name="org.postgresql.test.xa.XATestSuite" outfile="${testResultsDir}/xa"/>
-      -->
       <test name="org.postgresql.test.jdbc4.Jdbc4TestSuite" if="jdbc4tests" outfile="${testResultsDir}/jdbc4"/>
     </junit>
   </target>
