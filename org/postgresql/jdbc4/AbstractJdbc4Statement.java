@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4Statement.java,v 1.3 2008/01/08 06:56:30 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4Statement.java,v 1.4 2008/09/30 04:34:51 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -13,6 +13,8 @@ import java.sql.*;
 
 import java.io.Reader;
 import java.io.InputStream;
+
+import org.postgresql.core.Oid;
 
 abstract class AbstractJdbc4Statement extends org.postgresql.jdbc3g.AbstractJdbc3gStatement
 {
@@ -33,6 +35,58 @@ abstract class AbstractJdbc4Statement extends org.postgresql.jdbc3g.AbstractJdbc
     public boolean isClosed() throws SQLException
     {
         return isClosed;
+    }
+
+    public void setObject(int parameterIndex, Object x) throws SQLException
+    {
+        if (x instanceof SQLXML)
+        {
+            setSQLXML(parameterIndex, (SQLXML)x);
+        } else {
+            super.setObject(parameterIndex, x);
+        }
+    }
+
+    public void setObject(int parameterIndex, Object x, int targetSqlType, int scale) throws SQLException
+    {
+        checkClosed();
+
+        if (x == null)
+        {
+            setNull(parameterIndex, targetSqlType);
+            return;
+        }
+
+        switch (targetSqlType) {
+            case Types.SQLXML:
+                if (x instanceof SQLXML) {
+                    setSQLXML(parameterIndex, (SQLXML)x);
+                } else {
+                    setSQLXML(parameterIndex, new Jdbc4SQLXML(connection, x.toString()));
+                }
+                break;
+            default:
+                super.setObject(parameterIndex, x, targetSqlType, scale);
+        }
+    }
+
+    public void setNull(int parameterIndex, int targetSqlType) throws SQLException
+    {
+        checkClosed();
+        int oid;
+        switch (targetSqlType)
+        {
+            case Types.SQLXML:
+                oid = Oid.XML;
+                break;
+            default:
+                super.setNull(parameterIndex, targetSqlType);
+                return;
+        }
+
+        if (adjustIndex)
+            parameterIndex--;
+        preparedParameters.setNull(parameterIndex, oid);
     }
 
     public void setRowId(int parameterIndex, RowId x) throws SQLException
@@ -122,7 +176,11 @@ abstract class AbstractJdbc4Statement extends org.postgresql.jdbc3g.AbstractJdbc
 
     public void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "setSQLXML(int, SQLXML)");
+        checkClosed();
+        if (xmlObject == null || xmlObject.getString() == null)
+            setNull(parameterIndex, Types.SQLXML);
+        else
+            setString(parameterIndex, xmlObject.getString(), Oid.XML);
     }
 
     public void setPoolable(boolean poolable) throws SQLException
@@ -249,7 +307,9 @@ abstract class AbstractJdbc4Statement extends org.postgresql.jdbc3g.AbstractJdbc
 
     public SQLXML getSQLXML(int parameterIndex) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "getSQLXML(int)");
+        checkClosed();
+        checkIndex(parameterIndex, Types.SQLXML, "SQLXML");
+        return (SQLXML)callResult[parameterIndex - 1];
     }
 
     public SQLXML getSQLXML(String parameterIndex) throws SQLException

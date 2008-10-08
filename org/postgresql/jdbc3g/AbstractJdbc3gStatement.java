@@ -3,7 +3,7 @@
 * Copyright (c) 2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL$
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3g/AbstractJdbc3gStatement.java,v 1.1 2008/09/30 04:34:51 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -28,11 +28,21 @@ public abstract class AbstractJdbc3gStatement extends org.postgresql.jdbc3.Abstr
         super(connection, sql, isCallable, rsType, rsConcurrency, rsHoldability);
     }
 
+    public void setObject(int parameterIndex, Object x) throws SQLException
+    {
+        if (x instanceof UUID && connection.haveMinimumServerVersion("8.3"))
+        {
+            setString(parameterIndex, x.toString(), Oid.UUID);
+        } else {
+            super.setObject(parameterIndex, x);
+        }
+    }
+
     public void setObject(int parameterIndex, Object x, int targetSqlType, int scale) throws SQLException
     {
         if (targetSqlType == Types.OTHER && x instanceof UUID && connection.haveMinimumServerVersion("8.3"))
         {
-            bindLiteral(parameterIndex, x.toString(), Oid.UUID);
+            setString(parameterIndex, x.toString(), Oid.UUID);
         } else {
             super.setObject(parameterIndex, x, targetSqlType, scale);
         }

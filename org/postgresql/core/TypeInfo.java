@@ -3,7 +3,7 @@
 * Copyright (c) 2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/TypeInfo.java,v 1.1 2008/04/15 04:23:54 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/TypeInfo.java,v 1.2 2008/04/15 04:49:58 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -14,6 +14,7 @@ import java.util.Iterator;
 
 public interface TypeInfo
 {
+    public void addCoreType(String pgTypeName, Integer oid, Integer sqlType, String javaClass, Integer arrayOid);
 
     public void addDataType(String type, Class klass) throws SQLException;
 

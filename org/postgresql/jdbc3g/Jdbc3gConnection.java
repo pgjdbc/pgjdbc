@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3g/Jdbc3gConnection.java,v 1.4 2005/01/11 08:25:47 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3g/Jdbc3gConnection.java,v 1.5 2008/01/08 06:56:30 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -18,7 +18,7 @@ import java.sql.SQLException;
  * However most of the implementation is really done in
  * org.postgresql.jdbc3.AbstractJdbc3Connection or one of it's parents
  */
-public class Jdbc3gConnection extends org.postgresql.jdbc3.AbstractJdbc3Connection implements java.sql.Connection
+public class Jdbc3gConnection extends org.postgresql.jdbc3g.AbstractJdbc3gConnection implements java.sql.Connection
 {
     public Jdbc3gConnection(String host, int port, String user, String database, Properties info, String url) throws SQLException {
         super(host, port, user, database, info, url);

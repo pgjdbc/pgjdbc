@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4ResultSet.java,v 1.4 2008/01/08 06:56:30 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4ResultSet.java,v 1.5 2008/09/30 04:34:51 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -146,7 +146,11 @@ abstract class AbstractJdbc4ResultSet extends org.postgresql.jdbc3g.AbstractJdbc
 
     public SQLXML getSQLXML(int columnIndex) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "getSQLXML(int)");
+        String data = getString(columnIndex);
+        if (data == null)
+            return null;
+
+        return new Jdbc4SQLXML(connection, data);
     }
 
     public SQLXML getSQLXML(String columnName) throws SQLException
@@ -156,7 +160,7 @@ abstract class AbstractJdbc4ResultSet extends org.postgresql.jdbc3g.AbstractJdbc
 
     public void updateSQLXML(int columnIndex, SQLXML xmlObject) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "updateSQLXML(int, SQLXML)");
+        updateValue(columnIndex, xmlObject);
     }
 
     public void updateSQLXML(String columnName, SQLXML xmlObject) throws SQLException
@@ -283,6 +287,17 @@ abstract class AbstractJdbc4ResultSet extends org.postgresql.jdbc3g.AbstractJdbc
     {
         throw org.postgresql.Driver.notImplemented(this.getClass(), "unwrap(Class<T>)");
     }
+
+    protected Object internalGetObject(int columnIndex, Field field) throws SQLException
+    {
+        switch(getSQLType(columnIndex))
+        {
+            case Types.SQLXML:
+                return getSQLXML(columnIndex);
+        }
+        return super.internalGetObject(columnIndex, field);
+    }
+
 
 }
 

@@ -3,7 +3,7 @@
  * Copyright (c) 2005-2008, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.15 2008/04/15 05:22:12 jurka Exp $
+ *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.16 2008/09/30 04:34:51 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -64,28 +64,27 @@ public class TypeInfoCache implements TypeInfo {
     // 5 - conditional minimum server version
     // 6 - conditional minimum JDK build version
     private static final Object types[][] = {
-        {"int2", new Integer(Oid.INT2), new Integer(Types.SMALLINT), "java.lang.Integer", new Integer(Oid.INT2_ARRAY), null, null},
-        {"int4", new Integer(Oid.INT4), new Integer(Types.INTEGER), "java.lang.Integer", new Integer(Oid.INT4_ARRAY), null, null},
-        {"oid", new Integer(Oid.OID), new Integer(Types.BIGINT), "java.lang.Long", new Integer(Oid.OID_ARRAY), null, null},
-        {"int8", new Integer(Oid.INT8), new Integer(Types.BIGINT), "java.lang.Long", new Integer(Oid.INT8_ARRAY), null, null},
-        {"money", new Integer(Oid.MONEY), new Integer(Types.DOUBLE), "java.lang.Double", new Integer(Oid.MONEY_ARRAY), null, null},
-        {"numeric", new Integer(Oid.NUMERIC), new Integer(Types.NUMERIC), "java.math.BigDecimal", new Integer(Oid.NUMERIC_ARRAY), null, null},
-        {"float4", new Integer(Oid.FLOAT4), new Integer(Types.REAL), "java.lang.Float", new Integer(Oid.FLOAT4_ARRAY), null, null},
-        {"float8", new Integer(Oid.FLOAT8), new Integer(Types.DOUBLE), "java.lang.Double", new Integer(Oid.FLOAT8_ARRAY), null, null},
-        {"char", new Integer(Oid.CHAR), new Integer(Types.CHAR), "java.lang.String", new Integer(Oid.CHAR_ARRAY), null, null},
-        {"bpchar", new Integer(Oid.BPCHAR), new Integer(Types.CHAR), "java.lang.String", new Integer(Oid.BPCHAR_ARRAY), null, null},
-        {"varchar", new Integer(Oid.VARCHAR), new Integer(Types.VARCHAR), "java.lang.String", new Integer(Oid.VARCHAR_ARRAY), null, null},
-        {"text", new Integer(Oid.TEXT), new Integer(Types.VARCHAR), "java.lang.String", new Integer(Oid.TEXT_ARRAY), null, null},
-        {"name", new Integer(Oid.NAME), new Integer(Types.VARCHAR), "java.lang.String", new Integer(Oid.NAME_ARRAY), null, null},
-        {"bytea", new Integer(Oid.BYTEA), new Integer(Types.BINARY), "[B", new Integer(Oid.BYTEA_ARRAY), null, null},
-        {"bool", new Integer(Oid.BOOL), new Integer(Types.BIT), "java.lang.Boolean", new Integer(Oid.BOOL_ARRAY), null, null},
-        {"bit", new Integer(Oid.BIT), new Integer(Types.BIT), "java.lang.Boolean", new Integer(Oid.BIT_ARRAY), null, null},
-        {"date", new Integer(Oid.DATE), new Integer(Types.DATE), "java.sql.Date", new Integer(Oid.DATE_ARRAY), null, null},
-        {"time", new Integer(Oid.TIME), new Integer(Types.TIME), "java.sql.Time", new Integer(Oid.TIME_ARRAY), null, null},
-        {"timetz", new Integer(Oid.TIMETZ), new Integer(Types.TIME), "java.sql.Time", new Integer(Oid.TIMETZ_ARRAY), null, null},
-        {"timestamp", new Integer(Oid.TIMESTAMP), new Integer(Types.TIMESTAMP), "java.sql.Timestamp", new Integer(Oid.TIMESTAMP_ARRAY), null, null},
-        {"timestamptz", new Integer(Oid.TIMESTAMPTZ), new Integer(Types.TIMESTAMP), "java.sql.Timestamp", new Integer(Oid.TIMESTAMPTZ_ARRAY), null, null},
-        {"uuid", new Integer(Oid.UUID), new Integer(Types.OTHER), "java.util.UUID", new Integer(Oid.UUID_ARRAY), "8.3", "1.5"}
+        {"int2", new Integer(Oid.INT2), new Integer(Types.SMALLINT), "java.lang.Integer", new Integer(Oid.INT2_ARRAY)},
+        {"int4", new Integer(Oid.INT4), new Integer(Types.INTEGER), "java.lang.Integer", new Integer(Oid.INT4_ARRAY)},
+        {"oid", new Integer(Oid.OID), new Integer(Types.BIGINT), "java.lang.Long", new Integer(Oid.OID_ARRAY)},
+        {"int8", new Integer(Oid.INT8), new Integer(Types.BIGINT), "java.lang.Long", new Integer(Oid.INT8_ARRAY)},
+        {"money", new Integer(Oid.MONEY), new Integer(Types.DOUBLE), "java.lang.Double", new Integer(Oid.MONEY_ARRAY)},
+        {"numeric", new Integer(Oid.NUMERIC), new Integer(Types.NUMERIC), "java.math.BigDecimal", new Integer(Oid.NUMERIC_ARRAY)},
+        {"float4", new Integer(Oid.FLOAT4), new Integer(Types.REAL), "java.lang.Float", new Integer(Oid.FLOAT4_ARRAY)},
+        {"float8", new Integer(Oid.FLOAT8), new Integer(Types.DOUBLE), "java.lang.Double", new Integer(Oid.FLOAT8_ARRAY)},
+        {"char", new Integer(Oid.CHAR), new Integer(Types.CHAR), "java.lang.String", new Integer(Oid.CHAR_ARRAY)},
+        {"bpchar", new Integer(Oid.BPCHAR), new Integer(Types.CHAR), "java.lang.String", new Integer(Oid.BPCHAR_ARRAY)},
+        {"varchar", new Integer(Oid.VARCHAR), new Integer(Types.VARCHAR), "java.lang.String", new Integer(Oid.VARCHAR_ARRAY)},
+        {"text", new Integer(Oid.TEXT), new Integer(Types.VARCHAR), "java.lang.String", new Integer(Oid.TEXT_ARRAY)},
+        {"name", new Integer(Oid.NAME), new Integer(Types.VARCHAR), "java.lang.String", new Integer(Oid.NAME_ARRAY)},
+        {"bytea", new Integer(Oid.BYTEA), new Integer(Types.BINARY), "[B", new Integer(Oid.BYTEA_ARRAY)},
+        {"bool", new Integer(Oid.BOOL), new Integer(Types.BIT), "java.lang.Boolean", new Integer(Oid.BOOL_ARRAY)},
+        {"bit", new Integer(Oid.BIT), new Integer(Types.BIT), "java.lang.Boolean", new Integer(Oid.BIT_ARRAY)},
+        {"date", new Integer(Oid.DATE), new Integer(Types.DATE), "java.sql.Date", new Integer(Oid.DATE_ARRAY)},
+        {"time", new Integer(Oid.TIME), new Integer(Types.TIME), "java.sql.Time", new Integer(Oid.TIME_ARRAY)},
+        {"timetz", new Integer(Oid.TIMETZ), new Integer(Types.TIME), "java.sql.Time", new Integer(Oid.TIMETZ_ARRAY)},
+        {"timestamp", new Integer(Oid.TIMESTAMP), new Integer(Types.TIMESTAMP), "java.sql.Timestamp", new Integer(Oid.TIMESTAMP_ARRAY)},
+        {"timestamptz", new Integer(Oid.TIMESTAMPTZ), new Integer(Types.TIMESTAMP), "java.sql.Timestamp", new Integer(Oid.TIMESTAMPTZ_ARRAY)},
     };
 
     /**
@@ -112,30 +111,37 @@ public class TypeInfoCache implements TypeInfo {
         _pgNameToOid = new HashMap();
         _pgNameToJavaClass = new HashMap();
         _pgNameToPgObject = new HashMap();
-        HashMap pgNameToSQLType = new HashMap();
         _pgArrayToPgType = new HashMap();
-
-        for (int i=0; i<types.length; i++) {
-            if (types[i][5] != null && !conn.haveMinimumServerVersion((String)types[i][5]))
-                continue;
-            if (types[i][6] != null && Driver.getJavaBuildVersion().compareTo((String)types[i][6]) < 0)
-                continue;
-
-            _pgNameToJavaClass.put(types[i][0], types[i][3]);
-            _pgNameToOid.put(types[i][0], types[i][1]);
-            _oidToPgName.put(types[i][1], types[i][0]);
-            _pgArrayToPgType.put(types[i][4], types[i][1]);
-            pgNameToSQLType.put(types[i][0], types[i][2]);
-
-            String arrayType = "_" + types[i][0];
-            _pgNameToJavaClass.put(arrayType, "java.sql.Array");
-            pgNameToSQLType.put(arrayType, new Integer(Types.ARRAY));
-        }
 
         // needs to be synchronized because the iterator is returned
         // from getPGTypeNamesWithSQLTypes()
-        _pgNameToSQLType = Collections.synchronizedMap(pgNameToSQLType);
+        _pgNameToSQLType = Collections.synchronizedMap(new HashMap());
+
+        for (int i=0; i<types.length; i++) {
+            String pgTypeName = (String)types[i][0];
+            Integer oid = (Integer)types[i][1];
+            Integer sqlType = (Integer)types[i][2];
+            String javaClass = (String)types[i][3];
+            Integer arrayOid = (Integer)types[i][4];
+
+            addCoreType(pgTypeName, oid, sqlType, javaClass, arrayOid);
+        }
+
     }
+
+    public synchronized void addCoreType(String pgTypeName, Integer oid, Integer sqlType, String javaClass, Integer arrayOid)
+    {
+        _pgNameToJavaClass.put(pgTypeName, javaClass);
+        _pgNameToOid.put(pgTypeName, oid);
+        _oidToPgName.put(oid, pgTypeName);
+        _pgArrayToPgType.put(arrayOid, oid);
+        _pgNameToSQLType.put(pgTypeName, sqlType);
+
+        String pgArrayTypeName = "_" + pgTypeName;
+        _pgNameToJavaClass.put(pgArrayTypeName, "java.sql.Array");
+        _pgNameToSQLType.put(pgArrayTypeName, new Integer(Types.ARRAY));
+    }
+
 
     public synchronized void addDataType(String type, Class klass) throws SQLException
     {

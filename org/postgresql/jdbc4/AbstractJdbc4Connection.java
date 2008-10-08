@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4Connection.java,v 1.5 2008/01/08 06:56:30 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4Connection.java,v 1.6 2008/04/15 04:23:58 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -16,17 +16,23 @@ import java.util.Iterator;
 import java.util.Properties;
 
 import org.postgresql.core.Oid;
+import org.postgresql.core.TypeInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLException;
 import org.postgresql.jdbc2.AbstractJdbc2Array;
 
-abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3.AbstractJdbc3Connection
+abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdbc3gConnection
 {
     Properties _clientInfo;
 
     public AbstractJdbc4Connection(String host, int port, String user, String database, Properties info, String url) throws SQLException {
         super(host, port, user, database, info, url);
+
+        TypeInfo types = getTypeInfo();
+        if (haveMinimumServerVersion("8.3")) {
+            types.addCoreType("xml", Oid.XML, java.sql.Types.SQLXML, "java.sql.SQLXML", Oid.XML_ARRAY);
+        }
     }
 
     public Clob createClob() throws SQLException
@@ -46,7 +52,7 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3.AbstractJdbc
 
     public SQLXML createSQLXML() throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "createSQLXML()");
+        return new Jdbc4SQLXML(this);
     }
 
     public Struct createStruct(String typeName, Object[] attributes) throws SQLException

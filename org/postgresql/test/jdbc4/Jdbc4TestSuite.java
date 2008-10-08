@@ -3,7 +3,7 @@
 * Copyright (c) 2007-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc4/Jdbc4TestSuite.java,v 1.5 2008/01/08 06:56:31 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc4/Jdbc4TestSuite.java,v 1.6 2008/09/30 04:34:51 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -38,6 +38,7 @@ public class Jdbc4TestSuite extends TestSuite
             if (TestUtil.haveMinimumServerVersion(connection, "8.3"))
             {
                 suite.addTestSuite(UUIDTest.class);
+                suite.addTestSuite(XmlTest.class);
             }
         }
         finally
