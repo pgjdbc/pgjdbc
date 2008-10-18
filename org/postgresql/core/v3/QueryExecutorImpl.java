@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.39 2008/01/28 10:08:57 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.39.2.1 2008/05/20 00:04:24 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -187,7 +187,9 @@ public class QueryExecutorImpl implements QueryExecutor {
             try
             {
                 handler = sendQueryPreamble(handler, flags);
-                sendQuery((V3Query)query, (V3ParameterList)parameters, maxRows, fetchSize, flags);
+                ErrorTrackingResultHandler trackingHandler = new ErrorTrackingResultHandler(handler);
+                queryCount = 0;
+                sendQuery((V3Query)query, (V3ParameterList)parameters, maxRows, fetchSize, flags, trackingHandler);
                 sendSync();
                 processResults(handler, flags);
             }
@@ -318,31 +320,21 @@ public class QueryExecutorImpl implements QueryExecutor {
 
         try
         {
-            int queryCount = 0;
-
             handler = sendQueryPreamble(handler, flags);
             ErrorTrackingResultHandler trackingHandler = new ErrorTrackingResultHandler(handler);
+            queryCount = 0;
 
             for (int i = 0; i < queries.length; ++i)
             {
-                ++queryCount;
-                if (queryCount >= MAX_BUFFERED_QUERIES)
-                {
-                    sendSync();
-                    processResults(trackingHandler, flags);
-
-                    // If we saw errors, don't send anything more.
-                    if (trackingHandler.hasErrors())
-                        break;
-
-                    queryCount = 0;
-                }
-
                 V3Query query = (V3Query)queries[i];
                 V3ParameterList parameters = (V3ParameterList)parameterLists[i];
                 if (parameters == null)
                     parameters = SimpleQuery.NO_PARAMETERS;
-                sendQuery(query, parameters, maxRows, fetchSize, flags);
+
+                sendQuery(query, parameters, maxRows, fetchSize, flags, trackingHandler);
+
+                if (trackingHandler.hasErrors())
+                    break;
             }
 
             if (!trackingHandler.hasErrors())
@@ -634,19 +626,43 @@ public class QueryExecutorImpl implements QueryExecutor {
     /*
      * Send a query to the backend.
      */
-    private void sendQuery(V3Query query, V3ParameterList parameters, int maxRows, int fetchSize, int flags) throws IOException, SQLException {
+    private void sendQuery(V3Query query, V3ParameterList parameters, int maxRows, int fetchSize, int flags, ErrorTrackingResultHandler trackingHandler) throws IOException, SQLException {
         // Now the query itself.
         SimpleQuery[] subqueries = query.getSubqueries();
         SimpleParameterList[] subparams = parameters.getSubparams();
 
         if (subqueries == null)
         {
-            sendOneQuery((SimpleQuery)query, (SimpleParameterList)parameters, maxRows, fetchSize, flags);
+            ++queryCount;
+            if (queryCount >= MAX_BUFFERED_QUERIES)
+            {
+                sendSync();
+                processResults(trackingHandler, flags);
+
+                queryCount = 0;
+            }
+
+             // If we saw errors, don't send anything more.
+            if (!trackingHandler.hasErrors())
+                sendOneQuery((SimpleQuery)query, (SimpleParameterList)parameters, maxRows, fetchSize, flags);
         }
         else
         {
             for (int i = 0; i < subqueries.length; ++i)
             {
+                ++queryCount;
+                if (queryCount >= MAX_BUFFERED_QUERIES)
+                {
+                    sendSync();
+                    processResults(trackingHandler, flags);
+
+                    // If we saw errors, don't send anything more.
+                    if (trackingHandler.hasErrors())
+                        break;
+
+                    queryCount = 0;
+                }
+
                 // In the situation where parameters is already
                 // NO_PARAMETERS it cannot know the correct
                 // number of array elements to return in the
@@ -1674,6 +1690,12 @@ public class QueryExecutorImpl implements QueryExecutor {
     private final PGStream pgStream;
     private final Logger logger;
     private final boolean allowEncodingChanges;
+
+    /**
+     * The number of queries executed so far without processing any results.
+     * Used to avoid deadlocks, see MAX_BUFFERED_QUERIES.
+     */
+    private int queryCount;
 
     private final SimpleQuery beginTransactionQuery = new SimpleQuery(new String[] { "BEGIN" });
 
