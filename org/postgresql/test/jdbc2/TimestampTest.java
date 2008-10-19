@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/TimestampTest.java,v 1.21 2005/08/20 23:08:32 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/TimestampTest.java,v 1.22 2008/01/08 06:56:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -41,12 +41,14 @@ public class TimestampTest extends TestCase
         con = TestUtil.openDB();
         TestUtil.createTable(con, TSWTZ_TABLE, "ts timestamp with time zone");
         TestUtil.createTable(con, TSWOTZ_TABLE, "ts timestamp without time zone");
+        TestUtil.createTable(con, DATE_TABLE, "ts date");
     }
 
     protected void tearDown() throws Exception
     {
         TestUtil.dropTable(con, TSWTZ_TABLE);
         TestUtil.dropTable(con, TSWOTZ_TABLE);
+        TestUtil.dropTable(con, DATE_TABLE);
         TestUtil.closeDB(con);
     }
 
@@ -97,6 +99,11 @@ public class TimestampTest extends TestCase
         runInfinityTests(TSWTZ_TABLE, PGStatement.DATE_NEGATIVE_INFINITY);
         runInfinityTests(TSWOTZ_TABLE, PGStatement.DATE_POSITIVE_INFINITY);
         runInfinityTests(TSWOTZ_TABLE, PGStatement.DATE_NEGATIVE_INFINITY);
+        if (TestUtil.haveMinimumServerVersion(con, "8.4"))
+        {
+            runInfinityTests(DATE_TABLE, PGStatement.DATE_POSITIVE_INFINITY);
+            runInfinityTests(DATE_TABLE, PGStatement.DATE_NEGATIVE_INFINITY);
+        }
     }
 
     private void runInfinityTests(String table, long value) throws SQLException
@@ -662,6 +669,7 @@ public class TimestampTest extends TestCase
 
     private static final String TSWTZ_TABLE = "testtimestampwtz";
     private static final String TSWOTZ_TABLE = "testtimestampwotz";
+    private static final String DATE_TABLE = "testtimestampdate";
 
     private static final java.sql.Date tmpDate1 = new java.sql.Date(TS1WTZ.getTime());
     private static final java.sql.Time tmpTime1 = new java.sql.Time(TS1WTZ.getTime());
