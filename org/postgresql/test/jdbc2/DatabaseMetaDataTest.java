@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.42 2008/04/15 04:49:59 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.43 2008/04/15 05:22:14 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -905,6 +905,21 @@ public class DatabaseMetaDataTest extends TestCase
             }
             catch ( Exception ex )
             {
+            }
+        }
+    }
+
+    public void testTypeInfoSigned() throws SQLException
+    {
+        DatabaseMetaData dbmd = con.getMetaData();
+        ResultSet rs = dbmd.getTypeInfo();
+        while (rs.next()) {
+            if ("int4".equals(rs.getString("TYPE_NAME"))) {
+                assertEquals(false, rs.getBoolean("UNSIGNED_ATTRIBUTE"));
+            } else if ("float8".equals(rs.getString("TYPE_NAME"))) {
+                assertEquals(false, rs.getBoolean("UNSIGNED_ATTRIBUTE"));
+            } else if ("text".equals(rs.getString("TYPE_NAME"))) {
+                assertEquals(true, rs.getBoolean("UNSIGNED_ATTRIBUTE"));
             }
         }
     }

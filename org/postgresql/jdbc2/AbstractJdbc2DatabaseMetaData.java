@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.45 2008/04/15 04:23:57 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.46 2008/04/15 04:49:59 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -3693,7 +3693,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
             tuple[6] = bNullable; // all types can be null
             tuple[7] = connection.getTypeInfo().isCaseSensitive(typeOid) ? bt : bf;
             tuple[8] = bSearchable; // any thing can be used in the WHERE clause
-            tuple[9] = connection.getTypeInfo().isSigned(typeOid) ? bt : bf;
+            tuple[9] = connection.getTypeInfo().isSigned(typeOid) ? bf : bt;
             tuple[10] = bf; // false for now - must handle money
             tuple[11] = bf; // false - it isn't autoincrement
             tuple[13] = bZero; // min scale is zero
