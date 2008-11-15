@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/QueryExecutorImpl.java,v 1.19 2007/02/28 06:11:00 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/QueryExecutorImpl.java,v 1.20 2008/01/08 06:56:27 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -111,7 +111,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                 V2Query query = (V2Query)createSimpleQuery("");
                 SimpleParameterList params = (SimpleParameterList)query.createParameterList();
                 sendQuery(query, params, "BEGIN");
-                processResults(query, handler, 0);
+                processResults(query, handler, 0, 0);
             }
             catch (IOException ioe)
             {
@@ -361,7 +361,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         try
         {
             sendQuery(query, parameters, queryPrefix);
-            processResults(query, handler, maxRows);
+            processResults(query, handler, maxRows, flags);
         }
         catch (IOException e)
         {
@@ -398,7 +398,8 @@ public class QueryExecutorImpl implements QueryExecutor {
         pgStream.flush();
     }
 
-    protected void processResults(Query originalQuery, ResultHandler handler, int maxRows) throws IOException {
+    protected void processResults(Query originalQuery, ResultHandler handler, int maxRows, int flags) throws IOException {
+        boolean bothRowsAndStatus = (flags & QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS) != 0;
         Field[] fields = null;
         Vector tuples = null;
 
@@ -447,6 +448,9 @@ public class QueryExecutorImpl implements QueryExecutor {
                 {
                     handler.handleResultRows(originalQuery, fields, tuples, null);
                     fields = null;
+
+                    if (bothRowsAndStatus)
+                        interpretCommandStatus(status, handler);
                 }
                 else
                 {

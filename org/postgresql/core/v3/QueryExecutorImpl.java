@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.41 2008/09/30 23:41:23 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.42 2008/10/18 13:40:33 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1157,6 +1157,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
     protected void processResults(ResultHandler handler, int flags) throws IOException {
         boolean noResults = (flags & QueryExecutor.QUERY_NO_RESULTS) != 0;
+        boolean bothRowsAndStatus = (flags & QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS) != 0;
 
         Field[] fields = null;
         Vector tuples = null;
@@ -1305,6 +1306,9 @@ public class QueryExecutorImpl implements QueryExecutor {
                         handler.handleResultRows(currentQuery, fields, tuples, null);
                         fields = null;
                         tuples = null;
+
+                        if (bothRowsAndStatus)
+                            interpretCommandStatus(status, handler);
                     }
                     else
                     {

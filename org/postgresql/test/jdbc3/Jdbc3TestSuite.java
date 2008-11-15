@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/Jdbc3TestSuite.java,v 1.17 2008/01/08 06:47:57 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/Jdbc3TestSuite.java,v 1.18 2008/01/08 06:56:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -33,6 +33,10 @@ public class Jdbc3TestSuite extends TestSuite
             if ( TestUtil.haveMinimumServerVersion( con, "8.1") && TestUtil.isProtocolVersion(con, 3))
             {
                 suite.addTestSuite(Jdbc3CallableStatementTest.class);
+            }
+            if ( TestUtil.haveMinimumServerVersion( con, "8.2") )
+            {
+                suite.addTestSuite(GeneratedKeysTest.class);
             }
             con.close();
         }

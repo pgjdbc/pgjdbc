@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/QueryExecutor.java,v 1.41 2008/01/08 06:56:27 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/QueryExecutor.java,v 1.42 2008/04/01 07:19:20 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -82,6 +82,12 @@ public interface QueryExecutor {
      * want to get the parameter metadata for the statement.
      */
     static int QUERY_DESCRIBE_ONLY = 32;
+
+    /**
+     * Flag for query execution used by generated keys where we want to receive
+     * both the ResultSet and associated update count from the command status.
+     */
+    static int QUERY_BOTH_ROWS_AND_STATUS = 64;
 
     /**
      * Execute a Query, passing results to a provided ResultHandler.
