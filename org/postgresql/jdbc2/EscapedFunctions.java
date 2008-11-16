@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/EscapedFunctions.java,v 1.10 2008/01/08 06:56:28 jurka Exp $
+* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/EscapedFunctions.java,v 1.11 2008/02/19 06:12:24 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -491,36 +491,36 @@ public class EscapedFunctions {
         }
         String interval = EscapedFunctions.constantToInterval(parsedArgs.get(0).toString(),parsedArgs.get(1).toString());
         StringBuffer buf = new StringBuffer();
-        buf.append("(interval ").append(interval)
-        	.append("+").append(parsedArgs.get(2)).append(")");
+        buf.append("(").append(interval).append("+");
+        buf.append(parsedArgs.get(2)).append(")");
         return buf.toString();
     }
     
     private final static String constantToInterval(String type,String value)throws SQLException{
-    	if (!type.startsWith(SQL_TSI_ROOT))
-    		throw new PSQLException(GT.tr("Interval {0} not yet implemented",type),
+        if (!type.startsWith(SQL_TSI_ROOT))
+            throw new PSQLException(GT.tr("Interval {0} not yet implemented",type),
                     PSQLState.SYNTAX_ERROR);
-    	String shortType = type.substring(SQL_TSI_ROOT.length());
-    	if (SQL_TSI_DAY.equalsIgnoreCase(shortType))
-    		return "'"+value+" day'";
-    	else if (SQL_TSI_SECOND.equalsIgnoreCase(shortType))
-    		return "'"+value+" second'";
-    	else if (SQL_TSI_HOUR.equalsIgnoreCase(shortType))
-    		return "'"+value+" hour'";
-    	else if (SQL_TSI_MINUTE.equalsIgnoreCase(shortType))
-    		return "'"+value+" minute'";
-    	else if (SQL_TSI_MONTH.equalsIgnoreCase(shortType))
-    		return "'"+value+" month'";
-    	else if (SQL_TSI_QUARTER.equalsIgnoreCase(shortType))
-    		return "'"+ Integer.valueOf(value).intValue()*3+" month'";
-    	else if (SQL_TSI_WEEK.equalsIgnoreCase(shortType))
-    		return "'"+value+" week'";
-    	else if (SQL_TSI_YEAR.equalsIgnoreCase(shortType))
-    		return "'"+value+" year'";
-    	else if (SQL_TSI_FRAC_SECOND.equalsIgnoreCase(shortType))
-    		throw new PSQLException(GT.tr("Interval {0} not yet implemented","SQL_TSI_FRAC_SECOND"),
+        String shortType = type.substring(SQL_TSI_ROOT.length());
+        if (SQL_TSI_DAY.equalsIgnoreCase(shortType))
+            return "CAST(" + value + " || ' day' as interval)";
+        else if (SQL_TSI_SECOND.equalsIgnoreCase(shortType))
+            return "CAST(" + value + " || ' second' as interval)";
+        else if (SQL_TSI_HOUR.equalsIgnoreCase(shortType))
+            return "CAST(" + value + " || ' hour' as interval)";
+        else if (SQL_TSI_MINUTE.equalsIgnoreCase(shortType))
+            return "CAST(" + value + " || ' minute' as interval)";
+        else if (SQL_TSI_MONTH.equalsIgnoreCase(shortType))
+            return "CAST(" + value + " || ' month' as interval)";
+        else if (SQL_TSI_QUARTER.equalsIgnoreCase(shortType))
+            return "CAST((" + value + "::int * 3) || ' month' as interval)";
+        else if (SQL_TSI_WEEK.equalsIgnoreCase(shortType))
+            return "CAST(" + value + " || ' week' as interval)";
+        else if (SQL_TSI_YEAR.equalsIgnoreCase(shortType))
+            return "CAST(" + value + " || ' year' as interval)";
+        else if (SQL_TSI_FRAC_SECOND.equalsIgnoreCase(shortType))
+            throw new PSQLException(GT.tr("Interval {0} not yet implemented","SQL_TSI_FRAC_SECOND"),
                     PSQLState.SYNTAX_ERROR);
-    	else throw new PSQLException(GT.tr("Interval {0} not yet implemented",type),
+        else throw new PSQLException(GT.tr("Interval {0} not yet implemented",type),
                 PSQLState.SYNTAX_ERROR);
     }
     
@@ -539,30 +539,31 @@ public class EscapedFunctions {
     }
     
     private final static String constantToDatePart(String type)throws SQLException{
-    	if (!type.startsWith(SQL_TSI_ROOT))
-    		throw new PSQLException(GT.tr("Interval {0} not yet implemented",type),
+        if (!type.startsWith(SQL_TSI_ROOT))
+            throw new PSQLException(GT.tr("Interval {0} not yet implemented",type),
                     PSQLState.SYNTAX_ERROR);
-    	String shortType = type.substring(SQL_TSI_ROOT.length());
-    	if (SQL_TSI_DAY.equalsIgnoreCase(shortType))
-    		return "day";
-    	else if (SQL_TSI_SECOND.equalsIgnoreCase(shortType))
-    		return "second";
-    	else if (SQL_TSI_HOUR.equalsIgnoreCase(shortType))
-    		return "hour";
-    	else if (SQL_TSI_MINUTE.equalsIgnoreCase(shortType))
-    		return "minute";
-    	/*else if (SQL_TSI_MONTH.equalsIgnoreCase(shortType))
-    		return "month";
-    	else if (SQL_TSI_QUARTER.equalsIgnoreCase(shortType))
-    		return "quarter";
-    	else if (SQL_TSI_WEEK.equalsIgnoreCase(shortType))
-    		return "week";
-    	else if (SQL_TSI_YEAR.equalsIgnoreCase(shortType))
-    		return "year";*/
-    	else if (SQL_TSI_FRAC_SECOND.equalsIgnoreCase(shortType))
-    		throw new PSQLException(GT.tr("Interval {0} not yet implemented","SQL_TSI_FRAC_SECOND"),
+        String shortType = type.substring(SQL_TSI_ROOT.length());
+        if (SQL_TSI_DAY.equalsIgnoreCase(shortType))
+            return "day";
+        else if (SQL_TSI_SECOND.equalsIgnoreCase(shortType))
+            return "second";
+        else if (SQL_TSI_HOUR.equalsIgnoreCase(shortType))
+            return "hour";
+        else if (SQL_TSI_MINUTE.equalsIgnoreCase(shortType))
+            return "minute";
+        // See http://archives.postgresql.org/pgsql-jdbc/2006-03/msg00096.php
+        /*else if (SQL_TSI_MONTH.equalsIgnoreCase(shortType))
+            return "month";
+        else if (SQL_TSI_QUARTER.equalsIgnoreCase(shortType))
+            return "quarter";
+        else if (SQL_TSI_WEEK.equalsIgnoreCase(shortType))
+            return "week";
+        else if (SQL_TSI_YEAR.equalsIgnoreCase(shortType))
+            return "year";*/
+        else if (SQL_TSI_FRAC_SECOND.equalsIgnoreCase(shortType))
+            throw new PSQLException(GT.tr("Interval {0} not yet implemented","SQL_TSI_FRAC_SECOND"),
                     PSQLState.SYNTAX_ERROR);
-    	else throw new PSQLException(GT.tr("Interval {0} not yet implemented",type),
+        else throw new PSQLException(GT.tr("Interval {0} not yet implemented",type),
                 PSQLState.SYNTAX_ERROR);
     }
     

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.26 2007/07/27 10:15:36 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.27 2008/01/08 06:56:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -286,6 +286,22 @@ public class StatementTest extends TestCase
         assertEquals("bc",rs.getString(6));
         assertEquals("ABCD",rs.getString(7));
     }
+
+    public void testDateFuncWithParam() throws SQLException
+    {
+        // Prior to 8.0 there is not an interval + timestamp operator,
+        // so timestampadd does not work.
+        //
+        if (!TestUtil.haveMinimumServerVersion(con, "8.0"))
+            return;
+
+        PreparedStatement ps = con.prepareStatement("SELECT {fn timestampadd(SQL_TSI_QUARTER, ? ,{fn now()})}, {fn timestampadd(SQL_TSI_MONTH, ?, {fn now()})} ");
+        ps.setInt(1, 4);
+        ps.setInt(2, 12);
+        ResultSet rs = ps.executeQuery();
+        assertTrue(rs.next());
+        assertEquals(rs.getTimestamp(1), rs.getTimestamp(2));
+    }
     
     public void testDateFunctions() throws SQLException
     {
@@ -302,7 +318,7 @@ public class StatementTest extends TestCase
         // ensure sunday =>1 and monday =>2
         assertEquals(2,rs.getInt(5));
 
-	// Prior to 8.0 there is not an interval + timestamp operator,
+        // Prior to 8.0 there is not an interval + timestamp operator,
         // so timestampadd does not work.
         //
         if (!TestUtil.haveMinimumServerVersion(con, "8.0"))
