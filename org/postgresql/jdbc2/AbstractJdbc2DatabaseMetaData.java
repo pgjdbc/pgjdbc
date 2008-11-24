@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.46 2008/04/15 04:49:59 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.47 2008/11/07 09:11:36 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -3656,11 +3656,14 @@ public abstract class AbstractJdbc2DatabaseMetaData
         String sql;
         if (connection.haveMinimumServerVersion("7.3"))
         {
-            sql = "SELECT typname,oid FROM pg_catalog.pg_type";
+            sql = "SELECT t.typname,t.oid FROM pg_catalog.pg_type t"
+            	+ " JOIN pg_catalog.pg_namespace n ON (t.typnamespace = n.oid) "
+            	+ " WHERE n.nspname != 'pg_toast'";
         }
         else
         {
-            sql = "SELECT typname,oid FROM pg_type";
+            sql = "SELECT typname,oid FROM pg_type" +
+            		"WHERE NOT (typename ~ '^pg_toast_') ";
         }
 
         ResultSet rs = connection.createStatement().executeQuery(sql);
