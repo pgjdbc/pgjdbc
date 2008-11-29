@@ -1,3 +1,13 @@
+/*-------------------------------------------------------------------------
+*
+* Copyright (c) 2008, PostgreSQL Global Development Group
+*
+* IDENTIFICATION
+*   $PostgreSQL$
+*
+*-------------------------------------------------------------------------
+*/
+
 package org.postgresql.gss;
 
 import java.io.IOException;
