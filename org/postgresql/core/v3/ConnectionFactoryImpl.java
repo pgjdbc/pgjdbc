@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ConnectionFactoryImpl.java,v 1.17 2008/09/19 22:50:38 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ConnectionFactoryImpl.java,v 1.18 2008/09/30 03:42:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -39,6 +39,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     private static final int AUTH_REQ_CRYPT = 4;
     private static final int AUTH_REQ_MD5 = 5;
     private static final int AUTH_REQ_SCM = 6;
+    private static final int AUTH_REQ_GSS = 7;
+    private static final int AUTH_REQ_GSS_CONTINUE = 8;
+    private static final int AUTH_REQ_SSPI = 9;
 
     /** Marker exception; thrown when we want to fall back to using V2. */
     private static class UnsupportedProtocolException extends IOException {
@@ -91,7 +94,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             sendStartupPacket(newStream, params, logger);
 
             // Do authentication (until AuthenticationOk).
-            doAuthentication(newStream, user, info.getProperty("password"), logger);
+            doAuthentication(newStream, host, user, info, logger);
 
             // Do final startup.
             ProtocolConnectionImpl protoConnection = new ProtocolConnectionImpl(newStream, user, database, info, logger);
@@ -243,10 +246,12 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         pgStream.flush();
     }
 
-    private void doAuthentication(PGStream pgStream, String user, String password, Logger logger) throws IOException, SQLException
+    private void doAuthentication(PGStream pgStream, String host, String user, Properties info, Logger logger) throws IOException, SQLException
     {
         // Now get the response from the backend, either an error message
         // or an authentication request
+
+        String password = info.getProperty("password");
 
         while (true)
         {
@@ -357,6 +362,15 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
                         break;
                     }
+
+                case AUTH_REQ_GSS:
+                    org.postgresql.gss.MakeGSS.authenticate(pgStream, host,
+                            user, password, 
+                            info.getProperty("jaasApplicationName"),
+                            info.getProperty("kerberosServerName"),
+                            logger);
+                    break;
+
 
                 case AUTH_REQ_OK:
                     if (logger.logDebug())

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!--
   Copyright (c) 2004-2008, PostgreSQL Global Development Group
-  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.34 2008/04/13 16:03:49 jurka Exp $
+  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.35 2008/09/30 03:42:48 jurka Exp $
 -->
 
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN" "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">
@@ -617,6 +617,28 @@ Connection conn = DriverManager.getConnection(url);
         </para>
        </listitem>
       </varlistentry>
+
+      <varlistentry>
+       <term><varname>kerberosServerName</varname> = <type>String</type></term>
+       <listitem>
+        <para>
+         The Kerberos service name to use when authenticating with GSSAPI.  This is
+         equivalent to libpq's PGKRBSRVNAME environment variable and defaults to
+         "postgres".
+        </para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
+       <term><varname>jaasApplicationName</varname> = <type>String</type></term>
+       <listitem>
+        <para>
+         Specifies the name of the <acronym>JAAS</acronym> system or application
+         login configuration.
+        </para>
+       </listitem>
+      </varlistentry>
+
 
      </variablelist>
     </para>

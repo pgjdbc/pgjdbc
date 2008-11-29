@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.75 2008/09/30 04:34:51 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.76 2008/10/08 18:24:05 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -116,6 +116,13 @@ public class Driver implements java.sql.Driver
 
     private Properties loadDefaultProperties() throws IOException {
         Properties merged = new Properties();
+
+        try {
+            merged.setProperty("user", System.getProperty("user.name"));
+        } catch (java.lang.SecurityException se) {
+            // We're just trying to set a default, so if we can't
+            // it's not a big deal.
+        }
 
         // If we are loaded by the bootstrap classloader, getClassLoader()
         // may return null. In that case, try to fall back to the system
@@ -447,6 +454,10 @@ public class Driver implements java.sql.Driver
                 { "stringtype", Boolean.FALSE,
                   "The type to bind String parameters as (usually 'varchar'; 'unspecified' allows implicit casting to other types)",
                   new String[] { "varchar", "unspecified" } },
+                { "kerberosServerName", Boolean.FALSE,
+                  "The Kerberos service name to use when authenticating with GSSAPI.  This is equivalent to libpq's PGKRBSRVNAME environment variable." },
+                { "jaasApplicationName", Boolean.FALSE,
+                  "Specifies the name of the JAAS system or application login configuration." }
             };
 
     /**
