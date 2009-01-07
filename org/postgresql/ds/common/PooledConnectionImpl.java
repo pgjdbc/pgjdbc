@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/PooledConnectionImpl.java,v 1.9 2005/01/14 01:20:17 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/PooledConnectionImpl.java,v 1.10 2005/01/17 10:59:04 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -262,22 +262,11 @@ public class PooledConnectionImpl implements PooledConnection
                 }
                 if (method.getName().equals("hashCode"))
                 {
-                    return new Integer(con.hashCode());
+                    return System.identityHashCode(proxy);
                 }
                 if (method.getName().equals("equals"))
                 {
-                    if (args[0] == null)
-                    {
-                        return Boolean.FALSE;
-                    }
-                    try
-                    {
-                        return Proxy.isProxyClass(args[0].getClass()) && ((ConnectionHandler) Proxy.getInvocationHandler(args[0])).con == con ? Boolean.TRUE : Boolean.FALSE;
-                    }
-                    catch (ClassCastException e)
-                    {
-                        return Boolean.FALSE;
-                    }
+                    return proxy == args[0];
                 }
                 try
                 {
@@ -414,22 +403,11 @@ public class PooledConnectionImpl implements PooledConnection
                 }
                 if (method.getName().equals("hashCode"))
                 {
-                    return new Integer(st.hashCode());
+                    return System.identityHashCode(proxy);
                 }
                 if (method.getName().equals("equals"))
                 {
-                    if (args[0] == null)
-                    {
-                        return Boolean.FALSE;
-                    }
-                    try
-                    {
-                        return Proxy.isProxyClass(args[0].getClass()) && ((StatementHandler) Proxy.getInvocationHandler(args[0])).st == st ? Boolean.TRUE : Boolean.FALSE;
-                    }
-                    catch (ClassCastException e)
-                    {
-                        return Boolean.FALSE;
-                    }
+                    return proxy == args[0];
                 }
                 return method.invoke(st, args);
             }
