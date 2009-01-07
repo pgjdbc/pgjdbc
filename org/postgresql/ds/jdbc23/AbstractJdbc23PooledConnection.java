@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL$
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/jdbc23/AbstractJdbc23PooledConnection.java,v 1.1.2.1 2007/11/14 22:03:47 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -118,7 +118,7 @@ public abstract class AbstractJdbc23PooledConnection
         }
         // If any error occures while opening a new connection, the listeners
         // have to be notified. This gives a chance to connection pools to
-        // elliminate bad pooled connections.
+        // eliminate bad pooled connections.
         try
         {
             // Only one connection can be open at a time from this PooledConnection.  See JDBC 2.0 Optional Package spec section 6.2.3
@@ -270,24 +270,13 @@ public abstract class AbstractJdbc23PooledConnection
                 {
                     return "Pooled connection wrapping physical connection " + con;
                 }
-                if (method.getName().equals("hashCode"))
-                {
-                    return new Integer(con.hashCode());
-                }
                 if (method.getName().equals("equals"))
                 {
-                    if (args[0] == null)
-                    {
-                        return Boolean.FALSE;
-                    }
-                    try
-                    {
-                        return Proxy.isProxyClass(args[0].getClass()) && ((ConnectionHandler) Proxy.getInvocationHandler(args[0])).con == con ? Boolean.TRUE : Boolean.FALSE;
-                    }
-                    catch (ClassCastException e)
-                    {
-                        return Boolean.FALSE;
-                    }
+                    return proxy == args[0];
+                }
+                if (method.getName().equals("hashCode"))
+                {
+                    return System.identityHashCode(proxy);
                 }
                 try
                 {
@@ -424,22 +413,11 @@ public abstract class AbstractJdbc23PooledConnection
                 }
                 if (method.getName().equals("hashCode"))
                 {
-                    return new Integer(st.hashCode());
+                    return System.identityHashCode(proxy);
                 }
                 if (method.getName().equals("equals"))
                 {
-                    if (args[0] == null)
-                    {
-                        return Boolean.FALSE;
-                    }
-                    try
-                    {
-                        return Proxy.isProxyClass(args[0].getClass()) && ((StatementHandler) Proxy.getInvocationHandler(args[0])).st == st ? Boolean.TRUE : Boolean.FALSE;
-                    }
-                    catch (ClassCastException e)
-                    {
-                        return Boolean.FALSE;
-                    }
+                    return proxy == args[0];
                 }
                 return method.invoke(st, args);
             }
