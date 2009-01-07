@@ -3,14 +3,13 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/optional/PoolingDataSourceTest.java,v 1.8 2007/10/07 23:32:46 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/optional/PoolingDataSourceTest.java,v 1.9 2008/01/08 06:56:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.test.jdbc2.optional;
 
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import org.postgresql.test.TestUtil;
 import org.postgresql.jdbc2.optional.PoolingDataSource;
 import org.postgresql.ds.common.BaseDataSource;
@@ -127,4 +126,41 @@ public class PoolingDataSourceTest extends BaseDataSourceTest
         stmt.close();
         con.close();
     }
+
+    public void testConnectionObjectMethods() throws SQLException
+    {
+        con = getDataSourceConnection();
+
+        Connection conRef = con;
+        assertEquals(con, conRef);
+
+        int hc1 = con.hashCode();
+        con.close();
+        int hc2 = con.hashCode();
+
+        assertEquals(con, conRef);
+        assertEquals(hc1, hc2);
+    }
+
+    public void testStatementObjectMethods() throws SQLException
+    {
+        con = getDataSourceConnection();
+
+        Statement stmt = con.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT 1");
+        Statement stmtRef = stmt;
+
+        assertEquals(stmt, stmtRef);
+        // Currently we aren't proxying ResultSet, so this doesn't
+        // work, see Bug #1010542.
+        // assertEquals(stmt, rs.getStatement());
+
+        int hc1 = stmt.hashCode();
+        stmt.close();
+        int hc2 = stmt.hashCode();
+
+        assertEquals(stmt, stmtRef);
+        assertEquals(hc1, hc2);
+    }
+
 }
