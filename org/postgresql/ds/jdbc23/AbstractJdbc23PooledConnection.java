@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/jdbc23/AbstractJdbc23PooledConnection.java,v 1.1.2.1 2007/11/14 22:03:47 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/jdbc23/AbstractJdbc23PooledConnection.java,v 1.1.2.2 2009/01/07 05:29:12 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -272,11 +272,11 @@ public abstract class AbstractJdbc23PooledConnection
                 }
                 if (method.getName().equals("equals"))
                 {
-                    return proxy == args[0];
+                    return new Boolean(proxy == args[0]);
                 }
                 if (method.getName().equals("hashCode"))
                 {
-                    return System.identityHashCode(proxy);
+                    return new Integer(System.identityHashCode(proxy));
                 }
                 try
                 {
@@ -413,11 +413,11 @@ public abstract class AbstractJdbc23PooledConnection
                 }
                 if (method.getName().equals("hashCode"))
                 {
-                    return System.identityHashCode(proxy);
+                    return new Integer(System.identityHashCode(proxy));
                 }
                 if (method.getName().equals("equals"))
                 {
-                    return proxy == args[0];
+                    return new Boolean(proxy == args[0]);
                 }
                 return method.invoke(st, args);
             }
