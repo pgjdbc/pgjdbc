@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/PooledConnectionImpl.java,v 1.10 2005/01/17 10:59:04 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/PooledConnectionImpl.java,v 1.10.2.1 2009/01/07 05:29:24 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -262,11 +262,11 @@ public class PooledConnectionImpl implements PooledConnection
                 }
                 if (method.getName().equals("hashCode"))
                 {
-                    return System.identityHashCode(proxy);
+                    return new Integer(System.identityHashCode(proxy));
                 }
                 if (method.getName().equals("equals"))
                 {
-                    return proxy == args[0];
+                    return new Boolean(proxy == args[0]);
                 }
                 try
                 {
@@ -403,11 +403,11 @@ public class PooledConnectionImpl implements PooledConnection
                 }
                 if (method.getName().equals("hashCode"))
                 {
-                    return System.identityHashCode(proxy);
+                    return new Integer(System.identityHashCode(proxy));
                 }
                 if (method.getName().equals("equals"))
                 {
-                    return proxy == args[0];
+                    return new Boolean(proxy == args[0]);
                 }
                 return method.invoke(st, args);
             }
