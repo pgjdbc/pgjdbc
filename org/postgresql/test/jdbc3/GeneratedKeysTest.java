@@ -3,7 +3,7 @@
 * Copyright (c) 2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL$
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/GeneratedKeysTest.java,v 1.1 2008/11/15 17:48:53 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -159,6 +159,49 @@ public class GeneratedKeysTest extends TestCase {
         assertTrue(!rs.next());
     }
 
+    public void testPSUpdate() throws SQLException
+    {
+        Statement stmt = _conn.createStatement();
+        stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2)");
+        stmt.executeUpdate("INSERT INTO genkeys VALUES (2, 'b', 4)");
+        stmt.close();
+
+        PreparedStatement ps = _conn.prepareStatement("UPDATE genkeys SET c=? WHERE a = ?", new String[]{"c", "b"});
+        ps.setInt(1,3);
+        ps.setInt(2,1);
+        assertEquals(1, ps.executeUpdate());
+        ResultSet rs = ps.getGeneratedKeys();
+        assertTrue(rs.next());
+        assertEquals(3, rs.getInt(1));
+        assertEquals("a", rs.getString(2));
+        assertTrue(!rs.next());
+    }
+
+    public void testPSDelete() throws SQLException
+    {
+        Statement stmt = _conn.createStatement();
+        stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 2)");
+        stmt.executeUpdate("INSERT INTO genkeys VALUES (2, 'b', 4)");
+        stmt.close();
+
+        PreparedStatement ps = _conn.prepareStatement("DELETE FROM genkeys WHERE a = ?", new String[]{"c", "b"});
+
+        ps.setInt(1,1);
+        assertEquals(1, ps.executeUpdate());
+        ResultSet rs = ps.getGeneratedKeys();
+        assertTrue(rs.next());
+        assertEquals(2, rs.getInt(1));
+        assertEquals("a", rs.getString(2));
+        assertTrue(!rs.next());
+
+        ps.setInt(1,2);
+        assertEquals(1, ps.executeUpdate());
+        rs = ps.getGeneratedKeys();
+        assertTrue(rs.next());
+        assertEquals(4, rs.getInt(1));
+        assertEquals("b", rs.getString(2));
+        assertTrue(!rs.next());
+    }
 
 }
 

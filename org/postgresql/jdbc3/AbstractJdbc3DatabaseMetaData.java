@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3DatabaseMetaData.java,v 1.12 2008/01/08 06:47:57 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3DatabaseMetaData.java,v 1.13 2008/01/08 06:56:29 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -75,7 +75,10 @@ public abstract class AbstractJdbc3DatabaseMetaData extends org.postgresql.jdbc2
      */
     public boolean supportsGetGeneratedKeys() throws SQLException
     {
-        return false;
+        // We don't support returning generated keys by column index,
+        // but that should be a rarer case than the ones we do support.
+        //
+        return connection.haveMinimumServerVersion("8.2");
     }
 
     /**
