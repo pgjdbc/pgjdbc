@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!--
   Copyright (c) 2004-2008, PostgreSQL Global Development Group
-  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.32 2007/07/27 09:10:54 jurka Exp $
+  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.33 2008/01/08 06:56:26 jurka Exp $
 -->
 
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN" "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">
@@ -1208,7 +1208,7 @@ conn.setAutoCommit(false);
 
 // Procedure call.
 CallableStatement proc = conn.prepareCall("{ ? = call refcursorfunc() }");
-proc.registerOutParameter(1, Types.Other);
+proc.registerOutParameter(1, Types.OTHER);
 proc.execute();
 ResultSet results = (ResultSet) proc.getObject(1);
 while (results.next()) {
@@ -1233,7 +1233,7 @@ proc.close();
 <programlisting>
 conn.setAutoCommit(false);
 CallableStatement proc = conn.prepareCall("{ ? = call refcursorfunc() }");
-proc.registerOutParameter(1, Types.Other);
+proc.registerOutParameter(1, Types.OTHER);
 proc.execute();
 String cursorName = proc.getString(1);
 proc.close();
