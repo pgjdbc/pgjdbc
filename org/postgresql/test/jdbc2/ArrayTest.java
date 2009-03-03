@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ArrayTest.java,v 1.17 2008/01/08 05:53:46 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ArrayTest.java,v 1.18 2008/01/08 06:56:30 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -12,6 +12,9 @@ package org.postgresql.test.jdbc2;
 import org.postgresql.test.TestUtil;
 import java.sql.*;
 import java.math.BigDecimal;
+
+import org.postgresql.geometric.PGbox;
+import org.postgresql.geometric.PGpoint;
 
 import junit.framework.TestCase;
 
@@ -380,6 +383,35 @@ public class ArrayTest extends TestCase
         assertEquals(2, i[0][1].intValue());
         assertEquals(3, i[1][0].intValue());
         assertEquals(4, i[1][1].intValue());
+    }
+
+    /*
+     * The box data type uses a semicolon as the array element
+     * delimiter instead of a comma which pretty much everything
+     * else uses.
+     */
+    public void testNonStandardDelimiter() throws SQLException
+    {
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT '{(3,4),(1,2);(7,8),(5,6)}'::box[]");
+        assertTrue(rs.next());
+        Array arr = rs.getArray(1);
+
+        ResultSet arrRS = arr.getResultSet();
+
+        assertTrue(arrRS.next());
+        PGbox box1 = (PGbox)arrRS.getObject(2);
+        PGpoint p1 = box1.point[0];
+        assertEquals(3, p1.x, 0.001);
+        assertEquals(4, p1.y, 0.001);
+
+        assertTrue(arrRS.next());
+        PGbox box2 = (PGbox)arrRS.getObject(2);
+        PGpoint p2 = box2.point[1];
+        assertEquals(5, p2.x, 0.001);
+        assertEquals(6, p2.y, 0.001);
+
+        assertTrue(!arrRS.next());
     }
 
 }

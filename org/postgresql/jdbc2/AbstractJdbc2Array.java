@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Array.java,v 1.23 2008/01/08 06:56:28 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Array.java,v 1.24 2008/04/15 04:23:54 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -94,9 +94,8 @@ public abstract class AbstractJdbc2Array
      * Create a new Array.
      *
      * @param connection a database connection
-     * @param index 1-based index of the query field to load into this Array
-     * @param field the Field descriptor for the field to load into this Array
-     * @param result the ResultSet from which to get the data for this Array
+     * @param oid the oid of the array datatype
+     * @param fieldString the array data in string form
      */
     public AbstractJdbc2Array(BaseConnection connection, int oid, String fieldString) throws SQLException {
         this.connection = connection;
@@ -156,12 +155,14 @@ public abstract class AbstractJdbc2Array
      * many times in order to make sure that array list is ready to use, however
      * {@link #arrayList} will be set only once during first call.
      */
-    private synchronized void buildArrayList()
+    private synchronized void buildArrayList() throws SQLException
     {
         if (arrayList != null)
             return;
 
         arrayList = new PgArrayList();
+
+        char delim = connection.getTypeInfo().getArrayDelimiter(oid);
 
         if (fieldString != null)
         {
@@ -247,11 +248,11 @@ public abstract class AbstractJdbc2Array
                 }
 
                 // array end or element end
-                else if ((!insideString && (chars[i] == ',' || chars[i] == '}')) || i == chars.length - 1)
+                else if ((!insideString && (chars[i] == delim || chars[i] == '}')) || i == chars.length - 1)
                 {
 
                     // when character that is a part of array element
-                    if (chars[i] != '"' && chars[i] != '}' && chars[i] != ',' && buffer != null)
+                    if (chars[i] != '"' && chars[i] != '}' && chars[i] != delim && buffer != null)
                     {
                         buffer.append(chars[i]);
                     }
@@ -651,12 +652,14 @@ ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects
     {
         StringBuffer b = new StringBuffer().append('{');
 
+        char delim = connection.getTypeInfo().getArrayDelimiter(oid);
+
         for (int i = 0; i < list.size(); i++)
         {
             Object v = list.get(i);
 
             if (i > 0)
-                b.append(',');
+                b.append(delim);
 
             if (v == null)
                 b.append("NULL");

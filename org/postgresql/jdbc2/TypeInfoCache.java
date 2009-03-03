@@ -3,7 +3,7 @@
  * Copyright (c) 2005-2008, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.16 2008/09/30 04:34:51 jurka Exp $
+ *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.17 2008/10/08 18:24:05 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -49,10 +49,14 @@ public class TypeInfoCache implements TypeInfo {
     // type array oid -> base type's oid
     private Map/*<Integer, Integer>*/ _pgArrayToPgType;
 
+    // array type oid -> base type array element delimiter
+    private Map/*<Integer, Character>*/ _arrayOidToDelimiter;
+
     private BaseConnection _conn;
     private PreparedStatement _getOidStatement;
     private PreparedStatement _getNameStatement;
     private PreparedStatement _getArrayElementOidStatement;
+    private PreparedStatement _getArrayDelimiterStatement;
     private PreparedStatement _isArrayStatement;
 
     // basic pg types info:
@@ -112,6 +116,7 @@ public class TypeInfoCache implements TypeInfo {
         _pgNameToJavaClass = new HashMap();
         _pgNameToPgObject = new HashMap();
         _pgArrayToPgType = new HashMap();
+        _arrayOidToDelimiter = new HashMap();
 
         // needs to be synchronized because the iterator is returned
         // from getPGTypeNamesWithSQLTypes()
@@ -136,6 +141,13 @@ public class TypeInfoCache implements TypeInfo {
         _oidToPgName.put(oid, pgTypeName);
         _pgArrayToPgType.put(arrayOid, oid);
         _pgNameToSQLType.put(pgTypeName, sqlType);
+
+        // Currently we hardcode all core types array delimiter
+        // to a comma.  In a stock install the only exception is
+        // the box datatype and it's not a JDBC core type.
+        //
+        Character delim = new Character(',');
+        _arrayOidToDelimiter.put(oid, delim);
 
         String pgArrayTypeName = "_" + pgTypeName;
         _pgNameToJavaClass.put(pgArrayTypeName, "java.sql.Array");
@@ -294,6 +306,45 @@ public class TypeInfoCache implements TypeInfo {
         if (i == null)
             return oid;
         return i.intValue();
+    }
+
+    public synchronized char getArrayDelimiter(int oid) throws SQLException
+    {
+        if (oid == Oid.UNSPECIFIED)
+            return ',';
+
+        Character delim = (Character) _arrayOidToDelimiter.get(new Integer(oid));
+        if (delim != null)
+            return delim.charValue();
+
+        if (_getArrayDelimiterStatement == null) {
+            String sql;
+            if (_conn.haveMinimumServerVersion("7.3")) {
+                sql = "SELECT e.typdelim FROM pg_catalog.pg_type t, pg_catalog.pg_type e WHERE t.oid = ? and t.typelem = e.oid";
+            } else {
+                sql = "SELECT e.typdelim FROM pg_type t, pg_type e WHERE t.oid = ? and t.typelem = e.oid";
+            }
+            _getArrayDelimiterStatement = _conn.prepareStatement(sql);
+        }
+
+        _getArrayDelimiterStatement.setInt(1, oid);
+
+        // Go through BaseStatement to avoid transaction start.
+        if (!((BaseStatement) _getArrayDelimiterStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN))
+            throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+
+        ResultSet rs = _getArrayDelimiterStatement.getResultSet();
+        if (!rs.next())
+            throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+
+        String s = rs.getString(1);
+        delim = new Character(s.charAt(0));
+
+        _arrayOidToDelimiter.put(new Integer(oid), delim);
+
+        rs.close();
+
+        return delim.charValue();
     }
 
     public synchronized int getPGArrayElement (int oid) throws SQLException
