@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/Field.java,v 1.10 2005/01/11 08:25:43 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/Field.java,v 1.11 2005/12/03 21:44:08 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -195,10 +195,11 @@ public class Field
         PreparedStatement ps = null;
         try
         {
-            final String sql = "SELECT def.adsrc FROM pg_catalog.pg_class c " +
-                               "JOIN pg_catalog.pg_attribute a ON (a.attrelid=c.oid) " +
-                               "LEFT JOIN pg_catalog.pg_attrdef def ON (a.attrelid=def.adrelid AND a.attnum = def.adnum) " +
-                               "WHERE c.oid = ? and a.attnum = ? AND def.adsrc LIKE '%nextval(%'";
+            final String sql = "SELECT 1 "
+                                + " FROM pg_catalog.pg_attrdef "
+                                + " WHERE adrelid = ? AND adnum = ? "
+                                + "  AND pg_catalog.pg_get_expr(adbin, adrelid) "
+                                + "      LIKE '%nextval(%'";
 
             ps = con.prepareStatement(sql);
 
