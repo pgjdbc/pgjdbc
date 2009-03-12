@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.47 2008/11/07 09:11:36 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.48 2008/11/24 00:48:22 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -3663,7 +3663,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         else
         {
             sql = "SELECT typname,oid FROM pg_type" +
-            		"WHERE NOT (typename ~ '^pg_toast_') ";
+            		" WHERE NOT (typname ~ '^pg_toast_') ";
         }
 
         ResultSet rs = connection.createStatement().executeQuery(sql);
