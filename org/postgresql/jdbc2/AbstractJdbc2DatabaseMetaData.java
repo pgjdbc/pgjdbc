@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.49 2009/03/12 03:28:08 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.50 2009/03/12 03:34:15 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2249,7 +2249,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         String sql;
         if (connection.haveMinimumServerVersion("7.3"))
         {
-            sql = "SELECT n.nspname,c.relname,a.attname,a.atttypid,a.attnotnull,a.atttypmod,a.attlen,a.attnum,def.adsrc,dsc.description,t.typbasetype,t.typtype " +
+            sql = "SELECT n.nspname,c.relname,a.attname,a.atttypid,a.attnotnull,a.atttypmod,a.attlen,a.attnum,pg_catalog.pg_get_expr(def.adbin, def.adrelid) AS adsrc,dsc.description,t.typbasetype,t.typtype " +
                   " FROM pg_catalog.pg_namespace n " +
                   " JOIN pg_catalog.pg_class c ON (c.relnamespace = n.oid) " +
                   " JOIN pg_catalog.pg_attribute a ON (a.attrelid=c.oid) " +
@@ -2266,7 +2266,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         }
         else if (connection.haveMinimumServerVersion("7.2"))
         {
-            sql = "SELECT NULL::text AS nspname,c.relname,a.attname,a.atttypid,a.attnotnull,a.atttypmod,a.attlen,a.attnum,def.adsrc,dsc.description,NULL::oid AS typbasetype,t.typtype " +
+            sql = "SELECT NULL::text AS nspname,c.relname,a.attname,a.atttypid,a.attnotnull,a.atttypmod,a.attlen,a.attnum,pg_get_expr(def.adbin,def.adrelid) AS adsrc,dsc.description,NULL::oid AS typbasetype,t.typtype " +
                   " FROM pg_class c " +
                   " JOIN pg_attribute a ON (a.attrelid=c.oid) " +
                   " JOIN pg_type t ON (a.atttypid = t.oid) " +
