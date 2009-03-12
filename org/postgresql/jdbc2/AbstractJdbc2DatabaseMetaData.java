@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.44 2008/01/08 06:56:28 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.44.2.1 2008/11/07 09:11:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2269,6 +2269,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
             sql = "SELECT NULL::text AS nspname,c.relname,a.attname,a.atttypid,a.attnotnull,a.atttypmod,a.attlen,a.attnum,def.adsrc,dsc.description,NULL::oid AS typbasetype,t.typtype " +
                   " FROM pg_class c " +
                   " JOIN pg_attribute a ON (a.attrelid=c.oid) " +
+                  " JOIN pg_type t ON (a.atttypid = t.oid) " +
                   " LEFT JOIN pg_attrdef def ON (a.attrelid=def.adrelid AND a.attnum = def.adnum) " +
                   " LEFT JOIN pg_description dsc ON (c.oid=dsc.objoid AND a.attnum = dsc.objsubid) " +
                   " LEFT JOIN pg_class dc ON (dc.oid=dsc.classoid AND dc.relname='pg_class') " +
