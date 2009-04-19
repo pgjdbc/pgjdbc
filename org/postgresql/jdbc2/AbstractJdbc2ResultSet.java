@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.101 2008/01/14 10:23:48 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.101.2.1 2008/02/19 06:12:33 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2068,7 +2068,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         if (bytes[0] == '-') {
             neg = true;
             start = 1;
-            if (bytes.length > 19) {
+            if (bytes.length == 1 || bytes.length > 19) {
                 throw FAST_NUMBER_FAILED;
             }
         } else {
@@ -2123,7 +2123,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         if (bytes[0] == '-') {
             neg = true;
             start = 1;
-            if (bytes.length > 10) {
+            if (bytes.length == 1 || bytes.length > 10) {
                 throw FAST_NUMBER_FAILED;
             }
         } else {
