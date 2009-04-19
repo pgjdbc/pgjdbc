@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.105 2008/09/30 04:34:51 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.106 2009/04/19 05:18:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2054,7 +2054,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         if (bytes[0] == '-') {
             neg = true;
             start = 1;
-            if (bytes.length > 19) {
+            if (bytes.length == 1 || bytes.length > 19) {
                 throw FAST_NUMBER_FAILED;
             }
         } else {
@@ -2109,7 +2109,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         if (bytes[0] == '-') {
             neg = true;
             start = 1;
-            if (bytes.length > 10) {
+            if (bytes.length == 1 || bytes.length > 10) {
                 throw FAST_NUMBER_FAILED;
             }
         } else {
@@ -2165,7 +2165,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         if (bytes[0] == '-') {
             neg = true;
             start = 1;
-            if (bytes.length > 19) {
+            if (bytes.length == 1 || bytes.length > 19) {
                 throw FAST_NUMBER_FAILED;
             }
         } else {
@@ -2191,7 +2191,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             val += b - '0';
         }
 
-        if (periodsSeen > 1 || periodsSeen == bytes.length)
+        int numNonSignChars = neg ? bytes.length - 1 : bytes.length;
+        if (periodsSeen > 1 || periodsSeen == numNonSignChars)
             throw FAST_NUMBER_FAILED;
         
         if (neg) {
