@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.104 2008/04/15 04:23:57 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.105 2008/09/30 04:34:51 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1682,7 +1682,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                 case Types.NUMERIC:
                 case Types.REAL:
                 case Types.TINYINT:
-		case Types.ARRAY:
+                case Types.ARRAY:
                 case Types.OTHER:
                     rowBuffer[columnIndex] = connection.encodeString(String.valueOf( valueObject));
                     break;
@@ -2137,6 +2137,70 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         return val;
     }
 
+    /**
+     * Optimised byte[] to number parser.  This code does not
+     * handle null values, so the caller must do checkResultSet
+     * and handle null values prior to calling this function.
+     * 
+     * @param columnIndex The column to parse.
+     * @return The parsed number.
+     * @throws SQLException If an error occurs while fetching column.
+     * @throws NumberFormatException If the number is invalid or the
+     * out of range for fast parsing. The value must then be parsed by
+     * {@link #toBigDecimal(String)}.
+     */
+    private BigDecimal getFastBigDecimal(int columnIndex) throws SQLException,
+        NumberFormatException {
+        
+        byte[] bytes = this_row[columnIndex - 1];
+        
+        if (bytes.length == 0) {
+            throw FAST_NUMBER_FAILED;
+        }
+        
+        int scale = 0;
+        long val = 0;
+        int start;
+        boolean neg;
+        if (bytes[0] == '-') {
+            neg = true;
+            start = 1;
+            if (bytes.length > 19) {
+                throw FAST_NUMBER_FAILED;
+            }
+        } else {
+            start = 0;
+            neg = false;
+            if (bytes.length > 18) {
+                throw FAST_NUMBER_FAILED;
+            }
+        }
+
+        int periodsSeen = 0;
+        while (start < bytes.length) {
+            byte b = bytes[start++];
+            if (b < '0' || b > '9') {
+                if (b == '.') {
+                    scale = bytes.length - start;
+                    periodsSeen++;
+                    continue;
+                } else
+                    throw FAST_NUMBER_FAILED;
+            }
+            val *= 10;
+            val += b - '0';
+        }
+
+        if (periodsSeen > 1 || periodsSeen == bytes.length)
+            throw FAST_NUMBER_FAILED;
+        
+        if (neg) {
+            val = -val;
+        }        
+        
+        return BigDecimal.valueOf(val, scale);
+    }
+
     public float getFloat(int columnIndex) throws SQLException
     {
         checkResultSet(columnIndex);
@@ -2160,6 +2224,14 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         checkResultSet(columnIndex);
         if (wasNullFlag)
             return null;
+        
+        Encoding encoding = connection.getEncoding();
+        if (encoding.hasAsciiNumbers()) {
+            try {
+                return getFastBigDecimal(columnIndex);
+            } catch (NumberFormatException ex) {
+            }
+        }
         
         return toBigDecimal( getFixedString(columnIndex), scale );
     }
