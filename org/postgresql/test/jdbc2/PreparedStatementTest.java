@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/PreparedStatementTest.java,v 1.21 2008/01/08 05:35:32 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/PreparedStatementTest.java,v 1.22 2008/01/08 06:56:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -798,6 +798,25 @@ public class PreparedStatementTest extends TestCase
 
         pstmt.setObject(1, "1 week", Types.OTHER);
         pstmt.executeUpdate();
+        pstmt.close();
+    }
+
+    /**
+     * When we have parameters of unknown type and it's not using
+     * the unnamed statement, we issue a protocol level statment
+     * describe message for the V3 protocol.  This test just makes
+     * sure that works.
+     */
+    public void testStatementDescribe() throws SQLException
+    {
+        PreparedStatement pstmt = conn.prepareStatement("SELECT ?::int");
+        pstmt.setObject(1, new Integer(2), Types.OTHER);
+        for (int i=0; i<10; i++) {
+            ResultSet rs = pstmt.executeQuery();
+            assertTrue(rs.next());
+            assertEquals(2, rs.getInt(1));
+            rs.close();
+        }
         pstmt.close();
     }
 

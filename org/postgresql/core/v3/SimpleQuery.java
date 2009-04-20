@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleQuery.java,v 1.12 2008/01/08 06:56:27 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleQuery.java,v 1.13 2008/09/30 23:41:23 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -84,6 +84,10 @@ class SimpleQuery implements V3Query {
         this.preparedTypes = paramTypes;
     }
 
+    int[] getStatementTypes() {
+        return preparedTypes;
+    }
+
     String getStatementName() {
         return statementName;
     }
@@ -94,14 +98,50 @@ class SimpleQuery implements V3Query {
 
         // Check for compatible types.
         for (int i = 0; i < paramTypes.length; ++i)
-            if (paramTypes[i] != 0 && paramTypes[i] != preparedTypes[i])
+            if (paramTypes[i] != Oid.UNSPECIFIED && paramTypes[i] != preparedTypes[i])
                 return false;
 
         return true;
     }
 
+    boolean hasUnresolvedTypes() {
+        if (preparedTypes == null)
+            return true;
+
+        for (int i=0; i<preparedTypes.length; i++) {
+            if (preparedTypes[i] == Oid.UNSPECIFIED)
+                return true;
+        }
+
+        return false;
+    }
+
     byte[] getEncodedStatementName() {
         return encodedStatementName;
+    }
+
+    void setFields(Field[] fields) {
+        this.fields = fields;
+    }
+    Field[] getFields() {
+        return fields;
+    }
+
+    // Have we sent a Describe Portal message for this query yet?
+    boolean isPortalDescribed() {
+        return portalDescribed;
+    }
+    void setPortalDescribed(boolean portalDescribed) {
+        this.portalDescribed = portalDescribed;
+    }
+
+    // Have we sent a Describe Statement message for this query yet?
+    // Note that we might not have need to, so this may always be false.
+    boolean isStatementDescribed() {
+        return statementDescribed;
+    }
+    void setStatementDescribed(boolean statementDescribed) {
+        this.statementDescribed = statementDescribed;
     }
 
     void setCleanupRef(PhantomReference cleanupRef) {
@@ -122,12 +162,18 @@ class SimpleQuery implements V3Query {
 
         statementName = null;
         encodedStatementName = null;
+        fields = null;
+        portalDescribed = false;
+        statementDescribed = false;
     }
 
     private final String[] fragments;
     private final ProtocolConnectionImpl protoConnection;
     private String statementName;
     private byte[] encodedStatementName;
+    private Field[] fields;
+    private boolean portalDescribed;
+    private boolean statementDescribed;
     private PhantomReference cleanupRef;
     private int[] preparedTypes;
 

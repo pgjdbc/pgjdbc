@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.42 2008/10/18 13:40:33 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.43 2008/11/15 17:48:52 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -40,7 +40,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             this.allowEncodingChanges = Boolean.valueOf(info.getProperty("allowEncodingChanges")).booleanValue();
         } else {
             this.allowEncodingChanges = false;
-	}
+        }
     }
 
     //
@@ -894,7 +894,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         }
     }
 
-    private void sendDescribePortal(Portal portal) throws IOException {
+    private void sendDescribePortal(SimpleQuery query, Portal portal) throws IOException {
         //
         // Send Describe.
         //
@@ -915,6 +915,9 @@ public class QueryExecutorImpl implements QueryExecutor {
         if (encodedPortalName != null)
             pgStream.Send(encodedPortalName); // portal name to close
         pgStream.SendChar(0);                 // end of portal name
+
+        pendingDescribePortalQueue.add(query);
+        query.setPortalDescribed(true);
     }
 
     private void sendDescribeStatement(SimpleQuery query, SimpleParameterList params, boolean describeOnly) throws IOException {
@@ -938,9 +941,12 @@ public class QueryExecutorImpl implements QueryExecutor {
         pgStream.SendChar(0);                       // end message
 
         pendingDescribeStatementQueue.add(new Object[]{query, params, new Boolean(describeOnly), query.getStatementName()});
+        pendingDescribePortalQueue.add(query);
+        query.setStatementDescribed(true);
+        query.setPortalDescribed(true);
     }
 
-    private void sendExecute(Query query, Portal portal, int limit) throws IOException {
+    private void sendExecute(SimpleQuery query, Portal portal, int limit) throws IOException {
         //
         // Send Execute.
         //
@@ -1028,7 +1034,6 @@ public class QueryExecutorImpl implements QueryExecutor {
         boolean describeOnly = (flags & QueryExecutor.QUERY_DESCRIBE_ONLY) != 0;
         boolean usePortal = (flags & QueryExecutor.QUERY_FORWARD_CURSOR) != 0 && !noResults && !noMeta && fetchSize > 0 && !describeOnly;
         boolean oneShot = (flags & QueryExecutor.QUERY_ONESHOT) != 0 && !usePortal;
-        boolean describeStatement = describeOnly || (params.hasUnresolvedTypes() && !oneShot);
 
         // Work out how many rows to fetch in this pass.
 
@@ -1052,6 +1057,23 @@ public class QueryExecutorImpl implements QueryExecutor {
 
         sendParse(query, params, oneShot);
 
+        // Must do this after sendParse to pick up any changes to the
+        // query's state.
+        //
+        boolean queryHasUnknown = query.hasUnresolvedTypes();
+        boolean paramsHasUnknown = params.hasUnresolvedTypes();
+
+        boolean describeStatement = describeOnly || (!oneShot && paramsHasUnknown && queryHasUnknown && !query.isStatementDescribed());
+
+        if (!describeStatement && paramsHasUnknown && !queryHasUnknown)
+        {
+            int numParams = params.getParameterCount();
+            int queryOIDs[] = query.getStatementTypes();
+            for (int i=1; i<=numParams; i++) {
+                params.setResolvedType(i, queryOIDs[i-1]);
+            }
+        }
+
         if (describeStatement) {
             sendDescribeStatement(query, params, describeOnly);
             if (describeOnly)
@@ -1071,8 +1093,8 @@ public class QueryExecutorImpl implements QueryExecutor {
         // A statement describe will also output a RowDescription,
         // so don't reissue it here if we've already done so.
         //
-        if (!noMeta && !describeStatement)
-            sendDescribePortal(portal);
+        if (!noMeta && !describeStatement && !query.isPortalDescribed())
+            sendDescribePortal(query, portal);
 
         sendExecute(query, portal, rows);
     }
@@ -1159,7 +1181,6 @@ public class QueryExecutorImpl implements QueryExecutor {
         boolean noResults = (flags & QueryExecutor.QUERY_NO_RESULTS) != 0;
         boolean bothRowsAndStatus = (flags & QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS) != 0;
 
-        Field[] fields = null;
         Vector tuples = null;
 
         int len;
@@ -1175,6 +1196,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
         int parseIndex = 0;
         int describeIndex = 0;
+        int describePortalIndex = 0;
         int bindIndex = 0;
         int executeIndex = 0;
 
@@ -1258,14 +1280,18 @@ public class QueryExecutorImpl implements QueryExecutor {
                 if (logger.logDebug())
                     logger.debug(" <=BE NoData");
 
+                describePortalIndex++;
+
                 if (doneAfterRowDescNoData) {
                     Object describeData[] = (Object[])pendingDescribeStatementQueue.get(describeIndex++);
-                    Query currentQuery = (Query)describeData[0];
+                    SimpleQuery currentQuery = (SimpleQuery)describeData[0];
 
-                    if (fields != null || tuples != null)
+                    Field[] fields = currentQuery.getFields();
+
+                    if (fields != null)
                     { // There was a resultset.
+                        tuples = new Vector();
                         handler.handleResultRows(currentQuery, fields, tuples, null);
-                        fields = null;
                         tuples = null;
                     }
                 }
@@ -1281,12 +1307,16 @@ public class QueryExecutorImpl implements QueryExecutor {
 
                 {
                     Object[] executeData = (Object[])pendingExecuteQueue.get(executeIndex++);
-                    Query currentQuery = (Query)executeData[0];
+                    SimpleQuery currentQuery = (SimpleQuery)executeData[0];
                     Portal currentPortal = (Portal)executeData[1];
+
+                    Field[] fields = currentQuery.getFields();
+                    if (fields != null && !noResults && tuples == null)
+                        tuples = new Vector();
+
                     handler.handleResultRows(currentQuery, fields, tuples, currentPortal);
                 }
 
-                fields = null;
                 tuples = null;
                 break;
 
@@ -1298,13 +1328,16 @@ public class QueryExecutorImpl implements QueryExecutor {
 
                 {
                     Object[] executeData = (Object[])pendingExecuteQueue.get(executeIndex++);
-                    Query currentQuery = (Query)executeData[0];
+                    SimpleQuery currentQuery = (SimpleQuery)executeData[0];
                     Portal currentPortal = (Portal)executeData[1];
+
+                    Field[] fields = currentQuery.getFields();
+                    if (fields != null && !noResults && tuples == null)
+                        tuples = new Vector();
 
                     if (fields != null || tuples != null)
                     { // There was a resultset.
                         handler.handleResultRows(currentQuery, fields, tuples, null);
-                        fields = null;
                         tuples = null;
 
                         if (bothRowsAndStatus)
@@ -1411,18 +1444,18 @@ public class QueryExecutorImpl implements QueryExecutor {
                 break;
 
             case 'T':  // Row Description (response to Describe)
-                fields = receiveFields();
+                Field[] fields = receiveFields();
                 tuples = new Vector();
+
+                SimpleQuery query = (SimpleQuery)pendingDescribePortalQueue.get(describePortalIndex++);
+                query.setFields(fields);
+
                 if (doneAfterRowDescNoData) {
                     Object describeData[] = (Object[])pendingDescribeStatementQueue.get(describeIndex++);
                     Query currentQuery = (Query)describeData[0];
 
-                    if (fields != null || tuples != null)
-                    { // There was a resultset.
-                        handler.handleResultRows(currentQuery, fields, tuples, null);
-                        fields = null;
-                        tuples = null;
-                    }
+                    handler.handleResultRows(currentQuery, fields, tuples, null);
+                    tuples = null;
                 }
                 break;
 
@@ -1440,6 +1473,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
                 pendingParseQueue.clear();              // No more ParseComplete messages expected.
                 pendingDescribeStatementQueue.clear();  // No more ParameterDescription messages expected.
+                pendingDescribePortalQueue.clear();     // No more RowDescription messages expected.
                 pendingBindQueue.clear();               // No more BindComplete messages expected.
                 pendingExecuteQueue.clear();            // No more query executions expected.
                 break;
@@ -1688,6 +1722,7 @@ public class QueryExecutorImpl implements QueryExecutor {
     private final ArrayList pendingBindQueue = new ArrayList(); // list of Portal instances
     private final ArrayList pendingExecuteQueue = new ArrayList(); // list of {SimpleQuery,Portal} object arrays
     private final ArrayList pendingDescribeStatementQueue = new ArrayList(); // list of {SimpleQuery, SimpleParameterList, Boolean} object arrays
+    private final ArrayList pendingDescribePortalQueue = new ArrayList(); // list of SimpleQuery
 
     private long nextUniqueID = 1;
     private final ProtocolConnectionImpl protoConnection;
