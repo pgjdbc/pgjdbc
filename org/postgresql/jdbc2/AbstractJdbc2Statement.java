@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.107 2008/01/15 03:29:15 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.107.2.1 2008/04/02 17:06:04 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2531,6 +2531,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                 batchException = new BatchUpdateException(GT.tr("Batch entry {0} {1} was aborted.  Call getNextException to see the cause.",
                                  new Object[]{ new Integer(resultIndex),
                                                queryString}),
+                                 newError.getSQLState(),
                                  successCounts);
             }
 
@@ -2596,6 +2597,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                 batchException = new BatchUpdateException(GT.tr("Batch entry {0} {1} was aborted.  Call getNextException to see the cause.",
                                  new Object[]{ new Integer(resultIndex),
                                                queryString}),
+                                 newError.getSQLState(),
                                  successCounts);
             }
 
