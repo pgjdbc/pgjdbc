@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/TimeTest.java,v 1.17 2005/08/01 06:54:15 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/TimeTest.java,v 1.18 2008/01/08 06:56:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -59,9 +59,9 @@ public class TimeTest extends TestCase
 
         cal.setTimeZone(TimeZone.getTimeZone("GMT"));
 
-        long localOffset = Calendar.getInstance().get(Calendar.ZONE_OFFSET);
+        int localOffset=Calendar.getInstance().getTimeZone().getOffset(midnight.getTime());
 
-        /* set the time to midnight to make this easy */
+        // set the time to midnight to make this easy
         assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testtime", "'00:00:00','00:00:00'")));
         assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testtime", "'00:00:00.1','00:00:00.01'")));
         assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testtime", "CAST(CAST(now() AS timestamp without time zone) AS time),now()")));
@@ -265,11 +265,7 @@ public class TimeTest extends TestCase
             t = rs.getTime(1);
             assertNotNull(t);
             java.sql.Time tmpTime = java.sql.Time.valueOf("5:1:2");
-            int localoffset = java.util.Calendar.getInstance().getTimeZone().getRawOffset();
-            if (java.util.Calendar.getInstance().getTimeZone().inDaylightTime(tmpTime))
-            {
-                localoffset += 60 * 60 * 1000;
-            }
+            int localoffset=java.util.Calendar.getInstance().getTimeZone().getOffset(tmpTime.getTime());
             int Timeoffset = 3 * 60 * 60 * 1000;
             tmpTime.setTime(tmpTime.getTime() + Timeoffset + localoffset);
             assertEquals(makeTime(tmpTime.getHours(), tmpTime.getMinutes(), tmpTime.getSeconds()), t);
@@ -278,11 +274,7 @@ public class TimeTest extends TestCase
             t = rs.getTime(1);
             assertNotNull(t);
             tmpTime = java.sql.Time.valueOf("23:59:59");
-            localoffset = java.util.Calendar.getInstance().getTimeZone().getRawOffset();
-            if (java.util.Calendar.getInstance().getTimeZone().inDaylightTime(tmpTime))
-            {
-                localoffset += 60 * 60 * 1000;
-            }
+            localoffset=java.util.Calendar.getInstance().getTimeZone().getOffset(tmpTime.getTime());
             Timeoffset = -11 * 60 * 60 * 1000;
             tmpTime.setTime(tmpTime.getTime() + Timeoffset + localoffset);
             assertEquals(makeTime(tmpTime.getHours(), tmpTime.getMinutes(), tmpTime.getSeconds()), t);
