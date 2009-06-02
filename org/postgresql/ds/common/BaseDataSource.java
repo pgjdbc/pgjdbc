@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.13 2008/04/15 03:12:42 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.14 2008/05/21 19:54:21 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -49,6 +49,7 @@ public abstract class BaseDataSource implements Referenceable
     private int portNumber;
     private int prepareThreshold;
     private int loginTimeout; // in seconds
+    private int socketTimeout; // in seconds
     private boolean ssl = false;
     private String sslfactory;
     private boolean tcpKeepAlive = false;
@@ -275,6 +276,23 @@ public abstract class BaseDataSource implements Referenceable
     }
 
     /**
+     * Sets the socket timeout (SOTimeout), in seconds 
+     */
+    public void setSocketTimeout(int seconds)
+    {
+        this.socketTimeout = seconds;
+    }
+    
+    /**
+     * @return the socket timeout (SOTimeout), in seconds
+     */
+    public int getSocketTimeout() 
+    {
+        return this.socketTimeout;
+    }
+
+
+    /**
      * Set whether the connection will be SSL encrypted or not.
      *
      * @param enabled if <CODE>true</CODE>, connect with SSL.
@@ -338,6 +356,7 @@ public abstract class BaseDataSource implements Referenceable
         }
         sb.append("/").append(databaseName);
         sb.append("?loginTimeout=").append(loginTimeout);
+        sb.append("&socketTimeout=").append(socketTimeout);
         sb.append("&prepareThreshold=").append(prepareThreshold);
         if (ssl) {
             sb.append("&ssl=true");
@@ -383,6 +402,7 @@ public abstract class BaseDataSource implements Referenceable
         
         ref.add(new StringRefAddr("prepareThreshold", Integer.toString(prepareThreshold)));
         ref.add(new StringRefAddr("loginTimeout", Integer.toString(loginTimeout)));
+        ref.add(new StringRefAddr("socketTimeout", Integer.toString(socketTimeout)));
 
         ref.add(new StringRefAddr("ssl", Boolean.toString(ssl)));
         ref.add(new StringRefAddr("sslfactory", sslfactory));
@@ -405,6 +425,7 @@ public abstract class BaseDataSource implements Referenceable
         out.writeInt(portNumber);
         out.writeInt(prepareThreshold);
         out.writeInt(loginTimeout);
+        out.writeInt(socketTimeout);
         out.writeBoolean(ssl);
         out.writeObject(sslfactory);
         out.writeBoolean(tcpKeepAlive);
@@ -420,6 +441,7 @@ public abstract class BaseDataSource implements Referenceable
         portNumber = in.readInt();
         prepareThreshold = in.readInt();
         loginTimeout = in.readInt();
+        socketTimeout = in.readInt();
         ssl = in.readBoolean();
         sslfactory = (String)in.readObject();
         tcpKeepAlive = in.readBoolean();

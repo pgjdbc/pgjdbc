@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!--
   Copyright (c) 2004-2008, PostgreSQL Global Development Group
-  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.36 2008/11/29 07:40:29 jurka Exp $
+  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.37 2009/02/03 04:37:45 jurka Exp $
 -->
 
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN" "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">
@@ -588,6 +588,19 @@ Connection conn = DriverManager.getConnection(url);
 	 Specify how long to wait for establishment of a database connection.
 	 The timeout is specified in seconds.
 	</para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
+       <term><varname>socketTimeout</varname> = <type>int</type></term>
+       <listitem>
+        <para>
+         The timeout value used for socket read operations.  If reading
+         from the server takes longer than this value, the connection is
+         closed.  This can be used as both a brute force global query
+         timeout and a method of detecting network problems.  The timeout
+         is specified in seconds and a value of zero means that it is disabled.
+        </para>
        </listitem>
       </varlistentry>
 

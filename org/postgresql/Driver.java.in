@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.76 2008/10/08 18:24:05 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.77 2008/11/29 07:40:30 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -449,6 +449,8 @@ public class Driver implements java.sql.Driver
                   new String[] { "7.1", "7.2", "7.3", "7.4", "8.0", "8.1", "8.2" } },
                 { "loginTimeout", Boolean.FALSE,
                   "The login timeout, in seconds; 0 means no timeout beyond the normal TCP connection timout." },
+                { "socketTimeout", Boolean.FALSE,
+                  "The timeout value for socket read operations, in seconds; 0 means no timeout." },
                 { "tcpKeepAlive", Boolean.FALSE,
                   "Enable or disable TCP keep-alive probe." },
                 { "stringtype", Boolean.FALSE,

@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ConnectionFactoryImpl.java,v 1.16 2008/09/19 22:50:38 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ConnectionFactoryImpl.java,v 1.17 2008/09/30 03:42:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -64,6 +64,19 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // Construct and send an ssl startup packet if requested.
             if (trySSL)
                 newStream = enableSSL(newStream, requireSSL, info, logger);
+            
+            
+            // Set the socket timeout if the "socketTimeout" property has been set.
+            String socketTimeoutProperty = info.getProperty("socketTimeout", "0");
+            try {
+                int socketTimeout = Integer.parseInt(socketTimeoutProperty);
+                if (socketTimeout > 0) {
+                    newStream.getSocket().setSoTimeout(socketTimeout*1000);
+                }
+            } catch (NumberFormatException nfe) {
+                logger.info("Couldn't parse socketTimeout value:" + socketTimeoutProperty);
+            }
+
 
             // Enable TCP keep-alive probe if required.
             newStream.getSocket().setKeepAlive(requireTCPKeepAlive);
