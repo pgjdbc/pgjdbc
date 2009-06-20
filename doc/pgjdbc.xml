@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!--
   Copyright (c) 2004-2008, PostgreSQL Global Development Group
-  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.37 2009/02/03 04:37:45 jurka Exp $
+  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.38 2009/06/02 00:22:57 jurka Exp $
 -->
 
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN" "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">
@@ -610,6 +610,23 @@ Connection conn = DriverManager.getConnection(url);
         <para>
 	 Enable or disable TCP keep-alive probe. The default is
         <literal>false</literal>.
+	</para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
+       <term><varname>unknownLength</varname> = <type>int</type></term>
+       <listitem>
+        <para>
+         Certain postgresql types such as <type>text</type> do not
+         have a well defined length.  When returning meta-data about
+         these types through functions like
+         <function>ResultSetMetaData.getColumnDisplaySize</function>
+         and <function>ResultSetMetaData.getPrecision</function>
+         we must provide a value and various client tools have
+         different ideas about what they would like to see.  This
+         parameter specifies the length to return for types of
+         unknown length.
 	</para>
        </listitem>
       </varlistentry>

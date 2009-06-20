@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.49 2008/04/01 07:19:21 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.50 2008/04/15 04:23:57 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -156,8 +156,18 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         commitQuery = getQueryExecutor().createSimpleQuery("COMMIT");
         rollbackQuery = getQueryExecutor().createSimpleQuery("ROLLBACK");
 
+        int unknownLength = Integer.MAX_VALUE;
+        String strLength = info.getProperty("unknownLength");
+        if (strLength != null) {
+            try {
+                unknownLength = Integer.parseInt(strLength);
+            } catch (NumberFormatException nfe) {
+                throw new PSQLException(GT.tr("unknownLength parameter value must be an integer"), PSQLState.INVALID_PARAMETER_VALUE, nfe);
+            }
+        }
+
         // Initialize object handling
-        _typeCache = createTypeInfo(this);
+        _typeCache = createTypeInfo(this, unknownLength);
         initObjectTypes(info);
 
         if (Boolean.valueOf(info.getProperty("logUnclosedConnections")).booleanValue()) {
@@ -444,9 +454,9 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         }
     }
 
-    protected TypeInfo createTypeInfo(BaseConnection conn)
+    protected TypeInfo createTypeInfo(BaseConnection conn, int unknownLength)
     {
-        return new TypeInfoCache(conn);
+        return new TypeInfoCache(conn, unknownLength);
     }
 
     public TypeInfo getTypeInfo()

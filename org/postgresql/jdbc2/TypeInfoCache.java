@@ -3,7 +3,7 @@
  * Copyright (c) 2005-2008, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.17 2008/10/08 18:24:05 jurka Exp $
+ *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.18 2009/03/03 05:33:04 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -53,6 +53,7 @@ public class TypeInfoCache implements TypeInfo {
     private Map/*<Integer, Character>*/ _arrayOidToDelimiter;
 
     private BaseConnection _conn;
+    private final int _unknownLength;
     private PreparedStatement _getOidStatement;
     private PreparedStatement _getNameStatement;
     private PreparedStatement _getArrayElementOidStatement;
@@ -108,9 +109,10 @@ public class TypeInfoCache implements TypeInfo {
         typeAliases.put("decimal", "numeric");
     }
 
-    public TypeInfoCache(BaseConnection conn)
+    public TypeInfoCache(BaseConnection conn, int unknownLength)
     {
         _conn = conn;
+        _unknownLength = unknownLength;
         _oidToPgName = new HashMap();
         _pgNameToOid = new HashMap();
         _pgNameToJavaClass = new HashMap();
@@ -450,7 +452,7 @@ public class TypeInfoCache implements TypeInfo {
             case Oid.BPCHAR:
             case Oid.VARCHAR:
                 if (typmod == -1)
-                    return 0;
+                    return _unknownLength;
                 return typmod - 4;
 
             // datetime types get the
@@ -468,13 +470,13 @@ public class TypeInfoCache implements TypeInfo {
 
             case Oid.VARBIT:
                 if (typmod == -1)
-                    return 0;
+                    return _unknownLength;
                 return typmod;
 
             case Oid.TEXT:
             case Oid.BYTEA:
             default:
-                return 0;
+                return _unknownLength;
         }
     }
 
@@ -610,7 +612,7 @@ public class TypeInfoCache implements TypeInfo {
             case Oid.VARCHAR:
             case Oid.BPCHAR:
                 if (typmod == -1)
-                    return Integer.MAX_VALUE;
+                    return _unknownLength;
                 return typmod - 4;
             case Oid.NUMERIC:
                 if (typmod == -1)
@@ -623,13 +625,13 @@ public class TypeInfoCache implements TypeInfo {
                 return typmod;
             case Oid.VARBIT:
                 if (typmod == -1)
-                    return Integer.MAX_VALUE;
+                    return _unknownLength;
                 return typmod;
             case Oid.TEXT:
             case Oid.BYTEA:
-                return Integer.MAX_VALUE;
+                return _unknownLength;
             default:
-                return Integer.MAX_VALUE;
+                return _unknownLength;
         }
     }
 
