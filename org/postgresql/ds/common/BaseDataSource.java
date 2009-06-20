@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.14 2008/05/21 19:54:21 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.15 2009/06/02 00:22:58 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -46,10 +46,10 @@ public abstract class BaseDataSource implements Referenceable
     private String databaseName;
     private String user;
     private String password;
-    private int portNumber;
-    private int prepareThreshold;
-    private int loginTimeout; // in seconds
-    private int socketTimeout; // in seconds
+    private int portNumber = 0;
+    private int prepareThreshold = 5;
+    private int loginTimeout = 0; // in seconds
+    private int socketTimeout = 0; // in seconds
     private boolean ssl = false;
     private String sslfactory;
     private boolean tcpKeepAlive = false;
