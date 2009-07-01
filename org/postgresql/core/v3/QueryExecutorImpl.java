@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.43 2008/11/15 17:48:52 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.44 2009/04/20 21:44:08 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -26,6 +26,7 @@ import org.postgresql.util.PSQLWarning;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.ServerErrorMessage;
 import org.postgresql.util.GT;
+import org.postgresql.copy.CopyOperation;
 
 /**
  * QueryExecutor implementation for the V3 protocol.
@@ -41,6 +42,67 @@ public class QueryExecutorImpl implements QueryExecutor {
         } else {
             this.allowEncodingChanges = false;
         }
+    }
+
+    /**
+     * Supplement to synchronization of public methods on current QueryExecutor.
+     * 
+     * Necessary for keeping the connection intact between calls to public methods
+     * sharing a state such as COPY subprotocol. waitOnLock() must be called at
+     * beginning of each connection access point.
+     *
+     * Public methods sharing that state must then be synchronized among themselves.
+     * Normal method synchronization typically suffices for that.
+     * 
+     * See notes on related methods as well as currentCopy() below.
+     */
+    private Object lockedFor = null;
+
+    /**
+     * Obtain lock over this connection for given object, blocking to wait if necessary.
+     * @param obtainer object that gets the lock. Normally current thread.
+     * @throws PSQLException when already holding the lock or getting interrupted.
+     */
+    private void lock(Object obtainer) throws PSQLException {
+        if( lockedFor == obtainer )
+            throw new PSQLException(GT.tr("Tried to obtain lock while already holding it"), PSQLState.OBJECT_NOT_IN_STATE);
+        waitOnLock();
+        lockedFor = obtainer;
+    }
+    
+    /**
+     * Release lock on this connection presumably held by given object.
+     * @param holder object that holds the lock. Normally current thread.
+     * @throws PSQLException when this thread does not hold the lock
+     */
+    private void unlock(Object holder) throws PSQLException {
+       if(lockedFor != holder)
+           throw new PSQLException(GT.tr("Tried to break lock on database connection"), PSQLState.OBJECT_NOT_IN_STATE);
+       lockedFor = null;
+       this.notify();
+    }
+
+    /**
+     * Wait until our lock is released.
+     * Execution of a single synchronized method can then continue without further ado.
+     * Must be called at beginning of each synchronized public method.
+     */
+    private void waitOnLock() throws PSQLException {
+        while( lockedFor != null ) {
+            try {
+                this.wait();
+            } catch(InterruptedException ie) {
+                throw new PSQLException(GT.tr("Interrupted while waiting to obtain lock on database connection"), PSQLState.OBJECT_NOT_IN_STATE, ie);
+            }
+        }
+    }
+    
+    /**
+     * @param holder object assumed to hold the lock
+     * @return whether given object actually holds the lock
+     */
+    boolean hasLock(Object holder) {
+        return lockedFor == holder;
     }
 
     //
@@ -165,6 +227,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                                      int flags)
     throws SQLException
     {
+        waitOnLock();
         if (logger.logDebug())
         {
             logger.debug("simple execute, handler=" + handler +
@@ -302,6 +365,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                                      int flags)
     throws SQLException
     {
+        waitOnLock();
         if (logger.logDebug())
         {
             logger.debug("batch execute " + queries.length + " queries, handler=" + handler +
@@ -407,6 +471,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
     public synchronized byte[]
     fastpathCall(int fnid, ParameterList parameters, boolean suppressBegin) throws SQLException {
+        waitOnLock();
         if (protoConnection.getTransactionState() == ProtocolConnection.TRANSACTION_IDLE && !suppressBegin)
         {
 
@@ -534,6 +599,7 @@ public class QueryExecutorImpl implements QueryExecutor {
     }
 
     public synchronized void processNotifies() throws SQLException {
+        waitOnLock();
         // Asynchronous notifies only arrive when we are not in a transaction
         if (protoConnection.getTransactionState() != ProtocolConnection.TRANSACTION_IDLE)
             return;
@@ -621,6 +687,355 @@ public class QueryExecutorImpl implements QueryExecutor {
             throw error;
 
         return returnValue;
+    }
+
+    //
+    // Copy subprotocol implementation
+    //
+
+    /**
+     * Sends given query to BE to start, initialize and lock connection for a CopyOperation.
+     * @param sql COPY FROM STDIN / COPY TO STDOUT statement
+     * @return CopyIn or CopyOut operation object
+     * @throws SQLException on failure
+     */
+    public synchronized CopyOperation startCopy(String sql) throws SQLException {
+        waitOnLock();
+        byte buf[] = Utils.encodeUTF8(sql);
+
+        try {
+            pgStream.SendChar('Q');
+            pgStream.SendInteger4(buf.length + 4 + 1);
+            pgStream.Send(buf);
+            pgStream.SendChar(0);
+            pgStream.flush();
+
+            return processCopyResults(null, true); // expect a CopyInResponse or CopyOutResponse to our query above
+        } catch(IOException ioe) {
+            throw new PSQLException(GT.tr("Database connection failed when starting copy"), PSQLState.CONNECTION_FAILURE, ioe);
+        }
+    }
+
+    /**
+     * Locks connection and calls initializer for a new CopyOperation
+     * Called via startCopy -> processCopyResults
+     * @param op an unitialized CopyOperation
+     * @throws SQLException on locking failure
+     * @throws IOException on database connection failure
+     */
+    private synchronized void initCopy(CopyOperationImpl op) throws SQLException, IOException {
+        pgStream.ReceiveInteger4(); // length not used
+        int rowFormat = pgStream.ReceiveChar();
+        int numFields = pgStream.ReceiveInteger2();
+        int[] fieldFormats = new int[numFields];
+
+        for(int i=0; i<numFields; i++)
+            fieldFormats[i] = pgStream.ReceiveInteger2();
+
+        lock(op);
+        op.init(this, rowFormat, fieldFormats);
+    }
+
+    /**
+     * Finishes a copy operation and unlocks connection discarding any exchanged data.
+     * @param op the copy operation presumably currently holding lock on this connection
+     * @throws SQLException on any additional failure
+     */
+    public void cancelCopy(CopyOperationImpl op) throws SQLException {
+        if(!hasLock(op))
+            throw new PSQLException(GT.tr("Tried to cancel an inactive copy operation"), PSQLState.OBJECT_NOT_IN_STATE);
+
+        SQLException error = null;
+        int errors = 0;
+
+        try {
+            if(op instanceof CopyInImpl) {
+                synchronized (this) {
+                    if (logger.logDebug()) {
+                        logger.debug("FE => CopyFail");
+                    }
+                    final byte[] msg = Utils.encodeUTF8("Copy cancel requested");
+                    pgStream.SendChar('f'); // CopyFail
+                    pgStream.SendInteger4(5 + msg.length);
+                    pgStream.Send(msg);
+                    pgStream.SendChar(0);
+                    pgStream.flush();
+                    do {
+                        try {
+                            processCopyResults(op, true); // discard rest of input
+                        } catch(SQLException se) { // expected error response to failing copy
+                            errors++;
+                            if( error != null ) {
+                                SQLException e = se, next;
+                                while( (next = e.getNextException()) != null )
+                                    e = next;
+                                e.setNextException(error);
+                            }
+                            error = se; 
+                        }
+                    } while(hasLock(op));
+                }
+            } else if (op instanceof CopyOutImpl) {
+                protoConnection.sendQueryCancel();
+            }
+
+        } catch(IOException ioe) {
+            throw new PSQLException(GT.tr("Database connection failed when canceling copy operation"), PSQLState.CONNECTION_FAILURE, ioe);
+        }
+
+        if (op instanceof CopyInImpl) {
+            if(errors < 1) {
+                throw new PSQLException(GT.tr("Missing expected error response to copy cancel request"), PSQLState.COMMUNICATION_ERROR);
+            } else if(errors > 1) {
+                throw new PSQLException(GT.tr("Got {0} error responses to single copy cancel request", String.valueOf(errors)), PSQLState.COMMUNICATION_ERROR, error);
+            }
+        }
+    }
+
+    /**
+     * Finishes writing to copy and unlocks connection
+     * @param op the copy operation presumably currently holding lock on this connection
+     * @return number of rows updated for server versions 8.2 or newer
+     * @throws SQLException on failure
+     */
+    public synchronized long endCopy(CopyInImpl op) throws SQLException {
+        if(!hasLock(op))
+                throw new PSQLException(GT.tr("Tried to end inactive copy"), PSQLState.OBJECT_NOT_IN_STATE);
+
+        try {
+            pgStream.SendChar('c'); // CopyDone
+            pgStream.SendInteger4(4);
+            pgStream.flush();
+
+            processCopyResults(op, true);
+            return op.getHandledRowCount();
+        } catch(IOException ioe) {
+            throw new PSQLException(GT.tr("Database connection failed when ending copy"), PSQLState.CONNECTION_FAILURE, ioe);
+        }
+    }
+
+    /**
+     * Sends data during a live COPY IN operation. Only unlocks the connection if server
+     * suddenly returns CommandComplete, which should not happen
+     * @param op the CopyIn operation presumably currently holding lock on this connection
+     * @param data bytes to send
+     * @param off index of first byte to send (usually 0)
+     * @param siz number of bytes to send (usually data.length)
+     * @throws SQLException on failure
+     */
+    public synchronized void writeToCopy(CopyInImpl op, byte[] data, int off, int siz) throws SQLException {
+        if(!hasLock(op))
+            throw new PSQLException(GT.tr("Tried to write to an inactive copy operation"), PSQLState.OBJECT_NOT_IN_STATE);
+
+        if (logger.logDebug())
+            logger.debug(" FE=> CopyData(" + (siz-off) + ")");
+
+        try {
+            pgStream.SendChar('d');
+            pgStream.SendInteger4(siz + 4);
+            pgStream.Send(data, off, siz);
+
+            processCopyResults(op, false); // collect any pending notifications without blocking
+        } catch(IOException ioe) {
+            throw new PSQLException(GT.tr("Database connection failed when writing to copy"), PSQLState.CONNECTION_FAILURE, ioe);
+        }
+    }
+
+    public synchronized void flushCopy(CopyInImpl op) throws SQLException {
+        if(!hasLock(op))
+            throw new PSQLException(GT.tr("Tried to write to an inactive copy operation"), PSQLState.OBJECT_NOT_IN_STATE);
+
+        try {
+            pgStream.flush();
+            processCopyResults(op, false); // collect any pending notifications without blocking
+        } catch(IOException ioe) {
+            throw new PSQLException(GT.tr("Database connection failed when writing to copy"), PSQLState.CONNECTION_FAILURE, ioe);
+        }
+    }
+
+    /**
+     * Blocks to wait for a row of data to be received from server on an active copy operation
+     * Connection gets unlocked by processCopyResults() at end of operation
+     * @param op the copy operation presumably currently holding lock on this connection
+     * @throws SQLException on any failure
+     */
+    synchronized void readFromCopy(CopyOutImpl op) throws SQLException {
+        if(!hasLock(op))
+            throw new PSQLException(GT.tr("Tried to read from inactive copy"), PSQLState.OBJECT_NOT_IN_STATE);
+
+        try {
+            processCopyResults(op, true); // expect a call to handleCopydata() to store the data
+        } catch(IOException ioe) {
+            throw new PSQLException(GT.tr("Database connection failed when reading from copy"), PSQLState.CONNECTION_FAILURE, ioe);
+        }
+    }
+
+    /**
+     * Handles copy sub protocol responses from server.
+     * Unlocks at end of sub protocol,
+     * so operations on pgStream or QueryExecutor are not allowed in a method after calling this!
+     * @param block whether to block waiting for input
+     * @return 
+     *  CopyIn when COPY FROM STDIN starts;
+     *  CopyOut when COPY TO STDOUT starts;
+     *  null when copy ends;
+     *  otherwise, the operation given as parameter.
+     * @throws SQLException in case of misuse
+     * @throws IOException from the underlying connection
+     */
+    CopyOperationImpl processCopyResults(CopyOperationImpl op, boolean block) throws SQLException, IOException {
+
+        boolean endReceiving = false;
+        SQLException error = null, errors = null;
+        int len;
+
+        while( !endReceiving && (block || pgStream.hasMessagePending()) ) {
+            int c = pgStream.ReceiveChar();
+            switch(c) {
+
+            case 'A': // Asynchronous Notify
+
+                if (logger.logDebug())
+                    logger.debug(" <=BE Asynchronous Notification while copying");
+
+                receiveAsyncNotify();
+                break;
+
+            case 'N': // Notice Response
+
+                if (logger.logDebug())
+                    logger.debug(" <=BE Notification while copying");
+
+                protoConnection.addWarning(receiveNoticeResponse());
+                break;
+
+            case 'C': // Command Complete
+
+                String status = receiveCommandStatus();
+
+                try {
+                    if(op == null)
+                        throw new PSQLException(GT.tr("Received CommandComplete ''{0}'' without an active copy operation", status), PSQLState.OBJECT_NOT_IN_STATE);
+                    op.handleCommandStatus(status);
+                } catch(SQLException se) {
+                    error = se;
+                }
+
+                block = true;
+                break;
+
+            case 'E': // ErrorMessage (expected response to CopyFail)
+
+                error = receiveErrorResponse();
+                // We've received the error and we now expect to receive
+                // Ready for query, but we must block because it might still be
+                // on the wire and not here yet.
+                block = true;
+                break;
+
+            case 'G':  // CopyInResponse
+                
+                if (logger.logDebug())
+                    logger.debug(" <=BE CopyInResponse");
+
+                if(op != null)
+                    error = new PSQLException(GT.tr("Got CopyInResponse from server during an active {0}", op.getClass().getName()), PSQLState.OBJECT_NOT_IN_STATE);
+
+                op = new CopyInImpl();
+                initCopy(op);
+                endReceiving = true;
+                break;
+                
+            case 'H':  // CopyOutResponse
+                
+                if (logger.logDebug())
+                    logger.debug(" <=BE CopyOutResponse");
+
+                if(op != null)
+                    error = new PSQLException(GT.tr("Got CopyOutResponse from server during an active {0}", op.getClass().getName()), PSQLState.OBJECT_NOT_IN_STATE);
+
+                op = new CopyOutImpl();
+                initCopy(op);
+                endReceiving = true;
+                break;
+
+            case 'd': // CopyData
+
+                if (logger.logDebug())
+                    logger.debug(" <=BE CopyData");
+
+                len = pgStream.ReceiveInteger4() - 4;
+                byte[] buf = pgStream.Receive(len);
+                if(op == null) {
+                    error = new PSQLException(GT.tr("Got CopyData without an active copy operation"), PSQLState.OBJECT_NOT_IN_STATE);
+                } else if (!(op instanceof CopyOutImpl)) {
+                    error = new PSQLException(GT.tr("Unexpected copydata from server for {0}",
+                            op == null ? "null" : op.getClass().getName()), PSQLState.COMMUNICATION_ERROR);
+                } else {
+                    ((CopyOutImpl)op).handleCopydata(buf);
+                }
+                endReceiving = true;
+                break;
+
+            case 'c': // CopyDone (expected after all copydata received)
+
+                if (logger.logDebug())
+                    logger.debug(" <=BE CopyDone");
+                
+                len = pgStream.ReceiveInteger4() - 4;
+                if(len > 0)
+                    pgStream.Receive(len); // not in specification; should never appear
+
+                if(!(op instanceof CopyOutImpl))
+                    error = new PSQLException("Got CopyDone while not copying from server", PSQLState.OBJECT_NOT_IN_STATE);
+                
+                // keep receiving since we expect a CommandComplete
+                block = true;
+                break;
+
+            case 'Z': // ReadyForQuery: After FE:CopyDone => BE:CommandComplete
+
+                receiveRFQ();
+                if(hasLock(op))
+                    unlock(op);
+                op = null;
+                endReceiving = true;
+                break;
+
+            // If the user sends a non-copy query, we've got to handle some additional things.
+            //
+            case 'T':  // Row Description (response to Describe)
+                if (logger.logDebug())
+                    logger.debug(" <=BE RowDescription (during copy ignored)");
+
+
+                skipMessage();
+                break;
+
+            case 'D':  // DataRow
+                if (logger.logDebug())
+                    logger.debug(" <=BE DataRow (during copy ignored)");
+
+                skipMessage();
+                break;
+
+            default:
+                throw new IOException(GT.tr("Unexpected packet type during copy: {0}", Integer.toString(c)));
+            }
+
+            // Collect errors into a neat chain for completeness
+            if(error != null) {
+                if(errors != null)
+                    error.setNextException(errors);
+                errors = error;
+                error = null;
+            }
+        }
+
+        if(errors != null)
+            throw errors;
+
+        return op;
     }
 
     /*
@@ -1541,6 +1956,7 @@ public class QueryExecutorImpl implements QueryExecutor {
  
     public synchronized void fetch(ResultCursor cursor, ResultHandler handler, int fetchSize)
     throws SQLException {
+        waitOnLock();
         final Portal portal = (Portal)cursor;
 
         // Insert a ResultHandler that turns bare command statuses into empty datasets

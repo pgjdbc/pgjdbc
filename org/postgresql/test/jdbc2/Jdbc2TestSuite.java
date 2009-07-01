@@ -3,13 +3,17 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/Jdbc2TestSuite.java,v 1.24 2008/01/08 06:56:31 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/Jdbc2TestSuite.java,v 1.25 2008/01/28 10:08:58 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.test.jdbc2;
 
+import java.sql.Connection;
+
 import junit.framework.TestSuite;
+
+import org.postgresql.test.TestUtil;
 
 /*
  * Executes all known tests for JDBC2 and includes some utility methods.
@@ -20,7 +24,7 @@ public class Jdbc2TestSuite extends TestSuite
     /*
      * The main entry point for JUnit
      */
-    public static TestSuite suite()
+    public static TestSuite suite() throws Exception
     {
         TestSuite suite = new TestSuite();
 
@@ -87,7 +91,11 @@ public class Jdbc2TestSuite extends TestSuite
 
         suite.addTestSuite(LoginTimeoutTest.class);
 
-        suite.addTestSuite(CopyTest.class);
+        Connection conn = TestUtil.openDB();
+        if (TestUtil.isProtocolVersion(conn, 3)) {
+            suite.addTestSuite(CopyTest.class);
+        }
+        conn.close();
 
         // That's all folks
         return suite;

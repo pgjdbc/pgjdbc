@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/QueryExecutorImpl.java,v 1.20 2008/01/08 06:56:27 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/QueryExecutorImpl.java,v 1.21 2008/11/15 17:48:52 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -19,6 +19,7 @@ import org.postgresql.core.*;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.GT;
+import org.postgresql.copy.CopyOperation;
 
 /**
  * QueryExecutor implementation for the V2 protocol.
@@ -605,5 +606,8 @@ public class QueryExecutorImpl implements QueryExecutor {
     private final ProtocolConnectionImpl protoConnection;
     private final PGStream pgStream;
     private final Logger logger;
-}
 
+    public CopyOperation startCopy(String sql) throws SQLException {
+        throw new PSQLException(GT.tr("Copy not implemented for protocol version 2"), PSQLState.NOT_IMPLEMENTED);
+    }
+}

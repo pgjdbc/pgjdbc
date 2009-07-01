@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.50 2008/04/15 04:23:57 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.51 2009/06/20 15:19:41 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -22,6 +22,7 @@ import org.postgresql.util.PSQLState;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.GT;
+import org.postgresql.copy.*;
 
 /**
  * This class defines methods of the jdbc2 specification.
@@ -1058,5 +1059,13 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     public boolean getStringVarcharFlag()
     {
         return bindStringAsVarchar;
+    }
+
+    private CopyManager copyManager = null;
+    public CopyManager getCopyAPI() throws SQLException
+    {
+        if (copyManager == null)
+            copyManager = new CopyManager(this);
+        return copyManager;
     }
 }

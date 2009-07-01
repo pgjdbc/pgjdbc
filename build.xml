@@ -8,7 +8,7 @@
 
   This file now requires Ant 1.4.1.  2002-04-18
 
-  $PostgreSQL: pgjdbc/build.xml,v 1.85 2008/11/29 07:40:29 jurka Exp $
+  $PostgreSQL: pgjdbc/build.xml,v 1.86 2009/03/12 03:52:13 jurka Exp $
 
 -->
 
@@ -121,6 +121,7 @@
       <!-- This is the core of the driver.  It is common for all versions. -->
        <include name="${package}/*.java" />
        <include name="${package}/core/**" />
+       <include name="${package}/copy/**" />
        <include name="${package}/fastpath/**" />
        <include name="${package}/geometric/**" />
        <include name="${package}/largeobject/**" />
@@ -399,6 +400,7 @@
         <pathelement path="${java.class.path}" />
       </classpath>
       <fileset dir="${package}">
+        <include name="copy/*.java" />
         <include name="geometric/*.java" />
         <include name="largeobject/*.java" />
         <include name="fastpath/*.java" />

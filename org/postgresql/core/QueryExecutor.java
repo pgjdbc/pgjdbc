@@ -4,13 +4,15 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/QueryExecutor.java,v 1.42 2008/04/01 07:19:20 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/QueryExecutor.java,v 1.43 2008/11/15 17:48:52 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.core;
 
 import java.sql.SQLException;
+
+import org.postgresql.copy.CopyOperation;
 
 /**
  * Abstracts the protocol-specific details of executing a query.
@@ -210,4 +212,13 @@ public interface QueryExecutor {
      * @throws SQLException if an error occurs while executing the fastpath call
      */
     byte[] fastpathCall(int fnid, ParameterList params, boolean suppressBegin) throws SQLException;
+
+    /**
+     * Issues a COPY FROM STDIN / COPY TO STDOUT statement and returns
+     * handler for associated operation.  Until the copy operation completes,
+     * no other database operation may be performed.
+     * Implemented for protocol version 3 only.
+     * @throws SQLException when initializing the given query fails
+     */
+    CopyOperation startCopy(String sql) throws SQLException;
 }

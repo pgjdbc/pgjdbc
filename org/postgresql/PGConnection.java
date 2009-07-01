@@ -3,13 +3,14 @@
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/PGConnection.java,v 1.15 2008/01/08 06:56:26 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/PGConnection.java,v 1.16 2008/04/15 04:23:52 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql;
 
 import java.sql.*;
+import org.postgresql.copy.CopyManager;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.largeobject.LargeObjectManager;
 
@@ -27,6 +28,12 @@ public interface PGConnection
      * @since 7.3
      */
     public PGNotification[] getNotifications() throws SQLException;
+
+    /**
+     * This returns the COPY API for the current connection.
+     * @since 8.4
+     */
+    public CopyManager getCopyAPI() throws SQLException;
 
     /**
      * This returns the LargeObject API for the current connection.
