@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.107.2.1 2008/04/02 17:06:04 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.107.2.2 2009/05/27 23:55:27 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -279,9 +279,19 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             executeWithFlags(p_sql, 0);                
             return 0;
         }
-        if (executeWithFlags(p_sql, QueryExecutor.QUERY_NO_RESULTS))
-            throw new PSQLException(GT.tr("A result was returned when none was expected."),
+
+        executeWithFlags(p_sql, QueryExecutor.QUERY_NO_RESULTS);
+
+        ResultWrapper iter = result;
+        while (iter != null) {
+            if (iter.getResultSet() != null) {
+                throw new PSQLException(GT.tr("A result was returned when none was expected."),
                     				  PSQLState.TOO_MANY_RESULTS);
+
+            }
+            iter = iter.getNext();
+        }
+
         return getUpdateCount();
     }
 
@@ -301,9 +311,18 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             executeWithFlags(0);
             return 0;
         }
-        if (executeWithFlags(QueryExecutor.QUERY_NO_RESULTS))
-            throw new PSQLException(GT.tr("A result was returned when none was expected."),
-                                    PSQLState.TOO_MANY_RESULTS);
+
+        executeWithFlags(QueryExecutor.QUERY_NO_RESULTS);
+
+        ResultWrapper iter = result;
+        while (iter != null) {
+            if (iter.getResultSet() != null) {
+                throw new PSQLException(GT.tr("A result was returned when none was expected."),
+                    				  PSQLState.TOO_MANY_RESULTS);
+
+            }
+            iter = iter.getNext();
+        }
 
         return getUpdateCount();
     }

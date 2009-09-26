@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.27 2008/01/08 06:56:31 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.27.2.1 2008/11/16 12:14:17 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -457,6 +457,24 @@ public class StatementTest extends TestCase
         try {
             stmt.executeQuery("SELECT i FROM test_statement WHERE (1 > 0)) ORDER BY i");
             fail("Should have thrown a parse error.");
+        } catch (SQLException sqle) { }
+    }
+
+    public void testExecuteUpdateFailsOnSelect() throws SQLException
+    {
+        Statement stmt = con.createStatement();
+        try {
+            stmt.executeUpdate("SELECT 1");
+            fail("Should have thrown an error.");
+        } catch (SQLException sqle) { }
+    }
+
+    public void testExecuteUpdateFailsOnMultiStatementSelect() throws SQLException
+    {
+        Statement stmt = con.createStatement();
+        try {
+            stmt.executeUpdate("/* */; SELECT 1");
+            fail("Should have thrown an error.");
         } catch (SQLException sqle) { }
     }
 
