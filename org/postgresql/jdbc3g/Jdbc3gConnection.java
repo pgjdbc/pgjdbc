@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3g/Jdbc3gConnection.java,v 1.5 2008/01/08 06:56:30 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3g/Jdbc3gConnection.java,v 1.6 2008/10/08 18:24:05 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -26,6 +26,7 @@ public class Jdbc3gConnection extends org.postgresql.jdbc3g.AbstractJdbc3gConnec
 
     public java.sql.Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException
     {
+        checkClosed();
         Jdbc3gStatement s = new Jdbc3gStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability);
         s.setPrepareThreshold(getPrepareThreshold());
         return s;
@@ -34,6 +35,7 @@ public class Jdbc3gConnection extends org.postgresql.jdbc3g.AbstractJdbc3gConnec
 
     public java.sql.PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException
     {
+        checkClosed();
         Jdbc3gPreparedStatement s = new Jdbc3gPreparedStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
         s.setPrepareThreshold(getPrepareThreshold());
         return s;
@@ -41,6 +43,7 @@ public class Jdbc3gConnection extends org.postgresql.jdbc3g.AbstractJdbc3gConnec
 
     public java.sql.CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException
     {
+        checkClosed();
         Jdbc3gCallableStatement s = new Jdbc3gCallableStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
         s.setPrepareThreshold(getPrepareThreshold());
         return s;
@@ -48,6 +51,7 @@ public class Jdbc3gConnection extends org.postgresql.jdbc3g.AbstractJdbc3gConnec
 
     public java.sql.DatabaseMetaData getMetaData() throws SQLException
     {
+        checkClosed();
         if (metadata == null)
             metadata = new Jdbc3gDatabaseMetaData(this);
         return metadata;

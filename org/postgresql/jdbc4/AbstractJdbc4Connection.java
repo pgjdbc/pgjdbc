@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4Connection.java,v 1.6 2008/04/15 04:23:58 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4Connection.java,v 1.7 2008/10/08 18:24:05 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -37,31 +37,37 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
 
     public Clob createClob() throws SQLException
     {
+        checkClosed();
         throw org.postgresql.Driver.notImplemented(this.getClass(), "createClob()");
     }
 
     public Blob createBlob() throws SQLException
     {
+        checkClosed();
         throw org.postgresql.Driver.notImplemented(this.getClass(), "createBlob()");
     }
 
     public NClob createNClob() throws SQLException
     {
+        checkClosed();
         throw org.postgresql.Driver.notImplemented(this.getClass(), "createNClob()");
     }
 
     public SQLXML createSQLXML() throws SQLException
     {
+        checkClosed();
         return new Jdbc4SQLXML(this);
     }
 
     public Struct createStruct(String typeName, Object[] attributes) throws SQLException
     {
+        checkClosed();
         throw org.postgresql.Driver.notImplemented(this.getClass(), "createStruct(String, Object[])");
     }
 
     public Array createArrayOf(String typeName, Object[] elements) throws SQLException
     {
+        checkClosed();
         int oid = getTypeInfo().getPGArrayType(typeName);
         if (oid == Oid.UNSPECIFIED)
             throw new PSQLException(GT.tr("Unable to find server array type for provided name {0}.", typeName), PSQLState.INVALID_NAME);
@@ -99,7 +105,8 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
 
     public boolean isValid(int timeout) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "isValid(int)");
+        checkClosed();
+	throw org.postgresql.Driver.notImplemented(this.getClass(), "isValid(int)");
     }
 
     public void setClientInfo(String name, String value) throws SQLClientInfoException
@@ -125,11 +132,13 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
 
     public String getClientInfo(String name) throws SQLException
     {
+        checkClosed();
         return null;
     }
 
     public Properties getClientInfo() throws SQLException
     {
+        checkClosed();
         if (_clientInfo == null) {
             _clientInfo = new Properties();
         }
@@ -138,16 +147,19 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
 
     public <T> T createQueryObject(Class<T> ifc) throws SQLException
     {
+        checkClosed();
         throw org.postgresql.Driver.notImplemented(this.getClass(), "createQueryObject(Class<T>)");
     }
 
     public boolean isWrapperFor(Class<?> iface) throws SQLException
     {
+        checkClosed();
         throw org.postgresql.Driver.notImplemented(this.getClass(), "isWrapperFor(Class<?>)");
     }
 
     public <T> T unwrap(Class<T> iface) throws SQLException
     {
+        checkClosed();
         throw org.postgresql.Driver.notImplemented(this.getClass(), "unwrap(Class<T>)");
     }
 

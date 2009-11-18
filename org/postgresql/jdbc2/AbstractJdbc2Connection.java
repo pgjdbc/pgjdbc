@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.51 2009/06/20 15:19:41 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.52 2009/07/01 05:00:40 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -209,6 +209,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
     public java.util.Map getTypeMap() throws SQLException
     {
+        checkClosed();
         return typemap;
     }
 
@@ -285,6 +286,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
      */
     public void setCursorName(String cursor) throws SQLException
     {
+        checkClosed();
         // No-op.
     }
 
@@ -296,6 +298,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
      */
     public String getCursorName() throws SQLException
     {
+        checkClosed();
         return null;
     }
 
@@ -349,6 +352,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
      */
     public Fastpath getFastpathAPI() throws SQLException
     {
+        checkClosed();
         if (fastpath == null)
             fastpath = new Fastpath(this);
         return fastpath;
@@ -378,6 +382,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
      */
     public LargeObjectManager getLargeObjectAPI() throws SQLException
     {
+        checkClosed();
         if (largeobject == null)
             largeobject = new LargeObjectManager(this);
         return largeobject;
@@ -479,6 +484,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
     public void addDataType(String type, Class klass) throws SQLException
     {
+        checkClosed();
         _typeCache.addDataType(type, klass);
     }
 
@@ -550,6 +556,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
      */
     public String nativeSQL(String sql) throws SQLException
     {
+        checkClosed();
         StringBuffer buf = new StringBuffer(sql.length());
         AbstractJdbc2Statement.parseSql(sql,0,buf,false,getStandardConformingStrings());
         return buf.toString();
@@ -568,6 +575,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     public synchronized SQLWarning getWarnings()
     throws SQLException
     {
+        checkClosed();
         SQLWarning newWarnings = protoConnection.getWarnings(); // NB: also clears them.
         if (firstWarning == null)
             firstWarning = newWarnings;
@@ -586,6 +594,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     public synchronized void clearWarnings()
     throws SQLException
     {
+        checkClosed();
         protoConnection.getWarnings(); // Clear and discard.
         firstWarning = null;
     }
@@ -603,6 +612,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
      */
     public void setReadOnly(boolean readOnly) throws SQLException
     {
+        checkClosed();
         if (protoConnection.getTransactionState() != ProtocolConnection.TRANSACTION_IDLE)
             throw new PSQLException(GT.tr("Cannot change transaction read-only property in the middle of a transaction."),
                                     PSQLState.ACTIVE_SQL_TRANSACTION);
@@ -624,6 +634,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
      */
     public boolean isReadOnly() throws SQLException
     {
+        checkClosed();
         return readOnly;
     }
 
@@ -647,6 +658,8 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
      */
     public void setAutoCommit(boolean autoCommit) throws SQLException
     {
+        checkClosed();
+
         if (this.autoCommit == autoCommit)
             return ;
 
@@ -662,8 +675,9 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
      * @return Current state of the auto-commit mode
      * @see setAutoCommit
      */
-    public boolean getAutoCommit()
+    public boolean getAutoCommit() throws SQLException
     {
+        checkClosed();
         return this.autoCommit;
     }
 
@@ -676,33 +690,49 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
      * The method commit() makes all changes made since the previous
      * commit/rollback permanent and releases any database locks currently
      * held by the Connection. This method should only be used when
-     * auto-commit has been disabled.  (If autoCommit == true, then we
-     * just return anyhow)
+     * auto-commit has been disabled.
      *
-     * @exception SQLException if a database access error occurs
+     * @exception SQLException if a database access error occurs,
+     *                         this method  is called on a closed connection or
+     *                         this Connection object is in auto-commit mode
      * @see setAutoCommit
      */
     public void commit() throws SQLException
     {
+        checkClosed();
+
         if (autoCommit)
-            return ;
+            throw new PSQLException(GT.tr("Cannot commit when autoCommit is enabled."),
+                                    PSQLState.NO_ACTIVE_SQL_TRANSACTION);
 
         if (protoConnection.getTransactionState() != ProtocolConnection.TRANSACTION_IDLE)
             executeTransactionCommand(commitQuery);
     }
+
+    protected void checkClosed() throws SQLException {
+        if (isClosed())
+            throw new PSQLException(GT.tr("This statement has been closed."),
+                                    PSQLState.OBJECT_NOT_IN_STATE);
+    }
+ 
 
     /*
      * The method rollback() drops all changes made since the previous
      * commit/rollback and releases any database locks currently held by
      * the Connection.
      *
-     * @exception SQLException if a database access error occurs
+     * @exception SQLException if a database access error occurs,
+     *                         this method  is called on a closed connection or
+     *                         this Connection object is in auto-commit mode
      * @see commit
      */
     public void rollback() throws SQLException
     {
+        checkClosed();
+
         if (autoCommit)
-            return ;
+            throw new PSQLException(GT.tr("Cannot rollback when autoCommit is enabled."),
+                                    PSQLState.NO_ACTIVE_SQL_TRANSACTION);
 
         if (protoConnection.getTransactionState() != ProtocolConnection.TRANSACTION_IDLE)
             executeTransactionCommand(rollbackQuery);
@@ -716,6 +746,8 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
      */
     public int getTransactionIsolation() throws SQLException
     {
+        checkClosed();
+
         String level = null;
 
         if (haveMinimumServerVersion("7.3"))
@@ -779,6 +811,8 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
      */
     public void setTransactionIsolation(int level) throws SQLException
     {
+        checkClosed();
+
         if (protoConnection.getTransactionState() != ProtocolConnection.TRANSACTION_IDLE)
             throw new PSQLException(GT.tr("Cannot change transaction isolation level in the middle of a transaction."),
                                     PSQLState.ACTIVE_SQL_TRANSACTION);
@@ -824,6 +858,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
      */
     public void setCatalog(String catalog) throws SQLException
     {
+        checkClosed();
         //no-op
     }
 
@@ -836,6 +871,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
      */
     public String getCatalog() throws SQLException
     {
+        checkClosed();
         return protoConnection.getDatabase();
     }
 
@@ -981,11 +1017,13 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
     public void cancelQuery() throws SQLException
     {
+        checkClosed();
         protoConnection.sendQueryCancel();
     }
 
     public PGNotification[] getNotifications() throws SQLException
     {
+        checkClosed();
         getQueryExecutor().processNotifies();
         // Backwards-compatibility hand-holding.
         PGNotification[] notifications = protoConnection.getNotifications();
@@ -1064,6 +1102,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     private CopyManager copyManager = null;
     public CopyManager getCopyAPI() throws SQLException
     {
+        checkClosed();
         if (copyManager == null)
             copyManager = new CopyManager(this);
         return copyManager;

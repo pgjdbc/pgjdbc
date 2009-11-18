@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/Jdbc4Connection.java,v 1.1 2006/06/08 10:34:52 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/Jdbc4Connection.java,v 1.2 2008/01/08 06:56:30 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -26,6 +26,7 @@ public class Jdbc4Connection extends AbstractJdbc4Connection implements java.sql
 
     public java.sql.Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException
     {
+        checkClosed();
         Jdbc4Statement s = new Jdbc4Statement(this, resultSetType, resultSetConcurrency, resultSetHoldability);
         s.setPrepareThreshold(getPrepareThreshold());
         return s;
@@ -34,6 +35,7 @@ public class Jdbc4Connection extends AbstractJdbc4Connection implements java.sql
 
     public java.sql.PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException
     {
+        checkClosed();
         Jdbc4PreparedStatement s = new Jdbc4PreparedStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
         s.setPrepareThreshold(getPrepareThreshold());
         return s;
@@ -41,6 +43,7 @@ public class Jdbc4Connection extends AbstractJdbc4Connection implements java.sql
 
     public java.sql.CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException
     {
+        checkClosed();
         Jdbc4CallableStatement s = new Jdbc4CallableStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
         s.setPrepareThreshold(getPrepareThreshold());
         return s;
@@ -48,6 +51,7 @@ public class Jdbc4Connection extends AbstractJdbc4Connection implements java.sql
 
     public java.sql.DatabaseMetaData getMetaData() throws SQLException
     {
+        checkClosed();
         if (metadata == null)
             metadata = new Jdbc4DatabaseMetaData(this);
         return metadata;
