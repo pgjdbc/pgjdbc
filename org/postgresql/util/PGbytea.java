@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/PGbytea.java,v 1.14 2006/11/06 05:49:48 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/util/PGbytea.java,v 1.15 2008/01/08 06:56:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -26,6 +26,43 @@ public class PGbytea
     {
         if (s == null)
             return null;
+
+        // Starting with PG 8.5, a new hex format is supported
+        // that starts with "\x".  Figure out which format we're
+        // dealing with here.
+        //
+        if (s.length < 2 || s[0] != '\\' || s[1] != 'x') {
+            return toBytesOctalEscaped(s);
+        }
+        return toBytesHexEscaped(s);
+    }
+
+    private static byte[] toBytesHexEscaped(byte[] s)
+    {
+        byte[] output = new byte[(s.length - 2) / 2];
+        for (int i=0; i<output.length; i++) {
+            byte b1 = gethex(s[2 + i*2]);
+            byte b2 = gethex(s[2 + i*2 + 1]);
+            output[i] = (byte)((b1 << 4) | b2);
+        }
+        return output;
+    }
+
+    private static byte gethex(byte b) {
+        // 0-9 == 48-57
+        if (b <= 57)
+            return (byte)(b - 48);
+
+        // a-f == 97-102
+        if (b >= 97)
+            return (byte)(b - 97 + 10);
+
+        // A-F == 65-70
+        return (byte)(b - 65 + 10);
+    }
+
+    private static byte[] toBytesOctalEscaped(byte[] s)
+    {
         final int slength = s.length;
         byte[] buf = null;
         int correctSize = slength;
