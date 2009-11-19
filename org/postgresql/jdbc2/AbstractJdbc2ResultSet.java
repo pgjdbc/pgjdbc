@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.106 2009/04/19 05:18:31 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.107 2009/04/19 16:11:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2671,7 +2671,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     protected void checkClosed() throws SQLException {
         if (rows == null)
-            throw new PSQLException(GT.tr("This ResultSet is closed."), PSQLState.CONNECTION_DOES_NOT_EXIST);
+            throw new PSQLException(GT.tr("This ResultSet is closed."), PSQLState.OBJECT_NOT_IN_STATE);
     }
 
     protected void checkColumnIndex(int column) throws SQLException

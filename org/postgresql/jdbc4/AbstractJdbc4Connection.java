@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4Connection.java,v 1.7 2008/10/08 18:24:05 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4Connection.java,v 1.8 2009/11/18 11:19:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -106,7 +106,7 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
     public boolean isValid(int timeout) throws SQLException
     {
         checkClosed();
-	throw org.postgresql.Driver.notImplemented(this.getClass(), "isValid(int)");
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "isValid(int)");
     }
 
     public void setClientInfo(String name, String value) throws SQLClientInfoException
