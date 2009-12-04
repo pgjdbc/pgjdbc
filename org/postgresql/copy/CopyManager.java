@@ -3,7 +3,7 @@
 * Copyright (c) 2009, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL$
+*   $PostgreSQL: pgjdbc/org/postgresql/copy/CopyManager.java,v 1.1 2009/07/01 05:00:39 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -40,16 +40,18 @@ public class CopyManager {
 
     private final Encoding encoding;
     private final QueryExecutor queryExecutor;
+    private final BaseConnection connection;
 
     public CopyManager(BaseConnection connection) throws SQLException {
         this.encoding = connection.getEncoding();
         this.queryExecutor = connection.getQueryExecutor();
+        this.connection = connection;
     }
 
     public CopyIn copyIn(String sql) throws SQLException {
         CopyOperation op = null;
         try {
-            op = queryExecutor.startCopy(sql);
+            op = queryExecutor.startCopy(sql, connection.getAutoCommit());
             return (CopyIn) op;
         } catch(ClassCastException cce) {
             op.cancelCopy();
@@ -60,7 +62,7 @@ public class CopyManager {
     public CopyOut copyOut(String sql) throws SQLException {
         CopyOperation op = null;
         try {
-            op = queryExecutor.startCopy(sql);
+            op = queryExecutor.startCopy(sql, connection.getAutoCommit());
             return (CopyOut) op;
         } catch(ClassCastException cce) {
             op.cancelCopy();

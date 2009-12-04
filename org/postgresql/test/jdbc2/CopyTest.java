@@ -3,7 +3,7 @@
 * Copyright (c) 2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CopyTest.java,v 1.1 2008/01/28 10:08:58 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CopyTest.java,v 1.2 2009/07/01 05:00:40 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -255,6 +255,13 @@ public class CopyTest extends TestCase {
 
         long count = copyAPI.copyOut("COPY (SELECT generate_series(1,1000)) TO STDOUT", new ByteArrayOutputStream());
         assertEquals(1000, count);
+    }
+
+    public void testCopyRollback() throws SQLException {
+        con.setAutoCommit(false);
+        testCopyInByRow();
+        con.rollback();
+        assertEquals(0, getCount());
     }
 
 }
