@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.44 2009/04/20 21:44:08 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.45 2009/07/01 05:00:40 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -472,11 +472,28 @@ public class QueryExecutorImpl implements QueryExecutor {
     public synchronized byte[]
     fastpathCall(int fnid, ParameterList parameters, boolean suppressBegin) throws SQLException {
         waitOnLock();
-        if (protoConnection.getTransactionState() == ProtocolConnection.TRANSACTION_IDLE && !suppressBegin)
+        if (!suppressBegin)
+        {
+            doSubprotocolBegin();
+        }
+        try
+        {
+            sendFastpathCall(fnid, (SimpleParameterList)parameters);
+            return receiveFastpathResult();
+        }
+        catch (IOException ioe)
+        {
+            protoConnection.close();
+            throw new PSQLException(GT.tr("An I/O error occured while sending to the backend."), PSQLState.CONNECTION_FAILURE, ioe);
+        }
+    }
+
+    public void doSubprotocolBegin() throws SQLException {
+        if (protoConnection.getTransactionState() == ProtocolConnection.TRANSACTION_IDLE)
         {
 
             if (logger.logDebug())
-                logger.debug("Issuing BEGIN before fastpath call.");
+                logger.debug("Issuing BEGIN before fastpath or copy call.");
 
             ResultHandler handler = new ResultHandler() {
                                         private boolean sawBegin = false;
@@ -537,16 +554,6 @@ public class QueryExecutorImpl implements QueryExecutor {
             }
         }
 
-        try
-        {
-            sendFastpathCall(fnid, (SimpleParameterList)parameters);
-            return receiveFastpathResult();
-        }
-        catch (IOException ioe)
-        {
-            protoConnection.close();
-            throw new PSQLException(GT.tr("An I/O error occured while sending to the backend."), PSQLState.CONNECTION_FAILURE, ioe);
-        }
     }
 
     public ParameterList createFastpathParameters(int count) {
@@ -699,8 +706,11 @@ public class QueryExecutorImpl implements QueryExecutor {
      * @return CopyIn or CopyOut operation object
      * @throws SQLException on failure
      */
-    public synchronized CopyOperation startCopy(String sql) throws SQLException {
+    public synchronized CopyOperation startCopy(String sql, boolean suppressBegin) throws SQLException {
         waitOnLock();
+        if (!suppressBegin) {
+            doSubprotocolBegin();
+        }
         byte buf[] = Utils.encodeUTF8(sql);
 
         try {
