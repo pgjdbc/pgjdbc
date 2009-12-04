@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.51 2009/03/12 03:59:50 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.52 2009/12/04 19:47:54 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -3840,7 +3840,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
         if( connection.haveMinimumServerVersion("7.4"))
         {
-            sql += " CASE WHEN i.indexprs IS NULL THEN a.attname ELSE pg_get_indexdef(ci.oid,a.attnum,false) END AS COLUMN_NAME, ";
+            sql += " CASE WHEN i.indexprs IS NULL THEN a.attname ELSE pg_catalog.pg_get_indexdef(ci.oid,a.attnum,false) END AS COLUMN_NAME, ";
         }
         else
         {
@@ -3850,9 +3850,22 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
         sql += " NULL AS ASC_OR_DESC, " +
                      " ci.reltuples AS CARDINALITY, " +
-                     " ci.relpages AS PAGES, " +
-                     " NULL AS FILTER_CONDITION " +
-                     from +
+                     " ci.relpages AS PAGES, ";
+
+        if( connection.haveMinimumServerVersion("7.3"))
+        {
+            sql += " pg_catalog.pg_get_expr(i.indpred, i.indrelid) AS FILTER_CONDITION ";
+        }
+	else if( connection.haveMinimumServerVersion("7.2"))
+        {
+            sql += " pg_get_expr(i.indpred, i.indrelid) AS FILTER_CONDITION ";
+        }
+        else
+        {
+            sql += " NULL AS FILTER_CONDITION ";
+        }
+
+        sql += from +
                      " WHERE ct.oid=i.indrelid AND ci.oid=i.indexrelid AND a.attrelid=ci.oid AND ci.relam=am.oid " +
                      where +
                      " AND ct.relname = '" + escapeQuotes(tableName) + "' ";

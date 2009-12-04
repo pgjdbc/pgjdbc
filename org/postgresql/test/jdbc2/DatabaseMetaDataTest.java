@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.43 2008/04/15 05:22:14 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.44 2008/11/07 09:11:37 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -443,6 +443,25 @@ public class DatabaseMetaDataTest extends TestCase
         assertTrue(rs.getBoolean("NON_UNIQUE"));
 
         assertTrue(!rs.next());
+
+        rs.close();
+    }
+
+    public void testPartialIndexInfo() throws SQLException
+    {
+        Statement stmt = con.createStatement();
+        stmt.execute("create index idx_p_name_id on testmetadata (name) where id > 5");
+        stmt.close();
+
+        DatabaseMetaData dbmd = con.getMetaData();
+        ResultSet rs = dbmd.getIndexInfo(null, null, "testmetadata", false, false);
+
+        assertTrue(rs.next());
+        assertEquals("idx_p_name_id", rs.getString("INDEX_NAME"));
+        assertEquals(1, rs.getInt("ORDINAL_POSITION"));
+        assertEquals("name", rs.getString("COLUMN_NAME"));
+        assertEquals("(id > 5)", rs.getString("FILTER_CONDITION"));
+        assertTrue(rs.getBoolean("NON_UNIQUE"));
 
         rs.close();
     }
