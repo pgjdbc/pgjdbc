@@ -3,7 +3,7 @@
 * Copyright (c) 2005-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/ParameterMetaDataTest.java,v 1.4 2006/05/15 09:35:57 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/ParameterMetaDataTest.java,v 1.5 2008/01/08 06:56:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -23,7 +23,7 @@ public class ParameterMetaDataTest extends TestCase {
 
     protected void setUp() throws Exception {
         _conn = TestUtil.openDB();
-        TestUtil.createTable(_conn, "parametertest", "a int4, b float8, c text, d point");
+        TestUtil.createTable(_conn, "parametertest", "a int4, b float8, c text, d point, e timestamp with time zone");
     }
 
     protected void tearDown() throws SQLException {
@@ -87,4 +87,23 @@ public class ParameterMetaDataTest extends TestCase {
         pstmt.close();
 
     }
+
+    // Here we test that we can legally change the resolved type
+    // from text to varchar with the complicating factor that there
+    // is also an unknown parameter.
+    // 
+    public void testTypeChangeWithUnknown() throws SQLException {
+        if (!TestUtil.isProtocolVersion(_conn, 3))
+            return;
+
+        PreparedStatement pstmt = _conn.prepareStatement("SELECT a FROM parametertest WHERE c = ? AND e = ?");
+        ParameterMetaData pmd = pstmt.getParameterMetaData();
+
+        pstmt.setString(1, "Hi");
+        pstmt.setTimestamp(2, new Timestamp(0L));
+
+        ResultSet rs = pstmt.executeQuery();
+        rs.close();
+    }
+
 }
