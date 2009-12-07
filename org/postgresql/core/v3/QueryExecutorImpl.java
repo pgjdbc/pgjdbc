@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.45 2009/07/01 05:00:40 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.46 2009/12/04 19:53:20 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1492,10 +1492,15 @@ public class QueryExecutorImpl implements QueryExecutor {
 
         if (!describeStatement && paramsHasUnknown && !queryHasUnknown)
         {
-            int numParams = params.getParameterCount();
             int queryOIDs[] = query.getStatementTypes();
-            for (int i=1; i<=numParams; i++) {
-                params.setResolvedType(i, queryOIDs[i-1]);
+            int paramOIDs[] = params.getTypeOIDs();
+            for (int i=0; i<paramOIDs.length; i++) {
+                // Only supply type information when there isn't any
+                // already, don't arbitrarily overwrite user supplied
+                // type information.
+                if (paramOIDs[i] == Oid.UNSPECIFIED) {
+                    params.setResolvedType(i+1, queryOIDs[i]);
+                }
             }
         }
 
