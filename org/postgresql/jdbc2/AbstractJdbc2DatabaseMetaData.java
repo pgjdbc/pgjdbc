@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.51.2.1 2009/12/04 19:48:01 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.51.2.2 2009/12/04 21:22:02 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2249,7 +2249,27 @@ public abstract class AbstractJdbc2DatabaseMetaData
         String sql;
         if (connection.haveMinimumServerVersion("7.3"))
         {
-            sql = "SELECT n.nspname,c.relname,a.attname,a.atttypid,a.attnotnull,a.atttypmod,a.attlen,a.attnum,pg_catalog.pg_get_expr(def.adbin, def.adrelid) AS adsrc,dsc.description,t.typbasetype,t.typtype " +
+            // a.attnum isn't decremented when preceding columns are dropped,
+            // so the only way to calculate the correct column number is with
+            // window functions, new in 8.4.
+            // 
+            // We want to push as much predicate information below the window
+            // function as possible (schema/table names), but must leave
+            // column name outside so we correctly count the other columns.
+            //
+            if (connection.haveMinimumServerVersion("8.4"))
+                sql = "SELECT * FROM (";
+            else
+                sql = "";
+
+            sql += "SELECT n.nspname,c.relname,a.attname,a.atttypid,a.attnotnull,a.atttypmod,a.attlen,";
+            
+            if (connection.haveMinimumServerVersion("8.4"))
+                sql += "row_number() OVER (PARTITION BY a.attrelid ORDER BY a.attnum) AS attnum, ";
+            else
+                sql += "a.attnum,";
+            
+            sql += "pg_catalog.pg_get_expr(def.adbin, def.adrelid) AS adsrc,dsc.description,t.typbasetype,t.typtype " +
                   " FROM pg_catalog.pg_namespace n " +
                   " JOIN pg_catalog.pg_class c ON (c.relnamespace = n.oid) " +
                   " JOIN pg_catalog.pg_attribute a ON (a.attrelid=c.oid) " +
@@ -2259,10 +2279,20 @@ public abstract class AbstractJdbc2DatabaseMetaData
                   " LEFT JOIN pg_catalog.pg_class dc ON (dc.oid=dsc.classoid AND dc.relname='pg_class') " +
                   " LEFT JOIN pg_catalog.pg_namespace dn ON (dc.relnamespace=dn.oid AND dn.nspname='pg_catalog') " +
                   " WHERE a.attnum > 0 AND NOT a.attisdropped ";
+
             if (schemaPattern != null && !"".equals(schemaPattern))
             {
                 sql += " AND n.nspname LIKE '" + escapeQuotes(schemaPattern) + "' ";
             }
+
+            if (tableNamePattern != null && !"".equals(tableNamePattern))
+            {
+                sql += " AND c.relname LIKE '" + escapeQuotes(tableNamePattern) + "' ";
+            }
+
+            if (connection.haveMinimumServerVersion("8.4"))
+                sql += ") v WHERE true ";
+
         }
         else if (connection.haveMinimumServerVersion("7.2"))
         {
@@ -2292,13 +2322,13 @@ public abstract class AbstractJdbc2DatabaseMetaData
                   " WHERE a.attrelid=c.oid AND a.attnum > 0 ";
         }
 
-        if (tableNamePattern != null && !"".equals(tableNamePattern))
+        if (!connection.haveMinimumServerVersion("7.3") && tableNamePattern != null && !"".equals(tableNamePattern))
         {
-            sql += " AND c.relname LIKE '" + escapeQuotes(tableNamePattern) + "' ";
+            sql += " AND relname LIKE '" + escapeQuotes(tableNamePattern) + "' ";
         }
         if (columnNamePattern != null && !"".equals(columnNamePattern))
         {
-            sql += " AND a.attname LIKE '" + escapeQuotes(columnNamePattern) + "' ";
+            sql += " AND attname LIKE '" + escapeQuotes(columnNamePattern) + "' ";
         }
         sql += " ORDER BY nspname,relname,attnum ";
 

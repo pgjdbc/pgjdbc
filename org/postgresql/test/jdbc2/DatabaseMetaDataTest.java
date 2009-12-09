@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.44 2008/11/07 09:11:37 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.44.2.1 2009/12/04 21:22:02 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -323,6 +323,41 @@ public class DatabaseMetaDataTest extends TestCase
         DatabaseMetaData dbmd = con.getMetaData();
         assertNotNull(dbmd);
         ResultSet rs = dbmd.getColumns(null, null, "pg_class", null);
+        rs.close();
+    }
+
+    public void testDroppedColumns() throws SQLException
+    {
+        if (!TestUtil.haveMinimumServerVersion(con, "8.4"))
+            return;
+
+        Statement stmt = con.createStatement();
+        stmt.execute("ALTER TABLE testmetadata DROP name");
+        stmt.execute("ALTER TABLE testmetadata DROP colour");
+        stmt.close();
+
+        DatabaseMetaData dbmd = con.getMetaData();
+        ResultSet rs = dbmd.getColumns(null, null, "testmetadata", null);
+
+        assertTrue(rs.next());
+        assertEquals("id", rs.getString("COLUMN_NAME"));
+        assertEquals(1, rs.getInt("ORDINAL_POSITION"));
+
+        assertTrue(rs.next());
+        assertEquals("updated", rs.getString("COLUMN_NAME"));
+        assertEquals(2, rs.getInt("ORDINAL_POSITION"));
+
+        assertTrue(rs.next());
+        assertEquals("quest", rs.getString("COLUMN_NAME"));
+        assertEquals(3, rs.getInt("ORDINAL_POSITION"));
+
+        rs.close();
+
+        rs = dbmd.getColumns(null, null, "testmetadata", "quest");
+        assertTrue(rs.next());
+        assertEquals("quest", rs.getString("COLUMN_NAME"));
+        assertEquals(3, rs.getInt("ORDINAL_POSITION"));
+        assertTrue(!rs.next());
         rs.close();
     }
 
