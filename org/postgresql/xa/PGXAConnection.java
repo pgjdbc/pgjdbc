@@ -442,7 +442,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         }
         catch (SQLException ex)
         {
-            throw new XAException(ex.toString());
+            throw new PGXAException(GT.tr("Error committing prepared transaction"), ex, XAException.XAER_RMERR);
         }
     }
 
