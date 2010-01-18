@@ -3,7 +3,7 @@
 * Copyright (c) 2005-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2BlobClob.java,v 1.8 2007/09/10 08:34:53 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2BlobClob.java,v 1.9 2008/01/08 06:56:28 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -74,7 +74,15 @@ public abstract class AbstractJdbc2BlobClob
         if (!conn.haveMinimumServerVersion("8.3"))
             throw new PSQLException(GT.tr("Truncation of large objects is only implemented in 8.3 and later servers."), PSQLState.NOT_IMPLEMENTED);
 
-        assertPosition(len);
+        if (len < 0)
+        {
+            throw new PSQLException(GT.tr("Cannot truncate LOB to a negative length."), PSQLState.INVALID_PARAMETER_VALUE);
+        }
+        if (len > Integer.MAX_VALUE)
+        {
+            throw new PSQLException(GT.tr("PostgreSQL LOBs can only index to: {0}", new Integer(Integer.MAX_VALUE)), PSQLState.INVALID_PARAMETER_VALUE);
+        }
+
         lo.truncate((int)len);
     }
 
