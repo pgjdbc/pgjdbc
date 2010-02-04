@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/BatchExecuteTest.java,v 1.15 2007/07/27 09:01:45 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/BatchExecuteTest.java,v 1.16 2008/01/08 06:56:30 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -277,6 +277,37 @@ public class BatchExecuteTest extends TestCase
         assertTrue(rs.next());
         assertEquals("2007-11-20", rs.getString(1));
         assertTrue(!rs.next());
+        rs.close();
+        stmt.close();
+    }
+
+    public void testBatchWithEmbeddedNulls() throws SQLException
+    {
+        Statement stmt = con.createStatement();
+        stmt.execute("CREATE TEMP TABLE batchstring (a text)");
+
+        con.commit();
+
+        PreparedStatement pstmt = con.prepareStatement("INSERT INTO batchstring VALUES (?)");
+
+        pstmt.setString(1, "a");
+        pstmt.addBatch();
+        pstmt.setString(1, "\u0000");
+        pstmt.addBatch();
+        pstmt.setString(1, "b");
+        pstmt.addBatch();
+
+        try {
+            pstmt.executeBatch();
+            fail("Should have thrown an exception.");
+        } catch (SQLException sqle) {
+            con.rollback();
+        }
+        pstmt.close();
+
+        ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM batchstring");
+        assertTrue(rs.next());
+        assertEquals(0, rs.getInt(1));
         rs.close();
         stmt.close();
     }
