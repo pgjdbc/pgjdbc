@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleParameterList.java,v 1.17 2008/09/30 23:41:23 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleParameterList.java,v 1.17.2.1 2010/02/04 00:48:54 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -155,7 +155,7 @@ class SimpleParameterList implements V3ParameterList {
 
             p.append('\'');
             try {
-                p = Utils.appendEscapedLiteral(p, param, protoConnection.getStandardConformingStrings());
+                p = Utils.appendEscapedLiteral(p, param, standardConformingStrings);
             } catch (SQLException sqle) {
                 // This should only happen if we have an embedded null
                 // and there's not much we can do if we do hit one.
