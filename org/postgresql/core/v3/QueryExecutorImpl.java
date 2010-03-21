@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.46 2009/12/04 19:53:20 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.47 2009/12/07 22:03:06 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -980,7 +980,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                     error = new PSQLException(GT.tr("Got CopyData without an active copy operation"), PSQLState.OBJECT_NOT_IN_STATE);
                 } else if (!(op instanceof CopyOutImpl)) {
                     error = new PSQLException(GT.tr("Unexpected copydata from server for {0}",
-                            op == null ? "null" : op.getClass().getName()), PSQLState.COMMUNICATION_ERROR);
+                            op.getClass().getName()), PSQLState.COMMUNICATION_ERROR);
                 } else {
                     ((CopyOutImpl)op).handleCopydata(buf);
                 }
