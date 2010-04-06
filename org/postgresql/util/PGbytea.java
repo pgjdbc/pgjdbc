@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/PGbytea.java,v 1.15 2008/01/08 06:56:31 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/util/PGbytea.java,v 1.16 2009/11/18 12:41:05 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -27,7 +27,7 @@ public class PGbytea
         if (s == null)
             return null;
 
-        // Starting with PG 8.5, a new hex format is supported
+        // Starting with PG 9.0, a new hex format is supported
         // that starts with "\x".  Figure out which format we're
         // dealing with here.
         //
