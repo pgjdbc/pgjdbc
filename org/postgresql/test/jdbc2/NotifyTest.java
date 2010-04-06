@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/NotifyTest.java,v 1.7 2005/11/24 02:31:43 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/NotifyTest.java,v 1.8 2008/01/08 06:56:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -45,6 +45,24 @@ public class NotifyTest extends TestCase
         assertEquals(1, notifications.length);
         assertEquals("mynotification", notifications[0].getName());
         assertEquals("", notifications[0].getParameter());
+
+        stmt.close();
+    }
+
+    public void testNotifyArgument() throws Exception
+    {
+        if (!TestUtil.haveMinimumServerVersion(conn, "9.0"))
+            return;
+
+        Statement stmt = conn.createStatement();
+        stmt.executeUpdate("LISTEN mynotification");
+        stmt.executeUpdate("NOTIFY mynotification, 'message'");
+
+        PGNotification notifications[] = ((org.postgresql.PGConnection)conn).getNotifications();
+        assertNotNull(notifications);
+        assertEquals(1, notifications.length);
+        assertEquals("mynotification", notifications[0].getName());
+        assertEquals("message", notifications[0].getParameter());
 
         stmt.close();
     }
