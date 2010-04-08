@@ -3,7 +3,7 @@
 * Copyright (c) 2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CopyTest.java,v 1.2 2009/07/01 05:00:40 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CopyTest.java,v 1.3 2009/12/04 19:53:20 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -19,6 +19,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.IOException;
+import java.io.StringReader;
 
 import junit.framework.TestCase;
 
@@ -134,6 +135,13 @@ public class CopyTest extends TestCase {
         }
         int rowCount = getCount();
         assertEquals(0, rowCount);
+    }
+
+    public void testCopyInFromReader() throws SQLException, IOException {
+        String sql = "COPY copytest FROM STDIN";
+        copyAPI.copyIn(sql, new StringReader(new String(getData(origData))), 3);
+        int rowCount = getCount();
+        assertEquals(dataRows, rowCount);
     }
 
     public void testSkipping() {
