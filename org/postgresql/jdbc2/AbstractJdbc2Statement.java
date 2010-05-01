@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.68.2.17 2009/05/27 23:55:51 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.68.2.18 2009/09/26 15:21:51 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1001,10 +1001,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             oid = Oid.DATE;
             break;
         case Types.TIME:
-            oid = Oid.TIME;
-            break;
         case Types.TIMESTAMP:
-            oid = Oid.TIMESTAMPTZ;
+            oid = Oid.INVALID;
             break;
         case Types.BIT:
             oid = Oid.BOOL;
