@@ -3,19 +3,21 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.6 2005/01/11 08:25:45 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.7 2005/02/02 23:30:31 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.ds.common;
 
 import javax.naming.*;
-import java.io.PrintWriter;
 import java.sql.*;
 
-import java.io.ObjectOutputStream;
-import java.io.ObjectInputStream;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 
 /**
  * Base class for data sources and related classes.
@@ -324,6 +326,15 @@ public abstract class BaseDataSource implements Referenceable
         portNumber = in.readInt();
         prepareThreshold = in.readInt();
         loginTimeout = in.readInt();
+    }
+
+    public void initializeFrom(BaseDataSource source) throws IOException, ClassNotFoundException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        source.writeBaseObject(oos);
+        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+        ObjectInputStream ois = new ObjectInputStream(bais);
+        readBaseObject(ois);
     }
 
 }

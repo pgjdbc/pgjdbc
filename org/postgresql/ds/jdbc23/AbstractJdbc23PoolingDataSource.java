@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL$
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/jdbc23/AbstractJdbc23PoolingDataSource.java,v 1.1 2006/11/29 04:03:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -287,15 +287,18 @@ public abstract class AbstractJdbc23PoolingDataSource extends BaseDataSource
         synchronized (lock )
         {
             source = createConnectionPool();
-            source.setDatabaseName(getDatabaseName());
-            source.setPassword(getPassword());
-            source.setPortNumber(getPortNumber());
-            source.setServerName(getServerName());
-            source.setUser(getUser());
+            try {
+                source.initializeFrom(this);
+            } catch (Exception e) {
+                throw new PSQLException(GT.tr("Failed to setup DataSource."),
+                                        PSQLState.UNEXPECTED_ERROR, e);
+            }
+
             while (available.size() < initialConnections)
             {
                 available.push(source.getPooledConnection());
             }
+
             initialized = true;
         }
     }
