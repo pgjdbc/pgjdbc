@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/BatchExecuteTest.java,v 1.16 2008/01/08 06:56:30 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/BatchExecuteTest.java,v 1.17 2010/02/04 00:48:47 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -290,14 +290,13 @@ public class BatchExecuteTest extends TestCase
 
         PreparedStatement pstmt = con.prepareStatement("INSERT INTO batchstring VALUES (?)");
 
-        pstmt.setString(1, "a");
-        pstmt.addBatch();
-        pstmt.setString(1, "\u0000");
-        pstmt.addBatch();
-        pstmt.setString(1, "b");
-        pstmt.addBatch();
-
         try {
+            pstmt.setString(1, "a");
+            pstmt.addBatch();
+            pstmt.setString(1, "\u0000");
+            pstmt.addBatch();
+            pstmt.setString(1, "b");
+            pstmt.addBatch();
             pstmt.executeBatch();
             fail("Should have thrown an exception.");
         } catch (SQLException sqle) {
