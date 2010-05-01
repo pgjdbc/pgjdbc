@@ -3,19 +3,21 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.16 2009/06/20 14:51:59 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.17 2009/06/20 15:19:40 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.ds.common;
 
 import javax.naming.*;
-import java.io.PrintWriter;
 import java.sql.*;
 
-import java.io.ObjectOutputStream;
-import java.io.ObjectInputStream;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 
 /**
  * Base class for data sources and related classes.
@@ -461,6 +463,15 @@ public abstract class BaseDataSource implements Referenceable
         sslfactory = (String)in.readObject();
         tcpKeepAlive = in.readBoolean();
         compatible = (String)in.readObject();
+    }
+
+    public void initializeFrom(BaseDataSource source) throws IOException, ClassNotFoundException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        source.writeBaseObject(oos);
+        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+        ObjectInputStream ois = new ObjectInputStream(bais);
+        readBaseObject(ois);
     }
 
 }
