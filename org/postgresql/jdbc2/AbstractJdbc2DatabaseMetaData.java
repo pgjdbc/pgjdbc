@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.51.2.2 2009/12/04 21:22:02 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.51.2.3 2009/12/09 01:06:41 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1917,10 +1917,11 @@ public abstract class AbstractJdbc2DatabaseMetaData
      * </ol>
      *
      * <p>The valid values for the types parameter are:
-     * "TABLE", "INDEX", "SEQUENCE", "VIEW",
+     * "TABLE", "INDEX", "SEQUENCE", "VIEW", "TYPE"
      * "SYSTEM TABLE", "SYSTEM INDEX", "SYSTEM VIEW",
      * "SYSTEM TOAST TABLE", "SYSTEM TOAST INDEX",
-     * "TEMPORARY TABLE", and "TEMPORARY VIEW"
+     * "TEMPORARY TABLE", "TEMPORARY VIEW", "TEMPORARY INDEX",
+     * "TEMPORARY SEQUENCE".
      *
      * @param catalog a catalog name; For org.postgresql, this is ignored, and
      * should be set to null
@@ -1956,6 +1957,8 @@ public abstract class AbstractJdbc2DatabaseMetaData
                      " ELSE CASE c.relkind " +
                      "  WHEN 'r' THEN 'TEMPORARY TABLE' " +
                      "  WHEN 'i' THEN 'TEMPORARY INDEX' " +
+                     "  WHEN 'S' THEN 'TEMPORARY SEQUENCE' " +
+                     "  WHEN 'v' THEN 'TEMPORARY VIEW' " +
                      "  ELSE NULL " +
                      "  END " +
                      " END " +
@@ -1964,6 +1967,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                      " WHEN 'i' THEN 'INDEX' " +
                      " WHEN 'S' THEN 'SEQUENCE' " +
                      " WHEN 'v' THEN 'VIEW' " +
+                     " WHEN 'c' THEN 'TYPE' " +
                      " ELSE NULL " +
                      " END " +
                      " ELSE NULL " +
@@ -1995,6 +1999,8 @@ public abstract class AbstractJdbc2DatabaseMetaData
                                "  WHEN true THEN CASE c.relkind " +
                                "   WHEN 'r' THEN 'TEMPORARY TABLE' " +
                                "   WHEN 'i' THEN 'TEMPORARY INDEX' " +
+                               "   WHEN 'S' THEN 'TEMPORARY SEQUENCE' " +
+                               "   WHEN 'v' THEN 'TEMPORARY VIEW' " +
                                "   ELSE NULL " +
                                "   END " +
                                "  WHEN false THEN CASE c.relkind " +
@@ -2012,6 +2018,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                                " WHEN 'i' THEN 'INDEX' " +
                                " WHEN 'S' THEN 'SEQUENCE' " +
                                " WHEN 'v' THEN 'VIEW' " +
+                               " WHEN 'c' THEN 'TYPE' " +
                                " ELSE NULL " +
                                " END " +
                                " ELSE NULL " +
@@ -2082,6 +2089,10 @@ public abstract class AbstractJdbc2DatabaseMetaData
         ht.put("SCHEMAS", "c.relkind = 'S'");
         ht.put("NOSCHEMAS", "c.relkind = 'S'");
         ht = new Hashtable();
+        tableTypeClauses.put("TYPE", ht);
+        ht.put("SCHEMAS", "c.relkind = 'c' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
+        ht.put("NOSCHEMAS", "c.relkind = 'c' AND c.relname !~ '^pg_'");
+        ht = new Hashtable();
         tableTypeClauses.put("SYSTEM TABLE", ht);
         ht.put("SCHEMAS", "c.relkind = 'r' AND (n.nspname = 'pg_catalog' OR n.nspname = 'information_schema')");
         ht.put("NOSCHEMAS", "c.relkind = 'r' AND c.relname ~ '^pg_' AND c.relname !~ '^pg_toast_' AND c.relname !~ '^pg_temp_'");
@@ -2109,6 +2120,14 @@ public abstract class AbstractJdbc2DatabaseMetaData
         tableTypeClauses.put("TEMPORARY INDEX", ht);
         ht.put("SCHEMAS", "c.relkind = 'i' AND n.nspname ~ '^pg_temp_' ");
         ht.put("NOSCHEMAS", "c.relkind = 'i' AND c.relname ~ '^pg_temp_' ");
+        ht = new Hashtable();
+        tableTypeClauses.put("TEMPORARY VIEW", ht);
+        ht.put("SCHEMAS", "c.relkind = 'v' AND n.nspname ~ '^pg_temp_' ");
+        ht.put("NOSCHEMAS", "c.relkind = 'v' AND c.relname ~ '^pg_temp_' ");
+        ht = new Hashtable();
+        tableTypeClauses.put("TEMPORARY SEQUENCE", ht);
+        ht.put("SCHEMAS", "c.relkind = 'S' AND n.nspname ~ '^pg_temp_' ");
+        ht.put("NOSCHEMAS", "c.relkind = 'S' AND c.relname ~ '^pg_temp_' ");
     }
 
     /*
