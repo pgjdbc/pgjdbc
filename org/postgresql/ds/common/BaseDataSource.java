@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.18 2010/05/01 15:43:42 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.19 2010/05/01 20:35:39 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -57,6 +57,8 @@ public abstract class BaseDataSource implements Referenceable
     private String sslfactory;
     private boolean tcpKeepAlive = false;
     private String compatible;
+    private int logLevel = 0;
+    private int protocolVersion = 3;
 
     /**
      * Gets a connection to the PostgreSQL database.  The database is identified by the
@@ -168,6 +170,26 @@ public abstract class BaseDataSource implements Referenceable
     public void setCompatible(String compatible)
     {
         this.compatible = compatible;
+    }
+
+    public int getLogLevel()
+    {
+        return logLevel;
+    }
+
+    public void setLogLevel(int logLevel)
+    {
+        this.logLevel = logLevel;
+    }
+
+    public int getProtocolVersion()
+    {
+        return protocolVersion;
+    }
+
+    public void setProtocolVersion(int protocolversion)
+    {
+        this.protocolVersion = protocolVersion;
     }
 
     /**
@@ -372,6 +394,8 @@ public abstract class BaseDataSource implements Referenceable
         sb.append("&socketTimeout=").append(socketTimeout);
         sb.append("&prepareThreshold=").append(prepareThreshold);
         sb.append("&unknownLength=").append(unknownLength);
+        sb.append("&loglevel=").append(logLevel);
+        sb.append("&protocolVersion=").append(protocolVersion);
         if (ssl) {
             sb.append("&ssl=true");
             if (sslfactory != null) {
@@ -428,6 +452,9 @@ public abstract class BaseDataSource implements Referenceable
             ref.add(new StringRefAddr("compatible", compatible));
         }
 
+        ref.add(new StringRefAddr("logLevel", Integer.toString(logLevel)));
+        ref.add(new StringRefAddr("protocolVersion", Integer.toString(protocolVersion)));
+
         return ref;
     }
 
@@ -446,6 +473,8 @@ public abstract class BaseDataSource implements Referenceable
         out.writeObject(sslfactory);
         out.writeBoolean(tcpKeepAlive);
         out.writeObject(compatible);
+        out.writeInt(logLevel);
+        out.writeInt(protocolVersion);
     }
 
     protected void readBaseObject(ObjectInputStream in) throws IOException, ClassNotFoundException
@@ -463,6 +492,8 @@ public abstract class BaseDataSource implements Referenceable
         sslfactory = (String)in.readObject();
         tcpKeepAlive = in.readBoolean();
         compatible = (String)in.readObject();
+        logLevel = in.readInt();
+        protocolVersion = in.readInt();
     }
 
     public void initializeFrom(BaseDataSource source) throws IOException, ClassNotFoundException {

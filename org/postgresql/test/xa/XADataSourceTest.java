@@ -15,6 +15,7 @@ import javax.transaction.xa.Xid;
 
 
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.jdbc2.optional.BaseDataSourceTest;
 import org.postgresql.xa.PGXADataSource;
 
 import junit.framework.TestCase;
@@ -33,12 +34,7 @@ public class XADataSourceTest extends TestCase {
         super(name);
 
         _ds = new PGXADataSource();
-        ((PGXADataSource)_ds).setServerName(TestUtil.getServer());
-        ((PGXADataSource)_ds).setPortNumber(TestUtil.getPort());
-        ((PGXADataSource)_ds).setUser(TestUtil.getUser());
-        ((PGXADataSource)_ds).setPassword(TestUtil.getPassword());
-        ((PGXADataSource)_ds).setDatabaseName(TestUtil.getDatabase());
-        ((PGXADataSource)_ds).setPrepareThreshold(TestUtil.getPrepareThreshold());
+        BaseDataSourceTest.setupDataSource((PGXADataSource)_ds);
     }
 
     protected void setUp() throws Exception {

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/optional/PoolingDataSourceTest.java,v 1.9 2008/01/08 06:56:31 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/optional/PoolingDataSourceTest.java,v 1.10 2009/01/07 05:28:59 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -48,11 +48,7 @@ public class PoolingDataSourceTest extends BaseDataSourceTest
         if (bds == null)
         {
             bds = new PoolingDataSource();
-            bds.setServerName(TestUtil.getServer());
-            bds.setPortNumber(TestUtil.getPort());
-            bds.setDatabaseName(TestUtil.getDatabase());
-            bds.setUser(TestUtil.getUser());
-            bds.setPassword(TestUtil.getPassword());
+            setupDataSource(bds);
             ((PoolingDataSource) bds).setDataSourceName(DS_NAME);
             ((PoolingDataSource) bds).setInitialConnections(2);
             ((PoolingDataSource) bds).setMaxConnections(10);
@@ -62,22 +58,15 @@ public class PoolingDataSourceTest extends BaseDataSourceTest
     /**
      * In this case, we *do* want it to be pooled.
      */
-    public void testNotPooledConnection()
+    public void testNotPooledConnection() throws SQLException
     {
-        try
-        {
-            con = getDataSourceConnection();
-            String name = con.toString();
-            con.close();
-            con = getDataSourceConnection();
-            String name2 = con.toString();
-            con.close();
-            assertTrue("Pooled DS doesn't appear to be pooling connections!", name.equals(name2));
-        }
-        catch (SQLException e)
-        {
-            fail(e.getMessage());
-        }
+        con = getDataSourceConnection();
+        String name = con.toString();
+        con.close();
+        con = getDataSourceConnection();
+        String name2 = con.toString();
+        con.close();
+        assertTrue("Pooled DS doesn't appear to be pooling connections!", name.equals(name2));
     }
 
     /**

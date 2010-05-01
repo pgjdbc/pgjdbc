@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/optional/BaseDataSourceTest.java,v 1.12 2007/10/07 23:32:46 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/optional/BaseDataSourceTest.java,v 1.13 2008/01/08 06:56:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -85,6 +85,18 @@ public abstract class BaseDataSourceTest extends TestCase
      * testing.  Must be customized by each subclass.
      */
     protected abstract void initializeDataSource();
+
+    public static void setupDataSource(BaseDataSource bds)
+    {
+        bds.setServerName(TestUtil.getServer());
+        bds.setPortNumber(TestUtil.getPort());
+        bds.setDatabaseName(TestUtil.getDatabase());
+        bds.setUser(TestUtil.getUser());
+        bds.setPassword(TestUtil.getPassword());
+        bds.setPrepareThreshold(TestUtil.getPrepareThreshold());
+        bds.setLogLevel(TestUtil.getLogLevel());
+        bds.setProtocolVersion(TestUtil.getProtocolVersion());
+    }
 
     /**
      * Test to make sure you can instantiate and configure the
@@ -172,22 +184,15 @@ public abstract class BaseDataSourceTest extends TestCase
      * current DataSource. Obviously need to be overridden in the case
      * of a pooling Datasource.
      */
-    public void testNotPooledConnection()
+    public void testNotPooledConnection() throws SQLException
     {
-        try
-        {
-            con = getDataSourceConnection();
-            String name = con.toString();
-            con.close();
-            con = getDataSourceConnection();
-            String name2 = con.toString();
-            con.close();
-            assertTrue(!name.equals(name2));
-        }
-        catch (SQLException e)
-        {
-            fail(e.getMessage());
-        }
+        con = getDataSourceConnection();
+        String name = con.toString();
+        con.close();
+        con = getDataSourceConnection();
+        String name2 = con.toString();
+        con.close();
+        assertTrue(!name.equals(name2));
     }
 
     /**
