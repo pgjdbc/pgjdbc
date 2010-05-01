@@ -63,6 +63,14 @@ public class PGXAConnection extends PooledConnectionImpl implements XAConnection
     private static final int STATE_ACTIVE = 1;
     private static final int STATE_ENDED = 2;
 
+    /*
+     * When an XA transaction is started, we put the underlying connection
+     * into non-autocommit mode. The old setting is saved in
+     * localAutoCommitMode, so that we can restore it when the XA transaction
+     * ends and the connection returns into local transaction mode.
+     */
+    private boolean localAutoCommitMode = true;
+
     private void debug(String s) {
         Driver.debug("XAResource " + Integer.toHexString(this.hashCode()) + ": " + s);
     }
@@ -150,6 +158,7 @@ public class PGXAConnection extends PooledConnectionImpl implements XAConnection
 
         try
         {
+            localAutoCommitMode = conn.getAutoCommit();
             conn.setAutoCommit(false);
         }
         catch (SQLException ex)
@@ -243,7 +252,7 @@ public class PGXAConnection extends PooledConnectionImpl implements XAConnection
             {
                 stmt.close();
             }
-            conn.setAutoCommit(true);
+            conn.setAutoCommit(localAutoCommitMode);
 
             return XA_OK;
         }
@@ -332,7 +341,7 @@ public class PGXAConnection extends PooledConnectionImpl implements XAConnection
                 state = STATE_IDLE;
                 currentXid = null;
                 conn.rollback();
-                conn.setAutoCommit(true);
+                conn.setAutoCommit(localAutoCommitMode);
             }
             else
             {
@@ -398,7 +407,7 @@ public class PGXAConnection extends PooledConnectionImpl implements XAConnection
             currentXid = null;
 
             conn.commit();
-            conn.setAutoCommit(true);
+            conn.setAutoCommit(localAutoCommitMode);
         }
         catch (SQLException ex)
         {
@@ -426,6 +435,7 @@ public class PGXAConnection extends PooledConnectionImpl implements XAConnection
 
             String s = RecoveredXid.xidToString(xid);
 
+            localAutoCommitMode = conn.getAutoCommit();
             conn.setAutoCommit(true);
             Statement stmt = conn.createStatement();
             try
@@ -435,6 +445,7 @@ public class PGXAConnection extends PooledConnectionImpl implements XAConnection
             finally
             {
                 stmt.close();
+                conn.setAutoCommit(localAutoCommitMode);
             }
         }
         catch (SQLException ex)

@@ -307,6 +307,18 @@ public class XADataSourceTest extends TestCase {
         xaRes.commit(xid, true);
     }
 
+    public void testRestoreOfAutoCommit() throws Exception {
+        conn.setAutoCommit(false);
+
+        Xid xid = new CustomXid(14);
+        xaRes.start(xid, XAResource.TMNOFLAGS);
+        xaRes.end(xid, XAResource.TMSUCCESS);
+        xaRes.commit(xid, true);
+
+        assertTrue(!conn.getAutoCommit());
+    }
+
+
     /* We don't support transaction interleaving.
     public void testInterleaving1() throws Exception {
      Xid xid1 = new CustomXid(1);
