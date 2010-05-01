@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/BaseConnection.java,v 1.21 2008/01/08 06:56:27 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/BaseConnection.java,v 1.22 2008/04/15 04:23:54 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -139,4 +139,11 @@ public interface BaseConnection extends PGConnection, Connection
 
     // Get the bind-string-as-varchar config flag
     public boolean getStringVarcharFlag();
+
+    /**
+     * Get the current transaction state of this connection.
+     * 
+     * @return a ProtocolConnection.TRANSACTION_* constant.
+     */
+    public int getTransactionState();
 }

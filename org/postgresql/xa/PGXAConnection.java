@@ -1,16 +1,18 @@
 package org.postgresql.xa;
 
+import org.postgresql.PGConnection;
 import org.postgresql.ds.PGPooledConnection;
 import org.postgresql.core.BaseConnection;
+import org.postgresql.core.ProtocolConnection;
 import org.postgresql.core.Logger;
-
 import org.postgresql.util.GT;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
-import java.sql.*;
 import javax.sql.*;
-
+import java.sql.*;
 import java.util.*;
-
+import java.lang.reflect.*;
 import javax.transaction.xa.Xid;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.XAException;
@@ -64,6 +66,14 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     private static final int STATE_ACTIVE = 1;
     private static final int STATE_ENDED = 2;
 
+    /*
+     * When an XA transaction is started, we put the underlying connection
+     * into non-autocommit mode. The old setting is saved in
+     * localAutoCommitMode, so that we can restore it when the XA transaction
+     * ends and the connection returns into local transaction mode.
+     */
+    private boolean localAutoCommitMode = true;
+
     private void debug(String s) {
         logger.debug("XAResource " + Integer.toHexString(this.hashCode()) + ": " + s);
     }
@@ -93,12 +103,50 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         if(state == STATE_IDLE)
             conn.setAutoCommit(true);
 
-        return conn;
+        /*
+         * Wrap the connection in a proxy to forbid application from
+         * fiddling with transaction state directly during an XA transaction
+         */
+        ConnectionHandler handler = new ConnectionHandler(conn);
+        return (Connection)Proxy.newProxyInstance(getClass().getClassLoader(), new Class[]{Connection.class, PGConnection.class}, handler);
     }
 
     public XAResource getXAResource() {
         return this;
     }
+
+    /*
+     * A java.sql.Connection proxy class to forbid calls to transaction
+     * control methods while the connection is used for an XA transaction.
+     */
+    private class ConnectionHandler implements InvocationHandler
+    {
+	private Connection con;
+
+	public ConnectionHandler(Connection con)
+	{
+            this.con = con;
+        }
+
+        public Object invoke(Object proxy, Method method, Object[] args)
+        throws Throwable
+        {
+	    if (state != STATE_IDLE)
+            {
+                String methodName = method.getName();
+                if (methodName.equals("commit") ||
+                    methodName.equals("rollback") ||
+                    methodName.equals("setSavePoint") ||
+                    (methodName.equals("setAutoCommit") && ((Boolean) args[0]).booleanValue()))
+                {
+		    throw new PSQLException(GT.tr("Transaction control methods setAutoCommit(true), commit, rollback and setSavePoint not allowed while an XA transaction is active."),
+					    PSQLState.OBJECT_NOT_IN_STATE);
+                }
+            }
+	    return method.invoke(con, args);
+        }
+    }
+
 
     /**** XAResource interface ****/
 
@@ -152,6 +200,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
 
         try
         {
+            localAutoCommitMode = conn.getAutoCommit();
             conn.setAutoCommit(false);
         }
         catch (SQLException ex)
@@ -245,7 +294,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
             {
                 stmt.close();
             }
-            conn.setAutoCommit(true);
+            conn.setAutoCommit(localAutoCommitMode);
 
             return XA_OK;
         }
@@ -334,7 +383,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
                 state = STATE_IDLE;
                 currentXid = null;
                 conn.rollback();
-                conn.setAutoCommit(true);
+                conn.setAutoCommit(localAutoCommitMode);
             }
             else
             {
@@ -400,7 +449,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
             currentXid = null;
 
             conn.commit();
-            conn.setAutoCommit(true);
+            conn.setAutoCommit(localAutoCommitMode);
         }
         catch (SQLException ex)
         {
@@ -421,13 +470,16 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     private void commitPrepared(Xid xid) throws XAException {
         try
         {
-            // Check preconditions
-            if (state != STATE_IDLE)
+            // Check preconditions. The connection mustn't be used for another
+            // other XA or local transaction, or the COMMIT PREPARED command
+            // would mess it up.
+            if (state != STATE_IDLE || conn.getTransactionState() != ProtocolConnection.TRANSACTION_IDLE)
                 throw new PGXAException(GT.tr("Not implemented: 2nd phase commit must be issued using an idle connection"),
                                         XAException.XAER_RMERR);
 
             String s = RecoveredXid.xidToString(xid);
 
+            localAutoCommitMode = conn.getAutoCommit();
             conn.setAutoCommit(true);
             Statement stmt = conn.createStatement();
             try
@@ -437,6 +489,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
             finally
             {
                 stmt.close();
+                conn.setAutoCommit(localAutoCommitMode);
             }
         }
         catch (SQLException ex)

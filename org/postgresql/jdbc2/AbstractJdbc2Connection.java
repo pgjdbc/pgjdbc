@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.53 2009/11/18 11:19:31 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.54 2009/11/19 00:51:26 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -736,6 +736,10 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
         if (protoConnection.getTransactionState() != ProtocolConnection.TRANSACTION_IDLE)
             executeTransactionCommand(rollbackQuery);
+    }
+
+    public int getTransactionState() {
+        return protoConnection.getTransactionState();
     }
 
     /*
