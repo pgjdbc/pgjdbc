@@ -2,15 +2,15 @@
 # German message translation for the PostgreSQL JDBC driver
 # This file is distributed under the same license as the package.
 #
-# $PostgreSQL: pgjdbc/org/postgresql/translation/de.po,v 1.10 2008/09/19 00:01:02 jurka Exp $
+# $PostgreSQL: pgjdbc/org/postgresql/translation/ja.po,v 1.1 2009/12/23 21:44:43 jurka Exp $
 # Andre Bialojahn <ab.spamnews@freenet.de>, 2005, 2006, 2008.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: head-ja\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2009-12-23 13:40-0800\n"
-"PO-Revision-Date: 2009-12-20 03:26+0900\n"
+"POT-Creation-Date: 2010-05-05 13:50-0700\n"
+"PO-Revision-Date: 2010-04-11 22:58+0900\n"
 "Last-Translator: Hiroshi Saito <z-saito@guitar.ocn.ne.jp>\n"
 "Language-Team: PostgreSQL <z-saito@guitar.ocn.ne.jp>\n"
 "MIME-Version: 1.0\n"
@@ -22,7 +22,7 @@ msgstr ""
 
 #: org/postgresql/Driver.java.in:235
 msgid "Error loading default settings from driverconfig.properties"
-msgstr "driverconfig.propertiesから、初期設定のロードエラー"
+msgstr "driverconfig.propertiesによる初期設定のロードエラー"
 
 #: org/postgresql/Driver.java.in:282
 msgid ""
@@ -31,7 +31,7 @@ msgid ""
 "server host and port that you wish to connect to."
 msgstr ""
 "セキュリティ・ポリシーは、接続を妨げました。おそらく、データベース・サー"
-"バー・ホストの接続のためjava.net.SocketPermissionを許可する必要があります。"
+"バー・ホスト接続のためjava.net.SocketPermissionを許可する必要があります。"
 
 #: org/postgresql/Driver.java.in:287 org/postgresql/Driver.java.in:351
 msgid ""
@@ -246,7 +246,7 @@ msgstr "列インデックスは範囲外です: {0} , 列の数: {1}"
 
 #: org/postgresql/core/v2/FastpathParameterList.java:144
 #: org/postgresql/core/v2/SimpleParameterList.java:157
-#: org/postgresql/core/v3/SimpleParameterList.java:174
+#: org/postgresql/core/v3/SimpleParameterList.java:178
 #, java-format
 msgid "No value specified for parameter {0}."
 msgstr "パラメータ {0} の明確な値がありません。"
@@ -460,7 +460,11 @@ msgstr "接続は閉じられました。"
 msgid "Statement has been closed."
 msgstr "構文は閉じられました。"
 
-#: org/postgresql/ds/jdbc23/AbstractJdbc23PoolingDataSource.java:413
+#: org/postgresql/ds/jdbc23/AbstractJdbc23PoolingDataSource.java:293
+msgid "Failed to setup DataSource."
+msgstr ""
+
+#: org/postgresql/ds/jdbc23/AbstractJdbc23PoolingDataSource.java:416
 msgid "DataSource has been closed."
 msgstr "データソースは閉じられました。"
 
@@ -512,18 +516,23 @@ msgstr "配列インデックスは、範囲外です: {0} , 要素の数: {1}"
 msgid ""
 "Truncation of large objects is only implemented in 8.3 and later servers."
 msgstr ""
-"ラージオブジェクトの切断は、サーババージョンが 8.3 以上で装備されています。"
+"ラージオブジェクトの除去は、サーババージョンが 8.3 以上で装備されています。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2BlobClob.java:225
-msgid "LOB positioning offsets start at 1."
-msgstr "LOB オフセット開始位置を 1 としてください。"
+#: org/postgresql/jdbc2/AbstractJdbc2BlobClob.java:79
+msgid "Cannot truncate LOB to a negative length."
+msgstr ""
 
-#: org/postgresql/jdbc2/AbstractJdbc2BlobClob.java:229
+#: org/postgresql/jdbc2/AbstractJdbc2BlobClob.java:83
+#: org/postgresql/jdbc2/AbstractJdbc2BlobClob.java:237
 #, java-format
 msgid "PostgreSQL LOBs can only index to: {0}"
 msgstr "PostgreSQL LOB は、インデックス {0} のみ可能です。 "
 
-#: org/postgresql/jdbc2/AbstractJdbc2BlobClob.java:240
+#: org/postgresql/jdbc2/AbstractJdbc2BlobClob.java:233
+msgid "LOB positioning offsets start at 1."
+msgstr "LOB オフセット開始位置を 1 としてください。"
+
+#: org/postgresql/jdbc2/AbstractJdbc2BlobClob.java:248
 msgid "free() was called on this LOB previously"
 msgstr "free() は、 このLOB以前に呼ばれました"
 
@@ -552,7 +561,7 @@ msgstr "いかなる結果も、クエリーによって返されませんでし
 #: org/postgresql/jdbc2/AbstractJdbc2Connection.java:263
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:305
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:337
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2552
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2550
 msgid "A result was returned when none was expected."
 msgstr "何も予想しなかったときに、結果が返されました。"
 
@@ -585,7 +594,7 @@ msgstr "トランザクションの最中に隔離レベルを変えることが
 #: org/postgresql/jdbc2/AbstractJdbc2Connection.java:788
 #, java-format
 msgid "Transaction isolation level {0} not supported."
-msgstr "トランザクション分離レベル{0} はサポートされていません。"
+msgstr "トランザクション隔離レベル{0} はサポートされていません。"
 
 #: org/postgresql/jdbc2/AbstractJdbc2Connection.java:853
 msgid "Finalizing a Connection that was never closed:"
@@ -627,7 +636,7 @@ msgid "Can''t use relative move methods while on the insert row."
 msgstr "行挿入の最中に関連の動作方法を使うことはできません。"
 
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:685
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2779
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2777
 #, java-format
 msgid "Invalid fetch direction constant: {0}."
 msgstr "フェッチ方向コンスタントが不正です: {0}"
@@ -676,13 +685,13 @@ msgstr "JVMでサポートされないエンコーディングです: {0}"
 
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:975
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1018
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1424
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1553
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1422
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1551
 msgid "Provided InputStream failed."
 msgstr "提供の InputStream は失敗しました。"
 
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1088
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2952
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2950
 msgid "Provided Reader failed."
 msgstr "提供の Reader は失敗しました。"
 
@@ -712,7 +721,7 @@ msgid "No primary key found for table {0}."
 msgstr "テーブル {0} の主キーがありません。"
 
 #: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1793
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2788
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2786
 msgid "Fetch size must be a value greater to or equal to 0."
 msgstr "フェッチサイズは、0に等しいか、より以上の値でなくてはなりません。"
 
@@ -772,7 +781,7 @@ msgstr ""
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:249
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:292
 #: org/postgresql/jdbc2/AbstractJdbc2Statement.java:361
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2509
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2507
 msgid ""
 "Can''t use query methods that take a query string on a PreparedStatement."
 msgstr "PreparedStatementでクエリー文字を含むクエリー方法は使えません。"
@@ -813,41 +822,41 @@ msgstr ""
 msgid "The maximum field size must be a value greater than or equal to 0."
 msgstr "最大の項目サイズは、0に等しいか、または以上の値でなくてはなりません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1145
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1143
 msgid "Unknown Types value."
 msgstr "未知の型の値です。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1389
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1514
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2923
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1387
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1512
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2921
 #, java-format
 msgid "Invalid stream length {0}."
 msgstr "無効なストリーム長 {0}."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1420
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1418
 #, java-format
 msgid "The JVM claims not to support the {0} encoding."
 msgstr "JVMは、エンコーディング {0} をサポートしません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1595
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2853
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1593
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2851
 #, java-format
 msgid "Unknown type {0}."
 msgstr "未知の型 {0}."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1716
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1722
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1728
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1714
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1720
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1726
 #, java-format
 msgid "Cannot cast an instance of {0} to type {1}"
 msgstr "インスタンス {0} は型 {1} へのキャストはできません"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1737
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1735
 #, java-format
 msgid "Unsupported Types value: {0}"
 msgstr "サポートされない型の値: {0}."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1791
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1789
 #, java-format
 msgid ""
 "Can''t infer the SQL type to use for an instance of {0}. Use setObject() "
@@ -856,7 +865,7 @@ msgstr ""
 "{0} で使うべきSQL型を推測できません。明確な型値で記述した setObject() を使っ"
 "てください。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1839
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1837
 msgid ""
 "This statement does not declare an OUT parameter.  Use '{' ?= call ... '}' "
 "to declare one."
@@ -864,17 +873,17 @@ msgstr ""
 "ステートメントは、OUTパラメーターを宣言しません。'{' ?= call ... '}' を使って"
 "宣言して下さい。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1889
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1887
 msgid "wasNull cannot be call before fetching a result."
 msgstr "wasNullは、結果フェッチ前に呼び出せません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2378
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2376
 #, java-format
 msgid "Malformed function or procedure escape syntax at offset {0}."
 msgstr "奇形の関数または手順は、位置 {0} で文法を逸しました。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2428
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2442
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2426
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2440
 #, java-format
 msgid ""
 "Parameter of type {0} was registered, but call to get{1} (sqltype={2}) was "
@@ -883,7 +892,7 @@ msgstr ""
 "型 {0}  のパラメータは登録されました,、しかし、{1} 取得呼び出し(sqltype={2})"
 "が作られました。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2461
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2459
 msgid ""
 "A CallableStatement was declared, but no call to registerOutParameter(1, "
 "<some type>) was made."
@@ -891,35 +900,35 @@ msgstr ""
 "CallableStatementは宣言されました、しかし registerOutParameterwas(1, <some "
 "type>) のいかなる呼び出しも作られません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2465
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2463
 msgid "No function outputs were registered."
 msgstr "関数出力は登録されませんでした。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2468
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2466
 msgid ""
 "Results cannot be retrieved from a CallableStatement before it is executed."
 msgstr "実行される前に、CallableStatement から結果を得ることはできません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2498
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2496
 msgid "This statement has been closed."
 msgstr "このステートメントは閉じられました。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2559
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2625
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2557
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2623
 msgid "Too many update results were returned."
 msgstr "多すぎる更新結果が返されました。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2588
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2654
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2586
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2652
 #, java-format
 msgid ""
 "Batch entry {0} {1} was aborted.  Call getNextException to see the cause."
 msgstr ""
 "バッチ投入 {0} {1} は停止しました、getNextExceptionを呼んで原因を見て下さい。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2893
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2982
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:3022
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2891
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2980
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:3020
 msgid "Unexpected error writing large object to database."
 msgstr ""
 "ラージオブジェクトをデータベースへ書き込み中に想定外のエラーが起きました。"
@@ -1183,41 +1192,41 @@ msgstr "場所: ファイル: {0}, ルーチン: {1},行: {2}"
 msgid "Server SQLState: {0}"
 msgstr "サーバー SQLState: {0}"
 
-#: org/postgresql/xa/PGXAConnection.java:128
-#: org/postgresql/xa/PGXAConnection.java:186
+#: org/postgresql/xa/PGXAConnection.java:136
+#: org/postgresql/xa/PGXAConnection.java:195
 msgid "Invalid flags"
 msgstr "フラグ不正"
 
-#: org/postgresql/xa/PGXAConnection.java:131
-#: org/postgresql/xa/PGXAConnection.java:189
-#: org/postgresql/xa/PGXAConnection.java:366
+#: org/postgresql/xa/PGXAConnection.java:139
+#: org/postgresql/xa/PGXAConnection.java:198
+#: org/postgresql/xa/PGXAConnection.java:375
 msgid "xid must not be null"
 msgstr "xidはnullではいけません"
 
-#: org/postgresql/xa/PGXAConnection.java:134
+#: org/postgresql/xa/PGXAConnection.java:142
 msgid "Connection is busy with another transaction"
 msgstr "接続は、別のトランザクションで忙しいです"
 
-#: org/postgresql/xa/PGXAConnection.java:140
-#: org/postgresql/xa/PGXAConnection.java:196
+#: org/postgresql/xa/PGXAConnection.java:148
+#: org/postgresql/xa/PGXAConnection.java:205
 msgid "suspend/resume not implemented"
 msgstr "停止/再開 は装備されていません"
 
-#: org/postgresql/xa/PGXAConnection.java:146
-#: org/postgresql/xa/PGXAConnection.java:149
-#: org/postgresql/xa/PGXAConnection.java:151
+#: org/postgresql/xa/PGXAConnection.java:154
+#: org/postgresql/xa/PGXAConnection.java:157
+#: org/postgresql/xa/PGXAConnection.java:159
 msgid "Transaction interleaving not implemented"
 msgstr "トランザクションの間に実施されませんでした。"
 
-#: org/postgresql/xa/PGXAConnection.java:159
+#: org/postgresql/xa/PGXAConnection.java:168
 msgid "Error disabling autocommit"
 msgstr "オート・コミット無効エラー"
 
-#: org/postgresql/xa/PGXAConnection.java:192
+#: org/postgresql/xa/PGXAConnection.java:201
 msgid "tried to call end without corresponding start call"
 msgstr "対応する開始呼び出しなしで、終了呼び出しを得ました。"
 
-#: org/postgresql/xa/PGXAConnection.java:223
+#: org/postgresql/xa/PGXAConnection.java:232
 msgid ""
 "Not implemented: Prepare must be issued using the same connection that "
 "started the transaction"
@@ -1225,31 +1234,31 @@ msgstr ""
 "装備されていません: 準備は、開始トランザクションと同じ接続で使わなくてはなり"
 "ません。"
 
-#: org/postgresql/xa/PGXAConnection.java:227
+#: org/postgresql/xa/PGXAConnection.java:236
 msgid "Prepare called before end"
 msgstr "終了前に\"準備\"が呼ばれました"
 
-#: org/postgresql/xa/PGXAConnection.java:233
+#: org/postgresql/xa/PGXAConnection.java:242
 msgid "Server versions prior to 8.1 do not support two-phase commit."
 msgstr "2フェーズ COMMIT は、サーババージョン 8.1以前はサポートされません。"
 
-#: org/postgresql/xa/PGXAConnection.java:254
+#: org/postgresql/xa/PGXAConnection.java:263
 msgid "Error preparing transaction"
 msgstr "準備トランザクションエラー"
 
-#: org/postgresql/xa/PGXAConnection.java:269
+#: org/postgresql/xa/PGXAConnection.java:278
 msgid "Invalid flag"
 msgstr "無効なフラグ"
 
-#: org/postgresql/xa/PGXAConnection.java:309
+#: org/postgresql/xa/PGXAConnection.java:318
 msgid "Error during recover"
 msgstr "回復中にエラー"
 
-#: org/postgresql/xa/PGXAConnection.java:357
+#: org/postgresql/xa/PGXAConnection.java:366
 msgid "Error rolling back prepared transaction"
 msgstr "準備トランザクションのロールバッグエラー"
 
-#: org/postgresql/xa/PGXAConnection.java:392
+#: org/postgresql/xa/PGXAConnection.java:401
 msgid ""
 "Not implemented: one-phase commit must be issued using the same connection "
 "that was used to start it"
@@ -1257,27 +1266,26 @@ msgstr ""
 "装備されていません: 単一フェーズのCOMMITは同じ接続を使って始めなければなりま"
 "せん。"
 
-#: org/postgresql/xa/PGXAConnection.java:396
+#: org/postgresql/xa/PGXAConnection.java:405
 msgid "commit called before end"
 msgstr "終了の前に COMMIT を呼びました"
 
-#: org/postgresql/xa/PGXAConnection.java:407
+#: org/postgresql/xa/PGXAConnection.java:416
 msgid "Error during one-phase commit"
 msgstr "単一フェーズのCOMMITの最中にエラー"
 
-#: org/postgresql/xa/PGXAConnection.java:426
+#: org/postgresql/xa/PGXAConnection.java:435
 msgid ""
 "Not implemented: 2nd phase commit must be issued using an idle connection"
 msgstr ""
 "装備されていません: 第二フェーズの COMMIT は、待機接続で使わなくてはなりませ"
 "ん。"
 
-#: org/postgresql/xa/PGXAConnection.java:444
-#, fuzzy
+#: org/postgresql/xa/PGXAConnection.java:455
 msgid "Error committing prepared transaction"
-msgstr "準備トランザクションのロールバッグエラー"
+msgstr "準備トランザクションのコミットエラー"
 
-#: org/postgresql/xa/PGXAConnection.java:459
+#: org/postgresql/xa/PGXAConnection.java:470
 msgid "Heuristic commit/rollback not supported"
 msgstr "サポートされない commit/rollback が見つかりました。"
 
