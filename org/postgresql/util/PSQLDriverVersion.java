@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/PSQLDriverVersion.java,v 1.13.2.9 2008/11/16 13:45:57 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/util/PSQLDriverVersion.java,v 1.13.2.10 2009/07/01 05:16:17 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -21,7 +21,7 @@ import org.postgresql.Driver;
  */
 public class PSQLDriverVersion {
 
-    public final static int buildNumber = 414;
+    public final static int buildNumber = 415;
 
     public static void main(String args[]) {
         java.net.URL url = Driver.class.getResource("/org/postgresql/Driver.class");
