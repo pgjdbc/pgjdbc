@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.115 2009/09/26 15:21:21 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.116 2010/05/01 16:07:56 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -59,6 +59,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
     /** The warnings chain. */
     protected SQLWarning warnings = null;
+    /** The last warning of the warning chain. */
+    protected SQLWarning lastWarning = null;
 
     /** Maximum number of rows to return, 0 = unlimited */
     protected int maxrows = 0;
@@ -657,15 +659,22 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     }
 
     /**
-     * This adds a warning to the warning chain.
+     * This adds a warning to the warning chain.  We track the
+     * tail of the warning chain as well to avoid O(N) behavior
+     * for adding a new warning to an existing chain.  Some
+     * server functions which RAISE NOTICE (or equivalent) produce
+     * a ton of warnings.
      * @param warn warning to add
      */
     public void addWarning(SQLWarning warn)
     {
-        if (warnings != null)
-            warnings.setNextWarning(warn);
-        else
+        if (warnings == null) {
             warnings = warn;
+            lastWarning = warn;
+        } else {
+            lastWarning.setNextWarning(warn);
+            lastWarning = warn;
+        }
     }
 
     /*
@@ -729,6 +738,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public void clearWarnings() throws SQLException
     {
         warnings = null;
+        lastWarning = null;
     }
 
     /*
