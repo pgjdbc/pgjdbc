@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.47 2009/12/07 22:03:06 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.48 2010/03/21 07:13:37 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -714,6 +714,9 @@ public class QueryExecutorImpl implements QueryExecutor {
         byte buf[] = Utils.encodeUTF8(sql);
 
         try {
+            if (logger.logDebug())
+                logger.debug(" FE=> Query(CopyStart)");
+
             pgStream.SendChar('Q');
             pgStream.SendInteger4(buf.length + 4 + 1);
             pgStream.Send(buf);
@@ -813,6 +816,9 @@ public class QueryExecutorImpl implements QueryExecutor {
                 throw new PSQLException(GT.tr("Tried to end inactive copy"), PSQLState.OBJECT_NOT_IN_STATE);
 
         try {
+            if (logger.logDebug())
+                logger.debug(" FE=> CopyDone");
+
             pgStream.SendChar('c'); // CopyDone
             pgStream.SendInteger4(4);
             pgStream.flush();
@@ -838,7 +844,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             throw new PSQLException(GT.tr("Tried to write to an inactive copy operation"), PSQLState.OBJECT_NOT_IN_STATE);
 
         if (logger.logDebug())
-            logger.debug(" FE=> CopyData(" + (siz-off) + ")");
+            logger.debug(" FE=> CopyData(" + siz + ")");
 
         try {
             pgStream.SendChar('d');
