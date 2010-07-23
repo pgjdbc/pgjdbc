@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.116 2010/05/01 16:07:56 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.117 2010/05/26 19:16:21 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1793,6 +1793,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             setArray(parameterIndex, (Array)x);
         else if (x instanceof PGobject)
             setPGobject(parameterIndex, (PGobject)x);
+        else if (x instanceof Character)
+            setString(parameterIndex, ((Character)x).toString());
         else
         {
             // Can't infer a type.

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/PreparedStatementTest.java,v 1.22 2008/01/08 06:56:31 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/PreparedStatementTest.java,v 1.23 2009/04/20 21:44:09 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -799,6 +799,17 @@ public class PreparedStatementTest extends TestCase
         pstmt.setObject(1, "1 week", Types.OTHER);
         pstmt.executeUpdate();
         pstmt.close();
+    }
+
+    /**
+     * With autoboxing this apparently happens more often now.
+     */
+    public void testSetObjectCharacter() throws SQLException
+    {
+        PreparedStatement ps = conn.prepareStatement("INSERT INTO texttable(te) VALUES (?)");
+        ps.setObject(1, new Character('z'));
+        ps.executeUpdate();
+        ps.close();
     }
 
     /**
