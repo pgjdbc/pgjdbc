@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.45 2009/12/04 21:21:56 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.46 2009/12/09 01:06:34 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -480,6 +480,29 @@ public class DatabaseMetaDataTest extends TestCase
         assertTrue(!rs.next());
 
         rs.close();
+    }
+
+    public void testAscDescIndexInfo() throws SQLException
+    {
+        if (!TestUtil.haveMinimumServerVersion(con, "8.3"))
+            return;
+
+        Statement stmt = con.createStatement();
+        stmt.execute("CREATE INDEX idx_a_d ON testmetadata (id ASC, quest DESC)");
+        stmt.close();
+
+        DatabaseMetaData dbmd = con.getMetaData();
+        ResultSet rs = dbmd.getIndexInfo(null, null, "testmetadata", false, false);
+
+        assertTrue(rs.next());
+        assertEquals("idx_a_d", rs.getString("INDEX_NAME"));
+        assertEquals("id", rs.getString("COLUMN_NAME"));
+        assertEquals("A", rs.getString("ASC_OR_DESC"));
+
+        assertTrue(rs.next());
+        assertEquals("idx_a_d", rs.getString("INDEX_NAME"));
+        assertEquals("quest", rs.getString("COLUMN_NAME"));
+        assertEquals("D", rs.getString("ASC_OR_DESC"));
     }
 
     public void testPartialIndexInfo() throws SQLException

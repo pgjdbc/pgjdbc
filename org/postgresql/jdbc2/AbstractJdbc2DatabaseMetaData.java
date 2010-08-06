@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.54 2009/12/09 01:06:34 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.55 2010/05/01 16:52:16 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2934,27 +2934,49 @@ public abstract class AbstractJdbc2DatabaseMetaData
          * and oid should also be considered. -KJ
          */
 
-        String from;
-        String where = "";
-        if (connection.haveMinimumServerVersion("7.3"))
+        String sql;
+        if (connection.haveMinimumServerVersion("8.1"))
         {
-            from = " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class ct, pg_catalog.pg_class ci, pg_catalog.pg_attribute a, pg_catalog.pg_index i ";
-            where = " AND ct.relnamespace = n.oid ";
+            sql = "SELECT a.attname, a.atttypid, atttypmod "
+                + "FROM pg_catalog.pg_class ct "
+                + "  JOIN pg_catalog.pg_attribute a ON (ct.oid = a.attrelid) "
+                + "  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) "
+                + "  JOIN (SELECT i.indexrelid, i.indrelid, i.indisprimary, "
+                + "             information_schema._pg_expandarray(i.indkey) AS keys "
+                + "        FROM pg_catalog.pg_index i) i "
+                + "    ON (a.attnum = (i.keys).x AND a.attrelid = i.indrelid) "
+                + "WHERE true ";
             if (schema != null && !"".equals(schema))
             {
-                where += " AND n.nspname = '" + escapeQuotes(schema) + "' ";
+                sql += " AND n.nspname = '" + escapeQuotes(schema) + "' ";
             }
         }
         else
         {
-            from = " FROM pg_class ct, pg_class ci, pg_attribute a, pg_index i ";
-        }
-        String sql = "SELECT a.attname, a.atttypid, a.atttypmod " +
+            String from;
+            String where = "";
+            if (connection.haveMinimumServerVersion("7.3"))
+            {
+                from = " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class ct, pg_catalog.pg_class ci, pg_catalog.pg_attribute a, pg_catalog.pg_index i ";
+                where = " AND ct.relnamespace = n.oid ";
+                if (schema != null && !"".equals(schema))
+                {
+                    where += " AND n.nspname = '" + escapeQuotes(schema) + "' ";
+                }
+            }
+            else
+            {
+                from = " FROM pg_class ct, pg_class ci, pg_attribute a, pg_index i ";
+            }
+            sql = "SELECT a.attname, a.atttypid, a.atttypmod " +
                      from +
                      " WHERE ct.oid=i.indrelid AND ci.oid=i.indexrelid " +
-                     " AND a.attrelid=ci.oid AND i.indisprimary " +
-                     " AND ct.relname = '" + escapeQuotes(table) + "' " +
-                     where +
+                     " AND a.attrelid=ci.oid " +
+                     where;
+        }
+
+        sql += " AND ct.relname = '" + escapeQuotes(table) + "' " +
+                     " AND i.indisprimary " +
                      " ORDER BY a.attnum ";
 
         ResultSet rs = connection.createStatement().executeQuery(sql);
@@ -3074,38 +3096,65 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public java.sql.ResultSet getPrimaryKeys(String catalog, String schema, String table) throws SQLException
     {
-        String select;
-        String from;
-        String where = "";
-        if (connection.haveMinimumServerVersion("7.3"))
+        String sql;
+        if (connection.haveMinimumServerVersion("8.1"))
         {
-            select = "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, ";
-            from = " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class ct, pg_catalog.pg_class ci, pg_catalog.pg_attribute a, pg_catalog.pg_index i ";
-            where = " AND ct.relnamespace = n.oid ";
+            sql = "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, "
+                + "  ct.relname AS TABLE_NAME, a.attname AS COLUMN_NAME, "
+                + "  (i.keys).n AS KEY_SEQ, ci.relname AS PK_NAME "
+                + "FROM pg_catalog.pg_class ct "
+                + "  JOIN pg_catalog.pg_attribute a ON (ct.oid = a.attrelid) "
+                + "  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) "
+                + "  JOIN (SELECT i.indexrelid, i.indrelid, i.indisprimary, "
+                + "             information_schema._pg_expandarray(i.indkey) AS keys "
+                + "        FROM pg_catalog.pg_index i) i "
+                + "    ON (a.attnum = (i.keys).x AND a.attrelid = i.indrelid) "
+                + "  JOIN pg_catalog.pg_class ci ON (ci.oid = i.indexrelid) "
+                + "WHERE true ";
             if (schema != null && !"".equals(schema))
             {
-                where += " AND n.nspname = '" + escapeQuotes(schema) + "' ";
+                sql += " AND n.nspname = '" + escapeQuotes(schema) + "' ";
             }
+        } else {
+            String select;
+            String from;
+            String where = "";
+
+            if (connection.haveMinimumServerVersion("7.3"))
+            {
+                select = "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, ";
+                from = " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class ct, pg_catalog.pg_class ci, pg_catalog.pg_attribute a, pg_catalog.pg_index i ";
+                where = " AND ct.relnamespace = n.oid ";
+                if (schema != null && !"".equals(schema))
+                {
+                    where += " AND n.nspname = '" + escapeQuotes(schema) + "' ";
+                }
+            }
+            else
+            {
+                select = "SELECT NULL AS TABLE_CAT, NULL AS TABLE_SCHEM, ";
+                from = " FROM pg_class ct, pg_class ci, pg_attribute a, pg_index i ";
+            }
+
+            sql = select +
+                         " ct.relname AS TABLE_NAME, " +
+                         " a.attname AS COLUMN_NAME, " +
+                         " a.attnum AS KEY_SEQ, " +
+                         " ci.relname AS PK_NAME " +
+                         from +
+                         " WHERE ct.oid=i.indrelid AND ci.oid=i.indexrelid " +
+                         " AND a.attrelid=ci.oid " +
+                        where;
         }
-        else
-        {
-            select = "SELECT NULL AS TABLE_CAT, NULL AS TABLE_SCHEM, ";
-            from = " FROM pg_class ct, pg_class ci, pg_attribute a, pg_index i ";
-        }
-        String sql = select +
-                     " ct.relname AS TABLE_NAME, " +
-                     " a.attname AS COLUMN_NAME, " +
-                     " a.attnum AS KEY_SEQ, " +
-                     " ci.relname AS PK_NAME " +
-                     from +
-                     " WHERE ct.oid=i.indrelid AND ci.oid=i.indexrelid " +
-                     " AND a.attrelid=ci.oid AND i.indisprimary ";
+
         if (table != null && !"".equals(table))
         {
             sql += " AND ct.relname = '" + escapeQuotes(table) + "' ";
         }
-        sql += where +
-               " ORDER BY table_name, pk_name, key_seq";
+
+        sql += " AND i.indisprimary " +
+                " ORDER BY table_name, pk_name, key_seq";
+
         return createMetaDataStatement().executeQuery(sql);
     }
 
@@ -3838,45 +3887,90 @@ public abstract class AbstractJdbc2DatabaseMetaData
     // Implementation note: This is required for Borland's JBuilder to work
     public java.sql.ResultSet getIndexInfo(String catalog, String schema, String tableName, boolean unique, boolean approximate) throws SQLException
     {
-        String select;
-        String from;
-        String where = "";
-
         /* This is a complicated function because we have three possible
          * situations:
          * <= 7.2 no schemas, single column functional index
          * 7.3 schemas, single column functional index
          * >= 7.4 schemas, multi-column expressional index
+         * >= 8.3 supports ASC/DESC column info
+         * >= 9.0 no longer renames index columns on a table column rename,
+         *        so we must look at the table attribute names
          *
          * with the single column functional index we need an extra
          * join to the table's pg_attribute data to get the column
          * the function operates on.
          */
-        if (connection.haveMinimumServerVersion("7.3"))
+        String sql;
+        if (connection.haveMinimumServerVersion("8.3"))
         {
-            select = "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, ";
-            from = " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class ct, pg_catalog.pg_class ci, pg_catalog.pg_attribute a, pg_catalog.pg_am am ";
-            where = " AND n.oid = ct.relnamespace ";
+            sql = "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, "
+                + "  ct.relname AS TABLE_NAME, NOT i.indisunique AS NON_UNIQUE, "
+                + "  NULL AS INDEX_QUALIFIER, ci.relname AS INDEX_NAME, "
+                + "  CASE i.indisclustered "
+                + "    WHEN true THEN " + java.sql.DatabaseMetaData.tableIndexClustered
+                + "    ELSE CASE am.amname "
+                + "      WHEN 'hash' THEN " + java.sql.DatabaseMetaData.tableIndexHashed
+                + "      ELSE " + java.sql.DatabaseMetaData.tableIndexOther
+                + "    END "
+                + "  END AS TYPE, "
+                + "  (i.keys).n AS ORDINAL_POSITION, "
+                + "  pg_catalog.pg_get_indexdef(ci.oid, (i.keys).n, false) AS COLUMN_NAME, "
+                + "  CASE am.amcanorder "
+                + "    WHEN true THEN CASE i.indoption[(i.keys).n - 1] & 1 "
+                + "      WHEN 1 THEN 'D' "
+                + "      ELSE 'A' "
+                + "    END "
+                + "    ELSE NULL "
+                + "  END AS ASC_OR_DESC, "
+                + "  ci.reltuples AS CARDINALITY, "
+                + "  ci.relpages AS PAGES, "
+                + "  pg_catalog.pg_get_expr(i.indpred, i.indrelid) AS FILTER_CONDITION "
+                + "FROM pg_catalog.pg_class ct "
+                + "  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) "
+                + "  JOIN (SELECT i.indexrelid, i.indrelid, i.indoption, "
+                + "          i.indisunique, i.indisclustered, i.indpred, "
+                + "          i.indexprs, "
+                + "          information_schema._pg_expandarray(i.indkey) AS keys "
+                + "        FROM pg_catalog.pg_index i) i "
+                + "    ON (ct.oid = i.indrelid) "
+                + "  JOIN pg_catalog.pg_class ci ON (ci.oid = i.indexrelid) "
+                + "  JOIN pg_catalog.pg_am am ON (ci.relam = am.oid) "
+                + "WHERE true ";
 
-            if (!connection.haveMinimumServerVersion("7.4")) {
-                from += ", pg_catalog.pg_attribute ai, pg_catalog.pg_index i LEFT JOIN pg_catalog.pg_proc ip ON (i.indproc = ip.oid) ";
-                where += " AND ai.attnum = i.indkey[0] AND ai.attrelid = ct.oid ";
-            } else {
-                from += ", pg_catalog.pg_index i ";
-            }
-            if (schema != null && ! "".equals(schema))
+            if (schema != null && !"".equals(schema))
             {
-                where += " AND n.nspname = '" + escapeQuotes(schema) + "' ";
+                sql += " AND n.nspname = '" + escapeQuotes(schema) + "' ";
             }
-        }
-        else
-        {
-            select = "SELECT NULL AS TABLE_CAT, NULL AS TABLE_SCHEM, ";
-            from = " FROM pg_class ct, pg_class ci, pg_attribute a, pg_am am, pg_attribute ai, pg_index i LEFT JOIN pg_proc ip ON (i.indproc = ip.oid) ";
-            where = " AND ai.attnum = i.indkey[0] AND ai.attrelid = ct.oid ";
-        }
+        } else {
+            String select;
+            String from;
+            String where = "";
 
-        String sql = select +
+            if (connection.haveMinimumServerVersion("7.3"))
+            {
+                select = "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, ";
+                from = " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class ct, pg_catalog.pg_class ci, pg_catalog.pg_attribute a, pg_catalog.pg_am am ";
+                where = " AND n.oid = ct.relnamespace ";
+
+                if (!connection.haveMinimumServerVersion("7.4")) {
+                    from += ", pg_catalog.pg_attribute ai, pg_catalog.pg_index i LEFT JOIN pg_catalog.pg_proc ip ON (i.indproc = ip.oid) ";
+                    where += " AND ai.attnum = i.indkey[0] AND ai.attrelid = ct.oid ";
+                } else {
+                    from += ", pg_catalog.pg_index i ";
+                }
+                if (schema != null && ! "".equals(schema))
+                {
+                    where += " AND n.nspname = '" + escapeQuotes(schema) + "' ";
+                }
+            }
+            else
+            {
+                select = "SELECT NULL AS TABLE_CAT, NULL AS TABLE_SCHEM, ";
+                from = " FROM pg_class ct, pg_class ci, pg_attribute a, pg_am am, pg_attribute ai, pg_index i LEFT JOIN pg_proc ip ON (i.indproc = ip.oid) ";
+                where = " AND ai.attnum = i.indkey[0] AND ai.attrelid = ct.oid ";
+            }
+
+            sql = select +
                      " ct.relname AS TABLE_NAME, NOT i.indisunique AS NON_UNIQUE, NULL AS INDEX_QUALIFIER, ci.relname AS INDEX_NAME, " +
                      " CASE i.indisclustered " +
                      " WHEN true THEN " + java.sql.DatabaseMetaData.tableIndexClustered +
@@ -3887,37 +3981,39 @@ public abstract class AbstractJdbc2DatabaseMetaData
                      " END AS TYPE, " +
                      " a.attnum AS ORDINAL_POSITION, ";
 
-        if( connection.haveMinimumServerVersion("7.4"))
-        {
-            sql += " CASE WHEN i.indexprs IS NULL THEN a.attname ELSE pg_catalog.pg_get_indexdef(ci.oid,a.attnum,false) END AS COLUMN_NAME, ";
-        }
-        else
-        {
-            sql += " CASE i.indproc WHEN 0 THEN a.attname ELSE ip.proname || '(' || ai.attname || ')' END AS COLUMN_NAME, ";
-        }
+            if( connection.haveMinimumServerVersion("7.4"))
+            {
+                sql += " CASE WHEN i.indexprs IS NULL THEN a.attname ELSE pg_catalog.pg_get_indexdef(ci.oid,a.attnum,false) END AS COLUMN_NAME, ";
+            }
+            else
+            {
+                sql += " CASE i.indproc WHEN 0 THEN a.attname ELSE ip.proname || '(' || ai.attname || ')' END AS COLUMN_NAME, ";
+            }
 
 
-        sql += " NULL AS ASC_OR_DESC, " +
+            sql += " NULL AS ASC_OR_DESC, " +
                      " ci.reltuples AS CARDINALITY, " +
                      " ci.relpages AS PAGES, ";
 
-        if( connection.haveMinimumServerVersion("7.3"))
-        {
-            sql += " pg_catalog.pg_get_expr(i.indpred, i.indrelid) AS FILTER_CONDITION ";
-        }
-	else if( connection.haveMinimumServerVersion("7.2"))
-        {
-            sql += " pg_get_expr(i.indpred, i.indrelid) AS FILTER_CONDITION ";
-        }
-        else
-        {
-            sql += " NULL AS FILTER_CONDITION ";
+            if( connection.haveMinimumServerVersion("7.3"))
+            {
+                sql += " pg_catalog.pg_get_expr(i.indpred, i.indrelid) AS FILTER_CONDITION ";
+            }
+            else if( connection.haveMinimumServerVersion("7.2"))
+            {
+                sql += " pg_get_expr(i.indpred, i.indrelid) AS FILTER_CONDITION ";
+            }
+            else
+            {
+                sql += " NULL AS FILTER_CONDITION ";
+            }
+
+            sql += from +
+                     " WHERE ct.oid=i.indrelid AND ci.oid=i.indexrelid AND a.attrelid=ci.oid AND ci.relam=am.oid " +
+                     where;
         }
 
-        sql += from +
-                     " WHERE ct.oid=i.indrelid AND ci.oid=i.indexrelid AND a.attrelid=ci.oid AND ci.relam=am.oid " +
-                     where +
-                     " AND ct.relname = '" + escapeQuotes(tableName) + "' ";
+        sql += " AND ct.relname = '" + escapeQuotes(tableName) + "' ";
 
         if (unique)
         {
