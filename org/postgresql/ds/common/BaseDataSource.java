@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.19 2010/05/01 20:35:39 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.20 2010/05/01 21:04:00 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -58,7 +58,7 @@ public abstract class BaseDataSource implements Referenceable
     private boolean tcpKeepAlive = false;
     private String compatible;
     private int logLevel = 0;
-    private int protocolVersion = 3;
+    private int protocolVersion = 0;
 
     /**
      * Gets a connection to the PostgreSQL database.  The database is identified by the
@@ -395,7 +395,9 @@ public abstract class BaseDataSource implements Referenceable
         sb.append("&prepareThreshold=").append(prepareThreshold);
         sb.append("&unknownLength=").append(unknownLength);
         sb.append("&loglevel=").append(logLevel);
-        sb.append("&protocolVersion=").append(protocolVersion);
+        if (protocolVersion != 0) {
+            sb.append("&protocolVersion=").append(protocolVersion);
+        }
         if (ssl) {
             sb.append("&ssl=true");
             if (sslfactory != null) {
