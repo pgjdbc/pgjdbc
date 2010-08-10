@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/EscapedFunctions.java,v 1.5.2.1 2005/06/04 18:24:46 jurka Exp $
+* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/EscapedFunctions.java,v 1.5.2.2 2008/02/19 06:12:58 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -100,23 +100,25 @@ public class EscapedFunctions {
     
     
     /** storage for functions implementations */
-    private static Map functionMap = null;
-    
+    private static Map functionMap = createFunctionMap();
+
+    private static Map createFunctionMap() {
+    	Method[] arrayMeths = EscapedFunctions.class.getDeclaredMethods();
+        Map functionMap = new HashMap(arrayMeths.length*2);
+        for (int i=0;i<arrayMeths.length;i++){
+            Method meth = arrayMeths[i];
+            if (meth.getName().startsWith("sql"))
+                functionMap.put(meth.getName().toLowerCase(Locale.US),meth);
+        }
+	return functionMap;
+    }
+
     /**
      * get Method object implementing the given function
      * @param functionName name of the searched function
      * @return a Method object or null if not found
      */
     public static Method getFunction(String functionName){
-        if (functionMap==null){
-            Method[] arrayMeths = EscapedFunctions.class.getDeclaredMethods();
-            functionMap = new HashMap(arrayMeths.length*2);
-            for (int i=0;i<arrayMeths.length;i++){
-                Method meth = arrayMeths[i];
-                if (meth.getName().startsWith("sql"))
-                    functionMap.put(meth.getName().toLowerCase(Locale.US),meth);
-            }
-        }
         return (Method) functionMap.get("sql"+functionName.toLowerCase(Locale.US));
     }
 
