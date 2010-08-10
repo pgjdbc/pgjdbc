@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ResultSetMetaDataTest.java,v 1.15 2006/05/15 09:35:57 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ResultSetMetaDataTest.java,v 1.16 2008/01/08 06:56:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -35,10 +35,12 @@ public class ResultSetMetaDataTest extends TestCase
         TestUtil.createTable(conn, "serialtest", "a serial, b bigserial, c int");
         TestUtil.createTable(conn, "alltypes", "bool boolean, i2 int2, i4 int4, i8 int8, num numeric(10,2), re real, fl float, ch char(3), vc varchar(3), tx text, d date, t time without time zone, tz time with time zone, ts timestamp without time zone, tsz timestamp with time zone, bt bytea");
         TestUtil.createTable(conn, "sizetest", "fixedchar char(5), fixedvarchar varchar(5), unfixedvarchar varchar, txt text, bytearr bytea, num64 numeric(6,4), num60 numeric(6,0), num numeric, ip inet");
+        TestUtil.createTable(conn, "compositetest", "col rsmd1");
     }
 
     protected void tearDown() throws Exception
     {
+        TestUtil.dropTable(conn, "compositetest");
         TestUtil.dropTable(conn, "rsmd1");
         TestUtil.dropTable(conn, "timetest");
         TestUtil.dropTable(conn, "serialtest");
@@ -211,6 +213,14 @@ public class ResultSetMetaDataTest extends TestCase
         for (int i=0; i<rsmd.getColumnCount(); i++) {
             assertEquals(rs.getObject(i+1).getClass().getName(), rsmd.getColumnClassName(i+1));
         }
+    }
+
+    public void testComposite() throws Exception {
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT col FROM compositetest");
+        ResultSetMetaData rsmd = rs.getMetaData();
+        assertEquals(Types.STRUCT, rsmd.getColumnType(1));
+        assertEquals("rsmd1", rsmd.getColumnTypeName(1));
     }
 
 }

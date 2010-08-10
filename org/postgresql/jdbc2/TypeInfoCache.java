@@ -3,7 +3,7 @@
  * Copyright (c) 2005-2008, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.18 2009/03/03 05:33:04 jurka Exp $
+ *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.19 2009/06/20 15:19:41 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -58,7 +58,7 @@ public class TypeInfoCache implements TypeInfo {
     private PreparedStatement _getNameStatement;
     private PreparedStatement _getArrayElementOidStatement;
     private PreparedStatement _getArrayDelimiterStatement;
-    private PreparedStatement _isArrayStatement;
+    private PreparedStatement _getTypeInfoStatement;
 
     // basic pg types info:
     // 0 - type name
@@ -182,32 +182,42 @@ public class TypeInfoCache implements TypeInfo {
         if (i != null)
             return i.intValue();
 
-        if (_isArrayStatement == null) {
+        if (_getTypeInfoStatement == null) {
             // There's no great way of telling what's an array type.
             // People can name their own types starting with _.
             // Other types use typelem that aren't actually arrays, like box.
             //
-            String sql = "SELECT 1 FROM ";
+            String sql = "SELECT typinput='array_in'::regproc, typtype FROM ";
             if (_conn.haveMinimumServerVersion("7.3")) {
                 sql += "pg_catalog.";
             }
-            sql += "pg_type WHERE typname = ? AND typinput='array_in'::regproc";
+            sql += "pg_type WHERE typname = ?";
 
-            _isArrayStatement = _conn.prepareStatement(sql);
+            _getTypeInfoStatement = _conn.prepareStatement(sql);
         }
 
-        _isArrayStatement.setString(1, pgTypeName);
+        _getTypeInfoStatement.setString(1, pgTypeName);
 
         // Go through BaseStatement to avoid transaction start.
-        if (!((BaseStatement)_isArrayStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN))
+        if (!((BaseStatement)_getTypeInfoStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN))
             throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
 
-        ResultSet rs = _isArrayStatement.getResultSet();
+        ResultSet rs = _getTypeInfoStatement.getResultSet();
 
-        Integer type;
+        Integer type = null;
         if (rs.next()) {
-             type = new Integer(Types.ARRAY);
-        } else {
+            boolean isArray = rs.getBoolean(1);
+            String typtype = rs.getString(2);
+            if (isArray) {
+                type = new Integer(Types.ARRAY);
+            } else if ("c".equals(typtype)) {
+                type = new Integer(Types.STRUCT);
+            } else if ("d".equals(typtype)) {
+                type = new Integer(Types.DISTINCT);
+            }
+        }
+
+        if (type == null) {
              type = new Integer(Types.OTHER);
         }
         rs.close();
