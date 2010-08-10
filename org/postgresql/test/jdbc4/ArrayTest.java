@@ -3,7 +3,7 @@
 * Copyright (c) 2007-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc4/ArrayTest.java,v 1.2 2008/01/08 06:07:50 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc4/ArrayTest.java,v 1.3 2008/01/08 06:56:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -74,7 +74,13 @@ public class ArrayTest extends TestCase {
         if (!TestUtil.haveMinimumServerVersion(_conn, "8.2"))
             return;
 
-        PreparedStatement pstmt = _conn.prepareStatement("SELECT ?");
+        String sql = "SELECT ?";
+        // We must provide the type information for V2 protocol
+        if (TestUtil.isProtocolVersion(_conn, 2)) {
+            sql = "SELECT ?::int8[]";
+        }
+
+        PreparedStatement pstmt = _conn.prepareStatement(sql);
         String in[] = new String[2];
         in[0] = null;
         in[1] = null;
