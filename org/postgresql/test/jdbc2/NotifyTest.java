@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/NotifyTest.java,v 1.8 2008/01/08 06:56:31 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/NotifyTest.java,v 1.9 2010/04/06 23:41:11 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -51,7 +51,7 @@ public class NotifyTest extends TestCase
 
     public void testNotifyArgument() throws Exception
     {
-        if (!TestUtil.haveMinimumServerVersion(conn, "9.0"))
+        if (!TestUtil.haveMinimumServerVersion(conn, "9.0") || TestUtil.isProtocolVersion(conn, 2))
             return;
 
         Statement stmt = conn.createStatement();
