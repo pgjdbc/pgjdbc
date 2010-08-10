@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.55 2010/05/01 16:52:16 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.56 2010/08/06 22:01:21 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2310,7 +2310,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
             }
 
             if (connection.haveMinimumServerVersion("8.4"))
-                sql += ") v WHERE true ";
+                sql += ") c WHERE true ";
 
         }
         else if (connection.haveMinimumServerVersion("7.2"))
@@ -2343,13 +2343,13 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
         if (!connection.haveMinimumServerVersion("7.3") && tableNamePattern != null && !"".equals(tableNamePattern))
         {
-            sql += " AND relname LIKE '" + escapeQuotes(tableNamePattern) + "' ";
+            sql += " AND c.relname LIKE '" + escapeQuotes(tableNamePattern) + "' ";
         }
         if (columnNamePattern != null && !"".equals(columnNamePattern))
         {
             sql += " AND attname LIKE '" + escapeQuotes(columnNamePattern) + "' ";
         }
-        sql += " ORDER BY nspname,relname,attnum ";
+        sql += " ORDER BY nspname,c.relname,attnum ";
 
         ResultSet rs = connection.createStatement().executeQuery(sql);
         while (rs.next())
