@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ConnectionFactoryImpl.java,v 1.19 2008/11/29 07:40:30 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ConnectionFactoryImpl.java,v 1.20 2009/06/02 00:22:58 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -382,6 +382,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                             logger);
                     break;
 
+                case AUTH_REQ_SSPI:
+                    if (logger.logDebug())
+                        logger.debug(" <=BE AuthenticationReqSSPI");
+
+                    throw new PSQLException(GT.tr("SSPI authentication is not supported because it is not portable.  Try configuring the server to use GSSAPI instead."), PSQLState.CONNECTION_REJECTED);
 
                 case AUTH_REQ_OK:
                     if (logger.logDebug())
