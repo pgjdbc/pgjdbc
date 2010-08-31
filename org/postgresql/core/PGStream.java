@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/PGStream.java,v 1.21 2007/02/28 06:10:59 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/PGStream.java,v 1.22 2008/01/08 06:56:27 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -246,6 +246,21 @@ public class PGStream
         {
             pg_output.write(0);
         }
+    }
+
+    /**
+     * Receives a single character from the backend, without
+     * advancing the current protocol stream position.
+     *
+     * @return the character received
+     * @exception IOException if an I/O Error occurs
+     */
+    public int PeekChar() throws IOException
+    {
+        int c = pg_input.peek();
+        if (c < 0)
+            throw new EOFException();
+        return c;
     }
 
     /**

@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.45.2.1 2009/12/04 19:53:27 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.45.2.2 2009/12/07 22:03:14 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -900,6 +900,25 @@ public class QueryExecutorImpl implements QueryExecutor {
         int len;
 
         while( !endReceiving && (block || pgStream.hasMessagePending()) ) {
+
+            // There is a bug in the server's implementation of the copy
+            // protocol.  It returns command complete immediately upon
+            // receiving the EOF marker in the binary protocol,
+            // potentially before we've issued CopyDone.  When we are not
+            // blocking, we don't think we are done, so we hold off on
+            // processing command complete and any subsequent messages
+            // until we actually are done with the copy.
+            //
+            if (!block) {
+                int c = pgStream.PeekChar();
+                if (c == 'C') // CommandComplete
+                {
+                    if (logger.logDebug())
+                        logger.debug(" <=BE CommandStatus, Ignored until CopyDone");
+                    break;
+                }
+            }
+
             int c = pgStream.ReceiveChar();
             switch(c) {
 
