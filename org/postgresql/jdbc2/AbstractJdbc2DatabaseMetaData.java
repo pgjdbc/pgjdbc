@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.57 2010/08/10 19:46:13 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.58 2010/10/16 00:38:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2871,8 +2871,17 @@ public abstract class AbstractJdbc2DatabaseMetaData
         if (aclArray == null)
         {
             //null acl is a shortcut for owner having full privs
-            aclArray = "{" + owner + "=arwdRxt}";
+            String perms = "arwdRxt";
+            if (connection.haveMinimumServerVersion("8.2")) {
+                // 8.2 Removed the separate RULE permission
+                perms = "arwdxt";
+            } else if (connection.haveMinimumServerVersion("8.4")) {
+                // 8.4 Added a separate TRUNCATE permission
+                perms = "arwdDxt";
+            }
+            aclArray = "{" + owner + "=" + perms + "}";
         }
+
         Vector acls = parseACLArray(aclArray);
         Hashtable privileges = new Hashtable();
         for (int i = 0; i < acls.size(); i++)
