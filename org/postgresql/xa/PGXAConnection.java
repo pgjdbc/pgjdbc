@@ -143,7 +143,11 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
 					    PSQLState.OBJECT_NOT_IN_STATE);
                 }
             }
-	    return method.invoke(con, args);
+            try {
+                return method.invoke(con, args);
+            } catch (InvocationTargetException ex) {
+                throw ex.getTargetException();
+            }
         }
     }
 
