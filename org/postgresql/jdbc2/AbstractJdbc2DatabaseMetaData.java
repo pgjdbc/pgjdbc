@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.51.2.4 2010/05/01 16:52:23 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.51.2.5 2010/08/10 19:46:19 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2796,6 +2796,9 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     private void addACLPrivileges(String acl, Hashtable privileges) {
         int equalIndex = acl.lastIndexOf("=");
+        if (equalIndex == -1)
+            return;
+
         String name = acl.substring(0, equalIndex);
         if (name.length() == 0)
         {
