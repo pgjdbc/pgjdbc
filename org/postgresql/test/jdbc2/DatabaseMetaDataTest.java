@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.36.2.1 2007/04/11 07:33:26 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.36.2.2 2008/11/07 09:12:01 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -349,6 +349,16 @@ public class DatabaseMetaDataTest extends TestCase
         rs.close();
         //Test that the table owner has select priv
         assertTrue("Couldn't find SELECT priv on table testmetadata for " + TestUtil.getUser(), l_foundSelect);
+    }
+
+    public void testNoTablePrivileges() throws SQLException
+    {
+        Statement stmt = con.createStatement();
+        stmt.execute("REVOKE ALL ON testmetadata FROM PUBLIC");
+        stmt.execute("REVOKE ALL ON testmetadata FROM " + TestUtil.getUser());
+        DatabaseMetaData dbmd = con.getMetaData();
+        ResultSet rs = dbmd.getTablePrivileges(null, null, "testmetadata");
+        assertTrue(!rs.next());
     }
 
     public void testPrimaryKeys() throws SQLException
