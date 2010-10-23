@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.44.2.2 2009/12/09 01:06:41 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.44.2.3 2010/10/16 00:39:14 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -55,6 +55,11 @@ public class DatabaseMetaDataTest extends TestCase
             stmt.execute("CREATE OR REPLACE FUNCTION f3(IN a int, INOUT b varchar, OUT c timestamptz) AS $f$ BEGIN b := 'a'; c := now(); return; END; $f$ LANGUAGE 'plpgsql'");
         }
         stmt.execute("CREATE OR REPLACE FUNCTION f4(int) RETURNS testmetadata AS 'SELECT 1, ''a''::text, now(), ''c''::text, ''q''::text' LANGUAGE 'SQL'");
+
+        if (TestUtil.haveMinimumServerVersion(con, "7.3")) {
+            stmt.execute("CREATE DOMAIN nndom AS int not null");
+            stmt.execute("CREATE TABLE domaintable (id nndom)");
+        }
         stmt.close();
     }
 
@@ -79,6 +84,10 @@ public class DatabaseMetaDataTest extends TestCase
         }
         if (TestUtil.haveMinimumServerVersion(con, "8.1")) {
             stmt.execute("DROP FUNCTION f3(int, varchar)");
+        }
+        if (TestUtil.haveMinimumServerVersion(con, "7.3")) {
+            stmt.execute("DROP TABLE domaintable");
+            stmt.execute("DROP DOMAIN nndom");
         }
 
         TestUtil.closeDB( con );
@@ -1013,6 +1022,19 @@ public class DatabaseMetaDataTest extends TestCase
 	assertTrue(rs.next());
         assertEquals("b", rs.getString("COLUMN_NAME"));
         assertEquals(100, rs.getInt("COLUMN_SIZE"));
+        assertTrue(!rs.next());
+    }
+
+    public void testNotNullDomainColumn() throws SQLException
+    {
+        if (!TestUtil.haveMinimumServerVersion(con, "7.3"))
+            return;
+
+        DatabaseMetaData dbmd = con.getMetaData();
+        ResultSet rs = dbmd.getColumns("", "", "domaintable", "");
+        assertTrue(rs.next());
+        assertEquals("id", rs.getString("COLUMN_NAME"));
+        assertEquals("NO", rs.getString("IS_NULLABLE"));
         assertTrue(!rs.next());
     }
 
