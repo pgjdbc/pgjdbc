@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.58 2010/10/16 00:38:31 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.59 2010/10/16 00:43:40 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2281,7 +2281,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
             else
                 sql = "";
 
-            sql += "SELECT n.nspname,c.relname,a.attname,a.atttypid,a.attnotnull,a.atttypmod,a.attlen,";
+            sql += "SELECT n.nspname,c.relname,a.attname,a.atttypid,a.attnotnull OR (t.typtype = 'd' AND t.typnotnull) AS attnotnull,a.atttypmod,a.attlen,";
             
             if (connection.haveMinimumServerVersion("8.4"))
                 sql += "row_number() OVER (PARTITION BY a.attrelid ORDER BY a.attnum) AS attnum, ";
