@@ -3,7 +3,7 @@
 * Copyright (c) 2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL$
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc4/XmlTest.java,v 1.1 2008/10/08 18:24:05 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -62,9 +62,9 @@ public class XmlTest extends TestCase {
     protected void setUp() throws Exception {
         _conn = TestUtil.openDB();
         Statement stmt = _conn.createStatement();
-        stmt.execute("CREATE TEMP TABLE xmltest(val xml)");
-        stmt.execute("INSERT INTO xmltest VALUES ('" + _xmlDocument + "')");
-        stmt.execute("INSERT INTO xmltest VALUES ('" + _xmlFragment + "')");
+        stmt.execute("CREATE TEMP TABLE xmltest(id int primary key, val xml)");
+        stmt.execute("INSERT INTO xmltest VALUES (1, '" + _xmlDocument + "')");
+        stmt.execute("INSERT INTO xmltest VALUES (2, '" + _xmlFragment + "')");
         stmt.close();
     }
 
@@ -78,6 +78,15 @@ public class XmlTest extends TestCase {
     private ResultSet getRS() throws SQLException {
         Statement stmt = _conn.createStatement();
         return stmt.executeQuery("SELECT val FROM xmltest");
+    }
+
+    public void testUpdateRS() throws SQLException {
+        Statement stmt = _conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+        ResultSet rs = stmt.executeQuery("SELECT id, val FROM xmltest");
+        assertTrue(rs.next());
+        SQLXML xml = rs.getSQLXML(2);
+        rs.updateSQLXML(2, xml);
+        rs.updateRow();
     }
 
     public void testDOMParse() throws SQLException {
@@ -156,14 +165,15 @@ public class XmlTest extends TestCase {
         stmt.execute("DELETE FROM xmltest");
         stmt.close();
 
-        PreparedStatement ps = _conn.prepareStatement("INSERT INTO xmltest VALUES (?)");
+        PreparedStatement ps = _conn.prepareStatement("INSERT INTO xmltest VALUES (?,?)");
         SQLXML xml = _conn.createSQLXML();
         Result result = xml.setResult(resultClass);
 
         Source source = new StreamSource(new StringReader(_xmlDocument));
         _identityTransformer.transform(source, result);
 
-        ps.setSQLXML(1, xml);
+	ps.setInt(1, 1);
+        ps.setSQLXML(2, xml);
         ps.executeUpdate();
         ps.close();
 
@@ -230,14 +240,17 @@ public class XmlTest extends TestCase {
         stmt.execute("DELETE FROM xmltest");
         stmt.close();
 
-        PreparedStatement ps = _conn.prepareStatement("INSERT INTO xmltest VALUES (?)");
-        ps.setNull(1, Types.SQLXML);
+        PreparedStatement ps = _conn.prepareStatement("INSERT INTO xmltest VALUES (?,?)");
+	ps.setInt(1, 1);
+        ps.setNull(2, Types.SQLXML);
         ps.executeUpdate();
-        ps.setObject(1, null, Types.SQLXML);
+	ps.setInt(1, 2);
+        ps.setObject(2, null, Types.SQLXML);
         ps.executeUpdate();
         SQLXML xml = _conn.createSQLXML();
         xml.setString(null);
-        ps.setObject(1, xml);
+	ps.setInt(1, 3);
+        ps.setObject(2, xml);
         ps.executeUpdate();
         ps.close();
 
