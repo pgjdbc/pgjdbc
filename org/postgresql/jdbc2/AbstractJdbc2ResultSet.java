@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.107 2009/04/19 16:11:48 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.108 2009/11/19 00:51:26 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1670,23 +1670,6 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                 switch ( getSQLType(columnIndex + 1) )
                 {
 
-                case Types.DECIMAL:
-                case Types.BIGINT:
-                case Types.DOUBLE:
-                case Types.BIT:
-                case Types.VARCHAR:
-                case Types.SMALLINT:
-                case Types.FLOAT:
-                case Types.INTEGER:
-                case Types.CHAR:
-                case Types.NUMERIC:
-                case Types.REAL:
-                case Types.TINYINT:
-                case Types.ARRAY:
-                case Types.OTHER:
-                    rowBuffer[columnIndex] = connection.encodeString(String.valueOf( valueObject));
-                    break;
-
                 //
                 // toString() isn't enough for date and time types; we must format it correctly
                 // or we won't be able to re-parse it.
@@ -1726,7 +1709,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                     break;
  
                 default:
-                    rowBuffer[columnIndex] = (byte[]) valueObject;
+                    rowBuffer[columnIndex] = connection.encodeString(String.valueOf( valueObject));
+                    break;
                 }
 
             }
