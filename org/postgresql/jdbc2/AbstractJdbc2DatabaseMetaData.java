@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.33.2.6 2010/05/01 16:52:34 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.33.2.7 2010/10/16 00:39:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2083,9 +2083,11 @@ public abstract class AbstractJdbc2DatabaseMetaData
     public java.sql.ResultSet getSchemas() throws SQLException
     {
         String sql;
+        // Show only the users temp schemas, but not other peoples
+        // because they can't access any objects in them.
         if (connection.haveMinimumServerVersion("7.3"))
         {
-            sql = "SELECT nspname AS TABLE_SCHEM FROM pg_catalog.pg_namespace WHERE nspname <> 'pg_toast' AND nspname !~ '^pg_temp_' ORDER BY TABLE_SCHEM";
+            sql = "SELECT nspname AS TABLE_SCHEM FROM pg_catalog.pg_namespace WHERE nspname <> 'pg_toast' AND (nspname !~ '^pg_temp_' OR nspname = (pg_catalog.current_schemas(true))[1]) AND (nspname !~ '^pg_toast_temp_' OR nspname = replace((pg_catalog.current_schemas(true))[1], 'pg_temp_', 'pg_toast_temp_')) ORDER BY TABLE_SCHEM";
         }
         else
         {
