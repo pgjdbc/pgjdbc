@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.20 2010/05/01 21:04:00 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.21 2010/08/10 21:43:43 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -59,6 +59,7 @@ public abstract class BaseDataSource implements Referenceable
     private String compatible;
     private int logLevel = 0;
     private int protocolVersion = 0;
+    private String applicationName;
 
     /**
      * Gets a connection to the PostgreSQL database.  The database is identified by the
@@ -368,6 +369,16 @@ public abstract class BaseDataSource implements Referenceable
         return this.sslfactory;
     }
 
+    public void setApplicationName(String applicationName)
+    {
+        this.applicationName = applicationName;
+    }
+
+    public String getApplicationName()
+    {
+        return applicationName;
+    }
+
     public void setTcpKeepAlive(boolean enabled)
     {
         tcpKeepAlive = enabled;
@@ -407,6 +418,10 @@ public abstract class BaseDataSource implements Referenceable
         sb.append("&tcpkeepalive=").append(tcpKeepAlive);
         if (compatible != null) {
             sb.append("&compatible="+compatible);
+        }
+        if (applicationName != null) {
+            sb.append("&ApplicationName=");
+            sb.append(applicationName);
         }
 
         return sb.toString();
@@ -456,6 +471,7 @@ public abstract class BaseDataSource implements Referenceable
 
         ref.add(new StringRefAddr("logLevel", Integer.toString(logLevel)));
         ref.add(new StringRefAddr("protocolVersion", Integer.toString(protocolVersion)));
+        ref.add(new StringRefAddr("ApplicationName", applicationName));
 
         return ref;
     }
@@ -477,6 +493,7 @@ public abstract class BaseDataSource implements Referenceable
         out.writeObject(compatible);
         out.writeInt(logLevel);
         out.writeInt(protocolVersion);
+        out.writeObject(applicationName);
     }
 
     protected void readBaseObject(ObjectInputStream in) throws IOException, ClassNotFoundException
@@ -496,6 +513,7 @@ public abstract class BaseDataSource implements Referenceable
         compatible = (String)in.readObject();
         logLevel = in.readInt();
         protocolVersion = in.readInt();
+        applicationName = (String)in.readObject();
     }
 
     public void initializeFrom(BaseDataSource source) throws IOException, ClassNotFoundException {
