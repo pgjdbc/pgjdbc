@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4Connection.java,v 1.8 2009/11/18 11:19:31 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4Connection.java,v 1.9 2009/11/19 00:51:26 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -16,6 +16,7 @@ import java.util.Iterator;
 import java.util.Properties;
 
 import org.postgresql.core.Oid;
+import org.postgresql.core.Utils;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLState;
@@ -24,7 +25,7 @@ import org.postgresql.jdbc2.AbstractJdbc2Array;
 
 abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdbc3gConnection
 {
-    Properties _clientInfo;
+    private final Properties _clientInfo;
 
     public AbstractJdbc4Connection(String host, int port, String user, String database, Properties info, String url) throws SQLException {
         super(host, port, user, database, info, url);
@@ -32,6 +33,15 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
         TypeInfo types = getTypeInfo();
         if (haveMinimumServerVersion("8.3")) {
             types.addCoreType("xml", Oid.XML, java.sql.Types.SQLXML, "java.sql.SQLXML", Oid.XML_ARRAY);
+        }
+
+        _clientInfo = new Properties();
+        if (haveMinimumServerVersion("9.0")) {
+            String appName = info.getProperty("ApplicationName");
+            if (appName == null) {
+                appName = "";
+            }
+            _clientInfo.put("ApplicationName", appName);
         }
     }
 
@@ -111,9 +121,28 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
 
     public void setClientInfo(String name, String value) throws SQLClientInfoException
     {
+        if (haveMinimumServerVersion("9.0") && "ApplicationName".equals(name)) {
+            if (value == null)
+                value = "";
+
+            try {
+                StringBuffer sql = new StringBuffer("SET application_name = '");
+                Utils.appendEscapedLiteral(sql, value, getStandardConformingStrings());
+                sql.append("'");
+                execSQLUpdate(sql.toString());
+            } catch (SQLException sqle) {
+                Map<String, ClientInfoStatus> failures = new HashMap<String, ClientInfoStatus>();
+                failures.put(name, ClientInfoStatus.REASON_UNKNOWN);
+                throw new SQLClientInfoException(GT.tr("Failed to set ClientInfo property: {0}", "ApplicationName"), sqle.getSQLState(), failures, sqle);
+            }
+
+            _clientInfo.put(name, value);
+            return;
+        }
+
         Map<String, ClientInfoStatus> failures = new HashMap<String, ClientInfoStatus>();
         failures.put(name, ClientInfoStatus.REASON_UNKNOWN_PROPERTY);
-        throw new SQLClientInfoException(GT.tr("ClientInfo property not supported."), failures);
+        throw new SQLClientInfoException(GT.tr("ClientInfo property not supported."), PSQLState.NOT_IMPLEMENTED.getState(), failures);
     }
 
     public void setClientInfo(Properties properties) throws SQLClientInfoException
@@ -125,23 +154,28 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
 
         Iterator<String> i = properties.stringPropertyNames().iterator();
         while (i.hasNext()) {
-            failures.put(i.next(), ClientInfoStatus.REASON_UNKNOWN_PROPERTY);
+            String name = i.next();
+            if (haveMinimumServerVersion("9.0") && "ApplicationName".equals(name)) {
+                String value = properties.getProperty(name);
+                setClientInfo(name, value);
+            } else {
+                failures.put(i.next(), ClientInfoStatus.REASON_UNKNOWN_PROPERTY);
+            }
         }
-        throw new SQLClientInfoException(GT.tr("ClientInfo property not supported."), failures);
+
+        if (!failures.isEmpty())
+            throw new SQLClientInfoException(GT.tr("ClientInfo property not supported."), PSQLState.NOT_IMPLEMENTED.getState(), failures);
     }
 
     public String getClientInfo(String name) throws SQLException
     {
         checkClosed();
-        return null;
+        return _clientInfo.getProperty(name);
     }
 
     public Properties getClientInfo() throws SQLException
     {
         checkClosed();
-        if (_clientInfo == null) {
-            _clientInfo = new Properties();
-        }
         return _clientInfo;
     }
 

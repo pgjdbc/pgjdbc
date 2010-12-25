@@ -3,7 +3,7 @@
 * Copyright (c) 2007-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc4/Jdbc4TestSuite.java,v 1.7 2008/10/08 18:24:05 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc4/Jdbc4TestSuite.java,v 1.8 2008/10/08 18:43:51 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -31,6 +31,7 @@ public class Jdbc4TestSuite extends TestSuite
         suite.addTestSuite(LOBTest.class);
         suite.addTestSuite(DatabaseMetaDataTest.class);
         suite.addTestSuite(ArrayTest.class);
+        suite.addTestSuite(ConnectionTest.class);
 
         Connection connection = TestUtil.openDB();
         try

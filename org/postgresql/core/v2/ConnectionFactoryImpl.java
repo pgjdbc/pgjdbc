@@ -4,13 +4,12 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ConnectionFactoryImpl.java,v 1.18 2009/06/02 00:22:58 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ConnectionFactoryImpl.java,v 1.19 2010/12/25 05:43:00 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.core.v2;
 
-import java.util.Vector;
 import java.util.Properties;
 import java.util.StringTokenizer;
 
@@ -92,7 +91,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             readStartupMessages(newStream, protoConnection, logger);
 
             // Run some initial queries
-            runInitialQueries(protoConnection, info.getProperty("charSet"), logger);
+            runInitialQueries(protoConnection, info, logger);
 
             // And we're done.
             return protoConnection;
@@ -363,7 +362,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         }
     }
 
-    private void runInitialQueries(ProtocolConnectionImpl protoConnection, String charSet, Logger logger) throws SQLException, IOException {
+    private void runInitialQueries(ProtocolConnectionImpl protoConnection, Properties info, Logger logger) throws SQLException, IOException {
         byte[][] results = SetupQueryRunner.run(protoConnection, "set datestyle = 'ISO'; select version(), case when pg_encoding_to_char(1) = 'SQL_ASCII' then 'UNKNOWN' else getdatabaseencoding() end", true);
 
         String rawDbVersion = protoConnection.getEncoding().decode(results[0]);
@@ -396,6 +395,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         }
         else
         {
+            String charSet = info.getProperty("charSet");
             String dbEncoding = (results[1] == null ? null : protoConnection.getEncoding().decode(results[1]));
             if (logger.logDebug())
             {
@@ -434,6 +434,15 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         else
         {
             protoConnection.setStandardConformingStrings(false);
+        }
+
+        String appName = info.getProperty("ApplicationName");
+        if (appName != null && dbVersion.compareTo("9.0") >= 0)
+        {
+            StringBuffer sb = new StringBuffer("SET application_name = '");
+            Utils.appendEscapedLiteral(sb, appName, protoConnection.getStandardConformingStrings());
+            sb.append("'");
+            SetupQueryRunner.run(protoConnection, sb.toString(), false);
         }
     }
 }

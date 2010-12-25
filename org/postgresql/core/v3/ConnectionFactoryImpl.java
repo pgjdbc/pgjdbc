@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ConnectionFactoryImpl.java,v 1.21 2010/08/31 18:33:50 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ConnectionFactoryImpl.java,v 1.22 2010/12/25 05:43:00 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -111,7 +111,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             ProtocolConnectionImpl protoConnection = new ProtocolConnectionImpl(newStream, user, database, info, logger);
             readStartupMessages(newStream, protoConnection, logger);
 
-            runInitialQueries(protoConnection, logger);
+            runInitialQueries(protoConnection, info, logger);
 
             // And we're done.
             return protoConnection;
@@ -518,13 +518,23 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         }
     }
 
-    private void runInitialQueries(ProtocolConnection protoConnection, Logger logger) throws SQLException
+    private void runInitialQueries(ProtocolConnection protoConnection, Properties info, Logger logger) throws SQLException
     {
         String dbVersion = protoConnection.getServerVersion();
 
         if (dbVersion.compareTo("9.0") >= 0) {
             SetupQueryRunner.run(protoConnection, "SET extra_float_digits = 3", false);
         }
+
+        String appName = info.getProperty("ApplicationName");
+        if (appName != null && dbVersion.compareTo("9.0") >= 0) {
+            StringBuffer sql = new StringBuffer();
+            sql.append("SET application_name = '");
+            Utils.appendEscapedLiteral(sql, appName, protoConnection.getStandardConformingStrings());
+            sql.append("'");
+            SetupQueryRunner.run(protoConnection, sql.toString(), false);
+        }
+
     }
 
 }

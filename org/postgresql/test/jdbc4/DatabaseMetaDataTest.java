@@ -3,7 +3,7 @@
 * Copyright (c) 2007-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc4/DatabaseMetaDataTest.java,v 1.2 2008/01/08 06:47:57 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc4/DatabaseMetaDataTest.java,v 1.3 2008/01/08 06:56:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -42,7 +42,13 @@ public class DatabaseMetaDataTest extends TestCase
         DatabaseMetaData dbmd = _conn.getMetaData();
 
         ResultSet rs = dbmd.getClientInfoProperties();
-        assertTrue( !rs.next() );
+        if (!TestUtil.haveMinimumServerVersion(_conn, "9.0")) {
+            assertTrue( !rs.next() );
+            return;
+        }
+
+        assertTrue(rs.next());
+        assertEquals("ApplicationName", rs.getString("NAME"));
     }
 
     public void testGetColumnsForAutoIncrement() throws Exception

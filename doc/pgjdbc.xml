@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!--
   Copyright (c) 2004-2008, PostgreSQL Global Development Group
-  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.38 2009/06/02 00:22:57 jurka Exp $
+  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.39 2009/06/20 15:19:40 jurka Exp $
 -->
 
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN" "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">
@@ -669,6 +669,17 @@ Connection conn = DriverManager.getConnection(url);
        </listitem>
       </varlistentry>
 
+      <varlistentry>
+       <term><varname>ApplicationName</varname> = <type>String</type></term>
+       <listitem>
+        <para>
+         Specifies the name of the application that is using the connection.
+         This allows a database administrator to see what applications are
+         connected to the server and what resources they are using through
+         views like pg_stat_activity.
+        </para>
+       </listitem>
+      </varlistentry>
 
      </variablelist>
     </para>
