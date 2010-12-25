@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ConnectionFactoryImpl.java,v 1.20 2009/06/02 00:22:58 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ConnectionFactoryImpl.java,v 1.21 2010/08/31 18:33:50 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -110,6 +110,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // Do final startup.
             ProtocolConnectionImpl protoConnection = new ProtocolConnectionImpl(newStream, user, database, info, logger);
             readStartupMessages(newStream, protoConnection, logger);
+
+            runInitialQueries(protoConnection, logger);
 
             // And we're done.
             return protoConnection;
@@ -515,4 +517,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             }
         }
     }
+
+    private void runInitialQueries(ProtocolConnection protoConnection, Logger logger) throws SQLException
+    {
+        String dbVersion = protoConnection.getServerVersion();
+
+        if (dbVersion.compareTo("9.0") >= 0) {
+            SetupQueryRunner.run(protoConnection, "SET extra_float_digits = 3", false);
+        }
+    }
+
 }

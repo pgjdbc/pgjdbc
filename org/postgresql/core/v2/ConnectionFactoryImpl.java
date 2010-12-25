@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ConnectionFactoryImpl.java,v 1.17 2008/09/30 03:42:48 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ConnectionFactoryImpl.java,v 1.18 2009/06/02 00:22:58 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -363,75 +363,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         }
     }
 
-    private static class SimpleResultHandler implements ResultHandler {
-        private SQLException error;
-        private Vector tuples;
-        private final ProtocolConnectionImpl protoConnection;
-
-        SimpleResultHandler(ProtocolConnectionImpl protoConnection) {
-            this.protoConnection = protoConnection;
-        }
-
-        Vector getResults() {
-            return tuples;
-        }
-
-        public void handleResultRows(Query fromQuery, Field[] fields, Vector tuples, ResultCursor cursor) {
-            this.tuples = tuples;
-        }
-
-        public void handleCommandStatus(String status, int updateCount, long insertOID) {
-        }
-
-        public void handleWarning(SQLWarning warning) {
-            protoConnection.addWarning(warning);
-        }
-
-        public void handleError(SQLException newError) {
-            if (error == null)
-                error = newError;
-            else
-                error.setNextException(newError);
-        }
-
-        public void handleCompletion() throws SQLException {
-            if (error != null)
-                throw error;
-        }
-    }
-
-    // Poor man's Statement & ResultSet, used for initial queries while we're
-    // still initializing the system.
-    private byte[][] runSetupQuery(ProtocolConnectionImpl protoConnection, String queryString, boolean wantResults) throws SQLException {
-        QueryExecutor executor = protoConnection.getQueryExecutor();
-        Query query = executor.createSimpleQuery(queryString);
-        SimpleResultHandler handler = new SimpleResultHandler(protoConnection);
-
-        int flags = QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_SUPPRESS_BEGIN;
-        if (!wantResults)
-            flags |= QueryExecutor.QUERY_NO_RESULTS | QueryExecutor.QUERY_NO_METADATA;
-
-        try
-        {
-            executor.execute(query, null, handler, 0, 0, flags);
-        }
-        finally
-        {
-            query.close();
-        }
-
-        if (!wantResults)
-            return null;
-
-        Vector tuples = handler.getResults();
-        if (tuples == null || tuples.size() != 1)
-            throw new PSQLException(GT.tr("An unexpected result was returned by a query."), PSQLState.CONNECTION_UNABLE_TO_CONNECT);
-
-        return (byte[][]) tuples.elementAt(0);
-    }
-
     private void runInitialQueries(ProtocolConnectionImpl protoConnection, String charSet, Logger logger) throws SQLException, IOException {
-        byte[][] results = runSetupQuery(protoConnection, "set datestyle = 'ISO'; select version(), case when pg_encoding_to_char(1) = 'SQL_ASCII' then 'UNKNOWN' else getdatabaseencoding() end", true);
+        byte[][] results = SetupQueryRunner.run(protoConnection, "set datestyle = 'ISO'; select version(), case when pg_encoding_to_char(1) = 'SQL_ASCII' then 'UNKNOWN' else getdatabaseencoding() end", true);
 
         String rawDbVersion = protoConnection.getEncoding().decode(results[0]);
         StringTokenizer versionParts = new StringTokenizer(rawDbVersion);
@@ -451,12 +384,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 logger.debug("Switching to UNICODE client_encoding");
 
             String sql = "begin; set autocommit = on; set client_encoding = 'UNICODE'; ";
-            if (dbVersion.compareTo("7.4") >= 0) {
+            if (dbVersion.compareTo("9.0") >= 0) {
+                sql += "SET extra_float_digits=3; ";
+            } else if (dbVersion.compareTo("7.4") >= 0) {
                 sql += "SET extra_float_digits=2; ";
             }
             sql += "commit";
 
-            runSetupQuery(protoConnection, sql, false);
+            SetupQueryRunner.run(protoConnection, sql, false);
             protoConnection.setEncoding(Encoding.getDatabaseEncoding("UNICODE"));
         }
         else
@@ -492,7 +427,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         if (dbVersion.compareTo("8.1") >= 0)
         {
             // Server versions since 8.1 report standard_conforming_strings
-            results = runSetupQuery(protoConnection, "select current_setting('standard_conforming_strings')", true);
+            results = SetupQueryRunner.run(protoConnection, "select current_setting('standard_conforming_strings')", true);
             String value = protoConnection.getEncoding().decode(results[0]);
             protoConnection.setStandardConformingStrings(value.equalsIgnoreCase("on"));
         }

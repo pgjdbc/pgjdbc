@@ -3,7 +3,7 @@
  * Copyright (c) 2005-2008, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.19 2009/06/20 15:19:41 jurka Exp $
+ *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.20 2010/08/10 19:59:42 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -569,10 +569,11 @@ public class TypeInfoCache implements TypeInfo {
             case Oid.INT8:
                 return 20; // -9223372036854775808 to +9223372036854775807
             case Oid.FLOAT4:
-                // varies based up the extra_float_digits GUC.
-                return 14; // sign + 8 digits + decimal point + e + sign + 2 digits
+                // varies based upon the extra_float_digits GUC.
+                // These values are for the longest possible length.
+                return 15; // sign + 9 digits + decimal point + e + sign + 2 digits
             case Oid.FLOAT8:
-                return 24; // sign + 17 digits + decimal point + e + sign + 3 digits
+                return 25; // sign + 18 digits + decimal point + e + sign + 3 digits
             case Oid.CHAR:
                 return 1;
             case Oid.BOOL:
