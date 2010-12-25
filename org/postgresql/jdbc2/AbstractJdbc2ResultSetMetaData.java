@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSetMetaData.java,v 1.21 2008/01/08 06:56:28 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSetMetaData.java,v 1.22 2008/04/15 04:23:57 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -22,8 +22,7 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
     protected final BaseConnection connection;
     protected final Field[] fields;
 
-    private Hashtable tableNameCache;
-    private Hashtable schemaNameCache;
+    private boolean fieldInfoFetched;
 
     /*
      * Initialise for a result with a tuple set and
@@ -35,6 +34,7 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
     {
         this.connection = connection;
         this.fields = fields;
+        fieldInfoFetched = false;
     }
 
     /*
@@ -58,8 +58,9 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
      */
     public boolean isAutoIncrement(int column) throws SQLException
     {
+        fetchFieldMetaData();
         Field field = getField(column);
-        return field.getAutoIncrement(connection);
+        return field.getAutoIncrement();
     }
 
     /*
@@ -118,8 +119,9 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
      */
     public int isNullable(int column) throws SQLException
     {
+        fetchFieldMetaData();
         Field field = getField(column);
-        return field.getNullable(connection);
+        return field.getNullable();
     }
 
     /*
@@ -174,8 +176,9 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
     }
 
     public String getBaseColumnName(int column) throws SQLException {
+        fetchFieldMetaData();
         Field field = getField(column);
-        return field.getColumnName(connection);
+        return field.getColumnName();
     }
 
     /*
@@ -188,49 +191,71 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
         return "";
     }
 
+    private void fetchFieldMetaData() throws SQLException {
+        if (fieldInfoFetched)
+            return;
+
+        fieldInfoFetched = true;
+
+        StringBuffer sql = new StringBuffer();
+        sql.append("SELECT c.oid, a.attnum, a.attname, c.relname, n.nspname, ");
+        sql.append("a.attnotnull OR (t.typtype = 'd' AND t.typnotnull), ");
+        sql.append("pg_catalog.pg_get_expr(d.adbin, d.adrelid) LIKE '%nextval(%' ");
+        sql.append("FROM pg_catalog.pg_class c ");
+        sql.append("JOIN pg_catalog.pg_namespace n ON (c.relnamespace = n.oid) ");
+        sql.append("JOIN pg_catalog.pg_attribute a ON (c.oid = a.attrelid) ");
+        sql.append("JOIN pg_catalog.pg_type t ON (a.atttypid = t.oid) ");
+        sql.append("LEFT JOIN pg_catalog.pg_attrdef d ON (d.adrelid = a.attrelid AND d.adnum = a.attnum) ");
+        sql.append("WHERE (c.oid, a.attnum) IN (");
+
+        boolean hasSourceInfo = false;
+        for (int i=0; i<fields.length; i++) {
+            if (fields[i].getTableOid() == 0)
+                continue;
+
+            if (hasSourceInfo)
+                sql.append(", ");
+            else
+                hasSourceInfo = true;
+
+            sql.append("(");
+            sql.append(fields[i].getTableOid());
+            sql.append(", ");
+            sql.append(fields[i].getPositionInTable());
+            sql.append(")");
+        }
+        sql.append(")");
+
+        if (!hasSourceInfo)
+            return;
+        
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery(sql.toString());
+        while (rs.next()) {
+            int table = rs.getInt(1);
+            int column = rs.getInt(2);
+            String columnName = rs.getString(3);
+            String tableName = rs.getString(4);
+            String schemaName = rs.getString(5);
+            int nullable = rs.getBoolean(6) ? ResultSetMetaData.columnNoNulls : ResultSetMetaData.columnNullable;
+            boolean autoIncrement = rs.getBoolean(7);
+            for (int i=0; i<fields.length; i++) {
+                if (fields[i].getTableOid() == table && fields[i].getPositionInTable() == column) {
+                    fields[i].setColumnName(columnName);
+                    fields[i].setTableName(tableName);
+                    fields[i].setSchemaName(schemaName);
+                    fields[i].setNullable(nullable);
+                    fields[i].setAutoIncrement(autoIncrement);
+                }
+            }
+        }
+    }
+
     public String getBaseSchemaName(int column) throws SQLException
     {
+        fetchFieldMetaData();
         Field field = getField(column);
-        if (field.getTableOid() == 0)
-        {
-            return "";
-        }
-        Integer tableOid = new Integer(field.getTableOid());
-        if (schemaNameCache == null)
-        {
-            schemaNameCache = new Hashtable();
-        }
-        String schemaName = (String) schemaNameCache.get(tableOid);
-        if (schemaName != null)
-        {
-            return schemaName;
-        }
-        else
-        {
-            ResultSet res = null;
-            PreparedStatement ps = null;
-            try
-            {
-                String sql = "SELECT n.nspname FROM pg_catalog.pg_class c, pg_catalog.pg_namespace n WHERE n.oid = c.relnamespace AND c.oid = ?;";
-                ps = ((Connection)connection).prepareStatement(sql);
-                ps.setInt(1, tableOid.intValue());
-                res = ps.executeQuery();
-                schemaName = "";
-                if (res.next())
-                {
-                    schemaName = res.getString(1);
-                }
-                schemaNameCache.put(tableOid, schemaName);
-                return schemaName;
-            }
-            finally
-            {
-                if (res != null)
-                    res.close();
-                if (ps != null)
-                    ps.close();
-            }
-        }
+        return field.getSchemaName();
     }
 
     /*
@@ -272,46 +297,9 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
 
     public String getBaseTableName(int column) throws SQLException
     {
+        fetchFieldMetaData();
         Field field = getField(column);
-        if (field.getTableOid() == 0)
-        {
-            return "";
-        }
-        Integer tableOid = new Integer(field.getTableOid());
-        if (tableNameCache == null)
-        {
-            tableNameCache = new Hashtable();
-        }
-        String tableName = (String) tableNameCache.get(tableOid);
-        if (tableName != null)
-        {
-            return tableName;
-        }
-        else
-        {
-            ResultSet res = null;
-            PreparedStatement ps = null;
-            try
-            {
-                ps = ((Connection)connection).prepareStatement("SELECT relname FROM pg_catalog.pg_class WHERE oid = ?");
-                ps.setInt(1, tableOid.intValue());
-                res = ps.executeQuery();
-                tableName = "";
-                if (res.next())
-                {
-                    tableName = res.getString(1);
-                }
-                tableNameCache.put(tableOid, tableName);
-                return tableName;
-            }
-            finally
-            {
-                if (res != null)
-                    res.close();
-                if (ps != null)
-                    ps.close();
-            }
-        }
+        return field.getTableName();
     }
 
     /*

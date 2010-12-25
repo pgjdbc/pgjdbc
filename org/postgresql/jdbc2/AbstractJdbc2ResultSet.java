@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.108 2009/11/19 00:51:26 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.109 2010/10/23 06:18:06 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -32,6 +32,7 @@ import org.postgresql.util.PGtokenizer;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.GT;
+import org.postgresql.PGResultSetMetaData;
 
 
 public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postgresql.PGRefCursorResultSet
@@ -1161,18 +1162,13 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
         StringBuffer selectSQL = new StringBuffer( "select ");
 
-        final int numColumns = java.lang.reflect.Array.getLength(fields);
-
-        for (int i = 0; i < numColumns; i++ )
-        {
-            selectSQL.append( fields[i].getColumnName(connection) );
-
-            if ( i < numColumns - 1 )
-            {
-
+        ResultSetMetaData rsmd = getMetaData();
+        PGResultSetMetaData pgmd = (PGResultSetMetaData)rsmd;
+        for (int i=1; i <= rsmd.getColumnCount(); i++) {
+            if (i > 1) {
                 selectSQL.append(", ");
             }
-
+            selectSQL.append( pgmd.getBaseColumnName(i) );
         }
         selectSQL.append(" from " ).append(onlyTable).append(tableName).append(" where ");
 
@@ -2921,10 +2917,12 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         checkColumnIndex(columnIndex);
 
         doingUpdates = !onInsertRow;
-        if (value == null)
+        if (value == null) {
             updateNull(columnIndex);
-        else
-            updateValues.put(fields[columnIndex - 1].getColumnName(connection), value);
+        } else {
+            PGResultSetMetaData md = (PGResultSetMetaData)getMetaData();
+            updateValues.put(md.getBaseColumnName(columnIndex), value);
+        }
     }
 
     /**

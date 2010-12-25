@@ -3,13 +3,13 @@
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/Field.java,v 1.13 2009/03/12 03:59:50 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/Field.java,v 1.14 2010/10/23 07:30:47 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.core;
 
-import java.sql.*;
+import java.sql.ResultSetMetaData;
 
 /*
  */
@@ -23,9 +23,7 @@ public class Field
     private final int oid;        // OID of the type
     private final int mod;        // type modifier of this field
     private final String columnLabel; // Column label
-    private String columnName;        // Column name; null if undetermined
-    private Integer nullable;         // Is this column nullable? null if undetermined.
-    private Boolean autoIncrement;   // Is this column automatically numbered?
+    private String columnName;        // Column name
 
     private int format = TEXT_FORMAT;   // In the V3 protocol each field has a format
     // 0 = text, 1 = binary
@@ -36,7 +34,12 @@ public class Field
     private final int tableOid; // OID of table ( zero if no table )
     private final int positionInTable;
 
-    // cache-fields
+    // Cache fields filled in by AbstractJdbc2ResultSetMetaData.fetchFieldMetaData.
+    // Don't use unless that has been called.
+    private String tableName = "";
+    private String schemaName = "";
+    private int nullable = ResultSetMetaData.columnNullableUnknown;
+    private boolean autoIncrement = false;
 
     /*
      * Construct a field based on the information fed to it.
@@ -144,119 +147,54 @@ public class Field
         return positionInTable;
     }
 
-    public int getNullable(Connection con) throws SQLException
+    public void setNullable(int nullable)
     {
-        if (nullable != null)
-            return nullable.intValue();
-
-        if (tableOid == 0 || positionInTable == 0)
-        {
-            nullable = new Integer(ResultSetMetaData.columnNullableUnknown);
-            return nullable.intValue();
-        }
-
-        ResultSet res = null;
-        PreparedStatement ps = null;
-        try
-        {
-            ps = con.prepareStatement("SELECT a.attnotnull OR (t.typtype = 'd' AND t.typnotnull) FROM pg_catalog.pg_attribute a JOIN pg_catalog.pg_type t ON (a.atttypid = t.oid) WHERE a.attrelid = ? AND a.attnum = ?;");
-            ps.setInt(1, tableOid);
-            ps.setInt(2, positionInTable);
-            res = ps.executeQuery();
-
-            int nullResult = ResultSetMetaData.columnNullableUnknown;
-            if (res.next())
-                nullResult = res.getBoolean(1) ? ResultSetMetaData.columnNoNulls : ResultSetMetaData.columnNullable;
-
-            nullable = new Integer(nullResult);
-            return nullResult;
-        }
-        finally
-        {
-            if (res != null)
-                res.close();
-            if (ps != null)
-                ps.close();
-        }
+        this.nullable = nullable;
     }
 
-    public boolean getAutoIncrement(Connection con) throws SQLException
+    public int getNullable()
     {
-        if (autoIncrement != null)
-            return autoIncrement.booleanValue();
-
-        if (tableOid == 0 || positionInTable == 0)
-        {
-            autoIncrement = Boolean.FALSE;
-            return autoIncrement.booleanValue();
-        }
-
-        ResultSet res = null;
-        PreparedStatement ps = null;
-        try
-        {
-            final String sql = "SELECT 1 "
-                                + " FROM pg_catalog.pg_attrdef "
-                                + " WHERE adrelid = ? AND adnum = ? "
-                                + "  AND pg_catalog.pg_get_expr(adbin, adrelid) "
-                                + "      LIKE '%nextval(%'";
-
-            ps = con.prepareStatement(sql);
-
-            ps.setInt(1, tableOid);
-            ps.setInt(2, positionInTable);
-            res = ps.executeQuery();
-
-            if (res.next())
-            {
-                autoIncrement = Boolean.TRUE;
-            }
-            else
-            {
-                autoIncrement = Boolean.FALSE;
-            }
-            return autoIncrement.booleanValue();
-
-        }
-        finally
-        {
-            if (res != null)
-                res.close();
-            if (ps != null)
-                ps.close();
-        }
+        return nullable;
     }
 
-    public String getColumnName(Connection con) throws SQLException
+    public void setAutoIncrement(boolean autoIncrement)
     {
-        if (columnName != null)
-            return columnName;
-
-        columnName = "";
-        if (tableOid == 0 || positionInTable == 0)
-        {
-            return columnName;
-        }
-
-        ResultSet res = null;
-        PreparedStatement ps = null;
-        try
-        {
-            ps = con.prepareStatement("SELECT attname FROM pg_catalog.pg_attribute WHERE attrelid = ? AND attnum = ?");
-            ps.setInt(1, tableOid);
-            ps.setInt(2, positionInTable);
-            res = ps.executeQuery();
-            if (res.next())
-                columnName = res.getString(1);
-
-            return columnName;
-        }
-        finally
-        {
-            if (res != null)
-                res.close();
-            if (ps != null)
-                ps.close();
-        }
+        this.autoIncrement = autoIncrement;
     }
+
+    public boolean getAutoIncrement()
+    {
+        return autoIncrement;
+    }
+
+    public void setColumnName(String columnName)
+    {
+        this.columnName = columnName;
+    }
+
+    public String getColumnName()
+    {
+        return columnName;
+    }
+
+    public void setTableName(String tableName)
+    {
+        this.tableName = tableName;
+    }
+
+    public String getTableName()
+    {
+        return tableName;
+    }
+
+    public void setSchemaName(String schemaName)
+    {
+        this.schemaName = schemaName;
+    }
+
+    public String getSchemaName()
+    {
+        return schemaName;
+    }
+
 }

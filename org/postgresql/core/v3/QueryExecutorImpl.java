@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.49 2010/07/22 21:21:44 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.50 2010/08/31 18:07:39 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2067,7 +2067,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             int typeModifier = pgStream.ReceiveInteger4();
             int formatType = pgStream.ReceiveInteger2();
             fields[i] = new Field(columnLabel,
-                                  null,  /* name not yet determined */
+                                  "",  /* name not yet determined */
                                   typeOid, typeLength, typeModifier, tableOid, positionInTable);
             fields[i].setFormat(formatType);
         }
