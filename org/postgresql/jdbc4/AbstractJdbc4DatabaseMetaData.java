@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4DatabaseMetaData.java,v 1.7 2008/01/08 06:56:30 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4DatabaseMetaData.java,v 1.8 2010/12/25 07:07:44 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -29,7 +29,7 @@ public abstract class AbstractJdbc4DatabaseMetaData extends org.postgresql.jdbc3
 
     public ResultSet getSchemas(String catalog, String schemaPattern) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "getSchemas(String, String)");
+        return getSchemas(4, catalog, schemaPattern);
     }
 
     public boolean supportsStoredFunctionsUsingCallSyntax() throws SQLException

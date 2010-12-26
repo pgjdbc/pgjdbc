@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3DatabaseMetaData.java,v 1.13 2008/01/08 06:56:29 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/AbstractJdbc3DatabaseMetaData.java,v 1.14 2009/01/28 09:50:21 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -373,6 +373,11 @@ public abstract class AbstractJdbc3DatabaseMetaData extends org.postgresql.jdbc2
     public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException
     {
         return getColumns(3, catalog, schemaPattern, tableNamePattern, columnNamePattern);
+    }
+
+    public ResultSet getSchemas() throws SQLException
+    {
+        return getSchemas(3, null, null);
     }
 
 }

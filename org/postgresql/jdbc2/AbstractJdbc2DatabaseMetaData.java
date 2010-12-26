@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.60 2010/10/23 07:30:47 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.61 2010/12/22 16:53:46 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2144,16 +2144,35 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public java.sql.ResultSet getSchemas() throws SQLException
     {
+        return getSchemas(2, null, null);
+    }
+
+    protected ResultSet getSchemas(int jdbcVersion, String catalog, String schemaPattern) throws SQLException {
         String sql;
         // Show only the users temp schemas, but not other peoples
         // because they can't access any objects in them.
         if (connection.haveMinimumServerVersion("7.3"))
         {
-            sql = "SELECT nspname AS TABLE_SCHEM FROM pg_catalog.pg_namespace WHERE nspname <> 'pg_toast' AND (nspname !~ '^pg_temp_' OR nspname = (pg_catalog.current_schemas(true))[1]) AND (nspname !~ '^pg_toast_temp_' OR nspname = replace((pg_catalog.current_schemas(true))[1], 'pg_temp_', 'pg_toast_temp_')) ORDER BY TABLE_SCHEM";
+            sql = "SELECT nspname AS TABLE_SCHEM ";
+            if (jdbcVersion >= 3)
+                sql += ", NULL AS TABLE_CATALOG ";
+            sql += " FROM pg_catalog.pg_namespace WHERE nspname <> 'pg_toast' AND (nspname !~ '^pg_temp_' OR nspname = (pg_catalog.current_schemas(true))[1]) AND (nspname !~ '^pg_toast_temp_' OR nspname = replace((pg_catalog.current_schemas(true))[1], 'pg_temp_', 'pg_toast_temp_')) ";
+            if (schemaPattern != null && !"".equals(schemaPattern))
+            {
+                sql += " AND nspname LIKE '" + escapeQuotes(schemaPattern) + "' ";
+            }
+            sql += " ORDER BY TABLE_SCHEM";
         }
         else
         {
-            sql = "SELECT ''::text AS TABLE_SCHEM ORDER BY TABLE_SCHEM";
+            sql = "SELECT ''::text AS TABLE_SCHEM ";
+            if (jdbcVersion >= 3) {
+                sql += ", NULL AS TABLE_CATALOG ";
+            }
+            if (schemaPattern != null)
+            {
+                sql += " AND ''::text LIKE '" + escapeQuotes(schemaPattern) + "' ";
+            }
         }
         return createMetaDataStatement().executeQuery(sql);
     }
