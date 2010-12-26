@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ResultSetMetaDataTest.java,v 1.16 2008/01/08 06:56:31 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ResultSetMetaDataTest.java,v 1.17 2010/08/10 19:59:42 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -198,6 +198,8 @@ public class ResultSetMetaDataTest extends TestCase
         {
             assertTrue(rsmd.isAutoIncrement(2));
             assertTrue(rsmd.isAutoIncrement(3));
+            assertEquals("bigserial", rsmd.getColumnTypeName(2));
+            assertEquals("serial", rsmd.getColumnTypeName(3));
         }
 
         rs.close();

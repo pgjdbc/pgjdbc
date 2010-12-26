@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSetMetaData.java,v 1.22 2008/04/15 04:23:57 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSetMetaData.java,v 1.23 2010/12/25 20:36:46 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -339,7 +339,16 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
      */
     public String getColumnTypeName(int column) throws SQLException
     {
-        return getPGType(column);
+        String type = getPGType(column);
+        if (isAutoIncrement(column)) {
+            if ("int4".equals(type)) {
+                return "serial";
+            } else if ("int8".equals(type)) {
+                return "bigserial";
+            }
+        }
+
+        return type;
     }
 
     /*
