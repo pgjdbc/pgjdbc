@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4DatabaseMetaData.java,v 1.8 2010/12/25 07:07:44 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4DatabaseMetaData.java,v 1.9 2010/12/26 01:59:38 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -97,6 +97,16 @@ public abstract class AbstractJdbc4DatabaseMetaData extends org.postgresql.jdbc3
     public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException
     {
         return getColumns(4, catalog, schemaPattern, tableNamePattern, columnNamePattern);
+    }
+
+    public ResultSet getProcedures(String catalog, String schemaPattern, String procedureNamePattern) throws SQLException
+    {
+        return getProcedures(4, catalog, schemaPattern, procedureNamePattern);
+    }
+
+    public ResultSet getProcedureColumns(String catalog, String schemaPattern, String procedureNamePattern, String columnNamePattern) throws SQLException
+    {
+        return getProcedureColumns(4, catalog, schemaPattern, procedureNamePattern, columnNamePattern);
     }
 
 }

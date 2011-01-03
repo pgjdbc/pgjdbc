@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.61 2010/12/22 16:53:46 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.62 2010/12/26 01:59:38 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1607,11 +1607,19 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public java.sql.ResultSet getProcedures(String catalog, String schemaPattern, String procedureNamePattern) throws SQLException
     {
+        return getProcedures(2, catalog, schemaPattern, procedureNamePattern);
+    }
+
+    protected java.sql.ResultSet getProcedures(int jdbcVersion, String catalog, String schemaPattern, String procedureNamePattern) throws SQLException
+    {
         String sql;
         if (connection.haveMinimumServerVersion("7.3"))
         {
-            sql = "SELECT NULL AS PROCEDURE_CAT, n.nspname AS PROCEDURE_SCHEM, p.proname AS PROCEDURE_NAME, NULL, NULL, NULL, d.description AS REMARKS, " + java.sql.DatabaseMetaData.procedureReturnsResult + " AS PROCEDURE_TYPE " +
-                  " FROM pg_catalog.pg_namespace n, pg_catalog.pg_proc p " +
+            sql = "SELECT NULL AS PROCEDURE_CAT, n.nspname AS PROCEDURE_SCHEM, p.proname AS PROCEDURE_NAME, NULL, NULL, NULL, d.description AS REMARKS, " + java.sql.DatabaseMetaData.procedureReturnsResult + " AS PROCEDURE_TYPE ";
+            if (jdbcVersion >= 4) {
+                sql += ", p.proname || '_' || p.oid AS SPECIFIC_NAME ";
+            }
+            sql += " FROM pg_catalog.pg_namespace n, pg_catalog.pg_proc p " +
                   " LEFT JOIN pg_catalog.pg_description d ON (p.oid=d.objoid) " +
                   " LEFT JOIN pg_catalog.pg_class c ON (d.classoid=c.oid AND c.relname='pg_proc') " +
                   " LEFT JOIN pg_catalog.pg_namespace pn ON (c.relnamespace=pn.oid AND pn.nspname='pg_catalog') " +
@@ -1624,12 +1632,15 @@ public abstract class AbstractJdbc2DatabaseMetaData
             {
                 sql += " AND p.proname LIKE '" + escapeQuotes(procedureNamePattern) + "' ";
             }
-            sql += " ORDER BY PROCEDURE_SCHEM, PROCEDURE_NAME ";
+            sql += " ORDER BY PROCEDURE_SCHEM, PROCEDURE_NAME, p.oid::text ";
         }
         else if (connection.haveMinimumServerVersion("7.1"))
         {
-            sql = "SELECT NULL AS PROCEDURE_CAT, NULL AS PROCEDURE_SCHEM, p.proname AS PROCEDURE_NAME, NULL, NULL, NULL, d.description AS REMARKS, " + java.sql.DatabaseMetaData.procedureReturnsResult + " AS PROCEDURE_TYPE " +
-                  " FROM pg_proc p " +
+            sql = "SELECT NULL AS PROCEDURE_CAT, NULL AS PROCEDURE_SCHEM, p.proname AS PROCEDURE_NAME, NULL, NULL, NULL, d.description AS REMARKS, " + java.sql.DatabaseMetaData.procedureReturnsResult + " AS PROCEDURE_TYPE ";
+            if (jdbcVersion >= 4) {
+                sql += ", p.proname || '_' || p.oid AS SPECIFIC_NAME ";
+            }
+            sql += " FROM pg_proc p " +
                   " LEFT JOIN pg_description d ON (p.oid=d.objoid) ";
             if (connection.haveMinimumServerVersion("7.2"))
             {
@@ -1639,17 +1650,20 @@ public abstract class AbstractJdbc2DatabaseMetaData
             {
                 sql += " WHERE p.proname LIKE '" + escapeQuotes(procedureNamePattern) + "' ";
             }
-            sql += " ORDER BY PROCEDURE_NAME ";
+            sql += " ORDER BY PROCEDURE_NAME, p.oid::text ";
         }
         else
         {
-            sql = "SELECT NULL AS PROCEDURE_CAT, NULL AS PROCEDURE_SCHEM, p.proname AS PROCEDURE_NAME, NULL, NULL, NULL, NULL AS REMARKS, " + java.sql.DatabaseMetaData.procedureReturnsResult + " AS PROCEDURE_TYPE " +
-                  " FROM pg_proc p ";
+            sql = "SELECT NULL AS PROCEDURE_CAT, NULL AS PROCEDURE_SCHEM, p.proname AS PROCEDURE_NAME, NULL, NULL, NULL, NULL AS REMARKS, " + java.sql.DatabaseMetaData.procedureReturnsResult + " AS PROCEDURE_TYPE ";
+            if (jdbcVersion >= 4) {
+                sql += ", p.proname || '_' || p.oid AS SPECIFIC_NAME ";
+            }
+            sql += " FROM pg_proc p ";
             if (procedureNamePattern != null)
             {
                 sql += " WHERE p.proname LIKE '" + escapeQuotes(procedureNamePattern) + "' ";
             }
-            sql += " ORDER BY PROCEDURE_NAME ";
+            sql += " ORDER BY PROCEDURE_NAME, p.oid::text ";
         }
         return createMetaDataStatement().executeQuery(sql);
     }
@@ -1702,7 +1716,16 @@ public abstract class AbstractJdbc2DatabaseMetaData
     // Implementation note: This is required for Borland's JBuilder to work
     public java.sql.ResultSet getProcedureColumns(String catalog, String schemaPattern, String procedureNamePattern, String columnNamePattern) throws SQLException
     {
-        Field f[] = new Field[13];
+        return getProcedureColumns(2, catalog, schemaPattern, procedureNamePattern, columnNamePattern);
+    }
+
+    protected java.sql.ResultSet getProcedureColumns(int jdbcVersion, String catalog, String schemaPattern, String procedureNamePattern, String columnNamePattern) throws SQLException
+    {
+        int columns = 13;
+        if (jdbcVersion >= 4) {
+            columns += 7;
+        }
+        Field f[] = new Field[columns];
         Vector v = new Vector();  // The new ResultSet tuple stuff
 
         f[0] = new Field("PROCEDURE_CAT", Oid.VARCHAR);
@@ -1718,6 +1741,15 @@ public abstract class AbstractJdbc2DatabaseMetaData
         f[10] = new Field("RADIX", Oid.INT2);
         f[11] = new Field("NULLABLE", Oid.INT2);
         f[12] = new Field("REMARKS", Oid.VARCHAR);
+        if (jdbcVersion >= 4) {
+            f[13] = new Field("COLUMN_DEF", Oid.VARCHAR);
+            f[14] = new Field("SQL_DATA_TYPE", Oid.INT4);
+            f[15] = new Field("SQL_DATETIME_SUB", Oid.INT4);
+            f[16] = new Field("CHAR_OCTECT_LENGTH", Oid.INT4);
+            f[17] = new Field("ORDINAL_POSITION", Oid.INT4);
+            f[18] = new Field("IS_NULLABLE", Oid.VARCHAR);
+            f[19] = new Field("SPECIFIC_NAME", Oid.VARCHAR);
+        }
 
         String sql;
         if (connection.haveMinimumServerVersion("7.3"))
@@ -1730,9 +1762,9 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 sql += ", p.proargnames, NULL AS proargmodes, NULL AS proallargtypes ";
             else
                 sql += ", NULL AS proargnames, NULL AS proargmodes, NULL AS proallargtypes ";
-
-            sql += " FROM pg_catalog.pg_proc p, pg_catalog.pg_namespace n, pg_catalog.pg_type t " +
-                  " WHERE p.pronamespace=n.oid AND p.prorettype=t.oid ";
+            sql += ", p.oid "
+                + " FROM pg_catalog.pg_proc p, pg_catalog.pg_namespace n, pg_catalog.pg_type t "
+                + " WHERE p.pronamespace=n.oid AND p.prorettype=t.oid ";
             if (schemaPattern != null && !"".equals(schemaPattern))
             {
                 sql += " AND n.nspname LIKE '" + escapeQuotes(schemaPattern) + "' ";
@@ -1741,25 +1773,28 @@ public abstract class AbstractJdbc2DatabaseMetaData
             {
                 sql += " AND p.proname LIKE '" + escapeQuotes(procedureNamePattern) + "' ";
             }
-            sql += " ORDER BY n.nspname, p.proname ";
+            sql += " ORDER BY n.nspname, p.proname, p.oid::text ";
         }
         else
         {
-            sql = "SELECT NULL AS nspname,p.proname,p.prorettype,p.proargtypes,t.typtype,t.typrelid, NULL AS proargnames, NULL AS proargmodes, NULL AS proallargtypes " +
+            sql = "SELECT NULL AS nspname,p.proname,p.prorettype,p.proargtypes,t.typtype,t.typrelid, NULL AS proargnames, NULL AS proargmodes, NULL AS proallargtypes, p.oid " +
                   " FROM pg_proc p,pg_type t " +
                   " WHERE p.prorettype=t.oid ";
             if (procedureNamePattern != null)
             {
                 sql += " AND p.proname LIKE '" + escapeQuotes(procedureNamePattern) + "' ";
             }
-            sql += " ORDER BY p.proname ";
+            sql += " ORDER BY p.proname, p.oid::text ";
         }
+
+        byte isnullableUnknown[] = new byte[0];
 
         ResultSet rs = connection.createStatement().executeQuery(sql);
         while (rs.next())
         {
             byte schema[] = rs.getBytes("nspname");
             byte procedureName[] = rs.getBytes("proname");
+            byte specificName[] = connection.encodeString(rs.getString("proname") + "_" + rs.getString("oid"));
             int returnType = (int)rs.getLong("prorettype");
             String returnTypeType = rs.getString("typtype");
             int returnTypeRelid = (int)rs.getLong("typrelid");
@@ -1806,7 +1841,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
             // decide if we are returning a single column result.
             if (returnTypeType.equals("b") || returnTypeType.equals("d") || (returnTypeType.equals("p") && argModesArray == null))
             {
-                byte[][] tuple = new byte[13][];
+                byte[][] tuple = new byte[columns][];
                 tuple[0] = null;
                 tuple[1] = schema;
                 tuple[2] = procedureName;
@@ -1820,13 +1855,18 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 tuple[10] = null;
                 tuple[11] = connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.procedureNullableUnknown));
                 tuple[12] = null;
+                if (jdbcVersion >= 4) {
+                    tuple[17] = connection.encodeString(Integer.toString(0));
+                    tuple[18] = isnullableUnknown;
+                    tuple[19] = specificName;
+                }
                 v.addElement(tuple);
             }
 
             // Add a row for each argument.
             for (int i = 0; i < numArgs; i++)
             {
-                byte[][] tuple = new byte[13][];
+                byte[][] tuple = new byte[columns][];
                 tuple[0] = null;
                 tuple[1] = schema;
                 tuple[2] = procedureName;
@@ -1858,6 +1898,11 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 tuple[10] = null;
                 tuple[11] = connection.encodeString(Integer.toString(DatabaseMetaData.procedureNullableUnknown));
                 tuple[12] = null;
+                if (jdbcVersion >= 4) {
+                    tuple[17] = connection.encodeString(Integer.toString(i+1));
+                    tuple[18] = isnullableUnknown;
+                    tuple[19] = specificName;
+                }
                 v.addElement(tuple);
             }
 
@@ -1873,7 +1918,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 while (columnrs.next())
                 {
                     int columnTypeOid = (int)columnrs.getLong("atttypid");
-                    byte[][] tuple = new byte[13][];
+                    byte[][] tuple = new byte[columns][];
                     tuple[0] = null;
                     tuple[1] = schema;
                     tuple[2] = procedureName;
@@ -1887,6 +1932,11 @@ public abstract class AbstractJdbc2DatabaseMetaData
                     tuple[10] = null;
                     tuple[11] = connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.procedureNullableUnknown));
                     tuple[12] = null;
+                    if (jdbcVersion >= 4) {
+                        tuple[17] = connection.encodeString(Integer.toString(0));
+                        tuple[18] = isnullableUnknown;
+                        tuple[19] = specificName;
+                    }
                     v.addElement(tuple);
                 }
                 columnrs.close();
