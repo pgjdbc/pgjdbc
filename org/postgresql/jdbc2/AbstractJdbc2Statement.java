@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.117 2010/05/26 19:16:21 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.118 2010/07/23 19:55:36 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1734,6 +1734,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                     setArray(parameterIndex, (Array)in);
                 else
                     throw new PSQLException(GT.tr("Cannot cast an instance of {0} to type {1}", new Object[]{in.getClass().getName(),"Types.ARRAY"}), PSQLState.INVALID_PARAMETER_TYPE);
+                break;
+            case Types.DISTINCT:
+                bindString(parameterIndex, in.toString(), Oid.UNSPECIFIED);
                 break;
 	        case Types.OTHER:
 	            if (in instanceof PGobject)
