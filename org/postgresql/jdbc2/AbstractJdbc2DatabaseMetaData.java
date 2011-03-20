@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.63 2011/01/03 19:21:37 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.64 2011/03/20 03:17:50 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1567,10 +1567,19 @@ public abstract class AbstractJdbc2DatabaseMetaData
     }
 
     /**
-     * Escape single quotes with another single quote, escape backslashes as needed.
+     * Turn the provided value into a valid string literal for
+     * direct inclusion into a query.  This includes the single quotes
+     * needed around it.
      */
     protected String escapeQuotes(String s) throws SQLException {
-        return connection.escapeString(s);
+        StringBuffer sb = new StringBuffer();
+        if (!connection.getStandardConformingStrings() && connection.haveMinimumServerVersion("8.1")) {
+            sb.append("E");
+        }
+        sb.append("'");
+        sb.append(connection.escapeString(s));
+        sb.append("'");
+        return sb.toString();
     }
 
     /*
@@ -1626,11 +1635,11 @@ public abstract class AbstractJdbc2DatabaseMetaData
                   " WHERE p.pronamespace=n.oid ";
             if (schemaPattern != null && !"".equals(schemaPattern))
             {
-                sql += " AND n.nspname LIKE '" + escapeQuotes(schemaPattern) + "' ";
+                sql += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
             }
             if (procedureNamePattern != null)
             {
-                sql += " AND p.proname LIKE '" + escapeQuotes(procedureNamePattern) + "' ";
+                sql += " AND p.proname LIKE " + escapeQuotes(procedureNamePattern);
             }
             sql += " ORDER BY PROCEDURE_SCHEM, PROCEDURE_NAME, p.oid::text ";
         }
@@ -1648,7 +1657,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
             }
             if (procedureNamePattern != null)
             {
-                sql += " WHERE p.proname LIKE '" + escapeQuotes(procedureNamePattern) + "' ";
+                sql += " WHERE p.proname LIKE " + escapeQuotes(procedureNamePattern);
             }
             sql += " ORDER BY PROCEDURE_NAME, p.oid::text ";
         }
@@ -1661,7 +1670,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
             sql += " FROM pg_proc p ";
             if (procedureNamePattern != null)
             {
-                sql += " WHERE p.proname LIKE '" + escapeQuotes(procedureNamePattern) + "' ";
+                sql += " WHERE p.proname LIKE " + escapeQuotes(procedureNamePattern);
             }
             sql += " ORDER BY PROCEDURE_NAME, p.oid::text ";
         }
@@ -1767,11 +1776,11 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 + " WHERE p.pronamespace=n.oid AND p.prorettype=t.oid ";
             if (schemaPattern != null && !"".equals(schemaPattern))
             {
-                sql += " AND n.nspname LIKE '" + escapeQuotes(schemaPattern) + "' ";
+                sql += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
             }
             if (procedureNamePattern != null)
             {
-                sql += " AND p.proname LIKE '" + escapeQuotes(procedureNamePattern) + "' ";
+                sql += " AND p.proname LIKE " + escapeQuotes(procedureNamePattern);
             }
             sql += " ORDER BY n.nspname, p.proname, p.oid::text ";
         }
@@ -1782,7 +1791,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                   " WHERE p.prorettype=t.oid ";
             if (procedureNamePattern != null)
             {
-                sql += " AND p.proname LIKE '" + escapeQuotes(procedureNamePattern) + "' ";
+                sql += " AND p.proname LIKE " + escapeQuotes(procedureNamePattern);
             }
             sql += " ORDER BY p.proname, p.oid::text ";
         }
@@ -2030,7 +2039,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                      " WHERE c.relnamespace = n.oid ";
             if (schemaPattern != null && !"".equals(schemaPattern))
             {
-                select += " AND n.nspname LIKE '" + escapeQuotes(schemaPattern) + "' ";
+                select += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
             }
             orderby = " ORDER BY TABLE_TYPE,TABLE_SCHEM,TABLE_NAME ";
         }
@@ -2099,7 +2108,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
         if (tableNamePattern != null)
         {
-            select += " AND c.relname LIKE '" + escapeQuotes(tableNamePattern) + "' ";
+            select += " AND c.relname LIKE " + escapeQuotes(tableNamePattern);
         }
         if (types != null) {
             select += " AND (false ";
@@ -2209,7 +2218,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
             sql += " FROM pg_catalog.pg_namespace WHERE nspname <> 'pg_toast' AND (nspname !~ '^pg_temp_' OR nspname = (pg_catalog.current_schemas(true))[1]) AND (nspname !~ '^pg_toast_temp_' OR nspname = replace((pg_catalog.current_schemas(true))[1], 'pg_temp_', 'pg_toast_temp_')) ";
             if (schemaPattern != null && !"".equals(schemaPattern))
             {
-                sql += " AND nspname LIKE '" + escapeQuotes(schemaPattern) + "' ";
+                sql += " AND nspname LIKE " + escapeQuotes(schemaPattern);
             }
             sql += " ORDER BY TABLE_SCHEM";
         }
@@ -2221,7 +2230,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
             }
             if (schemaPattern != null)
             {
-                sql += " WHERE ''::text LIKE '" + escapeQuotes(schemaPattern) + "' ";
+                sql += " WHERE ''::text LIKE " + escapeQuotes(schemaPattern);
             }
         }
         return createMetaDataStatement().executeQuery(sql);
@@ -2372,12 +2381,12 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
             if (schemaPattern != null && !"".equals(schemaPattern))
             {
-                sql += " AND n.nspname LIKE '" + escapeQuotes(schemaPattern) + "' ";
+                sql += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
             }
 
             if (tableNamePattern != null && !"".equals(tableNamePattern))
             {
-                sql += " AND c.relname LIKE '" + escapeQuotes(tableNamePattern) + "' ";
+                sql += " AND c.relname LIKE " + escapeQuotes(tableNamePattern);
             }
 
             if (connection.haveMinimumServerVersion("8.4"))
@@ -2414,11 +2423,11 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
         if (!connection.haveMinimumServerVersion("7.3") && tableNamePattern != null && !"".equals(tableNamePattern))
         {
-            sql += " AND c.relname LIKE '" + escapeQuotes(tableNamePattern) + "' ";
+            sql += " AND c.relname LIKE " + escapeQuotes(tableNamePattern);
         }
         if (columnNamePattern != null && !"".equals(columnNamePattern))
         {
-            sql += " AND attname LIKE '" + escapeQuotes(columnNamePattern) + "' ";
+            sql += " AND attname LIKE " + escapeQuotes(columnNamePattern);
         }
         sql += " ORDER BY nspname,c.relname,attnum ";
 
@@ -2628,7 +2637,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                   " AND a.attnum > 0 AND NOT a.attisdropped ";
             if (schema != null && !"".equals(schema))
             {
-                sql += " AND n.nspname = '" + escapeQuotes(schema) + "' ";
+                sql += " AND n.nspname = " + escapeQuotes(schema);
             }
         }
         else
@@ -2641,10 +2650,10 @@ public abstract class AbstractJdbc2DatabaseMetaData
                   " AND c.relkind = 'r' ";
         }
 
-        sql += " AND c.relname = '" + escapeQuotes(table) + "' ";
+        sql += " AND c.relname = " + escapeQuotes(table);
         if (columnNamePattern != null && !"".equals(columnNamePattern))
         {
-            sql += " AND a.attname LIKE '" + escapeQuotes(columnNamePattern) + "' ";
+            sql += " AND a.attname LIKE " + escapeQuotes(columnNamePattern);
         }
         sql += " ORDER BY attname ";
 
@@ -2744,7 +2753,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                   " AND c.relkind = 'r' ";
             if (schemaPattern != null && !"".equals(schemaPattern))
             {
-                sql += " AND n.nspname LIKE '" + escapeQuotes(schemaPattern) + "' ";
+                sql += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
             }
         }
         else
@@ -2757,7 +2766,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
         if (tableNamePattern != null && !"".equals(tableNamePattern))
         {
-            sql += " AND c.relname LIKE '" + escapeQuotes(tableNamePattern) + "' ";
+            sql += " AND c.relname LIKE " + escapeQuotes(tableNamePattern);
         }
         sql += " ORDER BY nspname, relname ";
 
@@ -3031,7 +3040,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 + "WHERE true ";
             if (schema != null && !"".equals(schema))
             {
-                sql += " AND n.nspname = '" + escapeQuotes(schema) + "' ";
+                sql += " AND n.nspname = " + escapeQuotes(schema);
             }
         }
         else
@@ -3044,7 +3053,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 where = " AND ct.relnamespace = n.oid ";
                 if (schema != null && !"".equals(schema))
                 {
-                    where += " AND n.nspname = '" + escapeQuotes(schema) + "' ";
+                    where += " AND n.nspname = " + escapeQuotes(schema);
                 }
             }
             else
@@ -3058,7 +3067,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                      where;
         }
 
-        sql += " AND ct.relname = '" + escapeQuotes(table) + "' " +
+        sql += " AND ct.relname = " + escapeQuotes(table) +
                      " AND i.indisprimary " +
                      " ORDER BY a.attnum ";
 
@@ -3196,7 +3205,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 + "WHERE true ";
             if (schema != null && !"".equals(schema))
             {
-                sql += " AND n.nspname = '" + escapeQuotes(schema) + "' ";
+                sql += " AND n.nspname = " + escapeQuotes(schema);
             }
         } else {
             String select;
@@ -3210,7 +3219,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 where = " AND ct.relnamespace = n.oid ";
                 if (schema != null && !"".equals(schema))
                 {
-                    where += " AND n.nspname = '" + escapeQuotes(schema) + "' ";
+                    where += " AND n.nspname = " + escapeQuotes(schema);
                 }
             }
             else
@@ -3232,7 +3241,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
         if (table != null && !"".equals(table))
         {
-            sql += " AND ct.relname = '" + escapeQuotes(table) + "' ";
+            sql += " AND ct.relname = " + escapeQuotes(table);
         }
 
         sql += " AND i.indisprimary " +
@@ -3326,19 +3335,19 @@ public abstract class AbstractJdbc2DatabaseMetaData
                          " AND con.contype = 'f' AND con.oid = dep.objid AND pkic.oid = dep.refobjid AND pkic.relkind = 'i' AND dep.classid = 'pg_constraint'::regclass::oid AND dep.refclassid = 'pg_class'::regclass::oid ";
             if (primarySchema != null && !"".equals(primarySchema))
             {
-                sql += " AND pkn.nspname = '" + escapeQuotes(primarySchema) + "' ";
+                sql += " AND pkn.nspname = " + escapeQuotes(primarySchema);
             }
             if (foreignSchema != null && !"".equals(foreignSchema))
             {
-                sql += " AND fkn.nspname = '" + escapeQuotes(foreignSchema) + "' ";
+                sql += " AND fkn.nspname = " + escapeQuotes(foreignSchema);
             }
             if (primaryTable != null && !"".equals(primaryTable))
             {
-                sql += " AND pkc.relname = '" + escapeQuotes(primaryTable) + "' ";
+                sql += " AND pkc.relname = " + escapeQuotes(primaryTable);
             }
             if (foreignTable != null && !"".equals(foreignTable))
             {
-                sql += " AND fkc.relname = '" + escapeQuotes(foreignTable) + "' ";
+                sql += " AND fkc.relname = " + escapeQuotes(foreignTable);
             }
 
             if (primaryTable != null)
@@ -3368,11 +3377,11 @@ public abstract class AbstractJdbc2DatabaseMetaData
                    " JOIN pg_catalog.pg_proc p2 ON (t2.tgfoid=p2.oid) ";
             if (primarySchema != null && !"".equals(primarySchema))
             {
-                where += " AND n1.nspname = '" + escapeQuotes(primarySchema) + "' ";
+                where += " AND n1.nspname = " + escapeQuotes(primarySchema);
             }
             if (foreignSchema != null && !"".equals(foreignSchema))
             {
-                where += " AND n2.nspname = '" + escapeQuotes(foreignSchema) + "' ";
+                where += " AND n2.nspname = " + escapeQuotes(foreignSchema);
             }
         }
         else
@@ -3420,11 +3429,11 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
         if (primaryTable != null)
         {
-            sql += "AND c1.relname='" + escapeQuotes(primaryTable) + "' ";
+            sql += "AND c1.relname=" + escapeQuotes(primaryTable);
         }
         if (foreignTable != null)
         {
-            sql += "AND c2.relname='" + escapeQuotes(foreignTable) + "' ";
+            sql += "AND c2.relname=" + escapeQuotes(foreignTable);
         }
 
         sql += "ORDER BY ";
@@ -4022,7 +4031,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
             if (schema != null && !"".equals(schema))
             {
-                sql += " AND n.nspname = '" + escapeQuotes(schema) + "' ";
+                sql += " AND n.nspname = " + escapeQuotes(schema);
             }
         } else {
             String select;
@@ -4043,7 +4052,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 }
                 if (schema != null && ! "".equals(schema))
                 {
-                    where += " AND n.nspname = '" + escapeQuotes(schema) + "' ";
+                    where += " AND n.nspname = " + escapeQuotes(schema);
                 }
             }
             else
@@ -4096,7 +4105,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                      where;
         }
 
-        sql += " AND ct.relname = '" + escapeQuotes(tableName) + "' ";
+        sql += " AND ct.relname = " + escapeQuotes(tableName);
 
         if (unique)
         {
@@ -4251,7 +4260,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         for (Iterator i = connection.getTypeInfo().getPGTypeNamesWithSQLTypes(); i.hasNext();) {
             String pgType = (String)i.next();
             int sqlType = connection.getTypeInfo().getSQLType(pgType);
-            sql += " when typname = '" + escapeQuotes(pgType) + "' then " + sqlType;
+            sql += " when typname = " + escapeQuotes(pgType) + " then " + sqlType;
         }
 
         sql += " else " + java.sql.Types.OTHER + " end from pg_type where oid=t.typbasetype) "
@@ -4306,13 +4315,13 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 // strip out just the typeName
                 typeNamePattern = typeNamePattern.substring(secondQualifier + 1);
             }
-            toAdd += " and t.typname like '" + escapeQuotes(typeNamePattern) + "'";
+            toAdd += " and t.typname like " + escapeQuotes(typeNamePattern);
         }
 
         // schemaPattern may have been modified above
         if ( schemaPattern != null)
         {
-            toAdd += " and n.nspname like '" + escapeQuotes(schemaPattern) + "'";
+            toAdd += " and n.nspname like " + escapeQuotes(schemaPattern);
         }
         sql += toAdd;
         sql += " order by data_type, type_schem, type_name";
