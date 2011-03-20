@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DateTest.java,v 1.13 2006/10/31 06:12:47 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DateTest.java,v 1.14 2008/01/08 06:56:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -63,7 +63,7 @@ public class DateTest extends TestCase
         assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1971-12-15'")));
         assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'1984-12-03'")));
         assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'2000-01-01'")));
-        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'23456-01-01'")));
+        assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'3456-01-01'")));
         assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'0101-01-01 BC'")));
 
         /* dateTest() contains all of the tests */
@@ -108,16 +108,16 @@ public class DateTest extends TestCase
         ps.setObject(1, "1934-02-28", java.sql.Types.DATE);
         assertEquals(1, ps.executeUpdate());
 
-        ps.setObject(1, "1969-04-3", java.sql.Types.DATE);
+        ps.setObject(1, "1969-04-03", java.sql.Types.DATE);
         assertEquals(1, ps.executeUpdate());
 
         ps.setObject(1, "1982-08-03", java.sql.Types.DATE);
         assertEquals(1, ps.executeUpdate());
 
-        ps.setObject(1, "2012-3-15", java.sql.Types.DATE);
+        ps.setObject(1, "2012-03-15", java.sql.Types.DATE);
         assertEquals(1, ps.executeUpdate());
 
-        ps.setObject(1, java.sql.Date.valueOf("1912-5-1"), java.sql.Types.DATE);
+        ps.setObject(1, java.sql.Date.valueOf("1912-05-01"), java.sql.Types.DATE);
         assertEquals(1, ps.executeUpdate());
 
         ps.setObject(1, java.sql.Date.valueOf("1971-12-15"), java.sql.Types.DATE);
@@ -126,10 +126,10 @@ public class DateTest extends TestCase
         ps.setObject(1, java.sql.Date.valueOf("1984-12-03"), java.sql.Types.DATE);
         assertEquals(1, ps.executeUpdate());
 
-        ps.setObject(1, java.sql.Date.valueOf("2000-1-1"), java.sql.Types.DATE);
+        ps.setObject(1, java.sql.Date.valueOf("2000-01-01"), java.sql.Types.DATE);
         assertEquals(1, ps.executeUpdate());
 
-        ps.setObject(1, java.sql.Date.valueOf("23456-1-1"), java.sql.Types.DATE);
+        ps.setObject(1, java.sql.Date.valueOf("3456-01-01"), java.sql.Types.DATE);
         assertEquals(1, ps.executeUpdate());
 
         // We can't use valueOf on BC dates.
@@ -240,7 +240,7 @@ public class DateTest extends TestCase
         assertTrue(rs.next());
         d = rs.getDate(1);
         assertNotNull(d);
-        assertEquals(makeDate(23456, 1, 1), d);
+        assertEquals(makeDate(3456, 1, 1), d);
 
         assertTrue(rs.next());
         d = rs.getDate(1);
