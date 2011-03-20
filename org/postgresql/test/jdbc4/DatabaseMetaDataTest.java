@@ -3,7 +3,7 @@
 * Copyright (c) 2007-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc4/DatabaseMetaDataTest.java,v 1.4 2010/12/25 07:07:45 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc4/DatabaseMetaDataTest.java,v 1.5 2010/12/26 01:59:38 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -72,6 +72,12 @@ public class DatabaseMetaDataTest extends TestCase
         DatabaseMetaData dbmd = _conn.getMetaData();
 
         ResultSet rs = dbmd.getSchemas("", "publ%");
+
+        if (!TestUtil.haveMinimumServerVersion(_conn, "7.3")) {
+            assertTrue(!rs.next());
+            return;
+        }
+
         assertTrue(rs.next());
         assertEquals("public", rs.getString("TABLE_SCHEM"));
         assertNull(rs.getString("TABLE_CATALOG"));

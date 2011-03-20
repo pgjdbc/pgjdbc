@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.62 2010/12/26 01:59:38 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.63 2011/01/03 19:21:37 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2221,7 +2221,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
             }
             if (schemaPattern != null)
             {
-                sql += " AND ''::text LIKE '" + escapeQuotes(schemaPattern) + "' ";
+                sql += " WHERE ''::text LIKE '" + escapeQuotes(schemaPattern) + "' ";
             }
         }
         return createMetaDataStatement().executeQuery(sql);
