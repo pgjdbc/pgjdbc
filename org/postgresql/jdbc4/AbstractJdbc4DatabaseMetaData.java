@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4DatabaseMetaData.java,v 1.9 2010/12/26 01:59:38 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4DatabaseMetaData.java,v 1.10 2011/01/03 19:21:37 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -107,6 +107,15 @@ public abstract class AbstractJdbc4DatabaseMetaData extends org.postgresql.jdbc3
     public ResultSet getProcedureColumns(String catalog, String schemaPattern, String procedureNamePattern, String columnNamePattern) throws SQLException
     {
         return getProcedureColumns(4, catalog, schemaPattern, procedureNamePattern, columnNamePattern);
+    }
+
+    public ResultSet getPseudoColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getPseudoColumns(String, String, String, String)");
+    }
+
+    public boolean generatedKeyAlwaysReturned() throws SQLException {
+        return true;
     }
 
 }

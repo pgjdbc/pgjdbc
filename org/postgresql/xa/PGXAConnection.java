@@ -78,7 +78,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         logger.debug("XAResource " + Integer.toHexString(this.hashCode()) + ": " + s);
     }
 
-    PGXAConnection(BaseConnection conn) throws SQLException
+    public PGXAConnection(BaseConnection conn) throws SQLException
     {
         super(conn, true, true);
         this.conn = conn;

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4Statement.java,v 1.4 2008/09/30 04:34:51 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4Statement.java,v 1.5 2008/10/08 18:24:05 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -365,6 +365,31 @@ abstract class AbstractJdbc4Statement extends org.postgresql.jdbc3g.AbstractJdbc
     public <T> T unwrap(Class<T> iface) throws SQLException
     {
         throw org.postgresql.Driver.notImplemented(this.getClass(), "unwrap(Class<T>)");
+    }
+
+    public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getParentLogger()");
+    }
+
+    public void closeOnCompletion() throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "closeOnCompletion()");
+    }
+
+    public boolean isCloseOnCompletion() throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "isCloseOnCompletion()");
+    }
+
+    public <T> T getObject(int parameterIndex, Class<T> type) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getObject(int, Class<T>)");
+    }
+
+    public <T> T getObject(String parameterName, Class<T> type) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getObject(String, Class<T>)");
     }
 
 }

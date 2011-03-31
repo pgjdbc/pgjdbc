@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4Connection.java,v 1.9 2009/11/19 00:51:26 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4Connection.java,v 1.10 2010/12/25 07:07:44 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Properties;
+import java.util.concurrent.Executor;
 
 import org.postgresql.core.Oid;
 import org.postgresql.core.Utils;
@@ -197,5 +198,32 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
         throw org.postgresql.Driver.notImplemented(this.getClass(), "unwrap(Class<T>)");
     }
 
+    public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getParentLogger()");
+    }
+
+    public void setSchema(String schema) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setSchema(String)");
+    }
+
+    public String getSchema() throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getSchema()");
+    }
+
+    public void abort(Executor executor) throws SQLException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "abort(Executor)");
+    }
+
+    public void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "setNetworkTimeout(Executor, int)");
+    }
+
+    public int getNetworkTimeout() throws SQLException {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getNetworkTimeout()");
+    }
 
 }

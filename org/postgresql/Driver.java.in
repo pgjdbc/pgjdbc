@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.77 2008/11/29 07:40:30 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.78 2009/06/02 00:22:58 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -748,10 +748,10 @@ public class Driver implements java.sql.Driver
      * @return PSQLException with a localized message giving the complete 
      *  description of the unimplemeted function
      */
-    public static SQLException notImplemented(Class callClass, String functionName)
+    public static @NOTIMPLEMENTEDEXCEPTION@ notImplemented(Class callClass, String functionName)
     {
-        return new PSQLException(GT.tr("Method {0} is not yet implemented.", callClass.getName() + "." + functionName),
-                                 PSQLState.NOT_IMPLEMENTED);
+        return new @NOTIMPLEMENTEDEXCEPTION@(GT.tr("Method {0} is not yet implemented.", callClass.getName() + "." + functionName),
+                                 PSQLState.NOT_IMPLEMENTED.getState());
     }
 
     /**
@@ -774,6 +774,11 @@ public class Driver implements java.sql.Driver
         synchronized (Driver.class) {
             return logger.getLogLevel();
         }
+    }
+
+    public java.util.logging.Logger getParentLogger() throws @NOTIMPLEMENTEDEXCEPTION@
+    {
+        throw notImplemented(this.getClass(), "getParentLogger()");
     }
 
 }

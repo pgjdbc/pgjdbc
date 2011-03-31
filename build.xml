@@ -8,7 +8,7 @@
 
   This file now requires Ant 1.4.1.  2002-04-18
 
-  $PostgreSQL: pgjdbc/build.xml,v 1.86 2009/03/12 03:52:13 jurka Exp $
+  $PostgreSQL: pgjdbc/build.xml,v 1.87 2009/07/01 05:00:39 jurka Exp $
 
 -->
 
@@ -45,9 +45,15 @@
 	<equals arg1="${java.specification.version}" arg2="1.5"/>
     </condition>
     <condition property="jdbc4">
-      <or>
         <equals arg1="${java.specification.version}" arg2="1.6"/>
+    </condition>
+    <condition property="jdbc41">
         <equals arg1="${java.specification.version}" arg2="1.7"/>
+    </condition>
+    <condition property="jdbc4any">
+      <or>
+        <isset property="jdbc4" />
+	<isset property="jdbc41" />
       </or>
     </condition>
     <condition property="jdbc3any">
@@ -58,9 +64,8 @@
     </condition>
     <condition property="jdbc3plus">
       <or>
-        <isset property="jdbc3" />
-	<isset property="jdbc3g" />
-	<isset property="jdbc4" />
+        <isset property="jdbc3any" />
+	<isset property="jdbc4any" />
       </or>
     </condition>
 
@@ -69,7 +74,7 @@
         <or>
           <isset property="jdbc2" />
           <isset property="jdbc3any" />
-          <isset property="jdbc4" />
+          <isset property="jdbc4any" />
         </or>
       </not>
     </condition>
@@ -82,7 +87,7 @@
 
     <condition property="jdbc4tests">
       <and>
-        <isset property="jdbc4" />
+        <isset property="jdbc4any" />
         <isset property="junit" />
       </and>
     </condition>
@@ -161,8 +166,8 @@
        <exclude name="${package}/jdbc3g/Jdbc3g*.java" unless="jdbc3g" />
 
        <!-- jdbc4 subpackage -->
-       <include name="${package}/jdbc4/*.java" if="jdbc4" />
-       <exclude name="${package}/jdcb4/Jdbc4*.java" unless="jdbc4" />
+       <include name="${package}/jdbc4/*.java" if="jdbc4any" />
+       <exclude name="${package}/jdcb4/Jdbc4*.java" unless="jdbc4any" />
 
        <!-- ssl -->
        <include name="${package}/ssl/*.java" />
@@ -178,10 +183,12 @@
        <include name="${package}/ds/*.java" />
        <include name="${package}/ds/common/*.java" />
        <include name="${package}/ds/jdbc23/*.java" />
-       <include name="${package}/ds/jdbc4/*.java" if="jdbc4" />
+       <include name="${package}/ds/jdbc4/*.java" if="jdbc4any" />
 
        <!-- XA stuff -->
        <include name="${package}/xa/*.java" />
+       <include name="${package}/xa/jdbc3/*.java" />
+       <include name="${package}/xa/jdbc4/*.java" if="jdbc4any" />
 
     </javac>
   </target>
@@ -193,6 +200,8 @@
       <include name="${package}/ds/PGSimpleDataSource.java.in"/>
       <include name="${package}/ds/PGPoolingDataSource.java.in"/>
       <include name="${package}/ds/PGPooledConnection.java.in"/>
+      <include name="${package}/ds/PGConnectionPoolDataSource.java.in" />
+      <include name="${package}/xa/PGXADataSource.java.in" />
       <include name="build.properties"/>
       <include name="build.local.properties" />
       </srcfiles>
@@ -215,6 +224,9 @@
     <condition property="edition" value="JDBC4">
 	<equals arg1="${jdbc4}" arg2="true" />
     </condition>
+    <condition property="edition" value="JDBC4.1">
+	<equals arg1="${jdbc41}" arg2="true" />
+    </condition>
 
     <!-- determine the connection class -->
     <condition property="connectclass" value="org.postgresql.jdbc3.Jdbc3Connection">
@@ -224,37 +236,49 @@
         <equals arg1="${jdbc3g}" arg2="true"/>
     </condition>
     <condition property="connectclass" value="org.postgresql.jdbc4.Jdbc4Connection">
-	<equals arg1="${jdbc4}" arg2="true" />
+        <equals arg1="${jdbc4any}" arg2="true" />
+    </condition>
+
+    <condition property="notimplementedexception" value="java.sql.SQLException">
+        <equals arg1="${jdbc3any}" arg2="true" />
+    </condition>
+    <condition property="notimplementedexception" value="java.sql.SQLFeatureNotSupportedException">
+        <equals arg1="${jdbc4any}" arg2="true" />
     </condition>
 
     <condition property="simpledsclass" value="org.postgresql.ds.jdbc23.AbstractJdbc23SimpleDataSource">
-        <or>
-            <equals arg1="${jdbc3}" arg2="true" />
-            <equals arg1="${jdbc3g}" arg2="true" />
-        </or>
+        <equals arg1="${jdbc3any}" arg2="true" />
     </condition>
     <condition property="simpledsclass" value="org.postgresql.ds.jdbc4.AbstractJdbc4SimpleDataSource">
-        <equals arg1="${jdbc4}" arg2="true" />
+        <equals arg1="${jdbc4any}" arg2="true" />
     </condition>
 
     <condition property="poolingdsclass" value="org.postgresql.ds.jdbc23.AbstractJdbc23PoolingDataSource">
-        <or>
-            <equals arg1="${jdbc3}" arg2="true" />
-            <equals arg1="${jdbc3g}" arg2="true" />
-        </or>
+        <equals arg1="${jdbc3any}" arg2="true" />
     </condition>
     <condition property="poolingdsclass" value="org.postgresql.ds.jdbc4.AbstractJdbc4PoolingDataSource">
-        <equals arg1="${jdbc4}" arg2="true" />
+        <equals arg1="${jdbc4any}" arg2="true" />
 </condition>
 
     <condition property="pooledconnclass" value="org.postgresql.ds.jdbc23.AbstractJdbc23PooledConnection">
-        <or>
-            <equals arg1="${jdbc3}" arg2="true" />
-            <equals arg1="${jdbc3g}" arg2="true" />
-        </or>
+        <equals arg1="${jdbc3any}" arg2="true" />
     </condition>
     <condition property="pooledconnclass" value="org.postgresql.ds.jdbc4.AbstractJdbc4PooledConnection">
-        <equals arg1="${jdbc4}" arg2="true" />
+        <equals arg1="${jdbc4any}" arg2="true" />
+    </condition>
+
+    <condition property="connpooldsclass" value="org.postgresql.ds.jdbc23.AbstractJdbc23ConnectionPoolDataSource">
+        <equals arg1="${jdbc3any}" arg2="true" />
+    </condition>
+    <condition property="connpooldsclass" value="org.postgresql.ds.jdbc4.AbstractJdbc4ConnectionPoolDataSource">
+        <equals arg1="${jdbc4any}" arg2="true" />
+    </condition>
+
+    <condition property="xadsclass" value="org.postgresql.xa.jdbc3.AbstractJdbc3XADataSource">
+        <equals arg1="${jdbc3any}" arg2="true" />
+    </condition>
+    <condition property="xadsclass" value="org.postgresql.xa.jdbc4.AbstractJdbc4XADataSource">
+        <equals arg1="${jdbc4any}" arg2="true" />
     </condition>
 
     <!-- Some defaults -->
@@ -262,9 +286,12 @@
     <filter token="MINORVERSION" value="${minor}" />
     <filter token="VERSION" value="PostgreSQL ${fullversion} ${edition}" />
     <filter token="JDBCCONNECTCLASS" value="${connectclass}" />
+    <filter token="NOTIMPLEMENTEDEXCEPTION" value="${notimplementedexception}" />
+    <filter token="XA_DS_CLASS" value="${xadsclass}" />
     <filter token="POOLING_DS_CLASS" value="${poolingdsclass}" />
     <filter token="SIMPLE_DS_CLASS" value="${simpledsclass}" />
     <filter token="POOLED_CONN_CLASS" value="${pooledconnclass}" />
+    <filter token="CONN_POOL_DS_CLASS" value="${connpooldsclass}" />
     <filter token="DEF_PGPORT" value="${def_pgport}" />
 
      <fail unless="major" message="'major' undefined. Please follow the directions in README."/>
@@ -292,6 +319,14 @@
           overwrite="true"
           tofile="${package}/ds/PGPooledConnection.java"
           filtering="yes" />
+    <copy file="${package}/ds/PGConnectionPoolDataSource.java.in"
+          overwrite="true"
+          tofile="${package}/ds/PGConnectionPoolDataSource.java"
+          filtering="yes" />
+    <copy file="${package}/xa/PGXADataSource.java.in"
+          overwrite="true"
+          tofile="${package}/xa/PGXADataSource.java"
+          filtering="yes" />
 
   <echo message="Configured build for the ${edition} edition driver." />
   </target>
@@ -318,6 +353,8 @@
     <delete quiet="true" file="${package}/ds/PGPoolingDataSource.java" />
     <delete quiet="true" file="${package}/ds/PGSimpleDataSource.java" />
     <delete quiet="true" file="${package}/ds/PGPooledConnection.java" />
+    <delete quiet="true" file="${package}/ds/PGConnectionPoolDataSource.java" />
+    <delete quiet="true" file="${package}/xa/PGXADataSource.java" />
   </target>
 
   <!-- This compiles and executes the JUnit tests -->
@@ -429,8 +466,8 @@
         <include name="**/*.java"/>
 	<exclude name="jdbc3/Jdbc3*.java" unless="jdbc3" />
 	<exclude name="jdbc3g/Jdbc3g*.java" unless="jdbc3g" />
-	<exclude name="jdbc4/*.java" unless="jdbc4" />
-	<exclude name="ds/jdbc4/*.java" unless="jdbc4" />
+	<exclude name="jdbc4/*.java" unless="jdbc4any" />
+	<exclude name="ds/jdbc4/*.java" unless="jdbc4any" />
         <exclude name="test/**/*.java"/>
       </fileset>
     </javadoc>
