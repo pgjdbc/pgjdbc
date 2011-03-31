@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/PSQLState.java,v 1.10 2006/04/29 00:06:52 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/util/PSQLState.java,v 1.11 2006/04/29 13:30:24 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -37,12 +37,34 @@ public class PSQLState implements java.io.Serializable
 
     public final static PSQLState INVALID_PARAMETER_TYPE = new PSQLState("07006");
 
+    /**
+     * We could establish a connection with the server for unknown reasons.
+     * Could be a network problem.
+     */
     public final static PSQLState CONNECTION_UNABLE_TO_CONNECT = new PSQLState("08001");
+
     public final static PSQLState CONNECTION_DOES_NOT_EXIST = new PSQLState("08003");
+
+    /**
+     * The server rejected our connection attempt.  Usually an authentication
+     * failure, but could be a configuration error like asking for a SSL
+     * connection with a server that wasn't built with SSL support.
+     */
     public final static PSQLState CONNECTION_REJECTED = new PSQLState("08004");
+    
+    /**
+     * After a connection has been established, it went bad.
+     */
     public final static PSQLState CONNECTION_FAILURE = new PSQLState("08006");
     public final static PSQLState CONNECTION_FAILURE_DURING_TRANSACTION = new PSQLState("08007");
+
+    /**
+     * The server sent us a response the driver was not prepared for and
+     * is either bizarre datastream corruption, a driver bug, or
+     * a protocol violation on the server's part.
+     */
     public final static PSQLState PROTOCOL_VIOLATION = new PSQLState("08P01");
+
     public final static PSQLState COMMUNICATION_ERROR = new PSQLState("08S01");
 
     public final static PSQLState NOT_IMPLEMENTED = new PSQLState("0A000");

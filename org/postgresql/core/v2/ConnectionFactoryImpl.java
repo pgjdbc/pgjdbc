@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ConnectionFactoryImpl.java,v 1.9 2005/11/24 02:29:20 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ConnectionFactoryImpl.java,v 1.10 2006/12/01 08:53:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -90,7 +90,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // Added by Peter Mount <peter@retep.org.uk>
             // ConnectException is thrown when the connection cannot be made.
             // we trap this an return a more meaningful message for the end user
-            throw new PSQLException (GT.tr("Connection refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections."), PSQLState.CONNECTION_REJECTED, cex);
+            throw new PSQLException (GT.tr("Connection refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections."), PSQLState.CONNECTION_UNABLE_TO_CONNECT, cex);
         }
         catch (IOException ioe)
         {
@@ -144,7 +144,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
             // Server doesn't even know about the SSL handshake protocol
             if (requireSSL)
-                throw new PSQLException(GT.tr("The server does not support SSL."), PSQLState.CONNECTION_FAILURE);
+                throw new PSQLException(GT.tr("The server does not support SSL."), PSQLState.CONNECTION_REJECTED);
 
             // We have to reconnect to continue.
             pgStream.close();
@@ -156,7 +156,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
             // Server does not support ssl
             if (requireSSL)
-                throw new PSQLException(GT.tr("The server does not support SSL."), PSQLState.CONNECTION_FAILURE);
+                throw new PSQLException(GT.tr("The server does not support SSL."), PSQLState.CONNECTION_REJECTED);
 
             return pgStream;
 
@@ -169,7 +169,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             return pgStream;
 
         default:
-            throw new PSQLException(GT.tr("An error occured while setting up the SSL connection."), PSQLState.CONNECTION_FAILURE);
+            throw new PSQLException(GT.tr("An error occured while setting up the SSL connection."), PSQLState.PROTOCOL_VIOLATION);
         }
     }
 
@@ -309,7 +309,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 break;
 
             default:
-                throw new PSQLException(GT.tr("Protocol error.  Session setup failed."), PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+                throw new PSQLException(GT.tr("Protocol error.  Session setup failed."), PSQLState.PROTOCOL_VIOLATION);
             }
         }
     }
@@ -347,7 +347,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 break;
 
             default:
-                throw new PSQLException(GT.tr("Protocol error.  Session setup failed."), PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+                throw new PSQLException(GT.tr("Protocol error.  Session setup failed."), PSQLState.PROTOCOL_VIOLATION);
             }
         }
     }
