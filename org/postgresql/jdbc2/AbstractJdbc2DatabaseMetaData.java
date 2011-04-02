@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2005, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.33.2.7 2010/10/16 00:39:45 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.33.2.8 2010/12/22 16:54:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2087,7 +2087,11 @@ public abstract class AbstractJdbc2DatabaseMetaData
         // because they can't access any objects in them.
         if (connection.haveMinimumServerVersion("7.3"))
         {
-            sql = "SELECT nspname AS TABLE_SCHEM FROM pg_catalog.pg_namespace WHERE nspname <> 'pg_toast' AND (nspname !~ '^pg_temp_' OR nspname = (pg_catalog.current_schemas(true))[1]) AND (nspname !~ '^pg_toast_temp_' OR nspname = replace((pg_catalog.current_schemas(true))[1], 'pg_temp_', 'pg_toast_temp_')) ORDER BY TABLE_SCHEM";
+            String tempSchema = "substring(textin(array_out(pg_catalog.current_schemas(true))) from '{(pg_temp_[0-9]+),')";
+            if (connection.haveMinimumServerVersion("7.4")) {
+                tempSchema = "(pg_catalog.current_schemas(true))[1]";
+            }
+            sql = "SELECT nspname AS TABLE_SCHEM FROM pg_catalog.pg_namespace WHERE nspname <> 'pg_toast' AND (nspname !~ '^pg_temp_' OR nspname = " + tempSchema + ") AND (nspname !~ '^pg_toast_temp_' OR nspname = replace(" + tempSchema + ", 'pg_temp_', 'pg_toast_temp_')) ORDER BY TABLE_SCHEM";
         }
         else
         {
