@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.64 2011/03/20 03:17:50 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.65 2011/03/20 03:32:12 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2212,10 +2212,17 @@ public abstract class AbstractJdbc2DatabaseMetaData
         // because they can't access any objects in them.
         if (connection.haveMinimumServerVersion("7.3"))
         {
+            // 7.3 can't extract elements from an array returned by
+            // a function, so we've got to coerce it to text and then
+            // hack it up with a regex.
+            String tempSchema = "substring(textin(array_out(pg_catalog.current_schemas(true))) from '{(pg_temp_[0-9]+),')";
+            if (connection.haveMinimumServerVersion("7.4")) {
+                tempSchema = "(pg_catalog.current_schemas(true))[1]";
+            }
             sql = "SELECT nspname AS TABLE_SCHEM ";
             if (jdbcVersion >= 3)
                 sql += ", NULL AS TABLE_CATALOG ";
-            sql += " FROM pg_catalog.pg_namespace WHERE nspname <> 'pg_toast' AND (nspname !~ '^pg_temp_' OR nspname = (pg_catalog.current_schemas(true))[1]) AND (nspname !~ '^pg_toast_temp_' OR nspname = replace((pg_catalog.current_schemas(true))[1], 'pg_temp_', 'pg_toast_temp_')) ";
+            sql += " FROM pg_catalog.pg_namespace WHERE nspname <> 'pg_toast' AND (nspname !~ '^pg_temp_' OR nspname = " + tempSchema + ") AND (nspname !~ '^pg_toast_temp_' OR nspname = replace(" + tempSchema + ", 'pg_temp_', 'pg_toast_temp_')) ";
             if (schemaPattern != null && !"".equals(schemaPattern))
             {
                 sql += " AND nspname LIKE " + escapeQuotes(schemaPattern);
