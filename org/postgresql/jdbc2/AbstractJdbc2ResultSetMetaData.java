@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSetMetaData.java,v 1.23 2010/12/25 20:36:46 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSetMetaData.java,v 1.24 2010/12/26 01:20:21 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -206,29 +206,36 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
         sql.append("JOIN pg_catalog.pg_attribute a ON (c.oid = a.attrelid) ");
         sql.append("JOIN pg_catalog.pg_type t ON (a.atttypid = t.oid) ");
         sql.append("LEFT JOIN pg_catalog.pg_attrdef d ON (d.adrelid = a.attrelid AND d.adnum = a.attnum) ");
-        sql.append("WHERE (c.oid, a.attnum) IN (");
+        sql.append("JOIN (");
 
+        // 7.4 servers don't support row IN operations (a,b) IN ((c,d),(e,f))
+        // so we've got to fake that with a JOIN here.
+        //
         boolean hasSourceInfo = false;
         for (int i=0; i<fields.length; i++) {
             if (fields[i].getTableOid() == 0)
                 continue;
 
             if (hasSourceInfo)
-                sql.append(", ");
-            else
-                hasSourceInfo = true;
+                sql.append(" UNION ALL ");
 
-            sql.append("(");
+            sql.append("SELECT ");
             sql.append(fields[i].getTableOid());
+            if (!hasSourceInfo)
+                sql.append(" AS oid ");
             sql.append(", ");
             sql.append(fields[i].getPositionInTable());
-            sql.append(")");
+            if (!hasSourceInfo)
+                sql.append(" AS attnum");
+
+            if (!hasSourceInfo)
+                hasSourceInfo = true;
         }
-        sql.append(")");
+        sql.append(") vals ON (c.oid = vals.oid AND a.attnum = vals.attnum) ");
 
         if (!hasSourceInfo)
             return;
-        
+
         Statement stmt = connection.createStatement();
         ResultSet rs = stmt.executeQuery(sql.toString());
         while (rs.next()) {
