@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/QueryExecutor.java,v 1.44 2009/07/01 05:00:40 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/QueryExecutor.java,v 1.45 2009/12/04 19:53:20 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -90,6 +90,12 @@ public interface QueryExecutor {
      * both the ResultSet and associated update count from the command status.
      */
     static int QUERY_BOTH_ROWS_AND_STATUS = 64;
+
+    /**
+     * Flag to disable batch execution when we expect results (generated keys)
+     * from a statement.
+     */
+    static int QUERY_DISALLOW_BATCHING = 128;
 
     /**
      * Execute a Query, passing results to a provided ResultHandler.

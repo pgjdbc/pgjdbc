@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.119 2011/03/20 00:58:14 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.120 2011/04/02 07:31:35 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2555,16 +2555,35 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         private final Query[] queries;
         private final ParameterList[] parameterLists;
         private final int[] updateCounts;
+        private final boolean expectGeneratedKeys;
+        private ResultSet generatedKeys;
 
-        BatchResultHandler(Query[] queries, ParameterList[] parameterLists, int[] updateCounts) {
+        BatchResultHandler(Query[] queries, ParameterList[] parameterLists, int[] updateCounts, boolean expectGeneratedKeys) {
             this.queries = queries;
             this.parameterLists = parameterLists;
             this.updateCounts = updateCounts;
+            this.expectGeneratedKeys = expectGeneratedKeys;
         }
 
         public void handleResultRows(Query fromQuery, Field[] fields, Vector tuples, ResultCursor cursor) {
-            handleError(new PSQLException(GT.tr("A result was returned when none was expected."),
+            if (!expectGeneratedKeys) {
+                handleError(new PSQLException(GT.tr("A result was returned when none was expected."),
                                           PSQLState.TOO_MANY_RESULTS));
+            } else {
+                if (generatedKeys == null) {
+                    try
+                    {
+                        generatedKeys = AbstractJdbc2Statement.this.createResultSet(fromQuery, fields, tuples, cursor);
+                    }
+                    catch (SQLException e)
+                    {
+                        handleError(e);
+            
+                    }
+                } else {
+                    ((AbstractJdbc2ResultSet)generatedKeys).addRows(tuples);
+                }
+            }
         }
 
         public void handleCommandStatus(String status, int updateCount, long insertOID) {
@@ -2612,6 +2631,10 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         public void handleCompletion() throws SQLException {
             if (batchException != null)
                 throw batchException;
+        }
+
+        public ResultSet getGeneratedKeys() {
+            return generatedKeys;
         }
     }
     private class CallableBatchResultHandler implements ResultHandler {
@@ -2700,7 +2723,13 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         batchStatements.clear();
         batchParameters.clear();
 
-        int flags = QueryExecutor.QUERY_NO_RESULTS;
+        int flags;
+
+        if (wantsGeneratedKeysAlways) {
+            flags = QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS | QueryExecutor.QUERY_DISALLOW_BATCHING;
+        } else {
+            flags = QueryExecutor.QUERY_NO_RESULTS;
+        }
 
         // Only use named statements after we hit the threshold
         if (preparedQuery != null)
@@ -2719,7 +2748,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	if (isFunction) {
 		handler = new CallableBatchResultHandler(queries, parameterLists, updateCounts );
 	} else {
-		handler = new BatchResultHandler(queries, parameterLists, updateCounts);
+		handler = new BatchResultHandler(queries, parameterLists, updateCounts, wantsGeneratedKeysAlways);
 	}
         
         connection.getQueryExecutor().execute(queries,
@@ -2729,6 +2758,10 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                                               fetchSize,
                                               flags);
 
+        if (wantsGeneratedKeysAlways) {
+            generatedKeys = new ResultWrapper(((BatchResultHandler)handler).getGeneratedKeys());
+        }
+            
         return updateCounts;
     }
 

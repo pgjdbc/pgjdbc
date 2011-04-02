@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.109 2010/10/23 06:18:06 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.110 2010/12/25 20:36:46 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2965,5 +2965,14 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             return null;
         }
     };
+
+    /**
+     * Used to add rows to an already existing ResultSet that exactly
+     * match the existing rows.  Currently only used for assembling
+     * generated keys from batch statement execution.
+     */
+    void addRows(Vector tuples) {
+        rows.addAll(tuples);
+    }
 }
 

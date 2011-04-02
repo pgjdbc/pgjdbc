@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.50 2010/08/31 18:07:39 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.51 2010/12/25 20:36:46 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1080,11 +1080,12 @@ public class QueryExecutorImpl implements QueryExecutor {
         // Now the query itself.
         SimpleQuery[] subqueries = query.getSubqueries();
         SimpleParameterList[] subparams = parameters.getSubparams();
+        boolean disallowBatching = (flags & QueryExecutor.QUERY_DISALLOW_BATCHING) != 0;
 
         if (subqueries == null)
         {
             ++queryCount;
-            if (queryCount >= MAX_BUFFERED_QUERIES)
+            if (disallowBatching || queryCount >= MAX_BUFFERED_QUERIES)
             {
                 sendSync();
                 processResults(trackingHandler, flags);
@@ -1101,7 +1102,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             for (int i = 0; i < subqueries.length; ++i)
             {
                 ++queryCount;
-                if (queryCount >= MAX_BUFFERED_QUERIES)
+                if (disallowBatching || queryCount >= MAX_BUFFERED_QUERIES)
                 {
                     sendSync();
                     processResults(trackingHandler, flags);
