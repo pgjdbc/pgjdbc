@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ConnectionTest.java,v 1.22 2007/10/07 23:32:46 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ConnectionTest.java,v 1.23 2008/01/08 06:56:30 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -206,22 +206,18 @@ public class ConnectionTest extends TestCase
     {
         con = TestUtil.openDB();
 
-        // PostgreSQL defaults to READ COMMITTED
-        assertEquals(Connection.TRANSACTION_READ_COMMITTED,
-                     con.getTransactionIsolation());
+        int defaultLevel = con.getTransactionIsolation();
 
         // Begin a transaction
         con.setAutoCommit(false);
 
         // The isolation level should not have changed
-        assertEquals(Connection.TRANSACTION_READ_COMMITTED,
-                     con.getTransactionIsolation());
+        assertEquals(defaultLevel, con.getTransactionIsolation());
 
         // Now run some tests with autocommit enabled.
         con.setAutoCommit(true);
 
-        assertEquals(Connection.TRANSACTION_READ_COMMITTED,
-                     con.getTransactionIsolation());
+        assertEquals(defaultLevel, con.getTransactionIsolation());
 
         con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
         assertEquals(Connection.TRANSACTION_SERIALIZABLE,
