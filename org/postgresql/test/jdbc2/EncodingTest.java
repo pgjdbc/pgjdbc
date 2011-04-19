@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/EncodingTest.java,v 1.10 2008/01/08 06:56:31 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/EncodingTest.java,v 1.11 2008/02/19 06:12:24 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -32,7 +32,7 @@ public class EncodingTest extends TestCase
     public void testCreation() throws Exception
     {
         Encoding encoding;
-        encoding = Encoding.getDatabaseEncoding("UNICODE");
+        encoding = Encoding.getDatabaseEncoding("UTF8");
         assertEquals("UTF", encoding.name().substring(0, 3).toUpperCase(Locale.US));
         encoding = Encoding.getDatabaseEncoding("SQL_ASCII");
         assertTrue(encoding.name().toUpperCase(Locale.US).indexOf("ASCII") != -1);
@@ -43,7 +43,7 @@ public class EncodingTest extends TestCase
 
     public void testTransformations() throws Exception
     {
-        Encoding encoding = Encoding.getDatabaseEncoding("UNICODE");
+        Encoding encoding = Encoding.getDatabaseEncoding("UTF8");
         assertEquals("ab", encoding.decode(new byte[] { 97, 98 }));
 
         assertEquals(2, encoding.encode("ab").length);

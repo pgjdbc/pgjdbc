@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/BaseConnection.java,v 1.22 2008/04/15 04:23:54 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/BaseConnection.java,v 1.23 2010/05/01 14:40:51 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -96,7 +96,7 @@ public interface BaseConnection extends PGConnection, Connection
 
     /**
      * Encode a string using the database's client_encoding
-     * (usually UNICODE, but can vary on older server versions).
+     * (usually UTF8, but can vary on older server versions).
      * This is used when constructing synthetic resultsets (for
      * example, in metadata methods).
      *

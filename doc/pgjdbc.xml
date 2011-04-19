@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!--
   Copyright (c) 2004-2008, PostgreSQL Global Development Group
-  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.39 2009/06/20 15:19:40 jurka Exp $
+  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.40 2010/12/25 07:07:44 jurka Exp $
 -->
 
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN" "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">
@@ -179,7 +179,7 @@ java MyApp
     encoding and you will have problems the moment you store data in it that
     does not fit in the seven bit <acronym>ASCII</acronym> character set.
     If you do not know what your encoding will be or are otherwise unsure
-    about what you will be storing the <literal>UNICODE</literal> encoding
+    about what you will be storing the <literal>UTF8</literal> encoding
     is a reasonable default to use.
    </para>
   </sect1>

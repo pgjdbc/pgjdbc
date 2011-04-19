@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ConnectionFactoryImpl.java,v 1.23 2010/12/25 07:07:44 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ConnectionFactoryImpl.java,v 1.24 2011/03/31 03:06:39 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -97,7 +97,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             String[][] params = {
                                     { "user", user },
                                     { "database", database },
-                                    { "client_encoding", "UNICODE" },
+                                    { "client_encoding", "UTF8" },
                                     { "DateStyle", "ISO" },
                                     { "extra_float_digits", "2" }
                                 };
@@ -494,9 +494,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                     protoConnection.setServerVersion(value);
                 else if (name.equals("client_encoding"))
                 {
-                    if (!value.equals("UNICODE"))
+                    if (!value.equals("UTF8"))
                         throw new PSQLException(GT.tr("Protocol error.  Session setup failed."), PSQLState.PROTOCOL_VIOLATION);
-                    pgStream.setEncoding(Encoding.getDatabaseEncoding("UNICODE"));
+                    pgStream.setEncoding(Encoding.getDatabaseEncoding("UTF8"));
                 }
                 else if (name.equals("standard_conforming_strings"))
                 {
