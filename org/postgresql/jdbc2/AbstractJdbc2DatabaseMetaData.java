@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.65 2011/03/20 03:32:12 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.66 2011/04/02 11:34:35 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1980,7 +1980,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      * "SYSTEM TABLE", "SYSTEM INDEX", "SYSTEM VIEW",
      * "SYSTEM TOAST TABLE", "SYSTEM TOAST INDEX",
      * "TEMPORARY TABLE", "TEMPORARY VIEW", "TEMPORARY INDEX",
-     * "TEMPORARY SEQUENCE".
+     * "TEMPORARY SEQUENCE", "FOREIGN TABLE".
      *
      * @param catalog a catalog name; For org.postgresql, this is ignored, and
      * should be set to null
@@ -2027,6 +2027,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                      " WHEN 'S' THEN 'SEQUENCE' " +
                      " WHEN 'v' THEN 'VIEW' " +
                      " WHEN 'c' THEN 'TYPE' " +
+                     " WHEN 'f' THEN 'FOREIGN TABLE' " +
                      " ELSE NULL " +
                      " END " +
                      " ELSE NULL " +
@@ -2106,7 +2107,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
             }
         }
 
-        if (tableNamePattern != null)
+        if (tableNamePattern != null && !"".equals(tableNamePattern))
         {
             select += " AND c.relname LIKE " + escapeQuotes(tableNamePattern);
         }
@@ -2187,6 +2188,10 @@ public abstract class AbstractJdbc2DatabaseMetaData
         tableTypeClauses.put("TEMPORARY SEQUENCE", ht);
         ht.put("SCHEMAS", "c.relkind = 'S' AND n.nspname ~ '^pg_temp_' ");
         ht.put("NOSCHEMAS", "c.relkind = 'S' AND c.relname ~ '^pg_temp_' ");
+        ht = new Hashtable();
+        tableTypeClauses.put("FOREIGN TABLE", ht);
+        ht.put("SCHEMAS", "c.relkind = 'f'");
+        ht.put("NOSCHEMAS", "c.relkind = 'f'");
     }
 
     /*
