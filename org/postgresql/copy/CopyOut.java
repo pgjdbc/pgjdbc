@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2009, PostgreSQL Global Development Group
+* (c) 2008-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL$
+*   $PostgreSQL: pgjdbc/org/postgresql/copy/CopyOut.java,v 1.1 2009/07/01 05:00:39 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

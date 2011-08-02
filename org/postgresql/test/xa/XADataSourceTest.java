@@ -1,3 +1,12 @@
+/*-------------------------------------------------------------------------
+*
+* Copyright (c) 2009-2011, PostgreSQL Global Development Group
+*
+* IDENTIFICATION
+*   $PostgreSQL$
+*
+*-------------------------------------------------------------------------
+*/
 package org.postgresql.test.xa;
 
 import java.sql.Connection;
