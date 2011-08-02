@@ -1,10 +1,10 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2004-2008, PostgreSQL Global Development Group
+* Copyright (c) 2004-2011, PostgreSQL Global Development Group
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/SimpleParameterList.java,v 1.10 2007/03/29 04:54:06 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/SimpleParameterList.java,v 1.11 2008/01/08 06:56:27 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2003-2008, PostgreSQL Global Development Group
+* Copyright (c) 2003-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.78 2009/06/02 00:22:58 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/Driver.java.in,v 1.79 2011/03/31 06:25:41 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

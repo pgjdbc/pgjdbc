@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2008, PostgreSQL Global Development Group
+* Copyright (c) 2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/gss/MakeGSS.java,v 1.2 2008/11/29 07:43:47 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/gss/MakeGSS.java,v 1.3 2009/08/18 03:36:59 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

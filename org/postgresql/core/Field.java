@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2003-2008, PostgreSQL Global Development Group
+* Copyright (c) 2003-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/Field.java,v 1.14 2010/10/23 07:30:47 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/Field.java,v 1.15 2010/12/25 20:36:45 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
