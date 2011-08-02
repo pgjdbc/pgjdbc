@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2011, PostgreSQL Global Development Group
+* Copyright (c) 2008-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/gss/GSSCallbackHandler.java,v 1.2 2008/11/29 07:43:47 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/gss/GSSCallbackHandler.java,v 1.3 2011/08/02 13:42:26 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */

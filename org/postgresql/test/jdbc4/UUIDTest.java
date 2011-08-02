@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2011, PostgreSQL Global Development Group
+* Copyright (c) 2008-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc4/UUIDTest.java,v 1.2 2008/10/08 18:24:05 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc4/UUIDTest.java,v 1.3 2011/08/02 13:50:29 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
