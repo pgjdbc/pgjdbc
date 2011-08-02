@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
  *
- * Copyright (c) 2005-2008, PostgreSQL Global Development Group
+ * Copyright (c) 2005-2011, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.20 2010/08/10 19:59:42 jurka Exp $
+ *   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TypeInfoCache.java,v 1.21 2010/12/25 05:43:00 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */

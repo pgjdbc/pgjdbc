@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2004-2008, PostgreSQL Global Development Group
+* Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/Jdbc4PreparedStatement.java,v 1.1 2006/06/08 10:34:52 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/Jdbc4PreparedStatement.java,v 1.2 2008/01/08 06:56:30 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2004-2008, PostgreSQL Global Development Group
+* Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ServerPreparedStmtTest.java,v 1.16 2007/10/07 20:58:48 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ServerPreparedStmtTest.java,v 1.17 2008/01/08 06:56:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

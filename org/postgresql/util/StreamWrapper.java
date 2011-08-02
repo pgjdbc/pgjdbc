@@ -1,10 +1,10 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2004-2008, PostgreSQL Global Development Group
+* Copyright (c) 2004-2011, PostgreSQL Global Development Group
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/StreamWrapper.java,v 1.5 2005/01/11 08:25:49 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/util/StreamWrapper.java,v 1.6 2008/01/08 06:56:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

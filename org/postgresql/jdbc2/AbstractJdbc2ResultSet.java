@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2003-2008, PostgreSQL Global Development Group
+* Copyright (c) 2003-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.110 2010/12/25 20:36:46 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.111 2011/04/02 08:29:57 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

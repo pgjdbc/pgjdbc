@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2004-2008, PostgreSQL Global Development Group
+* Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/PGInterval.java,v 1.13 2007/07/16 15:02:53 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/util/PGInterval.java,v 1.14 2008/01/08 06:56:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

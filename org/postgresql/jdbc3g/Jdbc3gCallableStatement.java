@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2004-2008, PostgreSQL Global Development Group
+* Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3g/Jdbc3gCallableStatement.java,v 1.6 2006/01/30 20:09:05 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3g/Jdbc3gCallableStatement.java,v 1.7 2008/01/08 06:56:30 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

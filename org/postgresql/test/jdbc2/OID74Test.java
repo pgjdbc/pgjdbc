@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2004-2008, PostgreSQL Global Development Group
+* Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/OID74Test.java,v 1.11 2005/02/16 18:28:45 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/OID74Test.java,v 1.12 2008/01/08 06:56:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

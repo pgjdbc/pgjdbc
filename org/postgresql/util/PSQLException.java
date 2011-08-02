@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2003-2008, PostgreSQL Global Development Group
+* Copyright (c) 2003-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL$
+*   $PostgreSQL: pgjdbc/org/postgresql/util/PSQLException.java,v 1.17 2008/09/30 03:42:48 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

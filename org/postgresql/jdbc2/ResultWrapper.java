@@ -1,10 +1,10 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2004-2008, PostgreSQL Global Development Group
+* Copyright (c) 2004-2011, PostgreSQL Global Development Group
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/ResultWrapper.java,v 1.4 2005/01/11 08:25:46 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/ResultWrapper.java,v 1.5 2008/01/08 06:56:29 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

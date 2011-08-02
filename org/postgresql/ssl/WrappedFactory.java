@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2004-2008, PostgreSQL Global Development Group
+* Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ssl/WrappedFactory.java,v 1.5 2005/01/17 09:52:14 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ssl/WrappedFactory.java,v 1.6 2008/01/08 06:56:30 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

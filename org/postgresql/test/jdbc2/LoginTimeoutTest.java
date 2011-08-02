@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2005-2008, PostgreSQL Global Development Group
+* Copyright (c) 2005-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/LoginTimeoutTest.java,v 1.2 2005/11/24 02:29:23 oliver Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/LoginTimeoutTest.java,v 1.3 2008/01/08 06:56:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
