@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
 *
-* (c) 2008-2011, PostgreSQL Global Development Group
+* Copyright (c) 2009-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/copy/CopyManager.java,v 1.3 2010/04/08 16:18:04 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/copy/CopyManager.java,v 1.4 2011/08/02 20:26:00 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */

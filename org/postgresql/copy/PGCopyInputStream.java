@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
 *
-* (c) 2008-2011, PostgreSQL Global Development Group
+* Copyright (c) 2009-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/copy/PGCopyInputStream.java,v 1.1 2009/07/01 05:00:39 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/copy/PGCopyInputStream.java,v 1.2 2011/08/02 20:26:00 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
