@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.50 2010/12/22 16:53:46 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.51 2011/08/02 13:50:29 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -33,7 +33,7 @@ public class DatabaseMetaDataTest extends TestCase
     protected void setUp() throws Exception
     {
         con = TestUtil.openDB();
-        TestUtil.createTable( con, "testmetadata", "id int4, name text, updated timestamptz, colour text, quest text" );
+        TestUtil.createTable( con, "metadatatest", "id int4, name text, updated timestamptz, colour text, quest text" );
         TestUtil.dropSequence( con, "sercoltest_b_seq");
         TestUtil.dropSequence( con, "sercoltest_c_seq");
         TestUtil.createTable( con, "sercoltest", "a int, b serial, c bigserial");
@@ -44,8 +44,8 @@ public class DatabaseMetaDataTest extends TestCase
         Statement stmt = con.createStatement();
         //we add the following comments to ensure the joins to the comments
         //are done correctly. This ensures we correctly test that case.
-        stmt.execute("comment on table testmetadata is 'this is a table comment'");
-        stmt.execute("comment on column testmetadata.id is 'this is a column comment'");
+        stmt.execute("comment on table metadatatest is 'this is a table comment'");
+        stmt.execute("comment on column metadatatest.id is 'this is a column comment'");
 
         stmt.execute("CREATE OR REPLACE FUNCTION f1(int, varchar) RETURNS int AS 'SELECT 1;' LANGUAGE 'SQL'");
         if (TestUtil.haveMinimumServerVersion(con, "8.0")) {
@@ -54,7 +54,7 @@ public class DatabaseMetaDataTest extends TestCase
         if (TestUtil.haveMinimumServerVersion(con, "8.1")) {
             stmt.execute("CREATE OR REPLACE FUNCTION f3(IN a int, INOUT b varchar, OUT c timestamptz) AS $f$ BEGIN b := 'a'; c := now(); return; END; $f$ LANGUAGE 'plpgsql'");
         }
-        stmt.execute("CREATE OR REPLACE FUNCTION f4(int) RETURNS testmetadata AS 'SELECT 1, ''a''::text, now(), ''c''::text, ''q''::text' LANGUAGE 'SQL'");
+        stmt.execute("CREATE OR REPLACE FUNCTION f4(int) RETURNS metadatatest AS 'SELECT 1, ''a''::text, now(), ''c''::text, ''q''::text' LANGUAGE 'SQL'");
 
         if (TestUtil.haveMinimumServerVersion(con, "7.3")) {
             stmt.execute("CREATE DOMAIN nndom AS int not null");
@@ -66,11 +66,11 @@ public class DatabaseMetaDataTest extends TestCase
     protected void tearDown() throws Exception
     {
         // Drop function first because it depends on the
-        // testmetadata table's type
+        // metadatatest table's type
         Statement stmt = con.createStatement();
         stmt.execute("DROP FUNCTION f4(int)");
 
-        TestUtil.dropTable( con, "testmetadata" );
+        TestUtil.dropTable( con, "metadatatest" );
         TestUtil.dropTable( con, "sercoltest");
         TestUtil.dropSequence( con, "sercoltest_b_seq");
         TestUtil.dropSequence( con, "sercoltest_c_seq");
@@ -98,29 +98,29 @@ public class DatabaseMetaDataTest extends TestCase
         DatabaseMetaData dbmd = con.getMetaData();
         assertNotNull(dbmd);
 
-        ResultSet rs = dbmd.getTables( null, null, "testmetadat%", new String[] {"TABLE"});
+        ResultSet rs = dbmd.getTables( null, null, "metadatates%", new String[] {"TABLE"});
         assertTrue( rs.next() );
         String tableName = rs.getString("TABLE_NAME");
-        assertEquals( "testmetadata", tableName );
+        assertEquals( "metadatatest", tableName );
         String tableType = rs.getString("TABLE_TYPE");
         assertEquals( "TABLE", tableType );
         //There should only be one row returned
         assertTrue( "getTables() returned too many rows", rs.next() == false);
         rs.close();
 
-        rs = dbmd.getColumns("", "", "test%", "%" );
+        rs = dbmd.getColumns("", "", "meta%", "%" );
         assertTrue( rs.next() );
-        assertEquals( "testmetadata", rs.getString("TABLE_NAME") );
+        assertEquals( "metadatatest", rs.getString("TABLE_NAME") );
         assertEquals( "id", rs.getString("COLUMN_NAME") );
         assertEquals( java.sql.Types.INTEGER, rs.getInt("DATA_TYPE") );
 
         assertTrue( rs.next() );
-        assertEquals( "testmetadata", rs.getString("TABLE_NAME") );
+        assertEquals( "metadatatest", rs.getString("TABLE_NAME") );
         assertEquals( "name", rs.getString("COLUMN_NAME") );
         assertEquals( java.sql.Types.VARCHAR, rs.getInt("DATA_TYPE") );
 
         assertTrue( rs.next() );
-        assertEquals( "testmetadata", rs.getString("TABLE_NAME") );
+        assertEquals( "metadatatest", rs.getString("TABLE_NAME") );
         assertEquals( "updated", rs.getString("COLUMN_NAME") );
         assertEquals( java.sql.Types.TIMESTAMP, rs.getInt("DATA_TYPE") );
     }
@@ -341,12 +341,12 @@ public class DatabaseMetaDataTest extends TestCase
             return;
 
         Statement stmt = con.createStatement();
-        stmt.execute("ALTER TABLE testmetadata DROP name");
-        stmt.execute("ALTER TABLE testmetadata DROP colour");
+        stmt.execute("ALTER TABLE metadatatest DROP name");
+        stmt.execute("ALTER TABLE metadatatest DROP colour");
         stmt.close();
 
         DatabaseMetaData dbmd = con.getMetaData();
-        ResultSet rs = dbmd.getColumns(null, null, "testmetadata", null);
+        ResultSet rs = dbmd.getColumns(null, null, "metadatatest", null);
 
         assertTrue(rs.next());
         assertEquals("id", rs.getString("COLUMN_NAME"));
@@ -362,7 +362,7 @@ public class DatabaseMetaDataTest extends TestCase
 
         rs.close();
 
-        rs = dbmd.getColumns(null, null, "testmetadata", "quest");
+        rs = dbmd.getColumns(null, null, "metadatatest", "quest");
         assertTrue(rs.next());
         assertEquals("quest", rs.getString("COLUMN_NAME"));
         assertEquals(3, rs.getInt("ORDINAL_POSITION"));
@@ -410,7 +410,7 @@ public class DatabaseMetaDataTest extends TestCase
     {
         DatabaseMetaData dbmd = con.getMetaData();
         assertNotNull(dbmd);
-        ResultSet rs = dbmd.getTablePrivileges(null, null, "testmetadata");
+        ResultSet rs = dbmd.getTablePrivileges(null, null, "metadatatest");
         boolean l_foundSelect = false;
         while (rs.next())
         {
@@ -420,16 +420,16 @@ public class DatabaseMetaDataTest extends TestCase
         }
         rs.close();
         //Test that the table owner has select priv
-        assertTrue("Couldn't find SELECT priv on table testmetadata for " + TestUtil.getUser(), l_foundSelect);
+        assertTrue("Couldn't find SELECT priv on table metadatatest for " + TestUtil.getUser(), l_foundSelect);
     }
 
     public void testNoTablePrivileges() throws SQLException
     {
         Statement stmt = con.createStatement();
-        stmt.execute("REVOKE ALL ON testmetadata FROM PUBLIC");
-        stmt.execute("REVOKE ALL ON testmetadata FROM " + TestUtil.getUser());
+        stmt.execute("REVOKE ALL ON metadatatest FROM PUBLIC");
+        stmt.execute("REVOKE ALL ON metadatatest FROM " + TestUtil.getUser());
         DatabaseMetaData dbmd = con.getMetaData();
-        ResultSet rs = dbmd.getTablePrivileges(null, null, "testmetadata");
+        ResultSet rs = dbmd.getTablePrivileges(null, null, "metadatatest");
         assertTrue(!rs.next());
     }
 
@@ -445,17 +445,17 @@ public class DatabaseMetaDataTest extends TestCase
     public void testIndexInfo() throws SQLException
     {
         Statement stmt = con.createStatement();
-        stmt.execute("create index idx_id on testmetadata (id)");
-        stmt.execute("create index idx_func_single on testmetadata (upper(colour))");
-        stmt.execute("create unique index idx_un_id on testmetadata(id)");
+        stmt.execute("create index idx_id on metadatatest (id)");
+        stmt.execute("create index idx_func_single on metadatatest (upper(colour))");
+        stmt.execute("create unique index idx_un_id on metadatatest(id)");
         if (TestUtil.haveMinimumServerVersion(con, "7.4")) {
-            stmt.execute("create index idx_func_multi on testmetadata (upper(colour), upper(quest))");
-            stmt.execute("create index idx_func_mixed on testmetadata (colour, upper(quest))");
+            stmt.execute("create index idx_func_multi on metadatatest (upper(colour), upper(quest))");
+            stmt.execute("create index idx_func_mixed on metadatatest (colour, upper(quest))");
         }
 
         DatabaseMetaData dbmd = con.getMetaData();
         assertNotNull(dbmd);
-        ResultSet rs = dbmd.getIndexInfo(null, null, "testmetadata", false, false);
+        ResultSet rs = dbmd.getIndexInfo(null, null, "metadatatest", false, false);
 
         assertTrue(rs.next());
         assertEquals("idx_un_id", rs.getString("INDEX_NAME"));
@@ -520,11 +520,11 @@ public class DatabaseMetaDataTest extends TestCase
             return;
 
         Statement stmt = con.createStatement();
-        stmt.execute("CREATE INDEX idx_a_d ON testmetadata (id ASC, quest DESC)");
+        stmt.execute("CREATE INDEX idx_a_d ON metadatatest (id ASC, quest DESC)");
         stmt.close();
 
         DatabaseMetaData dbmd = con.getMetaData();
-        ResultSet rs = dbmd.getIndexInfo(null, null, "testmetadata", false, false);
+        ResultSet rs = dbmd.getIndexInfo(null, null, "metadatatest", false, false);
 
         assertTrue(rs.next());
         assertEquals("idx_a_d", rs.getString("INDEX_NAME"));
@@ -540,11 +540,11 @@ public class DatabaseMetaDataTest extends TestCase
     public void testPartialIndexInfo() throws SQLException
     {
         Statement stmt = con.createStatement();
-        stmt.execute("create index idx_p_name_id on testmetadata (name) where id > 5");
+        stmt.execute("create index idx_p_name_id on metadatatest (name) where id > 5");
         stmt.close();
 
         DatabaseMetaData dbmd = con.getMetaData();
-        ResultSet rs = dbmd.getIndexInfo(null, null, "testmetadata", false, false);
+        ResultSet rs = dbmd.getIndexInfo(null, null, "metadatatest", false, false);
 
         assertTrue(rs.next());
         assertEquals("idx_p_name_id", rs.getString("INDEX_NAME"));
