@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.29 2009/09/26 15:21:21 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.30 2011/08/02 13:50:29 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -12,6 +12,8 @@ package org.postgresql.test.jdbc2;
 import org.postgresql.test.TestUtil;
 import junit.framework.*;
 import java.sql.*;
+import java.util.Timer;
+import java.util.TimerTask;
 /*
  * Test for getObject
  */
@@ -477,5 +479,27 @@ public class StatementTest extends TestCase
             fail("Should have thrown an error.");
         } catch (SQLException sqle) { }
     }
-
+    public void testSetQueryTimeout() throws SQLException
+    {
+    	Statement stmt = con.createStatement();
+    	Timer timer = new Timer(true);
+    	try
+    	{
+    		
+    		timer.schedule( new TimerTask(){
+    			public void run() 
+    			{
+    				fail("Query timeout should have occured and cleaned this up");
+    			}
+    		}, 1000);
+    		stmt.setQueryTimeout(100);
+    		stmt.execute("select pg_sleep(999999999999999)");
+    		
+    	}catch( SQLException sqle )
+    	{
+    		// state for cancel    		
+    		if (sqle.getSQLState().compareTo("57014") == 0) 
+    			timer.cancel();
+    	}
+    }
 }

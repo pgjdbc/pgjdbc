@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.121 2011/04/02 08:29:57 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.122 2011/08/02 13:48:35 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -16,6 +16,7 @@ import java.lang.reflect.Method;
 import java.math.*;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.TimerTask;
 import java.util.Vector;
 import java.util.Calendar;
 
@@ -39,6 +40,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     protected final int resultsettype;   // the resultset type to return (ResultSet.TYPE_xxx)
     protected final int concurrency;   // is it updateable or not?     (ResultSet.CONCUR_xxx)
     protected int fetchdirection = ResultSet.FETCH_FORWARD;  // fetch direction hint (currently ignored)
+    private TimerTask cancelTimer=null;
 
     /**
      * Does the caller of execute/executeUpdate want generated keys for this
@@ -515,6 +517,11 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                                               maxrows,
                                               fetchSize,
                                               flags);
+        if ( cancelTimer != null )
+        {
+        	cancelTimer.cancel();
+        	cancelTimer=null;
+        }
         result = firstUnclosedResult = handler.getResults();
 
         if (wantsGeneratedKeysOnce || wantsGeneratedKeysAlways)
@@ -664,9 +671,19 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             throw new PSQLException(GT.tr("Query timeout must be a value greater than or equals to 0."),
                                     PSQLState.INVALID_PARAMETER_VALUE);
 
-        if (seconds > 0)
-            throw Driver.notImplemented(this.getClass(), "setQueryTimeout(int)");
-
+        cancelTimer = new TimerTask() {
+        	public void run()
+        	{
+        		try {
+					AbstractJdbc2Statement.this.cancel();
+				} catch (SQLException e) {
+				}
+        		
+        	}
+        	
+        };
+        
+        Driver.addTimerTask( cancelTimer, seconds);
         timeout = seconds;
     }
 
