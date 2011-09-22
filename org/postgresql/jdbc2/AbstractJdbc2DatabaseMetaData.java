@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.67 2011/05/07 13:23:34 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.68 2011/08/02 13:48:35 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2510,7 +2510,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
             tuple[13] = null;      // sql data type (unused)
             tuple[14] = null;      // sql datetime sub (unused)
             tuple[15] = tuple[6];     // char octet length
-            tuple[16] = rs.getBytes("attnum");  // ordinal position
+            tuple[16] = connection.encodeString(String.valueOf(rs.getInt("attnum"))); // ordinal position
             tuple[17] = connection.encodeString(rs.getBoolean("attnotnull") ? "NO" : "YES"); // Is nullable
 
             if (jdbcVersion >= 3) {

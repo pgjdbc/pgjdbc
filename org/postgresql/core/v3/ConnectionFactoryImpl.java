@@ -4,13 +4,14 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ConnectionFactoryImpl.java,v 1.25 2011/04/19 01:15:21 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ConnectionFactoryImpl.java,v 1.26 2011/08/02 13:40:12 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.core.v3;
 
 import java.util.Properties;
+import java.util.TimeZone;
 
 import java.sql.*;
 import java.io.IOException;
@@ -99,7 +100,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                                     { "database", database },
                                     { "client_encoding", "UTF8" },
                                     { "DateStyle", "ISO" },
-                                    { "extra_float_digits", "2" }
+                                    { "extra_float_digits", "2" },
+                                    { "TimeZone",  createPostgresTimeZone() },                                    
                                 };
 
             sendStartupPacket(newStream, params, logger);
@@ -165,6 +167,32 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             }
             throw se;
         }
+    }
+
+    /**
+     * Convert Java time zone to postgres time zone.
+     * All others stay the same except that GMT+nn changes to GMT-nn and 
+     * vise versa.
+     *  
+     * @return The current JVM time zone in postgresql format.
+     */
+    private String createPostgresTimeZone() {
+        String tz = TimeZone.getDefault().getID();
+        if (tz.length() <= 3 || !tz.startsWith("GMT")) {
+            return tz;
+        }
+        char sign = tz.charAt(3);
+        String start;
+        if (sign == '+') {
+            start = "GMT-";
+        } else if (sign == '-') {
+            start = "GMT+";
+        } else {
+            // unknown type
+            return tz;
+        }
+            
+        return start + tz.substring(4);
     }
 
     private PGStream enableSSL(PGStream pgStream, boolean requireSSL, Properties info, Logger logger) throws IOException, SQLException {
@@ -504,6 +532,15 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                         protoConnection.setStandardConformingStrings(true);
                     else if (value.equals("off"))
                         protoConnection.setStandardConformingStrings(false);
+                    else
+                        throw new PSQLException(GT.tr("Protocol error.  Session setup failed."), PSQLState.PROTOCOL_VIOLATION);
+                }
+                else if (name.equals("integer_datetimes"))
+                {
+                    if (value.equals("on"))
+                        protoConnection.setIntegerDateTimes(true);
+                    else if (value.equals("off"))
+                        protoConnection.setIntegerDateTimes(false);
                     else
                         throw new PSQLException(GT.tr("Protocol error.  Session setup failed."), PSQLState.PROTOCOL_VIOLATION);
                 }

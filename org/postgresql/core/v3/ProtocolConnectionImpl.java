@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ProtocolConnectionImpl.java,v 1.13 2008/04/01 07:19:20 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ProtocolConnectionImpl.java,v 1.14 2011/08/02 13:40:12 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -16,6 +16,7 @@ import org.postgresql.core.*;
 import java.sql.*;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Properties;
 
 /**
@@ -200,6 +201,34 @@ class ProtocolConnectionImpl implements ProtocolConnection {
         return 3;
     }
 
+    public boolean useBinaryForReceive(int oid) {
+        return useBinaryForOids.get(oid);
+    }
+
+    public void setBinaryReceiveOids(BitSet oids) {
+        useBinaryForOids.clear();
+        useBinaryForOids.or(oids);
+    }
+
+    public void setIntegerDateTimes(boolean state) {
+        integerDateTimes = state;
+    }
+
+    public boolean getIntegerDateTimes() {
+        return integerDateTimes;
+    }
+
+   /**
+     * True if server uses integers for date and time fields. False if
+     * server uses double.
+     */
+    private boolean integerDateTimes;
+
+    /**
+    * Bit set that has a bit set for each oid which should be received
+    * using binary format.
+    */
+    private final BitSet useBinaryForOids = new BitSet();
     private String serverVersion;
     private int cancelPid;
     private int cancelKey;

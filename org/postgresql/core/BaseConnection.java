@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/BaseConnection.java,v 1.24 2011/04/19 01:15:20 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/BaseConnection.java,v 1.25 2011/08/02 13:40:12 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -146,4 +146,13 @@ public interface BaseConnection extends PGConnection, Connection
      * @return a ProtocolConnection.TRANSACTION_* constant.
      */
     public int getTransactionState();
+
+    /**
+     * Returns true if value for the given oid should be sent using binary
+     * transfer. False if value should be sent using text transfer.
+     *
+     * @param oid The oid to check.
+     * @return True for binary transfer, false for text transfer.
+     */
+    public boolean binaryTransferSend(int oid);
 }

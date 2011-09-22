@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.111 2011/04/02 08:29:57 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.112 2011/08/02 13:48:35 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -21,11 +21,13 @@ import java.sql.*;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.StringTokenizer;
+import java.util.TimeZone;
 import java.util.Vector;
 import java.util.Calendar;
 import java.util.Locale;
 import org.postgresql.core.*;
 import org.postgresql.largeobject.*;
+import org.postgresql.util.ByteConverter;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGbytea;
 import org.postgresql.util.PGtokenizer;
@@ -56,6 +58,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     private int fetchdirection = ResultSet.FETCH_UNKNOWN;
     protected final BaseConnection connection;  // the connection we belong to
     protected final BaseStatement statement;    // the statement we belong to
+    private Statement realStatement;    // the real statement we belong to (when using forced binary prepared statement test hack)
     protected final Field fields[];          // Field metadata for this resultset.
     protected final Query originalQuery;        // Query we originated from
 
@@ -402,6 +405,22 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         if (wasNullFlag)
             return null;
 
+        if (isBinary(i)) {
+            int col = i - 1;
+            int oid = fields[col].getOID();
+            TimeZone tz = cal == null ? null : cal.getTimeZone();
+            if (oid == Oid.DATE) {
+                return connection.getTimestampUtils().toDateBin(tz, this_row[col]);
+            } else if (oid == Oid.TIMESTAMP || oid == Oid.TIMESTAMPTZ) {
+                // JDBC spec says getDate of Timestamp must be supported
+                return connection.getTimestampUtils().convertToDate(getTimestamp(i, cal), tz);
+            } else {
+                throw new PSQLException (GT.tr("Cannot convert the column of type {0} to requested type {1}.",
+                        new Object[]{Oid.toString(oid), "date"}),
+                        PSQLState.DATA_TYPE_MISMATCH);
+            }
+        }
+
         if (cal != null)
             cal = (Calendar)cal.clone();
 
@@ -415,6 +434,22 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         if (wasNullFlag)
             return null;
 
+        if (isBinary(i)) {
+            int col = i - 1;
+            int oid = fields[col].getOID();
+            TimeZone tz = cal == null ? null : cal.getTimeZone();
+            if (oid == Oid.TIME || oid == Oid.TIMETZ) {
+                return connection.getTimestampUtils().toTimeBin(tz, this_row[col]);
+            } else if (oid == Oid.TIMESTAMP || oid == Oid.TIMESTAMPTZ) {
+                // JDBC spec says getTime of Timestamp must be supported
+                return connection.getTimestampUtils().convertToTime(getTimestamp(i, cal), tz);
+            } else {
+                throw new PSQLException (GT.tr("Cannot convert the column of type {0} to requested type {1}.",
+                        new Object[]{Oid.toString(oid), "time"}),
+                        PSQLState.DATA_TYPE_MISMATCH);
+            }
+        }
+
         if (cal != null)
             cal = (Calendar)cal.clone();
 
@@ -427,6 +462,29 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         checkResultSet(i);
         if (wasNullFlag)
             return null;
+
+        if (isBinary(i)) {
+            int col = i - 1;
+            int oid = fields[col].getOID();
+            if (oid == Oid.TIMESTAMPTZ || oid == Oid.TIMESTAMP) {
+                boolean hasTimeZone = oid == Oid.TIMESTAMPTZ;
+                TimeZone tz = cal == null ? null : cal.getTimeZone();
+                return connection.getTimestampUtils().toTimestampBin(tz, this_row[col], hasTimeZone);
+            } else {
+                // JDBC spec says getTimestamp of Time and Date must be supported
+                long millis;
+                if (oid == Oid.TIME || oid == Oid.TIMETZ) {
+                    millis = getTime(i, cal).getTime();
+                } else if (oid == Oid.DATE) {
+                    millis = getDate(i, cal).getTime();
+                } else {
+                    throw new PSQLException (GT.tr("Cannot convert the column of type {0} to requested type {1}.",
+                            new Object[]{Oid.toString(oid), "timestamp"}),
+                            PSQLState.DATA_TYPE_MISMATCH);
+                }
+                return new Timestamp(millis);
+            }
+        }
 
         if (cal != null)
             cal = (Calendar)cal.clone();
@@ -1187,7 +1245,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         }
         if ( connection.getLogger().logDebug() )
             connection.getLogger().debug("selecting " + selectSQL.toString());
-        selectStatement = ((java.sql.Connection) connection).prepareStatement(selectSQL.toString());
+        // because updateable result sets do not yet support binary transfers we must request refresh with updateable result set to get field data in correct format
+        selectStatement = ((java.sql.Connection) connection).prepareStatement(selectSQL.toString(), ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
 
 
         for ( int j = 0, i = 1; j < numKeys; j++, i++)
@@ -1693,7 +1752,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                 case Types.BINARY:
                 case Types.LONGVARBINARY:
                 case Types.VARBINARY:
-                    if (fields[columnIndex].getFormat() == Field.BINARY_FORMAT) {
+                    if (isBinary(columnIndex + 1)) {
                         rowBuffer[columnIndex] = (byte[]) valueObject;
                     } else {
                         try {
@@ -1853,6 +1912,19 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         if (wasNullFlag)
             return null;
 
+        // convert binary fields to their text format
+        if (isBinary(columnIndex)) {
+            Object obj = internalGetObject(columnIndex, fields[columnIndex - 1]);
+            if (obj == null) {
+                return null;
+            }
+            // hack to be compatible with text protocol
+            if (obj instanceof java.util.Date) {
+              return connection.getTimestampUtils().timeToString((java.util.Date) obj);
+            }
+            return trimString(columnIndex, obj.toString());
+        }
+
         Encoding encoding = connection.getEncoding();
         try
         {
@@ -1869,6 +1941,12 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         checkResultSet(columnIndex);
         if (wasNullFlag)
             return false; // SQL NULL
+
+        if (isBinary(columnIndex)) {
+            int col = columnIndex - 1;
+            return readDoubleValue(this_row[col], fields[col].getOID(),
+                                   "boolean") == 1;
+        }
         
         return toBoolean( getString(columnIndex) );
     }
@@ -1881,6 +1959,15 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         checkResultSet(columnIndex);
         if (wasNullFlag)
             return 0; // SQL NULL
+
+        if (isBinary(columnIndex)) {
+            int col = columnIndex - 1;
+            // there is no Oid for byte so must always do conversion from
+            // some other numeric type
+            return (byte)
+                readLongValue(this_row[col], fields[col].getOID(), Byte.MIN_VALUE,
+                              Byte.MAX_VALUE, "byte");
+        }
 
         String s = getString(columnIndex);
 
@@ -1931,6 +2018,16 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         if (wasNullFlag)
             return 0; // SQL NULL
 
+        if (isBinary(columnIndex)) {
+            int col = columnIndex - 1;
+            int oid = fields[col].getOID();
+            if (oid == Oid.INT2) {
+                return ByteConverter.int2(this_row[col], 0);
+            }
+            return (short) readLongValue(this_row[col], oid, Short.MIN_VALUE,
+                                         Short.MAX_VALUE, "short");
+        }
+
         String s = getFixedString(columnIndex);
 
         if (s != null)
@@ -1973,6 +2070,16 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         if (wasNullFlag)
             return 0; // SQL NULL
 
+        if (isBinary(columnIndex)) {
+            int col = columnIndex - 1;
+            int oid = fields[col].getOID();
+            if (oid == Oid.INT4) {
+                return ByteConverter.int4(this_row[col], 0);
+            }
+            return (int) readLongValue(this_row[col], oid, Integer.MIN_VALUE,
+                                       Integer.MAX_VALUE, "int");
+        }
+
         Encoding encoding = connection.getEncoding();
         if (encoding.hasAsciiNumbers()) {
             try {
@@ -1988,6 +2095,16 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         checkResultSet(columnIndex);
         if (wasNullFlag)
             return 0; // SQL NULL
+
+        if (isBinary(columnIndex)) {
+            int col = columnIndex - 1;
+            int oid = fields[col].getOID();
+            if (oid == Oid.INT8) {
+                return ByteConverter.int8(this_row[col], 0);
+            }
+            return readLongValue(this_row[col], oid, Long.MIN_VALUE,
+                                 Long.MAX_VALUE, "long");
+        }
 
         Encoding encoding = connection.getEncoding();
         if (encoding.hasAsciiNumbers()) {
@@ -2188,6 +2305,15 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         if (wasNullFlag)
             return 0; // SQL NULL
 
+        if (isBinary(columnIndex)) {
+            int col = columnIndex - 1;
+            int oid = fields[col].getOID();
+            if (oid == Oid.FLOAT4) {
+                return ByteConverter.float4(this_row[col], 0);
+            }
+            return (float) readDoubleValue(this_row[col], oid, "float");
+        }
+
         return toFloat( getFixedString(columnIndex) );
     }
 
@@ -2196,6 +2322,15 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         checkResultSet(columnIndex);
         if (wasNullFlag)
             return 0; // SQL NULL
+
+        if (isBinary(columnIndex)) {
+            int col = columnIndex - 1;
+            int oid = fields[col].getOID();
+            if (oid == Oid.FLOAT8) {
+                return ByteConverter.float8(this_row[col], 0);
+            }
+            return readDoubleValue(this_row[col], oid, "double");
+        }
 
         return toDouble( getFixedString(columnIndex) );
     }
@@ -2238,7 +2373,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         if (wasNullFlag)
             return null;
 
-        if (fields[columnIndex - 1].getFormat() == Field.BINARY_FORMAT)
+        if (isBinary(columnIndex))
         {
             //If the data is already binary then just return it
             return this_row[columnIndex - 1];
@@ -2678,6 +2813,16 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         wasNullFlag = (this_row[column - 1] == null);
     }
 
+    /**
+     * Returns true if the value of the given column is in binary format.
+     *
+     * @param column The column to check. Range starts from 1.
+     * @return True if the column is in binary format.
+     */
+    protected boolean isBinary(int column) {
+        return fields[column - 1].getFormat() == Field.BINARY_FORMAT;
+    }
+
     //----------------- Formatting Methods -------------------
 
     public static boolean toBoolean(String s)
@@ -2905,6 +3050,88 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         }
     }
 
+    /**
+     * Converts any numeric binary field to double value. This method
+     * does no overflow checking.
+     *
+     * @param bytes The bytes of the numeric field.
+     * @param oid The oid of the field.
+     * @param targetType The target type. Used for error reporting.
+     * @return The value as double.
+     * @throws PSQLException If the field type is not supported numeric type.
+     */
+    private double readDoubleValue(byte[] bytes, int oid,
+                                   String targetType) throws PSQLException {
+        // currently implemented binary encoded fields
+        switch (oid) {
+        case Oid.INT2:
+            return ByteConverter.int2(bytes, 0);
+        case Oid.INT4:
+            return ByteConverter.int4(bytes, 0);
+        case Oid.INT8:
+            // might not fit but there still should be no overflow checking
+            return ByteConverter.int8(bytes, 0);
+        case Oid.FLOAT4:
+            return ByteConverter.float4(bytes, 0);
+        case Oid.FLOAT8:
+            return ByteConverter.float8(bytes, 0);
+        }
+        throw new PSQLException (GT.tr("Cannot convert the column of type {0} to requested type {1}.",
+                    new Object[]{Oid.toString(oid), targetType}),
+                    PSQLState.DATA_TYPE_MISMATCH);
+    }
+
+    /**
+     * Converts any numeric binary field to long value.
+     * <p>
+     * This method is used by getByte,getShort,getInt and getLong.
+     * It must support a subset of the following java types that use Binary
+     * encoding. (fields that use text encoding use a different code path).
+     * <p>
+     * <code>byte,short,int,long,float,double,BigDecimal,boolean,string</code>.
+
+     * @param bytes The bytes of the numeric field.
+     * @param oid The oid of the field.
+     * @param minVal the minimum value allowed.
+     * @param minVal the maximum value allowed.
+     * @param targetType The target type. Used for error reporting.
+     * @return The value as long.
+     * @throws PSQLException If the field type is not supported numeric type
+     * or if the value is out of range.
+     */
+    private long readLongValue(byte[] bytes, int oid, long minVal, long maxVal,
+                               String targetType)
+        throws PSQLException {
+        long val;
+        // currently implemented binary encoded fields
+        switch (oid) {
+        case Oid.INT2:
+            val = ByteConverter.int2(bytes, 0);
+            break;
+        case Oid.INT4:
+            val = ByteConverter.int4(bytes, 0);
+            break;
+        case Oid.INT8:
+            val = ByteConverter.int8(bytes, 0);
+            break;
+        case Oid.FLOAT4:
+            val = (long) ByteConverter.float4(bytes, 0);
+            break;
+        case Oid.FLOAT8:
+            val = (long) ByteConverter.float8(bytes, 0);
+            break;
+        default:
+            throw new PSQLException (GT.tr("Cannot convert the column of type {0} to requested type {1}.",
+                    new Object[]{Oid.toString(oid), targetType}),
+                    PSQLState.DATA_TYPE_MISMATCH);
+        }
+        if (val < minVal || val > maxVal) {
+            throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{targetType, Long.valueOf(val)}),
+                                    PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+        }
+        return val;
+    }
+
     protected void updateValue(int columnIndex, Object value) throws SQLException {
         checkUpdateable();
 
@@ -2974,5 +3201,11 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     void addRows(Vector tuples) {
         rows.addAll(tuples);
     }
+
+
+    public void registerRealStatement(Statement realStatement) {
+        this.realStatement = realStatement;
+    }
+
 }
 

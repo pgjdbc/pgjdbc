@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/ProtocolConnection.java,v 1.8 2008/01/08 06:56:27 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/ProtocolConnection.java,v 1.9 2011/08/02 13:40:12 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -12,6 +12,7 @@ package org.postgresql.core;
 
 import org.postgresql.PGNotification;
 import java.sql.*;
+import java.util.BitSet;
 
 /**
  * Provides access to protocol-level connection operations.
@@ -132,4 +133,19 @@ public interface ProtocolConnection {
      * @return the version of the implementation
      */
     public int getProtocolVersion();
+
+    /**
+     * Sets the oids that should be received using binary encoding.
+     *
+     * @param useBinaryForOids The oids to request with binary encoding.
+     */
+    public void setBinaryReceiveOids(BitSet useBinaryForOids);
+
+    /**
+     * Returns true if server uses integer instead of double for binary
+     * date and time encodings.
+     * 
+     * @return the server integer_datetime setting.
+     */
+    public boolean getIntegerDateTimes();
 }

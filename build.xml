@@ -8,7 +8,7 @@
 
   This file now requires Ant 1.4.1.  2002-04-18
 
-  $PostgreSQL: pgjdbc/build.xml,v 1.88 2011/03/31 06:25:41 jurka Exp $
+  $PostgreSQL: pgjdbc/build.xml,v 1.89 2011/08/02 13:40:11 davecramer Exp $
 
 -->
 
@@ -369,6 +369,8 @@
   <property name="preparethreshold" value="5" />
   <property name="loglevel" value="0" />
   <property name="protocolVersion" value="0" />
+  <property name="binarytransfer" value="true" />
+  <property name="forcebinary" value="true" />
 
   <!-- The tests now build to a separate directory and jarfile from the
        driver build, to ensure we're really testing against the jar we just
@@ -411,6 +413,8 @@
       <sysproperty key="preparethreshold" value="${preparethreshold}" />
       <sysproperty key="loglevel" value="${loglevel}" />
       <sysproperty key="protocolVersion" value="${protocolVersion}" />
+      <sysproperty key="binaryTransfer" value="${binarytransfer}" />
+      <sysproperty key="org.postgresql.forcebinary" value="${forcebinary}" />
 
       <classpath>
         <pathelement location="${jardir}/postgresql.jar" />

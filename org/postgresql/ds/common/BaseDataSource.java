@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.22 2010/12/25 22:57:23 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.23 2011/08/02 13:42:25 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -51,6 +51,7 @@ public abstract class BaseDataSource implements Referenceable
     private int portNumber = 0;
     private int prepareThreshold = 5;
     private int unknownLength = Integer.MAX_VALUE;
+    private boolean binaryTransfer = true;
     private int loginTimeout = 0; // in seconds
     private int socketTimeout = 0; // in seconds
     private boolean ssl = false;
@@ -390,6 +391,28 @@ public abstract class BaseDataSource implements Referenceable
     }
 
     /**
+     * Sets protocol transfer mode.
+     * See {@link org.postgresql.PGConnection#setBinaryTransfer(boolean)} for details.
+     *
+     * @param enabled True if the binary transfer mode is used for supported field types,
+     * false if text based transfer is used.
+     */
+    public void setBinaryTransfer(boolean enabled)
+    {
+        this.binaryTransfer = enabled;
+    }
+
+    /**
+     * Gets the protocol transfer mode.
+     *
+     * @see #setBinaryTransfer(boolean)
+     */
+    public boolean getBinaryTransfer()
+    {
+        return binaryTransfer;
+    }
+
+    /**
      * Generates a DriverManager URL from the other properties supplied.
      */
     private String getUrl()
@@ -422,6 +445,9 @@ public abstract class BaseDataSource implements Referenceable
         if (applicationName != null) {
             sb.append("&ApplicationName=");
             sb.append(applicationName);
+        }
+        if (binaryTransfer) {
+        	sb.append("&binaryTransfer=true");
         }
 
         return sb.toString();
@@ -457,6 +483,7 @@ public abstract class BaseDataSource implements Referenceable
         
         ref.add(new StringRefAddr("prepareThreshold", Integer.toString(prepareThreshold)));
         ref.add(new StringRefAddr("unknownLength", Integer.toString(unknownLength)));
+        ref.add(new StringRefAddr("binaryTransfer", Boolean.toString(binaryTransfer)));
         ref.add(new StringRefAddr("loginTimeout", Integer.toString(loginTimeout)));
         ref.add(new StringRefAddr("socketTimeout", Integer.toString(socketTimeout)));
 
@@ -494,6 +521,7 @@ public abstract class BaseDataSource implements Referenceable
         out.writeInt(logLevel);
         out.writeInt(protocolVersion);
         out.writeObject(applicationName);
+        out.writeBoolean(binaryTransfer);
     }
 
     protected void readBaseObject(ObjectInputStream in) throws IOException, ClassNotFoundException
@@ -514,6 +542,7 @@ public abstract class BaseDataSource implements Referenceable
         logLevel = in.readInt();
         protocolVersion = in.readInt();
         applicationName = (String)in.readObject();
+        binaryTransfer = in.readBoolean();
     }
 
     public void initializeFrom(BaseDataSource source) throws IOException, ClassNotFoundException {

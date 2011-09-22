@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/ParameterList.java,v 1.10 2008/01/08 06:56:27 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/ParameterList.java,v 1.11 2011/08/02 13:40:12 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -121,6 +121,17 @@ public interface ParameterList {
      * @throws SQLException on error or if <code>index</code> is out of range
      */
     void setBytea(int index, InputStream stream, int length) throws SQLException;
+
+    /**
+     * Binds given byte[] value to a parameter. The bytes must already
+     * be in correct format matching the OID.
+     *
+     * @param index the 1-based parameter index to bind.
+     * @param value the bytes to send.
+     * @param oid the type OID of the parameter.
+     * @throws SQLException on error or if <code>index</code> is out of range
+     */
+    void setBinaryParameter(int index, byte[] value, int oid) throws SQLException;
 
     /**
      * Binds a SQL NULL value to a parameter.

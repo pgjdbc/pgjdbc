@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleParameterList.java,v 1.19 2010/03/21 07:07:44 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleParameterList.java,v 1.20 2011/08/02 13:40:12 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -32,11 +32,14 @@ class SimpleParameterList implements V3ParameterList {
     private final static int OUT = 2;
     private final static int INOUT = IN|OUT;
 
+    private final static int TEXT = 0;
+    private final static int BINARY = 4;
+
     SimpleParameterList(int paramCount, ProtocolConnectionImpl protoConnection) {
         this.paramValues = new Object[paramCount];
         this.paramTypes = new int[paramCount];
         this.encoded = new byte[paramCount][];
-        this.direction = new int[paramCount];
+        this.flags = new int[paramCount];
         this.protoConnection = protoConnection;
     }        
     
@@ -45,10 +48,10 @@ class SimpleParameterList implements V3ParameterList {
         if (index < 1 || index > paramValues.length)
             throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE );
 
-        direction[index-1] |= OUT;
+        flags[index-1] |= OUT;
     }
 
-    private void bind(int index, Object value, int oid) throws SQLException {
+    private void bind(int index, Object value, int oid, int binary) throws SQLException {
         if (index < 1 || index > paramValues.length)
             throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE );
 
@@ -56,7 +59,7 @@ class SimpleParameterList implements V3ParameterList {
 
         encoded[index] = null;
         paramValues[index] = value ;
-        direction[index] |= IN;
+        flags[index] = direction(index) | IN | binary;
         
         // If we are setting something to an UNSPECIFIED NULL, don't overwrite
         // our existing type for it.  We don't need the correct type info to
@@ -77,7 +80,7 @@ class SimpleParameterList implements V3ParameterList {
         int count=0;
         for( int i=paramTypes.length; --i >= 0;)
         {
-            if ((direction[i] & OUT) == OUT )
+            if ((direction(i) & OUT) == OUT)
             {
                 count++;
             }
@@ -93,7 +96,7 @@ class SimpleParameterList implements V3ParameterList {
         int count=0;
         for( int i=0; i< paramTypes.length;i++)
         {
-            if (direction[i] != OUT )
+            if (direction(i) != OUT )
             {
                 count++;
             }
@@ -107,27 +110,31 @@ class SimpleParameterList implements V3ParameterList {
         data[2] = (byte)(value >> 8);
         data[1] = (byte)(value >> 16);
         data[0] = (byte)(value >> 24);
-        bind(index, data, Oid.INT4);
+        bind(index, data, Oid.INT4, BINARY);
     }
 
     public void setLiteralParameter(int index, String value, int oid) throws SQLException {
-        bind(index, value, oid);
+        bind(index, value, oid, TEXT);
     }
 
     public void setStringParameter(int index, String value, int oid) throws SQLException {
-        bind(index, value, oid);
+        bind(index, value, oid, TEXT);
+    }
+
+    public void setBinaryParameter(int index, byte[] value, int oid) throws SQLException {
+        bind(index, value, oid, BINARY);
     }
 
     public void setBytea(int index, byte[] data, int offset, int length) throws SQLException {
-        bind(index, new StreamWrapper(data, offset, length), Oid.BYTEA);
+        bind(index, new StreamWrapper(data, offset, length), Oid.BYTEA, BINARY);
     }
 
     public void setBytea(int index, InputStream stream, int length) throws SQLException {
-        bind(index, new StreamWrapper(stream, length), Oid.BYTEA);
+        bind(index, new StreamWrapper(stream, length), Oid.BYTEA, BINARY);
     }
 
     public void setNull(int index, int oid) throws SQLException {
-        bind(index, NULL_OBJECT, oid);
+        bind(index, NULL_OBJECT, oid, BINARY);
     }
 
     public String toString(int index) {
@@ -174,7 +181,7 @@ class SimpleParameterList implements V3ParameterList {
     public void checkAllParametersSet() throws SQLException {
         for (int i = 0; i < paramTypes.length; ++i)
         {
-            if (direction[i] != OUT && paramValues[i] == null)
+            if (direction(i) != OUT && paramValues[i] == null)
                 throw new PSQLException(GT.tr("No value specified for parameter {0}.", new Integer(i + 1)), PSQLState.INVALID_PARAMETER_VALUE);
         }
     }
@@ -183,7 +190,7 @@ class SimpleParameterList implements V3ParameterList {
     {
         for (int i=0; i<paramTypes.length; ++i)
         {
-            if (direction[i] == OUT)
+            if (direction(i) == OUT)
             {
                 paramTypes[i] = Oid.VOID;
                 paramValues[i] = "null";
@@ -240,8 +247,11 @@ class SimpleParameterList implements V3ParameterList {
     }
 
     boolean isBinary(int index) {
-        // Currently, only StreamWrapper uses the binary parameter form.
-        return (paramValues[index-1] instanceof StreamWrapper);
+        return (flags[index-1] & BINARY) != 0;
+    }
+
+    private int direction(int index) {
+    	return flags[index] & INOUT;
     }
 
     int getV3Length(int index) {
@@ -302,7 +312,7 @@ class SimpleParameterList implements V3ParameterList {
         SimpleParameterList newCopy = new SimpleParameterList(paramValues.length, protoConnection);
         System.arraycopy(paramValues, 0, newCopy.paramValues, 0, paramValues.length);
         System.arraycopy(paramTypes, 0, newCopy.paramTypes, 0, paramTypes.length);
-        System.arraycopy(direction, 0, newCopy.direction, 0, direction.length);
+        System.arraycopy(flags, 0, newCopy.flags, 0, flags.length);
         return newCopy;
     }
 
@@ -310,7 +320,7 @@ class SimpleParameterList implements V3ParameterList {
         Arrays.fill(paramValues, null);
         Arrays.fill(paramTypes, 0);
         Arrays.fill(encoded, null);
-        Arrays.fill(direction, 0);
+        Arrays.fill(flags, 0);
     }
     public SimpleParameterList[] getSubparams() {
         return null;
@@ -318,7 +328,7 @@ class SimpleParameterList implements V3ParameterList {
 
     private final Object[] paramValues;
     private final int[] paramTypes;
-    private final int[] direction;
+    private final int[] flags;
     private final byte[][] encoded;
     private final ProtocolConnectionImpl protoConnection;
     

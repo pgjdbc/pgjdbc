@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ProtocolConnectionImpl.java,v 1.12 2008/04/01 07:19:20 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ProtocolConnectionImpl.java,v 1.13 2011/08/02 13:40:12 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -13,6 +13,7 @@ package org.postgresql.core.v2;
 import java.sql.*;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.BitSet;
 
 import org.postgresql.PGNotification;
 import org.postgresql.core.*;
@@ -201,6 +202,15 @@ class ProtocolConnectionImpl implements ProtocolConnection {
         return 2;
     }
     
+    public void setBinaryReceiveOids(BitSet ignored) {
+        // ignored for v2 connections
+    }
+
+    public boolean getIntegerDateTimes() {
+        // not supported in v2 protocol
+        return false;
+    }
+
     private String serverVersion;
     private int cancelPid;
     private int cancelKey;

@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.53 2011/04/19 01:15:21 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.54 2011/08/02 13:40:12 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -1153,6 +1153,9 @@ public class QueryExecutorImpl implements QueryExecutor {
         query.unprepare();
         processDeadParsedQueries();
 
+        // Remove any cached Field values
+        query.setFields(null);
+
         String statementName = null;
         if (!oneShot)
         {
@@ -1241,7 +1244,8 @@ public class QueryExecutorImpl implements QueryExecutor {
         pendingParseQueue.add(new Object[]{query, query.getStatementName()});
     }
 
-    private void sendBind(SimpleQuery query, SimpleParameterList params, Portal portal) throws IOException {
+    private void sendBind(SimpleQuery query, SimpleParameterList params,
+                          Portal portal, boolean noBinaryTransfer) throws IOException {
         //
         // Send Bind.
         //
@@ -1275,12 +1279,27 @@ public class QueryExecutorImpl implements QueryExecutor {
                 encodedSize += (long)4 + params.getV3Length(i);
         }
 
+        // This is not the number of binary fields, but the total number
+        // of fields if any of them are binary or zero if all of them
+        // are text.
+
+        int numBinaryFields = 0;
+        Field[] fields = query.getFields();
+        if (!noBinaryTransfer && fields != null) {
+            for (int i = 0; i < fields.length; ++i) {
+                if (useBinary(fields[i])) {
+                    fields[i].setFormat(Field.BINARY_FORMAT);
+                    numBinaryFields = fields.length;
+                }
+            }
+        }
+
         encodedSize = 4
                       + (encodedPortalName == null ? 0 : encodedPortalName.length) + 1
                       + (encodedStatementName == null ? 0 : encodedStatementName.length) + 1
                       + 2 + params.getParameterCount() * 2
                       + 2 + encodedSize
-                      + 2;
+                      + 2 + numBinaryFields * 2;
 
         // backend's MaxAllocSize is the largest message that can
         // be received from a client.  If we have a bigger value
@@ -1335,7 +1354,10 @@ public class QueryExecutorImpl implements QueryExecutor {
             }
         }
 
-        pgStream.SendInteger2(0);   // # of result format codes (0)
+        pgStream.SendInteger2(numBinaryFields);   // # of result format codes
+        for (int i = 0; i < numBinaryFields; ++i) {
+            pgStream.SendInteger2(fields[i].getFormat());
+        }
 
         pendingBindQueue.add(portal);
 
@@ -1343,6 +1365,19 @@ public class QueryExecutorImpl implements QueryExecutor {
         {
             throw bindException;
         }
+    }
+
+    /**
+     * Returns true if the specified field should be retrieved using binary
+     * encoding.
+     *
+     * @param field The field whose Oid type to analyse.
+     * @return True if {@link Field#BINARY_FORMAT} should be used, false if
+     * {@link Field#BINARY_FORMAT}.
+     */
+    private boolean useBinary(Field field) {
+        int oid = field.getOID();
+        return protoConnection.useBinaryForReceive(oid);
     }
 
     private void sendDescribePortal(SimpleQuery query, Portal portal) throws IOException {
@@ -1485,6 +1520,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         boolean describeOnly = (flags & QueryExecutor.QUERY_DESCRIBE_ONLY) != 0;
         boolean usePortal = (flags & QueryExecutor.QUERY_FORWARD_CURSOR) != 0 && !noResults && !noMeta && fetchSize > 0 && !describeOnly;
         boolean oneShot = (flags & QueryExecutor.QUERY_ONESHOT) != 0 && !usePortal;
+        boolean noBinaryTransfer = (flags & QUERY_NO_BINARY_TRANSFER) != 0;
 
         // Work out how many rows to fetch in this pass.
 
@@ -1544,13 +1580,18 @@ public class QueryExecutorImpl implements QueryExecutor {
             portal = new Portal(query, portalName);
         }
 
-        sendBind(query, params, portal);
+        sendBind(query, params, portal, noBinaryTransfer);
 
         // A statement describe will also output a RowDescription,
         // so don't reissue it here if we've already done so.
         //
-        if (!noMeta && !describeStatement && !query.isPortalDescribed())
-            sendDescribePortal(query, portal);
+        if (!noMeta && !describeStatement) {
+            // don't send describe if we already have cached the
+            // descriptionrow from previous executions
+            if (query.getFields() == null) {
+              sendDescribePortal(query, portal);
+            }
+        }
 
         sendExecute(query, portal, rows);
     }
@@ -1810,7 +1851,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                 break;
 
             case 'D':  // Data Transfer (ongoing Execute response)
-                Object tuple = null;
+                byte[][] tuple = null;
                 try {
                     tuple = pgStream.ReceiveTupleV3();
                 } catch(OutOfMemoryError oome) {
@@ -1827,8 +1868,19 @@ public class QueryExecutorImpl implements QueryExecutor {
                     tuples.addElement(tuple);
                 }
 
-                if (logger.logDebug())
-                    logger.debug(" <=BE DataRow");
+                if (logger.logDebug()) {
+                    int length;
+                    if (tuple == null) {
+                        length = -1;
+                    } else {
+                        length = 0;
+                        for (int i=0; i< tuple.length; ++i) {
+                            if (tuple[i] == null) continue;
+                            length += tuple[i].length;
+                        }
+                    }
+                    logger.debug(" <=BE DataRow(len=" + length + ")");
+                }
 
                 break;
 
@@ -1908,7 +1960,8 @@ public class QueryExecutorImpl implements QueryExecutor {
 
                 if (doneAfterRowDescNoData) {
                     Object describeData[] = (Object[])pendingDescribeStatementQueue.get(describeIndex++);
-                    Query currentQuery = (Query)describeData[0];
+                    SimpleQuery currentQuery = (SimpleQuery)describeData[0];
+                    currentQuery.setFields(fields);
 
                     handler.handleResultRows(currentQuery, fields, tuples, null);
                     tuples = null;
@@ -2071,6 +2124,9 @@ public class QueryExecutorImpl implements QueryExecutor {
                                   "",  /* name not yet determined */
                                   typeOid, typeLength, typeModifier, tableOid, positionInTable);
             fields[i].setFormat(formatType);
+
+            if (logger.logDebug())
+                logger.debug("        " + fields[i]);
         }
 
         return fields;

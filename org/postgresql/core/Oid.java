@@ -3,11 +3,13 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/Oid.java,v 1.15 2008/10/08 18:24:05 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/Oid.java,v 1.16 2011/08/02 13:40:12 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.core;
+
+import java.lang.reflect.Field;
 
 /**
  * Provides constants for well-known backend OIDs for the types we commonly
@@ -67,4 +69,24 @@ public class Oid {
     public static final int XML = 142;
     public static final int XML_ARRAY = 143;
 
+    /**
+     * Returns the name of the oid as string.
+     *
+     * @param oid The oid to convert to name.
+     * @return The name of the oid or "<unknown>" if oid no constant for
+     * oid value has been defined.
+     */
+    public static String toString(int oid) {
+        try {
+            Field[] fields = Oid.class.getFields();
+            for (int i = 0; i < fields.length; ++i) {
+                if (fields[i].getInt(null) == oid) {
+                    return fields[i].getName();
+                }
+            }
+        } catch (IllegalAccessException e) {
+            // never happens
+        }
+        return "<unknown>";
+    }
 }

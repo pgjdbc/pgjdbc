@@ -3,12 +3,15 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/TestUtil.java,v 1.23 2008/01/08 06:56:30 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/TestUtil.java,v 1.24 2011/08/02 13:50:29 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.test;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.sql.*;
 import java.util.Properties;
 
@@ -29,13 +32,19 @@ public class TestUtil
             protocolVersion = "&protocolVersion=" + getProtocolVersion();
         }
 
+        String binaryTransfer = "";
+        if (getBinaryTransfer() != null && !getBinaryTransfer().equals("")) {
+            binaryTransfer = "&binaryTransfer=" + getBinaryTransfer();
+        }
+
         return "jdbc:postgresql://"
                                 + getServer() + ":" 
                                 + getPort() + "/" 
                                 + getDatabase() 
                                 + "?prepareThreshold=" + getPrepareThreshold()
                                 + "&loglevel=" + getLogLevel()
-                                + protocolVersion;
+                                + protocolVersion
+                                + binaryTransfer;
     }
 
     /*
@@ -43,7 +52,7 @@ public class TestUtil
      */
     public static String getServer()
     {
-        return System.getProperty("server");
+        return System.getProperty("server", "localhost");
     }
 
     /*
@@ -51,7 +60,7 @@ public class TestUtil
      */
     public static int getPort()
     {
-        return Integer.parseInt(System.getProperty("port"));
+        return Integer.parseInt(System.getProperty("port", System.getProperty("def_pgport")));
     }
 
     /*
@@ -59,12 +68,12 @@ public class TestUtil
      */
     public static int getPrepareThreshold()
     {
-        return Integer.parseInt(System.getProperty("preparethreshold"));
+        return Integer.parseInt(System.getProperty("preparethreshold", "5"));
     }
 
     public static int getProtocolVersion()
     {
-        return Integer.parseInt(System.getProperty("protocolVersion"));
+        return Integer.parseInt(System.getProperty("protocolVersion", "0"));
     }
 
     /*
@@ -96,7 +105,15 @@ public class TestUtil
      */
     public static int getLogLevel()
     {
-        return Integer.parseInt(System.getProperty("loglevel"));
+        return Integer.parseInt(System.getProperty("loglevel", "0"));
+    }
+
+    /*
+     * Returns the binary transfer mode to use
+     */
+    public static String getBinaryTransfer()
+    {
+        return System.getProperty("binaryTransfer");
     }
 
     private static boolean initialized = false;
@@ -105,6 +122,16 @@ public class TestUtil
         synchronized (TestUtil.class) {
             if (initialized)
                 return;
+
+            Properties p = new Properties();
+            try {
+              p.load(new FileInputStream("build.properties"));
+              p.load(new FileInputStream("build.local.properties"));
+            } catch (IOException ex) {
+              // ignore
+            }
+            p.putAll(System.getProperties());
+            System.getProperties().putAll(p);
 
             if (getLogLevel() > 0) { 
                 // Ant's junit task likes to buffer stdout/stderr and tends to run out of memory.

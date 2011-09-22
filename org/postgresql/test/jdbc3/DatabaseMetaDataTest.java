@@ -3,7 +3,7 @@
 * Copyright (c) 2008-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/DatabaseMetaDataTest.java,v 1.2 2008/01/08 06:56:31 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/DatabaseMetaDataTest.java,v 1.3 2011/08/02 13:50:29 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -40,6 +40,7 @@ public class DatabaseMetaDataTest extends TestCase
             stmt.execute("DROP TABLE domtab");
             stmt.execute("DROP DOMAIN mydom");
         }
+        TestUtil.closeDB(_conn);
     }
 
     public void testGetColumnsForDomain() throws Exception

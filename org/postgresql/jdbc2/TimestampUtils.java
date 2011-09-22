@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.23 2008/01/08 06:56:29 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.24 2011/08/02 13:48:35 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -17,6 +17,8 @@ import java.util.TimeZone;
 import java.util.SimpleTimeZone;
 
 import org.postgresql.PGStatement;
+import org.postgresql.core.Oid;
+import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLException;
@@ -26,9 +28,15 @@ import org.postgresql.util.PSQLException;
  * Misc utils for handling time and date values.
  */
 public class TimestampUtils {
+    /**
+     * Number of milliseconds in one day.
+     */
+    private static final int ONEDAY = 24 * 3600 * 1000;
+
     private StringBuffer sbuf = new StringBuffer();
 
     private Calendar defaultCal = new GregorianCalendar();
+    private final TimeZone defaultTz = defaultCal.getTimeZone();
 
     private Calendar calCache;
     private int calCacheZone;
@@ -36,9 +44,15 @@ public class TimestampUtils {
     private final boolean min74;
     private final boolean min82;
 
-    TimestampUtils(boolean min74, boolean min82) {
+    /**
+     * True if the backend uses doubles for time values. False if long is used.
+     */
+    private final boolean usesDouble;
+
+    TimestampUtils(boolean min74, boolean min82, boolean usesDouble) {
         this.min74 = min74;
         this.min82 = min82;
+        this.usesDouble = usesDouble;
     }
 
     private Calendar getCalendar(int sign, int hr, int min, int sec) {
@@ -620,6 +634,279 @@ public class TimestampUtils {
             return s[pos];
         }
         return '\0';
+    }
+
+    /**
+     * Returns the SQL Date object matching the given bytes with
+     * {@link Oid#DATE}.
+     * 
+     * @param tz The timezone used.
+     * @param bytes The binary encoded date value.
+     * @return The parsed date object.
+     * @throws PSQLException If binary format could not be parsed.
+     */
+    public Date toDateBin(TimeZone tz, byte[] bytes) throws PSQLException {
+        if (bytes.length != 4) {
+            throw new PSQLException(GT.tr("Unsupported binary encoding of {0}.",
+                    "date"), PSQLState.BAD_DATETIME_FORMAT);
+        }
+        int days = ByteConverter.int4(bytes, 0);
+        if (tz == null) {
+            tz = defaultTz;
+        }
+        long secs = toJavaSecs(days * 86400L);
+        long millis = secs * 1000L;
+        int offset = tz.getOffset(millis);
+        return new Date(millis - offset);
+    }
+
+    /**
+     * Returns the SQL Time object matching the given bytes with
+     * {@link Oid#TIME} or {@link Oid#TIMETZ}.
+     * 
+     * @param tz The timezone used when received data is {@link Oid#TIME},
+     * ignored if data already contains {@link Oid#TIMETZ}.
+     * @param bytes The binary encoded time value.
+     * @return The parsed time object.
+     * @throws PSQLException If binary format could not be parsed.
+     */
+    public Time toTimeBin(TimeZone tz, byte[] bytes) throws PSQLException {
+        if ((bytes.length != 8 && bytes.length != 12)) {
+            throw new PSQLException(GT.tr("Unsupported binary encoding of {0}.",
+                    "time"), PSQLState.BAD_DATETIME_FORMAT);
+        }
+        
+        long millis;
+        int timeOffset;
+        
+        if (usesDouble) {
+            double time = ByteConverter.float8(bytes, 0);
+            
+            millis = (long) (time * 1000);
+        } else {
+            long time = ByteConverter.int8(bytes, 0);
+
+            millis = time / 1000;
+        }
+        
+        if (bytes.length == 12) {
+            timeOffset = ByteConverter.int4(bytes, 8);
+            timeOffset *= -1000;
+        } else {
+            if (tz == null) {
+                tz = defaultTz;
+            }
+            
+            timeOffset = tz.getOffset(millis);
+        }
+        
+        millis -= timeOffset;
+        return new Time(millis);
+    }
+
+    /**
+     * Returns the SQL Timestamp object matching the given bytes with
+     * {@link Oid#TIMESTAMP} or {@link Oid#TIMESTAMPTZ}.
+     * 
+     * @param tz The timezone used when received data is {@link Oid#TIMESTAMP},
+     * ignored if data already contains {@link Oid#TIMESTAMPTZ}.
+     * @param bytes The binary encoded timestamp value.
+     * @param timestamptz True if the binary is in GMT.
+     * @return The parsed timestamp object.
+     * @throws PSQLException If binary format could not be parsed.
+     */
+    public Timestamp toTimestampBin(TimeZone tz, byte[] bytes, boolean timestamptz)
+        throws PSQLException {
+        
+        if (bytes.length != 8) {
+            throw new PSQLException(GT.tr("Unsupported binary encoding of {0}.",
+                    "timestamp"), PSQLState.BAD_DATETIME_FORMAT);
+        }
+
+        long secs;
+        int nanos;
+        
+        if (usesDouble) {
+            double time = ByteConverter.float8(bytes, 0);
+            if (time == Double.POSITIVE_INFINITY) {
+                return new Timestamp(PGStatement.DATE_POSITIVE_INFINITY);
+            } else if (time == Double.NEGATIVE_INFINITY) {
+                return new Timestamp(PGStatement.DATE_NEGATIVE_INFINITY);
+            }
+            
+            secs = (long) time;
+            nanos = (int) ((time - secs) * 1000000);
+        } else {
+            long time = ByteConverter.int8(bytes, 0);
+            
+            // compatibility with text based receiving, not strictly necessary
+            // and can actually be confusing because there are timestamps
+            // that are larger than infinite 
+            if (time == Long.MAX_VALUE) {
+                return new Timestamp(PGStatement.DATE_POSITIVE_INFINITY);
+            } else if (time == Long.MIN_VALUE) {
+                return new Timestamp(PGStatement.DATE_NEGATIVE_INFINITY);
+            }
+            
+            secs = time / 1000000;
+            nanos = (int) (time - secs * 1000000);
+        }
+        if (nanos < 0) {
+            secs--;
+            nanos += 1000000;
+        }
+        nanos *= 1000;
+        
+        secs = toJavaSecs(secs);
+        long millis = secs * 1000L;
+        if (!timestamptz) {
+            if (tz == null) {
+                tz = defaultTz;
+            }
+            millis -= tz.getOffset(millis);
+        }
+
+        Timestamp ts = new Timestamp(millis);
+        ts.setNanos(nanos);
+        return ts;
+    }
+    
+    /**
+     * Extracts the date part from a timestamp.
+     * 
+     * @param timestamp The timestamp from which to extract the date.
+     * @param tz The time zone of the date.
+     * @return The extracted date.
+     */
+    public Date convertToDate(Timestamp timestamp, TimeZone tz) {
+        long millis = timestamp.getTime();
+        // no adjustments for the inifity hack values
+        if (millis <= PGStatement.DATE_NEGATIVE_INFINITY ||
+            millis >= PGStatement.DATE_POSITIVE_INFINITY) {
+            return new Date(millis);
+        }
+        if (tz == null) {
+            tz = defaultTz;
+        }
+        int offset = tz.getOffset(millis);
+        long timePart = millis % ONEDAY;
+        if (timePart + offset >= ONEDAY) {
+            millis += ONEDAY;
+        }
+        millis -= timePart;
+        millis -= offset;
+
+        return new Date(millis);
+    }
+
+    /**
+     * Extracts the time part from a timestamp.
+     * 
+     * @param timestamp The timestamp from which to extract the time.
+     * @param tz The time zone of the time.
+     * @return The extracted time.
+     */
+    public Time convertToTime(Timestamp timestamp, TimeZone tz) {
+        long millis = timestamp.getTime();
+        if (tz == null) {
+            tz = defaultTz;
+        }
+        int offset = tz.getOffset(millis);
+        long low = - tz.getOffset(millis);
+        long high = low + ONEDAY;
+        if (millis < low) {
+            do { millis += ONEDAY; } while (millis < low);
+        } else if (millis >= high) {
+            do { millis -= ONEDAY; } while (millis > high);
+        }
+
+        return new Time(millis);
+    }
+    
+    /**
+     * Returns the given time value as String matching what the
+     * current postgresql server would send in text mode.
+     */
+    public String timeToString(java.util.Date time) {
+        long millis = time.getTime();
+        if (millis <= PGStatement.DATE_NEGATIVE_INFINITY) {
+            return "-infinity";
+        }
+        if (millis >= PGStatement.DATE_POSITIVE_INFINITY) {
+            return "infinity";
+        }
+        return time.toString();
+    }
+
+    /**
+     * Converts the given postgresql seconds to java seconds.
+     * Reverse engineered by inserting varying dates to postgresql
+     * and tuning the formula until the java dates matched.
+     * See {@link #toPgSecs} for the reverse operation.
+     * 
+     * @param secs Postgresql seconds.
+     * @return Java seconds.
+     */
+    private static long toJavaSecs(long secs) {
+        // postgres epoc to java epoc
+        secs += 946684800L;
+
+        // Julian/Gregorian calendar cutoff point
+        if (secs < -12219292800L) { // October 4, 1582 -> October 15, 1582
+            secs += 86400 * 10;
+            if (secs < -14825808000L) { // 1500-02-28 -> 1500-03-01
+                int extraLeaps = (int) ((secs + 14825808000L) / 3155760000L);
+                extraLeaps--;
+                extraLeaps -= extraLeaps / 4;
+                secs += extraLeaps * 86400L;
+            }
+        }
+        return secs;
+    }
+
+    /**
+     * Converts the given java seconds to postgresql seconds.
+     * See {@link #toJavaSecs} for the reverse operation.
+     * The conversion is valid for any year 100 BC onwards.
+     * 
+     * @param secs Postgresql seconds.
+     * @return Java seconds.
+     */
+     private static long toPgSecs(long secs) {
+        // java epoc to postgres epoc
+        secs -= 946684800L;
+
+        // Julian/Greagorian calendar cutoff point
+        if (secs < -13165977600L) { // October 15, 1582 -> October 4, 1582
+            secs -= 86400 * 10;
+            if (secs < -15773356800L) { // 1500-03-01 -> 1500-02-28
+                int years = (int) ((secs + 15773356800L) / -3155823050L);
+                years++;
+                years -= years/4;
+                secs += years * 86400;
+            }
+        }
+        
+        return secs;
+    }
+
+    /**
+     * Converts the SQL Date to binary representation for {@link Oid#DATE}.
+     * 
+     * @param tz The timezone used.
+     * @param bytes The binary encoded date value.
+     * @throws PSQLException If binary format could not be parsed.
+     */
+    public void toBinDate(TimeZone tz, byte[] bytes, Date value) throws PSQLException {
+        long millis = value.getTime();
+        
+        if (tz == null) {
+            tz = defaultTz;
+        }
+        millis += tz.getOffset(millis);
+        
+        long secs = toPgSecs(millis / 1000);
+        ByteConverter.int4(bytes, 0, (int) (secs / 86400));
     }
 
 }

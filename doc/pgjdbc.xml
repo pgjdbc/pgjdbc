@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!--
   Copyright (c) 2004-2011, PostgreSQL Global Development Group
-  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.41 2011/04/19 01:15:20 jurka Exp $
+  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.42 2011/08/02 13:40:12 davecramer Exp $
 -->
 
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN" "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">
@@ -563,6 +563,26 @@ Connection conn = DriverManager.getConnection(url);
 	 and if the <function>finalize()</function> method is reached without
 	 having been closed the stacktrace is printed to the log.
 	</para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
+       <term><varname>binaryTransfer</varname> = <type>boolean</type></term>
+       <listitem>
+        <para>
+         The postgresql protocol v3 supports both binary and text transfer
+         of fields. When binaryTransfer is enabled the driver
+         requests binary transfer for all supported types. Using the binary
+         transfer is more optimal for both the server and the client.
+
+         Previously driver versions supported only text transfers. The old
+         functionality can be obtained by setting this field to false.
+
+         Currently the following column types currently support binary encoding:
+         <literal>BYTEA</literal>, <literal>TIMEx</literal>,
+         <literal>TIMESTAMP*</literal>, <literal>DATE</literal>,
+         <literal>INT*</literal> and <literal>FLOAT*</literal>.
+        </para>
        </listitem>
       </varlistentry>
 

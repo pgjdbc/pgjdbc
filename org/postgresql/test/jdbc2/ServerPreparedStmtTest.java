@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ServerPreparedStmtTest.java,v 1.17 2008/01/08 06:56:31 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ServerPreparedStmtTest.java,v 1.18 2011/08/02 13:50:29 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -51,6 +51,19 @@ public class ServerPreparedStmtTest extends TestCase
     {
         TestUtil.dropTable(con, "testsps");
         TestUtil.closeDB(con);
+    }
+
+    public void testEmptyResults() throws Exception
+    {
+        PreparedStatement pstmt = con.prepareStatement("SELECT * FROM testsps WHERE id = ?");
+        ((PGStatement)pstmt).setUseServerPrepare(true);
+        for (int i=0; i<10; ++i) {
+            pstmt.setInt(1, -1);
+            ResultSet rs = pstmt.executeQuery();
+            assertFalse(rs.next());
+            rs.close();
+        }
+        pstmt.close();
     }
 
     public void testPreparedExecuteCount() throws Exception

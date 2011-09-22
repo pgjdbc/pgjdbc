@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleQuery.java,v 1.14 2009/04/20 21:44:09 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleQuery.java,v 1.15 2011/08/02 13:40:12 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -120,9 +120,21 @@ class SimpleQuery implements V3Query {
         return encodedStatementName;
     }
 
+    /**
+     * Sets the fields that this query will return.
+     *
+     * @param fields The fields that this query will return.
+     */
     void setFields(Field[] fields) {
         this.fields = fields;
     }
+
+    /**
+     * Returns the fields that this query will return. If the result set fields
+     * are not known returns null.
+     *
+     * @return the fields that this query will return.
+     */
     Field[] getFields() {
         return fields;
     }
@@ -171,6 +183,10 @@ class SimpleQuery implements V3Query {
     private final ProtocolConnectionImpl protoConnection;
     private String statementName;
     private byte[] encodedStatementName;
+    /**
+     * The stored fields from previous query of a prepared statement,
+     * if executed before. Always null for non-prepared statements.
+     */
     private Field[] fields;
     private boolean portalDescribed;
     private boolean statementDescribed;

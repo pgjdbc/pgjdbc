@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.122 2011/08/02 13:48:35 davecramer Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.123 2011/09/20 14:57:13 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -17,6 +17,7 @@ import java.math.*;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.TimerTask;
+import java.util.TimeZone;
 import java.util.Vector;
 import java.util.Calendar;
 
@@ -35,6 +36,9 @@ import org.postgresql.util.GT;
  */
 public abstract class AbstractJdbc2Statement implements BaseStatement
 {
+    // only for testing purposes. even single shot statements will use binary transfers
+    public static final boolean ForceBinaryTransfers = Boolean.getBoolean("org.postgresql.forcebinary");
+
     protected ArrayList batchStatements = null;
     protected ArrayList batchParameters = null;
     protected final int resultsettype;   // the resultset type to return (ResultSet.TYPE_xxx)
@@ -252,6 +256,27 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (preparedQuery != null)
             throw new PSQLException(GT.tr("Can''t use query methods that take a query string on a PreparedStatement."),
                                     PSQLState.WRONG_OBJECT_TYPE);
+
+        if (ForceBinaryTransfers) {
+        	clearWarnings();
+                // Close any existing resultsets associated with this statement.
+                while (firstUnclosedResult != null)
+                {
+                   if (firstUnclosedResult.getResultSet() != null)
+                      firstUnclosedResult.getResultSet().close();
+                   firstUnclosedResult = firstUnclosedResult.getNext();
+                }
+
+        	PreparedStatement ps = connection.prepareStatement(p_sql, resultsettype, concurrency, getResultSetHoldability());
+        	ps.setMaxFieldSize(getMaxFieldSize());
+        	ps.setFetchSize(getFetchSize());
+        	ps.setFetchDirection(getFetchDirection());
+        	AbstractJdbc2ResultSet rs = (AbstractJdbc2ResultSet) ps.executeQuery();
+        	rs.registerRealStatement(this);
+
+                result = firstUnclosedResult = new ResultWrapper(rs);
+        	return rs;
+        }
 
         if (!executeWithFlags(p_sql, 0))
             throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
@@ -508,6 +533,20 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
         if (connection.getAutoCommit())
             flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
+
+        // updateable result sets do not yet support binary updates
+        if (concurrency != ResultSet.CONCUR_READ_ONLY)
+            flags |= QueryExecutor.QUERY_NO_BINARY_TRANSFER;
+
+        if (ForceBinaryTransfers) {
+                int flags2 = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
+                StatementResultHandler handler2 = new StatementResultHandler();
+                connection.getQueryExecutor().execute(queryToExecute, queryParameters, handler2, 0, 0, flags2);
+                ResultWrapper result2 = handler2.getResults();
+                if (result2 != null) {
+                    result2.getResultSet().close();
+                }
+        }
 
         StatementResultHandler handler = new StatementResultHandler();
         result = null;
@@ -3094,6 +3133,13 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             return;
         }
 
+        if (connection.binaryTransferSend(Oid.DATE)) {
+            byte[] val = new byte[4];
+            TimeZone tz = cal != null ? cal.getTimeZone() : null;
+            connection.getTimestampUtils().toBinDate(tz, val, d);
+            preparedParameters.setBinaryParameter(i, val, Oid.DATE);
+            return;
+        }
         
         if (cal != null)
             cal = (Calendar)cal.clone();

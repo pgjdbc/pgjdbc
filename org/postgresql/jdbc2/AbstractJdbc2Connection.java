@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.55 2010/05/01 14:40:51 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.56 2011/08/02 13:48:35 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -74,6 +74,11 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     // Current warnings; there might be more on protoConnection too.
     public SQLWarning firstWarning = null;
 
+    /** BitSet of oids that use binary transfer when sending to server. */
+    private BitSet useBinarySendForOids;
+    /** BitSet of oids that use binary transfer when receiving from server. */
+    private BitSet useBinaryReceiveForOids;
+
     public abstract DatabaseMetaData getMetaData() throws SQLException;
 
     //
@@ -116,6 +121,14 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         catch (Exception e)
         {
         }
+        boolean binaryTransfer = true;
+        try
+        {
+            binaryTransfer = Boolean.valueOf(info.getProperty("binaryTransfer", "true")).booleanValue();
+        }
+        catch (Exception e)
+        {
+        }
 
         //Print out the driver version number
         if (logger.logInfo())
@@ -126,11 +139,53 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         this.dbVersionNumber = protoConnection.getServerVersion();
         this.compatible = info.getProperty("compatible", Driver.MAJORVERSION + "." + Driver.MINORVERSION);
 
+        // Formats that currently have binary protocol support
+        BitSet binaryOids = new BitSet();
+        if (binaryTransfer && protoConnection.getProtocolVersion() >= 3) {
+            binaryOids.set(Oid.BYTEA);
+            binaryOids.set(Oid.INT2);
+            binaryOids.set(Oid.INT4);
+            binaryOids.set(Oid.INT8);
+            binaryOids.set(Oid.FLOAT4);
+            binaryOids.set(Oid.FLOAT8);
+            binaryOids.set(Oid.TIME);
+            binaryOids.set(Oid.DATE);
+            binaryOids.set(Oid.TIMETZ);
+            binaryOids.set(Oid.TIMESTAMP);
+            binaryOids.set(Oid.TIMESTAMPTZ);
+        }        
+        // the pre 8.0 servers do not disclose their internal encoding for
+        // time fields so do not try to use them.
+        if (!haveMinimumCompatibleVersion("8.0")) {
+            binaryOids.clear(Oid.TIME);
+            binaryOids.clear(Oid.TIMETZ);
+            binaryOids.clear(Oid.TIMESTAMP);
+            binaryOids.clear(Oid.TIMESTAMPTZ);
+        }
+
+        // split for receive and send for better control
+        useBinarySendForOids = new BitSet();
+        useBinarySendForOids.or(binaryOids);
+        useBinaryReceiveForOids = new BitSet();
+        useBinaryReceiveForOids.or(binaryOids);
+
+        /*
+         * Does not pass unit tests because unit tests expect setDate to have
+         * millisecond accuracy whereas the binary transfer only supports
+         * date accuracy.
+         */
+        useBinarySendForOids.clear(Oid.DATE);
+
+        protoConnection.setBinaryReceiveOids(useBinaryReceiveForOids);
+
         if (logger.logDebug())
         {
             logger.debug("    compatible = " + compatible);
             logger.debug("    loglevel = " + logLevel);
             logger.debug("    prepare threshold = " + prepareThreshold);
+            logger.debug("    types using binary send = " + oidsToString(useBinarySendForOids));
+            logger.debug("    types using binary receive = " + oidsToString(useBinaryReceiveForOids));
+            logger.debug("    integer date/time = " + protoConnection.getIntegerDateTimes());
         }
 
         //
@@ -151,7 +206,8 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         }
 
         // Initialize timestamp stuff
-        timestampUtils = new TimestampUtils(haveMinimumServerVersion("7.4"), haveMinimumServerVersion("8.2"));
+        timestampUtils = new TimestampUtils(haveMinimumServerVersion("7.4"), haveMinimumServerVersion("8.2"),
+                                            !protoConnection.getIntegerDateTimes());
 
         // Initialize common queries.
         commitQuery = getQueryExecutor().createSimpleQuery("COMMIT");
@@ -175,6 +231,21 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
             openStackTrace = new Throwable("Connection was created at this point:");
             enableDriverManagerLogging();
         }
+    }
+
+    private String oidsToString(BitSet oids) {
+        StringBuffer sb = new StringBuffer();
+        int oid = -1;
+        while ((oid = oids.nextSetBit(oid + 1)) != -1) {
+            sb.append(Oid.toString(oid));
+            sb.append(',');
+        }
+        if (sb.length() > 0) {
+            sb.setLength(sb.length() - 1);
+        } else {
+            sb.append(" <none>");
+        }
+        return sb.toString();
     }
 
     private final TimestampUtils timestampUtils;
@@ -1110,5 +1181,9 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         if (copyManager == null)
             copyManager = new CopyManager(this);
         return copyManager;
+    }
+
+    public boolean binaryTransferSend(int oid) {
+        return useBinarySendForOids.get(oid);
     }
 }

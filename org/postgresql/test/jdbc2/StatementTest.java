@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.30 2011/08/02 13:50:29 davecramer Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.31 2011/09/20 14:57:13 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -501,5 +501,16 @@ public class StatementTest extends TestCase
     		if (sqle.getSQLState().compareTo("57014") == 0) 
     			timer.cancel();
     	}
+    }
+
+    public void testResultSetTwice() throws SQLException
+    {
+        Statement stmt = con.createStatement();
+
+        ResultSet rs = stmt.executeQuery("select {fn abs(-2.3)} as abs ");
+        assertNotNull(rs);
+
+        ResultSet rsOther = stmt.getResultSet();
+        assertNotNull(rsOther);
     }
 }
