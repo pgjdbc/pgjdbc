@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.123 2011/09/20 14:57:13 davecramer Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.124 2011/09/22 12:53:25 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -25,6 +25,7 @@ import org.postgresql.Driver;
 import org.postgresql.largeobject.*;
 import org.postgresql.core.*;
 import org.postgresql.core.types.*;
+import org.postgresql.util.ByteConverter;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PGobject;
@@ -1238,8 +1239,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
      */
     public void setByte(int parameterIndex, byte x) throws SQLException
     {
-        checkClosed();
-        bindLiteral(parameterIndex, Integer.toString(x), Oid.INT2);
+        setShort(parameterIndex, x);
     }
 
     /*
@@ -1253,6 +1253,12 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public void setShort(int parameterIndex, short x) throws SQLException
     {
         checkClosed();
+        if (connection.binaryTransferSend(Oid.INT2)) {
+            byte[] val = new byte[2];
+            ByteConverter.int2(val, 0, x);
+            bindBytes(parameterIndex, val, Oid.INT2);
+            return;
+        }
         bindLiteral(parameterIndex, Integer.toString(x), Oid.INT2);
     }
 
@@ -1267,6 +1273,12 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public void setInt(int parameterIndex, int x) throws SQLException
     {
         checkClosed();         
+        if (connection.binaryTransferSend(Oid.INT4)) {
+            byte[] val = new byte[4];
+            ByteConverter.int4(val, 0, x);
+            bindBytes(parameterIndex, val, Oid.INT4);
+            return;
+        }
         bindLiteral(parameterIndex, Integer.toString(x), Oid.INT4);
     }
 
@@ -1281,6 +1293,12 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public void setLong(int parameterIndex, long x) throws SQLException
     {
         checkClosed();
+        if (connection.binaryTransferSend(Oid.INT8)) {
+            byte[] val = new byte[8];
+            ByteConverter.int8(val, 0, x);
+            bindBytes(parameterIndex, val, Oid.INT8);
+            return;
+        }
         bindLiteral(parameterIndex, Long.toString(x), Oid.INT8);
     }
 
@@ -1295,6 +1313,12 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public void setFloat(int parameterIndex, float x) throws SQLException
     {
         checkClosed();
+        if (connection.binaryTransferSend(Oid.FLOAT4)) {
+            byte[] val = new byte[4];
+            ByteConverter.float4(val, 0, x);
+            bindBytes(parameterIndex, val, Oid.FLOAT4);
+            return;
+        }
         bindLiteral(parameterIndex, Float.toString(x), Oid.FLOAT8);
     }
 
@@ -1309,6 +1333,12 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public void setDouble(int parameterIndex, double x) throws SQLException
     {
         checkClosed();
+        if (connection.binaryTransferSend(Oid.FLOAT8)) {
+            byte[] val = new byte[8];
+            ByteConverter.float8(val, 0, x);
+            bindBytes(parameterIndex, val, Oid.FLOAT8);
+            return;
+        }
         bindLiteral(parameterIndex, Double.toString(x), Oid.FLOAT8);
     }
 
@@ -2230,6 +2260,13 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if(adjustIndex)
             paramIndex--;
         preparedParameters.setLiteralParameter(paramIndex, s, oid);
+    }
+
+    protected void bindBytes(int paramIndex, byte[] b, int oid) throws SQLException
+    {
+        if(adjustIndex)
+            paramIndex--;
+        preparedParameters.setBinaryParameter(paramIndex, b, oid);
     }
 
     /*
