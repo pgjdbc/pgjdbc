@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.113 2011/09/22 12:53:25 davecramer Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.114 2011/09/26 12:52:30 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -3133,7 +3133,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                     PSQLState.DATA_TYPE_MISMATCH);
         }
         if (val < minVal || val > maxVal) {
-            throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{targetType, Long.valueOf(val)}),
+            throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{targetType, new Long(val)}),
                                     PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
         }
         return val;
