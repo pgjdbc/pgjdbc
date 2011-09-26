@@ -3,7 +3,7 @@
 * Copyright (c) 2008-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3g/AbstractJdbc3gResultSet.java,v 1.2 2011/08/02 13:50:28 davecramer Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3g/AbstractJdbc3gResultSet.java,v 1.3 2011/08/02 14:41:30 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -15,6 +15,7 @@ import java.util.UUID;
 import java.util.Vector;
 
 import org.postgresql.core.*;
+import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLException;
@@ -39,6 +40,11 @@ public abstract class AbstractJdbc3gResultSet extends org.postgresql.jdbc3.Abstr
         }
 
         return uuid;
+    }
+
+    protected Object getUUID(byte[] data) throws SQLException
+    {
+        return new UUID(ByteConverter.int8(data, 0), ByteConverter.int8(data, 8));
     }
 }
 

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.124 2011/09/22 12:53:25 davecramer Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.125 2011/09/23 17:36:19 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -26,6 +26,7 @@ import org.postgresql.largeobject.*;
 import org.postgresql.core.*;
 import org.postgresql.core.types.*;
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.PGBinaryObject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PGobject;
@@ -1689,7 +1690,14 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (oid == Oid.UNSPECIFIED)
             throw new PSQLException(GT.tr("Unknown type {0}.", typename), PSQLState.INVALID_PARAMETER_TYPE);
 
-        setString(parameterIndex, x.getValue(), oid);
+        if ((x instanceof PGBinaryObject) && connection.binaryTransferSend(oid)) {
+            PGBinaryObject binObj = (PGBinaryObject) x;
+            byte[] data = new byte[binObj.lengthInBytes()];
+            binObj.toBytes(data, 0);
+            bindBytes(parameterIndex, data, oid);
+        } else {
+            setString(parameterIndex, x.getValue(), oid);
+        }
     }
 
     /*
@@ -2976,6 +2984,14 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (oid == Oid.UNSPECIFIED)
             throw new PSQLException(GT.tr("Unknown type {0}.", typename), PSQLState.INVALID_PARAMETER_TYPE);
 
+        if (x instanceof AbstractJdbc2Array) {
+            AbstractJdbc2Array arr = (AbstractJdbc2Array) x;
+            if (arr.isBinary()) {
+                bindBytes(i, arr.toBytes(), oid);
+                return;
+            }
+        }
+        
         setString(i, x.toString(), oid);
     }
 

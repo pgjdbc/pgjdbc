@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.112 2011/08/02 13:48:35 davecramer Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2ResultSet.java,v 1.113 2011/09/22 12:53:25 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -166,8 +166,12 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             if (type.equals("unknown"))
                 return getString(columnIndex);
 
-            if (type.equals("uuid"))
+            if (type.equals("uuid")) {
+                if (isBinary(columnIndex)) {
+                    return getUUID(this_row[columnIndex - 1]);
+                }
                 return getUUID(getString(columnIndex));
+            }
 
             // Specialized support for ref cursors is neater.
             if (type.equals("refcursor"))
@@ -1912,8 +1916,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         if (wasNullFlag)
             return null;
 
-        // convert binary fields to their text format
-        if (isBinary(columnIndex)) {
+        // varchar in binary is same as text, other binary fields are converted to their text format
+        if (isBinary(columnIndex) && getSQLType(columnIndex) != Types.VARCHAR) {
             Object obj = internalGetObject(columnIndex, fields[columnIndex - 1]);
             if (obj == null) {
                 return null;
@@ -2657,7 +2661,10 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         if (result != null)
             return result;
 
-        return connection.getObject(getPGType(columnIndex), getString(columnIndex));
+        if (isBinary(columnIndex)) {
+            return connection.getObject(getPGType(columnIndex), null, this_row[columnIndex - 1]);
+        }
+        return connection.getObject(getPGType(columnIndex), getString(columnIndex), null);
     }
 
     public Object getObject(String columnName) throws SQLException
@@ -3157,6 +3164,15 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
      * available in older versions.
      */
     protected Object getUUID(String data) throws SQLException
+    {
+        return data;
+    }
+
+    /**
+     * Newer JVMs will return a java.util.UUID object, but it isn't
+     * available in older versions.
+     */
+    protected Object getUUID(byte[] data) throws SQLException
     {
         return data;
     }

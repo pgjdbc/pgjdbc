@@ -3,20 +3,23 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Array.java,v 1.25 2009/03/03 05:33:04 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Array.java,v 1.26 2011/08/02 13:48:35 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.jdbc2;
 
 import org.postgresql.core.*;
+import org.postgresql.util.ByteConverter;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.GT;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Map;
@@ -90,6 +93,15 @@ public abstract class AbstractJdbc2Array
      */
     private PgArrayList arrayList;
 
+    private byte[] fieldBytes;
+
+    private AbstractJdbc2Array(BaseConnection connection, int oid) throws SQLException {
+        this.connection = connection;
+        this.oid = oid;
+        this.useObjects = connection.haveMinimumCompatibleVersion("8.3");
+        this.haveMinServer82 = connection.haveMinimumServerVersion("8.2");
+    }
+
     /**
      * Create a new Array.
      *
@@ -98,11 +110,20 @@ public abstract class AbstractJdbc2Array
      * @param fieldString the array data in string form
      */
     public AbstractJdbc2Array(BaseConnection connection, int oid, String fieldString) throws SQLException {
-        this.connection = connection;
-        this.oid = oid;
+        this(connection, oid);
         this.fieldString = fieldString;
-        this.useObjects = connection.haveMinimumCompatibleVersion("8.3");
-        this.haveMinServer82 = connection.haveMinimumServerVersion("8.2");
+    }
+
+    /**
+     * Create a new Array.
+     *
+     * @param connection a database connection
+     * @param oid the oid of the array datatype
+     * @param fieldBytes the array data in byte form
+     */
+    public AbstractJdbc2Array(BaseConnection connection, int oid, byte[] fieldBytes) throws SQLException {
+        this(connection, oid);
+        this.fieldBytes = fieldBytes;
     }
 
     public Object getArray() throws SQLException
@@ -135,6 +156,10 @@ public abstract class AbstractJdbc2Array
             throw new PSQLException(GT.tr("The array index is out of range: {0}", new Long(index)), PSQLState.DATA_ERROR);
         }
 
+        if (fieldBytes != null) {
+            return readBinaryArray((int) index, count);
+        }
+
         buildArrayList();
 
         if (count == 0)
@@ -147,6 +172,186 @@ public abstract class AbstractJdbc2Array
         }
 
         return buildArray(arrayList, (int) index, count);
+    }
+
+    private Object readBinaryArray(int index, int count) throws SQLException {
+        int dimensions = ByteConverter.int4(fieldBytes, 0);
+        //int flags = ByteConverter.int4(fieldBytes, 4); // bit 0: 0=no-nulls, 1=has-nulls
+        int elementOid = ByteConverter.int4(fieldBytes, 8);
+        int pos = 12;
+        int[] dims = new int[dimensions];
+        for (int d = 0; d < dimensions; ++d) {
+            dims[d] = ByteConverter.int4(fieldBytes, pos); pos += 4;
+            /*int lbound = ByteConverter.int4(fieldBytes, pos);*/ pos += 4;
+        }
+        if (count > 0 && dimensions > 0) {
+            dims[0] = Math.min(count, dims[0]);
+        }
+        Object arr = java.lang.reflect.Array.newInstance(elementOidToClass(elementOid), dims);
+        try {
+            storeValues((Object[]) arr, elementOid, dims, pos, 0, index);
+        }
+        catch (IOException ioe)
+        {
+            throw new PSQLException(GT.tr("Invalid character data was found.  This is most likely caused by stored data containing characters that are invalid for the character set the database was created in.  The most common example of this is storing 8bit data in a SQL_ASCII database."), PSQLState.DATA_ERROR, ioe);
+        }
+        return arr;
+    }
+
+    private int storeValues(final Object[] arr, int elementOid, final int[] dims, int pos, final int thisDimension, int index) throws SQLException, IOException {
+        if (thisDimension == dims.length - 1) {
+            for (int i = 1; i < index; ++i) {
+                int len = ByteConverter.int4(fieldBytes, pos); pos += 4;
+                if (len != -1) {
+                    pos += len;
+                }
+            }
+            for (int i = 0; i < dims[thisDimension]; ++i) {
+                int len = ByteConverter.int4(fieldBytes, pos); pos += 4;
+                if (len == -1) {
+                    continue;
+                }
+                switch (elementOid) {
+                case Oid.INT2:
+                    arr[i] = ByteConverter.int2(fieldBytes, pos);
+                    break;
+                case Oid.INT4:
+                    arr[i] = ByteConverter.int4(fieldBytes, pos);
+                    break;
+                case Oid.INT8:
+                    arr[i] = ByteConverter.int8(fieldBytes, pos);
+                    break;
+                case Oid.FLOAT4:
+                    arr[i] = ByteConverter.float4(fieldBytes, pos);
+                    break;
+                case Oid.FLOAT8:
+                    arr[i] = ByteConverter.float8(fieldBytes, pos);
+                    break;
+                case Oid.TEXT:
+                case Oid.VARCHAR:
+                    Encoding encoding = connection.getEncoding();
+                    arr[i] = encoding.decode(fieldBytes, pos, len);
+                    break;
+                }
+                pos += len;
+            }
+        } else {
+            for (int i = 0; i < dims[thisDimension]; ++i) {
+                pos = storeValues((Object[]) arr[i], elementOid, dims, pos, thisDimension + 1, 0);
+            }
+        }
+        return pos;
+    }
+
+    
+    private ResultSet readBinaryResultSet(int index, int count) throws SQLException {
+        int dimensions = ByteConverter.int4(fieldBytes, 0);
+        //int flags = ByteConverter.int4(fieldBytes, 4); // bit 0: 0=no-nulls, 1=has-nulls
+        int elementOid = ByteConverter.int4(fieldBytes, 8);
+        int pos = 12;
+        int[] dims = new int[dimensions];
+        for (int d = 0; d < dimensions; ++d) {
+            dims[d] = ByteConverter.int4(fieldBytes, pos); pos += 4;
+            /*int lbound = ByteConverter.int4(fieldBytes, pos); */ pos += 4;
+        }
+        if (count > 0 && dimensions > 0) {
+            dims[0] = Math.min(count, dims[0]);
+        }
+        Vector rows = new Vector();
+        Field[] fields = new Field[2];
+        storeValues(rows, fields, elementOid, dims, pos, 0, index);
+        BaseStatement stat = (BaseStatement) connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        return stat.createDriverResultSet(fields, rows);
+    }
+
+    private int storeValues(Vector rows, Field[] fields, int elementOid, final int[] dims, int pos, final int thisDimension, int index) throws SQLException {
+        if (thisDimension == dims.length - 1) {
+            fields[0] = new Field("INDEX", Oid.INT4);
+            fields[0].setFormat(Field.BINARY_FORMAT);
+            fields[1] = new Field("VALUE", elementOid);
+            fields[1].setFormat(Field.BINARY_FORMAT);
+            for (int i = 1; i < index; ++i) {
+                int len = ByteConverter.int4(fieldBytes, pos); pos += 4;
+                if (len != -1) {
+                    pos += len;
+                }
+            }
+            for (int i = 0; i < dims[thisDimension]; ++i) {
+                byte[][] rowData = new byte[2][];
+                rowData[0] = new byte[4];
+                ByteConverter.int4(rowData[0], 0, i + index);
+                rows.add(rowData);
+                int len = ByteConverter.int4(fieldBytes, pos); pos += 4;
+                if (len == -1) {
+                    continue;
+                }
+                rowData[1] = new byte[len];
+                System.arraycopy(fieldBytes, pos, rowData[1], 0, rowData[1].length);
+                pos += len;
+            }
+        } else {
+            fields[0] = new Field("INDEX", Oid.INT4);
+            fields[0].setFormat(Field.BINARY_FORMAT);
+            fields[1] = new Field("VALUE", oid);
+            fields[1].setFormat(Field.BINARY_FORMAT);
+            int nextDimension = thisDimension + 1;
+            int dimensionsLeft = dims.length - nextDimension;
+            for (int i = 1; i < index; ++i) {
+                pos = calcRemainingDataLength(dims, pos, elementOid, nextDimension);
+            }
+            for (int i = 0; i < dims[thisDimension]; ++i) {
+                byte[][] rowData = new byte[2][];
+                rowData[0] = new byte[4];
+                ByteConverter.int4(rowData[0], 0, i + index);
+                rows.add(rowData);
+                int dataEndPos = calcRemainingDataLength(dims, pos, elementOid, nextDimension);
+                int dataLength = dataEndPos - pos;
+                rowData[1] = new byte[12 + 8 * dimensionsLeft + dataLength];
+                ByteConverter.int4(rowData[1], 0, dimensionsLeft);
+                System.arraycopy(fieldBytes, 4, rowData[1], 4, 8);
+                System.arraycopy(fieldBytes, 12 + nextDimension * 8, rowData[1], 12, dimensionsLeft * 8);
+                System.arraycopy(fieldBytes, pos, rowData[1], 12 + dimensionsLeft * 8, dataLength);
+                pos = dataEndPos;
+            }
+        }
+        return pos;
+    }
+
+    private int calcRemainingDataLength(int[] dims, int pos, int elementOid, int thisDimension) {
+        if (thisDimension == dims.length - 1) {
+            for (int i = 0; i < dims[thisDimension]; ++i) {
+                int len = ByteConverter.int4(fieldBytes, pos); pos += 4;
+                if (len == -1) {
+                    continue;
+                }
+                pos += len;
+            }
+        } else {
+            pos = calcRemainingDataLength(dims, elementOid, pos, thisDimension + 1);
+        }
+        return pos;
+    }
+
+    private Class elementOidToClass(int oid)
+            throws SQLFeatureNotSupportedException {
+        switch (oid) {
+        case Oid.INT2:
+            return Short.class;
+        case Oid.INT4:
+            return Integer.class;
+        case Oid.INT8:
+            return Long.class;
+        case Oid.FLOAT4:
+            return Float.class;
+        case Oid.FLOAT8:
+            return Double.class;
+        case Oid.TEXT:
+        case Oid.VARCHAR:
+            return String.class;
+        default:
+            throw org.postgresql.Driver.notImplemented(this.getClass(),
+                    "readBinaryArray(data,oid)");
+        }
     }
 
     /**
@@ -583,6 +788,10 @@ ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects
             throw new PSQLException(GT.tr("The array index is out of range: {0}", new Long(index)), PSQLState.DATA_ERROR);
         }
 
+        if (fieldBytes != null) {
+            return readBinaryResultSet((int) index, count);
+        }
+
         buildArrayList();
 
         if (count == 0)
@@ -690,4 +899,11 @@ ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects
         b.append('"');
     }
 
+    public boolean isBinary() {
+        return fieldBytes != null;
+    }
+
+    public byte[] toBytes() {
+        return fieldBytes;
+    }
 }

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.56 2011/08/02 13:48:35 davecramer Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Connection.java,v 1.57 2011/09/22 12:53:24 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -18,6 +18,7 @@ import org.postgresql.Driver;
 import org.postgresql.PGNotification;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.largeobject.LargeObjectManager;
+import org.postgresql.util.PGBinaryObject;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
@@ -153,6 +154,17 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
             binaryOids.set(Oid.TIMETZ);
             binaryOids.set(Oid.TIMESTAMP);
             binaryOids.set(Oid.TIMESTAMPTZ);
+            binaryOids.set(Oid.INT2_ARRAY);
+            binaryOids.set(Oid.INT4_ARRAY);
+            binaryOids.set(Oid.INT8_ARRAY);
+            binaryOids.set(Oid.FLOAT4_ARRAY);
+            binaryOids.set(Oid.FLOAT8_ARRAY);
+            binaryOids.set(Oid.FLOAT8_ARRAY);
+            binaryOids.set(Oid.VARCHAR_ARRAY);
+            binaryOids.set(Oid.TEXT_ARRAY);
+            binaryOids.set(Oid.POINT);
+            binaryOids.set(Oid.BOX);
+            binaryOids.set(Oid.UUID);
         }        
         // the pre 8.0 servers do not disclose their internal encoding for
         // time fields so do not try to use them.
@@ -162,6 +174,20 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
             binaryOids.clear(Oid.TIMESTAMP);
             binaryOids.clear(Oid.TIMESTAMPTZ);
         }
+        // driver supports only null-compatible arrays
+        if (!haveMinimumCompatibleVersion("8.3")) {
+            binaryOids.clear(Oid.INT2_ARRAY);
+            binaryOids.clear(Oid.INT4_ARRAY);
+            binaryOids.clear(Oid.INT8_ARRAY);
+            binaryOids.clear(Oid.FLOAT4_ARRAY);
+            binaryOids.clear(Oid.FLOAT8_ARRAY);
+            binaryOids.clear(Oid.FLOAT8_ARRAY);
+            binaryOids.clear(Oid.VARCHAR_ARRAY);
+            binaryOids.clear(Oid.TEXT_ARRAY);
+        }
+
+        binaryOids.or(getOidBitSet(info.getProperty("binaryTransferEnable", "")));
+        binaryOids.andNot(getOidBitSet(info.getProperty("binaryTransferDisable", "")));
 
         // split for receive and send for better control
         useBinarySendForOids = new BitSet();
@@ -231,6 +257,16 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
             openStackTrace = new Throwable("Connection was created at this point:");
             enableDriverManagerLogging();
         }
+    }
+
+    private BitSet getOidBitSet(String oidList) throws PSQLException {
+        BitSet oids = new BitSet();
+        StringTokenizer tokenizer = new StringTokenizer(oidList, ",");
+        while (tokenizer.hasMoreTokens()) {
+            String oid = tokenizer.nextToken();
+            oids.set(Oid.valueOf(oid));
+        }
+        return oids;
     }
 
     private String oidsToString(BitSet oids) {
@@ -476,7 +512,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
      * @return PGobject for this type, and set to value
      * @exception SQLException if value is not correct for this type
      */
-    public Object getObject(String type, String value) throws SQLException
+    public Object getObject(String type, String value, byte[] byteValue) throws SQLException
     {
         if (typemap != null)
         {
@@ -507,7 +543,12 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
             {
                 obj = (PGobject) (klass.newInstance());
                 obj.setType(type);
-                obj.setValue(value);
+                if (byteValue != null && obj instanceof PGBinaryObject) {
+                    PGBinaryObject binObj = (PGBinaryObject) obj;
+                    binObj.setByteValue(byteValue, 0);
+                } else {
+                    obj.setValue(value);
+                }
             }
             else
             {

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.23 2011/08/02 13:42:25 davecramer Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/BaseDataSource.java,v 1.24 2011/09/22 12:53:24 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -52,6 +52,8 @@ public abstract class BaseDataSource implements Referenceable
     private int prepareThreshold = 5;
     private int unknownLength = Integer.MAX_VALUE;
     private boolean binaryTransfer = true;
+    private String binaryTransferEnable = "";
+    private String binaryTransferDisable = "";
     private int loginTimeout = 0; // in seconds
     private int socketTimeout = 0; // in seconds
     private boolean ssl = false;
@@ -392,7 +394,6 @@ public abstract class BaseDataSource implements Referenceable
 
     /**
      * Sets protocol transfer mode.
-     * See {@link org.postgresql.PGConnection#setBinaryTransfer(boolean)} for details.
      *
      * @param enabled True if the binary transfer mode is used for supported field types,
      * false if text based transfer is used.
@@ -410,6 +411,47 @@ public abstract class BaseDataSource implements Referenceable
     public boolean getBinaryTransfer()
     {
         return binaryTransfer;
+    }
+
+    /**
+     * Add types to the override set of {@link org.postgresql.core.Oid} values used for binary transfer.
+     *
+     * @param oidList The comma separated list of Oids. Either textual or numeric value. 
+     */
+    public void setBinaryTransferEnable(String oidList)
+    {
+        this.binaryTransferEnable = oidList;
+    }
+
+    /**
+     * Gets override set of Oid values that have binary transfer enabled.  
+     *
+     * @see #setBinaryTransferEnable(String)
+     */
+    public String getBinaryTransferEnable()
+    {
+        return binaryTransferEnable;
+    }
+
+    /**
+     * Add types to the override set of {@link org.postgresql.core.Oid} values that will not be used for binary transfer.
+     * This overrides any values in the driver detault set or values set with {@link #setBinaryTransferEnable(String)}.
+     *
+     * @param oidList The comma separated list of Oids. Either textual or numeric value. 
+     */
+    public void setBinaryTransferDisable(String oidList)
+    {
+        this.binaryTransferDisable = oidList;
+    }
+
+    /**
+     * Gets override set of Oid values that have binary transfer disabled.  
+     *
+     * @see #setBinaryTransferDisable(String)
+     */
+    public String getBinaryTransferDisable()
+    {
+        return binaryTransferDisable;
     }
 
     /**
@@ -522,6 +564,8 @@ public abstract class BaseDataSource implements Referenceable
         out.writeInt(protocolVersion);
         out.writeObject(applicationName);
         out.writeBoolean(binaryTransfer);
+        out.writeObject(binaryTransferEnable);
+        out.writeObject(binaryTransferDisable);
     }
 
     protected void readBaseObject(ObjectInputStream in) throws IOException, ClassNotFoundException
@@ -543,6 +587,8 @@ public abstract class BaseDataSource implements Referenceable
         protocolVersion = in.readInt();
         applicationName = (String)in.readObject();
         binaryTransfer = in.readBoolean();
+        binaryTransferEnable = (String)in.readObject();
+        binaryTransferDisable = (String)in.readObject();
     }
 
     public void initializeFrom(BaseDataSource source) throws IOException, ClassNotFoundException {

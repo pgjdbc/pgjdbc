@@ -3,13 +3,15 @@
 * Copyright (c) 2003-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/geometric/PGpoint.java,v 1.16 2008/01/08 06:56:28 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/geometric/PGpoint.java,v 1.17 2011/08/02 13:42:25 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.geometric;
 
+import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
+import org.postgresql.util.PGBinaryObject;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
 import org.postgresql.util.PSQLException;
@@ -25,7 +27,7 @@ import java.sql.SQLException;
  * This implements a version of java.awt.Point, except it uses double
  * to represent the coordinates.
  */
-public class PGpoint extends PGobject implements Serializable, Cloneable
+public class PGpoint extends PGobject implements PGBinaryObject, Serializable, Cloneable
 {
     /**
      * The X coordinate of the point
@@ -85,6 +87,14 @@ public class PGpoint extends PGobject implements Serializable, Cloneable
             throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", new Object[]{type,s}), PSQLState.DATA_TYPE_MISMATCH, e);
         }
     }
+    
+    /**
+     * @param b Definition of this point in PostgreSQL's binary syntax
+     */
+    public void setByteValue(byte[] b, int offset) {
+        x = ByteConverter.float8(b, offset);
+        y = ByteConverter.float8(b, offset + 8);
+    }
 
     /**
      * @param obj Object to compare with
@@ -113,6 +123,18 @@ public class PGpoint extends PGobject implements Serializable, Cloneable
     public String getValue()
     {
         return "(" + x + "," + y + ")";
+    }
+
+    public int lengthInBytes() {
+        return 16;
+    }
+
+    /**
+     * @return the PGpoint in the binary syntax expected by org.postgresql
+     */
+    public void toBytes(byte[] b, int offset) {
+        ByteConverter.float8(b, offset, x);
+        ByteConverter.float8(b, offset + 8, y);
     }
 
     /**

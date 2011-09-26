@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/Jdbc4ResultSet.java,v 1.5 2008/01/08 06:56:30 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/Jdbc4ResultSet.java,v 1.6 2011/08/02 13:49:23 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -56,6 +56,9 @@ public class Jdbc4ResultSet extends AbstractJdbc4ResultSet implements java.sql.R
     {
         checkResultSet(i);
         int oid = fields[i - 1].getOID();
+        if (isBinary(i)) {
+            return new Jdbc4Array(connection, oid, this_row[i - 1]);
+        }
         String value = getFixedString(i);
         return new Jdbc4Array(connection, oid, value);
     }

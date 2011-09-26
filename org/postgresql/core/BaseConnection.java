@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/BaseConnection.java,v 1.25 2011/08/02 13:40:12 davecramer Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/BaseConnection.java,v 1.26 2011/09/22 12:53:23 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -65,10 +65,11 @@ public interface BaseConnection extends PGConnection, Connection
      *
      * @param type the backend typename
      * @param value the type-specific string representation of the value
+     * @param byteValue the type-specific binary representation of the value
      * @return an appropriate object; never null.
      * @throws SQLException if something goes wrong
      */
-    public Object getObject(String type, String value) throws SQLException;
+    public Object getObject(String type, String value, byte[] byteValue) throws SQLException;
 
     public Encoding getEncoding() throws SQLException;
 

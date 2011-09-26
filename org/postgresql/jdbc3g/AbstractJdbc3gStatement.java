@@ -3,7 +3,7 @@
 * Copyright (c) 2008-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3g/AbstractJdbc3gStatement.java,v 1.3 2011/08/02 13:50:28 davecramer Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3g/AbstractJdbc3gStatement.java,v 1.4 2011/08/02 14:41:30 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -15,6 +15,7 @@ import java.util.UUID;
 
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc3.AbstractJdbc3Connection;
+import org.postgresql.util.ByteConverter;
 
 public abstract class AbstractJdbc3gStatement extends org.postgresql.jdbc3.AbstractJdbc3Statement
 {
@@ -32,7 +33,7 @@ public abstract class AbstractJdbc3gStatement extends org.postgresql.jdbc3.Abstr
     {
         if (x instanceof UUID && connection.haveMinimumServerVersion("8.3"))
         {
-            setString(parameterIndex, x.toString(), Oid.UUID);
+            setUuid(parameterIndex, (UUID)x);
         } else {
             super.setObject(parameterIndex, x);
         }
@@ -42,10 +43,20 @@ public abstract class AbstractJdbc3gStatement extends org.postgresql.jdbc3.Abstr
     {
         if (targetSqlType == Types.OTHER && x instanceof UUID && connection.haveMinimumServerVersion("8.3"))
         {
-            setString(parameterIndex, x.toString(), Oid.UUID);
+            setUuid(parameterIndex, (UUID) x);
         } else {
             super.setObject(parameterIndex, x, targetSqlType, scale);
         }
     }
-}
 
+    private void setUuid(int parameterIndex, UUID uuid) throws SQLException {
+        if (connection.binaryTransferSend(Oid.UUID)) {
+            byte[] val = new byte[16];
+            ByteConverter.int8(val, 0, uuid.getMostSignificantBits());
+            ByteConverter.int8(val, 8, uuid.getLeastSignificantBits());
+            bindBytes(parameterIndex, val, Oid.UUID);
+        } else {
+            bindLiteral(parameterIndex, uuid.toString(), Oid.UUID);
+        }
+    }
+}

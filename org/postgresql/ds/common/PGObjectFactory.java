@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/PGObjectFactory.java,v 1.7 2011/08/02 13:42:25 davecramer Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/PGObjectFactory.java,v 1.8 2011/09/22 12:53:24 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -117,6 +117,14 @@ public class PGObjectFactory implements ObjectFactory
         String binaryTransfer = getProperty(ref, "binaryTransfer");
         if (binaryTransfer != null)
             ds.setBinaryTransfer(Boolean.parseBoolean(binaryTransfer));
+
+        String binaryTransferEnable = getProperty(ref, "binaryTransferEnable");
+        if (binaryTransferEnable != null)
+            ds.setBinaryTransferEnable(binaryTransferEnable);
+
+        String binaryTransferDisable = getProperty(ref, "binaryTransferDisable");
+        if (binaryTransferDisable != null)
+            ds.setBinaryTransferDisable(binaryTransferDisable);
 
         return ds;
     }

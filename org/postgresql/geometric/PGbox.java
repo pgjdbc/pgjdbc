@@ -3,13 +3,14 @@
 * Copyright (c) 2003-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/geometric/PGbox.java,v 1.15 2008/01/08 06:56:28 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/geometric/PGbox.java,v 1.16 2011/08/02 13:42:25 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.geometric;
 
 import org.postgresql.util.GT;
+import org.postgresql.util.PGBinaryObject;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
 import org.postgresql.util.PSQLException;
@@ -21,7 +22,7 @@ import java.sql.SQLException;
 /**
  *     This represents the box datatype within org.postgresql.
  */
-public class PGbox extends PGobject implements Serializable, Cloneable
+public class PGbox extends PGobject implements PGBinaryObject, Serializable, Cloneable
 {
     /**
      * These are the two points.
@@ -86,6 +87,16 @@ public class PGbox extends PGobject implements Serializable, Cloneable
         point[0] = new PGpoint(t.getToken(0));
         point[1] = new PGpoint(t.getToken(1));
     }
+    
+    /**
+     * @param b Definition of this point in PostgreSQL's binary syntax
+     */
+    public void setByteValue(byte[] b, int offset) {
+        point[0] = new PGpoint();
+        point[0].setByteValue(b, offset);
+        point[1] = new PGpoint();
+        point[1].setByteValue(b, offset + point[0].lengthInBytes());
+    }
 
     /**
      * @param obj Object to compare with
@@ -149,5 +160,14 @@ public class PGbox extends PGobject implements Serializable, Cloneable
     public String getValue()
     {
         return point[0].toString() + "," + point[1].toString();
+    }
+
+    public int lengthInBytes() {
+        return point[0].lengthInBytes() + point[1].lengthInBytes();
+    }
+
+    public void toBytes(byte[] bytes, int offset) {
+        point[0].toBytes(bytes, offset);
+        point[1].toBytes(bytes, offset + point[0].lengthInBytes());
     }
 }

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/Jdbc4Array.java,v 1.4 2008/01/08 06:56:30 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/Jdbc4Array.java,v 1.5 2011/08/02 13:49:23 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -19,6 +19,11 @@ public class Jdbc4Array extends org.postgresql.jdbc2.AbstractJdbc2Array implemen
     public Jdbc4Array(BaseConnection conn, int oid, String fieldString) throws SQLException
     {
         super(conn, oid, fieldString);
+    }
+
+    public Jdbc4Array(BaseConnection conn, int oid, byte[] fieldBytes) throws SQLException
+    {
+        super(conn, oid, fieldBytes);
     }
 
     public Object getArray(Map < String, Class < ? >> map) throws SQLException

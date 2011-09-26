@@ -3,13 +3,17 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/Oid.java,v 1.16 2011/08/02 13:40:12 davecramer Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/Oid.java,v 1.17 2011/09/22 12:53:23 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.core;
 
 import java.lang.reflect.Field;
+
+import org.postgresql.util.GT;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 /**
  * Provides constants for well-known backend OIDs for the types we commonly
@@ -68,6 +72,8 @@ public class Oid {
     public static final int UUID_ARRAY = 2951;
     public static final int XML = 142;
     public static final int XML_ARRAY = 143;
+    public static final int POINT = 600;
+    public static final int BOX = 603;
 
     /**
      * Returns the name of the oid as string.
@@ -87,6 +93,25 @@ public class Oid {
         } catch (IllegalAccessException e) {
             // never happens
         }
-        return "<unknown>";
+        return "<unknown:" + oid + ">";
+    }
+
+    public static int valueOf(String oid) throws PSQLException {
+        try {
+            return Integer.parseInt(oid);
+        } catch (NumberFormatException ex) {
+        }
+        try {
+            oid = oid.toUpperCase();
+            Field[] fields = Oid.class.getFields();
+            for (int i = 0; i < fields.length; ++i) {
+                if (fields[i].getName().toUpperCase().equals(oid)) {
+                    return fields[i].getInt(null);
+                }
+            }
+        } catch (IllegalAccessException e) {
+            // never happens
+        }
+        throw new PSQLException(GT.tr("oid type {0} not known and not a number", oid), PSQLState.INVALID_PARAMETER_VALUE);
     }
 }
