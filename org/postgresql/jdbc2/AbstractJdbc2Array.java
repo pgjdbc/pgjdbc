@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Array.java,v 1.26 2011/08/02 13:48:35 davecramer Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Array.java,v 1.27 2011/09/26 12:52:30 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Map;
@@ -213,19 +212,19 @@ public abstract class AbstractJdbc2Array
                 }
                 switch (elementOid) {
                 case Oid.INT2:
-                    arr[i] = ByteConverter.int2(fieldBytes, pos);
+                    arr[i] = new Short(ByteConverter.int2(fieldBytes, pos));
                     break;
                 case Oid.INT4:
-                    arr[i] = ByteConverter.int4(fieldBytes, pos);
+                    arr[i] = new Integer(ByteConverter.int4(fieldBytes, pos));
                     break;
                 case Oid.INT8:
-                    arr[i] = ByteConverter.int8(fieldBytes, pos);
+                    arr[i] = new Long(ByteConverter.int8(fieldBytes, pos));
                     break;
                 case Oid.FLOAT4:
-                    arr[i] = ByteConverter.float4(fieldBytes, pos);
+                    arr[i] = new Float(ByteConverter.float4(fieldBytes, pos));
                     break;
                 case Oid.FLOAT8:
-                    arr[i] = ByteConverter.float8(fieldBytes, pos);
+                    arr[i] = new Double(ByteConverter.float8(fieldBytes, pos));
                     break;
                 case Oid.TEXT:
                 case Oid.VARCHAR:
@@ -333,7 +332,7 @@ public abstract class AbstractJdbc2Array
     }
 
     private Class elementOidToClass(int oid)
-            throws SQLFeatureNotSupportedException {
+            throws SQLException {
         switch (oid) {
         case Oid.INT2:
             return Short.class;
