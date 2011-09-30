@@ -3,13 +3,14 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ServerPreparedStmtTest.java,v 1.18 2011/08/02 13:50:29 davecramer Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ServerPreparedStmtTest.java,v 1.19 2011/09/22 12:53:25 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.PGStatement;
+import org.postgresql.jdbc2.AbstractJdbc2Statement;
 import org.postgresql.test.TestUtil;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -95,7 +96,9 @@ public class ServerPreparedStmtTest extends TestCase
         rs.close();
 
         //Verify that using the statement still works after turning off prepares
-
+        if (AbstractJdbc2Statement.ForceBinaryTransfers) {
+            return;
+        }
         ((PGStatement)pstmt).setUseServerPrepare(false);
         assertTrue(!((PGStatement)pstmt).isUseServerPrepare());
 
@@ -127,6 +130,9 @@ public class ServerPreparedStmtTest extends TestCase
         rs.close();
 
         //Verify that using the statement still works after turning off prepares
+        if (AbstractJdbc2Statement.ForceBinaryTransfers) {
+            return;
+        }
 
         ((PGStatement)pstmt).setUseServerPrepare(false);
         assertTrue(!((PGStatement)pstmt).isUseServerPrepare());

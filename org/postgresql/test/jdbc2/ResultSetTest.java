@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ResultSetTest.java,v 1.30 2008/02/19 06:12:24 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ResultSetTest.java,v 1.31 2011/08/02 13:50:29 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -171,7 +171,8 @@ public class ResultSetTest extends TestCase
         //it should apply only to binary and char/varchar columns
         rs.next();
         assertEquals("12345", rs.getString(1));
-        assertEquals("12345", new String(rs.getBytes(1)));
+        // getBytes returns 5 bytes for txt transfer, 4 for bin transfer
+        assertTrue(rs.getBytes(1).length >= 4);
 
         //max should apply to the following since the column is
         //a varchar column

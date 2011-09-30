@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/V2Query.java,v 1.8 2008/01/08 06:56:27 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/V2Query.java,v 1.9 2011/08/02 13:40:12 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -102,6 +102,10 @@ class V2Query implements Query {
 
     String[] getFragments() {
         return fragments;
+    }
+
+    public boolean isStatementDescribed() {
+        return false;
     }
 
     private static final ParameterList NO_PARAMETERS = new SimpleParameterList(0, false);

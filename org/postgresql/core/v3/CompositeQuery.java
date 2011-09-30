@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/CompositeQuery.java,v 1.5 2008/01/08 06:56:27 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/CompositeQuery.java,v 1.6 2011/08/02 13:40:12 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -54,6 +54,14 @@ class CompositeQuery implements V3Query {
 
     public SimpleQuery[] getSubqueries() {
         return subqueries;
+    }
+
+    public boolean isStatementDescribed() {
+        for (int i = 0; i < subqueries.length; ++i)
+            if (!subqueries[i].isStatementDescribed()) {
+                return false;
+            }
+        return true;
     }
 
     private final SimpleQuery[] subqueries;

@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleQuery.java,v 1.15 2011/08/02 13:40:12 davecramer Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleQuery.java,v 1.16 2011/09/22 12:53:24 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -149,7 +149,7 @@ class SimpleQuery implements V3Query {
 
     // Have we sent a Describe Statement message for this query yet?
     // Note that we might not have need to, so this may always be false.
-    boolean isStatementDescribed() {
+    public boolean isStatementDescribed() {
         return statementDescribed;
     }
     void setStatementDescribed(boolean statementDescribed) {

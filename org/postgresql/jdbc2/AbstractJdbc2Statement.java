@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.125 2011/09/23 17:36:19 davecramer Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Statement.java,v 1.126 2011/09/26 12:52:30 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -2588,6 +2588,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
     public void setPrepareThreshold(int newThreshold) throws SQLException {
         checkClosed();
+        
+        if (ForceBinaryTransfers)
+            newThreshold = 1;
 
         if (newThreshold < 0)
             newThreshold = 0;
@@ -2825,6 +2828,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         batchParameters.clear();
 
         int flags;
+        boolean preDescribe = false;
 
         if (wantsGeneratedKeysAlways) {
             flags = QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS | QueryExecutor.QUERY_DISALLOW_BATCHING;
@@ -2837,11 +2841,24 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         {
             m_useCount += queries.length;
         }
-        if (m_prepareThreshold == 0 || m_useCount < m_prepareThreshold)
+        if (m_prepareThreshold == 0 || m_useCount < m_prepareThreshold) {
             flags |= QueryExecutor.QUERY_ONESHOT;
+        } else {
+            preDescribe = wantsGeneratedKeysAlways && !queries[0].isStatementDescribed();
+        }
 
         if (connection.getAutoCommit())
             flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
+
+        if (preDescribe || ForceBinaryTransfers) {
+            int flags2 = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
+            StatementResultHandler handler2 = new StatementResultHandler();
+            connection.getQueryExecutor().execute(queries[0], parameterLists[0], handler2, 0, 0, flags2);
+            ResultWrapper result2 = handler2.getResults();
+            if (result2 != null) {
+                result2.getResultSet().close();
+            }
+        }
 
         result = null;
         

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Array.java,v 1.27 2011/09/26 12:52:30 davecramer Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Array.java,v 1.28 2011/09/27 11:15:23 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -183,7 +183,10 @@ public abstract class AbstractJdbc2Array
             dims[d] = ByteConverter.int4(fieldBytes, pos); pos += 4;
             /*int lbound = ByteConverter.int4(fieldBytes, pos);*/ pos += 4;
         }
-        if (count > 0 && dimensions > 0) {
+        if (dimensions == 0) {
+            return java.lang.reflect.Array.newInstance(elementOidToClass(elementOid), 0);
+        }
+        if (count > 0) {
             dims[0] = Math.min(count, dims[0]);
         }
         Object arr = java.lang.reflect.Array.newInstance(elementOidToClass(elementOid), dims);
@@ -258,7 +261,9 @@ public abstract class AbstractJdbc2Array
         }
         Vector rows = new Vector();
         Field[] fields = new Field[2];
-        storeValues(rows, fields, elementOid, dims, pos, 0, index);
+        if (dimensions > 0) {
+            storeValues(rows, fields, elementOid, dims, pos, 0, index);
+        }
         BaseStatement stat = (BaseStatement) connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
         return stat.createDriverResultSet(fields, rows);
     }

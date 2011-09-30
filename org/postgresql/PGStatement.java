@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/PGStatement.java,v 1.15 2008/01/08 06:56:26 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/PGStatement.java,v 1.16 2011/08/02 13:40:12 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -26,6 +26,8 @@ public interface PGStatement
     // -infinity / infinity representation in Java
     public static final long DATE_POSITIVE_INFINITY = 9223372036825200000l;
     public static final long DATE_NEGATIVE_INFINITY = -9223372036832400000l;
+    public static final long DATE_POSITIVE_SMALLER_INFINITY = 185543533774800000l;
+    public static final long DATE_NEGATIVE_SMALLER_INFINITY = -185543533774800000l;
 
 
     /**

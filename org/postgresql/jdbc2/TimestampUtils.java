@@ -3,7 +3,7 @@
 * Copyright (c) 2003-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.24 2011/08/02 13:48:35 davecramer Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/TimestampUtils.java,v 1.25 2011/09/22 12:53:25 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -657,6 +657,13 @@ public class TimestampUtils {
         long secs = toJavaSecs(days * 86400L);
         long millis = secs * 1000L;
         int offset = tz.getOffset(millis);
+        if (millis <= PGStatement.DATE_NEGATIVE_SMALLER_INFINITY) {
+            millis = PGStatement.DATE_NEGATIVE_INFINITY;
+            offset = 0;
+        } else if (millis >= PGStatement.DATE_POSITIVE_SMALLER_INFINITY) {
+            millis = PGStatement.DATE_POSITIVE_INFINITY;
+            offset = 0;
+        } 
         return new Date(millis - offset);
     }
 
