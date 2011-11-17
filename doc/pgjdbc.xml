@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!--
   Copyright (c) 2004-2011, PostgreSQL Global Development Group
-  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.42 2011/08/02 13:40:12 davecramer Exp $
+  $PostgreSQL: pgjdbc/doc/pgjdbc.xml,v 1.43 2011/09/22 12:53:23 davecramer Exp $
 -->
 
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN" "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">
@@ -423,6 +423,113 @@ Connection conn = DriverManager.getConnection(url);
          compatibility with future versions, the value "true" is
          preferred.  For more information see <xref linkend="ssl" />.
         </para>
+        <para>Alternatively <literal>sslmode</literal> can be used.</para>
+       </listitem>
+      </varlistentry>
+
+
+
+      <varlistentry>
+       <term><varname>sslmode</varname></term>
+       <listitem>
+        <para>
+         Parameter governing the use of <acronym>SSL</acronym>. Similar to the
+         libpq parameter, the allowed values are disable, require, verify-ca,
+         verify-full. (allow and require are not implemented.)
+         The use of parameter <literal>ssl</literal> is discouraged, as sslmode
+         can cover all the possibilities, however, if sslmode is not
+         set, the driver's behaviour is backward compatible.
+        </para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
+       <term><varname>sslcert</varname></term>
+       <listitem>
+        <para>
+         The location of the client's <acronym>SSL</acronym> certificate.
+         The file format is compatible with libpq. If missing, the default
+         locations are looked up (in $HOME/.postgresql under Linux).
+         In some cases it is desirable
+         to supress loading the default client certificate (and any other one),
+         in this case specify sslcert with an empty argument. 
+        </para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
+       <term><varname>sslrootcert</varname></term>
+       <listitem>
+        <para>
+         The location of the root certificate for authenticating the server.
+         The file format is compatible with libpq. If missing, the default
+         locations are looked up (in $HOME/.postgresql under Linux).
+        </para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
+       <term><varname>sslkey</varname></term>
+       <listitem>
+        <para>
+         The location of the client's <acronym>SSL</acronym> key.
+         The file must be in PKCS#8 format.
+          The conversion can be made
+         by the following openssl command:
+<programlisting>
+openssl pkcs8 -topk8 -in client.key -out client.pk8 -outform DER -v1 PBE-SHA1-3DES
+</programlisting>
+         the ciphers, recognized by java are PBE-MD5-DES, PBE-SHA1-3DES,
+         PBE-SHA1-RC2-40,
+         or with the -nocrypt switch, it can be unencrypted.
+         If missing, the default
+         locations are looked up (in $HOME/.postgresql under Linux).
+         The default filename for the key is postgresql.pk8
+         instead of postgresql.key to allow simultaneous use of the jdbc driver
+         and other libpq compatible applications.
+        </para>
+       </listitem>
+      </varlistentry>
+      
+      <varlistentry>
+       <term><varname>sslpassword</varname></term>
+       <listitem>
+        <para>
+         The password for the client's ssl key (different from the database password). 
+        </para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
+       <term><varname>sslpasswordcallback</varname></term>
+       <listitem>
+        <para>
+         A class, implementing
+         <classname>javax.security.auth.callback.CallbackHandler</classname>
+         that can handle PassworCallback for the ssl password. If set,
+		 sslpassword is ignored.
+		 The supplied class must have either a constructor with a Properties
+		 argument where
+		 the connection info properties are given, or a zero argument constructor
+		 If neither sslpassword nor sslpasswordcallback is set, and the key is
+		 protected,
+		 the user is prompted at the console for a password
+		 </para>
+       </listitem>
+      </varlistentry>
+      
+      <varlistentry>
+       <term><varname>sslhostnameverifier</varname></term>
+       <listitem>
+        <para>
+         A class, <classname>implementing javax.net.ssl.HostnameVerifier</classname>
+		 that can verify the server. The supplied class must have either a
+		 constructor
+		 with a Properties argument where the connection info properties are given,
+		 or a zero argument constructor. If set the server hostname is verified
+		 irrespective
+		 of the value of sslmode.
+        </para>
        </listitem>
       </varlistentry>
 
@@ -747,7 +854,8 @@ jurka=#
     <title>Configuring the Client</title>
 
     <para>
-     Unlike <application>psql</application> and other
+     If <acronym>SSL</acronym> is initiated by setting the <literal>ssl</literal>
+     connection parameter, then unlike <application>psql</application> and other
      <application>libpq</application> based programs the
      <acronym>JDBC</acronym> driver does server certificate
      validation by default.  This means that when establishing a
@@ -864,8 +972,18 @@ java -Djavax.net.ssl.trustStore=mystore -Djavax.net.ssl.trustStorePassword=mypas
      <classname>javax.net.ssl.SSLSocketFactory</classname> and be available
      to the driver's classloader.  This class
      must have a zero argument constructor or a single argument
-     constructor taking a <type>String</type> argument.  This argument
+     constructor taking a <type>Properies</type> argument where the connection
+     properties are passed or a single argument constructor taking a
+     <type>String</type> argument.  This argument
      may optionally be supplied by <literal>sslfactoryarg</literal>.
+    </para>
+    
+    <para>
+     The sslfactory must not initiate a handshake in it's
+     createSocket method, because a second startHandsake invocation
+     in the <acronym>JDBC</acronym> driver will break the connection.
+     If an <literal>sslhostnameverifier</literal> class is supplied,
+     it is still responsible for handling the hostname verification. 
     </para>
     
     <para>
