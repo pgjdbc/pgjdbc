@@ -8,7 +8,7 @@
 
   This file now requires Ant 1.4.1.  2002-04-18
 
-  $PostgreSQL: pgjdbc/build.xml,v 1.89 2011/08/02 13:40:11 davecramer Exp $
+  $PostgreSQL: pgjdbc/build.xml,v 1.90 2011/09/22 12:53:20 davecramer Exp $
 
 -->
 
@@ -371,6 +371,7 @@
   <property name="protocolVersion" value="0" />
   <property name="binarytransfer" value="true" />
   <property name="forcebinary" value="true" />
+  <property name="ssltest.properties" value="ssltest.properties" />
 
   <!-- The tests now build to a separate directory and jarfile from the
        driver build, to ensure we're really testing against the jar we just
@@ -415,6 +416,7 @@
       <sysproperty key="protocolVersion" value="${protocolVersion}" />
       <sysproperty key="binaryTransfer" value="${binarytransfer}" />
       <sysproperty key="org.postgresql.forcebinary" value="${forcebinary}" />
+      <sysproperty key="ssltest.properties" value="${ssltest.properties}" />
 
       <classpath>
         <pathelement location="${jardir}/postgresql.jar" />
@@ -426,6 +428,7 @@
       <test name="org.postgresql.test.jdbc3.Jdbc3TestSuite" outfile="${testResultsDir}/jdbc3"/>
       <test name="org.postgresql.test.xa.XATestSuite" outfile="${testResultsDir}/xa"/>
       <test name="org.postgresql.test.jdbc4.Jdbc4TestSuite" if="jdbc4tests" outfile="${testResultsDir}/jdbc4"/>
+      <test name="org.postgresql.test.ssl.SslTestSuite" outfile="${testResultsDir}/ssl"/>
     </junit>
   </target>
   

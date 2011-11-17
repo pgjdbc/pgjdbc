@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ConnectionFactoryImpl.java,v 1.26 2011/08/02 13:40:12 davecramer Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ConnectionFactoryImpl.java,v 1.27 2011/09/22 12:53:24 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -51,8 +51,31 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     public ProtocolConnection openConnectionImpl(String host, int port, String user, String database, Properties info, Logger logger) throws SQLException {
         // Extract interesting values from the info properties:
         //  - the SSL setting
-        boolean requireSSL = (info.getProperty("ssl") != null);
-        boolean trySSL = requireSSL; // XXX temporary until we revisit the ssl property values
+        boolean requireSSL;
+        boolean trySSL;
+        String sslmode = info.getProperty("sslmode");
+        if (sslmode==null)
+        { //Fall back to the ssl property
+          requireSSL = trySSL  = (info.getProperty("ssl") != null);
+        } else {
+          if ("disable".equals(sslmode))
+          {
+            requireSSL = trySSL = false;
+          }
+          //allow and prefer are not handled yet
+          /*else if ("allow".equals(sslmode) || "prefer".equals(sslmode))
+          {  
+            //XXX Allow and prefer are treated the same way
+            requireSSL = false;
+            trySSL = true;
+          }*/
+          else if ("require".equals(sslmode) || "verify-ca".equals(sslmode) || "verify-full".equals(sslmode))
+          {
+            requireSSL = trySSL = true;
+          } else {
+            throw new PSQLException (GT.tr("Invalid sslmode value: {0}", sslmode), PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+          }
+        }
 
         //  - the TCP keep alive setting
         boolean requireTCPKeepAlive = (Boolean.valueOf(info.getProperty("tcpKeepAlive")).booleanValue());
