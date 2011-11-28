@@ -216,7 +216,6 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
        * @throws UnsupportedCallbackException If the console is not available
        * or other than PasswordCallback is supplied
        */
-      @Override
       public void handle(Callback[] callbacks) throws IOException,
           UnsupportedCallbackException {
         Console cons = System.console();
@@ -251,7 +250,6 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
      * @param session The  SSL session.
      * @returns true if the certificate belongs to the server, false otherwise.
      */
-    @Override
     public boolean verify(String hostname, SSLSession session) {
       X509Certificate[] peerCerts;
       try

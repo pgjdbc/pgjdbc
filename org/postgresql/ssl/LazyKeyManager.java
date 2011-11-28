@@ -75,7 +75,6 @@ public class LazyKeyManager implements X509KeyManager {
     if (error!=null) throw error;
   }
   
-  @Override
   public String chooseClientAlias(String[] keyType, Principal[] issuers,
       Socket socket) {
     if (certfile==null)
@@ -105,13 +104,11 @@ public class LazyKeyManager implements X509KeyManager {
     }
   }
 
-  @Override
   public String chooseServerAlias(String keyType, Principal[] issuers,
       Socket socket) {
     return null; //We are not a server
   }
 
-  @Override
   public X509Certificate[] getCertificateChain(String alias) {
     if (cert==null && certfile!=null) //If certfile is null, we do not load the certificate
     { //The certificate must be loaded
@@ -145,13 +142,11 @@ public class LazyKeyManager implements X509KeyManager {
     return cert;
   }
 
-  @Override
   public String[] getClientAliases(String keyType, Principal[] issuers) {
     String alias = chooseClientAlias(new String[]{keyType}, issuers, (Socket)null);
     return (alias==null ? new String[]{} : new String[]{alias});
   }
 
-  @Override
   public PrivateKey getPrivateKey(String alias) {
     try
     {
@@ -244,7 +239,6 @@ public class LazyKeyManager implements X509KeyManager {
     return key;
   }
 
-  @Override
   public String[] getServerAliases(String keyType, Principal[] issuers) {
     return new String[]{};
   }

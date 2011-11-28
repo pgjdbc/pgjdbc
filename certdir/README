@@ -40,5 +40,18 @@ cp server.crt ../goodroot.crt
 #Common name is localhost, no password
 
 The subdirectory server contains what should be copied to the PGDATA directory.
+If you do not overwrite the pg_hba.conf then remember to comment out all lines
+starting with "host all".
 
 For the tests the sslinfo module must be installed into every database.
+The ssl=on must be set in postgresql.conf
+
+The following command creates the databases and installs the sslinfo module.
+
+for db in hostssldb hostnossldb certdb hostsslcertdb; do
+  createdb $db
+  psql $db -c "create extension sslinfo"
+done
+
+The username for connecting to postgres as specified in build.local.properties tests has to be "test".
+
