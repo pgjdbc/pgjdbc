@@ -105,7 +105,6 @@ public class SslTest extends TestCase {
     return suite;
   }
   
-  @Override
   protected void runTest() throws Throwable {
     driver(makeConnStr(sslmode, goodclient, goodserver, protocol), expected);
   }
@@ -122,7 +121,7 @@ public class SslTest extends TestCase {
   static String SSLMODE = "Invalid sslmode value: (allow|prefer)";
   //static String UNKNOWN = "SSL error: Broken pipe";
   //static String UNKNOWN = "SSL error: Received fatal alert: unknown_ca";
-  static String ANY = "ilyen nincs";
+  static String ANY = ".*";
   static String VALIDATOR = "SSL error: sun.security.validator.ValidatorException: PKIX path (building|validation) failed:.*";
   static String HOSTNAME = "The hostname .* could not be verified.";
   static

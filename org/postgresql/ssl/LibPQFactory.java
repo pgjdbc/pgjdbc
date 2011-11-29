@@ -1,33 +1,20 @@
 package org.postgresql.ssl;
 
 import java.io.Console;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.Socket;
-import java.security.AlgorithmParameters;
 import java.security.GeneralSecurityException;
-import java.security.Key;
-import java.security.KeyFactory;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.security.spec.KeySpec;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.util.Collection;
+import java.util.Iterator;
 import java.util.Properties;
 
-import javax.crypto.Cipher;
-import javax.crypto.EncryptedPrivateKeyInfo;
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.PBEKeySpec;
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
@@ -36,8 +23,6 @@ import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.security.auth.callback.Callback;
@@ -149,12 +134,13 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
           try
           {
             CertificateFactory cf = CertificateFactory.getInstance("X.509");
-            Certificate[] certs = cf.generateCertificates(fis).toArray(new Certificate[]{});
+            //Certificate[] certs = cf.generateCertificates(fis).toArray(new Certificate[]{}); //Does not work in java 1.4
+            Object[] certs = cf.generateCertificates(fis).toArray(new Certificate[]{});
             fis.close();
             ks.load(null, null);
             for(int i=0; i<certs.length; i++)
             {
-              ks.setCertificateEntry("cert"+i, certs[i]);
+              ks.setCertificateEntry("cert"+i, (Certificate)certs[i]);
             }
             tmf.init(ks);
           }
@@ -227,7 +213,7 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
             if (password==null)
             {
               //It is used instead of cons.readPassword(prompt), because the prompt may contain '%' characters
-              ((PasswordCallback)callbacks[i]).setPassword(cons.readPassword("%s", ((PasswordCallback)callbacks[i]).getPrompt()));
+              ((PasswordCallback)callbacks[i]).setPassword(cons.readPassword("%s", new Object[]{((PasswordCallback)callbacks[i]).getPrompt()}));
             } else {
               ((PasswordCallback)callbacks[i]).setPassword(password);
             }
@@ -273,8 +259,11 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
         return false; 
       }
       String CN = null;
-      for(Rdn rdn : DN.getRdns())
+      Iterator it = DN.getRdns().iterator();
+      //for(Rdn rdn : DN.getRdns())
+      while(it.hasNext())
       {
+        Rdn rdn = (Rdn)it.next();
         if ("CN".equals(rdn.getType())) //Multiple AVAs are not treated
         {
           CN = (String)rdn.getValue();
