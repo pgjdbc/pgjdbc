@@ -8,7 +8,7 @@
 
   This file now requires Ant 1.4.1.  2002-04-18
 
-  $PostgreSQL: pgjdbc/build.xml,v 1.90 2011/09/22 12:53:20 davecramer Exp $
+  $PostgreSQL: pgjdbc/build.xml,v 1.91 2011/11/17 11:27:50 davecramer Exp $
 
 -->
 
@@ -170,7 +170,8 @@
        <exclude name="${package}/jdcb4/Jdbc4*.java" unless="jdbc4any" />
 
        <!-- ssl -->
-       <include name="${package}/ssl/*.java" />
+       <include name="${package}/ssl/*.java" if="jdbc4any"/>
+       <exclude name="${package}/ssl/*.java" unless="jdbc4any"/>
 
        <!-- gss -->
        <include name="${package}/gss/*.java" />
