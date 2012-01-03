@@ -1,4 +1,4 @@
-package org.postgresql.ssl;
+package org.postgresql.ssl.jdbc4;
 
 import java.io.Console;
 import java.io.FileInputStream;
@@ -32,6 +32,7 @@ import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.x500.X500Principal;
 
 import org.postgresql.ssl.NonValidatingFactory.NonValidatingTM;
+import org.postgresql.ssl.WrappedFactory;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -91,7 +92,7 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
         {
           try
           {
-            cbh = (CallbackHandler)MakeSSL.instantiate(sslpasswordcallback, info, false, null);
+            cbh = (CallbackHandler)AbstractJdbc4MakeSSL.instantiate(sslpasswordcallback, info, false, null);
           }
           catch (Exception e)
           {

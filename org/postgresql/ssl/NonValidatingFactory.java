@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ssl/NonValidatingFactory.java,v 1.8 2008/01/08 06:56:30 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/ssl/NonValidatingFactory.java,v 1.9 2011/08/02 13:50:28 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -39,7 +39,7 @@ public class NonValidatingFactory extends WrappedFactory {
         _factory = ctx.getSocketFactory();
     }
 
-    static class NonValidatingTM implements X509TrustManager {
+    public static class NonValidatingTM implements X509TrustManager {
 
         public X509Certificate[] getAcceptedIssuers() {
             return new X509Certificate[0];

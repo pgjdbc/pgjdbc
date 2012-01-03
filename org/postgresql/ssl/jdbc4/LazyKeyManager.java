@@ -1,4 +1,4 @@
-package org.postgresql.ssl;
+package org.postgresql.ssl.jdbc4;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -50,8 +50,8 @@ public class LazyKeyManager implements X509KeyManager {
   private PSQLException error = null;
   
   /**
-   * Costructor. certfile and keyfile can be null, in that case no
-   * certificat is presented to the server.
+   * Constructor. certfile and keyfile can be null, in that case no
+   * certificate is presented to the server.
    * @param certfile
    * @param keyfile
    * @param cbh
