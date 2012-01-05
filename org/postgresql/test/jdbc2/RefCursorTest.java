@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/RefCursorTest.java,v 1.8 2008/01/08 06:56:31 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/RefCursorTest.java,v 1.9 2011/08/02 13:50:29 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -47,10 +47,10 @@ public class RefCursorTest extends TestCase
         // Create the functions.
         stmt.execute ("CREATE OR REPLACE FUNCTION testspg__getRefcursor () RETURNS refcursor AS '"
                       + "declare v_resset refcursor; begin open v_resset for select id from testrs order by id; "
-                      + "return v_resset; end;' LANGUAGE 'plpgsql';");
+                      + "return v_resset; end;' LANGUAGE plpgsql;");
         stmt.execute ("CREATE OR REPLACE FUNCTION testspg__getEmptyRefcursor () RETURNS refcursor AS '"
                       + "declare v_resset refcursor; begin open v_resset for select id from testrs where id < 1 order by id; "
-                      + "return v_resset; end;' LANGUAGE 'plpgsql';");
+                      + "return v_resset; end;' LANGUAGE plpgsql;");
         stmt.close();
         con.setAutoCommit(false);
     }

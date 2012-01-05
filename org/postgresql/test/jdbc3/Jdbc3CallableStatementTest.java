@@ -3,7 +3,7 @@
 * Copyright (c) 2005-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/Jdbc3CallableStatementTest.java,v 1.6 2008/01/08 06:56:31 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/Jdbc3CallableStatementTest.java,v 1.7 2011/08/02 13:50:29 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -52,7 +52,7 @@ public class Jdbc3CallableStatementTest extends TestCase
                     			 + 	"select null_val into inul from numeric_tab;"
                     			 		
                     			 + " end;' "
-                    			 + "language 'plpgsql';");
+                    			 + "language plpgsql;");
         
         stmt.execute( "CREATE OR REPLACE FUNCTION test_somein_someout("
                 + "pa IN int4,"
@@ -65,7 +65,7 @@ public class Jdbc3CallableStatementTest extends TestCase
                 + "pc := pa + 1;"
                 + "end;'"
 
-                + "LANGUAGE 'plpgsql' VOLATILE;"
+                + "LANGUAGE plpgsql VOLATILE;"
 
                  );  
         stmt.execute("CREATE OR REPLACE FUNCTION test_allinout("
@@ -78,7 +78,7 @@ public class Jdbc3CallableStatementTest extends TestCase
                 + "pb := ''foo out'';"
                 + "pc := pa + 1;"
                 + "end;'"
-                + "LANGUAGE 'plpgsql' VOLATILE;"
+                + "LANGUAGE plpgsql VOLATILE;"
             );
         
         
@@ -206,7 +206,7 @@ public class Jdbc3CallableStatementTest extends TestCase
       			 + 	"select nul_val into nval from decimal_tab;"
       			 		
        			 + " end;' "
-       			 + "language 'plpgsql';");
+       			 + "language plpgsql;");
         }
         catch (Exception ex)
         {
@@ -256,7 +256,7 @@ public class Jdbc3CallableStatementTest extends TestCase
 	   			 + 	"update vartab set min_val = imin;"
 	   			 +  "return 0;"
 	   			 + " end;' "
-	   			 + "language 'plpgsql';");
+	   			 + "language plpgsql;");
 	        stmt.close();
         }
         catch (Exception ex)
@@ -309,7 +309,7 @@ public class Jdbc3CallableStatementTest extends TestCase
 	   			 + 	"select min_val into imin from bit_tab;"
 	   			 + 	"select null_val into inul from bit_tab;"		
 	   			 + " end;' "
-	   			 + "language 'plpgsql';");
+	   			 + "language plpgsql;");
         }
         catch (Exception ex)
         {
@@ -361,7 +361,7 @@ public class Jdbc3CallableStatementTest extends TestCase
 	   			 + 	"update bit_tab set  min_val = inul;"
 	   			 +  " return 0;"		
 	   			 + " end;' "
-	   			 + "language 'plpgsql';");
+	   			 + "language plpgsql;");
         }
         catch (Exception ex)
         {
@@ -412,7 +412,7 @@ public class Jdbc3CallableStatementTest extends TestCase
    			 + 	"select null_val into nval from longvarchar_tab;"
   			 		
    			 + " end;' "
-   			 + "language 'plpgsql';");
+   			 + "language plpgsql;");
         
         ret = stmt.execute("create or replace function "
       			 + "lvarchar_in_name( IN pcn text) returns int as "
@@ -420,7 +420,7 @@ public class Jdbc3CallableStatementTest extends TestCase
        			 + 	"update longvarchar_tab set t=pcn;"
       			 +  "return 0;"		
        			 + " end;' "
-       			 + "language 'plpgsql';");
+       			 + "language plpgsql;");
         }
         catch (Exception ex)
         {
@@ -478,7 +478,7 @@ public class Jdbc3CallableStatementTest extends TestCase
 	   			 + 	"select null_val into nval from varbinary_tab;"
 	  			 		
 	   			 + " end;' "
-	   			 + "language 'plpgsql';");
+	   			 + "language plpgsql;");
 	        stmt.close();
 	        PreparedStatement pstmt = con.prepareStatement("insert into varbinary_tab values (?,?)");
 	        pstmt.setBytes( 1, testdata);
@@ -530,7 +530,7 @@ public class Jdbc3CallableStatementTest extends TestCase
    			 + 	"select min_val into imin from decimal_tab;"
    			 + 	"select null_val into inul from decimal_tab;"
    			 + " end;' "
-   			 + "language 'plpgsql';";
+   			 + "language plpgsql;";
     
     private final String createUpdateFloat = "create or replace function "
     			+ "updatefloat_proc ( IN maxparm float, IN minparm float ) returns int as "
@@ -539,7 +539,7 @@ public class Jdbc3CallableStatementTest extends TestCase
     			+ "update decimal_tab set min_val=minparm;"
     			+ "return 0;"
     			+ " end;' "
-    			+ "language 'plpgsql';";
+    			+ "language plpgsql;";
 
     private final String createRealTab = "create temp table real_tab ( max_val float(25), min_val float(25), null_val float(25) )";
     private final String insertRealTab = "insert into real_tab values (1.0E37,1.0E-37, null)";
@@ -552,7 +552,7 @@ public class Jdbc3CallableStatementTest extends TestCase
 		+ "update real_tab set min_val=minparm;"
 		+ "return 0;"
 		+ " end;' "
-		+ "language 'plpgsql';";
+		+ "language plpgsql;";
    	private final String dropUpdateReal = "drop function update_real_proc(float, float)";
    	private final double [] doubleValues =  {1.0E125, 1.0E-130};
    	private final float [] realValues = {(float)1.0E37,(float)1.0E-37};
@@ -673,7 +673,7 @@ public class Jdbc3CallableStatementTest extends TestCase
 	   			 + 	"select null_val into nval from longvarbinary_tab;"
 	  			 		
 	   			 + " end;' "
-	   			 + "language 'plpgsql';");
+	   			 + "language plpgsql;");
 	        stmt.close();
 	        PreparedStatement pstmt = con.prepareStatement("insert into longvarbinary_tab values (?,?)");
 	        pstmt.setBytes( 1, testdata);
@@ -778,7 +778,7 @@ public class Jdbc3CallableStatementTest extends TestCase
 	   			 + 	"select null_val into inul from d_tab;"
 	   			 		
 	   			 + " end;' "
-	   			 + "language 'plpgsql';");
+	   			 + "language plpgsql;");
         }
         catch (Exception ex)
         {
@@ -826,7 +826,7 @@ public class Jdbc3CallableStatementTest extends TestCase
 	   			 + 	"select null_val into inul from d_tab;"
 	   			 		
 	   			 + " end;' "
-	   			 + "language 'plpgsql';");
+	   			 + "language plpgsql;");
         }
         catch (Exception ex)
         {
@@ -874,7 +874,7 @@ public class Jdbc3CallableStatementTest extends TestCase
 	   			 + 	"select null_val into inul from short_tab;"
 	   			 		
 	   			 + " end;' "
-	   			 + "language 'plpgsql';");
+	   			 + "language plpgsql;");
         }
         catch (Exception ex)
         {
@@ -922,7 +922,7 @@ public class Jdbc3CallableStatementTest extends TestCase
    			 + 	"select null_val into inul from i_tab;"
    			 		
    			 + " end;' "
-   			 + "language 'plpgsql';");
+   			 + "language plpgsql;");
         }
         catch (Exception ex)
         {
@@ -970,7 +970,7 @@ public class Jdbc3CallableStatementTest extends TestCase
    			 + 	"select null_val into inul from l_tab;"
    			 		
    			 + " end;' "
-   			 + "language 'plpgsql';");
+   			 + "language plpgsql;");
         }
         catch (Exception ex)
         {
@@ -1019,7 +1019,7 @@ public class Jdbc3CallableStatementTest extends TestCase
 	   			 + 	"select null_val into inul from bit_tab;"
 	   			 		
 	   			 + " end;' "
-	   			 + "language 'plpgsql';");
+	   			 + "language plpgsql;");
         }
         catch (Exception ex)
         {
@@ -1067,7 +1067,7 @@ public class Jdbc3CallableStatementTest extends TestCase
    			 + 	"select null_val into inul from byte_tab;"
    			 		
    			 + " end;' "
-   			 + "language 'plpgsql';");
+   			 + "language plpgsql;");
         }
         catch (Exception ex)
         {

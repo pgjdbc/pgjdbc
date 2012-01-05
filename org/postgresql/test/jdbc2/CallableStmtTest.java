@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CallableStmtTest.java,v 1.23 2008/04/02 17:05:56 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/CallableStmtTest.java,v 1.24 2011/08/02 13:50:29 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -34,31 +34,31 @@ public class CallableStmtTest extends TestCase
         Statement stmt = con.createStatement ();
         stmt.execute ("CREATE OR REPLACE FUNCTION testspg__getString (varchar) " +
                       "RETURNS varchar AS ' DECLARE inString alias for $1; begin " +
-                      "return ''bob''; end; ' LANGUAGE 'plpgsql';");
+                      "return ''bob''; end; ' LANGUAGE plpgsql;");
         stmt.execute ("CREATE OR REPLACE FUNCTION testspg__getDouble (float) " +
                       "RETURNS float AS ' DECLARE inString alias for $1; begin " +
-                      "return 42.42; end; ' LANGUAGE 'plpgsql';");
+                      "return 42.42; end; ' LANGUAGE plpgsql;");
         if (TestUtil.haveMinimumServerVersion(con, "7.3")) {
             stmt.execute ("CREATE OR REPLACE FUNCTION testspg__getVoid (float) " +
                 "RETURNS void AS ' DECLARE inString alias for $1; begin " +
-                " return; end; ' LANGUAGE 'plpgsql';");
+                " return; end; ' LANGUAGE plpgsql;");
         }
         stmt.execute ("CREATE OR REPLACE FUNCTION testspg__getInt (int) RETURNS int " +
                       " AS 'DECLARE inString alias for $1; begin " +
-                      "return 42; end;' LANGUAGE 'plpgsql';");      
+                      "return 42; end;' LANGUAGE plpgsql;");      
         stmt.execute ("CREATE OR REPLACE FUNCTION testspg__getShort (int2) RETURNS int2 " +
                 " AS 'DECLARE inString alias for $1; begin " +
-                "return 42; end;' LANGUAGE 'plpgsql';");
+                "return 42; end;' LANGUAGE plpgsql;");
         stmt.execute ("CREATE OR REPLACE FUNCTION testspg__getNumeric (numeric) " +
                       "RETURNS numeric AS ' DECLARE inString alias for $1; " +
-                      "begin return 42; end; ' LANGUAGE 'plpgsql';");
+                      "begin return 42; end; ' LANGUAGE plpgsql;");
         
         stmt.execute ("CREATE OR REPLACE FUNCTION testspg__getNumericWithoutArg() " +
                 "RETURNS numeric AS '  " +
-                "begin return 42; end; ' LANGUAGE 'plpgsql';");
-        stmt.execute("CREATE OR REPLACE FUNCTION testspg__getarray() RETURNS int[] as 'SELECT ''{1,2}''::int[];' LANGUAGE 'sql'");
-        stmt.execute("CREATE OR REPLACE FUNCTION testspg__raisenotice() RETURNS int as 'BEGIN RAISE NOTICE ''hello'';  RAISE NOTICE ''goodbye''; RETURN 1; END;' LANGUAGE 'plpgsql'");
-        stmt.execute("CREATE OR REPLACE FUNCTION testspg__insertInt(int) RETURNS int as 'BEGIN INSERT INTO int_table(id) VALUES ($1); RETURN 1; END;' LANGUAGE 'plpgsql'");
+                "begin return 42; end; ' LANGUAGE plpgsql;");
+        stmt.execute("CREATE OR REPLACE FUNCTION testspg__getarray() RETURNS int[] as 'SELECT ''{1,2}''::int[];' LANGUAGE sql");
+        stmt.execute("CREATE OR REPLACE FUNCTION testspg__raisenotice() RETURNS int as 'BEGIN RAISE NOTICE ''hello'';  RAISE NOTICE ''goodbye''; RETURN 1; END;' LANGUAGE plpgsql");
+        stmt.execute("CREATE OR REPLACE FUNCTION testspg__insertInt(int) RETURNS int as 'BEGIN INSERT INTO int_table(id) VALUES ($1); RETURN 1; END;' LANGUAGE plpgsql");
         stmt.close ();
     }
 

@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.51 2011/08/02 13:50:29 davecramer Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataTest.java,v 1.52 2011/09/20 14:43:44 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -47,14 +47,14 @@ public class DatabaseMetaDataTest extends TestCase
         stmt.execute("comment on table metadatatest is 'this is a table comment'");
         stmt.execute("comment on column metadatatest.id is 'this is a column comment'");
 
-        stmt.execute("CREATE OR REPLACE FUNCTION f1(int, varchar) RETURNS int AS 'SELECT 1;' LANGUAGE 'SQL'");
+        stmt.execute("CREATE OR REPLACE FUNCTION f1(int, varchar) RETURNS int AS 'SELECT 1;' LANGUAGE SQL");
         if (TestUtil.haveMinimumServerVersion(con, "8.0")) {
-            stmt.execute("CREATE OR REPLACE FUNCTION f2(a int, b varchar) RETURNS int AS 'SELECT 1;' LANGUAGE 'SQL'");
+            stmt.execute("CREATE OR REPLACE FUNCTION f2(a int, b varchar) RETURNS int AS 'SELECT 1;' LANGUAGE SQL");
         }
         if (TestUtil.haveMinimumServerVersion(con, "8.1")) {
-            stmt.execute("CREATE OR REPLACE FUNCTION f3(IN a int, INOUT b varchar, OUT c timestamptz) AS $f$ BEGIN b := 'a'; c := now(); return; END; $f$ LANGUAGE 'plpgsql'");
+            stmt.execute("CREATE OR REPLACE FUNCTION f3(IN a int, INOUT b varchar, OUT c timestamptz) AS $f$ BEGIN b := 'a'; c := now(); return; END; $f$ LANGUAGE plpgsql");
         }
-        stmt.execute("CREATE OR REPLACE FUNCTION f4(int) RETURNS metadatatest AS 'SELECT 1, ''a''::text, now(), ''c''::text, ''q''::text' LANGUAGE 'SQL'");
+        stmt.execute("CREATE OR REPLACE FUNCTION f4(int) RETURNS metadatatest AS 'SELECT 1, ''a''::text, now(), ''c''::text, ''q''::text' LANGUAGE SQL");
 
         if (TestUtil.haveMinimumServerVersion(con, "7.3")) {
             stmt.execute("CREATE DOMAIN nndom AS int not null");
