@@ -3,7 +3,7 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4Connection.java,v 1.11 2011/03/31 06:25:42 jurka Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4Connection.java,v 1.12 2011/08/02 13:49:23 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -117,8 +117,28 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
     public boolean isValid(int timeout) throws SQLException
     {
         checkClosed();
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "isValid(int)");
-    }
+	if (timeout < 0) {
+    		 throw new PSQLException(GT.tr("Invalid timeout ({0}<0).", timeout), PSQLState.INVALID_PARAMETER_VALUE);
+    	}
+    	boolean valid = false;
+	Statement stmt = null;
+    	try {
+		if (!isClosed()) {
+	        	stmt = createStatement();
+	        	stmt.setQueryTimeout( timeout );
+	        	stmt.executeQuery( "SELECT 1" );
+	        	valid = true;
+	        }
+    	}
+    	catch ( SQLException e) {
+    		getLogger().log(GT.tr("Validating connection."),e);
+	}
+	finally
+	{
+		if(stmt!=null) try {stmt.close();}catch(Exception ex){}
+	}
+        return valid;    
+}
 
     public void setClientInfo(String name, String value) throws SQLClientInfoException
     {
