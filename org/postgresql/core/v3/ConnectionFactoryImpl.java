@@ -4,7 +4,7 @@
 * Copyright (c) 2004, Open Cloud Limited.
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ConnectionFactoryImpl.java,v 1.27 2011/09/22 12:53:24 davecramer Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/ConnectionFactoryImpl.java,v 1.28 2011/11/17 11:27:51 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -428,18 +428,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                     }
 
                 case AUTH_REQ_GSS:
+                case AUTH_REQ_SSPI:
                     org.postgresql.gss.MakeGSS.authenticate(pgStream, host,
                             user, password, 
                             info.getProperty("jaasApplicationName"),
                             info.getProperty("kerberosServerName"),
-                            logger);
+                            logger,
+                            Boolean.valueOf(info.getProperty("useSpnego")).booleanValue());
                     break;
-
-                case AUTH_REQ_SSPI:
-                    if (logger.logDebug())
-                        logger.debug(" <=BE AuthenticationReqSSPI");
-
-                    throw new PSQLException(GT.tr("SSPI authentication is not supported because it is not portable.  Try configuring the server to use GSSAPI instead."), PSQLState.CONNECTION_REJECTED);
 
                 case AUTH_REQ_OK:
                     if (logger.logDebug())

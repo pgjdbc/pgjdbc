@@ -3,7 +3,7 @@
 * Copyright (c) 2008-2011, PostgreSQL Global Development Group
 *
 * IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/gss/MakeGSS.java,v 1.4 2011/08/02 13:42:26 davecramer Exp $
+*   $PostgreSQL: pgjdbc/org/postgresql/gss/MakeGSS.java,v 1.5 2011/08/02 14:41:30 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
@@ -26,7 +26,7 @@ import org.postgresql.util.*;
 public class MakeGSS
 {
 
-    public static void authenticate(PGStream pgStream, String host, String user, String password, String jaasApplicationName, String kerberosServerName, Logger logger) throws IOException, SQLException
+    public static void authenticate(PGStream pgStream, String host, String user, String password, String jaasApplicationName, String kerberosServerName, Logger logger, boolean useSpnego) throws IOException, SQLException
     {
         if (logger.logDebug())
             logger.debug(" <=BE AuthenticationReqGSS");
@@ -43,7 +43,7 @@ public class MakeGSS
             lc.login();
 
             Subject sub = lc.getSubject();
-            PrivilegedAction action = new GssAction(pgStream, host, user, password, kerberosServerName, logger);
+            PrivilegedAction action = new GssAction(pgStream, host, user, password, kerberosServerName, logger, useSpnego);
             result = Subject.doAs(sub, action);
         } catch (Exception e) {
             throw new PSQLException(GT.tr("GSS Authentication failed"), PSQLState.CONNECTION_FAILURE, e);
@@ -68,8 +68,9 @@ class GssAction implements PrivilegedAction
     private final String password;
     private final String kerberosServerName;
     private final Logger logger;
+    private final boolean useSpnego;
 
-    public GssAction(PGStream pgStream, String host, String user, String password, String kerberosServerName, Logger logger)
+    public GssAction(PGStream pgStream, String host, String user, String password, String kerberosServerName, Logger logger, boolean useSpnego)
     {
         this.pgStream = pgStream;
         this.host = host;
@@ -77,18 +78,36 @@ class GssAction implements PrivilegedAction
         this.password = password;
         this.kerberosServerName = kerberosServerName;
         this.logger = logger;
+        this.useSpnego = useSpnego;
+    }
+
+    private static boolean hasSpnegoSupport(GSSManager manager) throws GSSException {
+
+        org.ietf.jgss.Oid spnego = new org.ietf.jgss.Oid("1.3.6.1.5.5.2");
+        org.ietf.jgss.Oid mechs[] = manager.getMechs();
+
+        for (int i = 0; i < mechs.length; ++i) {
+            if (mechs[i].equals(spnego)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public Object run() {
 
         try {
 
-            org.ietf.jgss.Oid desiredMechs[] = new org.ietf.jgss.Oid[1];
-            desiredMechs[0] = new org.ietf.jgss.Oid("1.2.840.113554.1.2.2");
-
-
             GSSManager manager = GSSManager.getInstance();
-
+ 
+            org.ietf.jgss.Oid desiredMechs[] = new org.ietf.jgss.Oid[1];
+            if (useSpnego && hasSpnegoSupport(manager)) {
+                desiredMechs[0] = new org.ietf.jgss.Oid("1.3.6.1.5.5.2");
+            } else {
+                desiredMechs[0] = new org.ietf.jgss.Oid("1.2.840.113554.1.2.2");
+            }
+ 
             GSSName clientName = manager.createName(user, GSSName.NT_USER_NAME);
             GSSCredential clientCreds = manager.createCredential(clientName, 8*3600, desiredMechs, GSSCredential.INITIATE_ONLY);
 
