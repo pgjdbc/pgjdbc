@@ -2,9 +2,6 @@
 *
 * Copyright (c) 2009, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL$
-*
 *-------------------------------------------------------------------------
 */
 package org.postgresql.copy;

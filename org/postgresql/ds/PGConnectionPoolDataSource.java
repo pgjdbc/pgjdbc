@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/PGConnectionPoolDataSource.java,v 1.4 2006/11/29 04:00:15 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

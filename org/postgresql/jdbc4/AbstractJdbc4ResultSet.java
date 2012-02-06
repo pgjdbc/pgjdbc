@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/AbstractJdbc4ResultSet.java,v 1.5 2008/09/30 04:34:51 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

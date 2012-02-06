@@ -3,7 +3,6 @@
 # Polish message translation for the PostgreSQL JDBC driver
 # This file is distributed under the same license as the package.
 #
-# $PostgreSQL: pgjdbc/org/postgresql/translation/pl.po,v 1.2 2004/11/07 22:17:11 jurka Exp $
 # Piotr Maj <piotr.maj@kernelpanic.pl>
 # Jarosław Jan Pyszny <jarek@pyszny.net>, 2005.
 #

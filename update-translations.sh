@@ -1,6 +1,5 @@
 #!/bin/sh
 #
-# $PostgreSQL$
 
 ant clean
 find . -name '*.java' -o -name '*.java.in' > translation.filelist

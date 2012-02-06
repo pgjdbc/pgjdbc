@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2005-2008, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/TimezoneTest.java,v 1.6 2007/10/07 23:32:46 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

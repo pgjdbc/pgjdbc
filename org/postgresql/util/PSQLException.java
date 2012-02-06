@@ -2,9 +2,6 @@
 *
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL$
-*
 *-------------------------------------------------------------------------
 */
 package org.postgresql.util;

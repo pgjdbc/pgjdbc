@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/largeobject/BlobOutputStream.java,v 1.12 2007/02/19 18:35:29 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

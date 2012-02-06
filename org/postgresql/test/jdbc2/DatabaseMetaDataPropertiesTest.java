@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DatabaseMetaDataPropertiesTest.java,v 1.9 2005/11/24 02:07:03 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */

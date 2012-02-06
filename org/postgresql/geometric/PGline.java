@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/geometric/PGline.java,v 1.14 2007/07/16 15:02:53 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

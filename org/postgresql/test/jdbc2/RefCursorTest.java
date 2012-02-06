@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/RefCursorTest.java,v 1.7 2006/08/06 18:11:33 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

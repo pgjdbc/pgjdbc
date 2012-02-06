@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2008, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3g/AbstractJdbc3gStatement.java,v 1.1 2008/09/30 04:34:51 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

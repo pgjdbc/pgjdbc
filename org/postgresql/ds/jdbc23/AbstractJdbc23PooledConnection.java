@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/jdbc23/AbstractJdbc23PooledConnection.java,v 1.5 2009/01/07 05:28:59 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
