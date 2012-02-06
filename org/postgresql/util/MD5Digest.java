@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2003-2011, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/MD5Digest.java,v 1.12 2008/09/19 22:50:38 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

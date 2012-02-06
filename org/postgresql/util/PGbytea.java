@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2003-2011, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/PGbytea.java,v 1.17 2010/04/06 23:45:09 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

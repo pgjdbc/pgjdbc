@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2003-2011, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/BaseConnection.java,v 1.24 2011/04/19 01:15:20 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

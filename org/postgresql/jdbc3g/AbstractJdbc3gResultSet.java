@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2008-2011, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3g/AbstractJdbc3gResultSet.java,v 1.2 2011/08/02 13:50:28 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */

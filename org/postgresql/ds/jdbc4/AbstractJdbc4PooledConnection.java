@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/jdbc4/AbstractJdbc4PooledConnection.java,v 1.3 2011/03/31 06:25:42 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2003-2011, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/UTF8Encoding.java,v 1.2 2008/01/08 06:56:27 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

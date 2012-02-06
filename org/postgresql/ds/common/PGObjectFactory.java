@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/common/PGObjectFactory.java,v 1.6 2008/01/08 06:56:27 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

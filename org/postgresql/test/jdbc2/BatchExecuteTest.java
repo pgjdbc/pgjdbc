@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/BatchExecuteTest.java,v 1.18 2010/05/01 20:49:18 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

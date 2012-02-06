@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2Array.java,v 1.25 2009/03/03 05:33:04 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

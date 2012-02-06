@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3g/Jdbc3gConnection.java,v 1.7 2009/11/18 11:19:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

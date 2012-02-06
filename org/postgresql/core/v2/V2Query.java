@@ -3,8 +3,6 @@
 * Copyright (c) 2003-2011, PostgreSQL Global Development Group
 * Copyright (c) 2004, Open Cloud Limited.
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/V2Query.java,v 1.8 2008/01/08 06:56:27 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

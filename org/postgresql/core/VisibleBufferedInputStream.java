@@ -2,8 +2,6 @@
  *
  * Copyright (c) 2006-2011, PostgreSQL Global Development Group
  *
- * IDENTIFICATION
- *   $PostgreSQL: pgjdbc/org/postgresql/core/VisibleBufferedInputStream.java,v 1.4 2010/08/31 18:07:39 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */
