@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/StatementTest.java,v 1.27.2.1 2008/11/16 12:14:17 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

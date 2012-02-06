@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2005-2008, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3g/Jdbc3gParameterMetaData.java,v 1.1 2006/06/08 10:34:51 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

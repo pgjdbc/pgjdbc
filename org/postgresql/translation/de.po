@@ -2,7 +2,6 @@
 # German message translation for the PostgreSQL JDBC driver
 # This file is distributed under the same license as the package.
 #
-# $PostgreSQL: pgjdbc/org/postgresql/translation/de.po,v 1.8 2006/05/22 19:41:23 jurka Exp $
 # Andre Bialojahn <ab.spamnews@freenet.de>, 2005, 2006.
 #
 msgid ""

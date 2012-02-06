@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2005-2008, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2BlobClob.java,v 1.9 2008/01/08 06:56:28 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

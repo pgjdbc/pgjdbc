@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/jdbc4/AbstractJdbc4PoolingDataSource.java,v 1.1 2006/11/29 04:00:27 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

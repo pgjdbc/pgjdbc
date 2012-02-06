@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DriverTest.java,v 1.13 2005/11/24 02:29:23 oliver Exp $
 *
 *-------------------------------------------------------------------------
 */

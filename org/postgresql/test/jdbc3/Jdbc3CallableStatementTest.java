@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2005-2008, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/Jdbc3CallableStatementTest.java,v 1.5 2007/10/15 08:06:24 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

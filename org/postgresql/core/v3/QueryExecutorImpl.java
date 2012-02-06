@@ -3,8 +3,6 @@
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 * Copyright (c) 2004, Open Cloud Limited.
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/QueryExecutorImpl.java,v 1.39.2.1 2008/05/20 00:04:24 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/PGRefCursorResultSet.java,v 1.7 2005/01/17 09:51:40 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

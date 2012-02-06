@@ -3,8 +3,6 @@
 * Copyright (c) 2003-2008, PostgreSQL Global Development Group
 * Copyright (c) 2004, Open Cloud Limited.
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v2/ConnectionFactoryImpl.java,v 1.14 2008/01/08 06:56:27 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

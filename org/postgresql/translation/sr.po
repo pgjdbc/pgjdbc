@@ -1,7 +1,6 @@
 # Serbian message translation for the PostgreSQL JDBC driver
 # This file is distributed under the same license as the package.
 #
-# $PostgreSQL: pgjdbc/org/postgresql/translation/sr.po,v 1.1 2007/01/04 20:28:37 jurka Exp $
 #
 # Bojan Skaljac <skaljac@gmail.com> 2006.
 #

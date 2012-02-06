@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/Jdbc3Array.java,v 1.5 2007/12/01 12:50:44 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

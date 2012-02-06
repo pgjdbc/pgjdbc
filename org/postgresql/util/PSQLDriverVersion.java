@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/PSQLDriverVersion.java,v 1.25.2.3 2010/05/12 06:39:47 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-* $PostgreSQL: pgjdbc/org/postgresql/jdbc2/EscapedFunctions.java,v 1.10.2.2 2008/11/16 12:14:17 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
