@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java,v 1.57.2.3 2010/12/22 16:53:56 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

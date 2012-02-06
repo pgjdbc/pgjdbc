@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ssl/NonValidatingFactory.java,v 1.7 2007/07/27 22:55:28 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

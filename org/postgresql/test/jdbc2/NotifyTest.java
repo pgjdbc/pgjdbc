@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/NotifyTest.java,v 1.9 2010/04/06 23:41:11 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

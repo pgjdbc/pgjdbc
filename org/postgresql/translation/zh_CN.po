@@ -1,7 +1,6 @@
 # Simplified Chinese message translation for the PostgreSQL JDBC driver
 # This file is distributed under the same license as the package.
 #
-# $PostgreSQL: pgjdbc/org/postgresql/translation/zh_CN.po,v 1.1 2005/05/17 17:47:09 jurka Exp $
 #
 msgid ""
 msgstr ""

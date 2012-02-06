@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2007-2008, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/xa/PGXADataSourceFactory.java,v 1.1 2007/02/26 19:24:33 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

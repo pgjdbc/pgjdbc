@@ -3,8 +3,6 @@
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 * Copyright (c) 2004, Open Cloud Limited.
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleParameterList.java,v 1.18 2010/02/04 00:48:47 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2008, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/TypeInfo.java,v 1.3 2008/10/08 18:24:05 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

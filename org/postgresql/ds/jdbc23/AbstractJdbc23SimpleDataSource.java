@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ds/jdbc23/AbstractJdbc23SimpleDataSource.java,v 1.3 2007/09/10 08:34:08 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

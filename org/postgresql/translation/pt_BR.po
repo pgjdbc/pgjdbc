@@ -1,7 +1,6 @@
 # Brazilian Portuguese message translation for the PostgreSQL JDBC driver
 # This file is distributed under the same license as the package.
 #
-# $PostgreSQL: pgjdbc/org/postgresql/translation/pt_BR.po,v 1.15 2008/01/30 09:25:53 jurka Exp $
 #
 # Euler Taveira de Oliveira <euler@timbira.com>, 2004-2009.
 #

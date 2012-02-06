@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2008, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc4/UUIDTest.java,v 1.1 2008/09/30 04:36:10 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */
