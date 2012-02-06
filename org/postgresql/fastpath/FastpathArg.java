@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2003-2011, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/fastpath/FastpathArg.java,v 1.13 2008/01/08 06:56:28 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

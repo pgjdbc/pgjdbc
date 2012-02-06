@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2004-2008, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc3/Jdbc3ResultSet.java,v 1.17 2008/01/08 06:56:29 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

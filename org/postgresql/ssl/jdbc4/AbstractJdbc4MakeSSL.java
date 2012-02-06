@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/ssl/MakeSSL.java,v 1.9 2011/11/17 11:27:51 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */

@@ -2,8 +2,6 @@
  *
  * Copyright (c) 2011, PostgreSQL Global Development Group
  *
- * IDENTIFICATION
- *   $PostgreSQL: pgjdbc/org/postgresql/util/ByteConverter.java,v 1.1 2006/10/30 18:30:16 jurka Exp $
  *
  *-------------------------------------------------------------------------
  */

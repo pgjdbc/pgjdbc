@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ConnectionTest.java,v 1.24 2011/04/19 01:27:15 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

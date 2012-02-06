@@ -3,8 +3,6 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 * Copyright (c) 2004, Open Cloud Limited.
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/CompositeQuery.java,v 1.6 2011/08/02 13:40:12 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */

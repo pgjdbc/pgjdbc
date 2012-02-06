@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2005-2011, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/Logger.java,v 1.3 2008/01/08 06:56:27 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

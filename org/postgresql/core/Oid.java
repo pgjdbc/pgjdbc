@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/Oid.java,v 1.17 2011/09/22 12:53:23 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */

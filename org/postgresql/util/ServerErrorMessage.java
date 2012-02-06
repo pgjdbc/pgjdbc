@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/ServerErrorMessage.java,v 1.13 2008/05/20 19:51:38 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

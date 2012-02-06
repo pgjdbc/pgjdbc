@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/ArrayTest.java,v 1.19 2009/03/03 05:33:04 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

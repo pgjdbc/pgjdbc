@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/DateTest.java,v 1.15 2011/03/20 00:09:44 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2005-2011, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/Jdbc3BlobTest.java,v 1.6 2008/01/08 06:56:31 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

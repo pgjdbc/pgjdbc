@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/jdbc4/Jdbc4ResultSet.java,v 1.6 2011/08/02 13:49:23 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */

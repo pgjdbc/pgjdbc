@@ -3,8 +3,6 @@
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 * Copyright (c) 2004, Open Cloud Limited.
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/core/v3/SimpleQuery.java,v 1.16 2011/09/22 12:53:24 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */

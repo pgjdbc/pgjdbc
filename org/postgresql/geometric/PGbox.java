@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2003-2011, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/geometric/PGbox.java,v 1.16 2011/08/02 13:42:25 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */

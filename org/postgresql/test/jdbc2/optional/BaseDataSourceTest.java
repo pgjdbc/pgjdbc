@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2004-2011, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc2/optional/BaseDataSourceTest.java,v 1.14 2010/05/01 21:04:00 jurka Exp $
 *
 *-------------------------------------------------------------------------
 */

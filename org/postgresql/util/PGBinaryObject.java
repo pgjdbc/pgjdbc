@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2011, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/util/PGBinaryObject.java,v 1.0 2011/09/30 13:50:29 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */package org.postgresql.util;

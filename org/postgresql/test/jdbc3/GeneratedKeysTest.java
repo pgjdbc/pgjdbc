@@ -2,8 +2,6 @@
 *
 * Copyright (c) 2008-2011, PostgreSQL Global Development Group
 *
-* IDENTIFICATION
-*   $PostgreSQL: pgjdbc/org/postgresql/test/jdbc3/GeneratedKeysTest.java,v 1.5 2011/08/02 13:50:29 davecramer Exp $
 *
 *-------------------------------------------------------------------------
 */
