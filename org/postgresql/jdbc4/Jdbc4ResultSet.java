@@ -20,6 +20,8 @@ import org.postgresql.core.*;
  */
 public class Jdbc4ResultSet extends AbstractJdbc4ResultSet implements java.sql.ResultSet
 {
+    private Jdbc4ResultSetMetaData metaData;
+
     Jdbc4ResultSet(Query originalQuery, BaseStatement statement, Field[] fields, Vector tuples, ResultCursor cursor,
                     int maxRows, int maxFieldSize, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
     {
@@ -29,7 +31,13 @@ public class Jdbc4ResultSet extends AbstractJdbc4ResultSet implements java.sql.R
     public java.sql.ResultSetMetaData getMetaData() throws SQLException
     {
         checkClosed();
-        return new Jdbc4ResultSetMetaData(connection, fields);
+
+        if (metaData == null)
+        {
+            metaData = new Jdbc4ResultSetMetaData(connection, fields);
+        }
+
+        return metaData;
     }
 
     public java.sql.Clob getClob(int i) throws SQLException
