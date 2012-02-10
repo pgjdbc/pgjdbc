@@ -31,32 +31,23 @@ public class Jdbc3gResultSet extends org.postgresql.jdbc3g.AbstractJdbc3gResultS
         return new Jdbc3gResultSetMetaData(connection, fields);
     }
 
-    public java.sql.Clob getClob(int i) throws SQLException
+    protected java.sql.Clob makeClob(long oid) throws SQLException
     {
-        checkResultSet(i);
-        if (wasNullFlag)
-            return null;
-
-        return new Jdbc3gClob(connection, getLong(i));
+        return new Jdbc3gClob(connection, oid);
     }
 
-    public java.sql.Blob getBlob(int i) throws SQLException
+    protected java.sql.Blob makeBlob(long oid) throws SQLException
     {
-        checkResultSet(i);
-        if (wasNullFlag)
-            return null;
-
-        return new Jdbc3gBlob(connection, getLong(i));
+        return new Jdbc3gBlob(connection, oid);
     }
 
-    public Array createArray(int i) throws SQLException
+    public Array makeArray(int oid, byte[] value) throws SQLException
     {
-        checkResultSet(i);
-        int oid = fields[i - 1].getOID();
-        if (isBinary(i)) {
-            return new Jdbc3gArray(connection, oid, this_row[i - 1]);
-        }
-        String value = getFixedString(i);
+        return new Jdbc3gArray(connection, oid, value);
+    }
+
+    public Array makeArray(int oid, String value) throws SQLException
+    {
         return new Jdbc3gArray(connection, oid, value);
     }
 

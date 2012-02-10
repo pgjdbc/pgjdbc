@@ -323,6 +323,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         return getArray(findColumn(colName));
     }
 
+    protected abstract Array makeArray(int oid, byte[] value) throws SQLException;
+    protected abstract Array makeArray(int oid, String value) throws SQLException;
 
     public java.sql.Array getArray(int i) throws SQLException
     {
@@ -330,7 +332,11 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         if (wasNullFlag)
             return null;
 
-        return createArray(i);
+        int oid = fields[i - 1].getOID();
+        if (isBinary(i)) {
+            return makeArray(oid, this_row[i - 1]);
+        }
+        return makeArray(oid, getFixedString(i));
     }
 
 
@@ -352,7 +358,16 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     }
 
 
-    public abstract Blob getBlob(int i) throws SQLException;
+    protected abstract Blob makeBlob(long oid) throws SQLException;
+
+    public Blob getBlob(int i) throws SQLException
+    {
+        checkResultSet(i);
+        if (wasNullFlag)
+            return null;
+
+        return makeBlob(getLong(i));
+    }
 
 
     public java.io.Reader getCharacterStream(String columnName) throws SQLException
@@ -401,8 +416,16 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     }
 
 
-    public abstract Clob getClob(int i) throws SQLException;
+    protected abstract Clob makeClob(long oid) throws SQLException;
 
+    public Clob getClob(int i) throws SQLException
+    {
+        checkResultSet(i);
+        if (wasNullFlag)
+            return null;
+
+        return makeClob(getLong(i));
+    }
 
     public int getConcurrency() throws SQLException
     {
