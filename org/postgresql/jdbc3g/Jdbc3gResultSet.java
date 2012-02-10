@@ -26,9 +26,8 @@ public class Jdbc3gResultSet extends org.postgresql.jdbc3g.AbstractJdbc3gResultS
         super(originalQuery, statement, fields, tuples, cursor, maxRows, maxFieldSize, rsType, rsConcurrency, rsHoldability);
     }
 
-    public java.sql.ResultSetMetaData getMetaData() throws SQLException
+    protected java.sql.ResultSetMetaData createMetaData() throws SQLException
     {
-        checkClosed();
         return new Jdbc3gResultSetMetaData(connection, fields);
     }
 

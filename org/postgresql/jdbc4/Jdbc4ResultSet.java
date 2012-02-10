@@ -26,9 +26,8 @@ public class Jdbc4ResultSet extends AbstractJdbc4ResultSet implements java.sql.R
         super(originalQuery, statement, fields, tuples, cursor, maxRows, maxFieldSize, rsType, rsConcurrency, rsHoldability);
     }
 
-    public java.sql.ResultSetMetaData getMetaData() throws SQLException
+    protected java.sql.ResultSetMetaData createMetaData() throws SQLException
     {
-        checkClosed();
         return new Jdbc4ResultSetMetaData(connection, fields);
     }
 
