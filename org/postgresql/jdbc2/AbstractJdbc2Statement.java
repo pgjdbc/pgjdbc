@@ -706,23 +706,30 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public void setQueryTimeout(int seconds) throws SQLException
     {
         checkClosed();
+
         if (seconds < 0)
             throw new PSQLException(GT.tr("Query timeout must be a value greater than or equals to 0."),
                                     PSQLState.INVALID_PARAMETER_VALUE);
 
+        if (seconds == 0) {
+            if ( cancelTimer != null ) {
+                cancelTimer.cancel();
+        	    cancelTimer = null;
+            }
+            return;
+        }
+
         cancelTimer = new TimerTask() {
-        	public void run()
-        	{
-        		try {
-					AbstractJdbc2Statement.this.cancel();
-				} catch (SQLException e) {
-				}
-        		
-        	}
-        	
+            public void run()
+            {
+                try {
+                    AbstractJdbc2Statement.this.cancel();
+                } catch (SQLException e) {
+                }
+            }
         };
         
-        Driver.addTimerTask( cancelTimer, seconds);
+        Driver.addTimerTask( cancelTimer, seconds * 1000);
         timeout = seconds;
     }
 
