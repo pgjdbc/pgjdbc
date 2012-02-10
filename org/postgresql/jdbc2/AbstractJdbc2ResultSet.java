@@ -83,8 +83,18 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     private HashMap columnNameIndexMap; // Speed up findColumn by caching lookups
 
-    public abstract ResultSetMetaData getMetaData() throws SQLException;
+    private ResultSetMetaData rsMetaData;
 
+    protected abstract ResultSetMetaData createMetaData() throws SQLException;
+
+    public ResultSetMetaData getMetaData() throws SQLException
+    {
+        checkClosed();
+        if (rsMetaData == null) {
+            rsMetaData = createMetaData();
+        }
+        return rsMetaData;
+    }
 
     public AbstractJdbc2ResultSet(Query originalQuery, BaseStatement statement, Field[] fields, Vector tuples,
                                   ResultCursor cursor, int maxRows, int maxFieldSize,
