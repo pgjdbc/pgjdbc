@@ -9,6 +9,7 @@ package org.postgresql.jdbc2;
 
 import java.sql.*;
 import java.util.*;
+
 import org.postgresql.core.*;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -2638,10 +2639,10 @@ public abstract class AbstractJdbc2DatabaseMetaData
         String sql;
         if (connection.haveMinimumServerVersion("7.3"))
         {
-            sql = "SELECT n.nspname,c.relname,u.usename,c.relacl,a.attname " +
-                  " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class c, pg_catalog.pg_user u, pg_catalog.pg_attribute a " +
+            sql = "SELECT n.nspname,c.relname,r.rolname,a.attacl,a.attname " +
+                  " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class c, pg_catalog.pg_roles r, pg_catalog.pg_attribute a " +
                   " WHERE c.relnamespace = n.oid " +
-                  " AND u.usesysid = c.relowner " +
+                  " AND c.relowner = r.oid " +
                   " AND c.oid = a.attrelid " +
                   " AND c.relkind = 'r' " +
                   " AND a.attnum > 0 AND NOT a.attisdropped ";
@@ -2673,8 +2674,8 @@ public abstract class AbstractJdbc2DatabaseMetaData
             byte schemaName[] = rs.getBytes("nspname");
             byte tableName[] = rs.getBytes("relname");
             byte column[] = rs.getBytes("attname");
-            String owner = rs.getString("usename");
-            String acl = rs.getString("relacl");
+            String owner = rs.getString("rolname");
+            String acl = rs.getString("attacl");
             Hashtable permissions = parseACL(acl, owner);
             String permNames[] = new String[permissions.size()];
             Enumeration e = permissions.keys();
@@ -2687,17 +2688,26 @@ public abstract class AbstractJdbc2DatabaseMetaData
             for (i = 0; i < permNames.length; i++)
             {
                 byte[] privilege = connection.encodeString(permNames[i]);
-                Vector grantees = (Vector)permissions.get(permNames[i]);
+                Hashtable grantees = (Hashtable)permissions.get(permNames[i]);
+                String granteeUsers[] = new String[grantees.size()];
+                Enumeration g = grantees.keys();
+                int k = 0;
+                while (g.hasMoreElements()){
+                	granteeUsers[k++] = (String)g.nextElement();
+                }                
                 for (int j = 0; j < grantees.size(); j++)
                 {
-                    String grantee = (String)grantees.elementAt(j);
-                    String grantable = owner.equals(grantee) ? "YES" : "NO";
+                	Vector grantor = (Vector)grantees.get(granteeUsers[j]);
+                	String grantee = (String)granteeUsers[j];
+                	for (int l = 0; l < grantor.size(); l++) {
+                		String[] grants = (String[])grantor.elementAt(l);                	
+	                    String grantable = owner.equals(grantee) ? "YES" : grants[1];
                     byte[][] tuple = new byte[8][];
                     tuple[0] = null;
                     tuple[1] = schemaName;
                     tuple[2] = tableName;
                     tuple[3] = column;
-                    tuple[4] = connection.encodeString(owner);
+	                    tuple[4] = connection.encodeString(grants[0]);
                     tuple[5] = connection.encodeString(grantee);
                     tuple[6] = privilege;
                     tuple[7] = connection.encodeString(grantable);
@@ -2705,6 +2715,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 }
             }
         }
+	}
         rs.close();
 
         return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, v);
@@ -2756,10 +2767,10 @@ public abstract class AbstractJdbc2DatabaseMetaData
         String sql;
         if (connection.haveMinimumServerVersion("7.3"))
         {
-            sql = "SELECT n.nspname,c.relname,u.usename,c.relacl " +
-                  " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class c, pg_catalog.pg_user u " +
+            sql = "SELECT n.nspname,c.relname,r.rolname,c.relacl " +
+                  " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class c, pg_catalog.pg_roles r " +
                   " WHERE c.relnamespace = n.oid " +
-                  " AND u.usesysid = c.relowner " +
+                  " AND c.relowner = r.oid " +
                   " AND c.relkind = 'r' ";
             if (schemaPattern != null && !"".equals(schemaPattern))
             {
@@ -2785,7 +2796,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         {
             byte schema[] = rs.getBytes("nspname");
             byte table[] = rs.getBytes("relname");
-            String owner = rs.getString("usename");
+            String owner = rs.getString("rolname");
             String acl = rs.getString("relacl");
             Hashtable permissions = parseACL(acl, owner);
             String permNames[] = new String[permissions.size()];
@@ -2799,20 +2810,34 @@ public abstract class AbstractJdbc2DatabaseMetaData
             for (i = 0; i < permNames.length; i++)
             {
                 byte[] privilege = connection.encodeString(permNames[i]);
-                Vector grantees = (Vector)permissions.get(permNames[i]);
-                for (int j = 0; j < grantees.size(); j++)
+                Hashtable grantees = (Hashtable)permissions.get(permNames[i]);
+                String granteeUsers[] = new String[grantees.size()];
+                Enumeration g = grantees.keys();
+                int k = 0;
+                while (g.hasMoreElements()){
+                	granteeUsers[k++] = (String)g.nextElement();
+                }
+                for (int j = 0; j < granteeUsers.length; j++)
                 {
-                    String grantee = (String)grantees.elementAt(j);
-                    String grantable = owner.equals(grantee) ? "YES" : "NO";
-                    byte[][] tuple = new byte[7][];
-                    tuple[0] = null;
-                    tuple[1] = schema;
-                    tuple[2] = table;
-                    tuple[3] = connection.encodeString(owner);
-                    tuple[4] = connection.encodeString(grantee);
-                    tuple[5] = privilege;
-                    tuple[6] = connection.encodeString(grantable);
-                    v.addElement(tuple);
+                	Vector grants = (Vector)grantees.get(granteeUsers[j]);
+                	String grantee = (String)granteeUsers[j];
+                	for (int l = 0; l < grants.size(); l++) {
+                		String[] grantTuple = (String[])grants.elementAt(l);
+                		// report the owner as grantor if it's missing
+                        String grantor = grantTuple[0].equals(null) ? owner : grantTuple[0];
+                        // owner always has grant privileges
+                        String grantable = owner.equals(grantee) ? "YES" : grantTuple[1];
+                    	byte[][] tuple = new byte[7][];
+                    	tuple[0] = null;
+                    	tuple[1] = schema;
+                    	tuple[2] = table;
+                        tuple[3] = connection.encodeString(grantor);
+                    	tuple[4] = connection.encodeString(grantee);
+                    	tuple[5] = privilege;
+                    	tuple[6] = connection.encodeString(grantable);
+                    	v.addElement(tuple);
+                    		
+                	}
                 }
             }
         }
@@ -2886,19 +2911,35 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     private void addACLPrivileges(String acl, Hashtable privileges) {
         int equalIndex = acl.lastIndexOf("=");
+        int slashIndex = acl.lastIndexOf("/");
         if (equalIndex == -1)
             return;
 
-        String name = acl.substring(0, equalIndex);
-        if (name.length() == 0)
+        String user = acl.substring(0, equalIndex);
+        String grantor = null;
+        if (user.length() == 0)
         {
-            name = "PUBLIC";
+            user = "PUBLIC";
         }
-        String privs = acl.substring(equalIndex + 1);
+        String privs;
+        if (slashIndex != -1) {
+        	privs = acl.substring(equalIndex + 1, slashIndex);
+        	grantor = acl.substring(slashIndex + 1, acl.length());
+        } else {
+        	privs = acl.substring(equalIndex + 1, acl.length());
+        }
+        	
         for (int i = 0; i < privs.length(); i++)
         {
             char c = privs.charAt(i);
+            if (c != '*') {
             String sqlpriv;
+	            String grantable;
+	            if ( i < privs.length()-1 && privs.charAt(i + 1) == '*') {
+	            	grantable = "YES";
+	            } else {
+	            	grantable = "NO";
+	            }
             switch (c)
             {
             case 'a':
@@ -2942,13 +2983,27 @@ public abstract class AbstractJdbc2DatabaseMetaData
             default:
                 sqlpriv = "UNKNOWN";
             }
-            Vector usersWithPermission = (Vector)privileges.get(sqlpriv);
-            if (usersWithPermission == null)
-            {
-                usersWithPermission = new Vector();
+	            
+	            Hashtable usersWithPermission = (Hashtable)privileges.get(sqlpriv);
+	            String[] grant = {grantor, grantable}; 
+
+	            if (usersWithPermission == null) {	           
+	                usersWithPermission = new Hashtable();
+	                Vector permissionByGrantor = new Vector();
+            		permissionByGrantor.addElement(grant);
+	                usersWithPermission.put(user, permissionByGrantor);
                 privileges.put(sqlpriv, usersWithPermission);
+	            } else {
+	            	Vector permissionByGrantor = (Vector)usersWithPermission.get(user);
+	            	if (permissionByGrantor == null) {
+	            		permissionByGrantor = new Vector();
+	            		permissionByGrantor.addElement(grant);
+	            		usersWithPermission.put(user,permissionByGrantor);
+	            	} else {
+	            		permissionByGrantor.addElement(grant);
+	            	}	            
+	            }
             }
-            usersWithPermission.addElement(name);
         }
     }
 
@@ -2957,7 +3012,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      * a Hashtable mapping the SQL permission name to a Vector of
      * usernames who have that permission.
      */
-    protected Hashtable parseACL(String aclArray, String owner) {
+    public Hashtable parseACL(String aclArray, String owner) {
         if (aclArray == null)
         {
             //null acl is a shortcut for owner having full privs
@@ -2969,7 +3024,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 // 8.4 Added a separate TRUNCATE permission
                 perms = "arwdDxt";
             }
-            aclArray = "{" + owner + "=" + perms + "}";
+            aclArray = "{" + owner + "=" + perms + "/" + owner + "}";
         }
 
         Vector acls = parseACLArray(aclArray);

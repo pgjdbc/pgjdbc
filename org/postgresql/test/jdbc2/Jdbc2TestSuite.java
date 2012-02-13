@@ -88,7 +88,8 @@ public class Jdbc2TestSuite extends TestSuite
         suite.addTestSuite(GeometricTest.class);
 
         suite.addTestSuite(LoginTimeoutTest.class);
-
+        suite.addTestSuite(TestACL.class);
+        
         Connection conn = TestUtil.openDB();
         if (TestUtil.isProtocolVersion(conn, 3)) {
             suite.addTestSuite(CopyTest.class);
