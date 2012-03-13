@@ -96,7 +96,7 @@ public class Oid {
 
     public static int valueOf(String oid) throws PSQLException {
         try {
-            return Integer.parseInt(oid);
+            return (int)Long.parseLong(oid);
         } catch (NumberFormatException ex) {
         }
         try {

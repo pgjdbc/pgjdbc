@@ -14,7 +14,8 @@ import org.postgresql.core.*;
 import java.sql.*;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.BitSet;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.Properties;
 
 /**
@@ -200,12 +201,12 @@ class ProtocolConnectionImpl implements ProtocolConnection {
     }
 
     public boolean useBinaryForReceive(int oid) {
-        return useBinaryForOids.get(oid);
+        return useBinaryForOids.contains(oid);
     }
 
-    public void setBinaryReceiveOids(BitSet oids) {
+    public void setBinaryReceiveOids(Set oids) {
         useBinaryForOids.clear();
-        useBinaryForOids.or(oids);
+        useBinaryForOids.addAll(oids);
     }
 
     public void setIntegerDateTimes(boolean state) {
@@ -226,7 +227,7 @@ class ProtocolConnectionImpl implements ProtocolConnection {
     * Bit set that has a bit set for each oid which should be received
     * using binary format.
     */
-    private final BitSet useBinaryForOids = new BitSet();
+    private final Set<Integer> useBinaryForOids = new HashSet<Integer>();
     private String serverVersion;
     private int cancelPid;
     private int cancelKey;

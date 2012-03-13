@@ -11,7 +11,7 @@ package org.postgresql.core.v2;
 import java.sql.*;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.BitSet;
+import java.util.Set;
 
 import org.postgresql.PGNotification;
 import org.postgresql.core.*;
@@ -200,7 +200,7 @@ class ProtocolConnectionImpl implements ProtocolConnection {
         return 2;
     }
     
-    public void setBinaryReceiveOids(BitSet ignored) {
+    public void setBinaryReceiveOids(Set<Integer> ignored) {
         // ignored for v2 connections
     }
 

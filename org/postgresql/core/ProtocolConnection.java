@@ -10,7 +10,7 @@ package org.postgresql.core;
 
 import org.postgresql.PGNotification;
 import java.sql.*;
-import java.util.BitSet;
+import java.util.Set;
 
 /**
  * Provides access to protocol-level connection operations.
@@ -137,7 +137,7 @@ public interface ProtocolConnection {
      *
      * @param useBinaryForOids The oids to request with binary encoding.
      */
-    public void setBinaryReceiveOids(BitSet useBinaryForOids);
+    public void setBinaryReceiveOids(Set<Integer> useBinaryForOids);
 
     /**
      * Returns true if server uses integer instead of double for binary

@@ -73,10 +73,10 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     // Current warnings; there might be more on protoConnection too.
     public SQLWarning firstWarning = null;
 
-    /** BitSet of oids that use binary transfer when sending to server. */
-    private BitSet useBinarySendForOids;
-    /** BitSet of oids that use binary transfer when receiving from server. */
-    private BitSet useBinaryReceiveForOids;
+    /** Set of oids that use binary transfer when sending to server. */
+    private Set<Integer> useBinarySendForOids;
+    /** Set of oids that use binary transfer when receiving from server. */
+    private Set<Integer> useBinaryReceiveForOids;
 
     public abstract DatabaseMetaData getMetaData() throws SQLException;
 
@@ -139,66 +139,66 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         this.compatible = info.getProperty("compatible", Driver.MAJORVERSION + "." + Driver.MINORVERSION);
 
         // Formats that currently have binary protocol support
-        BitSet binaryOids = new BitSet();
+        Set<Integer> binaryOids = new HashSet<Integer>();
         if (binaryTransfer && protoConnection.getProtocolVersion() >= 3) {
-            binaryOids.set(Oid.BYTEA);
-            binaryOids.set(Oid.INT2);
-            binaryOids.set(Oid.INT4);
-            binaryOids.set(Oid.INT8);
-            binaryOids.set(Oid.FLOAT4);
-            binaryOids.set(Oid.FLOAT8);
-            binaryOids.set(Oid.TIME);
-            binaryOids.set(Oid.DATE);
-            binaryOids.set(Oid.TIMETZ);
-            binaryOids.set(Oid.TIMESTAMP);
-            binaryOids.set(Oid.TIMESTAMPTZ);
-            binaryOids.set(Oid.INT2_ARRAY);
-            binaryOids.set(Oid.INT4_ARRAY);
-            binaryOids.set(Oid.INT8_ARRAY);
-            binaryOids.set(Oid.FLOAT4_ARRAY);
-            binaryOids.set(Oid.FLOAT8_ARRAY);
-            binaryOids.set(Oid.FLOAT8_ARRAY);
-            binaryOids.set(Oid.VARCHAR_ARRAY);
-            binaryOids.set(Oid.TEXT_ARRAY);
-            binaryOids.set(Oid.POINT);
-            binaryOids.set(Oid.BOX);
-            binaryOids.set(Oid.UUID);
+            binaryOids.add(Oid.BYTEA);
+            binaryOids.add(Oid.INT2);
+            binaryOids.add(Oid.INT4);
+            binaryOids.add(Oid.INT8);
+            binaryOids.add(Oid.FLOAT4);
+            binaryOids.add(Oid.FLOAT8);
+            binaryOids.add(Oid.TIME);
+            binaryOids.add(Oid.DATE);
+            binaryOids.add(Oid.TIMETZ);
+            binaryOids.add(Oid.TIMESTAMP);
+            binaryOids.add(Oid.TIMESTAMPTZ);
+            binaryOids.add(Oid.INT2_ARRAY);
+            binaryOids.add(Oid.INT4_ARRAY);
+            binaryOids.add(Oid.INT8_ARRAY);
+            binaryOids.add(Oid.FLOAT4_ARRAY);
+            binaryOids.add(Oid.FLOAT8_ARRAY);
+            binaryOids.add(Oid.FLOAT8_ARRAY);
+            binaryOids.add(Oid.VARCHAR_ARRAY);
+            binaryOids.add(Oid.TEXT_ARRAY);
+            binaryOids.add(Oid.POINT);
+            binaryOids.add(Oid.BOX);
+            binaryOids.add(Oid.UUID);
         }        
         // the pre 8.0 servers do not disclose their internal encoding for
         // time fields so do not try to use them.
         if (!haveMinimumCompatibleVersion("8.0")) {
-            binaryOids.clear(Oid.TIME);
-            binaryOids.clear(Oid.TIMETZ);
-            binaryOids.clear(Oid.TIMESTAMP);
-            binaryOids.clear(Oid.TIMESTAMPTZ);
+            binaryOids.remove(Oid.TIME);
+            binaryOids.remove(Oid.TIMETZ);
+            binaryOids.remove(Oid.TIMESTAMP);
+            binaryOids.remove(Oid.TIMESTAMPTZ);
         }
         // driver supports only null-compatible arrays
         if (!haveMinimumCompatibleVersion("8.3")) {
-            binaryOids.clear(Oid.INT2_ARRAY);
-            binaryOids.clear(Oid.INT4_ARRAY);
-            binaryOids.clear(Oid.INT8_ARRAY);
-            binaryOids.clear(Oid.FLOAT4_ARRAY);
-            binaryOids.clear(Oid.FLOAT8_ARRAY);
-            binaryOids.clear(Oid.FLOAT8_ARRAY);
-            binaryOids.clear(Oid.VARCHAR_ARRAY);
-            binaryOids.clear(Oid.TEXT_ARRAY);
+            binaryOids.remove(Oid.INT2_ARRAY);
+            binaryOids.remove(Oid.INT4_ARRAY);
+            binaryOids.remove(Oid.INT8_ARRAY);
+            binaryOids.remove(Oid.FLOAT4_ARRAY);
+            binaryOids.remove(Oid.FLOAT8_ARRAY);
+            binaryOids.remove(Oid.FLOAT8_ARRAY);
+            binaryOids.remove(Oid.VARCHAR_ARRAY);
+            binaryOids.remove(Oid.TEXT_ARRAY);
         }
 
-        binaryOids.or(getOidBitSet(info.getProperty("binaryTransferEnable", "")));
-        binaryOids.andNot(getOidBitSet(info.getProperty("binaryTransferDisable", "")));
+        binaryOids.addAll(getOidSet(info.getProperty("binaryTransferEnable", "")));
+        binaryOids.removeAll(getOidSet(info.getProperty("binaryTransferDisable", "")));
 
         // split for receive and send for better control
-        useBinarySendForOids = new BitSet();
-        useBinarySendForOids.or(binaryOids);
-        useBinaryReceiveForOids = new BitSet();
-        useBinaryReceiveForOids.or(binaryOids);
+        useBinarySendForOids = new HashSet<Integer>();
+        useBinarySendForOids.addAll(binaryOids);
+        useBinaryReceiveForOids = new HashSet<Integer>();
+        useBinaryReceiveForOids.addAll(binaryOids);
 
         /*
          * Does not pass unit tests because unit tests expect setDate to have
          * millisecond accuracy whereas the binary transfer only supports
          * date accuracy.
          */
-        useBinarySendForOids.clear(Oid.DATE);
+        useBinarySendForOids.remove(Oid.DATE);
 
         protoConnection.setBinaryReceiveOids(useBinaryReceiveForOids);
 
@@ -257,20 +257,19 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         }
     }
 
-    private BitSet getOidBitSet(String oidList) throws PSQLException {
-        BitSet oids = new BitSet();
+    private Set<Integer> getOidSet(String oidList) throws PSQLException {
+        Set oids = new HashSet();
         StringTokenizer tokenizer = new StringTokenizer(oidList, ",");
         while (tokenizer.hasMoreTokens()) {
             String oid = tokenizer.nextToken();
-            oids.set(Oid.valueOf(oid));
+            oids.add(Oid.valueOf(oid));
         }
         return oids;
     }
 
-    private String oidsToString(BitSet oids) {
+    private String oidsToString(Set<Integer> oids) {
         StringBuffer sb = new StringBuffer();
-        int oid = -1;
-        while ((oid = oids.nextSetBit(oid + 1)) != -1) {
+        for (Integer oid : oids) {
             sb.append(Oid.toString(oid));
             sb.append(',');
         }
@@ -1223,6 +1222,6 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     }
 
     public boolean binaryTransferSend(int oid) {
-        return useBinarySendForOids.get(oid);
+        return useBinarySendForOids.contains(oid);
     }
 }
