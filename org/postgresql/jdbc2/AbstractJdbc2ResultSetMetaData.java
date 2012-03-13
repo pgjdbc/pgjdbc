@@ -237,8 +237,8 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
         Statement stmt = connection.createStatement();
         ResultSet rs = stmt.executeQuery(sql.toString());
         while (rs.next()) {
-            int table = rs.getInt(1);
-            int column = rs.getInt(2);
+            int table = (int)rs.getLong(1);
+            int column = (int)rs.getLong(2);
             String columnName = rs.getString(3);
             String tableName = rs.getString(4);
             String schemaName = rs.getString(5);
