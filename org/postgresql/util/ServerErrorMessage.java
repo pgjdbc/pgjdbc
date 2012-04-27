@@ -43,7 +43,8 @@ public class ServerErrorMessage implements Serializable
             {
                 l_pos++;
                 int l_startString = l_pos;
-                while (l_chars[l_pos] != '\0' && l_pos < l_length)
+				// order here is important position must be checked before accessing the array
+                while ( l_pos < l_length && l_chars[l_pos] != '\0' )
                 {
                     l_pos++;
                 }
