@@ -47,7 +47,10 @@
         <equals arg1="${java.specification.version}" arg2="1.6"/>
     </condition>
     <condition property="jdbc41">
-        <equals arg1="${java.specification.version}" arg2="1.7"/>
+      <or>
+	<equals arg1="${java.specification.version}" arg2="1.7"/>
+        <equals arg1="${java.specification.version}" arg2="1.8"/>
+      </or>
     </condition>
     <condition property="jdbc4any">
       <or>
