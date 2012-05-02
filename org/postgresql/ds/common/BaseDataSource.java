@@ -186,7 +186,7 @@ public abstract class BaseDataSource implements Referenceable
         return protocolVersion;
     }
 
-    public void setProtocolVersion(int protocolversion)
+    public void setProtocolVersion(int protocolVersion)
     {
         this.protocolVersion = protocolVersion;
     }
