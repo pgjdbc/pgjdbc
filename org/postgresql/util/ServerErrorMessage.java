@@ -7,7 +7,8 @@
 */
 package org.postgresql.util;
 
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Map;
 import java.io.Serializable;
 
 public class ServerErrorMessage implements Serializable
@@ -26,7 +27,7 @@ public class ServerErrorMessage implements Serializable
     private static final Character INTERNAL_POSITION = new Character('p');
     private static final Character INTERNAL_QUERY = new Character('q');
 
-    private final Hashtable m_mesgParts = new Hashtable();
+    private final Map m_mesgParts = new HashMap();
     private final int verbosity;
 
     public ServerErrorMessage(String p_serverError, int verbosity)

@@ -500,7 +500,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
      * This method is used internally to return an object based around
      * org.postgresql's more unique data types.
      *
-     * <p>It uses an internal Hashtable to get the handling class. If the
+     * <p>It uses an internal HashMap to get the handling class. If the
      * type is not supported, then an instance of org.postgresql.util.PGobject
      * is returned.
      *
@@ -598,7 +598,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         _typeCache.addDataType(type, klass);
     }
 
-    // This initialises the objectTypes hashtable
+    // This initialises the objectTypes hash map
     private void initObjectTypes(Properties info) throws SQLException
     {
         // Add in the types that come packaged with the driver.

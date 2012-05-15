@@ -2114,7 +2114,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
             select += " AND (false ";
             for (int i = 0; i < types.length; i++)
             {
-                Hashtable clauses = (Hashtable)tableTypeClauses.get(types[i]);
+                Map clauses = (Map)tableTypeClauses.get(types[i]);
                 if (clauses != null)
                 {
                     String clause = (String)clauses.get(useSchemas);
@@ -2128,66 +2128,66 @@ public abstract class AbstractJdbc2DatabaseMetaData
         return createMetaDataStatement().executeQuery(sql);
     }
 
-    private static final Hashtable tableTypeClauses;
+    private static final Map tableTypeClauses;
     static {
-        tableTypeClauses = new Hashtable();
-        Hashtable ht = new Hashtable();
+        tableTypeClauses = new HashMap();
+        Map ht = new HashMap();
         tableTypeClauses.put("TABLE", ht);
         ht.put("SCHEMAS", "c.relkind = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
         ht.put("NOSCHEMAS", "c.relkind = 'r' AND c.relname !~ '^pg_'");
-        ht = new Hashtable();
+        ht = new HashMap();
         tableTypeClauses.put("VIEW", ht);
         ht.put("SCHEMAS", "c.relkind = 'v' AND n.nspname <> 'pg_catalog' AND n.nspname <> 'information_schema'");
         ht.put("NOSCHEMAS", "c.relkind = 'v' AND c.relname !~ '^pg_'");
-        ht = new Hashtable();
+        ht = new HashMap();
         tableTypeClauses.put("INDEX", ht);
         ht.put("SCHEMAS", "c.relkind = 'i' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
         ht.put("NOSCHEMAS", "c.relkind = 'i' AND c.relname !~ '^pg_'");
-        ht = new Hashtable();
+        ht = new HashMap();
         tableTypeClauses.put("SEQUENCE", ht);
         ht.put("SCHEMAS", "c.relkind = 'S'");
         ht.put("NOSCHEMAS", "c.relkind = 'S'");
-        ht = new Hashtable();
+        ht = new HashMap();
         tableTypeClauses.put("TYPE", ht);
         ht.put("SCHEMAS", "c.relkind = 'c' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
         ht.put("NOSCHEMAS", "c.relkind = 'c' AND c.relname !~ '^pg_'");
-        ht = new Hashtable();
+        ht = new HashMap();
         tableTypeClauses.put("SYSTEM TABLE", ht);
         ht.put("SCHEMAS", "c.relkind = 'r' AND (n.nspname = 'pg_catalog' OR n.nspname = 'information_schema')");
         ht.put("NOSCHEMAS", "c.relkind = 'r' AND c.relname ~ '^pg_' AND c.relname !~ '^pg_toast_' AND c.relname !~ '^pg_temp_'");
-        ht = new Hashtable();
+        ht = new HashMap();
         tableTypeClauses.put("SYSTEM TOAST TABLE", ht);
         ht.put("SCHEMAS", "c.relkind = 'r' AND n.nspname = 'pg_toast'");
         ht.put("NOSCHEMAS", "c.relkind = 'r' AND c.relname ~ '^pg_toast_'");
-        ht = new Hashtable();
+        ht = new HashMap();
         tableTypeClauses.put("SYSTEM TOAST INDEX", ht);
         ht.put("SCHEMAS", "c.relkind = 'i' AND n.nspname = 'pg_toast'");
         ht.put("NOSCHEMAS", "c.relkind = 'i' AND c.relname ~ '^pg_toast_'");
-        ht = new Hashtable();
+        ht = new HashMap();
         tableTypeClauses.put("SYSTEM VIEW", ht);
         ht.put("SCHEMAS", "c.relkind = 'v' AND (n.nspname = 'pg_catalog' OR n.nspname = 'information_schema') ");
         ht.put("NOSCHEMAS", "c.relkind = 'v' AND c.relname ~ '^pg_'");
-        ht = new Hashtable();
+        ht = new HashMap();
         tableTypeClauses.put("SYSTEM INDEX", ht);
         ht.put("SCHEMAS", "c.relkind = 'i' AND (n.nspname = 'pg_catalog' OR n.nspname = 'information_schema') ");
         ht.put("NOSCHEMAS", "c.relkind = 'v' AND c.relname ~ '^pg_' AND c.relname !~ '^pg_toast_' AND c.relname !~ '^pg_temp_'");
-        ht = new Hashtable();
+        ht = new HashMap();
         tableTypeClauses.put("TEMPORARY TABLE", ht);
         ht.put("SCHEMAS", "c.relkind = 'r' AND n.nspname ~ '^pg_temp_' ");
         ht.put("NOSCHEMAS", "c.relkind = 'r' AND c.relname ~ '^pg_temp_' ");
-        ht = new Hashtable();
+        ht = new HashMap();
         tableTypeClauses.put("TEMPORARY INDEX", ht);
         ht.put("SCHEMAS", "c.relkind = 'i' AND n.nspname ~ '^pg_temp_' ");
         ht.put("NOSCHEMAS", "c.relkind = 'i' AND c.relname ~ '^pg_temp_' ");
-        ht = new Hashtable();
+        ht = new HashMap();
         tableTypeClauses.put("TEMPORARY VIEW", ht);
         ht.put("SCHEMAS", "c.relkind = 'v' AND n.nspname ~ '^pg_temp_' ");
         ht.put("NOSCHEMAS", "c.relkind = 'v' AND c.relname ~ '^pg_temp_' ");
-        ht = new Hashtable();
+        ht = new HashMap();
         tableTypeClauses.put("TEMPORARY SEQUENCE", ht);
         ht.put("SCHEMAS", "c.relkind = 'S' AND n.nspname ~ '^pg_temp_' ");
         ht.put("NOSCHEMAS", "c.relkind = 'S' AND c.relname ~ '^pg_temp_' ");
-        ht = new Hashtable();
+        ht = new HashMap();
         tableTypeClauses.put("FOREIGN TABLE", ht);
         ht.put("SCHEMAS", "c.relkind = 'f'");
         ht.put("NOSCHEMAS", "c.relkind = 'f'");
@@ -2292,11 +2292,11 @@ public abstract class AbstractJdbc2DatabaseMetaData
     public java.sql.ResultSet getTableTypes() throws SQLException
     {
         String types[] = new String[tableTypeClauses.size()];
-        Enumeration e = tableTypeClauses.keys();
+        Iterator e = tableTypeClauses.keySet().iterator();
         int i = 0;
-        while (e.hasMoreElements())
+        while (e.hasNext())
         {
-            types[i++] = (String)e.nextElement();
+            types[i++] = (String)e.next();
         }
         sortStringArray(types);
 
@@ -2676,24 +2676,24 @@ public abstract class AbstractJdbc2DatabaseMetaData
             byte column[] = rs.getBytes("attname");
             String owner = rs.getString("rolname");
             String acl = rs.getString("attacl");
-            Hashtable permissions = parseACL(acl, owner);
+            Map permissions = parseACL(acl, owner);
             String permNames[] = new String[permissions.size()];
-            Enumeration e = permissions.keys();
+            Iterator e = permissions.keySet().iterator();
             int i = 0;
-            while (e.hasMoreElements())
+            while (e.hasNext())
             {
-                permNames[i++] = (String)e.nextElement();
+                permNames[i++] = (String)e.next();
             }
             sortStringArray(permNames);
             for (i = 0; i < permNames.length; i++)
             {
                 byte[] privilege = connection.encodeString(permNames[i]);
-                Hashtable grantees = (Hashtable)permissions.get(permNames[i]);
+                Map grantees = (Map)permissions.get(permNames[i]);
                 String granteeUsers[] = new String[grantees.size()];
-                Enumeration g = grantees.keys();
+                Iterator g = grantees.keySet().iterator();
                 int k = 0;
-                while (g.hasMoreElements()){
-                	granteeUsers[k++] = (String)g.nextElement();
+                while (g.hasNext()){
+                	granteeUsers[k++] = (String)g.next();
                 }                
                 for (int j = 0; j < grantees.size(); j++)
                 {
@@ -2798,24 +2798,24 @@ public abstract class AbstractJdbc2DatabaseMetaData
             byte table[] = rs.getBytes("relname");
             String owner = rs.getString("rolname");
             String acl = rs.getString("relacl");
-            Hashtable permissions = parseACL(acl, owner);
+            Map permissions = parseACL(acl, owner);
             String permNames[] = new String[permissions.size()];
-            Enumeration e = permissions.keys();
+            Iterator e = permissions.keySet().iterator();
             int i = 0;
-            while (e.hasMoreElements())
+            while (e.hasNext())
             {
-                permNames[i++] = (String)e.nextElement();
+                permNames[i++] = (String)e.next();
             }
             sortStringArray(permNames);
             for (i = 0; i < permNames.length; i++)
             {
                 byte[] privilege = connection.encodeString(permNames[i]);
-                Hashtable grantees = (Hashtable)permissions.get(permNames[i]);
+                Map grantees = (Map)permissions.get(permNames[i]);
                 String granteeUsers[] = new String[grantees.size()];
-                Enumeration g = grantees.keys();
+                Iterator g = grantees.keySet().iterator();
                 int k = 0;
-                while (g.hasMoreElements()){
-                	granteeUsers[k++] = (String)g.nextElement();
+                while (g.hasNext()){
+                	granteeUsers[k++] = (String)g.next();
                 }
                 for (int j = 0; j < granteeUsers.length; j++)
                 {
@@ -2909,7 +2909,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      * Add the user described by the given acl to the Lists of users
      * with the privileges described by the acl.
      */
-    private void addACLPrivileges(String acl, Hashtable privileges) {
+    private void addACLPrivileges(String acl, Map privileges) {
         int equalIndex = acl.lastIndexOf("=");
         int slashIndex = acl.lastIndexOf("/");
         if (equalIndex == -1)
@@ -2984,11 +2984,11 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 sqlpriv = "UNKNOWN";
             }
 	            
-	            Hashtable usersWithPermission = (Hashtable)privileges.get(sqlpriv);
+	            Map usersWithPermission = (Map)privileges.get(sqlpriv);
 	            String[] grant = {grantor, grantable}; 
 
 	            if (usersWithPermission == null) {	           
-	                usersWithPermission = new Hashtable();
+	                usersWithPermission = new HashMap();
 	                List permissionByGrantor = new ArrayList();
             		permissionByGrantor.add(grant);
 	                usersWithPermission.put(user, permissionByGrantor);
@@ -3009,10 +3009,10 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
     /**
      * Take the a String representing an array of ACLs and return
-     * a Hashtable mapping the SQL permission name to a List of
+     * a Map mapping the SQL permission name to a List of
      * usernames who have that permission.
      */
-    public Hashtable parseACL(String aclArray, String owner) {
+    public Map parseACL(String aclArray, String owner) {
         if (aclArray == null)
         {
             //null acl is a shortcut for owner having full privs
@@ -3028,7 +3028,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         }
 
         List acls = parseACLArray(aclArray);
-        Hashtable privileges = new Hashtable();
+        Map privileges = new HashMap();
         for (int i = 0; i < acls.size(); i++)
         {
             String acl = (String)acls.get(i);

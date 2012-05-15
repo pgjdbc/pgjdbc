@@ -1004,7 +1004,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             System.arraycopy(this_row, 0, rowBuffer, 0, this_row.length);
         }
 
-        // clear the updateValues hashTable for the next set of updates
+        // clear the updateValues hash map for the next set of updates
         updateValues.clear();
 
     }
@@ -1615,7 +1615,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         }
         else
         {
-            // otherwise go and get the primary keys and create a hashtable of keys
+            // otherwise go and get the primary keys and create a list of keys
             String[] s = quotelessTableName(tableName);
             String quotelessTableName = s[0];
             String quotelessSchemaName = s[1];

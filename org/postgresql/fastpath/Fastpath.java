@@ -9,7 +9,9 @@ package org.postgresql.fastpath;
 
 import java.sql.SQLException;
 import java.sql.ResultSet;
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ParameterList;
@@ -35,7 +37,7 @@ public class Fastpath
 
     // This maps the functions names to their id's (possible unique just
     // to a connection).
-    private final Hashtable func = new Hashtable();
+    private final Map func = new HashMap();
     private final QueryExecutor executor;
     private final BaseConnection connection;
 
@@ -183,7 +185,7 @@ public class Fastpath
      *
      * <p>PostgreSQL stores the function id's and their corresponding names in
      * the pg_proc table. To speed things up locally, instead of querying each
-     * function from that table when required, a Hashtable is used. Also, only
+     * function from that table when required, a HashMap is used. Also, only
      * the function's required are entered into this table, keeping connection
      * times as fast as possible.
      *
