@@ -19,8 +19,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 /**
  * Array is used collect one column of query result data.
@@ -257,7 +257,7 @@ public abstract class AbstractJdbc2Array
         if (count > 0 && dimensions > 0) {
             dims[0] = Math.min(count, dims[0]);
         }
-        Vector rows = new Vector();
+        List rows = new ArrayList();
         Field[] fields = new Field[2];
         if (dimensions > 0) {
             storeValues(rows, fields, elementOid, dims, pos, 0, index);
@@ -266,7 +266,7 @@ public abstract class AbstractJdbc2Array
         return stat.createDriverResultSet(fields, rows);
     }
 
-    private int storeValues(Vector rows, Field[] fields, int elementOid, final int[] dims, int pos, final int thisDimension, int index) throws SQLException {
+    private int storeValues(List rows, Field[] fields, int elementOid, final int[] dims, int pos, final int thisDimension, int index) throws SQLException {
         if (thisDimension == dims.length - 1) {
             fields[0] = new Field("INDEX", Oid.INT4);
             fields[0].setFormat(Field.BINARY_FORMAT);
@@ -379,7 +379,7 @@ public abstract class AbstractJdbc2Array
             boolean insideString = false;
             boolean wasInsideString = false; // needed for checking if NULL
             // value occured
-            Vector dims = new Vector(); // array dimension arrays
+            List dims = new ArrayList(); // array dimension arrays
             PgArrayList curArray = arrayList; // currently processed array
 
             // Starting with 8.0 non-standard (beginning index
@@ -421,11 +421,11 @@ public abstract class AbstractJdbc2Array
                     else
                     {
                         PgArrayList a = new PgArrayList();
-                        PgArrayList p = ((PgArrayList) dims.lastElement());
+                        PgArrayList p = ((PgArrayList) dims.get(dims.size() - 1));
                         p.add(a);
                         dims.add(a);
                     }
-                    curArray = (PgArrayList) dims.lastElement();
+                    curArray = (PgArrayList) dims.get(dims.size() - 1);
 
                     // number of dimensions
                     {
@@ -483,7 +483,7 @@ public abstract class AbstractJdbc2Array
                         // when multi-dimension
                         if (dims.size() > 0)
                         {
-                            curArray = (PgArrayList) dims.lastElement();
+                            curArray = (PgArrayList) dims.get(dims.size() - 1);
                         }
 
                         buffer = null;
@@ -807,7 +807,7 @@ ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects
             throw new PSQLException(GT.tr("The array index is out of range: {0}, number of elements: {1}.", new Object[] { new Long(index + count), new Long(arrayList.size()) }), PSQLState.DATA_ERROR);
         }
 
-        Vector rows = new Vector();
+        List rows = new ArrayList();
 
         Field[] fields = new Field[2];
 

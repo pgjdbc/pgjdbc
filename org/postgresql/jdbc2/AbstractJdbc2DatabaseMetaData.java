@@ -1734,7 +1734,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
             columns += 7;
         }
         Field f[] = new Field[columns];
-        Vector v = new Vector();  // The new ResultSet tuple stuff
+        List v = new ArrayList();  // The new ResultSet tuple stuff
 
         f[0] = new Field("PROCEDURE_CAT", Oid.VARCHAR);
         f[1] = new Field("PROCEDURE_SCHEM", Oid.VARCHAR);
@@ -1809,10 +1809,10 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
             String strArgTypes = rs.getString("proargtypes");
             StringTokenizer st = new StringTokenizer(strArgTypes);
-            Vector argTypes = new Vector();
+            List argTypes = new ArrayList();
             while (st.hasMoreTokens())
             {
-                argTypes.addElement(new Long(st.nextToken()));
+                argTypes.add(new Long(st.nextToken()));
             }
 
             String argNames[] = null;
@@ -1868,7 +1868,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                     tuple[18] = isnullableUnknown;
                     tuple[19] = specificName;
                 }
-                v.addElement(tuple);
+                v.add(tuple);
             }
 
             // Add a row for each argument.
@@ -1896,7 +1896,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 if (allArgTypes != null)
                     argOid = allArgTypes[i].intValue();
                 else
-                    argOid = ((Long)argTypes.elementAt(i)).intValue();
+                    argOid = ((Long)argTypes.get(i)).intValue();
 
                 tuple[5] = connection.encodeString(Integer.toString(connection.getTypeInfo().getSQLType(argOid)));
                 tuple[6] = connection.encodeString(connection.getTypeInfo().getPGType(argOid));
@@ -1911,7 +1911,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                     tuple[18] = isnullableUnknown;
                     tuple[19] = specificName;
                 }
-                v.addElement(tuple);
+                v.add(tuple);
             }
 
             // if we are returning a multi-column result.
@@ -1945,7 +1945,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                         tuple[18] = isnullableUnknown;
                         tuple[19] = specificName;
                     }
-                    v.addElement(tuple);
+                    v.add(tuple);
                 }
                 columnrs.close();
             }
@@ -2266,11 +2266,11 @@ public abstract class AbstractJdbc2DatabaseMetaData
     public java.sql.ResultSet getCatalogs() throws SQLException
     {
         Field f[] = new Field[1];
-        Vector v = new Vector();
+        List v = new ArrayList();
         f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
         byte[][] tuple = new byte[1][];
         tuple[0] = connection.encodeString(connection.getCatalog());
-        v.addElement(tuple);
+        v.add(tuple);
 
         return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, v);
     }
@@ -2301,13 +2301,13 @@ public abstract class AbstractJdbc2DatabaseMetaData
         sortStringArray(types);
 
         Field f[] = new Field[1];
-        Vector v = new Vector();
+        List v = new ArrayList();
         f[0] = new Field("TABLE_TYPE", Oid.VARCHAR);
         for (i = 0; i < types.length; i++)
         {
             byte[][] tuple = new byte[1][];
             tuple[0] = connection.encodeString(types[i]);
-            v.addElement(tuple);
+            v.add(tuple);
         }
 
         return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, v);
@@ -2323,7 +2323,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         } else {
             numberOfFields = 18;
         }
-        Vector v = new Vector();  // The new ResultSet tuple stuff
+        List v = new ArrayList();  // The new ResultSet tuple stuff
         Field f[] = new Field[numberOfFields];  // The field descriptors for the new ResultSet
 
         f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
@@ -2529,7 +2529,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 tuple[22] = connection.encodeString(autoinc);
             }
 
-            v.addElement(tuple);
+            v.add(tuple);
         }
         rs.close();
 
@@ -2619,7 +2619,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
     public java.sql.ResultSet getColumnPrivileges(String catalog, String schema, String table, String columnNamePattern) throws SQLException
     {
         Field f[] = new Field[8];
-        Vector v = new Vector();
+        List v = new ArrayList();
 
         if (table == null)
             table = "%";
@@ -2697,10 +2697,10 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 }                
                 for (int j = 0; j < grantees.size(); j++)
                 {
-                	Vector grantor = (Vector)grantees.get(granteeUsers[j]);
+                	List grantor = (List)grantees.get(granteeUsers[j]);
                 	String grantee = (String)granteeUsers[j];
                 	for (int l = 0; l < grantor.size(); l++) {
-                		String[] grants = (String[])grantor.elementAt(l);                	
+                		String[] grants = (String[])grantor.get(l);                	
 	                    String grantable = owner.equals(grantee) ? "YES" : grants[1];
                     byte[][] tuple = new byte[8][];
                     tuple[0] = null;
@@ -2711,7 +2711,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                     tuple[5] = connection.encodeString(grantee);
                     tuple[6] = privilege;
                     tuple[7] = connection.encodeString(grantable);
-                    v.addElement(tuple);
+                    v.add(tuple);
                 }
             }
         }
@@ -2754,7 +2754,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
     public java.sql.ResultSet getTablePrivileges(String catalog, String schemaPattern, String tableNamePattern) throws SQLException
     {
         Field f[] = new Field[7];
-        Vector v = new Vector();
+        List v = new ArrayList();
 
         f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
         f[1] = new Field("TABLE_SCHEM", Oid.VARCHAR);
@@ -2819,10 +2819,10 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 }
                 for (int j = 0; j < granteeUsers.length; j++)
                 {
-                	Vector grants = (Vector)grantees.get(granteeUsers[j]);
+                	List grants = (List)grantees.get(granteeUsers[j]);
                 	String grantee = (String)granteeUsers[j];
                 	for (int l = 0; l < grants.size(); l++) {
-                		String[] grantTuple = (String[])grants.elementAt(l);
+                		String[] grantTuple = (String[])grants.get(l);
                 		// report the owner as grantor if it's missing
                         String grantor = grantTuple[0].equals(null) ? owner : grantTuple[0];
                         // owner always has grant privileges
@@ -2835,7 +2835,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                     	tuple[4] = connection.encodeString(grantee);
                     	tuple[5] = privilege;
                     	tuple[6] = connection.encodeString(grantable);
-                    	v.addElement(tuple);
+                    	v.add(tuple);
                     		
                 	}
                 }
@@ -2862,10 +2862,10 @@ public abstract class AbstractJdbc2DatabaseMetaData
     }
 
     /**
-     * Parse an String of ACLs into a Vector of ACLs.
+     * Parse an String of ACLs into a List of ACLs.
      */
-    private static Vector parseACLArray(String aclString) {
-        Vector acls = new Vector();
+    private static List parseACLArray(String aclString) {
+        List acls = new ArrayList();
         if (aclString == null || aclString.length() == 0)
         {
             return acls;
@@ -2884,29 +2884,29 @@ public abstract class AbstractJdbc2DatabaseMetaData
             }
             else if (c == ',' && !inQuotes)
             {
-                acls.addElement(aclString.substring(beginIndex, i));
+                acls.add(aclString.substring(beginIndex, i));
                 beginIndex = i + 1;
             }
             prevChar = c;
         }
         // add last element removing the trailing "}"
-        acls.addElement(aclString.substring(beginIndex, aclString.length() - 1));
+        acls.add(aclString.substring(beginIndex, aclString.length() - 1));
 
         // Strip out enclosing quotes, if any.
         for (int i = 0; i < acls.size(); i++)
         {
-            String acl = (String)acls.elementAt(i);
+            String acl = (String)acls.get(i);
             if (acl.startsWith("\"") && acl.endsWith("\""))
             {
                 acl = acl.substring(1, acl.length() - 1);
-                acls.setElementAt(acl, i);
+                acls.set(i, acl);
             }
         }
         return acls;
     }
 
     /**
-     * Add the user described by the given acl to the Vectors of users
+     * Add the user described by the given acl to the Lists of users
      * with the privileges described by the acl.
      */
     private void addACLPrivileges(String acl, Hashtable privileges) {
@@ -2989,18 +2989,18 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
 	            if (usersWithPermission == null) {	           
 	                usersWithPermission = new Hashtable();
-	                Vector permissionByGrantor = new Vector();
-            		permissionByGrantor.addElement(grant);
+	                List permissionByGrantor = new ArrayList();
+            		permissionByGrantor.add(grant);
 	                usersWithPermission.put(user, permissionByGrantor);
                 privileges.put(sqlpriv, usersWithPermission);
 	            } else {
-	            	Vector permissionByGrantor = (Vector)usersWithPermission.get(user);
+	            	List permissionByGrantor = (List)usersWithPermission.get(user);
 	            	if (permissionByGrantor == null) {
-	            		permissionByGrantor = new Vector();
-	            		permissionByGrantor.addElement(grant);
+	            		permissionByGrantor = new ArrayList();
+	            		permissionByGrantor.add(grant);
 	            		usersWithPermission.put(user,permissionByGrantor);
 	            	} else {
-	            		permissionByGrantor.addElement(grant);
+	            		permissionByGrantor.add(grant);
 	            	}	            
 	            }
             }
@@ -3009,7 +3009,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
     /**
      * Take the a String representing an array of ACLs and return
-     * a Hashtable mapping the SQL permission name to a Vector of
+     * a Hashtable mapping the SQL permission name to a List of
      * usernames who have that permission.
      */
     public Hashtable parseACL(String aclArray, String owner) {
@@ -3027,11 +3027,11 @@ public abstract class AbstractJdbc2DatabaseMetaData
             aclArray = "{" + owner + "=" + perms + "/" + owner + "}";
         }
 
-        Vector acls = parseACLArray(aclArray);
+        List acls = parseACLArray(aclArray);
         Hashtable privileges = new Hashtable();
         for (int i = 0; i < acls.size(); i++)
         {
-            String acl = (String)acls.elementAt(i);
+            String acl = (String)acls.get(i);
             addACLPrivileges(acl, privileges);
         }
         return privileges;
@@ -3075,7 +3075,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
     public java.sql.ResultSet getBestRowIdentifier(String catalog, String schema, String table, int scope, boolean nullable) throws SQLException
     {
         Field f[] = new Field[8];
-        Vector v = new Vector();  // The new ResultSet tuple stuff
+        List v = new ArrayList();  // The new ResultSet tuple stuff
 
         f[0] = new Field("SCOPE", Oid.INT2);
         f[1] = new Field("COLUMN_NAME", Oid.VARCHAR);
@@ -3155,7 +3155,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
             tuple[5] = null; // unused
             tuple[6] = connection.encodeString(Integer.toString(decimalDigits));
             tuple[7] = connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.bestRowNotPseudo));
-            v.addElement(tuple);
+            v.add(tuple);
         }
 
         return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, v);
@@ -3192,7 +3192,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
     public java.sql.ResultSet getVersionColumns(String catalog, String schema, String table) throws SQLException
     {
         Field f[] = new Field[8];
-        Vector v = new Vector();  // The new ResultSet tuple stuff
+        List v = new ArrayList();  // The new ResultSet tuple stuff
 
         f[0] = new Field("SCOPE", Oid.INT2);
         f[1] = new Field("COLUMN_NAME", Oid.VARCHAR);
@@ -3223,7 +3223,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         tuple[5] = null;
         tuple[6] = null;
         tuple[7] = connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.versionColumnPseudo));
-        v.addElement(tuple);
+        v.add(tuple);
 
         /* Perhaps we should check that the given
          * catalog.schema.table actually exists. -KJ
@@ -3545,7 +3545,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         // | 8  |       9            |    10     |   11
         // | 6  | <unnamed>\000users\000people\000UNSPECIFIED\000people_id\000id\000 | RI_FKey_noaction_upd | RI_FKey_noaction_del
 
-        Vector tuples = new Vector();
+        List tuples = new ArrayList();
 
         while ( rs.next() )
         {
@@ -3618,10 +3618,10 @@ public abstract class AbstractJdbc2DatabaseMetaData
             //<unnamed>\000ww\000vv\000UNSPECIFIED\000m\000a\000n\000b\000
             // we are primarily interested in the column names which are the last items in the string
 
-            Vector tokens = tokenize(targs, "\\000");
+            List tokens = tokenize(targs, "\\000");
             if (tokens.size() > 0)
             {
-                fkName = (String)tokens.elementAt(0);
+                fkName = (String)tokens.get(0);
             }
 
             if (fkName.startsWith("<unnamed>"))
@@ -3632,13 +3632,13 @@ public abstract class AbstractJdbc2DatabaseMetaData
             int element = 4 + (keySequence - 1) * 2;
             if (tokens.size() > element)
             {
-                fkeyColumn = (String)tokens.elementAt(element);
+                fkeyColumn = (String)tokens.get(element);
             }
 
             element++;
             if (tokens.size() > element)
             {
-                pkeyColumn = (String)tokens.elementAt(element);
+                pkeyColumn = (String)tokens.get(element);
             }
 
             tuple[3] = connection.encodeString(pkeyColumn); //PKCOLUMN_NAME
@@ -3661,7 +3661,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
             }
             tuple[13] = connection.encodeString(Integer.toString(deferrability));
 
-            tuples.addElement(tuple);
+            tuples.add(tuple);
         }
 
         return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, tuples);
@@ -3891,7 +3891,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
     {
 
         Field f[] = new Field[18];
-        Vector v = new Vector();  // The new ResultSet tuple stuff
+        List v = new ArrayList();  // The new ResultSet tuple stuff
 
         f[0] = new Field("TYPE_NAME", Oid.VARCHAR);
         f[1] = new Field("DATA_TYPE", Oid.INT2);
@@ -3965,7 +3965,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
             // 12 - LOCAL_TYPE_NAME is null
             // 15 & 16 are unused so we return null
             tuple[17] = b10; // everything is base 10
-            v.addElement(tuple);
+            v.add(tuple);
 
             // add pseudo-type serial, bigserial
             if ( typname.equals("int4") )
@@ -3974,7 +3974,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
                 tuple1[0] = connection.encodeString("serial");
                 tuple1[11] = bt;
-                v.addElement(tuple1);
+                v.add(tuple1);
             }
             else if ( typname.equals("int8") )
             {
@@ -3982,7 +3982,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
                 tuple1[0] = connection.encodeString("bigserial");
                 tuple1[11] = bt;
-                v.addElement(tuple1);
+                v.add(tuple1);
             }
 
         }
@@ -4183,8 +4183,8 @@ public abstract class AbstractJdbc2DatabaseMetaData
     /**
      * Tokenize based on words not on single characters.
      */
-    private static Vector tokenize(String input, String delimiter) {
-        Vector result = new Vector();
+    private static List tokenize(String input, String delimiter) {
+        List result = new ArrayList();
         int start = 0;
         int end = input.length();
         int delimiterSize = delimiter.length();
@@ -4194,13 +4194,13 @@ public abstract class AbstractJdbc2DatabaseMetaData
             int delimiterIndex = input.indexOf(delimiter, start);
             if (delimiterIndex < 0)
             {
-                result.addElement(input.substring(start));
+                result.add(input.substring(start));
                 break;
             }
             else
             {
                 String token = input.substring(start, delimiterIndex);
-                result.addElement(token);
+                result.add(token);
                 start = delimiterIndex + delimiterSize;
             }
         }

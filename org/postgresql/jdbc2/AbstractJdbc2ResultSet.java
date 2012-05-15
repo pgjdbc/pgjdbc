@@ -16,11 +16,12 @@ import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
-import java.util.Vector;
 import java.util.Calendar;
 import java.util.Locale;
 import org.postgresql.core.*;
@@ -43,7 +44,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     private boolean doingUpdates = false;
     private HashMap updateValues = null;
     private boolean usingOID = false; // are we using the OID for the primary key?
-    private Vector primaryKeys;    // list of primary keys
+    private List primaryKeys;    // list of primary keys
     private boolean singleTable = false;
     private String onlyTable = "";
     private String tableName = null;
@@ -63,7 +64,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     protected final int maxRows;            // Maximum rows in this resultset (might be 0).
     protected final int maxFieldSize;       // Maximum field size in this resultset (might be 0).
 
-    protected Vector rows;           // Current page of results.
+    protected List rows;           // Current page of results.
     protected int current_row = -1;         // Index into 'rows' of our currrent row (0-based)
     protected int row_offset;               // Offset of row 0 in the actual resultset
     protected byte[][] this_row;      // copy of the current result row
@@ -96,7 +97,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         return rsMetaData;
     }
 
-    public AbstractJdbc2ResultSet(Query originalQuery, BaseStatement statement, Field[] fields, Vector tuples,
+    public AbstractJdbc2ResultSet(Query originalQuery, BaseStatement statement, Field[] fields, List tuples,
                                   ResultCursor cursor, int maxRows, int maxFieldSize,
                                   int rsType, int rsConcurrency) throws SQLException
     {
@@ -704,7 +705,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         connection.getQueryExecutor().fetch(cursor, new CursorResultHandler(), fetchRows);
 
         // Now prepend our one saved row and move to it.
-        rows.insertElementAt(this_row, 0);
+        rows.add(0, this_row);
         current_row = 0;
 
         // Finally, now we can tell if we're the last row or not.
@@ -860,7 +861,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
         deleteStatement.executeUpdate();
 
-        rows.removeElementAt(current_row);
+        rows.remove(current_row);
         current_row--;
         moveToCurrentRow();
     }
@@ -937,7 +938,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             // update the underlying row to the new inserted data
             updateRowBuffer();
 
-            rows.addElement(rowBuffer);
+            rows.add(rowBuffer);
 
             // we should now reflect the current data in this_row
             // that way getXXX will get the newly inserted data
@@ -1296,7 +1297,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             rowBuffer = rs.this_row;
         }
 
-        rows.setElementAt( rowBuffer, current_row );
+        rows.set( current_row, rowBuffer );
         this_row = rowBuffer;
 
         connection.getLogger().debug("done updates");
@@ -1382,7 +1383,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         
         connection.getLogger().debug("copying data");
         System.arraycopy(rowBuffer, 0, this_row, 0, rowBuffer.length);        
-        rows.setElementAt( rowBuffer, current_row );
+        rows.set( current_row, rowBuffer );
 
         connection.getLogger().debug("done updates");
         updateValues.clear();
@@ -1592,7 +1593,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         // Contains the primary key?
         //
 
-        primaryKeys = new Vector();
+        primaryKeys = new ArrayList();
 
         // this is not stricty jdbc spec, but it will make things much faster if used
         // the user has to select oid, * from table and then we will just use oid
@@ -1810,7 +1811,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public class CursorResultHandler implements ResultHandler {
         private SQLException error;
 
-        public void handleResultRows(Query fromQuery, Field[] fields, Vector tuples, ResultCursor cursor) {
+        public void handleResultRows(Query fromQuery, Field[] fields, List tuples, ResultCursor cursor) {
             AbstractJdbc2ResultSet.this.rows = tuples;
             AbstractJdbc2ResultSet.this.cursor = cursor;
         }
@@ -3032,7 +3033,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     private void initRowBuffer()
     {
-        this_row = (byte[][]) rows.elementAt(current_row);
+        this_row = (byte[][]) rows.get(current_row);
         // We only need a copy of the current row if we're going to
         // modify it via an updatable resultset.
         if (resultsetconcurrency == ResultSet.CONCUR_UPDATABLE) {
@@ -3245,7 +3246,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
      * match the existing rows.  Currently only used for assembling
      * generated keys from batch statement execution.
      */
-    void addRows(Vector tuples) {
+    void addRows(List tuples) {
         rows.addAll(tuples);
     }
 

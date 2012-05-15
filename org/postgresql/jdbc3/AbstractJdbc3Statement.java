@@ -9,8 +9,8 @@ package org.postgresql.jdbc3;
 
 import java.math.BigDecimal;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Vector;
 
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -107,7 +107,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
     {
         checkClosed();
         if (generatedKeys == null || generatedKeys.getResultSet() == null)
-            return createDriverResultSet(new Field[0], new Vector());
+            return createDriverResultSet(new Field[0], new ArrayList());
 
         return generatedKeys.getResultSet();
     }

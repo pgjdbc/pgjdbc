@@ -8,7 +8,8 @@
 */
 package org.postgresql.core.v2;
 
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 import java.io.IOException;
 import java.io.Writer;
 import java.sql.*;
@@ -61,7 +62,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                                         private boolean sawBegin = false;
                                         private SQLException sqle = null;
 
-                                        public void handleResultRows(Query fromQuery, Field[] fields, Vector tuples, ResultCursor cursor) {
+                                        public void handleResultRows(Query fromQuery, Field[] fields, List tuples, ResultCursor cursor) {
                                         }
 
                                         public void handleCommandStatus(String status, int updateCount, long insertOID) {
@@ -266,7 +267,7 @@ public class QueryExecutorImpl implements QueryExecutor {
     {
         final ResultHandler delegateHandler = handler;
         handler = new ResultHandler() {
-                      public void handleResultRows(Query fromQuery, Field[] fields, Vector tuples, ResultCursor cursor) {
+                      public void handleResultRows(Query fromQuery, Field[] fields, List tuples, ResultCursor cursor) {
                           delegateHandler.handleResultRows(fromQuery, fields, tuples, cursor);
                       }
 
@@ -324,7 +325,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             handler = new ResultHandler() {
                           private boolean sawBegin = false;
 
-                          public void handleResultRows(Query fromQuery, Field[] fields, Vector tuples, ResultCursor cursor) {
+                          public void handleResultRows(Query fromQuery, Field[] fields, List tuples, ResultCursor cursor) {
                               if (sawBegin)
                                   delegateHandler.handleResultRows(fromQuery, fields, tuples, cursor);
                           }
@@ -400,7 +401,7 @@ public class QueryExecutorImpl implements QueryExecutor {
     protected void processResults(Query originalQuery, ResultHandler handler, int maxRows, int flags) throws IOException {
         boolean bothRowsAndStatus = (flags & QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS) != 0;
         Field[] fields = null;
-        Vector tuples = null;
+        List tuples = null;
 
         boolean endQuery = false;
         while (!endQuery)
@@ -433,7 +434,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                     for (int i = 0; i < fields.length; i++)
                         fields[i].setFormat(Field.BINARY_FORMAT); //Set the field to binary format
                     if (maxRows == 0 || tuples.size() < maxRows)
-                        tuples.addElement(tuple);
+                        tuples.add(tuple);
                 }
                 break;
 
@@ -474,7 +475,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                             handler.handleError(new PSQLException(GT.tr("Ran out of memory retrieving query results."), PSQLState.OUT_OF_MEMORY, oome));
                     }
                     if (maxRows == 0 || tuples.size() < maxRows)
-                        tuples.addElement(tuple);
+                        tuples.add(tuple);
                 }
 
                 break;
@@ -504,7 +505,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
             case 'T':  // MetaData Field Description
                 fields = receiveFields();
-                tuples = new Vector();
+                tuples = new ArrayList();
                 break;
 
             case 'Z':

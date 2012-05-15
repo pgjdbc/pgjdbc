@@ -14,9 +14,9 @@ import java.lang.reflect.Method;
 import java.math.*;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.TimerTask;
 import java.util.TimeZone;
-import java.util.Vector;
 import java.util.Calendar;
 
 import org.postgresql.Driver;
@@ -131,7 +131,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     protected Object []callResult;
     protected int maxfieldSize = 0;
 
-    public ResultSet createDriverResultSet(Field[] fields, Vector tuples)
+    public ResultSet createDriverResultSet(Field[] fields, List tuples)
     throws SQLException
     {
         return createResultSet(null, fields, tuples, null);
@@ -168,7 +168,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         concurrency = rsConcurrency;
     }
 
-    public abstract ResultSet createResultSet(Query originalQuery, Field[] fields, Vector tuples, ResultCursor cursor)
+    public abstract ResultSet createResultSet(Query originalQuery, Field[] fields, List tuples, ResultCursor cursor)
     throws SQLException;
 
 
@@ -211,7 +211,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                 results.append(newResult);
         }
 
-        public void handleResultRows(Query fromQuery, Field[] fields, Vector tuples, ResultCursor cursor) {
+        public void handleResultRows(Query fromQuery, Field[] fields, List tuples, ResultCursor cursor) {
             try
             {
                 ResultSet rs = AbstractJdbc2Statement.this.createResultSet(fromQuery, fields, tuples, cursor);
@@ -2674,7 +2674,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             this.expectGeneratedKeys = expectGeneratedKeys;
         }
 
-        public void handleResultRows(Query fromQuery, Field[] fields, Vector tuples, ResultCursor cursor) {
+        public void handleResultRows(Query fromQuery, Field[] fields, List tuples, ResultCursor cursor) {
             if (!expectGeneratedKeys) {
                 handleError(new PSQLException(GT.tr("A result was returned when none was expected."),
                                           PSQLState.TOO_MANY_RESULTS));
@@ -2760,7 +2760,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             this.updateCounts = updateCounts;
         }
 
-        public void handleResultRows(Query fromQuery, Field[] fields, Vector tuples, ResultCursor cursor) 
+        public void handleResultRows(Query fromQuery, Field[] fields, List tuples, ResultCursor cursor) 
         {
             
         }

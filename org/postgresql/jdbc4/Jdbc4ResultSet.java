@@ -9,8 +9,8 @@ package org.postgresql.jdbc4;
 
 
 import java.sql.*;
+import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 import org.postgresql.core.*;
 
 /**
@@ -20,7 +20,7 @@ import org.postgresql.core.*;
  */
 public class Jdbc4ResultSet extends AbstractJdbc4ResultSet implements java.sql.ResultSet
 {
-    Jdbc4ResultSet(Query originalQuery, BaseStatement statement, Field[] fields, Vector tuples, ResultCursor cursor,
+    Jdbc4ResultSet(Query originalQuery, BaseStatement statement, Field[] fields, List tuples, ResultCursor cursor,
                     int maxRows, int maxFieldSize, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
     {
         super(originalQuery, statement, fields, tuples, cursor, maxRows, maxFieldSize, rsType, rsConcurrency, rsHoldability);

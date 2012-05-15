@@ -8,8 +8,7 @@
 */
 package org.postgresql.core;
 
-import java.util.Vector;
-import java.io.IOException;
+import java.util.List;
 import java.sql.SQLWarning;
 import java.sql.SQLException;
 
@@ -25,18 +24,18 @@ public class SetupQueryRunner {
 
     private static class SimpleResultHandler implements ResultHandler {
         private SQLException error;
-        private Vector tuples;
+        private List tuples;
         private final ProtocolConnection protoConnection;
 
         SimpleResultHandler(ProtocolConnection protoConnection) {
             this.protoConnection = protoConnection;
         }
 
-        Vector getResults() {
+        List getResults() {
             return tuples;
         }
 
-        public void handleResultRows(Query fromQuery, Field[] fields, Vector tuples, ResultCursor cursor) {
+        public void handleResultRows(Query fromQuery, Field[] fields, List tuples, ResultCursor cursor) {
             this.tuples = tuples;
         }
 
@@ -82,11 +81,11 @@ public class SetupQueryRunner {
         if (!wantResults)
             return null;
 
-        Vector tuples = handler.getResults();
+        List tuples = handler.getResults();
         if (tuples == null || tuples.size() != 1)
             throw new PSQLException(GT.tr("An unexpected result was returned by a query."), PSQLState.CONNECTION_UNABLE_TO_CONNECT);
 
-        return (byte[][]) tuples.elementAt(0);
+        return (byte[][]) tuples.get(0);
     }
 
 }

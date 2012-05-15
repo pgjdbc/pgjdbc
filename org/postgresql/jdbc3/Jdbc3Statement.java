@@ -8,7 +8,7 @@
 package org.postgresql.jdbc3;
 
 import java.sql.*;
-import java.util.Vector;
+import java.util.List;
 import org.postgresql.core.*;
 
 /**
@@ -28,7 +28,7 @@ class Jdbc3Statement extends AbstractJdbc3Statement implements Statement
         super(connection, sql, isCallable, rsType, rsConcurrency, rsHoldability);
     }
 
-    public ResultSet createResultSet (Query originalQuery, Field[] fields, Vector tuples, ResultCursor cursor)
+    public ResultSet createResultSet (Query originalQuery, Field[] fields, List tuples, ResultCursor cursor)
     throws SQLException
     {
         Jdbc3ResultSet newResult = new Jdbc3ResultSet(originalQuery, this, fields, tuples, cursor,

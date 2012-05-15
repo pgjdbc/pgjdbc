@@ -9,7 +9,7 @@ package org.postgresql.core;
 
 import org.postgresql.PGStatement;
 import java.sql.*;
-import java.util.Vector;
+import java.util.List;
 
 /**
  * Driver-internal statement interface. Application code should not use
@@ -25,7 +25,7 @@ public interface BaseStatement extends PGStatement, Statement
      * @return the new ResultSet
      * @throws SQLException if something goes wrong
      */
-    public ResultSet createDriverResultSet(Field[] fields, Vector tuples) throws SQLException;
+    public ResultSet createDriverResultSet(Field[] fields, List tuples) throws SQLException;
 
     /**
      * Create a resultset from data retrieved from the server.
@@ -37,7 +37,7 @@ public interface BaseStatement extends PGStatement, Statement
      * @return the new ResultSet
      * @throws SQLException if something goes wrong
      */
-    public ResultSet createResultSet(Query originalQuery, Field[] fields, Vector tuples, ResultCursor cursor) throws SQLException;
+    public ResultSet createResultSet(Query originalQuery, Field[] fields, List tuples, ResultCursor cursor) throws SQLException;
 
     /**
      * Execute a query, passing additional query flags.

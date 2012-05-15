@@ -8,7 +8,8 @@
 */
 package org.postgresql.core.v2;
 
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 import org.postgresql.core.*;
 
 /**
@@ -29,7 +30,7 @@ class V2Query implements Query {
 
         // Parse query and find parameter placeholders.
 
-        Vector v = new Vector();
+        List v = new ArrayList();
         int lastParmEnd = 0;
 
         char []aChars = query.toCharArray();
@@ -59,7 +60,7 @@ class V2Query implements Query {
                 break;
 
             case '?':
-                v.addElement(query.substring (lastParmEnd, i));
+                v.add(query.substring (lastParmEnd, i));
                 lastParmEnd = i + 1;
                 break;
 
@@ -68,11 +69,11 @@ class V2Query implements Query {
             }
         }
 
-        v.addElement(query.substring (lastParmEnd, query.length()));
+        v.add(query.substring (lastParmEnd, query.length()));
 
         fragments = new String[v.size()];
         for (int i = 0 ; i < fragments.length; ++i)
-            fragments[i] = (String)v.elementAt(i);
+            fragments[i] = (String)v.get(i);
     }
 
     public ParameterList createParameterList() {

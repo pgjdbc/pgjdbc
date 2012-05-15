@@ -11,7 +11,7 @@ package org.postgresql.core.v3;
 import org.postgresql.core.*;
 
 import java.util.ArrayList;
-import java.util.Vector;
+import java.util.List;
 import java.util.HashMap;
 import java.util.Properties;
 
@@ -329,7 +329,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             this.delegateHandler = delegateHandler;
         }
 
-        public void handleResultRows(Query fromQuery, Field[] fields, Vector tuples, ResultCursor cursor) {
+        public void handleResultRows(Query fromQuery, Field[] fields, List tuples, ResultCursor cursor) {
             delegateHandler.handleResultRows(fromQuery, fields, tuples, cursor);
         }
 
@@ -430,7 +430,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         return new ResultHandler() {
                    private boolean sawBegin = false;
 
-                   public void handleResultRows(Query fromQuery, Field[] fields, Vector tuples, ResultCursor cursor) {
+                   public void handleResultRows(Query fromQuery, Field[] fields, List tuples, ResultCursor cursor) {
                        if (sawBegin)
                            delegateHandler.handleResultRows(fromQuery, fields, tuples, cursor);
                    }
@@ -497,7 +497,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                                         private boolean sawBegin = false;
                                         private SQLException sqle = null;
 
-                                        public void handleResultRows(Query fromQuery, Field[] fields, Vector tuples, ResultCursor cursor) {
+                                        public void handleResultRows(Query fromQuery, Field[] fields, List tuples, ResultCursor cursor) {
                                         }
 
                                         public void handleCommandStatus(String status, int updateCount, long insertOID) {
@@ -1676,7 +1676,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         boolean noResults = (flags & QueryExecutor.QUERY_NO_RESULTS) != 0;
         boolean bothRowsAndStatus = (flags & QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS) != 0;
 
-        Vector tuples = null;
+        List tuples = null;
 
         int len;
         int c;
@@ -1785,7 +1785,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
                     if (fields != null)
                     { // There was a resultset.
-                        tuples = new Vector();
+                        tuples = new ArrayList();
                         handler.handleResultRows(currentQuery, fields, tuples, null);
                         tuples = null;
                     }
@@ -1807,7 +1807,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
                     Field[] fields = currentQuery.getFields();
                     if (fields != null && !noResults && tuples == null)
-                        tuples = new Vector();
+                        tuples = new ArrayList();
 
                     handler.handleResultRows(currentQuery, fields, tuples, currentPortal);
                 }
@@ -1828,7 +1828,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
                     Field[] fields = currentQuery.getFields();
                     if (fields != null && !noResults && tuples == null)
-                        tuples = new Vector();
+                        tuples = new ArrayList();
 
                     if (fields != null || tuples != null)
                     { // There was a resultset.
@@ -1862,8 +1862,8 @@ public class QueryExecutorImpl implements QueryExecutor {
                 if (!noResults)
                 {
                     if (tuples == null)
-                        tuples = new Vector();
-                    tuples.addElement(tuple);
+                        tuples = new ArrayList();
+                    tuples.add(tuple);
                 }
 
                 if (logger.logDebug()) {
@@ -1951,7 +1951,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
             case 'T':  // Row Description (response to Describe)
                 Field[] fields = receiveFields();
-                tuples = new Vector();
+                tuples = new ArrayList();
 
                 SimpleQuery query = (SimpleQuery)pendingDescribePortalQueue.get(describePortalIndex++);
                 query.setFields(fields);
@@ -2055,12 +2055,12 @@ public class QueryExecutorImpl implements QueryExecutor {
         // (if the fetch returns no rows, we see just a CommandStatus..)
         final ResultHandler delegateHandler = handler;
         handler = new ResultHandler() {
-                      public void handleResultRows(Query fromQuery, Field[] fields, Vector tuples, ResultCursor cursor) {
+                      public void handleResultRows(Query fromQuery, Field[] fields, List tuples, ResultCursor cursor) {
                           delegateHandler.handleResultRows(fromQuery, fields, tuples, cursor);
                       }
 
                       public void handleCommandStatus(String status, int updateCount, long insertOID) {
-                          handleResultRows(portal.getQuery(), null, new Vector(), null);
+                          handleResultRows(portal.getQuery(), null, new ArrayList(), null);
                       }
 
                       public void handleWarning(SQLWarning warning) {

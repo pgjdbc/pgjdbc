@@ -9,8 +9,8 @@
 package org.postgresql.jdbc3g;
 
 import java.sql.*;
+import java.util.List;
 import java.util.UUID;
-import java.util.Vector;
 
 import org.postgresql.core.*;
 import org.postgresql.util.ByteConverter;
@@ -21,7 +21,7 @@ import org.postgresql.util.PSQLException;
 public abstract class AbstractJdbc3gResultSet extends org.postgresql.jdbc3.AbstractJdbc3ResultSet
 {
 
-    public AbstractJdbc3gResultSet(Query originalQuery, BaseStatement statement, Field[] fields, Vector tuples,
+    public AbstractJdbc3gResultSet(Query originalQuery, BaseStatement statement, Field[] fields, List tuples,
                                   ResultCursor cursor, int maxRows, int maxFieldSize, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
     {
         super (originalQuery, statement, fields, tuples, cursor, maxRows, maxFieldSize, rsType, rsConcurrency, rsHoldability);

@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.*;
 import java.util.*;
+
 import org.postgresql.core.*;
 import org.postgresql.Driver;
 import org.postgresql.PGNotification;
@@ -1149,7 +1150,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     private class TransactionCommandHandler implements ResultHandler {
         private SQLException error;
 
-        public void handleResultRows(Query fromQuery, Field[] fields, Vector tuples, ResultCursor cursor) {
+        public void handleResultRows(Query fromQuery, Field[] fields, List tuples, ResultCursor cursor) {
         }
         public void handleCommandStatus(String status, int updateCount, long insertOID) {
         }

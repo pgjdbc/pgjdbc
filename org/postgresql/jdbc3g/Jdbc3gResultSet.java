@@ -9,8 +9,8 @@ package org.postgresql.jdbc3g;
 
 
 import java.sql.*;
+import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 import org.postgresql.core.*;
 
 /**
@@ -20,7 +20,7 @@ import org.postgresql.core.*;
  */
 public class Jdbc3gResultSet extends org.postgresql.jdbc3g.AbstractJdbc3gResultSet implements java.sql.ResultSet
 {
-    Jdbc3gResultSet(Query originalQuery, BaseStatement statement, Field[] fields, Vector tuples, ResultCursor cursor,
+    Jdbc3gResultSet(Query originalQuery, BaseStatement statement, Field[] fields, List tuples, ResultCursor cursor,
                     int maxRows, int maxFieldSize, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
     {
         super(originalQuery, statement, fields, tuples, cursor, maxRows, maxFieldSize, rsType, rsConcurrency, rsHoldability);

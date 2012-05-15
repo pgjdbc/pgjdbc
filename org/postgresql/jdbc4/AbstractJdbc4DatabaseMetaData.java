@@ -9,7 +9,8 @@ package org.postgresql.jdbc4;
 
 import java.sql.*;
 
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 import org.postgresql.core.*;
 
 public abstract class AbstractJdbc4DatabaseMetaData extends org.postgresql.jdbc3.AbstractJdbc3DatabaseMetaData
@@ -48,7 +49,7 @@ public abstract class AbstractJdbc4DatabaseMetaData extends org.postgresql.jdbc3
         f[2] = new Field("DEFAULT_VALUE", Oid.VARCHAR);
         f[3] = new Field("DESCRIPTION", Oid.VARCHAR);
 
-        Vector v = new Vector();
+        List v = new ArrayList();
 
         if (connection.haveMinimumServerVersion("9.0")) {
             byte[][] tuple = new byte[4][];
@@ -56,7 +57,7 @@ public abstract class AbstractJdbc4DatabaseMetaData extends org.postgresql.jdbc3
             tuple[1] = connection.encodeString(Integer.toString(getMaxNameLength()));
             tuple[2] = connection.encodeString("");
             tuple[3] = connection.encodeString("The name of the application currently utilizing the connection.");
-            v.addElement(tuple);
+            v.add(tuple);
         }
 
         return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, v);

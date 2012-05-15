@@ -7,7 +7,9 @@
 */
 package org.postgresql.util;
 
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
+
 
 /**
  * This class is used to tokenize the text output of org.postgres.
@@ -24,7 +26,7 @@ import java.util.Vector;
 public class PGtokenizer
 {
     // Our tokens
-    protected Vector tokens;
+    protected List tokens;
 
     /*
      * Create a tokeniser.
@@ -49,7 +51,7 @@ public class PGtokenizer
      */
     public int tokenize(String string, char delim)
     {
-        tokens = new Vector();
+        tokens = new ArrayList();
 
         // nest holds how many levels we are in the current token.
         // if this is > 0 then we don't split a token when delim is matched.
@@ -74,7 +76,7 @@ public class PGtokenizer
 
             if (nest == 0 && c == delim)
             {
-                tokens.addElement(string.substring(s, p));
+                tokens.add(string.substring(s, p));
                 s = p + 1; // +1 to skip the delimiter
             }
 
@@ -85,7 +87,7 @@ public class PGtokenizer
 
 
         if (s < string.length())
-            tokens.addElement(string.substring(s));
+            tokens.add(string.substring(s));
 
         return tokens.size();
     }
@@ -104,7 +106,7 @@ public class PGtokenizer
      */
     public String getToken(int n)
     {
-        return (String)tokens.elementAt(n);
+        return (String)tokens.get(n);
     }
 
     /*
@@ -149,8 +151,8 @@ public class PGtokenizer
     {
         for (int i = 0;i < tokens.size();i++)
         {
-            tokens.setElementAt(remove
-                                ((String)tokens.elementAt(i), l, t), i);
+            tokens.set(i, remove
+                                ((String)tokens.get(i), l, t));
         }
     }
 
