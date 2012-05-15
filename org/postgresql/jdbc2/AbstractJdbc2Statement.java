@@ -15,6 +15,7 @@ import java.math.*;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.TimerTask;
 import java.util.TimeZone;
 import java.util.Calendar;
@@ -24,6 +25,7 @@ import org.postgresql.largeobject.*;
 import org.postgresql.core.*;
 import org.postgresql.core.types.*;
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.HStoreConverter;
 import org.postgresql.util.PGBinaryObject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -1704,6 +1706,18 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             setString(parameterIndex, x.getValue(), oid);
         }
     }
+    
+    private void setMap(int parameterIndex, Map x) throws SQLException {
+        int oid = connection.getTypeInfo().getPGType("hstore");
+        if (oid == Oid.UNSPECIFIED)
+            throw new PSQLException(GT.tr("No hstore extension installed."), PSQLState.INVALID_PARAMETER_TYPE);
+        if (connection.binaryTransferSend(oid)) {
+            byte[] data = HStoreConverter.toBytes(x, connection.getEncoding());
+            bindBytes(parameterIndex, data, oid);
+        } else {
+            setString(parameterIndex, HStoreConverter.toString(x), oid);
+        }
+    }
 
     /*
      * Set the value of a parameter using an object; use the java.lang
@@ -1898,6 +1912,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             setPGobject(parameterIndex, (PGobject)x);
         else if (x instanceof Character)
             setString(parameterIndex, ((Character)x).toString());
+        else if (x instanceof Map)
+            setMap(parameterIndex, (Map)x);
         else
         {
             // Can't infer a type.

@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
 import java.util.Calendar;
@@ -27,6 +28,7 @@ import java.util.Locale;
 import org.postgresql.core.*;
 import org.postgresql.largeobject.*;
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.HStoreConverter;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGbytea;
 import org.postgresql.util.PGtokenizer;
@@ -213,6 +215,12 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                 connection.execSQLUpdate(sb.toString());
                 ((AbstractJdbc2ResultSet)rs).setRefCursor(cursorName);
                 return rs;
+            }
+            if ("hstore".equals(type)) {
+                if (isBinary(columnIndex)) {
+                    return HStoreConverter.fromBytes(this_row[columnIndex - 1], connection.getEncoding());
+                }
+                return HStoreConverter.fromString(getString(columnIndex));
             }
 
             // Caller determines what to do (JDBC3 overrides in this case)
@@ -1957,6 +1965,9 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             // hack to be compatible with text protocol
             if (obj instanceof java.util.Date) {
               return connection.getTimestampUtils().timeToString((java.util.Date) obj);
+            }
+            if ("hstore".equals(getPGType(columnIndex))) {
+                return HStoreConverter.toString((Map) obj);
             }
             return trimString(columnIndex, obj.toString());
         }
