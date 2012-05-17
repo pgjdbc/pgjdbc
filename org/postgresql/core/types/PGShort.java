@@ -39,10 +39,10 @@ public class PGShort implements PGType
 	            case Types.TINYINT:
 	                return new PGShort(val);
 	            case Types.REAL:
-	                return new PGFloat( new Float( val.floatValue() ) ); 
+	                return new PGFloat( Float.valueOf( val.floatValue() ) ); 
 	            case Types.DOUBLE:
 	            case Types.FLOAT:
-	                return new PGDouble( new Double( val.doubleValue() ) );
+	                return new PGDouble( Double.valueOf( val.doubleValue() ) );
 	            case Types.VARCHAR:
 	            case Types.LONGVARCHAR:                
 	                return new PGString ( val.toString() );

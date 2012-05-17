@@ -26,7 +26,7 @@ class UTF8Encoding extends Encoding {
     private final static void checkByte(int ch, int pos, int len) throws IOException {
         if ((ch & 0xc0) != 0x80)
             throw new IOException(GT.tr("Illegal UTF-8 sequence: byte {0} of {1} byte sequence is not 10xxxxxx: {2}",
-                                        new Object[] { new Integer(pos), new Integer(len), new Integer(ch) }));
+                                        new Object[] { Integer.valueOf(pos), Integer.valueOf(len), Integer.valueOf(ch) }));
     }    
 
     private final static void checkMinimal(int ch, int minValue) throws IOException {
@@ -59,7 +59,7 @@ class UTF8Encoding extends Encoding {
             throw new IllegalArgumentException("unexpected ch passed to checkMinimal: " + ch);
         
         throw new IOException(GT.tr("Illegal UTF-8 sequence: {0} bytes used to encode a {1} byte value: {2}",
-                                    new Object[] { new Integer(actualLen), new Integer(expectedLen), new Integer(ch) }));
+                                    new Object[] { Integer.valueOf(actualLen), Integer.valueOf(expectedLen), Integer.valueOf(ch) }));
     }
 
     /**
@@ -96,7 +96,7 @@ class UTF8Encoding extends Encoding {
                 } else if (ch < 0xc0) {
                     // 10xxxxxx -- illegal!
                     throw new IOException(GT.tr("Illegal UTF-8 sequence: initial byte is {0}: {1}",
-                                                new Object[] { "10xxxxxx", new Integer(ch) }));
+                                                new Object[] { "10xxxxxx", Integer.valueOf(ch) }));
                 } else if (ch < 0xe0) { 
                     // 110xxxxx 10xxxxxx
                     ch = ((ch & 0x1f) << 6);
@@ -123,12 +123,12 @@ class UTF8Encoding extends Encoding {
                     checkMinimal(ch, MIN_4_BYTES);
                 } else {
                     throw new IOException(GT.tr("Illegal UTF-8 sequence: initial byte is {0}: {1}",
-                                                new Object[] { "11111xxx", new Integer(ch) }));
+                                                new Object[] { "11111xxx", Integer.valueOf(ch) }));
                 }
                 
                 if (ch > MAX_CODE_POINT)
                     throw new IOException(GT.tr("Illegal UTF-8 sequence: final value is out of range: {0}",
-                                                new Integer(ch)));
+                                                Integer.valueOf(ch)));
 
                 // Convert 21-bit codepoint to Java chars:
                 //   0..ffff are represented directly as a single char
@@ -143,7 +143,7 @@ class UTF8Encoding extends Encoding {
                 } else if (ch >= 0xd800 && ch < 0xe000) {
                     // Not allowed to encode the surrogate range directly.
                     throw new IOException(GT.tr("Illegal UTF-8 sequence: final value is a surrogate value: {0}",
-                                                new Integer(ch)));
+                                                Integer.valueOf(ch)));
                 } else {
                     // Normal case.
                     cdata[out++] = (char) ch;

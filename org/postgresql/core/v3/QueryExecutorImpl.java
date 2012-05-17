@@ -624,7 +624,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                     protoConnection.addWarning(warning);
                     break;
                 default:
-                    throw new PSQLException(GT.tr("Unknown Response Type {0}.", new Character((char) c)), PSQLState.CONNECTION_FAILURE);
+                    throw new PSQLException(GT.tr("Unknown Response Type {0}.", Character.valueOf((char) c)), PSQLState.CONNECTION_FAILURE);
                 }
             }
         } catch (IOException ioe) {
@@ -682,7 +682,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                 break;
 
             default:
-                throw new PSQLException(GT.tr("Unknown Response Type {0}.", new Character((char) c)), PSQLState.CONNECTION_FAILURE);
+                throw new PSQLException(GT.tr("Unknown Response Type {0}.", Character.valueOf((char) c)), PSQLState.CONNECTION_FAILURE);
             }
 
         }
@@ -1307,7 +1307,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         //
         if (encodedSize > 0x3fffffff)
         {
-            throw new PGBindException(new IOException(GT.tr("Bind message length {0} too long.  This can be caused by very large or incorrect length specifications on InputStream parameters.", new Long(encodedSize))));
+            throw new PGBindException(new IOException(GT.tr("Bind message length {0} too long.  This can be caused by very large or incorrect length specifications on InputStream parameters.", Long.valueOf(encodedSize))));
         }
 
         pgStream.SendChar('B');                  // Bind
@@ -1424,7 +1424,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             pgStream.Send(encodedStatementName);    // Statement name
         pgStream.SendChar(0);                       // end message
 
-        pendingDescribeStatementQueue.add(new Object[]{query, params, new Boolean(describeOnly), query.getStatementName()});
+        pendingDescribeStatementQueue.add(new Object[]{query, params, describeOnly ? Boolean.TRUE : Boolean.FALSE, query.getStatementName()});
         pendingDescribePortalQueue.add(query);
         query.setStatementDescribed(true);
         query.setPortalDescribed(true);

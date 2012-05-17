@@ -186,10 +186,10 @@ public class ResultSetTest extends TestCase
         if (useServerPrepare)
             ((org.postgresql.PGStatement)pstmt).setUseServerPrepare(true);
 
-        pstmt.setObject(1, new Float(0), java.sql.Types.BIT);
+        pstmt.setObject(1, Float.valueOf(0), java.sql.Types.BIT);
         pstmt.executeUpdate();
 
-        pstmt.setObject(1, new Float(1), java.sql.Types.BIT);
+        pstmt.setObject(1, Float.valueOf(1), java.sql.Types.BIT);
         pstmt.executeUpdate();
 
         pstmt.setObject(1, "False", java.sql.Types.BIT);
@@ -210,10 +210,10 @@ public class ResultSetTest extends TestCase
         /*
         pstmt = con.prepareStatement("insert into testbit values (?)");
 
-                      pstmt.setObject(1, new Float(0), java.sql.Types.BIT);
+                      pstmt.setObject(1, Float.valueOf(0), java.sql.Types.BIT);
                       pstmt.executeUpdate();
 
-                      pstmt.setObject(1, new Float(1), java.sql.Types.BIT);
+                      pstmt.setObject(1, Float.valueOf(1), java.sql.Types.BIT);
                       pstmt.executeUpdate();
 
                       pstmt.setObject(1, "false", java.sql.Types.BIT);

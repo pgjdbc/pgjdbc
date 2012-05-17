@@ -150,7 +150,7 @@ public abstract class AbstractJdbc2Array
         // array index is out of range
         if (index < 1)
         {
-            throw new PSQLException(GT.tr("The array index is out of range: {0}", new Long(index)), PSQLState.DATA_ERROR);
+            throw new PSQLException(GT.tr("The array index is out of range: {0}", Long.valueOf(index)), PSQLState.DATA_ERROR);
         }
 
         if (fieldBytes != null) {
@@ -165,7 +165,7 @@ public abstract class AbstractJdbc2Array
         // array index out of range
         if ((--index) + count > arrayList.size())
         {
-            throw new PSQLException(GT.tr("The array index is out of range: {0}, number of elements: {1}.", new Object[] { new Long(index + count), new Long(arrayList.size()) }), PSQLState.DATA_ERROR);
+            throw new PSQLException(GT.tr("The array index is out of range: {0}, number of elements: {1}.", new Object[] { Long.valueOf(index + count), Long.valueOf(arrayList.size()) }), PSQLState.DATA_ERROR);
         }
 
         return buildArray(arrayList, (int) index, count);
@@ -213,19 +213,19 @@ public abstract class AbstractJdbc2Array
                 }
                 switch (elementOid) {
                 case Oid.INT2:
-                    arr[i] = new Short(ByteConverter.int2(fieldBytes, pos));
+                    arr[i] = Short.valueOf(ByteConverter.int2(fieldBytes, pos));
                     break;
                 case Oid.INT4:
-                    arr[i] = new Integer(ByteConverter.int4(fieldBytes, pos));
+                    arr[i] = Integer.valueOf(ByteConverter.int4(fieldBytes, pos));
                     break;
                 case Oid.INT8:
-                    arr[i] = new Long(ByteConverter.int8(fieldBytes, pos));
+                    arr[i] = Long.valueOf(ByteConverter.int8(fieldBytes, pos));
                     break;
                 case Oid.FLOAT4:
-                    arr[i] = new Float(ByteConverter.float4(fieldBytes, pos));
+                    arr[i] = Float.valueOf(ByteConverter.float4(fieldBytes, pos));
                     break;
                 case Oid.FLOAT8:
-                    arr[i] = new Double(ByteConverter.float8(fieldBytes, pos));
+                    arr[i] = Double.valueOf(ByteConverter.float8(fieldBytes, pos));
                     break;
                 case Oid.TEXT:
                 case Oid.VARCHAR:
@@ -550,7 +550,7 @@ ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects
 
                 if (dims > 1 || useObjects)
                 {
-                    oa[length++] = o == null ? null : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : new Boolean(AbstractJdbc2ResultSet.toBoolean((String) o)));
+                    oa[length++] = o == null ? null : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : AbstractJdbc2ResultSet.toBoolean((String) o) ? Boolean.TRUE : Boolean.FALSE);
                 }
                 else
                 {
@@ -579,7 +579,7 @@ ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects
 
                 if (dims > 1 || useObjects)
                 {
-                    oa[length++] = o == null ? null : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : new Integer(AbstractJdbc2ResultSet.toInt((String) o)));
+                    oa[length++] = o == null ? null : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : Integer.valueOf(AbstractJdbc2ResultSet.toInt((String) o)));
                 }
                 else
                 {
@@ -609,7 +609,7 @@ ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects
 
                 if (dims > 1 || useObjects)
                 {
-                    oa[length++] = o == null ? null : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : new Long(AbstractJdbc2ResultSet.toLong((String) o)));
+                    oa[length++] = o == null ? null : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : Long.valueOf(AbstractJdbc2ResultSet.toLong((String) o)));
                 }
                 else
                 {
@@ -650,7 +650,7 @@ ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects
 
                 if (dims > 1 || useObjects)
                 {
-                    oa[length++] = o == null ? null : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : new Float(AbstractJdbc2ResultSet.toFloat((String) o)));
+                    oa[length++] = o == null ? null : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : Float.valueOf(AbstractJdbc2ResultSet.toFloat((String) o)));
                 }
                 else
                 {
@@ -679,7 +679,7 @@ ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects
 
                 if (dims > 1 || useObjects)
                 {
-                    oa[length++] = o == null ? null : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : new Double(AbstractJdbc2ResultSet.toDouble((String) o)));
+                    oa[length++] = o == null ? null : (dims > 1 ? buildArray((PgArrayList) o, 0, -1) : Double.valueOf(AbstractJdbc2ResultSet.toDouble((String) o)));
                 }
                 else
                 {
@@ -787,7 +787,7 @@ ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects
         // array index is out of range
         if (index < 1)
         {
-            throw new PSQLException(GT.tr("The array index is out of range: {0}", new Long(index)), PSQLState.DATA_ERROR);
+            throw new PSQLException(GT.tr("The array index is out of range: {0}", Long.valueOf(index)), PSQLState.DATA_ERROR);
         }
 
         if (fieldBytes != null) {
@@ -804,7 +804,7 @@ ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects
         // array index out of range
         if ((--index) + count > arrayList.size())
         {
-            throw new PSQLException(GT.tr("The array index is out of range: {0}, number of elements: {1}.", new Object[] { new Long(index + count), new Long(arrayList.size()) }), PSQLState.DATA_ERROR);
+            throw new PSQLException(GT.tr("The array index is out of range: {0}, number of elements: {1}.", new Object[] { Long.valueOf(index + count), Long.valueOf(arrayList.size()) }), PSQLState.DATA_ERROR);
         }
 
         List rows = new ArrayList();

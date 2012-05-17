@@ -167,7 +167,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                     protoConnection.addWarning(receiveNotification());
                     break;
                 default:
-                    throw new PSQLException(GT.tr("Unknown Response Type {0}.", new Character((char) c)), PSQLState.CONNECTION_FAILURE);
+                    throw new PSQLException(GT.tr("Unknown Response Type {0}.", Character.valueOf((char) c)), PSQLState.CONNECTION_FAILURE);
                 }
             }
         } catch (IOException ioe) {
@@ -222,7 +222,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                 }
 
                 if (c != '0')
-                    throw new PSQLException(GT.tr("Unknown Response Type {0}.", new Character((char) c)), PSQLState.CONNECTION_FAILURE);
+                    throw new PSQLException(GT.tr("Unknown Response Type {0}.", Character.valueOf((char) c)), PSQLState.CONNECTION_FAILURE);
 
                 break;
 
@@ -233,7 +233,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                 break;
 
             default:
-                throw new PSQLException(GT.tr("Unknown Response Type {0}.", new Character((char) c)), PSQLState.CONNECTION_FAILURE);
+                throw new PSQLException(GT.tr("Unknown Response Type {0}.", Character.valueOf((char) c)), PSQLState.CONNECTION_FAILURE);
             }
 
         }

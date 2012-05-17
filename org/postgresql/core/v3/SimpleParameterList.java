@@ -44,14 +44,14 @@ class SimpleParameterList implements V3ParameterList {
     public void registerOutParameter( int index, int sqlType ) throws SQLException
     {
         if (index < 1 || index > paramValues.length)
-            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE );
+            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{Integer.valueOf(index), Integer.valueOf(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE );
 
         flags[index-1] |= OUT;
     }
 
     private void bind(int index, Object value, int oid, int binary) throws SQLException {
         if (index < 1 || index > paramValues.length)
-            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE );
+            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{Integer.valueOf(index), Integer.valueOf(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE );
 
         --index;
 
@@ -180,7 +180,7 @@ class SimpleParameterList implements V3ParameterList {
         for (int i = 0; i < paramTypes.length; ++i)
         {
             if (direction(i) != OUT && paramValues[i] == null)
-                throw new PSQLException(GT.tr("No value specified for parameter {0}.", new Integer(i + 1)), PSQLState.INVALID_PARAMETER_VALUE);
+                throw new PSQLException(GT.tr("No value specified for parameter {0}.", Integer.valueOf(i + 1)), PSQLState.INVALID_PARAMETER_VALUE);
         }
     }
 

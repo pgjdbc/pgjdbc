@@ -1812,7 +1812,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
             List argTypes = new ArrayList();
             while (st.hasMoreTokens())
             {
-                argTypes.add(new Long(st.nextToken()));
+                argTypes.add(Long.valueOf(st.nextToken()));
             }
 
             String argNames[] = null;
@@ -1840,7 +1840,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                     long tempAllArgTypes[] = (long[])allArgTypesArray.getArray();
                     allArgTypes = new Long[tempAllArgTypes.length];
                     for (int i=0; i<tempAllArgTypes.length; i++) {
-                        allArgTypes[i] = new Long(tempAllArgTypes[i]);
+                        allArgTypes[i] = Long.valueOf(tempAllArgTypes[i]);
                     }
                 }
                 numArgs = allArgTypes.length;

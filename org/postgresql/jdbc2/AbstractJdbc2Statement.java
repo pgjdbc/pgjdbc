@@ -461,12 +461,12 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                     {
                         // return it as a float
                         if ( callResult[j] != null)
-                            callResult[j] = new Float(((Double)callResult[j]).floatValue());
+                            callResult[j] = Float.valueOf(((Double)callResult[j]).floatValue());
                     }
                     else
                     {    
 	                    throw new PSQLException (GT.tr("A CallableStatement function was executed and the out parameter {0} was of type {1} however type {2} was registered.",
-	                            new Object[]{new Integer(i+1),
+	                            new Object[]{Integer.valueOf(i+1),
 	                                "java.sql.Types=" + columnType, "java.sql.Types=" + functionReturnType[j] }),
 	                      PSQLState.DATA_TYPE_MISMATCH);
                     }
@@ -1489,7 +1489,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             return ;
         }
         if (length < 0)
-            throw new PSQLException(GT.tr("Invalid stream length {0}.", new Integer(length)),
+            throw new PSQLException(GT.tr("Invalid stream length {0}.", Integer.valueOf(length)),
                                     PSQLState.INVALID_PARAMETER_VALUE);
 
 
@@ -1614,7 +1614,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         }
 
         if (length < 0)
-            throw new PSQLException(GT.tr("Invalid stream length {0}.", new Integer(length)),
+            throw new PSQLException(GT.tr("Invalid stream length {0}.", Integer.valueOf(length)),
                                     PSQLState.INVALID_PARAMETER_VALUE);
 
         if (connection.haveMinimumCompatibleVersion("7.2"))
@@ -1763,7 +1763,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	            break;
 	        case Types.REAL:
 	            //TODO: is this really necessary ?
-	            //bindLiteral(parameterIndex, new Float(pgType.toString()).toString(), Oid.FLOAT4);
+	            //bindLiteral(parameterIndex, Float.valueOf(pgType.toString()).toString(), Oid.FLOAT4);
             		bindLiteral(parameterIndex, pgType.toString(), Oid.FLOAT4);
 	            break;
 	        case Types.DOUBLE:
@@ -1859,7 +1859,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                     bindString(parameterIndex, in.toString(), Oid.UNSPECIFIED);
 	            break;
 	        default:
-	            throw new PSQLException(GT.tr("Unsupported Types value: {0}", new Integer(targetSqlType)), PSQLState.INVALID_PARAMETER_TYPE);
+	            throw new PSQLException(GT.tr("Unsupported Types value: {0}", Integer.valueOf(targetSqlType)), PSQLState.INVALID_PARAMETER_TYPE);
         }
     }
 
@@ -2511,7 +2511,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         }
 
         if (syntaxError)
-            throw new PSQLException (GT.tr("Malformed function or procedure escape syntax at offset {0}.", new Integer(i)),
+            throw new PSQLException (GT.tr("Malformed function or procedure escape syntax at offset {0}.", Integer.valueOf(i)),
                                      PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
 
         if (connection.haveMinimumServerVersion("8.1") && ((AbstractJdbc2Connection)connection).getProtocolVersion() == 3)
@@ -2744,7 +2744,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                     queryString = queries[resultIndex].toString(parameterLists[resultIndex]);
 
                 batchException = new BatchUpdateException(GT.tr("Batch entry {0} {1} was aborted.  Call getNextException to see the cause.",
-                                 new Object[]{ new Integer(resultIndex),
+                                 new Object[]{ Integer.valueOf(resultIndex),
                                                queryString}),
                                  newError.getSQLState(),
                                  successCounts);
@@ -2814,7 +2814,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                     queryString = queries[resultIndex].toString(parameterLists[resultIndex]);
 
                 batchException = new BatchUpdateException(GT.tr("Batch entry {0} {1} was aborted.  Call getNextException to see the cause.",
-                                 new Object[]{ new Integer(resultIndex),
+                                 new Object[]{ Integer.valueOf(resultIndex),
                                                queryString}),
                                  newError.getSQLState(),
                                  successCounts);
@@ -2946,7 +2946,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             fetchdirection = direction;
             break;
         default:
-            throw new PSQLException(GT.tr("Invalid fetch direction constant: {0}.", new Integer(direction)),
+            throw new PSQLException(GT.tr("Invalid fetch direction constant: {0}.", Integer.valueOf(direction)),
                                     PSQLState.INVALID_PARAMETER_VALUE);
         }
     }
@@ -3098,7 +3098,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         }
 
         if (length < 0)
-            throw new PSQLException(GT.tr("Invalid stream length {0}.", new Integer(length)),
+            throw new PSQLException(GT.tr("Invalid stream length {0}.", Integer.valueOf(length)),
                                     PSQLState.INVALID_PARAMETER_VALUE);
 
         if (connection.haveMinimumCompatibleVersion("7.2"))

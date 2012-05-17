@@ -78,10 +78,10 @@ public class Fastpath
             return returnValue;
 
         if (returnValue.length != 4)
-            throw new PSQLException(GT.tr("Fastpath call {0} - No result was returned and we expected an integer.", new Integer(fnId)),
+            throw new PSQLException(GT.tr("Fastpath call {0} - No result was returned and we expected an integer.", Integer.valueOf(fnId)),
                                     PSQLState.NO_DATA);
 
-        return new Integer((returnValue[3] & 255) |
+        return Integer.valueOf((returnValue[3] & 255) |
                            ((returnValue[2] & 255) << 8) |
                            ((returnValue[1] & 255) << 16) |
                            ((returnValue[0] & 255) << 24));
@@ -169,7 +169,7 @@ public class Fastpath
      */
     public void addFunction(String name, int fnid)
     {
-        func.put(name, new Integer(fnid));
+        func.put(name, Integer.valueOf(fnid));
     }
 
     /**
@@ -208,7 +208,7 @@ public class Fastpath
     {
         while (rs.next())
         {
-            func.put(rs.getString(1), new Integer(rs.getInt(2)));
+            func.put(rs.getString(1), Integer.valueOf(rs.getInt(2)));
         }
     }
 

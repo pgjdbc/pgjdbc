@@ -44,10 +44,10 @@ public class PGByte implements PGType
 	            case Types.TINYINT:
 	                return new PGByte( val );
 	            case Types.REAL:
-	                return new PGFloat( new Float( val.floatValue() ) ); 
+	                return new PGFloat( Float.valueOf( val.floatValue() ) ); 
 	            case Types.DOUBLE:
 	            case Types.FLOAT:
-	                return new PGDouble( new Double( val.doubleValue() ) );
+	                return new PGDouble( Double.valueOf( val.doubleValue() ) );
 	            case Types.NUMERIC:
 	            case Types.DECIMAL:
 	                return new PGBigDecimal( new BigDecimal(val.toString()) );

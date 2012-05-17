@@ -933,7 +933,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
         String isolationLevelName = getIsolationLevelName(level);
         if (isolationLevelName == null)
-            throw new PSQLException(GT.tr("Transaction isolation level {0} not supported.", new Integer(level)), PSQLState.NOT_IMPLEMENTED);
+            throw new PSQLException(GT.tr("Transaction isolation level {0} not supported.", Integer.valueOf(level)), PSQLState.NOT_IMPLEMENTED);
 
         String isolationLevelSQL = "SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL " + isolationLevelName;
         execSQLUpdate(isolationLevelSQL); // nb: no BEGIN triggered

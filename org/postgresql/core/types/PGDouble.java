@@ -38,12 +38,12 @@ public class PGDouble implements PGType
 	                return new PGBoolean( val.doubleValue() == 0?Boolean.FALSE:Boolean.TRUE );
 	            
 	            case Types.BIGINT:
-	                return new PGLong( new Long( val.longValue() ) );
+	                return new PGLong( Long.valueOf( val.longValue() ) );
 	            case Types.INTEGER:
-	                return new PGInteger( new Integer( val.intValue() ) ) ;
+	                return new PGInteger( Integer.valueOf( val.intValue() ) ) ;
 	            case Types.SMALLINT:
 	            case Types.TINYINT:
-	                return new PGShort( new Short( val.shortValue() ) );
+	                return new PGShort( Short.valueOf( val.shortValue() ) );
 	            case Types.VARCHAR:
 	            case Types.LONGVARCHAR:                
 	                return new PGString( val.toString() );
@@ -51,7 +51,7 @@ public class PGDouble implements PGType
 	            case Types.FLOAT:
 	                return new PGDouble( val );
 	            case Types.REAL:
-	                return new PGFloat( new Float( val.floatValue()));
+	                return new PGFloat( Float.valueOf( val.floatValue()));
 	            case Types.DECIMAL:
 	            case Types.NUMERIC:
 	                return new PGBigDecimal( new BigDecimal( val.toString()));

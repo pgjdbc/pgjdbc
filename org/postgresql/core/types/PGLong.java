@@ -36,20 +36,20 @@ public class PGLong implements PGType
 	            case Types.BIT:
 	                return new PGBoolean(val.longValue()==0?Boolean.FALSE:Boolean.TRUE);
 	            case Types.REAL:
-	                return new PGFloat( new Float(val.floatValue()) );
+	                return new PGFloat( Float.valueOf(val.floatValue()) );
 	            case Types.FLOAT:
 	            case Types.DOUBLE:
-	                return new PGDouble( new Double(val.doubleValue()) );
+	                return new PGDouble( Double.valueOf(val.doubleValue()) );
 	            case Types.VARCHAR:
 	            case Types.LONGVARCHAR:                
 	                return new PGString(val.toString());
 	            case Types.BIGINT:
 	                return new PGLong( val );
 	            case Types.INTEGER:
-	                return new PGInteger( new Integer( val.intValue()));
+	                return new PGInteger( Integer.valueOf( val.intValue()));
 	            case Types.SMALLINT:
 	            case Types.TINYINT:
-	                return new PGShort( new Short( val.shortValue() ));
+	                return new PGShort( Short.valueOf( val.shortValue() ));
 	            case Types.DECIMAL:
 	            case Types.NUMERIC:
 	                return new PGBigDecimal( new BigDecimal( val.toString())); 

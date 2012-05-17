@@ -14,18 +14,18 @@ import java.io.Serializable;
 public class ServerErrorMessage implements Serializable
 {
 
-    private static final Character SEVERITY = new Character('S');
-    private static final Character MESSAGE = new Character('M');
-    private static final Character DETAIL = new Character('D');
-    private static final Character HINT = new Character('H');
-    private static final Character POSITION = new Character('P');
-    private static final Character WHERE = new Character('W');
-    private static final Character FILE = new Character('F');
-    private static final Character LINE = new Character('L');
-    private static final Character ROUTINE = new Character('R');
-    private static final Character SQLSTATE = new Character('C');
-    private static final Character INTERNAL_POSITION = new Character('p');
-    private static final Character INTERNAL_QUERY = new Character('q');
+    private static final Character SEVERITY = Character.valueOf('S');
+    private static final Character MESSAGE = Character.valueOf('M');
+    private static final Character DETAIL = Character.valueOf('D');
+    private static final Character HINT = Character.valueOf('H');
+    private static final Character POSITION = Character.valueOf('P');
+    private static final Character WHERE = Character.valueOf('W');
+    private static final Character FILE = Character.valueOf('F');
+    private static final Character LINE = Character.valueOf('L');
+    private static final Character ROUTINE = Character.valueOf('R');
+    private static final Character SQLSTATE = Character.valueOf('C');
+    private static final Character INTERNAL_POSITION = Character.valueOf('p');
+    private static final Character INTERNAL_QUERY = Character.valueOf('q');
 
     private final Map m_mesgParts = new HashMap();
     private final int verbosity;
@@ -50,7 +50,7 @@ public class ServerErrorMessage implements Serializable
                     l_pos++;
                 }
                 String l_mesgPart = new String(l_chars, l_startString, l_pos - l_startString);
-                m_mesgParts.put(new Character(l_mesgType), l_mesgPart);
+                m_mesgParts.put(Character.valueOf(l_mesgType), l_mesgPart);
             }
             l_pos++;
         }
