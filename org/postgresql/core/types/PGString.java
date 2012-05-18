@@ -50,16 +50,16 @@ public class PGString implements PGType
 	            case Types.LONGVARCHAR:                
 	                return new PGString(val);
 	            case Types.BIGINT:
-	                return new PGLong( new Long(Long.parseLong( val )));
+	                return new PGLong( Long.valueOf(Long.parseLong( val )));
 	            case Types.INTEGER:
-	                return new PGInteger( new Integer(Integer.parseInt( val )));
+	                return new PGInteger( Integer.valueOf(Integer.parseInt( val )));
 	            case Types.TINYINT:
-	                return new PGShort( new Short( Short.parseShort( val )));
+	                return new PGShort( Short.valueOf( Short.parseShort( val )));
 	            case Types.FLOAT:
 	            case Types.DOUBLE:
-	                return new PGDouble( new Double(Double.parseDouble( val )));
+	                return new PGDouble( Double.valueOf(Double.parseDouble( val )));
 	            case Types.REAL:
-	                return new PGFloat( new Float( Float.parseFloat( val )));
+	                return new PGFloat( Float.valueOf( Float.parseFloat( val )));
 	            case Types.NUMERIC:
 	            case Types.DECIMAL:
 	                return new PGBigDecimal( new BigDecimal( val));

@@ -438,7 +438,7 @@ public class Jdbc3CallableStatementTest extends TestCase
             cstmt.close();
             cstmt = con.prepareCall("{ call lvarchar_in_name(?) }");
             String maxFloat = "3.4E38";
-            cstmt.setObject( 1, new Float(maxFloat), Types.LONGVARCHAR);
+            cstmt.setObject( 1, Float.valueOf(maxFloat), Types.LONGVARCHAR);
             cstmt.executeUpdate();
             cstmt.close();
             Statement stmt = con.createStatement();
@@ -586,11 +586,11 @@ public class Jdbc3CallableStatementTest extends TestCase
             cstmt.close();
             ResultSet rs = con.createStatement().executeQuery("select * from real_tab");
             assertTrue ( rs.next() );
-            Float oVal = new Float( intValues[0]);
-            Float rVal = new Float(rs.getObject(1).toString());
+            Float oVal = Float.valueOf( intValues[0]);
+            Float rVal = Float.valueOf(rs.getObject(1).toString());
             assertTrue ( oVal.equals(rVal) );
-            oVal = new Float( intValues[1] );
-            rVal = new Float(rs.getObject(2).toString());
+            oVal = Float.valueOf( intValues[1] );
+            rVal = Float.valueOf(rs.getObject(2).toString());
             assertTrue ( oVal.equals(rVal) );
             rs.close();
         }

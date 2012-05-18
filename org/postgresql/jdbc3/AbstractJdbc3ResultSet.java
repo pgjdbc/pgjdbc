@@ -31,7 +31,7 @@ public abstract class AbstractJdbc3ResultSet extends org.postgresql.jdbc2.Abstra
     {
         switch (getSQLType(columnIndex)) {
         case Types.BOOLEAN:
-            return new Boolean(getBoolean(columnIndex));
+            return getBoolean(columnIndex) ? Boolean.TRUE : Boolean.FALSE;
         default:
             return super.internalGetObject(columnIndex, field);
         }

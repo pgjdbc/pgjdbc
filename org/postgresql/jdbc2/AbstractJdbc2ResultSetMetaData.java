@@ -416,7 +416,7 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
     protected Field getField(int columnIndex) throws SQLException
     {
         if (columnIndex < 1 || columnIndex > fields.length)
-            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(columnIndex), new Integer(fields.length)}), PSQLState.INVALID_PARAMETER_VALUE );
+            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{Integer.valueOf(columnIndex), Integer.valueOf(fields.length)}), PSQLState.INVALID_PARAMETER_VALUE );
         return fields[columnIndex - 1];
     }
 

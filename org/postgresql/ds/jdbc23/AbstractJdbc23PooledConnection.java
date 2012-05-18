@@ -270,11 +270,11 @@ public abstract class AbstractJdbc23PooledConnection
                 }
                 if (method.getName().equals("equals"))
                 {
-                    return new Boolean(proxy == args[0]);
+                    return proxy == args[0] ? Boolean.TRUE : Boolean.FALSE;
                 }
                 if (method.getName().equals("hashCode"))
                 {
-                    return new Integer(System.identityHashCode(proxy));
+                    return Integer.valueOf(System.identityHashCode(proxy));
                 }
                 try
                 {
@@ -411,11 +411,11 @@ public abstract class AbstractJdbc23PooledConnection
                 }
                 if (method.getName().equals("hashCode"))
                 {
-                    return new Integer(System.identityHashCode(proxy));
+                    return Integer.valueOf(System.identityHashCode(proxy));
                 }
                 if (method.getName().equals("equals"))
                 {
-                    return new Boolean(proxy == args[0]);
+                    return proxy == args[0] ? Boolean.TRUE : Boolean.FALSE;
                 }
                 return method.invoke(st, args);
             }

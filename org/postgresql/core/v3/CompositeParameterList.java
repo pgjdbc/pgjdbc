@@ -32,7 +32,7 @@ class CompositeParameterList implements V3ParameterList {
 
     private final int findSubParam(int index) throws SQLException {
         if (index < 1 || index > total)
-            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(total)}), PSQLState.INVALID_PARAMETER_VALUE );
+            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{Integer.valueOf(index), Integer.valueOf(total)}), PSQLState.INVALID_PARAMETER_VALUE );
 
         for (int i = offsets.length - 1; i >= 0; --i)
             if (offsets[i] < index)

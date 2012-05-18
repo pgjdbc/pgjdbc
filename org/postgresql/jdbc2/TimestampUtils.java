@@ -888,7 +888,7 @@ public class TimestampUtils {
                 int years = (int) ((secs + 15773356800L) / -3155823050L);
                 years++;
                 years -= years/4;
-                secs += years * 86400;
+                secs += years * 86400L;
             }
         }
         

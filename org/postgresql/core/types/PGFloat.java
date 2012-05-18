@@ -38,18 +38,18 @@ public class PGFloat implements PGType
 	                return new PGBoolean( val.floatValue() == 0?Boolean.FALSE:Boolean.TRUE );
 	            
 	            case Types.BIGINT:
-	                return new PGLong(new Long( val.longValue() ));
+	                return new PGLong(Long.valueOf( val.longValue() ));
 	            case Types.INTEGER:
-	                return new PGInteger(new Integer( val.intValue() ) );
+	                return new PGInteger(Integer.valueOf( val.intValue() ) );
 	            case Types.SMALLINT:
 	            case Types.TINYINT:
-	                return new PGShort(new Short( val.shortValue() ));
+	                return new PGShort(Short.valueOf( val.shortValue() ));
 	            case Types.VARCHAR:
 	            case Types.LONGVARCHAR:                
 	                return new PGString( val.toString() );
 	            case Types.DOUBLE:
 	            case Types.FLOAT:
-	                return( new PGDouble( new Double( val.doubleValue())));
+	                return( new PGDouble( Double.valueOf( val.doubleValue())));
 	            case Types.REAL:
 	                return new PGFloat( val );
 	            case Types.DECIMAL:
