@@ -216,8 +216,16 @@ import java.sql.*;
   <sect1 id="load">
    <title>Loading the Driver</title>
 
+   <note>
+    <para>
+      Starting from Java 6.0 it is enough to add the postgresql driver to the class path
+      because the <productname>PostgreSQL</productname> <acronym>JDBC</acronym>
+      driver supports the new auto-loading feature. You can safely ignore rest of the section.
+    </para>
+   </note>
+
    <para>
-    Before you can connect to a database, you need to load the
+    In Java 5.0 or older, before you can connect to a database, you need to load the
     driver. There are two methods available, and it depends on your
     code which is the best one to use.
    </para>
