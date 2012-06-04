@@ -11,12 +11,15 @@ package org.postgresql.core.v3;
 import org.postgresql.PGNotification;
 import org.postgresql.core.*;
 
-import java.sql.*;
+import java.sql.SQLException;
+import java.sql.SQLWarning;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.Properties;
+
 
 /**
  * ProtocolConnection implementation for the V3 protocol.
@@ -34,12 +37,8 @@ class ProtocolConnectionImpl implements ProtocolConnection {
         this.standardConformingStrings = false;
     }
 
-    public String getHost() {
-        return pgStream.getHost();
-    }
-
-    public int getPort() {
-        return pgStream.getPort();
+    public InetSocketAddress getAddress() {
+        return pgStream.getAddress();
     }
 
     public String getUser() {
@@ -90,7 +89,7 @@ class ProtocolConnectionImpl implements ProtocolConnection {
             if (logger.logDebug())
                 logger.debug(" FE=> CancelRequest(pid=" + cancelPid + ",ckey=" + cancelKey + ")");
 
-            cancelStream = new PGStream(pgStream.getHost(), pgStream.getPort());
+            cancelStream = new PGStream(pgStream.getAddress());
             cancelStream.SendInteger4(16);
             cancelStream.SendInteger2(1234);
             cancelStream.SendInteger2(5678);

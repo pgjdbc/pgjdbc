@@ -8,6 +8,7 @@
 */
 package org.postgresql.core;
 
+import java.net.InetSocketAddress;
 import java.util.Properties;
 import java.sql.SQLException;
 
@@ -51,7 +52,7 @@ public abstract class ConnectionFactory {
      * @return the new, initialized, connection
      * @throws SQLException if the connection could not be established.
      */
-    public static ProtocolConnection openConnection(String host, int port, String user, String database, Properties info, Logger logger) throws SQLException {
+    public static ProtocolConnection openConnection(InetSocketAddress[] address, String user, String database, Properties info, Logger logger) throws SQLException {
         String protoName = info.getProperty("protocolVersion");
 
         for (int i = 0; i < versions.length; ++i)
@@ -61,7 +62,7 @@ public abstract class ConnectionFactory {
                 continue;
 
             ConnectionFactory factory = (ConnectionFactory) versions[i][1];
-            ProtocolConnection connection = factory.openConnectionImpl(host, port, user, database, info, logger);
+            ProtocolConnection connection = factory.openConnectionImpl(address, user, database, info, logger);
             if (connection != null)
                 return connection;
         }
@@ -86,5 +87,5 @@ public abstract class ConnectionFactory {
      * @throws SQLException if the connection could not be established for a reason other
      *    than protocol version incompatibility.
      */
-    public abstract ProtocolConnection openConnectionImpl(String host, int port, String user, String database, Properties info, Logger logger) throws SQLException;
+    public abstract ProtocolConnection openConnectionImpl(InetSocketAddress[] address, String user, String database, Properties info, Logger logger) throws SQLException;
 }

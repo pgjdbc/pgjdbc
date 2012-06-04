@@ -13,6 +13,8 @@ import java.sql.*;
 import java.util.*;
 
 import org.postgresql.core.*;
+import java.net.InetSocketAddress;
+
 import org.postgresql.Driver;
 import org.postgresql.PGNotification;
 import org.postgresql.fastpath.Fastpath;
@@ -84,7 +86,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     //
     // Ctor.
     //
-    protected AbstractJdbc2Connection(String host, int port, String user, String database, Properties info, String url) throws SQLException
+    protected AbstractJdbc2Connection(InetSocketAddress[] address, String user, String database, Properties info, String url) throws SQLException
     {
         this.creatingURL = url;
 
@@ -135,7 +137,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
             logger.info(Driver.getVersion());
 
         // Now make the initial connection and set up local state
-        this.protoConnection = ConnectionFactory.openConnection(host, port, user, database, info, logger);
+        this.protoConnection = ConnectionFactory.openConnection(address, user, database, info, logger);
         this.dbVersionNumber = protoConnection.getServerVersion();
         this.compatible = info.getProperty("compatible", Driver.MAJORVERSION + "." + Driver.MINORVERSION);
 

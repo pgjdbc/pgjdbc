@@ -7,6 +7,7 @@
 */
 package org.postgresql.jdbc3g;
 
+import java.net.InetSocketAddress;
 import java.sql.SQLException;
 import java.util.Properties;
 
@@ -16,8 +17,8 @@ import org.postgresql.core.TypeInfo;
 public abstract class AbstractJdbc3gConnection extends org.postgresql.jdbc3.AbstractJdbc3Connection
 {
 
-    public AbstractJdbc3gConnection(String host, int port, String user, String database, Properties info, String url) throws SQLException {
-        super(host, port, user, database, info, url);
+    public AbstractJdbc3gConnection(InetSocketAddress[] address, String user, String database, Properties info, String url) throws SQLException {
+        super(address, user, database, info, url);
 
         TypeInfo types = getTypeInfo();
         if (haveMinimumServerVersion("8.3")) {

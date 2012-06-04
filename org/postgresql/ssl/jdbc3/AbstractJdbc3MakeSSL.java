@@ -11,6 +11,7 @@ import java.util.Properties;
 import java.io.IOException;
 import java.net.Socket;
 import java.lang.reflect.Constructor;
+
 import javax.net.ssl.SSLSocketFactory;
 
 import org.postgresql.core.PGStream;
@@ -58,7 +59,7 @@ public class AbstractJdbc3MakeSSL {
             }
         }
 
-        Socket newConnection = factory.createSocket(stream.getSocket(), stream.getHost(), stream.getPort(), true);
+        Socket newConnection = factory.createSocket(stream.getSocket(), stream.getAddress().getHostString(), stream.getAddress().getPort(), true);
         stream.changeSocket(newConnection);
     }
 

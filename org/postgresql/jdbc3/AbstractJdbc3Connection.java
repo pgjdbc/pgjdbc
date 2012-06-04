@@ -7,6 +7,7 @@
 */
 package org.postgresql.jdbc3;
 
+import java.net.InetSocketAddress;
 import java.util.Properties;
 import java.sql.*;
 
@@ -24,8 +25,8 @@ public abstract class AbstractJdbc3Connection extends org.postgresql.jdbc2.Abstr
     private int rsHoldability = ResultSet.CLOSE_CURSORS_AT_COMMIT;
     private int savepointId = 0;
 
-    protected AbstractJdbc3Connection(String host, int port, String user, String database, Properties info, String url) throws SQLException {
-        super(host, port, user, database, info, url);
+    protected AbstractJdbc3Connection(InetSocketAddress[] address, String user, String database, Properties info, String url) throws SQLException {
+        super(address, user, database, info, url);
     }
 
     /**
