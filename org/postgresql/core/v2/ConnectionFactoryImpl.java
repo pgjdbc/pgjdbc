@@ -11,11 +11,12 @@ package org.postgresql.core.v2;
 import java.util.Properties;
 import java.util.StringTokenizer;
 
-import java.sql.*;
+import java.sql.SQLException;
+import java.sql.SQLWarning;
 import java.io.IOException;
 import java.net.ConnectException;
+import java.net.InetSocketAddress;
 
-import org.postgresql.Driver;
 import org.postgresql.core.*;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -37,7 +38,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     private static final int AUTH_REQ_MD5 = 5;
     private static final int AUTH_REQ_SCM = 6;
 
-    public ProtocolConnection openConnectionImpl(String host, int port, String user, String database, Properties info, Logger logger) throws SQLException {
+    public ProtocolConnection openConnectionImpl(InetSocketAddress[] addresses, String user, String database, Properties info, Logger logger) throws SQLException {
         // Extract interesting values from the info properties:
         //  - the SSL setting
         boolean requireSSL;
@@ -69,17 +70,20 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         //  - the TCP keep alive setting
         boolean requireTCPKeepAlive = (Boolean.valueOf(info.getProperty("tcpKeepAlive")).booleanValue());
 
-        if (logger.logDebug())
-            logger.debug("Trying to establish a protocol version 2 connection to " + host + ":" + port);
+        for (int addr = 0; addr < addresses.length; ++addr) {
+            InetSocketAddress address = addresses[addr];
+            if (logger.logDebug())
+                logger.debug("Trying to establish a protocol version 2 connection to " + address);
 
-        //
-        // Establish a connection.
-        //
+            //
+            // Establish a connection.
+            //
+            
 
         PGStream newStream = null;
         try
         {
-            newStream = new PGStream(host, port);
+            newStream = new PGStream(address);
 
             // Construct and send an ssl startup packet if requested.
             if (trySSL)
@@ -122,6 +126,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // Added by Peter Mount <peter@retep.org.uk>
             // ConnectException is thrown when the connection cannot be made.
             // we trap this an return a more meaningful message for the end user
+
+            if (addr+1 < addresses.length) {
+                // still more addresses to try
+                continue;
+            }
             throw new PSQLException (GT.tr("Connection refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections."), PSQLState.CONNECTION_UNABLE_TO_CONNECT, cex);
         }
         catch (IOException ioe)
@@ -137,6 +146,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 }
             }
 
+            if (addr+1 < addresses.length) {
+                // still more addresses to try
+                continue;
+            }
             throw new PSQLException (GT.tr("The connection attempt failed."), PSQLState.CONNECTION_UNABLE_TO_CONNECT, ioe);
         }
         catch (SQLException se)
@@ -152,8 +165,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 }
             }
 
+            if (addr+1 < addresses.length) {
+                // still more addresses to try
+                continue;
+            }
             throw se;
         }
+        }
+        throw new PSQLException (GT.tr("The connection url is invalid."), PSQLState.CONNECTION_UNABLE_TO_CONNECT);
     }
 
     private PGStream enableSSL(PGStream pgStream, boolean requireSSL, Properties info, Logger logger) throws IOException, SQLException {
@@ -180,7 +199,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
             // We have to reconnect to continue.
             pgStream.close();
-            return new PGStream(pgStream.getHost(), pgStream.getPort());
+            return new PGStream(pgStream.getAddress());
 
         case 'N':
             if (logger.logDebug())

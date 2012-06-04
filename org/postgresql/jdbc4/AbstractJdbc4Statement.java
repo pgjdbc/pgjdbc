@@ -13,6 +13,9 @@ import java.io.Reader;
 import java.io.InputStream;
 
 import org.postgresql.core.Oid;
+import org.postgresql.util.GT;
+import org.postgresql.util.PSQLState;
+import org.postgresql.util.PSQLException;
 
 abstract class AbstractJdbc4Statement extends org.postgresql.jdbc3g.AbstractJdbc3gStatement
 {
@@ -119,7 +122,11 @@ abstract class AbstractJdbc4Statement extends org.postgresql.jdbc3g.AbstractJdbc
 
     public void setBinaryStream(int parameterIndex, InputStream value, long length) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "setBinaryStream(int, InputStream, long)");
+	if (length > Integer.MAX_VALUE)
+	{
+	    throw new PSQLException(GT.tr("Object is too large to send over the protocol."), PSQLState.NUMERIC_CONSTANT_OUT_OF_RANGE);
+	}	
+        preparedParameters.setBytea(parameterIndex, value, (int)length);
     }
 
     public void setBinaryStream(int parameterIndex, InputStream value) throws SQLException

@@ -11,11 +11,11 @@ package org.postgresql.core.v3;
 import java.util.Properties;
 import java.util.TimeZone;
 
-import java.sql.*;
+import java.sql.SQLException;
 import java.io.IOException;
 import java.net.ConnectException;
+import java.net.InetSocketAddress;
 
-import org.postgresql.Driver;
 import org.postgresql.core.*;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -46,7 +46,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     private static class UnsupportedProtocolException extends IOException {
     }
 
-    public ProtocolConnection openConnectionImpl(String host, int port, String user, String database, Properties info, Logger logger) throws SQLException {
+    public ProtocolConnection openConnectionImpl(InetSocketAddress[] addresses, String user, String database, Properties info, Logger logger) throws SQLException {
         // Extract interesting values from the info properties:
         //  - the SSL setting
         boolean requireSSL;
@@ -85,8 +85,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         //
         // Change by Chris Smith <cdsmith@twu.net>
 
+        for (int addr = 0; addr < addresses.length; ++addr) {
+            InetSocketAddress address = addresses[addr];
+            
         if (logger.logDebug())
-            logger.debug("Trying to establish a protocol version 3 connection to " + host + ":" + port);
+            logger.debug("Trying to establish a protocol version 3 connection to " + address);
 
         //
         // Establish a connection.
@@ -95,7 +98,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         PGStream newStream = null;
         try
         {
-            newStream = new PGStream(host, port);
+            newStream = new PGStream(address);
 
             // Construct and send an ssl startup packet if requested.
             if (trySSL)
@@ -128,7 +131,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             sendStartupPacket(newStream, params, logger);
 
             // Do authentication (until AuthenticationOk).
-            doAuthentication(newStream, host, user, info, logger);
+            doAuthentication(newStream, address.getHostName(), user, info, logger);
 
             // Do final startup.
             ProtocolConnectionImpl protoConnection = new ProtocolConnectionImpl(newStream, user, database, info, logger);
@@ -158,6 +161,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // Added by Peter Mount <peter@retep.org.uk>
             // ConnectException is thrown when the connection cannot be made.
             // we trap this an return a more meaningful message for the end user
+            if (addr+1 < addresses.length) {
+                // still more addresses to try
+                continue;
+            }
             throw new PSQLException (GT.tr("Connection refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections."), PSQLState.CONNECTION_UNABLE_TO_CONNECT, cex);
         }
         catch (IOException ioe)
@@ -171,6 +178,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 catch (IOException e)
                 {
                 }
+            }
+            if (addr+1 < addresses.length) {
+                // still more addresses to try
+                continue;
             }
             throw new PSQLException (GT.tr("The connection attempt failed."), PSQLState.CONNECTION_UNABLE_TO_CONNECT, ioe);
         }
@@ -186,8 +197,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 {
                 }
             }
+            if (addr+1 < addresses.length) {
+                // still more addresses to try
+                continue;
+            }
             throw se;
         }
+        }
+        throw new PSQLException (GT.tr("The connection url is invalid."), PSQLState.CONNECTION_UNABLE_TO_CONNECT);
     }
 
     /**
@@ -240,7 +257,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
             // We have to reconnect to continue.
             pgStream.close();
-            return new PGStream(pgStream.getHost(), pgStream.getPort());
+            return new PGStream(pgStream.getAddress());
 
         case 'N':
             if (logger.logDebug())

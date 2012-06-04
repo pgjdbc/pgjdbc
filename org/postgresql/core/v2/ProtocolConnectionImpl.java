@@ -8,8 +8,10 @@
 */
 package org.postgresql.core.v2;
 
-import java.sql.*;
+import java.sql.SQLException;
+import java.sql.SQLWarning;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Set;
 
@@ -30,12 +32,8 @@ class ProtocolConnectionImpl implements ProtocolConnection {
         this.executor = new QueryExecutorImpl(this, pgStream, logger);
     }
 
-    public String getHost() {
-        return pgStream.getHost();
-    }
-
-    public int getPort() {
-        return pgStream.getPort();
+    public InetSocketAddress getAddress() {
+        return pgStream.getAddress();
     }
 
     public String getUser() {
@@ -89,7 +87,7 @@ class ProtocolConnectionImpl implements ProtocolConnection {
             if (logger.logDebug())
                 logger.debug(" FE=> CancelRequest(pid=" + cancelPid + ",ckey=" + cancelKey + ")");
 
-            cancelStream = new PGStream(pgStream.getHost(), pgStream.getPort());
+            cancelStream = new PGStream(pgStream.getAddress());
             cancelStream.SendInteger4(16);
             cancelStream.SendInteger2(1234);
             cancelStream.SendInteger2(5678);

@@ -14,8 +14,9 @@ import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.EOFException;
 import java.io.Writer;
+import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.sql.*;
+import java.sql.SQLException;
 
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLState;
@@ -30,8 +31,7 @@ import org.postgresql.util.PSQLException;
  */
 public class PGStream
 {
-    private final String host;
-    private final int port;
+    private final InetSocketAddress address;
 
     private final byte[] _int4buf;
     private final byte[] _int2buf;
@@ -52,24 +52,21 @@ public class PGStream
      * @param port the port number that the postmaster is sitting on
      * @exception IOException if an IOException occurs below it.
      */
-    public PGStream(String host, int port) throws IOException
+    public PGStream(InetSocketAddress address) throws IOException
     {
-        this.host = host;
-        this.port = port;
+        this.address = address;
 
-        changeSocket(new Socket(host, port));
+        Socket socket = new Socket();
+        socket.connect(address);
+        changeSocket(socket);
         setEncoding(Encoding.getJVMEncoding("US-ASCII"));
 
         _int2buf = new byte[2];
         _int4buf = new byte[4];
     }
 
-    public String getHost() {
-        return host;
-    }
-
-    public int getPort() {
-        return port;
+    public InetSocketAddress getAddress() {
+        return address;
     }
 
     public Socket getSocket() {

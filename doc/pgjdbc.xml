@@ -216,8 +216,16 @@ import java.sql.*;
   <sect1 id="load">
    <title>Loading the Driver</title>
 
+   <note>
+    <para>
+      Starting from Java 6.0 it is enough to add the postgresql driver to the class path
+      because the <productname>PostgreSQL</productname> <acronym>JDBC</acronym>
+      driver supports the new auto-loading feature. You can safely ignore rest of the section.
+    </para>
+   </note>
+
    <para>
-    Before you can connect to a database, you need to load the
+    In Java 5.0 or older, before you can connect to a database, you need to load the
     driver. There are two methods available, and it depends on your
     code which is the best one to use.
    </para>
@@ -988,7 +996,7 @@ java -Djavax.net.ssl.trustStore=mystore -Djavax.net.ssl.trustStorePassword=mypas
     <para>
      Information on how to actually implement such a class is beyond
      the scope of this documentation.  Places to look for help are the
-     <ulink url="http://java.sun.com/j2se/1.4.2/docs/guide/security/jsse/JSSERefGuide.html">
+     <ulink url="http://docs.oracle.com/javase/1.5.0/docs/guide/security/jsse/JSSERefGuide.html">
      <acronym>JSSE</acronym> Reference Guide</ulink> and the source to the
      <classname>NonValidatingFactory</classname> provided by the
      <acronym>JDBC</acronym> driver.
@@ -1709,10 +1717,10 @@ conn.commit();
    <acronym>JDBC</acronym> driver translates these escape sequences into
    native syntax for its specific database.
    For more information consult the section 4.1.5 from the
-   <ulink url="http://java.sun.com/j2se/1.4.2/docs/guide/jdbc/getstart/statement.html#999472"><acronym>JDBC</acronym> Technology Guide</ulink>
-   (bundled with the <productname>Sun</productname> <acronym>JRE</acronym>
+   <ulink url="http://docs.oracle.com/javase/1.5.0/docs/guide/jdbc/getstart/statement.html#17215"><acronym>JDBC</acronym> Technology Guide</ulink>
+   (bundled with the <productname>Oracle</productname> <acronym>JRE</acronym>
    documentation) and the section 13.4 from the
-   <ulink url="http://java.sun.com/products/jdbc/download.html#corespec30"><acronym>JDBC</acronym> 3.0 specification</ulink>.
+   <ulink url="http://www.oracle.com/technetwork/java/download-141179.html#corespec40"><acronym>JDBC</acronym> 4.0 specification</ulink>.
    </para>
 
    <para>
@@ -2945,7 +2953,7 @@ serverName=localhost;databaseName=test;user=testuser;password=testpassword
      connection from the pool.  In general it is not recommended to 
      use the <productname>PostgreSQL</productname> provided connection
      pool.  Check your application server or check out the excellent
-     <ulink url="http://jakarta.apache.org/commons/dbcp/">
+     <ulink url="http://commons.apache.org/dbcp/">
      jakarta commons DBCP</ulink> project.
     </para>
 
@@ -3342,10 +3350,10 @@ try {
   <para>
    If you have not yet read it, you are advised you read the
    <acronym>JDBC</acronym> <acronym>API</acronym> Documentation
-   (supplied with Sun's <acronym>JDK</acronym>) and the
+   (supplied with Oracle's <acronym>JDK</acronym>) and the
    <acronym>JDBC</acronym> Specification.  Both are available from
    <ulink
-   url="http://java.sun.com/products/jdbc/index.jsp"></ulink>.
+   url="http://www.oracle.com/technetwork/java/javase/jdbc/index.html"></ulink>.
   </para>
 
   <para>

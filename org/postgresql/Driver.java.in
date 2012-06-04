@@ -10,6 +10,7 @@ package org.postgresql;
 import java.io.*;
 import java.sql.*;
 import java.util.*;
+import java.net.InetSocketAddress;
 import java.net.URL;
 
 import java.security.AccessController;
@@ -389,7 +390,7 @@ public class Driver implements java.sql.Driver
      * @throws SQLException if the connection could not be made
      */
     private static Connection makeConnection(String url, Properties props) throws SQLException {
-        return new @JDBCCONNECTCLASS@(host(props), port(props),
+        return new @JDBCCONNECTCLASS@(address(props),
                                       user(props), database(props),
                                       props, url);
     }
@@ -563,7 +564,6 @@ public class Driver implements java.sql.Driver
      */
     Properties parseURL(String url, Properties defaults) throws SQLException
     {
-        int state = -1;
         Properties urlProps = new Properties(defaults);
 
         String l_urlServer = url;
@@ -575,107 +575,61 @@ public class Driver implements java.sql.Driver
             l_urlServer = url.substring(0, l_qPos);
             l_urlArgs = url.substring(l_qPos + 1);
         }
-
-        // look for an IPv6 address that is enclosed by []
-        // the upcoming parsing that uses colons as identifiers can't handle
-        // the colons in an IPv6 address.
-        int ipv6start = l_urlServer.indexOf("[");
-        int ipv6end = l_urlServer.indexOf("]");
-        String ipv6address = null;
-        if (ipv6start != -1 && ipv6end > ipv6start)
-        {
-            ipv6address = l_urlServer.substring(ipv6start + 1, ipv6end);
-            l_urlServer = l_urlServer.substring(0, ipv6start) + "ipv6host" + l_urlServer.substring(ipv6end + 1);
-        }
-
-        //parse the server part of the url
-        StringTokenizer st = new StringTokenizer(l_urlServer, ":/", true);
-        int count;
-        for (count = 0; (st.hasMoreTokens()); count++)
-        {
-            String token = st.nextToken();
-
-            // PM Aug 2 1997 - Modified to allow multiple backends
-            if (count <= 3)
-            {
-                if ((count % 2) == 1 && token.equals(":"))
-                    ;
-                else if ((count % 2) == 0)
-                {
-                    boolean found = (count == 0) ? true : false;
-                    for (int tmp = 0;tmp < protocols.length;tmp++)
-                    {
-                        if (token.equals(protocols[tmp]))
-                        {
-                            // PM June 29 1997 Added this property to enable the driver
-                            // to handle multiple backend protocols.
-                            if (count == 2 && tmp > 0)
-                            {
-                                urlProps.setProperty("Protocol", token);
-                                found = true;
-                            }
-                        }
-                    }
-
-                    if (found == false)
-                        return null;
-                }
-                else
-                    return null;
-            }
-            else if (count > 3)
-            {
-                if (count == 4 && token.equals("/"))
-                    state = 0;
-                else if (count == 4)
-                {
-                    urlProps.setProperty("PGDBNAME", token);
-                    state = -2;
-                }
-                else if (count == 5 && state == 0 && token.equals("/"))
-                    state = 1;
-                else if (count == 5 && state == 0)
-                    return null;
-                else if (count == 6 && state == 1)
-                    urlProps.setProperty("PGHOST", token);
-                else if (count == 7 && token.equals(":"))
-                    state = 2;
-                else if (count == 8 && state == 2)
-                {
-                    try
-                    {
-                        Integer portNumber = Integer.decode(token);
-                        urlProps.setProperty("PGPORT", portNumber.toString());
-                    }
-                    catch (Exception e)
-                    {
-                        return null;
-                    }
-                }
-                else if ((count == 7 || count == 9) &&
-                         (state == 1 || state == 2) && token.equals("/"))
-                    state = -1;
-                else if (state == -1)
-                {
-                    urlProps.setProperty("PGDBNAME", token);
-                    state = -2;
-                }
-            }
-        }
-        if (count <= 1)
-        {
+        
+        if (!l_urlServer.startsWith("jdbc:postgresql:")) {
             return null;
         }
+        l_urlServer = l_urlServer.substring("jdbc:postgresql:".length());
 
-        // if we extracted an IPv6 address out earlier put it back
-        if (ipv6address != null)
-            urlProps.setProperty("PGHOST", ipv6address);
+        if (l_urlServer.startsWith("//")) {
+            l_urlServer = l_urlServer.substring(2);
+            int slash = l_urlServer.indexOf('/');
+            if (slash == -1) {
+                return null;
+            }
+            urlProps.setProperty("PGDBNAME", l_urlServer.substring(slash + 1));
+
+            String[] addresses = l_urlServer.substring(0, slash).split(",");
+            StringBuffer hosts = new StringBuffer();
+            StringBuffer ports = new StringBuffer();
+            for (int addr = 0; addr < addresses.length; ++addr) {
+                String address = addresses[addr];
+                
+                int portIdx = address.lastIndexOf(':');
+                if (portIdx != -1 && address.lastIndexOf(']') < portIdx) {
+                    String portStr = address.substring(portIdx + 1);
+                    try {
+                        Integer.parseInt(portStr);
+                    } catch (NumberFormatException ex) {
+                        return null;
+                    }
+                    ports.append(portStr);
+                    hosts.append(address.subSequence(0, portIdx));
+                } else {
+                    ports.append("@DEF_PGPORT@");
+                    hosts.append(address);
+                }
+                ports.append(',');
+                hosts.append(',');
+            }
+            ports.setLength(ports.length() - 1);
+            hosts.setLength(hosts.length() - 1);
+            urlProps.setProperty("PGPORT", ports.toString());
+            urlProps.setProperty("PGHOST", hosts.toString());
+        } else {
+            urlProps.setProperty("PGPORT", "@DEF_PGPORT@");
+            urlProps.setProperty("PGHOST", "localhost");        
+            urlProps.setProperty("PGDBNAME", l_urlServer);
+        }
 
         //parse the args part of the url
-        StringTokenizer qst = new StringTokenizer(l_urlArgs, "&");
-        for (count = 0; (qst.hasMoreTokens()); count++)
+        String[] args = l_urlArgs.split("&");
+        for (int i = 0; i < args.length; ++i)
         {
-            String token = qst.nextToken();
+            String token = args[i];
+            if (token.length() ==  0) {
+                continue;
+            }
             int l_pos = token.indexOf('=');
             if (l_pos == -1)
             {
@@ -691,19 +645,17 @@ public class Driver implements java.sql.Driver
     }
 
     /**
-     * @return the hostname portion of the URL
+     * @return the address portion of the URL
      */
-    private static String host(Properties props)
+    private static InetSocketAddress[] address(Properties props)
     {
-        return props.getProperty("PGHOST", "localhost");
-    }
-
-    /**
-     * @return the port number portion of the URL or the default if no port was specified
-     */
-    private static int port(Properties props)
-    {
-        return Integer.parseInt(props.getProperty("PGPORT", "@DEF_PGPORT@"));
+        String[] hosts = props.getProperty("PGHOST").split(",");
+        String[] ports = props.getProperty("PGPORT").split(",");
+        InetSocketAddress[] addresses = new InetSocketAddress[hosts.length];
+        for (int i = 0; i < addresses.length; ++i) {
+            addresses[i] = new InetSocketAddress(hosts[i], Integer.parseInt(ports[i]));
+        }
+        return addresses;
     }
 
     /**

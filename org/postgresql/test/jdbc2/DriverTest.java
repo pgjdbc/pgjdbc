@@ -7,9 +7,16 @@
 */
 package org.postgresql.test.jdbc2;
 
+import org.postgresql.Driver;
 import org.postgresql.test.TestUtil;
+
+import com.sun.corba.se.impl.orb.ParserTable.TestIIOPPrimaryToContactInfo;
+
 import junit.framework.TestCase;
+
+import java.lang.reflect.Method;
 import java.sql.*;
+import java.util.Properties;
 
 /*
  * Tests the dynamically created class org.postgresql.Driver
@@ -36,18 +43,34 @@ public class DriverTest extends TestCase
         assertNotNull(drv);
 
         // These are always correct
-        assertTrue(drv.acceptsURL("jdbc:postgresql:test"));
-        assertTrue(drv.acceptsURL("jdbc:postgresql://localhost/test"));
-        assertTrue(drv.acceptsURL("jdbc:postgresql://localhost:5432/test"));
-        assertTrue(drv.acceptsURL("jdbc:postgresql://127.0.0.1/anydbname"));
-        assertTrue(drv.acceptsURL("jdbc:postgresql://127.0.0.1:5433/hidden"));
-        assertTrue(drv.acceptsURL("jdbc:postgresql://[::1]:5740/db"));
+        verifyUrl(drv, "jdbc:postgresql:test", "localhost", "5432", "test");
+        verifyUrl(drv, "jdbc:postgresql://localhost/test", "localhost", "5432", "test");
+        verifyUrl(drv, "jdbc:postgresql://localhost:5432/test", "localhost", "5432", "test");
+        verifyUrl(drv, "jdbc:postgresql://127.0.0.1/anydbname", "127.0.0.1", "5432", "anydbname");
+        verifyUrl(drv, "jdbc:postgresql://127.0.0.1:5433/hidden", "127.0.0.1", "5433", "hidden");
+        verifyUrl(drv, "jdbc:postgresql://[::1]:5740/db", "[::1]", "5740", "db");
 
         // Badly formatted url's
         assertTrue(!drv.acceptsURL("jdbc:postgres:test"));
         assertTrue(!drv.acceptsURL("postgresql:test"));
         assertTrue(!drv.acceptsURL("db"));
+        assertTrue(!drv.acceptsURL("jdbc:postgresql://localhost:5432a/test"));
+        
+        // failover urls
+        verifyUrl(drv, "jdbc:postgresql://localhost,127.0.0.1:5432/test", "localhost,127.0.0.1", "5432,5432", "test");
+        verifyUrl(drv, "jdbc:postgresql://localhost:5433,127.0.0.1:5432/test", "localhost,127.0.0.1", "5433,5432", "test");
+        verifyUrl(drv, "jdbc:postgresql://[::1],[::1]:5432/db", "[::1],[::1]", "5432,5432", "db");
+        verifyUrl(drv, "jdbc:postgresql://[::1]:5740,127.0.0.1:5432/db", "[::1],127.0.0.1", "5740,5432", "db");
+    }
 
+    private void verifyUrl(Driver drv, String url, String hosts, String ports, String dbName) throws Exception {
+        assertTrue(url, drv.acceptsURL(url));
+        Method parseMethod = drv.getClass().getDeclaredMethod("parseURL", new Class[]{String.class, Properties.class});
+        parseMethod.setAccessible(true);
+        Properties p = (Properties) parseMethod.invoke(drv, new Object[]{url, null});
+        assertEquals(url, dbName, p.getProperty("PGDBNAME"));
+        assertEquals(url, hosts, p.getProperty("PGHOST"));
+        assertEquals(url, ports, p.getProperty("PGPORT"));
     }
 
     /*
@@ -69,5 +92,12 @@ public class DriverTest extends TestCase
         con = DriverManager.getConnection(TestUtil.getURL() + "&user=" + TestUtil.getUser() + "&password=" + TestUtil.getPassword());
         assertNotNull(con);
         con.close();
+        
+        // Test with failover url
+        String url = "jdbc:postgresql://invalidhost.not.here," + TestUtil.getServer() + ":" + TestUtil.getPort() + "/" + TestUtil.getDatabase();
+        con = DriverManager.getConnection(url, TestUtil.getUser(), TestUtil.getPassword());
+        assertNotNull(con);
+        con.close();
+
     }
 }

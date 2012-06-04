@@ -7,6 +7,7 @@
 */
 package org.postgresql.jdbc4;
 
+import java.net.InetSocketAddress;
 import java.sql.*;
 import java.util.Map;
 import java.util.HashMap;
@@ -26,8 +27,8 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
 {
     private final Properties _clientInfo;
 
-    public AbstractJdbc4Connection(String host, int port, String user, String database, Properties info, String url) throws SQLException {
-        super(host, port, user, database, info, url);
+    public AbstractJdbc4Connection(InetSocketAddress[] address, String user, String database, Properties info, String url) throws SQLException {
+        super(address, user, database, info, url);
 
         TypeInfo types = getTypeInfo();
         if (haveMinimumServerVersion("8.3")) {
