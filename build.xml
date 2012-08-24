@@ -479,7 +479,7 @@
      <param name="base.dir" expression="${builddir}/doc/"/>
      <param name="use.id.as.filename" expression="1" />
    </xslt>
-   <delete file="${builddir}/doc/pgjdbc.html"/>
+   <!--delete file="${builddir}/doc/pgjdbc.html"/-->
   </target>
 
   <!-- Blah. Can't reference an external XML catalog until Ant 1.6.
