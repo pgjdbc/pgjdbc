@@ -52,11 +52,11 @@ public class TypeInfoCache implements TypeInfo {
 
     private BaseConnection _conn;
     private final int _unknownLength;
-    private PreparedStatement _getOidStatement;
-    private PreparedStatement _getNameStatement;
-    private PreparedStatement _getArrayElementOidStatement;
-    private PreparedStatement _getArrayDelimiterStatement;
-    private PreparedStatement _getTypeInfoStatement;
+    private boolean _pgTypeNamesLoaded;
+    private boolean _pgTypeOidsLoaded;
+    private boolean _sqlTypesLoaded;
+    private boolean _arrayElementOidsLoaded;
+    private boolean _arrayDelimitersLoaded;
 
     // basic pg types info:
     // 0 - type name
@@ -178,86 +178,92 @@ public class TypeInfoCache implements TypeInfo {
     {
         Integer i = (Integer)_pgNameToSQLType.get(pgTypeName);
         if (i != null)
-            return i.intValue();
-
-        if (_getTypeInfoStatement == null) {
+          return i.intValue();
+        
+        if (!_sqlTypesLoaded) {
             // There's no great way of telling what's an array type.
             // People can name their own types starting with _.
             // Other types use typelem that aren't actually arrays, like box.
             //
-            String sql = "SELECT typinput='array_in'::regproc, typtype FROM ";
+            String sql = "SELECT typinput='array_in'::regproc, typtype, typname FROM ";
             if (_conn.haveMinimumServerVersion("7.3")) {
                 sql += "pg_catalog.";
             }
-            sql += "pg_type WHERE typname = ?";
+            sql += "pg_type";
 
-            _getTypeInfoStatement = _conn.prepareStatement(sql);
-        }
+            PreparedStatement getTypeInfoStatement = _conn.prepareStatement(sql);
 
-        _getTypeInfoStatement.setString(1, pgTypeName);
+            // Go through BaseStatement to avoid transaction start.
+            if (!((BaseStatement)getTypeInfoStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN))
+                throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
 
-        // Go through BaseStatement to avoid transaction start.
-        if (!((BaseStatement)_getTypeInfoStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN))
-            throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+            ResultSet rs = getTypeInfoStatement.getResultSet();
+            
+            while(rs.next()) {
 
-        ResultSet rs = _getTypeInfoStatement.getResultSet();
-
-        Integer type = null;
-        if (rs.next()) {
-            boolean isArray = rs.getBoolean(1);
-            String typtype = rs.getString(2);
-            if (isArray) {
-                type = new Integer(Types.ARRAY);
-            } else if ("c".equals(typtype)) {
-                type = new Integer(Types.STRUCT);
-            } else if ("d".equals(typtype)) {
-                type = new Integer(Types.DISTINCT);
+                Integer type = null;
+                boolean isArray = rs.getBoolean(1);
+                String typtype = rs.getString(2);
+                if (isArray) {
+                    type = new Integer(Types.ARRAY);
+                } else if ("c".equals(typtype)) {
+                    type = new Integer(Types.STRUCT);
+                } else if ("d".equals(typtype)) {
+                    type = new Integer(Types.DISTINCT);
+                }
+              
+                if (type != null)
+                  _pgNameToSQLType.put(rs.getString(3), type);
             }
+
+            rs.close();
+          
+            _sqlTypesLoaded = true;
+          
+            // Retry lookup
+            return getSQLType(pgTypeName);
         }
-
-        if (type == null) {
-             type = new Integer(Types.OTHER);
-        }
-        rs.close();
-
-        _pgNameToSQLType.put(pgTypeName, type);
-
-        return type.intValue();
+      
+        return Types.OTHER;
     }
 
     public synchronized int getPGType(String pgTypeName) throws SQLException
     {
         Integer oid = (Integer)_pgNameToOid.get(pgTypeName);
         if (oid != null)
-            return oid.intValue();
-
-        if (_getOidStatement == null) {
+          return oid.intValue();
+        
+        if (!_pgTypeOidsLoaded) {
             String sql;
             if (_conn.haveMinimumServerVersion("7.3")) {
-                sql = "SELECT oid FROM pg_catalog.pg_type WHERE typname = ?";
+                sql = "SELECT oid, typname FROM pg_catalog.pg_type";
             } else {
-                sql = "SELECT oid FROM pg_type WHERE typname = ?";
+                sql = "SELECT oid, typname FROM pg_type";
             }
 
-            _getOidStatement = _conn.prepareStatement(sql);
+            PreparedStatement getOidStatement = _conn.prepareStatement(sql);
+          
+            
+            // Go through BaseStatement to avoid transaction start.
+            if (!((BaseStatement)getOidStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN))
+                throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+
+            ResultSet rs = getOidStatement.getResultSet();
+            while(rs.next()) {
+              
+                oid = new Integer((int)rs.getLong(1));
+                _oidToPgName.put(oid, rs.getString(2));
+                _pgNameToOid.put(rs.getString(2), oid);
+            }
+
+            rs.close();
+            
+            _pgTypeOidsLoaded = true;
+          
+            return getPGType(pgTypeName);
         }
 
-        _getOidStatement.setString(1, pgTypeName);
-
-        // Go through BaseStatement to avoid transaction start.
-        if (!((BaseStatement)_getOidStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN))
-            throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-
-        oid = new Integer(Oid.UNSPECIFIED);
-        ResultSet rs = _getOidStatement.getResultSet();
-        if (rs.next()) {
-            oid = new Integer((int)rs.getLong(1));
-            _oidToPgName.put(oid, pgTypeName);
-        }
-        _pgNameToOid.put(pgTypeName, oid);
-        rs.close();
-
-        return oid.intValue();
+        return Oid.UNSPECIFIED;
     }
 
     public synchronized String getPGType(int oid) throws SQLException
@@ -268,33 +274,36 @@ public class TypeInfoCache implements TypeInfo {
         String pgTypeName = (String)_oidToPgName.get(new Integer(oid));
         if (pgTypeName != null)
             return pgTypeName;
-
-        if (_getNameStatement == null) {
+      
+        if (!_pgTypeNamesLoaded) {
             String sql;
             if (_conn.haveMinimumServerVersion("7.3")) {
-                sql = "SELECT typname FROM pg_catalog.pg_type WHERE oid = ?";
+                sql = "SELECT typname, oid FROM pg_catalog.pg_type";
             } else {
-                sql = "SELECT typname FROM pg_type WHERE oid = ?";
+                sql = "SELECT typname, oid FROM pg_type";
             }
 
-            _getNameStatement = _conn.prepareStatement(sql);
+            PreparedStatement getNameStatement = _conn.prepareStatement(sql);
+          
+            // Go through BaseStatement to avoid transaction start.
+            if (!((BaseStatement)getNameStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN))
+                throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+
+            ResultSet rs = getNameStatement.getResultSet();
+            while (rs.next()) {
+              
+                _pgNameToOid.put(rs.getString(1), new Integer(rs.getInt(2)));
+                _oidToPgName.put(new Integer(rs.getInt(2)), rs.getString(1));
+            }
+          
+            rs.close();
+          
+            _pgTypeNamesLoaded = true;
+          
+            return getPGType(oid);
         }
 
-        _getNameStatement.setInt(1, oid);
-
-        // Go through BaseStatement to avoid transaction start.
-        if (!((BaseStatement)_getNameStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN))
-            throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-
-        ResultSet rs = _getNameStatement.getResultSet();
-        if (rs.next()) {
-            pgTypeName = rs.getString(1);
-            _pgNameToOid.put(pgTypeName, new Integer(oid));
-            _oidToPgName.put(new Integer(oid), pgTypeName);
-        }
-        rs.close();
-
-        return pgTypeName;
+        return null;
     }
 
     public int getPGArrayType(String elementTypeName) throws SQLException
@@ -327,34 +336,38 @@ public class TypeInfoCache implements TypeInfo {
         if (delim != null)
             return delim.charValue();
 
-        if (_getArrayDelimiterStatement == null) {
+        if (!_arrayDelimitersLoaded) {
             String sql;
             if (_conn.haveMinimumServerVersion("7.3")) {
-                sql = "SELECT e.typdelim FROM pg_catalog.pg_type t, pg_catalog.pg_type e WHERE t.oid = ? and t.typelem = e.oid";
+                sql = "SELECT e.typdelim, t.oid FROM pg_catalog.pg_type t, pg_catalog.pg_type e WHERE t.typelem = e.oid";
             } else {
-                sql = "SELECT e.typdelim FROM pg_type t, pg_type e WHERE t.oid = ? and t.typelem = e.oid";
+                sql = "SELECT e.typdelim, t.oid FROM pg_type t, pg_type e WHERE t.typelem = e.oid";
             }
-            _getArrayDelimiterStatement = _conn.prepareStatement(sql);
+
+            PreparedStatement getArrayDelimiterStatement = _conn.prepareStatement(sql);
+
+          
+            // Go through BaseStatement to avoid transaction start.
+            if (!((BaseStatement) getArrayDelimiterStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN))
+                throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+
+            ResultSet rs = getArrayDelimiterStatement.getResultSet();
+            while(rs.next()) {
+
+                String s = rs.getString(1);
+                delim = new Character(s.charAt(0));
+
+                _arrayOidToDelimiter.put(new Integer(rs.getInt(2)), delim);
+            }
+
+            rs.close();
+          
+            _arrayDelimitersLoaded = true;
+          
+            return getArrayDelimiter(oid);
         }
 
-        _getArrayDelimiterStatement.setInt(1, oid);
-
-        // Go through BaseStatement to avoid transaction start.
-        if (!((BaseStatement) _getArrayDelimiterStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN))
-            throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-
-        ResultSet rs = _getArrayDelimiterStatement.getResultSet();
-        if (!rs.next())
-            throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-
-        String s = rs.getString(1);
-        delim = new Character(s.charAt(0));
-
-        _arrayOidToDelimiter.put(new Integer(oid), delim);
-
-        rs.close();
-
-        return delim.charValue();
+        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
 
     public synchronized int getPGArrayElement (int oid) throws SQLException
@@ -367,34 +380,36 @@ public class TypeInfoCache implements TypeInfo {
         if (pgType != null)
             return pgType.intValue();
 
-        if (_getArrayElementOidStatement == null) {
+        if (!_arrayElementOidsLoaded) {
             String sql;
             if (_conn.haveMinimumServerVersion("7.3")) {
-                sql = "SELECT e.oid, e.typname FROM pg_catalog.pg_type t, pg_catalog.pg_type e WHERE t.oid = ? and t.typelem = e.oid";
+                sql = "SELECT e.oid, e.typname, t.oid FROM pg_catalog.pg_type t, pg_catalog.pg_type e WHERE t.typelem = e.oid";
             } else {
-                sql = "SELECT e.oid, e.typname FROM pg_type t, pg_type e WHERE t.oid = ? and t.typelem = e.oid";
+                sql = "SELECT e.oid, e.typname, t.oid FROM pg_type t, pg_type e WHERE t.typelem = e.oid";
             }
-            _getArrayElementOidStatement = _conn.prepareStatement(sql);
+            PreparedStatement getArrayElementOidStatement = _conn.prepareStatement(sql);
+
+            // Go through BaseStatement to avoid transaction start.
+            if (!((BaseStatement) getArrayElementOidStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN))
+                throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+
+            ResultSet rs = getArrayElementOidStatement.getResultSet();
+            while (!rs.next()) {
+
+                pgType = new Integer((int)rs.getLong(1));
+                _pgArrayToPgType.put(new Integer(rs.getInt(3)), pgType);
+                _pgNameToOid.put(rs.getString(2), pgType);
+                _oidToPgName.put(pgType, rs.getString(2));
+            }
+
+            rs.close();
+      
+            _arrayElementOidsLoaded = true;
+          
+            return getPGArrayElement(oid);
         }
 
-        _getArrayElementOidStatement.setInt(1, oid);
-
-        // Go through BaseStatement to avoid transaction start.
-        if (!((BaseStatement) _getArrayElementOidStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN))
-            throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-
-        ResultSet rs = _getArrayElementOidStatement.getResultSet();
-        if (!rs.next())
-            throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-
-        pgType = new Integer((int)rs.getLong(1));
-        _pgArrayToPgType.put(new Integer(oid), pgType);
-        _pgNameToOid.put(rs.getString(2), pgType);
-        _oidToPgName.put(pgType, rs.getString(2));
-
-        rs.close();
-
-        return pgType.intValue();
+        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
 
     public synchronized Class getPGobject(String type)
