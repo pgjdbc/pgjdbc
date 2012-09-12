@@ -35,6 +35,16 @@ public class TestUtil
             binaryTransfer = "&binaryTransfer=" + getBinaryTransfer();
         }
 
+		String receiveBufferSize = "";
+		if (getReceiveBufferSize() != -1 ){
+			receiveBufferSize = "&receiveBufferSize="+getReceiveBufferSize();
+		}
+		
+		String sendBufferSize = "";
+		if (getSendBufferSize() != -1 ){
+			sendBufferSize = "&sendBufferSize="+getSendBufferSize();
+		}
+		
         return "jdbc:postgresql://"
                                 + getServer() + ":" 
                                 + getPort() + "/" 
@@ -42,7 +52,9 @@ public class TestUtil
                                 + "?prepareThreshold=" + getPrepareThreshold()
                                 + "&loglevel=" + getLogLevel()
                                 + protocolVersion
-                                + binaryTransfer;
+                                + binaryTransfer
+								+ receiveBufferSize
+								+ sendBufferSize;
     }
 
     /*
@@ -113,7 +125,17 @@ public class TestUtil
     {
         return System.getProperty("binaryTransfer");
     }
-
+	
+	public static int getSendBufferSize()
+	{
+		return Integer.parseInt(System.getProperty("sendBufferSize", "-1"));
+	}
+	
+	public static int getReceiveBufferSize()
+	{
+		return Integer.parseInt(System.getProperty("receiveBufferSize","-1"));
+	}
+	
     private static boolean initialized = false;
     public static void initDriver() throws Exception
     {
