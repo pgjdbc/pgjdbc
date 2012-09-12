@@ -49,6 +49,7 @@ public class Jdbc3TestSuite extends TestSuite
         suite.addTestSuite(ParameterMetaDataTest.class);
         suite.addTestSuite(Jdbc3BlobTest.class);
         suite.addTestSuite(DatabaseMetaDataTest.class);
+		suite.addTestSuite(SendRecvBufferSizeTest.class);
         return suite;
     }
 }
