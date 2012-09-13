@@ -568,7 +568,7 @@ openssl pkcs8 -topk8 -in client.key -out client.pk8 -outform DER -v1 PBE-SHA1-3D
        <listitem>
         <para>
          Act like an older version of the driver to retain compatibility with
-         older applications.  At the moment this controls two driver behaviors:
+         older applications.  At the moment this controls two driver behaviours:
          the handling of binary data fields, and the handling of parameters set
          via <function>setString()</function>
         </para>
@@ -814,7 +814,23 @@ openssl pkcs8 -topk8 -in client.key -out client.pk8 -outform DER -v1 PBE-SHA1-3D
         </para>
        </listitem>
       </varlistentry>
+	  <varlistentry>
+       <term><varname>sendBufferSize</varname> = <type>int</type></term>
+       <listitem>
+        <para>
+         Sets SO_SNDBUF on the connection stream
+        </para>
+       </listitem>
+      </varlistentry>
 
+	  <varlistentry>
+       <term><varname>recvBufferSize</varname> = <type>int</type></term>
+       <listitem>
+        <para>
+         Sets SO_RCVBUF on the connection stream
+        </para>
+       </listitem>
+      </varlistentry>
      </variablelist>
     </para>
 
