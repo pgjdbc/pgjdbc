@@ -9,6 +9,8 @@ package org.postgresql.test.jdbc3;
 
 import java.sql.*;
 import junit.framework.TestCase;
+
+import org.postgresql.jdbc2.AbstractJdbc2Connection;
 import org.postgresql.test.TestUtil;
 
 public class SendRecvBufferSizeTest extends TestCase {
@@ -38,6 +40,7 @@ public class SendRecvBufferSizeTest extends TestCase {
         TestUtil.closeDB(_conn);
     }
 
+    
 	// dummy test
 	public void testSelect() throws SQLException {
 		Statement stmt = _conn.createStatement();
