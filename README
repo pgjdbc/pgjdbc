@@ -34,6 +34,9 @@ platform.
 If you are having problems, prebuilt versions of the driver 
 are available at http://jdbc.postgresql.org/
 
+For information about the unit tests and how to run them, see
+  org/postgresql/test/README
+
 ---------------------------------------------------------------------------
 
 INSTALLING THE DRIVER
