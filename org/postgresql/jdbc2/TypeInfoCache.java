@@ -394,7 +394,7 @@ public class TypeInfoCache implements TypeInfo {
                 throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
 
             ResultSet rs = getArrayElementOidStatement.getResultSet();
-            while (!rs.next()) {
+            while (rs.next()) {
 
                 pgType = new Integer((int)rs.getLong(1));
                 _pgArrayToPgType.put(new Integer(rs.getInt(3)), pgType);
