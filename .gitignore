@@ -4,3 +4,4 @@
 build
 jars
 .*.swp
+build.local.properties
