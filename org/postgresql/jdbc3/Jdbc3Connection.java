@@ -7,6 +7,7 @@
 */
 package org.postgresql.jdbc3;
 
+import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Properties;
 import java.sql.SQLException;
@@ -18,8 +19,8 @@ import java.sql.SQLException;
  */
 public class Jdbc3Connection extends org.postgresql.jdbc3.AbstractJdbc3Connection implements java.sql.Connection
 {
-    public Jdbc3Connection(String host, int port, String user, String database, Properties info, String url) throws SQLException {
-        super(host, port, user, database, info, url);
+    public Jdbc3Connection(InetSocketAddress[] address,, String user, String database, Properties info, String url) throws SQLException {
+        super(address, user, database, info, url);
     }
 
     public java.sql.Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException
