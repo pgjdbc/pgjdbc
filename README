@@ -22,10 +22,10 @@ and associated mailing list:
 
 COMPILING
 
-To compile you will need to have Ant installed. To obtain Ant go to
-http://ant.apache.org/index.html and download the binary. Being pure
-java it will run on virtually all java platforms. If you have any problems
-please email the jdbc list.
+To compile you will need to have a Java 5 or newer JDK and will need to have
+Ant installed. To obtain Ant go to http://ant.apache.org/index.html and
+download the binary. Being pure Java it will run on virtually all Java
+platforms. If you have any problems please email the pgsql-jdbc list.
 
 Once you have Ant, simply run ant in the top level directory.  This will
 compile the correct driver for your JVM, and build a .jar file (Java ARchive)
@@ -115,3 +115,79 @@ Notes:
 
 That's the basics related to this driver. You'll need to read the JDBC Docs
 on how to use it.
+
+---------------------------------------------------------------------------
+
+BUG REPORTS, PATCHES AND DEVELOPMENT
+
+PgJDBC development is carried out on the PgJDBC mailing list:
+
+    http://jdbc.postgresql.org/lists.html
+
+and on GitHub:
+
+    https://github.com/pgjdbc/pgjdbc
+
+Bug reports
+-----------
+
+For bug reports please post on pgsql-jdbc or add a GitHub issue. If you include
+additional unit tests demonstrating the issue, or self-contained runnable test
+case including SQL scripts etc that shows the problem, your report is likely to
+get more attention. Make sure you include appropriate details on your
+environment, like your JDK version, container/appserver if any, platform,
+PostgreSQL version, etc. Err on the site of excess detail if in doubt.
+
+Bug fixes and new features
+--------------------------
+
+If you've developed a patch you want to propose for inclusion in PgJDBC, feel
+free to send a GitHub pull request or post the patch on the PgJDBC mailing
+list.  Make sure your patch includes additional unit tests demonstrating and
+testing any new features. In the case of bug fixes, where possible include a
+new unit test that failed before the fix and passes after it.
+
+Testing
+-------
+
+Remember to test proposed PgJDBC patches when running against older PostgreSQL
+versions where possible, not just against the PostgreSQL you use yourself.
+
+You also need to test your changes with older JDKs. PgJDBC must support JDK5
+("Java 1.5") and newer, which means you can't use annotations, auto-boxing, for
+(:), and numerous other features added since JDK 5. Code that's JDBC4 specific
+may use JDK6 features, and code that's JDBC4.1 specific may use JDK7 features.
+Common code and JDBC3 code needs to stick to Java 1.5.
+
+Two different versions of PgJDBC can be built, the JDBC 3 and JDBC 4 drivers.
+The former may be built with JDK 5, while building JDBC4 requires JDK 6 or 7.
+The driver to build is auto-selected based on the JDK version used to run the
+build. The best way to test a proposed change with both the JDBC3 and JDBC4
+drivers is to build and test with both JDK5 and JDK6 or 7.
+
+You can get old JDK versions from the Oracle Java Archive:
+
+    http://www.oracle.com/technetwork/java/archive-139210.html
+
+Typically you can test against an old JDK with:
+
+    export JAVA_HOME=/path/to/jdk_1_5
+    export PATH=$JAVA_HOME/bin:$JAVA_HOME/jre/bin:
+    ant clean test
+
+For information about the unit tests and how to run them, see
+  org/postgresql/test/README
+
+Ideas
+-----
+
+If you have ideas or proposed changes, please post on the mailing list.
+Think about how the change would affect other users, what side effects it
+might have, how practical it is to implement, what implications it would
+have for standards compliance and security, etc.
+
+Few of the PgJDBC developers have much spare time, so it's unlikely that your
+idea will be picked up and implemented for you. The best way to make sure a
+desired feature or improvement happens is to implement it yourself. The PgJDBC
+sources are reasonably clear and they're pure Java, so it's sometimes easier
+than you might expect.
