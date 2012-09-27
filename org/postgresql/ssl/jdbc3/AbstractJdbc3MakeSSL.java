@@ -59,7 +59,7 @@ public class AbstractJdbc3MakeSSL {
             }
         }
 
-        Socket newConnection = factory.createSocket(stream.getSocket(), stream.getAddress().getHostString(), stream.getAddress().getPort(), true);
+        Socket newConnection = factory.createSocket(stream.getSocket(), stream.getAddress().getHostName(), stream.getAddress().getPort(), true);
         stream.changeSocket(newConnection);
     }
 
