@@ -2731,6 +2731,15 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     private int findColumnIndex(String columnName)
     {
+    	if (columnName.charAt(0) == '"')
+		{
+			int lastCharIdx = columnName.length() - 1;
+			if (columnName.charAt(lastCharIdx) == '"')
+			{
+  			    columnName = columnName.substring(1, lastCharIdx);
+			}
+		}
+
         if (columnNameIndexMap == null)
         {
             columnNameIndexMap = new HashMap(fields.length * 2);
