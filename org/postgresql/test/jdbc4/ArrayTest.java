@@ -21,9 +21,11 @@ public class ArrayTest extends TestCase {
 
     protected void setUp() throws Exception {
         _conn = TestUtil.openDB();
+        TestUtil.createTable(_conn, "arrtest", "intarr int[], decarr decimal(2,1)[], strarr text[]");
     }
 
     protected void tearDown() throws SQLException {
+        TestUtil.dropTable(_conn, "arrtest");
         TestUtil.closeDB(_conn);
     }
 
@@ -146,4 +148,35 @@ public class ArrayTest extends TestCase {
         assertEquals(77, out[1][1], 0.00001);
     }
 
+    public void testSetObjectFromJavaArray() throws SQLException {
+        String[] strArray = new String[]{"a","b","c"};
+
+        PreparedStatement pstmt = _conn.prepareStatement("INSERT INTO arrtest(strarr) VALUES (?)");
+
+        // Incorrect, but commonly attempted by many ORMs:
+        try {
+            pstmt.setObject(1, strArray, Types.ARRAY);
+            pstmt.executeUpdate();
+            fail("setObject() with a Java array parameter and Types.ARRAY shouldn't succeed");
+        } catch (org.postgresql.util.PSQLException ex) {
+            // Expected failure.
+        }
+
+        // Also incorrect, but commonly attempted by many ORMs:
+        try {
+            pstmt.setObject(1, strArray);
+            pstmt.executeUpdate();
+            fail("setObject() with a Java array parameter and no Types argument shouldn't succeed");
+        } catch (org.postgresql.util.PSQLException ex) {
+            // Expected failure.
+        }
+
+        // Correct way, though the use of "text" as a type is non-portable.
+        // Only supported for JDK 1.6 and JDBC4
+        Array sqlArray = _conn.createArrayOf("text", strArray);
+        pstmt.setArray(1, sqlArray);
+        pstmt.executeUpdate();
+
+        pstmt.close();
+    }
 }
