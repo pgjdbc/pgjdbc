@@ -2637,9 +2637,23 @@ public abstract class AbstractJdbc2DatabaseMetaData
         f[7] = new Field("IS_GRANTABLE", Oid.VARCHAR);
 
         String sql;
-        if (connection.haveMinimumServerVersion("7.3"))
+        if (connection.haveMinimumServerVersion("8.4"))
         {
-            sql = "SELECT n.nspname,c.relname,r.rolname,a.attacl,a.attname " +
+            sql = "SELECT n.nspname,c.relname,r.rolname,c.relacl,a.attacl,a.attname " +
+                  " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class c, pg_catalog.pg_roles r, pg_catalog.pg_attribute a " +
+                  " WHERE c.relnamespace = n.oid " +
+                  " AND c.relowner = r.oid " +
+                  " AND c.oid = a.attrelid " +
+                  " AND c.relkind = 'r' " +
+                  " AND a.attnum > 0 AND NOT a.attisdropped ";
+            if (schema != null && !"".equals(schema))
+            {
+                sql += " AND n.nspname = " + escapeQuotes(schema);
+            }
+        }
+        else if (connection.haveMinimumServerVersion("7.3"))
+        {
+            sql = "SELECT n.nspname,c.relname,r.rolname,c.relacl,a.attname " +
                   " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class c, pg_catalog.pg_roles r, pg_catalog.pg_attribute a " +
                   " WHERE c.relnamespace = n.oid " +
                   " AND c.relowner = r.oid " +
@@ -2675,8 +2689,16 @@ public abstract class AbstractJdbc2DatabaseMetaData
             byte tableName[] = rs.getBytes("relname");
             byte column[] = rs.getBytes("attname");
             String owner = rs.getString("rolname");
-            String acl = rs.getString("attacl");
-            Map permissions = parseACL(acl, owner);
+            String relAcl = rs.getString("relacl");
+            
+            Map permissions = parseACL(relAcl, owner);
+            
+            if (connection.haveMinimumServerVersion("8.4"))
+            {
+                String acl = rs.getString("attacl");
+                Map relPermissions = parseACL(acl, owner);
+                permissions.putAll(relPermissions);
+            }
             String permNames[] = new String[permissions.size()];
             Iterator e = permissions.keySet().iterator();
             int i = 0;
@@ -2731,7 +2753,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
     * criteria are returned.  They are ordered by TABLE_SCHEM,
     * TABLE_NAME, and PRIVILEGE.
     *
-    * <P>Each privilige description has the following columns:
+    * <P>Each privilege description has the following columns:
     * <OL>
     * <LI><B>TABLE_CAT</B> String => table catalog (may be null)
     * <LI><B>TABLE_SCHEM</B> String => table schema (may be null)

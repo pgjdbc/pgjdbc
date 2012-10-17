@@ -54,6 +54,8 @@ public abstract class BaseDataSource implements Referenceable
     private String binaryTransferDisable = "";
     private int loginTimeout = 0; // in seconds
     private int socketTimeout = 0; // in seconds
+    private int receiveBufferSize = -1; // off (-1), not in use
+    private int sendBufferSize = -1; // off (-1), not in use
     private boolean ssl = false;
     private String sslfactory;
     private boolean tcpKeepAlive = false;
@@ -293,6 +295,22 @@ public abstract class BaseDataSource implements Referenceable
     }
 
     /**
+     * Sets the write buffer size of TCP/IP socket.
+     */
+    public void setReceiveBufferSize(int nbytes)
+    {
+        this.receiveBufferSize = nbytes;
+    }
+
+    /**
+     * Sets the send buffer size of TCP/IP socket.
+     */
+    public void setSendBufferSize(int nbytes)
+    {
+        this.sendBufferSize = nbytes;
+    }
+
+    /**
      * Gets the default threshold for enabling server-side prepare.
      *
      * @see #setPrepareThreshold(int)
@@ -478,6 +496,12 @@ public abstract class BaseDataSource implements Referenceable
                 sb.append("&sslfactory=").append(sslfactory);
             }
         }
+        if (receiveBufferSize != -1) {
+            sb.append("&receiveBufferSize=").append(receiveBufferSize);
+        }
+        if (sendBufferSize != -1) {
+            sb.append("&sendBufferSize=").append(sendBufferSize);
+        }
         sb.append("&tcpkeepalive=").append(tcpKeepAlive);
         if (compatible != null) {
             sb.append("&compatible="+compatible);
@@ -530,6 +554,8 @@ public abstract class BaseDataSource implements Referenceable
         ref.add(new StringRefAddr("ssl", Boolean.toString(ssl)));
         ref.add(new StringRefAddr("sslfactory", sslfactory));
 
+        ref.add(new StringRefAddr("receiveBufferSize", Integer.toString(receiveBufferSize)));
+        ref.add(new StringRefAddr("sendBufferSize", Integer.toString(sendBufferSize)));
         ref.add(new StringRefAddr("tcpKeepAlive", Boolean.toString(tcpKeepAlive)));
         if (compatible != null)
         {
@@ -556,6 +582,8 @@ public abstract class BaseDataSource implements Referenceable
         out.writeInt(socketTimeout);
         out.writeBoolean(ssl);
         out.writeObject(sslfactory);
+        out.writeInt(receiveBufferSize);
+        out.writeInt(sendBufferSize);
         out.writeBoolean(tcpKeepAlive);
         out.writeObject(compatible);
         out.writeInt(logLevel);
@@ -579,6 +607,8 @@ public abstract class BaseDataSource implements Referenceable
         socketTimeout = in.readInt();
         ssl = in.readBoolean();
         sslfactory = (String)in.readObject();
+        receiveBufferSize = in.readInt();
+        sendBufferSize = in.readInt();
         tcpKeepAlive = in.readBoolean();
         compatible = (String)in.readObject();
         logLevel = in.readInt();

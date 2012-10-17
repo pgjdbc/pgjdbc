@@ -118,6 +118,45 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // Enable TCP keep-alive probe if required.
             newStream.getSocket().setKeepAlive(requireTCPKeepAlive);
 
+            // Try to set SO_SNDBUF and SO_RECVBUF socket options, if requested.
+            // If receiveBufferSize and send_buffer_size are set to a value greater
+            // than 0, adjust. -1 means use the system default, 0 is ignored since not
+            // supported.
+
+            // Set SO_RECVBUF read buffer size
+            String receiveBufferSizeProperty = info.getProperty("receiveBufferSize", "-1");
+            try {
+                int receiveBufferSize = Integer.parseInt(receiveBufferSizeProperty);
+                if (receiveBufferSize > -1) {
+                    // value of 0 not a valid buffer size value
+                    if (receiveBufferSize > 0) {
+                        newStream.getSocket().setReceiveBufferSize(receiveBufferSize);
+                    } else {
+                        logger.info("Ignore invalid value for receiveBufferSize: " + receiveBufferSize);
+                    }
+                }
+            } catch (NumberFormatException nfe) {
+                logger.info("Couldn't parse receiveBufferSize value: " + receiveBufferSizeProperty);
+            }
+
+            // Set SO_SNDBUF write buffer size 
+            String sendBufferSizeProperty = info.getProperty("sendBufferSize", "-1");
+            try {
+                int sendBufferSize = Integer.parseInt(sendBufferSizeProperty);
+                if (sendBufferSize > -1) {
+                    if (sendBufferSize > 0) {
+                        newStream.getSocket().setSendBufferSize(sendBufferSize);
+                    } else {
+                        logger.info("Ignore invalid value for sendBufferSize: " + sendBufferSize);
+                    }
+                }
+            } catch (NumberFormatException nfe) {
+                logger.info("Couldn't parse sendBufferSize value: " + sendBufferSizeProperty);
+            }
+
+            logger.info("Receive Buffer Size is " + newStream.getSocket().getReceiveBufferSize());
+            logger.info("Send Buffer Size is " + newStream.getSocket().getSendBufferSize());
+
             // Construct and send a startup packet.
             String[][] params = {
                                     { "user", user },

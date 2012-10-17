@@ -10,8 +10,6 @@ package org.postgresql.test.jdbc2;
 import org.postgresql.Driver;
 import org.postgresql.test.TestUtil;
 
-import com.sun.corba.se.impl.orb.ParserTable.TestIIOPPrimaryToContactInfo;
-
 import junit.framework.TestCase;
 
 import java.lang.reflect.Method;

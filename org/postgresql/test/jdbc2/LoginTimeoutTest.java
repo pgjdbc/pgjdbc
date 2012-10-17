@@ -80,7 +80,14 @@ public class LoginTimeoutTest extends TestCase
 
     private static class TimeoutHelper implements Runnable {
         TimeoutHelper() throws IOException {
-            this.listenSocket = new ServerSocket(0, 1, InetAddress.getLocalHost());
+            InetAddress localAddr;
+            try {
+                localAddr = InetAddress.getLocalHost();
+            } catch (java.net.UnknownHostException ex) {
+                System.err.println("WARNING: Could not resolve local host name, trying 'localhost'. " + ex);
+                localAddr = InetAddress.getByName("localhost");
+            }
+            this.listenSocket = new ServerSocket(0, 1, localAddr);
         }
 
         String getHost() {
