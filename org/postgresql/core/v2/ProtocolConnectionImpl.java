@@ -207,6 +207,11 @@ class ProtocolConnectionImpl implements ProtocolConnection {
         return false;
     }
 
+    public int getBackendPID()
+    {
+    	return cancelPid;
+    }
+
     private String serverVersion;
     private int cancelPid;
     private int cancelKey;

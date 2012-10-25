@@ -198,6 +198,11 @@ class ProtocolConnectionImpl implements ProtocolConnection {
     {
         return 3;
     }
+    
+    public int getBackendPID()
+    {
+    	return cancelPid;
+    }
 
     public boolean useBinaryForReceive(int oid) {
         return useBinaryForOids.contains(oid);
