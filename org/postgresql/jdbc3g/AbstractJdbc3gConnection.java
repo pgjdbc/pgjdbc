@@ -7,18 +7,18 @@
 */
 package org.postgresql.jdbc3g;
 
-import java.net.InetSocketAddress;
 import java.sql.SQLException;
 import java.util.Properties;
 
 import org.postgresql.core.Oid;
 import org.postgresql.core.TypeInfo;
+import org.postgresql.util.HostSpec;
 
 public abstract class AbstractJdbc3gConnection extends org.postgresql.jdbc3.AbstractJdbc3Connection
 {
 
-    public AbstractJdbc3gConnection(InetSocketAddress[] address, String user, String database, Properties info, String url) throws SQLException {
-        super(address, user, database, info, url);
+    public AbstractJdbc3gConnection(HostSpec[] hostSpecs, String user, String database, Properties info, String url) throws SQLException {
+        super(hostSpecs, user, database, info, url);
 
         TypeInfo types = getTypeInfo();
         if (haveMinimumServerVersion("8.3")) {

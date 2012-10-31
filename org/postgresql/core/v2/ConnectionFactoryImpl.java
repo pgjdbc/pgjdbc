@@ -15,7 +15,6 @@ import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.io.IOException;
 import java.net.ConnectException;
-import java.net.InetSocketAddress;
 
 import org.postgresql.core.*;
 import org.postgresql.util.PSQLException;
@@ -23,6 +22,7 @@ import org.postgresql.util.PSQLState;
 import org.postgresql.util.UnixCrypt;
 import org.postgresql.util.MD5Digest;
 import org.postgresql.util.GT;
+import org.postgresql.util.HostSpec;
 
 /**
  * ConnectionFactory implementation for version 2 (pre-7.4) connections.
@@ -38,7 +38,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     private static final int AUTH_REQ_MD5 = 5;
     private static final int AUTH_REQ_SCM = 6;
 
-    public ProtocolConnection openConnectionImpl(InetSocketAddress[] addresses, String user, String database, Properties info, Logger logger) throws SQLException {
+    public ProtocolConnection openConnectionImpl(HostSpec[] hostSpecs, String user, String database, Properties info, Logger logger) throws SQLException {
         // Extract interesting values from the info properties:
         //  - the SSL setting
         boolean requireSSL;
@@ -70,10 +70,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         //  - the TCP keep alive setting
         boolean requireTCPKeepAlive = (Boolean.valueOf(info.getProperty("tcpKeepAlive")).booleanValue());
 
-        for (int addr = 0; addr < addresses.length; ++addr) {
-            InetSocketAddress address = addresses[addr];
+        for (int whichHost = 0; whichHost < hostSpecs.length; ++whichHost) {
+            HostSpec hostSpec = hostSpecs[whichHost];
             if (logger.logDebug())
-                logger.debug("Trying to establish a protocol version 2 connection to " + address);
+                logger.debug("Trying to establish a protocol version 2 connection to " + hostSpec);
 
             //
             // Establish a connection.
@@ -83,7 +83,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         PGStream newStream = null;
         try
         {
-            newStream = new PGStream(address);
+            newStream = new PGStream(hostSpec);
 
             // Construct and send an ssl startup packet if requested.
             if (trySSL)
@@ -127,7 +127,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // ConnectException is thrown when the connection cannot be made.
             // we trap this an return a more meaningful message for the end user
 
-            if (addr+1 < addresses.length) {
+            if (whichHost + 1 < hostSpecs.length) {
                 // still more addresses to try
                 continue;
             }
@@ -146,7 +146,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 }
             }
 
-            if (addr+1 < addresses.length) {
+            if (whichHost + 1 < hostSpecs.length) {
                 // still more addresses to try
                 continue;
             }
@@ -165,7 +165,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 }
             }
 
-            if (addr+1 < addresses.length) {
+            if (whichHost + 1 < hostSpecs.length) {
                 // still more addresses to try
                 continue;
             }
@@ -199,7 +199,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
             // We have to reconnect to continue.
             pgStream.close();
-            return new PGStream(pgStream.getAddress());
+            return new PGStream(pgStream.getHostSpec());
 
         case 'N':
             if (logger.logDebug())

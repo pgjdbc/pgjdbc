@@ -11,12 +11,12 @@ package org.postgresql.core.v2;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Set;
 
 import org.postgresql.PGNotification;
 import org.postgresql.core.*;
+import org.postgresql.util.HostSpec;
 
 /**
  * V2 implementation of ProtocolConnection.
@@ -32,8 +32,8 @@ class ProtocolConnectionImpl implements ProtocolConnection {
         this.executor = new QueryExecutorImpl(this, pgStream, logger);
     }
 
-    public InetSocketAddress getAddress() {
-        return pgStream.getAddress();
+    public HostSpec getHostSpec() {
+        return pgStream.getHostSpec();
     }
 
     public String getUser() {
@@ -87,7 +87,7 @@ class ProtocolConnectionImpl implements ProtocolConnection {
             if (logger.logDebug())
                 logger.debug(" FE=> CancelRequest(pid=" + cancelPid + ",ckey=" + cancelKey + ")");
 
-            cancelStream = new PGStream(pgStream.getAddress());
+            cancelStream = new PGStream(pgStream.getHostSpec());
             cancelStream.SendInteger4(16);
             cancelStream.SendInteger2(1234);
             cancelStream.SendInteger2(5678);

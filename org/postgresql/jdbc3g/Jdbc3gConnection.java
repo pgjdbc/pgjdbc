@@ -7,10 +7,11 @@
 */
 package org.postgresql.jdbc3g;
 
-import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Properties;
 import java.sql.SQLException;
+
+import org.postgresql.util.HostSpec;
 
 /**
  * This class implements the java.sql.Connection interface for JDBC3.
@@ -19,8 +20,8 @@ import java.sql.SQLException;
  */
 public class Jdbc3gConnection extends org.postgresql.jdbc3g.AbstractJdbc3gConnection implements java.sql.Connection
 {
-    public Jdbc3gConnection(InetSocketAddress[] address, String user, String database, Properties info, String url) throws SQLException {
-        super(address, user, database, info, url);
+    public Jdbc3gConnection(HostSpec[] hostSpecs, String user, String database, Properties info, String url) throws SQLException {
+        super(hostSpecs, user, database, info, url);
     }
 
     public java.sql.Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException

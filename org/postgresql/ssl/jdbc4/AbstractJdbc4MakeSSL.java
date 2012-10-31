@@ -114,7 +114,7 @@ public class AbstractJdbc4MakeSSL {
         SSLSocket newConnection;
         try
         {
-          newConnection = (SSLSocket)factory.createSocket(stream.getSocket(), stream.getAddress().getHostName(), stream.getAddress().getPort(), true);
+          newConnection = (SSLSocket)factory.createSocket(stream.getSocket(), stream.getHostSpec().getHost(), stream.getHostSpec().getPort(), true);
           newConnection.startHandshake(); //We must invoke manually, otherwise the exceptions are hidden
         }
         catch (IOException ex) {
@@ -137,16 +137,16 @@ public class AbstractJdbc4MakeSSL {
           {
               throw new PSQLException(GT.tr("The HostnameVerifier class provided {0} could not be instantiated.", sslhostnameverifier), PSQLState.CONNECTION_FAILURE, e);
           }
-          if (!hvn.verify(stream.getAddress().getHostName(), newConnection.getSession()))
+          if (!hvn.verify(stream.getHostSpec().getHost(), newConnection.getSession()))
           {
-            throw new PSQLException(GT.tr("The hostname {0} could not be verified by hostnameverifier {1}.", new Object[]{stream.getAddress().getHostName(), sslhostnameverifier}), PSQLState.CONNECTION_FAILURE);
+            throw new PSQLException(GT.tr("The hostname {0} could not be verified by hostnameverifier {1}.", new Object[]{stream.getHostSpec().getHost(), sslhostnameverifier}), PSQLState.CONNECTION_FAILURE);
           }
         } else {
           if ("verify-full".equals(sslmode) && factory instanceof LibPQFactory)
           {
-            if (!(((LibPQFactory)factory).verify(stream.getAddress().getHostName(), newConnection.getSession())))
+            if (!(((LibPQFactory)factory).verify(stream.getHostSpec().getHost(), newConnection.getSession())))
             {
-              throw new PSQLException(GT.tr("The hostname {0} could not be verified.", stream.getAddress().getHostName()), PSQLState.CONNECTION_FAILURE);
+              throw new PSQLException(GT.tr("The hostname {0} could not be verified.", stream.getHostSpec().getHost()), PSQLState.CONNECTION_FAILURE);
             }
           }
 

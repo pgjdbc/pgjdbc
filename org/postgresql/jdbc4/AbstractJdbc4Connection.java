@@ -7,7 +7,6 @@
 */
 package org.postgresql.jdbc4;
 
-import java.net.InetSocketAddress;
 import java.sql.*;
 import java.util.Map;
 import java.util.HashMap;
@@ -19,6 +18,7 @@ import org.postgresql.core.Oid;
 import org.postgresql.core.Utils;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.util.GT;
+import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLException;
 import org.postgresql.jdbc2.AbstractJdbc2Array;
@@ -27,8 +27,8 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
 {
     private final Properties _clientInfo;
 
-    public AbstractJdbc4Connection(InetSocketAddress[] address, String user, String database, Properties info, String url) throws SQLException {
-        super(address, user, database, info, url);
+    public AbstractJdbc4Connection(HostSpec[] hostSpecs, String user, String database, Properties info, String url) throws SQLException {
+        super(hostSpecs, user, database, info, url);
 
         TypeInfo types = getTypeInfo();
         if (haveMinimumServerVersion("8.3")) {

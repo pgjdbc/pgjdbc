@@ -9,8 +9,8 @@
 package org.postgresql.core;
 
 import org.postgresql.PGNotification;
+import org.postgresql.util.HostSpec;
 
-import java.net.InetSocketAddress;
 import java.sql.*;
 import java.util.Set;
 
@@ -40,9 +40,9 @@ public interface ProtocolConnection {
     static final int TRANSACTION_FAILED = 2;
 
     /**
-     * @return the address this connection is connected to.
+     * @return the host and port this connection is connected to.
      */
-    InetSocketAddress getAddress();
+    HostSpec getHostSpec();
 
     /**
      * @return the user this connection authenticated as.
