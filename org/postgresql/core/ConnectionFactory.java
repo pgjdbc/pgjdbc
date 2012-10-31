@@ -8,10 +8,10 @@
 */
 package org.postgresql.core;
 
-import java.net.InetSocketAddress;
 import java.util.Properties;
 import java.sql.SQLException;
 
+import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLState;
@@ -42,8 +42,7 @@ public abstract class ConnectionFactory {
      *<p>
      * Currently, protocol versions 3 (7.4+) and 2 (pre-7.4) are supported.
      *
-     * @param host the host to connect to
-     * @param port the port to connect to
+     * @param hostSpecs at least one host and port to connect to; multiple elements for round-robin failover
      * @param user the username to authenticate with; may not be null.
      * @param database the database on the server to connect to; may not be null.
      * @param info extra properties controlling the connection;
@@ -52,7 +51,7 @@ public abstract class ConnectionFactory {
      * @return the new, initialized, connection
      * @throws SQLException if the connection could not be established.
      */
-    public static ProtocolConnection openConnection(InetSocketAddress[] address, String user, String database, Properties info, Logger logger) throws SQLException {
+    public static ProtocolConnection openConnection(HostSpec[] hostSpecs, String user, String database, Properties info, Logger logger) throws SQLException {
         String protoName = info.getProperty("protocolVersion");
 
         for (int i = 0; i < versions.length; ++i)
@@ -62,7 +61,7 @@ public abstract class ConnectionFactory {
                 continue;
 
             ConnectionFactory factory = (ConnectionFactory) versions[i][1];
-            ProtocolConnection connection = factory.openConnectionImpl(address, user, database, info, logger);
+            ProtocolConnection connection = factory.openConnectionImpl(hostSpecs, user, database, info, logger);
             if (connection != null)
                 return connection;
         }
@@ -75,8 +74,7 @@ public abstract class ConnectionFactory {
      * Implementation of {@link #openConnection} for a particular protocol version.
      * Implemented by subclasses of {@link ConnectionFactory}.
      *
-     * @param host the host to connect to
-     * @param port the port to connect to
+     * @param hostSpecs at least one host and port to connect to; multiple elements for round-robin failover
      * @param user the username to authenticate with; may not be null.
      * @param database the database on the server to connect to; may not be null.
      * @param info extra properties controlling the connection;
@@ -87,5 +85,5 @@ public abstract class ConnectionFactory {
      * @throws SQLException if the connection could not be established for a reason other
      *    than protocol version incompatibility.
      */
-    public abstract ProtocolConnection openConnectionImpl(InetSocketAddress[] address, String user, String database, Properties info, Logger logger) throws SQLException;
+    public abstract ProtocolConnection openConnectionImpl(HostSpec[] hostSpecs, String user, String database, Properties info, Logger logger) throws SQLException;
 }

@@ -10,7 +10,6 @@ package org.postgresql;
 import java.io.*;
 import java.sql.*;
 import java.util.*;
-import java.net.InetSocketAddress;
 import java.net.URL;
 
 import java.security.AccessController;
@@ -21,6 +20,7 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLDriverVersion;
 import org.postgresql.util.GT;
+import org.postgresql.util.HostSpec;
 
 import org.postgresql.core.Logger;
 
@@ -390,7 +390,7 @@ public class Driver implements java.sql.Driver
      * @throws SQLException if the connection could not be made
      */
     private static Connection makeConnection(String url, Properties props) throws SQLException {
-        return new @JDBCCONNECTCLASS@(address(props),
+        return new @JDBCCONNECTCLASS@(hostSpecs(props),
                                       user(props), database(props),
                                       props, url);
     }
@@ -647,15 +647,15 @@ public class Driver implements java.sql.Driver
     /**
      * @return the address portion of the URL
      */
-    private static InetSocketAddress[] address(Properties props)
+    private static HostSpec[] hostSpecs(Properties props)
     {
         String[] hosts = props.getProperty("PGHOST").split(",");
         String[] ports = props.getProperty("PGPORT").split(",");
-        InetSocketAddress[] addresses = new InetSocketAddress[hosts.length];
-        for (int i = 0; i < addresses.length; ++i) {
-            addresses[i] = new InetSocketAddress(hosts[i], Integer.parseInt(ports[i]));
+        HostSpec[] hostSpecs = new HostSpec[hosts.length];
+        for (int i = 0; i < hostSpecs.length; ++i) {
+            hostSpecs[i] = new HostSpec(hosts[i], Integer.parseInt(ports[i]));
         }
-        return addresses;
+        return hostSpecs;
     }
 
     /**
