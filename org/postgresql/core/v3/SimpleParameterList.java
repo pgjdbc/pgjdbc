@@ -14,10 +14,7 @@ import java.sql.SQLException;
 import java.util.Arrays;
 
 import org.postgresql.core.*;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
-import org.postgresql.util.StreamWrapper;
-import org.postgresql.util.GT;
+import org.postgresql.util.*;
 
 /**
  * Parameter list for a single-statement V3 query.
@@ -44,14 +41,18 @@ class SimpleParameterList implements V3ParameterList {
     public void registerOutParameter( int index, int sqlType ) throws SQLException
     {
         if (index < 1 || index > paramValues.length)
-            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE );
+        {
+            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE);
+        }
 
         flags[index-1] |= OUT;
     }
 
     private void bind(int index, Object value, int oid, int binary) throws SQLException {
         if (index < 1 || index > paramValues.length)
-            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE );
+        {
+            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE);
+        }
 
         --index;
 
@@ -64,7 +65,9 @@ class SimpleParameterList implements V3ParameterList {
         // send this value, and we don't want to overwrite and require a
         // reparse.
         if (oid == Oid.UNSPECIFIED && paramTypes[index] != Oid.UNSPECIFIED && value == NULL_OBJECT)
+        {
             return;
+        }
 
         paramTypes[index] = oid;
     }
@@ -85,7 +88,9 @@ class SimpleParameterList implements V3ParameterList {
         }
         // Every function has at least one output.
         if (count == 0)
+        {
             count = 1;
+        }
         return count;
         
     }
@@ -104,10 +109,7 @@ class SimpleParameterList implements V3ParameterList {
 
     public void setIntParameter(int index, int value) throws SQLException {
         byte[] data = new byte[4];
-        data[3] = (byte)value;
-        data[2] = (byte)(value >> 8);
-        data[1] = (byte)(value >> 16);
-        data[0] = (byte)(value >> 24);
+        ByteConverter.int4(data,0,value);
         bind(index, data, Oid.INT4, BINARY);
     }
 
@@ -138,10 +140,44 @@ class SimpleParameterList implements V3ParameterList {
     public String toString(int index) {
         --index;
         if (paramValues[index] == null)
+        {
             return "?";
+        }
         else if (paramValues[index] == NULL_OBJECT)
+        {
             return "NULL";
-        else {
+        }
+
+        else if ( (flags[index]& BINARY) == BINARY )
+        {
+            // handle some of the numeric types
+
+            switch (paramTypes[index])
+            {
+                case Oid.INT2:
+                    short s = ByteConverter.int2((byte[])paramValues[index],0);
+                    return Short.toString(s);
+
+                case Oid.INT4:
+                    int i = ByteConverter.int4((byte[])paramValues[index],0);
+                    return Integer.toString(i);
+
+                case Oid.INT8:
+                    long l = ByteConverter.int8((byte[])paramValues[index],0);
+                    return Long.toString(l);
+
+                case Oid.FLOAT4:
+                    float f = ByteConverter.float4((byte[])paramValues[index],0);
+                    return Float.toString(f);
+
+                case Oid.FLOAT8:
+                    double d = ByteConverter.float8((byte[])paramValues[index],0);
+                    return Double.toString(d);
+            }
+            return "?";
+        }
+        else
+        {
             String param = paramValues[index].toString();
             boolean hasBackslash = param.indexOf('\\') != -1;
 
@@ -150,18 +186,24 @@ class SimpleParameterList implements V3ParameterList {
 
             boolean standardConformingStrings = false;
             boolean supportsEStringSyntax = false;
-            if (protoConnection != null) {
+            if (protoConnection != null)
+            {
                 standardConformingStrings = protoConnection.getStandardConformingStrings();
                 supportsEStringSyntax = protoConnection.getServerVersion().compareTo("8.1") >= 0;
             }
 
             if (hasBackslash && !standardConformingStrings && supportsEStringSyntax)
+            {
                 p.append('E');
+            }
 
             p.append('\'');
-            try {
+            try
+            {
                 p = Utils.appendEscapedLiteral(p, param, standardConformingStrings);
-            } catch (SQLException sqle) {
+            }
+            catch (SQLException sqle)
+            {
                 // This should only happen if we have an embedded null
                 // and there's not much we can do if we do hit one.
                 //
@@ -180,7 +222,9 @@ class SimpleParameterList implements V3ParameterList {
         for (int i = 0; i < paramTypes.length; ++i)
         {
             if (direction(i) != OUT && paramValues[i] == null)
+            {
                 throw new PSQLException(GT.tr("No value specified for parameter {0}.", new Integer(i + 1)), PSQLState.INVALID_PARAMETER_VALUE);
+            }
         }
     }
 
@@ -226,7 +270,9 @@ class SimpleParameterList implements V3ParameterList {
     boolean hasUnresolvedTypes() {
         for (int i=0; i< paramTypes.length; i++) {
             if (paramTypes[i] == Oid.UNSPECIFIED)
+            {
                 return true;
+            }
         }
         return false;
     }
@@ -257,15 +303,21 @@ class SimpleParameterList implements V3ParameterList {
 
         // Null?
         if (paramValues[index] == NULL_OBJECT)
+        {
             throw new IllegalArgumentException("can't getV3Length() on a null parameter");
+        }
 
         // Directly encoded?
         if (paramValues[index] instanceof byte[])
-            return ((byte[])paramValues[index]).length;
+        {
+            return ((byte[]) paramValues[index]).length;
+        }
 
         // Binary-format bytea?
         if (paramValues[index] instanceof StreamWrapper)
-            return ((StreamWrapper)paramValues[index]).getLength();
+        {
+            return ((StreamWrapper) paramValues[index]).getLength();
+        }
 
         // Already encoded?
         if (encoded[index] == null)
@@ -282,7 +334,9 @@ class SimpleParameterList implements V3ParameterList {
 
         // Null?
         if (paramValues[index] == NULL_OBJECT)
+        {
             throw new IllegalArgumentException("can't writeV3Value() on a null parameter");
+        }
 
         // Directly encoded?
         if (paramValues[index] instanceof byte[])
@@ -300,7 +354,9 @@ class SimpleParameterList implements V3ParameterList {
 
         // Encoded string.
         if (encoded[index] == null)
-            encoded[index] = Utils.encodeUTF8((String)paramValues[index]);
+        {
+            encoded[index] = Utils.encodeUTF8((String) paramValues[index]);
+        }
         pgStream.Send(encoded[index]);
     }
 
