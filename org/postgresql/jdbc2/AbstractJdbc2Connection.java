@@ -137,6 +137,12 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         this.dbVersionNumber = protoConnection.getServerVersion();
         this.compatible = info.getProperty("compatible", Driver.MAJORVERSION + "." + Driver.MINORVERSION);
 
+        // Set read-only early if requested
+        if (Boolean.valueOf(info.getProperty("readOnly", "false")))
+        {
+            setReadOnly(true);
+        }
+
         // Formats that currently have binary protocol support
         Set<Integer> binaryOids = new HashSet<Integer>();
         if (binaryTransfer && protoConnection.getProtocolVersion() >= 3) {
