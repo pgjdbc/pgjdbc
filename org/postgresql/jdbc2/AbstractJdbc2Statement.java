@@ -46,7 +46,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     protected final int resultsettype;   // the resultset type to return (ResultSet.TYPE_xxx)
     protected final int concurrency;   // is it updateable or not?     (ResultSet.CONCUR_xxx)
     protected int fetchdirection = ResultSet.FETCH_FORWARD;  // fetch direction hint (currently ignored)
-    private TimerTask cancelTimer=null;
+    private volatile TimerTask cancelTimer=null;
 
     /**
      * Does the caller of execute/executeUpdate want generated keys for this
@@ -552,16 +552,20 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
         StatementResultHandler handler = new StatementResultHandler();
         result = null;
+        try
+        {
+            
+        
         connection.getQueryExecutor().execute(queryToExecute,
                                               queryParameters,
                                               handler,
                                               maxrows,
                                               fetchSize,
                                               flags);
-        if ( cancelTimer != null )
+        }
+        finally
         {
-        	cancelTimer.cancel();
-        	cancelTimer=null;
+            killTimer();
         }
         result = firstUnclosedResult = handler.getResults();
 
@@ -714,10 +718,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                                     PSQLState.INVALID_PARAMETER_VALUE);
 
         if (seconds == 0) {
-            if ( cancelTimer != null ) {
-                cancelTimer.cancel();
-        	    cancelTimer = null;
-            }
+            killTimer();
             return;
         }
 
@@ -727,6 +728,10 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                 try {
                     AbstractJdbc2Statement.this.cancel();
                 } catch (SQLException e) {
+                }
+                finally
+                {
+                    killTimer();
                 }
             }
         };
@@ -853,6 +858,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (isClosed)
             return ;
 
+        killTimer();
+        
         closeForNextExecution();
 
         if (preparedQuery != null)
@@ -3408,4 +3415,13 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         throw Driver.notImplemented(this.getClass(), "registerOutParameter(int,int,String)");
     }
 
+    private synchronized void killTimer()
+    {
+        if ( cancelTimer != null )
+        {
+            cancelTimer.cancel();
+            cancelTimer = null;
+        }
+            
+    }
 }
