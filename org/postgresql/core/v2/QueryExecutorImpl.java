@@ -592,7 +592,9 @@ public class QueryExecutorImpl implements QueryExecutor {
                 // deal with situations where the update modifies more than 2^32 rows
                 if ( updates > Integer.MAX_VALUE )
                     update_count = Statement.SUCCESS_NO_INFO;
-
+                else
+                    update_count = (int)updates;
+                
                 if (status.startsWith("INSERT"))
                     insert_oid = Long.parseLong(status.substring(1 + status.indexOf(' '),
                                                 status.lastIndexOf(' ')));
