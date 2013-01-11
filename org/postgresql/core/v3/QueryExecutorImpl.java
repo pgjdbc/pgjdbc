@@ -2189,14 +2189,20 @@ public class QueryExecutorImpl implements QueryExecutor {
         {
             try
             {
-                update_count = Integer.parseInt(status.substring(1 + status.lastIndexOf(' ')));
+                long updates = Long.parseLong(status.substring(1 + status.lastIndexOf(' ')));
+                
+                // deal with situations where the update modifies more than 2^32 rows
+                if ( updates > Integer.MAX_VALUE )
+                    update_count = Statement.SUCCESS_NO_INFO;
+                
                 if (status.startsWith("INSERT"))
                     insert_oid = Long.parseLong(status.substring(1 + status.indexOf(' '),
                                                 status.lastIndexOf(' ')));
             }
             catch (NumberFormatException nfe)
             {
-                update_count=Statement.SUCCESS_NO_INFO;
+                handler.handleError(new PSQLException(GT.tr("Unable to interpret the update count in command completion tag: {0}.", status), PSQLState.CONNECTION_FAILURE));
+                return ;
             }
         }
 
