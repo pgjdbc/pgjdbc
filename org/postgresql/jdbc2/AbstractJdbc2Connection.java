@@ -1223,4 +1223,9 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     public boolean binaryTransferSend(int oid) {
         return useBinarySendForOids.contains(oid);
     }
+    
+    public int getBackendPID()
+    {
+    	return protoConnection.getBackendPID();
+    }
 }
