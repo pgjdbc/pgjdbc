@@ -182,6 +182,7 @@ public class Driver implements java.sql.Driver
      * user - (required) The user to connect as
      * password - (optional) The password for the user
      * ssl - (optional) Use SSL when connecting to the server
+     * readOnly - (optional) Set connection to read-only by default
      * charSet - (optional) The character set to be used for converting
      *  to/from the database to unicode.  If multibyte is enabled on the
      *  server then the character set of the database is used as the default,
