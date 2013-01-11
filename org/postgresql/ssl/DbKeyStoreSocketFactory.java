@@ -1,4 +1,4 @@
-package acme;
+package org.postgresql.ssl;
 
 import java.io.InputStream;
 import java.security.KeyStore;
