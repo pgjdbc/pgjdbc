@@ -2196,8 +2196,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             }
             catch (NumberFormatException nfe)
             {
-                handler.handleError(new PSQLException(GT.tr("Unable to interpret the update count in command completion tag: {0}.", status), PSQLState.CONNECTION_FAILURE));
-                return ;
+                update_count=Statement.SUCCESS_NO_INFO;
             }
         }
 
