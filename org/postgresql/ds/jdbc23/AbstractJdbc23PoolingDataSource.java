@@ -470,7 +470,7 @@ public abstract class AbstractJdbc23PoolingDataSource extends BaseDataSource
                         }
                         else
                         {
-                            // a connection error occured
+                            // a connection error occurred
                         }
                     }
                 }
