@@ -378,7 +378,7 @@ public abstract class AbstractJdbc2Array
             StringBuffer buffer = null;
             boolean insideString = false;
             boolean wasInsideString = false; // needed for checking if NULL
-            // value occured
+            // value occurred
             List dims = new ArrayList(); // array dimension arrays
             PgArrayList curArray = arrayList; // currently processed array
 

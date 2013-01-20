@@ -278,7 +278,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         catch (IOException e)
         {
             protoConnection.close();
-            handler.handleError(new PSQLException(GT.tr("An I/O error occured while sending to the backend."), PSQLState.CONNECTION_FAILURE, e));
+            handler.handleError(new PSQLException(GT.tr("An I/O error occurred while sending to the backend."), PSQLState.CONNECTION_FAILURE, e));
         }
 
         handler.handleCompletion();
@@ -408,7 +408,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         catch (IOException e)
         {
             protoConnection.close();
-            handler.handleError(new PSQLException(GT.tr("An I/O error occured while sending to the backend."), PSQLState.CONNECTION_FAILURE, e));
+            handler.handleError(new PSQLException(GT.tr("An I/O error occurred while sending to the backend."), PSQLState.CONNECTION_FAILURE, e));
         }
 
         handler.handleCompletion();
@@ -482,7 +482,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         catch (IOException ioe)
         {
             protoConnection.close();
-            throw new PSQLException(GT.tr("An I/O error occured while sending to the backend."), PSQLState.CONNECTION_FAILURE, ioe);
+            throw new PSQLException(GT.tr("An I/O error occurred while sending to the backend."), PSQLState.CONNECTION_FAILURE, ioe);
         }
     }
 
@@ -548,7 +548,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             }
             catch (IOException ioe)
             {
-                throw new PSQLException(GT.tr("An I/O error occured while sending to the backend."), PSQLState.CONNECTION_FAILURE, ioe);
+                throw new PSQLException(GT.tr("An I/O error occurred while sending to the backend."), PSQLState.CONNECTION_FAILURE, ioe);
             }
         }
 
@@ -628,7 +628,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                 }
             }
         } catch (IOException ioe) {
-            throw new PSQLException(GT.tr("An I/O error occured while sending to the backend."), PSQLState.CONNECTION_FAILURE, ioe);
+            throw new PSQLException(GT.tr("An I/O error occurred while sending to the backend."), PSQLState.CONNECTION_FAILURE, ioe);
         }
     }
     
@@ -2091,7 +2091,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         catch (IOException e)
         {
             protoConnection.close();
-            handler.handleError(new PSQLException(GT.tr("An I/O error occured while sending to the backend."), PSQLState.CONNECTION_FAILURE, e));
+            handler.handleError(new PSQLException(GT.tr("An I/O error occurred while sending to the backend."), PSQLState.CONNECTION_FAILURE, e));
         }
 
         handler.handleCompletion();

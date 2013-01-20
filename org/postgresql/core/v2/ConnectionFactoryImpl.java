@@ -220,7 +220,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             return pgStream;
 
         default:
-            throw new PSQLException(GT.tr("An error occured while setting up the SSL connection."), PSQLState.PROTOCOL_VIOLATION);
+            throw new PSQLException(GT.tr("An error occurred while setting up the SSL connection."), PSQLState.PROTOCOL_VIOLATION);
         }
     }
 
@@ -260,7 +260,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             switch (beresp)
             {
             case 'E':
-                // An error occured, so pass the error message to the
+                // An error occurred, so pass the error message to the
                 // user.
                 //
                 // The most common one to be thrown here is:
