@@ -281,7 +281,7 @@ msgstr ""
 #: org/postgresql/core/v3/QueryExecutorImpl.java:551
 #: org/postgresql/core/v3/QueryExecutorImpl.java:631
 #: org/postgresql/core/v3/QueryExecutorImpl.java:2094
-msgid "An I/O error occured while sending to the backend."
+msgid "An I/O error occurred while sending to the backend."
 msgstr "傳送資料至後端時發生 I/O 錯誤。"
 
 #: org/postgresql/core/v2/QueryExecutorImpl.java:170

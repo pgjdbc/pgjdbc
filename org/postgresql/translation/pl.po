@@ -293,7 +293,7 @@ msgstr "Nieoczekiwany status komendy: {0}."
 #: org/postgresql/core/v3/QueryExecutorImpl.java:551
 #: org/postgresql/core/v3/QueryExecutorImpl.java:631
 #: org/postgresql/core/v3/QueryExecutorImpl.java:2094
-msgid "An I/O error occured while sending to the backend."
+msgid "An I/O error occurred while sending to the backend."
 msgstr "Wystąpił błąd We/Wy podczas wysyłania do serwera."
 
 #: org/postgresql/core/v2/QueryExecutorImpl.java:170
