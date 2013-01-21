@@ -204,7 +204,7 @@ msgstr "Der Server unterst�tzt SSL nicht."
 
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:223
 #: org/postgresql/core/v3/ConnectionFactoryImpl.java:281
-msgid "An error occured while setting up the SSL connection."
+msgid "An error occurred while setting up the SSL connection."
 msgstr "Beim Aufbau der SSL-Verbindung trat ein Fehler auf."
 
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:272

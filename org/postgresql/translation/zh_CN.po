@@ -186,7 +186,7 @@ msgstr "服务器不支援 SSL 连线。"
 
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:223
 #: org/postgresql/core/v3/ConnectionFactoryImpl.java:281
-msgid "An error occured while setting up the SSL connection."
+msgid "An error occurred while setting up the SSL connection."
 msgstr "进行 SSL 连线时发生错误。"
 
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:272

@@ -190,7 +190,7 @@ msgstr ""
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:223
 #: org/postgresql/core/v3/ConnectionFactoryImpl.java:281
 #, fuzzy
-msgid "An error occured while setting up the SSL connection."
+msgid "An error occurred while setting up the SSL connection."
 msgstr "Een fout trad op tijdens het ophalen van het authenticatie verzoek."
 
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:272
