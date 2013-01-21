@@ -36,7 +36,7 @@ msgstr ""
 
 #: org/postgresql/Driver.java.in:288 org/postgresql/Driver.java.in:352
 msgid ""
-"Something unusual has occured to cause the driver to fail. Please report "
+"Something unusual has occurred to cause the driver to fail. Please report "
 "this exception."
 msgstr ""
 "ドライバの失敗を引き起こす異常が起こりました。この例外を報告して下さい。"
