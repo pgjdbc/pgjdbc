@@ -227,6 +227,10 @@ public class Driver implements java.sql.Driver
     {
         // get defaults
         Properties defaults;
+
+        if (!url.startsWith("jdbc:postgresql:")) {
+            return null;
+        }
         try
         {
             defaults = getDefaultProperties();
@@ -239,12 +243,19 @@ public class Driver implements java.sql.Driver
 
         // override defaults with provided properties
         Properties props = new Properties(defaults);
-        for (Enumeration e = info.propertyNames(); e.hasMoreElements(); )
+        if (info != null)
         {
-            String propName = (String)e.nextElement();
-            props.setProperty(propName, info.getProperty(propName));
+            for (Enumeration e = info.propertyNames(); e.hasMoreElements(); )
+            {
+                String propName = (String)e.nextElement();
+                String propValue = info.getProperty(propName);
+                if ( propValue == null ) {
+                    throw new PSQLException(GT.tr("Properties for the driver contains a non-string value for the key ")+propName,
+                                            PSQLState.UNEXPECTED_ERROR);
+                }
+                props.setProperty( propName,propValue );
+            }
         }
-
         // parse URL and add more properties
         if ((props = parseURL(url, props)) == null)
         {
