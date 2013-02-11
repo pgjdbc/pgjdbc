@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project>
     <modelVersion>4.0.0</modelVersion>
-    <groupId>postgresql</groupId>
-    <artifactId>postgresql</artifactId>
+    <groupId>@maven.group.id@</groupId>
+    <artifactId>@maven.artifact.id@</artifactId>
     <packaging>jar</packaging>
     <name>PostgreSQL JDBC Driver</name>
     <version>@maven.artifact.version@</version>
