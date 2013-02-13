@@ -6,22 +6,23 @@
 */
 package org.postgresql.xa.jdbc3;
 
-import java.sql.Connection;
 import java.sql.SQLException;
 
 import javax.naming.Referenceable;
 import javax.naming.Reference;
 import javax.sql.XAConnection;
+import javax.transaction.xa.XAResource;
 
 import org.postgresql.xa.*;
 
-import org.postgresql.core.BaseConnection;
+import org.postgresql.ds.PGPooledConnection;
 import org.postgresql.ds.common.BaseDataSource;
 
 /**
  * XA-enabled DataSource implementation.
  *
  * @author Heikki Linnakangas (heikki.linnakangas@iki.fi)
+ * @author Bryan Varner (bvarner@polarislabs.com)
  */
 public class AbstractJdbc3XADataSource extends BaseDataSource implements Referenceable
 {
@@ -51,8 +52,24 @@ public class AbstractJdbc3XADataSource extends BaseDataSource implements Referen
      */
     public XAConnection getXAConnection(String user, String password) throws SQLException
     {
-        Connection con = super.getConnection(user, password);
-        return new PGXAConnection((BaseConnection) con);
+        // This is a physical connection.
+        PGPooledConnection physicalConnection = new PGPooledConnection(super.getConnection(user, password), true, true);
+        
+        // Return a PGXAConnection which references this AbstractJdbc3XADataSource.
+        // This data sourc will be responsible for tracking in-use physical connections.
+        // For each discrete XAConnection returned from the data source, we will have a managed physical connection.
+        // The physical connection may be associated to one xid at a time.
+        // A physical connection in use by an xid may not be used outside the scope of an XA start / end block.
+        
+        // The returned object (XAConnection) is a 'logical' connection. At least one physical connection will be bound
+        // to the life-cycle of the returned XAConnection. However... The physical connection underlying a logical
+        // connection may be swapped out by the XAResource manager.
+        
+        return new PGXAConnection(physicalConnection, this);
+    }
+    
+    public XAResource getXAResource() {
+        return null;
     }
 
     public String getDescription() {
