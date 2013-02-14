@@ -27,6 +27,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection {
     
     public PGXAConnection(final Connection logicalConnection, final XAResource resource) {
         super(logicalConnection, true, true);
+        this.xares = resource;
     }
 
     @Override
