@@ -10,7 +10,11 @@ import org.postgresql.ds.PGPooledConnection;
 
 import javax.sql.*;
 import java.sql.*;
+import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
+import javax.transaction.xa.Xid;
+import org.postgresql.util.GT;
+import org.postgresql.xa.jdbc3.AbstractJdbc3XADataSource;
 
 /**
  * The PostgreSQL implementation of {@link XAResource}.
@@ -18,18 +22,39 @@ import javax.transaction.xa.XAResource;
  * Two-phase commit requires PostgreSQL server version 8.1
  * or higher.
  * 
+ * This implementation constitutes a 'Transactional Resource' in the JTA 1.0.1
+ * specification. As such, it's an amalgamation of an XAConnection, which uses
+ * connection pool semantics atop a 'logical' (or virtual) Connection to the 
+ * database, which is backed by a real, 'physical' Connection maintained within
+ * the XADataSource implementation. The implementation of XAResource provided 
+ * by this implementation is thread-safe, shareable (amongst equivalent Resoures),
+ * and implements the required functionality for transaction interleaving.
+ * 
  * @author Heikki Linnakangas (heikki.linnakangas@iki.fi)
  * @author Bryan Varner (bvarner@polarislabs.com)
  */
-public class PGXAConnection extends PGPooledConnection implements XAConnection {
+public class PGXAConnection extends PGPooledConnection implements XAConnection, XAResource {
     
-    private XAResource xares;
-    
-    public PGXAConnection(final Connection logicalConnection, final XAResource resource) {
-        super(logicalConnection, true, true);
-        this.xares = resource;
-    }
+    private long logicalConnectionId;
+    private String user;
+    private AbstractJdbc3XADataSource dataSource;
+    private boolean localAutoCommitMode;
 
+    
+    public PGXAConnection(final long logicalConnectionId, final String user, final Connection logicalConnection, AbstractJdbc3XADataSource dataSource) {
+        super(logicalConnection, true, true);
+        this.logicalConnectionId = logicalConnectionId;
+        this.user = user;
+        this.dataSource = dataSource;
+        this.localAutoCommitMode = true;
+    }
+    
+    /**
+     * Returns a handle to the logical connection (we are pooled, remember)
+     * 
+     * @return
+     * @throws SQLException 
+     */
     @Override
     public Connection getConnection() throws SQLException {
         // When we're outside an XA transaction, autocommit
@@ -44,7 +69,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection {
 
     @Override
     public XAResource getXAResource() {
-        return xares;
+        return this;
     }
 
     @Override
@@ -52,11 +77,307 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection {
         try {
             super.close();
         } finally {
-            xares = null;
+            dataSource = null;
         }
     }
 
-//    /**** XAResource interface ****/
+    /**** XAResource interface ****/
+    /**
+     * 
+     * @param xid
+     * @param flags
+     * @throws XAException 
+     */
+    public void start(Xid xid, int flags) throws XAException {
+        if (flags != XAResource.TMNOFLAGS && flags != XAResource.TMRESUME && flags != XAResource.TMJOIN) {
+            throw new PGXAException(GT.tr("Invalid flags"), XAException.XAER_INVAL);
+        }
+
+        if (xid == null) {
+            throw new PGXAException(GT.tr("xid must not be null"), XAException.XAER_INVAL);
+        }
+
+
+        // TODO: Associate the logicalConnectionId with a physical connection pegged to this xid in the dataSource.
+        
+        try {
+            localAutoCommitMode = getBackingConnection().getAutoCommit();
+            getBackingConnection().setAutoCommit(false);
+        } catch (SQLException ex) {
+            throw new PGXAException(GT.tr("Error disabling autocommit"), ex, XAException.XAER_RMERR);
+        }
+    }
+    
+    /**
+     * 
+     * @param xid
+     * @param flags
+     * @throws XAException 
+     */
+    public void end(Xid xid, int flags) throws XAException {
+        if (flags != XAResource.TMSUSPEND && flags != XAResource.TMFAIL && flags != XAResource.TMSUCCESS) {
+            throw new PGXAException(GT.tr("Invalid flags"), XAException.XAER_INVAL);
+        }
+
+        if (xid == null) {
+            throw new PGXAException(GT.tr("xid must not be null"), XAException.XAER_INVAL);
+        }
+
+        // TMSUSPEND, TMSUCCESS, TMFAIL are more or less hints to this resource manager. We don't have to do anything special to handle them.
+        
+        // TODO: Disassociate the logicalConnectionId with the physical connection pegged to this xid in the dataSource.
+        
+    }
+
+    /**
+     * While the PG server doesn't really do heuristics, it's possible for a
+     * sysadmin to do a manual rollback / commit of a prepared transaction, 
+     * effectively performing a heuristic decision, and leaving a backend 
+     * physical connection in the dataSource pegged to the now-defuct Xid.
+     * 
+     * For that reason, we're implementing this method.
+     * 
+     * @param xid
+     * @throws XAException 
+     */
+    public void forget(Xid xid) throws XAException {
+        // TODO: Find a physical connection pegged to the given xid, if there is
+        // one, close it (really, kill the physical connection) and open a new 
+        // unassociated physical connection to take it's place.
+    }
+
+    /**
+     * 
+     * @param xid
+     * @param onePhase
+     * @throws XAException 
+     */
+    public void commit(Xid xid, boolean onePhase) throws XAException {
+        if (xid == null) {
+            throw new PGXAException(GT.tr("xid must not be null"), XAException.XAER_INVAL);
+        }
+
+        if (onePhase) {
+            commitOnePhase(xid);
+        } else {
+            commitPrepared(xid);
+        }
+    }
+
+    private void commitOnePhase(Xid xid) throws XAException {
+//        try {
+            // Locate the physical connection servicing the given xid, 
+            // TODO: physConn.commit();
+            
+            // TODO: Save the localAutoCommitMode in the PhysicalXAConnection.
+            // physConn.setAutoCommit(localAutoCommitMode);
+//        } catch (SQLException ex) {
+//            throw new PGXAException(GT.tr("Error during one-phase commit"), ex, XAException.XAER_RMERR);
+//        }
+    }
+
+    private void commitPrepared(Xid xid) throws XAException {
+//        try {
+//            // TODO: Find either a physical connection which serviced the xid, 
+//            // or any idle (available) physical connection.
+//            
+//            String s = RecoveredXid.xidToString(xid);
+//
+//            // TODO: Again, do this right.
+//            localAutoCommitMode = physConn.getAutoCommit();
+//            physConn.setAutoCommit(true);
+//            Statement stmt = physConn.createStatement();
+//            try {
+//                stmt.executeUpdate("COMMIT PREPARED '" + s + "'");
+//            } finally {
+//                stmt.close();
+//                physConn.setAutoCommit(localAutoCommitMode);
+//            }
+//        } catch (SQLException ex) {
+//            throw new PGXAException(GT.tr("Error committing prepared transaction"), ex, XAException.XAER_RMERR);
+//        }
+    }
+    
+    /**
+     * 
+     * @param xares
+     * @return
+     * @throws XAException 
+     */
+    public boolean isSameRM(XAResource xares) throws XAException {
+        if (xares == this) {
+            return true;
+        }
+        
+        // This is going to tell the TM that we can handle interleaving.
+        if (xares instanceof PGXAConnection) {
+            // we need to make sure that the dataSource is to the same server/port/username as the XAConnection we were created alongside.
+            PGXAConnection other = (PGXAConnection)xares;
+            if (other.dataSource.getServerName().equals(dataSource.getServerName()) &&
+                other.dataSource.getPortNumber() == dataSource.getPortNumber() &&
+                other.dataSource.getDatabaseName().equals(dataSource.getDatabaseName()) &&
+                other.user.equals(user))
+            {
+                return true; // We're the same name, port, db, and user.
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * 
+     * @param xid
+     * @return
+     * @throws XAException 
+     */
+    public int prepare(Xid xid) throws XAException {
+        // TODO: Find the physical connection servicing the xid, then invoke the
+        // these things on the physical connection.
+        
+//        
+//        if (!physConn.haveMinimumServerVersion("8.1")) {
+//            throw new PGXAException(GT.tr("Server versions prior to 8.1 do not support two-phase commit."), XAException.XAER_RMERR);
+//        }
+//
+//        try {
+//            String s = RecoveredXid.xidToString(xid);
+//
+//            Statement stmt = physConn.createStatement();
+//            try {
+//                stmt.executeUpdate("PREPARE TRANSACTION '" + s + "'");
+//            } finally {
+//                stmt.close();
+//            }
+//            physConn.setAutoCommit(localAutoCommitMode);
+//
+            return XA_OK;
+//        } catch (SQLException ex) {
+//            throw new PGXAException(GT.tr("Error preparing transaction"), ex, XAException.XAER_RMERR);
+//        }
+    }
+
+    /**
+     * Preconditions:
+     * 1. flag must be one of TMSTARTRSCAN, TMENDRSCAN, TMNOFLAGS or TMSTARTTRSCAN | TMENDRSCAN
+     * 2. if flag isn't TMSTARTRSCAN or TMSTARTRSCAN | TMENDRSCAN, a recovery scan must be in progress
+     *
+     * Postconditions:
+     * 1. list of prepared xids is returned
+     * 
+     * @param flag
+     * @return
+     * @throws XAException 
+     */
+    public Xid[] recover(int flag) throws XAException {
+        // Check preconditions
+        if (flag != TMSTARTRSCAN && flag != TMENDRSCAN && flag != TMNOFLAGS && flag != (TMSTARTRSCAN | TMENDRSCAN)) {
+            throw new PGXAException(GT.tr("Invalid flag"), XAException.XAER_INVAL);
+        }
+
+        // We don't check for precondition 2, because we would have to add some additional state in
+        // this object to keep track of recovery scans.
+
+//        // All clear. We return all the xids in the first TMSTARTRSCAN call, and always return
+//        // an empty array otherwise.
+//        if ((flag & TMSTARTRSCAN) == 0) {
+            return new Xid[0];
+//        } else {
+//            try {
+//                Statement stmt = physConn.createStatement();
+//                try {
+//                    // If this connection is simultaneously used for a transaction,
+//                    // this query gets executed inside that transaction. It's OK,
+//                    // except if the transaction is in abort-only state and the
+//                    // backed refuses to process new queries. Hopefully not a problem
+//                    // in practise.
+//                    ResultSet rs = stmt.executeQuery("SELECT gid FROM pg_prepared_xacts");
+//                    LinkedList l = new LinkedList();
+//                    while (rs.next()) {
+//                        Xid recoveredXid = RecoveredXid.stringToXid(rs.getString(1));
+//                        if (recoveredXid != null) {
+//                            l.add(recoveredXid);
+//                        }
+//                    }
+//                    rs.close();
+//
+//                    return (Xid[]) l.toArray(new Xid[l.size()]);
+//                } finally {
+//                    stmt.close();
+//                }
+//            } catch (SQLException ex) {
+//                throw new PGXAException(GT.tr("Error during recover"), ex, XAException.XAER_RMERR);
+//            }
+//        }
+    }
+
+    /**
+     * 
+     * @param xid
+     * @throws XAException 
+     */
+    public void rollback(Xid xid) throws XAException {
+        // TODO: Find the physical connection servicing the xid.
+        // If it's prepared (already) then rollback prepared.
+        // otherwise, just one-phase rollback.
+        
+//        try
+//        {
+//            if (currentXid != null && xid.equals(currentXid))
+//            {
+//                state = STATE_IDLE;
+//                currentXid = null;
+//                physConn.rollback();
+//                physConn.setAutoCommit(localAutoCommitMode);
+//            }
+//            else
+//            {
+//                String s = RecoveredXid.xidToString(xid);
+//
+//                physConn.setAutoCommit(true);
+//                Statement stmt = physConn.createStatement();
+//                try
+//                {
+//                    stmt.executeUpdate("ROLLBACK PREPARED '" + s + "'");
+//                }
+//                finally
+//                {
+//                    stmt.close();
+//                }
+//            }
+//        }
+//        catch (SQLException ex)
+//        {
+//            throw new PGXAException(GT.tr("Error rolling back prepared transaction"), ex, XAException.XAER_RMERR);
+//        }
+    }
+
+    /**
+     * Not supported for the PostgreSQL XA Implementation.
+     * 
+     * @return
+     * @throws XAException 
+     */
+    public int getTransactionTimeout() throws XAException {
+        return 0; // We don't support this.
+    }
+    
+    /**
+     * Not supported for the PostgreSQL XA Implementation.
+     * 
+     * @param seconds
+     * @return
+     * @throws XAException 
+     */
+    public boolean setTransactionTimeout(int seconds) throws XAException {
+        return false; // We don't support this.
+    }
+    
+    
+    
+    
+    
+    
 //
 //    /**
 //     * Preconditions:
@@ -420,18 +741,5 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection {
 //    public void forget(Xid xid) throws XAException {
 //        throw new PGXAException(GT.tr("Heuristic commit/rollback not supported"), XAException.XAER_NOTA);
 //    }
-//
-//    /**
-//     * We don't do transaction timeouts. Just returns 0.
-//     */
-//    public int getTransactionTimeout() {
-//        return 0;
-//    }
-//
-//    /**
-//     * We don't do transaction timeouts. Returns false.
-//     */
-//    public boolean setTransactionTimeout(int seconds) {
-//        return false;
-//    }
+
 }

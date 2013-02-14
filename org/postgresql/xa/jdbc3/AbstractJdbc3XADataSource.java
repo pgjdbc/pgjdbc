@@ -92,11 +92,10 @@ public class AbstractJdbc3XADataSource extends BaseDataSource implements Referen
         
         // Create a new LogicalXAConnectionHandler proxy.
         LogicalXAConnectionHandler logicalConnection = new LogicalXAConnectionHandler();
-        return new PGXAConnection(
+        return new PGXAConnection(logicalConnection.getLogicalConnectionId(), user, 
                 (Connection)Proxy.newProxyInstance(getClass().getClassLoader(), 
                         new Class[]{Connection.class, PGConnection.class}, 
-                        logicalConnection),
-                new PGXAResource(logicalConnection.getLogicalConnectionId(), user, this));
+                        logicalConnection), this);
     }
     
     public String getDescription() {
