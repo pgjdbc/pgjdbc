@@ -22,14 +22,13 @@ import java.util.concurrent.atomic.AtomicLong;
 import javax.naming.Referenceable;
 import javax.naming.Reference;
 import javax.sql.XAConnection;
+import javax.transaction.xa.XAException;
 import javax.transaction.xa.Xid;
 import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
-import org.postgresql.core.ProtocolConnection;
 
 import org.postgresql.xa.*;
 
-import org.postgresql.ds.PGPooledConnection;
 import org.postgresql.ds.common.BaseDataSource;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -105,6 +104,7 @@ public class AbstractJdbc3XADataSource extends BaseDataSource implements Referen
     /**
      * Generates a reference using the appropriate object factory.
      */
+    @Override
     protected Reference createReference() {
         return new Reference(
                    getClass().getName(),
@@ -113,7 +113,11 @@ public class AbstractJdbc3XADataSource extends BaseDataSource implements Referen
     }
     
     
-    private void associateXALink(final Long logicalConnectionId, final PhysicalXAConnection backend) {
+    
+    
+    
+    
+    void associateXALink(final Long logicalConnectionId, final PhysicalXAConnection backend) {
         synchronized (logicalMappings) {
             logicalMappings.put(logicalConnectionId, backend);
             logicalMappings.notify();
@@ -121,7 +125,7 @@ public class AbstractJdbc3XADataSource extends BaseDataSource implements Referen
     }
     
     
-    private void disassociateXALink(final Long logicalConnectionId) {
+    void disassociateXALink(final Long logicalConnectionId) {
         synchronized (logicalMappings) {
             logicalMappings.remove(logicalConnectionId);
             logicalMappings.notify();
@@ -165,7 +169,7 @@ public class AbstractJdbc3XADataSource extends BaseDataSource implements Referen
                             for (int i = 0; i < physicalConnections.size(); i++) {
                                 physicalConnection = physicalConnections.get(i);
                                 if (physicalConnection.getAssociatedXid() == null && 
-                                    !physicalConnection.isActive()) 
+                                    physicalConnection.isIdle()) 
                                 {
                                     break;
                                 } else {
@@ -218,7 +222,7 @@ public class AbstractJdbc3XADataSource extends BaseDataSource implements Referen
                 } while (physicalConnection == null);
             }
             
-            // If the physical connection is betwen a start / end block...
+            // If the physical connection is servicing an Xid (between start / end, or suspended)
             if (physicalConnection.getAssociatedXid() != null) {
                 String methodName = method.getName();
                 if (methodName.equals("commit") ||
@@ -232,7 +236,7 @@ public class AbstractJdbc3XADataSource extends BaseDataSource implements Referen
             }
                 
             try {
-                return method.invoke(physicalConnection, args);
+                return method.invoke(physicalConnection.getConnection(), args);
             } catch (InvocationTargetException ex) {
                 throw ex.getTargetException();
             }
@@ -266,34 +270,38 @@ public class AbstractJdbc3XADataSource extends BaseDataSource implements Referen
      * Internal state holder used to track and locate physical backends
      */
     private static class PhysicalXAConnection {
-        private BaseConnection backend;
+        private BaseConnection connection;
         private Xid associatedXid;
-        private PGPooledConnection pooledConnection;
+        private boolean idle;
 
         public PhysicalXAConnection(BaseConnection physicalConn) {
-            backend = physicalConn;
+            connection = physicalConn;
             associatedXid = null;
-            pooledConnection = new PGPooledConnection(backend, true, true);
+            idle = true;
         }
         
-        public PGPooledConnection getPooledConnection() {
-            return pooledConnection;
+        public BaseConnection getConnection() {
+            return connection;
         }
-
+        
         public Xid getAssociatedXid() {
             return associatedXid;
         }
 
-        public void setAssociatedXid(Xid associatedXid) {
+        public void setAssociatedXid(final Xid associatedXid) {
             this.associatedXid = associatedXid;
         }
         
-        public boolean isActive() {
-            return backend.getTransactionState() != ProtocolConnection.TRANSACTION_IDLE;
+        public boolean isIdle() {
+            return idle;
+        }
+        
+        public void setIdle(final boolean idle) {
+            this.idle = idle;
         }
         
         public int getBackendPID() {
-            return backend.getBackendPID();
+            return connection.getBackendPID();
         }
     }
 }

@@ -83,24 +83,46 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
 
     /**** XAResource interface ****/
     /**
+     * Preconditions:
+     * 1. flags must be one of TMNOFLAGS, TMRESUME or TMJOIN
+     * 2. xid != null
+     * 3. Logical connection must not be associated with another backend
+     * 4. if TMNOFLAGS, the RM hasn't seen the xid before.
+     *
+     * Postconditions:
+     * 1. Connection is associated with the transaction
      * 
      * @param xid
      * @param flags
      * @throws XAException 
      */
     public void start(Xid xid, int flags) throws XAException {
-        if (flags != XAResource.TMNOFLAGS && flags != XAResource.TMRESUME && flags != XAResource.TMJOIN) {
-            throw new PGXAException(GT.tr("Invalid flags"), XAException.XAER_INVAL);
-        }
-
         if (xid == null) {
             throw new PGXAException(GT.tr("xid must not be null"), XAException.XAER_INVAL);
         }
 
+        switch (flags) {
+            case XAResource.TMNOFLAGS:
+                // Associate the logicalConnectionId with an available, unpegged physical backend.
+                // If there is an existing backend with the Xid, throw an exception.
+                
+                break;
+            case XAResource.TMRESUME:
+                // Associate the logicalConnectionId with an existing, pegged physical backend in the suspended state.
+                
+                
+                break;
+            case XAResource.TMJOIN: 
+                // Associate the logicalConnectionId with an existing, pegged physical backend not in the suspended state.
+                
+                
+                break;
+            default:
+                throw new PGXAException(GT.tr("Invalid flags"), XAException.XAER_INVAL);
+        }
 
-        // TODO: Associate the logicalConnectionId with a physical connection pegged to this xid in the dataSource.
-        
         try {
+            // Keep track of the logical connections autocommit mode, for restoration after end().
             localAutoCommitMode = getBackingConnection().getAutoCommit();
             getBackingConnection().setAutoCommit(false);
         } catch (SQLException ex) {
@@ -109,6 +131,13 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     }
     
     /**
+     * Preconditions:
+     * 1. Flags is one of TMSUCCESS, TMFAIL, TMSUSPEND
+     * 2. xid != null
+     * 3. Logical Connection is associated with physical backend servicing xid
+     *
+     * Postconditions:
+     * 1. connection is disassociated from the transaction.
      * 
      * @param xid
      * @param flags
@@ -123,10 +152,25 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
             throw new PGXAException(GT.tr("xid must not be null"), XAException.XAER_INVAL);
         }
 
-        // TMSUSPEND, TMSUCCESS, TMFAIL are more or less hints to this resource manager. We don't have to do anything special to handle them.
+        // TMSUSPEND, TMSUCCESS, TMFAIL are more or less hints to this resource manager. 
+        // We don't _have_ to do anything special to handle them, although we could rollback immediately (if we wanted) 
+        // in the case of of TMFAIL.
         
-        // TODO: Disassociate the logicalConnectionId with the physical connection pegged to this xid in the dataSource.
+        // The actual work here is:
         
+        // Find the physical connection servicing this logicalConnectionId.
+        
+        // Verify that it's the proper Xid.
+        
+        switch (flags) {
+            case XAResource.TMSUSPEND:
+                // Set the physical connection state to suspended.
+            case XAResource.TMSUCCESS:
+            case XAResource.TMFAIL:
+                // Remove the logical -> physical mapping from the DataSource.
+                
+                break;
+        }
     }
 
     /**
