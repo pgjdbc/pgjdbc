@@ -13,7 +13,7 @@ import javax.naming.*;
 import java.util.Hashtable;
 
 /**
- * An ObjectFactory implementation for PGXADataSource-objects. 
+ * An ObjectFactory implementation for AbstractPGXADataSource-objects. 
  */
 
 public class PGXADataSourceFactory extends PGObjectFactory

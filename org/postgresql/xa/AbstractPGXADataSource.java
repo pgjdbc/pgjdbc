@@ -7,8 +7,8 @@ import javax.sql.XADataSource;
  *
  * @author Heikki Linnakangas (heikki.linnakangas@iki.fi)
  */
-public class PGXADataSource
-    extends @XA_DS_CLASS@
+public abstract class AbstractPGXADataSource
+    extends org.postgresql.xa.jdbc4.AbstractJdbc4XADataSource
     implements XADataSource
 {
 }

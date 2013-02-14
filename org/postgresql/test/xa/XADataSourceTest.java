@@ -22,9 +22,9 @@ import javax.transaction.xa.Xid;
 
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.optional.BaseDataSourceTest;
-import org.postgresql.xa.PGXADataSource;
 
 import junit.framework.TestCase;
+import org.postgresql.xa.PGXADataSource;
 
 public class XADataSourceTest extends TestCase {
 
