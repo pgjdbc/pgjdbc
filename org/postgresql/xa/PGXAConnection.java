@@ -6,15 +6,10 @@
 */
 package org.postgresql.xa;
 
-import org.postgresql.PGConnection;
 import org.postgresql.ds.PGPooledConnection;
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import javax.sql.*;
 import java.sql.*;
-import java.lang.reflect.*;
 import javax.transaction.xa.XAResource;
 
 /**
@@ -26,94 +21,39 @@ import javax.transaction.xa.XAResource;
  * @author Heikki Linnakangas (heikki.linnakangas@iki.fi)
  * @author Bryan Varner (bvarner@polarislabs.com)
  */
-public class PGXAConnection implements XAConnection {
+public class PGXAConnection extends PGPooledConnection implements XAConnection {
     
-    private PGPooledConnection physConn;
-    private PGXADataSource xaDS;
-
-    /*
-     * When an XA transaction is started, we put the underlying connection
-     * into non-autocommit mode. The old setting is saved in
-     * localAutoCommitMode, so that we can restore it when the XA transaction
-     * ends and the connection returns into local transaction mode.
-     */
-    private boolean localAutoCommitMode = true;
-
-//    private void debug(String s) {
-//        logger.debug("XAResource " + Integer.toHexString(this.hashCode()) + ": " + s);
-//    }
-
-    public PGXAConnection(PGPooledConnection conn, PGXADataSource owningSource) {
-        this.physConn = conn;
-        this.xaDS = owningSource;
-//	this.logger = conn.getLogger();
+    private XAResource xares;
+    
+    public PGXAConnection(final Connection logicalConnection, final XAResource resource) {
+        super(logicalConnection, true, true);
     }
 
-
-    /**** XAConnection interface ****/
-
-    public Connection getConnection() throws SQLException
-    {
-//        if (logger.logDebug())
-//            debug("PGXAConnection.getConnection called");
-
+    @Override
+    public Connection getConnection() throws SQLException {
         // When we're outside an XA transaction, autocommit
         // is supposed to be true, per usual JDBC convention.
         // When an XA transaction is in progress, it should be
         // false.
-        Connection conn = physConn.getConnection();
-        conn.setAutoCommit(true);
-
-        /*
-         * Wrap the connection in a proxy to forbid application from
-         * fiddling with transaction state directly during an XA transaction
-         */
-        ConnectionHandler handler = new ConnectionHandler(conn);
-        return (Connection)Proxy.newProxyInstance(getClass().getClassLoader(), new Class[]{Connection.class, PGConnection.class}, handler);
+        Connection logicalConn = super.getConnection();
+        logicalConn.setAutoCommit(true);
+        
+        return logicalConn;
     }
 
+    @Override
     public XAResource getXAResource() {
-        return xaDS.getXAResource();
-    }
-    
-    
-
-    /*
-     * A java.sql.Connection proxy class to forbid calls to transaction
-     * control methods while the connection is used for an XA transaction.
-     */
-    private class ConnectionHandler implements InvocationHandler
-    {
-	private Connection con;
-
-	public ConnectionHandler(Connection con)
-	{
-            this.con = con;
-        }
-
-        public Object invoke(Object proxy, Method method, Object[] args)
-        throws Throwable
-        {
-//	    if (state != STATE_IDLE)
-//            {
-                String methodName = method.getName();
-                if (methodName.equals("commit") ||
-                    methodName.equals("rollback") ||
-                    methodName.equals("setSavePoint") ||
-                    (methodName.equals("setAutoCommit") && ((Boolean) args[0]).booleanValue()))
-                {
-		    throw new PSQLException(GT.tr("Transaction control methods setAutoCommit(true), commit, rollback and setSavePoint not allowed while an XA transaction is active."),
-					    PSQLState.OBJECT_NOT_IN_STATE);
-                }
-//            }
-            try {
-                return method.invoke(con, args);
-            } catch (InvocationTargetException ex) {
-                throw ex.getTargetException();
-            }
-        }
+        return xares;
     }
 
+    @Override
+    public void close() throws SQLException {
+        try {
+            super.close();
+        } finally {
+            xares = null;
+        }
+    }
 
 //    /**** XAResource interface ****/
 //
