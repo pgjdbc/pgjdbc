@@ -59,13 +59,13 @@ public class PGXADataSource extends AbstractPGXADataSource {
     /**
      * Time to wait for a physical connection to become available before we create a new physical connection to service a logical.
      */
-    private int xaAcquireTimeout = 3000; // in milliseconds
+    private int xaAcquireTimeout = 500; // in milliseconds
     
     /**
      * Time to wait for a physical connection to become available before checking again.
      * Once we've waited up to acquirePhysicalTimeout, we'll create a new backend.
      */
-    private int xaWaitStep = 500; // in milliseconds;
+    private int xaWaitStep = 25; // in milliseconds;
     
     /**
      * Gets an XA-enabled connection to the PostgreSQL database.  The database is identified by the
