@@ -15,39 +15,43 @@ import org.postgresql.core.BaseConnection;
  * 
  * @author Bryan Varner (bvarner@polarislabs.com)
  */
-public class PhysicalXAConnection {
+class PhysicalXAConnection {
     private BaseConnection connection;
+    private String user;
+    private String password;
     private Xid associatedXid;
     private boolean suspended;
     private int backendPid;
     private boolean originalAutoCommit;
 
-    public PhysicalXAConnection(BaseConnection physicalConn) {
-        connection = physicalConn;
-        associatedXid = null;
-        suspended = false;
-        backendPid = physicalConn.getBackendPID();
+    PhysicalXAConnection(BaseConnection physicalConn, String user, String password) {
+        this.connection = physicalConn;
+        this.user = user;
+        this.password = password;
+        this.associatedXid = null;
+        this.suspended = false;
+        this.backendPid = physicalConn.getBackendPID();
         try {
-            originalAutoCommit = physicalConn.getAutoCommit();
+            this.originalAutoCommit = physicalConn.getAutoCommit();
         } catch (SQLException sqle) {
-            originalAutoCommit = true; // Default to true, if we can't get the real value.
+            this.originalAutoCommit = true; // Default to true, if we can't get the real value.
         }
     }
 
-    public BaseConnection getConnection() {
+    BaseConnection getConnection() {
         return connection;
     }
 
-    public Xid getAssociatedXid() {
+    Xid getAssociatedXid() {
         return associatedXid;
     }
 
-    public void setAssociatedXid(final Xid xid) {
+    void setAssociatedXid(final Xid xid) {
         try {
             if (associatedXid != null && xid == null) { // restore the autocommit state.
                 connection.setAutoCommit(originalAutoCommit);
             } else if (associatedXid == null && xid != null) { // cache the autocommit state.
-                originalAutoCommit = connection.getAutoCommit();
+                this.originalAutoCommit = connection.getAutoCommit();
                 connection.setAutoCommit(false);
             }
         } catch (SQLException sqle) {
@@ -58,16 +62,24 @@ public class PhysicalXAConnection {
         this.suspended = false;
     }
 
-    public boolean isSuspended() {
+    boolean isSuspended() {
         return suspended;
     }
 
-    public void markSuspended() {
+    void markSuspended() {
         this.suspended = true;
     }
     
-    public int getBackendPID() {
+    int getBackendPID() {
         return backendPid;
+    }
+    
+    String getUser() {
+        return user;
+    }
+    
+    String getPassword() {
+        return password;
     }
 
     @Override

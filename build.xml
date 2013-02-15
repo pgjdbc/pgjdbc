@@ -418,7 +418,7 @@
     <property name="testResultsDir" value="${builddir}/testresults" />
     <mkdir dir="${testResultsDir}" />
  
-    <junit>
+    <junit> 
     <!-- Use these settings to enable some remote debugging of the junit tests -->
 <!--    <junit fork="yes">
       <jvmarg value="-Xdebug"/>

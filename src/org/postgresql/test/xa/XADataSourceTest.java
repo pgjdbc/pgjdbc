@@ -47,6 +47,8 @@ public class XADataSourceTest extends TestCase {
         _conn = TestUtil.openDB();
 
         TestUtil.createTable(_conn, "testxa1", "foo int");
+        TestUtil.createTable(_conn, "testxa2", "foo int");
+        TestUtil.createTable(_conn, "testxa3", "foo int");
 
         clearAllPrepared();
 
@@ -60,6 +62,8 @@ public class XADataSourceTest extends TestCase {
         clearAllPrepared();
 
         TestUtil.dropTable(_conn, "testxa1");
+        TestUtil.dropTable(_conn, "testxa2");
+        TestUtil.dropTable(_conn, "testxa3");
         TestUtil.closeDB(_conn);
 
     }
@@ -327,44 +331,44 @@ public class XADataSourceTest extends TestCase {
     }
 
 
-//    public void testInterleaving1() throws Exception {
-//     Xid xid1 = new CustomXid(1);
-//     Xid xid2 = new CustomXid(2);
-//     
-//     xaRes.start(xid1, XAResource.TMNOFLAGS);
-//     conn.createStatement().executeUpdate("UPDATE testxa1 SET foo = '111'");
-//     xaRes.end(xid1, XAResource.TMSUCCESS);
-//
-//     xaRes.start(xid2, XAResource.TMNOFLAGS);
-//     conn.createStatement().executeUpdate("UPDATE testxa2 SET foo = '222'");
-//
-//     xaRes.commit(xid1, true);
-//
-//     xaRes.end(xid2, XAResource.TMSUCCESS);
-//
-//     xaRes.commit(xid2, true);
-//
-//    }
-//    
-//    public void testInterleaving2() throws Exception {
-//     Xid xid1 = new CustomXid(1);
-//     Xid xid2 = new CustomXid(2);
-//     Xid xid3 = new CustomXid(3);
-//     
-//     xaRes.start(xid1, XAResource.TMNOFLAGS);
-//     conn.createStatement().executeUpdate("UPDATE testxa1 SET foo = '11'");
-//     xaRes.end(xid1, XAResource.TMSUCCESS);
-//     
-//     xaRes.start(xid2, XAResource.TMNOFLAGS);
-//     conn.createStatement().executeUpdate("UPDATE testxa2 SET foo = '22'");
-//     xaRes.end(xid2, XAResource.TMSUCCESS);
-//
-//     xaRes.start(xid3, XAResource.TMNOFLAGS);
-//     conn.createStatement().executeUpdate("UPDATE testxa3 SET foo = '33'");
-//     xaRes.end(xid3, XAResource.TMSUCCESS);
-//
-//     xaRes.commit(xid1, true);
-//     xaRes.commit(xid2, true);
-//     xaRes.commit(xid3, true);
-//    }
+    public void testInterleaving1() throws Exception {
+     Xid xid1 = new CustomXid(1);
+     Xid xid2 = new CustomXid(2);
+     
+     xaRes.start(xid1, XAResource.TMNOFLAGS);
+     conn.createStatement().executeUpdate("UPDATE testxa1 SET foo = '111'");
+     xaRes.end(xid1, XAResource.TMSUCCESS);
+
+     xaRes.start(xid2, XAResource.TMNOFLAGS);
+     conn.createStatement().executeUpdate("UPDATE testxa2 SET foo = '222'");
+
+     xaRes.commit(xid1, true);
+
+     xaRes.end(xid2, XAResource.TMSUCCESS);
+
+     xaRes.commit(xid2, true);
+
+    }
+    
+    public void testInterleaving2() throws Exception {
+     Xid xid1 = new CustomXid(1);
+     Xid xid2 = new CustomXid(2);
+     Xid xid3 = new CustomXid(3);
+     
+     xaRes.start(xid1, XAResource.TMNOFLAGS);
+     conn.createStatement().executeUpdate("UPDATE testxa1 SET foo = '11'");
+     xaRes.end(xid1, XAResource.TMSUCCESS);
+     
+     xaRes.start(xid2, XAResource.TMNOFLAGS);
+     conn.createStatement().executeUpdate("UPDATE testxa2 SET foo = '22'");
+     xaRes.end(xid2, XAResource.TMSUCCESS);
+
+     xaRes.start(xid3, XAResource.TMNOFLAGS);
+     conn.createStatement().executeUpdate("UPDATE testxa3 SET foo = '33'");
+     xaRes.end(xid3, XAResource.TMSUCCESS);
+
+     xaRes.commit(xid1, true);
+     xaRes.commit(xid2, true);
+     xaRes.commit(xid3, true);
+    }
 }
