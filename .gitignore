@@ -1,2 +1,7 @@
-/build/
-/nbproject/
+.classpath
+.project
+.externalToolBuilders
+build
+jars
+.*.swp
+nbproject

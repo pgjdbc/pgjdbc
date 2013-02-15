@@ -44,12 +44,6 @@ public class PGXADataSource extends AbstractPGXADataSource {
             Collections.synchronizedList(new ArrayList<PhysicalXAConnection>());
     
     /**
-     * Collection of front-end (logical) XAConnections to clients (TM, applications).
-     */
-    final List<PGXAConnection> logicalConnections = 
-            Collections.synchronizedList(new ArrayList<PGXAConnection>());
-    
-    /**
      * Maintains association of logical connection ids servicing Connection 
      * invocations to the proper physical backend.
      */
@@ -66,15 +60,14 @@ public class PGXADataSource extends AbstractPGXADataSource {
      * @throws SQLException
      *     Occurs when the database connection cannot be established.
      */
-    public XAConnection getXAConnection(String user, String password) throws SQLException
-    {
+    public XAConnection getXAConnection(String user, String password) throws SQLException {
         // Allocate and add a new physical connection to service the front-end
         // XAConnections we return.
         physicalConnections.add(new PhysicalXAConnection((BaseConnection)super.getConnection(user, password)));
         
         // Create a new LogicalXAConnectionHandler proxy.
         LogicalXAConnectionHandler logicalHandler = new LogicalXAConnectionHandler();
-
+        
         PGXAConnection logicalConnection = new PGXAConnection(user, (Connection)Proxy.newProxyInstance(getClass().getClassLoader(), 
                         new Class[]{Connection.class, PGConnection.class}, 
                         logicalHandler), this);
@@ -83,9 +76,6 @@ public class PGXADataSource extends AbstractPGXADataSource {
         
         return logicalConnection;
     }
-    
-    
-    
     
     private void associate(final PGXAConnection logicalConnection, final PhysicalXAConnection backend) {
         synchronized (logicalMappings) {
@@ -452,6 +442,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
                 // Remove / Update any logical mappings.
                 if (logicalMappings.containsValue(fugeddaboutit)) {
                     synchronized(logicalMappings) {
+                        ArrayList<PGXAConnection> logicalConnections = new ArrayList<PGXAConnection>();
                         for (Map.Entry<PGXAConnection, PhysicalXAConnection> pairing : logicalMappings.entrySet()) {
                             if (pairing.getValue().equals(fugeddaboutit)) {
                                 logicalConnections.add(pairing.getKey());
