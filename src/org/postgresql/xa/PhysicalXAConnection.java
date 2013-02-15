@@ -22,7 +22,7 @@ public class PhysicalXAConnection {
     private int backendPid;
     private boolean originalAutoCommit;
 
-    public PhysicalXAConnection(BaseConnection physicalConn) {
+    public PhysicalXAConnection(final BaseConnection physicalConn) {
         connection = physicalConn;
         associatedXid = null;
         suspended = false;
@@ -53,7 +53,7 @@ public class PhysicalXAConnection {
         } catch (SQLException sqle) {
             // TODO: Log that we had a problem here.
         }
-        
+
         this.associatedXid = xid;
         this.suspended = false;
     }
@@ -71,15 +71,8 @@ public class PhysicalXAConnection {
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final PhysicalXAConnection other = (PhysicalXAConnection) obj;
-        if (this.backendPid != other.backendPid) {
+    public boolean equals(final Object obj) {
+        if (obj == null || getClass() != obj.getClass() || this.backendPid != ((PhysicalXAConnection)obj).backendPid) {
             return false;
         }
         return true;
