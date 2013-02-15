@@ -6,6 +6,9 @@
 */
 package org.postgresql.xa;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -18,6 +21,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.naming.NamingException;
+import javax.naming.Reference;
+import javax.naming.StringRefAddr;
 import javax.sql.XAConnection;
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
@@ -53,13 +59,13 @@ public class PGXADataSource extends AbstractPGXADataSource {
     /**
      * Time to wait for a physical connection to become available before we create a new physical connection to service a logical.
      */
-    private int acquirePhysicalTimeout = 3000; // in milliseconds
+    private int xaAcquireTimeout = 3000; // in milliseconds
     
     /**
      * Time to wait for a physical connection to become available before checking again.
      * Once we've waited up to acquirePhysicalTimeout, we'll create a new backend.
      */
-    private int waitStep = 500; // in milliseconds;
+    private int xaWaitStep = 500; // in milliseconds;
     
     /**
      * Gets an XA-enabled connection to the PostgreSQL database.  The database is identified by the
@@ -196,8 +202,8 @@ public class PGXADataSource extends AbstractPGXADataSource {
                         //
                         // 
                         // So, let's start by attempting option #2 -- blocking for a period of time.
-                        if (attempts * waitStep < acquirePhysicalTimeout) {
-                            logicalMappings.wait(waitStep);
+                        if (attempts * xaWaitStep < xaAcquireTimeout) {
+                            logicalMappings.wait(xaWaitStep);
                         } else { // Well, that didn't work. Time to open a new physical connection and let the next iteration pair.
                             String user = logicalConnection.getUser();
                             try {
@@ -500,7 +506,45 @@ public class PGXADataSource extends AbstractPGXADataSource {
             }
         } // nothing to forget about.
     }
-    
+
+    @Override
+    public Reference getReference() throws NamingException {
+        Reference ref = super.getReference();
+        ref.add(new StringRefAddr("xaWaitStep", Integer.toString(xaWaitStep)));
+        ref.add(new StringRefAddr("xaAcquireTimeout", Integer.toString(xaAcquireTimeout)));
+        
+        return ref;
+    }
+
+    @Override
+    protected void writeBaseObject(ObjectOutputStream out) throws IOException {
+        super.writeBaseObject(out);
+        out.writeInt(xaWaitStep);
+        out.writeInt(xaAcquireTimeout);
+    }
+
+    @Override
+    protected void readBaseObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        super.readBaseObject(in);
+        xaWaitStep = in.readInt();
+        xaAcquireTimeout = in.readInt();
+    }
+
+    public void setXAWaitStep(int xaWaitStep) {
+        this.xaWaitStep = xaWaitStep;
+    }
+
+    public int getXAWaitStep() {
+        return xaWaitStep;
+    }
+
+    public void setXAAcquireTimeout(int xaAcquireTimeout) {
+        this.xaAcquireTimeout = xaAcquireTimeout;
+    }
+
+    public int getXAAcquireTimeout() {
+        return xaAcquireTimeout;
+    }
     
     /**
      * Handles invoking Connection and PGConnection upon a physical backend, 
