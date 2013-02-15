@@ -460,7 +460,7 @@
         <pathelement path="${builddir}" />
         <pathelement path="${java.class.path}" />
       </classpath>
-      <fileset dir="${package}">
+      <fileset dir="${srcdir}/${package}">
         <include name="copy/*.java" />
         <include name="geometric/*.java" />
         <include name="largeobject/*.java" />

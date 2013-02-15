@@ -6,14 +6,13 @@
 */
 package org.postgresql.xa;
 
-import org.postgresql.ds.PGPooledConnection;
-
-import javax.sql.*;
 import java.sql.*;
 import java.util.LinkedList;
+import javax.sql.*;
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
+import org.postgresql.ds.PGPooledConnection;
 import org.postgresql.util.GT;
 
 /**
