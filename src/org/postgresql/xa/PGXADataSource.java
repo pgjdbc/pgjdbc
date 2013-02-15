@@ -48,14 +48,14 @@ public class PGXADataSource extends AbstractPGXADataSource {
      */
     final List<PhysicalXAConnection> physicalConnections = 
             Collections.synchronizedList(new ArrayList<PhysicalXAConnection>());
-    
+
     /**
      * Maintains association of logical connection ids servicing Connection 
      * invocations to the proper physical backend.
      */
     final Map<PGXAConnection, PhysicalXAConnection> logicalMappings = 
             Collections.synchronizedMap(new HashMap<PGXAConnection, PhysicalXAConnection>());
-    
+
     /**
      * Time to wait for a physical connection to become available before we create a new physical connection to service a logical.
      */
@@ -85,7 +85,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
      * @throws SQLException
      *     Occurs when the database connection cannot be established.
      */
-    public XAConnection getXAConnection(String user, String password) throws SQLException {
+    public XAConnection getXAConnection(final String user, final String password) throws SQLException {
         // Allocate and add a new physical connection to service the front-end
         // XAConnections we return.
         physicalConnections.add(new PhysicalXAConnection((BaseConnection)super.getConnection(user, password), user, password));
@@ -99,16 +99,29 @@ public class PGXADataSource extends AbstractPGXADataSource {
         
         return logicalConnection;
     }
-    
+
+    /**
+     * Pairs the provided logical and physical connections.
+     *
+     * @param logicalConnection The logical connection to be associated to the provided physical connection
+     * @param backend The physical connection to be associated to the provided logical connection
+     */
     private void associate(final PGXAConnection logicalConnection, final PhysicalXAConnection backend) {
         synchronized (logicalMappings) {
             logicalMappings.put(logicalConnection, backend);
             logicalMappings.notify();
         }
     }
-    
-    
-    
+
+    /**
+     * If the provided logical connection is associated to a physical connection servicing the provided xid, the
+     * mapping for the logical connection and physical connection is removed.  The mappings collection is then notified
+     * for any resources blocking while waiting for an available connection.
+     *
+     * @param logicalConnection The logical connection to disassociate with the physical connection servicing the provided xid
+     * @param xid The xid for the transaction
+     * @throws XAException
+     */
     void disassociate(final PGXAConnection logicalConnection, final Xid xid) throws XAException {
         synchronized (logicalMappings) {
             verifyAssociation(logicalConnection, xid);
@@ -116,13 +129,12 @@ public class PGXADataSource extends AbstractPGXADataSource {
             logicalMappings.notify();
         }
     }
-    
-    
+
     /**
      * Verifies that the given logicalConnectionId is already associated to a physical connection, and returns the physical connection.
      * 
-     * @param logicalConnection
-     * @param xid 
+     * @param logicalConnection The logical connection that should exist in the connection mapping
+     * @param xid The xid the logical connection should be associated with
      * @return The PhysicalXAConnection if one is properly associated, otherwise, throws XAException
      */
     private PhysicalXAConnection verifyAssociation(final PGXAConnection logicalConnection, final Xid xid) throws XAException {
@@ -135,8 +147,9 @@ public class PGXADataSource extends AbstractPGXADataSource {
     
     /**
      * Blocks until a physical connection is free, and associates it to the given logical connection (if one is supplied)
-     * 
-     * @return 
+     *
+     * @param logicalConnection the logical connection to associate with the physical connection
+     * @return An available PhysicalXAConnection (associated to a logical connection if provided)
      */
     PhysicalXAConnection getPhysicalConnection(final PGXAConnection logicalConnection, final boolean requireInactive) throws PGXAException {
         PhysicalXAConnection available = logicalMappings.get(logicalConnection);
@@ -164,7 +177,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
                             }
                         }
                     }
-                    
+
                     // We found an available physical connection!
                     if (logicalConnection != null && available != null) {
                         associate(logicalConnection, available);
@@ -179,7 +192,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
                         //     start / end block (allowable! by the JTA spec!)
                         // 2.) We have all our transactions associated and we've been
                         //     asked to do something to another xid which we don't have
-                        //     and active backend for.
+                        //     an active backend for.
                         // 
                         // If you have a pool of size 1, and the backend is tied up in 
                         // a 2pc start / end block, invoking getConnection() on the 
@@ -226,10 +239,10 @@ public class PGXADataSource extends AbstractPGXADataSource {
             // TODO: Log this.
             available = null;
         }
-        
+
         return available;
     }
-    
+
     /**
      * Look through the existing collection of physicalConnections, and extract a password credential for the first matching user.
      * 
@@ -254,7 +267,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
     /**
      * Non-Blocking method returning an already associated physical connection for the given Xid, or null if no association exists.
      * 
-     * @param xid
+     * @param xid The xid used to find an associated PhysicalXAConnection
      * 
      * @return A PhysicalXAConnection for the given xid, if one exists. Otherwise, null.
      */
@@ -265,22 +278,21 @@ public class PGXADataSource extends AbstractPGXADataSource {
                 peggedToXid = physicalConnections.get(i);
                 // This looks strange, because the XADataSourceTest isn't checking for null in the equals() of it's fake Xid class.
                 if (peggedToXid.getAssociatedXid() == null || !xid.equals(peggedToXid.getAssociatedXid())) {
-                    // So if the canidate has no xid, or is not equal, this is not the xid you're looking for.
+                    // So if the candidate has no xid, or is not equal, this is not the xid you're looking for.
                     peggedToXid = null;
                 }
             }
         }
         return peggedToXid;
     }
-    
+
     /**
      * Blocks until a physical connection is available to be pegged to an Xid.
      * 
      * Throws XAException if there is already a physical connection for the given Xid.
      * 
-     * @param logicalConnection
-     * @param xid
-     * @param flags
+     * @param logicalConnection The logical connection start a transaction for the given Xid
+     * @param xid The Xid for which to start the transaction
      * 
      * @throws XAException if the xid is already being serviced by a physical connection
      */
@@ -296,12 +308,12 @@ public class PGXADataSource extends AbstractPGXADataSource {
         
         associate(logicalConnection, currentConn);
     }
-    
+
     /**
      * Locates the physical connection servicing the given Xid, pairs the given logicalConnectionId to that physical connection.
      * 
-     * @param logicalConnection
-     * @param xid 
+     * @param logicalConnection The logical connection to pair to the physical connection servicing the provided xid
+     * @param xid The xid for the transaction to pair with the provided logical connection
      * @throws XAException if the given xid is not in a Suspended state.
      */
     void resume(final PGXAConnection logicalConnection, final Xid xid) throws XAException {
@@ -312,14 +324,14 @@ public class PGXADataSource extends AbstractPGXADataSource {
         associate(logicalConnection, currentConn);
         currentConn.setAssociatedXid(xid); // Marks the connection unsuspended
     }
-    
+
     /**
      * Locates the physical connection servicing the given xid, pairs the given logicalConnectionId to that physical connection, 
      * so long as it's not in a suspended state.
      * 
-     * @param logicalConnection
-     * @param xid
-     * @throws XAException if the given xid backedn is in a suspended state.
+     * @param logicalConnection The logical connection to pair with the physical connection for the provided xid
+     * @param xid The xid for the transaction to be associated with the logical connection
+     * @throws XAException if the given xid backend is in a suspended state.
      */
     void join(final PGXAConnection logicalConnection, final Xid xid) throws XAException {
         PhysicalXAConnection currentConn = getPhysicalConnection(xid);
@@ -328,26 +340,36 @@ public class PGXADataSource extends AbstractPGXADataSource {
         }
         associate(logicalConnection, currentConn);
     }
-    
+
     /**
-     * Marks the 
+     * Marks the transaction suspended for the provided xid if it is properly associated to the provided logical
+     * connection.
+     *
+     * @param logicalConnection The logical connection associated to the xid to be suspended
+     * @param xid The xid for the transaction to be suspended
      */
     void suspend(final PGXAConnection logicalConnection, final Xid xid) throws XAException {
         PhysicalXAConnection currentConn = verifyAssociation(logicalConnection, xid);
         currentConn.markSuspended();
     }
-    
+
     /**
-     * 
-     * @param xid
-     * @return 
+     * Issues PREPARE TRANSACTION statement to the connection associated with the provided xid.  Then the connection's
+     * original autoCommit setting is reinstated and the connection is disassociated with the provided xid.
+     *
+     * Future extension point - The specification enables a return of XA_RDONLY if all queries inside the transaction
+     * where only reads.  This would require further tracking which isn't being done yet.  This could be a future
+     * performance improvement.
+     *
+     * @param xid The xid for the transaction to prepare
+     * @return XAResource.XA_OK if all went well.  This does not track queries in order to return XA_RDONLY yet.
      */
     int prepare(final Xid xid) throws XAException {
         PhysicalXAConnection currentConn = getPhysicalConnection(xid);
         if (currentConn == null) {
             throw new XAException("No backend connection currently servicing xid to issue prepare to.");
         }
-        
+
         try {
             String s = RecoveredXid.xidToString(xid);
 
@@ -358,18 +380,18 @@ public class PGXADataSource extends AbstractPGXADataSource {
             } finally {
                 stmt.close();
             }
-            
+
             currentConn.setAssociatedXid(null);
             return XAResource.XA_OK;
         } catch (SQLException ex) {
             throw new PGXAException(GT.tr("Error preparing transaction"), ex, XAException.XAER_RMERR);
         }
     }
-    
+
     /**
      * Executes a one-phase commit on a backend.
      * 
-     * @param xid
+     * @param xid The xid for the transaction on which to issue the commit
      * @throws XAException 
      */
     void commitOnePhase(final Xid xid) throws XAException {
@@ -380,7 +402,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
         if (currentConn.isSuspended()) {
             throw new PGXAException(GT.tr("The backend servicing the given xid. Is marked suspended."), XAException.XAER_INVAL);
         }
-        
+
         try {
             currentConn.getConnection().commit();
             currentConn.setAssociatedXid(null);
@@ -388,11 +410,11 @@ public class PGXADataSource extends AbstractPGXADataSource {
             throw new PGXAException(GT.tr("Error during one-phase commit"), sqle, XAException.XAER_RMERR);
         }
     }
-    
+
     /**
      * Executes a two-phase commit on a backend for the given xid.
      * 
-     * @param xid
+     * @param xid The xid for the transaction on which to issue the commit
      */
     void commitPrepared(final PGXAConnection logicalConnection, final Xid xid) throws XAException {
         PhysicalXAConnection currentConn = getPhysicalConnection(xid);
@@ -416,13 +438,13 @@ public class PGXADataSource extends AbstractPGXADataSource {
             throw new PGXAException(GT.tr("Error committing prepared transaction"), sqle, XAException.XAER_RMERR);
         }
     }
-    
+
     /**
      * If there is a physical connection for the xid, then we rollback right on that connection.
      * 
      * If there is no physical connection for the xid, we assume we've been told to rollback a prepared xid.
      * 
-     * @param xid
+     * @param xid The xid for the transaction to rollback
      * @throws XAException 
      */
     void rollback(final PGXAConnection logicalConnection, final Xid xid) throws XAException {
@@ -457,10 +479,10 @@ public class PGXADataSource extends AbstractPGXADataSource {
             }
         }
     }
-    
+
     /**
      * If there's a physical backend handling the given xid, it's underlying connection is rolled back, the state is reset
-     * @param xid
+     * @param xid the transaction to rollback and forget
      * @throws XAException 
      */
     void forget(final Xid xid) throws XAException {
@@ -558,12 +580,24 @@ public class PGXADataSource extends AbstractPGXADataSource {
      */
     private class LogicalXAConnectionHandler implements InvocationHandler {
         private PGXAConnection logicalConnection;
-        
-        void setLogicalConnection(PGXAConnection logicalConnection) {
+
+        void setLogicalConnection(final PGXAConnection logicalConnection) {
             this.logicalConnection = logicalConnection;
         }
-        
-        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+
+        /**
+         * Intercepts method calls and invokes them on the proxied object instead.  If there is a transaction being serviced
+         * and that transaction is between a start and end/suspend, commit, rollback, setSavePoint, and setAutoCommit are
+         * disallowed.
+         *
+         * @param proxy The proxy instance on which the method was invoked
+         * @param method The method being invoked by proxy
+         * @param args The arguments to the method
+         * @return The return value from the invoked method
+         * @throws Throwable - a PSQLException is thrown if a disallowed method is called while the physical connection is
+         * in an unexpected state.
+         */
+        public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
             // Get and peg a physical connection to a backend, if we're in a 
             // start / end, then we'll have an association in place, otherwise
             // we'll get a non-transactional (one-phase) resource back.
@@ -575,7 +609,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
                 if (methodName.equals("commit") ||
                     methodName.equals("rollback") ||
                     methodName.equals("setSavePoint") ||
-                    (methodName.equals("setAutoCommit") && ((Boolean) args[0]).booleanValue()))
+                    (methodName.equals("setAutoCommit") && ((Boolean) args[0])))
                 {
 		    throw new PSQLException(GT.tr("Transaction control methods setAutoCommit(true), commit, rollback and setSavePoint not allowed while an XA transaction is active."),
 					    PSQLState.OBJECT_NOT_IN_STATE);
