@@ -38,7 +38,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     private PGXADataSource dataSource;
     private boolean localAutoCommitMode;
     
-    public PGXAConnection(final String user, final Connection logicalConnection, PGXADataSource dataSource) {
+    PGXAConnection(final String user, final Connection logicalConnection, PGXADataSource dataSource) {
         super(logicalConnection, true, true);
         this.user = user;
         this.dataSource = dataSource;

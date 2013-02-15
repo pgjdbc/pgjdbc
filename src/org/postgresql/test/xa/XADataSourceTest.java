@@ -321,7 +321,6 @@ public class XADataSourceTest extends TestCase {
     }
 
 
-    /* We don't support transaction interleaving.
     public void testInterleaving1() throws Exception {
      Xid xid1 = new CustomXid(1);
      Xid xid2 = new CustomXid(2);
@@ -340,6 +339,7 @@ public class XADataSourceTest extends TestCase {
      xaRes.commit(xid2, true);
 
     }
+    
     public void testInterleaving2() throws Exception {
      Xid xid1 = new CustomXid(1);
      Xid xid2 = new CustomXid(2);
@@ -361,5 +361,4 @@ public class XADataSourceTest extends TestCase {
      xaRes.commit(xid2, true);
      xaRes.commit(xid3, true);
     }
-    */
 }

@@ -140,7 +140,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
                     synchronized (physicalConnections) {
                         for (int i = 0; i < physicalConnections.size(); i++) {
                             available = physicalConnections.get(i);
-                            if (available.getAssociatedXid() == null &&     // If no xid in service,
+                            if (available.getAssociatedXid() == null &&     // If no xid in service, even suspended has an xid.
                                 !logicalMappings.containsValue(available))  // Not associated to a logical
                             {
                                 // Means that we're 'idle' and 'available' for either XA or non-XA work.
@@ -150,6 +150,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
                             }
                         }
                     }
+                    
                     // We found an available physical connection!
                     if (logicalConnection != null && available != null) {
                         associate(logicalConnection, available);
@@ -475,80 +476,11 @@ public class PGXADataSource extends AbstractPGXADataSource {
         }
         
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-            // Determine what physical connection to target.
-            PhysicalXAConnection physicalConnection = null;
-            
-            // The XAResource will peg logicalIds to the backend in the map for
-            // logical connections servicing an xid.
-            physicalConnection = logicalMappings.get(logicalConnection);
-
-            // The XAResource has not pegged the logical front-end to an xid 
-            // associated backend. Look through the list of available backends
-            // without an associatedXid, and currently 'idle' according to 
-            // PGConnection's getTransactionState(). (no pending rollback, no current tx).
-            if (physicalConnection == null) {
-                do {
-                    // We're going to try to map this logical connection to a new
-                    // physical backend. Lock the mapping to serialize access.
-                    synchronized (logicalMappings) {
-                        synchronized (physicalConnections) {
-                            for (int i = 0; i < physicalConnections.size(); i++) {
-                                physicalConnection = physicalConnections.get(i);
-                                if (physicalConnection.getAssociatedXid() == null &&     // If no xid in service,
-                                    !logicalMappings.containsValue(physicalConnection))  // Not associated to a logical
-                                {
-                                    // Means that we're 'idle' and 'available' for either XA or non-XA work.
-                                    break;
-                                } else {
-                                    physicalConnection = null;
-                                }
-                            }
-                        }
-                        // We found an available physical connection!
-                        if (physicalConnection != null) {
-                            associate(logicalConnection, physicalConnection);
-                        } else {
-                            // Oh Noes! We didn't have an xid pegged physical connection for
-                            // this logical connection, and there weren't any physical 
-                            // connections available to assign to this logical connection!
-                            // 
-                            // A few things could have happened here.
-                            // 1.) We have all our backends pegged to an xid, and this is
-                            //     is an attempt to use a non-2pc XAConnection outside of a 
-                            //     start / end block (allowable! by the JTA spec!)
-                            // 2.) We have all our backends pegged to an xid, and we've been
-                            //     asked to do something to another xid which we don't have
-                            //     and active backend for. (recovery?)
-                            // 
-                            // If you have a pool of size 1, and the backend is tied up in 
-                            // a 2pc start / end block, invoking getConnection() on the 
-                            // XAConnection returned from the DS in order to issue non-tx 
-                            // commands is invalid, according to the jdbc2 spec on pooling
-                            // connections and the getConnection() / close() cycle.
-                            // In the event that there is a 2pc in progress, the TM should
-                            // at some point issue an end(), followed by the rest of the 
-                            // appropriate methods to kick the connection back into an 
-                            // idle state.
-                            // 
-                            // There are a few options we could take here.
-                            // 1.) Allocate a new physical connection, peg it to the logical
-                            //     connection in another structure. 
-                            //     (pool of physical connections for a logical connection)
-                            // 2.) Block until a backend physical connection becomes available.
-                            //     Eventually the TM will end() / prepare / commit / rollback
-                            //     one of the xids servicing things, right?
-                            //
-                            // It will be slightly more complext to implement #2, but would
-                            // be more 'correct' wrt connection pooling, and will not impose
-                            // 'fuzzy math' on poor folks trying to size things appropriately.
-
-                            // So, let's block until the logicalMappings get updated again.
-                            logicalMappings.wait();
-                        }
-                    }
-                } while (physicalConnection == null);
-            }
-            
+            // Get and peg a physical connection to a backend, if we're in a 
+            // start / end, then we'll have an association in place, otherwise
+            // we'll get a non-transactional (one-phase) resource back.
+            PhysicalXAConnection physicalConnection = getPhysicalConnection(logicalConnection);
+                        
             // If the physical connection is servicing an Xid (between start / end, or suspended)
             if (physicalConnection.getAssociatedXid() != null) {
                 String methodName = method.getName();
