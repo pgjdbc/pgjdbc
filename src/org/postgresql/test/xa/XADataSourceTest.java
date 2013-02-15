@@ -236,8 +236,7 @@ public class XADataSourceTest extends TestCase {
         //
         // I take issue with the assert here, as it seems to violate the terms
         // of you know, operating on things with a JTA TM in the mix.
-        // 
-        // assertFalse(conn.getAutoCommit()); 
+        //assertFalse(conn.getAutoCommit()); 
         xaRes.commit(xid, true);
         assertTrue(conn.getAutoCommit());
 
@@ -333,11 +332,11 @@ public class XADataSourceTest extends TestCase {
      Xid xid2 = new CustomXid(2);
      
      xaRes.start(xid1, XAResource.TMNOFLAGS);
-     conn.createStatement().executeUpdate("UPDATE testxa1 SET foo = 'ccc'");
+     conn.createStatement().executeUpdate("UPDATE testxa1 SET foo = '111'");
      xaRes.end(xid1, XAResource.TMSUCCESS);
 
      xaRes.start(xid2, XAResource.TMNOFLAGS);
-     conn.createStatement().executeUpdate("UPDATE testxa2 SET foo = 'bbb'");
+     conn.createStatement().executeUpdate("UPDATE testxa2 SET foo = '222'");
 
      xaRes.commit(xid1, true);
 
@@ -353,15 +352,15 @@ public class XADataSourceTest extends TestCase {
      Xid xid3 = new CustomXid(3);
      
      xaRes.start(xid1, XAResource.TMNOFLAGS);
-     conn.createStatement().executeUpdate("UPDATE testxa1 SET foo = 'aa'");
+     conn.createStatement().executeUpdate("UPDATE testxa1 SET foo = '11'");
      xaRes.end(xid1, XAResource.TMSUCCESS);
      
      xaRes.start(xid2, XAResource.TMNOFLAGS);
-     conn.createStatement().executeUpdate("UPDATE testxa2 SET foo = 'bb'");
+     conn.createStatement().executeUpdate("UPDATE testxa2 SET foo = '22'");
      xaRes.end(xid2, XAResource.TMSUCCESS);
 
      xaRes.start(xid3, XAResource.TMNOFLAGS);
-     conn.createStatement().executeUpdate("UPDATE testxa3 SET foo = 'cc'");
+     conn.createStatement().executeUpdate("UPDATE testxa3 SET foo = '33'");
      xaRes.end(xid3, XAResource.TMSUCCESS);
 
      xaRes.commit(xid1, true);

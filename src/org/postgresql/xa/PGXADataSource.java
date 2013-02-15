@@ -132,7 +132,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
     PhysicalXAConnection getPhysicalConnection(final PGXAConnection logicalConnection) {
         PhysicalXAConnection available = logicalConnection != null ? logicalMappings.get(logicalConnection) : null;
         try {
-            while (available == null) {
+            for (int attempts = 0; available == null; attempts++) {
                 // We're going to try to map this logical connection to a new
                 // physical backend. Lock the mapping to serialize access.
                 synchronized (logicalMappings) {
@@ -210,7 +210,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
                             // be more 'correct' wrt connection pooling, and will not impose
                             // 'fuzzy math' on poor folks trying to size things appropriately.
 
-                            // So, let's block until the logicalMappings get updated again.
+                            // So, let's start by attempting option #2 -- blocking for a period of time.
                             logicalMappings.wait(500);
                         }
                     }
