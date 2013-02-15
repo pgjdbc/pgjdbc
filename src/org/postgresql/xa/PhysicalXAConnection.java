@@ -24,7 +24,7 @@ class PhysicalXAConnection {
     private int backendPid;
     private boolean originalAutoCommit;
 
-    PhysicalXAConnection(BaseConnection physicalConn, String user, String password) {
+    PhysicalXAConnection(final BaseConnection physicalConn, final String user, final String password) {
         this.connection = physicalConn;
         this.user = user;
         this.password = password;
