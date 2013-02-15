@@ -67,6 +67,14 @@ public class PGXADataSource extends AbstractPGXADataSource {
      */
     private int xaWaitStep = 25; // in milliseconds;
     
+    
+    /**
+     * Protected method for returning new instances of PGXAConnection or subclasses.
+     */
+    protected PGXAConnection createPGXAConnection(String user, Connection connection) {
+        return new PGXAConnection(user, connection, this);
+    }
+    
     /**
      * Gets an XA-enabled connection to the PostgreSQL database.  The database is identified by the
      * DataSource properties serverName, databaseName, and portNumber. The user to
@@ -84,11 +92,9 @@ public class PGXADataSource extends AbstractPGXADataSource {
         
         // Create a new LogicalXAConnectionHandler proxy.
         LogicalXAConnectionHandler logicalHandler = new LogicalXAConnectionHandler();
-        
-        PGXAConnection logicalConnection = new PGXAConnection(user, (Connection)Proxy.newProxyInstance(getClass().getClassLoader(), 
-                        new Class[]{Connection.class, PGConnection.class}, 
-                        logicalHandler), this);
-        
+        PGXAConnection logicalConnection = createPGXAConnection(user, 
+                (Connection)Proxy.newProxyInstance(getClass().getClassLoader(), 
+                        new Class[]{Connection.class, PGConnection.class}, logicalHandler));
         logicalHandler.setLogicalConnection(logicalConnection);
         
         return logicalConnection;
