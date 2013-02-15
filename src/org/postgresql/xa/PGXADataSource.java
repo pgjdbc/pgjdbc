@@ -162,9 +162,9 @@ public class PGXADataSource extends AbstractPGXADataSource {
                         // 1.) We have all our backends pegged to an xid, and this is
                         //     is an attempt to use a non-2pc XAConnection outside of a 
                         //     start / end block (allowable! by the JTA spec!)
-                        // 2.) We have all our backends pegged to an xid, and we've been
+                        // 2.) We have all our transactions associated and we've been
                         //     asked to do something to another xid which we don't have
-                        //     and active backend for. (recovery?)
+                        //     and active backend for.
                         // 
                         // If you have a pool of size 1, and the backend is tied up in 
                         // a 2pc start / end block, invoking getConnection() on the 
@@ -176,20 +176,43 @@ public class PGXADataSource extends AbstractPGXADataSource {
                         // appropriate methods to kick the connection back into an 
                         // idle state.
                         // 
-                        // There are a few options we could take here.
-                        // 1.) Allocate a new physical connection, peg it to the logical
-                        //     connection in another structure. 
-                        //     (pool of physical connections for a logical connection)
-                        // 2.) Block until a backend physical connection becomes available.
-                        //     Eventually the TM will end() / prepare / commit / rollback
-                        //     one of the xids servicing things, right?
-                        //
-                        // It will be slightly more complext to implement #2, but would
-                        // be more 'correct' wrt connection pooling, and will not impose
-                        // 'fuzzy math' on poor folks trying to size things appropriately.
+                        // If there is a backend associated to a logical connection
+                        // with no xid attached, and with autocommit enabled, we
+                        // can break the association with the existing logical 
+                        // connection, and return that physical backend here.
+                        PGXAConnection safeToSever = null;
+                        for (Map.Entry<PGXAConnection, PhysicalXAConnection> entry : logicalMappings.entrySet()) {
+                            try {
+                                if (entry.getValue().getAssociatedXid() == null && 
+                                    entry.getValue().getConnection().getAutoCommit()) 
+                                {
+                                    safeToSever = entry.getKey();
+                                    break;
+                                }
+                            } catch (SQLException sqle) {
+                                safeToSever = null;
+                            }
+                        }
+                        if (safeToSever != null) {
+                            available = logicalMappings.remove(safeToSever);
+                            logicalMappings.notify();
+                        } else {
+                            // If we do not have one of those, there are a few 
+                            // other options available, but yet to be implemented.
+                            // 1.) Allocate a new physical connection, peg it to the logical
+                            //     connection in another structure. 
+                            //     (pool of physical connections for a logical connection)
+                            // 2.) Block until a backend physical connection becomes available.
+                            //     Eventually the TM will end() / prepare / commit / rollback
+                            //     one of the xids servicing things, right?
+                            //
+                            // It will be slightly more complext to implement #2, but would
+                            // be more 'correct' wrt connection pooling, and will not impose
+                            // 'fuzzy math' on poor folks trying to size things appropriately.
 
-                        // So, let's block until the logicalMappings get updated again.
-                        logicalMappings.wait();
+                            // So, let's block until the logicalMappings get updated again.
+                            logicalMappings.wait(500);
+                        }
                     }
                 }
             }
@@ -301,6 +324,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
         try {
             String s = RecoveredXid.xidToString(xid);
 
+            // Do NOT try to set autocommit on a PREPARE TRANSACTION.
             Statement stmt = currentConn.getConnection().createStatement();
             try {
                 stmt.executeUpdate("PREPARE TRANSACTION '" + s + "'");
@@ -344,7 +368,10 @@ public class PGXADataSource extends AbstractPGXADataSource {
      * @param xid
      */
     void commitPrepared(final Xid xid) throws XAException {
-        PhysicalXAConnection currentConn = getPhysicalConnection(); // Get a physical connection, we don't -care- which one.
+        PhysicalXAConnection currentConn = getPhysicalConnection(xid);
+        if (currentConn == null) {
+            currentConn = getPhysicalConnection(); // We don't care which one, so long as we can get one.
+        }
         
         try {
             String s = RecoveredXid.xidToString(xid);
