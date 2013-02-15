@@ -90,7 +90,6 @@ public class PGXADataSource extends AbstractPGXADataSource {
     private void associate(final PGXAConnection logicalConnection, final PhysicalXAConnection backend) {
         synchronized (logicalMappings) {
             logicalMappings.put(logicalConnection, backend);
-            backend.setSuspended(false);
             logicalMappings.notify();
         }
     }
@@ -131,9 +130,9 @@ public class PGXADataSource extends AbstractPGXADataSource {
      * @return 
      */
     PhysicalXAConnection getPhysicalConnection(final PGXAConnection logicalConnection) {
-        PhysicalXAConnection available = null;
+        PhysicalXAConnection available = logicalConnection != null ? logicalMappings.get(logicalConnection) : null;
         try {
-            do {
+            while (available == null) {
                 // We're going to try to map this logical connection to a new
                 // physical backend. Lock the mapping to serialize access.
                 synchronized (logicalMappings) {
@@ -193,7 +192,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
                         logicalMappings.wait();
                     }
                 }
-            } while (available == null);
+            }
         } catch (InterruptedException ie) {
             // TODO: Log this.
             available = null;
@@ -241,10 +240,9 @@ public class PGXADataSource extends AbstractPGXADataSource {
             throw new XAException("Start invoked for an xid already serviced by a backend.");
         }
         // Obtain a physical connection to peg to the Xid.
-        currentConn = getPhysicalConnection();
+        currentConn = getPhysicalConnection(logicalConnection);
         
         currentConn.setAssociatedXid(xid);
-        currentConn.setSuspended(false);
         
         associate(logicalConnection, currentConn);
     }
@@ -262,6 +260,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
             throw new XAException("The backend connection servicing the resumed xid is not in a suspended state.");
         }
         associate(logicalConnection, currentConn);
+        currentConn.setAssociatedXid(xid); // Marks the connection unsuspended
     }
     
     /**
@@ -285,7 +284,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
      */
     void suspend(final PGXAConnection logicalConnection, final Xid xid) throws XAException {
         PhysicalXAConnection currentConn = verifyAssociation(logicalConnection, xid);
-        currentConn.setSuspended(true);
+        currentConn.markSuspended();
     }
     
     /**
@@ -310,7 +309,6 @@ public class PGXADataSource extends AbstractPGXADataSource {
             }
             
             currentConn.setAssociatedXid(null);
-            currentConn.setSuspended(false);
             return XAResource.XA_OK;
         } catch (SQLException ex) {
             throw new PGXAException(GT.tr("Error preparing transaction"), ex, XAException.XAER_RMERR);
@@ -335,7 +333,6 @@ public class PGXADataSource extends AbstractPGXADataSource {
         try {
             currentConn.getConnection().commit();
             currentConn.setAssociatedXid(null);
-            currentConn.setSuspended(false);
         } catch (SQLException sqle) {
             throw new PGXAException(GT.tr("Error during one-phase commit"), sqle, XAException.XAER_RMERR);
         }
@@ -352,7 +349,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
         try {
             String s = RecoveredXid.xidToString(xid);
 
-            boolean localAutoCommitMode = currentConn.getConnection().getAutoCommit();
+            boolean autoCommitRestore = currentConn.getConnection().getAutoCommit();
             currentConn.getConnection().setAutoCommit(true);
             Statement stmt = currentConn.getConnection().createStatement();
             try {
@@ -360,7 +357,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
             } finally {
                 stmt.close();
             }
-            currentConn.getConnection().setAutoCommit(localAutoCommitMode);
+            currentConn.getConnection().setAutoCommit(autoCommitRestore);
         } catch (SQLException sqle) {
             throw new PGXAException(GT.tr("Error committing prepared transaction"), sqle, XAException.XAER_RMERR);
         }
@@ -380,7 +377,6 @@ public class PGXADataSource extends AbstractPGXADataSource {
             try {
                 currentConn.getConnection().rollback();
                 currentConn.setAssociatedXid(null);
-                currentConn.setSuspended(false);
             } catch (SQLException sqle) {
                 throw new PGXAException(GT.tr("Error during one-phase rollback"), sqle, XAException.XAER_RMERR);
             }
@@ -391,7 +387,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
             try {
                 String s = RecoveredXid.xidToString(xid);
 
-                boolean localAutoCommit = currentConn.getConnection().getAutoCommit();
+                boolean restoreAutoCommit = currentConn.getConnection().getAutoCommit();
                 currentConn.getConnection().setAutoCommit(true);
                 Statement stmt = currentConn.getConnection().createStatement();
                 try {
@@ -401,7 +397,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
                 }
                 
                 // Restore autocommit.
-                currentConn.getConnection().setAutoCommit(localAutoCommit);
+                currentConn.getConnection().setAutoCommit(restoreAutoCommit);
             } catch (SQLException sqle) {
                 throw new PGXAException(GT.tr("Error during two-phase rollback"), sqle, XAException.XAER_RMERR);
             }
@@ -424,7 +420,6 @@ public class PGXADataSource extends AbstractPGXADataSource {
                 throw new PGXAException(GT.tr("Error rolling back physical connection servicing the given xid."), XAException.XAER_RMERR);
             } finally {
                 fugeddaboutit.setAssociatedXid(null);
-                fugeddaboutit.setSuspended(false);
                 
                 ArrayList<PGXAConnection> forgetAssociations = new ArrayList<PGXAConnection>();
                 // Remove / Update any logical mappings.

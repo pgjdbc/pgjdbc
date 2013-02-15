@@ -36,13 +36,11 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     
     private String user;
     private PGXADataSource dataSource;
-    private boolean localAutoCommitMode;
     
     PGXAConnection(final String user, final Connection logicalConnection, PGXADataSource dataSource) {
         super(logicalConnection, true, true);
         this.user = user;
         this.dataSource = dataSource;
-        this.localAutoCommitMode = true;
     }
     
     /**
@@ -53,14 +51,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
      */
     @Override
     public Connection getConnection() throws SQLException {
-        // When we're outside an XA transaction, autocommit
-        // is supposed to be true, per usual JDBC convention.
-        // When an XA transaction is in progress, it should be
-        // false.
-        Connection logicalConn = super.getConnection();
-        logicalConn.setAutoCommit(true);
-        
-        return logicalConn;
+        return super.getConnection();
     }
 
     @Override
@@ -95,14 +86,6 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     public void start(Xid xid, int flags) throws XAException {
         if (xid == null) {
             throw new PGXAException(GT.tr("xid must not be null"), XAException.XAER_INVAL);
-        }
-
-        try {
-            // Keep track of the logical connections autocommit mode, for restoration after end().
-            localAutoCommitMode = getBackingConnection().getAutoCommit();
-            getBackingConnection().setAutoCommit(false);
-        } catch (SQLException ex) {
-            throw new PGXAException(GT.tr("Error disabling autocommit"), ex, XAException.XAER_RMERR);
         }
         
         switch (flags) {
@@ -167,13 +150,6 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
             dataSource.suspend(this, xid);
         }
         dataSource.disassociate(this, xid);
-        
-        // Restore the autocommit mode on this logical conneciton.
-        try {
-            getBackingConnection().setAutoCommit(localAutoCommitMode);
-        } catch (SQLException sqle) {
-            throw new PGXAException(GT.tr("Error restoring autocommit on logical connection"), XAException.XAER_RMERR);
-        }
     }
 
     /**

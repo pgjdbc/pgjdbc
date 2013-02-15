@@ -6,6 +6,7 @@
 */
 package org.postgresql.xa;
 
+import java.sql.SQLException;
 import javax.transaction.xa.Xid;
 import org.postgresql.core.BaseConnection;
 
@@ -19,12 +20,18 @@ public class PhysicalXAConnection {
     private Xid associatedXid;
     private boolean suspended;
     private int backendPid;
+    private boolean originalAutoCommit;
 
     public PhysicalXAConnection(BaseConnection physicalConn) {
         connection = physicalConn;
         associatedXid = null;
         suspended = false;
         backendPid = physicalConn.getBackendPID();
+        try {
+            originalAutoCommit = physicalConn.getAutoCommit();
+        } catch (SQLException sqle) {
+            originalAutoCommit = true; // Default to true, if we can't get the real value.
+        }
     }
 
     public BaseConnection getConnection() {
@@ -35,18 +42,30 @@ public class PhysicalXAConnection {
         return associatedXid;
     }
 
-    public void setAssociatedXid(final Xid associatedXid) {
-        this.associatedXid = associatedXid;
+    public void setAssociatedXid(final Xid xid) {
+        try {
+            if (associatedXid != null && xid == null) { // restore the autocommit state.
+                connection.setAutoCommit(originalAutoCommit);
+            } else if (associatedXid == null && xid != null) { // cache the autocommit state.
+                originalAutoCommit = connection.getAutoCommit();
+                connection.setAutoCommit(false);
+            }
+        } catch (SQLException sqle) {
+            // TODO: Log that we had a problem here.
+        }
+        
+        this.associatedXid = xid;
+        this.suspended = false;
     }
 
     public boolean isSuspended() {
         return suspended;
     }
 
-    public void setSuspended(final boolean suspended) {
-        this.suspended = suspended;
+    public void markSuspended() {
+        this.suspended = true;
     }
-
+    
     public int getBackendPID() {
         return backendPid;
     }
