@@ -7,8 +7,11 @@
 package org.postgresql.xa;
 
 import java.sql.SQLException;
+import java.text.MessageFormat;
 import javax.transaction.xa.Xid;
 import org.postgresql.core.BaseConnection;
+import org.postgresql.core.Logger;
+import org.postgresql.util.GT;
 
 /**
  * Wrapper to track the state of a BaseConnection in use as a physical backend for PGXAConnections.
@@ -16,6 +19,9 @@ import org.postgresql.core.BaseConnection;
  * @author Bryan Varner (bvarner@polarislabs.com)
  */
 class PhysicalXAConnection {
+
+    private final Logger logger;
+
     private BaseConnection connection;
     private String user;
     private String password;
@@ -46,6 +52,8 @@ class PhysicalXAConnection {
         } catch (SQLException sqle) {
             this.originalAutoCommit = true; // Default to true, if we can't get the real value.
         }
+        logger = physicalConn.getLogger();
+        logger.debug(GT.tr("[{0}] - {1} instantiated with autoCommit: {2}", new Object[]{backendPid, PhysicalXAConnection.class.getName(), originalAutoCommit}));
     }
 
     /**
@@ -80,12 +88,14 @@ class PhysicalXAConnection {
         try {
             if (associatedXid != null && xid == null) { // restore the autocommit state.
                 connection.setAutoCommit(originalAutoCommit);
+                logger.debug(GT.tr("[{0}] - Restoring original auto commit: {1}", new Object[]{backendPid, originalAutoCommit}));
             } else if (associatedXid == null && xid != null) { // cache the autocommit state.
                 this.originalAutoCommit = connection.getAutoCommit();
                 connection.setAutoCommit(false);
+                logger.debug(GT.tr("[{0}] - Caching original auto commit: {1}", new Object[]{backendPid, originalAutoCommit}));
             }
         } catch (SQLException sqle) {
-            // TODO: Log that we had a problem here.
+            logger.debug(GT.tr("[{0}] - There was a problem associating to xid: {1}", new Object[] {backendPid, RecoveredXid.xidToString(xid)}), sqle);
         }
 
         this.associatedXid = xid;

@@ -158,11 +158,11 @@ public class PGXADataSource extends AbstractPGXADataSource {
         }
 
         PhysicalXAConnection available = logicalMappings.get(logicalConnection);
-        
+
         if (requireInactive && (available != null && available.getAssociatedXid() != null)) {
             available = null;
         }
-        
+
         try {
             for (int attempts = 0; available == null; attempts++) {
                 // We're going to try to map this logical connection to a new
