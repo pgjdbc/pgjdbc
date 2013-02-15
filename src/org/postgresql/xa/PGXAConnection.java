@@ -37,7 +37,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     private String user;
     private PGXADataSource dataSource;
     
-    PGXAConnection(final String user, final Connection logicalConnection, PGXADataSource dataSource) {
+    protected PGXAConnection(final String user, final Connection logicalConnection, PGXADataSource dataSource) {
         super(logicalConnection, true, true);
         this.user = user;
         this.dataSource = dataSource;
@@ -181,7 +181,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         if (onePhase) {
             dataSource.commitOnePhase(xid);
         } else {
-            dataSource.commitPrepared(xid);
+            dataSource.commitPrepared(this, xid);
         }
     }
     
@@ -264,7 +264,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
                 // TODO: Reconcile this method against the JTA spec. It seems very incorrect at this point, although I don't believe
                 // you can hold a cursor in a prepared transaction, so this may be a case of needing an extra 'control' connection.
                 
-                stmt = dataSource.getPhysicalConnection().getConnection().createStatement();
+                stmt = dataSource.getPhysicalConnection(this, true).getConnection().createStatement();
                 
                 // If this connection is simultaneously used for a transaction,
                 // this query gets executed inside that transaction. It's OK,
@@ -309,7 +309,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
      * @throws XAException 
      */
     public void rollback(Xid xid) throws XAException {
-        dataSource.rollback(xid);
+        dataSource.rollback(this, xid);
     }
 
     /**
@@ -331,5 +331,14 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
      */
     public boolean setTransactionTimeout(int seconds) throws XAException {
         return false; // We don't support this.
+    }
+
+    /**
+     * Used by the PGXADataSource to make sure we're getting a proper physical connection.
+     * 
+     * @return 
+     */
+    String getUser() {
+        return user;
     }
 }

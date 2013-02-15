@@ -44,18 +44,23 @@ public class PGXADataSource extends AbstractPGXADataSource {
             Collections.synchronizedList(new ArrayList<PhysicalXAConnection>());
 
     /**
-     * Collection of front-end (logical) XAConnections to clients (TM, applications).
-     */
-    final List<PGXAConnection> logicalConnections = 
-            Collections.synchronizedList(new ArrayList<PGXAConnection>());
-
-    /**
      * Maintains association of logical connection ids servicing Connection 
      * invocations to the proper physical backend.
      */
     final Map<PGXAConnection, PhysicalXAConnection> logicalMappings = 
             Collections.synchronizedMap(new HashMap<PGXAConnection, PhysicalXAConnection>());
 
+    /**
+     * Time to wait for a physical connection to become available before we create a new physical connection to service a logical.
+     */
+    private int acquirePhysicalTimeout = 3000; // in milliseconds
+    
+    /**
+     * Time to wait for a physical connection to become available before checking again.
+     * Once we've waited up to acquirePhysicalTimeout, we'll create a new backend.
+     */
+    private int waitStep = 500; // in milliseconds;
+    
     /**
      * Gets an XA-enabled connection to the PostgreSQL database.  The database is identified by the
      * DataSource properties serverName, databaseName, and portNumber. The user to
@@ -69,11 +74,11 @@ public class PGXADataSource extends AbstractPGXADataSource {
     public XAConnection getXAConnection(final String user, final String password) throws SQLException {
         // Allocate and add a new physical connection to service the front-end
         // XAConnections we return.
-        physicalConnections.add(new PhysicalXAConnection((BaseConnection)super.getConnection(user, password)));
+        physicalConnections.add(new PhysicalXAConnection((BaseConnection)super.getConnection(user, password), user, password));
         
         // Create a new LogicalXAConnectionHandler proxy.
         LogicalXAConnectionHandler logicalHandler = new LogicalXAConnectionHandler();
-
+        
         PGXAConnection logicalConnection = new PGXAConnection(user, (Connection)Proxy.newProxyInstance(getClass().getClassLoader(), 
                         new Class[]{Connection.class, PGConnection.class}, 
                         logicalHandler), this);
@@ -127,23 +132,20 @@ public class PGXADataSource extends AbstractPGXADataSource {
         }
         return currentConn;
     }
-
-    /**
-     * Blocks until a physical connection is free.
-     * @return An available PhysicalXAConnection
-     */
-    PhysicalXAConnection getPhysicalConnection() {
-        return getPhysicalConnection((PGXAConnection)null);
-    }
-
+    
     /**
      * Blocks until a physical connection is free, and associates it to the given logical connection (if one is supplied)
      *
      * @param logicalConnection the logical connection to associate with the physical connection
      * @return An available PhysicalXAConnection (associated to a logical connection if provided)
      */
-    PhysicalXAConnection getPhysicalConnection(final PGXAConnection logicalConnection) {
-        PhysicalXAConnection available = logicalConnection != null ? logicalMappings.get(logicalConnection) : null;
+    PhysicalXAConnection getPhysicalConnection(final PGXAConnection logicalConnection, final boolean requireInactive) throws PGXAException {
+        PhysicalXAConnection available = logicalMappings.get(logicalConnection);
+        
+        if (requireInactive && (available != null && available.getAssociatedXid() != null)) {
+            available = null;
+        }
+        
         try {
             for (int attempts = 0; available == null; attempts++) {
                 // We're going to try to map this logical connection to a new
@@ -153,7 +155,8 @@ public class PGXADataSource extends AbstractPGXADataSource {
                         for (int i = 0; i < physicalConnections.size(); i++) {
                             available = physicalConnections.get(i);
                             if (available.getAssociatedXid() == null &&     // If no xid in service, even suspended has an xid.
-                                !logicalMappings.containsValue(available))  // Not associated to a logical
+                                !logicalMappings.containsValue(available) &&  // Not associated to a logical
+                                available.getUser().equals(logicalConnection.getUser())) // Has the same user if applicable
                             {
                                 // Means that we're 'idle' and 'available' for either XA or non-XA work.
                                 break;
@@ -189,42 +192,33 @@ public class PGXADataSource extends AbstractPGXADataSource {
                         // appropriate methods to kick the connection back into an 
                         // idle state.
                         // 
-                        // If there is a backend associated to a logical connection
-                        // with no xid attached, and with autocommit enabled, we
-                        // can break the association with the existing logical 
-                        // connection, and return that physical backend here.
-                        PGXAConnection safeToSever = null;
-                        for (Map.Entry<PGXAConnection, PhysicalXAConnection> entry : logicalMappings.entrySet()) {
+                        // We have a few options here (from an implementation perspective)
+                        // which we can try.
+                        // 1.) Allocate a new physical connection with the same user & 
+                        //     password as the logical connection. If we cannot allocate
+                        //     a connection, then we need to throw an XAException and 
+                        //     give up.
+                        //     (multiple physical connections for a logical connection)
+                        // 
+                        // 2.) Block until a backend physical connection becomes available.
+                        //     Eventually the TM will end() / prepare / commit / rollback
+                        //     one of the xids servicing, unless we're in a single-connection
+                        //     single thread of execution deadlock -- where the only option
+                        //     which will clear the lock is a successful implementation of 
+                        //     option #1.
+                        //
+                        // 
+                        // So, let's start by attempting option #2 -- blocking for a period of time.
+                        if (attempts * waitStep < acquirePhysicalTimeout) {
+                            logicalMappings.wait(waitStep);
+                        } else { // Well, that didn't work. Time to open a new physical connection and let the next iteration pair.
+                            String user = logicalConnection.getUser();
                             try {
-                                if (entry.getValue().getAssociatedXid() == null && 
-                                    entry.getValue().getConnection().getAutoCommit()) 
-                                {
-                                    safeToSever = entry.getKey();
-                                    break;
-                                }
-                            } catch (SQLException sqle) {
-                                safeToSever = null;
+                                String password = findPasswordFor(user);
+                                physicalConnections.add(new PhysicalXAConnection((BaseConnection)super.getConnection(user, password), user, password));
+                            } catch (Exception ex) {
+                                throw new PGXAException(GT.tr(""), ex, XAException.XAER_RMFAIL);
                             }
-                        }
-                        if (safeToSever != null) {
-                            available = logicalMappings.remove(safeToSever);
-                            logicalMappings.notify();
-                        } else {
-                            // If we do not have one of those, there are a few 
-                            // other options available, but yet to be implemented.
-                            // 1.) Allocate a new physical connection, peg it to the logical
-                            //     connection in another structure. 
-                            //     (pool of physical connections for a logical connection)
-                            // 2.) Block until a backend physical connection becomes available.
-                            //     Eventually the TM will end() / prepare / commit / rollback
-                            //     one of the xids servicing things, right?
-                            //
-                            // It will be slightly more complex to implement #2, but would
-                            // be more 'correct' wrt connection pooling, and will not impose
-                            // 'fuzzy math' on poor folks trying to size things appropriately.
-
-                            // So, let's start by attempting option #2 -- blocking for a period of time.
-                            logicalMappings.wait(500);
                         }
                     }
                 }
@@ -237,6 +231,27 @@ public class PGXADataSource extends AbstractPGXADataSource {
         return available;
     }
 
+    /**
+     * Look through the existing collection of physicalConnections, and extract a password credential for the first matching user.
+     * 
+     * @param user
+     * 
+     * @return The password used to create a physical connection for the given user.
+     * @throws IllegalStateException if no physical connection exists for the given user.
+     */
+    private String findPasswordFor(final String user) {
+        synchronized (physicalConnections) {
+            PhysicalXAConnection candidate = null;
+            for (int i = 0; i < physicalConnections.size(); i++) {
+                candidate = physicalConnections.get(i);
+                if (candidate != null && user.equals(candidate.getUser())) {
+                    return candidate.getPassword();
+                }
+            }
+        }
+        throw new IllegalStateException(GT.tr("No existing physical connection for user '{0}'", user));
+    }
+    
     /**
      * Non-Blocking method returning an already associated physical connection for the given Xid, or null if no association exists.
      * 
@@ -275,7 +290,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
             throw new XAException("Start invoked for an xid already serviced by a backend.");
         }
         // Obtain a physical connection to peg to the Xid.
-        currentConn = getPhysicalConnection(logicalConnection);
+        currentConn = getPhysicalConnection(logicalConnection, true);
         
         currentConn.setAssociatedXid(xid);
         
@@ -389,10 +404,10 @@ public class PGXADataSource extends AbstractPGXADataSource {
      * 
      * @param xid The xid for the transaction on which to issue the commit
      */
-    void commitPrepared(final Xid xid) throws XAException {
+    void commitPrepared(final PGXAConnection logicalConnection, final Xid xid) throws XAException {
         PhysicalXAConnection currentConn = getPhysicalConnection(xid);
         if (currentConn == null) {
-            currentConn = getPhysicalConnection(); // We don't care which one, so long as we can get one.
+            currentConn = getPhysicalConnection(logicalConnection, true); // We don't care which one, so long as we can get one.
         }
         
         try {
@@ -420,7 +435,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
      * @param xid The xid for the transaction to rollback
      * @throws XAException 
      */
-    void rollback(final Xid xid) throws XAException {
+    void rollback(final PGXAConnection logicalConnection, final Xid xid) throws XAException {
         PhysicalXAConnection currentConn = getPhysicalConnection(xid);
         if (currentConn != null) { // one phase!
             try {
@@ -430,7 +445,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
                 throw new PGXAException(GT.tr("Error during one-phase rollback"), sqle, XAException.XAER_RMERR);
             }
         } else {
-            currentConn = getPhysicalConnection();
+            currentConn = getPhysicalConnection(logicalConnection, true);
             
             // Assume a two phase, if it fails, well, then shoot.
             try {
@@ -474,6 +489,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
                 // Remove / Update any logical mappings.
                 if (logicalMappings.containsValue(fugeddaboutit)) {
                     synchronized(logicalMappings) {
+                        ArrayList<PGXAConnection> logicalConnections = new ArrayList<PGXAConnection>();
                         for (Map.Entry<PGXAConnection, PhysicalXAConnection> pairing : logicalMappings.entrySet()) {
                             if (pairing.getValue().equals(fugeddaboutit)) {
                                 logicalConnections.add(pairing.getKey());
@@ -535,18 +551,44 @@ public class PGXADataSource extends AbstractPGXADataSource {
             // Get and peg a physical connection to a backend, if we're in a 
             // start / end, then we'll have an association in place, otherwise
             // we'll get a non-transactional (one-phase) resource back.
-            PhysicalXAConnection physicalConnection = getPhysicalConnection(logicalConnection);
+            PhysicalXAConnection physicalConnection = getPhysicalConnection(logicalConnection, false);
                         
             // If the physical connection is servicing an Xid (between start / end, or suspended)
+            String methodName = method.getName();
             if (physicalConnection.getAssociatedXid() != null) {
-                String methodName = method.getName();
                 if (methodName.equals("commit") ||
                     methodName.equals("rollback") ||
                     methodName.equals("setSavePoint") ||
                     (methodName.equals("setAutoCommit") && ((Boolean) args[0])))
                 {
-            throw new PSQLException(GT.tr("Transaction control methods setAutoCommit(true), commit, rollback and setSavePoint not allowed while an XA transaction is active."),
-                    PSQLState.OBJECT_NOT_IN_STATE);
+		    throw new PSQLException(GT.tr("Transaction control methods setAutoCommit(true), commit, rollback and setSavePoint not allowed while an XA transaction is active."),
+					    PSQLState.OBJECT_NOT_IN_STATE);
+                }
+            }
+            
+            // If a logical connection is closing, we have at least 1 physical connection pegged to it.
+            // We may have more than one physical connection which is 'idle', created to service interleaving / resource sharing.
+            if (methodName.equals("close")) {
+                List<PhysicalXAConnection> closeable = new ArrayList<PhysicalXAConnection>();
+
+                synchronized (physicalConnections) {
+                    PhysicalXAConnection candidate = null;
+                    for (int i = 0; i < physicalConnections.size(); i++) {
+                        candidate = physicalConnections.get(i);
+                        if (candidate.getAssociatedXid() == null &&     // If no xid in service, even suspended has an xid.
+                            !logicalMappings.containsValue(candidate) &&  // Not associated to a logical
+                            candidate.getUser().equals(logicalConnection.getUser())) // Has the same user.
+                        {
+                            closeable.add(candidate);
+                        }
+                    }
+
+                    physicalConnections.removeAll(closeable);
+                }
+
+                // Close them!
+                for (int i = 0; i < closeable.size(); i++) {
+                    closeable.get(i).getConnection().close();
                 }
             }
                 

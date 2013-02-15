@@ -47,6 +47,8 @@ public class XADataSourceTest extends TestCase {
         _conn = TestUtil.openDB();
 
         TestUtil.createTable(_conn, "testxa1", "foo int");
+        TestUtil.createTable(_conn, "testxa2", "foo int");
+        TestUtil.createTable(_conn, "testxa3", "foo int");
 
         clearAllPrepared();
 
@@ -60,6 +62,8 @@ public class XADataSourceTest extends TestCase {
         clearAllPrepared();
 
         TestUtil.dropTable(_conn, "testxa1");
+        TestUtil.dropTable(_conn, "testxa2");
+        TestUtil.dropTable(_conn, "testxa3");
         TestUtil.closeDB(_conn);
 
     }
