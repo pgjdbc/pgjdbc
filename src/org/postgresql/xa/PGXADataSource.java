@@ -152,6 +152,11 @@ public class PGXADataSource extends AbstractPGXADataSource {
      * @return An available PhysicalXAConnection (associated to a logical connection if provided)
      */
     PhysicalXAConnection getPhysicalConnection(final PGXAConnection logicalConnection, final boolean requireInactive) throws PGXAException {
+
+        if (logicalConnection == null) {
+            throw new IllegalArgumentException("The provided logical connection must not be null");
+        }
+
         PhysicalXAConnection available = logicalMappings.get(logicalConnection);
         
         if (requireInactive && (available != null && available.getAssociatedXid() != null)) {
@@ -179,9 +184,9 @@ public class PGXADataSource extends AbstractPGXADataSource {
                     }
 
                     // We found an available physical connection!
-                    if (logicalConnection != null && available != null) {
+                    if (available != null) {
                         associate(logicalConnection, available);
-                    } else if (available == null) {
+                    } else {
                         // Oh Noes! We didn't have an xid pegged physical connection for
                         // this logical connection, and there weren't any physical 
                         // connections available to assign to this logical connection!
