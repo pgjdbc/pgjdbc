@@ -655,6 +655,10 @@ public class PGXADataSource extends AbstractPGXADataSource {
                 // time to shrink the physical pool.
                 if (methodName.equals("close")) {
                     // Disassociate the logical from a backend first.
+                    synchronized (logicalMappings) {
+                        logicalMappings.remove(logicalConnection);
+                        logicalMappings.notify();
+                    }
                     
                     // Prune the physical connections
                     List<PhysicalXAConnection> closeable = new ArrayList<PhysicalXAConnection>();
