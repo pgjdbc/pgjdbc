@@ -68,6 +68,11 @@ public class PGXADataSource extends AbstractPGXADataSource {
      */
     private int xaWaitStep = 25; // in milliseconds;
     
+    /**
+     * The maximum number of physical connections is capped by applying this 
+     * multiplier to the number of logical connections in service.
+     */
+    private double xaConnectionMultiplier = 1.75;
     
     /**
      * Protected method for returning new instances of PGXAConnection or subclasses.
@@ -231,17 +236,31 @@ public class PGXADataSource extends AbstractPGXADataSource {
                         //     option #1.
                         //
                         // 
-                        // So, let's start by attempting option #2 -- blocking for a period of time.
-                        if (attempts * xaWaitStep < xaAcquireTimeout) {
-                            logicalMappings.wait(xaWaitStep);
-                        } else { // Well, that didn't work. Time to open a new physical connection and let the next iteration pair.
+                        // We'll aggressively open physical connections up to 
+                        // Math.ceil((logicalconnections + 1) * xaConnectionMultipler)
+                        // 
+                        // Once we hit that limit, we'll start blocking until we
+                        // hit the timeout.
+                        // 
+                        // If we've allocated up to the max connections and then
+                        // timeout, we throw a PGXAException.
+                        if (physicalConnections.size() <= Math.ceil((logicalMappings.size() + 1) * xaConnectionMultiplier)) {
+                            // Well, that didn't work. Time to open a new physical connection and let the next iteration pair.
                             String user = logicalConnection.getUser();
                             try {
                                 String password = findPasswordFor(user);
                                 physicalConnections.add(new PhysicalXAConnection((BaseConnection)super.getConnection(user, password), user, password));
                             } catch (Exception ex) {
-                                throw new PGXAException(GT.tr(""), ex, XAException.XAER_RMFAIL);
+                                throw new PGXAException(GT.tr("Failed to open new physical connection."), ex, XAException.XAER_RMERR);
                             }
+                        } else if (attempts * xaWaitStep < xaAcquireTimeout) {
+                            logicalMappings.wait(xaWaitStep);
+                        } else {
+                            throw new PGXAException(GT.tr("xaConnectionMultiplier limit {0} reached. Consider raising the limit.\n" + 
+                                    "We currently hold {1} physical connections for {2} logical connections.", 
+                                    new Object[] {Math.ceil((logicalMappings.size() + 1) * xaConnectionMultiplier),
+                                                  physicalConnections.size(), logicalMappings.size()}),
+                                    XAException.XAER_RMERR);
                         }
                     }
                 }
@@ -534,6 +553,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
         Reference ref = super.getReference();
         ref.add(new StringRefAddr("xaWaitStep", Integer.toString(xaWaitStep)));
         ref.add(new StringRefAddr("xaAcquireTimeout", Integer.toString(xaAcquireTimeout)));
+        ref.add(new StringRefAddr("xaConnectionMultiplier", Double.toString(xaConnectionMultiplier)));
         
         return ref;
     }
@@ -543,6 +563,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
         super.writeBaseObject(out);
         out.writeInt(xaWaitStep);
         out.writeInt(xaAcquireTimeout);
+        out.writeDouble(xaConnectionMultiplier);
     }
 
     @Override
@@ -550,6 +571,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
         super.readBaseObject(in);
         xaWaitStep = in.readInt();
         xaAcquireTimeout = in.readInt();
+        xaConnectionMultiplier = in.readDouble();
     }
 
     public void setXAWaitStep(int xaWaitStep) {
@@ -566,6 +588,14 @@ public class PGXADataSource extends AbstractPGXADataSource {
 
     public int getXAAcquireTimeout() {
         return xaAcquireTimeout;
+    }
+
+    public void setXAConnectionMultiplier(double xaConnectionMultiplier) {
+        this.xaConnectionMultiplier = xaConnectionMultiplier;
+    }
+
+    public double getXAConnectionMultiplier() {
+        return xaConnectionMultiplier;
     }
     
     /**
@@ -610,37 +640,46 @@ public class PGXADataSource extends AbstractPGXADataSource {
                 }
             }
             
-            // If a logical connection is closing, we have at least 1 physical connection pegged to it.
-            // We may have more than one physical connection which is 'idle', created to service interleaving / resource sharing.
-            if (methodName.equals("close")) {
-                List<PhysicalXAConnection> closeable = new ArrayList<PhysicalXAConnection>();
-
-                synchronized (physicalConnections) {
-                    PhysicalXAConnection candidate = null;
-                    for (int i = 0; i < physicalConnections.size(); i++) {
-                        candidate = physicalConnections.get(i);
-                        if (candidate.getAssociatedXid() == null &&     // If no xid in service, even suspended has an xid.
-                            candidate.getConnection().getTransactionState() == ProtocolConnection.TRANSACTION_IDLE &&
-                            !logicalMappings.containsValue(candidate) &&  // Not associated to a logical
-                            candidate.getUser().equals(logicalConnection.getUser())) // Has the same user.
-                        {
-                            closeable.add(candidate);
-                        }
-                    }
-
-                    physicalConnections.removeAll(closeable);
-                }
-
-                // Close them!
-                for (int i = 0; i < closeable.size(); i++) {
-                    closeable.get(i).getConnection().close();
-                }
-            }
-                
             try {
                 return method.invoke(physicalConnection.getConnection(), args);
             } catch (InvocationTargetException ex) {
                 throw ex.getTargetException();
+            } finally {
+                // If a logical connection was closed, we have at least 1 physical 
+                // connection pegged to it which should also be closed. 
+                // There was a physical associated when we started servicing
+                // this method invocation, remember?
+                // 
+                // We may have physical connections we've opened to handle 
+                // interleaving requests and resource sharing. This is a good
+                // time to shrink the physical pool.
+                if (methodName.equals("close")) {
+                    // Disassociate the logical from a backend first.
+                    
+                    // Prune the physical connections
+                    List<PhysicalXAConnection> closeable = new ArrayList<PhysicalXAConnection>();
+
+                    synchronized (physicalConnections) {
+                        PhysicalXAConnection candidate = null;
+                        for (int i = 0; i < physicalConnections.size(); i++) {
+                            candidate = physicalConnections.get(i);
+                            if (candidate.getAssociatedXid() == null &&     // If no xid in service, even suspended has an xid.
+                                candidate.getConnection().getTransactionState() == ProtocolConnection.TRANSACTION_IDLE &&
+                                !logicalMappings.containsValue(candidate) &&  // Not associated to a logical
+                                candidate.getUser().equals(logicalConnection.getUser())) // Has the same user.
+                            {
+                                closeable.add(candidate);
+                            }
+                        }
+
+                        physicalConnections.removeAll(closeable);
+                    }
+
+                    // Close them!
+                    for (int i = 0; i < closeable.size(); i++) {
+                        closeable.get(i).getConnection().close();
+                    }
+                }
             }
         }
     }

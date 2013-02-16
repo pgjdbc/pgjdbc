@@ -26,6 +26,7 @@ class PhysicalXAConnection {
     private Xid associatedXid;
     private boolean suspended;
     private int backendPid;
+    private long lastUsed;
 
     /**
      * Construct a PhysicalXAConnection.  After construction, this connection will have no associated xid,
@@ -42,6 +43,7 @@ class PhysicalXAConnection {
         this.user = user;
         this.password = password;
         this.associatedXid = null;
+        this.lastUsed = System.currentTimeMillis();
         this.suspended = false;
         this.backendPid = physicalConn.getBackendPID();
         logger = physicalConn.getLogger();
