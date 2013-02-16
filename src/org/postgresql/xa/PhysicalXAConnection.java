@@ -6,8 +6,6 @@
 */
 package org.postgresql.xa;
 
-import java.sql.SQLException;
-import java.text.MessageFormat;
 import javax.transaction.xa.Xid;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Logger;
@@ -28,7 +26,6 @@ class PhysicalXAConnection {
     private Xid associatedXid;
     private boolean suspended;
     private int backendPid;
-    private boolean originalAutoCommit;
 
     /**
      * Construct a PhysicalXAConnection.  After construction, this connection will have no associated xid,
@@ -47,13 +44,8 @@ class PhysicalXAConnection {
         this.associatedXid = null;
         this.suspended = false;
         this.backendPid = physicalConn.getBackendPID();
-        try {
-            this.originalAutoCommit = physicalConn.getAutoCommit();
-        } catch (SQLException sqle) {
-            this.originalAutoCommit = true; // Default to true, if we can't get the real value.
-        }
         logger = physicalConn.getLogger();
-        logger.debug(GT.tr("[{0}] - {1} instantiated with autoCommit: {2}", new Object[]{backendPid, PhysicalXAConnection.class.getName(), originalAutoCommit}));
+        logger.debug(GT.tr("[{0}] - {1} instantiated", new Object[]{backendPid, PhysicalXAConnection.class.getName()}));
     }
 
     /**
@@ -85,19 +77,6 @@ class PhysicalXAConnection {
      * @param xid the transaction id to associate to this connection
      */
     void setAssociatedXid(final Xid xid) {
-        try {
-            if (associatedXid != null && xid == null) { // restore the autocommit state.
-                connection.setAutoCommit(originalAutoCommit);
-                logger.debug(GT.tr("[{0}] - Restoring original auto commit: {1}", new Object[]{backendPid, originalAutoCommit}));
-            } else if (associatedXid == null && xid != null) { // cache the autocommit state.
-                this.originalAutoCommit = connection.getAutoCommit();
-                connection.setAutoCommit(false);
-                logger.debug(GT.tr("[{0}] - Caching original auto commit: {1}", new Object[]{backendPid, originalAutoCommit}));
-            }
-        } catch (SQLException sqle) {
-            logger.debug(GT.tr("[{0}] - There was a problem associating to xid: {1}", new Object[] {backendPid, RecoveredXid.xidToString(xid)}), sqle);
-        }
-
         this.associatedXid = xid;
         this.suspended = false;
     }

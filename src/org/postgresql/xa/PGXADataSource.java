@@ -30,6 +30,7 @@ import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
 import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
+import org.postgresql.core.ProtocolConnection;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -159,7 +160,11 @@ public class PGXADataSource extends AbstractPGXADataSource {
 
         PhysicalXAConnection available = logicalMappings.get(logicalConnection);
 
-        if (requireInactive && (available != null && available.getAssociatedXid() != null)) {
+        if (requireInactive && 
+                (available != null && 
+                    (available.getAssociatedXid() != null || 
+                     available.getConnection().getTransactionState() != ProtocolConnection.TRANSACTION_IDLE))) 
+        {
             available = null;
         }
 
@@ -172,6 +177,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
                         for (int i = 0; i < physicalConnections.size(); i++) {
                             available = physicalConnections.get(i);
                             if (available.getAssociatedXid() == null &&     // If no xid in service, even suspended has an xid.
+                                available.getConnection().getTransactionState() == ProtocolConnection.TRANSACTION_IDLE && // Not in a local tx!    
                                 !logicalMappings.containsValue(available) &&  // Not associated to a logical
                                 available.getUser().equals(logicalConnection.getUser())) // Has the same user if applicable
                             {
@@ -372,20 +378,18 @@ public class PGXADataSource extends AbstractPGXADataSource {
     int prepare(final Xid xid) throws XAException {
         PhysicalXAConnection currentConn = getPhysicalConnection(xid);
         if (currentConn == null) {
-            throw new XAException("No backend connection currently servicing xid to issue prepare to.");
+            throw new PGXAException(GT.tr("No backend connection currently servicing xid to issue prepare to."), XAException.XAER_RMERR);
         }
 
         try {
             String s = RecoveredXid.xidToString(xid);
 
-            // Do NOT try to set autocommit on a PREPARE TRANSACTION.
             Statement stmt = currentConn.getConnection().createStatement();
             try {
                 stmt.executeUpdate("PREPARE TRANSACTION '" + s + "'");
             } finally {
                 stmt.close();
             }
-
             currentConn.setAssociatedXid(null);
             return XAResource.XA_OK;
         } catch (SQLException ex) {
@@ -393,54 +397,43 @@ public class PGXADataSource extends AbstractPGXADataSource {
         }
     }
 
-    /**
-     * Executes a one-phase commit on a backend.
-     * 
-     * @param xid The xid for the transaction on which to issue the commit
-     * @throws XAException 
-     */
-    void commitOnePhase(final Xid xid) throws XAException {
+    void commit(final PGXAConnection logicalConnection, final Xid xid, final boolean onePhase) throws XAException {
         PhysicalXAConnection currentConn = getPhysicalConnection(xid);
-        if (currentConn == null) {
-            throw new PGXAException(GT.tr("No backend was found servicing the given xid."), XAException.XAER_INVAL);
-        }
-        if (currentConn.isSuspended()) {
-            throw new PGXAException(GT.tr("The backend servicing the given xid. Is marked suspended."), XAException.XAER_INVAL);
-        }
-
-        try {
-            currentConn.getConnection().commit();
-            currentConn.setAssociatedXid(null);
-        } catch (SQLException sqle) {
-            throw new PGXAException(GT.tr("Error during one-phase commit"), sqle, XAException.XAER_RMERR);
-        }
-    }
-
-    /**
-     * Executes a two-phase commit on a backend for the given xid.
-     * 
-     * @param xid The xid for the transaction on which to issue the commit
-     */
-    void commitPrepared(final PGXAConnection logicalConnection, final Xid xid) throws XAException {
-        PhysicalXAConnection currentConn = getPhysicalConnection(xid);
-        if (currentConn == null) {
-            currentConn = getPhysicalConnection(logicalConnection, true); // We don't care which one, so long as we can get one.
-        }
-        
-        try {
-            String s = RecoveredXid.xidToString(xid);
-
-            boolean autoCommitRestore = currentConn.getConnection().getAutoCommit();
-            currentConn.getConnection().setAutoCommit(true);
-            Statement stmt = currentConn.getConnection().createStatement();
-            try {
-                stmt.executeUpdate("COMMIT PREPARED '" + s + "'");
-            } finally {
-                stmt.close();
+        if (onePhase) {
+            if (currentConn == null) {
+                throw new PGXAException(GT.tr("No backend was found servicing the given xid."), XAException.XAER_INVAL);
             }
-            currentConn.getConnection().setAutoCommit(autoCommitRestore);
-        } catch (SQLException sqle) {
-            throw new PGXAException(GT.tr("Error committing prepared transaction"), sqle, XAException.XAER_RMERR);
+            if (currentConn.isSuspended()) {
+                throw new PGXAException(GT.tr("The backend servicing the given xid. Is marked suspended."), XAException.XAER_INVAL);
+            }
+
+            try {
+                currentConn.getConnection().commit();
+                currentConn.setAssociatedXid(null);
+            } catch (SQLException sqle) {
+                throw new PGXAException(GT.tr("Error during one-phase commit"), sqle, XAException.XAER_RMERR);
+            }
+        } else {
+            if (currentConn == null) {
+                // Require an inactive (no xid, no local TX) connection.
+                currentConn = getPhysicalConnection(logicalConnection, true);
+            }
+
+            try {
+                String s = RecoveredXid.xidToString(xid);
+
+                boolean restoreAutoCommit = currentConn.getConnection().getAutoCommit();
+                currentConn.getConnection().setAutoCommit(true);
+                Statement stmt = currentConn.getConnection().createStatement();
+                try {
+                    stmt.executeUpdate("COMMIT PREPARED '" + s + "'");
+                } finally {
+                    stmt.close();
+                }
+                currentConn.getConnection().setAutoCommit(restoreAutoCommit);
+            } catch (SQLException sqle) {
+                throw new PGXAException(GT.tr("Error committing prepared transaction"), sqle, XAException.XAER_RMERR);
+            }
         }
     }
 
@@ -456,8 +449,8 @@ public class PGXADataSource extends AbstractPGXADataSource {
         PhysicalXAConnection currentConn = getPhysicalConnection(xid);
         if (currentConn != null) { // one phase!
             try {
-                currentConn.getConnection().rollback();
                 currentConn.setAssociatedXid(null);
+                currentConn.getConnection().rollback();
             } catch (SQLException sqle) {
                 throw new PGXAException(GT.tr("Error during one-phase rollback"), sqle, XAException.XAER_RMERR);
             }
@@ -468,7 +461,6 @@ public class PGXADataSource extends AbstractPGXADataSource {
             try {
                 String s = RecoveredXid.xidToString(xid);
 
-                boolean restoreAutoCommit = currentConn.getConnection().getAutoCommit();
                 currentConn.getConnection().setAutoCommit(true);
                 Statement stmt = currentConn.getConnection().createStatement();
                 try {
@@ -476,9 +468,6 @@ public class PGXADataSource extends AbstractPGXADataSource {
                 } finally {
                     stmt.close();
                 }
-                
-                // Restore autocommit.
-                currentConn.getConnection().setAutoCommit(restoreAutoCommit);
             } catch (SQLException sqle) {
                 throw new PGXAException(GT.tr("Error during two-phase rollback"), sqle, XAException.XAER_RMERR);
             }
@@ -603,12 +592,12 @@ public class PGXADataSource extends AbstractPGXADataSource {
          * in an unexpected state.
          */
         public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
-            // Get and peg a physical connection to a backend, if we're in a 
-            // start / end, then we'll have an association in place, otherwise
-            // we'll get a non-transactional (one-phase) resource back.
+            // Get and peg a physical connection to service this logicalConnection.
+            // If there is already an association in place, we want to use that
+            // physical connections.
             PhysicalXAConnection physicalConnection = getPhysicalConnection(logicalConnection, false);
                         
-            // If the physical connection is servicing an Xid (between start / end, or suspended)
+            // If the physical connection is servicing an Xid (between start / end)
             String methodName = method.getName();
             if (physicalConnection.getAssociatedXid() != null) {
                 if (methodName.equals("commit") ||
@@ -631,6 +620,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
                     for (int i = 0; i < physicalConnections.size(); i++) {
                         candidate = physicalConnections.get(i);
                         if (candidate.getAssociatedXid() == null &&     // If no xid in service, even suspended has an xid.
+                            candidate.getConnection().getTransactionState() == ProtocolConnection.TRANSACTION_IDLE &&
                             !logicalMappings.containsValue(candidate) &&  // Not associated to a logical
                             candidate.getUser().equals(logicalConnection.getUser())) // Has the same user.
                         {

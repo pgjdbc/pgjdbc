@@ -36,11 +36,21 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     
     private String user;
     private PGXADataSource dataSource;
+    private boolean inXaTx;
+    
+    /*
+     * When an XA transaction is started, we put the logical connection
+     * into non-autocommit mode. The old setting is saved in
+     * localAutoCommitMode, so that we can restore it when the XA transaction
+     * ends and the connection returns into local transaction mode.
+     */
+    private boolean localTxAutoCommitMode = true;
     
     protected PGXAConnection(final String user, final Connection logicalConnection, PGXADataSource dataSource) {
         super(logicalConnection, true, true);
         this.user = user;
         this.dataSource = dataSource;
+        this.inXaTx = false;
     }
     
     /**
@@ -58,7 +68,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     public XAResource getXAResource() {
         return this;
     }
-
+    
     @Override
     public void close() throws SQLException {
         try {
@@ -86,6 +96,14 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     public void start(Xid xid, int flags) throws XAException {
         if (xid == null) {
             throw new PGXAException(GT.tr("xid must not be null"), XAException.XAER_INVAL);
+        }
+        
+        try {
+            this.localTxAutoCommitMode = getBackingConnection().getAutoCommit();
+            getBackingConnection().setAutoCommit(false);
+            inXaTx = true;
+        } catch (SQLException sqle) {
+            throw new PGXAException(GT.tr("Error disabling autocommit"), sqle, XAException.XAER_RMERR);
         }
         
         switch (flags) {
@@ -117,7 +135,6 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
             default:
                 throw new PGXAException(GT.tr("Invalid flags"), XAException.XAER_INVAL);
         }
-
     }
     
     /**
@@ -150,6 +167,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
             dataSource.suspend(this, xid);
         }
         dataSource.disassociate(this, xid);
+        inXaTx = false;
     }
 
     /**
@@ -178,10 +196,13 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
             throw new PGXAException(GT.tr("xid must not be null"), XAException.XAER_INVAL);
         }
 
-        if (onePhase) {
-            dataSource.commitOnePhase(xid);
-        } else {
-            dataSource.commitPrepared(this, xid);
+        dataSource.commit(this, xid, onePhase);
+        if (onePhase && !inXaTx) {
+            try {
+                getBackingConnection().setAutoCommit(localTxAutoCommitMode);
+            } catch (SQLException sqle) {
+                throw new PGXAException(GT.tr("Failed to restore local transaction auto commit mode."), sqle, XAException.XAER_RMERR);
+            }
         }
     }
     
@@ -226,9 +247,11 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
      */
     public int prepare(Xid xid) throws XAException {
         try {
-            return dataSource.prepare(xid);
-        } catch (XAException xae) {
-            throw new PGXAException(GT.tr(xae.getMessage()), xae, XAException.XAER_RMERR);
+            int ret = dataSource.prepare(xid);
+            getBackingConnection().setAutoCommit(localTxAutoCommitMode);
+            return ret;
+        } catch (Exception ex) {
+            throw new PGXAException(GT.tr(ex.getMessage()), ex, XAException.XAER_RMERR);
         }
     }
 
@@ -310,6 +333,11 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
      */
     public void rollback(Xid xid) throws XAException {
         dataSource.rollback(this, xid);
+        try {
+            getBackingConnection().setAutoCommit(localTxAutoCommitMode);
+        } catch (SQLException sqle) {
+            throw new PGXAException(GT.tr("Failed to restore local transaction auto commit mode."), sqle, XAException.XAER_RMERR);
+        }
     }
 
     /**

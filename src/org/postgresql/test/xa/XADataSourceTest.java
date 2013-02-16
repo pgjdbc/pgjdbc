@@ -234,13 +234,10 @@ public class XADataSourceTest extends TestCase {
         xaRes.start(xid, XAResource.TMNOFLAGS);
         assertFalse(conn.getAutoCommit());
         xaRes.end(xid, XAResource.TMSUCCESS);
-        // There's only a single connection in the test resource.
-        // getAutoCommit() will required a dis-associated (prepared or 1p committed) 
-        // backend before it can service calls between end and commit;
-        //
-        // I take issue with the assert here, as it seems to violate the terms
-        // of you know, operating on things with a JTA TM in the mix.
-        //assertFalse(conn.getAutoCommit()); 
+        // The assert below will allocate a new physical connection, starting
+        // in autocommit mode for local TX semantics. I believe that would be
+        // the 'more correct' of the options.
+        // assertFalse(conn.getAutoCommit());
         xaRes.commit(xid, true);
         assertTrue(conn.getAutoCommit());
 
