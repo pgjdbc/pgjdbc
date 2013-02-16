@@ -45,7 +45,9 @@ class PhysicalXAConnection {
         this.suspended = false;
         this.backendPid = physicalConn.getBackendPID();
         logger = physicalConn.getLogger();
-        logger.debug(GT.tr("[{0}] - {1} instantiated", new Object[]{backendPid, PhysicalXAConnection.class.getName()}));
+        if(logger.logDebug()) {
+            logger.debug(GT.tr("[{0}] - {1} instantiated", new Object[]{backendPid, PhysicalXAConnection.class.getName()}));
+        }
     }
 
     /**
@@ -64,15 +66,6 @@ class PhysicalXAConnection {
 
     /**
      * Sets the transaction id associated to this connection.
-     *
-     * If the provided transaction id is null and there is no currently associated transaction id, restore the
-     * auto-commit state.
-     *
-     * If the provided transaction id is not null, and there is no currently associated transaction id, cache the
-     * auto-commit state.
-     *
-     * If all goes well, the transaction id will be associated to this connection and the connection will be set to
-     * not suspended.
      *
      * @param xid the transaction id to associate to this connection
      */
