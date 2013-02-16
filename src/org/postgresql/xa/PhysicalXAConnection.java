@@ -18,8 +18,6 @@ import org.postgresql.util.GT;
  */
 class PhysicalXAConnection {
 
-    private final Logger logger;
-
     private BaseConnection connection;
     private String user;
     private String password;
@@ -44,7 +42,7 @@ class PhysicalXAConnection {
         this.associatedXid = null;
         this.suspended = false;
         this.backendPid = physicalConn.getBackendPID();
-        logger = physicalConn.getLogger();
+        Logger logger = physicalConn.getLogger();
         if(logger.logDebug()) {
             logger.debug(GT.tr("[{0}] - {1} instantiated", new Object[]{backendPid, PhysicalXAConnection.class.getName()}));
         }
