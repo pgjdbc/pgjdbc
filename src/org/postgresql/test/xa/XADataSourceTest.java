@@ -332,19 +332,55 @@ public class XADataSourceTest extends TestCase {
      Xid xid1 = new CustomXid(1);
      Xid xid2 = new CustomXid(2);
      
+     // Added this to validate DB isolation in interleaved situations.
+     conn.setAutoCommit(true);
+     assertEquals(1, conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES (1)"));
+     assertEquals(1, conn.createStatement().executeUpdate("INSERT INTO testxa2 VALUES (2)"));
+     assertEquals(1, conn.createStatement().executeUpdate("INSERT INTO testxa3 VALUES (3)"));
+     
      xaRes.start(xid1, XAResource.TMNOFLAGS);
      conn.createStatement().executeUpdate("UPDATE testxa1 SET foo = '111'");
      xaRes.end(xid1, XAResource.TMSUCCESS);
 
+     // assert uncommited.
+     ResultSet rs = conn.createStatement().executeQuery("SELECT foo FROM testxa1");
+     assertTrue(rs.next());
+     assertEquals(1, rs.getInt(1));
+     
      xaRes.start(xid2, XAResource.TMNOFLAGS);
      conn.createStatement().executeUpdate("UPDATE testxa2 SET foo = '222'");
 
+     // xid2 was started after xid1, we should not be able to see the update
+     rs = conn.createStatement().executeQuery("SELECT foo FROM testxa1");
+     assertTrue(rs.next());
+     assertEquals(1, rs.getInt(1));
+     
+     // Commit xid1!
      xaRes.commit(xid1, true);
-
+     
+     // Now we should see it.
+     rs = conn.createStatement().executeQuery("SELECT foo FROM testxa1");
+     assertTrue(rs.next());
+     assertEquals(111, rs.getInt(1));
+     
      xaRes.end(xid2, XAResource.TMSUCCESS);
 
+     // now that xid1 is commited, xid2 is ended, local TX mode should see 
+     // the updates from xid1, but not yet from xid2.
+     rs = conn.createStatement().executeQuery("SELECT foo FROM testxa1");
+     assertTrue(rs.next());
+     assertEquals(111, rs.getInt(1));
+     
+     rs = conn.createStatement().executeQuery("SELECT foo FROM testxa2");
+     assertTrue(rs.next());
+     assertEquals(2, rs.getInt(1));
+     
      xaRes.commit(xid2, true);
 
+     // Now we should see the results of xid2
+     rs = conn.createStatement().executeQuery("SELECT foo FROM testxa2");
+     assertTrue(rs.next());
+     assertEquals(222, rs.getInt(1));
     }
     
     public void testInterleaving2() throws Exception {
@@ -367,5 +403,55 @@ public class XADataSourceTest extends TestCase {
      xaRes.commit(xid1, true);
      xaRes.commit(xid2, true);
      xaRes.commit(xid3, true);
+    }
+    
+    public void testSuspendResume() throws Exception {
+        Xid xid1 = new CustomXid(1);
+        Xid xid2 = new CustomXid(2);
+
+        conn.setAutoCommit(true);
+        assertEquals(1, conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES (1)"));
+        assertEquals(1, conn.createStatement().executeUpdate("INSERT INTO testxa2 VALUES (2)"));
+        assertEquals(1, conn.createStatement().executeUpdate("INSERT INTO testxa3 VALUES (3)"));
+        
+        xaRes.start(xid1, XAResource.TMNOFLAGS);
+        assertFalse(conn.getAutoCommit());
+        conn.createStatement().executeUpdate("UPDATE testxa1 SET foo = '11'");
+        xaRes.end(xid1, XAResource.TMSUSPEND);
+       
+        // Let's make sure nothing has happened.
+        ResultSet rs = conn.createStatement().executeQuery("SELECT foo FROM testxa1");
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+        
+        xaRes.start(xid2, XAResource.TMNOFLAGS);
+        // paranoid isolation check.
+        rs = conn.createStatement().executeQuery("SELECT foo FROM testxa1");
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+        conn.createStatement().executeUpdate("UPDATE testxa2 SET foo = '22'");
+        xaRes.end(xid2, XAResource.TMSUCCESS);
+        xaRes.prepare(xid2);
+        xaRes.commit(xid2, false);
+        
+        // Resume the suspended TX.
+        xaRes.start(xid1, XAResource.TMRESUME);
+        // We should see the update.
+        rs = conn.createStatement().executeQuery("SELECT foo FROM testxa1");
+        assertTrue(rs.next());
+        assertEquals(11, rs.getInt(1));
+        xaRes.end(xid1, XAResource.TMSUCCESS);
+        xaRes.prepare(xid1);
+        xaRes.commit(xid1, false);
+        
+        // make sure it all worked.
+        rs = conn.createStatement().executeQuery("SELECT foo FROM testxa1");
+        assertTrue(rs.next());
+        assertEquals(11, rs.getInt(1));
+        
+        // make sure it all worked.
+        rs = conn.createStatement().executeQuery("SELECT foo FROM testxa2");
+        assertTrue(rs.next());
+        assertEquals(22, rs.getInt(1));
     }
 }
