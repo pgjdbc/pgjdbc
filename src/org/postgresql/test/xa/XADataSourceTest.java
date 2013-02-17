@@ -454,4 +454,61 @@ public class XADataSourceTest extends TestCase {
         assertTrue(rs.next());
         assertEquals(22, rs.getInt(1));
     }
+    
+    public void testJoin() throws Exception {
+        Xid xid1 = new CustomXid(1);
+        
+        Thread jackie = new Thread(new Joiner(conn, xid1, xaRes, 2));
+        
+        // Time for a threaded test.
+        TestUtil.createTable(_conn, "testxajoin", "foo int");
+
+        
+        xaRes.start(xid1, XAResource.TMNOFLAGS);
+        jackie.start();
+        conn.createStatement().executeUpdate("INSERT INTO testxajoin VALUES (1)");
+        xaRes.end(xid1, XAResource.TMSUCCESS);
+        jackie.join();
+        
+        xaRes.prepare(xid1);
+        xaRes.commit(xid1, false);
+        
+        // Validate that both rows exist.
+        ResultSet rs = conn.createStatement().executeQuery("SELECT * FROM testxajoin ORDER BY foo");
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+        assertTrue(rs.next());
+        assertEquals(2, rs.getInt(1));
+        
+        TestUtil.dropTable(_conn, "testxajoin");
+    }
+    
+    private class Joiner implements Runnable {
+        // The scond thread is aware of the existing Connection.
+        private Connection conn;
+        
+        // A TM will be aware of an XAResource and a Xid.
+        private Xid joinXid;
+        private XAResource xares;
+        
+        private int trigger;
+        
+        
+        public Joiner(Connection c, Xid xid, XAResource xares, int trigger) {
+            this.conn = c;
+            this.joinXid = xid;
+            this.xares = xares;
+            this.trigger = trigger;
+        }
+        
+        
+        public void run() {
+            try {
+                xares.start(joinXid, XAResource.TMJOIN);
+                conn.createStatement().executeUpdate("INSERT INTO testxajoin VALUES (" + trigger + ")");
+                xares.end(joinXid, XAResource.TMSUCCESS);
+            } catch (Exception ex) {
+            }
+        }
+    }
 }
