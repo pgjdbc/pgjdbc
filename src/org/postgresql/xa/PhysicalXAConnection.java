@@ -21,6 +21,7 @@ import org.postgresql.util.GT;
  */
 class PhysicalXAConnection {
 
+    private final Logger logger;
     private BaseConnection connection;
     private String user;
     private String password;
@@ -47,8 +48,8 @@ class PhysicalXAConnection {
         this.suspended = false;
         this.backendPid = physicalConn.getBackendPID();
         this.activeThreadIds = Collections.synchronizedSet(new HashSet<Long>(3));
-        Logger logger = physicalConn.getLogger();
-        if(logger.logDebug()) {
+        logger = physicalConn.getLogger();
+        if (logger.logDebug()) {
             logger.debug(GT.tr("[{0}] - {1} instantiated", new Object[]{backendPid, PhysicalXAConnection.class.getName()}));
         }
     }
@@ -76,15 +77,29 @@ class PhysicalXAConnection {
         this.associatedXid = xid;
         this.suspended = false;
         this.activeThreadIds.add(thread.getId());
+
+        if (logger.logDebug()) {
+            logger.debug(GT.tr("[{0}] - Current thread: {1} associated to xid: {2}", new Object[]{backendPid, thread.getName(), RecoveredXid.xidToString(xid)}));
+        }
     }
     
     void disassociateXid() {
+        String xidString = RecoveredXid.xidToString(associatedXid);
+
         this.associatedXid = null;
         this.suspended = false;
+
+        if (logger.logDebug()) {
+            logger.debug(GT.tr("[{0}] - Physical connection disassociated from xid: {1}.", new Object[]{backendPid, xidString}));
+        }
     }
     
     void disassociateThread(final Thread thread) {
         this.activeThreadIds.remove(thread.getId());
+
+        if (logger.logDebug()) {
+            logger.debug(GT.tr("[{0}] - Thread: {1} disassociated.", new Object[]{backendPid, thread.getName()}));
+        }
     }
     
     int getAssociatedThreadCount() {
