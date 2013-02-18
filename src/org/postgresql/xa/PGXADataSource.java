@@ -118,21 +118,45 @@ public class PGXADataSource extends AbstractPGXADataSource {
             logicalMappings.notify();
         }
     }
-
+    
     /**
-     * If the provided logical connection is associated to a physical connection servicing the provided xid, the
-     * mapping for the logical connection and physical connection is removed.  The mappings collection is then notified
-     * for any resources blocking while waiting for an available connection.
+     * If the provided logical connection is associated to a physical connection servicing the provided xid,
+     * then the physical connection has the current thread removed from it's associated set of threads. If 
+     * there are no more threads using this association, then we allow the removal of the association 
+     * between the logical and physical connection.
+     * 
+     * NOTE: This does -not- disassociate the xid from the physical connection,
+     * that step is done after prepare / commit / rollback depending on the 
+     * phase protocol (1pc, 2pc) in play.
      *
      * @param logicalConnection The logical connection to disassociate with the physical connection servicing the provided xid
      * @param xid The xid for the transaction
      * @throws XAException
      */
-    void disassociate(final PGXAConnection logicalConnection, final Xid xid) throws XAException {
+    void end(final PGXAConnection logicalConnection, final Xid xid) throws XAException {
+        verifyAssociation(logicalConnection, xid);
+        disassociate(logicalConnection);
+    }
+
+    /**
+     * Internal method used to disassociate a logical connection if all the threads
+     * making use of it are finished with it.
+     * 
+     * @param logicalConnection The PGXAConnection to remove a physical mapping (or at least update the number of threads accessing it).
+     */
+    private void disassociate(final PGXAConnection logicalConnection) {
         synchronized (logicalMappings) {
-            verifyAssociation(logicalConnection, xid);
-            logicalMappings.remove(logicalConnection);
-            logicalMappings.notify();
+            PhysicalXAConnection physicalConn = logicalMappings.get(logicalConnection);
+            physicalConn.disassociateThread(Thread.currentThread());
+
+            // Only remove the association if this was the last thread using the connection.
+            if (physicalConn.getAssociatedThreadCount() == 0) {
+                logicalMappings.remove(logicalConnection);
+                logicalMappings.notify();
+            } else {
+                // TODO: Log this, tell us how many threads are still associated
+                // to the xid.
+            }
         }
     }
 
@@ -334,9 +358,8 @@ public class PGXADataSource extends AbstractPGXADataSource {
         // Obtain a physical connection to peg to the Xid.
         currentConn = getPhysicalConnection(logicalConnection, true);
         
-        currentConn.setAssociatedXid(xid);
-        
         associate(logicalConnection, currentConn);
+        currentConn.associateXidThread(xid, Thread.currentThread());
     }
 
     /**
@@ -352,7 +375,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
             throw new XAException("The backend connection servicing the resumed xid is not in a suspended state.");
         }
         associate(logicalConnection, currentConn);
-        currentConn.setAssociatedXid(xid); // Marks the connection unsuspended
+        currentConn.associateXidThread(xid, Thread.currentThread()); // Marks the connection unsuspended
     }
 
     /**
@@ -369,6 +392,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
             throw new XAException("You cannot join a suspended xid. Instead, this should be a join (JTA 1.0.1 spec .");
         }
         associate(logicalConnection, currentConn);
+        currentConn.associateXidThread(xid, Thread.currentThread());
     }
 
     /**
@@ -409,7 +433,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
             } finally {
                 stmt.close();
             }
-            currentConn.setAssociatedXid(null);
+            currentConn.disassociateXid();
             return XAResource.XA_OK;
         } catch (SQLException ex) {
             throw new PGXAException(GT.tr("Error preparing transaction"), ex, XAException.XAER_RMERR);
@@ -428,7 +452,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
 
             try {
                 currentConn.getConnection().commit();
-                currentConn.setAssociatedXid(null);
+                currentConn.disassociateXid();
             } catch (SQLException sqle) {
                 throw new PGXAException(GT.tr("Error during one-phase commit"), sqle, XAException.XAER_RMERR);
             }
@@ -468,7 +492,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
         PhysicalXAConnection currentConn = getPhysicalConnection(xid);
         if (currentConn != null) { // one phase!
             try {
-                currentConn.setAssociatedXid(null);
+                currentConn.disassociateXid();
                 currentConn.getConnection().rollback();
             } catch (SQLException sqle) {
                 throw new PGXAException(GT.tr("Error during one-phase rollback"), sqle, XAException.XAER_RMERR);
@@ -508,7 +532,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
             } catch (SQLException sqle) {
                 throw new PGXAException(GT.tr("Error rolling back physical connection servicing the given xid."), XAException.XAER_RMERR);
             } finally {
-                fugeddaboutit.setAssociatedXid(null);
+                fugeddaboutit.disassociateXid();
                 
                 ArrayList<PGXAConnection> forgetAssociations = new ArrayList<PGXAConnection>();
                 // Remove / Update any logical mappings.
@@ -611,7 +635,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
 
         /**
          * Intercepts method calls and invokes them on the proxied object instead.  If there is a transaction being serviced
-         * and that transaction is between a start and end/suspend, commit, rollback, setSavePoint, and setAutoCommit are
+         * and that transaction is between a start and disassociate/suspend, commit, rollback, setSavePoint, and setAutoCommit are
          * disallowed.
          *
          * @param proxy The proxy instance on which the method was invoked
@@ -648,21 +672,17 @@ public class PGXADataSource extends AbstractPGXADataSource {
                 // If a logical connection was closed, we have at least 1 physical 
                 // connection pegged to it which should also be closed. 
                 // There was a physical associated when we started servicing
-                // this method invocation, remember?
+                // this method invocation. It -should- have been closed by now.
                 // 
                 // We may have physical connections we've opened to handle 
                 // interleaving requests and resource sharing. This is a good
                 // time to shrink the physical pool.
                 if (methodName.equals("close")) {
                     // Disassociate the logical from a backend first.
-                    synchronized (logicalMappings) {
-                        logicalMappings.remove(logicalConnection);
-                        logicalMappings.notify();
-                    }
-                    
+                    disassociate(logicalConnection);
+
                     // Prune the physical connections
                     List<PhysicalXAConnection> closeable = new ArrayList<PhysicalXAConnection>();
-
                     synchronized (physicalConnections) {
                         PhysicalXAConnection candidate = null;
                         for (int i = 0; i < physicalConnections.size(); i++) {

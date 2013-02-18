@@ -49,6 +49,9 @@ public class XADataSourceTest extends TestCase {
         TestUtil.createTable(_conn, "testxa1", "foo int");
         TestUtil.createTable(_conn, "testxa2", "foo int");
         TestUtil.createTable(_conn, "testxa3", "foo int");
+        TestUtil.createTable(_conn, "testxathreads1", "foo int");
+        TestUtil.createTable(_conn, "testxathreads2", "foo int");
+        TestUtil.createTable(_conn, "testxathreads3", "foo int");
 
         clearAllPrepared();
 
@@ -64,8 +67,10 @@ public class XADataSourceTest extends TestCase {
         TestUtil.dropTable(_conn, "testxa1");
         TestUtil.dropTable(_conn, "testxa2");
         TestUtil.dropTable(_conn, "testxa3");
+        TestUtil.dropTable(_conn, "testxathreads1");
+        TestUtil.dropTable(_conn, "testxathreads2");
+        TestUtil.dropTable(_conn, "testxathreads3");
         TestUtil.closeDB(_conn);
-
     }
 
     private void clearAllPrepared() throws SQLException
@@ -455,18 +460,18 @@ public class XADataSourceTest extends TestCase {
         assertEquals(22, rs.getInt(1));
     }
     
-    public void testJoin() throws Exception {
+    /**
+     * Tests XA JOIN semantics with two threads.
+     * @throws Exception 
+     */
+    public void testXAJoin() throws Exception {
         Xid xid1 = new CustomXid(1);
         
-        Thread jackie = new Thread(new Joiner(conn, xid1, xaRes, 2));
-        
-        // Time for a threaded test.
-        TestUtil.createTable(_conn, "testxajoin", "foo int");
-
+        Thread jackie = new Thread(new XAThread(conn, "testxathreads1", 2, xid1, xaRes, XAResource.TMJOIN));
         
         xaRes.start(xid1, XAResource.TMNOFLAGS);
         jackie.start();
-        conn.createStatement().executeUpdate("INSERT INTO testxajoin VALUES (1)");
+        conn.createStatement().executeUpdate("INSERT INTO testxathreads1 VALUES (1)");
         xaRes.end(xid1, XAResource.TMSUCCESS);
         jackie.join();
         
@@ -474,41 +479,134 @@ public class XADataSourceTest extends TestCase {
         xaRes.commit(xid1, false);
         
         // Validate that both rows exist.
-        ResultSet rs = conn.createStatement().executeQuery("SELECT * FROM testxajoin ORDER BY foo");
+        ResultSet rs = conn.createStatement().executeQuery("SELECT * FROM testxathreads1 ORDER BY foo");
         assertTrue(rs.next());
         assertEquals(1, rs.getInt(1));
         assertTrue(rs.next());
         assertEquals(2, rs.getInt(1));
-        
-        TestUtil.dropTable(_conn, "testxajoin");
     }
     
-    private class Joiner implements Runnable {
-        // The scond thread is aware of the existing Connection.
-        private Connection conn;
-        
+    /**
+     * Tests a Connection shared between two threads in localTX mode.
+     * 
+     * @throws Exception 
+     */
+//    public void testLocalTXThreading() throws Exception {
+//        LocalThread lt = new LocalThread(conn, "testxathreads2", 2);
+//        Thread jackie = new Thread(lt);
+//        
+//        jackie.start();
+//        conn.createStatement().executeUpdate("INSERT INTO testxathreads2 VALUES (1)");
+//        jackie.join();
+//        
+//        // Validate that both rows exist.
+//        ResultSet rs = conn.createStatement().executeQuery("SELECT * FROM testxathreads2 ORDER BY foo");
+//        assertTrue(rs.next());
+//        assertEquals(1, rs.getInt(1));
+//        assertTrue(rs.next());
+//        assertEquals(2, rs.getInt(1));
+//        
+//        // Validate connection clean up. We had two threads using this conn,
+//        // but neither one was in a TX. I would expect an access from another
+//        // thread to go boom. 
+//        conn.close();
+//        lt.setTrigger(3);
+//        lt.resetError();
+//        
+//        jackie = new Thread(lt);
+//        jackie.start();
+//        assertTrue(lt.hadError());
+//    }
+    
+// This test is failing, causing deadlocks due to non-closed, non-rolledback 
+// physical connections. Yeah, that's bad.
+// While this is not a 'common' test-case (sharing XA and local TXs on a 
+// connection in different threads
+// it is one we ought to cover.
+// I have some reservations at this point about the close() behavior in the
+// XADataSource.
+// 
+// We should make a new test suite so we can test connection open / close
+//
+//    public void testMixedTXThreadingXAFirst() throws Exception {
+//        Xid xid1 = new CustomXid(1);
+//        
+//        LocalThread lt = new LocalThread(conn, "testxathreads3", 2);
+//        Thread jackie = new Thread(lt);
+//        
+//        xaRes.start(xid1, XAResource.TMNOFLAGS);
+//        conn.createStatement().executeUpdate("INSERT INTO testxathreads3 VALUES (1)");
+//        xaRes.end(xid1, XAResource.TMSUCCESS);
+//        
+//        conn.close(); // Close the connection, rolling back the in-progress TX.
+//        
+//        jackie.start();
+//        jackie.join();
+//        
+//        assertTrue(lt.hadError());
+//    }
+    
+    
+    
+    private class XAThread extends LocalThread {
         // A TM will be aware of an XAResource and a Xid.
         private Xid joinXid;
         private XAResource xares;
+        private int flags;
         
-        private int trigger;
-        
-        
-        public Joiner(Connection c, Xid xid, XAResource xares, int trigger) {
-            this.conn = c;
+        public XAThread(Connection c, String tablename, int trigger, Xid xid, XAResource xares, int flags) {
+            super(c, tablename, trigger);
             this.joinXid = xid;
             this.xares = xares;
+            this.flags = flags;
+        }
+        
+        @Override
+        public void run() {
+            try {
+                xares.start(joinXid, flags);
+                super.run();
+                xares.end(joinXid, XAResource.TMSUCCESS);
+            } catch (Exception ex) {
+                error = true;
+            }
+        }
+    }
+    
+    private class LocalThread implements Runnable {
+        protected Connection conn;
+        
+        protected int trigger;
+        protected String tablename;
+        
+        protected boolean error;
+        
+        public LocalThread(Connection c, String tablename, int trigger) {
+            this.conn = c;
+            this.tablename = tablename;
+            this.trigger = trigger;
+            this.error = false;
+        }
+
+        public void setTrigger(int trigger) {
             this.trigger = trigger;
         }
         
-        
+        @Override
         public void run() {
             try {
-                xares.start(joinXid, XAResource.TMJOIN);
-                conn.createStatement().executeUpdate("INSERT INTO testxajoin VALUES (" + trigger + ")");
-                xares.end(joinXid, XAResource.TMSUCCESS);
+                conn.createStatement().executeUpdate("INSERT INTO " + tablename + " VALUES (" + trigger + ")");
             } catch (Exception ex) {
+                error = true;
             }
+        }
+        
+        public void resetError() {
+            error = false;
+        }
+        
+        public boolean hadError() {
+            return error;
         }
     }
 }

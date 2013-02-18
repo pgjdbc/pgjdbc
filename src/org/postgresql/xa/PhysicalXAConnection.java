@@ -6,6 +6,9 @@
 */
 package org.postgresql.xa;
 
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import javax.transaction.xa.Xid;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Logger;
@@ -24,6 +27,7 @@ class PhysicalXAConnection {
     private Xid associatedXid;
     private boolean suspended;
     private int backendPid;
+    private Set<Long> activeThreadIds;
 
     /**
      * Construct a PhysicalXAConnection.  After construction, this connection will have no associated xid,
@@ -42,6 +46,7 @@ class PhysicalXAConnection {
         this.associatedXid = null;
         this.suspended = false;
         this.backendPid = physicalConn.getBackendPID();
+        this.activeThreadIds = Collections.synchronizedSet(new HashSet<Long>(3));
         Logger logger = physicalConn.getLogger();
         if(logger.logDebug()) {
             logger.debug(GT.tr("[{0}] - {1} instantiated", new Object[]{backendPid, PhysicalXAConnection.class.getName()}));
@@ -67,11 +72,25 @@ class PhysicalXAConnection {
      *
      * @param xid the transaction id to associate to this connection
      */
-    void setAssociatedXid(final Xid xid) {
+    void associateXidThread(final Xid xid, final Thread thread) {
         this.associatedXid = xid;
         this.suspended = false;
+        this.activeThreadIds.add(thread.getId());
     }
-
+    
+    void disassociateXid() {
+        this.associatedXid = null;
+        this.suspended = false;
+    }
+    
+    void disassociateThread(final Thread thread) {
+        this.activeThreadIds.remove(thread.getId());
+    }
+    
+    int getAssociatedThreadCount() {
+        return this.activeThreadIds.size();
+    }
+    
     boolean isSuspended() {
         return suspended;
     }

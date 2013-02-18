@@ -166,7 +166,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         if (flags == XAResource.TMSUSPEND) {
             dataSource.suspend(this, xid);
         }
-        dataSource.disassociate(this, xid);
+        dataSource.end(this, xid);
         inXaTx = false;
     }
 
