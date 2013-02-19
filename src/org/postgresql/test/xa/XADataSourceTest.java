@@ -19,8 +19,6 @@ import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
 
-
-import org.postgresql.Driver;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.optional.BaseDataSourceTest;
 
