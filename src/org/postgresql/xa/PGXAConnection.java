@@ -35,7 +35,6 @@ import org.postgresql.util.GT;
  */
 public class PGXAConnection extends PGPooledConnection implements XAConnection, XAResource {
 
-    // TODO This is not the standard way to get a logger, but because of proxies, this is about all I have right now.
     private final Logger logger;
     
     private String user;
@@ -56,7 +55,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         this.dataSource = dataSource;
         this.inXaTx = false;
 
-        logger = new Logger(-42);
+        logger = new Logger();
     }
     
     /**

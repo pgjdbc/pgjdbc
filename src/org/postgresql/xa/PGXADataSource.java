@@ -43,8 +43,7 @@ import org.postgresql.util.PSQLState;
  */
 public class PGXADataSource extends AbstractPGXADataSource {
 
-    // TODO This is not the standard way to get a logger, but because of proxies, this is about all I have right now.
-    private final Logger logger = new Logger(-42);
+    private final Logger logger = new Logger();
 
     /**
      * Collection of physicalConnections to the backend data source.
