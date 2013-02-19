@@ -27,7 +27,7 @@ import org.postgresql.util.GT;
  * connection pool semantics atop a 'logical' (or virtual) Connection to the 
  * database, which is backed by a real, 'physical' Connection maintained within
  * the XADataSource implementation. The implementation of XAResource provided 
- * by this implementation is thread-safe, shareable (amongst equivalent Resoures),
+ * by this implementation is thread-safe, shareable (amongst equivalent Resources),
  * and implements the required functionality for transaction interleaving.
  * 
  * @author Heikki Linnakangas (heikki.linnakangas@iki.fi)
