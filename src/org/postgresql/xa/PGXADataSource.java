@@ -220,7 +220,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
      */
     private PhysicalXAConnection verifyAssociation(final PGXAConnection logicalConnection, final Xid xid) throws XAException {
         PhysicalXAConnection currentConn = logicalMappings.get(logicalConnection);
-        if (currentConn == null || !currentConn.getAssociatedXid().equals(xid)) {
+        if (currentConn == null || (currentConn.getAssociatedXid() != null && !currentConn.getAssociatedXid().equals(xid))) {
             throw new PGXAException(GT.tr("logical XAConnection not associated with given xid."), XAException.XAER_INVAL);
         }
         return currentConn;
