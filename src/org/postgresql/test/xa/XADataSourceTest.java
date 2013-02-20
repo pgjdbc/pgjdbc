@@ -19,7 +19,6 @@ import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
 
-
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.optional.BaseDataSourceTest;
 
@@ -491,32 +490,33 @@ public class XADataSourceTest extends TestCase {
      * 
      * @throws Exception 
      */
-//    public void testLocalTXThreading() throws Exception {
-//        LocalThread lt = new LocalThread(conn, "testxathreads2", 2);
-//        Thread jackie = new Thread(lt);
-//        
-//        jackie.start();
-//        conn.createStatement().executeUpdate("INSERT INTO testxathreads2 VALUES (1)");
-//        jackie.join();
-//        
-//        // Validate that both rows exist.
-//        ResultSet rs = conn.createStatement().executeQuery("SELECT * FROM testxathreads2 ORDER BY foo");
-//        assertTrue(rs.next());
-//        assertEquals(1, rs.getInt(1));
-//        assertTrue(rs.next());
-//        assertEquals(2, rs.getInt(1));
-//        
-//        // Validate connection clean up. We had two threads using this conn,
-//        // but neither one was in a TX. I would expect an access from another
-//        // thread to go boom. 
-//        conn.close();
-//        lt.setTrigger(3);
-//        lt.resetError();
-//        
-//        jackie = new Thread(lt);
-//        jackie.start();
-//        assertTrue(lt.hadError());
-//    }
+    public void testLocalTXThreading() throws Exception {
+        LocalThread lt = new LocalThread(conn, "testxathreads2", 2);
+        Thread jackie = new Thread(lt);
+
+        jackie.start();
+        conn.createStatement().executeUpdate("INSERT INTO testxathreads2 VALUES (1)");
+        jackie.join();
+
+        // Validate that both rows exist.
+        ResultSet rs = conn.createStatement().executeQuery("SELECT * FROM testxathreads2 ORDER BY foo");
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+        assertTrue(rs.next());
+        assertEquals(2, rs.getInt(1));
+
+        // Validate connection clean up. We had two threads using this conn,
+        // but neither one was in a TX. I would expect an access from another
+        // thread to go boom.
+        conn.close();
+        lt.setTrigger(3);
+        lt.resetError();
+
+        jackie = new Thread(lt);
+        jackie.start();
+        jackie.join();
+        assertTrue(lt.hadError());
+    }
     
 // This test is failing, causing deadlocks due to non-closed, non-rolledback 
 // physical connections. Yeah, that's bad.

@@ -43,7 +43,7 @@ import org.postgresql.util.PSQLState;
  */
 public class PGXADataSource extends AbstractPGXADataSource {
 
-    private final Logger logger = new Logger(-42);
+    private final Logger logger = new Logger();
 
     /**
      * Collection of physicalConnections to the backend data source.

@@ -12,6 +12,7 @@ import javax.sql.*;
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
+import org.postgresql.core.Logger;
 import org.postgresql.ds.PGPooledConnection;
 import org.postgresql.util.GT;
 
@@ -26,13 +27,15 @@ import org.postgresql.util.GT;
  * connection pool semantics atop a 'logical' (or virtual) Connection to the 
  * database, which is backed by a real, 'physical' Connection maintained within
  * the XADataSource implementation. The implementation of XAResource provided 
- * by this implementation is thread-safe, shareable (amongst equivalent Resoures),
+ * by this implementation is thread-safe, shareable (amongst equivalent Resources),
  * and implements the required functionality for transaction interleaving.
  * 
  * @author Heikki Linnakangas (heikki.linnakangas@iki.fi)
  * @author Bryan Varner (bvarner@polarislabs.com)
  */
 public class PGXAConnection extends PGPooledConnection implements XAConnection, XAResource {
+
+    private final Logger logger;
     
     private String user;
     private PGXADataSource dataSource;
@@ -51,12 +54,14 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         this.user = user;
         this.dataSource = dataSource;
         this.inXaTx = false;
+
+        logger = new Logger();
     }
     
     /**
      * Returns a handle to the logical connection (we are pooled, remember)
      * 
-     * @return
+     * @return Connection - this is a proxy of a Connection used as the logical connection
      * @throws SQLException 
      */
     @Override
@@ -89,8 +94,8 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
      * Postconditions:
      * 1. Connection is associated with the transaction
      * 
-     * @param xid
-     * @param flags
+     * @param xid The transaction id
+     * @param flags flags to the transaction start (TMNOFLAGS, TMRESUME, or TMJOIN)
      * @throws XAException 
      */
     public void start(Xid xid, int flags) throws XAException {
@@ -99,6 +104,9 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         }
         
         try {
+            if (logger.logDebug()) {
+               logger.debug(GT.tr("Disabling auto commit for transaction xid: {0}", new Object[]{RecoveredXid.xidToString(xid)}));
+            }
             this.localTxAutoCommitMode = getBackingConnection().getAutoCommit();
             getBackingConnection().setAutoCommit(false);
             inXaTx = true;
@@ -146,8 +154,8 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
      * Postconditions:
      * 1. connection is disassociated from the transaction.
      * 
-     * @param xid
-     * @param flags
+     * @param xid The transaction id
+     * @param flags flags for the end call (TMSUCCESS, TMFAIL, TMSUSPEND)
      * @throws XAException 
      */
     public void end(Xid xid, int flags) throws XAException {
@@ -178,7 +186,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
      * 
      * For that reason, we're implementing this method.
      * 
-     * @param xid
+     * @param xid the transaction id
      * @throws XAException 
      */
     public void forget(Xid xid) throws XAException {
@@ -187,8 +195,8 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
 
     /**
      * 
-     * @param xid
-     * @param onePhase
+     * @param xid the transaction id
+     * @param onePhase true if this is a one-phase commit, false if two
      * @throws XAException 
      */
     public void commit(Xid xid, boolean onePhase) throws XAException {
@@ -208,8 +216,8 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     
     /**
      * 
-     * @param xares
-     * @return
+     * @param xares The xa resource to compare
+     * @return true if the serverName, portNumber, databaseName, and user are equal; false otherwise.
      * @throws XAException 
      */
     public boolean isSameRM(XAResource xares) throws XAException {
@@ -241,8 +249,8 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
      * Postconditions:
      * 1. Transaction is prepared, and the physical backend which it was associated to is left unsuspended
      * 
-     * @param xid
-     * @return
+     * @param xid The transaction id
+     * @return XAResource.XA_OK if all went well. This does not track queries in order to return XA_RDONLY yet
      * @throws XAException 
      */
     public int prepare(Xid xid) throws XAException {
@@ -263,8 +271,8 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
      * Postconditions:
      * 1. list of prepared xids is returned
      * 
-     * @param flag
-     * @return
+     * @param flag Must be one of TMSTARTRSCAN, TMENDRSCAN, TMNOFLAGS or TMSTARTTRSCAN | TMENDRSCAN
+     * @return Array of transaction ids that were successfully recovered
      * @throws XAException 
      */
     public Xid[] recover(int flag) throws XAException {
@@ -327,8 +335,9 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     }
 
     /**
-     * 
-     * @param xid
+     * @see PGXADataSource#rollback(PGXAConnection, javax.transaction.xa.Xid)
+     *
+     * @param xid The transaction id
      * @throws XAException 
      */
     public void rollback(Xid xid) throws XAException {
@@ -343,7 +352,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     /**
      * Not supported for the PostgreSQL XA Implementation.
      * 
-     * @return
+     * @return 0 - This feature is not currently supported
      * @throws XAException 
      */
     public int getTransactionTimeout() throws XAException {
@@ -353,8 +362,8 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     /**
      * Not supported for the PostgreSQL XA Implementation.
      * 
-     * @param seconds
-     * @return
+     * @param seconds ignored - This feature is not currently supported
+     * @return false - This feature is not currently supported
      * @throws XAException 
      */
     public boolean setTransactionTimeout(int seconds) throws XAException {
@@ -364,7 +373,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     /**
      * Used by the PGXADataSource to make sure we're getting a proper physical connection.
      * 
-     * @return 
+     * @return The current user for the physical connection
      */
     String getUser() {
         return user;
