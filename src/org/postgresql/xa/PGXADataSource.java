@@ -238,18 +238,22 @@ public class PGXADataSource extends AbstractPGXADataSource {
             throw new IllegalArgumentException("The provided logical connection must not be null");
         }
 
-        PhysicalXAConnection available = logicalMappings.get(logicalConnection);
+        PhysicalXAConnection available = null;
 
-        if (requireInactive &&
-                (available != null &&
-                    (available.getAssociatedXid() != null ||
-                     available.getConnection().getTransactionState() != ProtocolConnection.TRANSACTION_IDLE)))
-        {
-            if (logger.logDebug()) {
-                logger.debug(GT.tr("[{0}] - The physical connection associated with the provided logical connection is not currently available.",
-                        new Object[]{available.getBackendPID()}));
+        synchronized (logicalMappings) {
+            available = logicalMappings.get(logicalConnection);
+
+            if (requireInactive &&
+                    (available != null &&
+                        (available.getAssociatedXid() != null ||
+                         available.getConnection().getTransactionState() != ProtocolConnection.TRANSACTION_IDLE)))
+            {
+                if (logger.logDebug()) {
+                    logger.debug(GT.tr("[{0}] - The physical connection associated with the provided logical connection is not currently available.",
+                            new Object[]{available.getBackendPID()}));
+                }
+                available = null;
             }
-            available = null;
         }
 
         try {
