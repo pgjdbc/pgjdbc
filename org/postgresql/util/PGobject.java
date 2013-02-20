@@ -77,7 +77,14 @@ public class PGobject implements Serializable, Cloneable
     public boolean equals(Object obj)
     {
         if (obj instanceof PGobject)
-            return ((PGobject)obj).getValue().equals(getValue());
+        {
+            final Object otherValue = ((PGobject)obj).getValue();
+        
+            if (otherValue == null){
+              return getValue() == null; 
+            }
+            return otherValue.equals(getValue());
+        }
         return false;
     }
 
