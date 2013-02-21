@@ -51,6 +51,7 @@ public class XADataSourceTest extends TestCase {
         TestUtil.createTable(_conn, "testxathreads1", "foo int");
         TestUtil.createTable(_conn, "testxathreads2", "foo int");
         TestUtil.createTable(_conn, "testxathreads3", "foo int");
+        TestUtil.createTable(_conn, "testxathreads4", "foo int");
 
         clearAllPrepared();
 
@@ -517,7 +518,6 @@ public class XADataSourceTest extends TestCase {
         jackie.join();
         assertTrue(lt.hadError());
     }
-    
 // This test is failing, causing deadlocks due to non-closed, non-rolledback 
 // physical connections. Yeah, that's bad.
 // While this is not a 'common' test-case (sharing XA and local TXs on a 
@@ -545,9 +545,57 @@ public class XADataSourceTest extends TestCase {
 //        
 //        assertTrue(lt.hadError());
 //    }
-    
-    
-    
+
+    /**
+     * Test that commit prepared will not be attempted on a connection already servicing an xid
+     * Specifically - ERROR: COMMIT PREPARED cannot run inside a transaction block
+     *
+     * Unfortunately, this is a race condition and not at all very good for a "test" since it
+     * isn't always repeatable.
+     *
+     * TODO Make this test (consistently) repeatable! (on all machines)
+     *
+     * @throws Exception
+     */
+    public void testCommitPreparedThreading() throws Exception {
+        final Xid xid1 = new CustomXid(1);
+        final Xid xid2 = new CustomXid(2);
+
+        xaRes.start(xid1, XAResource.TMNOFLAGS);
+        conn.createStatement().executeUpdate("INSERT INTO testxathreads4 VALUES (1)");
+        xaRes.end(xid1, XAResource.TMSUCCESS);
+        xaRes.prepare(xid1);
+
+        Thread t = new Thread() {
+            @Override
+            public void run() {
+                try {
+                    xaRes.start(xid2, XAResource.TMNOFLAGS);
+                    conn.createStatement().executeUpdate("INSERT INTO testxathreads4 VALUES (2)");
+                    xaRes.end(xid2, XAResource.TMSUCCESS);
+                    xaRes.prepare(xid2);
+                    xaRes.commit(xid2, false);
+                } catch (Throwable t) {
+                    t.printStackTrace();
+                    fail();
+                }
+            }
+        };
+
+        t.start();
+        xaRes.commit(xid1, false);
+        t.join();
+
+        ResultSet rs = conn.createStatement().executeQuery("SELECT * FROM testxathreads4 ORDER BY foo");
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+        assertTrue(rs.next());
+        assertEquals(2, rs.getInt(1));
+
+        conn.close();
+        assertTrue(conn.isClosed());
+    }
+
     private class XAThread extends LocalThread {
         // A TM will be aware of an XAResource and a Xid.
         private Xid joinXid;
