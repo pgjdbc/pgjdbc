@@ -102,7 +102,8 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         if (xid == null) {
             throw new PGXAException(GT.tr("xid must not be null"), XAException.XAER_INVAL);
         }
-        
+
+
         try {
             if (logger.logDebug()) {
                logger.debug(GT.tr("Disabling auto commit for transaction xid: {0}", new Object[]{RecoveredXid.xidToString(xid)}));
@@ -113,7 +114,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         } catch (SQLException sqle) {
             throw new PGXAException(GT.tr("Error disabling autocommit"), sqle, XAException.XAER_RMERR);
         }
-        
+
         switch (flags) {
             case XAResource.TMNOFLAGS:
                 try {
@@ -129,16 +130,16 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
                 } catch (XAException xae) {
                     throw new PGXAException(GT.tr(xae.getMessage()), xae, XAException.XAER_INVAL);
                 }
-                
+
                 break;
-            case XAResource.TMJOIN: 
+            case XAResource.TMJOIN:
                 // Associate the logicalConnectionId with an existing, pegged physical backend not in the suspended state.
                 try {
                     dataSource.join(this, xid);
                 } catch (XAException xae) {
                     throw new PGXAException(GT.tr(xae.getMessage()), xae, XAException.XAER_INVAL);
                 }
-                
+
                 break;
             default:
                 throw new PGXAException(GT.tr("Invalid flags"), XAException.XAER_INVAL);
