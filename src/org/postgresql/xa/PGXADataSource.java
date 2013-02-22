@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.naming.NamingException;
 import javax.naming.Reference;
@@ -47,6 +48,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
     private final Logger logger = new Logger();
 
     private final ReentrantLock lock = new ReentrantLock();
+    private final Condition physicalConnNotAvailable = lock.newCondition();
 
     /**
      * Collection of physicalConnections to the backend data source.
@@ -141,12 +143,9 @@ public class PGXADataSource extends AbstractPGXADataSource {
     private void associate(final PGXAConnection logicalConnection, final PhysicalXAConnection backend) {
         lock.lock();
         try {
-            synchronized (logicalMappings) {
-                logicalMappings.put(logicalConnection, backend);
-                logicalMappings.notify();
-                if (logger.logDebug()) {
-                    logger.debug(GT.tr("[{0}] - Logical connection associated to physical connection", new Object[]{backend.getBackendPID()}));
-                }
+            logicalMappings.put(logicalConnection, backend);
+            if (logger.logDebug()) {
+                logger.debug(GT.tr("[{0}] - Logical connection associated to physical connection", new Object[]{backend.getBackendPID()}));
             }
         } finally {
             lock.unlock();
@@ -200,32 +199,30 @@ public class PGXADataSource extends AbstractPGXADataSource {
     private void disassociate(final PGXAConnection logicalConnection) {
         lock.lock();
         try {
-            synchronized (logicalMappings) {
-                PhysicalXAConnection physicalConn = logicalMappings.get(logicalConnection);
 
+            PhysicalXAConnection physicalConn = logicalMappings.get(logicalConnection);
+
+            if (logger.logDebug()) {
+                logger.debug(GT.tr("[{0}] - {1} total threads associated to physical connection.", new Object[]{physicalConn.getBackendPID(), physicalConn.getAssociatedThreadCount()}));
+                logger.debug(GT.tr("[{0}] - Disassociating thread: {1}", new Object[]{physicalConn.getBackendPID(), Thread.currentThread().getId()}));
+            }
+
+            physicalConn.disassociateThread(Thread.currentThread());
+
+            // Only remove the association if this was the last thread using the connection.
+            if (physicalConn.getAssociatedThreadCount() == 0) {
                 if (logger.logDebug()) {
-                    logger.debug(GT.tr("[{0}] - {1} total threads associated to physical connection.", new Object[]{physicalConn.getBackendPID(), physicalConn.getAssociatedThreadCount()}));
-                    logger.debug(GT.tr("[{0}] - Disassociating thread: {1}", new Object[]{physicalConn.getBackendPID(), Thread.currentThread().getId()}));
+                    logger.debug(GT.tr("[{0}] - No threads using this connection remain. Disassociating logical connection.", new Object[]{physicalConn.getBackendPID()}));
                 }
 
-                physicalConn.disassociateThread(Thread.currentThread());
+                logicalMappings.remove(logicalConnection);
 
-                // Only remove the association if this was the last thread using the connection.
-                if (physicalConn.getAssociatedThreadCount() == 0) {
-                    if (logger.logDebug()) {
-                        logger.debug(GT.tr("[{0}] - No threads using this connection remain. Disassociating logical connection.", new Object[]{physicalConn.getBackendPID()}));
-                    }
-
-                    logicalMappings.remove(logicalConnection);
-                    logicalMappings.notify();
-
-                    if (logger.logDebug()) {
-                        logger.debug(GT.tr("[{0}] - Logical connection disassociated.", new Object[]{physicalConn.getBackendPID()}));
-                    }
-                } else {
-                    if (logger.logDebug()) {
-                        logger.debug(GT.tr("[{0}] - {1} threads still associated to this physical connection.", new Object[]{physicalConn.getBackendPID(), physicalConn.getAssociatedThreadCount()}));
-                    }
+                if (logger.logDebug()) {
+                    logger.debug(GT.tr("[{0}] - Logical connection disassociated.", new Object[]{physicalConn.getBackendPID()}));
+                }
+            } else {
+                if (logger.logDebug()) {
+                    logger.debug(GT.tr("[{0}] - {1} threads still associated to this physical connection.", new Object[]{physicalConn.getBackendPID(), physicalConn.getAssociatedThreadCount()}));
                 }
             }
         } finally {
@@ -271,128 +268,126 @@ public class PGXADataSource extends AbstractPGXADataSource {
 
             try {
                 for (int attempts = 0; available == null; attempts++) {
-                    // Lock the mapping to serialize access.
-                    synchronized (logicalMappings) {
-                        synchronized (physicalConnections) {
 
-                            // The physical connection associated with the provided logical connection might be (or become) available
-                            available = logicalMappings.get(logicalConnection);
-                            if(available != null) {
-                                if (requireInactive) {
-                                    if (available.getAssociatedXid() == null && available.getConnection().getTransactionState() == ProtocolConnection.TRANSACTION_IDLE) {
-                                        return available;
-                                    }
-                                } else {
-                                    return available;
-                                }
-
-                                if (logger.logDebug()) {
-                                    logger.debug(GT.tr("[{0}] - The physical connection associated with the provided logical connection is not currently available.",
-                                            new Object[]{available.getBackendPID()}));
-                                }
+                    // The physical connection associated with the provided logical connection might be (or become) available
+                    // Just use the connection you already have if you can
+                    available = logicalMappings.get(logicalConnection);
+                    if(available != null) {
+                        if (requireInactive) {
+                            if (available.getAssociatedXid() == null && available.getConnection().getTransactionState() == ProtocolConnection.TRANSACTION_IDLE) {
+                                return available;
                             }
-
-                            for (int i = 0; i < physicalConnections.size(); i++) {
-                                available = physicalConnections.get(i);
-
-                                if (available.getAssociatedXid() == null &&     // If no xid in service, even suspended has an xid.
-                                    available.getConnection().getTransactionState() == ProtocolConnection.TRANSACTION_IDLE && // Not in a local tx!
-                                    !logicalMappings.containsValue(available) &&  // Not associated to a logical
-                                    available.getUser().equals(logicalConnection.getUser())) // Has the same user if applicable
-                                {
-                                    // Means that we're 'idle' and 'available' for either XA or non-XA work.
-                                    if (logger.logDebug()) {
-                                        logger.debug(GT.tr("[{0}] - Available physical connection found.  Associating logical connection now.", new Object[]{available.getBackendPID()}));
-                                    }
-
-                                    associate(logicalConnection, available);
-                                    return available;
-                                } else {
-                                    available = null;
-                                }
-                            }
+                        } else {
+                            return available;
                         }
 
-                        if (available == null) {
-                            // Oh Noes! We didn't have an xid pegged physical connection for
-                            // this logical connection, and there weren't any physical
-                            // connections available to assign to this logical connection!
-                            //
-                            // A few things could have happened here.
-                            // 1.) We have all our backends pegged to an xid, and this is
-                            //     is an attempt to use a non-2pc XAConnection outside of a
-                            //     start / end block (allowable! by the JTA spec!)
-                            // 2.) We have all our transactions associated and we've been
-                            //     asked to do something to another xid which we don't have
-                            //     an active backend for.
-                            //
-                            // If you have a pool of size 1, and the backend is tied up in
-                            // a 2pc start / end block, invoking getConnection() on the
-                            // XAConnection returned from the DS in order to issue non-tx
-                            // commands is invalid, according to the jdbc2 spec on pooling
-                            // connections and the getConnection() / close() cycle.
-                            // In the event that there is a 2pc in progress, the TM should
-                            // at some point issue an end(), followed by the rest of the
-                            // appropriate methods to kick the connection back into an
-                            // idle state.
-                            //
-                            // We have a few options here (from an implementation perspective)
-                            // which we can try.
-                            // 1.) Allocate a new physical connection with the same user &
-                            //     password as the logical connection. If we cannot allocate
-                            //     a connection, then we need to throw an XAException and
-                            //     give up.
-                            //     (multiple physical connections for a logical connection)
-                            //
-                            // 2.) Block until a backend physical connection becomes available.
-                            //     Eventually the TM will end() / prepare / commit / rollback
-                            //     one of the xids servicing, unless we're in a single-connection
-                            //     single thread of execution deadlock -- where the only option
-                            //     which will clear the lock is a successful implementation of
-                            //     option #1.
-                            //
-                            //
-                            // We'll aggressively open physical connections up to
-                            // Math.ceil((logicalconnections + 1) * xaConnectionMultipler)
-                            //
-                            // Once we hit that limit, we'll start blocking until we
-                            // hit the timeout.
-                            //
-                            // If we've allocated up to the max connections and then
-                            // timeout, we throw a PGXAException.
-                            if (logger.logDebug()) {
-                                logger.debug(GT.tr("No available physical connection was found."));
-                            }
-                            if (physicalConnections.size() <= Math.ceil((logicalMappings.size() + 1) * xaConnectionMultiplier)) {
-                                // Well, that didn't work. Time to open a new physical connection and let the next iteration pair.
-                                if (logger.logDebug()) {
-                                    logger.debug(GT.tr("Attempting to open new physical connection."));
-                                }
+                        if (logger.logDebug()) {
+                            logger.debug(GT.tr("[{0}] - The physical connection associated with the provided logical connection is not currently available.",
+                                    new Object[]{available.getBackendPID()}));
+                        }
+                    }
 
-                                String user = logicalConnection.getUser();
-                                try {
-                                    String password = findPasswordFor(user);
-                                    PhysicalXAConnection physicalConn = new PhysicalXAConnection((BaseConnection) super.getConnection(user, password), user, password);
-                                    physicalConnections.add(physicalConn);
-                                    if (logger.logDebug()) {
-                                        logger.debug(GT.tr("[{0}] - Physical connection added.", new Object[]{physicalConn.getBackendPID()}));
-                                    }
-                                } catch (Exception ex) {
-                                    throw new PGXAException(GT.tr("Failed to open new physical connection."), ex, XAException.XAER_RMERR);
-                                }
-                            } else if (attempts * xaWaitStep < xaAcquireTimeout) {
-                                if (logger.logDebug()) {
-                                    logger.debug(GT.tr("Connection multiplier {0} reached. Total logical connections {1}. Waiting for {2}.",
-                                            new Object[]{xaConnectionMultiplier, logicalMappings.size(), xaWaitStep}));
-                                }
-                                logicalMappings.wait(xaWaitStep);
-                            } else {
-                                throw new PGXAException(GT.tr("xaConnectionMultiplier limit {0} reached. Consider raising the limit.\n" +
-                                        "We currently hold {1} physical connections for {2} logical connections.",
-                                        new Object[] {Math.ceil((logicalMappings.size() + 1) * xaConnectionMultiplier),
-                                                      physicalConnections.size(), logicalMappings.size()}),
-                                        XAException.XAER_RMERR);
+                    // No?  maybe another existing physical connection has become available
+                    for (int i = 0; i < physicalConnections.size(); i++) {
+                        available = physicalConnections.get(i);
+
+                        if (available.getAssociatedXid() == null &&     // If no xid in service, even suspended has an xid.
+                            available.getConnection().getTransactionState() == ProtocolConnection.TRANSACTION_IDLE && // Not in a local tx!
+                            !logicalMappings.containsValue(available) &&  // Not associated to a logical
+                            available.getUser().equals(logicalConnection.getUser())) // Has the same user if applicable
+                        {
+                            // Means that we're 'idle' and 'available' for either XA or non-XA work.
+                            if (logger.logDebug()) {
+                                logger.debug(GT.tr("[{0}] - Available physical connection found.  Associating logical connection now.", new Object[]{available.getBackendPID()}));
                             }
+
+                            associate(logicalConnection, available);
+                            return available;
+                        } else {
+                            available = null;
+                        }
+                    }
+
+                    if (available == null) {
+                        // Oh Noes! We didn't have an xid pegged physical connection for
+                        // this logical connection, and there weren't any physical
+                        // connections available to assign to this logical connection!
+                        //
+                        // A few things could have happened here.
+                        // 1.) We have all our backends pegged to an xid, and this is
+                        //     is an attempt to use a non-2pc XAConnection outside of a
+                        //     start / end block (allowable! by the JTA spec!)
+                        // 2.) We have all our transactions associated and we've been
+                        //     asked to do something to another xid which we don't have
+                        //     an active backend for.
+                        //
+                        // If you have a pool of size 1, and the backend is tied up in
+                        // a 2pc start / end block, invoking getConnection() on the
+                        // XAConnection returned from the DS in order to issue non-tx
+                        // commands is invalid, according to the jdbc2 spec on pooling
+                        // connections and the getConnection() / close() cycle.
+                        // In the event that there is a 2pc in progress, the TM should
+                        // at some point issue an end(), followed by the rest of the
+                        // appropriate methods to kick the connection back into an
+                        // idle state.
+                        //
+                        // We have a few options here (from an implementation perspective)
+                        // which we can try.
+                        // 1.) Allocate a new physical connection with the same user &
+                        //     password as the logical connection. If we cannot allocate
+                        //     a connection, then we need to throw an XAException and
+                        //     give up.
+                        //     (multiple physical connections for a logical connection)
+                        //
+                        // 2.) Block until a backend physical connection becomes available.
+                        //     Eventually the TM will end() / prepare / commit / rollback
+                        //     one of the xids servicing, unless we're in a single-connection
+                        //     single thread of execution deadlock -- where the only option
+                        //     which will clear the lock is a successful implementation of
+                        //     option #1.
+                        //
+                        //
+                        // We'll aggressively open physical connections up to
+                        // Math.ceil((logicalconnections + 1) * xaConnectionMultipler)
+                        //
+                        // Once we hit that limit, we'll start blocking until we
+                        // hit the timeout.
+                        //
+                        // If we've allocated up to the max connections and then
+                        // timeout, we throw a PGXAException.
+                        if (logger.logDebug()) {
+                            logger.debug(GT.tr("No available physical connection was found."));
+                        }
+
+                        if (physicalConnections.size() <= Math.ceil((logicalMappings.size() + 1) * xaConnectionMultiplier)) {
+                            // Well, that didn't work. Time to open a new physical connection and let the next iteration pair.
+                            if (logger.logDebug()) {
+                                logger.debug(GT.tr("Attempting to open new physical connection."));
+                            }
+
+                            String user = logicalConnection.getUser();
+                            try {
+                                String password = findPasswordFor(user);
+                                PhysicalXAConnection physicalConn = new PhysicalXAConnection((BaseConnection) super.getConnection(user, password), user, password);
+                                physicalConnections.add(physicalConn);
+                                if (logger.logDebug()) {
+                                    logger.debug(GT.tr("[{0}] - Physical connection added.", new Object[]{physicalConn.getBackendPID()}));
+                                }
+                            } catch (Exception ex) {
+                                throw new PGXAException(GT.tr("Failed to open new physical connection."), ex, XAException.XAER_RMERR);
+                            }
+                        } else if (attempts * xaWaitStep < xaAcquireTimeout) {
+                            if (logger.logDebug()) {
+                                logger.debug(GT.tr("Connection multiplier {0} reached. Total logical connections {1}. Waiting for {2}.",
+                                        new Object[]{xaConnectionMultiplier, logicalMappings.size(), xaWaitStep}));
+                            }
+                            physicalConnNotAvailable.await();
+                        } else {
+                            throw new PGXAException(GT.tr("xaConnectionMultiplier limit {0} reached. Consider raising the limit.\n" +
+                                    "We currently hold {1} physical connections for {2} logical connections.",
+                                    new Object[] {Math.ceil((logicalMappings.size() + 1) * xaConnectionMultiplier),
+                                                  physicalConnections.size(), logicalMappings.size()}),
+                                    XAException.XAER_RMERR);
                         }
                     }
                 }
@@ -418,12 +413,10 @@ public class PGXADataSource extends AbstractPGXADataSource {
     private String findPasswordFor(final String user) {
         lock.lock();
         try {
-            synchronized (physicalConnections) {
-                for (int i = 0; i < physicalConnections.size(); i++) {
-                    PhysicalXAConnection candidate = physicalConnections.get(i);
-                    if (candidate != null && user.equals(candidate.getUser())) {
-                        return candidate.getPassword();
-                    }
+            for (int i = 0; i < physicalConnections.size(); i++) {
+                PhysicalXAConnection candidate = physicalConnections.get(i);
+                if (candidate != null && user.equals(candidate.getUser())) {
+                    return candidate.getPassword();
                 }
             }
             throw new IllegalStateException(GT.tr("No existing physical connection for user '{0}'", user));
@@ -443,14 +436,13 @@ public class PGXADataSource extends AbstractPGXADataSource {
         lock.lock();
         try {
             PhysicalXAConnection peggedToXid = null;
-            synchronized (physicalConnections) {
-                for (int i = 0; i < physicalConnections.size() && peggedToXid == null; i++) {
-                    peggedToXid = physicalConnections.get(i);
-                    // This looks strange, because the XADataSourceTest isn't checking for null in the equals() of it's fake Xid class.
-                    if (peggedToXid.getAssociatedXid() == null || !xid.equals(peggedToXid.getAssociatedXid())) {
-                        // So if the candidate has no xid, or is not equal, this is not the xid you're looking for.
-                        peggedToXid = null;
-                    }
+
+            for (int i = 0; i < physicalConnections.size() && peggedToXid == null; i++) {
+                peggedToXid = physicalConnections.get(i);
+                // This looks strange, because the XADataSourceTest isn't checking for null in the equals() of it's fake Xid class.
+                if (peggedToXid.getAssociatedXid() == null || !xid.equals(peggedToXid.getAssociatedXid())) {
+                    // So if the candidate has no xid, or is not equal, this is not the xid you're looking for.
+                    peggedToXid = null;
                 }
             }
             return peggedToXid;
@@ -469,7 +461,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
      * 
      * @throws XAException if the xid is already being serviced by a physical connection
      */
-    synchronized void start(final PGXAConnection logicalConnection, final Xid xid) throws XAException {
+    void start(final PGXAConnection logicalConnection, final Xid xid) throws XAException {
         lock.lock();
         try {
             PhysicalXAConnection currentConn = getPhysicalConnection(xid);
@@ -477,22 +469,17 @@ public class PGXADataSource extends AbstractPGXADataSource {
                 throw new XAException("Start invoked for an xid already serviced by a backend.");
             }
 
-            synchronized (logicalMappings) {
-                synchronized (physicalConnections) {
+            // Obtain a physical connection to peg to the Xid.
+            currentConn = getPhysicalConnection(logicalConnection, true);
 
-                    // Obtain a physical connection to peg to the Xid.
-                    currentConn = getPhysicalConnection(logicalConnection, true);
+            if (logger.logDebug()) {
+                logger.debug(GT.tr("[{0}] - Physical connection acquired to start transaction xid: {1}.", new Object[]{currentConn.getBackendPID(), RecoveredXid.xidToString(xid)}));
+            }
 
-                    if (logger.logDebug()) {
-                        logger.debug(GT.tr("[{0}] - Physical connection acquired to start transaction xid: {1}.", new Object[]{currentConn.getBackendPID(), RecoveredXid.xidToString(xid)}));
-                    }
+            currentConn.associateXidThread(xid, Thread.currentThread());
 
-                    currentConn.associateXidThread(xid, Thread.currentThread());
-
-                    if (logger.logDebug()) {
-                        logger.debug(GT.tr("[{0}] - Transaction xid: {1} started.", new Object[]{currentConn.getAssociatedThreadCount(), RecoveredXid.xidToString(xid)}));
-                    }
-                }
+            if (logger.logDebug()) {
+                logger.debug(GT.tr("[{0}] - Transaction xid: {1} started.", new Object[]{currentConn.getAssociatedThreadCount(), RecoveredXid.xidToString(xid)}));
             }
         } finally {
             lock.unlock();
@@ -636,6 +623,9 @@ public class PGXADataSource extends AbstractPGXADataSource {
                 }
 
                 currentConn.disassociateXid();
+                if(lock.hasWaiters(physicalConnNotAvailable)) {
+                    physicalConnNotAvailable.signalAll();
+                }
 
                 return XAResource.XA_OK;
             } catch (SQLException ex) {
@@ -665,6 +655,9 @@ public class PGXADataSource extends AbstractPGXADataSource {
                 try {
                     currentConn.getConnection().commit();
                     currentConn.disassociateXid();
+                    if(lock.hasWaiters(physicalConnNotAvailable)) {
+                        physicalConnNotAvailable.signalAll();
+                    }
 
                     if (logger.logDebug()) {
                         logger.debug(GT.tr("[{0}] - One-phase commit complete for xid: {1}.", new Object[]{currentConn.getBackendPID(), RecoveredXid.xidToString(xid)}));
@@ -734,6 +727,9 @@ public class PGXADataSource extends AbstractPGXADataSource {
             if (currentConn != null) { // one phase!
                 try {
                     currentConn.disassociateXid();
+                    if(lock.hasWaiters(physicalConnNotAvailable)) {
+                        physicalConnNotAvailable.notifyAll();
+                    }
                     currentConn.getConnection().rollback();
                 } catch (SQLException sqle) {
                     throw new PGXAException(GT.tr("Error during one-phase rollback"), sqle, XAException.XAER_RMERR);
@@ -789,27 +785,28 @@ public class PGXADataSource extends AbstractPGXADataSource {
                     throw new PGXAException(GT.tr("Error rolling back physical connection servicing the given xid."), XAException.XAER_RMERR);
                 } finally {
                     fugeddaboutit.disassociateXid();
+                    if(lock.hasWaiters(physicalConnNotAvailable)) {
+                        physicalConnNotAvailable.notifyAll();
+                    }
 
                     ArrayList<PGXAConnection> forgetAssociations = new ArrayList<PGXAConnection>();
                     // Remove / Update any logical mappings.
                     if (logicalMappings.containsValue(fugeddaboutit)) {
-                        synchronized(logicalMappings) {
-                            if (logger.logDebug()) {
-                                logger.debug(GT.tr("Removing/Updating logical mappings.  Total logical mappings: {0}", new Object[]{logicalMappings.size()}));
+
+                        if (logger.logDebug()) {
+                            logger.debug(GT.tr("Removing/Updating logical mappings.  Total logical mappings: {0}", new Object[]{logicalMappings.size()}));
+                        }
+                        ArrayList<PGXAConnection> logicalConnections = new ArrayList<PGXAConnection>();
+                        for (Map.Entry<PGXAConnection, PhysicalXAConnection> pairing : logicalMappings.entrySet()) {
+                            if (pairing.getValue().equals(fugeddaboutit)) {
+                                logicalConnections.add(pairing.getKey());
                             }
-                            ArrayList<PGXAConnection> logicalConnections = new ArrayList<PGXAConnection>();
-                            for (Map.Entry<PGXAConnection, PhysicalXAConnection> pairing : logicalMappings.entrySet()) {
-                                if (pairing.getValue().equals(fugeddaboutit)) {
-                                    logicalConnections.add(pairing.getKey());
-                                }
-                            }
-                            for (int i = 0; i < logicalConnections.size(); i++) {
-                                logicalMappings.remove(logicalConnections.get(i));
-                            }
-                            if (logger.logDebug()) {
-                                logger.debug(GT.tr("Logical mappings update complete.  Total logical mappings: {0}", new Object[]{logicalMappings.size()}));
-                            }
-                            logicalMappings.notify();
+                        }
+                        for (int i = 0; i < logicalConnections.size(); i++) {
+                            logicalMappings.remove(logicalConnections.get(i));
+                        }
+                        if (logger.logDebug()) {
+                            logger.debug(GT.tr("Logical mappings update complete.  Total logical mappings: {0}", new Object[]{logicalMappings.size()}));
                         }
                     }
 
@@ -948,28 +945,26 @@ public class PGXADataSource extends AbstractPGXADataSource {
 
                     // Prune the physical connections
                     List<PhysicalXAConnection> closeable = new ArrayList<PhysicalXAConnection>();
-                    synchronized (physicalConnections) {
-                        PhysicalXAConnection candidate = null;
-                        for (int i = 0; i < physicalConnections.size(); i++) {
-                            candidate = physicalConnections.get(i);
-                            if (candidate.getAssociatedXid() == null &&     // If no xid in service, even suspended has an xid.
-                                candidate.getConnection().getTransactionState() == ProtocolConnection.TRANSACTION_IDLE &&
-                                !logicalMappings.containsValue(candidate) &&  // Not associated to a logical
-                                candidate.getUser().equals(logicalConnection.getUser())) // Has the same user.
-                            {
-                                closeable.add(candidate);
-                            }
+                    PhysicalXAConnection candidate = null;
+                    for (int i = 0; i < physicalConnections.size(); i++) {
+                        candidate = physicalConnections.get(i);
+                        if (candidate.getAssociatedXid() == null &&     // If no xid in service, even suspended has an xid.
+                            candidate.getConnection().getTransactionState() == ProtocolConnection.TRANSACTION_IDLE &&
+                            !logicalMappings.containsValue(candidate) &&  // Not associated to a logical
+                            candidate.getUser().equals(logicalConnection.getUser())) // Has the same user.
+                        {
+                            closeable.add(candidate);
                         }
+                    }
 
-                        if (logger.logDebug()) {
-                            logger.debug(GT.tr("Removing {0} closable physical connections out of {1} total physical connections.", new Object[]{closeable.size(), physicalConnections.size()}));
-                        }
+                    if (logger.logDebug()) {
+                        logger.debug(GT.tr("Removing {0} closable physical connections out of {1} total physical connections.", new Object[]{closeable.size(), physicalConnections.size()}));
+                    }
 
-                        physicalConnections.removeAll(closeable);
+                    physicalConnections.removeAll(closeable);
 
-                        if (logger.logDebug()) {
-                            logger.debug(GT.tr("Closeable connections removed.  {0} Total physical connections remaining.", new Object[]{physicalConnections.size()}));
-                        }
+                    if (logger.logDebug()) {
+                        logger.debug(GT.tr("Closeable connections removed.  {0} Total physical connections remaining.", new Object[]{physicalConnections.size()}));
                     }
 
                     // Close them!
