@@ -70,12 +70,16 @@ public abstract class AbstractJdbc4DatabaseMetaData extends org.postgresql.jdbc3
 
     public boolean isWrapperFor(Class<?> iface) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "isWrapperFor(Class<?>)");
+        return iface.isAssignableFrom(getClass());
     }
 
     public <T> T unwrap(Class<T> iface) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "unwrap(Class<T>)");
+        if (iface.isAssignableFrom(getClass()))
+        {
+            return (T) this;
+        }
+        throw new SQLException("Cannot unwrap to " + iface.getName());
     }
 
     public ResultSet getFunctions(String catalog, String schemaPattern, String functionNamePattern) throws SQLException
