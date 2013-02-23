@@ -70,6 +70,7 @@ public class XADataSourceTest extends TestCase {
         TestUtil.dropTable(_conn, "testxathreads1");
         TestUtil.dropTable(_conn, "testxathreads2");
         TestUtil.dropTable(_conn, "testxathreads3");
+        TestUtil.dropTable(_conn, "testxathreads4");
         TestUtil.closeDB(_conn);
     }
 

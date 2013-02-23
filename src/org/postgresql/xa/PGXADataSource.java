@@ -167,26 +167,21 @@ public class PGXADataSource extends AbstractPGXADataSource {
      * @throws XAException
      */
     void end(final PGXAConnection logicalConnection, final Xid xid) throws XAException {
-        lock.lock();
-        try {
-            PhysicalXAConnection physicalConn = logicalMappings.get(logicalConnection);
-            if (logger.logDebug()) {
-                logger.debug(GT.tr("[{0}] - Verifying association for xid: {1}", new Object[]{physicalConn.getBackendPID(), RecoveredXid.xidToString(xid)}));
-            }
+        PhysicalXAConnection physicalConn = logicalMappings.get(logicalConnection);
+        if (logger.logDebug()) {
+            logger.debug(GT.tr("[{0}] - Verifying association for xid: {1}", new Object[]{physicalConn.getBackendPID(), RecoveredXid.xidToString(xid)}));
+        }
 
-            verifyAssociation(logicalConnection, xid);
+        verifyAssociation(logicalConnection, xid);
 
-            if (logger.logDebug()) {
-                logger.debug(GT.tr("{[0]} - Disassociating xid: {1}", new Object[]{physicalConn.getBackendPID(), RecoveredXid.xidToString(xid)}));
-            }
+        if (logger.logDebug()) {
+            logger.debug(GT.tr("{[0]} - Disassociating xid: {1}", new Object[]{physicalConn.getBackendPID(), RecoveredXid.xidToString(xid)}));
+        }
 
-            disassociate(logicalConnection);
+        disassociate(logicalConnection);
 
-            if (logger.logDebug()) {
-                logger.debug(GT.tr("{[0]} - Successfully disassociated xid: {1}", new Object[]{physicalConn.getBackendPID(), RecoveredXid.xidToString(xid)}));
-            }
-        } finally {
-            lock.unlock();
+        if (logger.logDebug()) {
+            logger.debug(GT.tr("{[0]} - Successfully disassociated xid: {1}", new Object[]{physicalConn.getBackendPID(), RecoveredXid.xidToString(xid)}));
         }
     }
 
@@ -462,27 +457,22 @@ public class PGXADataSource extends AbstractPGXADataSource {
      * @throws XAException if the xid is already being serviced by a physical connection
      */
     void start(final PGXAConnection logicalConnection, final Xid xid) throws XAException {
-        lock.lock();
-        try {
-            PhysicalXAConnection currentConn = getPhysicalConnection(xid);
-            if (currentConn != null) {
-                throw new XAException("Start invoked for an xid already serviced by a backend.");
-            }
+        PhysicalXAConnection currentConn = getPhysicalConnection(xid);
+        if (currentConn != null) {
+            throw new XAException("Start invoked for an xid already serviced by a backend.");
+        }
 
-            // Obtain a physical connection to peg to the Xid.
-            currentConn = getPhysicalConnection(logicalConnection, true);
+        // Obtain a physical connection to peg to the Xid.
+        currentConn = getPhysicalConnection(logicalConnection, true);
 
-            if (logger.logDebug()) {
-                logger.debug(GT.tr("[{0}] - Physical connection acquired to start transaction xid: {1}.", new Object[]{currentConn.getBackendPID(), RecoveredXid.xidToString(xid)}));
-            }
+        if (logger.logDebug()) {
+            logger.debug(GT.tr("[{0}] - Physical connection acquired to start transaction xid: {1}.", new Object[]{currentConn.getBackendPID(), RecoveredXid.xidToString(xid)}));
+        }
 
-            currentConn.associateXidThread(xid, Thread.currentThread());
+        currentConn.associateXidThread(xid, Thread.currentThread());
 
-            if (logger.logDebug()) {
-                logger.debug(GT.tr("[{0}] - Transaction xid: {1} started.", new Object[]{currentConn.getAssociatedThreadCount(), RecoveredXid.xidToString(xid)}));
-            }
-        } finally {
-            lock.unlock();
+        if (logger.logDebug()) {
+            logger.debug(GT.tr("[{0}] - Transaction xid: {1} started.", new Object[]{currentConn.getAssociatedThreadCount(), RecoveredXid.xidToString(xid)}));
         }
     }
 
@@ -494,29 +484,25 @@ public class PGXADataSource extends AbstractPGXADataSource {
      * @throws XAException if the given xid is not in a Suspended state.
      */
     void resume(final PGXAConnection logicalConnection, final Xid xid) throws XAException {
-        lock.lock();
-        try {
-            if (logger.logDebug()) {
-                logger.debug(GT.tr("Resuming transaction xid: {0}", new Object[]{RecoveredXid.xidToString(xid)}));
-            }
 
-            PhysicalXAConnection currentConn = getPhysicalConnection(xid);
-            if (!currentConn.isSuspended()) {
-                throw new XAException("The backend connection servicing the resumed xid is not in a suspended state.");
-            }
+        if (logger.logDebug()) {
+            logger.debug(GT.tr("Resuming transaction xid: {0}", new Object[]{RecoveredXid.xidToString(xid)}));
+        }
 
-            if (logger.logDebug()) {
-                logger.debug(GT.tr("[{0}] - Physical connection acquired to resume xid: {1}.", new Object[]{currentConn.getBackendPID(), RecoveredXid.xidToString(xid)}));
-            }
+        PhysicalXAConnection currentConn = getPhysicalConnection(xid);
+        if (!currentConn.isSuspended()) {
+            throw new XAException("The backend connection servicing the resumed xid is not in a suspended state.");
+        }
 
-            associate(logicalConnection, currentConn);
-            currentConn.associateXidThread(xid, Thread.currentThread()); // Marks the connection unsuspended
+        if (logger.logDebug()) {
+            logger.debug(GT.tr("[{0}] - Physical connection acquired to resume xid: {1}.", new Object[]{currentConn.getBackendPID(), RecoveredXid.xidToString(xid)}));
+        }
 
-            if (logger.logDebug()) {
-                logger.debug(GT.tr("[{0}] - Transaction xid: {1} resumed.", new Object[]{currentConn.getBackendPID(), RecoveredXid.xidToString(xid)}));
-            }
-        } finally {
-            lock.unlock();
+        associate(logicalConnection, currentConn);
+        currentConn.associateXidThread(xid, Thread.currentThread()); // Marks the connection unsuspended
+
+        if (logger.logDebug()) {
+            logger.debug(GT.tr("[{0}] - Transaction xid: {1} resumed.", new Object[]{currentConn.getBackendPID(), RecoveredXid.xidToString(xid)}));
         }
     }
 
@@ -529,8 +515,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
      * @throws XAException if the given xid backend is in a suspended state.
      */
     void join(final PGXAConnection logicalConnection, final Xid xid) throws XAException {
-        lock.lock();
-        try {
+
             if (logger.logDebug()) {
                 logger.debug(GT.tr("Joining logical connection to transaction xid: {0}.", new Object[]{RecoveredXid.xidToString(xid)}));
             }
@@ -550,9 +535,6 @@ public class PGXADataSource extends AbstractPGXADataSource {
             if (logger.logDebug()) {
                 logger.debug(GT.tr("[{0}] - Transaction xid: {1} joined.", new Object[]{currentConn.getBackendPID(), RecoveredXid.xidToString(xid)}));
             }
-        } finally {
-            lock.unlock();
-        }
     }
 
     /**
@@ -623,9 +605,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
                 }
 
                 currentConn.disassociateXid();
-                if(lock.hasWaiters(physicalConnNotAvailable)) {
-                    physicalConnNotAvailable.signalAll();
-                }
+                physicalConnNotAvailable.signal();
 
                 return XAResource.XA_OK;
             } catch (SQLException ex) {
@@ -655,9 +635,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
                 try {
                     currentConn.getConnection().commit();
                     currentConn.disassociateXid();
-                    if(lock.hasWaiters(physicalConnNotAvailable)) {
-                        physicalConnNotAvailable.signalAll();
-                    }
+                    physicalConnNotAvailable.signal();
 
                     if (logger.logDebug()) {
                         logger.debug(GT.tr("[{0}] - One-phase commit complete for xid: {1}.", new Object[]{currentConn.getBackendPID(), RecoveredXid.xidToString(xid)}));
@@ -727,9 +705,8 @@ public class PGXADataSource extends AbstractPGXADataSource {
             if (currentConn != null) { // one phase!
                 try {
                     currentConn.disassociateXid();
-                    if(lock.hasWaiters(physicalConnNotAvailable)) {
-                        physicalConnNotAvailable.notifyAll();
-                    }
+                    physicalConnNotAvailable.signal();
+
                     currentConn.getConnection().rollback();
                 } catch (SQLException sqle) {
                     throw new PGXAException(GT.tr("Error during one-phase rollback"), sqle, XAException.XAER_RMERR);
@@ -785,9 +762,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
                     throw new PGXAException(GT.tr("Error rolling back physical connection servicing the given xid."), XAException.XAER_RMERR);
                 } finally {
                     fugeddaboutit.disassociateXid();
-                    if(lock.hasWaiters(physicalConnNotAvailable)) {
-                        physicalConnNotAvailable.notifyAll();
-                    }
+                    physicalConnNotAvailable.signal();
 
                     ArrayList<PGXAConnection> forgetAssociations = new ArrayList<PGXAConnection>();
                     // Remove / Update any logical mappings.
