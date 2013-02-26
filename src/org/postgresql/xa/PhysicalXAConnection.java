@@ -113,9 +113,10 @@ class PhysicalXAConnection {
                             (logicalConnections.contains(logicalConnection) || logicalConnections.isEmpty()) || // Already servicing this logical connection, or not servicing any at all.
                             (associatedXid != null && associatedXid.equals(xid)) || // same xid
                     
-                            // No xid, and no local TX, same user
-                            ((associatedXid == null && connection.getTransactionState() == ProtocolConnection.TRANSACTION_IDLE) && 
-                            logicalConnection.getUser().equals(user));
+                            // No xid (local TX mode), no other logical connection, and it's the same user.
+                            (associatedXid == null && 
+                             logicalConnections.isEmpty() && 
+                             logicalConnection.getUser().equals(user));
             
             if (available) {
                 // If we're associating to an xid, turn off autocommit.
