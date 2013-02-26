@@ -170,6 +170,7 @@ public class XADataSourceTest extends TestCase {
         assertTrue(rs.next());
         assertEquals(1, rs.getInt(1));
     }
+    
 
     public void testRecover() throws Exception {
         Xid xid = new CustomXid(12345);
@@ -523,16 +524,8 @@ public class XADataSourceTest extends TestCase {
         jackie.join();
         assertTrue(lt.hadError());
     }
-// This test is failing, causing deadlocks due to non-closed, non-rolledback 
-// physical connections. Yeah, that's bad.
-// While this is not a 'common' test-case (sharing XA and local TXs on a 
-// connection in different threads
-// it is one we ought to cover.
-// I have some reservations at this point about the close() behavior in the
-// XADataSource.
-// 
-// We should make a new test suite so we can test connection open / close
-//
+    
+    
 //    public void testMixedTXThreadingXAFirst() throws Exception {
 //        Xid xid1 = new CustomXid(1);
 //        
@@ -543,7 +536,7 @@ public class XADataSourceTest extends TestCase {
 //        conn.createStatement().executeUpdate("INSERT INTO testxathreads3 VALUES (1)");
 //        xaRes.end(xid1, XAResource.TMSUCCESS);
 //        
-//        conn.close(); // Close the connection, rolling back the in-progress TX.
+//        conn.close(); // Close the connection. This should roll-back an in-progress TX.
 //        
 //        jackie.start();
 //        jackie.join();

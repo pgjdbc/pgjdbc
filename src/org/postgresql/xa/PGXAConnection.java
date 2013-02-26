@@ -69,6 +69,9 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
      */
     @Override
     public Connection getConnection() throws SQLException {
+        // TODO: Wrap this in a proxy that handles the 'close' method properly for logical connections associated to physical 
+        // connections which have a physical TX in an unprepared / uncommited state.
+        // @see the testMixedTXThreadingXAFirst unit test.
         return super.getConnection();
     }
 
@@ -78,7 +81,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     }
     
     @Override
-    public void close() throws SQLException {
+    public synchronized void close() throws SQLException {
         try {
             super.close();
         } finally {

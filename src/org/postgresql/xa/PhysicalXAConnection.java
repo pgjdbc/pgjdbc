@@ -6,6 +6,7 @@
 */
 package org.postgresql.xa;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
@@ -106,12 +107,12 @@ class PhysicalXAConnection {
             }
             
             boolean available = 
-                (logicalConnections.contains(logicalConnection) || logicalConnections.isEmpty()) || // Already servicing this logical connection, or not servicing any at all.
-                (associatedXid != null && associatedXid.equals(xid)) || // same xid
+                            (logicalConnections.contains(logicalConnection) || logicalConnections.isEmpty()) || // Already servicing this logical connection, or not servicing any at all.
+                            (associatedXid != null && associatedXid.equals(xid)) || // same xid
                     
-                 // No xid, and no local TX, same user
-                 ((associatedXid == null && connection.getTransactionState() == ProtocolConnection.TRANSACTION_IDLE) && 
-                  logicalConnection.getUser().equals(user));
+                            // No xid, and no local TX, same user
+                            ((associatedXid == null && connection.getTransactionState() == ProtocolConnection.TRANSACTION_IDLE) && 
+                            logicalConnection.getUser().equals(user));
             
             if (available) {
                 this.associatedXid = xid;
