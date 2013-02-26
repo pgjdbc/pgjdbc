@@ -62,6 +62,7 @@ public class XADataSourceTest extends TestCase {
 
     protected void tearDown() throws SQLException {
         xaconn.close();
+        assertEquals(0, ((PGXADataSource)_ds).getPhysicalConnectionCount());
         clearAllPrepared();
 
         TestUtil.dropTable(_conn, "testxa1");
@@ -126,6 +127,9 @@ public class XADataSourceTest extends TestCase {
         }
         public boolean equals(Object o) {
             Xid other = (Xid)o;
+            if (o == null || !(o instanceof Xid)) {
+                return false;
+            }
             if (other.getFormatId() != this.getFormatId())
                 return false;
             if (!Arrays.equals(other.getBranchQualifier(), this.getBranchQualifier()))

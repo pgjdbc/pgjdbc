@@ -6,12 +6,13 @@
 */
 package org.postgresql.xa;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
 import javax.transaction.xa.Xid;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Logger;
+import org.postgresql.core.ProtocolConnection;
 import org.postgresql.util.GT;
 
 /**
@@ -22,13 +23,18 @@ import org.postgresql.util.GT;
 class PhysicalXAConnection {
 
     private final Logger logger;
+    
     private BaseConnection connection;
     private String user;
     private String password;
+    private int backendPid;
+    
     private Xid associatedXid;
     private boolean suspended;
-    private int backendPid;
-    private Set<Long> activeThreadIds;
+    
+    /** Private lock for managing association / disassociation critical sections. */
+    private final ReentrantLock managementLock = new ReentrantLock();
+    private List<PGXAConnection> logicalConnections = new ArrayList<PGXAConnection>(2);
 
     /**
      * Construct a PhysicalXAConnection.  After construction, this connection will have no associated xid,
@@ -47,8 +53,7 @@ class PhysicalXAConnection {
         this.associatedXid = null;
         this.suspended = false;
         this.backendPid = physicalConn.getBackendPID();
-        this.activeThreadIds = Collections.synchronizedSet(new HashSet<Long>(3));
-        logger = physicalConn.getLogger();
+        this.logger = physicalConn.getLogger();
         if (logger.logDebug()) {
             logger.debug(GT.tr("[{0}] - {1} instantiated", new Object[]{backendPid, PhysicalXAConnection.class.getName()}));
         }
@@ -60,7 +65,7 @@ class PhysicalXAConnection {
     BaseConnection getConnection() {
         return connection;
     }
-
+    
     /**
      * @return The transaction id associated to this connection
      */
@@ -68,42 +73,122 @@ class PhysicalXAConnection {
         return associatedXid;
     }
 
+    ReentrantLock getManagementLock() {
+        return managementLock;
+    }
+    
     /**
-     * Sets the transaction id associated to this connection.
-     *
-     * @param xid the transaction id to associate to this connection
+     * Associates the logical connection on the given thread to do work on behalf of the given xid.
+     * 
+     * @param logicalConnection
+     * @param xid
+     * 
+     * @throws IllegalStateException if the connection is currently associated to a xid other than the supplied xid.
      */
-    void associateXidThread(final Xid xid, final Thread thread) {
-        this.associatedXid = xid;
-        this.suspended = false;
-        this.activeThreadIds.add(thread.getId());
+    boolean associate(final PGXAConnection logicalConnection, final Xid xid) throws IllegalStateException {
+        managementLock.lock();
+        try {
+            // Sanity checks.
+            if (associatedXid != null) {
+                if (xid == null) {
+                    if (logger.logDebug()) {
+                        logger.debug(GT.tr("Attempted to associate a phsycial connection for local TX mode which is already servicing distributed transaction xid: {0}", 
+                                                              RecoveredXid.xidToString(associatedXid)));
+                    }
+                    return false;
+                } else if (!associatedXid.equals(xid)) {
+                    if (logger.logDebug()) {
+                        logger.debug(GT.tr("Attempted to associate a physical connection to xid [{0}], which differs from it's current xid [{1}].",
+                                                              new Object[] {RecoveredXid.xidToString(xid), RecoveredXid.xidToString(associatedXid)}));
+                    }
+                    return false;
+                }
+            }
+            
+            boolean available = 
+                (logicalConnections.contains(logicalConnection) || logicalConnections.isEmpty()) || // Already servicing this logical connection, or not servicing any at all.
+                (associatedXid != null && associatedXid.equals(xid)) || // same xid
+                    
+                 // No xid, and no local TX, same user
+                 ((associatedXid == null && connection.getTransactionState() == ProtocolConnection.TRANSACTION_IDLE) && 
+                  logicalConnection.getUser().equals(user));
+            
+            if (available) {
+                this.associatedXid = xid;
+                this.logicalConnections.add(logicalConnection);
+                logicalConnection.setPhysicalXAConnection(this);
 
-        if (logger.logDebug()) {
-            logger.debug(GT.tr("[{0}] - Current thread: {1} associated to xid: {2}", new Object[]{backendPid, thread.getName(), RecoveredXid.xidToString(xid)}));
+                if (logger.logDebug()) {
+                    logger.debug(GT.tr("[{0}] - associated to xid: {2}", new Object[]{backendPid, RecoveredXid.xidToString(xid)}));
+                }
+            }
+            
+            return available;
+        } finally {
+            managementLock.unlock();
         }
     }
     
-    void disassociateXid() {
-        String xidString = RecoveredXid.xidToString(associatedXid);
-
-        this.associatedXid = null;
-        this.suspended = false;
-
-        if (logger.logDebug()) {
-            logger.debug(GT.tr("[{0}] - Physical connection disassociated from xid: {1}.", new Object[]{backendPid, xidString}));
+    
+    boolean isCloseable(final PGXAConnection logicalConnection) {
+        return logicalConnections.isEmpty() && 
+               associatedXid == null && 
+               connection.getTransactionState() != ProtocolConnection.TRANSACTION_OPEN &&
+               user.equals(logicalConnection.getUser());
+    }
+    
+    
+    /**
+     * Disassociates the logical connection on the given thread from this physical connection.
+     * 
+     * @param logicalConnection 
+     * @param thread
+     * @param xid If not null, removes the xid association from this physical connection.
+     * 
+     * @throws IllegalStateException 
+     */
+    void disassociate(final PGXAConnection logicalConnection, final Xid xid) throws IllegalStateException {
+        managementLock.lock();
+        try {
+            if (logicalConnection != null) {
+                if (!logicalConnections.remove(logicalConnection)) {
+                    throw new IllegalStateException(GT.tr("Attempted to dissassociate a logical connection not associated to this physical connection."));
+                }
+                logicalConnection.setPhysicalXAConnection(null);
+            }
+            
+            // Clean up the xid...
+            if (xid != null) {
+                if (associatedXid == null) {
+                    throw new IllegalStateException(GT.tr("Attempted to disassociate xid [{0}] from physical connection not servicing any xid.", 
+                                                          RecoveredXid.xidToString(xid)));
+                } else if (!xid.equals(associatedXid)) {
+                    throw new IllegalStateException(GT.tr("Attempted to disassociate xid [{0}] from physical connection servicing xid [{1}].",
+                                                          new Object[] {RecoveredXid.xidToString(xid), RecoveredXid.xidToString(associatedXid)}));
+                }
+                
+                this.associatedXid = null;
+                this.suspended = false;
+            }
+        } finally {
+            managementLock.unlock();
         }
     }
     
-    void disassociateThread(final Thread thread) {
-        this.activeThreadIds.remove(thread.getId());
-
-        if (logger.logDebug()) {
-            logger.debug(GT.tr("[{0}] - Thread: {1} disassociated.", new Object[]{backendPid, thread.getName()}));
+    void disassociate() {
+        managementLock.lock();
+        try {
+            // Clean up the logical connections.
+            PGXAConnection logical = null;
+            for (int i = 0; i < logicalConnections.size(); i++) {
+                logical = logicalConnections.get(i);
+                disassociate(logical, null);
+            }
+            // Disassociate any remaining xid.
+            disassociate(null, associatedXid);
+        } finally {
+            managementLock.unlock();
         }
-    }
-    
-    int getAssociatedThreadCount() {
-        return this.activeThreadIds.size();
     }
     
     boolean isSuspended() {

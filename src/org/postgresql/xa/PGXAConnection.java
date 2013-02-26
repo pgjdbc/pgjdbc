@@ -41,6 +41,8 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     private PGXADataSource dataSource;
     private boolean inXaTx;
     
+    private PhysicalXAConnection backend;
+    
     /*
      * When an XA transaction is started, we put the logical connection
      * into non-autocommit mode. The old setting is saved in
@@ -54,6 +56,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         this.user = user;
         this.dataSource = dataSource;
         this.inXaTx = false;
+        this.backend = null;
 
         logger = new Logger();
     }
@@ -98,7 +101,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
      * @param flags flags to the transaction start (TMNOFLAGS, TMRESUME, or TMJOIN)
      * @throws XAException 
      */
-    public void start(Xid xid, int flags) throws XAException {
+    public synchronized void start(Xid xid, int flags) throws XAException {
         if (xid == null) {
             throw new PGXAException(GT.tr("xid must not be null"), XAException.XAER_INVAL);
         }
@@ -159,7 +162,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
      * @param flags flags for the end call (TMSUCCESS, TMFAIL, TMSUSPEND)
      * @throws XAException 
      */
-    public void end(Xid xid, int flags) throws XAException {
+    public synchronized void end(Xid xid, int flags) throws XAException {
         if (flags != XAResource.TMSUSPEND && flags != XAResource.TMFAIL && flags != XAResource.TMSUCCESS) {
             throw new PGXAException(GT.tr("Invalid flags"), XAException.XAER_INVAL);
         }
@@ -200,7 +203,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
      * @param onePhase true if this is a one-phase commit, false if two
      * @throws XAException 
      */
-    public void commit(Xid xid, boolean onePhase) throws XAException {
+    public synchronized void commit(Xid xid, boolean onePhase) throws XAException {
         if (xid == null) {
             throw new PGXAException(GT.tr("xid must not be null"), XAException.XAER_INVAL);
         }
@@ -256,7 +259,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
      */
     public int prepare(Xid xid) throws XAException {
         try {
-            int ret = dataSource.prepare(xid);
+            int ret = dataSource.prepare(this, xid);
             getBackingConnection().setAutoCommit(localTxAutoCommitMode);
             return ret;
         } catch (Exception ex) {
@@ -295,8 +298,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
             try {
                 // TODO: Reconcile this method against the JTA spec. It seems very incorrect at this point, although I don't believe
                 // you can hold a cursor in a prepared transaction, so this may be a case of needing an extra 'control' connection.
-                
-                stmt = dataSource.getPhysicalConnection(this, true).getConnection().createStatement();
+                stmt = dataSource.resolvePhysicalConnection(this, null).getConnection().createStatement();
                 
                 // If this connection is simultaneously used for a transaction,
                 // this query gets executed inside that transaction. It's OK,
@@ -341,7 +343,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
      * @param xid The transaction id
      * @throws XAException 
      */
-    public void rollback(Xid xid) throws XAException {
+    public synchronized void rollback(Xid xid) throws XAException {
         dataSource.rollback(this, xid);
         try {
             getBackingConnection().setAutoCommit(localTxAutoCommitMode);
@@ -378,5 +380,19 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
      */
     String getUser() {
         return user;
+    }
+    
+    /**
+     * Managed by the PhysicalXAConnection's associate / disassociate methods.
+     */
+    PhysicalXAConnection getPhysicalXAConnection() {
+        return backend;
+    }
+    
+    /**
+     * Managed by the PhysicalXAConnection's associate / disassociate methods.
+     */
+    void setPhysicalXAConnection(PhysicalXAConnection backend) {
+        this.backend = backend;
     }
 }
