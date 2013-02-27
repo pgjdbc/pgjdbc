@@ -163,8 +163,7 @@ class PhysicalXAConnection {
     /**
      * Disassociates the logical connection on the given thread from this physical connection.
      * 
-     * @param logicalConnection 
-     * @param thread
+     * @param logicalConnection
      * @param xid If not null, removes the xid association from this physical connection.
      * 
      * @throws IllegalStateException 
@@ -174,7 +173,7 @@ class PhysicalXAConnection {
         try {
             if (logicalConnection != null) {
                 if (!logicalConnections.remove(logicalConnection)) {
-                    throw new IllegalStateException(GT.tr("Attempted to dissassociate a logical connection not associated to this physical connection."));
+                    throw new IllegalStateException(GT.tr("Attempted to disassociate a logical connection not associated to this physical connection."));
                 }
                 logicalConnection.setPhysicalXAConnection(null);
             }

@@ -30,6 +30,7 @@ public class XATestSuite extends TestSuite {
                 int mpt = rs.getInt(1);
                 if (mpt > 0) {
                     suite.addTestSuite(XADataSourceTest.class);
+                    suite.addTestSuite(PooledXADataSourceTest.class);
                 } else {
                     System.out.println("Skipping XA tests because max_prepared_transactions = 0.");
                 }
