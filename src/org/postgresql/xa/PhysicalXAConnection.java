@@ -6,6 +6,7 @@
 */
 package org.postgresql.xa;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
@@ -29,6 +30,8 @@ class PhysicalXAConnection {
     private String password;
     private int backendPid;
     
+    private boolean localAutoCommit;
+    
     private Xid associatedXid;
     private boolean suspended;
     
@@ -46,7 +49,7 @@ class PhysicalXAConnection {
      * @param user The username credential for the connection
      * @param password The password for the connection
      */
-    PhysicalXAConnection(final BaseConnection physicalConn, final String user, final String password) {
+    PhysicalXAConnection(final BaseConnection physicalConn, final String user, final String password) throws SQLException {
         this.connection = physicalConn;
         this.user = user;
         this.password = password;
@@ -54,6 +57,7 @@ class PhysicalXAConnection {
         this.suspended = false;
         this.backendPid = physicalConn.getBackendPID();
         this.logger = physicalConn.getLogger();
+        this.localAutoCommit = physicalConn.getAutoCommit();
         if (logger.logDebug()) {
             logger.debug(GT.tr("[{0}] - {1} instantiated", new Object[]{backendPid, PhysicalXAConnection.class.getName()}));
         }
@@ -106,14 +110,20 @@ class PhysicalXAConnection {
             }
             
             boolean available = 
-                (logicalConnections.contains(logicalConnection) || logicalConnections.isEmpty()) || // Already servicing this logical connection, or not servicing any at all.
-                (associatedXid != null && associatedXid.equals(xid)) || // same xid
+                            (logicalConnections.contains(logicalConnection) || logicalConnections.isEmpty()) || // Already servicing this logical connection, or not servicing any at all.
+                            (associatedXid != null && associatedXid.equals(xid)) || // same xid
                     
-                 // No xid, and no local TX, same user
-                 ((associatedXid == null && connection.getTransactionState() == ProtocolConnection.TRANSACTION_IDLE) && 
-                  logicalConnection.getUser().equals(user));
+                            // No xid (local TX mode), no other logical connection, and it's the same user.
+                            (associatedXid == null && 
+                             logicalConnections.isEmpty() && 
+                             logicalConnection.getUser().equals(user));
             
             if (available) {
+                // If we're associating to an xid, turn off autocommit.
+                if (this.associatedXid == null && xid != null) {
+                    this.localAutoCommit = connection.getAutoCommit();
+                    connection.setAutoCommit(false);
+                }
                 this.associatedXid = xid;
                 this.logicalConnections.add(logicalConnection);
                 logicalConnection.setPhysicalXAConnection(this);
@@ -124,6 +134,12 @@ class PhysicalXAConnection {
             }
             
             return available;
+        } catch (SQLException sqle) {
+            if (logger.logDebug()) {
+                logger.debug(GT.tr("Could not modify autocommit state for physical connection."), sqle);
+            }
+            
+            return false;
         } finally {
             managementLock.unlock();
         }
@@ -165,9 +181,16 @@ class PhysicalXAConnection {
                     throw new IllegalStateException(GT.tr("Attempted to disassociate xid [{0}] from physical connection servicing xid [{1}].",
                                                           new Object[] {RecoveredXid.xidToString(xid), RecoveredXid.xidToString(associatedXid)}));
                 }
+
+                // Restore the autocommit.
+                connection.setAutoCommit(localAutoCommit);
+                associatedXid = null;
+                suspended = false;
                 
-                this.associatedXid = null;
-                this.suspended = false;
+            }
+        } catch (SQLException sqle) {
+            if (logger.logDebug()) {
+                logger.debug(GT.tr("Could not restore autocommit mode for physical conneciton."), sqle);
             }
         } finally {
             managementLock.unlock();

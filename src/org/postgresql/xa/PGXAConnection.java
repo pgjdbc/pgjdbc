@@ -39,23 +39,13 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     
     private String user;
     private PGXADataSource dataSource;
-    private boolean inXaTx;
     
     private PhysicalXAConnection backend;
-    
-    /*
-     * When an XA transaction is started, we put the logical connection
-     * into non-autocommit mode. The old setting is saved in
-     * localAutoCommitMode, so that we can restore it when the XA transaction
-     * ends and the connection returns into local transaction mode.
-     */
-    private boolean localTxAutoCommitMode = true;
     
     protected PGXAConnection(final String user, final Connection logicalConnection, PGXADataSource dataSource) {
         super(logicalConnection, true, true);
         this.user = user;
         this.dataSource = dataSource;
-        this.inXaTx = false;
         this.backend = null;
 
         logger = new Logger();
@@ -69,6 +59,9 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
      */
     @Override
     public Connection getConnection() throws SQLException {
+        // TODO: Wrap this in a proxy that handles the 'close' method properly for logical connections associated to physical 
+        // connections which have a physical TX in an unprepared / uncommited state.
+        // @see the testMixedTXThreadingXAFirst unit test.
         return super.getConnection();
     }
 
@@ -78,7 +71,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     }
     
     @Override
-    public void close() throws SQLException {
+    public synchronized void close() throws SQLException {
         try {
             super.close();
         } finally {
@@ -104,18 +97,6 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     public synchronized void start(Xid xid, int flags) throws XAException {
         if (xid == null) {
             throw new PGXAException(GT.tr("xid must not be null"), XAException.XAER_INVAL);
-        }
-
-
-        try {
-            if (logger.logDebug()) {
-               logger.debug(GT.tr("Disabling auto commit for transaction xid: {0}", new Object[]{RecoveredXid.xidToString(xid)}));
-            }
-            this.localTxAutoCommitMode = getBackingConnection().getAutoCommit();
-            getBackingConnection().setAutoCommit(false);
-            inXaTx = true;
-        } catch (SQLException sqle) {
-            throw new PGXAException(GT.tr("Error disabling autocommit"), sqle, XAException.XAER_RMERR);
         }
 
         switch (flags) {
@@ -179,7 +160,6 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
             dataSource.suspend(this, xid);
         }
         dataSource.end(this, xid);
-        inXaTx = false;
     }
 
     /**
@@ -209,13 +189,6 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         }
 
         dataSource.commit(this, xid, onePhase);
-        if (onePhase && !inXaTx) {
-            try {
-                getBackingConnection().setAutoCommit(localTxAutoCommitMode);
-            } catch (SQLException sqle) {
-                throw new PGXAException(GT.tr("Failed to restore local transaction auto commit mode."), sqle, XAException.XAER_RMERR);
-            }
-        }
     }
     
     /**
@@ -259,9 +232,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
      */
     public int prepare(Xid xid) throws XAException {
         try {
-            int ret = dataSource.prepare(this, xid);
-            getBackingConnection().setAutoCommit(localTxAutoCommitMode);
-            return ret;
+            return dataSource.prepare(this, xid);
         } catch (Exception ex) {
             throw new PGXAException(GT.tr(ex.getMessage()), ex, XAException.XAER_RMERR);
         }
@@ -345,11 +316,6 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
      */
     public synchronized void rollback(Xid xid) throws XAException {
         dataSource.rollback(this, xid);
-        try {
-            getBackingConnection().setAutoCommit(localTxAutoCommitMode);
-        } catch (SQLException sqle) {
-            throw new PGXAException(GT.tr("Failed to restore local transaction auto commit mode."), sqle, XAException.XAER_RMERR);
-        }
     }
 
     /**
