@@ -65,8 +65,8 @@ public class PGXADataSource extends AbstractPGXADataSource {
     /**
      * Protected method for returning new instances of PGXAConnection or subclasses.
      */
-    protected PGXAConnection createPGXAConnection(String user, Connection connection) {
-        return new PGXAConnection(user, connection, this);
+    protected PGXAConnection createPGXAConnection(String user, String password, Connection connection) {
+        return new PGXAConnection(user, password, connection, this);
     }
 
     /**
@@ -85,7 +85,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
         // Create a new LogicalXAConnectionHandler proxy.
         LogicalXAConnectionHandler logicalHandler = new LogicalXAConnectionHandler();
         PGXAConnection logicalConnection = createPGXAConnection(
-                user,
+                user, password,
                 (Connection)Proxy.newProxyInstance(
                         getClass().getClassLoader(),
                         new Class[]{Connection.class, PGConnection.class},
@@ -155,24 +155,6 @@ public class PGXADataSource extends AbstractPGXADataSource {
             physicalConnections.notify();
         }
     }
-    
-    private void allocatePhysicalConnection(final String user) throws SQLException, IllegalStateException {
-        // Finds an existing Physical connection to copy, then allocates a new physical connection.
-        synchronized(physicalConnections) {
-            PhysicalXAConnection conn = null;
-            for (int i = 0; i < physicalConnections.size(); i++) {
-                conn = physicalConnections.get(i);
-                
-                if (conn.getUser().equals(user)) {
-                    allocatePhysicalConnection(conn.getUser(), conn.getPassword());
-                    return;
-                }
-            }
-        }
-        
-        throw new IllegalStateException("Could not find a valid connection for the given user to copy.");
-    }
-    
     
     private void allocatePhysicalConnection(final String user, final String password) throws SQLException {
         PhysicalXAConnection physicalXAConnection = new PhysicalXAConnection(
@@ -280,9 +262,8 @@ public class PGXADataSource extends AbstractPGXADataSource {
                             logger.debug(GT.tr("Attempting to open new physical connection."));
                         }
 
-                        String user = logicalConnection.getUser();
                         try {
-                            allocatePhysicalConnection(user);
+                            allocatePhysicalConnection(logicalConnection.getUser(), logicalConnection.getPassword());
                         } catch (Exception ex) {
                             throw new PGXAException(GT.tr("Failed to open new physical connection."), ex, XAException.XAER_RMERR);
                         }

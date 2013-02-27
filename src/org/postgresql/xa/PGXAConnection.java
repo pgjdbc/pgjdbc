@@ -38,13 +38,15 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     private final Logger logger;
     
     private String user;
+    private String password;
     private PGXADataSource dataSource;
     
     private PhysicalXAConnection backend;
     
-    protected PGXAConnection(final String user, final Connection logicalConnection, PGXADataSource dataSource) {
+    protected PGXAConnection(final String user, final String password, final Connection logicalConnection, PGXADataSource dataSource) {
         super(logicalConnection, true, true);
         this.user = user;
+        this.password = password;
         this.dataSource = dataSource;
         this.backend = null;
 
@@ -340,10 +342,19 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     /**
      * Used by the PGXADataSource to make sure we're getting a proper physical connection.
      * 
-     * @return The current user for the physical connection
+     * @return the user specified when the XAConnection was created.
      */
     String getUser() {
         return user;
+    }
+
+    /**
+     * Used by the PGXADataSource to make sure we're getting a proper physical connection.
+     * 
+     * @return the password specified when the XAConnection was created.
+     */
+    String getPassword() {
+        return password;
     }
     
     /**
