@@ -147,10 +147,16 @@ class PhysicalXAConnection {
     
     
     boolean isCloseable(final PGXAConnection logicalConnection) {
-        return logicalConnections.isEmpty() && 
+        // if it's empty or it only contains this logical connection...
+        return (logicalConnections.isEmpty() || isOnlyLogicalAssociation(logicalConnection)) &&
                associatedXid == null && 
                connection.getTransactionState() != ProtocolConnection.TRANSACTION_OPEN &&
                user.equals(logicalConnection.getUser());
+    }
+    
+    
+    boolean isOnlyLogicalAssociation(final PGXAConnection logicalConnection) {
+        return (logicalConnections.size() == 1 && logicalConnections.contains(logicalConnection));
     }
     
     

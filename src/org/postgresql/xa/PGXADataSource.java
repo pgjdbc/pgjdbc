@@ -109,6 +109,53 @@ public class PGXADataSource extends AbstractPGXADataSource {
         return physicalConnections.size();
     }
     
+    public int getAvailableConnections(final PGXAConnection logicalConnection) {
+        int available = 0;
+        synchronized(physicalConnections) {
+            for (int i = 0; i < physicalConnections.size(); i++) {
+                if (physicalConnections.get(i).isCloseable(logicalConnection)) {
+                    available++;
+                }
+            }
+        }
+        return available;
+    }
+
+    void closePhysicalsMatching(final PGXAConnection logicalConnection) throws SQLException {
+        // Disassociate the logical from a backend first.
+        synchronized(physicalConnections) {
+            // Prune the physical connections
+            List<PhysicalXAConnection> closeable = new ArrayList<PhysicalXAConnection>();
+            PhysicalXAConnection candidate = null;
+            for (int i = 0; i < physicalConnections.size(); i++) {
+                candidate = physicalConnections.get(i);
+                if (candidate.isCloseable(logicalConnection)) {
+                    closeable.add(candidate);
+                }
+            }
+
+            if (logger.logDebug()) {
+                logger.debug(GT.tr("Removing {0} closable physical connections out of {1} total physical connections.", new Object[]{closeable.size(), physicalConnections.size()}));
+            }
+
+            physicalConnections.removeAll(closeable);
+
+            if (logger.logDebug()) {
+                logger.debug(GT.tr("Closeable connections removed.  {0} Total physical connections remaining.", new Object[]{physicalConnections.size()}));
+            }
+
+            // Close them!
+            for (int i = 0; i < closeable.size(); i++) {
+                closeable.get(i).getConnection().close();
+            }
+            if (logger.logDebug()) {
+                logger.debug(GT.tr("Successfully closed {0} closeable connections.", new Object[]{closeable.size()}));
+            }
+
+            physicalConnections.notify();
+        }
+    }
+    
     private void allocatePhysicalConnection(final String user) throws SQLException, IllegalStateException {
         // Finds an existing Physical connection to copy, then allocates a new physical connection.
         synchronized(physicalConnections) {
@@ -674,52 +721,6 @@ public class PGXADataSource extends AbstractPGXADataSource {
                 return method.invoke(physicalConnection.getConnection(), args);
             } catch (InvocationTargetException ex) {
                 throw ex.getTargetException();
-            } finally {
-                // If a logical connection was closed, we have at least 1 physical 
-                // connection pegged to it which should also be closed. 
-                // There was a physical associated when we started servicing
-                // this method invocation. It -should- have been closed by now.
-                // 
-                // We may have physical connections we've opened to handle 
-                // interleaving requests and resource sharing. This is a good
-                // time to shrink the physical pool.
-                if (methodName.equals("close")) {
-                    // Disassociate the logical from a backend first.
-                    synchronized(physicalConnections) {
-                        physicalConnection.disassociate(logicalConnection, null); // don't touch the xid.
-                        physicalConnections.notify();
-
-                        // Prune the physical connections
-                        List<PhysicalXAConnection> closeable = new ArrayList<PhysicalXAConnection>();
-                        PhysicalXAConnection candidate = null;
-                        for (int i = 0; i < physicalConnections.size(); i++) {
-                            candidate = physicalConnections.get(i);
-                            if (candidate.isCloseable(logicalConnection)) {
-                                closeable.add(candidate);
-                            }
-                        }
-
-                        if (logger.logDebug()) {
-                            logger.debug(GT.tr("Removing {0} closable physical connections out of {1} total physical connections.", new Object[]{closeable.size(), physicalConnections.size()}));
-                        }
-
-                        physicalConnections.removeAll(closeable);
-
-                        if (logger.logDebug()) {
-                            logger.debug(GT.tr("Closeable connections removed.  {0} Total physical connections remaining.", new Object[]{physicalConnections.size()}));
-                        }
-
-                        // Close them!
-                        for (int i = 0; i < closeable.size(); i++) {
-                            closeable.get(i).getConnection().close();
-                        }
-                        if (logger.logDebug()) {
-                            logger.debug(GT.tr("Successfully closed {0} closeable connections.", new Object[]{closeable.size()}));
-                        }
-                        
-                        physicalConnections.notify();
-                    }
-                }
             }
         }
     }

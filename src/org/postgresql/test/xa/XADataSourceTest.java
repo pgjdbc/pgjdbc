@@ -23,6 +23,7 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.optional.BaseDataSourceTest;
 
 import junit.framework.TestCase;
+import org.postgresql.xa.PGXAConnection;
 import org.postgresql.xa.PGXADataSource;
 
 public class XADataSourceTest extends TestCase {
@@ -525,8 +526,8 @@ public class XADataSourceTest extends TestCase {
         assertTrue(lt.hadError());
     }
     
-    
-//    public void testMixedTXThreadingXAFirst() throws Exception {
+
+//    public void testCloseBeforeCommitPrepareMixed() throws Exception {
 //        Xid xid1 = new CustomXid(1);
 //        
 //        LocalThread lt = new LocalThread(conn, "testxathreads3", 2);
@@ -536,14 +537,14 @@ public class XADataSourceTest extends TestCase {
 //        conn.createStatement().executeUpdate("INSERT INTO testxathreads3 VALUES (1)");
 //        xaRes.end(xid1, XAResource.TMSUCCESS);
 //        
-//        conn.close(); // Close the connection. This should roll-back an in-progress TX.
+//        conn.close(); // Close the connection handle. This should roll-back an in-progress TX.
 //        
 //        jackie.start();
 //        jackie.join();
 //        
 //        assertTrue(lt.hadError());
 //    }
-
+    
     /**
      * Test that commit prepared will not be attempted on a connection already servicing an xid
      * Specifically - ERROR: COMMIT PREPARED cannot run inside a transaction block
