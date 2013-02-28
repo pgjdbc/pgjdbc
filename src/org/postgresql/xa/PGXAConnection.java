@@ -35,8 +35,6 @@ import org.postgresql.util.GT;
  */
 public class PGXAConnection extends PGPooledConnection implements XAConnection, XAResource {
 
-    private final Logger logger;
-    
     private String user;
     private String password;
     private PGXADataSource dataSource;
@@ -49,8 +47,6 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         this.password = password;
         this.dataSource = dataSource;
         this.backend = null;
-
-        logger = new Logger();
     }
     
     /**
