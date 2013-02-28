@@ -12,7 +12,6 @@ import javax.sql.*;
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
-import org.postgresql.core.Logger;
 import org.postgresql.ds.PGPooledConnection;
 import org.postgresql.util.GT;
 
