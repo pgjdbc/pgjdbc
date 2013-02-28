@@ -36,6 +36,15 @@ import org.postgresql.util.PSQLState;
 /**
  * An XADataSource implementation which complies with the JTA spec for interleaving, resource sharing, etc.
  * 
+ * The postgresql implementation of XADataSource has the following configuration options, which can be used to configure
+ * support for XA interleaving.
+ * <ul>
+ * <li>xaAcquireTimeout - Sets the amount of time to wait for physical connections to be released 
+ *         from servicing a logical connection before opening a new physical connection. Setting this to 0 will disable support for
+ *         creating more physical connections than logical connections which have been created by the data source.</li>
+ * <li>xaWaitStep - Sets the max amount of time to wait on a synchronizer monitor before re-checking for a physical connection.</li>
+ * </ul>
+ * 
  * @author bvarner
  */
 public class PGXADataSource extends AbstractPGXADataSource {
@@ -54,13 +63,13 @@ public class PGXADataSource extends AbstractPGXADataSource {
     /**
      * Time to wait for a physical connection to become available before we create a new physical connection to service a logical.
      */
-    private int xaAcquireTimeout = 500; // in milliseconds
+    private int xaAcquireTimeout = 50; // in milliseconds
 
     /**
      * Time to wait for a physical connection to become available before checking again.
      * Once we've waited up to acquirePhysicalTimeout, we'll create a new backend.
      */
-    private int xaWaitStep = 25; // in milliseconds;
+    private int xaWaitStep = 10; // in milliseconds;
 
     /**
      * Protected method for returning new instances of PGXAConnection or subclasses.
@@ -158,9 +167,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
     
     private void allocatePhysicalConnection(final String user, final String password) throws SQLException {
         PhysicalXAConnection physicalXAConnection = new PhysicalXAConnection(
-                (BaseConnection) super.getConnection(user, password),
-                user,
-                password);
+                (BaseConnection) super.getConnection(user, password), user);
 
         synchronized(physicalConnections) {
             physicalConnections.add(physicalXAConnection);
@@ -208,7 +215,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
         // If the physical is servicing a xid, and it's not a match for the xid requested, we need a new physical.
         if (physical != null && physical.getAssociatedXid() != null && !physical.getAssociatedXid().equals(xid)) {
             synchronized(physicalConnections) {
-                physical.disassociate(logicalConnection, null); // leave the xid alone...
+                physical.disassociate(logicalConnection); // leave the xid alone...
                 physicalConnections.notify();
             }
             physical = null;
@@ -216,7 +223,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
             // If the physical is not servicing a xid, and we want to service a xid then we need to decouple from the current
             // physical, and look for one matching the xid.
             synchronized(physicalConnections) {
-                physical.disassociate(logicalConnection, null); // leave the xid alone...
+                physical.disassociate(logicalConnection); // leave the xid alone...
                 physicalConnections.notify();
             }
             physical = null;
@@ -246,11 +253,14 @@ public class PGXADataSource extends AbstractPGXADataSource {
                     found = physical.associate(logicalConnection, xid);
                 }
 
-                // If that blows up, then we need to wait for a connection.
+                // If that blows up, then we need to wait for a connection if we're configured to do so.
                 if (!found) {
                     physical = null;
 
-                    if (attempts * xaWaitStep < xaAcquireTimeout) {
+                    if (xaAcquireTimeout <= 0) {
+                        throw new PGXAException(GT.tr("Support for Transaction Interleaving has been disabled. " + 
+                                                "Set 'xaAcquireTimeout' > 0 to enable interleaving support"), XAException.XAER_RMERR);
+                    } else if (attempts * xaWaitStep < xaAcquireTimeout) {
                         try {
                             physicalConnections.wait(20);
                         } catch (InterruptedException ie) {
@@ -291,7 +301,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
      */
     void end(final PGXAConnection logicalConnection, final Xid xid) throws XAException {
         PhysicalXAConnection physicalConn = resolvePhysicalConnection(logicalConnection, xid);
-        physicalConn.disassociate(logicalConnection, null); // We don't want to disassociate the xid, just the logical connection.
+        physicalConn.disassociate(logicalConnection); // We don't want to disassociate the xid, just the logical connection.
 
         if (logger.logDebug()) {
             logger.debug(GT.tr("{[0]} - Successfully disassociated xid: {1}", new Object[]{physicalConn.getBackendPID(), RecoveredXid.xidToString(xid)}));
@@ -429,7 +439,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
             }
 
             synchronized(physicalConnections) {
-                currentConn.disassociate(null, xid);
+                currentConn.disassociate(xid);
                 physicalConnections.notify();
             }
 
@@ -608,7 +618,6 @@ public class PGXADataSource extends AbstractPGXADataSource {
         Reference ref = super.getReference();
         ref.add(new StringRefAddr("xaWaitStep", Integer.toString(xaWaitStep)));
         ref.add(new StringRefAddr("xaAcquireTimeout", Integer.toString(xaAcquireTimeout)));
-//        ref.add(new StringRefAddr("xaConnectionMultiplier", Double.toString(xaConnectionMultiplier)));
         
         return ref;
     }
@@ -618,7 +627,6 @@ public class PGXADataSource extends AbstractPGXADataSource {
         super.writeBaseObject(out);
         out.writeInt(xaWaitStep);
         out.writeInt(xaAcquireTimeout);
-//        out.writeDouble(xaConnectionMultiplier);
     }
 
     @Override
@@ -626,7 +634,6 @@ public class PGXADataSource extends AbstractPGXADataSource {
         super.readBaseObject(in);
         xaWaitStep = in.readInt();
         xaAcquireTimeout = in.readInt();
-//        xaConnectionMultiplier = in.readDouble();
     }
 
     public void setXAWaitStep(int xaWaitStep) {
@@ -645,14 +652,6 @@ public class PGXADataSource extends AbstractPGXADataSource {
         return xaAcquireTimeout;
     }
 
-//    public void setXAConnectionMultiplier(double xaConnectionMultiplier) {
-//        this.xaConnectionMultiplier = xaConnectionMultiplier;
-//    }
-//
-//    public double getXAConnectionMultiplier() {
-//        return xaConnectionMultiplier;
-//    }
-    
     /**
      * Handles invoking Connection and PGConnection upon a physical backend, 
      * based upon the current state of things managed by the XAResource i
@@ -693,8 +692,8 @@ public class PGXADataSource extends AbstractPGXADataSource {
                     methodName.equals("setSavePoint") ||
                     (methodName.equals("setAutoCommit") && ((Boolean) args[0])))
                 {
-            throw new PSQLException(GT.tr("Transaction control methods setAutoCommit(true), commit, rollback and setSavePoint not allowed while an XA transaction is active."),
-                    PSQLState.OBJECT_NOT_IN_STATE);
+                    throw new PSQLException(GT.tr("Transaction control methods setAutoCommit(true), commit, rollback and setSavePoint not allowed while an XA transaction is active."),
+                            PSQLState.OBJECT_NOT_IN_STATE);
                 }
             }
             

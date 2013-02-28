@@ -27,7 +27,6 @@ class PhysicalXAConnection {
     
     private BaseConnection connection;
     private String user;
-    private String password;
     private int backendPid;
     
     private boolean localAutoCommit;
@@ -47,12 +46,10 @@ class PhysicalXAConnection {
      *
      * @param physicalConn The BaseConnection to wrap
      * @param user The username credential for the connection
-     * @param password The password for the connection
      */
-    PhysicalXAConnection(final BaseConnection physicalConn, final String user, final String password) throws SQLException {
+    PhysicalXAConnection(final BaseConnection physicalConn, final String user) throws SQLException {
         this.connection = physicalConn;
         this.user = user;
-        this.password = password;
         this.associatedXid = null;
         this.suspended = false;
         this.backendPid = physicalConn.getBackendPID();
@@ -145,7 +142,13 @@ class PhysicalXAConnection {
         }
     }
     
-    
+    /**
+     * Determines if the physical connection is in a closeable state if the given logical connection is being closed.
+     * 
+     * @param logicalConnection
+     * 
+     * @return true if this physical connection may be cleaned up, false if not.
+     */
     boolean isCloseable(final PGXAConnection logicalConnection) {
         // if it's empty or it only contains this logical connection...
         return (logicalConnections.isEmpty() || isOnlyLogicalAssociation(logicalConnection)) &&
@@ -154,16 +157,21 @@ class PhysicalXAConnection {
                user.equals(logicalConnection.getUser());
     }
     
-    
+    /**
+     * Determines if the given logical connection is the only associated connection we're servicing.
+     * 
+     * @param logicalConnection
+     * @return true if this physical connection is servicing only the given logical connection.
+     */
     boolean isOnlyLogicalAssociation(final PGXAConnection logicalConnection) {
         return (logicalConnections.size() == 1 && logicalConnections.contains(logicalConnection));
     }
     
     
     /**
-     * Disassociates the logical connection on the given thread from this physical connection.
+     * Disassociates the logical connection or xid from this physical connection.
      * 
-     * @param logicalConnection
+     * @param logicalConnection If not null, removes the specified logicalConnection from this physical connection.
      * @param xid If not null, removes the xid association from this physical connection.
      * 
      * @throws IllegalStateException 
@@ -203,6 +211,31 @@ class PhysicalXAConnection {
         }
     }
     
+    /**
+     * Disassociates the logical connection from this physical connection.
+     * 
+     * @param logicalConnection If not null, removes the specified logicalConnection from this physical connection.
+     * 
+     * @throws IllegalStateException 
+     */
+    void disassociate(final PGXAConnection logicalConnection) throws IllegalStateException {
+        disassociate(logicalConnection, null);
+    }
+    
+    /**
+     * Disassociates the xid from this physical connection.
+     * 
+     * @param logicalConnection If not null, removes the specified logicalConnection from this physical connection.
+     * 
+     * @throws IllegalStateException 
+     */
+    void disassociate(final Xid xid) {
+        disassociate(null, xid);
+    }
+    
+    /**
+     * Disassociates all logical connections and any associated xid from this connection.
+     */
     void disassociate() {
         managementLock.lock();
         try {
@@ -219,26 +252,38 @@ class PhysicalXAConnection {
         }
     }
     
+    /**
+     * @return true if this connection backs a suspended XAResource.
+     */
     boolean isSuspended() {
         return suspended;
     }
 
+    /**
+     * Marks this physical connection as backing a suspended XAResource.
+     */
     void markSuspended() {
         this.suspended = true;
     }
     
+    /**
+     * Gets the PID from the underlying PGConnection
+     * 
+     * @return 
+     */
     int getBackendPID() {
         return backendPid;
     }
     
+    /**
+     * Gets the user this connection was created with.
+     * 
+     * @return 
+     */
     String getUser() {
         return user;
     }
     
-    String getPassword() {
-        return password;
-    }
-
     /**
      * @param obj The object to compare
      * @return false if the provided object is null, not the same class, or does not have the same backend PID
