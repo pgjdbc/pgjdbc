@@ -71,11 +71,25 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     
     @Override
     public synchronized void close() throws SQLException {
+        SQLException sqle = null;
         try {
             super.close();
+        } catch (SQLException closeEx) {
+            sqle = closeEx;
         } finally {
-            dataSource.closePhysicalsMatching(this);
-            dataSource = null;
+            dataSource.close(this);
+        }
+
+        // If we had an exception on close, and there's no availabe connections (which was likely the cause!)
+        // Clear the exception and don't throw it.
+        if (sqle != null && dataSource.getAvailableConnections(this) == 0) {
+            sqle = null;
+        }
+        
+        dataSource = null;
+        
+        if (sqle != null) {
+            throw sqle;
         }
     }
 
@@ -103,6 +117,8 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
             case XAResource.TMNOFLAGS:
                 try {
                     dataSource.start(this, xid);
+                } catch (PGXAException pgae) {
+                    throw pgae;
                 } catch (XAException xae) {
                     throw new PGXAException(GT.tr(xae.getMessage()), xae, XAException.XAER_DUPID);
                 }
@@ -111,6 +127,8 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
                 // Associate the logicalConnectionId with an existing, pegged physical backend in the suspended state.
                 try {
                     dataSource.resume(this, xid);
+                } catch (PGXAException pgae) {
+                    throw pgae;
                 } catch (XAException xae) {
                     throw new PGXAException(GT.tr(xae.getMessage()), xae, XAException.XAER_INVAL);
                 }
@@ -120,6 +138,8 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
                 // Associate the logicalConnectionId with an existing, pegged physical backend not in the suspended state.
                 try {
                     dataSource.join(this, xid);
+                } catch (PGXAException pgae) {
+                    throw pgae;
                 } catch (XAException xae) {
                     throw new PGXAException(GT.tr(xae.getMessage()), xae, XAException.XAER_INVAL);
                 }
