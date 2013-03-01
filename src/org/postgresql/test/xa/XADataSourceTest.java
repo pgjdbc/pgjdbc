@@ -420,7 +420,6 @@ public class XADataSourceTest extends TestCase {
     public void testNoInterleaving1() throws Exception {
         ((PGXADataSource)_ds).setXAAcquireTimeout(0);
         Xid xid1 = new CustomXid(1);
-        Xid xid2 = new CustomXid(2);
 
         // Added this to validate DB isolation in interleaved situations.
         conn.setAutoCommit(true);
@@ -435,9 +434,12 @@ public class XADataSourceTest extends TestCase {
         // In a non-interleaving situation, this local TX query will blow up, as there won't be a physical connection
         // to service the query, and we won't be allowed to open new physical connections to service it. We expect an error.
         try {
-            ResultSet rs = conn.createStatement().executeQuery("SELECT foo FROM testxa1");
-            fail();
-        } catch (SQLException sqle) { }
+            conn.createStatement().executeQuery("SELECT foo FROM testxa1");
+            fail("With interleaving disabled, createStatement outside of the started XA TX should fail.");
+        } catch (SQLException sqle) { 
+        } catch (Exception ex) {
+            fail(ex.toString());
+        }
     }
     
     public void testNoInterleaving2() throws Exception {
@@ -587,23 +589,26 @@ public class XADataSourceTest extends TestCase {
     }
     
 
-//    public void testCloseBeforeCommitPrepareMixed() throws Exception {
-//        Xid xid1 = new CustomXid(1);
-//        
-//        LocalThread lt = new LocalThread(conn, "testxathreads3", 2);
-//        Thread jackie = new Thread(lt);
-//        
-//        xaRes.start(xid1, XAResource.TMNOFLAGS);
-//        conn.createStatement().executeUpdate("INSERT INTO testxathreads3 VALUES (1)");
-//        xaRes.end(xid1, XAResource.TMSUCCESS);
-//        
-//        conn.close(); // Close the connection handle. This should roll-back an in-progress TX.
-//        
-//        jackie.start();
-//        jackie.join();
-//        
-//        assertTrue(lt.hadError());
-//    }
+    public void testNoInterleavingCloseBeforeCommitOrPrepare() throws Exception {
+        ((PGXADataSource)_ds).setXAAcquireTimeout(0);
+        Xid xid1 = new CustomXid(1);
+        
+        xaRes.start(xid1, XAResource.TMNOFLAGS);
+        conn.createStatement().executeUpdate("INSERT INTO testxathreads3 VALUES (1)");
+        xaRes.end(xid1, XAResource.TMSUCCESS);
+        
+        // Closing the connection handle will force a logical connection to invoke some basic cleanup
+        // on it's physical connection. In the case of disabled interleaving, this will cause the invocation handler
+        // created by the XADataSource to attempt to allocate a physical connection...
+        // 
+        // The fix for this is to track the closing state of the PGXAConnection handle, and simply
+        // ignore invocations in the proxy if we're not interleaving and we're closing a logical connection handle.
+        //
+        // Doing that will require that we proxy the handle returned by the PGXAConnection and if close() is invoked
+        // we then have to set state on the logical so we can disable XA Proxying to a physical backend.
+        // 
+        conn.close(); // Close the connection handle. This should implicitly roll-back an in-progress TX.
+    }
     
     /**
      * Test that commit prepared will not be attempted on a connection already servicing an xid

@@ -738,6 +738,14 @@ public class PGXADataSource extends AbstractPGXADataSource {
          * in an unexpected state.
          */
         public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
+            // If interleaving is disabled, and we're closing a connection, do not try to issue anything other than the close
+            // to the physical backend.
+            if (logicalConnection.isCloseHandleInProgress() && xaAcquireTimeout <= 0) {
+                if (method.getName().equals("clearWarnings")) {
+                    return (method.getReturnType().cast(null));
+                }
+            }
+            
             // Get and peg a physical connection to service this logicalConnection.
             // If there is already an association in place, we want to use that
             // physical connections.

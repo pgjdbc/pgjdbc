@@ -6,12 +6,17 @@
 */
 package org.postgresql.xa;
 
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.sql.*;
 import java.util.LinkedList;
 import javax.sql.*;
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
+import org.postgresql.PGConnection;
 import org.postgresql.ds.PGPooledConnection;
 import org.postgresql.util.GT;
 
@@ -39,6 +44,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     private PGXADataSource dataSource;
     
     private PhysicalXAConnection backend;
+    private boolean closeHandleInProgress;
     
     protected PGXAConnection(final String user, final String password, final Connection logicalConnection, PGXADataSource dataSource) {
         super(logicalConnection, true, true);
@@ -46,6 +52,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         this.password = password;
         this.dataSource = dataSource;
         this.backend = null;
+        this.closeHandleInProgress = false;
     }
     
     /**
@@ -56,7 +63,12 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
      */
     @Override
     public Connection getConnection() throws SQLException {
-        return super.getConnection();
+        Connection handle = super.getConnection();
+        this.closeHandleInProgress = false;
+        
+        return (Connection)Proxy.newProxyInstance(getClass().getClassLoader(),
+                new Class[]{Connection.class, PGConnection.class},
+                new XAConnectionHandler(handle));
     }
 
     @Override
@@ -68,16 +80,20 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     public synchronized void close() throws SQLException {
         SQLException sqle = null;
         try {
+            // If there is a handle open, the super.close() will invoke close() on the handle.
+            this.closeHandleInProgress = true;
             super.close();
         } catch (SQLException closeEx) {
             sqle = closeEx;
         } finally {
-            dataSource.close(this);
+            if (dataSource != null) {
+                dataSource.close(this);
+            }
         }
 
         // If we had an exception on close, and there's no availabe connections (which was likely the cause!)
         // Clear the exception and don't throw it.
-        if (sqle != null && dataSource.getAvailableConnections(this) == 0) {
+        if (sqle != null && dataSource != null && dataSource.getAvailableConnections(this) == 0) {
             sqle = null;
         }
         
@@ -384,5 +400,32 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
      */
     void setPhysicalXAConnection(PhysicalXAConnection backend) {
         this.backend = backend;
+    }
+
+    boolean isCloseHandleInProgress() {
+        return closeHandleInProgress;
+    }
+    
+    /**
+     * Wrap the pooled handle in a proxy so we can ignore Connection invocations (and synchronize) during a close().
+     */
+    private class XAConnectionHandler implements InvocationHandler {
+        Connection pooledHandle;
+        
+        private XAConnectionHandler(Connection pooledHandle) {
+            this.pooledHandle = pooledHandle;
+        }
+        
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            if (method.getName().equals("close")) {
+                closeHandleInProgress = true;
+            }
+            
+            try {
+                return method.invoke(pooledHandle, args);
+            } catch (InvocationTargetException ex) {
+                throw ex.getTargetException();
+            }
+        }
     }
 }
