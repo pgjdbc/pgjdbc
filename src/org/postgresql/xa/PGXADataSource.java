@@ -148,7 +148,6 @@ public class PGXADataSource extends AbstractPGXADataSource {
      * @throws SQLException 
      */
     void close(final PGXAConnection logicalConnection) throws SQLException {
-        // Disassociate the logical from a backend first.
         synchronized(physicalConnections) {
             // Prune the physical connections
             List<PhysicalXAConnection> closeable = new ArrayList<PhysicalXAConnection>();
@@ -160,10 +159,10 @@ public class PGXADataSource extends AbstractPGXADataSource {
                 }
             }
             
-            // If we just closed our last logical, and interleaving is disabled...
+            // If we're about to close our last logical, and interleaving is disabled...
             if (logicalConnectionCount.decrementAndGet() == 0l && xaAcquireTimeout <= 0) {
                 if (logger.logDebug()) {
-                    logger.debug(GT.tr("Closing last logical connection with interleaving disabled all physical connections will be closed."));
+                    logger.debug(GT.tr("Closing last logical connection with interleaving disabled. All physical connections will be closed."));
                 }
                 closeable.addAll(physicalConnections);
             }

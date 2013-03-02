@@ -153,7 +153,7 @@ class PhysicalXAConnection {
         // if it's empty or it only contains this logical connection...
         return (logicalConnections.isEmpty() || isOnlyLogicalAssociation(logicalConnection)) &&
                associatedXid == null && 
-               connection.getTransactionState() != ProtocolConnection.TRANSACTION_OPEN &&
+               connection.getTransactionState() == ProtocolConnection.TRANSACTION_IDLE &&
                user.equals(logicalConnection.getUser());
     }
     
