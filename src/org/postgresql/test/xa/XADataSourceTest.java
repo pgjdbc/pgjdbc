@@ -10,8 +10,11 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import javax.sql.XAConnection;
 import javax.sql.XADataSource;
@@ -300,7 +303,7 @@ public class XADataSourceTest extends TestCase {
         xaRes.rollback(xid);
         assertTrue(conn.getAutoCommit());
     }
-
+    
     /**
      * Get the time the current transaction was started from the server. 
      *
@@ -659,6 +662,116 @@ public class XADataSourceTest extends TestCase {
         conn.close();
         assertTrue(conn.isClosed());
     }
+    
+    
+    /**
+     * Exercises a shared resource manager closing XAConnection handles and
+     * connections before a TM can invoke commit();
+     * 
+     * @throws Exception 
+     */
+    public void testTwoPhaseCommitSharedCloseRace() throws Exception {
+        // Close the existing connections so we'll exhaust the logical pool
+        conn.close();
+        
+        final int THREADS = 12;
+        
+        ArrayList<SharedXACommitter> committers = new ArrayList<SharedXACommitter>(THREADS);
+        CountDownLatch trigger = new CountDownLatch(1);
+        CountDownLatch endLatch = new CountDownLatch(THREADS);
+        
+        for (int i = 0; i < THREADS; i++) {
+            XAConnection xac = _ds.getXAConnection();
+            Connection c = xac.getConnection();
+
+            final Xid xid = new CustomXid(i);
+
+            xaRes.start(xid, XAResource.TMNOFLAGS);
+            c.createStatement().executeUpdate("INSERT INTO testxathreads1 VALUES (" + i + ")");
+            xaRes.end(xid, XAResource.TMSUCCESS);
+            xaRes.prepare(xid);
+            
+            SharedXACommitter committer = new SharedXACommitter(xaRes, xid, trigger, endLatch);
+            committer.start();
+            committers.add(committer);
+            new XACloser(xac, c, trigger).start();
+        }
+        
+        // Run all the committers while we close things.
+        trigger.countDown();
+        
+        // Wait for all the committers to count down.
+        endLatch.await(15, TimeUnit.SECONDS);
+        
+        assertEquals(0, endLatch.getCount());
+        
+        while (!committers.isEmpty()) {
+            Exception ex = committers.remove(0).getFailure();
+            if (ex != null) {
+                ex.printStackTrace();
+                fail(ex.getMessage());
+            }
+        }
+        
+        // Restore expected end state.
+        conn = xaconn.getConnection();
+    }
+    
+    private class XACloser extends Thread {
+        private XAConnection xaconn;
+        private Connection handle;
+        private CountDownLatch latch;
+        
+        XACloser(XAConnection xaconn, Connection handle, CountDownLatch latch) {
+            this.xaconn = xaconn;
+            this.handle = handle;
+            this.latch = latch;
+        }
+
+        @Override
+        public void run() {
+            try {
+                this.latch.await();
+                this.handle.close();
+                this.xaconn.close();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                fail(ex.getMessage());
+            }
+        }
+    }
+    
+    
+    private class SharedXACommitter extends Thread {
+        private Xid xid;
+        private Exception ex;
+        private CountDownLatch latch;
+        private CountDownLatch endLatch;
+        
+        public SharedXACommitter(XAResource xares, Xid xid, CountDownLatch latch, CountDownLatch endLatch) {
+            this.xid = xid;
+            this.latch = latch;
+            this.endLatch = endLatch;
+            this.ex = null;
+        }
+
+        @Override
+        public void run() {
+            try {
+                latch.await();
+                xaRes.commit(xid, false);
+            } catch (Exception e) {
+                ex = e;
+            } finally {
+                endLatch.countDown();
+            }
+        }
+        
+        public Exception getFailure() {
+            return ex;
+        }
+    }
+    
 
     private class XAThread extends LocalThread {
         // A TM will be aware of an XAResource and a Xid.
