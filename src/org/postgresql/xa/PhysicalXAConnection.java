@@ -107,13 +107,14 @@ class PhysicalXAConnection {
             }
             
             boolean available = 
-                            (logicalConnections.contains(logicalConnection) || logicalConnections.isEmpty()) || // Already servicing this logical connection, or not servicing any at all.
-                            (associatedXid != null && associatedXid.equals(xid)) || // same xid
+                            !connection.isClosed() && // Connection cannot be closed.
+                            ((logicalConnections.contains(logicalConnection) || logicalConnections.isEmpty()) || // Already servicing this logical connection, or not servicing any at all.
+                             (associatedXid != null && associatedXid.equals(xid)) || // same xid
                     
                             // No xid (local TX mode), no other logical connection, and it's the same user.
-                            (associatedXid == null && 
-                             logicalConnections.isEmpty() && 
-                             logicalConnection.getUser().equals(user));
+                             (associatedXid == null && 
+                              logicalConnections.isEmpty() && 
+                              logicalConnection.getUser().equals(user)));
             
             if (available) {
                 // If we're associating to an xid, turn off autocommit.
@@ -150,11 +151,16 @@ class PhysicalXAConnection {
      * @return true if this physical connection may be cleaned up, false if not.
      */
     boolean isCloseable(final PGXAConnection logicalConnection) {
-        // if it's empty or it only contains this logical connection...
-        return (logicalConnections.isEmpty() || isOnlyLogicalAssociation(logicalConnection)) &&
-               associatedXid == null && 
-               connection.getTransactionState() == ProtocolConnection.TRANSACTION_IDLE &&
-               user.equals(logicalConnection.getUser());
+        try {
+            managementLock.lock();
+            // if it's empty or it only contains this logical connection...
+            return (logicalConnections.isEmpty() || isOnlyLogicalAssociation(logicalConnection)) &&
+                   associatedXid == null && 
+                   connection.getTransactionState() == ProtocolConnection.TRANSACTION_IDLE &&
+                   user.equals(logicalConnection.getUser());
+        } finally {
+            managementLock.unlock();
+        }
     }
     
     /**

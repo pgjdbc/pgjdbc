@@ -154,8 +154,17 @@ public class PGXADataSource extends AbstractPGXADataSource {
             PhysicalXAConnection candidate = null;
             for (int i = 0; i < physicalConnections.size(); i++) {
                 candidate = physicalConnections.get(i);
-                if (candidate.isCloseable(logicalConnection)) {
-                    closeable.add(candidate);
+                try {
+                    // Grab the management lock while we work on this connection.
+                    candidate.getManagementLock().lock();
+                    if (candidate.isCloseable(logicalConnection)) {
+                        closeable.add(candidate);
+                    }
+                } finally {
+                    // If we did not add this as a closeable, unlock it.
+                    if (!closeable.contains(candidate)) {
+                        candidate.getManagementLock().unlock();
+                    }
                 }
             }
             
@@ -164,7 +173,13 @@ public class PGXADataSource extends AbstractPGXADataSource {
                 if (logger.logDebug()) {
                     logger.debug(GT.tr("Closing last logical connection with interleaving disabled. All physical connections will be closed."));
                 }
-                closeable.addAll(physicalConnections);
+                for (int i = 0; i < physicalConnections.size(); i++) {
+                    candidate = physicalConnections.get(i);
+                    if (!closeable.contains(candidate)) {
+                        candidate.getManagementLock().lock();
+                        closeable.add(candidate);
+                    }
+                }
             }
 
             if (logger.logDebug()) {
@@ -180,6 +195,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
             // Close them!
             for (int i = 0; i < closeable.size(); i++) {
                 closeable.get(i).getConnection().close();
+                closeable.get(i).getManagementLock().unlock(); // Unlock!
             }
             if (logger.logDebug()) {
                 logger.debug(GT.tr("Successfully closed {0} closeable connections.", new Object[]{closeable.size()}));

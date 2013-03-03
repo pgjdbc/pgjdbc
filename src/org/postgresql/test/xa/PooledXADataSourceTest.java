@@ -11,10 +11,10 @@ import javax.transaction.xa.Xid;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author agray@polarislabs.com
@@ -23,13 +23,12 @@ public class PooledXADataSourceTest extends TestCase {
 
     private PGXADataSource ds;
     private List<XAConnection> pool;
-    private int poolsize = 3;
 
     public PooledXADataSourceTest(final String name) {
         super(name);
         ds = new PGXADataSource();
         BaseDataSourceTest.setupDataSource(ds);
-        pool = new LinkedList<XAConnection>();
+        pool = Collections.synchronizedList(new LinkedList<XAConnection>());
     }
 
     @Override
@@ -41,7 +40,7 @@ public class PooledXADataSourceTest extends TestCase {
 
         clearAllPrepared();
 
-        for (int i = 0; i < poolsize; i++) {
+        for (int i = 0; i < 3; i++) {
             pool.add(ds.getXAConnection());
         }
     }
@@ -49,8 +48,8 @@ public class PooledXADataSourceTest extends TestCase {
     @Override
     protected void tearDown() throws Exception {
 
-        for (int i = 0; i < poolsize; i++) {
-            pool.get(i).close();
+        while (!pool.isEmpty()) {
+            pool.remove(0).close();
         }
 
         assertEquals(0, ds.getPhysicalConnectionCount());
@@ -80,8 +79,7 @@ public class PooledXADataSourceTest extends TestCase {
     }
 
     public void testOnePhase() throws Exception {
-        XAConnection xaconn = pool.iterator().next();
-        pool.remove(xaconn);
+        XAConnection xaconn = pool.remove(0);
         XAResource xaRes = xaconn.getXAResource();
         Connection conn = xaconn.getConnection();
 
@@ -91,6 +89,7 @@ public class PooledXADataSourceTest extends TestCase {
         xaRes.end(xid, XAResource.TMSUCCESS);
         xaRes.commit(xid, true);
 
+        conn.close();
         pool.add(xaconn);
     }
 
@@ -103,9 +102,9 @@ public class PooledXADataSourceTest extends TestCase {
      * @throws Exception
      */
     public void testPoolUsage() throws Exception {
-        for (int i = 0; i < poolsize + 1; i++) {
-            XAConnection xaconn = pool.get(0);
-            pool.remove(xaconn);
+        int count = pool.size() + 1;
+        for (int i = 0; i < count; i++) {
+            XAConnection xaconn = pool.remove(0);
             XAResource xaRes = xaconn.getXAResource();
             Connection conn = xaconn.getConnection();
 
@@ -115,18 +114,20 @@ public class PooledXADataSourceTest extends TestCase {
             xaRes.end(xid, XAResource.TMSUCCESS);
             xaRes.commit(xid, true);
 
+            conn.close();
             pool.add(pool.size(), xaconn);
         }
     }
 
     public void testPoolUsageThreaded() throws Exception {
-
+        int poolsize = pool.size();
+        
         CountDownLatch startLatch = new CountDownLatch(1);
-        CountDownLatch endLatch = new CountDownLatch(3);
+        CountDownLatch endLatch = new CountDownLatch(poolsize);
 
-        new Thread(new OnePhaseThread(startLatch, endLatch)).start();
-        new Thread(new OnePhaseThread(startLatch, endLatch)).start();
-        new Thread(new OnePhaseThread(startLatch, endLatch)).start();
+        for (int i = 0; i < poolsize; i++) {
+            new Thread(new OnePhaseThread(startLatch, endLatch)).start();
+        }
 
         startLatch.countDown();
         endLatch.await();
@@ -147,8 +148,7 @@ public class PooledXADataSourceTest extends TestCase {
         public void run() {
             try {
                 startLatch.await();
-                XAConnection xaconn = pool.get(0);
-                pool.remove(xaconn);
+                XAConnection xaconn = pool.remove(0);
                 XAResource xaRes = xaconn.getXAResource();
                 Connection conn = xaconn.getConnection();
 
@@ -158,7 +158,8 @@ public class PooledXADataSourceTest extends TestCase {
                 xaRes.end(xid, XAResource.TMSUCCESS);
                 xaRes.commit(xid, true);
 
-                pool.add(pool.size(), xaconn);
+                conn.close();
+                pool.add(xaconn);
             } catch (Throwable t) {
                 t.printStackTrace();
                 fail();
