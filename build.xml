@@ -423,8 +423,8 @@
 <!--    <junit fork="yes">
       <jvmarg value="-Xdebug"/>
       <jvmarg value="-Djava.compiler=NONE" />
-      <jvmarg value="-Xrunjdwp:transport=dt_socket,address=8888,server=y,suspend=y" />-->
-
+      <jvmarg value="-Xrunjdwp:transport=dt_socket,address=8888,server=y,suspend=y" />
+-->
       <formatter type="brief" usefile="false"/>
       <formatter type="xml" usefile="true" />
 
