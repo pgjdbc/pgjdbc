@@ -106,15 +106,12 @@ class PhysicalXAConnection {
                 }
             }
             
-            boolean available = 
-                            !connection.isClosed() && // Connection cannot be closed.
-                            ((logicalConnections.contains(logicalConnection) || logicalConnections.isEmpty()) || // Already servicing this logical connection, or not servicing any at all.
-                             (associatedXid != null && associatedXid.equals(xid)) || // same xid
-                    
-                            // No xid (local TX mode), no other logical connection, and it's the same user.
-                             (associatedXid == null && 
-                              logicalConnections.isEmpty() && 
-                              logicalConnection.getUser().equals(user)));
+            boolean available = !connection.isClosed() &&
+                                logicalConnection.getUser().equals(user) &&
+                                (logicalConnections.isEmpty() || logicalConnections.contains(logicalConnection)) &&
+                                
+                                ((associatedXid != null && associatedXid.equals(xid)) || // Same XID or...
+                                 (associatedXid == null && connection.getTransactionState() == ProtocolConnection.TRANSACTION_IDLE)); // Local TX not in progress.
             
             if (available) {
                 // If we're associating to an xid, turn off autocommit.

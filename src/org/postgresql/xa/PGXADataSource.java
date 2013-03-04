@@ -168,16 +168,16 @@ public class PGXADataSource extends AbstractPGXADataSource {
                 }
             }
             
-            // If we're about to close our last logical, and interleaving is disabled...
-            if (logicalConnectionCount.decrementAndGet() == 0l && xaAcquireTimeout <= 0) {
-                if (logger.logDebug()) {
-                    logger.debug(GT.tr("Closing last logical connection with interleaving disabled. All physical connections will be closed."));
-                }
+            // If we're about to close our last logical, close anything that isn't suspended.
+            long remainingConnections = logicalConnectionCount.decrementAndGet();
+            if (remainingConnections == 0l) {
                 for (int i = 0; i < physicalConnections.size(); i++) {
                     candidate = physicalConnections.get(i);
                     if (!closeable.contains(candidate)) {
-                        candidate.getManagementLock().lock();
-                        closeable.add(candidate);
+                        if (xaAcquireTimeout <= 0 || !candidate.isSuspended()) { // if interleaving is disabled, OR we are not suspended.
+                            candidate.getManagementLock().lock();
+                            closeable.add(candidate);
+                        }
                     }
                 }
             }

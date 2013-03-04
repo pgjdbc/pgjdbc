@@ -664,6 +664,47 @@ public class XADataSourceTest extends TestCase {
     }
     
     
+    public void testCloseMixedTXPhysicalCorrectness() throws Exception {
+        // One connection starting off.
+        assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        conn.setAutoCommit(false);
+        assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        conn.createStatement().execute("BEGIN");
+        assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        
+        Xid xid = new CustomXid(42);
+        xaRes.start(xid, XAResource.TMNOFLAGS);
+        assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES(42)");
+        conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES(43)");
+        conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES(44)");
+        assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        xaRes.end(xid, XAResource.TMSUCCESS);
+        assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        xaRes.prepare(xid);
+        assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        
+        // Back to local TX Mode.
+        Statement st = conn.createStatement();
+        assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        // Commit it, 2pc.
+        xaRes.commit(xid, false);
+        assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        ResultSet rs = st.executeQuery("SELECT * FROM testxa1");
+        rs.next();
+        
+        assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        // Try to read from the result set.
+        rs.next();
+        
+        // When the test closes, there's a dangling TX. This should result in an auto-rollback.
+    }
+    
     /**
      * Exercises a shared resource manager closing XAConnection handles and
      * connections before a TM can invoke commit();
