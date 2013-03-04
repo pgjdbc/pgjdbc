@@ -633,7 +633,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
         
         // Release everything.
         synchronized(physicalConnections) {
-            currentConn.disassociate();
+            currentConn.disassociate(xid);
             physicalConnections.notify();
         }
         
