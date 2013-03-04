@@ -26,6 +26,7 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.optional.BaseDataSourceTest;
 
 import junit.framework.TestCase;
+import org.postgresql.PGConnection;
 import org.postgresql.xa.PGXADataSource;
 
 public class XADataSourceTest extends TestCase {
@@ -249,7 +250,7 @@ public class XADataSourceTest extends TestCase {
         xaRes.start(xid, XAResource.TMNOFLAGS);
         assertFalse(conn.getAutoCommit());
         xaRes.end(xid, XAResource.TMSUCCESS);
-        // The assert below will allocate a new physical connection, starting
+        // The assert below would allocate a new physical connection starting
         // in autocommit mode for local TX semantics. I believe that would be
         // the 'more correct' of the options.
         // assertFalse(conn.getAutoCommit());
@@ -690,19 +691,101 @@ public class XADataSourceTest extends TestCase {
         Statement st = conn.createStatement();
         assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
         
+        ResultSet rs = st.executeQuery("SELECT * FROM testxa1");
+        assertFalse(rs.next()); // Read Committed, we haven't committed yet.
+        
         // Commit it, 2pc.
         xaRes.commit(xid, false);
         assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
         
-        ResultSet rs = st.executeQuery("SELECT * FROM testxa1");
-        rs.next();
+        rs = st.executeQuery("SELECT * FROM testxa1");
+        assertTrue(rs.next()); // Read Committed!
         
         assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
         
-        // Try to read from the result set.
-        rs.next();
+        // We should be able to commit, since we're on our original local tx connection
+        conn.commit();
+    }
+    
+    public void testLocalTXInterleaving() throws Exception {
+        conn.setAutoCommit(false);
+        conn.createStatement().execute("BEGIN");
         
-        // When the test closes, there's a dangling TX. This should result in an auto-rollback.
+        int localTxPID = ((PGConnection)conn).getBackendPID();
+
+        Xid xid = new CustomXid(42);
+        xaRes.start(xid, XAResource.TMNOFLAGS);
+        int xaPID = ((PGConnection)conn).getBackendPID();
+        conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES(42)");
+        conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES(43)");
+        conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES(44)");
+        xaRes.end(xid, XAResource.TMSUSPEND);
+        
+        // Back to local TX Mode, on the same connection.
+        Statement st = conn.createStatement();
+        assertEquals(localTxPID, ((PGConnection)conn).getBackendPID());
+        assertFalse(conn.getAutoCommit());
+        
+        // Resume, end, prepare, commit 2p.
+        xaRes = xaconn.getXAResource();
+        xaRes.start(xid, XAResource.TMRESUME);
+        xaRes.end(xid, XAResource.TMSUCCESS);
+        xaRes.prepare(xid);
+        xaRes.commit(xid, false);
+        
+        assertEquals(localTxPID, ((PGConnection)conn).getBackendPID());
+        conn.commit();
+    }
+    
+    public void testCloseSuspendedPhysicalCorrectness() throws Exception {
+        // One connection starting off.
+        assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        conn.setAutoCommit(false);
+        assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        conn.createStatement().execute("BEGIN");
+        assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        // Opens a second connection.
+        Xid xid = new CustomXid(42);
+        xaRes.start(xid, XAResource.TMNOFLAGS);
+        assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES(42)");
+        conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES(43)");
+        conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES(44)");
+        assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        xaRes.end(xid, XAResource.TMSUSPEND);
+        assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        
+        // Back to local TX Mode, on the same connection.
+        Statement st = conn.createStatement();
+        assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        ResultSet rs = st.executeQuery("SELECT * FROM testxa1");
+        assertFalse(rs.next());
+        assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        // Closing the xaconnection should result in 1 physical connection remaining (the suspended xid);
+        xaconn.close();
+        assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        // Get a new xaConn to mess with.
+        xaconn = _ds.getXAConnection();
+        
+        // Get a new connection, which will have autocommit ENABLED.
+        conn = xaconn.getConnection();
+        assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        // Resume, end, prepare, commit 2p.
+        xaRes = xaconn.getXAResource();
+        xaRes.start(xid, XAResource.TMRESUME);
+        xaRes.end(xid, XAResource.TMSUCCESS);
+        xaRes.prepare(xid);
+        xaRes.commit(xid, false);
+        
+        rs = conn.createStatement().executeQuery("SELECT * FROM testxa1");
+        assertTrue(rs.next());
+        assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
     }
     
     /**

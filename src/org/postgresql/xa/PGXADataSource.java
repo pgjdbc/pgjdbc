@@ -253,20 +253,14 @@ public class PGXADataSource extends AbstractPGXADataSource {
         PhysicalXAConnection physical = logicalConnection.getPhysicalXAConnection();
         
         // If the physical is servicing a xid, and it's not a match for the xid requested, we need a new physical.
+        // The trick to this is that we want to decouple the logical from the physical, but not the other way round, so that
+        // we can restore the association of logical -> physical later, either directly or through a later invocation of this method
         if (physical != null && physical.getAssociatedXid() != null && !physical.getAssociatedXid().equals(xid)) {
-            synchronized(physicalConnections) {
-                physical.disassociate(logicalConnection); // leave the xid alone...
-                physicalConnections.notify();
-            }
             physical = null;
+            logicalConnection.setPhysicalXAConnection(null);
         } else if (physical != null && xid != null && physical.getAssociatedXid() == null) {
-            // If the physical is not servicing a xid, and we want to service a xid then we need to decouple from the current
-            // physical, and look for one matching the xid.
-            synchronized(physicalConnections) {
-                physical.disassociate(logicalConnection); // leave the xid alone...
-                physicalConnections.notify();
-            }
             physical = null;
+            logicalConnection.setPhysicalXAConnection(null);
         }
         
         for (int attempts = 0; physical == null; attempts++) {
@@ -518,7 +512,16 @@ public class PGXADataSource extends AbstractPGXADataSource {
         }
     }
 
+    /**
+     * @param logicalConnection
+     * @param xid
+     * @param onePhase
+     * @throws XAException 
+     */
     void commit(final PGXAConnection logicalConnection, final Xid xid, final boolean onePhase) throws XAException {
+        // commit in 2pc mode can be invoked by any logical connection, so we need to keep track of our original physical.
+        PhysicalXAConnection originalPhysical = logicalConnection.getPhysicalXAConnection();
+        
         try {
             PhysicalXAConnection currentConn = resolvePhysicalConnection(logicalConnection, xid);
             if (onePhase) {
@@ -535,11 +538,6 @@ public class PGXADataSource extends AbstractPGXADataSource {
 
                 try {
                     currentConn.getConnection().commit();
-                    synchronized(physicalConnections) {
-                        currentConn.disassociate(logicalConnection, xid);
-                        physicalConnections.notify();
-                    }
-
                     if (logger.logDebug()) {
                         logger.debug(GT.tr("[{0}] - One-phase commit complete for xid: {1}.", new Object[]{currentConn.getBackendPID(), RecoveredXid.xidToString(xid)}));
                     }
@@ -571,11 +569,6 @@ public class PGXADataSource extends AbstractPGXADataSource {
                     }
 
                     currentConn.getConnection().setAutoCommit(restoreAutoCommit);
-                    synchronized(physicalConnections) {
-                        currentConn.disassociate(logicalConnection, xid);
-                        physicalConnections.notify();
-                    }
-
                     if (logger.logDebug()) {
                         logger.debug(GT.tr("[{0}] - Auto-commit restored to {1}.", new Object[]{currentConn.getBackendPID(), restoreAutoCommit}));
                     }
@@ -583,8 +576,15 @@ public class PGXADataSource extends AbstractPGXADataSource {
                     throw new PGXAException(GT.tr("Error committing prepared transaction"), sqle, XAException.XAER_RMERR);
                 }
             }
+            
+            synchronized(physicalConnections) {
+                currentConn.disassociate(logicalConnection, xid);
+                physicalConnections.notify();
+            }
         } catch (SQLException sqle) {
             throw new PGXAException(GT.tr("Failed to obtain phsycial connection."), sqle, PGXAException.XAER_RMERR);
+        } finally {
+            logicalConnection.setPhysicalXAConnection(originalPhysical);
         }
     }
 
@@ -608,7 +608,14 @@ public class PGXADataSource extends AbstractPGXADataSource {
             } catch (SQLException sqle) {
                 throw new PGXAException(GT.tr("Error during one-phase rollback"), sqle, XAException.XAER_RMERR);
             }
+            synchronized(physicalConnections) {
+                currentConn.disassociate();
+                physicalConnections.notify();
+            }
         } else {
+            // Resource Sharing means we need to restore our original association.
+            PhysicalXAConnection originalPhysical = logicalConnection.getPhysicalXAConnection();
+        
             try {
                 currentConn = resolvePhysicalConnection(logicalConnection, xid);
 
@@ -625,16 +632,17 @@ public class PGXADataSource extends AbstractPGXADataSource {
                     }
                 } catch (SQLException sqle) {
                     throw new PGXAException(GT.tr("Error during two-phase rollback"), sqle, XAException.XAER_RMERR);
+                } finally {
+                    synchronized(physicalConnections) {
+                        currentConn.disassociate(xid);
+                        physicalConnections.notify();
+                    }
                 }
             } catch (SQLException sqle) {
                 throw new PGXAException(GT.tr("Failed to obtain phsycial connection."), sqle, PGXAException.XAER_RMERR);
+            } finally {
+                logicalConnection.setPhysicalXAConnection(originalPhysical);
             }
-        }
-        
-        // Release everything.
-        synchronized(physicalConnections) {
-            currentConn.disassociate(xid);
-            physicalConnections.notify();
         }
         
         if (logger.logDebug()) {

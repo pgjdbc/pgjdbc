@@ -111,7 +111,9 @@ class PhysicalXAConnection {
                                 (logicalConnections.isEmpty() || logicalConnections.contains(logicalConnection)) &&
                                 
                                 ((associatedXid != null && associatedXid.equals(xid)) || // Same XID or...
-                                 (associatedXid == null && connection.getTransactionState() == ProtocolConnection.TRANSACTION_IDLE)); // Local TX not in progress.
+                                 (associatedXid == null &&  // TX mode...
+                                    (connection.getTransactionState() == ProtocolConnection.TRANSACTION_IDLE ||  // Not in progress
+                                     (isOnlyLogicalAssociation(logicalConnection) && xid == null)))); // In progress, but already associated to this logical, and not requesting a xid.
             
             if (available) {
                 // If we're associating to an xid, turn off autocommit.
@@ -120,7 +122,9 @@ class PhysicalXAConnection {
                     connection.setAutoCommit(false);
                 }
                 this.associatedXid = xid;
-                this.logicalConnections.add(logicalConnection);
+                if (!this.logicalConnections.contains(logicalConnection)) {
+                    this.logicalConnections.add(logicalConnection);
+                }
                 logicalConnection.setPhysicalXAConnection(this);
 
                 if (logger.logDebug()) {
@@ -153,7 +157,6 @@ class PhysicalXAConnection {
             // if it's empty or it only contains this logical connection...
             return (logicalConnections.isEmpty() || isOnlyLogicalAssociation(logicalConnection)) &&
                    associatedXid == null && 
-                   connection.getTransactionState() == ProtocolConnection.TRANSACTION_IDLE &&
                    user.equals(logicalConnection.getUser());
         } finally {
             managementLock.unlock();

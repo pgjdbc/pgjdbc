@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import org.postgresql.PGConnection;
 
 /**
  * @author agray@polarislabs.com
@@ -133,6 +134,21 @@ public class PooledXADataSourceTest extends TestCase {
         endLatch.await();
     }
     
+    
+    public void testPoolUsageLocalTXInterleaving() throws Exception {
+        int poolsize = pool.size();
+        
+        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch endLatch = new CountDownLatch(poolsize);
+
+        for (int i = 0; i < poolsize; i++) {
+            new Thread(new LocalTXInterleavingThread(startLatch, endLatch)).start();
+        }
+
+        startLatch.countDown();
+        endLatch.await();
+    }
+    
 
     class OnePhaseThread implements Runnable {
 
@@ -162,10 +178,69 @@ public class PooledXADataSourceTest extends TestCase {
                 pool.add(xaconn);
             } catch (Throwable t) {
                 t.printStackTrace();
-                fail();
+                fail(t.getMessage());
             } finally {
                 endLatch.countDown();
             }
         }
     }
+    
+    
+    class LocalTXInterleavingThread implements Runnable {
+        private CountDownLatch startLatch;
+        private CountDownLatch endLatch;
+        
+        LocalTXInterleavingThread(final CountDownLatch startLatch, final CountDownLatch endLatch) {
+            this.startLatch = startLatch;
+            this.endLatch = endLatch;
+        }
+        
+        public void run() {
+            try {
+                startLatch.await();
+                
+                XAConnection xaconn = pool.remove(0);
+                XAResource xaRes = xaconn.getXAResource();
+                Connection conn = xaconn.getConnection();
+                
+                conn.setAutoCommit(false);
+                conn.createStatement().execute("BEGIN");
+
+                int localTxPID = ((PGConnection)conn).getBackendPID();
+
+                Xid xid = new XADataSourceTest.CustomXid(42);
+                xaRes.start(xid, XAResource.TMNOFLAGS);
+                int xaPID = ((PGConnection)conn).getBackendPID();
+                conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES(42)");
+                conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES(43)");
+                conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES(44)");
+                xaRes.end(xid, XAResource.TMSUSPEND);
+
+                // Back to local TX Mode, on the same connection.
+                Statement st = conn.createStatement();
+                assertEquals(localTxPID, ((PGConnection)conn).getBackendPID());
+                assertFalse(conn.getAutoCommit());
+
+                // Resume, end, prepare, commit 2p.
+                xaRes = xaconn.getXAResource();
+                xaRes.start(xid, XAResource.TMRESUME);
+                xaRes.end(xid, XAResource.TMSUCCESS);
+                xaRes.prepare(xid);
+                xaRes.commit(xid, false);
+
+                assertEquals(localTxPID, ((PGConnection)conn).getBackendPID());
+                conn.commit();
+                
+                conn.close();
+                pool.add(xaconn);
+            } catch (Throwable t) {
+                t.printStackTrace();
+                fail(t.getMessage());
+            } finally {
+                endLatch.countDown();
+            }
+        }
+    }
+    
+    
 }
