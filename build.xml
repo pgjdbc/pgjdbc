@@ -18,7 +18,7 @@
 <project name="postgresqlJDBC" default="all" basedir=".">
 
   <!-- set global properties for this build -->
-  <property name="srcdir"  value="./src" />
+  <property name="srcdir"  value="." />
   <property name="jardir"  value="jars" />
   <property name="builddir" value="build" />
   <property name="package" value="org/postgresql" />
@@ -423,8 +423,8 @@
 <!--    <junit fork="yes">
       <jvmarg value="-Xdebug"/>
       <jvmarg value="-Djava.compiler=NONE" />
-      <jvmarg value="-Xrunjdwp:transport=dt_socket,address=8888,server=y,suspend=y" />
--->
+      <jvmarg value="-Xrunjdwp:transport=dt_socket,address=8888,server=y,suspend=y" />-->
+
       <formatter type="brief" usefile="false"/>
       <formatter type="xml" usefile="true" />
 
