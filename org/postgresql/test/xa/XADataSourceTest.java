@@ -463,6 +463,20 @@ public class XADataSourceTest extends TestCase {
         } catch (XAException xaerr) { }
     }
     
+    public void testNoInterleavingTwoPhaseCommit() throws Exception {
+        ((PGXADataSource)_ds).setXAAcquireTimeout(0);
+        conn.createStatement().executeQuery("SELECT * FROM testxa1");
+        
+        Xid xid = new CustomXid(1);
+        xaRes.start(xid, XAResource.TMNOFLAGS);
+        conn.createStatement().executeQuery("SELECT * FROM testxa1");
+        xaRes.end(xid, XAResource.TMSUCCESS);
+        xaRes.prepare(xid);
+        xaRes.commit(xid, false);
+        
+        conn.createStatement().executeQuery("SELECT * FROM testxa1");
+    }
+    
     public void testNoInterleavingSuspend() throws Exception {
         ((PGXADataSource)_ds).setXAAcquireTimeout(0);
         Xid xid1 = new CustomXid(1);

@@ -419,12 +419,42 @@
     <mkdir dir="${testResultsDir}" />
  
     <junit> 
-     <!--Use these settings to enable some remote debugging of the junit tests--> 
-<!--    <junit fork="yes">
+      <formatter type="brief" usefile="false"/>
+      <formatter type="xml" usefile="true" />
+
+      <sysproperty key="server" value="${server}" />
+      <sysproperty key="port" value="${port}" />
+      <sysproperty key="database" value="${database}" />
+      <sysproperty key="username" value="${username}" />
+      <sysproperty key="password" value="${password}" />
+      <sysproperty key="preparethreshold" value="${preparethreshold}" />
+      <sysproperty key="loglevel" value="${loglevel}" />
+      <sysproperty key="protocolVersion" value="${protocolVersion}" />
+      <sysproperty key="binaryTransfer" value="${binarytransfer}" />
+      <sysproperty key="org.postgresql.forcebinary" value="${forcebinary}" />
+      <sysproperty key="ssltest.properties" value="${ssltest.properties}" />
+
+      <classpath>
+        <pathelement location="${jardir}/postgresql.jar" />
+        <pathelement location="${jardir}/postgresql-tests.jar" />
+        <pathelement path="${java.class.path}" />
+      </classpath>
+      <test name="org.postgresql.test.jdbc2.Jdbc2TestSuite" outfile="${testResultsDir}/jdbc2"/>
+      <test name="org.postgresql.test.jdbc2.optional.OptionalTestSuite" outfile="${testResultsDir}/jdbc2optional"/>
+      <test name="org.postgresql.test.jdbc3.Jdbc3TestSuite" outfile="${testResultsDir}/jdbc3"/>
+      <test name="org.postgresql.test.xa.XATestSuite" outfile="${testResultsDir}/xa"/>
+      <test name="org.postgresql.test.extensions.ExtensionsSuite" outfile="${testResultsDir}/extensions"/>
+      <test name="org.postgresql.test.jdbc4.Jdbc4TestSuite" if="jdbc4tests" outfile="${testResultsDir}/jdbc4"/>
+      <test name="org.postgresql.test.ssl.SslTestSuite" if="jdbc4tests" outfile="${testResultsDir}/ssl"/>
+    </junit>
+  </target>
+  
+  <target name="debugtest" depends="testjar">
+    <junit fork="yes">
       <jvmarg value="-Xdebug"/>
       <jvmarg value="-Djava.compiler=NONE" />
-      <jvmarg value="-Xrunjdwp:transport=dt_socket,address=8888,server=y,suspend=y" />-->
-
+      <jvmarg value="-Xrunjdwp:transport=dt_socket,address=${debug_port},server=y,suspend=y" />
+      
       <formatter type="brief" usefile="false"/>
       <formatter type="xml" usefile="true" />
 
