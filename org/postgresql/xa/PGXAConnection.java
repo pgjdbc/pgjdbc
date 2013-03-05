@@ -88,16 +88,12 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
             
             // If we had an exception on close, and there's no closable connections (which was likely the cause!)
             // Clear the exception and don't throw it.
-            if (dataSource != null && dataSource.getCloseableConnectionCount(this) == 0) {
+            if (dataSource.getCloseableConnectionCount(this) == 0) {
                 sqle = null;
             }
         } finally {
-            if (dataSource != null) {
-                dataSource.close(this);
-            }
+            dataSource.close(this);
         }
-
-        dataSource = null;
         
         if (sqle != null) {
             throw sqle;
