@@ -85,18 +85,18 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
             super.close();
         } catch (SQLException closeEx) {
             sqle = closeEx;
+            
+            // If we had an exception on close, and there's no closable connections (which was likely the cause!)
+            // Clear the exception and don't throw it.
+            if (dataSource != null && dataSource.getCloseableConnectionCount(this) == 0) {
+                sqle = null;
+            }
         } finally {
             if (dataSource != null) {
                 dataSource.close(this);
             }
         }
 
-        // If we had an exception on close, and there's no availabe connections (which was likely the cause!)
-        // Clear the exception and don't throw it.
-        if (sqle != null && dataSource != null && dataSource.getAvailableConnections(this) == 0) {
-            sqle = null;
-        }
-        
         dataSource = null;
         
         if (sqle != null) {
@@ -402,12 +402,18 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         this.backend = backend;
     }
 
+    /**
+     * Determines if a Connection handle close() is in progress or not.
+     * 
+     * @return true if a Connection.close() invocation is being serviced.
+     */
     boolean isCloseHandleInProgress() {
         return closeHandleInProgress;
     }
     
     /**
-     * Wrap the pooled handle in a proxy so we can ignore Connection invocations (and synchronize) during a close().
+     * Wrap the pooled handle in a proxy allowing special behavior in the LogicalXAConnectionHandler when close() is being invoked
+     * on a handle.
      */
     private class XAConnectionHandler implements InvocationHandler {
         Connection pooledHandle;

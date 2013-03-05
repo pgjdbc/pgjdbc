@@ -17,7 +17,8 @@ import org.postgresql.core.ProtocolConnection;
 import org.postgresql.util.GT;
 
 /**
- * Wrapper to track the state of a BaseConnection in use as a physical backend for PGXAConnections.
+ * Physical XAConnection represents a physical connection to the backend PG server, and exposes methods allowing it to be associated
+ * to logical connections for servicing invocations on logical Connection objects.
  * 
  * @author Bryan Varner (bvarner@polarislabs.com)
  */
@@ -35,7 +36,7 @@ class PhysicalXAConnection {
     private boolean suspended;
     
     /** Private lock for managing association / disassociation critical sections. */
-    private final ReentrantLock managementLock = new ReentrantLock();
+    private final ReentrantLock associationLock = new ReentrantLock();
     private List<PGXAConnection> logicalConnections = new ArrayList<PGXAConnection>(2);
 
     /**
@@ -74,8 +75,14 @@ class PhysicalXAConnection {
         return associatedXid;
     }
 
-    ReentrantLock getManagementLock() {
-        return managementLock;
+    /**
+     * Exposes the association lock for this physical connection, allowing collaborators to lock it's association state while 
+     * performing operations on the physical connection.
+     * 
+     * @return 
+     */
+    ReentrantLock getAssociationLock() {
+        return associationLock;
     }
     
     /**
@@ -87,7 +94,7 @@ class PhysicalXAConnection {
      * @throws IllegalStateException if the connection is currently associated to a xid other than the supplied xid.
      */
     boolean associate(final PGXAConnection logicalConnection, final Xid xid) throws IllegalStateException {
-        managementLock.lock();
+        associationLock.lock();
         try {
             // Sanity checks.
             if (associatedXid != null) {
@@ -106,16 +113,18 @@ class PhysicalXAConnection {
                 }
             }
             
-            boolean available = !connection.isClosed() &&
-                                logicalConnection.getUser().equals(user) &&
-                                (logicalConnections.isEmpty() || logicalConnections.contains(logicalConnection)) &&
-                                
-                                ((associatedXid != null && associatedXid.equals(xid)) || // Same XID or...
-                                 (associatedXid == null &&  // TX mode...
-                                    (connection.getTransactionState() == ProtocolConnection.TRANSACTION_IDLE ||  // Not in progress
-                                     (isOnlyLogicalAssociation(logicalConnection) && xid == null)))); // In progress, but already associated to this logical, and not requesting a xid.
-            
-            if (available) {
+            // Check availability. I should probably be punished for writing a conditional like this.
+            if (!connection.isClosed() && // not closed AND
+                logicalConnection.getUser().equals(user) && // Same user AND
+                (logicalConnections.isEmpty() || logicalConnections.contains(logicalConnection)) && // No association or associated to this logical AND
+
+                ((associatedXid != null && associatedXid.equals(xid)) || // Already associated to the same Xid OR 
+                 (associatedXid == null &&  // Local TX mode AND either
+                    (connection.getTransactionState() == ProtocolConnection.TRANSACTION_IDLE || // No TX in progress OR
+                     (isOnlyLogicalAssociation(logicalConnection) && xid == null)))) // (Possibly in-progress, idle, or rolledback)
+                                                                                      // but nevertheless already associated to this
+                                                                                      // logical, AND not requesting a xid.
+            ) {
                 // If we're associating to an xid, turn off autocommit.
                 if (this.associatedXid == null && xid != null) {
                     this.localAutoCommit = connection.getAutoCommit();
@@ -130,18 +139,16 @@ class PhysicalXAConnection {
                 if (logger.logDebug()) {
                     logger.debug(GT.tr("[{0}] - associated to xid: {2}", new Object[]{backendPid, RecoveredXid.xidToString(xid)}));
                 }
+                return true;
             }
-            
-            return available;
         } catch (SQLException sqle) {
             if (logger.logDebug()) {
                 logger.debug(GT.tr("Could not modify autocommit state for physical connection."), sqle);
             }
-            
-            return false;
         } finally {
-            managementLock.unlock();
+            associationLock.unlock();
         }
+        return false;
     }
     
     /**
@@ -153,13 +160,13 @@ class PhysicalXAConnection {
      */
     boolean isCloseable(final PGXAConnection logicalConnection) {
         try {
-            managementLock.lock();
+            associationLock.lock();
             // if it's empty or it only contains this logical connection...
             return (logicalConnections.isEmpty() || isOnlyLogicalAssociation(logicalConnection)) &&
                    associatedXid == null && 
                    user.equals(logicalConnection.getUser());
         } finally {
-            managementLock.unlock();
+            associationLock.unlock();
         }
     }
     
@@ -169,7 +176,7 @@ class PhysicalXAConnection {
      * @param logicalConnection
      * @return true if this physical connection is servicing only the given logical connection.
      */
-    boolean isOnlyLogicalAssociation(final PGXAConnection logicalConnection) {
+    private boolean isOnlyLogicalAssociation(final PGXAConnection logicalConnection) {
         return (logicalConnections.size() == 1 && logicalConnections.contains(logicalConnection));
     }
     
@@ -183,7 +190,7 @@ class PhysicalXAConnection {
      * @throws IllegalStateException 
      */
     void disassociate(final PGXAConnection logicalConnection, final Xid xid) throws IllegalStateException {
-        managementLock.lock();
+        associationLock.lock();
         try {
             if (logicalConnection != null) {
                 if (!logicalConnections.remove(logicalConnection)) {
@@ -213,7 +220,7 @@ class PhysicalXAConnection {
                 logger.debug(GT.tr("Could not restore autocommit mode for physical conneciton."), sqle);
             }
         } finally {
-            managementLock.unlock();
+            associationLock.unlock();
         }
     }
     
@@ -243,7 +250,7 @@ class PhysicalXAConnection {
      * Disassociates all logical connections and any associated xid from this connection.
      */
     void disassociate() {
-        managementLock.lock();
+        associationLock.lock();
         try {
             // Clean up the logical connections.
             PGXAConnection logical = null;
@@ -254,7 +261,7 @@ class PhysicalXAConnection {
             // Disassociate any remaining xid.
             disassociate(null, associatedXid);
         } finally {
-            managementLock.unlock();
+            associationLock.unlock();
         }
     }
     

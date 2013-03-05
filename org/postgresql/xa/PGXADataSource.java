@@ -19,6 +19,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.naming.NamingException;
 import javax.naming.Reference;
@@ -42,8 +43,8 @@ import org.postgresql.util.PSQLState;
  * <ul>
  * <li>xaAcquireTimeout - Sets the amount of time to wait for physical connections to be released 
  *         from servicing a logical connection before opening a new physical connection. Setting this to 0 will disable support for
- *         creating more physical connections than logical connections which have been created by the data source.</li>
- * <li>xaWaitStep - Sets the max amount of time to wait on a synchronizer monitor before re-checking for a physical connection.</li>
+ *         creating more physical connections than logical connections which have been created by the data source, thereby disabling
+ *         interleaving.</li>
  * </ul>
  * 
  * @author bvarner
@@ -58,6 +59,13 @@ public class PGXADataSource extends AbstractPGXADataSource {
     final AtomicLong logicalConnectionCount = new AtomicLong(0l);
     
     /**
+     * Used to track the 'high-water' mark of physical connections.
+     * 
+     * Useful during testing to keep track of the maximum number of physicals required to service JTA workloads with interleaving.
+     */
+    final AtomicInteger physicalHighWaterMark = new AtomicInteger(0);
+    
+    /**
      * Collection of physicalConnections to the backend data source.
      * 
      * Invocations on the Logical connection are routed to an available 
@@ -65,17 +73,11 @@ public class PGXADataSource extends AbstractPGXADataSource {
      */
     final List<PhysicalXAConnection> physicalConnections =
             Collections.synchronizedList(new ArrayList<PhysicalXAConnection>());
-
+    
     /**
      * Time to wait for a physical connection to become available before we create a new physical connection to service a logical.
      */
     private int xaAcquireTimeout = 50; // in milliseconds
-
-    /**
-     * Time to wait for a physical connection to become available before checking again.
-     * Once we've waited up to acquirePhysicalTimeout, we'll create a new backend.
-     */
-    private int xaWaitStep = 10; // in milliseconds;
 
     /**
      * Protected method for returning new instances of PGXAConnection or subclasses.
@@ -122,11 +124,24 @@ public class PGXADataSource extends AbstractPGXADataSource {
         return logicalConnection;
     }
     
+    /**
+     * Gets the current number of physical connections.
+     * 
+     * @return The current number of physical connections allocated to service XA Requests for Connections created by this DataSource.
+     */
     public int getPhysicalConnectionCount() {
         return physicalConnections.size();
     }
     
-    public int getAvailableConnections(final PGXAConnection logicalConnection) {
+    /**
+     * Counts the number of connections which are closeable for the given logical connection.
+     * 
+     * Any closeable connection could easily be associated to the logical connection.
+     * 
+     * @param logicalConnection
+     * @return The number of closeable connections (connections available to service the given logicalConnection)
+     */
+    public int getCloseableConnectionCount(final PGXAConnection logicalConnection) {
         int available = 0;
         synchronized(physicalConnections) {
             for (int i = 0; i < physicalConnections.size(); i++) {
@@ -137,33 +152,39 @@ public class PGXADataSource extends AbstractPGXADataSource {
         }
         return available;
     }
+                    
+    /**
+     * Gets the maximum number of physical connections allocated at one time by this PGXADataSource
+     * 
+     * @return The upper limit of physical connections allocated to service the XA Requests for Connections created by this DataSource.
+     */
+    public int getPhysicalHighWaterCount() {
+        return physicalHighWaterMark.get();
+    }
 
     /**
      * Closes all physical connections matching the given connection.
-     * 
-     * If we're not in a mode supporting interleaving, we'll close all the connections if the given logical connection was the 
-     * last one we've created.
      * 
      * @param logicalConnection
      * @throws SQLException 
      */
     void close(final PGXAConnection logicalConnection) throws SQLException {
+        // Prune the physical connections
+        List<PhysicalXAConnection> closeable = new ArrayList<PhysicalXAConnection>(3);
         synchronized(physicalConnections) {
-            // Prune the physical connections
-            List<PhysicalXAConnection> closeable = new ArrayList<PhysicalXAConnection>();
             PhysicalXAConnection candidate = null;
             for (int i = 0; i < physicalConnections.size(); i++) {
                 candidate = physicalConnections.get(i);
                 try {
                     // Grab the management lock while we work on this connection.
-                    candidate.getManagementLock().lock();
+                    candidate.getAssociationLock().lock();
                     if (candidate.isCloseable(logicalConnection)) {
                         closeable.add(candidate);
                     }
                 } finally {
                     // If we did not add this as a closeable, unlock it.
                     if (!closeable.contains(candidate)) {
-                        candidate.getManagementLock().unlock();
+                        candidate.getAssociationLock().unlock();
                     }
                 }
             }
@@ -174,8 +195,9 @@ public class PGXADataSource extends AbstractPGXADataSource {
                 for (int i = 0; i < physicalConnections.size(); i++) {
                     candidate = physicalConnections.get(i);
                     if (!closeable.contains(candidate)) {
-                        if (xaAcquireTimeout <= 0 || !candidate.isSuspended()) { // if interleaving is disabled, OR we are not suspended.
-                            candidate.getManagementLock().lock();
+                        // if interleaving is disabled, OR we are not suspended.
+                        if (xaAcquireTimeout <= 0 || !candidate.isSuspended()) {
+                            candidate.getAssociationLock().lock();
                             closeable.add(candidate);
                         }
                     }
@@ -187,23 +209,23 @@ public class PGXADataSource extends AbstractPGXADataSource {
             }
 
             physicalConnections.removeAll(closeable);
-
+            physicalConnections.notify();
+            
             if (logger.logDebug()) {
                 logger.debug(GT.tr("Closeable connections removed.  {0} Total physical connections remaining.", new Object[]{physicalConnections.size()}));
             }
+        }
 
-            // Close them!
-            for (int i = 0; i < closeable.size(); i++) {
-                closeable.get(i).getConnection().close();
-                closeable.get(i).getManagementLock().unlock(); // Unlock!
-            }
-            if (logger.logDebug()) {
-                logger.debug(GT.tr("Successfully closed {0} closeable connections.", new Object[]{closeable.size()}));
-            }
-
-            physicalConnections.notify();
+        // Close them!
+        for (int i = 0; i < closeable.size(); i++) {
+            closeable.get(i).getConnection().close();
+            closeable.get(i).getAssociationLock().unlock(); // Unlock!
+        }
+        if (logger.logDebug()) {
+            logger.debug(GT.tr("Successfully closed {0} closeable connections.", new Object[]{closeable.size()}));
         }
     }
+    
     
     private void allocatePhysicalConnection(final String user, final String password) throws SQLException {
         PhysicalXAConnection physicalXAConnection = new PhysicalXAConnection(
@@ -211,6 +233,12 @@ public class PGXADataSource extends AbstractPGXADataSource {
 
         synchronized(physicalConnections) {
             physicalConnections.add(physicalXAConnection);
+            if (physicalConnections.size() > physicalHighWaterMark.get()) {
+                long highwater = physicalHighWaterMark.incrementAndGet();
+                if (logger.logInfo()) {
+                    logger.info(GT.tr("PGXADataSource - New Physical Connection High-water mark: {0}", highwater));
+                }
+            }
             physicalConnections.notify();
         }
 
@@ -227,13 +255,13 @@ public class PGXADataSource extends AbstractPGXADataSource {
             for (int i = 0; i < physicalConnections.size(); i++) {
                 // Lock the physical connection to test it's state.
                 physical = physicalConnections.get(i);
-                physical.getManagementLock().lock();
+                physical.getAssociationLock().lock();
                 try {
                     if (xid.equals(physical.getAssociatedXid())) {
                         return physical;
                     }
                 } finally {
-                    physical.getManagementLock().unlock();
+                    physical.getAssociationLock().unlock();
                 }
             }
         }
@@ -263,21 +291,22 @@ public class PGXADataSource extends AbstractPGXADataSource {
             logicalConnection.setPhysicalXAConnection(null);
         }
         
-        for (int attempts = 0; physical == null; attempts++) {
+        boolean timeoutHit = false;
+        while (physical == null) {
             synchronized(physicalConnections) {
                 // Look for the physical connection with this xid.
                 boolean found = false;
                 for (int i = 0; i < physicalConnections.size() && !found; i++) {
                     // Lock the physical connection to test it's state.
                     physical = physicalConnections.get(i);
-                    physical.getManagementLock().lock();
+                    physical.getAssociationLock().lock();
                     try {
                         if (physical.getAssociatedXid() != null && physical.getAssociatedXid().equals(xid)) {
                             physical.associate(logicalConnection, xid);
                             found = true;
                         }
                     } finally {
-                        physical.getManagementLock().unlock();
+                        physical.getAssociationLock().unlock();
                     }
                 }
 
@@ -295,11 +324,12 @@ public class PGXADataSource extends AbstractPGXADataSource {
                         throw new SQLException(GT.tr("Support for Transaction Interleaving has been disabled. " + 
                                                 "Set 'xaAcquireTimeout' > 0 to enable interleaving support. " + 
                                                 "Could not allocate a physical connection to service the current Connection invocation."));
-                    } else if (attempts * xaWaitStep < xaAcquireTimeout) {
+                    } else if (!timeoutHit) {
+                        timeoutHit = true;
                         try {
-                            physicalConnections.wait(20);
+                            physicalConnections.wait(xaAcquireTimeout);
                         } catch (InterruptedException ie) {
-                            throw new RuntimeException("Interrupted while attempting to resolve physical XA connection.", ie);
+                            throw new SQLException("Interrupted while attempting to resolve a physical XA connection.", ie);
                         }
                     } else {
                         // Well, that didn't work. Time to open a new physical connection and let the next iteration pair.
@@ -307,6 +337,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
                             logger.debug(GT.tr("Attempting to open new physical connection."));
                         }
 
+                        timeoutHit = false;
                         try {
                             allocatePhysicalConnection(logicalConnection.getUser(), logicalConnection.getPassword());
                         } catch (Exception ex) {
@@ -701,7 +732,6 @@ public class PGXADataSource extends AbstractPGXADataSource {
     @Override
     public Reference getReference() throws NamingException {
         Reference ref = super.getReference();
-        ref.add(new StringRefAddr("xaWaitStep", Integer.toString(xaWaitStep)));
         ref.add(new StringRefAddr("xaAcquireTimeout", Integer.toString(xaAcquireTimeout)));
         
         return ref;
@@ -710,23 +740,13 @@ public class PGXADataSource extends AbstractPGXADataSource {
     @Override
     protected void writeBaseObject(ObjectOutputStream out) throws IOException {
         super.writeBaseObject(out);
-        out.writeInt(xaWaitStep);
         out.writeInt(xaAcquireTimeout);
     }
 
     @Override
     protected void readBaseObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
         super.readBaseObject(in);
-        xaWaitStep = in.readInt();
         xaAcquireTimeout = in.readInt();
-    }
-
-    public void setXAWaitStep(int xaWaitStep) {
-        this.xaWaitStep = xaWaitStep;
-    }
-
-    public int getXAWaitStep() {
-        return xaWaitStep;
     }
 
     public void setXAAcquireTimeout(int xaAcquireTimeout) {
@@ -761,8 +781,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
          * in an unexpected state.
          */
         public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
-            // If interleaving is disabled, and we're closing a connection, do not try to issue anything other than the close
-            // to the physical backend.
+            // If interleaving is disabled, and we're closing a connection, we need to consume the clearWarnings invocation.
             if (logicalConnection.isCloseHandleInProgress() && xaAcquireTimeout <= 0) {
                 if (method.getName().equals("clearWarnings")) {
                     return (method.getReturnType().cast(null));
