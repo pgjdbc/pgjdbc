@@ -176,7 +176,44 @@ public class XADataSourceTest extends TestCase {
         assertEquals(1, rs.getInt(1));
     }
     
+    public void testCloseBeforeRollback() throws Exception {
+        Xid xid = new CustomXid(5);
+        xaRes.start(xid, XAResource.TMNOFLAGS);
+        assertEquals(1, conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES (1)"));
+        conn.close();
+        xaRes.end(xid, XAResource.TMSUCCESS);
+        xaRes.rollback(xid);
 
+        ResultSet rs = _conn.createStatement().executeQuery("SELECT foo FROM testxa1");
+        assertFalse(rs.next());
+    }
+    
+    /**
+     * This test checks to make sure that an XAConnection.close() prior to a rollback does not create an issue.
+     * When XAResource sharing is properly working, an XAConnection.close() will not invalidate the XAResource which may be used to 
+     * control a TX. The end result, is that it's valid to close the XAConnection prior to the XAResource invoking control methods.
+     * 
+     * @throws Exception 
+     */
+    public void testXACloseBeforeRollback() throws Exception {
+        // Open a second connection so that closing the first does not kill all physical backends.
+        XAConnection xaconn2 = _ds.getXAConnection();
+        
+        Xid xid = new CustomXid(5);
+        xaRes.start(xid, XAResource.TMNOFLAGS);
+        assertEquals(1, conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES (1)"));
+        conn.close();
+        xaRes.end(xid, XAResource.TMSUCCESS);
+        xaRes.prepare(xid);
+        xaconn.close();
+        
+        xaRes.rollback(xid);
+
+        ResultSet rs = _conn.createStatement().executeQuery("SELECT foo FROM testxa1");
+        assertFalse(rs.next());
+        xaconn = xaconn2;
+    }
+    
     public void testRecover() throws Exception {
         Xid xid = new CustomXid(12345);
         xaRes.start(xid, XAResource.TMNOFLAGS);

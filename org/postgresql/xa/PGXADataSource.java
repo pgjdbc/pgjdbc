@@ -218,7 +218,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
 
         // Close them!
         for (int i = 0; i < closeable.size(); i++) {
-            closeable.get(i).getConnection().close();
+            closeable.get(i).close();
             closeable.get(i).getAssociationLock().unlock(); // Unlock!
         }
         if (logger.logDebug()) {
@@ -248,9 +248,9 @@ public class PGXADataSource extends AbstractPGXADataSource {
     }
     
     PhysicalXAConnection resolvePhysicalConnection(final Xid xid) {
-        synchronized(physicalConnections) {
+        synchronized (physicalConnections) {
             PhysicalXAConnection physical = null;
-            
+
             // Look for the physical connection with this xid.
             for (int i = 0; i < physicalConnections.size(); i++) {
                 // Lock the physical connection to test it's state.
@@ -352,10 +352,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
     }
     
     /**
-     * If the provided logical connection is associated to a physical connection servicing the provided xid,
-     * then the physical connection has the current thread removed from it's associated set of threads. If 
-     * there are no more threads using this association, then we allow the removal of the association 
-     * between the logical and physical connection.
+     * Disassociates a logicalConnection from a physical connection, without altering the context of the xid.
      * 
      * NOTE: This does -not- disassociate the xid from the physical connection,
      * that step is done after prepare / commit / rollback depending on the 
@@ -511,7 +508,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
         }
 
         PhysicalXAConnection currentConn = resolvePhysicalConnection(xid);
-        if (currentConn == null || !xid.equals(currentConn.getAssociatedXid())) {
+        if (currentConn == null) {
             throw new PGXAException(GT.tr("No backend connection currently servicing xid to issue prepare to."), XAException.XAER_RMERR);
         }
 
@@ -532,14 +529,14 @@ public class PGXADataSource extends AbstractPGXADataSource {
                 logger.debug(GT.tr("[{0}] - Transaction xid: {1} prepared.", new Object[]{currentConn.getBackendPID(), s}));
             }
 
+            return XAResource.XA_OK;
+        } catch (SQLException ex) {
+            throw new PGXAException(GT.tr("Error preparing transaction"), ex, XAException.XAER_RMERR);
+        } finally {
             synchronized(physicalConnections) {
                 currentConn.disassociate(xid);
                 physicalConnections.notify();
             }
-
-            return XAResource.XA_OK;
-        } catch (SQLException ex) {
-            throw new PGXAException(GT.tr("Error preparing transaction"), ex, XAException.XAER_RMERR);
         }
     }
 
@@ -550,72 +547,80 @@ public class PGXADataSource extends AbstractPGXADataSource {
      * @throws XAException 
      */
     void commit(final PGXAConnection logicalConnection, final Xid xid, final boolean onePhase) throws XAException {
+        String xidString = RecoveredXid.xidToString(xid);
+
         // commit in 2pc mode can be invoked by any logical connection, so we need to keep track of our original physical.
         PhysicalXAConnection originalPhysical = logicalConnection.getPhysicalXAConnection();
         
+        PhysicalXAConnection currentConn = null;
         try {
-            PhysicalXAConnection currentConn = resolvePhysicalConnection(logicalConnection, xid);
             if (onePhase) {
+                currentConn = resolvePhysicalConnection(xid);
                 if (currentConn == null) {
                     throw new PGXAException(GT.tr("No backend was found servicing the given xid."), XAException.XAER_INVAL);
                 }
-                if (currentConn.isSuspended()) {
-                    throw new PGXAException(GT.tr("The backend servicing the given xid. Is marked suspended."), XAException.XAER_INVAL);
-                }
-
-                if (logger.logDebug()) {
-                    logger.debug(GT.tr("[{0}] - Physical connection acquired for one-phase commit xid: {1}.", new Object[]{currentConn.getBackendPID(), RecoveredXid.xidToString(xid)}));
-                }
-
+            } else { // Resolve and associate.
                 try {
-                    currentConn.getConnection().commit();
-                    if (logger.logDebug()) {
-                        logger.debug(GT.tr("[{0}] - One-phase commit complete for xid: {1}.", new Object[]{currentConn.getBackendPID(), RecoveredXid.xidToString(xid)}));
-                    }
+                    currentConn = resolvePhysicalConnection(logicalConnection, xid);
                 } catch (SQLException sqle) {
-                    throw new PGXAException(GT.tr("Error during one-phase commit"), sqle, XAException.XAER_RMERR);
+                    throw new PGXAException(GT.tr("Failed to obtain phsycial connection."), sqle, PGXAException.XAER_RMERR);
+                }
+            }
+
+            // Check suspended.
+            if (currentConn.isSuspended()) {
+                throw new PGXAException(GT.tr("The backend servicing the given xid. Is marked suspended."), XAException.XAER_INVAL);
+            }
+
+            if (onePhase) {
+                if (logger.logDebug()) {
+                    logger.debug(GT.tr("[{0}] - Physical connection acquired for one-phase commit xid: {1}.", new Object[]{currentConn.getBackendPID(), xidString}));
+                }
+
+                currentConn.getConnection().commit();
+                if (logger.logDebug()) {
+                    logger.debug(GT.tr("[{0}] - One-phase commit complete for xid: {1}.", new Object[]{currentConn.getBackendPID(), xidString}));
                 }
             } else {
                 if (logger.logDebug()) {
-                    logger.debug(GT.tr("[{0}] - Physical connection acquired for two-phase commit xid: {1}.", new Object[]{currentConn.getBackendPID(), RecoveredXid.xidToString(xid)}));
+                    logger.debug(GT.tr("[{0}] - Physical connection acquired for two-phase commit xid: {1}.", new Object[]{currentConn.getBackendPID(), xidString}));
                 }
+
+                boolean restoreAutoCommit = currentConn.getConnection().getAutoCommit();
+                currentConn.getConnection().setAutoCommit(true);
+                Statement stmt = currentConn.getConnection().createStatement();
 
                 try {
-                    String s = RecoveredXid.xidToString(xid);
-
-                    boolean restoreAutoCommit = currentConn.getConnection().getAutoCommit();
-                    currentConn.getConnection().setAutoCommit(true);
-                    Statement stmt = currentConn.getConnection().createStatement();
-
-                    try {
-                        if (logger.logDebug()) {
-                            logger.debug(GT.tr("[{0}] - Commit prepared transaction xid: {1}.", new Object[]{currentConn.getBackendPID(), s}));
-                        }
-                        stmt.executeUpdate("COMMIT PREPARED '" + s + "'");
-                    } finally {
-                        stmt.close();
-                        if (logger.logDebug()) {
-                            logger.debug(GT.tr("[{0}] - Prepared transaction xid: {1} committed.", new Object[]{currentConn.getBackendPID(), s}));
-                        }
-                    }
-
-                    currentConn.getConnection().setAutoCommit(restoreAutoCommit);
                     if (logger.logDebug()) {
-                        logger.debug(GT.tr("[{0}] - Auto-commit restored to {1}.", new Object[]{currentConn.getBackendPID(), restoreAutoCommit}));
+                        logger.debug(GT.tr("[{0}] - Commit prepared transaction xid: {1}.", new Object[]{currentConn.getBackendPID(), xidString}));
                     }
-                } catch (SQLException sqle) {
-                    throw new PGXAException(GT.tr("Error committing prepared transaction"), sqle, XAException.XAER_RMERR);
+                    stmt.executeUpdate("COMMIT PREPARED '" + xidString + "'");
+                } finally {
+                    stmt.close();
+                    if (logger.logDebug()) {
+                        logger.debug(GT.tr("[{0}] - Prepared transaction xid: {1} committed.", new Object[]{currentConn.getBackendPID(), xidString}));
+                    }
+                }
+
+                currentConn.getConnection().setAutoCommit(restoreAutoCommit);
+                if (logger.logDebug()) {
+                    logger.debug(GT.tr("[{0}] - Auto-commit restored to {1}.", new Object[]{currentConn.getBackendPID(), restoreAutoCommit}));
                 }
             }
-            
+        } catch (SQLException sqle) {
+            throw new PGXAException(GT.tr("Error during commit"), sqle, XAException.XAER_RMERR);
+        } finally {
             synchronized(physicalConnections) {
-                currentConn.disassociate(logicalConnection, xid);
+                if (currentConn != null) {
+                    if (onePhase) {
+                        currentConn.disassociate(xid);
+                    } else {
+                        currentConn.disassociate(logicalConnection, xid);
+                    }
+                }
+                logicalConnection.setPhysicalXAConnection(originalPhysical);
                 physicalConnections.notify();
             }
-        } catch (SQLException sqle) {
-            throw new PGXAException(GT.tr("Failed to obtain phsycial connection."), sqle, PGXAException.XAER_RMERR);
-        } finally {
-            logicalConnection.setPhysicalXAConnection(originalPhysical);
         }
     }
 
@@ -638,13 +643,19 @@ public class PGXADataSource extends AbstractPGXADataSource {
                 currentConn.getConnection().rollback();
             } catch (SQLException sqle) {
                 throw new PGXAException(GT.tr("Error during one-phase rollback"), sqle, XAException.XAER_RMERR);
-            }
-            synchronized(physicalConnections) {
-                currentConn.disassociate();
-                physicalConnections.notify();
+            } finally {
+                synchronized(physicalConnections) {
+                    currentConn.disassociate();
+                    physicalConnections.notify();
+                }
             }
         } else {
-            // Resource Sharing means we need to restore our original association.
+            // currentConn is null. So we need to use an available connection to issue the rollback on.
+            // The physical connection associated to this XAResource(PGXAConnection) _may_ be available, but we can't really trust
+            // it to be (with sharing, we may be in a TX on this logical connection). So we'll get an available physical for the xid
+            // which should allocate or associate an available physical connection to us.
+            // 
+            // Because we're changing the association here, we need to lock the originalPhysical, and resolve a new one.
             PhysicalXAConnection originalPhysical = logicalConnection.getPhysicalXAConnection();
         
             try {
@@ -663,16 +674,17 @@ public class PGXADataSource extends AbstractPGXADataSource {
                     }
                 } catch (SQLException sqle) {
                     throw new PGXAException(GT.tr("Error during two-phase rollback"), sqle, XAException.XAER_RMERR);
-                } finally {
-                    synchronized(physicalConnections) {
-                        currentConn.disassociate(xid);
-                        physicalConnections.notify();
-                    }
                 }
             } catch (SQLException sqle) {
                 throw new PGXAException(GT.tr("Failed to obtain phsycial connection."), sqle, PGXAException.XAER_RMERR);
             } finally {
-                logicalConnection.setPhysicalXAConnection(originalPhysical);
+                synchronized(physicalConnections) {
+                    if (currentConn != null) {
+                        currentConn.disassociate(logicalConnection, xid);
+                    }
+                    logicalConnection.setPhysicalXAConnection(originalPhysical);
+                    physicalConnections.notify();
+                }
             }
         }
         
@@ -702,28 +714,17 @@ public class PGXADataSource extends AbstractPGXADataSource {
                 throw new PGXAException(GT.tr("Error rolling back physical connection servicing the given xid."), XAException.XAER_RMERR);
             } finally {
                 synchronized(physicalConnections) {
-                    fugeddaboutit.disassociate();
-                    physicalConnections.notify();
-                }
-
-                ArrayList<PGXAConnection> forgetAssociations = new ArrayList<PGXAConnection>();
-
-                // If we were unable to rollback, we need to kill any logical connections pegged to this thing, and the physical connections.
-                if (!rolledback) {
-                    for (PGXAConnection logical : forgetAssociations) {
+                    if (!rolledback) { // Don't use this connection anymore.
+                        physicalConnections.remove(fugeddaboutit);
                         try {
-                            logical.close();
+                            fugeddaboutit.close();
                         } catch (SQLException sqle) {
-                            logger.debug(GT.tr("Failed closing logical connection!"), sqle);
+                            logger.log(GT.tr("Failed closing physical connection for forgotten xid!"), sqle);
                         }
                     }
-
-                    physicalConnections.remove(fugeddaboutit);
-                    try {
-                        fugeddaboutit.getConnection().close();
-                    } catch (SQLException sqle) {
-                        logger.debug(GT.tr("Failed closing physical connection!"), sqle);
-                    }
+                
+                    fugeddaboutit.disassociate();
+                    physicalConnections.notify();
                 }
             }
         } // nothing to forget about.

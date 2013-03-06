@@ -9,6 +9,7 @@ package org.postgresql.xa;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.transaction.xa.Xid;
 import org.postgresql.core.BaseConnection;
@@ -85,6 +86,13 @@ class PhysicalXAConnection {
         return associationLock;
     }
     
+    void close() throws SQLException {
+        disassociate();
+        if (connection != null && !connection.isClosed()) {
+            connection.close();
+        }
+    }
+    
     /**
      * Associates the logical connection on the given thread to do work on behalf of the given xid.
      * 
@@ -94,59 +102,64 @@ class PhysicalXAConnection {
      * @throws IllegalStateException if the connection is currently associated to a xid other than the supplied xid.
      */
     boolean associate(final PGXAConnection logicalConnection, final Xid xid) throws IllegalStateException {
-        associationLock.lock();
         try {
-            // Sanity checks.
-            if (associatedXid != null) {
-                if (xid == null) {
-                    if (logger.logDebug()) {
-                        logger.debug(GT.tr("Attempted to associate a phsycial connection for local TX mode which is already servicing distributed transaction xid: {0}", 
-                                                              RecoveredXid.xidToString(associatedXid)));
+            if (associationLock.tryLock(0, TimeUnit.SECONDS)) {
+                try {
+                    // Sanity checks.
+                    if (associatedXid != null) {
+                        if (xid == null) {
+                            if (logger.logDebug()) {
+                                logger.debug(GT.tr("Attempted to associate a phsycial connection for local TX mode which is already servicing distributed transaction xid: {0}", 
+                                                                      RecoveredXid.xidToString(associatedXid)));
+                            }
+                            return false;
+                        } else if (!associatedXid.equals(xid)) {
+                            if (logger.logDebug()) {
+                                logger.debug(GT.tr("Attempted to associate a physical connection to xid [{0}], which differs from it's current xid [{1}].",
+                                                                      new Object[] {RecoveredXid.xidToString(xid), RecoveredXid.xidToString(associatedXid)}));
+                            }
+                            return false;
+                        }
                     }
-                    return false;
-                } else if (!associatedXid.equals(xid)) {
-                    if (logger.logDebug()) {
-                        logger.debug(GT.tr("Attempted to associate a physical connection to xid [{0}], which differs from it's current xid [{1}].",
-                                                              new Object[] {RecoveredXid.xidToString(xid), RecoveredXid.xidToString(associatedXid)}));
+
+                    // Check availability. I should probably be punished for writing a conditional like this.
+                    if (!connection.isClosed() && // not closed AND
+                        logicalConnection.getUser().equals(user) && // Same user AND
+                        (logicalConnections.isEmpty() || logicalConnections.contains(logicalConnection)) && // No association or associated to this logical AND
+
+                        ((associatedXid != null && associatedXid.equals(xid)) || // Already associated to the same Xid OR 
+                         (associatedXid == null &&  // Local TX mode AND either
+                            (connection.getTransactionState() == ProtocolConnection.TRANSACTION_IDLE || // No TX in progress OR
+                             (isOnlyLogicalAssociation(logicalConnection) && xid == null)))) // (Possibly in-progress, idle, or rolledback)
+                                                                                              // but nevertheless already associated to this
+                                                                                              // logical, AND not requesting a xid.
+                    ) {
+                        // If we're associating to an xid, turn off autocommit.
+                        if (this.associatedXid == null && xid != null) {
+                            this.localAutoCommit = connection.getAutoCommit();
+                            connection.setAutoCommit(false);
+                        }
+                        this.associatedXid = xid;
+                        if (!this.logicalConnections.contains(logicalConnection)) {
+                            this.logicalConnections.add(logicalConnection);
+                        }
+                        logicalConnection.setPhysicalXAConnection(this);
+
+                        if (logger.logDebug()) {
+                            logger.debug(GT.tr("[{0}] - associated to xid: {2}", new Object[]{backendPid, RecoveredXid.xidToString(xid)}));
+                        }
+                        return true;
                     }
-                    return false;
+                } catch (SQLException sqle) {
+                    if (logger.logDebug()) {
+                        logger.debug(GT.tr("Could not modify autocommit state for physical connection."), sqle);
+                    }
+                } finally {
+                    associationLock.unlock();
                 }
             }
+        } catch (InterruptedException ie) { 
             
-            // Check availability. I should probably be punished for writing a conditional like this.
-            if (!connection.isClosed() && // not closed AND
-                logicalConnection.getUser().equals(user) && // Same user AND
-                (logicalConnections.isEmpty() || logicalConnections.contains(logicalConnection)) && // No association or associated to this logical AND
-
-                ((associatedXid != null && associatedXid.equals(xid)) || // Already associated to the same Xid OR 
-                 (associatedXid == null &&  // Local TX mode AND either
-                    (connection.getTransactionState() == ProtocolConnection.TRANSACTION_IDLE || // No TX in progress OR
-                     (isOnlyLogicalAssociation(logicalConnection) && xid == null)))) // (Possibly in-progress, idle, or rolledback)
-                                                                                      // but nevertheless already associated to this
-                                                                                      // logical, AND not requesting a xid.
-            ) {
-                // If we're associating to an xid, turn off autocommit.
-                if (this.associatedXid == null && xid != null) {
-                    this.localAutoCommit = connection.getAutoCommit();
-                    connection.setAutoCommit(false);
-                }
-                this.associatedXid = xid;
-                if (!this.logicalConnections.contains(logicalConnection)) {
-                    this.logicalConnections.add(logicalConnection);
-                }
-                logicalConnection.setPhysicalXAConnection(this);
-
-                if (logger.logDebug()) {
-                    logger.debug(GT.tr("[{0}] - associated to xid: {2}", new Object[]{backendPid, RecoveredXid.xidToString(xid)}));
-                }
-                return true;
-            }
-        } catch (SQLException sqle) {
-            if (logger.logDebug()) {
-                logger.debug(GT.tr("Could not modify autocommit state for physical connection."), sqle);
-            }
-        } finally {
-            associationLock.unlock();
         }
         return false;
     }
@@ -160,14 +173,20 @@ class PhysicalXAConnection {
      */
     boolean isCloseable(final PGXAConnection logicalConnection) {
         try {
-            associationLock.lock();
-            // if it's empty or it only contains this logical connection...
-            return (logicalConnections.isEmpty() || isOnlyLogicalAssociation(logicalConnection)) &&
-                   associatedXid == null && 
-                   user.equals(logicalConnection.getUser());
-        } finally {
-            associationLock.unlock();
+            if (associationLock.tryLock(0, TimeUnit.SECONDS)) {
+                try {
+                    // if it's empty or it only contains this logical connection...
+                    return (logicalConnections.isEmpty() || isOnlyLogicalAssociation(logicalConnection)) &&
+                           associatedXid == null && 
+                           user.equals(logicalConnection.getUser());
+                } finally {
+                    associationLock.unlock();
+                }
+            }
+        } catch (InterruptedException ie) {
+            return false;
         }
+        return false;
     }
     
     /**
@@ -190,7 +209,7 @@ class PhysicalXAConnection {
      * @throws IllegalStateException 
      */
     void disassociate(final PGXAConnection logicalConnection, final Xid xid) throws IllegalStateException {
-        associationLock.lock();
+        associationLock.lock(); // wait for it.
         try {
             if (logicalConnection != null) {
                 if (!logicalConnections.remove(logicalConnection)) {

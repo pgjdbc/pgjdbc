@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.postgresql.PGConnection;
 
 /**
@@ -24,6 +25,8 @@ public class PooledXADataSourceTest extends TestCase {
 
     private PGXADataSource ds;
     private List<XAConnection> pool;
+    
+    private static AtomicInteger xidCounter = new AtomicInteger(0);
 
     public PooledXADataSourceTest(final String name) {
         super(name);
@@ -84,7 +87,7 @@ public class PooledXADataSourceTest extends TestCase {
         XAResource xaRes = xaconn.getXAResource();
         Connection conn = xaconn.getConnection();
 
-        Xid xid = new XADataSourceTest.CustomXid(1);
+        Xid xid = new XADataSourceTest.CustomXid(xidCounter.incrementAndGet());
         xaRes.start(xid, XAResource.TMNOFLAGS);
         conn.createStatement().executeQuery("SELECT * FROM testxa1");
         xaRes.end(xid, XAResource.TMSUCCESS);
@@ -109,7 +112,7 @@ public class PooledXADataSourceTest extends TestCase {
             XAResource xaRes = xaconn.getXAResource();
             Connection conn = xaconn.getConnection();
 
-            Xid xid = new XADataSourceTest.CustomXid(1);
+            Xid xid = new XADataSourceTest.CustomXid(xidCounter.incrementAndGet());
             xaRes.start(xid, XAResource.TMNOFLAGS);
             conn.createStatement().executeQuery("SELECT * FROM testxa1");
             xaRes.end(xid, XAResource.TMSUCCESS);
@@ -168,10 +171,11 @@ public class PooledXADataSourceTest extends TestCase {
                 XAResource xaRes = xaconn.getXAResource();
                 Connection conn = xaconn.getConnection();
 
-                Xid xid = new XADataSourceTest.CustomXid(255);
+                Xid xid = new XADataSourceTest.CustomXid(xidCounter.incrementAndGet());
                 xaRes.start(xid, XAResource.TMNOFLAGS);
                 conn.createStatement().executeQuery("SELECT * FROM testxa1");
                 xaRes.end(xid, XAResource.TMSUCCESS);
+                
                 xaRes.commit(xid, true);
 
                 conn.close();
@@ -208,7 +212,7 @@ public class PooledXADataSourceTest extends TestCase {
 
                 int localTxPID = ((PGConnection)conn).getBackendPID();
 
-                Xid xid = new XADataSourceTest.CustomXid(42);
+                Xid xid = new XADataSourceTest.CustomXid(xidCounter.incrementAndGet());
                 xaRes.start(xid, XAResource.TMNOFLAGS);
                 int xaPID = ((PGConnection)conn).getBackendPID();
                 conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES(42)");
