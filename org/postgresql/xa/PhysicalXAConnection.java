@@ -194,7 +194,7 @@ class PhysicalXAConnection {
      * @param logicalConnection
      * @return true if this physical connection is servicing only the given logical connection.
      */
-    private boolean isOnlyLogicalAssociation(final PGXAConnection logicalConnection) {
+    boolean isOnlyLogicalAssociation(final PGXAConnection logicalConnection) {
         return (logicalConnections.size() == 1 && logicalConnections.contains(logicalConnection));
     }
     

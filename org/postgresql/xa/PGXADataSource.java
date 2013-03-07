@@ -97,8 +97,6 @@ public class PGXADataSource extends AbstractPGXADataSource {
      *     Occurs when the database connection cannot be established.
      */
     public XAConnection getXAConnection(final String user, final String password) throws SQLException {
-        allocatePhysicalConnection(user, password);
-        
         // Create a new LogicalXAConnectionHandler proxy.
         LogicalXAConnectionHandler logicalHandler = new LogicalXAConnectionHandler();
         PGXAConnection logicalConnection = createPGXAConnection(
@@ -111,8 +109,13 @@ public class PGXADataSource extends AbstractPGXADataSource {
         
         logicalConnectionCount.incrementAndGet();
         
+        // Allocate a new physical connection if there aren't any available for this new logical.
+        if (getCloseableConnectionCount(logicalConnection) <= 0) {
+            allocatePhysicalConnection(user, password);
+        }
+        
         if (logger.logDebug()) {
-            logger.debug(GT.tr("Created logical connection number {0}", logicalConnectionCount.get()));
+            logger.debug(GT.tr("Created logical connection. Active count: {0}", logicalConnectionCount.get()));
         }
         return logicalConnection;
     }
@@ -279,14 +282,21 @@ public class PGXADataSource extends AbstractPGXADataSource {
         boolean timeoutHit = false;
         while (physical == null) {
             synchronized(physicalConnections) {
-                // Look for the physical connection with this xid.
                 boolean found = false;
+                // The first pass attempts to restore association, or resolve an existing backend prepared to service this context.
                 for (int i = 0; i < physicalConnections.size() && !found; i++) {
                     // Lock the physical connection to test it's state.
                     physical = physicalConnections.get(i);
                     physical.getAssociationLock().lock();
                     try {
-                        if (physical.getAssociatedXid() != null && physical.getAssociatedXid().equals(xid)) {
+                        if (xid != null) {
+                            // We're looking for a connection with a specific xid.
+                            if (physical.getAssociatedXid() != null && physical.getAssociatedXid().equals(xid)) {
+                                physical.associate(logicalConnection, xid);
+                                found = true;
+                            }
+                        } else if (physical.isOnlyLogicalAssociation(logicalConnection)) { 
+                            // xid == null AND, the physical is already 'associated' to this logical.
                             physical.associate(logicalConnection, xid);
                             found = true;
                         }
@@ -295,7 +305,8 @@ public class PGXADataSource extends AbstractPGXADataSource {
                     }
                 }
 
-                // If there isn't one, loop again, and attempt to associate.
+                // If there isn't a connection servicing the xid or a connection in localTX mode make another pass,
+                // this time attempting to associate to each connection in turn.
                 for (int i = 0; i < physicalConnections.size() && !found; i++) {
                     physical = physicalConnections.get(i);
                     found = physical.associate(logicalConnection, xid);
@@ -759,18 +770,20 @@ public class PGXADataSource extends AbstractPGXADataSource {
          * in an unexpected state.
          */
         public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
-            // If interleaving is disabled, and we're closing a connection, we need to consume the clearWarnings invocation.
-            if (logicalConnection.isCloseHandleInProgress() && xaAcquireTimeout <= 0) {
-                if (method.getName().equals("clearWarnings")) {
-                    return (method.getReturnType().cast(null));
-                }
-            }
-            
             // Get and peg a physical connection to service this logicalConnection.
             // If there is already an association in place, we want to use that
             // physical connections.
             PhysicalXAConnection physicalConnection = logicalConnection.getPhysicalXAConnection();
             if (physicalConnection == null) {
+                // If we're closing a connection handle with no associated backend
+                if (logicalConnection.isCloseHandleInProgress()) {
+                    if (method.getName().equals("clearWarnings")) {
+                        return (method.getReturnType().cast(null));
+                    } else if (method.getName().equals("getAutoCommit")) {
+                        return true; // If we returned true, we'll be asked to rollback(), but we have no physical. That's a bad idea.
+                    }
+                }
+                
                 physicalConnection = resolvePhysicalConnection(logicalConnection, null);
             }
                         

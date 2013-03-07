@@ -220,12 +220,12 @@ public class PooledXADataSourceTest extends TestCase {
                 conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES(44)");
                 xaRes.end(xid, XAResource.TMSUSPEND);
 
-                // Back to local TX Mode, on the same connection.
+                // Back to local TX Mode, on the same connection as before.
                 Statement st = conn.createStatement();
                 assertEquals(localTxPID, ((PGConnection)conn).getBackendPID());
                 assertFalse(conn.getAutoCommit());
 
-                // Resume, end, prepare, commit 2p.
+                // Resume, end, prepare, commit 2p, which changes our connection again.
                 xaRes = xaconn.getXAResource();
                 xaRes.start(xid, XAResource.TMRESUME);
                 xaRes.end(xid, XAResource.TMSUCCESS);

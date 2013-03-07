@@ -192,16 +192,16 @@ public class XADataSourceTest extends TestCase {
         assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
         // Open a second connection so that closing the first does not kill all physical backends.
         XAConnection xaconn2 = _ds.getXAConnection();
-        assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
         
         Xid xid = new CustomXid(8657309);
         xaRes.start(xid, XAResource.TMNOFLAGS);
         assertEquals(1, conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES (1)"));
-        assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
         xaRes.end(xid, XAResource.TMSUCCESS);
-        assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
         conn.close();
-        assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
         
         xaconn.close();
         assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
@@ -213,6 +213,53 @@ public class XADataSourceTest extends TestCase {
         xaconn = xaconn2;
     }
     
+
+    public void testPhysicalConnectionCountCloseBeforeRollbackLocalTXInProgress() throws Exception {
+        assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        // Open a second logical connection so that closing the first does not kill all physical backends.
+        XAConnection xaconn2 = _ds.getXAConnection();
+        assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        Connection conn2 = xaconn2.getConnection();
+        conn2.setAutoCommit(false);
+        conn2.createStatement().execute("BEGIN");
+        assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        Xid xid = new CustomXid(8657309);
+        xaRes.start(xid, XAResource.TMNOFLAGS);
+        assertEquals(1, conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES (1)"));
+        assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        xaRes.end(xid, XAResource.TMSUCCESS);
+        assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        conn.close();
+        assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        // we should have 1 connection with an in-progress TX, and 1 associated to a xid.
+        xaconn.close();
+        assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        // This ends the association of the xid to a backend connection (making it closeable).
+        xaRes.rollback(xid);
+        assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        // Get another connection. This should be able to use the connection that was just rolledback, keeping the pool a stable size.
+        xaconn = _ds.getXAConnection();
+        assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        // Close the new one, and the old one that was associated to the xid. This should leave us with 1.
+        xaconn.close();
+        assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        // Do a check to make sure we're rolled back properly.
+        ResultSet rs = _conn.createStatement().executeQuery("SELECT foo FROM testxa1");
+        assertFalse(rs.next());
+        xaconn = xaconn2;
+    }
+    
+    
+    public void testDoNotCloseLocalTXInProgress() throws Exception {
+        
+    }
     
     /**
      * This test checks to make sure that an XAConnection.close() prior to a rollback does not create an issue.
