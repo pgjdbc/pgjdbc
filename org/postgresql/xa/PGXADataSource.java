@@ -279,7 +279,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
             logicalConnection.setPhysicalXAConnection(null);
         }
         
-        boolean timeoutHit = false;
+        long acquireWait = 0l;
         while (physical == null) {
             synchronized(physicalConnections) {
                 boolean found = false;
@@ -320,20 +320,21 @@ public class PGXADataSource extends AbstractPGXADataSource {
                         throw new SQLException(GT.tr("Support for Transaction Interleaving has been disabled. " + 
                                                 "Set 'xaAcquireTimeout' > 0 to enable interleaving support. " + 
                                                 "Could not allocate a physical connection to service the current Connection invocation."));
-                    } else if (!timeoutHit) {
-                        timeoutHit = true;
+                    } else if (acquireWait < xaAcquireTimeout) {
+                        long start = System.currentTimeMillis();
                         try {
-                            physicalConnections.wait(xaAcquireTimeout);
+                            physicalConnections.wait(xaAcquireTimeout - acquireWait);
                         } catch (InterruptedException ie) {
                             throw new SQLException("Interrupted while attempting to resolve a physical XA connection.", ie);
                         }
+                        acquireWait += (System.currentTimeMillis() - start);
                     } else {
                         // Well, that didn't work. Time to open a new physical connection and let the next iteration pair.
                         if (logger.logDebug()) {
                             logger.debug(GT.tr("Attempting to open new physical connection."));
                         }
 
-                        timeoutHit = false;
+                        acquireWait = 0;
                         try {
                             allocatePhysicalConnection(logicalConnection.getUser(), logicalConnection.getPassword());
                         } catch (Exception ex) {
