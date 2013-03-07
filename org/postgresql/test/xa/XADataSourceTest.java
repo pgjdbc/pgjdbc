@@ -257,7 +257,7 @@ public class XADataSourceTest extends TestCase {
     }
     
     
-    public void testDoNotCloseLocalTXInProgress() throws Exception {
+    public void testDoNotCloseLocalAssociated() throws Exception {
         assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
         
         // Open a second logical connection so that closing the first does not kill all physical backends.
@@ -303,6 +303,40 @@ public class XADataSourceTest extends TestCase {
         // Close conn2, which did not open conn, so conn should still be open.
         conn2.close();
         xaconn2.close();
+        assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        // clean up.
+        conn.close();
+        xaconn.close();
+        
+        assertEquals(0, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        // Open two XAConnections, both use the Connection handle. One starts, ends, and prepares a global tx.
+        // The other gets closed.
+        xaconn2 = _ds.getXAConnection();
+        conn2 = xaconn2.getConnection();
+        
+        xaconn = _ds.getXAConnection();
+        conn = xaconn.getConnection();
+        xaRes = xaconn.getXAResource();
+        
+        // Force different backends.
+        assertNotSame(((PGConnection)conn2).getBackendPID(), ((PGConnection)conn).getBackendPID());
+        assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        Xid xid = new CustomXid(321);
+        xaRes.start(xid, XAResource.TMNOFLAGS);
+        assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount()); // no tx in progress.
+        assertFalse(conn.getAutoCommit());
+        assertEquals(1, conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES (1)"));
+        xaRes.end(xid, XAResource.TMSUCCESS);
+        xaRes.prepare(xid);
+        
+        conn2.close();
+        xaconn2.close();
+        assertEquals(0, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        xaRes.commit(xid, false);
         assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
     }
     
