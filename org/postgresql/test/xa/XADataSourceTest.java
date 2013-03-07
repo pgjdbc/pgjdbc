@@ -258,7 +258,52 @@ public class XADataSourceTest extends TestCase {
     
     
     public void testDoNotCloseLocalTXInProgress() throws Exception {
+        assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
         
+        // Open a second logical connection so that closing the first does not kill all physical backends.
+        XAConnection xaconn2 = _ds.getXAConnection();
+        assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        Connection conn2 = xaconn2.getConnection();
+        conn2.setAutoCommit(false);
+        conn2.createStatement().execute("BEGIN");
+        assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        conn2.close();
+        assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        // We should close the in-progress local tx for the closed logical.
+        xaconn2.close();
+        assertEquals(0, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        // There isn't anything to close!
+        xaconn.close();
+        assertEquals(0, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        
+        // Open a new set of XAConnections and try closing the one that didn't create the local tx.
+        xaconn2 = _ds.getXAConnection();
+        assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        xaconn = _ds.getXAConnection();
+        assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        // Open new handles.
+        conn2 = xaconn2.getConnection();
+        conn = xaconn.getConnection();
+        
+        // Force association to different physicals
+        assertNotSame(((PGConnection)conn2).getBackendPID(), ((PGConnection)conn).getBackendPID());
+        assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        conn.setAutoCommit(false);
+        conn.createStatement().execute("BEGIN");
+        
+        assertFalse(conn.getAutoCommit());
+        
+        // Close conn2, which did not open conn, so conn should still be open.
+        conn2.close();
+        xaconn2.close();
+        assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
     }
     
     /**
