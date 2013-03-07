@@ -159,7 +159,7 @@ class PhysicalXAConnection {
                 }
             }
         } catch (InterruptedException ie) { 
-            
+            return false;
         }
         return false;
     }
@@ -174,14 +174,13 @@ class PhysicalXAConnection {
     boolean isCloseable(final PGXAConnection logicalConnection) {
         try {
             if (associationLock.tryLock(0, TimeUnit.SECONDS)) {
-                try {
-                    // if it's empty or it only contains this logical connection...
-                    return (logicalConnections.isEmpty() || isOnlyLogicalAssociation(logicalConnection)) &&
-                           associatedXid == null && 
-                           user.equals(logicalConnection.getUser());
-                } finally {
+                boolean closeable = (logicalConnections.isEmpty() || isOnlyLogicalAssociation(logicalConnection)) &&
+                                     associatedXid == null && 
+                                     user.equals(logicalConnection.getUser());
+                if (!closeable) {
                     associationLock.unlock();
                 }
+                return closeable;
             }
         } catch (InterruptedException ie) {
             return false;

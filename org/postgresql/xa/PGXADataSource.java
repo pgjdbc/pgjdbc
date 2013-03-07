@@ -109,13 +109,6 @@ public class PGXADataSource extends AbstractPGXADataSource {
                         logicalHandler));
         logicalHandler.setLogicalConnection(logicalConnection);
         
-        // Make sure we have an associated physical connection.
-        try {
-            resolvePhysicalConnection(logicalConnection, null);
-        } catch (PGXAException pgxa) {
-            throw new SQLException(pgxa);
-        }
-        
         logicalConnectionCount.incrementAndGet();
         
         if (logger.logDebug()) {
@@ -147,6 +140,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
             for (int i = 0; i < physicalConnections.size(); i++) {
                 if (physicalConnections.get(i).isCloseable(logicalConnection)) {
                     available++;
+                    physicalConnections.get(i).getAssociationLock().unlock();
                 }
             }
         }
@@ -175,17 +169,8 @@ public class PGXADataSource extends AbstractPGXADataSource {
             PhysicalXAConnection candidate = null;
             for (int i = 0; i < physicalConnections.size(); i++) {
                 candidate = physicalConnections.get(i);
-                try {
-                    // Grab the management lock while we work on this connection.
-                    candidate.getAssociationLock().lock();
-                    if (candidate.isCloseable(logicalConnection)) {
-                        closeable.add(candidate);
-                    }
-                } finally {
-                    // If we did not add this as a closeable, unlock it.
-                    if (!closeable.contains(candidate)) {
-                        candidate.getAssociationLock().unlock();
-                    }
+                if (candidate.isCloseable(logicalConnection)) {
+                    closeable.add(candidate);
                 }
             }
             
@@ -197,7 +182,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
                     if (!closeable.contains(candidate)) {
                         // if interleaving is disabled, OR we are not suspended.
                         if (xaAcquireTimeout <= 0 || !candidate.isSuspended()) {
-                            candidate.getAssociationLock().lock();
+                            candidate.getAssociationLock().lock(); // wait for it...
                             closeable.add(candidate);
                         }
                     }
@@ -637,59 +622,51 @@ public class PGXADataSource extends AbstractPGXADataSource {
             logger.debug(GT.tr("Rolling back transaction xid: {1}.", new Object[]{RecoveredXid.xidToString(xid)}));
         }
 
-        PhysicalXAConnection currentConn = resolvePhysicalConnection(xid);
-        if (currentConn != null) { // one phase!
-            try {
-                currentConn.getConnection().rollback();
-            } catch (SQLException sqle) {
-                throw new PGXAException(GT.tr("Error during one-phase rollback"), sqle, XAException.XAER_RMERR);
-            } finally {
-                synchronized(physicalConnections) {
-                    currentConn.disassociate();
-                    physicalConnections.notify();
-                }
-            }
-        } else {
-            // currentConn is null. So we need to use an available connection to issue the rollback on.
-            // The physical connection associated to this XAResource(PGXAConnection) _may_ be available, but we can't really trust
-            // it to be (with sharing, we may be in a TX on this logical connection). So we'll get an available physical for the xid
-            // which should allocate or associate an available physical connection to us.
-            // 
-            // Because we're changing the association here, we need to lock the originalPhysical, and resolve a new one.
-            PhysicalXAConnection originalPhysical = logicalConnection.getPhysicalXAConnection();
+        // Because we're changing the association here, we need to lock the originalPhysical, and resolve a new one.
+        PhysicalXAConnection originalPhysical = logicalConnection.getPhysicalXAConnection();
         
-            try {
-                currentConn = resolvePhysicalConnection(logicalConnection, xid);
-
-                // Assume a two phase, if it fails, well, then shoot.
+        PhysicalXAConnection currentConn = resolvePhysicalConnection(xid);
+        try {
+            if (currentConn == null) { // Two phase!
+                // currentConn is null. So we need to use an available connection to issue the rollback on.
+                // The physical connection associated to this XAResource(PGXAConnection) _may_ be available, but we can't really trust
+                // it to be (with sharing, we may be in a TX on this logical connection). So we'll get an available physical for the xid
+                // which should allocate or associate an available physical connection to us.
+                // 
                 try {
-                    String s = RecoveredXid.xidToString(xid);
+                    currentConn = resolvePhysicalConnection(logicalConnection, xid);
 
-                    currentConn.getConnection().setAutoCommit(true);
-                    Statement stmt = currentConn.getConnection().createStatement();
                     try {
-                        stmt.executeUpdate("ROLLBACK PREPARED '" + s + "'");
-                    } finally {
-                        stmt.close();
+                        String s = RecoveredXid.xidToString(xid);
+
+                        currentConn.getConnection().setAutoCommit(true);
+                        Statement stmt = currentConn.getConnection().createStatement();
+                        try {
+                            stmt.executeUpdate("ROLLBACK PREPARED '" + s + "'");
+                        } finally {
+                            stmt.close();
+                        }
+                    } catch (SQLException sqle) {
+                        throw new PGXAException(GT.tr("Error during two-phase rollback"), sqle, XAException.XAER_RMERR);
                     }
                 } catch (SQLException sqle) {
-                    throw new PGXAException(GT.tr("Error during two-phase rollback"), sqle, XAException.XAER_RMERR);
+                    throw new PGXAException(GT.tr("Failed to obtain phsycial connection."), sqle, PGXAException.XAER_RMERR);
                 }
-            } catch (SQLException sqle) {
-                throw new PGXAException(GT.tr("Failed to obtain phsycial connection."), sqle, PGXAException.XAER_RMERR);
-            } finally {
-                synchronized(physicalConnections) {
-                    if (currentConn != null) {
-                        currentConn.disassociate(logicalConnection, xid);
-                    }
-                    logicalConnection.setPhysicalXAConnection(originalPhysical);
-                    physicalConnections.notify();
+            } else { // one phase!
+                try {
+                    currentConn.getConnection().rollback();
+                } catch (SQLException sqle) {
+                    throw new PGXAException(GT.tr("Error during one-phase rollback"), sqle, XAException.XAER_RMERR);
                 }
             }
-        }
-        
-        if (logger.logDebug()) {
-            logger.debug(GT.tr("[{0}] - Transaction xid: {1} rolled back.", new Object[]{currentConn.getBackendPID(), RecoveredXid.xidToString(xid)}));
+        } finally {
+            synchronized(physicalConnections) {
+                if (currentConn != null) {
+                    currentConn.disassociate();
+                }
+                logicalConnection.setPhysicalXAConnection(originalPhysical);
+                physicalConnections.notify();
+            }
         }
     }
 

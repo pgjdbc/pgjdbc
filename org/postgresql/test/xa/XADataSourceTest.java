@@ -187,6 +187,32 @@ public class XADataSourceTest extends TestCase {
         ResultSet rs = _conn.createStatement().executeQuery("SELECT foo FROM testxa1");
         assertFalse(rs.next());
     }
+
+    public void testClosePhysicalConnectionCounts() throws Exception {
+        assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        // Open a second connection so that closing the first does not kill all physical backends.
+        XAConnection xaconn2 = _ds.getXAConnection();
+        assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        Xid xid = new CustomXid(8657309);
+        xaRes.start(xid, XAResource.TMNOFLAGS);
+        assertEquals(1, conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES (1)"));
+        assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        xaRes.end(xid, XAResource.TMSUCCESS);
+        assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        conn.close();
+        assertEquals(2, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        xaconn.close();
+        assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        
+        xaRes.rollback(xid);
+        
+        ResultSet rs = _conn.createStatement().executeQuery("SELECT foo FROM testxa1");
+        assertFalse(rs.next());
+        xaconn = xaconn2;
+    }
+    
     
     /**
      * This test checks to make sure that an XAConnection.close() prior to a rollback does not create an issue.
