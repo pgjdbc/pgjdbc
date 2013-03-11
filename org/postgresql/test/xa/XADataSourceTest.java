@@ -188,6 +188,33 @@ public class XADataSourceTest extends TestCase {
         assertFalse(rs.next());
     }
 
+    
+    public void testCloseLogicalBeforeRollback() throws Exception {
+        Xid xid = new CustomXid(5);
+        xaRes.start(xid, XAResource.TMNOFLAGS);
+        assertEquals(1, conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES (1)"));
+        xaRes.end(xid, XAResource.TMSUCCESS);
+        
+        conn.close();
+        xaconn.close();
+        
+        // This should throw an exception. The physical connection is closed, and there's no prepared TX in the DB.
+        boolean expected = false;
+        try {
+            xaRes.rollback(xid);
+        } catch (XAException xae) {
+            expected = true;
+        }
+        assertTrue(expected);
+
+        // Restore state so we can cleanup.
+        xaconn = _ds.getXAConnection();
+        
+        ResultSet rs = _conn.createStatement().executeQuery("SELECT foo FROM testxa1");
+        assertFalse(rs.next());
+    }
+    
+    
     public void testClosePhysicalConnectionCounts() throws Exception {
         assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
         // Open a second connection so that closing the first does not kill all physical backends.

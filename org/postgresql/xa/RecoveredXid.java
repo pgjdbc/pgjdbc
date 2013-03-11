@@ -66,6 +66,9 @@ class RecoveredXid implements Xid {
     //--- Routines for converting xid to string and back.
 
     static String xidToString(final Xid xid) {
+        if (xid == null) { // The GlassFish TM / Connection Pool tests use null xids for pinging an XA data source.
+            return "" + xid;
+        }
         return xid.getFormatId() + "_"
                + Base64.encodeBytes(xid.getGlobalTransactionId(), Base64.DONT_BREAK_LINES) + "_"
                + Base64.encodeBytes(xid.getBranchQualifier(), Base64.DONT_BREAK_LINES);

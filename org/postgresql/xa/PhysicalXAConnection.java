@@ -87,9 +87,14 @@ class PhysicalXAConnection {
     }
     
     void close() throws SQLException {
-        disassociate();
-        if (connection != null && !connection.isClosed()) {
-            connection.close();
+        associationLock.lock();
+        try {
+            disassociate(false); // do not restore autocommit.
+            if (connection != null && !connection.isClosed()) {
+                connection.close();
+            }
+        } finally {
+            associationLock.unlock();
         }
     }
     
@@ -174,9 +179,25 @@ class PhysicalXAConnection {
     boolean isCloseable(final PGXAConnection logicalConnection) {
         try {
             if (associationLock.tryLock(0, TimeUnit.SECONDS)) {
-                boolean closeable = (logicalConnections.isEmpty() || isOnlyLogicalAssociation(logicalConnection)) &&
-                                     associatedXid == null && 
-                                     user.equals(logicalConnection.getUser());
+                boolean closeable;
+                try {
+                    // The available code checks to see if the connection is already closed.
+                    // In the case of association that matters. In our case (closing) it really doesn't.
+                    // If it's already closed, we should say it's closeable. If we get an error checking it's state, it's closeable.
+                    if (connection.isClosed()) {
+                        closeable = true;
+                    } else {
+                        closeable = (logicalConnection.getUser().equals(user) && // Same user AND
+                                     (logicalConnections.isEmpty() || logicalConnections.contains(logicalConnection)) && // No association or associated to this logical AND
+
+                                     (associatedXid == null &&  // Local TX mode AND either
+                                         (connection.getTransactionState() == ProtocolConnection.TRANSACTION_IDLE || // No TX in progress OR
+                                         isOnlyLogicalAssociation(logicalConnection)))); // (Possibly in-progress, idle, or rolledback, but only for this connection
+                    }
+                } catch (SQLException sqle) {
+                    closeable = true;
+                }
+                
                 if (!closeable) {
                     associationLock.unlock();
                 }
@@ -204,10 +225,12 @@ class PhysicalXAConnection {
      * 
      * @param logicalConnection If not null, removes the specified logicalConnection from this physical connection.
      * @param xid If not null, removes the xid association from this physical connection.
+     * @param restoreAutoCommit If false, the autoCommit on the connection will not be restored. This primarily exists so that 
+     *                          when invoking close(), we can disassociate without causing an in-progress TX to improperly commit.
      * 
      * @throws IllegalStateException 
      */
-    void disassociate(final PGXAConnection logicalConnection, final Xid xid) throws IllegalStateException {
+    private void disassociate(final PGXAConnection logicalConnection, final Xid xid, final boolean restoreAutoCommit) throws IllegalStateException {
         associationLock.lock(); // wait for it.
         try {
             if (logicalConnection != null) {
@@ -228,7 +251,9 @@ class PhysicalXAConnection {
                 }
 
                 // Restore the autocommit.
-                connection.setAutoCommit(localAutoCommit);
+                if (restoreAutoCommit) {
+                    connection.setAutoCommit(localAutoCommit);
+                }
                 associatedXid = null;
                 suspended = false;
                 
@@ -242,6 +267,19 @@ class PhysicalXAConnection {
         }
     }
     
+    
+    /**
+     * Disassociates the logical connection or xid from this physical connection.
+     * 
+     * @param logicalConnection If not null, removes the specified logicalConnection from this physical connection.
+     * @param xid If not null, removes the xid association from this physical connection.
+     * 
+     * @throws IllegalStateException 
+     */
+    void disassociate(final PGXAConnection logicalConnection, final Xid xid) {
+        disassociate(logicalConnection, xid, true);
+    }
+    
     /**
      * Disassociates the logical connection from this physical connection.
      * 
@@ -250,7 +288,7 @@ class PhysicalXAConnection {
      * @throws IllegalStateException 
      */
     void disassociate(final PGXAConnection logicalConnection) throws IllegalStateException {
-        disassociate(logicalConnection, null);
+        disassociate(logicalConnection, null, true);
     }
     
     /**
@@ -261,26 +299,33 @@ class PhysicalXAConnection {
      * @throws IllegalStateException 
      */
     void disassociate(final Xid xid) {
-        disassociate(null, xid);
+        disassociate(null, xid, true);
     }
     
     /**
      * Disassociates all logical connections and any associated xid from this connection.
      */
-    void disassociate() {
+    private void disassociate(boolean restoreAutoCommit) {
         associationLock.lock();
         try {
             // Clean up the logical connections.
             PGXAConnection logical = null;
             for (int i = 0; i < logicalConnections.size(); i++) {
                 logical = logicalConnections.get(i);
-                disassociate(logical, null);
+                disassociate(logical, null, restoreAutoCommit);
             }
             // Disassociate any remaining xid.
-            disassociate(null, associatedXid);
+            disassociate(null, associatedXid, restoreAutoCommit);
         } finally {
             associationLock.unlock();
         }
+    }
+    
+    /**
+     * Disassociates all logical connections and any associated xid from this connection.
+     */
+    void disassociate() {
+        disassociate(true);
     }
     
     /**

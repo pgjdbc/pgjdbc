@@ -782,6 +782,8 @@ public class PGXADataSource extends AbstractPGXADataSource {
                         return (method.getReturnType().cast(null));
                     } else if (method.getName().equals("getAutoCommit")) {
                         return true; // If we returned true, we'll be asked to rollback(), but we have no physical. That's a bad idea.
+                    } else if (method.getName().equals("close")) {
+                        return (method.getReturnType().cast(null)); // Closing a logical connection without a physical. Just return.
                     }
                 }
                 
