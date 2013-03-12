@@ -78,27 +78,11 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     
     @Override
     public synchronized void close() throws SQLException {
-        SQLException sqle = null;
-        try {
-            // If there is a handle open, the super.close() will invoke close() on the handle.
-            this.closeHandleInProgress = true;
-            super.close();
-        } catch (SQLException closeEx) {
-            sqle = closeEx;
-            
-            // If we had an exception on close, and there's no closable connections (which was likely the cause!)
-            // Clear the exception and don't throw it.
-            if (dataSource.getCloseableConnectionCount(this) == 0) {
-                sqle = null;
-            }
-        } finally {
-            dataSource.close(this);
-        }
-        
-        if (sqle != null) {
-            throw sqle;
-        }
-    }
+        this.closeHandleInProgress = true;
+        super.close();
+        dataSource.close(this);
+        backend = null;
+   }
 
     /**** XAResource interface ****/
     /**
@@ -233,7 +217,8 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         if (xares instanceof PGXAConnection) {
             // we need to make sure that the dataSource is to the same server/port/username as the XAConnection we were created alongside.
             PGXAConnection other = (PGXAConnection)xares;
-            if (other.dataSource.getServerName().equals(dataSource.getServerName()) &&
+            if (other.dataSource != null && this.dataSource != null &&
+                other.dataSource.getServerName().equals(dataSource.getServerName()) &&
                 other.dataSource.getPortNumber() == dataSource.getPortNumber() &&
                 other.dataSource.getDatabaseName().equals(dataSource.getDatabaseName()) &&
                 other.user.equals(user))

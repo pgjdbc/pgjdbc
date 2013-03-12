@@ -25,7 +25,7 @@ import org.postgresql.util.GT;
  */
 class PhysicalXAConnection {
 
-    private final Logger logger;
+    private Logger logger;
     
     private BaseConnection connection;
     private String user;
@@ -94,6 +94,9 @@ class PhysicalXAConnection {
                 connection.close();
             }
         } finally {
+            connection = null;
+            logicalConnections = null;
+            logger = null;
             associationLock.unlock();
         }
     }

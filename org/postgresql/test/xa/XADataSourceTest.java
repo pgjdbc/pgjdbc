@@ -7,7 +7,6 @@
 package org.postgresql.test.xa;
 
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -234,6 +233,10 @@ public class XADataSourceTest extends TestCase {
         xaconn.close();
         assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
         
+        xaconn = _ds.getXAConnection(); // Open a new XAConnection...
+        assertTrue(xaRes.isSameRM(xaconn.getXAResource())); // One is closed, the other isn't.
+        
+        xaRes = xaconn.getXAResource();
         xaRes.rollback(xid);
         
         ResultSet rs = _conn.createStatement().executeQuery("SELECT foo FROM testxa1");
@@ -368,32 +371,6 @@ public class XADataSourceTest extends TestCase {
         assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
     }
     
-    public void testStatementLongevity() throws Exception {
-        Xid xid = new CustomXid(5);
-        
-        int rows = 100;
-        for (int i = 0; i < rows; i++) {
-            assertEquals(1, conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES (" + i + ")"));
-        }
-        
-        xaRes.start(xid, XAResource.TMNOFLAGS);
-        PreparedStatement select = conn.prepareStatement("SELECT foo FROM testxa1", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.CLOSE_CURSORS_AT_COMMIT);
-        select.setFetchSize(25);
-        ResultSet rs = select.executeQuery();
-        assertTrue(rs.next());
-        conn.close(); // Close the handle
-        conn = xaconn.getConnection(); // Open the handle.
-        for (int i = 0; i < rows - 1; i++) {
-            assertTrue(rs.next());
-        }
-        rs.close();
-        xaRes.end(xid, XAResource.TMSUCCESS);
-        xaRes.commit(xid, true);
-        
-
-        rs = _conn.createStatement().executeQuery("SELECT foo FROM testxa1");
-        assertTrue(rs.next());
-    }
     
     /**
      * This test checks to make sure that an XAConnection.close() prior to a rollback does not create an issue.

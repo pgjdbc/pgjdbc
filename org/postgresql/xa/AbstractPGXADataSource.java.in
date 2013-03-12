@@ -6,6 +6,7 @@ import javax.sql.XADataSource;
  * XA-enabled DataSource implementation.
  *
  * @author Heikki Linnakangas (heikki.linnakangas@iki.fi)
+ * @author Bryan Varner (bvarner@polarislabs.com)
  */
 public abstract class AbstractPGXADataSource
     extends @XA_DS_CLASS@

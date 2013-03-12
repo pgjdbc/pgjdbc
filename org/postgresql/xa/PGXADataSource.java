@@ -47,7 +47,7 @@ import org.postgresql.util.PSQLState;
  *         interleaving.</li>
  * </ul>
  * 
- * @author bvarner
+ * @author Bryan Varner (bvarner@polarislabs.com)
  */
 public class PGXADataSource extends AbstractPGXADataSource {
 
@@ -771,22 +771,24 @@ public class PGXADataSource extends AbstractPGXADataSource {
          * in an unexpected state.
          */
         public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
+            // If the logical handle is being closed, we probably ought to do nothing...
+            if (logicalConnection.isCloseHandleInProgress()) {
+                if (method.getName().equals("clearWarnings")) {
+                    return (method.getReturnType().cast(null));
+                } else if (method.getName().equals("getAutoCommit")) {
+                    return true; // If we returned true, we'll be asked to rollback(), but we have no physical. That's a bad idea.
+                } else if (method.getName().equals("close")) {
+                    return (method.getReturnType().cast(null)); // Closing a logical connection without a physical. Just return.
+                } else {
+                    throw new IllegalStateException(GT.tr("Unexpected method invocation '{0}' during Logical Connection Handle close()", method.getName()));
+                }
+            }
+            
             // Get and peg a physical connection to service this logicalConnection.
             // If there is already an association in place, we want to use that
             // physical connections.
             PhysicalXAConnection physicalConnection = logicalConnection.getPhysicalXAConnection();
             if (physicalConnection == null) {
-                // If we're closing a connection handle with no associated backend
-                if (logicalConnection.isCloseHandleInProgress()) {
-                    if (method.getName().equals("clearWarnings")) {
-                        return (method.getReturnType().cast(null));
-                    } else if (method.getName().equals("getAutoCommit")) {
-                        return true; // If we returned true, we'll be asked to rollback(), but we have no physical. That's a bad idea.
-                    } else if (method.getName().equals("close")) {
-                        return (method.getReturnType().cast(null)); // Closing a logical connection without a physical. Just return.
-                    }
-                }
-                
                 physicalConnection = resolvePhysicalConnection(logicalConnection, null);
             }
                         
