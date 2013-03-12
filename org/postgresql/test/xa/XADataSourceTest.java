@@ -7,6 +7,7 @@
 package org.postgresql.test.xa;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -162,7 +163,7 @@ public class XADataSourceTest extends TestCase {
         xaRes.prepare(xid);
         xaRes.commit(xid, false);
     }
-
+    
     public void testCloseBeforeCommit() throws Exception {
         Xid xid = new CustomXid(5);
         xaRes.start(xid, XAResource.TMNOFLAGS);
@@ -365,6 +366,29 @@ public class XADataSourceTest extends TestCase {
         
         xaRes.commit(xid, false);
         assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+    }
+    
+    public void testStatementLongevity() throws Exception {
+        Xid xid = new CustomXid(5);
+        
+        for (int i = 0; i < 10000; i++) {
+            assertEquals(1, conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES (" + i + ")"));
+        }
+        
+        xaRes.start(xid, XAResource.TMNOFLAGS);
+        PreparedStatement select = conn.prepareStatement("SELECT foo FROM testxa1");
+        ResultSet rs = select.executeQuery();
+        assertTrue(rs.next());
+        conn.close(); // Close the handle
+        conn = xaconn.getConnection(); // Open the handle.
+        assertTrue(rs.next());
+        rs.close();
+        xaRes.end(xid, XAResource.TMSUCCESS);
+        xaRes.commit(xid, true);
+        
+
+        rs = _conn.createStatement().executeQuery("SELECT foo FROM testxa1");
+        assertTrue(rs.next());
     }
     
     /**
