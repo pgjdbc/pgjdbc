@@ -380,7 +380,7 @@
   <property name="database" value="test" />
   <property name="username" value="test" />
   <!-- Password must be something.  Doesn't matter if trust is used! -->
-  <property name="password" value="password" />
+  <property name="password" value="test" />
   <property name="preparethreshold" value="5" />
   <property name="loglevel" value="0" />
   <property name="protocolVersion" value="0" />
