@@ -371,17 +371,21 @@ public class XADataSourceTest extends TestCase {
     public void testStatementLongevity() throws Exception {
         Xid xid = new CustomXid(5);
         
-        for (int i = 0; i < 10; i++) {
+        int rows = 100;
+        for (int i = 0; i < rows; i++) {
             assertEquals(1, conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES (" + i + ")"));
         }
         
         xaRes.start(xid, XAResource.TMNOFLAGS);
-        PreparedStatement select = conn.prepareStatement("SELECT foo FROM testxa1");
+        PreparedStatement select = conn.prepareStatement("SELECT foo FROM testxa1", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.CLOSE_CURSORS_AT_COMMIT);
+        select.setFetchSize(25);
         ResultSet rs = select.executeQuery();
         assertTrue(rs.next());
         conn.close(); // Close the handle
         conn = xaconn.getConnection(); // Open the handle.
-        assertTrue(rs.next());
+        for (int i = 0; i < rows - 1; i++) {
+            assertTrue(rs.next());
+        }
         rs.close();
         xaRes.end(xid, XAResource.TMSUCCESS);
         xaRes.commit(xid, true);
