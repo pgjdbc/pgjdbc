@@ -371,7 +371,7 @@ public class XADataSourceTest extends TestCase {
     public void testStatementLongevity() throws Exception {
         Xid xid = new CustomXid(5);
         
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < 10; i++) {
             assertEquals(1, conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES (" + i + ")"));
         }
         
