@@ -17,6 +17,7 @@ import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
 import org.postgresql.PGConnection;
+import org.postgresql.core.ProtocolConnection;
 import org.postgresql.ds.PGPooledConnection;
 import org.postgresql.util.GT;
 
@@ -164,13 +165,14 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         }
 
         // TMSUSPEND, TMSUCCESS, TMFAIL are more or less hints to this resource manager. 
-        // We don't _have_ to do anything special to handle them, although we could rollback immediately (if we wanted) 
-        // in the case of of TMFAIL.
-        
+        // Handling things specific for each case is actually 'optional'.
+        // Handle suspend.
         if (flags == XAResource.TMSUSPEND) {
             dataSource.suspend(this, xid);
         }
         dataSource.end(this, xid);
+        
+        // TODO: We could mark the physical for rollbackOnly to aid sanity checks.
     }
 
     /**
@@ -405,11 +407,12 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
             if (method.getName().equals("close")) {
+                // Closing a handle to a logical connection.
                 closeHandleInProgress = true;
             }
             
             try {
-                return method.invoke(pooledHandle, args);
+            return method.invoke(pooledHandle, args);
             } catch (InvocationTargetException ex) {
                 throw ex.getTargetException();
             }

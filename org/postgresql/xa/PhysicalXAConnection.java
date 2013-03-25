@@ -101,6 +101,20 @@ class PhysicalXAConnection {
         }
     }
     
+    boolean reassociate(final PGXAConnection logicalConnection, final Xid xid) throws IllegalStateException {
+        associationLock.lock(); // Wait for the lock.
+        try {
+            if (xid != null) {
+                return associatedXid != null && associatedXid.equals(xid) && associate(logicalConnection, xid);
+            } else if (isOnlyLogicalAssociation(logicalConnection)) {
+                return associate(logicalConnection, xid);
+            }
+            return false;
+        } finally {
+            associationLock.unlock();
+        }
+    }
+    
     /**
      * Associates the logical connection on the given thread to do work on behalf of the given xid.
      * 

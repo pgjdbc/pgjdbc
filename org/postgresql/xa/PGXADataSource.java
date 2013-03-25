@@ -285,24 +285,8 @@ public class PGXADataSource extends AbstractPGXADataSource {
                 boolean found = false;
                 // The first pass attempts to restore association, or resolve an existing backend prepared to service this context.
                 for (int i = 0; i < physicalConnections.size() && !found; i++) {
-                    // Lock the physical connection to test it's state.
                     physical = physicalConnections.get(i);
-                    physical.getAssociationLock().lock();
-                    try {
-                        if (xid != null) {
-                            // We're looking for a connection with a specific xid.
-                            if (physical.getAssociatedXid() != null && physical.getAssociatedXid().equals(xid)) {
-                                physical.associate(logicalConnection, xid);
-                                found = true;
-                            }
-                        } else if (physical.isOnlyLogicalAssociation(logicalConnection)) { 
-                            // xid == null AND, the physical is already 'associated' to this logical.
-                            physical.associate(logicalConnection, xid);
-                            found = true;
-                        }
-                    } finally {
-                        physical.getAssociationLock().unlock();
-                    }
+                    found = physical.reassociate(logicalConnection, xid);
                 }
 
                 // If there isn't a connection servicing the xid or a connection in localTX mode make another pass,
@@ -548,6 +532,9 @@ public class PGXADataSource extends AbstractPGXADataSource {
 
         // commit in 2pc mode can be invoked by any logical connection, so we need to keep track of our original physical.
         PhysicalXAConnection originalPhysical = logicalConnection.getPhysicalXAConnection();
+        if (originalPhysical != null) {
+            originalPhysical.getAssociationLock().lock();
+        }
         
         PhysicalXAConnection currentConn = null;
         try {
@@ -616,6 +603,9 @@ public class PGXADataSource extends AbstractPGXADataSource {
                     }
                 }
                 logicalConnection.setPhysicalXAConnection(originalPhysical);
+                if (originalPhysical != null) {
+                    originalPhysical.getAssociationLock().unlock();
+                }
                 physicalConnections.notify();
             }
         }
@@ -636,6 +626,9 @@ public class PGXADataSource extends AbstractPGXADataSource {
 
         // Because we're changing the association here, we need to lock the originalPhysical, and resolve a new one.
         PhysicalXAConnection originalPhysical = logicalConnection.getPhysicalXAConnection();
+        if (originalPhysical != null) {
+            originalPhysical.getAssociationLock().lock();
+        }
         
         PhysicalXAConnection currentConn = resolvePhysicalConnection(xid);
         try {
@@ -677,6 +670,9 @@ public class PGXADataSource extends AbstractPGXADataSource {
                     currentConn.disassociate();
                 }
                 logicalConnection.setPhysicalXAConnection(originalPhysical);
+                if (originalPhysical != null) {
+                    originalPhysical.getAssociationLock().unlock();
+                }
                 physicalConnections.notify();
             }
         }
