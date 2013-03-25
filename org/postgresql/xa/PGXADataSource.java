@@ -191,7 +191,7 @@ public class PGXADataSource extends AbstractPGXADataSource {
                     }
                 }
             }
-
+            
             if (logger.logDebug()) {
                 logger.debug(GT.tr("Removing {0} closable physical connections out of {1} total physical connections.", new Object[]{closeable.size(), physicalConnections.size()}));
             }

@@ -27,6 +27,7 @@ import org.postgresql.test.jdbc2.optional.BaseDataSourceTest;
 
 import junit.framework.TestCase;
 import org.postgresql.PGConnection;
+import org.postgresql.xa.PGXAConnection;
 import org.postgresql.xa.PGXADataSource;
 
 public class XADataSourceTest extends TestCase {
@@ -1074,6 +1075,75 @@ public class XADataSourceTest extends TestCase {
         
         // Restore expected end state.
         conn = xaconn.getConnection();
+    }
+    
+    
+    public void testCloseInTx() throws Exception {
+        assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        assertEquals(1, ((PGXADataSource)_ds).getCloseableConnectionCount((PGXAConnection)xaconn));
+        
+        // Open a 2nd xaconnection so we don't automagically close everything.
+        XAConnection xaconn2 = _ds.getXAConnection();
+        
+        Xid xid = new CustomXid(42);
+        xaRes.start(xid, XAResource.TMNOFLAGS);
+        assertEquals(1, ((PGXADataSource)_ds).getCloseableConnectionCount((PGXAConnection)xaconn));
+        conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES(42)");
+        conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES(43)");
+        conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES(44)");
+        assertEquals(1, ((PGXADataSource)_ds).getCloseableConnectionCount((PGXAConnection)xaconn));
+        
+        conn.close();
+        xaconn.close(); // This will close the existing physical for the Xid.
+        
+        assertEquals(0, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        assertEquals(0, ((PGXADataSource)_ds).getCloseableConnectionCount((PGXAConnection)xaconn));
+        
+        // This will result in a new physical for the Xid.
+        xaRes.end(xid, XAResource.TMSUCCESS);
+        
+        assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        assertEquals(0, ((PGXADataSource)_ds).getCloseableConnectionCount((PGXAConnection)xaconn));
+        
+        xaRes.rollback(xid);
+        
+        assertEquals(1, ((PGXADataSource)_ds).getCloseableConnectionCount((PGXAConnection)xaconn));
+        
+        // So the tests will continue and clean-up.
+        xaconn = xaconn2;
+    }
+    
+    public void testCloseEndFailedTx() throws Exception {
+        assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        assertEquals(1, ((PGXADataSource)_ds).getCloseableConnectionCount((PGXAConnection)xaconn));
+        
+        // Open a 2nd xaconnection so we don't automagically close everything.
+        XAConnection xaconn2 = _ds.getXAConnection();
+        
+        Xid xid = new CustomXid(42);
+        xaRes.start(xid, XAResource.TMNOFLAGS);
+        assertEquals(1, ((PGXADataSource)_ds).getCloseableConnectionCount((PGXAConnection)xaconn));
+        conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES(42)");
+        conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES(43)");
+        conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES(44)");
+        assertEquals(1, ((PGXADataSource)_ds).getCloseableConnectionCount((PGXAConnection)xaconn));
+        
+        xaRes.end(xid, XAResource.TMFAIL);
+        
+        assertEquals(0, ((PGXADataSource)_ds).getCloseableConnectionCount((PGXAConnection)xaconn));
+        
+        xaRes.prepare(xid);
+        
+        assertEquals(1, ((PGXADataSource)_ds).getCloseableConnectionCount((PGXAConnection)xaconn));
+        
+        conn.close();
+        xaconn.close();
+        
+        assertEquals(0, ((PGXADataSource)_ds).getPhysicalConnectionCount());
+        assertEquals(0, ((PGXADataSource)_ds).getCloseableConnectionCount((PGXAConnection)xaconn));
+        
+        // So the tests will continue and clean-up.
+        xaconn = xaconn2;
     }
     
     private class XACloser extends Thread {
