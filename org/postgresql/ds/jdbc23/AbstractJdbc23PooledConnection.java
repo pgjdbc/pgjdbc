@@ -43,6 +43,15 @@ public abstract class AbstractJdbc23PooledConnection
         this.autoCommit = autoCommit;
         this.isXA = isXA;
     }
+    
+    /**
+     * Exposes access to the underlying pooled connection to subclasses.
+     * 
+     * @return 
+     */
+    protected Connection getBackingConnection() {
+        return con;
+    }
 
     /**
      * Adds a listener for close or fatal error events on the connection

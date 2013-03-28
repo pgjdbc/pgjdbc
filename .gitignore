@@ -4,3 +4,8 @@
 build
 jars
 .*.swp
+nbproject
+.idea
+*.iml
+out
+lib
