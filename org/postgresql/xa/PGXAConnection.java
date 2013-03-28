@@ -215,7 +215,11 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
             return true;
         }
         
-        // This is going to tell the TM that we can handle interleaving.
+        // This block of code enables XAResource sharing...
+        // This is currently a problematic bit of the JTA specification due to 
+        // PGXAConnection implementing both XAResource and XAConnection as a
+        // single entity.
+        /*
         if (xares instanceof PGXAConnection) {
             // we need to make sure that the dataSource is to the same server/port/username as the XAConnection we were created alongside.
             PGXAConnection other = (PGXAConnection)xares;
@@ -228,6 +232,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
                 return true; // We're the same name, port, db, and user.
             }
         }
+        */
         
         return false;
     }

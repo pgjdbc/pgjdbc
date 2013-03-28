@@ -235,7 +235,7 @@ public class XADataSourceTest extends TestCase {
         assertEquals(1, ((PGXADataSource)_ds).getPhysicalConnectionCount());
         
         xaconn = _ds.getXAConnection(); // Open a new XAConnection...
-        assertTrue(xaRes.isSameRM(xaconn.getXAResource())); // One is closed, the other isn't.
+        assertFalse(xaRes.isSameRM(xaconn.getXAResource())); // One is closed, the other isn't.
         
         xaRes = xaconn.getXAResource();
         xaRes.rollback(xid);
@@ -1030,52 +1030,52 @@ public class XADataSourceTest extends TestCase {
      * 
      * @throws Exception 
      */
-    public void testTwoPhaseCommitSharedCloseRace() throws Exception {
-        // Close the existing connections so we'll exhaust the logical pool
-        conn.close();
-        
-        final int THREADS = 12;
-        
-        ArrayList<SharedXACommitter> committers = new ArrayList<SharedXACommitter>(THREADS);
-        CountDownLatch trigger = new CountDownLatch(1);
-        CountDownLatch endLatch = new CountDownLatch(THREADS);
-        
-        for (int i = 0; i < THREADS; i++) {
-            XAConnection xac = _ds.getXAConnection();
-            Connection c = xac.getConnection();
-
-            final Xid xid = new CustomXid(i);
-
-            xaRes.start(xid, XAResource.TMNOFLAGS);
-            c.createStatement().executeUpdate("INSERT INTO testxathreads1 VALUES (" + i + ")");
-            xaRes.end(xid, XAResource.TMSUCCESS);
-            xaRes.prepare(xid);
-            
-            SharedXACommitter committer = new SharedXACommitter(xaRes, xid, trigger, endLatch);
-            committer.start();
-            committers.add(committer);
-            new XACloser(xac, c, trigger).start();
-        }
-        
-        // Run all the committers while we close things.
-        trigger.countDown();
-        
-        // Wait for all the committers to count down.
-        endLatch.await(15, TimeUnit.SECONDS);
-        
-        assertEquals(0, endLatch.getCount());
-        
-        while (!committers.isEmpty()) {
-            Exception ex = committers.remove(0).getFailure();
-            if (ex != null) {
-                ex.printStackTrace();
-                fail(ex.getMessage());
-            }
-        }
-        
-        // Restore expected end state.
-        conn = xaconn.getConnection();
-    }
+//    public void testTwoPhaseCommitSharedCloseRace() throws Exception {
+//        // Close the existing connections so we'll exhaust the logical pool
+//        conn.close();
+//        
+//        final int THREADS = 12;
+//        
+//        ArrayList<SharedXACommitter> committers = new ArrayList<SharedXACommitter>(THREADS);
+//        CountDownLatch trigger = new CountDownLatch(1);
+//        CountDownLatch endLatch = new CountDownLatch(THREADS);
+//        
+//        for (int i = 0; i < THREADS; i++) {
+//            XAConnection xac = _ds.getXAConnection();
+//            Connection c = xac.getConnection();
+//
+//            final Xid xid = new CustomXid(i);
+//
+//            xaRes.start(xid, XAResource.TMNOFLAGS);
+//            c.createStatement().executeUpdate("INSERT INTO testxathreads1 VALUES (" + i + ")");
+//            xaRes.end(xid, XAResource.TMSUCCESS);
+//            xaRes.prepare(xid);
+//            
+//            SharedXACommitter committer = new SharedXACommitter(xaRes, xid, trigger, endLatch);
+//            committer.start();
+//            committers.add(committer);
+//            new XACloser(xac, c, trigger).start();
+//        }
+//        
+//        // Run all the committers while we close things.
+//        trigger.countDown();
+//        
+//        // Wait for all the committers to count down.
+//        endLatch.await(15, TimeUnit.SECONDS);
+//        
+//        assertEquals(0, endLatch.getCount());
+//        
+//        while (!committers.isEmpty()) {
+//            Exception ex = committers.remove(0).getFailure();
+//            if (ex != null) {
+//                ex.printStackTrace();
+//                fail(ex.getMessage());
+//            }
+//        }
+//        
+//        // Restore expected end state.
+//        conn = xaconn.getConnection();
+//    }
     
     
     public void testCloseInTx() throws Exception {
@@ -1171,35 +1171,35 @@ public class XADataSourceTest extends TestCase {
     }
     
     
-    private class SharedXACommitter extends Thread {
-        private Xid xid;
-        private Exception ex;
-        private CountDownLatch latch;
-        private CountDownLatch endLatch;
-        
-        public SharedXACommitter(XAResource xares, Xid xid, CountDownLatch latch, CountDownLatch endLatch) {
-            this.xid = xid;
-            this.latch = latch;
-            this.endLatch = endLatch;
-            this.ex = null;
-        }
-
-        @Override
-        public void run() {
-            try {
-                latch.await();
-                xaRes.commit(xid, false);
-            } catch (Exception e) {
-                ex = e;
-            } finally {
-                endLatch.countDown();
-            }
-        }
-        
-        public Exception getFailure() {
-            return ex;
-        }
-    }
+//    private class SharedXACommitter extends Thread {
+//        private Xid xid;
+//        private Exception ex;
+//        private CountDownLatch latch;
+//        private CountDownLatch endLatch;
+//        
+//        public SharedXACommitter(XAResource xares, Xid xid, CountDownLatch latch, CountDownLatch endLatch) {
+//            this.xid = xid;
+//            this.latch = latch;
+//            this.endLatch = endLatch;
+//            this.ex = null;
+//        }
+//
+//        @Override
+//        public void run() {
+//            try {
+//                latch.await();
+//                xaRes.commit(xid, false);
+//            } catch (Exception e) {
+//                ex = e;
+//            } finally {
+//                endLatch.countDown();
+//            }
+//        }
+//        
+//        public Exception getFailure() {
+//            return ex;
+//        }
+//    }
     
 
     private class XAThread extends LocalThread {
