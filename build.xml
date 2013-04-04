@@ -384,8 +384,6 @@
   <property name="preparethreshold" value="5" />
   <property name="loglevel" value="0" />
   <property name="protocolVersion" value="0" />
-  <property name="binarytransfer" value="true" />
-  <property name="forcebinary" value="true" />
   <property name="ssltest.properties" value="ssltest.properties" />
 
   <!-- The tests now build to a separate directory and jarfile from the
@@ -430,8 +428,6 @@
       <sysproperty key="preparethreshold" value="${preparethreshold}" />
       <sysproperty key="loglevel" value="${loglevel}" />
       <sysproperty key="protocolVersion" value="${protocolVersion}" />
-      <sysproperty key="binaryTransfer" value="${binarytransfer}" />
-      <sysproperty key="org.postgresql.forcebinary" value="${forcebinary}" />
       <sysproperty key="ssltest.properties" value="${ssltest.properties}" />
 
       <classpath>

@@ -525,7 +525,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                 flags &= ~(QueryExecutor.QUERY_NO_RESULTS);
         }
 
-        // Only use named statements after we hit the threshold
+        // Only use named statements after we hit the threshold. Note that only
+        // named statements can be transferred in binary format.
         if (preparedQuery != null)
         {
             ++m_useCount; // We used this statement once more.
@@ -540,7 +541,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (concurrency != ResultSet.CONCUR_READ_ONLY)
             flags |= QueryExecutor.QUERY_NO_BINARY_TRANSFER;
 
-        if (ForceBinaryTransfers) {
+        if (ForceBinaryTransfers || (flags & QueryExecutor.QUERY_ONESHOT) == 0) {
                 int flags2 = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
                 StatementResultHandler handler2 = new StatementResultHandler();
                 connection.getQueryExecutor().execute(queryToExecute, queryParameters, handler2, 0, 0, flags2);
