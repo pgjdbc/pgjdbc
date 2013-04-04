@@ -8,6 +8,8 @@
 package org.postgresql.test.jdbc4;
 
 import java.sql.*;
+import java.util.UUID;
+
 import junit.framework.TestCase;
 import org.postgresql.test.TestUtil;
 import org.postgresql.geometric.PGbox;
@@ -166,6 +168,33 @@ public class ArrayTest extends TestCase {
         assertEquals(-4.5, out[0][1], 0.00001);
         assertEquals(10.0/3, out[1][0], 0.00001);
         assertEquals(77, out[1][1], 0.00001);
+    }
+
+    public void testCreateUUIDArray() throws SQLException {
+        UUID uuid1 = UUID.randomUUID();
+        UUID uuid2 = UUID.randomUUID();
+        UUID uuid3 = UUID.randomUUID();
+        UUID uuid4 = UUID.randomUUID();
+
+        PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::uuid[]");
+        UUID in[][] = new UUID[2][2];
+        in[0][0] = uuid1;
+        in[0][1] = uuid2;
+        in[1][0] = uuid3;
+        in[1][1] = uuid4;
+        pstmt.setArray(1, _conn.createArrayOf("uuid", in));
+
+        ResultSet rs = pstmt.executeQuery();
+        assertTrue(rs.next());
+        Array arr = rs.getArray(1);
+        UUID out[][] = (UUID [][])arr.getArray();
+
+        assertEquals(2, out.length);
+        assertEquals(2, out[0].length);
+        assertEquals(uuid1, out[0][0]);
+        assertEquals(uuid2, out[0][1]);
+        assertEquals(uuid3, out[1][0]);
+        assertEquals(uuid4, out[1][1]);
     }
 
     public void testSetObjectFromJavaArray() throws SQLException {

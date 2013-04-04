@@ -19,6 +19,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -91,6 +92,11 @@ public abstract class AbstractJdbc2Array
     private PgArrayList arrayList;
 
     private byte[] fieldBytes;
+
+    /**
+     * Used to help build other type's element that not supported here
+     */
+    protected static Map otherArrElementBuilders = new HashMap();
 
     private AbstractJdbc2Array(BaseConnection connection, int oid) throws SQLException {
         this.connection = connection;
@@ -232,6 +238,11 @@ public abstract class AbstractJdbc2Array
                     Encoding encoding = connection.getEncoding();
                     arr[i] = encoding.decode(fieldBytes, pos, len);
                     break;
+                default:
+                    ArrayElementBuilder arrElemBuilder = (ArrayElementBuilder) otherArrElementBuilders.get(new Integer(elementOid));
+                    if (arrElemBuilder != null) {
+                        arr[i] = arrElemBuilder.buildElement(fieldBytes, pos, len);
+                    }
                 }
                 pos += len;
             }
@@ -351,6 +362,11 @@ public abstract class AbstractJdbc2Array
         case Oid.VARCHAR:
             return String.class;
         default:
+            ArrayElementBuilder arrElemBuilder = (ArrayElementBuilder) otherArrElementBuilders.get(new Integer(oid));
+            if (arrElemBuilder != null) {
+                return arrElemBuilder.getElementClass();
+            }
+
             throw org.postgresql.Driver.notImplemented(this.getClass(),
                     "readBinaryArray(data,oid)");
         }
@@ -736,6 +752,21 @@ ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects
             }
         }
 
+        else if (otherArrElementBuilders.get(new Integer(oid)) != null) {
+            ArrayElementBuilder arrElemBuilder = (ArrayElementBuilder) otherArrElementBuilders.get(new Integer(oid));
+
+            Object[] oa = null;
+            ret = oa = (dims > 1) ? (Object[]) java.lang.reflect.Array.newInstance(arrElemBuilder.getElementClass(), dimsLength)
+                    : (Object[]) java.lang.reflect.Array.newInstance(arrElemBuilder.getElementClass(), count) ;
+
+            for (; count > 0; count--)
+            {
+                Object v = input.get(index++);
+                oa[length++] = (dims > 1 && v != null) ? buildArray((PgArrayList) v, 0, -1)
+                        : (v == null ? null : arrElemBuilder.buildElement((String) v));
+            }
+        }
+
         // other datatypes not currently supported
         else
         {
@@ -907,5 +938,13 @@ ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects
 
     public byte[] toBytes() {
         return fieldBytes;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+
+    protected static interface ArrayElementBuilder {
+        Class getElementClass();
+        Object buildElement(byte[] bytes, int pos, int len);
+        Object buildElement(String literal);
     }
 }
