@@ -168,6 +168,22 @@
         <isset property="junit" />
       </and>
     </condition>
+
+    <condition property="jdbc.version" value="jdbc3">
+      <isset property="jdbc3any" />
+    </condition>
+
+    <condition property="jdbc.version" value="jdbc4">
+      <isset property="jdbc4any" />
+    </condition>
+
+    <condition property="jdbc.version.upper" value="JDBC3">
+      <isset property="jdbc3any" />
+    </condition>
+
+    <condition property="jdbc.version.upper" value="JDBC4">
+      <isset property="jdbc4any" />
+    </condition>
   </target>
 
 
@@ -555,13 +571,19 @@
     </xmlvalidate>
   </target>
 
-  <target name="deploy" depends="maven-jar" description="deploy snapshot version to Maven snapshot repository">
+  <target name="prepare-pom" depends="prepare,check_versions" description="Filters the pom depending on the jdbc version being built">
     <mkdir dir="${builddir}/pom"/>
     <!-- Copy the templated pom.xml with version info -->
+    <filter token="maven.group.id" value="${maven.group.id}"/>
+    <filter token="maven.artifact.id" value="${maven.artifact.id}"/>
     <filter token="maven.artifact.version" value="${maven.artifact.version}"/>
     <filter token="maven.artifact.description" value="${maven.artifact.description}"/>
+    <filter token="jdbc.version" value="${jdbc.version}"/>
+    <filter token="jdbc.version.upper" value="${jdbc.version.upper}"/>
     <copy todir="${builddir}/pom" filtering="true" file="src/pom/pom.xml"/>
+  </target>
 
+  <target name="deploy" depends="prepare-pom,maven-jar" description="deploy snapshot version to Maven snapshot repository">
     <artifact:mvn>
       <artifact:arg value="org.apache.maven.plugins:maven-deploy-plugin:2.6:deploy-file"/>
       <artifact:arg value="-Durl=${maven.snapshots.repository.url}"/>
@@ -572,7 +594,7 @@
   </target>
 
   <!-- before this, update project version (both build.xml and pom.xml) from SNAPSHOT to RELEASE -->
-  <target name="stage" depends="maven-jar" description="deploy release version to Maven staging repository">
+  <target name="stage" depends="prepare-pom,maven-jar" description="deploy release version to Maven staging repository">
     <!-- sign and deploy the main artifact -->
     <artifact:mvn>
       <artifact:arg value="org.apache.maven.plugins:maven-gpg-plugin:1.3:sign-and-deploy-file" />
