@@ -50,7 +50,8 @@ public class Driver implements java.sql.Driver
 
     public static final int DEBUG = 2;
     public static final int INFO = 1;
-
+    public static final int OFF = 0;
+    
     private static final Logger logger = new Logger();
     private static boolean logLevelSet = false;
 	private static Timer cancelTimer=null;
@@ -189,8 +190,8 @@ public class Driver implements java.sql.Driver
      *  otherwise the jvm character encoding is used as the default.
      *   This value is only used when connecting to a 7.2 or older server.
      * loglevel - (optional) Enable logging of messages from the driver.
-     *  The value is an integer from 1 to 2 where:
-     *    INFO = 1, DEBUG = 2
+     *  The value is an integer from 0 to 2 where:
+     *    OFF = 0, INFO = 1, DEBUG = 2
      *  The output is sent to DriverManager.getPrintWriter() if set,
      *  otherwise it is sent to System.out.
      * compatible - (optional) This is used to toggle
@@ -446,7 +447,7 @@ public class Driver implements java.sql.Driver
                 { "sslfactoryarg", Boolean.FALSE,
                   "Argument forwarded to constructor of SSLSocketFactory class." },
                 { "loglevel", Boolean.FALSE,
-                  "Control the driver's log verbosity: 0 is off, 1 is INFO, 2 is DEBUG.",
+                  "Control the driver's log verbosity: 0 is OFF, 1 is INFO, 2 is DEBUG.",
                   new String[] { "0", "1", "2" } },
                 { "allowEncodingChanges", Boolean.FALSE,
                   "Allow the user to change the client_encoding variable." },
@@ -501,7 +502,7 @@ public class Driver implements java.sql.Driver
     public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) throws SQLException
     {
         Properties copy = new Properties(info);
-        parseURL(url, copy);
+        copy = parseURL(url, copy);
 
         DriverPropertyInfo[] props = new DriverPropertyInfo[knownProperties.length];
         for (int i = 0; i < knownProperties.length; ++i)
@@ -727,6 +728,7 @@ public class Driver implements java.sql.Driver
     * used to turn logging on to a certain level, can be called
     * by specifying fully qualified class ie org.postgresql.Driver.setLogLevel()
     * @param logLevel sets the level which logging will respond to
+    * OFF turn off logging
     * INFO being almost no messages
     * DEBUG most verbose
     */

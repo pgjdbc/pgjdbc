@@ -1,26 +1,15 @@
-This is a simple readme describing how to compile and use the jdbc driver.
+<img src="http://developer.postgresql.org/~josh/graphics/logos/elephant-64.png" />
+# PostgreSQL JDBC driver
 
----------------------------------------------------------------------------
+This is a simple readme describing how to compile and use the Postgresql JDBC driver.
 
-This isn't a guide on how to use JDBC - for that refer to Oracle's website:
+## Info
 
-	http://www.oracle.com/technetwork/java/javase/jdbc/
+This isn't a guide on how to use JDBC - for that refer to [Oracle's website](http://www.oracle.com/technetwork/java/javase/jdbc/) and the [JDBC tutorial](http://docs.oracle.com/javase/tutorial/jdbc/).
 
-and the JDBC tutorial:
+For problems with this driver, refer to driver's [home page](http://jdbc.postgresql.org/) and associated [mailing list](http://archives.postgresql.org/pgsql-jdbc/).
 
-	http://docs.oracle.com/javase/tutorial/jdbc/
-
-For problems with this driver, refer to driver's home page:
-
-	http://jdbc.postgresql.org/
-
-and associated mailing list:
-
-	http://archives.postgresql.org/pgsql-jdbc/
-
----------------------------------------------------------------------------
-
-COMPILING
+## Compiling
 
 To compile you will need to have a Java 5 or newer JDK and will need to have
 Ant installed. To obtain Ant go to http://ant.apache.org/index.html and
@@ -31,105 +20,94 @@ Once you have Ant, simply run ant in the top level directory.  This will
 compile the correct driver for your JVM, and build a .jar file (Java ARchive)
 called postgresql.jar.
 
-REMEMBER: Once you have compiled the driver, it will work on ALL platforms
+*REMEMBER*: Once you have compiled the driver, it will work on ALL platforms
 that support that version of the API. You don't need to build it for each
 platform.
 
 If you are having problems, prebuilt versions of the driver 
-are available at http://jdbc.postgresql.org/
+are available at the [Postgresql JDBC site](http://jdbc.postgresql.org/).
 
----------------------------------------------------------------------------
-
-INSTALLING THE DRIVER
+## Installing the driver
 
 To install the driver, the postgresql.jar file has to be in the classpath.
 
-ie: under LINUX/SOLARIS (the example here is my linux box):
+i.e. under LINUX/SOLARIS (the example here is my linux box):
 
 	export CLASSPATH=.:/usr/local/pgsql/share/java/postgresql.jar
 
----------------------------------------------------------------------------
-
-USING THE DRIVER
+## Using the driver
 
 To use the driver, you must introduce it to JDBC. Again, there's two ways
 of doing this:
 
-1: Hardcoded.
+- Hardcoded
 
    This method hardcodes your driver into your application/applet. You
    introduce the driver using the following snippet of code:
 
-	try {
-	  Class.forName("org.postgresql.Driver");
-	} catch(Exception e) {
-	  // your error handling code goes here
-	}
+```java
+try {
+  Class.forName("org.postgresql.Driver");
+} catch(Exception e) {
+  // your error handling code goes here
+}
+```
 
    Remember, this method restricts your code to just the postgresql database.
    However, this is how most people load the driver.
 
-2: Parameters
+- Parameters
 
    This method specifies the driver from the command line. When running the
    application, you specify the driver using the option:
 
-	-Djdbc.drivers=org.postgresql.Driver
+    `-Djdbc.drivers=org.postgresql.Driver`
 
    eg: This is an example of running one of my other projects with the driver:
 
-	java -Djdbc.drivers=org.postgresql.Driver uk.org.retep.finder.Main
+    `java -Djdbc.drivers=org.postgresql.Driver uk.org.retep.finder.Main`
 
    note: This method only works with Applications (not for Applets).
 	 However, the application is not tied to one driver, so if you needed
 	 to switch databases (why I don't know ;-) ), you don't need to
 	 recompile the application (as long as you havent hardcoded the url's).
 
----------------------------------------------------------------------------
+## JDBC URL syntax
 
-JDBC URL syntax
+The driver recognises JDBC URLs of the form:
 
-The driver recognises JDBC URL's of the form:
+    jdbc:postgresql:database
 
-	jdbc:postgresql:database
+    jdbc:postgresql://host/database
 
-	jdbc:postgresql://host/database
-
-	jdbc:postgresql://host:port/database
+    jdbc:postgresql://host:port/database
 
 Also, you can supply both username and passwords as arguments, by appending
-them to the URL. eg:
+them to the URL. e.g.:
 
-	jdbc:postgresql:database?user=me
-	jdbc:postgresql:database?user=me&password=mypass
+    jdbc:postgresql:database?user=me
+    jdbc:postgresql:database?user=me&password=mypass
 
 Notes:
 
-1) If you are connecting to localhost or 127.0.0.1 you can leave it out of the
-   URL. ie: jdbc:postgresql://localhost/mydb can be replaced with
-   jdbc:postgresql:mydb
+- If you are connecting to localhost or 127.0.0.1 you can leave it out of the
+   URL. i.e.: `jdbc:postgresql://localhost/mydb` can be replaced with
+   `jdbc:postgresql:mydb`
 
-2) The port defaults to 5432 if it's left out.
+- The port defaults to 5432 if it's left out.
 
----------------------------------------------------------------------------
+---
 
 That's the basics related to this driver. You'll need to read the JDBC Docs
 on how to use it.
 
----------------------------------------------------------------------------
+---
 
-BUG REPORTS, PATCHES AND DEVELOPMENT
+## Bug reports, patches and development
 
-PgJDBC development is carried out on the PgJDBC mailing list:
+PgJDBC development is carried out on the [PgJDBC mailing list](http://jdbc.postgresql.org/lists.html) and on [GitHub](https://github.com/pgjdbc/pgjdbc).
 
-    http://jdbc.postgresql.org/lists.html
-
-and on GitHub:
-
-    https://github.com/pgjdbc/pgjdbc
-
-Bug reports
------------
+### Bug reports
 
 For bug reports please post on pgsql-jdbc or add a GitHub issue. If you include
 additional unit tests demonstrating the issue, or self-contained runnable test
@@ -138,8 +116,7 @@ get more attention. Make sure you include appropriate details on your
 environment, like your JDK version, container/appserver if any, platform,
 PostgreSQL version, etc. Err on the site of excess detail if in doubt.
 
-Bug fixes and new features
---------------------------
+### Bug fixes and new features
 
 If you've developed a patch you want to propose for inclusion in PgJDBC, feel
 free to send a GitHub pull request or post the patch on the PgJDBC mailing
@@ -147,12 +124,9 @@ list.  Make sure your patch includes additional unit tests demonstrating and
 testing any new features. In the case of bug fixes, where possible include a
 new unit test that failed before the fix and passes after it.
 
-For information on working with GitHub, see:
-   http://help.github.com/articles/fork-a-repo
-   http://learn.github.com/p/intro.html
+For information on working with GitHub, see: http://help.github.com/articles/fork-a-repo and http://learn.github.com/p/intro.html.
 
-Testing
--------
+### Testing
 
 Remember to test proposed PgJDBC patches when running against older PostgreSQL
 versions where possible, not just against the PostgreSQL you use yourself.
@@ -169,9 +143,7 @@ The driver to build is auto-selected based on the JDK version used to run the
 build. The best way to test a proposed change with both the JDBC3 and JDBC4
 drivers is to build and test with both JDK5 and JDK6 or 7.
 
-You can get old JDK versions from the Oracle Java Archive:
-
-    http://www.oracle.com/technetwork/java/archive-139210.html
+You can get old JDK versions from the [Oracle Java Archive](http://www.oracle.com/technetwork/java/archive-139210.html).
 
 Typically you can test against an old JDK with:
 
@@ -180,10 +152,9 @@ Typically you can test against an old JDK with:
     ant clean test
 
 For information about the unit tests and how to run them, see
-  org/postgresql/test/README
+  [org/postgresql/test/README](org/postgresql/test/README)
 
-Ideas
------
+### Ideas
 
 If you have ideas or proposed changes, please post on the mailing list.
 Think about how the change would affect other users, what side effects it

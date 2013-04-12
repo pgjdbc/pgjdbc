@@ -20,7 +20,7 @@ import org.postgresql.util.HostSpec;
  */
 public class Jdbc3Connection extends org.postgresql.jdbc3.AbstractJdbc3Connection implements java.sql.Connection
 {
-    public Jdbc3Connection(HostSpec[] hostSpecs,, String user, String database, Properties info, String url) throws SQLException {
+    public Jdbc3Connection(HostSpec[] hostSpecs, String user, String database, Properties info, String url) throws SQLException {
         super(hostSpecs, user, database, info, url);
     }
 
