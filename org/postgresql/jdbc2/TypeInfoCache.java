@@ -190,8 +190,19 @@ public class TypeInfoCache implements TypeInfo {
                 // in case of multiple records (in different schemas) choose the one from the current schema,
                 // otherwise take the last version of a type that is at least more deterministic then before
                 // (keeping old behaviour of finding types, that should not be found without correct search path)
-                sql = "SELECT typinput='array_in'::regproc, typtype FROM pg_catalog.pg_type WHERE typname = ? " +
-                      "ORDER BY ( select nspname = current_schema() from pg_namespace as ns where ns.oid = typnamespace ) DESC, oid DESC LIMIT 1";
+                sql = "SELECT typinput='array_in'::regproc, typtype " +
+                      "  FROM pg_catalog.pg_type " +
+                      "  LEFT " +
+                      "  JOIN (select ns.oid as nspoid, ns.nspname, r.r " +
+                      "          from pg_namespace as ns " +
+                      "          join ( select s.r, (current_schemas(false))[s.r] as nspname " +
+                      //                  -- go with older way of unnesting array to be compatible with 8.0
+                      "                   from generate_series(1, array_upper(current_schemas(false), 1)) as s(r) ) as r " +
+                      "         using ( nspname ) " +
+                      "       ) as sp " +
+                      "    ON sp.nspoid = typnamespace " +
+                      " WHERE typname = ? " +
+                      " ORDER BY sp.r, pg_type.oid DESC LIMIT 1;";
             } else if (_conn.haveMinimumServerVersion("7.3")) {
                 sql = "SELECT typinput='array_in'::regproc, typtype FROM pg_catalog.pg_type WHERE typname = ? ORDER BY oid DESC LIMIT 1";
             } else {
@@ -242,8 +253,19 @@ public class TypeInfoCache implements TypeInfo {
             String sql;
             if (_conn.haveMinimumServerVersion("8.0")) {
                 // see comments in @getSQLType()
-                sql = "SELECT oid FROM pg_catalog.pg_type WHERE typname = ? " +
-                      "ORDER BY ( select nspname = current_schema() from pg_namespace as ns where ns.oid = typnamespace ) DESC, oid DESC LIMIT 1";
+                sql = "SELECT pg_type.oid " +
+                      "  FROM pg_catalog.pg_type " +
+                      "  LEFT " +
+                      "  JOIN (select ns.oid as nspoid, ns.nspname, r.r " +
+                      "          from pg_namespace as ns " +
+                      "          join ( select s.r, (current_schemas(false))[s.r] as nspname " +
+                      //                  -- go with older way of unnesting array to be compatible with 8.0
+                      "                   from generate_series(1, array_upper(current_schemas(false), 1)) as s(r) ) as r " +
+                      "         using ( nspname ) " +
+                      "       ) as sp " +
+                      "    ON sp.nspoid = typnamespace " +
+                      " WHERE typname = ? " +
+                      " ORDER BY sp.r, pg_type.oid DESC LIMIT 1;";
             } else if (_conn.haveMinimumServerVersion("7.3")) {
                 sql = "SELECT oid FROM pg_catalog.pg_type WHERE typname = ? ORDER BY oid DESC LIMIT 1";
             } else {
