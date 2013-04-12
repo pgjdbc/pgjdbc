@@ -7,7 +7,6 @@
 */
 package org.postgresql.jdbc4;
 
-import java.net.InetSocketAddress;
 import java.sql.*;
 import java.util.Map;
 import java.util.HashMap;
@@ -19,6 +18,7 @@ import org.postgresql.core.Oid;
 import org.postgresql.core.Utils;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.util.GT;
+import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLException;
 import org.postgresql.jdbc2.AbstractJdbc2Array;
@@ -27,8 +27,8 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
 {
     private final Properties _clientInfo;
 
-    public AbstractJdbc4Connection(InetSocketAddress[] address, String user, String database, Properties info, String url) throws SQLException {
-        super(address, user, database, info, url);
+    public AbstractJdbc4Connection(HostSpec[] hostSpecs, String user, String database, Properties info, String url) throws SQLException {
+        super(hostSpecs, user, database, info, url);
 
         TypeInfo types = getTypeInfo();
         if (haveMinimumServerVersion("8.3")) {
@@ -82,29 +82,30 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
         if (oid == Oid.UNSPECIFIED)
             throw new PSQLException(GT.tr("Unable to find server array type for provided name {0}.", typeName), PSQLState.INVALID_NAME);
 
+        char delim = getTypeInfo().getArrayDelimiter(oid);
         StringBuffer sb = new StringBuffer();
-        appendArray(sb, elements);
+        appendArray(sb, elements, delim);
 
         // This will not work once we have a JDBC 5,
         // but it'll do for now.
         return new Jdbc4Array(this, oid, sb.toString());
     }
 
-    private static void appendArray(StringBuffer sb, Object elements)
+    private static void appendArray(StringBuffer sb, Object elements, char delim)
     {
         sb.append('{');
 
         int nElements = java.lang.reflect.Array.getLength(elements);
         for (int i=0; i<nElements; i++) {
             if (i > 0) {
-                sb.append(',');
+                sb.append(delim);
             }
 
             Object o = java.lang.reflect.Array.get(elements, i);
             if (o == null) {
                 sb.append("NULL");
             } else if (o.getClass().isArray()) {
-                appendArray(sb, o);
+                appendArray(sb, o, delim);
             } else {
                 String s = o.toString();
                 AbstractJdbc2Array.escapeArrayElement(sb, s);

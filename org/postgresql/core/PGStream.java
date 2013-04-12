@@ -19,6 +19,7 @@ import java.net.Socket;
 import java.sql.SQLException;
 
 import org.postgresql.util.GT;
+import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLException;
 
@@ -31,7 +32,7 @@ import org.postgresql.util.PSQLException;
  */
 public class PGStream
 {
-    private final InetSocketAddress address;
+    private final HostSpec hostSpec;
 
     private final byte[] _int4buf;
     private final byte[] _int2buf;
@@ -48,16 +49,15 @@ public class PGStream
      * Constructor:  Connect to the PostgreSQL back end and return
      * a stream connection.
      *
-     * @param host the hostname to connect to
-     * @param port the port number that the postmaster is sitting on
+     * @param hostSpec the host and port to connect to
      * @exception IOException if an IOException occurs below it.
      */
-    public PGStream(InetSocketAddress address) throws IOException
+    public PGStream(HostSpec hostSpec) throws IOException
     {
-        this.address = address;
+        this.hostSpec = hostSpec;
 
         Socket socket = new Socket();
-        socket.connect(address);
+        socket.connect(new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort()));
         changeSocket(socket);
         setEncoding(Encoding.getJVMEncoding("US-ASCII"));
 
@@ -65,8 +65,8 @@ public class PGStream
         _int4buf = new byte[4];
     }
 
-    public InetSocketAddress getAddress() {
-        return address;
+    public HostSpec getHostSpec() {
+        return hostSpec;
     }
 
     public Socket getSocket() {

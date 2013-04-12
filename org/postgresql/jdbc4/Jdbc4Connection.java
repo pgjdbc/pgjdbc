@@ -7,10 +7,11 @@
 */
 package org.postgresql.jdbc4;
 
-import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Properties;
 import java.sql.SQLException;
+
+import org.postgresql.util.HostSpec;
 
 /**
  * This class implements the java.sql.Connection interface for JDBC4.
@@ -19,8 +20,8 @@ import java.sql.SQLException;
  */
 public class Jdbc4Connection extends AbstractJdbc4Connection implements java.sql.Connection
 {
-    public Jdbc4Connection(InetSocketAddress[] address, String user, String database, Properties info, String url) throws SQLException {
-        super(address, user, database, info, url);
+    public Jdbc4Connection(HostSpec[] hostSpecs, String user, String database, Properties info, String url) throws SQLException {
+        super(hostSpecs, user, database, info, url);
     }
 
     public java.sql.Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException
