@@ -197,6 +197,55 @@ public class TestUtil
     }
 
     /*
+     * Helper - creates a test schema for use by a test
+     */
+    public static void createSchema(Connection con,
+                                    String schema) throws SQLException
+    {
+        Statement st = con.createStatement();
+        try
+        {
+            // Drop the schema
+            dropSchema(con, schema);
+
+            // Now create the schema
+            String sql = "CREATE SCHEMA " + schema;
+
+            st.executeUpdate(sql);
+        }
+        finally
+        {
+            st.close();
+        }
+    }
+
+    /*
+     * Helper - drops a schema
+     */
+    public static void dropSchema(Connection con, String schema) throws SQLException
+    {
+        Statement stmt = con.createStatement();
+        try
+        {
+            String sql = "DROP SCHEMA " + schema;
+            if (haveMinimumServerVersion(con, "7.3"))
+            {
+                sql += " CASCADE ";
+            }
+            stmt.executeUpdate(sql);
+        }
+        catch (SQLException ex)
+        {
+            // Since every create schema issues a drop schema
+            // it's easy to get a schema doesn't exist error.
+            // we want to ignore these, but if we're in a
+            // transaction then we've got trouble
+            if (!con.getAutoCommit())
+                throw ex;
+        }
+    }
+
+    /*
      * Helper - creates a test table for use by a test
      */
     public static void createTable(Connection con,

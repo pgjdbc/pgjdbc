@@ -185,11 +185,18 @@ public class TypeInfoCache implements TypeInfo {
             // People can name their own types starting with _.
             // Other types use typelem that aren't actually arrays, like box.
             //
-            String sql = "SELECT typinput='array_in'::regproc, typtype FROM ";
-            if (_conn.haveMinimumServerVersion("7.3")) {
-                sql += "pg_catalog.";
+            String sql;
+            if (_conn.haveMinimumServerVersion("8.0")) {
+                // in case of multiple records (in different schemas) choose the one from the current schema,
+                // otherwise take the last version of a type that is at least more deterministic then before
+                // (keeping old behaviour of finding types, that should not be found without correct search path)
+                sql = "SELECT typinput='array_in'::regproc, typtype FROM pg_catalog.pg_type WHERE typname = ? " +
+                      "ORDER BY ( select nspname = current_schema() from pg_namespace as ns where ns.oid = typnamespace ) DESC, oid DESC LIMIT 1";
+            } else if (_conn.haveMinimumServerVersion("7.3")) {
+                sql = "SELECT typinput='array_in'::regproc, typtype FROM pg_catalog.pg_type WHERE typname = ? ORDER BY oid DESC LIMIT 1";
+            } else {
+                sql = "SELECT typinput='array_in'::regproc, typtype FROM pg_type WHERE typname = ? LIMIT 1";
             }
-            sql += "pg_type WHERE typname = ?";
 
             _getTypeInfoStatement = _conn.prepareStatement(sql);
         }
@@ -233,10 +240,14 @@ public class TypeInfoCache implements TypeInfo {
 
         if (_getOidStatement == null) {
             String sql;
-            if (_conn.haveMinimumServerVersion("7.3")) {
-                sql = "SELECT oid FROM pg_catalog.pg_type WHERE typname = ?";
+            if (_conn.haveMinimumServerVersion("8.0")) {
+                // see comments in @getSQLType()
+                sql = "SELECT oid FROM pg_catalog.pg_type WHERE typname = ? " +
+                      "ORDER BY ( select nspname = current_schema() from pg_namespace as ns where ns.oid = typnamespace ) DESC, oid DESC LIMIT 1";
+            } else if (_conn.haveMinimumServerVersion("7.3")) {
+                sql = "SELECT oid FROM pg_catalog.pg_type WHERE typname = ? ORDER BY oid DESC LIMIT 1";
             } else {
-                sql = "SELECT oid FROM pg_type WHERE typname = ?";
+                sql = "SELECT oid FROM pg_type WHERE typname = ? ORDER BY oid DESC LIMIT 1";
             }
 
             _getOidStatement = _conn.prepareStatement(sql);
