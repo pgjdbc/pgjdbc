@@ -93,11 +93,6 @@ public abstract class AbstractJdbc2Array
 
     private byte[] fieldBytes;
 
-    /**
-     * Used to help build other type's element that not supported here
-     */
-    protected static Map otherArrElementBuilders = new HashMap();
-
     private AbstractJdbc2Array(BaseConnection connection, int oid) throws SQLException {
         this.connection = connection;
         this.oid = oid;
@@ -239,7 +234,7 @@ public abstract class AbstractJdbc2Array
                     arr[i] = encoding.decode(fieldBytes, pos, len);
                     break;
                 default:
-                    ArrayElementBuilder arrElemBuilder = (ArrayElementBuilder) otherArrElementBuilders.get(new Integer(elementOid));
+                    ArrayElementBuilder arrElemBuilder = ArrayElementBuilderFactory.getArrayElementBuilder(elementOid);
                     if (arrElemBuilder != null) {
                         arr[i] = arrElemBuilder.buildElement(fieldBytes, pos, len);
                     }
@@ -362,7 +357,7 @@ public abstract class AbstractJdbc2Array
         case Oid.VARCHAR:
             return String.class;
         default:
-            ArrayElementBuilder arrElemBuilder = (ArrayElementBuilder) otherArrElementBuilders.get(new Integer(oid));
+            ArrayElementBuilder arrElemBuilder = ArrayElementBuilderFactory.getArrayElementBuilder(oid);
             if (arrElemBuilder != null) {
                 return arrElemBuilder.getElementClass();
             }
@@ -752,8 +747,8 @@ ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects
             }
         }
 
-        else if (otherArrElementBuilders.get(new Integer(oid)) != null) {
-            ArrayElementBuilder arrElemBuilder = (ArrayElementBuilder) otherArrElementBuilders.get(new Integer(oid));
+        else if (ArrayElementBuilderFactory.getArrayElementBuilder(oid) != null) {
+            ArrayElementBuilder arrElemBuilder = ArrayElementBuilderFactory.getArrayElementBuilder(oid);
 
             Object[] oa = null;
             ret = oa = (dims > 1) ? (Object[]) java.lang.reflect.Array.newInstance(arrElemBuilder.getElementClass(), dimsLength)
@@ -938,13 +933,5 @@ ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects
 
     public byte[] toBytes() {
         return fieldBytes;
-    }
-
-    ///////////////////////////////////////////////////////////////////////////
-
-    protected static interface ArrayElementBuilder {
-        Class getElementClass();
-        Object buildElement(byte[] bytes, int pos, int len);
-        Object buildElement(String literal);
     }
 }

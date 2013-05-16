@@ -7,21 +7,19 @@
 */
 package org.postgresql.jdbc4;
 
-import java.util.HashMap;
 import java.util.Map;
 import org.postgresql.core.*;
-import org.postgresql.util.ByteConverter;
+import org.postgresql.jdbc2.ArrayElementBuilderFactory;
+import org.postgresql.jdbc4.array.UUIDArrayElementBuilder;
 
 import java.sql.SQLException;
 import java.sql.ResultSet;
-import java.util.UUID;
 
 public class Jdbc4Array extends org.postgresql.jdbc2.AbstractJdbc2Array implements java.sql.Array
 {
     static {
-        if (otherArrElementBuilders == null) otherArrElementBuilders = new HashMap();
-        otherArrElementBuilders.put(new Integer(Oid.UUID), new UUIDArrayElementBuilder());
-        otherArrElementBuilders.put(new Integer(Oid.UUID_ARRAY), new UUIDArrayElementBuilder());
+        ArrayElementBuilderFactory.setArrayElementBuilder(Oid.UUID, new UUIDArrayElementBuilder());
+        ArrayElementBuilderFactory.setArrayElementBuilder(Oid.UUID_ARRAY, new UUIDArrayElementBuilder());
     }
 
     public Jdbc4Array(BaseConnection conn, int oid, String fieldString) throws SQLException
@@ -57,25 +55,5 @@ public class Jdbc4Array extends org.postgresql.jdbc2.AbstractJdbc2Array implemen
     public void free() throws SQLException
     {
         throw org.postgresql.Driver.notImplemented(this.getClass(), "free()");
-    }
-
-    /////////////////////////////////////////////////////////////////////////////////
-
-    static class UUIDArrayElementBuilder implements ArrayElementBuilder {
-
-        @Override
-        public Class getElementClass() {
-            return UUID.class;
-        }
-
-        @Override
-        public Object buildElement(byte[] bytes, int pos, int len) {
-            return new UUID(ByteConverter.int8(bytes, pos + 0), ByteConverter.int8(bytes, pos + 8));
-        }
-
-        @Override
-        public Object buildElement(String literal) {
-            return UUID.fromString(literal);
-        }
     }
 }

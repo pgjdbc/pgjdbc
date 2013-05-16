@@ -24,7 +24,7 @@ public class ArrayTest extends TestCase {
 
     protected void setUp() throws Exception {
         _conn = TestUtil.openDB();
-        TestUtil.createTable(_conn, "arrtest", "intarr int[], decarr decimal(2,1)[], strarr text[]");
+        TestUtil.createTable(_conn, "arrtest", "intarr int[], decarr decimal(2,1)[], strarr text[], uuidarr uuid[]");
     }
 
     protected void tearDown() throws SQLException {
@@ -170,31 +170,47 @@ public class ArrayTest extends TestCase {
         assertEquals(77, out[1][1], 0.00001);
     }
 
-    public void testCreateUUIDArray() throws SQLException {
+    public void testUUIDArray() throws SQLException {
         UUID uuid1 = UUID.randomUUID();
         UUID uuid2 = UUID.randomUUID();
         UUID uuid3 = UUID.randomUUID();
-        UUID uuid4 = UUID.randomUUID();
 
-        PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::uuid[]");
-        UUID in[][] = new UUID[2][2];
-        in[0][0] = uuid1;
-        in[0][1] = uuid2;
-        in[1][0] = uuid3;
-        in[1][1] = uuid4;
-        pstmt.setArray(1, _conn.createArrayOf("uuid", in));
+        // insert a uuid array, and check
+        PreparedStatement pstmt1 = _conn.prepareStatement("INSERT INTO arrtest(uuidarr) VALUES (?)");
+        pstmt1.setArray(1, _conn.createArrayOf("uuid", new UUID[]{ uuid1, uuid2, uuid3 }));
+        pstmt1.executeUpdate();
 
-        ResultSet rs = pstmt.executeQuery();
+        PreparedStatement pstmt2 = _conn.prepareStatement("SELECT uuidarr FROM arrtest WHERE uuidarr @> ?");
+        pstmt2.setObject(1, _conn.createArrayOf("uuid", new UUID[]{ uuid1 }), Types.OTHER);
+        ResultSet rs = pstmt2.executeQuery();
         assertTrue(rs.next());
         Array arr = rs.getArray(1);
-        UUID out[][] = (UUID [][])arr.getArray();
+        UUID out[] = (UUID [])arr.getArray();
 
-        assertEquals(2, out.length);
-        assertEquals(2, out[0].length);
-        assertEquals(uuid1, out[0][0]);
-        assertEquals(uuid2, out[0][1]);
-        assertEquals(uuid3, out[1][0]);
-        assertEquals(uuid4, out[1][1]);
+        assertEquals(3, out.length);
+        assertEquals(uuid1, out[0]);
+        assertEquals(uuid2, out[1]);
+        assertEquals(uuid3, out[2]);
+
+        // concatenate a uuid, and check
+        UUID uuid4 = UUID.randomUUID();
+        PreparedStatement pstmt3 = _conn.prepareStatement("UPDATE arrtest SET uuidarr = uuidarr || ? WHERE uuidarr @> ?");
+        pstmt3.setObject(1, uuid4, Types.OTHER);
+        pstmt3.setArray(2, _conn.createArrayOf("uuid", new UUID[]{ uuid1 }));
+        pstmt3.executeUpdate();
+
+        //--
+        pstmt2.setObject(1, _conn.createArrayOf("uuid", new UUID[]{ uuid4 }), Types.OTHER);
+        rs = pstmt2.executeQuery();
+        assertTrue(rs.next());
+        arr = rs.getArray(1);
+        out = (UUID [])arr.getArray();
+
+        assertEquals(4, out.length);
+        assertEquals(uuid1, out[0]);
+        assertEquals(uuid2, out[1]);
+        assertEquals(uuid3, out[2]);
+        assertEquals(uuid4, out[3]);
     }
 
     public void testSetObjectFromJavaArray() throws SQLException {
