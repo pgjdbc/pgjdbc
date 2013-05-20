@@ -8,6 +8,8 @@
 package org.postgresql.test.jdbc4;
 
 import java.sql.*;
+import java.util.UUID;
+
 import junit.framework.TestCase;
 import org.postgresql.test.TestUtil;
 import org.postgresql.geometric.PGbox;
@@ -22,7 +24,7 @@ public class ArrayTest extends TestCase {
 
     protected void setUp() throws Exception {
         _conn = TestUtil.openDB();
-        TestUtil.createTable(_conn, "arrtest", "intarr int[], decarr decimal(2,1)[], strarr text[]");
+        TestUtil.createTable(_conn, "arrtest", "intarr int[], decarr decimal(2,1)[], strarr text[], uuidarr uuid[]");
     }
 
     protected void tearDown() throws SQLException {
@@ -166,6 +168,49 @@ public class ArrayTest extends TestCase {
         assertEquals(-4.5, out[0][1], 0.00001);
         assertEquals(10.0/3, out[1][0], 0.00001);
         assertEquals(77, out[1][1], 0.00001);
+    }
+
+    public void testUUIDArray() throws SQLException {
+        UUID uuid1 = UUID.randomUUID();
+        UUID uuid2 = UUID.randomUUID();
+        UUID uuid3 = UUID.randomUUID();
+
+        // insert a uuid array, and check
+        PreparedStatement pstmt1 = _conn.prepareStatement("INSERT INTO arrtest(uuidarr) VALUES (?)");
+        pstmt1.setArray(1, _conn.createArrayOf("uuid", new UUID[]{ uuid1, uuid2, uuid3 }));
+        pstmt1.executeUpdate();
+
+        PreparedStatement pstmt2 = _conn.prepareStatement("SELECT uuidarr FROM arrtest WHERE uuidarr @> ?");
+        pstmt2.setObject(1, _conn.createArrayOf("uuid", new UUID[]{ uuid1 }), Types.OTHER);
+        ResultSet rs = pstmt2.executeQuery();
+        assertTrue(rs.next());
+        Array arr = rs.getArray(1);
+        UUID out[] = (UUID [])arr.getArray();
+
+        assertEquals(3, out.length);
+        assertEquals(uuid1, out[0]);
+        assertEquals(uuid2, out[1]);
+        assertEquals(uuid3, out[2]);
+
+        // concatenate a uuid, and check
+        UUID uuid4 = UUID.randomUUID();
+        PreparedStatement pstmt3 = _conn.prepareStatement("UPDATE arrtest SET uuidarr = uuidarr || ? WHERE uuidarr @> ?");
+        pstmt3.setObject(1, uuid4, Types.OTHER);
+        pstmt3.setArray(2, _conn.createArrayOf("uuid", new UUID[]{ uuid1 }));
+        pstmt3.executeUpdate();
+
+        //--
+        pstmt2.setObject(1, _conn.createArrayOf("uuid", new UUID[]{ uuid4 }), Types.OTHER);
+        rs = pstmt2.executeQuery();
+        assertTrue(rs.next());
+        arr = rs.getArray(1);
+        out = (UUID [])arr.getArray();
+
+        assertEquals(4, out.length);
+        assertEquals(uuid1, out[0]);
+        assertEquals(uuid2, out[1]);
+        assertEquals(uuid3, out[2]);
+        assertEquals(uuid4, out[3]);
     }
 
     public void testSetObjectFromJavaArray() throws SQLException {

@@ -19,6 +19,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -232,6 +233,11 @@ public abstract class AbstractJdbc2Array
                     Encoding encoding = connection.getEncoding();
                     arr[i] = encoding.decode(fieldBytes, pos, len);
                     break;
+                default:
+                    ArrayElementBuilder arrElemBuilder = ArrayElementBuilderFactory.getArrayElementBuilder(elementOid);
+                    if (arrElemBuilder != null) {
+                        arr[i] = arrElemBuilder.buildElement(fieldBytes, pos, len);
+                    }
                 }
                 pos += len;
             }
@@ -351,6 +357,11 @@ public abstract class AbstractJdbc2Array
         case Oid.VARCHAR:
             return String.class;
         default:
+            ArrayElementBuilder arrElemBuilder = ArrayElementBuilderFactory.getArrayElementBuilder(oid);
+            if (arrElemBuilder != null) {
+                return arrElemBuilder.getElementClass();
+            }
+
             throw org.postgresql.Driver.notImplemented(this.getClass(),
                     "readBinaryArray(data,oid)");
         }
@@ -733,6 +744,21 @@ ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects
             {
                 Object v = input.get(index++);
                 oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1) : (v == null ? null : connection.getTimestampUtils().toTimestamp(null, (String) v));
+            }
+        }
+
+        else if (ArrayElementBuilderFactory.getArrayElementBuilder(oid) != null) {
+            ArrayElementBuilder arrElemBuilder = ArrayElementBuilderFactory.getArrayElementBuilder(oid);
+
+            Object[] oa = null;
+            ret = oa = (dims > 1) ? (Object[]) java.lang.reflect.Array.newInstance(arrElemBuilder.getElementClass(), dimsLength)
+                    : (Object[]) java.lang.reflect.Array.newInstance(arrElemBuilder.getElementClass(), count) ;
+
+            for (; count > 0; count--)
+            {
+                Object v = input.get(index++);
+                oa[length++] = (dims > 1 && v != null) ? buildArray((PgArrayList) v, 0, -1)
+                        : (v == null ? null : arrElemBuilder.buildElement((String) v));
             }
         }
 
