@@ -424,7 +424,11 @@ public class QueryExecutorImpl implements QueryExecutor {
                 protoConnection.getTransactionState() != ProtocolConnection.TRANSACTION_IDLE)
             return delegateHandler;
 
-        sendOneQuery(beginTransactionQuery, SimpleQuery.NO_PARAMETERS, 0, 0, QueryExecutor.QUERY_NO_METADATA);
+        int beginFlags = QueryExecutor.QUERY_NO_METADATA;
+        if ((flags & QueryExecutor.QUERY_ONESHOT) != 0) {
+          beginFlags |= QueryExecutor.QUERY_ONESHOT;
+        }
+        sendOneQuery(beginTransactionQuery, SimpleQuery.NO_PARAMETERS, 0, 0, beginFlags);
 
         // Insert a handler that intercepts the BEGIN.
         return new ResultHandler() {
