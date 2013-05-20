@@ -2027,6 +2027,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                      " WHEN 'v' THEN 'VIEW' " +
                      " WHEN 'c' THEN 'TYPE' " +
                      " WHEN 'f' THEN 'FOREIGN TABLE' " +
+                     " WHEN 'm' THEN 'MATERIALIZED VIEW' " +
                      " ELSE NULL " +
                      " END " +
                      " ELSE NULL " +
@@ -2191,6 +2192,9 @@ public abstract class AbstractJdbc2DatabaseMetaData
         tableTypeClauses.put("FOREIGN TABLE", ht);
         ht.put("SCHEMAS", "c.relkind = 'f'");
         ht.put("NOSCHEMAS", "c.relkind = 'f'");
+        tableTypeClauses.put("MATERIALIZED VIEW", ht);
+        ht.put("SCHEMAS", "c.relkind = 'm'");
+        ht.put("NOSCHEMAS", "c.relkind = 'm'");
     }
 
     /*
