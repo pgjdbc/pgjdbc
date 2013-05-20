@@ -796,8 +796,13 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     }
 
     private void executeTransactionCommand(Query query) throws SQLException {
+        int flags = QueryExecutor.QUERY_NO_METADATA | QueryExecutor.QUERY_NO_RESULTS | QueryExecutor.QUERY_SUPPRESS_BEGIN;
+        if (prepareThreshold == 0) {
+          flags |= QueryExecutor.QUERY_ONESHOT;
+        }
+
         getQueryExecutor().execute(query, null, new TransactionCommandHandler(),
-                                   0, 0, QueryExecutor.QUERY_NO_METADATA | QueryExecutor.QUERY_NO_RESULTS | QueryExecutor.QUERY_SUPPRESS_BEGIN);
+                                   0, 0, flags);
     }
 
     /*
