@@ -50,8 +50,8 @@ public abstract class BaseDataSource implements Referenceable
     private int prepareThreshold = 5;
     private int unknownLength = Integer.MAX_VALUE;
     private boolean binaryTransfer = true;
-    private String binaryTransferEnable = "";
-    private String binaryTransferDisable = "";
+    private String binaryTransferEnable;
+    private String binaryTransferDisable;
     private int loginTimeout = 0; // in seconds
     private int socketTimeout = 0; // in seconds
     private int receiveBufferSize = -1; // off (-1), not in use
