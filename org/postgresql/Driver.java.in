@@ -575,7 +575,7 @@ public class Driver implements java.sql.Driver
      * @return Properties with elements added from the url
      * @exception SQLException
      */
-    Properties parseURL(String url, Properties defaults) throws SQLException
+    public static Properties parseURL(String url, Properties defaults) throws SQLException
     {
         Properties urlProps = new Properties(defaults);
 

@@ -16,6 +16,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.util.Properties;
 
 /**
  * Base class for data sources and related classes.
@@ -57,12 +58,13 @@ public abstract class BaseDataSource implements Referenceable
     private int receiveBufferSize = -1; // off (-1), not in use
     private int sendBufferSize = -1; // off (-1), not in use
     private boolean ssl = false;
-    private String sslfactory;
+    private String sslfactory=null;
     private boolean tcpKeepAlive = false;
-    private String compatible;
+    private String compatible=null;
     private int logLevel = 0;
     private int protocolVersion = 0;
     private String applicationName;
+    private String stringType=null;
     private boolean logLevelSet = false;      
 
     /**
@@ -488,10 +490,20 @@ public abstract class BaseDataSource implements Referenceable
         return binaryTransferDisable;
     }
 
+    public String getStringType()
+    {
+        return stringType;
+    }
+
+    public void setStringType(String stringType)
+    {
+        this.stringType = stringType;
+    }
+
     /**
      * Generates a DriverManager URL from the other properties supplied.
      */
-    private String getUrl()
+    public String getUrl()
     {
         StringBuffer sb = new StringBuffer(100);
         sb.append("jdbc:postgresql://");
@@ -522,7 +534,7 @@ public abstract class BaseDataSource implements Referenceable
         if (sendBufferSize != -1) {
             sb.append("&sendBufferSize=").append(sendBufferSize);
         }
-        sb.append("&tcpkeepalive=").append(tcpKeepAlive);
+        sb.append("&tcpKeepAlive=").append(tcpKeepAlive);
         if (compatible != null) {
             sb.append("&compatible="+compatible);
         }
@@ -531,6 +543,12 @@ public abstract class BaseDataSource implements Referenceable
             sb.append(applicationName);
         }
         sb.append("&binaryTransfer=").append(binaryTransfer);
+
+        if ( stringType != null ) {
+            sb.append("&stringtype");
+            sb.append(stringType);
+        }
+
         if (binaryTransferEnable != null) {
             sb.append("&binaryTransferEnable=").append(binaryTransferEnable);
         }
@@ -539,6 +557,32 @@ public abstract class BaseDataSource implements Referenceable
         }
         
         return sb.toString();
+    }
+
+    /**
+     +     * Sets properties from a DriverManager URL.
+     +     */
+    public void setUrl(String url) throws SQLException {
+
+        Properties p = org.postgresql.Driver.parseURL(url, null);
+     	serverName = p.getProperty("PGHOST", "localhost");
+     	portNumber = Integer.parseInt(p.getProperty("PGPORT", "0"));
+     	databaseName = p.getProperty("PGDBNAME");
+     	loginTimeout = Integer.parseInt(p.getProperty("loginTimeout", "0"));
+     	socketTimeout = Integer.parseInt(p.getProperty("socketTimeout", "0"));
+     	prepareThreshold = Integer.parseInt(p.getProperty("prepareThreshold", "5"));
+     	unknownLength = Integer.parseInt(p.getProperty("unknownLength", "0"));
+     	logLevel = Integer.parseInt(p.getProperty("loglevel", "0"));
+     	protocolVersion = Integer.parseInt(p.getProperty("protocolVersion", "0"));
+     	ssl = Boolean.parseBoolean(p.getProperty("ssl"));
+     	sslfactory = p.getProperty("sslfactory");
+     	receiveBufferSize = Integer.parseInt(p.getProperty("receiveBufferSize", "-1"));
+     	sendBufferSize = Integer.parseInt(p.getProperty("sendBufferSize", "-1"));
+     	tcpKeepAlive = Boolean.parseBoolean(p.getProperty("tcpKeepAlive"));
+     	compatible = p.getProperty("compatible");
+     	applicationName = p.getProperty("ApplicationName");
+        stringType = p.getProperty("stringtype");
+     	binaryTransfer = Boolean.parseBoolean(p.getProperty("binaryTransfer"));
     }
 
     /**
@@ -596,7 +640,10 @@ public abstract class BaseDataSource implements Referenceable
         {
             ref.add(new StringRefAddr("compatible", compatible));
         }
-
+        if ( stringType != null )
+        {
+            ref.add(new StringRefAddr("stringtype", stringType));
+        }
         if(logLevelSet)
         {
             ref.add(new StringRefAddr("logLevel", Integer.toString(logLevel)));
@@ -627,6 +674,7 @@ public abstract class BaseDataSource implements Referenceable
         out.writeInt(sendBufferSize);
         out.writeBoolean(tcpKeepAlive);
         out.writeObject(compatible);
+        out.writeObject(stringType);
         out.writeInt(logLevel);
         out.writeInt(protocolVersion);
         out.writeObject(applicationName);
@@ -653,6 +701,7 @@ public abstract class BaseDataSource implements Referenceable
         sendBufferSize = in.readInt();
         tcpKeepAlive = in.readBoolean();
         compatible = (String)in.readObject();
+        stringType = (String)in.readObject();
         logLevel = in.readInt();
         protocolVersion = in.readInt();
         applicationName = (String)in.readObject();
