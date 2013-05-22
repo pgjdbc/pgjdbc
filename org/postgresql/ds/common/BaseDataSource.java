@@ -50,18 +50,19 @@ public abstract class BaseDataSource implements Referenceable
     private int prepareThreshold = 5;
     private int unknownLength = Integer.MAX_VALUE;
     private boolean binaryTransfer = true;
-    private String binaryTransferEnable = "";
-    private String binaryTransferDisable = "";
+    private String binaryTransferEnable;
+    private String binaryTransferDisable;
     private int loginTimeout = 0; // in seconds
     private int socketTimeout = 0; // in seconds
     private int receiveBufferSize = -1; // off (-1), not in use
     private int sendBufferSize = -1; // off (-1), not in use
     private boolean ssl = false;
-    private String sslfactory;
+    private String sslfactory=null;
     private boolean tcpKeepAlive = false;
-    private String compatible;
+    private String compatible=null;
     private int logLevel = 0;
     private int protocolVersion = 0;
+    private String stringType=null;
     private String applicationName;
 
     /**
@@ -470,6 +471,16 @@ public abstract class BaseDataSource implements Referenceable
         return binaryTransferDisable;
     }
 
+    public String getStringType()
+    {
+        return stringType;
+    }
+
+    public void setStringType(String stringType)
+    {
+        this.stringType = stringType;
+    }
+
     /**
      * Generates a DriverManager URL from the other properties supplied.
      */
@@ -502,7 +513,7 @@ public abstract class BaseDataSource implements Referenceable
         if (sendBufferSize != -1) {
             sb.append("&sendBufferSize=").append(sendBufferSize);
         }
-        sb.append("&tcpkeepalive=").append(tcpKeepAlive);
+        sb.append("&tcpKeepAlive=").append(tcpKeepAlive);
         if (compatible != null) {
             sb.append("&compatible="+compatible);
         }
@@ -513,7 +524,10 @@ public abstract class BaseDataSource implements Referenceable
         if (binaryTransfer) {
         	sb.append("&binaryTransfer=true");
         }
-
+        if ( stringType != null ){
+            sb.append("&stringtype=");
+            sb.append(stringType);
+        }
         return sb.toString();
     }
 
@@ -561,7 +575,10 @@ public abstract class BaseDataSource implements Referenceable
         {
             ref.add(new StringRefAddr("compatible", compatible));
         }
-
+        if ( stringType != null)
+        {
+            ref.add(new StringRefAddr("stringtype",stringType));
+        }
         ref.add(new StringRefAddr("logLevel", Integer.toString(logLevel)));
         ref.add(new StringRefAddr("protocolVersion", Integer.toString(protocolVersion)));
         ref.add(new StringRefAddr("ApplicationName", applicationName));
@@ -586,6 +603,7 @@ public abstract class BaseDataSource implements Referenceable
         out.writeInt(sendBufferSize);
         out.writeBoolean(tcpKeepAlive);
         out.writeObject(compatible);
+        out.writeObject(stringType);
         out.writeInt(logLevel);
         out.writeInt(protocolVersion);
         out.writeObject(applicationName);
@@ -611,6 +629,7 @@ public abstract class BaseDataSource implements Referenceable
         sendBufferSize = in.readInt();
         tcpKeepAlive = in.readBoolean();
         compatible = (String)in.readObject();
+        stringType=(String)in.readObject();
         logLevel = in.readInt();
         protocolVersion = in.readInt();
         applicationName = (String)in.readObject();
