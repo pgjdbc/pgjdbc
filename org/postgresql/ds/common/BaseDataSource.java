@@ -50,19 +50,21 @@ public abstract class BaseDataSource implements Referenceable
     private int prepareThreshold = 5;
     private int unknownLength = Integer.MAX_VALUE;
     private boolean binaryTransfer = true;
-    private String binaryTransferEnable = "";
-    private String binaryTransferDisable = "";
+    private String binaryTransferEnable=null;
+    private String binaryTransferDisable=null;
     private int loginTimeout = 0; // in seconds
     private int socketTimeout = 0; // in seconds
     private int receiveBufferSize = -1; // off (-1), not in use
     private int sendBufferSize = -1; // off (-1), not in use
     private boolean ssl = false;
-    private String sslfactory;
+    private String sslfactory=null;
     private boolean tcpKeepAlive = false;
-    private String compatible;
+    private String compatible=null;
     private int logLevel = 0;
     private int protocolVersion = 0;
+    private String stringType=null;
     private String applicationName;
+	private boolean logLevelSet=false;
 
     /**
      * Gets a connection to the PostgreSQL database.  The database is identified by the
@@ -184,6 +186,7 @@ public abstract class BaseDataSource implements Referenceable
     public void setLogLevel(int logLevel)
     {
         this.logLevel = logLevel;
+		logLevelSet=true;
     }
 
     public int getProtocolVersion()
@@ -301,7 +304,15 @@ public abstract class BaseDataSource implements Referenceable
     {
         this.receiveBufferSize = nbytes;
     }
-
+	/**
+	 * Gets the write buffer size of TCP/IP socket.
+    */
+    public int getReceiveBufferSize()
+    {
+        return receiveBufferSize;
+    }
+    
+	
     /**
      * Sets the send buffer size of TCP/IP socket.
      */
@@ -309,7 +320,13 @@ public abstract class BaseDataSource implements Referenceable
     {
         this.sendBufferSize = nbytes;
     }
-
+	/**
+	 * Gets the send buffer size of TCP/IP socket.
+	*/
+	public int getSendBufferSize()
+    {
+        return sendBufferSize;
+    }
     /**
      * Gets the default threshold for enabling server-side prepare.
      *
@@ -470,6 +487,16 @@ public abstract class BaseDataSource implements Referenceable
         return binaryTransferDisable;
     }
 
+    public String getStringType()
+    {
+        return stringType;
+    }
+
+    public void setStringType(String stringType)
+    {
+        this.stringType = stringType;
+    }
+
     /**
      * Generates a DriverManager URL from the other properties supplied.
      */
@@ -486,7 +513,9 @@ public abstract class BaseDataSource implements Referenceable
         sb.append("&socketTimeout=").append(socketTimeout);
         sb.append("&prepareThreshold=").append(prepareThreshold);
         sb.append("&unknownLength=").append(unknownLength);
-        sb.append("&loglevel=").append(logLevel);
+		if (logLevelSet) {
+			sb.append("&loglevel=").append(logLevel);
+		}
         if (protocolVersion != 0) {
             sb.append("&protocolVersion=").append(protocolVersion);
         }
@@ -502,7 +531,7 @@ public abstract class BaseDataSource implements Referenceable
         if (sendBufferSize != -1) {
             sb.append("&sendBufferSize=").append(sendBufferSize);
         }
-        sb.append("&tcpkeepalive=").append(tcpKeepAlive);
+        sb.append("&tcpKeepAlive=").append(tcpKeepAlive);
         if (compatible != null) {
             sb.append("&compatible="+compatible);
         }
@@ -510,10 +539,14 @@ public abstract class BaseDataSource implements Referenceable
             sb.append("&ApplicationName=");
             sb.append(applicationName);
         }
-        if (binaryTransfer) {
-        	sb.append("&binaryTransfer=true");
+    	sb.append("&binaryTransfer=true");
+		if (binaryTransferEnable != null) {
+			sb.append("&binaryTransferEnable=").append(binaryTransferEnable);
+		}
+        if ( stringType != null ){
+            sb.append("&stringtype=");
+            sb.append(stringType);
         }
-
         return sb.toString();
     }
 
@@ -548,11 +581,22 @@ public abstract class BaseDataSource implements Referenceable
         ref.add(new StringRefAddr("prepareThreshold", Integer.toString(prepareThreshold)));
         ref.add(new StringRefAddr("unknownLength", Integer.toString(unknownLength)));
         ref.add(new StringRefAddr("binaryTransfer", Boolean.toString(binaryTransfer)));
+	  	if (binaryTransferEnable != null)
+	    {
+			ref.add(new StringRefAddr("binaryTransferEnable", binaryTransferEnable));
+	    }
+	    if (binaryTransferDisable != null)
+	    {
+	    	ref.add(new StringRefAddr("binaryTransferDisable", binaryTransferDisable));
+	    }
         ref.add(new StringRefAddr("loginTimeout", Integer.toString(loginTimeout)));
         ref.add(new StringRefAddr("socketTimeout", Integer.toString(socketTimeout)));
 
         ref.add(new StringRefAddr("ssl", Boolean.toString(ssl)));
-        ref.add(new StringRefAddr("sslfactory", sslfactory));
+	 	if(sslfactory !=null)
+	    {
+	    	ref.add(new StringRefAddr("sslfactory", sslfactory));
+	    }
 
         ref.add(new StringRefAddr("receiveBufferSize", Integer.toString(receiveBufferSize)));
         ref.add(new StringRefAddr("sendBufferSize", Integer.toString(sendBufferSize)));
@@ -561,8 +605,14 @@ public abstract class BaseDataSource implements Referenceable
         {
             ref.add(new StringRefAddr("compatible", compatible));
         }
-
-        ref.add(new StringRefAddr("logLevel", Integer.toString(logLevel)));
+        if ( stringType != null)
+        {
+            ref.add(new StringRefAddr("stringtype",stringType));
+        }
+	 	if(logLevelSet)
+	    {
+        	ref.add(new StringRefAddr("logLevel", Integer.toString(logLevel)));
+		}
         ref.add(new StringRefAddr("protocolVersion", Integer.toString(protocolVersion)));
         ref.add(new StringRefAddr("ApplicationName", applicationName));
 
@@ -586,6 +636,7 @@ public abstract class BaseDataSource implements Referenceable
         out.writeInt(sendBufferSize);
         out.writeBoolean(tcpKeepAlive);
         out.writeObject(compatible);
+        out.writeObject(stringType);
         out.writeInt(logLevel);
         out.writeInt(protocolVersion);
         out.writeObject(applicationName);
@@ -611,6 +662,7 @@ public abstract class BaseDataSource implements Referenceable
         sendBufferSize = in.readInt();
         tcpKeepAlive = in.readBoolean();
         compatible = (String)in.readObject();
+        stringType=(String)in.readObject();
         logLevel = in.readInt();
         protocolVersion = in.readInt();
         applicationName = (String)in.readObject();
