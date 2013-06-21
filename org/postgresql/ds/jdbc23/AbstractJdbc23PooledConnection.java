@@ -45,6 +45,21 @@ public abstract class AbstractJdbc23PooledConnection
     }
 
     /**
+     * Exposes access to the underlying pooled connection to subclasses, 
+     * allowing subclasses to interrogate the state of the connection to the 
+     * postgresql backend. This bypasses the getConnection() method, enabling 
+     * internal implementations to interrogate the pooled connection state
+     * without disturbing any open client proxy handle.
+     * 
+     * @return The Connection backing this pooled connection, rather than a 
+     * proxied Handle, as returned by getConnection()
+     */
+    protected Connection getBackingConnection()
+    {
+        return con;
+    }
+
+    /**
      * Adds a listener for close or fatal error events on the connection
      * handed out to a client.
      */

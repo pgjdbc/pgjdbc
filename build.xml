@@ -204,7 +204,7 @@
       <include name="${package}/ds/PGPoolingDataSource.java.in"/>
       <include name="${package}/ds/PGPooledConnection.java.in"/>
       <include name="${package}/ds/PGConnectionPoolDataSource.java.in" />
-      <include name="${package}/xa/PGXADataSource.java.in" />
+      <include name="${srcdir}/${package}/xa/AbstractPGXADataSource.java.in" />
       <include name="build.properties"/>
       <include name="build.local.properties" />
       </srcfiles>
@@ -333,9 +333,9 @@
           overwrite="true"
           tofile="${package}/ds/PGConnectionPoolDataSource.java"
           filtering="yes" />
-    <copy file="${package}/xa/PGXADataSource.java.in"
+    <copy file="${srcdir}/${package}/xa/AbstractPGXADataSource.java.in"
           overwrite="true"
-          tofile="${package}/xa/PGXADataSource.java"
+          tofile="${srcdir}/${package}/xa/AbstractPGXADataSource.java"
           filtering="yes" />
     <copy file="${package}/ssl/MakeSSL.java.in"
           overwrite="true"
@@ -368,7 +368,7 @@
     <delete quiet="true" file="${package}/ds/PGSimpleDataSource.java" />
     <delete quiet="true" file="${package}/ds/PGPooledConnection.java" />
     <delete quiet="true" file="${package}/ds/PGConnectionPoolDataSource.java" />
-    <delete quiet="true" file="${package}/xa/PGXADataSource.java" />
+    <delete quiet="true" file="${srcdir}/${package}/xa/AbstractPGXADataSource.java" />
     <delete quiet="true" file="${package}/ssl/MakeSSL.java" />
   </target>
 
@@ -474,7 +474,7 @@
 	<include name="ssl/NonValidatingFactory.java" />
 	<include name="ds/PG*.java" />
 	<include name="ds/common/BaseDataSource.java" />
-	<include name="xa/PGXADataSource.java" />
+	<include name="xa/AbstractPGXADataSource.java" />
       </fileset>
     </javadoc>
   </target>

@@ -7,7 +7,7 @@ import javax.sql.XADataSource;
  *
  * @author Heikki Linnakangas (heikki.linnakangas@iki.fi)
  */
-public class PGXADataSource
+public abstract class AbstractPGXADataSource
     extends @XA_DS_CLASS@
     implements XADataSource
 {
