@@ -64,7 +64,7 @@ public class XADataSourceTest extends TestCase {
 
     }
 
-    private void clearAllPrepared() throws SQLException
+    protected void clearAllPrepared() throws SQLException
     {
         Statement st = _conn.createStatement();
         try
