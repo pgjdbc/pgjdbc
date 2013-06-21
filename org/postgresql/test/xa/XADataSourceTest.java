@@ -116,6 +116,9 @@ public class XADataSourceTest extends TestCase {
         }
         public boolean equals(Object o) {
             Xid other = (Xid)o;
+            if (o == null || !(o instanceof Xid)) {
+                return false;
+            }
             if (other.getFormatId() != this.getFormatId())
                 return false;
             if (!Arrays.equals(other.getBranchQualifier(), this.getBranchQualifier()))
