@@ -10,7 +10,7 @@ import java.sql.SQLFeatureNotSupportedException;
 
 import org.postgresql.xa.jdbc3.AbstractJdbc3XADataSource;
 
-public class AbstractJdbc4XADataSource
+public abstract class AbstractJdbc4XADataSource
     extends AbstractJdbc3XADataSource
 {
 
