@@ -132,6 +132,7 @@ public class TypeInfoCache implements TypeInfo {
             addCoreType(pgTypeName, oid, sqlType, javaClass, arrayOid);
         }
 
+        _pgNameToJavaClass.put("hstore", Map.class.getName());
     }
 
     public synchronized void addCoreType(String pgTypeName, Integer oid, Integer sqlType, String javaClass, Integer arrayOid)
