@@ -98,8 +98,12 @@ public class StringTypeParameterTest extends TestCase {
 
         query.clearParameters();
         query.setObject(1, "happy", Types.OTHER);
-        query.executeQuery().close();
+        ResultSet rs = query.executeQuery();
+        assertTrue(rs.next());
+        assertEquals("happy", rs.getObject("m"));
+
         // all good
+        rs.close();
         query.close();
 
     }
@@ -120,13 +124,19 @@ public class StringTypeParameterTest extends TestCase {
 
         PreparedStatement query = _conn.prepareStatement("select * from stringtypetest where m = ?");
         query.setString(1, "happy");
-        query.executeQuery().close();
+        ResultSet rs = query.executeQuery();
+        assertTrue(rs.next());
+        assertEquals("happy", rs.getObject("m"));
+        rs.close();
 
         query.clearParameters();
         query.setObject(1, "happy", Types.VARCHAR);
-        query.executeQuery().close();
+        rs = query.executeQuery();
+        assertTrue(rs.next());
+        assertEquals("happy", rs.getObject("m"));
 
         // all good
+        rs.close();
         query.close();
 
     }
