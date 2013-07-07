@@ -313,6 +313,33 @@ public class TestUtil
         }
     }
 
+    /**
+     * Helper creates an enum type
+     * @param con Connection
+     * @param name String
+     * @param values String
+     * @throws SQLException
+     */
+
+    public static void createEnumType( Connection con,
+                                       String name,
+                                       String values) throws SQLException
+    {
+        Statement st = con.createStatement();
+        try
+        {
+            dropType(con, name);
+
+
+            // Now create the table
+            st.executeUpdate("create type " + name + " as enum (" + values + ")");
+        }
+        finally
+        {
+            st.close();
+        }
+    }
+
     /*
      * drop a sequence because older versions don't have dependency
      * information for serials
@@ -353,6 +380,24 @@ public class TestUtil
             // it's easy to get a table doesn't exist error.
             // we want to ignore these, but if we're in a
             // transaction then we've got trouble
+            if (!con.getAutoCommit())
+                throw ex;
+        }
+    }
+
+    /*
+     * Helper - drops a type
+     */
+    public static void dropType(Connection con, String type) throws SQLException
+    {
+        Statement stmt = con.createStatement();
+        try
+        {
+            String sql = "DROP TYPE " + type;
+            stmt.executeUpdate(sql);
+        }
+        catch (SQLException ex)
+        {
             if (!con.getAutoCommit())
                 throw ex;
         }
