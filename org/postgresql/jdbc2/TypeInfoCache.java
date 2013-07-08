@@ -231,6 +231,8 @@ public class TypeInfoCache implements TypeInfo {
                 type = new Integer(Types.STRUCT);
             } else if ("d".equals(typtype)) {
                 type = new Integer(Types.DISTINCT);
+            } else if ("e".equals(typtype)) {
+                type = new Integer(Types.VARCHAR);
             }
         }
 
