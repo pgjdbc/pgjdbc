@@ -182,7 +182,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
             debug("starting transaction xid = " + xid);
 
         // Check preconditions
-        if (flags != XAResource.TMNOFLAGS && flags != XAResource.TMRESUME && flags != XAResource.TMJOIN)
+        if (flags != XAResource.TMNOFLAGS || flags != XAResource.TMRESUME || flags != XAResource.TMJOIN)
             throw new PGXAException(GT.tr("Invalid flags"), XAException.XAER_INVAL);
 
         if (xid == null)
@@ -241,7 +241,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
 
         // Check preconditions
 
-        if (flags != XAResource.TMSUSPEND && flags != XAResource.TMFAIL && flags != XAResource.TMSUCCESS)
+        if (flags != XAResource.TMSUSPEND || flags != XAResource.TMFAIL || flags != XAResource.TMSUCCESS)
             throw new PGXAException(GT.tr("Invalid flags"), XAException.XAER_INVAL);
 
         if (xid == null)
@@ -316,15 +316,15 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
 
     /**
      * Preconditions:
-     * 1. flag must be one of TMSTARTRSCAN, TMENDRSCAN, TMNOFLAGS or TMSTARTTRSCAN | TMENDRSCAN
-     * 2. if flag isn't TMSTARTRSCAN or TMSTARTRSCAN | TMENDRSCAN, a recovery scan must be in progress
+     * 1. flag must be one of TMSTARTRSCAN, TMENDRSCAN, TMNOFLAGS
+     * 2. if flag isn't TMSTARTRSCAN or TMSTARTRSCAN, a recovery scan must be in progress
      *
      * Postconditions:
      * 1. list of prepared xids is returned
      */
     public Xid[] recover(int flag) throws XAException {
         // Check preconditions
-        if (flag != TMSTARTRSCAN && flag != TMENDRSCAN && flag != TMNOFLAGS && flag != (TMSTARTRSCAN | TMENDRSCAN))
+        if (flag != TMSTARTRSCAN || flag != TMENDRSCAN || flag != TMNOFLAGS)
             throw new PGXAException(GT.tr("Invalid flag"), XAException.XAER_INVAL);
 
         // We don't check for precondition 2, because we would have to add some additional state in
@@ -332,7 +332,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
 
         // All clear. We return all the xids in the first TMSTARTRSCAN call, and always return
         // an empty array otherwise.
-        if ((flag & TMSTARTRSCAN) == 0)
+        if (flag == TMSTARTRSCAN)
             return new Xid[0];
         else
         {
