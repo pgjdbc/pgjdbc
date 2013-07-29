@@ -263,6 +263,61 @@ public class DatabaseMetaDataTest extends TestCase
         con1.close();
     }
 
+    public void testSameTableForeightKeys() throws Exception
+    {
+        Connection con1 = TestUtil.openDB();
+
+        TestUtil.createTable( con1, "person", "FIRST_NAME character varying(100) NOT NULL,"+
+          "LAST_NAME character varying(100) NOT NULL,"+
+          "FIRST_NAME_PARENT_1 character varying(100),"+
+          "LAST_NAME_PARENT_1 character varying(100),"+
+          "FIRST_NAME_PARENT_2 character varying(100),"+
+          "LAST_NAME_PARENT_2 character varying(100),"+
+          "CONSTRAINT PERSON_pkey PRIMARY KEY (FIRST_NAME , LAST_NAME ),"+
+          "CONSTRAINT PARENT_1_fkey FOREIGN KEY (FIRST_NAME_PARENT_1, LAST_NAME_PARENT_1)"+
+              "REFERENCES PERSON (FIRST_NAME, LAST_NAME) MATCH SIMPLE "+
+              "ON UPDATE CASCADE ON DELETE CASCADE,"+
+          "CONSTRAINT PARENT_2_fkey FOREIGN KEY (FIRST_NAME_PARENT_2, LAST_NAME_PARENT_2)"+
+              "REFERENCES PERSON (FIRST_NAME, LAST_NAME) MATCH SIMPLE "+
+              "ON UPDATE CASCADE ON DELETE CASCADE" );
+
+
+        DatabaseMetaData dbmd = con.getMetaData();
+        assertNotNull(dbmd);
+        ResultSet rs = dbmd.getImportedKeys(null, "", "person");
+        for (int j=0; rs.next(); j++ )
+        {
+            String pkTableName = rs.getString( "PKTABLE_NAME" );
+            assertTrue ( pkTableName.equals("person")  );
+
+            String pkColumnName = rs.getString( "PKCOLUMN_NAME" );
+            assertTrue( "first_name".equals(pkColumnName) || "last_name".equals(pkColumnName)  );
+
+            String fkTableName = rs.getString( "FKTABLE_NAME" );
+            assertEquals( "person", fkTableName );
+
+            String fkName = rs.getString( "FK_NAME" );
+            String fkColumnName = rs.getString( "FKCOLUMN_NAME" );
+
+            if ( fkName.equals("parent_1_fkey") )
+                assertTrue( fkColumnName.equals("last_name_parent_1") || fkColumnName.equals("first_name_parent_1") );
+              else if ( fkName.equals("parent_2_fkey") )
+                assertTrue( fkColumnName.equals("last_name_parent_2") || fkColumnName.equals("first_name_parent_2") );
+
+              else if ( fkName.equals("parent_1_fkey") )
+                assert fkColumnName.equals("first_name_parent_1");
+              else if ( fkName.equals("parent_2_key") )
+                assert fkColumnName.equals("first_name_parent_2");
+                
+
+        }
+        TestUtil.dropTable( con1, "person" );
+        TestUtil.closeDB(con1);
+        
+       
+          
+        
+    }
     public void testForeignKeys() throws Exception
     {
         Connection con1 = TestUtil.openDB();
