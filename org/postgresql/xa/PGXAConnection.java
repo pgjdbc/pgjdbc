@@ -42,7 +42,6 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
      */
     private final BaseConnection conn;
     private final Logger logger;
-    public static final String UNDEFINED_OBJECT = "42704";
 
     /*
      * PGXAConnection-object can be in one of three states:
@@ -414,7 +413,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         }
         catch (SQLException ex)
         {
-        	if (UNDEFINED_OBJECT.equals(ex.getSQLState()))
+        	if (PSQLState.UNDEFINED_OBJECT.getState().equals(ex.getSQLState()))
     		{
         		throw new PGXAException(GT.tr("Error rolling back prepared transaction"), ex, XAException.XAER_NOTA);
             }
