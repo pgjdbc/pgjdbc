@@ -455,7 +455,7 @@
   <!-- Build public javadoc -->
   <target name="publicapi" depends="compile">
     <mkdir dir="${builddir}/publicapi" />
-    <javadoc destdir="${builddir}/publicapi">
+    <javadoc destdir="${builddir}/publicapi" charset="utf-8">
       <classpath>
         <pathelement path="${builddir}" />
         <pathelement path="${java.class.path}" />
@@ -481,7 +481,7 @@
 
   <!-- Build driver-internal javadoc. NB: needs Ant 1.6 & JDK 1.4 for 'breakiterator'. -->
   <target name="privateapi" depends="compile">
-    <javadoc destdir="${builddir}/privateapi" breakiterator="yes">
+    <javadoc destdir="${builddir}/privateapi" breakiterator="yes" charset="utf-8">
       <classpath>
         <pathelement path="${builddir}" />
         <pathelement path="${java.class.path}" />
