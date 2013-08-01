@@ -2378,7 +2378,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                     ++i;
                     ++state;
                 }
-                else if (ch == 'c')
+                else if (ch == 'c' || ch == 'C')
                 {  // { call ... }      -- proc with no out parameters
                     state += 3; // Don't increase 'i'
                 }
