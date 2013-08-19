@@ -339,6 +339,7 @@ public class XADataSourceTest extends TestCase {
         try
         {
         	xaRes.rollback(xid);
+		fail("Rollback was successful");
         }
         catch (XAException xae)
         {
