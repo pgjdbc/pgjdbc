@@ -319,7 +319,34 @@ public class XADataSourceTest extends TestCase {
 
         assertTrue(!conn.getAutoCommit());
     }
-
+    
+    /**
+     * Test how the driver responds to rolling back a transaction
+     * that has already been rolled back. Check the driver
+     * reports the xid does not exist. The db knows the fact. 
+     * ERROR:  prepared transaction with identifier "blah" does not exist
+     * 
+     * @throws Exception 
+     */
+    public void testRepeatedRolledBack() throws Exception {
+    	Xid xid = new CustomXid(654321);
+        xaRes.start(xid, XAResource.TMNOFLAGS);
+        xaRes.end(xid, XAResource.TMSUCCESS);
+        xaRes.prepare(xid);
+        //tm crash
+        xaRes.recover(XAResource.TMSTARTRSCAN);
+        xaRes.rollback(xid);
+        try
+        {
+        	xaRes.rollback(xid);
+		fail("Rollback was successful");
+        }
+        catch (XAException xae)
+        {
+        	assertEquals("Checking the errorCode is XAER_NOTA indicating the " +
+        			"xid does not exist.", XAException.XAER_NOTA, xae.errorCode );
+        }
+    }
 
     /* We don't support transaction interleaving.
     public void testInterleaving1() throws Exception {
