@@ -413,6 +413,10 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         }
         catch (SQLException ex)
         {
+        	if (PSQLState.UNDEFINED_OBJECT.getState().equals(ex.getSQLState()))
+    		{
+        		throw new PGXAException(GT.tr("Error rolling back prepared transaction"), ex, XAException.XAER_NOTA);
+            }
             throw new PGXAException(GT.tr("Error rolling back prepared transaction"), ex, XAException.XAER_RMERR);
         }
     }
