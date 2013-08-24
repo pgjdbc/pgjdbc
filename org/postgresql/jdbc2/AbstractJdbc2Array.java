@@ -19,6 +19,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -212,26 +213,31 @@ public abstract class AbstractJdbc2Array
                     continue;
                 }
                 switch (elementOid) {
-                case Oid.INT2:
-                    arr[i] = new Short(ByteConverter.int2(fieldBytes, pos));
-                    break;
-                case Oid.INT4:
-                    arr[i] = new Integer(ByteConverter.int4(fieldBytes, pos));
-                    break;
-                case Oid.INT8:
-                    arr[i] = new Long(ByteConverter.int8(fieldBytes, pos));
-                    break;
-                case Oid.FLOAT4:
-                    arr[i] = new Float(ByteConverter.float4(fieldBytes, pos));
-                    break;
-                case Oid.FLOAT8:
-                    arr[i] = new Double(ByteConverter.float8(fieldBytes, pos));
-                    break;
-                case Oid.TEXT:
-                case Oid.VARCHAR:
-                    Encoding encoding = connection.getEncoding();
-                    arr[i] = encoding.decode(fieldBytes, pos, len);
-                    break;
+                    case Oid.INT2:
+                        arr[i] = new Short(ByteConverter.int2(fieldBytes, pos));
+                        break;
+                    case Oid.INT4:
+                        arr[i] = new Integer(ByteConverter.int4(fieldBytes, pos));
+                        break;
+                    case Oid.INT8:
+                        arr[i] = new Long(ByteConverter.int8(fieldBytes, pos));
+                        break;
+                    case Oid.FLOAT4:
+                        arr[i] = new Float(ByteConverter.float4(fieldBytes, pos));
+                        break;
+                    case Oid.FLOAT8:
+                        arr[i] = new Double(ByteConverter.float8(fieldBytes, pos));
+                        break;
+                    case Oid.TEXT:
+                    case Oid.VARCHAR:
+                        Encoding encoding = connection.getEncoding();
+                        arr[i] = encoding.decode(fieldBytes, pos, len);
+                        break;
+                    default:
+                        ArrayElementBuilder arrElemBuilder = ArrayElementBuilderFactory.getArrayElementBuilder(elementOid);
+                        if (arrElemBuilder != null) {
+                            arr[i] = arrElemBuilder.buildElement(fieldBytes, pos, len);
+                        }
                 }
                 pos += len;
             }
@@ -243,7 +249,7 @@ public abstract class AbstractJdbc2Array
         return pos;
     }
 
-    
+
     private ResultSet readBinaryResultSet(int index, int count) throws SQLException {
         int dimensions = ByteConverter.int4(fieldBytes, 0);
         //int flags = ByteConverter.int4(fieldBytes, 4); // bit 0: 0=no-nulls, 1=has-nulls
@@ -337,22 +343,27 @@ public abstract class AbstractJdbc2Array
     private Class elementOidToClass(int oid)
             throws SQLException {
         switch (oid) {
-        case Oid.INT2:
-            return Short.class;
-        case Oid.INT4:
-            return Integer.class;
-        case Oid.INT8:
-            return Long.class;
-        case Oid.FLOAT4:
-            return Float.class;
-        case Oid.FLOAT8:
-            return Double.class;
-        case Oid.TEXT:
-        case Oid.VARCHAR:
-            return String.class;
-        default:
-            throw org.postgresql.Driver.notImplemented(this.getClass(),
-                    "readBinaryArray(data,oid)");
+            case Oid.INT2:
+                return Short.class;
+            case Oid.INT4:
+                return Integer.class;
+            case Oid.INT8:
+                return Long.class;
+            case Oid.FLOAT4:
+                return Float.class;
+            case Oid.FLOAT8:
+                return Double.class;
+            case Oid.TEXT:
+            case Oid.VARCHAR:
+                return String.class;
+            default:
+                ArrayElementBuilder arrElemBuilder = ArrayElementBuilderFactory.getArrayElementBuilder(oid);
+                if (arrElemBuilder != null) {
+                    return arrElemBuilder.getElementClass();
+                }
+
+                throw org.postgresql.Driver.notImplemented(this.getClass(),
+                        "readBinaryArray(data,oid)");
         }
     }
 
@@ -411,7 +422,7 @@ public abstract class AbstractJdbc2Array
                 if (chars[i] == '\\')
                     i++;
 
-                // subarray start
+                    // subarray start
                 else if (!insideString && chars[i] == '{')
                 {
                     if (dims.size() == 0)
@@ -536,7 +547,7 @@ public abstract class AbstractJdbc2Array
 
             if (dims > 1 || useObjects)
             {
-ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects ? Boolean.class : boolean.class, dimsLength) : new Boolean[count]);
+                ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects ? Boolean.class : boolean.class, dimsLength) : new Boolean[count]);
             }
             else
             {
@@ -566,7 +577,7 @@ ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects
 
             if (dims > 1 || useObjects)
             {
-ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects ? Integer.class : int.class, dimsLength) : new Integer[count]);
+                ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects ? Integer.class : int.class, dimsLength) : new Integer[count]);
             }
             else
             {
@@ -595,7 +606,7 @@ ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects
 
             if (dims > 1 || useObjects)
             {
-ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects ? Long.class : long.class, dimsLength) : new Long[count]);
+                ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects ? Long.class : long.class, dimsLength) : new Long[count]);
             }
 
             else
@@ -637,7 +648,7 @@ ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects
 
             if (dims > 1 || useObjects)
             {
-ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects ? Float.class : float.class, dimsLength) : new Float[count]);
+                ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects ? Float.class : float.class, dimsLength) : new Float[count]);
             }
             else
             {
@@ -666,7 +677,7 @@ ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects
 
             if (dims > 1 || useObjects)
             {
-ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects ? Double.class : double.class, dimsLength) : new Double[count]);
+                ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects ? Double.class : double.class, dimsLength) : new Double[count]);
             }
             else
             {
@@ -733,6 +744,21 @@ ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(useObjects
             {
                 Object v = input.get(index++);
                 oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1) : (v == null ? null : connection.getTimestampUtils().toTimestamp(null, (String) v));
+            }
+        }
+
+        else if (ArrayElementBuilderFactory.getArrayElementBuilder(oid) != null) {
+            ArrayElementBuilder arrElemBuilder = ArrayElementBuilderFactory.getArrayElementBuilder(oid);
+
+            Object[] oa = null;
+            ret = oa = (dims > 1) ? (Object[]) java.lang.reflect.Array.newInstance(arrElemBuilder.getElementClass(), dimsLength)
+                    : (Object[]) java.lang.reflect.Array.newInstance(arrElemBuilder.getElementClass(), count) ;
+
+            for (; count > 0; count--)
+            {
+                Object v = input.get(index++);
+                oa[length++] = (dims > 1 && v != null) ? buildArray((PgArrayList) v, 0, -1)
+                        : (v == null ? null : arrElemBuilder.buildElement((String) v));
             }
         }
 
