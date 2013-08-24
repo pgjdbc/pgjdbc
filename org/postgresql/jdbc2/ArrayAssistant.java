@@ -1,18 +1,18 @@
 package org.postgresql.jdbc2;
 
 /**
- * Implement this interface and register the its instance to ArrayElementBuilderFactory,
+ * Implement this interface and register the its instance to ArrayAssistantRegistry,
  * to let Postgres driver to support more array type
  *
  * @author Minglei Tu
  */
-public interface ArrayElementBuilder {
+public interface ArrayAssistant {
     /**
      * get array base type
      *
      * @return
      */
-    Class getElementClass();
+    Class baseType();
 
     /**
      * build a array element from its binary bytes

@@ -19,7 +19,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -234,9 +233,9 @@ public abstract class AbstractJdbc2Array
                         arr[i] = encoding.decode(fieldBytes, pos, len);
                         break;
                     default:
-                        ArrayElementBuilder arrElemBuilder = ArrayElementBuilderFactory.getArrayElementBuilder(elementOid);
-                        if (arrElemBuilder != null) {
-                            arr[i] = arrElemBuilder.buildElement(fieldBytes, pos, len);
+                        ArrayAssistant arrAssistant = ArrayAssistantRegistry.getAssistant(elementOid);
+                        if (arrAssistant != null) {
+                            arr[i] = arrAssistant.buildElement(fieldBytes, pos, len);
                         }
                 }
                 pos += len;
@@ -357,9 +356,9 @@ public abstract class AbstractJdbc2Array
             case Oid.VARCHAR:
                 return String.class;
             default:
-                ArrayElementBuilder arrElemBuilder = ArrayElementBuilderFactory.getArrayElementBuilder(oid);
+                ArrayAssistant arrElemBuilder = ArrayAssistantRegistry.getAssistant(oid);
                 if (arrElemBuilder != null) {
-                    return arrElemBuilder.getElementClass();
+                    return arrElemBuilder.baseType();
                 }
 
                 throw org.postgresql.Driver.notImplemented(this.getClass(),
@@ -747,18 +746,19 @@ public abstract class AbstractJdbc2Array
             }
         }
 
-        else if (ArrayElementBuilderFactory.getArrayElementBuilder(oid) != null) {
-            ArrayElementBuilder arrElemBuilder = ArrayElementBuilderFactory.getArrayElementBuilder(oid);
+        else if (ArrayAssistantRegistry.getAssistant(oid) != null)
+        {
+            ArrayAssistant arrAssistant = ArrayAssistantRegistry.getAssistant(oid);
 
             Object[] oa = null;
-            ret = oa = (dims > 1) ? (Object[]) java.lang.reflect.Array.newInstance(arrElemBuilder.getElementClass(), dimsLength)
-                    : (Object[]) java.lang.reflect.Array.newInstance(arrElemBuilder.getElementClass(), count) ;
+            ret = oa = (dims > 1) ? (Object[]) java.lang.reflect.Array.newInstance(arrAssistant.baseType(), dimsLength)
+                    : (Object[]) java.lang.reflect.Array.newInstance(arrAssistant.baseType(), count) ;
 
             for (; count > 0; count--)
             {
                 Object v = input.get(index++);
                 oa[length++] = (dims > 1 && v != null) ? buildArray((PgArrayList) v, 0, -1)
-                        : (v == null ? null : arrElemBuilder.buildElement((String) v));
+                        : (v == null ? null : arrAssistant.buildElement((String) v));
             }
         }
 

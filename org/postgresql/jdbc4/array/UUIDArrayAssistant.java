@@ -1,13 +1,13 @@
 package org.postgresql.jdbc4.array;
 
-import org.postgresql.jdbc2.ArrayElementBuilder;
+import org.postgresql.jdbc2.ArrayAssistant;
 import org.postgresql.util.ByteConverter;
 
 import java.util.UUID;
 
-public class UUIDArrayElementBuilder implements ArrayElementBuilder {
+public class UUIDArrayAssistant implements ArrayAssistant {
     @Override
-    public Class getElementClass() {
+    public Class baseType() {
         return UUID.class;
     }
 
