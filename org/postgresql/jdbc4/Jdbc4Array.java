@@ -9,8 +9,8 @@ package org.postgresql.jdbc4;
 
 import java.util.Map;
 import org.postgresql.core.*;
-import org.postgresql.jdbc2.ArrayElementBuilderFactory;
-import org.postgresql.jdbc4.array.UUIDArrayElementBuilder;
+import org.postgresql.jdbc2.ArrayAssistantRegistry;
+import org.postgresql.jdbc4.array.UUIDArrayAssistant;
 
 import java.sql.SQLException;
 import java.sql.ResultSet;
@@ -18,8 +18,8 @@ import java.sql.ResultSet;
 public class Jdbc4Array extends org.postgresql.jdbc2.AbstractJdbc2Array implements java.sql.Array
 {
     static {
-        ArrayElementBuilderFactory.setArrayElementBuilder(Oid.UUID, new UUIDArrayElementBuilder());
-        ArrayElementBuilderFactory.setArrayElementBuilder(Oid.UUID_ARRAY, new UUIDArrayElementBuilder());
+        ArrayAssistantRegistry.register(Oid.UUID, new UUIDArrayAssistant());
+        ArrayAssistantRegistry.register(Oid.UUID_ARRAY, new UUIDArrayAssistant());
     }
 
     public Jdbc4Array(BaseConnection conn, int oid, String fieldString) throws SQLException
