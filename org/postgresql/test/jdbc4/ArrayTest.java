@@ -24,7 +24,7 @@ public class ArrayTest extends TestCase {
 
     protected void setUp() throws Exception {
         _conn = TestUtil.openDB();
-        TestUtil.createTable(_conn, "arrtest", "intarr int[], decarr decimal(2,1)[], strarr text[]");
+        TestUtil.createTable(_conn, "arrtest", "intarr int[], decarr decimal(2,1)[], strarr text[], uuidarr uuid[]");
     }
 
     protected void tearDown() throws SQLException {
