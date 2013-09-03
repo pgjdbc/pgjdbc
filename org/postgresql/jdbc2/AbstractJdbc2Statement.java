@@ -1388,7 +1388,11 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public void setString(int parameterIndex, String x) throws SQLException
     {
         checkClosed();
-        setString(parameterIndex, x, (connection.getStringVarcharFlag() ? Oid.VARCHAR : Oid.UNSPECIFIED));
+        setString(parameterIndex, x, getStringType());
+    }
+
+    private int getStringType() {
+        return (connection.getStringVarcharFlag() ? Oid.VARCHAR : Oid.UNSPECIFIED);
     }
 
     protected void setString(int parameterIndex, String x, int oid) throws SQLException
@@ -1398,7 +1402,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (x == null)
         {
             if ( adjustIndex )
-                parameterIndex--;   
+                parameterIndex--;
             preparedParameters.setNull( parameterIndex, oid);
         }
         else
@@ -1786,7 +1790,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	            break;
 	        case Types.VARCHAR:
 	        case Types.LONGVARCHAR:
-	            setString(parameterIndex, pgType.toString(), Oid.VARCHAR);
+	            setString(parameterIndex, pgType.toString(), getStringType());
 	            break;
 	        case Types.DATE:
 	            if (in instanceof java.sql.Date)
@@ -2374,7 +2378,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                     ++i;
                     ++state;
                 }
-                else if (ch == 'c')
+                else if (ch == 'c' || ch == 'C')
                 {  // { call ... }      -- proc with no out parameters
                     state += 3; // Don't increase 'i'
                 }
