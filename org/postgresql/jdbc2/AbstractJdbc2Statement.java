@@ -872,13 +872,17 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
      * This finalizer ensures that statements that have allocated server-side
      * resources free them when they become unreferenced.
      */
-    protected void finalize() {
+    protected void finalize() throws Throwable {
         try
         {
             close();
         }
         catch (SQLException e)
         {
+        }
+        finally
+        {
+            super.finalize();
         }
     }
 
