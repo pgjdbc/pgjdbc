@@ -3069,8 +3069,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             // could be buffered, but then the OutputStream returned by LargeObject
             // is buffered internally anyhow, so there would be no performance
             // boost gained, if anything it would be worse!
-            int bytesRemaining = (int)x.length();
-            int numRead = l_inStream.read(buf, 0, Math.min(buf.length, bytesRemaining));
+            long bytesRemaining = x.length();
+            int numRead = l_inStream.read(buf, 0, (int)Math.min((long)buf.length, bytesRemaining));
             while (numRead != -1 && bytesRemaining > 0)
             {
                 bytesRemaining -= numRead;
@@ -3078,7 +3078,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                     los.write(buf); // saves a buffer creation and copy in LargeObject since it's full
                 else
                     los.write(buf, 0, numRead);
-                numRead = l_inStream.read(buf, 0, Math.min(buf.length, bytesRemaining));
+                numRead = l_inStream.read(buf, 0, (int)Math.min((long)buf.length, bytesRemaining));
             }
         }
         catch (IOException se)
