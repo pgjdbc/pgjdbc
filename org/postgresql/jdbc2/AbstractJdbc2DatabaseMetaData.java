@@ -3439,11 +3439,11 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
             if (primaryTable != null)
             {
-                sql += " ORDER BY fkn.nspname,fkc.relname,pos.n";
+                sql += " ORDER BY fkn.nspname,fkc.relname,con.conname,pos.n";
             }
             else
             {
-                sql += " ORDER BY pkn.nspname,pkc.relname,pos.n";
+                sql += " ORDER BY pkn.nspname,pkc.relname,con.conname,pos.n";
             }
 
             return createMetaDataStatement().executeQuery(sql);
