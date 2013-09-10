@@ -10,6 +10,8 @@ package org.postgresql.test.jdbc2;
 import org.postgresql.test.TestUtil;
 import junit.framework.TestCase;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /*
  * TestCase to test the internal functionality of org.postgresql.jdbc2.DatabaseMetaData
@@ -261,6 +263,74 @@ public class DatabaseMetaDataTest extends TestCase
         TestUtil.dropTable(con1, "fkt");
         TestUtil.dropTable(con1, "pkt");
         con1.close();
+    }
+
+    public void testSameTableForeignKeys() throws Exception
+    {
+        Connection con1 = TestUtil.openDB();
+
+        TestUtil.createTable( con1, "person", "FIRST_NAME character varying(100) NOT NULL,"+
+          "LAST_NAME character varying(100) NOT NULL,"+
+          "FIRST_NAME_PARENT_1 character varying(100),"+
+          "LAST_NAME_PARENT_1 character varying(100),"+
+          "FIRST_NAME_PARENT_2 character varying(100),"+
+          "LAST_NAME_PARENT_2 character varying(100),"+
+          "CONSTRAINT PERSON_pkey PRIMARY KEY (FIRST_NAME , LAST_NAME ),"+
+          "CONSTRAINT PARENT_1_fkey FOREIGN KEY (FIRST_NAME_PARENT_1, LAST_NAME_PARENT_1)"+
+              "REFERENCES PERSON (FIRST_NAME, LAST_NAME) MATCH SIMPLE "+
+              "ON UPDATE CASCADE ON DELETE CASCADE,"+
+          "CONSTRAINT PARENT_2_fkey FOREIGN KEY (FIRST_NAME_PARENT_2, LAST_NAME_PARENT_2)"+
+              "REFERENCES PERSON (FIRST_NAME, LAST_NAME) MATCH SIMPLE "+
+              "ON UPDATE CASCADE ON DELETE CASCADE" );
+
+
+        DatabaseMetaData dbmd = con.getMetaData();
+        assertNotNull(dbmd);
+        ResultSet rs = dbmd.getImportedKeys(null, "", "person");
+        
+        final List<String> fkNames = new ArrayList<String>();
+        
+        int lastFieldCount = -1;
+        while (rs.next()) {
+            // destination table (all foreign keys point to the same)
+            String pkTableName = rs.getString("PKTABLE_NAME");
+            assertEquals("person", pkTableName);
+
+            // destination fields
+            String pkColumnName = rs.getString("PKCOLUMN_NAME");
+            assertTrue("first_name".equals(pkColumnName) || "last_name".equals(pkColumnName));
+
+            // source table (all foreign keys are in the same)
+            String fkTableName = rs.getString("FKTABLE_NAME");
+            assertEquals("person", fkTableName);
+
+            // foreign key name
+            String fkName = rs.getString("FK_NAME");
+            // sequence number within the foreign key
+            int seq = rs.getInt("KEY_SEQ");
+            if (seq == 1) {
+                // begin new foreign key
+                assertFalse(fkNames.contains(fkName));
+                fkNames.add(fkName);
+                // all foreign keys have 2 fields
+                assertTrue(lastFieldCount < 0 || lastFieldCount == 2);
+            } else {
+                // continue foreign key, i.e. fkName matches the last foreign key
+                assertEquals(fkNames.get(fkNames.size() - 1), fkName);
+                // see always increases by 1
+                assertTrue(seq == lastFieldCount + 1);
+            }
+            lastFieldCount = seq;
+        }
+        // there's more than one foreign key from a table to another
+        assertEquals(2, fkNames.size());
+
+        TestUtil.dropTable( con1, "person" );
+        TestUtil.closeDB(con1);
+        
+       
+          
+        
     }
 
     public void testForeignKeys() throws Exception
