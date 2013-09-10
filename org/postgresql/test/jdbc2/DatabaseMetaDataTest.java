@@ -10,6 +10,8 @@ package org.postgresql.test.jdbc2;
 import org.postgresql.test.TestUtil;
 import junit.framework.TestCase;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /*
  * TestCase to test the internal functionality of org.postgresql.jdbc2.DatabaseMetaData
@@ -263,7 +265,7 @@ public class DatabaseMetaDataTest extends TestCase
         con1.close();
     }
 
-    public void testSameTableForeightKeys() throws Exception
+    public void testSameTableForeignKeys() throws Exception
     {
         Connection con1 = TestUtil.openDB();
 
@@ -285,32 +287,44 @@ public class DatabaseMetaDataTest extends TestCase
         DatabaseMetaData dbmd = con.getMetaData();
         assertNotNull(dbmd);
         ResultSet rs = dbmd.getImportedKeys(null, "", "person");
-        for (int j=0; rs.next(); j++ )
-        {
-            String pkTableName = rs.getString( "PKTABLE_NAME" );
-            assertTrue ( pkTableName.equals("person")  );
+        
+        final List<String> fkNames = new ArrayList<String>();
+        
+        int lastFieldCount = -1;
+        while (rs.next()) {
+            // destination table (all foreign keys point to the same)
+            String pkTableName = rs.getString("PKTABLE_NAME");
+            assertEquals("person", pkTableName);
 
-            String pkColumnName = rs.getString( "PKCOLUMN_NAME" );
-            assertTrue( "first_name".equals(pkColumnName) || "last_name".equals(pkColumnName)  );
+            // destination fields
+            String pkColumnName = rs.getString("PKCOLUMN_NAME");
+            assertTrue("first_name".equals(pkColumnName) || "last_name".equals(pkColumnName));
 
-            String fkTableName = rs.getString( "FKTABLE_NAME" );
-            assertEquals( "person", fkTableName );
+            // source table (all foreign keys are in the same)
+            String fkTableName = rs.getString("FKTABLE_NAME");
+            assertEquals("person", fkTableName);
 
-            String fkName = rs.getString( "FK_NAME" );
-            String fkColumnName = rs.getString( "FKCOLUMN_NAME" );
-
-            if ( fkName.equals("parent_1_fkey") )
-                assertTrue( fkColumnName.equals("last_name_parent_1") || fkColumnName.equals("first_name_parent_1") );
-              else if ( fkName.equals("parent_2_fkey") )
-                assertTrue( fkColumnName.equals("last_name_parent_2") || fkColumnName.equals("first_name_parent_2") );
-
-              else if ( fkName.equals("parent_1_fkey") )
-                assert fkColumnName.equals("first_name_parent_1");
-              else if ( fkName.equals("parent_2_key") )
-                assert fkColumnName.equals("first_name_parent_2");
-                
-
+            // foreign key name
+            String fkName = rs.getString("FK_NAME");
+            // sequence number within the foreign key
+            int seq = rs.getInt("KEY_SEQ");
+            if (seq == 1) {
+                // begin new foreign key
+                assertFalse(fkNames.contains(fkName));
+                fkNames.add(fkName);
+                // all foreign keys have 2 fields
+                assertTrue(lastFieldCount < 0 || lastFieldCount == 2);
+            } else {
+                // continue foreign key, i.e. fkName matches the last foreign key
+                assertEquals(fkNames.get(fkNames.size() - 1), fkName);
+                // see always increases by 1
+                assertTrue(seq == lastFieldCount + 1);
+            }
+            lastFieldCount = seq;
         }
+        // there's more than one foreign key from a table to another
+        assertEquals(2, fkNames.size());
+
         TestUtil.dropTable( con1, "person" );
         TestUtil.closeDB(con1);
         
