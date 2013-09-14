@@ -1008,10 +1008,17 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
      */
     protected void finalize() throws Throwable
     {
-        if (openStackTrace != null)
-            logger.log(GT.tr("Finalizing a Connection that was never closed:"), openStackTrace);
-
-        close();
+        try
+        {
+            if (openStackTrace != null)
+                logger.log(GT.tr("Finalizing a Connection that was never closed:"), openStackTrace);
+                
+            close();
+        }
+        finally 
+        {
+            super.finalize();
+        }
     }
 
     /*
