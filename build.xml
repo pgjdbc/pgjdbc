@@ -172,6 +172,7 @@
        <exclude name="${package}/jdcb4/Jdbc4*.java" unless="jdbc4any" />
 
        <!-- ssl -->
+       <include name="${package}/ssl/SingleCertValidatingFactory.java" if="jdbc4any"/>
        <include name="${package}/ssl/jdbc4/*.java" if="jdbc4any"/>
        <include name="${package}/ssl/jdbc3/*.java" if="jdbc3any"/>
 
@@ -470,11 +471,12 @@
         <include name="util/PGmoney.java" />
         <include name="util/PGInterval.java" />
         <include name="util/ServerErrorMessage.java" />
-	<include name="ssl/WrappedFactory.java" />
-	<include name="ssl/NonValidatingFactory.java" />
-	<include name="ds/PG*.java" />
-	<include name="ds/common/BaseDataSource.java" />
-	<include name="xa/PGXADataSource.java" />
+        <include name="ssl/WrappedFactory.java" />
+        <include name="ssl/NonValidatingFactory.java" />
+        <include name="ssl/SingleCertValidatingFactory.java" />
+        <include name="ds/PG*.java" />
+        <include name="ds/common/BaseDataSource.java" />
+        <include name="xa/PGXADataSource.java" />
       </fileset>
     </javadoc>
   </target>
