@@ -422,7 +422,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             if (logger.logDebug())
                 logger.debug("Switching to UTF8 client_encoding");
 
-            String sql = "begin; set autocommit = on; set client_encoding = 'UTF8'; ";
+            String sql = "begin; set autocommit = on; set client_encoding = 'UTF8'; set lc_monetary = 'C'; ";
             if (dbVersion.compareTo("9.0") >= 0) {
                 sql += "SET extra_float_digits=3; ";
             } else if (dbVersion.compareTo("7.4") >= 0) {

@@ -164,7 +164,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                                     { "client_encoding", "UTF8" },
                                     { "DateStyle", "ISO" },
                                     { "extra_float_digits", "2" },
-                                    { "TimeZone",  createPostgresTimeZone() },                                    
+                                    { "TimeZone",  createPostgresTimeZone() },
+                                    { "lc_monetary",  "C" },
                                 };
 
             sendStartupPacket(newStream, params, logger);
