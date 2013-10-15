@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.SQLException;
+import org.postgresql.core.BaseConnection;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.fastpath.Fastpath;
@@ -67,6 +68,44 @@ public class LargeObject
 
     private boolean closed = false; // true when we are closed
 
+    private BaseConnection conn; // Only initialized when open a LOB with CommitOnClose
+    private boolean commitOnClose; // Only initialized when open a LOB with CommitOnClose
+
+    /**
+     * This opens a large object.
+     *
+     * <p>If the object does not exist, then an SQLException is thrown.
+     *
+     * @param fp FastPath API for the connection to use
+     * @param oid of the Large Object to open
+     * @param mode Mode of opening the large object
+     * @param conn the connection to the database used to access this LOB
+     * @param commitOnClose commit the transaction when this LOB will be closed
+     * (defined in LargeObjectManager)
+     * @exception SQLException if a database-access error occurs.
+     * @see org.postgresql.largeobject.LargeObjectManager
+     */
+    protected LargeObject(Fastpath fp, long oid, int mode, BaseConnection conn, boolean commitOnClose) throws SQLException
+    {
+        this.fp = fp;
+        this.oid = oid;
+        this.mode = mode;
+	if (commitOnClose == true)
+	{
+		this.commitOnClose = true;
+		this.conn = conn;
+	}
+	else
+	{
+		this.commitOnClose = false;
+	}
+
+        FastpathArg args[] = new FastpathArg[2];
+        args[0] = Fastpath.createOIDArg(oid);
+        args[1] = new FastpathArg(mode);
+        this.fd = fp.getInteger("lo_open", args);
+    }
+
     /**
      * This opens a large object.
      *
@@ -81,14 +120,7 @@ public class LargeObject
      */
     protected LargeObject(Fastpath fp, long oid, int mode) throws SQLException
     {
-        this.fp = fp;
-        this.oid = oid;
-        this.mode = mode;
-
-        FastpathArg args[] = new FastpathArg[2];
-        args[0] = Fastpath.createOIDArg(oid);
-        args[1] = new FastpathArg(mode);
-        this.fd = fp.getInteger("lo_open", args);
+	    this(fp,oid,mode,null,false);
     }
 
     public LargeObject copy() throws SQLException
@@ -160,6 +192,10 @@ public class LargeObject
             args[0] = new FastpathArg(fd);
             fp.fastpath("lo_close", false, args); // true here as we dont care!!
             closed = true;
+	    if (this.commitOnClose == true)
+	    {
+		    this.conn.commit();
+	    }
         }
     }
 
