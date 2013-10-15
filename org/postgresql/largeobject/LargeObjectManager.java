@@ -154,7 +154,23 @@ public class LargeObjectManager
      */
     public LargeObject open(int oid) throws SQLException
     {
-        return open((long)oid);
+        return open((long)oid,false);
+    }
+
+    /**
+     * This opens an existing large object, same as previous method,
+     * but commits the transaction on close if asked. This is useful when
+     * the LOB is returned to a caller which won't take care of transactions by
+     * itself.
+     * @param oid of large object
+     * @param commitOnClose commit the transaction when this LOB will be closed
+     * @return LargeObject instance providing access to the object
+     * @exception SQLException on error
+     */
+
+    public LargeObject open(int oid, boolean commitOnClose) throws SQLException
+    {
+        return open((long)oid,commitOnClose);
     }
 
     /**
@@ -167,7 +183,21 @@ public class LargeObjectManager
      */
     public LargeObject open(long oid) throws SQLException
     {
-        return open(oid, READWRITE);
+        return open(oid, READWRITE, false);
+    }
+
+    /**
+     * This opens an existing large object, same as previous method,
+     * but commits the transaction on close if asked
+     * @param oid of large object
+     * @param commitOnClose commit the transaction when this LOB will be closed
+     * @return LargeObject instance providing access to the object
+     * @exception SQLException on error
+     */
+
+    public LargeObject open(long oid, boolean commitOnClose) throws SQLException
+    {
+        return open((long)oid,READWRITE,commitOnClose);
     }
 
     /**
@@ -181,7 +211,22 @@ public class LargeObjectManager
      */
     public LargeObject open(int oid, int mode) throws SQLException
     {
-        return open((long)oid, mode);
+        return open((long)oid,mode,false);
+    }
+
+    /**
+     * This opens an existing large object, same as previous method,
+     * but commits the transaction on close if asked
+     * @param oid of large object
+     * @param mode mode of open
+     * @param commitOnClose commit the transaction when this LOB will be closed
+     * @return LargeObject instance providing access to the object
+     * @exception SQLException on error
+     */
+
+    public LargeObject open(int oid, int mode, boolean commitOnClose) throws SQLException
+    {
+        return open((long)oid,mode,commitOnClose);
     }
 
     /**
@@ -194,10 +239,24 @@ public class LargeObjectManager
      */
     public LargeObject open(long oid, int mode) throws SQLException
     {
+        return open((long)oid,mode,false);
+    }
+
+    /**
+     * This opens an existing large object, based on its OID
+     *
+     * @param oid of large object
+     * @param mode mode of open
+     * @param commitOnClose commit the transaction when this LOB will be closed
+     * @return LargeObject instance providing access to the object
+     * @exception SQLException on error
+     */
+    public LargeObject open(long oid, int mode, boolean commitOnClose) throws SQLException
+    {
         if (conn.getAutoCommit())
             throw new PSQLException(GT.tr("Large Objects may not be used in auto-commit mode."),
                                     PSQLState.NO_ACTIVE_SQL_TRANSACTION);
-        return new LargeObject(fp, oid, mode);
+        return new LargeObject(fp, oid, mode, conn, commitOnClose);
     }
 
     /**
