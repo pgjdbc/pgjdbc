@@ -335,6 +335,17 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
     }
 
     /*
+     * Is a column Text or Binary?
+     *
+     * @param column the first column is 1, the second is 2...
+     * @return column name, or "" if not applicable
+     * @exception SQLException if a database access error occurs
+     */
+    public int getFormat(int column) throws SQLException {
+        return getField(column).getFormat();
+    }
+
+    /*
      * Whats is the column's data source specific type name?
      *
      * @param column the first column is 1, the second is 2, etc.
