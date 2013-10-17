@@ -166,3 +166,8 @@ idea will be picked up and implemented for you. The best way to make sure a
 desired feature or improvement happens is to implement it yourself. The PgJDBC
 sources are reasonably clear and they're pure Java, so it's sometimes easier
 than you might expect.
+
+### Sponsors
+
+[credativ ltd (Canada)](http://www.credativ.ca) and [xTuple](http://www.xtuple.com)
+ 
