@@ -376,10 +376,14 @@ public class Driver implements java.sql.Driver
                     try {
                         wait(delay);
                     } catch (InterruptedException ie) {
-                        abandoned = true;
-                        throw new PSQLException(GT.tr("Interrupted while attempting to connect."),
-                                                PSQLState.CONNECTION_UNABLE_TO_CONNECT);
-                    }                                            
+			
+			// reset the interrupt flag                         
+			Thread.currentThread().interrupt();
+			abandoned = true;
+			
+			// throw an unchecked exception which will hopefully not be ignored by the calling code
+			throw new RuntimeException(GT.tr("Interrupted while attempting to connect."));     
+		   }                                            
                 }
             }
         }
