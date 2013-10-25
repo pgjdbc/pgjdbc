@@ -85,6 +85,7 @@
     <!-- ssl -->
     <include name="${package}/ssl/jdbc4/*.java" if="jdbc4any"/>
     <include name="${package}/ssl/jdbc3/*.java" if="jdbc3any"/>
+    <include name="${package}/ssl/.java" if="jdbc3any"/>
 
     <!-- gss -->
     <include name="${package}/gss/*.java"/>
@@ -249,6 +250,7 @@
        <!-- ssl -->
        <include name="${package}/ssl/jdbc4/*.java" if="jdbc4any"/>
        <include name="${package}/ssl/jdbc3/*.java" if="jdbc3any"/>
+       <include name="${package}/ssl/*.java" if="jdbc3any"/>
 
        <!-- gss -->
        <include name="${package}/gss/*.java" />
