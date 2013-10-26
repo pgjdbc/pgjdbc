@@ -85,7 +85,7 @@
     <!-- ssl -->
     <include name="${package}/ssl/jdbc4/*.java" if="jdbc4any"/>
     <include name="${package}/ssl/jdbc3/*.java" if="jdbc3any"/>
-    <include name="${package}/ssl/.java" if="jdbc3any"/>
+    <include name="${package}/ssl/*.java" if="jdbc3any"/>
 
     <!-- gss -->
     <include name="${package}/gss/*.java"/>
@@ -223,7 +223,7 @@
 
   <target name="check_driver">
     <uptodate targetfile="${package}/Driver.java" property="driver.uptodate">
-      <srcfiles dir=".">
+      <srcfiles dir="${srcdir}">
       <include name="${package}/Driver.java.in"/>
       <include name="${package}/ds/PGSimpleDataSource.java.in"/>
       <include name="${package}/ds/PGPoolingDataSource.java.in"/>
@@ -338,33 +338,33 @@
     <!-- Put a check for the current version here -->
 
     <!-- now copy and filter the file -->
-    <copy file="${package}/Driver.java.in"
+    <copy file="${srcdir}/${package}/Driver.java.in"
           overwrite="true"
-          tofile="${package}/Driver.java"
+          tofile="${srcdir}/${package}/Driver.java"
           filtering="yes" />
-    <copy file="${package}/ds/PGPoolingDataSource.java.in"
+    <copy file="${srcdir}/${package}/ds/PGPoolingDataSource.java.in"
           overwrite="true"
-          tofile="${package}/ds/PGPoolingDataSource.java"
+          tofile="${srcdir}/${package}/ds/PGPoolingDataSource.java"
           filtering="yes" />
-    <copy file="${package}/ds/PGSimpleDataSource.java.in"
+    <copy file="${srcdir}/${package}/ds/PGSimpleDataSource.java.in"
           overwrite="true"
-          tofile="${package}/ds/PGSimpleDataSource.java"
+          tofile="${srcdir}/${package}/ds/PGSimpleDataSource.java"
           filtering="yes" />
-    <copy file="${package}/ds/PGPooledConnection.java.in"
+    <copy file="${srcdir}/${package}/ds/PGPooledConnection.java.in"
           overwrite="true"
-          tofile="${package}/ds/PGPooledConnection.java"
+          tofile="${srcdir}/${package}/ds/PGPooledConnection.java"
           filtering="yes" />
-    <copy file="${package}/ds/PGConnectionPoolDataSource.java.in"
+    <copy file="${srcdir}/${package}/ds/PGConnectionPoolDataSource.java.in"
           overwrite="true"
-          tofile="${package}/ds/PGConnectionPoolDataSource.java"
+          tofile="${srcdir}/${package}/ds/PGConnectionPoolDataSource.java"
           filtering="yes" />
-    <copy file="${package}/xa/PGXADataSource.java.in"
+    <copy file="${srcdir}/${package}/xa/PGXADataSource.java.in"
           overwrite="true"
-          tofile="${package}/xa/PGXADataSource.java"
+          tofile="${srcdir}/${package}/xa/PGXADataSource.java"
           filtering="yes" />
-    <copy file="${package}/ssl/MakeSSL.java.in"
+    <copy file="${srcdir}/${package}/ssl/MakeSSL.java.in"
           overwrite="true"
-          tofile="${package}/ssl/MakeSSL.java"
+          tofile="${srcdir}/${package}/ssl/MakeSSL.java"
           filtering="yes" />
 
   <echo message="Configured build for the ${edition} edition driver." />
@@ -388,13 +388,13 @@
   <target name="clean">
     <delete quiet="true" dir="${builddir}" />
     <delete quiet="true" dir="${jardir}" />
-    <delete quiet="true" file="${package}/Driver.java" />
-    <delete quiet="true" file="${package}/ds/PGPoolingDataSource.java" />
-    <delete quiet="true" file="${package}/ds/PGSimpleDataSource.java" />
-    <delete quiet="true" file="${package}/ds/PGPooledConnection.java" />
-    <delete quiet="true" file="${package}/ds/PGConnectionPoolDataSource.java" />
-    <delete quiet="true" file="${package}/xa/PGXADataSource.java" />
-    <delete quiet="true" file="${package}/ssl/MakeSSL.java" />
+    <delete quiet="true" file="${srcdir}/${package}/Driver.java" />
+    <delete quiet="true" file="${srcdir}/${package}/ds/PGPoolingDataSource.java" />
+    <delete quiet="true" file="${srcdir}/${package}/ds/PGSimpleDataSource.java" />
+    <delete quiet="true" file="${srcdir}/${package}/ds/PGPooledConnection.java" />
+    <delete quiet="true" file="${srcdir}/${package}/ds/PGConnectionPoolDataSource.java" />
+    <delete quiet="true" file="${srcdir}/${package}/xa/PGXADataSource.java" />
+    <delete quiet="true" file="${srcdir}/${package}/ssl/MakeSSL.java" />
   </target>
 
   <!-- This compiles and executes the JUnit tests -->
@@ -405,7 +405,7 @@
   <property name="database" value="test" />
   <property name="username" value="test" />
   <!-- Password must be something.  Doesn't matter if trust is used! -->
-  <property name="password" value="password" />
+  <property name="password" value="test" />
   <property name="preparethreshold" value="5" />
   <property name="loglevel" value="0" />
   <property name="protocolVersion" value="0" />
@@ -476,12 +476,12 @@
   <!-- Build public javadoc -->
   <target name="publicapi" depends="compile">
     <mkdir dir="${builddir}/publicapi" />
-    <javadoc destdir="${builddir}/publicapi">
+    <javadoc destdir="${builddir}/publicapi" charset="utf-8">
       <classpath>
         <pathelement path="${builddir}" />
         <pathelement path="${java.class.path}" />
       </classpath>
-      <fileset dir="${package}">
+      <fileset dir="${srcdir}/${package}">
         <include name="copy/*.java" />
         <include name="geometric/*.java" />
         <include name="largeobject/*.java" />
@@ -502,12 +502,12 @@
 
   <!-- Build driver-internal javadoc. NB: needs Ant 1.6 & JDK 1.4 for 'breakiterator'. -->
   <target name="privateapi" depends="compile">
-    <javadoc destdir="${builddir}/privateapi" breakiterator="yes">
+    <javadoc destdir="${builddir}/privateapi" breakiterator="yes" charset="utf-8">
       <classpath>
         <pathelement path="${builddir}" />
         <pathelement path="${java.class.path}" />
       </classpath>
-      <fileset dir="${package}">
+      <fileset dir="${srcdir}/${package}">
         <include name="**/*.java"/>
 	<exclude name="jdbc3/Jdbc3*.java" unless="jdbc3" />
 	<exclude name="jdbc3g/Jdbc3g*.java" unless="jdbc3g" />
