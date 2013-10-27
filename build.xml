@@ -85,7 +85,7 @@
     <!-- ssl -->
     <include name="${package}/ssl/jdbc4/*.java" if="jdbc4any"/>
     <include name="${package}/ssl/jdbc3/*.java" if="jdbc3any"/>
-    <include name="${package}/ssl/.java" if="jdbc3any"/>
+    <include name="${package}/ssl/*.java" if="jdbc3any"/>
 
     <!-- gss -->
     <include name="${package}/gss/*.java"/>
@@ -169,6 +169,22 @@
         <isset property="junit" />
       </and>
     </condition>
+
+    <condition property="jdbc.version" value="jdbc3">
+      <isset property="jdbc3any" />
+    </condition>
+
+    <condition property="jdbc.version" value="jdbc4">
+      <isset property="jdbc4any" />
+    </condition>
+
+    <condition property="jdbc.version.upper" value="JDBC3">
+      <isset property="jdbc3any" />
+    </condition>
+
+    <condition property="jdbc.version.upper" value="JDBC4">
+      <isset property="jdbc4any" />
+    </condition>
   </target>
 
 
@@ -250,7 +266,6 @@
        <!-- ssl -->
        <include name="${package}/ssl/jdbc4/*.java" if="jdbc4any"/>
        <include name="${package}/ssl/jdbc3/*.java" if="jdbc3any"/>
-       <include name="${package}/ssl/*.java" if="jdbc3any"/>
 
        <!-- gss -->
        <include name="${package}/gss/*.java" />
@@ -275,7 +290,7 @@
 
   <target name="check_driver">
     <uptodate targetfile="${package}/Driver.java" property="driver.uptodate">
-      <srcfiles dir=".">
+      <srcfiles dir="${srcdir}">
       <include name="${package}/Driver.java.in"/>
       <include name="${package}/ds/PGSimpleDataSource.java.in"/>
       <include name="${package}/ds/PGPoolingDataSource.java.in"/>
@@ -390,33 +405,33 @@
     <!-- Put a check for the current version here -->
 
     <!-- now copy and filter the file -->
-    <copy file="${package}/Driver.java.in"
+    <copy file="${srcdir}/${package}/Driver.java.in"
           overwrite="true"
-          tofile="${package}/Driver.java"
+          tofile="${srcdir}/${package}/Driver.java"
           filtering="yes" />
-    <copy file="${package}/ds/PGPoolingDataSource.java.in"
+    <copy file="${srcdir}/${package}/ds/PGPoolingDataSource.java.in"
           overwrite="true"
-          tofile="${package}/ds/PGPoolingDataSource.java"
+          tofile="${srcdir}/${package}/ds/PGPoolingDataSource.java"
           filtering="yes" />
-    <copy file="${package}/ds/PGSimpleDataSource.java.in"
+    <copy file="${srcdir}/${package}/ds/PGSimpleDataSource.java.in"
           overwrite="true"
-          tofile="${package}/ds/PGSimpleDataSource.java"
+          tofile="${srcdir}/${package}/ds/PGSimpleDataSource.java"
           filtering="yes" />
-    <copy file="${package}/ds/PGPooledConnection.java.in"
+    <copy file="${srcdir}/${package}/ds/PGPooledConnection.java.in"
           overwrite="true"
-          tofile="${package}/ds/PGPooledConnection.java"
+          tofile="${srcdir}/${package}/ds/PGPooledConnection.java"
           filtering="yes" />
-    <copy file="${package}/ds/PGConnectionPoolDataSource.java.in"
+    <copy file="${srcdir}/${package}/ds/PGConnectionPoolDataSource.java.in"
           overwrite="true"
-          tofile="${package}/ds/PGConnectionPoolDataSource.java"
+          tofile="${srcdir}/${package}/ds/PGConnectionPoolDataSource.java"
           filtering="yes" />
-    <copy file="${package}/xa/PGXADataSource.java.in"
+    <copy file="${srcdir}/${package}/xa/PGXADataSource.java.in"
           overwrite="true"
-          tofile="${package}/xa/PGXADataSource.java"
+          tofile="${srcdir}/${package}/xa/PGXADataSource.java"
           filtering="yes" />
-    <copy file="${package}/ssl/MakeSSL.java.in"
+    <copy file="${srcdir}/${package}/ssl/MakeSSL.java.in"
           overwrite="true"
-          tofile="${package}/ssl/MakeSSL.java"
+          tofile="${srcdir}/${package}/ssl/MakeSSL.java"
           filtering="yes" />
 
   <echo message="Configured build for the ${edition} edition driver." />
@@ -440,13 +455,13 @@
   <target name="clean">
     <delete quiet="true" dir="${builddir}" />
     <delete quiet="true" dir="${jardir}" />
-    <delete quiet="true" file="${package}/Driver.java" />
-    <delete quiet="true" file="${package}/ds/PGPoolingDataSource.java" />
-    <delete quiet="true" file="${package}/ds/PGSimpleDataSource.java" />
-    <delete quiet="true" file="${package}/ds/PGPooledConnection.java" />
-    <delete quiet="true" file="${package}/ds/PGConnectionPoolDataSource.java" />
-    <delete quiet="true" file="${package}/xa/PGXADataSource.java" />
-    <delete quiet="true" file="${package}/ssl/MakeSSL.java" />
+    <delete quiet="true" file="${srcdir}/${package}/Driver.java" />
+    <delete quiet="true" file="${srcdir}/${package}/ds/PGPoolingDataSource.java" />
+    <delete quiet="true" file="${srcdir}/${package}/ds/PGSimpleDataSource.java" />
+    <delete quiet="true" file="${srcdir}/${package}/ds/PGPooledConnection.java" />
+    <delete quiet="true" file="${srcdir}/${package}/ds/PGConnectionPoolDataSource.java" />
+    <delete quiet="true" file="${srcdir}/${package}/xa/PGXADataSource.java" />
+    <delete quiet="true" file="${srcdir}/${package}/ssl/MakeSSL.java" />
   </target>
 
   <!-- This compiles and executes the JUnit tests -->
@@ -457,12 +472,10 @@
   <property name="database" value="test" />
   <property name="username" value="test" />
   <!-- Password must be something.  Doesn't matter if trust is used! -->
-  <property name="password" value="password" />
+  <property name="password" value="test" />
   <property name="preparethreshold" value="5" />
   <property name="loglevel" value="0" />
   <property name="protocolVersion" value="0" />
-  <property name="binarytransfer" value="true" />
-  <property name="forcebinary" value="true" />
   <property name="ssltest.properties" value="ssltest.properties" />
 
   <!-- The tests now build to a separate directory and jarfile from the
@@ -507,8 +520,6 @@
       <sysproperty key="preparethreshold" value="${preparethreshold}" />
       <sysproperty key="loglevel" value="${loglevel}" />
       <sysproperty key="protocolVersion" value="${protocolVersion}" />
-      <sysproperty key="binaryTransfer" value="${binarytransfer}" />
-      <sysproperty key="org.postgresql.forcebinary" value="${forcebinary}" />
       <sysproperty key="ssltest.properties" value="${ssltest.properties}" />
 
       <classpath>
@@ -532,12 +543,12 @@
   <!-- Build public javadoc -->
   <target name="publicapi" depends="compile">
     <mkdir dir="${builddir}/publicapi" />
-    <javadoc destdir="${builddir}/publicapi">
+    <javadoc destdir="${builddir}/publicapi" charset="utf-8">
       <classpath>
         <pathelement path="${builddir}" />
         <pathelement path="${java.class.path}" />
       </classpath>
-      <fileset dir="${package}">
+      <fileset dir="${srcdir}/${package}">
         <include name="copy/*.java" />
         <include name="geometric/*.java" />
         <include name="largeobject/*.java" />
@@ -558,12 +569,12 @@
 
   <!-- Build driver-internal javadoc. NB: needs Ant 1.6 & JDK 1.4 for 'breakiterator'. -->
   <target name="privateapi" depends="compile">
-    <javadoc destdir="${builddir}/privateapi" breakiterator="yes">
+    <javadoc destdir="${builddir}/privateapi" breakiterator="yes" charset="utf-8">
       <classpath>
         <pathelement path="${builddir}" />
         <pathelement path="${java.class.path}" />
       </classpath>
-      <fileset dir="${package}">
+      <fileset dir="${srcdir}/${package}">
         <include name="**/*.java"/>
 	<exclude name="jdbc3/Jdbc3*.java" unless="jdbc3" />
 	<exclude name="jdbc3g/Jdbc3g*.java" unless="jdbc3g" />
@@ -624,35 +635,37 @@
     </xmlvalidate>
   </target>
 
-  <target name="deploy" depends="maven-jar" description="deploy snapshot version to Maven snapshot repository">
+  <target name="snapshot-version" description="Sets the version string to a snapshot version">
+    <property name="maven.artifact.version.string" value="${maven.artifact.version}-${jdbc.version}-SNAPSHOT" />
+  </target>
+
+  <target name="release-version" description="Sets the version string to a release version">
+    <property name="maven.artifact.version.string" value="${maven.artifact.version}-${jdbc.version}" />
+  </target>
+
+  <target name="prepare-pom" depends="prepare,check_versions" description="Filters the pom depending on the jdbc version being built">
     <mkdir dir="${builddir}/pom"/>
     <!-- Copy the templated pom.xml with version info -->
     <filter token="maven.group.id" value="${maven.group.id}"/>
     <filter token="maven.artifact.id" value="${maven.artifact.id}"/>
-    <filter token="maven.artifact.version" value="${maven.artifact.version}"/>
+    <filter token="maven.artifact.version.string" value="${maven.artifact.version.string}"/>
     <filter token="maven.artifact.description" value="${maven.artifact.description}"/>
+    <filter token="jdbc.version.upper" value="${jdbc.version.upper}"/>
     <copy todir="${builddir}/pom" filtering="true" file="src/pom/pom.xml"/>
+  </target>
 
+  <target name="snapshot" depends="maven-jar,snapshot-version,prepare-pom" description="deploy snapshot version to Maven snapshot repository">
     <artifact:mvn>
       <artifact:arg value="org.apache.maven.plugins:maven-deploy-plugin:2.6:deploy-file"/>
       <artifact:arg value="-Durl=${maven.snapshots.repository.url}"/>
       <artifact:arg value="-DrepositoryId=${maven.snapshots.repository.id}"/>
       <artifact:arg value="-DpomFile=${builddir}/pom/pom.xml"/>
       <artifact:arg value="-Dfile=${maven.jar}"/>
-      <artifact:arg value="-Pgpg"/>
-      
     </artifact:mvn>
   </target>
 
   <!-- before this, update project version (both build.xml and pom.xml) from SNAPSHOT to RELEASE -->
-  <target name="stage" depends="maven-jar" description="deploy release version to Maven staging repository">
-    <mkdir dir="${builddir}/pom"/>
-    <!-- Copy the templated pom.xml with version info -->
-    <filter token="maven.group.id" value="${maven.group.id}"/>
-    <filter token="maven.artifact.id" value="${maven.artifact.id}"/>
-    <filter token="maven.artifact.version" value="${maven.artifact.version}"/>
-    <filter token="maven.artifact.description" value="${maven.artifact.description}"/>
-    <copy todir="${builddir}/pom" filtering="true" file="src/pom/pom.xml"/>
+  <target name="release" depends="maven-jar,release-version,prepare-pom" description="deploy release version to Maven staging repository">
     <!-- sign and deploy the main artifact -->
     <artifact:mvn>
       <artifact:arg value="org.apache.maven.plugins:maven-gpg-plugin:1.4:sign-and-deploy-file" />
@@ -660,10 +673,28 @@
       <artifact:arg value="-DrepositoryId=${maven.staging.repository.id}" />
       <artifact:arg value="-DpomFile=${builddir}/pom/pom.xml" />
       <artifact:arg value="-Dfile=${maven.jar}" />
-      <artifact:arg value="-DfinalName=${maven.jar}" />
-      <artifact:arg value="-Dtypes=jar,jar" />
-      <artifact:arg value="-Dclassifiers=sources,javadoc" />
-      <artifact:arg value="-Dfiles=${maven.sources.jar},${maven.javadoc.jar}" />
+      <artifact:arg value="-Pgpg" />
+    </artifact:mvn>
+
+    <!-- sign and deploy the sources artifact -->
+    <artifact:mvn>
+      <artifact:arg value="org.apache.maven.plugins:maven-gpg-plugin:1.4:sign-and-deploy-file" />
+      <artifact:arg value="-Durl=${maven.staging.repository.url}" />
+      <artifact:arg value="-DrepositoryId=${maven.staging.repository.id}" />
+      <artifact:arg value="-DpomFile=${builddir}/pom/pom.xml" />
+      <artifact:arg value="-Dfile=${maven.sources.jar}" />
+      <artifact:arg value="-Dclassifier=sources" />
+      <artifact:arg value="-Pgpg" />
+    </artifact:mvn>
+
+    <!-- sign and deploy the javadoc artifact -->
+    <artifact:mvn>
+      <artifact:arg value="org.apache.maven.plugins:maven-gpg-plugin:1.4:sign-and-deploy-file" />
+      <artifact:arg value="-Durl=${maven.staging.repository.url}" />
+      <artifact:arg value="-DrepositoryId=${maven.staging.repository.id}" />
+      <artifact:arg value="-DpomFile=${builddir}/pom/pom.xml" />
+      <artifact:arg value="-Dfile=${maven.javadoc.jar}" />
+      <artifact:arg value="-Dclassifier=javadoc" />
       <artifact:arg value="-Pgpg" />
     </artifact:mvn>
   </target>

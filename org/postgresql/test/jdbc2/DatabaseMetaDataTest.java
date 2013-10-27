@@ -332,6 +332,7 @@ public class DatabaseMetaDataTest extends TestCase
           
         
     }
+
     public void testForeignKeys() throws Exception
     {
         Connection con1 = TestUtil.openDB();

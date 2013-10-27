@@ -40,6 +40,7 @@ public class Jdbc2TestSuite extends TestSuite
         suite.addTestSuite(ConnectionTest.class);
         suite.addTestSuite(DatabaseMetaDataTest.class);
         suite.addTestSuite(DatabaseMetaDataPropertiesTest.class);
+        suite.addTestSuite(SearchPathLookupTest.class);
         suite.addTestSuite(EncodingTest.class);
 
         // Connectivity/Protocols
@@ -93,6 +94,9 @@ public class Jdbc2TestSuite extends TestSuite
         Connection conn = TestUtil.openDB();
         if (TestUtil.isProtocolVersion(conn, 3)) {
             suite.addTestSuite(CopyTest.class);
+        }
+        if (TestUtil.haveMinimumServerVersion(conn, "9.3")) {
+            suite.addTestSuite(ServerErrorTest.class);
         }
         conn.close();
 

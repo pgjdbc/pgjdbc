@@ -288,7 +288,7 @@ msgstr ""
 #: org/postgresql/core/v3/QueryExecutorImpl.java:631
 #: org/postgresql/core/v3/QueryExecutorImpl.java:2094
 #, fuzzy
-msgid "An I/O error occured while sending to the backend."
+msgid "An I/O error occurred while sending to the backend."
 msgstr "Een I/O fout trad op tijdens het zenden naar de achterkant - {0}"
 
 #: org/postgresql/core/v2/QueryExecutorImpl.java:170

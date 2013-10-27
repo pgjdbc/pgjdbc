@@ -1847,7 +1847,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
             }
 
             // decide if we are returning a single column result.
-            if (returnTypeType.equals("b") || returnTypeType.equals("d") || (returnTypeType.equals("p") && argModesArray == null))
+            if (returnTypeType.equals("b") || returnTypeType.equals("d") || returnTypeType.equals("e") || (returnTypeType.equals("p") && argModesArray == null))
             {
                 byte[][] tuple = new byte[columns][];
                 tuple[0] = null;
@@ -2027,6 +2027,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                      " WHEN 'v' THEN 'VIEW' " +
                      " WHEN 'c' THEN 'TYPE' " +
                      " WHEN 'f' THEN 'FOREIGN TABLE' " +
+                     " WHEN 'm' THEN 'MATERIALIZED VIEW' " +
                      " ELSE NULL " +
                      " END " +
                      " ELSE NULL " +
@@ -2191,6 +2192,9 @@ public abstract class AbstractJdbc2DatabaseMetaData
         tableTypeClauses.put("FOREIGN TABLE", ht);
         ht.put("SCHEMAS", "c.relkind = 'f'");
         ht.put("NOSCHEMAS", "c.relkind = 'f'");
+        tableTypeClauses.put("MATERIALIZED VIEW", ht);
+        ht.put("SCHEMAS", "c.relkind = 'm'");
+        ht.put("NOSCHEMAS", "c.relkind = 'm'");
     }
 
     /*
@@ -2460,6 +2464,8 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 sqlType = Types.STRUCT;
             } else if ("d".equals(typtype)) {
                 sqlType = Types.DISTINCT;
+            } else if ("e".equals(typtype)) {
+                sqlType = Types.VARCHAR;
             } else {
                 sqlType = connection.getTypeInfo().getSQLType(typeOid);
             }
@@ -3443,7 +3449,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
             }
             else
             {
-                sql += " ORDER BY pkn.nspname,pkc.relname,con.conname,pos.n";
+                sql += " ORDER BY pkn.nspname,pkc.relname, con.conname,pos.n";
             }
 
             return createMetaDataStatement().executeQuery(sql);

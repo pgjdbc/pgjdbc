@@ -50,7 +50,8 @@ public class Driver implements java.sql.Driver
 
     public static final int DEBUG = 2;
     public static final int INFO = 1;
-
+    public static final int OFF = 0;
+    
     private static final Logger logger = new Logger();
     private static boolean logLevelSet = false;
 	private static Timer cancelTimer=null;
@@ -182,14 +183,15 @@ public class Driver implements java.sql.Driver
      * user - (required) The user to connect as
      * password - (optional) The password for the user
      * ssl - (optional) Use SSL when connecting to the server
+     * readOnly - (optional) Set connection to read-only by default
      * charSet - (optional) The character set to be used for converting
      *  to/from the database to unicode.  If multibyte is enabled on the
      *  server then the character set of the database is used as the default,
      *  otherwise the jvm character encoding is used as the default.
      *   This value is only used when connecting to a 7.2 or older server.
      * loglevel - (optional) Enable logging of messages from the driver.
-     *  The value is an integer from 1 to 2 where:
-     *    INFO = 1, DEBUG = 2
+     *  The value is an integer from 0 to 2 where:
+     *    OFF = 0, INFO = 1, DEBUG = 2
      *  The output is sent to DriverManager.getPrintWriter() if set,
      *  otherwise it is sent to System.out.
      * compatible - (optional) This is used to toggle
@@ -226,6 +228,10 @@ public class Driver implements java.sql.Driver
     {
         // get defaults
         Properties defaults;
+
+        if (!url.startsWith("jdbc:postgresql:")) {
+            return null;
+        }
         try
         {
             defaults = getDefaultProperties();
@@ -238,12 +244,19 @@ public class Driver implements java.sql.Driver
 
         // override defaults with provided properties
         Properties props = new Properties(defaults);
-        for (Enumeration e = info.propertyNames(); e.hasMoreElements(); )
+        if (info != null)
         {
-            String propName = (String)e.nextElement();
-            props.setProperty(propName, info.getProperty(propName));
+            for (Enumeration e = info.propertyNames(); e.hasMoreElements(); )
+            {
+                String propName = (String)e.nextElement();
+                String propValue = info.getProperty(propName);
+                if ( propValue == null ) {
+                    throw new PSQLException(GT.tr("Properties for the driver contains a non-string value for the key ")+propName,
+                                            PSQLState.UNEXPECTED_ERROR);
+                }
+                props.setProperty( propName,propValue );
+            }
         }
-
         // parse URL and add more properties
         if ((props = parseURL(url, props)) == null)
         {
@@ -438,7 +451,7 @@ public class Driver implements java.sql.Driver
                 { "sslfactoryarg", Boolean.FALSE,
                   "Argument forwarded to constructor of SSLSocketFactory class." },
                 { "loglevel", Boolean.FALSE,
-                  "Control the driver's log verbosity: 0 is off, 1 is INFO, 2 is DEBUG.",
+                  "Control the driver's log verbosity: 0 is OFF, 1 is INFO, 2 is DEBUG.",
                   new String[] { "0", "1", "2" } },
                 { "allowEncodingChanges", Boolean.FALSE,
                   "Allow the user to change the client_encoding variable." },
@@ -493,7 +506,7 @@ public class Driver implements java.sql.Driver
     public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) throws SQLException
     {
         Properties copy = new Properties(info);
-        parseURL(url, copy);
+        copy = parseURL(url, copy);
 
         DriverPropertyInfo[] props = new DriverPropertyInfo[knownProperties.length];
         for (int i = 0; i < knownProperties.length; ++i)
@@ -566,7 +579,7 @@ public class Driver implements java.sql.Driver
      * @return Properties with elements added from the url
      * @exception SQLException
      */
-    Properties parseURL(String url, Properties defaults) throws SQLException
+    public static Properties parseURL(String url, Properties defaults) throws SQLException
     {
         Properties urlProps = new Properties(defaults);
 
@@ -719,6 +732,7 @@ public class Driver implements java.sql.Driver
     * used to turn logging on to a certain level, can be called
     * by specifying fully qualified class ie org.postgresql.Driver.setLogLevel()
     * @param logLevel sets the level which logging will respond to
+    * OFF turn off logging
     * INFO being almost no messages
     * DEBUG most verbose
     */

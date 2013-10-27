@@ -37,6 +37,7 @@ public class HStoreTest extends TestCase {
     public void testHStoreSelect() throws SQLException {
         PreparedStatement pstmt = _conn.prepareStatement("SELECT 'a=>1,b=>2'::hstore");
         ResultSet rs = pstmt.executeQuery();
+        assertEquals(Map.class.getName(), rs.getMetaData().getColumnClassName(1));
         assertTrue(rs.next());
         String str = rs.getString(1);
         if (!("\"a\"=>\"1\", \"b\"=>\"2\"".equals(str) || "\"b\"=>\"2\", \"a\"=>\"1\"".equals(str))) {
@@ -51,6 +52,7 @@ public class HStoreTest extends TestCase {
     public void testHStoreSelectNullValue() throws SQLException {
         PreparedStatement pstmt = _conn.prepareStatement("SELECT 'a=>NULL'::hstore");
         ResultSet rs = pstmt.executeQuery();
+        assertEquals(Map.class.getName(), rs.getMetaData().getColumnClassName(1));
         assertTrue(rs.next());
         assertEquals("\"a\"=>NULL", rs.getString(1));
         Map correct = Collections.singletonMap("a", null);
@@ -62,6 +64,7 @@ public class HStoreTest extends TestCase {
         PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::text");
         pstmt.setObject(1, correct);
         ResultSet rs = pstmt.executeQuery();
+        assertEquals(String.class.getName(), rs.getMetaData().getColumnClassName(1));
         assertTrue(rs.next());
         assertEquals("\"a\"=>\"1\"", rs.getString(1));
     }
@@ -71,6 +74,7 @@ public class HStoreTest extends TestCase {
         PreparedStatement pstmt = _conn.prepareStatement("SELECT ?");
         pstmt.setObject(1, correct);
         ResultSet rs = pstmt.executeQuery();
+        assertEquals(Map.class.getName(), rs.getMetaData().getColumnClassName(1));
         assertTrue(rs.next());
         assertEquals(correct, rs.getObject(1));
         assertEquals("\"a\"=>\"t'e\ns\\\"t\"", rs.getString(1));

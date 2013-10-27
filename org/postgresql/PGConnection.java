@@ -110,5 +110,11 @@ public interface PGConnection
      */
     public int getPrepareThreshold();
 
+    /**
+     * Return the process ID (PID) of the backend server process handling this connection.
+     * 
+     * @return PID of backned server process. 
+     */
+    public int getBackendPID();
 }
 

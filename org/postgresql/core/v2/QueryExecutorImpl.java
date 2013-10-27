@@ -115,7 +115,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             }
             catch (IOException ioe)
             {
-                throw new PSQLException(GT.tr("An I/O error occured while sending to the backend."), PSQLState.CONNECTION_FAILURE, ioe);
+                throw new PSQLException(GT.tr("An I/O error occurred while sending to the backend."), PSQLState.CONNECTION_FAILURE, ioe);
             }
         }
 
@@ -126,7 +126,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         }
         catch (IOException ioe)
         {
-            throw new PSQLException(GT.tr("An I/O error occured while sending to the backend."), PSQLState.CONNECTION_FAILURE, ioe);
+            throw new PSQLException(GT.tr("An I/O error occurred while sending to the backend."), PSQLState.CONNECTION_FAILURE, ioe);
         }
     }
 
@@ -171,7 +171,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                 }
             }
         } catch (IOException ioe) {
-            throw new PSQLException(GT.tr("An I/O error occured while sending to the backend."), PSQLState.CONNECTION_FAILURE, ioe);
+            throw new PSQLException(GT.tr("An I/O error occurred while sending to the backend."), PSQLState.CONNECTION_FAILURE, ioe);
         }
     }
 
@@ -366,7 +366,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         catch (IOException e)
         {
             protoConnection.close();
-            handler.handleError(new PSQLException(GT.tr("An I/O error occured while sending to the backend."), PSQLState.CONNECTION_FAILURE, e));
+            handler.handleError(new PSQLException(GT.tr("An I/O error occurred while sending to the backend."), PSQLState.CONNECTION_FAILURE, e));
         }
 
         handler.handleCompletion();
@@ -587,7 +587,14 @@ public class QueryExecutorImpl implements QueryExecutor {
         {
             try
             {
-                update_count = Integer.parseInt(status.substring(1 + status.lastIndexOf(' ')));
+                long updates = Long.parseLong(status.substring(1 + status.lastIndexOf(' ')));
+
+                // deal with situations where the update modifies more than 2^32 rows
+                if ( updates > Integer.MAX_VALUE )
+                    update_count = Statement.SUCCESS_NO_INFO;
+                else
+                    update_count = (int)updates;
+                
                 if (status.startsWith("INSERT"))
                     insert_oid = Long.parseLong(status.substring(1 + status.indexOf(' '),
                                                 status.lastIndexOf(' ')));
