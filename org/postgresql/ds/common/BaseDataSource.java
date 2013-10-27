@@ -16,6 +16,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.util.Properties;
 
 /**
  * Base class for data sources and related classes.
@@ -43,15 +44,15 @@ public abstract class BaseDataSource implements Referenceable
 
     // Standard properties, defined in the JDBC 2.0 Optional Package spec
     private String serverName = "localhost";
-    private String databaseName;
+    private String databaseName = "";
     private String user;
     private String password;
     private int portNumber = 0;
     private int prepareThreshold = 5;
     private int unknownLength = Integer.MAX_VALUE;
     private boolean binaryTransfer = true;
-    private String binaryTransferEnable=null;
-    private String binaryTransferDisable=null;
+    private String binaryTransferEnable;
+    private String binaryTransferDisable;
     private int loginTimeout = 0; // in seconds
     private int socketTimeout = 0; // in seconds
     private int receiveBufferSize = -1; // off (-1), not in use
@@ -62,9 +63,9 @@ public abstract class BaseDataSource implements Referenceable
     private String compatible=null;
     private int logLevel = 0;
     private int protocolVersion = 0;
-    private String stringType=null;
     private String applicationName;
-	private boolean logLevelSet=false;
+    private String stringType=null;
+    private boolean logLevelSet = false;      
 
     /**
      * Gets a connection to the PostgreSQL database.  The database is identified by the
@@ -186,7 +187,7 @@ public abstract class BaseDataSource implements Referenceable
     public void setLogLevel(int logLevel)
     {
         this.logLevel = logLevel;
-		logLevelSet=true;
+        logLevelSet = true;
     }
 
     public int getProtocolVersion()
@@ -298,21 +299,29 @@ public abstract class BaseDataSource implements Referenceable
     }
 
     /**
+     * Gets the write buffer size of TCP/IP socket.
+     */
+    public int getReceiveBufferSize()
+    {
+        return receiveBufferSize;
+    }
+    
+    /**
      * Sets the write buffer size of TCP/IP socket.
      */
     public void setReceiveBufferSize(int nbytes)
     {
         this.receiveBufferSize = nbytes;
     }
-	/**
-	 * Gets the write buffer size of TCP/IP socket.
-    */
-    public int getReceiveBufferSize()
+
+    /**
+     * Gets the send buffer size of TCP/IP socket.
+     */
+    public int getSendBufferSize()
     {
-        return receiveBufferSize;
+        return sendBufferSize;
     }
     
-	
     /**
      * Sets the send buffer size of TCP/IP socket.
      */
@@ -320,13 +329,7 @@ public abstract class BaseDataSource implements Referenceable
     {
         this.sendBufferSize = nbytes;
     }
-	/**
-	 * Gets the send buffer size of TCP/IP socket.
-	*/
-	public int getSendBufferSize()
-    {
-        return sendBufferSize;
-    }
+
     /**
      * Gets the default threshold for enabling server-side prepare.
      *
@@ -500,7 +503,7 @@ public abstract class BaseDataSource implements Referenceable
     /**
      * Generates a DriverManager URL from the other properties supplied.
      */
-    private String getUrl()
+    public String getUrl()
     {
         StringBuffer sb = new StringBuffer(100);
         sb.append("jdbc:postgresql://");
@@ -513,9 +516,9 @@ public abstract class BaseDataSource implements Referenceable
         sb.append("&socketTimeout=").append(socketTimeout);
         sb.append("&prepareThreshold=").append(prepareThreshold);
         sb.append("&unknownLength=").append(unknownLength);
-		if (logLevelSet) {
-			sb.append("&loglevel=").append(logLevel);
-		}
+        if (logLevelSet) {
+            sb.append("&loglevel=").append(logLevel);
+        }
         if (protocolVersion != 0) {
             sb.append("&protocolVersion=").append(protocolVersion);
         }
@@ -539,15 +542,47 @@ public abstract class BaseDataSource implements Referenceable
             sb.append("&ApplicationName=");
             sb.append(applicationName);
         }
-    	sb.append("&binaryTransfer=true");
-		if (binaryTransferEnable != null) {
-			sb.append("&binaryTransferEnable=").append(binaryTransferEnable);
-		}
-        if ( stringType != null ){
-            sb.append("&stringtype=");
+        sb.append("&binaryTransfer=").append(binaryTransfer);
+
+        if ( stringType != null ) {
+            sb.append("&stringtype");
             sb.append(stringType);
         }
+
+        if (binaryTransferEnable != null) {
+            sb.append("&binaryTransferEnable=").append(binaryTransferEnable);
+        }
+        if (binaryTransferDisable != null) {
+            sb.append("&binaryTransferDisable=").append(binaryTransferDisable);
+        }
+        
         return sb.toString();
+    }
+
+    /**
+     +     * Sets properties from a DriverManager URL.
+     +     */
+    public void setUrl(String url) throws SQLException {
+
+        Properties p = org.postgresql.Driver.parseURL(url, null);
+     	serverName = p.getProperty("PGHOST", "localhost");
+     	portNumber = Integer.parseInt(p.getProperty("PGPORT", "0"));
+     	databaseName = p.getProperty("PGDBNAME");
+     	loginTimeout = Integer.parseInt(p.getProperty("loginTimeout", "0"));
+     	socketTimeout = Integer.parseInt(p.getProperty("socketTimeout", "0"));
+     	prepareThreshold = Integer.parseInt(p.getProperty("prepareThreshold", "5"));
+     	unknownLength = Integer.parseInt(p.getProperty("unknownLength", "0"));
+     	logLevel = Integer.parseInt(p.getProperty("loglevel", "0"));
+     	protocolVersion = Integer.parseInt(p.getProperty("protocolVersion", "0"));
+     	ssl = Boolean.parseBoolean(p.getProperty("ssl"));
+     	sslfactory = p.getProperty("sslfactory");
+     	receiveBufferSize = Integer.parseInt(p.getProperty("receiveBufferSize", "-1"));
+     	sendBufferSize = Integer.parseInt(p.getProperty("sendBufferSize", "-1"));
+     	tcpKeepAlive = Boolean.parseBoolean(p.getProperty("tcpKeepAlive"));
+     	compatible = p.getProperty("compatible");
+     	applicationName = p.getProperty("ApplicationName");
+        stringType = p.getProperty("stringtype");
+     	binaryTransfer = Boolean.parseBoolean(p.getProperty("binaryTransfer"));
     }
 
     /**
@@ -581,22 +616,22 @@ public abstract class BaseDataSource implements Referenceable
         ref.add(new StringRefAddr("prepareThreshold", Integer.toString(prepareThreshold)));
         ref.add(new StringRefAddr("unknownLength", Integer.toString(unknownLength)));
         ref.add(new StringRefAddr("binaryTransfer", Boolean.toString(binaryTransfer)));
-	  	if (binaryTransferEnable != null)
-	    {
-			ref.add(new StringRefAddr("binaryTransferEnable", binaryTransferEnable));
-	    }
-	    if (binaryTransferDisable != null)
-	    {
-	    	ref.add(new StringRefAddr("binaryTransferDisable", binaryTransferDisable));
-	    }
+        if (binaryTransferEnable != null)
+        {
+            ref.add(new StringRefAddr("binaryTransferEnable", binaryTransferEnable));
+        }
+        if (binaryTransferDisable != null)
+        {
+            ref.add(new StringRefAddr("binaryTransferDisable", binaryTransferDisable));
+        }
         ref.add(new StringRefAddr("loginTimeout", Integer.toString(loginTimeout)));
         ref.add(new StringRefAddr("socketTimeout", Integer.toString(socketTimeout)));
 
         ref.add(new StringRefAddr("ssl", Boolean.toString(ssl)));
-	 	if(sslfactory !=null)
-	    {
-	    	ref.add(new StringRefAddr("sslfactory", sslfactory));
-	    }
+        if(sslfactory !=null)
+        {
+            ref.add(new StringRefAddr("sslfactory", sslfactory));
+        }
 
         ref.add(new StringRefAddr("receiveBufferSize", Integer.toString(receiveBufferSize)));
         ref.add(new StringRefAddr("sendBufferSize", Integer.toString(sendBufferSize)));
@@ -605,16 +640,19 @@ public abstract class BaseDataSource implements Referenceable
         {
             ref.add(new StringRefAddr("compatible", compatible));
         }
-        if ( stringType != null)
+        if ( stringType != null )
         {
-            ref.add(new StringRefAddr("stringtype",stringType));
+            ref.add(new StringRefAddr("stringtype", stringType));
         }
-	 	if(logLevelSet)
-	    {
-        	ref.add(new StringRefAddr("logLevel", Integer.toString(logLevel)));
-		}
+        if(logLevelSet)
+        {
+            ref.add(new StringRefAddr("logLevel", Integer.toString(logLevel)));
+        }
         ref.add(new StringRefAddr("protocolVersion", Integer.toString(protocolVersion)));
-        ref.add(new StringRefAddr("ApplicationName", applicationName));
+        if(applicationName != null)
+        {
+            ref.add(new StringRefAddr("ApplicationName", applicationName));
+        }
 
         return ref;
     }
@@ -643,6 +681,7 @@ public abstract class BaseDataSource implements Referenceable
         out.writeBoolean(binaryTransfer);
         out.writeObject(binaryTransferEnable);
         out.writeObject(binaryTransferDisable);
+        out.writeBoolean(logLevelSet);
     }
 
     protected void readBaseObject(ObjectInputStream in) throws IOException, ClassNotFoundException
@@ -662,13 +701,14 @@ public abstract class BaseDataSource implements Referenceable
         sendBufferSize = in.readInt();
         tcpKeepAlive = in.readBoolean();
         compatible = (String)in.readObject();
-        stringType=(String)in.readObject();
+        stringType = (String)in.readObject();
         logLevel = in.readInt();
         protocolVersion = in.readInt();
         applicationName = (String)in.readObject();
         binaryTransfer = in.readBoolean();
         binaryTransferEnable = (String)in.readObject();
         binaryTransferDisable = (String)in.readObject();
+        logLevelSet = in.readBoolean();
     }
 
     public void initializeFrom(BaseDataSource source) throws IOException, ClassNotFoundException {

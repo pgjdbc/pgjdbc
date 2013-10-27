@@ -525,7 +525,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                 flags &= ~(QueryExecutor.QUERY_NO_RESULTS);
         }
 
-        // Only use named statements after we hit the threshold
+        // Only use named statements after we hit the threshold. Note that only
+        // named statements can be transferred in binary format.
         if (preparedQuery != null)
         {
             ++m_useCount; // We used this statement once more.
@@ -540,7 +541,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (concurrency != ResultSet.CONCUR_READ_ONLY)
             flags |= QueryExecutor.QUERY_NO_BINARY_TRANSFER;
 
-        if (ForceBinaryTransfers) {
+        if (ForceBinaryTransfers || (flags & QueryExecutor.QUERY_ONESHOT) == 0) {
                 int flags2 = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
                 StatementResultHandler handler2 = new StatementResultHandler();
                 connection.getQueryExecutor().execute(queryToExecute, queryParameters, handler2, 0, 0, flags2);
@@ -872,13 +873,17 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
      * This finalizer ensures that statements that have allocated server-side
      * resources free them when they become unreferenced.
      */
-    protected void finalize() {
+    protected void finalize() throws Throwable {
         try
         {
             close();
         }
         catch (SQLException e)
         {
+        }
+        finally
+        {
+            super.finalize();
         }
     }
 
@@ -1388,7 +1393,11 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public void setString(int parameterIndex, String x) throws SQLException
     {
         checkClosed();
-        setString(parameterIndex, x, (connection.getStringVarcharFlag() ? Oid.VARCHAR : Oid.UNSPECIFIED));
+        setString(parameterIndex, x, getStringType());
+    }
+
+    private int getStringType() {
+        return (connection.getStringVarcharFlag() ? Oid.VARCHAR : Oid.UNSPECIFIED);
     }
 
     protected void setString(int parameterIndex, String x, int oid) throws SQLException
@@ -1398,7 +1407,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (x == null)
         {
             if ( adjustIndex )
-                parameterIndex--;   
+                parameterIndex--;
             preparedParameters.setNull( parameterIndex, oid);
         }
         else
@@ -1786,7 +1795,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	            break;
 	        case Types.VARCHAR:
 	        case Types.LONGVARCHAR:
-	            setString(parameterIndex, pgType.toString(), Oid.VARCHAR);
+	            setString(parameterIndex, pgType.toString(), getStringType());
 	            break;
 	        case Types.DATE:
 	            if (in instanceof java.sql.Date)
@@ -2374,7 +2383,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                     ++i;
                     ++state;
                 }
-                else if (ch == 'c')
+                else if (ch == 'c' || ch == 'C')
                 {  // { call ... }      -- proc with no out parameters
                     state += 3; // Don't increase 'i'
                 }

@@ -143,4 +143,9 @@ public interface ProtocolConnection {
      * @return the server integer_datetime setting.
      */
     public boolean getIntegerDateTimes();
+
+    /**
+     * Return the process ID (PID) of the backend server process handling this connection.
+     */
+    public int getBackendPID();
 }

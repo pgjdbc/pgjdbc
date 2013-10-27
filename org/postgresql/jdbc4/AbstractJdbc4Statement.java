@@ -364,12 +364,16 @@ abstract class AbstractJdbc4Statement extends org.postgresql.jdbc3g.AbstractJdbc
 
     public boolean isWrapperFor(Class<?> iface) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "isWrapperFor(Class<?>)");
+        return iface.isAssignableFrom(getClass());
     }
 
     public <T> T unwrap(Class<T> iface) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "unwrap(Class<T>)");
+        if (iface.isAssignableFrom(getClass()))
+        {
+            return (T) this;
+        }
+        throw new SQLException("Cannot unwrap to " + iface.getName());
     }
 
     public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException

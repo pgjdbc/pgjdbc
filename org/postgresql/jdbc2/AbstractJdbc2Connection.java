@@ -137,6 +137,12 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         this.dbVersionNumber = protoConnection.getServerVersion();
         this.compatible = info.getProperty("compatible", Driver.MAJORVERSION + "." + Driver.MINORVERSION);
 
+        // Set read-only early if requested
+        if (Boolean.valueOf(info.getProperty("readOnly", "false")))
+        {
+            setReadOnly(true);
+        }
+
         // Formats that currently have binary protocol support
         Set<Integer> binaryOids = new HashSet<Integer>();
         if (binaryTransfer && protoConnection.getProtocolVersion() >= 3) {
@@ -790,8 +796,13 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     }
 
     private void executeTransactionCommand(Query query) throws SQLException {
+        int flags = QueryExecutor.QUERY_NO_METADATA | QueryExecutor.QUERY_NO_RESULTS | QueryExecutor.QUERY_SUPPRESS_BEGIN;
+        if (prepareThreshold == 0) {
+          flags |= QueryExecutor.QUERY_ONESHOT;
+        }
+
         getQueryExecutor().execute(query, null, new TransactionCommandHandler(),
-                                   0, 0, QueryExecutor.QUERY_NO_METADATA | QueryExecutor.QUERY_NO_RESULTS | QueryExecutor.QUERY_SUPPRESS_BEGIN);
+                                   0, 0, flags);
     }
 
     /*
@@ -997,10 +1008,17 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
      */
     protected void finalize() throws Throwable
     {
-        if (openStackTrace != null)
-            logger.log(GT.tr("Finalizing a Connection that was never closed:"), openStackTrace);
-
-        close();
+        try
+        {
+            if (openStackTrace != null)
+                logger.log(GT.tr("Finalizing a Connection that was never closed:"), openStackTrace);
+                
+            close();
+        }
+        finally 
+        {
+            super.finalize();
+        }
     }
 
     /*
@@ -1222,5 +1240,10 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
     public boolean binaryTransferSend(int oid) {
         return useBinarySendForOids.contains(oid);
+    }
+    
+    public int getBackendPID()
+    {
+    	return protoConnection.getBackendPID();
     }
 }

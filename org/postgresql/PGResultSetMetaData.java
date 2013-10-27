@@ -9,6 +9,8 @@ package org.postgresql;
 
 import java.sql.SQLException;
 
+import org.postgresql.core.Field;
+
 public interface PGResultSetMetaData
 {
 
@@ -36,4 +38,12 @@ public interface PGResultSetMetaData
      */
     public String getBaseSchemaName(int column) throws SQLException;
 
+    /**
+     * Is a column Text or Binary?
+     *
+     * @see Field#BINARY_FORMAT
+     * @see Field#TEXT_FORMAT
+     * @since 9.4
+     */
+    public int getFormat(int column) throws SQLException;
 }

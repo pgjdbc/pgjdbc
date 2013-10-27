@@ -26,6 +26,11 @@ public class ServerErrorMessage implements Serializable
     private static final Character SQLSTATE = new Character('C');
     private static final Character INTERNAL_POSITION = new Character('p');
     private static final Character INTERNAL_QUERY = new Character('q');
+    private static final Character SCHEMA = new Character('s');
+    private static final Character TABLE = new Character('t');
+    private static final Character COLUMN = new Character('c');
+    private static final Character DATATYPE = new Character('d');
+    private static final Character CONSTRAINT = new Character('n');
 
     private final Map m_mesgParts = new HashMap();
     private final int verbosity;
@@ -89,6 +94,31 @@ public class ServerErrorMessage implements Serializable
     public String getWhere()
     {
         return (String)m_mesgParts.get(WHERE);
+    }
+
+    public String getSchema()
+    {
+        return (String)m_mesgParts.get(SCHEMA);
+    }
+
+    public String getTable()
+    {
+        return (String)m_mesgParts.get(TABLE);
+    }
+
+    public String getColumn()
+    {
+        return (String)m_mesgParts.get(COLUMN);
+    }
+
+    public String getDatatype()
+    {
+        return (String)m_mesgParts.get(DATATYPE);
+    }
+
+    public String getConstraint()
+    {
+        return (String)m_mesgParts.get(CONSTRAINT);
     }
 
     public String getFile()

@@ -61,7 +61,7 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
         SSLContext ctx = SSLContext.getInstance("TLS"); // or "SSL" ?
         
         //Determinig the default file location
-        String pathsep = System.getProperty("path.separator");
+        String pathsep = System.getProperty("file.separator");
         String defaultdir;
         boolean defaultfile = false;
         if (System.getProperty("os.name").toLowerCase().indexOf("windows") > -1)
