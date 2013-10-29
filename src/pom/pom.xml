@@ -5,8 +5,8 @@
     <artifactId>@maven.artifact.id@</artifactId>
     <packaging>jar</packaging>
     <name>PostgreSQL JDBC Driver</name>
-    <version>@maven.artifact.version@</version>
-    <description>@maven.artifact.description@</description>
+    <version>@maven.artifact.version.string@</version>
+    <description>@maven.artifact.description@ @jdbc.version.upper@</description>
     <url>http://jdbc.postgresql.org</url>
     <developers>
         <developer>
