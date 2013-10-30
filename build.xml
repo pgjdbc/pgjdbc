@@ -175,7 +175,11 @@
     </condition>
 
     <condition property="jdbc.version" value="jdbc4">
-      <isset property="jdbc4any" />
+      <isset property="jdbc4" />
+    </condition>
+
+    <condition property="jdbc.version" value="jdbc41">
+      <isset property="jdbc41" />
     </condition>
 
     <condition property="jdbc.version.upper" value="JDBC3">
@@ -183,7 +187,11 @@
     </condition>
 
     <condition property="jdbc.version.upper" value="JDBC4">
-      <isset property="jdbc4any" />
+      <isset property="jdbc4" />
+    </condition>
+
+    <condition property="jdbc.version.upper" value="JDBC41">
+      <isset property="jdbc41" />
     </condition>
   </target>
 
@@ -570,10 +578,12 @@
 
   <target name="snapshot-version" description="Sets the version string to a snapshot version">
     <property name="maven.artifact.version.string" value="${maven.artifact.version}-${jdbc.version}-SNAPSHOT" />
+    <echo message="Maven version string: ${maven.artifact.version.string}" />
   </target>
 
   <target name="release-version" description="Sets the version string to a release version">
     <property name="maven.artifact.version.string" value="${maven.artifact.version}-${jdbc.version}" />
+    <echo message="Maven version string: ${maven.artifact.version.string}" />
   </target>
 
   <target name="prepare-pom" depends="prepare,check_versions" description="Filters the pom depending on the jdbc version being built">
