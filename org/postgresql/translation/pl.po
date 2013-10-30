@@ -36,7 +36,7 @@ msgstr ""
 #: bin/org/postgresql/Driver.java.in:287 bin/org/postgresql/Driver.java.in:351
 #: org/postgresql/Driver.java.in:287 org/postgresql/Driver.java.in:351
 msgid ""
-"Something unusual has occured to cause the driver to fail. Please report "
+"Something unusual has occurred to cause the driver to fail. Please report "
 "this exception."
 msgstr "Coś niezwykłego spowodowało pad sterownika. Proszę, zgłoś ten wyjątek."
 
@@ -194,7 +194,7 @@ msgstr "Serwer nie obsługuje SSL."
 
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:223
 #: org/postgresql/core/v3/ConnectionFactoryImpl.java:281
-msgid "An error occured while setting up the SSL connection."
+msgid "An error occurred while setting up the SSL connection."
 msgstr "Wystąpił błąd podczas ustanawiania połączenia SSL."
 
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:272

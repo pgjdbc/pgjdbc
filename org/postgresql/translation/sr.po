@@ -35,7 +35,7 @@ msgstr ""
 #: bin/org/postgresql/Driver.java.in:287 bin/org/postgresql/Driver.java.in:351
 #: org/postgresql/Driver.java.in:287 org/postgresql/Driver.java.in:351
 msgid ""
-"Something unusual has occured to cause the driver to fail. Please report "
+"Something unusual has occurred to cause the driver to fail. Please report "
 "this exception."
 msgstr ""
 "Nešto neobično se dogodilo i drajver je zakazao. Molim prijavite ovaj "
@@ -196,7 +196,7 @@ msgstr "Server ne podržava SSL."
 
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:223
 #: org/postgresql/core/v3/ConnectionFactoryImpl.java:281
-msgid "An error occured while setting up the SSL connection."
+msgid "An error occurred while setting up the SSL connection."
 msgstr "Greška se dogodila prilikom podešavanja SSL konekcije."
 
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:272
