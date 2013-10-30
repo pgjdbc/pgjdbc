@@ -28,7 +28,7 @@ msgstr ""
 
 #: org/postgresql/Driver.java.in:285 org/postgresql/Driver.java.in:349
 msgid ""
-"Something unusual has occured to cause the driver to fail. Please report "
+"Something unusual has occurred to cause the driver to fail. Please report "
 "this exception."
 msgstr ""
 "Iets ongewoons is opgetreden, wat deze driver doet falen. Rapporteer deze "
@@ -172,7 +172,7 @@ msgstr ""
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:181
 #: org/postgresql/core/v3/ConnectionFactoryImpl.java:213
 #, fuzzy
-msgid "An error occured while setting up the SSL connection."
+msgid "An error occurred while setting up the SSL connection."
 msgstr "Een fout trad op tijdens het ophalen van het authenticatie verzoek."
 
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:230

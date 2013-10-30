@@ -33,7 +33,7 @@ msgstr ""
 
 #: org/postgresql/Driver.java.in:285 org/postgresql/Driver.java.in:349
 msgid ""
-"Something unusual has occured to cause the driver to fail. Please report "
+"Something unusual has occurred to cause the driver to fail. Please report "
 "this exception."
 msgstr ""
 "Qualcosa di insolito si è verificato causando il fallimento del driver. Per "
@@ -187,7 +187,7 @@ msgstr "Il server non supporta SSL."
 
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:181
 #: org/postgresql/core/v3/ConnectionFactoryImpl.java:213
-msgid "An error occured while setting up the SSL connection."
+msgid "An error occurred while setting up the SSL connection."
 msgstr "Si è verificato un errore impostando la connessione SSL."
 
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:230
@@ -285,7 +285,7 @@ msgstr "Stato del comando non previsto: {0}."
 #: org/postgresql/core/v3/QueryExecutorImpl.java:551
 #: org/postgresql/core/v3/QueryExecutorImpl.java:631
 #: org/postgresql/core/v3/QueryExecutorImpl.java:2041
-msgid "An I/O error occured while sending to the backend."
+msgid "An I/O error occurred while sending to the backend."
 msgstr "Si è verificato un errore di I/O nella spedizione di dati al server."
 
 #: org/postgresql/core/v2/QueryExecutorImpl.java:169
