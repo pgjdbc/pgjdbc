@@ -297,7 +297,7 @@ public class Driver implements java.sql.Driver
         catch (Exception ex2)
         {
             logger.debug("Unexpected connection error:", ex2);
-            throw new PSQLException(GT.tr("Something unusual has occured to cause the driver to fail. Please report this exception."),
+            throw new PSQLException(GT.tr("Something unusual has occurred to cause the driver to fail. Please report this exception."),
                                     PSQLState.UNEXPECTED_ERROR, ex2);
         }
     }
@@ -361,7 +361,7 @@ public class Driver implements java.sql.Driver
                             resultException.fillInStackTrace();
                             throw (SQLException)resultException;
                         } else {
-                            throw new PSQLException(GT.tr("Something unusual has occured to cause the driver to fail. Please report this exception."),
+                            throw new PSQLException(GT.tr("Something unusual has occurred to cause the driver to fail. Please report this exception."),
                                                     PSQLState.UNEXPECTED_ERROR, resultException);
                         }
                     }
