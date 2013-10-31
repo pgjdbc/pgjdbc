@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: head-ja\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-06-11 13:24+0000\n"
+"POT-Creation-Date: 2013-10-31 13:37+0000\n"
 "PO-Revision-Date: 2010-04-11 22:58+0900\n"
 "Last-Translator: Hiroshi Saito <z-saito@guitar.ocn.ne.jp>\n"
 "Language-Team: PostgreSQL <z-saito@guitar.ocn.ne.jp>\n"
@@ -20,11 +20,11 @@ msgstr ""
 "X-Poedit-Language: Japanese\n"
 "X-Poedit-Country: Japan\n"
 
-#: org/postgresql/Driver.java.in:233
+#: org/postgresql/Driver.java.in:235
 msgid "Error loading default settings from driverconfig.properties"
 msgstr "driverconfig.propertiesによる初期設定のロードエラー"
 
-#: org/postgresql/Driver.java.in:280
+#: org/postgresql/Driver.java.in:282
 msgid ""
 "Your security policy has prevented the connection from being attempted.  You "
 "probably need to grant the connect java.net.SocketPermission to the database "
@@ -33,7 +33,7 @@ msgstr ""
 "セキュリティ・ポリシーは、接続を妨げました。おそらく、データベース・サー"
 "バー・ホスト接続のためjava.net.SocketPermissionを許可する必要があります。"
 
-#: org/postgresql/Driver.java.in:285 org/postgresql/Driver.java.in:349
+#: org/postgresql/Driver.java.in:287 org/postgresql/Driver.java.in:351
 msgid ""
 "Something unusual has occurred to cause the driver to fail. Please report "
 "this exception."
@@ -41,15 +41,15 @@ msgstr ""
 "なにかドライバを失敗させる変化が起こりました。どうぞこの例外を報告して下さ"
 "い。"
 
-#: org/postgresql/Driver.java.in:357
+#: org/postgresql/Driver.java.in:359
 msgid "Connection attempt timed out."
 msgstr "接続中にタイムアウトしました。"
 
-#: org/postgresql/Driver.java.in:365
+#: org/postgresql/Driver.java.in:372
 msgid "Interrupted while attempting to connect."
 msgstr "接続中に割り込みがありました。"
 
-#: org/postgresql/Driver.java.in:751
+#: org/postgresql/Driver.java.in:714
 #, java-format
 msgid "Method {0} is not yet implemented."
 msgstr "方法 {0} はまだ装備されていません。"
@@ -88,19 +88,24 @@ msgstr "値{0}のバイトコピーで書き込みができません。"
 msgid "A connection could not be made using the requested protocol {0}."
 msgstr "要求されたプロトコル {0} を使用して接続することができません。"
 
-#: org/postgresql/core/PGStream.java:493
+#: org/postgresql/core/Oid.java:113
+#, java-format
+msgid "oid type {0} not known and not a number"
+msgstr ""
+
+#: org/postgresql/core/PGStream.java:490
 #, java-format
 msgid "Premature end of input stream, expected {0} bytes, but only read {1}."
 msgstr ""
 "早すぎた入力ストリームの終了です、{0} バイトが想定されました、しかし唯一 {1} "
 "は読み込まれました。"
 
-#: org/postgresql/core/PGStream.java:533
+#: org/postgresql/core/PGStream.java:530
 #, java-format
 msgid "Expected an EOF from server, got: {0}"
 msgstr "サーバから EOF が想定されました、取得: {0}"
 
-#: org/postgresql/core/SetupQueryRunner.java:87
+#: org/postgresql/core/SetupQueryRunner.java:86
 msgid "An unexpected result was returned by a query."
 msgstr "クエリーによって想定しない結果が返されました。"
 
@@ -156,8 +161,14 @@ msgstr "ゼロ・バイトは、識別できないかもしれません。"
 msgid "Cannot convert an instance of {0} to type {1}"
 msgstr "型 {1} に {0} のインスタンスを変換できません。"
 
-#: org/postgresql/core/v2/ConnectionFactoryImpl.java:102
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:136
+#: org/postgresql/core/v2/ConnectionFactoryImpl.java:66
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:74
+#, fuzzy, java-format
+msgid "Invalid sslmode value: {0}"
+msgstr "無効なストリーム長 {0}."
+
+#: org/postgresql/core/v2/ConnectionFactoryImpl.java:134
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:207
 msgid ""
 "Connection refused. Check that the hostname and port are correct and that "
 "the postmaster is accepting TCP/IP connections."
@@ -165,34 +176,40 @@ msgstr ""
 "接続は拒絶されました。ホスト名とポート番号が正しいか、または、ポストマスタが"
 "TCP/IP接続を受け入れているかを調べて下さい。"
 
-#: org/postgresql/core/v2/ConnectionFactoryImpl.java:117
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:150
+#: org/postgresql/core/v2/ConnectionFactoryImpl.java:153
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:225
 msgid "The connection attempt failed."
 msgstr "接続の試みは失敗しました。"
 
-#: org/postgresql/core/v2/ConnectionFactoryImpl.java:156
-#: org/postgresql/core/v2/ConnectionFactoryImpl.java:168
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:188
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:200
+#: org/postgresql/core/v2/ConnectionFactoryImpl.java:175
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:246
+#, fuzzy
+msgid "The connection url is invalid."
+msgstr "接続の試みは失敗しました。"
+
+#: org/postgresql/core/v2/ConnectionFactoryImpl.java:198
+#: org/postgresql/core/v2/ConnectionFactoryImpl.java:210
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:295
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:307
 msgid "The server does not support SSL."
 msgstr "サーバはSSLをサポートしていません。"
 
-#: org/postgresql/core/v2/ConnectionFactoryImpl.java:181
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:213
+#: org/postgresql/core/v2/ConnectionFactoryImpl.java:223
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:320
 msgid "An error occurred while setting up the SSL connection."
 msgstr "SSL接続のセットアップ中に、エラーが起こりました。"
 
-#: org/postgresql/core/v2/ConnectionFactoryImpl.java:230
+#: org/postgresql/core/v2/ConnectionFactoryImpl.java:272
 #, java-format
 msgid "Connection rejected: {0}."
 msgstr "接続は拒絶されました: {0}."
 
-#: org/postgresql/core/v2/ConnectionFactoryImpl.java:248
-#: org/postgresql/core/v2/ConnectionFactoryImpl.java:270
 #: org/postgresql/core/v2/ConnectionFactoryImpl.java:290
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:312
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:337
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:364
+#: org/postgresql/core/v2/ConnectionFactoryImpl.java:312
+#: org/postgresql/core/v2/ConnectionFactoryImpl.java:332
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:419
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:444
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:471
 msgid ""
 "The server requested password-based authentication, but no password was "
 "provided."
@@ -200,8 +217,8 @@ msgstr ""
 "サーバーは、パスワード・ベースの認証を要求しました、しかし、いかなるパスワー"
 "ドも提供されませんでした。"
 
-#: org/postgresql/core/v2/ConnectionFactoryImpl.java:314
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:401
+#: org/postgresql/core/v2/ConnectionFactoryImpl.java:356
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:504
 #, java-format
 msgid ""
 "The authentication type {0} is not supported. Check that you have configured "
@@ -212,18 +229,19 @@ msgstr ""
 "アドレス、サブネットが含まれているか、そしてドライバがサポートする認証機構を"
 "使っているかを調べてください。"
 
-#: org/postgresql/core/v2/ConnectionFactoryImpl.java:320
-#: org/postgresql/core/v2/ConnectionFactoryImpl.java:358
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:407
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:450
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:496
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:506
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:514
-#: org/postgresql/gss/MakeGSS.java:139
+#: org/postgresql/core/v2/ConnectionFactoryImpl.java:362
+#: org/postgresql/core/v2/ConnectionFactoryImpl.java:400
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:510
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:553
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:599
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:609
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:618
+#: org/postgresql/core/v3/ConnectionFactoryImpl.java:626
+#: org/postgresql/gss/MakeGSS.java:158
 msgid "Protocol error.  Session setup failed."
 msgstr "プロトコルエラー, セッション設定は失敗しました。"
 
-#: org/postgresql/core/v2/ConnectionFactoryImpl.java:348
+#: org/postgresql/core/v2/ConnectionFactoryImpl.java:390
 #, java-format
 msgid "Backend start-up failed: {0}."
 msgstr "バックエンドの開始に失敗しました: {0}"
@@ -236,79 +254,74 @@ msgstr "バックエンドの開始に失敗しました: {0}"
 #: org/postgresql/core/v2/SimpleParameterList.java:83
 #: org/postgresql/core/v2/SimpleParameterList.java:90
 #: org/postgresql/core/v3/CompositeParameterList.java:35
-#: org/postgresql/core/v3/SimpleParameterList.java:44
-#: org/postgresql/core/v3/SimpleParameterList.java:51
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2668
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSetMetaData.java:420
+#: org/postgresql/core/v3/SimpleParameterList.java:49
+#: org/postgresql/core/v3/SimpleParameterList.java:56
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2845
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSetMetaData.java:419
 #, java-format
 msgid "The column index is out of range: {0}, number of columns: {1}."
 msgstr "列インデックスは範囲外です: {0} , 列の数: {1}"
 
 #: org/postgresql/core/v2/FastpathParameterList.java:142
 #: org/postgresql/core/v2/SimpleParameterList.java:155
-#: org/postgresql/core/v3/SimpleParameterList.java:176
+#: org/postgresql/core/v3/SimpleParameterList.java:216
 #, java-format
 msgid "No value specified for parameter {0}."
 msgstr "パラメータ {0} の明確な値がありません。"
 
-#: org/postgresql/core/v2/QueryExecutorImpl.java:71
-#: org/postgresql/core/v2/QueryExecutorImpl.java:336
+#: org/postgresql/core/v2/QueryExecutorImpl.java:72
+#: org/postgresql/core/v2/QueryExecutorImpl.java:337
 #: org/postgresql/core/v3/QueryExecutorImpl.java:443
 #: org/postgresql/core/v3/QueryExecutorImpl.java:507
 #, java-format
 msgid "Expected command status BEGIN, got {0}."
 msgstr "BEGINコマンドステータスを想定しました, 取得 {0}"
 
-#: org/postgresql/core/v2/QueryExecutorImpl.java:77
+#: org/postgresql/core/v2/QueryExecutorImpl.java:78
 #: org/postgresql/core/v3/QueryExecutorImpl.java:513
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1733
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1828
 #, java-format
 msgid "Unexpected command status: {0}."
 msgstr "想定外のコマンドステータス: {0}"
 
-#: org/postgresql/core/v2/QueryExecutorImpl.java:117
-#: org/postgresql/core/v2/QueryExecutorImpl.java:128
-#: org/postgresql/core/v2/QueryExecutorImpl.java:173
-#: org/postgresql/core/v2/QueryExecutorImpl.java:368
+#: org/postgresql/core/v2/QueryExecutorImpl.java:118
+#: org/postgresql/core/v2/QueryExecutorImpl.java:129
+#: org/postgresql/core/v2/QueryExecutorImpl.java:174
+#: org/postgresql/core/v2/QueryExecutorImpl.java:369
 #: org/postgresql/core/v3/QueryExecutorImpl.java:281
 #: org/postgresql/core/v3/QueryExecutorImpl.java:411
 #: org/postgresql/core/v3/QueryExecutorImpl.java:485
 #: org/postgresql/core/v3/QueryExecutorImpl.java:551
 #: org/postgresql/core/v3/QueryExecutorImpl.java:631
-#: org/postgresql/core/v3/QueryExecutorImpl.java:2041
-msgid "An I/O error occurred while sending to the backend."
+#: org/postgresql/core/v3/QueryExecutorImpl.java:2094
+#, fuzzy
+msgid "An I/O error occured while sending to the backend."
 msgstr "バックエンドに送信中に、入出力エラーはが起こりました。"
 
-#: org/postgresql/core/v2/QueryExecutorImpl.java:169
-#: org/postgresql/core/v2/QueryExecutorImpl.java:224
-#: org/postgresql/core/v2/QueryExecutorImpl.java:235
+#: org/postgresql/core/v2/QueryExecutorImpl.java:170
+#: org/postgresql/core/v2/QueryExecutorImpl.java:225
+#: org/postgresql/core/v2/QueryExecutorImpl.java:236
 #: org/postgresql/core/v3/QueryExecutorImpl.java:627
 #: org/postgresql/core/v3/QueryExecutorImpl.java:685
 #, java-format
 msgid "Unknown Response Type {0}."
 msgstr "未知の応答型 {0} です。"
 
-#: org/postgresql/core/v2/QueryExecutorImpl.java:429
-#: org/postgresql/core/v2/QueryExecutorImpl.java:474
-#: org/postgresql/core/v3/QueryExecutorImpl.java:1816
+#: org/postgresql/core/v2/QueryExecutorImpl.java:430
+#: org/postgresql/core/v2/QueryExecutorImpl.java:475
+#: org/postgresql/core/v3/QueryExecutorImpl.java:1857
 msgid "Ran out of memory retrieving query results."
 msgstr "メモリを使い果たし、クエリー結果を回収しました。"
 
-#: org/postgresql/core/v2/QueryExecutorImpl.java:596
-#: org/postgresql/core/v3/QueryExecutorImpl.java:2143
+#: org/postgresql/core/v2/QueryExecutorImpl.java:597
+#: org/postgresql/core/v3/QueryExecutorImpl.java:2199
 #, java-format
 msgid "Unable to interpret the update count in command completion tag: {0}."
 msgstr "コマンド完了タグで更新数を解釈することができません: {0}"
 
-#: org/postgresql/core/v2/QueryExecutorImpl.java:609
+#: org/postgresql/core/v2/QueryExecutorImpl.java:610
 msgid "Copy not implemented for protocol version 2"
 msgstr "プロトコルバージョン2でCopyは装備されていません"
-
-#: org/postgresql/core/v3/ConnectionFactoryImpl.java:389
-msgid ""
-"SSPI authentication is not supported because it is not portable.  Try "
-"configuring the server to use GSSAPI instead."
-msgstr ""
 
 #: org/postgresql/core/v3/CopyOperationImpl.java:56
 msgid "CommandComplete expected COPY but got: "
@@ -406,7 +419,7 @@ msgstr "{0} のサーバからの思いがけない copydata です。"
 msgid "Unexpected packet type during copy: {0}"
 msgstr "copy最中に思いがけないパケット型です: {0}"
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:1291
+#: org/postgresql/core/v3/QueryExecutorImpl.java:1310
 #, java-format
 msgid ""
 "Bind message length {0} too long.  This can be caused by very large or "
@@ -415,7 +428,7 @@ msgstr ""
 "バインドメッセージ長 {0} は長すぎます。これはとても大きくする要因となるか、あ"
 "るいは、InputStreamパラメーターの不正確な長さ記述です。"
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:1873
+#: org/postgresql/core/v3/QueryExecutorImpl.java:1925
 #, fuzzy, java-format
 msgid ""
 "The server''s client_encoding parameter was changed to {0}. The JDBC driver "
@@ -424,7 +437,7 @@ msgstr ""
 "サーバーのclient_encodingパラメーターが {0} に変わりました、JDBCドライバー"
 "は、正しい操作のためclient_encodingをUNICODEにすることを要求します。"
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:1880
+#: org/postgresql/core/v3/QueryExecutorImpl.java:1932
 #, java-format
 msgid ""
 "The server''s DateStyle parameter was changed to {0}. The JDBC driver "
@@ -433,7 +446,7 @@ msgstr ""
 "サーバーのDateStyleパラメーターは、{0} に変わりました,JDBCドライバーは、正し"
 "い操作のISOで、開始するためのDateStyleを必要とします。"
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:1893
+#: org/postgresql/core/v3/QueryExecutorImpl.java:1945
 #, java-format
 msgid ""
 "The server''s standard_conforming_strings parameter was reported as {0}. The "
@@ -442,7 +455,7 @@ msgstr ""
 "サーバーのstandard_conforming_stringsパラメーターは、{0}として報告されまし"
 "た。JDBCドライバーは、on または off を想定します。"
 
-#: org/postgresql/core/v3/QueryExecutorImpl.java:1962
+#: org/postgresql/core/v3/QueryExecutorImpl.java:2015
 msgid "The driver currently does not support COPY operations."
 msgstr "現在、ドライバはコピー操作をサポートしません。"
 
@@ -474,24 +487,24 @@ msgstr ""
 msgid "DataSource has been closed."
 msgstr "データソースは閉じられました。"
 
-#: org/postgresql/fastpath/Fastpath.java:79
-#: org/postgresql/fastpath/Fastpath.java:126
+#: org/postgresql/fastpath/Fastpath.java:81
+#: org/postgresql/fastpath/Fastpath.java:128
 #, java-format
 msgid "Fastpath call {0} - No result was returned and we expected an integer."
 msgstr ""
 "Fastpath 呼び出し {0} - いかなる結果も返されません、整数を予想しました。"
 
-#: org/postgresql/fastpath/Fastpath.java:235
+#: org/postgresql/fastpath/Fastpath.java:237
 #, java-format
 msgid "The fastpath function {0} is unknown."
 msgstr " {0} は未知の fastpath 関数です。"
 
-#: org/postgresql/geometric/PGbox.java:82
+#: org/postgresql/geometric/PGbox.java:83
 #: org/postgresql/geometric/PGcircle.java:82
 #: org/postgresql/geometric/PGcircle.java:91
 #: org/postgresql/geometric/PGline.java:80
 #: org/postgresql/geometric/PGlseg.java:77
-#: org/postgresql/geometric/PGpoint.java:83
+#: org/postgresql/geometric/PGpoint.java:85
 #, java-format
 msgid "Conversion to type {0} failed: {1}."
 msgstr "型変換 {0} は失敗しました: {1}."
@@ -502,21 +515,35 @@ msgid "Cannot tell if path is open or closed: {0}."
 msgstr "もし path が オープン、またはクローズされていたら話せません: {0}"
 
 #: org/postgresql/gss/MakeGSS.java:47 org/postgresql/gss/MakeGSS.java:55
-#: org/postgresql/gss/MakeGSS.java:149
+#: org/postgresql/gss/MakeGSS.java:168
 msgid "GSS Authentication failed"
 msgstr "GSS認証は失敗しました"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Array.java:133
-#: org/postgresql/jdbc2/AbstractJdbc2Array.java:581
+#: org/postgresql/jdbc2/AbstractJdbc2Array.java:153
+#: org/postgresql/jdbc2/AbstractJdbc2Array.java:790
 #, java-format
 msgid "The array index is out of range: {0}"
 msgstr "配列インデックスは、範囲外です: {0}"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Array.java:144
-#: org/postgresql/jdbc2/AbstractJdbc2Array.java:594
+#: org/postgresql/jdbc2/AbstractJdbc2Array.java:168
+#: org/postgresql/jdbc2/AbstractJdbc2Array.java:807
 #, java-format
 msgid "The array index is out of range: {0}, number of elements: {1}."
 msgstr "配列インデックスは、範囲外です: {0} , 要素の数: {1}"
+
+#: org/postgresql/jdbc2/AbstractJdbc2Array.java:196
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1982
+#: org/postgresql/util/HStoreConverter.java:34
+#: org/postgresql/util/HStoreConverter.java:61
+msgid ""
+"Invalid character data was found.  This is most likely caused by stored data "
+"containing characters that are invalid for the character set the database "
+"was created in.  The most common example of this is storing 8bit data in a "
+"SQL_ASCII database."
+msgstr ""
+"不正な文字データが見つかりました。これは、恐らく作成されたデータベースの文字"
+"セットにとって無効である文字を含むデータによって引き起こされます。最も共通の"
+"例として、8bitデータがSQL_ASCIIデータベースに保存されています。"
 
 #: org/postgresql/jdbc2/AbstractJdbc2BlobClob.java:73
 msgid ""
@@ -542,18 +569,18 @@ msgstr "LOB オフセット開始位置を 1 としてください。"
 msgid "free() was called on this LOB previously"
 msgstr "free() は、 このLOB以前に呼ばれました"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:145
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:225
 #, java-format
 msgid "Unsupported value for stringtype parameter: {0}"
 msgstr "文字列型パラメータのサポートされない値です: {0}"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:164
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:245
 msgid "unknownLength parameter value must be an integer"
 msgstr "未知の長さパラメータ値は整数でなければなりません"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:248
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:253
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:272
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:353
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:284
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:303
 #: org/postgresql/jdbc2/TypeInfoCache.java:201
 #: org/postgresql/jdbc2/TypeInfoCache.java:249
 #: org/postgresql/jdbc2/TypeInfoCache.java:287
@@ -564,65 +591,65 @@ msgstr "未知の長さパラメータ値は整数でなければなりません
 msgid "No results were returned by the query."
 msgstr "いかなる結果も、クエリーによって返されませんでした。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:262
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:305
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:337
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2568
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:367
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:336
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:368
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2702
 msgid "A result was returned when none was expected."
 msgstr "何も予想しなかったときに、結果が返されました。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:414
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:519
 msgid "Custom type maps are not supported."
 msgstr "カスタム・型のマップはサポートされません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:457
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:567
 #, java-format
 msgid "Failed to create object for: {0}."
 msgstr "{0} へのオブジェクト生成に失敗しました。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:519
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:629
 #, java-format
 msgid "Unable to load the class {0} responsible for the datatype {1}"
 msgstr "データ型 {1} 対応のクラス{0} をロードできません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:615
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:725
 msgid ""
 "Cannot change transaction read-only property in the middle of a transaction."
 msgstr ""
 "トランザクション中に、読み出し専用プロパティトランザクションに変えることがで"
 "きません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:703
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:813
 msgid "Cannot commit when autoCommit is enabled."
 msgstr "オートコミット有効時にコミットできません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:712
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:822
 msgid "This connection has been closed."
 msgstr "接続は既に閉じられました。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:732
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:842
 msgid "Cannot rollback when autoCommit is enabled."
 msgstr "オートコミット有効時にロールバックできません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:819
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:929
 msgid ""
 "Cannot change transaction isolation level in the middle of a transaction."
 msgstr "トランザクションの最中に隔離レベルを変えることができません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:824
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:934
 #, java-format
 msgid "Transaction isolation level {0} not supported."
 msgstr "トランザクション隔離レベル{0} はサポートされていません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:891
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:1001
 msgid "Finalizing a Connection that was never closed:"
 msgstr "接続終了で閉じられませんでした:"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:993
+#: org/postgresql/jdbc2/AbstractJdbc2Connection.java:1103
 msgid "Unable to translate data into the desired encoding."
 msgstr "望む符号化にデータを訳すことができません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java:62
+#: org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java:63
 msgid ""
 "Unable to determine a value for MaxIndexKeys due to missing system catalog "
 "data."
@@ -630,11 +657,11 @@ msgstr ""
 "間違ったシステム・カタログ・データのためにMaxIndexKeysの値を決めることができ"
 "ません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java:85
+#: org/postgresql/jdbc2/AbstractJdbc2DatabaseMetaData.java:86
 msgid "Unable to find name datatype in the system catalogs."
 msgstr "名前データ型をシステムカタログで見つけることができません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:219
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:235
 msgid ""
 "Operation requires a scrollable ResultSet, but this ResultSet is "
 "FORWARD_ONLY."
@@ -642,141 +669,140 @@ msgstr ""
 "操作は、スクロール可能なResultSetを必要とします、しかし、このResultSetは、 "
 "FORWARD_ONLYです。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:385
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:416
 msgid "Unexpected error while decoding character data from a large object."
 msgstr ""
 "ラージオブジェクトから文字データの複合化中に思いがけないエラーが起きました。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:650
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:674
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1797
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:462
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:491
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:525
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:3129
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:3174
+#, fuzzy, java-format
+msgid "Cannot convert the column of type {0} to requested type {1}."
+msgstr "型 {1} に {0} のインスタンスを変換できません。"
+
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:744
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:768
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1892
 msgid "Can''t use relative move methods while on the insert row."
 msgstr "行挿入の最中に関連の動作方法を使うことはできません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:694
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2808
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:788
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2956
 #, java-format
 msgid "Invalid fetch direction constant: {0}."
 msgstr "フェッチ方向コンスタントが不正です: {0}"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:708
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:802
 msgid "Cannot call cancelRowUpdates() when on the insert row."
 msgstr "行挿入の最中にcancelRowUpdates()を呼び出せません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:728
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:822
 msgid "Cannot call deleteRow() when on the insert row."
 msgstr "行挿入時に deleteRow() を呼び出せません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:734
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:828
 msgid ""
 "Currently positioned before the start of the ResultSet.  You cannot call "
 "deleteRow() here."
 msgstr ""
 "ResultSetの開始の前に置かれました。ここでdeleteRowを呼ぶことはできません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:739
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:833
 msgid ""
 "Currently positioned after the end of the ResultSet.  You cannot call "
 "deleteRow() here."
 msgstr ""
 "ResultSetの終わりの後に置かれました。ここでdeleteRowを呼ぶことはできません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:744
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:838
 msgid "There are no rows in this ResultSet."
 msgstr "このResultSetにいかなる行もありません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:791
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:885
 msgid "Not on the insert row."
 msgstr "挿入行がありません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:795
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:889
 msgid "You must specify at least one column value to insert a row."
 msgstr "行挿入には、最低でも１つの列の値が必要です。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:980
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1710
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2320
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2350
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1074
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1805
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2494
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2524
 #, java-format
 msgid "The JVM claims not to support the encoding: {0}"
 msgstr "JVMでサポートされないエンコーディングです: {0}"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:984
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1027
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1431
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1560
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1078
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1121
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1534
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1663
 msgid "Provided InputStream failed."
 msgstr "提供の InputStream は失敗しました。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1097
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2981
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1191
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:3137
 msgid "Provided Reader failed."
 msgstr "提供の Reader は失敗しました。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1165
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1259
 msgid "Can''t refresh the insert row."
 msgstr "挿入行を回復することはできません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1232
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1327
 msgid "Cannot call updateRow() when on the insert row."
 msgstr "列を挿入したときに、updateRow() を呼び出すことができません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1238
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2921
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1333
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:3190
 msgid ""
 "Cannot update the ResultSet because it is either before the start or after "
 "the end of the results."
 msgstr ""
 "開始前にResultSetを更新することができません、または結果の終わりの後です。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1487
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1582
 msgid "ResultSets with concurrency CONCUR_READ_ONLY cannot be updated."
 msgstr "CONCUR_READ_ONLYを伴うResultSetsは更新できませんでした。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1555
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1650
 #, java-format
 msgid "No primary key found for table {0}."
 msgstr "テーブル {0} の主キーがありません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1781
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2817
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1876
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2965
 msgid "Fetch size must be a value greater to or equal to 0."
 msgstr "フェッチサイズは、0に等しいか、より以上の値でなくてはなりません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1871
-msgid ""
-"Invalid character data was found.  This is most likely caused by stored data "
-"containing characters that are invalid for the character set the database "
-"was created in.  The most common example of this is storing 8bit data in a "
-"SQL_ASCII database."
-msgstr ""
-"不正な文字データが見つかりました。これは、恐らく作成されたデータベースの文字"
-"セットにとって無効である文字を含むデータによって引き起こされます。最も共通の"
-"例として、8bitデータがSQL_ASCIIデータベースに保存されています。"
-
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1918
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1925
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1962
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:1970
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2739
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2747
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2777
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2784
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2804
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2815
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2833
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2851
-#: org/postgresql/jdbc2/TimestampUtils.java:244
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2044
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2051
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2098
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2106
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2926
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2934
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2964
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2971
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2991
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:3002
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:3020
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:3038
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:3179
+#: org/postgresql/jdbc2/TimestampUtils.java:258
 #, java-format
 msgid "Bad value for type {0} : {1}"
 msgstr "型 {0} : {1} で不正な値"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2550
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2727
 #, java-format
 msgid "The column name {0} was not found in this ResultSet."
 msgstr "ResultSet に列名 {0} は見つかりませんでした。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2650
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2827
 msgid ""
 "ResultSet is not updateable.  The query that generated this result set must "
 "select only one table, and must select all primary keys from that table. See "
@@ -787,38 +813,38 @@ msgstr ""
 "ばなくてはいけません。より多くの詳細に関して JDBC 2.1 API仕様、章 5.6 を参照"
 "して下さい。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2662
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2839
 msgid "This ResultSet is closed."
 msgstr "ResultSetは閉じられました。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2683
+#: org/postgresql/jdbc2/AbstractJdbc2ResultSet.java:2860
 msgid "ResultSet not positioned properly, perhaps you need to call next."
 msgstr ""
 "ResultSetは適切に配置されませんでした、たぶん、次に呼ぶ必要があります。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:249
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:292
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:361
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2521
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:259
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:323
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:392
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2655
 msgid ""
 "Can''t use query methods that take a query string on a PreparedStatement."
 msgstr "PreparedStatementでクエリー文字を含むクエリー方法は使えません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:256
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:275
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:287
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:306
 msgid "Multiple ResultSets were returned by the query."
 msgstr "クエリーで、マルチのResultSetsが返されました。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:394
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:398
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:425
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:429
 msgid "A CallableStatement was executed with nothing returned."
 msgstr "CallableStatementは、戻りなしで実行されました。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:406
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:437
 msgid "A CallableStatement was executed with an invalid number of parameters"
 msgstr "CallableStatementは、パラメーターの不正な数で実行されました"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:437
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:468
 #, java-format
 msgid ""
 "A CallableStatement function was executed and the out parameter {0} was of "
@@ -827,54 +853,58 @@ msgstr ""
 "CallableStatement機能は実行されました、そして、出力パラメーター {0} は、型 "
 "{1} です。しかし、型 {2} が登録されました。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:620
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:674
 msgid "Maximum number of rows must be a value grater than or equal to 0."
 msgstr "行の最大数は、0に等しいか、より以上の値でなくてはなりません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:662
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:717
 msgid "Query timeout must be a value greater than or equals to 0."
 msgstr ""
 "クエリータイムアウトは、0に等しいか、より以上の値でなくてはなりません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:737
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:809
 msgid "The maximum field size must be a value greater than or equal to 0."
 msgstr "最大の項目サイズは、0に等しいか、または以上の値でなくてはなりません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1152
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1226
 msgid "Unknown Types value."
 msgstr "未知の型の値です。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1396
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1521
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2952
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1499
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1624
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:3108
 #, java-format
 msgid "Invalid stream length {0}."
 msgstr "無効なストリーム長 {0}."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1427
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1530
 #, java-format
 msgid "The JVM claims not to support the {0} encoding."
 msgstr "JVMは、エンコーディング {0} をサポートしません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1602
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2882
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1705
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:3030
 #, java-format
 msgid "Unknown type {0}."
 msgstr "未知の型 {0}."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1723
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1729
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1735
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1720
+msgid "No hstore extension installed."
+msgstr ""
+
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1845
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1851
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1857
 #, java-format
 msgid "Cannot cast an instance of {0} to type {1}"
 msgstr "インスタンス {0} は型 {1} へのキャストはできません"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1747
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1869
 #, java-format
 msgid "Unsupported Types value: {0}"
 msgstr "サポートされない型の値: {0}."
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1803
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1927
 #, java-format
 msgid ""
 "Can''t infer the SQL type to use for an instance of {0}. Use setObject() "
@@ -883,7 +913,7 @@ msgstr ""
 "{0} で使うべきSQL型を推測できません。明確な型値で記述した setObject() を使っ"
 "てください。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1851
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1975
 msgid ""
 "This statement does not declare an OUT parameter.  Use '{' ?= call ... '}' "
 "to declare one."
@@ -891,17 +921,17 @@ msgstr ""
 "ステートメントは、OUTパラメーターを宣言しません。'{' ?= call ... '}' を使って"
 "宣言して下さい。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:1901
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2025
 msgid "wasNull cannot be call before fetching a result."
 msgstr "wasNullは、結果フェッチ前に呼び出せません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2390
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2521
 #, java-format
 msgid "Malformed function or procedure escape syntax at offset {0}."
 msgstr "奇形の関数または手順は、位置 {0} で文法を逸しました。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2440
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2454
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2571
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2585
 #, java-format
 msgid ""
 "Parameter of type {0} was registered, but call to get{1} (sqltype={2}) was "
@@ -910,7 +940,7 @@ msgstr ""
 "型 {0}  のパラメータは登録されました,、しかし、{1} 取得呼び出し(sqltype={2})"
 "が作られました。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2473
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2604
 msgid ""
 "A CallableStatement was declared, but no call to registerOutParameter(1, "
 "<some type>) was made."
@@ -918,35 +948,35 @@ msgstr ""
 "CallableStatementは宣言されました、しかし registerOutParameterwas(1, <some "
 "type>) のいかなる呼び出しも作られません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2477
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2608
 msgid "No function outputs were registered."
 msgstr "関数出力は登録されませんでした。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2480
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2611
 msgid ""
 "Results cannot be retrieved from a CallableStatement before it is executed."
 msgstr "実行される前に、CallableStatement から結果を得ることはできません。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2510
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2644
 msgid "This statement has been closed."
 msgstr "このステートメントは閉じられました。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2590
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2660
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2724
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2794
 msgid "Too many update results were returned."
 msgstr "多すぎる更新結果が返されました。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2619
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2689
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2753
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2823
 #, java-format
 msgid ""
 "Batch entry {0} {1} was aborted.  Call getNextException to see the cause."
 msgstr ""
 "バッチ投入 {0} {1} は停止しました、getNextExceptionを呼んで原因を見て下さい。"
 
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:2922
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:3011
-#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:3051
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:3078
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:3167
+#: org/postgresql/jdbc2/AbstractJdbc2Statement.java:3207
 msgid "Unexpected error writing large object to database."
 msgstr ""
 "ラージオブジェクトをデータベースへ書き込み中に想定外のエラーが起きました。"
@@ -1021,36 +1051,43 @@ msgstr "{0} 関数は、三つの引数のみを用います。"
 msgid "Interval {0} not yet implemented"
 msgstr "間隔 {0} はまだ装備されていません"
 
-#: org/postgresql/jdbc2/TimestampUtils.java:346
+#: org/postgresql/jdbc2/TimestampUtils.java:360
 msgid ""
 "Infinite value found for timestamp/date. This cannot be represented as time."
 msgstr ""
 "timestamp/date で無限値が見つかりました、これは、時間として表すことができませ"
 "ん。"
 
+#: org/postgresql/jdbc2/TimestampUtils.java:648
+#: org/postgresql/jdbc2/TimestampUtils.java:680
+#: org/postgresql/jdbc2/TimestampUtils.java:727
+#, fuzzy, java-format
+msgid "Unsupported binary encoding of {0}."
+msgstr "サポートされない型の値: {0}."
+
 #: org/postgresql/jdbc2/TypeInfoCache.java:161
 #, java-format
 msgid "The class {0} does not implement org.postgresql.util.PGobject."
 msgstr "クラス {0} は、org.postgresql.util.PGobject を装備していません。"
 
-#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:59
+#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:60
 #, java-format
 msgid "Unknown ResultSet holdability setting: {0}."
 msgstr "未知の ResultSet 保持的設定: {0}"
 
-#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:97
-#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:129
-#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:164
-#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:186
+#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:98
+#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:130
+#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:165
+#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:187
 msgid "Server versions prior to 8.0 do not support savepoints."
 msgstr "サーバーバージョン 8.0 以前は、savepointをサポートしません。"
 
-#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:99
-#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:131
+#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:100
+#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:132
 msgid "Cannot establish a savepoint in auto-commit mode."
 msgstr "オートコミットモードでsavepointを確立できません。"
 
-#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:418
+#: org/postgresql/jdbc3/AbstractJdbc3Connection.java:419
 msgid "Returning autogenerated keys is not supported."
 msgstr "自動生成キーを返すことはサポートされていません。"
 
@@ -1083,24 +1120,37 @@ msgstr "名前の付いたsavepointのidを回収することができません�
 msgid "Cannot retrieve the name of an unnamed savepoint."
 msgstr "名前のないsavepointを回収することができません。"
 
-#: org/postgresql/jdbc3g/AbstractJdbc3gResultSet.java:36
+#: org/postgresql/jdbc3g/AbstractJdbc3gResultSet.java:37
 msgid "Invalid UUID data."
 msgstr "UUIDデータ不正です。"
 
-#: org/postgresql/jdbc4/AbstractJdbc4Connection.java:82
+#: org/postgresql/jdbc4/AbstractJdbc4Connection.java:83
 #, java-format
 msgid "Unable to find server array type for provided name {0}."
 msgstr "提供名 {0} で、サーバーの配列型を見つけることができません。"
 
-#: org/postgresql/jdbc4/AbstractJdbc4Connection.java:135
+#: org/postgresql/jdbc4/AbstractJdbc4Connection.java:121
+#, fuzzy, java-format
+msgid "Invalid timeout ({0}<0)."
+msgstr "無効なストリーム長 {0}."
+
+#: org/postgresql/jdbc4/AbstractJdbc4Connection.java:134
+msgid "Validating connection."
+msgstr ""
+
+#: org/postgresql/jdbc4/AbstractJdbc4Connection.java:157
 #, fuzzy, java-format
 msgid "Failed to set ClientInfo property: {0}"
 msgstr "{0} へのオブジェクト生成に失敗しました。"
 
-#: org/postgresql/jdbc4/AbstractJdbc4Connection.java:144
 #: org/postgresql/jdbc4/AbstractJdbc4Connection.java:166
+#: org/postgresql/jdbc4/AbstractJdbc4Connection.java:188
 msgid "ClientInfo property not supported."
 msgstr "ClientInfo プロパティはサポートされていません。"
+
+#: org/postgresql/jdbc4/AbstractJdbc4Statement.java:127
+msgid "Object is too large to send over the protocol."
+msgstr ""
 
 #: org/postgresql/jdbc4/Jdbc4SQLXML.java:147
 msgid "Unable to decode xml data."
@@ -1157,15 +1207,105 @@ msgstr ""
 msgid "Failed to initialize LargeObject API"
 msgstr "ラージオブジェクトAPIの初期化に失敗しました。"
 
-#: org/postgresql/largeobject/LargeObjectManager.java:198
-#: org/postgresql/largeobject/LargeObjectManager.java:239
+#: org/postgresql/largeobject/LargeObjectManager.java:257
+#: org/postgresql/largeobject/LargeObjectManager.java:298
 msgid "Large Objects may not be used in auto-commit mode."
 msgstr "ラージオブジェクトでは、オートコミットモードを使うことができません。"
 
-#: org/postgresql/ssl/MakeSSL.java:57
+#: org/postgresql/ssl/jdbc3/AbstractJdbc3MakeSSL.java:58
+#: org/postgresql/ssl/jdbc4/AbstractJdbc4MakeSSL.java:110
 #, java-format
 msgid "The SSLSocketFactory class provided {0} could not be instantiated."
 msgstr "提供のSSLSocketFactoryクラス {0} は、即応しないかもしれません。"
+
+#: org/postgresql/ssl/jdbc4/AbstractJdbc4MakeSSL.java:125
+#, java-format
+msgid "SSL error: {0}"
+msgstr ""
+
+#: org/postgresql/ssl/jdbc4/AbstractJdbc4MakeSSL.java:138
+#, fuzzy, java-format
+msgid "The HostnameVerifier class provided {0} could not be instantiated."
+msgstr "提供のSSLSocketFactoryクラス {0} は、即応しないかもしれません。"
+
+#: org/postgresql/ssl/jdbc4/AbstractJdbc4MakeSSL.java:142
+#, java-format
+msgid "The hostname {0} could not be verified by hostnameverifier {1}."
+msgstr ""
+
+#: org/postgresql/ssl/jdbc4/AbstractJdbc4MakeSSL.java:149
+#, fuzzy, java-format
+msgid "The hostname {0} could not be verified."
+msgstr "提供のSSLSocketFactoryクラス {0} は、即応しないかもしれません。"
+
+#: org/postgresql/ssl/jdbc4/LazyKeyManager.java:121
+msgid ""
+"Could not find a java cryptographic algorithm: X.509 CertificateFactory not "
+"available."
+msgstr ""
+
+#: org/postgresql/ssl/jdbc4/LazyKeyManager.java:132
+#, java-format
+msgid "Could not open SSL certificate file {0}."
+msgstr ""
+
+#: org/postgresql/ssl/jdbc4/LazyKeyManager.java:137
+#, java-format
+msgid "Loading the SSL certificate {0} into a KeyManager failed."
+msgstr ""
+
+#: org/postgresql/ssl/jdbc4/LazyKeyManager.java:194
+msgid "Enter SSL password: "
+msgstr ""
+
+#: org/postgresql/ssl/jdbc4/LazyKeyManager.java:202
+msgid "Could not read password for SSL key file, console is not available."
+msgstr ""
+
+#: org/postgresql/ssl/jdbc4/LazyKeyManager.java:204
+#, java-format
+msgid "Could not read password for SSL key file by callbackhandler {0}."
+msgstr ""
+
+#: org/postgresql/ssl/jdbc4/LazyKeyManager.java:223
+#, java-format
+msgid "Could not decrypt SSL key file {0}."
+msgstr ""
+
+#: org/postgresql/ssl/jdbc4/LazyKeyManager.java:231
+#, java-format
+msgid "Could not read SSL key file {0}."
+msgstr ""
+
+#: org/postgresql/ssl/jdbc4/LazyKeyManager.java:235
+#: org/postgresql/ssl/jdbc4/LibPQFactory.java:173
+#, java-format
+msgid "Could not find a java cryptographic algorithm: {0}."
+msgstr ""
+
+#: org/postgresql/ssl/jdbc4/LibPQFactory.java:99
+#, fuzzy, java-format
+msgid "The password callback class provided {0} could not be instantiated."
+msgstr "提供のSSLSocketFactoryクラス {0} は、即応しないかもしれません。"
+
+#: org/postgresql/ssl/jdbc4/LibPQFactory.java:133
+#, java-format
+msgid "Could not open SSL root certificate file {0}."
+msgstr ""
+
+#: org/postgresql/ssl/jdbc4/LibPQFactory.java:150
+#, java-format
+msgid "Could not read SSL root certificate file {0}."
+msgstr ""
+
+#: org/postgresql/ssl/jdbc4/LibPQFactory.java:153
+#, java-format
+msgid "Loading the SSL root certificate {0} into a TrustManager failed."
+msgstr ""
+
+#: org/postgresql/ssl/jdbc4/LibPQFactory.java:166
+msgid "Could not initialize SSL context."
+msgstr ""
 
 #: org/postgresql/util/PGInterval.java:164
 msgid "Conversion of interval failed"
@@ -1175,42 +1315,42 @@ msgstr "間隔の変換に失敗しました。"
 msgid "Conversion of money failed."
 msgstr "通貨の変換に失敗しました。"
 
-#: org/postgresql/util/ServerErrorMessage.java:154
+#: org/postgresql/util/ServerErrorMessage.java:155
 #, java-format
 msgid "Detail: {0}"
 msgstr "詳細l: {0}"
 
-#: org/postgresql/util/ServerErrorMessage.java:158
+#: org/postgresql/util/ServerErrorMessage.java:159
 #, java-format
 msgid "Hint: {0}"
 msgstr "ヒント: {0}"
 
-#: org/postgresql/util/ServerErrorMessage.java:161
+#: org/postgresql/util/ServerErrorMessage.java:162
 #, java-format
 msgid "Position: {0}"
 msgstr "ポジション: {0}"
 
-#: org/postgresql/util/ServerErrorMessage.java:164
+#: org/postgresql/util/ServerErrorMessage.java:165
 #, java-format
 msgid "Where: {0}"
 msgstr "場所: {0}"
 
-#: org/postgresql/util/ServerErrorMessage.java:170
+#: org/postgresql/util/ServerErrorMessage.java:171
 #, java-format
 msgid "Internal Query: {0}"
 msgstr "インターナル・クエリー: {0}"
 
-#: org/postgresql/util/ServerErrorMessage.java:173
+#: org/postgresql/util/ServerErrorMessage.java:174
 #, java-format
 msgid "Internal Position: {0}"
 msgstr "インターナル・ポジション: {0}"
 
-#: org/postgresql/util/ServerErrorMessage.java:179
+#: org/postgresql/util/ServerErrorMessage.java:180
 #, java-format
 msgid "Location: File: {0}, Routine: {1}, Line: {2}"
 msgstr "場所: ファイル: {0}, ルーチン: {1},行: {2}"
 
-#: org/postgresql/util/ServerErrorMessage.java:182
+#: org/postgresql/util/ServerErrorMessage.java:183
 #, java-format
 msgid "Server SQLState: {0}"
 msgstr "サーバー SQLState: {0}"
@@ -1317,34 +1457,6 @@ msgstr "準備トランザクションのコミットエラー"
 #: org/postgresql/xa/PGXAConnection.java:522
 msgid "Heuristic commit/rollback not supported"
 msgstr "サポートされない commit/rollback が見つかりました。"
-
-#, fuzzy
-#~ msgid "Invalid sslmode value: {0}"
-#~ msgstr "無効なストリーム長 {0}."
-
-#, fuzzy
-#~ msgid "The connection url is invalid."
-#~ msgstr "接続の試みは失敗しました。"
-
-#, fuzzy
-#~ msgid "Cannot convert the column of type {0} to requested type {1}."
-#~ msgstr "型 {1} に {0} のインスタンスを変換できません。"
-
-#, fuzzy
-#~ msgid "Unsupported binary encoding of {0}."
-#~ msgstr "サポートされない型の値: {0}."
-
-#, fuzzy
-#~ msgid "Invalid timeout ({0}<0)."
-#~ msgstr "無効なストリーム長 {0}."
-
-#, fuzzy
-#~ msgid "The HostnameVerifier class provided {0} could not be instantiated."
-#~ msgstr "提供のSSLSocketFactoryクラス {0} は、即応しないかもしれません。"
-
-#, fuzzy
-#~ msgid "The password callback class provided {0} could not be instantiated."
-#~ msgstr "提供のSSLSocketFactoryクラス {0} は、即応しないかもしれません。"
 
 #~ msgid "The driver does not support SSL."
 #~ msgstr "ドライバはSSLをサポートしていません。"
