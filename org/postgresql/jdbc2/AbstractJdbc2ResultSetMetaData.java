@@ -253,6 +253,7 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
                 }
             }
         }
+	stmt.close();
     }
 
     public String getBaseSchemaName(int column) throws SQLException
