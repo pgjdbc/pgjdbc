@@ -324,12 +324,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     private void sendStartupPacket(PGStream pgStream, String[][] params, Logger logger) throws IOException {
         if (logger.logDebug())
         {
-            String details = "";
+            StringBuffer details = new StringBuffer();
             for (int i = 0; i < params.length; ++i)
             {
                 if (i != 0)
-                    details += ", ";
-                details += params[i][0] + "=" + params[i][1];
+		    details.append(", ");
+		details.append(params[i][0]);
+		details.append("=");
+		details.append(params[i][1]);
             }
             logger.debug(" FE=> StartupPacket(" + details + ")");
         }
