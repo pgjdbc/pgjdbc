@@ -185,10 +185,9 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
     
     /**
      * A CallbackHandler that reads the password from the console
-     * or returns the password given to it's constructor.
-     *
+     * or returns the password given to its constructor.
      */
-    class ConsoleCallbackHandler implements CallbackHandler {
+    static class ConsoleCallbackHandler implements CallbackHandler {
 
       private char[] password = null;
       

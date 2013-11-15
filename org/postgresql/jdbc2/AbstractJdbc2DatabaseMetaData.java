@@ -57,13 +57,16 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 }
                 sql = "SELECT t1.typlen/t2.typlen FROM " + from + " t1.typelem=t2.oid AND t1.typname='oidvector'";
             }
-            ResultSet rs = connection.createStatement().executeQuery(sql);
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
             if (!rs.next())
             {
+                stmt.close();
                 throw new PSQLException(GT.tr("Unable to determine a value for MaxIndexKeys due to missing system catalog data."), PSQLState.UNEXPECTED_ERROR);
             }
             INDEX_MAX_KEYS = rs.getInt(1);
             rs.close();
+            stmt.close();
         }
         return INDEX_MAX_KEYS;
     }
@@ -80,13 +83,15 @@ public abstract class AbstractJdbc2DatabaseMetaData
             {
                 sql = "SELECT typlen FROM pg_type WHERE typname='name'";
             }
-            ResultSet rs = connection.createStatement().executeQuery(sql);
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
             if (!rs.next())
             {
                 throw new PSQLException(GT.tr("Unable to find name datatype in the system catalogs."), PSQLState.UNEXPECTED_ERROR);
             }
             NAMEDATALEN = rs.getInt("typlen");
             rs.close();
+            stmt.close();
         }
         return NAMEDATALEN - 1;
     }
@@ -1797,7 +1802,8 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
         byte isnullableUnknown[] = new byte[0];
 
-        ResultSet rs = connection.createStatement().executeQuery(sql);
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery(sql);
         while (rs.next())
         {
             byte schema[] = rs.getBytes("nspname");
@@ -1922,7 +1928,8 @@ public abstract class AbstractJdbc2DatabaseMetaData
                     columnsql += "pg_catalog.";
                 }
                 columnsql += "pg_attribute a WHERE a.attrelid = " + returnTypeRelid + " AND a.attnum > 0 ORDER BY a.attnum ";
-                ResultSet columnrs = connection.createStatement().executeQuery(columnsql);
+                Statement columnstmt = connection.createStatement();
+                ResultSet columnrs = columnstmt.executeQuery(columnsql);
                 while (columnrs.next())
                 {
                     int columnTypeOid = (int)columnrs.getLong("atttypid");
@@ -1948,9 +1955,11 @@ public abstract class AbstractJdbc2DatabaseMetaData
                     v.add(tuple);
                 }
                 columnrs.close();
+                columnstmt.close();
             }
         }
         rs.close();
+        stmt.close();
 
         return (ResultSet)((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, v);
     }
@@ -2446,7 +2455,8 @@ public abstract class AbstractJdbc2DatabaseMetaData
         }
         sql += " ORDER BY nspname,c.relname,attnum ";
 
-        ResultSet rs = connection.createStatement().executeQuery(sql);
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery(sql);
         while (rs.next())
         {
             byte[][] tuple = new byte[numberOfFields][];
@@ -2538,6 +2548,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
             v.add(tuple);
         }
         rs.close();
+        stmt.close();
 
         return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, v);
     }
@@ -2688,7 +2699,8 @@ public abstract class AbstractJdbc2DatabaseMetaData
         }
         sql += " ORDER BY attname ";
 
-        ResultSet rs = connection.createStatement().executeQuery(sql);
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery(sql);
         while (rs.next())
         {
             byte schemaName[] = rs.getBytes("nspname");
@@ -2745,6 +2757,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         }
 	}
         rs.close();
+        stmt.close();
 
         return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, v);
     }
@@ -2819,7 +2832,8 @@ public abstract class AbstractJdbc2DatabaseMetaData
         }
         sql += " ORDER BY nspname, relname ";
 
-        ResultSet rs = connection.createStatement().executeQuery(sql);
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery(sql);
         while (rs.next())
         {
             byte schema[] = rs.getBytes("nspname");
@@ -2870,6 +2884,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
             }
         }
         rs.close();
+        stmt.close();
 
         return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, v);
     }
@@ -3164,7 +3179,8 @@ public abstract class AbstractJdbc2DatabaseMetaData
                      " AND i.indisprimary " +
                      " ORDER BY a.attnum ";
 
-        ResultSet rs = connection.createStatement().executeQuery(sql);
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery(sql);
         while (rs.next())
         {
             byte tuple[][] = new byte[8][];
@@ -3185,6 +3201,8 @@ public abstract class AbstractJdbc2DatabaseMetaData
             tuple[7] = connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.bestRowNotPseudo));
             v.add(tuple);
         }
+        rs.close();
+        stmt.close();
 
         return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, v);
     }
@@ -3555,7 +3573,8 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
         sql += ",keyseq";
 
-        ResultSet rs = connection.createStatement().executeQuery(sql);
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery(sql);
 
         // returns the following columns
         // and some example data with a table defined as follows
@@ -3691,6 +3710,8 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
             tuples.add(tuple);
         }
+        rs.close();
+        stmt.close();
 
         return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, tuples);
     }
@@ -3953,7 +3974,8 @@ public abstract class AbstractJdbc2DatabaseMetaData
             		" WHERE NOT (typname ~ '^pg_toast_') ";
         }
 
-        ResultSet rs = connection.createStatement().executeQuery(sql);
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery(sql);
         // cache some results, this will keep memory useage down, and speed
         // things up a little.
         byte bZero[] = connection.encodeString("0");
@@ -4015,6 +4037,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
         }
         rs.close();
+        stmt.close();
 
         return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, v);
     }

@@ -706,7 +706,7 @@ public class Driver implements java.sql.Driver
                 logger.debug("Couldn't parse loginTimeout value: " + timeout);
             }
         }
-        return DriverManager.getLoginTimeout() * 1000;
+        return (long) DriverManager.getLoginTimeout() * 1000;
     }
 
     /*
