@@ -2201,6 +2201,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         tableTypeClauses.put("FOREIGN TABLE", ht);
         ht.put("SCHEMAS", "c.relkind = 'f'");
         ht.put("NOSCHEMAS", "c.relkind = 'f'");
+        ht = new HashMap();
         tableTypeClauses.put("MATERIALIZED VIEW", ht);
         ht.put("SCHEMAS", "c.relkind = 'm'");
         ht.put("NOSCHEMAS", "c.relkind = 'm'");
