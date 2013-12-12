@@ -100,7 +100,7 @@ public class ResultSetMetaDataTest extends TestCase
             assertEquals("", pgrsmd.getBaseSchemaName(4));
         }
 
-        assertEquals("", rsmd.getTableName(1));
+        assertEquals("rsmd1", rsmd.getTableName(1));
         assertEquals("", rsmd.getTableName(4));
         if (TestUtil.isProtocolVersion(conn, 3))
         {

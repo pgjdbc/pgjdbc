@@ -294,10 +294,11 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
      * @param column the first column is 1, the second is 2...
      * @return column name, or "" if not applicable
      * @exception SQLException if a database access error occurs
+     * @see #getBaseTableName
      */
     public String getTableName(int column) throws SQLException
     {
-        return "";
+        return getBaseTableName(column);
     }
 
     public String getBaseTableName(int column) throws SQLException
