@@ -222,5 +222,24 @@ public class ResultSetMetaDataTest extends TestCase
         assertEquals(Types.STRUCT, rsmd.getColumnType(1));
         assertEquals("rsmd1", rsmd.getColumnTypeName(1));
     }
+    
+    public void testUnexecutedStatement() throws Exception 
+    {
+        PreparedStatement pstmt = conn.prepareStatement("SELECT col FROM compositetest");
+        // we have not executed the statement but we can still get the metadata
+        ResultSetMetaData rsmd = pstmt.getMetaData();
+        assertEquals(Types.STRUCT, rsmd.getColumnType(1));
+        assertEquals("rsmd1", rsmd.getColumnTypeName(1));
+    }
+    public void testClosedResultSet() throws Exception 
+    {
+        PreparedStatement pstmt = conn.prepareStatement("SELECT col FROM compositetest");
+        ResultSet rs = pstmt.executeQuery();
+        rs.close();
+        // close the statement and make sure we can still get the metadata
+        ResultSetMetaData rsmd = pstmt.getMetaData();
+        assertEquals(Types.STRUCT, rsmd.getColumnType(1));
+        assertEquals("rsmd1", rsmd.getColumnTypeName(1));
+    }
 
 }
