@@ -216,6 +216,9 @@
 
       <metainf dir="META-INF">
       </metainf>
+      <manifest>
+        <attribute name="Main-Class" value="org.postgresql.util.PGJDBCMain"/>
+      </manifest>
     </jar>
   </target>
 
