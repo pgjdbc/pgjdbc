@@ -478,7 +478,9 @@ public class Driver implements java.sql.Driver
                 { "kerberosServerName", Boolean.FALSE,
                   "The Kerberos service name to use when authenticating with GSSAPI.  This is equivalent to libpq's PGKRBSRVNAME environment variable." },
                 { "jaasApplicationName", Boolean.FALSE,
-                  "Specifies the name of the JAAS system or application login configuration." }
+                  "Specifies the name of the JAAS system or application login configuration." },
+                { "disableColumnSanitiser", Boolean.FALSE,
+                  "Enable optimization that disables column name sanitiser." }
             };
 
     /**

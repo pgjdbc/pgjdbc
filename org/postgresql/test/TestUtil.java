@@ -531,4 +531,28 @@ public class TestUtil
             System.out.println();
         }
     }
+    
+    /*
+     * Find the column for the given label. Only SQLExceptions
+     * for system or set-up problems are thrown.
+     * The PSQLState.UNDEFINED_COLUMN type exception is
+     * consumed to allow cleanup. Relying on the caller
+     * to detect if the column lookup was successful.
+     */
+    public static int findColumn(PreparedStatement query, String label) throws SQLException
+    {
+        int returnValue = 0;
+        ResultSet rs = query.executeQuery();
+        if (rs.next())
+        {
+            try 
+            {
+                returnValue = rs.findColumn(label);
+            }
+            catch (SQLException sqle)
+            {} //consume exception to allow  cleanup of resource.
+        }
+        rs.close();
+        return returnValue;
+    }
 }
