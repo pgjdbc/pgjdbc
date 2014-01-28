@@ -2838,7 +2838,15 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         if (rows == null)
             throw new PSQLException(GT.tr("This ResultSet is closed."), PSQLState.OBJECT_NOT_IN_STATE);
     }
-
+    
+    /*
+     * for jdbc3 to call internally
+     */
+    protected boolean isResultSetClosed()
+    {
+        return rows==null;
+    }
+    
     protected void checkColumnIndex(int column) throws SQLException
     {
         if ( column < 1 || column > fields.length )

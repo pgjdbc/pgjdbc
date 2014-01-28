@@ -2979,7 +2979,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         checkClosed();
         ResultSet rs = getResultSet();
 
-        if (rs == null || rs.isClosed() ) {
+        if (rs == null || ((AbstractJdbc2ResultSet)rs).isResultSetClosed() ) {
             // OK, we haven't executed it yet, or it was closed
             // we've got to go to the backend
             // for more info.  We send the full query, but just don't
