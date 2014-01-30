@@ -1895,6 +1895,8 @@ public abstract class AbstractJdbc2DatabaseMetaData
                     columnMode = DatabaseMetaData.procedureColumnOut;
                 else if (argModes != null && argModes[i].equals("b"))
                     columnMode = DatabaseMetaData.procedureColumnInOut;
+                else if (argModes != null && argModes[i].equals("t"))
+                    columnMode = DatabaseMetaData.procedureColumnReturn;
 
                 tuple[4] = connection.encodeString(Integer.toString(columnMode));
 
