@@ -154,4 +154,9 @@ public interface BaseConnection extends PGConnection, Connection
      * @return True for binary transfer, false for text transfer.
      */
     public boolean binaryTransferSend(int oid);
+    
+    /**
+     *  Return whether to disable column name sanitization. 
+     */
+    public boolean isColumnSanitiserDisabled();
 }
