@@ -76,7 +76,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     /** Number of rows to get in a batch. */
     protected int fetchSize = 0;
 
-    /** Timeout (in seconds) for a query (not used) */
+    /** Timeout (in seconds) for a query */
     protected int timeout = 0;
 
     protected boolean replaceProcessingEnabled = true;
@@ -555,14 +555,13 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         result = null;
         try
         {
-            
-        
-        connection.getQueryExecutor().execute(queryToExecute,
-                                              queryParameters,
-                                              handler,
-                                              maxrows,
-                                              fetchSize,
-                                              flags);
+            startTimer();
+            connection.getQueryExecutor().execute(queryToExecute,
+                                                  queryParameters,
+                                                  handler,
+                                                  maxrows,
+                                                  fetchSize,
+                                                  flags);
         }
         finally
         {
@@ -717,27 +716,6 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (seconds < 0)
             throw new PSQLException(GT.tr("Query timeout must be a value greater than or equals to 0."),
                                     PSQLState.INVALID_PARAMETER_VALUE);
-
-        if (seconds == 0) {
-            killTimer();
-            return;
-        }
-
-        cancelTimer = new TimerTask() {
-            public void run()
-            {
-                try {
-                    AbstractJdbc2Statement.this.cancel();
-                } catch (SQLException e) {
-                }
-                finally
-                {
-                    killTimer();
-                }
-            }
-        };
-        
-        Driver.addTimerTask( cancelTimer, seconds * 1000);
         timeout = seconds;
     }
 
@@ -2906,12 +2884,17 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 		handler = new BatchResultHandler(queries, parameterLists, updateCounts, wantsGeneratedKeysAlways);
 	}
         
-        connection.getQueryExecutor().execute(queries,
-                                              parameterLists,
-                                              handler,
-                                              maxrows,
-                                              fetchSize,
-                                              flags);
+	try {
+	    startTimer();
+	    connection.getQueryExecutor().execute(queries,
+						  parameterLists,
+						  handler,
+						  maxrows,
+						  fetchSize,
+						  flags);
+	} finally {
+	    killTimer();
+	}
 
         if (wantsGeneratedKeysAlways) {
             generatedKeys = new ResultWrapper(((BatchResultHandler)handler).getGeneratedKeys());
@@ -2996,8 +2979,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         checkClosed();
         ResultSet rs = getResultSet();
 
-        if (rs == null) {
-            // OK, we haven't executed it yet, we've got to go to the backend
+        if (rs == null || ((AbstractJdbc2ResultSet)rs).isResultSetClosed() ) {
+            // OK, we haven't executed it yet, or it was closed
+            // we've got to go to the backend
             // for more info.  We send the full query, but just don't
             // execute it.
 
@@ -3422,6 +3406,30 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public void registerOutParameter(int parameterIndex, int sqlType, String typeName) throws SQLException
     {
         throw Driver.notImplemented(this.getClass(), "registerOutParameter(int,int,String)");
+    }
+
+    protected synchronized void startTimer()
+    {
+	if (timeout == 0)
+	    return;
+
+	/*
+	 * there shouldn't be any previous timer active, but better safe than
+	 * sorry.
+	 */
+	killTimer();
+
+	cancelTimer = new TimerTask() {
+	    public void run()
+	    {
+		try {
+		    AbstractJdbc2Statement.this.cancel();
+		} catch (SQLException e) {
+		}
+	    }
+	};
+
+	Driver.addTimerTask( cancelTimer, timeout * 1000);
     }
 
     private synchronized void killTimer()

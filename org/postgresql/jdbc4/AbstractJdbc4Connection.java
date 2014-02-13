@@ -121,12 +121,14 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
             throw new PSQLException(GT.tr("Invalid timeout ({0}<0).", timeout), PSQLState.INVALID_PARAMETER_VALUE);
         }
     	boolean valid = false;
-	    Statement stmt = null;
+        Statement stmt = null;
+		ResultSet rs;
     	try {
     		if (!isClosed()) {
             	stmt = createStatement();
             	stmt.setQueryTimeout( timeout );
-            	stmt.executeQuery( "SELECT 1" );
+            	rs = stmt.executeQuery( "SELECT 1" );
+				rs.close();
             	valid = true;
     	    }
     	}
