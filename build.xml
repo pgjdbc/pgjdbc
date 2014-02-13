@@ -203,8 +203,9 @@
 
 
   <!-- create the jar file -->
-  <target name="jar" depends="compile">
-    <jar jarfile="${jardir}/postgresql.jar">
+  <target name="jar" depends="compile, artifact-version">
+    <property name="artifact.jar" value="${jardir}/${artifact.version.string}.jar"/>
+    <jar jarfile="${artifact.jar}">
       <fileset dir="${builddir}">
         <include name="${package}/**/*.class" />
       </fileset>
@@ -215,6 +216,9 @@
 
       <metainf dir="META-INF">
       </metainf>
+      <manifest>
+        <attribute name="Main-Class" value="org.postgresql.util.PGJDBCMain"/>
+      </manifest>
     </jar>
   </target>
 
@@ -434,7 +438,7 @@
       <exclude name="${package}/test/ssl/**" unless="jdbc4tests" />
 
       <classpath>
-        <pathelement location="${jardir}/postgresql.jar"/>
+        <pathelement location="${artifact.jar}"/>
       </classpath>
     </javac>
     <jar jarfile="${jardir}/postgresql-tests.jar" basedir="${builddir}/tests"/>
@@ -464,7 +468,7 @@
       <sysproperty key="ssltest.properties" value="${ssltest.properties}" />
 
       <classpath>
-        <pathelement location="${jardir}/postgresql.jar" />
+        <pathelement location="${artifact.jar}" />
         <pathelement location="${jardir}/postgresql-tests.jar" />
         <pathelement path="${java.class.path}" />
       </classpath>
@@ -576,6 +580,11 @@
     </xmlvalidate>
   </target>
 
+  <target name="artifact-version" description="Sets the version string for the jar artifact">
+    <property name="artifact.version.string" value="${maven.artifact.id}-${maven.artifact.version}.${jdbc.version}" />
+    <echo message="Artifact version string: ${artifact.version.string}" />
+  </target>
+
   <target name="snapshot-version" description="Sets the version string to a snapshot version">
     <property name="maven.artifact.version.string" value="${maven.artifact.version}-${jdbc.version}-SNAPSHOT" />
     <echo message="Maven version string: ${maven.artifact.version.string}" />
@@ -645,7 +654,7 @@
   <!-- create jar files for distribution to maven central -->
   <target name="maven-jar" depends="jar, publicapi">
     <!-- Copy the built jar into a maven compatible name -->
-    <copy file="${jardir}/postgresql.jar" tofile="${maven.jar}"/>
+    <copy file="${artifact.jar}" tofile="${maven.jar}"/>
     <!-- Create a jar of the javadoc public api -->
     <jar jarfile="${maven.javadoc.jar}">
       <fileset dir="${builddir}/publicapi">

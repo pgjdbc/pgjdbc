@@ -25,6 +25,7 @@ import java.util.StringTokenizer;
 import java.util.TimeZone;
 import java.util.Calendar;
 import java.util.Locale;
+
 import org.postgresql.core.*;
 import org.postgresql.largeobject.*;
 import org.postgresql.util.ByteConverter;
@@ -2731,21 +2732,33 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
     private int findColumnIndex(String columnName)
     {
-        if (columnNameIndexMap == null)
+    	if (columnNameIndexMap == null)
         {
             columnNameIndexMap = new HashMap(fields.length * 2);
             // The JDBC spec says when you have duplicate columns names,
             // the first one should be returned.  So load the map in
             // reverse order so the first ones will overwrite later ones.
+            boolean isSanitiserDisabled = connection.isColumnSanitiserDisabled();
             for (int i = fields.length - 1; i >= 0; i--)
             {
-                columnNameIndexMap.put(fields[i].getColumnLabel().toLowerCase(Locale.US), new Integer(i + 1));
+                if (isSanitiserDisabled){
+                    columnNameIndexMap.put(fields[i].getColumnLabel(), new Integer(i + 1));
+                } else {
+                    columnNameIndexMap.put(fields[i].getColumnLabel().toLowerCase(Locale.US), new Integer(i + 1));
+                }
             }
         }
 
         Integer index = (Integer)columnNameIndexMap.get(columnName);
         if (index != null)
         {
+            return index.intValue();
+        }
+        
+        index = (Integer)columnNameIndexMap.get(columnName.toUpperCase(Locale.US));
+        if (index != null)
+        {
+            columnNameIndexMap.put(columnName, index);
             return index.intValue();
         }
 
@@ -2755,7 +2768,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             columnNameIndexMap.put(columnName, index);
             return index.intValue();
         }
-
+    
         return 0;
     }
 
@@ -2838,7 +2851,15 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         if (rows == null)
             throw new PSQLException(GT.tr("This ResultSet is closed."), PSQLState.OBJECT_NOT_IN_STATE);
     }
-
+    
+    /*
+     * for jdbc3 to call internally
+     */
+    protected boolean isResultSetClosed()
+    {
+        return rows==null;
+    }
+    
     protected void checkColumnIndex(int column) throws SQLException
     {
         if ( column < 1 || column > fields.length )

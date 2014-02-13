@@ -29,6 +29,7 @@ public class OptionalTestSuite extends TestSuite
         suite.addTestSuite(SimpleDataSourceTest.class);
         suite.addTestSuite(ConnectionPoolTest.class);
         suite.addTestSuite(PoolingDataSourceTest.class);
+        suite.addTestSuite(CaseOptimiserDataSourceTest.class);
         return suite;
     }
 }

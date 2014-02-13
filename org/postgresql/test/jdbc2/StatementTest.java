@@ -501,6 +501,56 @@ public class StatementTest extends TestCase
     	}
     }
 
+    public void testSetQueryTimeoutWithSleep() throws SQLException, InterruptedException
+    {
+	// check that the timeout starts ticking at execute, not at the
+	// setQueryTimeout call.
+	Statement stmt = con.createStatement();
+	try
+	{
+	    stmt.setQueryTimeout(1);
+	    Thread.sleep(3000);
+	    stmt.execute("select pg_sleep(5)");
+	    this.fail( "statement should have been canceled by query timeout" );
+	} catch( SQLException sqle )
+	{
+	    // state for cancel
+	    if (sqle.getSQLState().compareTo("57014") != 0)
+		throw sqle;
+	}
+    }
+
+    public void testSetQueryTimeoutOnPrepared() throws SQLException, InterruptedException
+    {
+	// check that a timeout set on a prepared statement works on every
+	// execution.
+	PreparedStatement pstmt = con.prepareStatement("select pg_sleep(5)");
+	pstmt.setQueryTimeout(1);
+	for (int i = 1; i <= 3; i++)
+	{
+	    try
+	    {
+		ResultSet rs = pstmt.executeQuery();
+		this.fail( "statement should have been canceled by query timeout (execution #" + i + ")" );
+	    } catch( SQLException sqle )
+	    {
+		// state for cancel
+		if (sqle.getSQLState().compareTo("57014") != 0)
+		    throw sqle;
+	    }
+	}
+    }
+
+    public void testSetQueryTimeoutWithoutExecute() throws SQLException, InterruptedException
+    {
+	// check that a timeout set on one statement doesn't affect another
+	Statement stmt1 = con.createStatement();
+	stmt1.setQueryTimeout(1);
+
+	Statement stmt2 = con.createStatement();
+	ResultSet rs = stmt2.executeQuery("SELECT pg_sleep(2)");
+    }
+
     public void testResultSetTwice() throws SQLException
     {
         Statement stmt = con.createStatement();

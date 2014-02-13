@@ -65,7 +65,8 @@ public abstract class BaseDataSource implements Referenceable
     private int protocolVersion = 0;
     private String applicationName;
     private String stringType=null;
-    private boolean logLevelSet = false;      
+    private boolean logLevelSet = false;
+    private boolean disableColumnSanitiser = false;
 
     /**
      * Gets a connection to the PostgreSQL database.  The database is identified by the
@@ -499,6 +500,22 @@ public abstract class BaseDataSource implements Referenceable
     {
         this.stringType = stringType;
     }
+    
+    /**
+     * Returns the state of column sanitiser optimisation.
+     * @return boolean is optimisation enabled 
+     */
+    public boolean isColumnSanitiserDisabled() {
+		return disableColumnSanitiser;
+	}
+
+    /**
+     * Set the state of column sanitiser optimisation.
+     * @param boolean new optimisation state
+     */
+	public void setDisableColumnSanitiser(boolean disableColumnSanitiser) {
+		this.disableColumnSanitiser = disableColumnSanitiser;
+	}
 
     /**
      * Generates a DriverManager URL from the other properties supplied.
@@ -555,6 +572,7 @@ public abstract class BaseDataSource implements Referenceable
         if (binaryTransferDisable != null) {
             sb.append("&binaryTransferDisable=").append(binaryTransferDisable);
         }
+        sb.append("&disableColumnSanitiser=").append(disableColumnSanitiser);
         
         return sb.toString();
     }
@@ -583,6 +601,7 @@ public abstract class BaseDataSource implements Referenceable
      	applicationName = p.getProperty("ApplicationName");
         stringType = p.getProperty("stringtype");
      	binaryTransfer = Boolean.parseBoolean(p.getProperty("binaryTransfer"));
+     	disableColumnSanitiser = Boolean.parseBoolean(p.getProperty("disableColumnSanitiser"));
     }
 
     /**
@@ -653,6 +672,7 @@ public abstract class BaseDataSource implements Referenceable
         {
             ref.add(new StringRefAddr("ApplicationName", applicationName));
         }
+        ref.add(new StringRefAddr("disableColumnSanitiser", Boolean.toString(disableColumnSanitiser)));
 
         return ref;
     }
@@ -682,6 +702,7 @@ public abstract class BaseDataSource implements Referenceable
         out.writeObject(binaryTransferEnable);
         out.writeObject(binaryTransferDisable);
         out.writeBoolean(logLevelSet);
+        out.writeBoolean(disableColumnSanitiser);
     }
 
     protected void readBaseObject(ObjectInputStream in) throws IOException, ClassNotFoundException
@@ -709,6 +730,7 @@ public abstract class BaseDataSource implements Referenceable
         binaryTransferEnable = (String)in.readObject();
         binaryTransferDisable = (String)in.readObject();
         logLevelSet = in.readBoolean();
+        disableColumnSanitiser = in.readBoolean();
     }
 
     public void initializeFrom(BaseDataSource source) throws IOException, ClassNotFoundException {
