@@ -58,6 +58,8 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     private final Query rollbackQuery;
 
     private TypeInfo _typeCache;
+    
+    private boolean disableColumnSanitiser = false;
 
     // Default statement prepare threshold.
     protected int prepareThreshold;
@@ -260,6 +262,8 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
             openStackTrace = new Throwable("Connection was created at this point:");
             enableDriverManagerLogging();
         }
+        this.disableColumnSanitiser = Boolean.valueOf(info.getProperty(""
+                + "disableColumnSanitiser", Boolean.FALSE.toString()));
     }
 
     private Set<Integer> getOidSet(String oidList) throws PSQLException {
@@ -1245,5 +1249,14 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     public int getBackendPID()
     {
     	return protoConnection.getBackendPID();
+    }
+    
+    public boolean isColumnSanitiserDisabled() {
+    	return this.disableColumnSanitiser;
+    }
+
+    public void setDisableColumnSanitiser(boolean disableColumnSanitiser)
+    {
+        this.disableColumnSanitiser = disableColumnSanitiser;
     }
 }

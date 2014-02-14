@@ -42,6 +42,8 @@ public class Jdbc2TestSuite extends TestSuite
         suite.addTestSuite(DatabaseMetaDataPropertiesTest.class);
         suite.addTestSuite(SearchPathLookupTest.class);
         suite.addTestSuite(EncodingTest.class);
+        suite.addTestSuite(ColumnSanitiserDisabledTest.class);
+        suite.addTestSuite(ColumnSanitiserEnabledTest.class);
 
         // Connectivity/Protocols
 

@@ -93,6 +93,7 @@ public abstract class AbstractJdbc3Connection extends org.postgresql.jdbc2.Abstr
      */
     public Savepoint setSavepoint() throws SQLException
     {
+	String pgName;
         checkClosed();
         if (!haveMinimumServerVersion("8.0"))
             throw new PSQLException(GT.tr("Server versions prior to 8.0 do not support savepoints."), PSQLState.NOT_IMPLEMENTED);
@@ -101,11 +102,12 @@ public abstract class AbstractJdbc3Connection extends org.postgresql.jdbc2.Abstr
                                     PSQLState.NO_ACTIVE_SQL_TRANSACTION);
 
         PSQLSavepoint savepoint = new PSQLSavepoint(savepointId++);
+	pgName = savepoint.getPGName();
 
         // Note we can't use execSQLUpdate because we don't want
         // to suppress BEGIN.
         Statement stmt = createStatement();
-        stmt.executeUpdate("SAVEPOINT " + savepoint.getPGName());
+        stmt.executeUpdate("SAVEPOINT " + pgName);
         stmt.close();
 
         return savepoint;

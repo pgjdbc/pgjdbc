@@ -55,6 +55,7 @@ public class DatabaseMetaDataTest extends TestCase
             stmt.execute("CREATE OR REPLACE FUNCTION f3(IN a int, INOUT b varchar, OUT c timestamptz) AS $f$ BEGIN b := 'a'; c := now(); return; END; $f$ LANGUAGE plpgsql");
         }
         stmt.execute("CREATE OR REPLACE FUNCTION f4(int) RETURNS metadatatest AS 'SELECT 1, ''a''::text, now(), ''c''::text, ''q''::text' LANGUAGE SQL");
+        stmt.execute("CREATE OR REPLACE FUNCTION f5() RETURNS TABLE (i int) LANGUAGE sql AS 'SELECT 1'");
 
         if (TestUtil.haveMinimumServerVersion(con, "7.3")) {
             stmt.execute("CREATE DOMAIN nndom AS int not null");
@@ -740,6 +741,21 @@ public class DatabaseMetaDataTest extends TestCase
         assertEquals(DatabaseMetaData.procedureColumnResult, rs.getInt(5));
         assertEquals(Types.VARCHAR, rs.getInt(6));
 
+        assertTrue(!rs.next());
+        rs.close();
+    }
+
+    public void testFuncReturningTable() throws Exception {
+        DatabaseMetaData dbmd = con.getMetaData();
+        ResultSet rs = dbmd.getProcedureColumns(null, null, "f5", null);
+        assertTrue(rs.next());
+        assertEquals("returnValue", rs.getString(4));
+        assertEquals(DatabaseMetaData.procedureColumnReturn, rs.getInt(5));
+        assertEquals(Types.INTEGER, rs.getInt(6));
+        assertTrue(rs.next());
+        assertEquals("i", rs.getString(4));
+        assertEquals(DatabaseMetaData.procedureColumnReturn, rs.getInt(5));
+        assertEquals(Types.INTEGER, rs.getInt(6));
         assertTrue(!rs.next());
         rs.close();
     }

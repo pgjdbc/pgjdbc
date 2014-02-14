@@ -1,6 +1,7 @@
 package org.postgresql.ssl.jdbc4;
 
 import java.io.File;
+import java.io.RandomAccessFile;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -148,6 +149,7 @@ public class LazyKeyManager implements X509KeyManager {
   }
 
   public PrivateKey getPrivateKey(String alias) {
+    RandomAccessFile raf = null;
     try
     {
       if (key==null && keyfile!=null) //If keyfile is null, we do not load the key
@@ -157,11 +159,10 @@ public class LazyKeyManager implements X509KeyManager {
           if(getCertificateChain("user")==null)
             return null; //getCertificateChain failed...
         }
-        File keyf = new File(keyfile);
-        FileInputStream fl;
+
         try
         {
-          fl = new FileInputStream(keyfile);
+          raf = new RandomAccessFile(new File(keyfile), "r");
         }
         catch (FileNotFoundException ex)
         {
@@ -171,9 +172,11 @@ public class LazyKeyManager implements X509KeyManager {
           }
           return null;      
         }
-        byte[] keydata = new byte[(int)keyf.length()];
-        fl.read ( keydata, 0, (int)keyf.length() );
-        fl.close();
+        byte[] keydata = new byte[(int)raf.length()];
+        raf.readFully(keydata);
+        raf.close();
+        raf = null;
+
         KeyFactory kf = KeyFactory.getInstance(cert[0].getPublicKey().getAlgorithm());
         try {
           KeySpec pkcs8KeySpec = new PKCS8EncodedKeySpec (keydata);
@@ -228,6 +231,10 @@ public class LazyKeyManager implements X509KeyManager {
     }
     catch (IOException ioex)
     {
+      if (raf != null) {
+	  try { raf.close(); } catch (IOException ex) { };
+      }
+
       error = new PSQLException(GT.tr("Could not read SSL key file {0}.", new Object[]{keyfile}), PSQLState.CONNECTION_FAILURE, ioex);
     }
     catch(NoSuchAlgorithmException ex)

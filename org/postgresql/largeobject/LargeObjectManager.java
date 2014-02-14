@@ -9,6 +9,7 @@ package org.postgresql.largeobject;
 
 
 import java.sql.ResultSet;
+import java.sql.Statement;
 import java.sql.SQLException;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.fastpath.Fastpath;
@@ -132,13 +133,15 @@ public class LargeObjectManager
             sql += ")";
         }
 
-        ResultSet res = conn.createStatement().executeQuery(sql);
+        Statement stmt = conn.createStatement();
+        ResultSet res = stmt.executeQuery(sql);
 
         if (res == null)
             throw new PSQLException(GT.tr("Failed to initialize LargeObject API"), PSQLState.SYSTEM_ERROR);
 
         fp.addFunctions(res);
         res.close();
+        stmt.close();
 
         conn.getLogger().debug("Large Object initialised");
     }
