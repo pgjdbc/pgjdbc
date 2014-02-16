@@ -12,6 +12,7 @@ import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.math.*;
+import java.nio.charset.Charset;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -3174,12 +3175,14 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             return;
         }
 
-        InputStream l_inStream = x.getAsciiStream();
+        Reader l_inStream = x.getCharacterStream();
         int l_length = (int) x.length();
         LargeObjectManager lom = connection.getLargeObjectAPI();
         long oid = lom.createLO();
         LargeObject lob = lom.open(oid);
+        Charset connectionCharset = Charset.forName(connection.getEncoding().name());
         OutputStream los = lob.getOutputStream();
+        Writer lw = new OutputStreamWriter(los, connectionCharset);
         try
         {
             // could be buffered, but then the OutputStream returned by LargeObject
@@ -3189,11 +3192,11 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             int p = 0;
             while (c > -1 && p < l_length)
             {
-                los.write(c);
+                lw.write(c);
                 c = l_inStream.read();
                 p++;
             }
-            los.close();
+            lw.close();
         }
         catch (IOException se)
         {
