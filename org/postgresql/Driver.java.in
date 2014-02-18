@@ -758,7 +758,12 @@ public class Driver implements java.sql.Driver
         throw notImplemented(this.getClass(), "getParentLogger()");
     }
 
- 	public synchronized  static void addTimerTask(TimerTask timerTask, long milliSeconds)
+    public static void purgeTimerTasks()
+    {
+        if ( cancelTimer != null ) cancelTimer.purge();
+    }
+
+    public synchronized  static void addTimerTask(TimerTask timerTask, long milliSeconds)
     {
 
     	if ( cancelTimer == null )
