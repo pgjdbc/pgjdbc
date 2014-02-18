@@ -3438,6 +3438,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         {
             cancelTimer.cancel();
             cancelTimer = null;
+	    Driver.purgeTimerTasks();
         }
             
     }
