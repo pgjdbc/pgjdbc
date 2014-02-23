@@ -63,6 +63,10 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
     // Default statement prepare threshold.
     protected int prepareThreshold;
+
+    // Default forcebinary option.
+    protected boolean forcebinary = false;
+
     // Connection's autocommit state.
     public boolean autoCommit = true;
     // Connection's readonly state.
@@ -116,7 +120,10 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         {
             prepareThreshold = Integer.parseInt(info.getProperty("prepareThreshold", "5"));
             if (prepareThreshold < 0)
+            {
+                forcebinary = true;
                 prepareThreshold = 0;
+            }
         }
         catch (Exception e)
         {
@@ -1198,6 +1205,14 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
     public void setPrepareThreshold(int newThreshold) {
         this.prepareThreshold = (newThreshold <= 0 ? 0 : newThreshold);
+    }
+
+    public boolean getForceBinary() {
+        return forcebinary;
+    }
+
+    public void setForceBinary(boolean newValue) {
+        this.forcebinary = newValue;
     }
 
 
