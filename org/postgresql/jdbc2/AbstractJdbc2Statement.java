@@ -39,7 +39,7 @@ import org.postgresql.util.GT;
 public abstract class AbstractJdbc2Statement implements BaseStatement
 {
     // only for testing purposes. even single shot statements will use binary transfers
-    public static final boolean ForceBinaryTransfers = Boolean.getBoolean("org.postgresql.forcebinary");
+    public static boolean ForceBinaryTransfers = Boolean.getBoolean("org.postgresql.forcebinary");
 
     protected ArrayList batchStatements = null;
     protected ArrayList batchParameters = null;
@@ -145,6 +145,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         this.preparedQuery = null;
         this.preparedParameters = null;
         this.lastSimpleQuery = null;
+        ForceBinaryTransfers |= c.getForceBinary();
         resultsettype = rsType;
         concurrency = rsConcurrency;
     }
@@ -165,6 +166,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         this.testReturn = new int[inParamCount];
         this.functionReturnType = new int[inParamCount];
 
+        ForceBinaryTransfers |= connection.getForceBinary();
 
         resultsettype = rsType;
         concurrency = rsConcurrency;
@@ -541,7 +543,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (concurrency != ResultSet.CONCUR_READ_ONLY)
             flags |= QueryExecutor.QUERY_NO_BINARY_TRANSFER;
 
-        if (ForceBinaryTransfers || (flags & QueryExecutor.QUERY_ONESHOT) == 0) {
+        if (ForceBinaryTransfers) {
                 int flags2 = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
                 StatementResultHandler handler2 = new StatementResultHandler();
                 connection.getQueryExecutor().execute(queryToExecute, queryParameters, handler2, 0, 0, flags2);
@@ -2603,7 +2605,12 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
     public void setPrepareThreshold(int newThreshold) throws SQLException {
         checkClosed();
-        
+       
+        if (newThreshold < 0)
+            ForceBinaryTransfers = true;
+        else
+            ForceBinaryTransfers = false;
+ 
         if (ForceBinaryTransfers)
             newThreshold = 1;
 
