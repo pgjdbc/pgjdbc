@@ -150,6 +150,23 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
                 }
             }
             try {
+		/*
+		 * If the argument to equals-method is also a wrapper,
+		 * present the original unwrapped connection to the underlying
+		 * equals method.
+		 */
+		if (method.getName().equals("equals")) {
+                    Object arg = args[0];
+                    if (Proxy.isProxyClass(arg.getClass())) {
+                        InvocationHandler h = Proxy.getInvocationHandler(arg);
+                        if (h instanceof ConnectionHandler) {
+                            // unwrap argument
+                            args = new Object[] {
+((ConnectionHandler) h).con };
+                        }
+                    }
+                }
+
                 return method.invoke(con, args);
             } catch (InvocationTargetException ex) {
                 throw ex.getTargetException();
