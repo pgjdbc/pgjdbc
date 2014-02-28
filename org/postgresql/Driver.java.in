@@ -54,7 +54,7 @@ public class Driver implements java.sql.Driver
     
     private static final Logger logger = new Logger();
     private static boolean logLevelSet = false;
-	private static Timer cancelTimer=null;
+	private static Timer cancelTimer = new Timer(true);
 
     static
     {
@@ -763,13 +763,8 @@ public class Driver implements java.sql.Driver
         if ( cancelTimer != null ) cancelTimer.purge();
     }
 
-    public synchronized  static void addTimerTask(TimerTask timerTask, long milliSeconds)
+    public  static void addTimerTask(TimerTask timerTask, long milliSeconds)
     {
-
-    	if ( cancelTimer == null )
-    	{
-    		cancelTimer = new Timer(true);
-    	}
     	cancelTimer.schedule( timerTask, milliSeconds );
     }
 
