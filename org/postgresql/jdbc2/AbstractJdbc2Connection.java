@@ -120,10 +120,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         {
             prepareThreshold = Integer.parseInt(info.getProperty("prepareThreshold", "5"));
             if (prepareThreshold < 0)
-            {
                 forcebinary = true;
-                prepareThreshold = 0;
-            }
         }
         catch (Exception e)
         {
@@ -1204,7 +1201,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     }
 
     public void setPrepareThreshold(int newThreshold) {
-        this.prepareThreshold = (newThreshold <= 0 ? 0 : newThreshold);
+        this.prepareThreshold = newThreshold;
     }
 
     public boolean getForceBinary() {
