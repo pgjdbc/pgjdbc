@@ -63,7 +63,7 @@ public class HStoreConverter {
        return baos.toByteArray();
    }
 
-   public static String toString(Map map) throws SQLException {
+   public static String toString(Map map) {
        if (map.isEmpty()) {
            return "";
        }
@@ -79,7 +79,7 @@ public class HStoreConverter {
        return sb.toString();
    }
 
-   private static void appendEscaped(StringBuffer sb, Object val) throws SQLException {
+   private static void appendEscaped(StringBuffer sb, Object val) {
       if (val != null) {
           sb.append('"');
           String s = val.toString();
