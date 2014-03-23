@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2003-2011, PostgreSQL Global Development Group
+* Copyright (c) 2003-2014, PostgreSQL Global Development Group
 *
 *
 *-------------------------------------------------------------------------
@@ -793,7 +793,7 @@ public class TimestampUtils {
         if (tz == null) {
             tz = defaultTz;
         }
-        int offset = tz.getOffset(millis);
+        int offset = tz.getOffset(millis) + tz.getDSTSavings();
         long timePart = millis % ONEDAY;
         if (timePart + offset >= ONEDAY) {
             millis += ONEDAY;
