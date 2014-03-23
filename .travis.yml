@@ -1,5 +1,10 @@
 language: java
 
+before_script:
+  - psql -c 'create user test with password \'test\';'
+  - psql -c 'create database test owner test;' -U postgres
+ 
+
 script: ant -lib lib test
 
 jdk:
