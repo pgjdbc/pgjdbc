@@ -106,6 +106,10 @@
     <include name="${package}/xa/jdbc4/*.java" if="jdbc4any"/>
   </patternset>
 
+  <artifact:dependencies pathId="dependency.classpath" useScope="test">
+    <dependency groupId="junit" artifactId="junit" version="3.8.2" scope="test"/>
+  </artifact:dependencies>
+
   <target name="check_versions">
     <condition property="jdbc2">
       <or>
@@ -229,6 +233,7 @@
     <fail message="Old driver was detected on classpath or in jre/lib/ext, please remove and try again." if="old.driver.present" />
 
     <javac classpath="${srcdir}" srcdir="${srcdir}" destdir="${builddir}" debug="${debug}" source="${java.specification.version}">
+      <classpath refid="dependency.classpath" />
       <patternset refid="jdbc.version.src.pattern"/>
     </javac>
   </target>
@@ -429,9 +434,9 @@
 
   <!-- This compiles and builds the test jarfile. -->  
   <target name="testjar" depends="jar">
-    <fail message="JUnit could not be found in your classpath.  You must download and install it from http://junit.org to build and run the test suite." unless="junit" />
     <mkdir dir="${builddir}/tests"/>
     <javac srcdir="${srcdir}" destdir="${builddir}/tests" debug="${debug}" source="${java.specification.version}">
+      <classpath refid="dependency.classpath" />
       <include name="${package}/test/**" />
 
       <exclude name="${package}/test/jdbc4/**" unless="jdbc4tests" />
@@ -467,6 +472,7 @@
       <sysproperty key="protocolVersion" value="${protocolVersion}" />
       <sysproperty key="ssltest.properties" value="${ssltest.properties}" />
 
+      <classpath refid="dependency.classpath" />
       <classpath>
         <pathelement location="${artifact.jar}" />
         <pathelement location="${jardir}/postgresql-tests.jar" />
