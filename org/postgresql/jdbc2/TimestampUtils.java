@@ -768,7 +768,7 @@ public class TimestampUtils {
             if (tz == null) {
                 tz = defaultTz;
             }
-            millis -= tz.getOffset(millis);
+            millis -= tz.getOffset(millis) + tz.getDSTSavings();
         }
 
         Timestamp ts = new Timestamp(millis);
