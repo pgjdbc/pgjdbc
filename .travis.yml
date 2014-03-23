@@ -1,6 +1,6 @@
 language: java
 
-script: ant -lib test
+script: ant -lib lib test
 
 jdk:
  - openjdk7
