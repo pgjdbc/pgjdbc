@@ -16,9 +16,12 @@ Ant installed. To obtain Ant go to http://ant.apache.org/index.html and
 download the binary. Being pure Java it will run on virtually all Java
 platforms. If you have any problems please email the pgsql-jdbc list.
 
-Once you have Ant, simply run ant in the top level directory.  This will
-compile the correct driver for your JVM, and build a .jar file (Java ARchive)
-called postgresql.jar.
+Once you have Ant, simply run ant using 'ant -lib lib' in the top level directory.  
+This will compile the correct driver for your JVM, and build a .jar file (Java ARchive)
+depending on the version of java and which release you have the jar will be named
+postgresql-<major>.<minor>-<release>.jdbc<N>.jar. Where major,minor are the postgreSQL major,minor
+version numbers. release is the jdbc release number. N is the version of the JDBC API which 
+corresponds to the version of Java used to compile the driver.
 
 *REMEMBER*: Once you have compiled the driver, it will work on ALL platforms
 that support that version of the API. You don't need to build it for each
