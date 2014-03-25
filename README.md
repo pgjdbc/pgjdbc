@@ -1,6 +1,8 @@
 <img src="http://developer.postgresql.org/~josh/graphics/logos/elephant-64.png" />
 # PostgreSQL JDBC driver
 
+[![Build Status](https://travis-ci.org/pgjdbc/pgjdbc.png)](https://travis-ci.org/pgjdbc/pgjdbc)
+
 This is a simple readme describing how to compile and use the Postgresql JDBC driver.
 
 ## Info
