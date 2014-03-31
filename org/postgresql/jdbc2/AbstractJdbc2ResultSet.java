@@ -2730,10 +2730,11 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         return col;
     }
 
-    private int findColumnIndex(String columnName)
+    private int findColumnIndex(String columnName) throws SQLException
     {
     	if (columnNameIndexMap == null)
         {
+            ResultSetMetaData metaData = getMetaData();
             columnNameIndexMap = new HashMap(fields.length * 2);
             // The JDBC spec says when you have duplicate columns names,
             // the first one should be returned.  So load the map in
@@ -2743,8 +2744,10 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             {
                 if (isSanitiserDisabled){
                     columnNameIndexMap.put(fields[i].getColumnLabel(), new Integer(i + 1));
+                    columnNameIndexMap.put(metaData.getTableName(i+1) + "." +  fields[i].getColumnLabel(), new Integer(i + 1));
                 } else {
                     columnNameIndexMap.put(fields[i].getColumnLabel().toLowerCase(Locale.US), new Integer(i + 1));
+                    columnNameIndexMap.put(metaData.getTableName(i+1).toLowerCase(Locale.US) + "." +  fields[i].getColumnLabel().toLowerCase(Locale.US), new Integer(i + 1));
                 }
             }
         }
