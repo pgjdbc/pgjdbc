@@ -78,16 +78,22 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             //
             // Establish a connection.
             //
-            
+        int connectTimeout = 0;
+        String connectTimeoutProperty = info.getProperty("connectTimeout", "0");
+        try {
+          connectTimeout = Integer.parseInt(connectTimeoutProperty) * 1000;
+        } catch (NumberFormatException nfe) {
+          logger.info("Couldn't parse connectTimeout value:" + connectTimeoutProperty);
+        }
 
         PGStream newStream = null;
         try
         {
-            newStream = new PGStream(hostSpec);
+            newStream = new PGStream(hostSpec, connectTimeout);
 
             // Construct and send an ssl startup packet if requested.
             if (trySSL)
-                newStream = enableSSL(newStream, requireSSL, info, logger);
+                newStream = enableSSL(newStream, requireSSL, info, logger, connectTimeout);
             
             
             // Set the socket timeout if the "socketTimeout" property has been set.
@@ -112,7 +118,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             doAuthentication(newStream, user, info.getProperty("password"), logger);
 
             // Do final startup.
-            ProtocolConnectionImpl protoConnection = new ProtocolConnectionImpl(newStream, user, database, logger);
+            ProtocolConnectionImpl protoConnection = new ProtocolConnectionImpl(newStream, user, database, logger, connectTimeout);
             readStartupMessages(newStream, protoConnection, logger);
 
             // Run some initial queries
@@ -175,7 +181,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         throw new PSQLException (GT.tr("The connection url is invalid."), PSQLState.CONNECTION_UNABLE_TO_CONNECT);
     }
 
-    private PGStream enableSSL(PGStream pgStream, boolean requireSSL, Properties info, Logger logger) throws IOException, SQLException {
+    private PGStream enableSSL(PGStream pgStream, boolean requireSSL, Properties info, Logger logger, int connectTimeout) throws IOException, SQLException {
         if (logger.logDebug())
             logger.debug(" FE=> SSLRequest");
 
@@ -199,7 +205,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
             // We have to reconnect to continue.
             pgStream.close();
-            return new PGStream(pgStream.getHostSpec());
+            return new PGStream(pgStream.getHostSpec(), connectTimeout);
 
         case 'N':
             if (logger.logDebug())
