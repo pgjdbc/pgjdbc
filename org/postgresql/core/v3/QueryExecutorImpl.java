@@ -2260,5 +2260,5 @@ public class QueryExecutorImpl implements QueryExecutor {
 
     private final SimpleQuery beginTransactionQuery = new SimpleQuery(new String[] { "BEGIN" }, null);
 
-    private final static SimpleQuery EMPTY_QUERY = new SimpleQuery(new String[] { "" }, null);
+    private final SimpleQuery EMPTY_QUERY = new SimpleQuery(new String[] { "" }, null);
 }
