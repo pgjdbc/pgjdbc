@@ -725,6 +725,18 @@ openssl pkcs8 -topk8 -in client.key -out client.pk8 -outform DER -v1 PBE-SHA1-3D
        </listitem>
       </varlistentry>
 
+     <varlistentry>
+         <term><varname>connectTimeout</varname> = <type>int</type></term>
+         <listitem>
+             <para>
+                 The timeout value used for socket connect operations. If connecting
+                 to the server takes longer than this value, the connection is broken.
+                 The timeout is specified in seconds and a value of zero means that
+                 it is disabled.
+             </para>
+         </listitem>
+     </varlistentry>
+
       <varlistentry>
        <term><varname>socketTimeout</varname> = <type>int</type></term>
        <listitem>

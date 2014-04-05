@@ -27,7 +27,7 @@ import java.util.Properties;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 class ProtocolConnectionImpl implements ProtocolConnection {
-    ProtocolConnectionImpl(PGStream pgStream, String user, String database, Properties info, Logger logger) {
+    ProtocolConnectionImpl(PGStream pgStream, String user, String database, Properties info, Logger logger, int connectTimeout) {
         this.pgStream = pgStream;
         this.user = user;
         this.database = database;
@@ -35,6 +35,7 @@ class ProtocolConnectionImpl implements ProtocolConnection {
         this.executor = new QueryExecutorImpl(this, pgStream, info, logger);
         // default value for server versions that don't report standard_conforming_strings
         this.standardConformingStrings = false;
+        this.connectTimeout = connectTimeout;
     }
 
     public HostSpec getHostSpec() {
@@ -89,7 +90,7 @@ class ProtocolConnectionImpl implements ProtocolConnection {
             if (logger.logDebug())
                 logger.debug(" FE=> CancelRequest(pid=" + cancelPid + ",ckey=" + cancelKey + ")");
 
-            cancelStream = new PGStream(pgStream.getHostSpec());
+            cancelStream = new PGStream(pgStream.getHostSpec(), connectTimeout);
             cancelStream.SendInteger4(16);
             cancelStream.SendInteger2(1234);
             cancelStream.SendInteger2(5678);
@@ -249,4 +250,6 @@ class ProtocolConnectionImpl implements ProtocolConnection {
     private final String database;
     private final QueryExecutorImpl executor;
     private final Logger logger;
+
+    private final int connectTimeout;
 }
