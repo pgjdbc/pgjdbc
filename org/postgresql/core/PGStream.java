@@ -50,19 +50,32 @@ public class PGStream
      * a stream connection.
      *
      * @param hostSpec the host and port to connect to
+     * @param timeout timeout in milliseconds, or 0 if no timeout set
      * @exception IOException if an IOException occurs below it.
      */
-    public PGStream(HostSpec hostSpec) throws IOException
+    public PGStream(HostSpec hostSpec, int timeout) throws IOException
     {
         this.hostSpec = hostSpec;
 
         Socket socket = new Socket();
-        socket.connect(new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort()));
+        socket.connect(new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort()), timeout);
         changeSocket(socket);
         setEncoding(Encoding.getJVMEncoding("US-ASCII"));
 
         _int2buf = new byte[2];
         _int4buf = new byte[4];
+    }
+
+    /**
+     * Constructor:  Connect to the PostgreSQL back end and return
+     * a stream connection.
+     *
+     * @param hostSpec the host and port to connect to
+     * @throws IOException if an IOException occurs below it.
+     * @deprecated use {@link #PGStream(org.postgresql.util.HostSpec, int)}
+     */
+    public PGStream(HostSpec hostSpec) throws IOException {
+      this(hostSpec, 0);
     }
 
     public HostSpec getHostSpec() {
