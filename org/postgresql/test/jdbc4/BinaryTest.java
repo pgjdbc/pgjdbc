@@ -33,6 +33,8 @@ public class BinaryTest extends TestCase {
     protected void setUp() throws Exception {
         connection = TestUtil.openDB();
         statement = connection.prepareStatement("select 1");
+
+        ((PGStatement) statement).setPrepareThreshold(5);
     }
 
     @Override
@@ -50,17 +52,19 @@ public class BinaryTest extends TestCase {
         assertEquals(Field.TEXT_FORMAT, getFormat(results));
 
         results = statement.executeQuery();
-        assertEquals(Field.BINARY_FORMAT, getFormat(results));
+        assertEquals(Field.TEXT_FORMAT, getFormat(results));
 
         results = statement.executeQuery();
         assertEquals(Field.BINARY_FORMAT, getFormat(results));
+
+        ((PGStatement) statement).setPrepareThreshold(5);
     }
 
     public void testPreparedStatement_1() throws Exception {
         ((PGStatement) statement).setPrepareThreshold(1);
 
         results = statement.executeQuery();
-        assertEquals(Field.BINARY_FORMAT, getFormat(results));
+        assertEquals(Field.TEXT_FORMAT, getFormat(results));
 
         results = statement.executeQuery();
         assertEquals(Field.BINARY_FORMAT, getFormat(results));
@@ -70,6 +74,8 @@ public class BinaryTest extends TestCase {
 
         results = statement.executeQuery();
         assertEquals(Field.BINARY_FORMAT, getFormat(results));
+
+        ((PGStatement) statement).setPrepareThreshold(5);
     }
 
     public void testPreparedStatement_0() throws Exception {
@@ -86,6 +92,26 @@ public class BinaryTest extends TestCase {
 
         results = statement.executeQuery();
         assertEquals(Field.TEXT_FORMAT, getFormat(results));
+
+        ((PGStatement) statement).setPrepareThreshold(5);
+    }
+
+    public void testPreparedStatement_negative1() throws Exception {
+        ((PGStatement) statement).setPrepareThreshold(-1);
+
+        results = statement.executeQuery();
+        assertEquals(Field.BINARY_FORMAT, getFormat(results));
+
+        results = statement.executeQuery();
+        assertEquals(Field.BINARY_FORMAT, getFormat(results));
+
+        results = statement.executeQuery();
+        assertEquals(Field.BINARY_FORMAT, getFormat(results));
+
+        results = statement.executeQuery();
+        assertEquals(Field.BINARY_FORMAT, getFormat(results));
+
+        ((PGStatement) statement).setPrepareThreshold(5);
     }
 
     private int getFormat(ResultSet results) throws SQLException {

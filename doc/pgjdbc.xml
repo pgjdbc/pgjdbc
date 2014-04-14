@@ -711,6 +711,9 @@ openssl pkcs8 -topk8 -in client.key -out client.pk8 -outform DER -v1 PBE-SHA1-3D
 	 <classname>PreparedStatement</classname> object.  More
 	 information on server side prepared
          statements is available in <xref linkend="server-prepare" />.
+         Negative number is regarded as zero, but -1 has special meaning
+         that allows the first query of a<classname>PreparedStatement</classname>
+         to use binary encoding.
         </para>
        </listitem>
       </varlistentry>
