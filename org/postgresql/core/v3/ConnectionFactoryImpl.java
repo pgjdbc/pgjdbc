@@ -8,6 +8,8 @@
 */
 package org.postgresql.core.v3;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.util.TimeZone;
 
@@ -165,15 +167,26 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             logger.info("Receive Buffer Size is " + newStream.getSocket().getReceiveBufferSize());
             logger.info("Send Buffer Size is " + newStream.getSocket().getSendBufferSize());
 
-            // Construct and send a startup packet.
-            String[][] params = {
-                                    { "user", user },
-                                    { "database", database },
-                                    { "client_encoding", "UTF8" },
-                                    { "DateStyle", "ISO" },
-                                    { "extra_float_digits", "2" },
-                                    { "TimeZone",  createPostgresTimeZone() },                                    
-                                };
+            List<String[]> paramList = new ArrayList<String[]>();
+            paramList.add(new String[] {"user", user});
+            paramList.add(new String[] {"database", database});
+            paramList.add(new String[] {"client_encoding", "UTF8"});
+            paramList.add(new String[] {"DateStyle", "ISO"});
+            paramList.add(new String[] {"TimeZone",  createPostgresTimeZone()});
+            String assumeMinServerVersion = info.getProperty("assumeMinServerVersion");
+            // NOTE: The comparison used here will stop working when major or minor is two digits long (ex: 10.0 < 9.0)
+            if( assumeMinServerVersion != null && assumeMinServerVersion.compareTo("9.0") >= 0 ) {
+                // User is explicitly telling us this is a 9.0+ server so set properties here:
+                paramList.add(new String[] {"extra_float_digits", "3"});
+                String appName = info.getProperty("ApplicationName");
+                if( appName != null ) {
+                    paramList.add(new String[] {"application_name", appName});
+                }
+            } else {
+                // User has not explicitly told us that this is a 9.0+ server so stick to old default:
+                paramList.add(new String[] {"extra_float_digits", "2"});
+            }
+            String[][] params = paramList.toArray(new String[][]{});
 
             sendStartupPacket(newStream, params, logger);
 
@@ -640,6 +653,13 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     private void runInitialQueries(ProtocolConnection protoConnection, Properties info, Logger logger) throws SQLException
     {
+        String assumeMinServerVersion = info.getProperty("assumeMinServerVersion");
+        // NOTE: The comparison used here will stop working when major or minor is two digits long (ex: 10.0 < 9.0)
+        if( assumeMinServerVersion != null && assumeMinServerVersion.compareTo("9.0") >= 0 ) {
+            // We already sent the parameter values in the StartupMessage so skip this
+            return;
+        }
+
         String dbVersion = protoConnection.getServerVersion();
 
         if (dbVersion.compareTo("9.0") >= 0) {
