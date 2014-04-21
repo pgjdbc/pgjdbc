@@ -39,7 +39,7 @@ import org.postgresql.util.GT;
 public abstract class AbstractJdbc2Statement implements BaseStatement
 {
     // only for testing purposes. even single shot statements will use binary transfers
-    public boolean forceBinaryTransfers = Boolean.getBoolean("org.postgresql.forcebinary");
+    private boolean forceBinaryTransfers = Boolean.getBoolean("org.postgresql.forceBinary");
 
     protected ArrayList batchStatements = null;
     protected ArrayList batchParameters = null;
@@ -2603,6 +2603,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         }
     }
 
+    
     public void setPrepareThreshold(int newThreshold) throws SQLException {
         checkClosed();
        
@@ -3444,5 +3445,10 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	    Driver.purgeTimerTasks();
         }
             
+    }
+    
+    protected boolean getForceBinaryTransfer()
+    {
+        return forceBinaryTransfers;        
     }
 }

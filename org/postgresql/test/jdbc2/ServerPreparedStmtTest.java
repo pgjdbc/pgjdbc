@@ -95,7 +95,8 @@ public class ServerPreparedStmtTest extends TestCase
 
         //Verify that using the statement still works after turning off prepares
         
-        if (((AbstractJdbc2Statement)pstmt).forceBinaryTransfers) {
+        
+        if (Boolean.getBoolean("org.postgresql.forceBinary")) {
             return;
         }
         ((PGStatement)pstmt).setUseServerPrepare(false);
@@ -129,7 +130,7 @@ public class ServerPreparedStmtTest extends TestCase
         rs.close();
 
         //Verify that using the statement still works after turning off prepares
-        if (((AbstractJdbc2Statement)pstmt).forceBinaryTransfers) {
+        if (Boolean.getBoolean("org.postgresql.forceBinary")) {
             return;
         }
 
