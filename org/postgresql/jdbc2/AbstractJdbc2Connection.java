@@ -119,12 +119,14 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         try
         {
             prepareThreshold = Integer.parseInt(info.getProperty("prepareThreshold", "5"));
-            if (prepareThreshold < 0)
+            // special value to set forceBinary to true
+            if (prepareThreshold == -1)
                 forcebinary = true;
         }
         catch (Exception e)
         {
         }
+        
         boolean binaryTransfer = true;
         try
         {
