@@ -94,7 +94,8 @@ public class ServerPreparedStmtTest extends TestCase
         rs.close();
 
         //Verify that using the statement still works after turning off prepares
-        if (AbstractJdbc2Statement.ForceBinaryTransfers) {
+        
+        if (((AbstractJdbc2Statement)pstmt).forceBinaryTransfers) {
             return;
         }
         ((PGStatement)pstmt).setUseServerPrepare(false);
@@ -128,7 +129,7 @@ public class ServerPreparedStmtTest extends TestCase
         rs.close();
 
         //Verify that using the statement still works after turning off prepares
-        if (AbstractJdbc2Statement.ForceBinaryTransfers) {
+        if (((AbstractJdbc2Statement)pstmt).forceBinaryTransfers) {
             return;
         }
 
