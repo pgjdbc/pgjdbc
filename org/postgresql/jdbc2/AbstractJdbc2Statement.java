@@ -39,7 +39,7 @@ import org.postgresql.util.GT;
 public abstract class AbstractJdbc2Statement implements BaseStatement
 {
     // only for testing purposes. even single shot statements will use binary transfers
-    public static final boolean ForceBinaryTransfers = Boolean.getBoolean("org.postgresql.forcebinary");
+    public boolean forceBinaryTransfers = Boolean.getBoolean("org.postgresql.forcebinary");
 
     protected ArrayList batchStatements = null;
     protected ArrayList batchParameters = null;
@@ -145,6 +145,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         this.preparedQuery = null;
         this.preparedParameters = null;
         this.lastSimpleQuery = null;
+        forceBinaryTransfers |= c.getForceBinary();
         resultsettype = rsType;
         concurrency = rsConcurrency;
     }
@@ -165,6 +166,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         this.testReturn = new int[inParamCount];
         this.functionReturnType = new int[inParamCount];
 
+        forceBinaryTransfers |= connection.getForceBinary();
 
         resultsettype = rsType;
         concurrency = rsConcurrency;
@@ -259,7 +261,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             throw new PSQLException(GT.tr("Can''t use query methods that take a query string on a PreparedStatement."),
                                     PSQLState.WRONG_OBJECT_TYPE);
 
-        if (ForceBinaryTransfers) {
+        if (forceBinaryTransfers) {
         	clearWarnings();
                 // Close any existing resultsets associated with this statement.
                 while (firstUnclosedResult != null)
@@ -530,7 +532,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (preparedQuery != null)
         {
             ++m_useCount; // We used this statement once more.
-            if (m_prepareThreshold == 0 || m_useCount < m_prepareThreshold)
+            if ((m_prepareThreshold == 0 || m_useCount < m_prepareThreshold) && !forceBinaryTransfers)
                 flags |= QueryExecutor.QUERY_ONESHOT;
         }
 
@@ -541,7 +543,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (concurrency != ResultSet.CONCUR_READ_ONLY)
             flags |= QueryExecutor.QUERY_NO_BINARY_TRANSFER;
 
-        if (ForceBinaryTransfers || (flags & QueryExecutor.QUERY_ONESHOT) == 0) {
+        if (!queryToExecute.isStatementDescribed() && forceBinaryTransfers) {
                 int flags2 = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
                 StatementResultHandler handler2 = new StatementResultHandler();
                 connection.getQueryExecutor().execute(queryToExecute, queryParameters, handler2, 0, 0, flags2);
@@ -2603,12 +2605,13 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
     public void setPrepareThreshold(int newThreshold) throws SQLException {
         checkClosed();
-        
-        if (ForceBinaryTransfers)
+       
+        if (newThreshold < 0) {
+            forceBinaryTransfers = true;
             newThreshold = 1;
-
-        if (newThreshold < 0)
-            newThreshold = 0;
+        }
+        else
+            forceBinaryTransfers = false;
 
         this.m_prepareThreshold = newThreshold;
     }
@@ -2865,7 +2868,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (connection.getAutoCommit())
             flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
 
-        if (preDescribe || ForceBinaryTransfers) {
+        if (preDescribe || forceBinaryTransfers) {
             int flags2 = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
             StatementResultHandler handler2 = new StatementResultHandler();
             connection.getQueryExecutor().execute(queries[0], parameterLists[0], handler2, 0, 0, flags2);
