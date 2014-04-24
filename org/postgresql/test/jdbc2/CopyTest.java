@@ -8,6 +8,7 @@
 package org.postgresql.test.jdbc2;
 
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -17,6 +18,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.StringReader;
 
 import junit.framework.TestCase;
@@ -54,6 +56,8 @@ public class CopyTest extends TestCase {
     }
 
     protected void setUp() throws Exception {
+        
+
         con = TestUtil.openDB();
 
         TestUtil.createTable(con, "copytest", "stringvalue text, intvalue int, numvalue numeric(5,2)");
@@ -268,6 +272,42 @@ public class CopyTest extends TestCase {
         testCopyInByRow();
         con.rollback();
         assertEquals(0, getCount());
+    }
+    
+    public void testChangeDateStyle() throws SQLException {
+        
+       
+        try
+        {
+        con.setAutoCommit(false);
+        con.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
+        CopyManager manager = con.unwrap(PGConnection.class).getCopyAPI();
+        
+        Statement stmt = con.createStatement();
+
+        stmt.execute("SET DateStyle = 'ISO, DMY'");
+        
+
+        // I expect an SQLException 
+        String sql = "COPY copytest FROM STDIN with xxx (format 'csv')";
+        CopyIn cp = manager.copyIn(sql);
+        for(int i=0; i<origData.length; i++) {
+            byte[] buf = origData[i].getBytes();
+            cp.writeToCopy(buf, 0, buf.length);
+        }
+
+        long count1 = cp.endCopy();
+        long count2 = cp.getHandledRowCount();
+        con.commit();
+        }
+        catch (SQLException ex )
+        {
+            
+            // the with xxx is a syntax error which shoud return a state of 42601
+            // if this fails the 'S' command is not being handled in the copy manager query handler
+            assertEquals("42601",ex.getSQLState());
+            con.rollback();
+        }
     }
 
 }
