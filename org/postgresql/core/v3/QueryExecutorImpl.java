@@ -1029,6 +1029,43 @@ public class QueryExecutorImpl implements QueryExecutor {
                 // keep receiving since we expect a CommandComplete
                 block = true;
                 break;
+            case 'S':    // Parameter Status
+            {
+                int l_len = pgStream.ReceiveInteger4();
+                String name = pgStream.ReceiveString();
+                String value = pgStream.ReceiveString();
+                if (logger.logDebug())
+                    logger.debug(" <=BE ParameterStatus(" + name + " = " + value + ")");
+
+                if (name.equals("client_encoding") && !value.equalsIgnoreCase("UTF8") && !allowEncodingChanges)
+                {
+                    protoConnection.close(); // we're screwed now; we can't trust any subsequent string.
+                    error = new PSQLException(GT.tr("The server''s client_encoding parameter was changed to {0}. The JDBC driver requires client_encoding to be UTF8 for correct operation.", value), PSQLState.CONNECTION_FAILURE);
+                    endReceiving = true;
+                }
+
+                if (name.equals("DateStyle") && !value.startsWith("ISO,"))
+                {
+                    protoConnection.close(); // we're screwed now; we can't trust any subsequent date.
+                    error = new PSQLException(GT.tr("The server''s DateStyle parameter was changed to {0}. The JDBC driver requires DateStyle to begin with ISO for correct operation.", value), PSQLState.CONNECTION_FAILURE);
+                    endReceiving = true;
+                }
+                
+                if (name.equals("standard_conforming_strings"))
+                {
+                    if (value.equals("on"))
+                        protoConnection.setStandardConformingStrings(true);
+                    else if (value.equals("off"))
+                        protoConnection.setStandardConformingStrings(false);
+                    else
+                    {
+                        protoConnection.close(); // we're screwed now; we don't know how to escape string literals
+                        error = new PSQLException(GT.tr("The server''s standard_conforming_strings parameter was reported as {0}. The JDBC driver expected on or off.", value), PSQLState.CONNECTION_FAILURE);
+                        endReceiving = true;
+                    }
+                }
+            }
+            break;
 
             case 'Z': // ReadyForQuery: After FE:CopyDone => BE:CommandComplete
 
