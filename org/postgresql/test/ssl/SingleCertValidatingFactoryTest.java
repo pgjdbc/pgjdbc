@@ -308,7 +308,7 @@ public class SingleCertValidatingFactoryTest {
 	public void connectSSLWithValidationProperCertEnvVar() throws SQLException,
 			IOException {
 		String envVarName = "DATASOURCE_SSL_CERT";
-		if( System.getProperty(envVarName) == null ) {
+		if( System.getenv(envVarName) == null ) {
 			System.out.println("Skipping test connectSSLWithValidationProperCertEnvVar (env variable is not defined)");
 			return;
 		}
@@ -353,7 +353,7 @@ public class SingleCertValidatingFactoryTest {
 			IOException {
 		// Use an environment variable that does *not* exist:
 		String envVarName = "MISSING_DATASOURCE_SSL_CERT";
-		if( System.getProperty(envVarName) != null ) {
+		if( System.getenv(envVarName) != null ) {
 			System.out.println("Skipping test connectSSLWithValidationMissingEnvVar (env variable is defined)");
 			return;
 		}
