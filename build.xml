@@ -83,6 +83,7 @@
     <exclude name="${package}/jdcb4/Jdbc4*.java" unless="jdbc4any"/>
 
     <!-- ssl -->
+    <include name="${package}/ssl/SingleCertValidatingFactory.java" if="jdbc4any"/>
     <include name="${package}/ssl/jdbc4/*.java" if="jdbc4any"/>
     <include name="${package}/ssl/jdbc3/*.java" if="jdbc3any"/>
     <include name="${package}/ssl/*.java" if="jdbc3any"/>
@@ -492,6 +493,7 @@
       <test name="org.postgresql.test.extensions.ExtensionsSuite" outfile="${testResultsDir}/extensions"/>
       <test name="org.postgresql.test.jdbc4.Jdbc4TestSuite" if="jdbc4tests" outfile="${testResultsDir}/jdbc4"/>
       <test name="org.postgresql.test.ssl.SslTestSuite" if="jdbc4tests" outfile="${testResultsDir}/ssl"/>
+      <test name="org.postgresql.test.ssl.SingleCertValidatingFactoryTest" if="jdbc4tests" outfile="${testResultsDir}/scsf-ssl"/>
     </junit>
   </target>
   
@@ -516,11 +518,12 @@
         <include name="util/PGmoney.java" />
         <include name="util/PGInterval.java" />
         <include name="util/ServerErrorMessage.java" />
-	<include name="ssl/WrappedFactory.java" />
-	<include name="ssl/NonValidatingFactory.java" />
-	<include name="ds/PG*.java" />
-	<include name="ds/common/BaseDataSource.java" />
-	<include name="xa/PGXADataSource.java" />
+        <include name="ssl/WrappedFactory.java" />
+        <include name="ssl/NonValidatingFactory.java" />
+        <include name="ssl/SingleCertValidatingFactory.java" />
+        <include name="ds/PG*.java" />
+        <include name="ds/common/BaseDataSource.java" />
+        <include name="xa/PGXADataSource.java" />
       </fileset>
     </javadoc>
   </target>
