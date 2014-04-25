@@ -423,6 +423,11 @@
   <property name="username" value="test" />
   <!-- Password must be something.  Doesn't matter if trust is used! -->
   <property name="password" value="test" />
+	
+  <property name="privilegedUser" value="postgres"/>	
+  <!-- Password must be something.  Doesn't matter if trust is used! -->
+  <property name="privilegedPassword" value=""/>	
+	
   <property name="preparethreshold" value="5" />
   <property name="loglevel" value="0" />
   <property name="protocolVersion" value="0" />
@@ -467,6 +472,8 @@
       <sysproperty key="database" value="${database}" />
       <sysproperty key="username" value="${username}" />
       <sysproperty key="password" value="${password}" />
+      <sysproperty key="privilegedUser" value="${privilegedUser}"/>	
+      <sysproperty key="privilegedPassword" value="${privilegedPassword}"/>	
       <sysproperty key="preparethreshold" value="${preparethreshold}" />
       <sysproperty key="loglevel" value="${loglevel}" />
       <sysproperty key="protocolVersion" value="${protocolVersion}" />
