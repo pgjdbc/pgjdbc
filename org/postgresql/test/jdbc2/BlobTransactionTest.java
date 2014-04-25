@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2004-2011, PostgreSQL Global Development Group
+* Copyright (c) 2004-2014, PostgreSQL Global Development Group
 *
 *
 *-------------------------------------------------------------------------
@@ -53,8 +53,8 @@ public class BlobTransactionTest extends TestCase
  * this would have to be executed using the postgres user in order to get access to a C function
  * 
  */ 
-        Connection superUser = TestUtil.openPrivilegedDB();
-        st = superUser.createStatement();
+        Connection privilegedCon = TestUtil.openPrivilegedDB();
+        st = privilegedCon.createStatement();
         try {
 	        sql = "CREATE OR REPLACE FUNCTION lo_manage() RETURNS pg_catalog.trigger AS '$libdir/lo' LANGUAGE C";
 	        st.executeUpdate(sql);
@@ -62,7 +62,7 @@ public class BlobTransactionTest extends TestCase
         	st.close();
         }
 
-        st = con.createStatement();
+        st = privilegedCon.createStatement();
         try {
 	        sql = "CREATE TRIGGER testblob_lomanage BEFORE UPDATE OR DELETE ON testblob FOR EACH ROW EXECUTE PROCEDURE lo_manage(lo)";
 	        st.executeUpdate(sql);
