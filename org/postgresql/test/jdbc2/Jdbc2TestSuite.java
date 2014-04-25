@@ -80,6 +80,7 @@ public class Jdbc2TestSuite extends TestSuite
         // Fastpath/LargeObject
         suite.addTestSuite(BlobTest.class);
         suite.addTestSuite(OID74Test.class);
+        suite.addTestSuite(BlobTransactionTest.class);
 
         suite.addTestSuite(UpdateableResultTest.class );
 
@@ -94,7 +95,7 @@ public class Jdbc2TestSuite extends TestSuite
         suite.addTestSuite(TestACL.class);
 
         suite.addTestSuite(ConnectTimeoutTest.class);
-
+        
         Connection conn = TestUtil.openDB();
         if (TestUtil.isProtocolVersion(conn, 3)) {
             suite.addTestSuite(CopyTest.class);

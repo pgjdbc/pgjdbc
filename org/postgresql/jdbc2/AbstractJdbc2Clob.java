@@ -36,8 +36,8 @@ public abstract class AbstractJdbc2Clob extends AbstractJdbc2BlobClob
     public synchronized String getSubString(long i, int j) throws SQLException
     {
         assertPosition(i, j);
-        lo.seek((int)i - 1);
-        return new String(lo.read(j));
+        getLo(false).seek((int)i - 1);
+        return new String(getLo(false).read(j));
     }
 
     /*
