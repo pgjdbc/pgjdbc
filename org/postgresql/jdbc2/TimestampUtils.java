@@ -301,6 +301,51 @@ public class TimestampUtils {
         
 //         System.err.println(sb.toString());
     }
+
+    /**
+     * Parse a string and return a calendar with time zone representing its value.
+     *
+     * @param s      The ISO formated date string to parse.
+     *
+     * @return null if s is null or a calendar of the parsed string s.
+     *
+     * @throws SQLException if there is a problem parsing s.
+     **/
+    public synchronized Calendar toCalendar(Calendar cal, String s) throws SQLException
+    {
+        if (s == null)
+            return null;
+
+        if (cal == null)
+            cal = defaultCal;
+
+        int slen = s.length();
+
+        // convert postgres's infinity values to internal infinity magic value
+        if (slen == 8 && s.equals("infinity")) {
+            cal.setTime(new Timestamp(PGStatement.DATE_POSITIVE_INFINITY));
+            return cal;
+        }
+
+        if (slen == 9 && s.equals("-infinity")) {
+            cal.setTime(new Timestamp(PGStatement.DATE_NEGATIVE_INFINITY));
+            return cal;
+        }
+
+        ParsedTimestamp ts = loadCalendar(cal, s, "timestamp");
+        Calendar useCal = (ts.tz == null ? cal : ts.tz);
+        useCal.set(Calendar.ERA,          ts.era);
+        useCal.set(Calendar.YEAR,         ts.year);
+        useCal.set(Calendar.MONTH,        ts.month-1);
+        useCal.set(Calendar.DAY_OF_MONTH, ts.day);
+        useCal.set(Calendar.HOUR_OF_DAY,  ts.hour);
+        useCal.set(Calendar.MINUTE,       ts.minute);
+        useCal.set(Calendar.SECOND,       ts.second);
+        useCal.set(Calendar.MILLISECOND,  0);
+
+        showParse("calendar", s, cal, null, useCal);
+        return useCal;
+    }
     
     /**
     * Parse a string and return a timestamp representing its value.
