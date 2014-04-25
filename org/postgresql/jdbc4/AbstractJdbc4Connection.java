@@ -116,7 +116,9 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
 
     public boolean isValid(int timeout) throws SQLException
     {
-        checkClosed();
+        if (isClosed()) {
+            return false;
+        }
     	if (timeout < 0) {
             throw new PSQLException(GT.tr("Invalid timeout ({0}<0).", timeout), PSQLState.INVALID_PARAMETER_VALUE);
         }
