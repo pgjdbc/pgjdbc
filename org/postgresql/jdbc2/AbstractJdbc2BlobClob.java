@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2005-2011, PostgreSQL Global Development Group
+* Copyright (c) 2005-2014, PostgreSQL Global Development Group
 *
 *
 *-------------------------------------------------------------------------
@@ -30,27 +30,37 @@ import org.postgresql.util.PSQLException;
 public abstract class AbstractJdbc2BlobClob
 {
     protected BaseConnection conn;
-    protected LargeObject lo;
-
+    
+    private LargeObject currentLo;
+    private long loPos;
+    private boolean currentLoIsWriteable;
+    
+    
     /**
      * We create separate LargeObjects for methods that use streams
      * so they won't interfere with each other.
      */
     private ArrayList subLOs;
+    
+    private final long oid;
 
     public AbstractJdbc2BlobClob(BaseConnection conn, long oid) throws SQLException
     {
         this.conn = conn;
-        LargeObjectManager lom = conn.getLargeObjectAPI();
-        this.lo = lom.open(oid);
+        this.oid = oid;
+        this.currentLo = null;
+        this.currentLoIsWriteable = false;
+        
+       
         subLOs = new ArrayList();
     }
 
     public synchronized void free() throws SQLException
     {
-        if (lo != null) {
-            lo.close();
-            lo = null;
+        if (currentLo != null) {
+        	currentLo.close();
+        	currentLo = null;
+        	currentLoIsWriteable = false;
         }
         Iterator i = subLOs.iterator();
         while (i.hasNext()) {
@@ -81,27 +91,27 @@ public abstract class AbstractJdbc2BlobClob
             throw new PSQLException(GT.tr("PostgreSQL LOBs can only index to: {0}", new Integer(Integer.MAX_VALUE)), PSQLState.INVALID_PARAMETER_VALUE);
         }
 
-        lo.truncate((int)len);
+        getLo(true).truncate((int)len);
     }
 
     public synchronized long length() throws SQLException
     {
         checkFreed();
-        return lo.size();
+        return getLo(false).size();
     }
 
     public synchronized byte[] getBytes(long pos, int length) throws SQLException
     {
         assertPosition(pos);
-        lo.seek((int)(pos-1), LargeObject.SEEK_SET);
-        return lo.read(length);
+        getLo(false).seek((int)(pos-1), LargeObject.SEEK_SET);
+        return getLo(false).read(length);
     }
 
 
     public synchronized InputStream getBinaryStream() throws SQLException
     {
         checkFreed();
-        LargeObject subLO = lo.copy();
+        LargeObject subLO = getLo(false).copy();
         subLOs.add(subLO);
         subLO.seek(0, LargeObject.SEEK_SET);
         return subLO.getInputStream();
@@ -110,7 +120,7 @@ public abstract class AbstractJdbc2BlobClob
     public synchronized OutputStream setBinaryStream(long pos) throws SQLException
     {
         assertPosition(pos);
-        LargeObject subLO = lo.copy();
+        LargeObject subLO = getLo(true).copy();
         subLOs.add(subLO);
         subLO.seek((int)(pos-1));
         return subLO.getOutputStream();
@@ -171,7 +181,7 @@ public abstract class AbstractJdbc2BlobClob
 
         public LOIterator(long start) throws SQLException
         {
-            lo.seek((int) start);
+            getLo(false).seek((int) start);
         }
 
         public boolean hasNext() throws SQLException
@@ -183,7 +193,7 @@ public abstract class AbstractJdbc2BlobClob
             }
             else
             {
-                numBytes = lo.read(buffer, 0, BUFFER_SIZE);
+                numBytes = getLo(false).read(buffer, 0, BUFFER_SIZE);
                 idx = 0;
                 result = (numBytes > 0);
             }
@@ -242,8 +252,33 @@ public abstract class AbstractJdbc2BlobClob
      */
     protected void checkFreed() throws SQLException
     {
-        if (lo == null)
+        if (subLOs == null)
             throw new PSQLException(GT.tr("free() was called on this LOB previously"), PSQLState.OBJECT_NOT_IN_STATE);
     }
 
+	protected synchronized LargeObject getLo(boolean forWrite) throws SQLException {
+		
+		
+		if (this.currentLo != null) {
+			if (forWrite && ! currentLoIsWriteable) {
+				// Reopen the stream in read-write, at the same pos.
+				int currentPos = this.currentLo.tell();
+				
+				LargeObjectManager lom = conn.getLargeObjectAPI();
+			    LargeObject newLo = lom.open(oid, LargeObjectManager.READWRITE);
+			    this.subLOs.add(this.currentLo);
+			    this.currentLo = newLo;
+			    
+			    if (currentPos != 0) {
+			    	this.currentLo.seek(currentPos);
+			    }
+			}
+			
+			return this.currentLo;
+		}
+		LargeObjectManager lom = conn.getLargeObjectAPI();
+	    currentLo = lom.open(oid, forWrite ? LargeObjectManager.READWRITE : LargeObjectManager.READ);
+	    currentLoIsWriteable = forWrite;
+	    return currentLo;
+	}
 }

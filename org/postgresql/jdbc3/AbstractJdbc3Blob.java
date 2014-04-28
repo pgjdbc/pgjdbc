@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2004-2011, PostgreSQL Global Development Group
+* Copyright (c) 2004-2014, PostgreSQL Global Development Group
 *
 *
 *-------------------------------------------------------------------------
@@ -63,8 +63,8 @@ public abstract class AbstractJdbc3Blob extends org.postgresql.jdbc2.AbstractJdb
     public synchronized int setBytes(long pos, byte[] bytes, int offset, int len) throws SQLException
     {
         assertPosition(pos);
-        lo.seek((int) (pos-1));
-        lo.write(bytes, offset, len);
+        getLo(true).seek((int) (pos-1));
+        getLo(true).write(bytes, offset, len);
         return len;
     }
 

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!--
 
-  Copyright (c) 2004-2011, PostgreSQL Global Development Group
+  Copyright (c) 2004-2014, PostgreSQL Global Development Group
 
   Build file to allow ant (http://ant.apache.org/) to be used
   to build the PostgreSQL JDBC Driver.
@@ -83,6 +83,7 @@
     <exclude name="${package}/jdcb4/Jdbc4*.java" unless="jdbc4any"/>
 
     <!-- ssl -->
+    <include name="${package}/ssl/SingleCertValidatingFactory.java" if="jdbc4any"/>
     <include name="${package}/ssl/jdbc4/*.java" if="jdbc4any"/>
     <include name="${package}/ssl/jdbc3/*.java" if="jdbc3any"/>
     <include name="${package}/ssl/*.java" if="jdbc3any"/>
@@ -423,6 +424,11 @@
   <property name="username" value="test" />
   <!-- Password must be something.  Doesn't matter if trust is used! -->
   <property name="password" value="test" />
+	
+  <property name="privilegedUser" value="postgres"/>	
+  <!-- Password must be something.  Doesn't matter if trust is used! -->
+  <property name="privilegedPassword" value=""/>	
+	
   <property name="preparethreshold" value="5" />
   <property name="loglevel" value="0" />
   <property name="protocolVersion" value="0" />
@@ -467,6 +473,8 @@
       <sysproperty key="database" value="${database}" />
       <sysproperty key="username" value="${username}" />
       <sysproperty key="password" value="${password}" />
+      <sysproperty key="privilegedUser" value="${privilegedUser}"/>	
+      <sysproperty key="privilegedPassword" value="${privilegedPassword}"/>	
       <sysproperty key="preparethreshold" value="${preparethreshold}" />
       <sysproperty key="loglevel" value="${loglevel}" />
       <sysproperty key="protocolVersion" value="${protocolVersion}" />
@@ -485,6 +493,7 @@
       <test name="org.postgresql.test.extensions.ExtensionsSuite" outfile="${testResultsDir}/extensions"/>
       <test name="org.postgresql.test.jdbc4.Jdbc4TestSuite" if="jdbc4tests" outfile="${testResultsDir}/jdbc4"/>
       <test name="org.postgresql.test.ssl.SslTestSuite" if="jdbc4tests" outfile="${testResultsDir}/ssl"/>
+      <test name="org.postgresql.test.ssl.SingleCertValidatingFactoryTest" if="jdbc4tests" outfile="${testResultsDir}/scsf-ssl"/>
     </junit>
   </target>
   
@@ -509,11 +518,12 @@
         <include name="util/PGmoney.java" />
         <include name="util/PGInterval.java" />
         <include name="util/ServerErrorMessage.java" />
-	<include name="ssl/WrappedFactory.java" />
-	<include name="ssl/NonValidatingFactory.java" />
-	<include name="ds/PG*.java" />
-	<include name="ds/common/BaseDataSource.java" />
-	<include name="xa/PGXADataSource.java" />
+        <include name="ssl/WrappedFactory.java" />
+        <include name="ssl/NonValidatingFactory.java" />
+        <include name="ssl/SingleCertValidatingFactory.java" />
+        <include name="ds/PG*.java" />
+        <include name="ds/common/BaseDataSource.java" />
+        <include name="xa/PGXADataSource.java" />
       </fileset>
     </javadoc>
   </target>

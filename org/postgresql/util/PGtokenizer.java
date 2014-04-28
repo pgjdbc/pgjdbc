@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2003-2011, PostgreSQL Global Development Group
+* Copyright (c) 2003-2014, PostgreSQL Global Development Group
 *
 *
 *-------------------------------------------------------------------------
@@ -61,18 +61,33 @@ public class PGtokenizer
         //
         // Peter 1998 Jan 6 - Added < and > to the nesting rules
         int nest = 0, p, s;
+        boolean skipChar = false;
+        boolean nestedDoubleQuote = false;
 
         for (p = 0, s = 0;p < string.length();p++)
         {
             char c = string.charAt(p);
 
             // increase nesting if an open character is found
-            if (c == '(' || c == '[' || c == '<')
+            if (c == '(' || c == '[' || c == '<' || (!nestedDoubleQuote && !skipChar && c == '"')) {
                 nest++;
+                if (c == '"') {
+                	nestedDoubleQuote = true;
+                	skipChar = true;
+                }
+            }
 
             // decrease nesting if a close character is found
-            if (c == ')' || c == ']' || c == '>')
+            if (c == ')' || c == ']' || c == '>' || (nestedDoubleQuote && !skipChar && c == '"')) {
                 nest--;
+                if (c == '"')
+                	nestedDoubleQuote = false;
+            }
+            
+            if (c == '\\')
+            	skipChar = true;
+            else
+            	skipChar = false;
 
             if (nest == 0 && c == delim)
             {

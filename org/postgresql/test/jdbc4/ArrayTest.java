@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2007-2011, PostgreSQL Global Development Group
+* Copyright (c) 2007-2014, PostgreSQL Global Development Group
 *
 *
 *-------------------------------------------------------------------------
@@ -12,6 +12,7 @@ import java.util.UUID;
 
 import junit.framework.TestCase;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PGtokenizer;
 import org.postgresql.geometric.PGbox;
 
 public class ArrayTest extends TestCase {
@@ -25,10 +26,14 @@ public class ArrayTest extends TestCase {
     protected void setUp() throws Exception {
         _conn = TestUtil.openDB();
         TestUtil.createTable(_conn, "arrtest", "intarr int[], decarr decimal(2,1)[], strarr text[], uuidarr uuid[]");
+        TestUtil.createTable(_conn, "arrcompprnttest", "id serial, name character(10)");
+        TestUtil.createTable(_conn, "arrcompchldttest", "id serial, name character(10), description character varying, parent integer");
     }
 
     protected void tearDown() throws SQLException {
         TestUtil.dropTable(_conn, "arrtest");
+        TestUtil.dropTable(_conn, "arrcompprnttest");
+        TestUtil.dropTable(_conn, "arrcompchldttest");
         TestUtil.closeDB(_conn);
     }
 
@@ -243,5 +248,67 @@ public class ArrayTest extends TestCase {
         pstmt.executeUpdate();
 
         pstmt.close();
+    }
+    
+    public void testGetArrayOfComposites() throws SQLException {
+    	PreparedStatement insert_parent_pstmt = _conn.prepareStatement(
+    			"INSERT INTO arrcompprnttest (name) " +
+    			"VALUES ('aParent');");
+    	insert_parent_pstmt.execute();
+    	
+    	String[] children = {
+    			"November 5, 2013",
+    			"\"A Book Title\"",
+    			"4\" by 6\"",
+    			"5\",3\""};
+    	
+    	PreparedStatement insert_children_pstmt = _conn.prepareStatement(
+    			"INSERT INTO arrcompchldttest (name,description,parent) " +
+    			"VALUES ('child1',?,1)," +
+    				   "('child2',?,1)," +
+    				   "('child3',?,1)," +
+    				   "('child4',?,1);");
+    	
+    	insert_children_pstmt.setString(1, children[0]);
+    	insert_children_pstmt.setString(2, children[1]);
+    	insert_children_pstmt.setString(3, children[2]);
+    	insert_children_pstmt.setString(4, children[3]);
+    	
+    	insert_children_pstmt.execute();
+    	
+		PreparedStatement pstmt = _conn.prepareStatement(
+				"SELECT arrcompprnttest.name, " +
+					"array_agg(" +
+						"DISTINCT(arrcompchldttest.id, " +
+								 "arrcompchldttest.name, " +
+								 "arrcompchldttest.description)) " +
+					"AS children " +
+				"FROM arrcompprnttest " +
+				"LEFT JOIN arrcompchldttest " +
+					"ON (arrcompchldttest.parent = arrcompprnttest.id) " +
+				"WHERE arrcompprnttest.id=? " +
+				"GROUP BY arrcompprnttest.name;");
+		pstmt.setInt(1, 1);
+		ResultSet rs = pstmt.executeQuery();
+
+		assertNotNull(rs);
+		assertTrue(rs.next());
+
+		Array childrenArray = rs.getArray("children");
+		assertNotNull(childrenArray);
+
+		ResultSet rsChildren = childrenArray.getResultSet();
+		assertNotNull(rsChildren);
+		while (rsChildren.next()) {
+			String comp = rsChildren.getString(2);
+			PGtokenizer token = new PGtokenizer(PGtokenizer.removePara(comp),',');
+			token.remove("\"", "\""); //remove surrounding double quotes
+			if (2 < token.getSize()) {
+				int childID = Integer.parseInt(token.getToken(0));
+				String value = token.getToken(2).replace("\"\"", "\""); //remove double quotes escaping with double quotes
+				assertEquals(children[childID-1],value);
+			} else
+				fail("Needs to have 3 tokens");
+		}
     }
 }

@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2009-2011, PostgreSQL Global Development Group
+* Copyright (c) 2009-2014, PostgreSQL Global Development Group
 *
 *-------------------------------------------------------------------------
 */

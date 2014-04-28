@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2004-2011, PostgreSQL Global Development Group
+* Copyright (c) 2004-2014, PostgreSQL Global Development Group
 *
 *
 *-------------------------------------------------------------------------
@@ -109,6 +109,19 @@ public class TestUtil
     {
         return System.getProperty("password");
     }
+    
+    /*
+     * postgres like user
+     */
+    public static String getPrivilegedUser()
+    {
+        return System.getProperty("privilegedUser");
+    }
+
+    public static String getPrivilegedPassword()
+    {
+        return System.getProperty("privilegedPassword");
+    }
 
     /*
      * Returns the log level to use
@@ -164,7 +177,22 @@ public class TestUtil
             initialized = true;
         }
     }        
-
+    /*
+     *
+     * get a connection using a priviliged user mostly for tests that the ability to load C functions now as of 4/14
+     */
+    
+    public static java.sql.Connection openPrivilegedDB() throws Exception
+    {
+        
+        initDriver();
+        Properties properties = new Properties();
+        properties.setProperty("user",getPrivilegedUser());
+        properties.setProperty("password",getPrivilegedPassword());
+        return DriverManager.getConnection(getURL(), properties);
+        
+    }
+    
     /*
      * Helper - opens a connection.
      */

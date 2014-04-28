@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2004-2011, PostgreSQL Global Development Group
+* Copyright (c) 2004-2014, PostgreSQL Global Development Group
 *
 *
 *-------------------------------------------------------------------------
@@ -4125,7 +4125,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 + "    END "
                 + "  END AS TYPE, "
                 + "  (i.keys).n AS ORDINAL_POSITION, "
-                + "  pg_catalog.pg_get_indexdef(ci.oid, (i.keys).n, false) AS COLUMN_NAME, "
+                + "  trim(both '\"' from pg_catalog.pg_get_indexdef(ci.oid, (i.keys).n, false)) AS COLUMN_NAME, "
                 + "  CASE am.amcanorder "
                 + "    WHEN true THEN CASE i.indoption[(i.keys).n - 1] & 1 "
                 + "      WHEN 1 THEN 'D' "
