@@ -72,14 +72,17 @@ public abstract class AbstractJdbc23PooledConnection
         if (last != null)
         {
             last.close();
-            if (!con.getAutoCommit())
+            if (!con.isClosed())
             {
-                try
+                if (!con.getAutoCommit())
                 {
-                    con.rollback();
-                }
-                catch (SQLException e)
-                {
+                    try
+                    {
+                        con.rollback();
+                    }
+                    catch (SQLException e)
+                    {
+                    }
                 }
             }
         }
@@ -288,7 +291,14 @@ public abstract class AbstractJdbc23PooledConnection
             // All the rest is from the Connection or PGConnection interface
             if (method.getName().equals("isClosed"))
             {
-                return con == null ? Boolean.TRUE : Boolean.FALSE;
+                if (con == null)
+                {
+                    return Boolean.TRUE;
+                }
+                else
+                {
+                    return new Boolean(con.isClosed());
+                }
             }
             if (con == null && !method.getName().equals("close"))
             {
@@ -303,18 +313,21 @@ public abstract class AbstractJdbc23PooledConnection
                     return null;
 
                 SQLException ex = null;
-                if (!isXA && !con.getAutoCommit())
+                if (!con.isClosed())
                 {
-                    try
+                    if (!isXA && !con.getAutoCommit())
                     {
-                        con.rollback();
+                        try
+                        {
+                            con.rollback();
+                        }
+                        catch (SQLException e)
+                        {
+                            ex = e;
+                        }
                     }
-                    catch (SQLException e)
-                    {
-                        ex = e;
-                    }
+                    con.clearWarnings();
                 }
-                con.clearWarnings();
                 con = null;
                 this.proxy = null;
                 last = null;
