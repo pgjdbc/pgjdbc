@@ -113,7 +113,7 @@ public interface PGConnection
     /**
      * Return the process ID (PID) of the backend server process handling this connection.
      * 
-     * @return PID of backned server process. 
+     * @return PID of backend server process. 
      */
     public int getBackendPID();
 }
