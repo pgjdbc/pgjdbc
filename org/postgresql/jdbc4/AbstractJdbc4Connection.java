@@ -233,12 +233,54 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
 
     public void setSchema(String schema) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "setSchema(String)");
+        checkClosed();
+        Statement stmt = createStatement();
+        try
+        {
+            stmt.executeUpdate("SET SESSION SCHEMA '" + schema + "'");
+        }
+        finally
+        {
+            stmt.close();
+        }
     }
 
     public String getSchema() throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "getSchema()");
+        checkClosed();
+        String searchPath;
+        Statement stmt = createStatement();
+        try
+        {
+            ResultSet rs = stmt.executeQuery( "SHOW search_path");
+            try
+            {
+                if (!rs.next())
+                {
+                    return null;
+                }
+                searchPath = rs.getString(1);
+            }
+            finally
+            {
+                rs.close();
+            }
+        }
+        finally
+        {
+            stmt.close();
+        }
+
+        // keep only the first schema of the search path if there are many
+        int commaIndex = searchPath.indexOf(',');
+        if (commaIndex == -1)
+        {
+            return searchPath;
+        }
+        else
+        {
+            return searchPath.substring(0, commaIndex);
+        }
     }
 
     public void abort(Executor executor) throws SQLException
