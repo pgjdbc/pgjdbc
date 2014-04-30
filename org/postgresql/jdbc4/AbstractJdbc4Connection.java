@@ -25,6 +25,8 @@ import org.postgresql.jdbc2.AbstractJdbc2Array;
 
 abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdbc3gConnection
 {
+    private static final SQLPermission SQL_PERMISSION_ABORT = new SQLPermission("callAbort");
+
     private final Properties _clientInfo;
 
     public AbstractJdbc4Connection(HostSpec[] hostSpecs, String user, String database, Properties info, String url) throws SQLException {
@@ -285,7 +287,22 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
 
     public void abort(Executor executor) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "abort(Executor)");
+        if (isClosed())
+        {
+            return;
+        }
+
+        SQL_PERMISSION_ABORT.checkGuard(this);
+
+        AbortCommand command = new AbortCommand();
+        if (executor != null)
+        {
+            executor.execute(command);
+        }
+        else
+        {
+            command.run();
+        }
     }
 
     public void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
@@ -294,6 +311,14 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
 
     public int getNetworkTimeout() throws SQLException {
         throw org.postgresql.Driver.notImplemented(this.getClass(), "getNetworkTimeout()");
+    }
+
+    public class AbortCommand implements Runnable
+    {
+        public void run()
+        {
+            abort();
+        }
     }
 
 }
