@@ -7,10 +7,15 @@
 */
 package org.postgresql.test.jdbc2.optional;
 
+import org.postgresql.PGConnection;
 import org.postgresql.jdbc2.optional.ConnectionPool;
 import org.postgresql.ds.PGConnectionPoolDataSource;
 import org.postgresql.test.TestUtil;
+
 import javax.sql.*;
+
+import java.net.Socket;
+import java.net.SocketImpl;
 import java.sql.*;
 import java.util.*;
 import java.io.*;
@@ -343,6 +348,48 @@ public class ConnectionPoolTest extends BaseDataSourceTest
             con2.close();
             assertTrue(con.isClosed());
             pc.close();
+        }
+        catch (SQLException e)
+        {
+            fail(e.getMessage());
+        }
+    }
+
+    /**
+     * Make sure that close status of pooled connection reflect the one
+     * of the underlying physical connection.
+     * @throws Exception
+     */
+    public void testBackendIsClosed() throws Exception
+    {
+        try
+        {
+            PooledConnection pc = getPooledConnection();
+            con = pc.getConnection();
+            assertTrue(!con.isClosed());
+            int pid = ((PGConnection) con).getBackendPID();
+
+            Connection adminCon = TestUtil.openDB();
+            try
+            {
+                Statement statement = adminCon.createStatement();
+                statement.executeQuery("SELECT pg_terminate_backend("+pid+")");
+            }
+            finally
+            {
+                TestUtil.closeDB(adminCon);
+            }
+            try
+            {
+                Statement statement = con.createStatement();
+                statement.executeQuery("SELECT 1");
+                fail("The connection should not be opened anymore. An exception was expected");
+            }
+            catch (SQLException e)
+            {
+                // this is expected as the connection has been forcibly closed from backend
+            }
+            assertTrue(con.isClosed());
         }
         catch (SQLException e)
         {
