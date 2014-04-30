@@ -31,11 +31,14 @@ public class IntervalTest extends TestCase
     {
         _conn = TestUtil.openDB();
         TestUtil.createTable(_conn, "testinterval", "v interval");
+        TestUtil.createTable(_conn, "testdate", "v date");
     }
 
     protected void tearDown() throws Exception
     {
         TestUtil.dropTable(_conn, "testinterval");
+        TestUtil.dropTable(_conn, "testdate");
+        
         TestUtil.closeDB(_conn);
     }
 
@@ -60,6 +63,51 @@ public class IntervalTest extends TestCase
         rs.close();
         stmt.close();
     }
+    
+    public void testStringToIntervalCoercion() throws SQLException {
+        Statement stmt = _conn.createStatement();
+        stmt.executeUpdate(TestUtil.insertSQL("testdate", "'2010-01-01'"));
+        stmt.executeUpdate(TestUtil.insertSQL("testdate", "'2010-01-02'"));
+        stmt.executeUpdate(TestUtil.insertSQL("testdate", "'2010-01-04'"));
+        stmt.executeUpdate(TestUtil.insertSQL("testdate", "'2010-01-05'"));
+        stmt.close();
+
+        PreparedStatement pstmt = _conn
+            .prepareStatement("SELECT v FROM testdate WHERE v < (?::timestamp with time zone + ? * ?::interval) ORDER BY v");
+        pstmt.setObject(1, makeDate(2010, 1, 1));
+        pstmt.setObject(2, Integer.valueOf(2));
+        pstmt.setObject(3, "1 day");
+        ResultSet rs = pstmt.executeQuery();
+
+        assertNotNull(rs);
+
+        java.sql.Date d;
+
+        assertTrue(rs.next());
+        d = rs.getDate(1);
+        assertNotNull(d);
+        assertEquals(makeDate(2010, 1, 1), d);
+
+        assertTrue(rs.next());
+        d = rs.getDate(1);
+        assertNotNull(d);
+        assertEquals(makeDate(2010, 1, 2), d);
+
+        assertFalse(rs.next());
+
+        rs.close();
+        pstmt.close();
+      }
+
+      
+      public void testIntervalToStringCoercion() throws SQLException {
+        PGInterval interval = new PGInterval("1 year 3 months");
+        String coercedStringValue = interval.toString();
+
+        assertEquals("1 years 3 mons 0 days 0 hours 0 mins 0.00 secs", coercedStringValue);
+      }
+
+      
 
     public void testDaysHours() throws SQLException
     {
@@ -226,5 +274,9 @@ public class IntervalTest extends TestCase
 
         assertEquals(date2, date);
     }
+    
+    private java.sql.Date makeDate(int y, int m, int d) {
+        return new java.sql.Date(y - 1900, m - 1, d);
+      }
 
 }
