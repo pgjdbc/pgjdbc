@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2004-2012, PostgreSQL Global Development Group
+* Copyright (c) 2004-2014, PostgreSQL Global Development Group
 * Copyright (c) 2004, Open Cloud Limited.
 *
 *
@@ -131,7 +131,14 @@ class SimpleParameterList implements V3ParameterList {
     }
 
     public void setNull(int index, int oid) throws SQLException {
-        bind(index, NULL_OBJECT, oid, BINARY);
+        
+        int binaryTransfer = TEXT;
+        
+        if (protoConnection.useBinaryForReceive(oid))
+        {
+            binaryTransfer = BINARY;
+        }
+        bind(index, NULL_OBJECT, oid, binaryTransfer);
     }
 
     public String toString(int index) {
