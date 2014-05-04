@@ -851,6 +851,31 @@ openssl pkcs8 -topk8 -in client.key -out client.pk8 -outform DER -v1 PBE-SHA1-3D
 
    </sect2>
 
+   <sect2 id="connection-failover">
+    <title>Connection Fail-over</title>
+
+    <para>
+      To support simple connection fail-over it is possible to define multiple
+      endpoints (host and port pairs) in the connection url separated by commas.
+      The driver will try to once connect to each of them in order until the
+      connection succeeds. If none succeed, a normal connection exception is
+      thrown.
+    </para>
+    <para>
+      The syntax for the connection url is:
+      <synopsis>
+jdbc:postgresql://<replaceable class="parameter">host1</replaceable>:<replaceable class="parameter">port1</replaceable>,<replaceable class="parameter">host2</replaceable>:<replaceable class="parameter">port2</replaceable>/<replaceable class="parameter">database</replaceable>
+</synopsis>
+    </para>
+
+    <para>
+      The simple connection fail-over is useful when running against
+      a high availability postgres installation that has identical data on each node.
+      For example streaming replication postgres that only accepts connection on the master
+      node or postgres-xc cluster.
+    </para>
+   </sect2>
+
   </sect1>
 
  </chapter>
