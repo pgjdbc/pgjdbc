@@ -58,7 +58,7 @@ public abstract class AbstractJdbc2Array
     /**
      * A database connection.
      */
-    private BaseConnection connection = null;
+    protected BaseConnection connection = null;
 
     /**
      * The OID of this field.
@@ -68,7 +68,7 @@ public abstract class AbstractJdbc2Array
     /**
      * Field value as String.
      */
-    private String fieldString = null;
+    protected String fieldString = null;
 
     /**
      * Whether Object[] should be used instead primitive arrays. Object[] can
@@ -88,9 +88,9 @@ public abstract class AbstractJdbc2Array
      * Value of field as {@link PgArrayList}. Will be initialized only once
      * within {@link #buildArrayList()}.
      */
-    private PgArrayList arrayList;
+    protected PgArrayList arrayList;
 
-    private byte[] fieldBytes;
+    protected byte[] fieldBytes;
 
     private AbstractJdbc2Array(BaseConnection connection, int oid) throws SQLException {
         this.connection = connection;
