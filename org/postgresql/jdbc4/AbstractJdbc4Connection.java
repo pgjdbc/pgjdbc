@@ -247,7 +247,7 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
         checkClosed();
         if (iface.isAssignableFrom(getClass()))
         {
-            return (T) this;
+            return iface.cast(this);
         }
         throw new SQLException("Cannot unwrap to " + iface.getName());
     }

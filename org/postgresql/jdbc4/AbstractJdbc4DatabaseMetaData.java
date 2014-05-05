@@ -77,7 +77,7 @@ public abstract class AbstractJdbc4DatabaseMetaData extends org.postgresql.jdbc3
     {
         if (iface.isAssignableFrom(getClass()))
         {
-            return (T) this;
+            return iface.cast(this);
         }
         throw new SQLException("Cannot unwrap to " + iface.getName());
     }

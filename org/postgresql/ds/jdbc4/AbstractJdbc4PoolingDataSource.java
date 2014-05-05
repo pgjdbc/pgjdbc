@@ -24,7 +24,7 @@ public abstract class AbstractJdbc4PoolingDataSource extends AbstractJdbc23Pooli
     {
         if (iface.isAssignableFrom(getClass()))
         {
-            return (T) this;
+            return iface.cast(this);
         }
         throw new SQLException("Cannot unwrap to " + iface.getName());
     }
