@@ -228,11 +228,6 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
         throw new SQLException("Cannot unwrap to " + iface.getName());
     }
 
-    public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException
-    {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "getParentLogger()");
-    }
-
     public void setSchema(String schema) throws SQLException
     {
         checkClosed();
