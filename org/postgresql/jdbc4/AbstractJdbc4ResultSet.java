@@ -52,6 +52,18 @@ abstract class AbstractJdbc4ResultSet extends org.postgresql.jdbc3g.AbstractJdbc
         return (rows == null);
     }
 
+    public void close() throws SQLException
+    {
+        try
+        {
+            super.close();
+        }
+        finally
+        {
+            ((AbstractJdbc4Statement) statement).checkCompletion();
+        }
+    }
+
     public void updateNString(int columnIndex, String nString) throws SQLException
     {
         throw org.postgresql.Driver.notImplemented(this.getClass(), "updateNString(int, String)");

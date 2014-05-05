@@ -8,11 +8,11 @@
 package org.postgresql.jdbc4;
 
 import java.sql.*;
-
 import java.io.Reader;
 import java.io.InputStream;
 
 import org.postgresql.core.Oid;
+import org.postgresql.jdbc2.ResultWrapper;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLException;
@@ -21,6 +21,7 @@ abstract class AbstractJdbc4Statement extends org.postgresql.jdbc3g.AbstractJdbc
 {
 
     private boolean poolable;
+    private boolean closeOnCompletion = false;
 
     AbstractJdbc4Statement (Jdbc4Connection c, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
     {
@@ -383,12 +384,12 @@ abstract class AbstractJdbc4Statement extends org.postgresql.jdbc3g.AbstractJdbc
 
     public void closeOnCompletion() throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "closeOnCompletion()");
+        closeOnCompletion = true;
     }
 
     public boolean isCloseOnCompletion() throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "isCloseOnCompletion()");
+        return closeOnCompletion;
     }
 
     public <T> T getObject(int parameterIndex, Class<T> type) throws SQLException
@@ -401,4 +402,31 @@ abstract class AbstractJdbc4Statement extends org.postgresql.jdbc3g.AbstractJdbc
         throw org.postgresql.Driver.notImplemented(this.getClass(), "getObject(String, Class<T>)");
     }
 
+    protected void checkCompletion() throws SQLException
+    {
+        if (!closeOnCompletion)
+            return;
+
+        ResultWrapper result = firstUnclosedResult;
+        while (result != null)
+        {
+            if (result.getResultSet() != null && !result.getResultSet().isClosed())
+            {
+                return;
+            }
+            result = result.getNext();
+        }
+
+        // prevent all ResultSet.close arising from Statement.close to loop here
+        closeOnCompletion = false;
+        try
+        {
+            close();
+        }
+        finally
+        {
+            // restore the status if one rely on isCloseOnCompletion
+            closeOnCompletion = true;
+        }
+    }
 }

@@ -35,6 +35,7 @@ public class Jdbc4TestSuite extends TestSuite
         suite.addTestSuite(SchemaTest.class);
         suite.addTestSuite(AbortTest.class);
         suite.addTestSuite(ClientInfoTest.class);
+        suite.addTestSuite(CloseOnCompletionTest.class);
 
         Connection connection = TestUtil.openDB();
         try
