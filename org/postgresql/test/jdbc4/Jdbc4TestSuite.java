@@ -29,12 +29,12 @@ public class Jdbc4TestSuite extends TestSuite
         suite.addTestSuite(LOBTest.class);
         suite.addTestSuite(DatabaseMetaDataTest.class);
         suite.addTestSuite(ArrayTest.class);
-        suite.addTestSuite(ConnectionTest.class);
         suite.addTestSuite(WrapperTest.class);
         suite.addTestSuite(BinaryTest.class);
         suite.addTestSuite(IsValidTest.class);
         suite.addTestSuite(SchemaTest.class);
         suite.addTestSuite(AbortTest.class);
+        suite.addTestSuite(ClientInfoTest.class);
 
         Connection connection = TestUtil.openDB();
         try

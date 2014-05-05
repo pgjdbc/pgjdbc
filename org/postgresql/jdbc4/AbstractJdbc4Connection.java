@@ -10,7 +10,7 @@ package org.postgresql.jdbc4;
 import java.sql.*;
 import java.util.Map;
 import java.util.HashMap;
-import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 
@@ -148,6 +148,19 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
 
     public void setClientInfo(String name, String value) throws SQLClientInfoException
     {
+        try
+        {
+            checkClosed();
+        }
+        catch (final SQLException cause)
+        {
+            Map<String, ClientInfoStatus> failures = new HashMap<String, ClientInfoStatus>();
+            failures.put(name, ClientInfoStatus.REASON_UNKNOWN);
+            throw new SQLClientInfoException(GT.tr("This connection has been closed."),
+                                             failures,
+                                             cause);
+        }
+
         if (haveMinimumServerVersion("9.0") && "ApplicationName".equals(name)) {
             if (value == null)
                 value = "";
@@ -167,31 +180,42 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
             return;
         }
 
-        Map<String, ClientInfoStatus> failures = new HashMap<String, ClientInfoStatus>();
-        failures.put(name, ClientInfoStatus.REASON_UNKNOWN_PROPERTY);
-        throw new SQLClientInfoException(GT.tr("ClientInfo property not supported."), PSQLState.NOT_IMPLEMENTED.getState(), failures);
+        addWarning(new SQLWarning(GT.tr("ClientInfo property not supported."), PSQLState.NOT_IMPLEMENTED.getState()));
     }
 
     public void setClientInfo(Properties properties) throws SQLClientInfoException
     {
-        if (properties == null || properties.size() == 0)
-            return;
+        try
+        {
+            checkClosed();
+        }
+        catch (final SQLException cause)
+        {
+            Map<String, ClientInfoStatus> failures = new HashMap<String, ClientInfoStatus>();
+            for (Entry<Object, Object> e : properties.entrySet())
+            {
+                failures.put((String) e.getKey(), ClientInfoStatus.REASON_UNKNOWN);
+            }
+            throw new SQLClientInfoException(GT.tr("This connection has been closed."),
+                                             failures,
+                                             cause);
+        }
 
         Map<String, ClientInfoStatus> failures = new HashMap<String, ClientInfoStatus>();
-
-        Iterator<String> i = properties.stringPropertyNames().iterator();
-        while (i.hasNext()) {
-            String name = i.next();
-            if (haveMinimumServerVersion("9.0") && "ApplicationName".equals(name)) {
-                String value = properties.getProperty(name);
-                setClientInfo(name, value);
-            } else {
-                failures.put(i.next(), ClientInfoStatus.REASON_UNKNOWN_PROPERTY);
+        for (String name : new String[] { "ApplicationName" })
+        {
+            try
+            {
+                setClientInfo(name, properties.getProperty(name, null));
+            }
+            catch (SQLClientInfoException e)
+            {
+                failures.putAll(e.getFailedProperties());
             }
         }
 
         if (!failures.isEmpty())
-            throw new SQLClientInfoException(GT.tr("ClientInfo property not supported."), PSQLState.NOT_IMPLEMENTED.getState(), failures);
+            throw new SQLClientInfoException(GT.tr("One ore more ClientInfo failed."), PSQLState.NOT_IMPLEMENTED.getState(), failures);
     }
 
     public String getClientInfo(String name) throws SQLException
