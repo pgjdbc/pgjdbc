@@ -494,10 +494,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             ResultSet rs = firstUnclosedResult.getResultSet();
             if (rs != null)
             {
-                if (!rs.isClosed())
-                {
-                    rs.close();
-                }
+                rs.close();
             }
             firstUnclosedResult = firstUnclosedResult.getNext();
         }
