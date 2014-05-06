@@ -5,7 +5,7 @@
 *
 *-------------------------------------------------------------------------
 */
-package org.postgresql.test.jdbc4;
+package org.postgresql.test.jdbc4.jdbc41;
 
 import java.sql.*;
 import junit.framework.TestCase;

@@ -10,6 +10,7 @@ package org.postgresql.test.jdbc4;
 import junit.framework.TestSuite;
 
 import java.sql.*;
+
 import org.postgresql.test.TestUtil;
 
 /*
@@ -32,10 +33,7 @@ public class Jdbc4TestSuite extends TestSuite
         suite.addTestSuite(WrapperTest.class);
         suite.addTestSuite(BinaryTest.class);
         suite.addTestSuite(IsValidTest.class);
-        suite.addTestSuite(SchemaTest.class);
-        suite.addTestSuite(AbortTest.class);
         suite.addTestSuite(ClientInfoTest.class);
-        suite.addTestSuite(CloseOnCompletionTest.class);
 
         Connection connection = TestUtil.openDB();
         try
