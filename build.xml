@@ -175,6 +175,13 @@
       </and>
     </condition>
 
+    <condition property="jdbc41tests">
+      <and>
+        <isset property="jdbc41" />
+        <isset property="junit" />
+      </and>
+    </condition>
+
     <condition property="jdbc.version" value="jdbc3">
       <isset property="jdbc3any" />
     </condition>
@@ -446,6 +453,7 @@
       <include name="${package}/test/**" />
 
       <exclude name="${package}/test/jdbc4/**" unless="jdbc4tests" />
+      <exclude name="${package}/test/jdbc4/jdbc41/**" unless="jdbc41tests" />
       <exclude name="${package}/test/ssl/**" unless="jdbc4tests" />
 
       <classpath>
@@ -492,6 +500,7 @@
       <test name="org.postgresql.test.xa.XATestSuite" outfile="${testResultsDir}/xa"/>
       <test name="org.postgresql.test.extensions.ExtensionsSuite" outfile="${testResultsDir}/extensions"/>
       <test name="org.postgresql.test.jdbc4.Jdbc4TestSuite" if="jdbc4tests" outfile="${testResultsDir}/jdbc4"/>
+      <test name="org.postgresql.test.jdbc4.jdbc41.Jdbc41TestSuite" if="jdbc41tests" outfile="${testResultsDir}/jdbc41"/>
       <test name="org.postgresql.test.ssl.SslTestSuite" if="jdbc4tests" outfile="${testResultsDir}/ssl"/>
       <test name="org.postgresql.test.ssl.SingleCertValidatingFactoryTest" if="jdbc4tests" outfile="${testResultsDir}/scsf-ssl"/>
     </junit>

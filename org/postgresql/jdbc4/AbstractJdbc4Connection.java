@@ -10,7 +10,7 @@ package org.postgresql.jdbc4;
 import java.sql.*;
 import java.util.Map;
 import java.util.HashMap;
-import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 
@@ -25,6 +25,8 @@ import org.postgresql.jdbc2.AbstractJdbc2Array;
 
 abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdbc3gConnection
 {
+    private static final SQLPermission SQL_PERMISSION_ABORT = new SQLPermission("callAbort");
+
     private final Properties _clientInfo;
 
     public AbstractJdbc4Connection(HostSpec[] hostSpecs, String user, String database, Properties info, String url) throws SQLException {
@@ -146,6 +148,19 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
 
     public void setClientInfo(String name, String value) throws SQLClientInfoException
     {
+        try
+        {
+            checkClosed();
+        }
+        catch (final SQLException cause)
+        {
+            Map<String, ClientInfoStatus> failures = new HashMap<String, ClientInfoStatus>();
+            failures.put(name, ClientInfoStatus.REASON_UNKNOWN);
+            throw new SQLClientInfoException(GT.tr("This connection has been closed."),
+                                             failures,
+                                             cause);
+        }
+
         if (haveMinimumServerVersion("9.0") && "ApplicationName".equals(name)) {
             if (value == null)
                 value = "";
@@ -165,31 +180,42 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
             return;
         }
 
-        Map<String, ClientInfoStatus> failures = new HashMap<String, ClientInfoStatus>();
-        failures.put(name, ClientInfoStatus.REASON_UNKNOWN_PROPERTY);
-        throw new SQLClientInfoException(GT.tr("ClientInfo property not supported."), PSQLState.NOT_IMPLEMENTED.getState(), failures);
+        addWarning(new SQLWarning(GT.tr("ClientInfo property not supported."), PSQLState.NOT_IMPLEMENTED.getState()));
     }
 
     public void setClientInfo(Properties properties) throws SQLClientInfoException
     {
-        if (properties == null || properties.size() == 0)
-            return;
+        try
+        {
+            checkClosed();
+        }
+        catch (final SQLException cause)
+        {
+            Map<String, ClientInfoStatus> failures = new HashMap<String, ClientInfoStatus>();
+            for (Entry<Object, Object> e : properties.entrySet())
+            {
+                failures.put((String) e.getKey(), ClientInfoStatus.REASON_UNKNOWN);
+            }
+            throw new SQLClientInfoException(GT.tr("This connection has been closed."),
+                                             failures,
+                                             cause);
+        }
 
         Map<String, ClientInfoStatus> failures = new HashMap<String, ClientInfoStatus>();
-
-        Iterator<String> i = properties.stringPropertyNames().iterator();
-        while (i.hasNext()) {
-            String name = i.next();
-            if (haveMinimumServerVersion("9.0") && "ApplicationName".equals(name)) {
-                String value = properties.getProperty(name);
-                setClientInfo(name, value);
-            } else {
-                failures.put(i.next(), ClientInfoStatus.REASON_UNKNOWN_PROPERTY);
+        for (String name : new String[] { "ApplicationName" })
+        {
+            try
+            {
+                setClientInfo(name, properties.getProperty(name, null));
+            }
+            catch (SQLClientInfoException e)
+            {
+                failures.putAll(e.getFailedProperties());
             }
         }
 
         if (!failures.isEmpty())
-            throw new SQLClientInfoException(GT.tr("ClientInfo property not supported."), PSQLState.NOT_IMPLEMENTED.getState(), failures);
+            throw new SQLClientInfoException(GT.tr("One ore more ClientInfo failed."), PSQLState.NOT_IMPLEMENTED.getState(), failures);
     }
 
     public String getClientInfo(String name) throws SQLException
@@ -221,29 +247,81 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
         checkClosed();
         if (iface.isAssignableFrom(getClass()))
         {
-            return (T) this;
+            return iface.cast(this);
         }
         throw new SQLException("Cannot unwrap to " + iface.getName());
     }
 
-    public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException
-    {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "getParentLogger()");
-    }
-
     public void setSchema(String schema) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "setSchema(String)");
+        checkClosed();
+        Statement stmt = createStatement();
+        try
+        {
+            stmt.executeUpdate("SET SESSION SCHEMA '" + schema + "'");
+        }
+        finally
+        {
+            stmt.close();
+        }
     }
 
     public String getSchema() throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "getSchema()");
+        checkClosed();
+        String searchPath;
+        Statement stmt = createStatement();
+        try
+        {
+            ResultSet rs = stmt.executeQuery( "SHOW search_path");
+            try
+            {
+                if (!rs.next())
+                {
+                    return null;
+                }
+                searchPath = rs.getString(1);
+            }
+            finally
+            {
+                rs.close();
+            }
+        }
+        finally
+        {
+            stmt.close();
+        }
+
+        // keep only the first schema of the search path if there are many
+        int commaIndex = searchPath.indexOf(',');
+        if (commaIndex == -1)
+        {
+            return searchPath;
+        }
+        else
+        {
+            return searchPath.substring(0, commaIndex);
+        }
     }
 
     public void abort(Executor executor) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "abort(Executor)");
+        if (isClosed())
+        {
+            return;
+        }
+
+        SQL_PERMISSION_ABORT.checkGuard(this);
+
+        AbortCommand command = new AbortCommand();
+        if (executor != null)
+        {
+            executor.execute(command);
+        }
+        else
+        {
+            command.run();
+        }
     }
 
     public void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
@@ -252,6 +330,14 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
 
     public int getNetworkTimeout() throws SQLException {
         throw org.postgresql.Driver.notImplemented(this.getClass(), "getNetworkTimeout()");
+    }
+
+    public class AbortCommand implements Runnable
+    {
+        public void run()
+        {
+            abort();
+        }
     }
 
 }

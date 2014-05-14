@@ -148,4 +148,9 @@ public interface ProtocolConnection {
      * Return the process ID (PID) of the backend server process handling this connection.
      */
     public int getBackendPID();
+
+    /**
+     * Abort at network level without sending the Terminate message to the backend.
+     */
+    public void abort();
 }

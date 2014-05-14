@@ -213,6 +213,18 @@ class ProtocolConnectionImpl implements ProtocolConnection {
     	return cancelPid;
     }
 
+    public void abort() {
+        try
+        {
+            pgStream.getSocket().close();
+        }
+        catch (IOException e)
+        {
+            // ignore
+        }
+        closed = true;
+    }
+
     private String serverVersion;
     private int cancelPid;
     private int cancelKey;
