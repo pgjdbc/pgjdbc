@@ -8,7 +8,11 @@
 package org.postgresql.test.jdbc4.jdbc41;
 
 import java.sql.*;
+
+import java.util.Properties;
+
 import junit.framework.TestCase;
+
 import org.postgresql.test.TestUtil;
 
 public class SchemaTest extends TestCase
@@ -33,6 +37,7 @@ public class SchemaTest extends TestCase
 
     protected void tearDown() throws SQLException
     {
+        _conn.setSchema(null);
         Statement stmt = _conn.createStatement();
         stmt.execute("DROP SCHEMA schema1 CASCADE");
         stmt.execute("DROP SCHEMA schema2 CASCADE");
@@ -129,4 +134,31 @@ public class SchemaTest extends TestCase
         assertEquals("schema1", _conn.getSchema());
     }
 
+    public void testSchemaInProperties() throws Exception
+    {
+        Properties properties = new Properties();
+        properties.setProperty("currentSchema", "schema1");
+        Connection conn = TestUtil.openDB(properties);
+        try
+        {
+            assertEquals("schema1", conn.getSchema());
+
+            Statement stmt = conn.createStatement();
+            stmt.executeQuery(TestUtil.selectSQL("table1", "*"));
+            stmt.executeQuery(TestUtil.selectSQL("schema2.table2", "*"));
+            try
+            {
+                stmt.executeQuery(TestUtil.selectSQL("table2", "*"));
+                fail("Objects of schema2 should not be visible without prefix");
+            }
+            catch (SQLException e)
+            {
+                // expected
+            }
+        }
+        finally
+        {
+            TestUtil.closeDB(conn);
+        }
+    }
 }

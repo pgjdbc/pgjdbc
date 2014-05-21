@@ -67,6 +67,7 @@ public abstract class BaseDataSource implements Referenceable
     private String stringType=null;
     private boolean logLevelSet = false;
     private boolean disableColumnSanitiser = false;
+    private String currentSchema;
 
     /**
      * Gets a connection to the PostgreSQL database.  The database is identified by the
@@ -517,6 +518,16 @@ public abstract class BaseDataSource implements Referenceable
 		this.disableColumnSanitiser = disableColumnSanitiser;
 	}
 
+    public String getCurrentSchema()
+    {
+        return currentSchema;
+    }
+
+    public void setCurrentSchema(String currentSchema)
+    {
+        this.currentSchema = currentSchema;
+    }
+
     /**
      * Generates a DriverManager URL from the other properties supplied.
      */
@@ -573,7 +584,10 @@ public abstract class BaseDataSource implements Referenceable
             sb.append("&binaryTransferDisable=").append(binaryTransferDisable);
         }
         sb.append("&disableColumnSanitiser=").append(disableColumnSanitiser);
-        
+
+        if (currentSchema != null) {
+            sb.append("&currentSchema=").append(currentSchema);
+        }
         return sb.toString();
     }
 
@@ -602,6 +616,7 @@ public abstract class BaseDataSource implements Referenceable
         stringType = p.getProperty("stringtype");
      	binaryTransfer = Boolean.parseBoolean(p.getProperty("binaryTransfer"));
      	disableColumnSanitiser = Boolean.parseBoolean(p.getProperty("disableColumnSanitiser"));
+     	currentSchema = p.getProperty("currentSchema");
     }
 
     /**
@@ -703,6 +718,7 @@ public abstract class BaseDataSource implements Referenceable
         out.writeObject(binaryTransferDisable);
         out.writeBoolean(logLevelSet);
         out.writeBoolean(disableColumnSanitiser);
+        out.writeObject(currentSchema);
     }
 
     protected void readBaseObject(ObjectInputStream in) throws IOException, ClassNotFoundException
@@ -731,6 +747,7 @@ public abstract class BaseDataSource implements Referenceable
         binaryTransferDisable = (String)in.readObject();
         logLevelSet = in.readBoolean();
         disableColumnSanitiser = in.readBoolean();
+        currentSchema = (String)in.readObject();
     }
 
     public void initializeFrom(BaseDataSource source) throws IOException, ClassNotFoundException {
