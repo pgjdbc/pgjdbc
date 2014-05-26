@@ -34,6 +34,7 @@ public class Jdbc4TestSuite extends TestSuite
         suite.addTestSuite(BinaryTest.class);
         suite.addTestSuite(IsValidTest.class);
         suite.addTestSuite(ClientInfoTest.class);
+        suite.addTestSuite(PGCopyInputStreamTest.class);
 
         Connection connection = TestUtil.openDB();
         try

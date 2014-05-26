@@ -86,10 +86,11 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
     public int read(byte[] buf, int off, int siz) throws IOException {
         checkClosed();
         int got = 0;
-        while( got < siz && gotBuf() ) {
+        boolean didReadSomething = false;
+        while( got < siz && (didReadSomething = gotBuf()) ) {
             buf[off+got++] = this.buf[at++];
         }
-        return got;
+        return got == 0 && !didReadSomething ? -1 : got;
     }
 
     public byte[] readFromCopy() throws SQLException {
