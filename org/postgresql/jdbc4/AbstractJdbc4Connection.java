@@ -252,20 +252,6 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
         throw new SQLException("Cannot unwrap to " + iface.getName());
     }
 
-    public void setSchema(String schema) throws SQLException
-    {
-        checkClosed();
-        Statement stmt = createStatement();
-        try
-        {
-            stmt.executeUpdate("SET SESSION SCHEMA '" + schema + "'");
-        }
-        finally
-        {
-            stmt.close();
-        }
-    }
-
     public String getSchema() throws SQLException
     {
         checkClosed();

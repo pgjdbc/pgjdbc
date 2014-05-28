@@ -484,7 +484,9 @@ public class Driver implements java.sql.Driver
                 { "jaasApplicationName", Boolean.FALSE,
                   "Specifies the name of the JAAS system or application login configuration." },
                 { "disableColumnSanitiser", Boolean.FALSE,
-                  "Enable optimization that disables column name sanitiser." }
+                  "Enable optimization that disables column name sanitiser." },
+                { "currentSchema", Boolean.FALSE,
+                  "Specify the schema to set in the search_path to resolve unqualified object names." }
             };
 
     /**
