@@ -58,6 +58,17 @@ public class PGCopyInputStreamTest extends TestCase {
     	assertEquals("0\n1\n2\n3\n", result.toString());
     }
     
+    public void testStreamCanBeClosedAfterReadUp() throws SQLException, IOException {
+    	insertSomeData();
+    	
+    	sut = new PGCopyInputStream((PGConnection) _conn, "COPY (select i from cpinstreamtest order by i asc) TO STDOUT WITH (FORMAT CSV, HEADER false)");
+    	
+    	byte[] buff = new byte[100];
+		while(sut.read(buff) > 0);
+		
+		sut.close();
+    }
+    
 	private void silentlyCloseStream(PGCopyInputStream sut) {
 		if (sut != null) {
 			try {
