@@ -115,12 +115,14 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
         if (op == null)
             return;
 
-        try {
-            op.cancelCopy();
-        } catch(SQLException se) {
-            IOException ioe = new IOException("Failed to close copy reader.");
-            ioe.initCause(se);
-            throw ioe;
+        if (op.isActive()) {
+	        try {
+	            op.cancelCopy();
+	        } catch(SQLException se) {
+	            IOException ioe = new IOException("Failed to close copy reader.");
+	            ioe.initCause(se);
+	            throw ioe;
+	        }
         }
         op = null;
     }
@@ -142,7 +144,7 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
     }
 
     public boolean isActive() {
-        return op.isActive();
+        return op != null && op.isActive();
     }
 
     public long getHandledRowCount() {
