@@ -20,6 +20,7 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
     protected final Field[] fields;
 
     private boolean fieldInfoFetched;
+    private CacheMetadata _cache;
 
     /*
      * Initialise for a result with a tuple set and
@@ -32,6 +33,7 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
         this.connection = connection;
         this.fields = fields;
         fieldInfoFetched = false;
+        _cache = new CacheMetadata();
     }
 
     /*
@@ -192,6 +194,15 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
         if (fieldInfoFetched)
             return;
 
+        // see if cached
+        String idFields = _cache.getIdFields(fields);
+        if (_cache.isCached(idFields)) {
+          // get metadata from cache
+          _cache.getCache(idFields, fields);
+          fieldInfoFetched = true;
+          return;
+        }
+
         fieldInfoFetched = true;
 
         StringBuffer sql = new StringBuffer();
@@ -254,6 +265,8 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
             }
         }
 	stmt.close();
+        // put in cache
+        _cache.setCache(idFields, fields);
     }
 
     public String getBaseSchemaName(int column) throws SQLException
