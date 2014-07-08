@@ -84,7 +84,18 @@ public class CopyManager {
                 to.write(encoding.decode(buf));
             }
             return cp.getHandledRowCount();
-        } finally { // see to it that we do not leave the connection locked
+        }
+        catch ( IOException ioEX) {
+            // if not handled this way the close call will hang, at least in 8.2
+            if(cp.isActive())
+                cp.cancelCopy();
+            try {  // read until excausted or operation cancelled SQLException
+                while( (buf = cp.readFromCopy()) != null ) {}
+            }
+            catch ( SQLException sqlEx ) {} // typically after several kB
+            throw ioEX;
+        }
+        finally { // see to it that we do not leave the connection locked
             if(cp.isActive())
                 cp.cancelCopy();
         }
@@ -106,7 +117,18 @@ public class CopyManager {
                 to.write(buf);
             }
             return cp.getHandledRowCount();
-        } finally { // see to it that we do not leave the connection locked
+        } 
+        catch ( IOException ioEX) {
+            // if not handled this way the close call will hang, at least in 8.2
+            if(cp.isActive())
+                cp.cancelCopy();
+            try {  // read until excausted or operation cancelled SQLException
+                while( (buf = cp.readFromCopy()) != null ) {}
+            } 
+            catch ( SQLException sqlEx ) {} // typically after several kB
+            throw ioEX ; 
+        }
+        finally { // see to it that we do not leave the connection locked
             if(cp.isActive())
                 cp.cancelCopy();
         }
