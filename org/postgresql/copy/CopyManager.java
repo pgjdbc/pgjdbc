@@ -92,7 +92,7 @@ public class CopyManager {
             try {  // read until excausted or operation cancelled SQLException
                 while( (buf = cp.readFromCopy()) != null ) {}
             }
-            catch ( SQLException sqĺEx ) {} // typically after several kB
+            catch ( SQLException sqlEx ) {} // typically after several kB
             throw ioEX;
         }
         finally { // see to it that we do not leave the connection locked
@@ -125,7 +125,7 @@ public class CopyManager {
             try {  // read until excausted or operation cancelled SQLException
                 while( (buf = cp.readFromCopy()) != null ) {}
             } 
-            catch ( SQLException sqĺEx ) {} // typically after several kB 
+            catch ( SQLException sqlEx ) {} // typically after several kB 
             throw ioEX ;  
         }
         finally { // see to it that we do not leave the connection locked
