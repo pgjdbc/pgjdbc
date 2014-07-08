@@ -174,5 +174,5 @@ than you might expect.
 
 ### Sponsors
 
-[credativ ltd (Canada)](http://www.credativ.ca) and [xTuple](http://www.xtuple.com)
+[credativ ltd (Canada)](http://www.credativ.ca) 
  
