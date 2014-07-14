@@ -49,6 +49,12 @@ class ProtocolConnectionImpl implements ProtocolConnection {
         return serverVersion;
     }
 
+    public int getServerVersionNum() {
+        if (serverVersionNum != 0)
+            return serverVersionNum;
+        return Utils.parseServerVersionStr(serverVersion);
+    }
+
     public synchronized boolean getStandardConformingStrings()
     {
         return standardConformingStrings;
@@ -163,6 +169,10 @@ class ProtocolConnectionImpl implements ProtocolConnection {
         this.serverVersion = serverVersion;
     }
 
+    void setServerVersionNum(int serverVersionNum) {
+        this.serverVersionNum = serverVersionNum;
+    }  
+
     void setBackendKeyData(int cancelPid, int cancelKey) {
         this.cancelPid = cancelPid;
         this.cancelKey = cancelKey;
@@ -226,6 +236,7 @@ class ProtocolConnectionImpl implements ProtocolConnection {
     }
 
     private String serverVersion;
+    private int serverVersionNum = 0;
     private int cancelPid;
     private int cancelKey;
 
