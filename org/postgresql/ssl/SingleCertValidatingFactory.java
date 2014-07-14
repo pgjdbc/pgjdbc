@@ -35,46 +35,45 @@ import org.postgresql.ssl.WrappedFactory;
  * more secure than relying on a central CA signing your server's certificate
  * as it pins the server's certificate.
  * 
- * <p />
- *
+ * <p>
  * This class requires a single String parameter specified by setting
  * the connection property <code>sslfactoryarg</code>. The value of this property
  * is the PEM-encoded remote server's SSL certificate.
- *
- * <p />
+ * </p>
+ * <p>
  * Where the certificate is loaded from is based upon the prefix of the 
- * <code>sslfactoryarg</code> property. The following table lists the valid
+ * <pre><code>sslfactoryarg</code></pre> property. The following table lists the valid
  * set of prefixes.
- * <table border="1">
+ * <table border="1" summary="Valid prefixes for sslfactoryarg">
  *   <tr>
  *     <th>Prefix</th>
  *     <th>Example</th>
  *     <th>Explanation</th>
  *   </tr>
  *   <tr>
- *     <td><code>classpath:</code></td>
- *     <td><code>classpath:ssl/server.crt</code></td>
+ *     <td><pre><code>classpath:</code></pre></td>
+ *     <td><pre><code>classpath:ssl/server.crt</code></pre></td>
  *     <td>Loaded from the classpath.</td>
  *   </tr>
  *   <tr>
- *     <td><code>file:</code></td>
- *     <td><code>file:/foo/bar/server.crt</code></td>
+ *     <td><pre><code>file:</code></pre></td>
+ *     <td><pre><code>file:/foo/bar/server.crt</code></pre></td>
  *     <td>Loaded from the filesystem.</td>
  *   </tr>
  *   <tr>
- *     <td><code>env:</code></td>
- *     <td><code>env:mydb_cert<pre>
- *     <td>Loaded from string value of the <code>mydb_cert</code>
+ *     <td><pre><code>env:</code></pre></td>
+ *     <td><pre><code>env:mydb_cert</code></pre></td>
+ *     <td>Loaded from string value of the <pre><code>mydb_cert</code></pre>
  *     environment variable.</td>
  *   </tr>
  *   <tr>
- *     <td><code>sys:</code></td>
- *     <td><code>sys:mydb_cert<pre>
- *     <td>Loaded from string value of the <code>mydb_cert</code>
+ *     <td><pre><code>sys:</code></pre></td>
+ *     <td><pre><code>sys:mydb_cert</code></pre></td>
+ *     <td>Loaded from string value of the <pre><code>mydb_cert</code></pre>
  *     system property.</td>
  *   </tr>
  *   <tr>
- *     <td><code>-----BEGIN CERTIFICATE------</code></td>
+ *     <td><pre>-----BEGIN CERTIFICATE------</pre></td>
  *     <td><pre>
 -----BEGIN CERTIFICATE-----
 MIIDQzCCAqygAwIBAgIJAOd1tlfiGoEoMA0GCSqGSIb3DQEBBQUAMHUxCzAJBgNV
