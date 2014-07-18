@@ -4,6 +4,8 @@ import java.io.Console;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
@@ -11,8 +13,9 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
+import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
-import java.util.Iterator;
+import java.util.List;
 import java.util.Properties;
 
 import javax.naming.InvalidNameException;
@@ -237,6 +240,7 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
      * @returns true if the certificate belongs to the server, false otherwise.
      */
     public boolean verify(String hostname, SSLSession session) {
+      hostname = hostname.toLowerCase();
       X509Certificate[] peerCerts;
       try
       {
@@ -259,14 +263,12 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
         return false; 
       }
       String CN = null;
-      Iterator it = DN.getRdns().iterator();
-      //for(Rdn rdn : DN.getRdns())
-      while(it.hasNext())
+      for(Rdn rdn : DN.getRdns())
       {
-        Rdn rdn = (Rdn)it.next();
         if ("CN".equals(rdn.getType())) //Multiple AVAs are not treated
         {
           CN = (String)rdn.getValue();
+          CN = CN.toLowerCase();
           break;
         }
       }
@@ -281,9 +283,45 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
         } else {
           return false;
         }
-      } else {
-        return CN.equals(hostname);
+      } else if(CN.equals(hostname.toLowerCase())){
+        return true;
       }
+      try {
+        for(List<?> i: serverCert.getSubjectAlternativeNames())
+        {
+          int type = (Integer) i.get(0);
+            switch(type)
+            {
+              case 2:
+                String dNSName = (String) i.get(1);
+                if(dNSName.toLowerCase().equals(hostname.toLowerCase()))
+                {
+                  return true;
+                }
+                break;
+              case 7:
+                String iPAddress = (String) i.get(1);
+                try
+                {
+                  InetAddress[] remoteAddresses = InetAddress.getAllByName(session.getPeerHost());
+                  InetAddress certificateAddress =  InetAddress.getByName(iPAddress);
+                  for(InetAddress r: remoteAddresses) {
+                    if(certificateAddress.equals(r)) {
+                      return true;
+                    }
+                  }
+                }
+                catch (UnknownHostException e)
+                {
+                }
+                break;
+            }
+          }
+      } catch (CertificateParsingException e)
+      {
+        return false;
+      }
+      return false;
     }
 
 }
