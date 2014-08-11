@@ -363,7 +363,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
                     // except if the transaction is in abort-only state and the
                     // backed refuses to process new queries. Hopefully not a problem
                     // in practise.
-                    ResultSet rs = stmt.executeQuery("SELECT gid FROM pg_prepared_xacts");
+                    ResultSet rs = stmt.executeQuery("SELECT gid FROM pg_prepared_xacts where database = current_database()");
                     LinkedList l = new LinkedList();
                     while (rs.next())
                     {
