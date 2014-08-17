@@ -466,7 +466,7 @@ public abstract class AbstractJdbc23PoolingDataSource extends BaseDataSource
                         {
                             available.push(event.getSource());
                             // There's now a new connection available
-                            lock.notify();
+                            lock.notifyAll();
                         }
                         else
                         {
@@ -490,7 +490,7 @@ public abstract class AbstractJdbc23PoolingDataSource extends BaseDataSource
                         }
                         used.remove(event.getSource());
                         // We're now at least 1 connection under the max
-                        lock.notify();
+                        lock.notifyAll();
                     }
                 }
             };
