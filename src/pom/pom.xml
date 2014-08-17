@@ -31,8 +31,7 @@
     </licenses>
     <scm>
         <connection>scm:git:git@github.com:pgjdbc/pgjdbc.git</connection>
-        <developerConnection>scm:git:git@github.com:pgjdbc/pgjdbc.git</developerConnection>
-        <url>git@github.com:pgjdbc/pgjdbc.git</url>
+        <url>https://github.com/pgjdbc/pgjdbc</url>
     </scm>
     <distributionManagement>
       <repository>
