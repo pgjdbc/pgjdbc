@@ -77,7 +77,7 @@ public class QueryExecutorImpl implements QueryExecutor {
        if(lockedFor != holder)
            throw new PSQLException(GT.tr("Tried to break lock on database connection"), PSQLState.OBJECT_NOT_IN_STATE);
        lockedFor = null;
-       notifyAll();
+       this.notify();
     }
 
     /**
@@ -88,7 +88,7 @@ public class QueryExecutorImpl implements QueryExecutor {
     private void waitOnLock() throws PSQLException {
         while( lockedFor != null ) {
             try {
-                wait();
+                this.wait();
             } catch(InterruptedException ie) {
                 throw new PSQLException(GT.tr("Interrupted while waiting to obtain lock on database connection"), PSQLState.OBJECT_NOT_IN_STATE, ie);
             }
