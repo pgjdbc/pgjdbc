@@ -174,8 +174,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             paramList.add(new String[] {"DateStyle", "ISO"});
             paramList.add(new String[] {"TimeZone",  createPostgresTimeZone()});
             String assumeMinServerVersion = info.getProperty("assumeMinServerVersion");
-            // NOTE: The comparison used here will stop working when major or minor is two digits long (ex: 10.0 < 9.0)
-            if( assumeMinServerVersion != null && assumeMinServerVersion.compareTo("9.0") >= 0 ) {
+            if( Utils.parseServerVersionStr(assumeMinServerVersion) >= 90000 ) {
                 // User is explicitly telling us this is a 9.0+ server so set properties here:
                 paramList.add(new String[] {"extra_float_digits", "3"});
                 String appName = info.getProperty("ApplicationName");
@@ -614,6 +613,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 if (logger.logDebug())
                     logger.debug(" <=BE ParameterStatus(" + name + " = " + value + ")");
 
+                if (name.equals("server_version_num"))
+                    protoConnection.setServerVersionNum(Integer.parseInt(value));
                 if (name.equals("server_version"))
                     protoConnection.setServerVersion(value);
                 else if (name.equals("client_encoding"))
@@ -654,20 +655,19 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     private void runInitialQueries(ProtocolConnection protoConnection, Properties info, Logger logger) throws SQLException
     {
         String assumeMinServerVersion = info.getProperty("assumeMinServerVersion");
-        // NOTE: The comparison used here will stop working when major or minor is two digits long (ex: 10.0 < 9.0)
-        if( assumeMinServerVersion != null && assumeMinServerVersion.compareTo("9.0") >= 0 ) {
+        if( Utils.parseServerVersionStr(assumeMinServerVersion) >= 90000 ) {
             // We already sent the parameter values in the StartupMessage so skip this
             return;
         }
 
-        String dbVersion = protoConnection.getServerVersion();
+        final int dbVersion = protoConnection.getServerVersionNum();
 
-        if (dbVersion.compareTo("9.0") >= 0) {
+        if (dbVersion >= 90000) {
             SetupQueryRunner.run(protoConnection, "SET extra_float_digits = 3", false);
         }
 
         String appName = info.getProperty("ApplicationName");
-        if (appName != null && dbVersion.compareTo("9.0") >= 0) {
+        if (appName != null && dbVersion >= 90000) {
             StringBuffer sql = new StringBuffer();
             sql.append("SET application_name = '");
             Utils.appendEscapedLiteral(sql, appName, protoConnection.getStandardConformingStrings());

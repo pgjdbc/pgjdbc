@@ -78,20 +78,57 @@ public interface BaseConnection extends PGConnection, Connection
      * driver version. This defaults to behaving as the actual driver's version
      * but can be overridden by the "compatible" URL parameter.
      *
+     * If possible you should use the integer version of this method instead.
+     * It was introduced with the 9.4 driver release.
+     *
+     * @deprecated Avoid using this in new code that can require PgJDBC
+     * 9.4.
+     *
      * @param ver the driver version to check
      * @return true if the driver's behavioural version is at least "ver".
      * @throws SQLException if something goes wrong
      */
+    @Deprecated
     public boolean haveMinimumCompatibleVersion(String ver);
 
     /**
+     * Check if we should use driver behaviour introduced in a particular
+     * driver version.
+     *
+     * This defaults to behaving as the actual driver's version but can be
+     * overridden by the "compatible" URL parameter.
+     *
+     * The version is of the form xxyyzz, e.g. 90401 for PgJDBC 9.4.1.
+     *
+     * @param ver the driver version to check, eg 90401 for 9.4.1
+     * @return true if the driver's behavioural version is at least "ver".
+     * @throws SQLException if something goes wrong
+     */
+    public boolean haveMinimumCompatibleVersion(int ver);
+
+    /**
      * Check if we have at least a particular server version.
+     *
+     * @deprecated Use haveMinimumServerVersion(int) instead
      *
      * @param ver the server version to check
      * @return true if the server version is at least "ver".
      * @throws SQLException if something goes wrong
      */
+    @Deprecated
     public boolean haveMinimumServerVersion(String ver);
+
+    /**
+     * Check if we have at least a particular server version.
+     *
+     * The input version is of the form xxyyzz, matching a PostgreSQL
+     * version like xx.yy.zz. So 9.0.12 is 90012 .
+     *
+     * @param ver the server version to check, of the form xxyyzz eg 90401
+     * @return true if the server version is at least "ver".
+     * @throws SQLException if something goes wrong
+     */
+    public boolean haveMinimumServerVersion(int ver);
 
     /**
      * Encode a string using the database's client_encoding

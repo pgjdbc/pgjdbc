@@ -20,6 +20,7 @@ import org.postgresql.fastpath.Fastpath;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.util.*;
 import org.postgresql.copy.*;
+import org.postgresql.core.Utils;
 
 /**
  * This class defines methods of the jdbc2 specification.
@@ -46,10 +47,8 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
     /* Actual network handler */
     private final ProtocolConnection protoConnection;
-    /* Compatibility version */
-    private final String compatible;
-    /* Actual server version */
-    private final String dbVersionNumber;
+    /* Compatible version as xxyyzz form */
+    private final int compatibleInt;
 
     /* Query that runs COMMIT */
     private final Query commitQuery;
@@ -141,8 +140,10 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
         // Now make the initial connection and set up local state
         this.protoConnection = ConnectionFactory.openConnection(hostSpecs, user, database, info, logger);
-        this.dbVersionNumber = protoConnection.getServerVersion();
-        this.compatible = info.getProperty("compatible", Driver.MAJORVERSION + "." + Driver.MINORVERSION);
+        int compat = Utils.parseServerVersionStr(info.getProperty("compatible"));
+        if (compat == 0)
+            compat = Driver.MAJORVERSION * 10000 + Driver.MINORVERSION * 100;
+        this.compatibleInt = compat;
 
         // Set read-only early if requested
         if (Boolean.valueOf(info.getProperty("readOnly", "false")))
@@ -216,7 +217,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
         if (logger.logDebug())
         {
-            logger.debug("    compatible = " + compatible);
+            logger.debug("    compatible = " + compatibleInt);
             logger.debug("    loglevel = " + logLevel);
             logger.debug("    prepare threshold = " + prepareThreshold);
             logger.debug("    types using binary send = " + oidsToString(useBinarySendForOids));
@@ -1041,7 +1042,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
      */
     public String getDBVersionNumber()
     {
-        return dbVersionNumber;
+        return protoConnection.getServerVersion();
     }
 
     // Parse a "dirty" integer surrounded by non-numeric characters
@@ -1068,7 +1069,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     {
         try
         {
-            StringTokenizer versionTokens = new StringTokenizer(dbVersionNumber, ".");  // aaXbb.ccYdd
+            StringTokenizer versionTokens = new StringTokenizer(protoConnection.getServerVersion(), ".");  // aaXbb.ccYdd
             return integerPart(versionTokens.nextToken()); // return X
         }
         catch (NoSuchElementException e)
@@ -1084,7 +1085,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     {
         try
         {
-            StringTokenizer versionTokens = new StringTokenizer(dbVersionNumber, ".");  // aaXbb.ccYdd
+            StringTokenizer versionTokens = new StringTokenizer(protoConnection.getServerVersion(), ".");  // aaXbb.ccYdd
             versionTokens.nextToken(); // Skip aaXbb
             return integerPart(versionTokens.nextToken()); // return Y
         }
@@ -1096,12 +1097,18 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
     /**
      * Is the server we are connected to running at least this version?
-     * This comparison method will fail whenever a major or minor version
-     * goes to two digits (10.3.0) or (7.10.1).
      */
     public boolean haveMinimumServerVersion(String ver)
     {
-        return (dbVersionNumber.compareTo(ver) >= 0);
+        int requiredver = Utils.parseServerVersionStr(ver);
+        if (requiredver == 0)
+            /*
+             * Failed to parse input version. Fall back on legacy
+             * behaviour for BC.
+             */
+            return (protoConnection.getServerVersion().compareTo(ver) >= 0);
+
+        return protoConnection.getServerVersionNum() >= requiredver;
     }
 
     /*
@@ -1115,10 +1122,18 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
      * values. This change in functionality could be disabled by setting the
      * "compatible" level to be 7.1, in which case the driver will revert to
      * the 7.1 functionality.
+     *
+     * Introduced in 9.4.
      */
+    public boolean haveMinimumCompatibleVersion(int ver)
+    {
+        return compatibleInt >= ver;
+    }
+
+    /* Prefer the int form */
     public boolean haveMinimumCompatibleVersion(String ver)
     {
-        return (compatible.compareTo(ver) >= 0);
+        return haveMinimumCompatibleVersion(Utils.parseServerVersionStr(ver));
     }
 
 
