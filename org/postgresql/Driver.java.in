@@ -510,7 +510,8 @@ public class Driver implements java.sql.Driver
     public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) throws SQLException
     {
         Properties copy = new Properties(info);
-        copy = parseURL(url, copy);
+        Properties parse = parseURL(url, copy);
+        if (parse != null) copy = parse;
 
         DriverPropertyInfo[] props = new DriverPropertyInfo[knownProperties.length];
         for (int i = 0; i < knownProperties.length; ++i)
