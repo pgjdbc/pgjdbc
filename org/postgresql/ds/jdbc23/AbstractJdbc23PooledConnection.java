@@ -258,18 +258,19 @@ public abstract class AbstractJdbc23PooledConnection
         public Object invoke(Object proxy, Method method, Object[] args)
         throws Throwable
         {
+            final String methodName = method.getName();
             // From Object
             if (method.getDeclaringClass().getName().equals("java.lang.Object"))
             {
-                if (method.getName().equals("toString"))
+                if (methodName.equals("toString"))
                 {
                     return "Pooled connection wrapping physical connection " + con;
                 }
-                if (method.getName().equals("equals"))
+                if (methodName.equals("equals"))
                 {
                     return proxy == args[0];
                 }
-                if (method.getName().equals("hashCode"))
+                if (methodName.equals("hashCode"))
                 {
                     return System.identityHashCode(proxy);
                 }
@@ -283,7 +284,7 @@ public abstract class AbstractJdbc23PooledConnection
                 }
             }
             // All the rest is from the Connection or PGConnection interface
-            if (method.getName().equals("isClosed"))
+            if (methodName.equals("isClosed"))
             {
                 if (con == null)
                 {
@@ -294,12 +295,12 @@ public abstract class AbstractJdbc23PooledConnection
                     return con.isClosed();
                 }
             }
-            if (con == null && !method.getName().equals("close"))
+            if (con == null && !methodName.equals("close"))
             {
                 throw new PSQLException(automatic ? GT.tr("Connection has been closed automatically because a new connection was opened for the same PooledConnection or the PooledConnection has been closed.") : GT.tr("Connection has been closed."),
                                         PSQLState.CONNECTION_DOES_NOT_EXIST);
             }
-            if (method.getName().equals("close"))
+            if (methodName.equals("close"))
             {
                 // we are already closed and a double close
                 // is not an error.
@@ -337,17 +338,17 @@ public abstract class AbstractJdbc23PooledConnection
             // and check if they're fatal before rethrowing.
 
             try {            
-                if (method.getName().equals("createStatement"))
+                if (methodName.equals("createStatement"))
                 {
                     Statement st = (Statement)method.invoke(con, args);
                     return Proxy.newProxyInstance(getClass().getClassLoader(), new Class[]{Statement.class, org.postgresql.PGStatement.class}, new StatementHandler(this, st));
                 }
-                else if (method.getName().equals("prepareCall"))
+                else if (methodName.equals("prepareCall"))
                 {
                     Statement st = (Statement)method.invoke(con, args);
                     return Proxy.newProxyInstance(getClass().getClassLoader(), new Class[]{CallableStatement.class, org.postgresql.PGStatement.class}, new StatementHandler(this, st));
                 }
-                else if (method.getName().equals("prepareStatement"))
+                else if (methodName.equals("prepareStatement"))
                 {
                     Statement st = (Statement)method.invoke(con, args);
                     return Proxy.newProxyInstance(getClass().getClassLoader(), new Class[]{PreparedStatement.class, org.postgresql.PGStatement.class}, new StatementHandler(this, st));
@@ -409,25 +410,26 @@ public abstract class AbstractJdbc23PooledConnection
         public Object invoke(Object proxy, Method method, Object[] args)
         throws Throwable
         {
+            final String methodName = method.getName();
             // From Object
             if (method.getDeclaringClass().getName().equals("java.lang.Object"))
             {
-                if (method.getName().equals("toString"))
+                if (methodName.equals("toString"))
                 {
                     return "Pooled statement wrapping physical statement " + st;
                 }
-                if (method.getName().equals("hashCode"))
+                if (methodName.equals("hashCode"))
                 {
                     return System.identityHashCode(proxy);
                 }
-                if (method.getName().equals("equals"))
+                if (methodName.equals("equals"))
                 {
                     return proxy == args[0];
                 }
                 return method.invoke(st, args);
             }
             // All the rest is from the Statement interface
-            if (method.getName().equals("close"))
+            if (methodName.equals("close"))
             {
                 // closing an already closed object is a no-op
                 if (st == null || con.isClosed())
@@ -450,7 +452,7 @@ public abstract class AbstractJdbc23PooledConnection
                                         PSQLState.OBJECT_NOT_IN_STATE);
             }
             
-            if (method.getName().equals("getConnection"))
+            if (methodName.equals("getConnection"))
             {
                 return con.getProxy(); // the proxied connection, not a physical connection
             }
