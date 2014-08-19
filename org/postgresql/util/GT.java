@@ -8,8 +8,8 @@
 package org.postgresql.util;
 
 import java.text.MessageFormat;
-import java.util.ResourceBundle;
 import java.util.MissingResourceException;
+import java.util.ResourceBundle;
 
 /**
  * This class provides a wrapper around a gettext message catalog that
@@ -24,15 +24,15 @@ public class GT {
     private final static GT _gt = new GT();
     private final static Object noargs[] = new Object[0];
 
-    public final static String tr(String message) {
+    public static String tr(String message) {
         return _gt.translate(message, null);
     }
 
-    public final static String tr(String message, Object arg) {
+    public static String tr(String message, Object arg) {
         return _gt.translate(message, new Object[]{arg});
     }
 
-    public final static String tr(String message, Object args[]) {
+    public static String tr(String message, Object args[]) {
         return _gt.translate(message, args);
     }
 
@@ -51,7 +51,7 @@ public class GT {
         }
     }
 
-    private final String translate(String message, Object args[])
+    private String translate(String message, Object args[])
     {
         if (_bundle != null && message != null)
         {
