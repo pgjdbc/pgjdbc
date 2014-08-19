@@ -189,7 +189,7 @@ class SimpleParameterList implements V3ParameterList {
             if (protoConnection != null)
             {
                 standardConformingStrings = protoConnection.getStandardConformingStrings();
-                supportsEStringSyntax = protoConnection.getServerVersion().compareTo("8.1") >= 0;
+                supportsEStringSyntax = protoConnection.getServerVersionNum() >= 80100;
             }
 
             if (hasBackslash && !standardConformingStrings && supportsEStringSyntax)

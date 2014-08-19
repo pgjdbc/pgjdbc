@@ -55,9 +55,33 @@ public interface ProtocolConnection {
     String getDatabase();
 
     /**
-     * @return the server version of the connected server, formatted as X.Y.Z.
+     * Return the server version from the server_version GUC.
+     *
+     * Note that there's no requirement for this to be numeric or of the form
+     * x.y.z. PostgreSQL development releases usually have the format x.ydevel
+     * e.g. 9.4devel; betas usually x.ybetan e.g.  9.4beta1. The
+     * --with-extra-version configure option may add an arbitrary string to
+     * this.
+     *
+     * Don't use this string for logic, only use it when displaying the server
+     * version to the user. Prefer getServerVersionNum() for all logic
+     * purposes.
+     *
+     * @return the server version string from the server_version guc
      */
     String getServerVersion();
+
+    /**
+     * Get a machine-readable server version.
+     *
+     * This returns the value of the server_version_num GUC. If no such GUC exists, 
+     * it falls back on attempting to parse the text server version for the major version.
+     * If there's no minor version (e.g. a devel or beta release) then the
+     * minor version is set to zero. If the version could not be parsed, zero is returned.
+     *
+     * @return the server version in numeric XXYYZZ form, eg 090401, from server_version_num
+     */
+    int getServerVersionNum();
 
     /**
      * @return the current encoding in use by this connection

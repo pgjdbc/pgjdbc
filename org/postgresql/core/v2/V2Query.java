@@ -18,8 +18,7 @@ import org.postgresql.core.*;
 class V2Query implements Query {
     V2Query(String query, boolean withParameters, ProtocolConnection pconn) {
 
-        useEStringSyntax = pconn.getServerVersion() != null
-                && pconn.getServerVersion().compareTo("8.1") > 0;
+        useEStringSyntax = pconn.getServerVersionNum() >= 80100;
         boolean stdStrings = pconn.getStandardConformingStrings();
 
         if (!withParameters)
