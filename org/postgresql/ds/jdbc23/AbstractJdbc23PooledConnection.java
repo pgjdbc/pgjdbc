@@ -27,7 +27,7 @@ import org.postgresql.util.PSQLState;
  */
 public abstract class AbstractJdbc23PooledConnection
 {
-    private List listeners = new LinkedList();
+    private final List<ConnectionEventListener> listeners = new LinkedList<ConnectionEventListener>();
     private Connection con;
     private ConnectionHandler last;
     private final boolean autoCommit;
@@ -80,7 +80,7 @@ public abstract class AbstractJdbc23PooledConnection
                     {
                         con.rollback();
                     }
-                    catch (SQLException e)
+                    catch (SQLException ignored)
                     {
                     }
                 }
@@ -132,7 +132,7 @@ public abstract class AbstractJdbc23PooledConnection
                     {
                         con.rollback();
                     }
-                    catch (SQLException e)
+                    catch (SQLException ignored)
                     {
                     }
                 }
@@ -166,12 +166,9 @@ public abstract class AbstractJdbc23PooledConnection
     {
         ConnectionEvent evt = null;
         // Copy the listener list so the listener can remove itself during this method call
-        ConnectionEventListener[] local = (ConnectionEventListener[]) listeners.toArray(new ConnectionEventListener[listeners.size()]);
-        for (int i = 0; i < local.length; i++)
-        {
-            ConnectionEventListener listener = local[i];
-            if (evt == null)
-            {
+        ConnectionEventListener[] local = listeners.toArray(new ConnectionEventListener[listeners.size()]);
+        for (ConnectionEventListener listener : local) {
+            if (evt == null) {
                 evt = createConnectionEvent(null);
             }
             listener.connectionClosed(evt);
@@ -185,12 +182,9 @@ public abstract class AbstractJdbc23PooledConnection
     {
         ConnectionEvent evt = null;
         // Copy the listener list so the listener can remove itself during this method call
-        ConnectionEventListener[] local = (ConnectionEventListener[])listeners.toArray(new ConnectionEventListener[listeners.size()]);
-        for (int i = 0; i < local.length; i++)
-        {
-            ConnectionEventListener listener = local[i];
-            if (evt == null)
-            {
+        ConnectionEventListener[] local = listeners.toArray(new ConnectionEventListener[listeners.size()]);
+        for (ConnectionEventListener listener : local) {
+            if (evt == null) {
                 evt = createConnectionEvent(e);
             }
             listener.connectionErrorOccurred(evt);
@@ -222,8 +216,8 @@ public abstract class AbstractJdbc23PooledConnection
         if (state.length() < 2) // no class info, assume fatal
             return true;
 
-        for (int i = 0; i < fatalClasses.length; ++i)
-            if (state.startsWith(fatalClasses[i]))
+        for (String fatalClass : fatalClasses)
+            if (state.startsWith(fatalClass))
                 return true; // fatal
 
         return false;
@@ -273,11 +267,11 @@ public abstract class AbstractJdbc23PooledConnection
                 }
                 if (method.getName().equals("equals"))
                 {
-                    return new Boolean(proxy == args[0]);
+                    return proxy == args[0];
                 }
                 if (method.getName().equals("hashCode"))
                 {
-                    return new Integer(System.identityHashCode(proxy));
+                    return System.identityHashCode(proxy);
                 }
                 try
                 {
@@ -297,7 +291,7 @@ public abstract class AbstractJdbc23PooledConnection
                 }
                 else
                 {
-                    return new Boolean(con.isClosed());
+                    return con.isClosed();
                 }
             }
             if (con == null && !method.getName().equals("close"))
@@ -424,11 +418,11 @@ public abstract class AbstractJdbc23PooledConnection
                 }
                 if (method.getName().equals("hashCode"))
                 {
-                    return new Integer(System.identityHashCode(proxy));
+                    return System.identityHashCode(proxy);
                 }
                 if (method.getName().equals("equals"))
                 {
-                    return new Boolean(proxy == args[0]);
+                    return proxy == args[0];
                 }
                 return method.invoke(st, args);
             }
