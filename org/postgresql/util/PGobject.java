@@ -8,6 +8,7 @@
 package org.postgresql.util;
 
 import java.io.Serializable;
+import java.lang.Override;
 import java.sql.SQLException;
 
 /**
@@ -103,5 +104,14 @@ public class PGobject implements Serializable, Cloneable
     public String toString()
     {
         return getValue();
+    }
+
+    /**
+     * Compute hash. As equals() use only value. Return the same hash for the same value.
+     * @return Value hashcode
+     */
+    @Override
+    public int hashCode() {
+        return getValue().hashCode();
     }
 }
