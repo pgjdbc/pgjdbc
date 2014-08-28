@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2003-2011, PostgreSQL Global Development Group
+* Copyright (c) 2003-2014, PostgreSQL Global Development Group
 *
 *
 *-------------------------------------------------------------------------
@@ -8,6 +8,8 @@
 package org.postgresql.util;
 
 import java.io.Serializable;
+import java.lang.Object;
+import java.lang.Override;
 import java.sql.SQLException;
 
 /**
@@ -103,5 +105,14 @@ public class PGobject implements Serializable, Cloneable
     public String toString()
     {
         return getValue();
+    }
+
+    /**
+     * Compute hash. As equals() use only value. Return the same hash for the same value.
+     * @return Value hashcode, 0 if value is null {@link java.util.Objects#hashCode(Object)}
+     */
+    @Override
+    public int hashCode() {
+        return getValue() != null ? getValue().hashCode() : 0;
     }
 }
