@@ -280,7 +280,9 @@ public class Driver implements java.sql.Driver
                 return makeConnection(url, props);
 
             ConnectThread ct = new ConnectThread(url, props);
-            new Thread(ct, "PostgreSQL JDBC driver connection thread").start();
+            Thread thread = new Thread(ct, "PostgreSQL JDBC driver connection thread");
+            thread.setDaemon(true); // Don't prevent the VM from shutting down
+            thread.start();
             return ct.getResult(timeout);
         }
         catch (PSQLException ex1)
