@@ -37,7 +37,6 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
     /**
      * Use given CopyOut operation for reading
      * @param op COPY TO STDOUT operation
-     * @throws SQLException if initializing the operation fails
      */
     public PGCopyInputStream(CopyOut op) {
         this.op = op;

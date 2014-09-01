@@ -512,7 +512,7 @@ public abstract class BaseDataSource implements Referenceable
 
     /**
      * Set the state of column sanitiser optimisation.
-     * @param boolean new optimisation state
+     * @param disableColumnSanitiser new optimisation state
      */
 	public void setDisableColumnSanitiser(boolean disableColumnSanitiser) {
 		this.disableColumnSanitiser = disableColumnSanitiser;
