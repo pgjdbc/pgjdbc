@@ -1107,8 +1107,13 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
              * behaviour for BC.
              */
             return (protoConnection.getServerVersion().compareTo(ver) >= 0);
+        else
+            return haveMinimumServerVersion(requiredver);
+    }
 
-        return protoConnection.getServerVersionNum() >= requiredver;
+    public boolean haveMinimumServerVersion(int ver)
+    {
+        return protoConnection.getServerVersionNum() >= ver;
     }
 
     /*

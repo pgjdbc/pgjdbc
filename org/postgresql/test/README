@@ -35,8 +35,8 @@ http://java.sun.com/.
 You need to install the Ant build utility. You can download it
 from http://jakarta.apache.org/ant/.
 
-You also need to install the JUnit testing framework. You can
-download it from http://www.junit.org/. Add junit.jar to your
+You also need to install the JUnit4 testing framework. You can
+download it from http://www.junit.org/. Add junit4.jar to your
 CLASSPATH before you perform the following steps. Ant will
 dynamically detect that JUnit is present and then build the JDBC
 test suite.

@@ -128,7 +128,8 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
     }
 
     /**
-     * @return the PGpoint in the binary syntax expected by org.postgresql
+     * Populate the byte array with PGpoint in the binary syntax expected
+     * by org.postgresql
      */
     public void toBytes(byte[] b, int offset) {
         ByteConverter.float8(b, offset, x);
