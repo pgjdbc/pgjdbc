@@ -68,7 +68,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         }
 
         //  - the TCP keep alive setting
-        boolean requireTCPKeepAlive = (Boolean.valueOf(info.getProperty("tcpKeepAlive")).booleanValue());
+        boolean requireTCPKeepAlive = Boolean.parseBoolean(info.getProperty("tcpKeepAlive"));
 
         for (int whichHost = 0; whichHost < hostSpecs.length; ++whichHost) {
             HostSpec hostSpec = hostSpecs[whichHost];

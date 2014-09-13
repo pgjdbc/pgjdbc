@@ -1674,17 +1674,17 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
      * element 1 the schema name which may be a zero length string.
      */
     public static String[] quotelessTableName(String fullname) {
-        StringBuffer buf = new StringBuffer(fullname);
+
         String[] parts = new String[] {null, ""};
         StringBuffer acc = new StringBuffer();
         boolean betweenQuotes = false;
-        for (int i = 0; i < buf.length(); i++)
+        for (int i = 0; i < fullname.length(); i++)
         {
-            char c = buf.charAt(i);
+            char c = fullname.charAt(i);
             switch (c)
             {
             case '"':
-                if ((i < buf.length() - 1) && (buf.charAt(i + 1) == '"'))
+                if ((i < fullname.length() - 1) && (fullname.charAt(i + 1) == '"'))
                 {
                     // two consecutive quotes - keep one
                     i++;
@@ -2910,7 +2910,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
             try
             {
-                if (Double.valueOf(s).doubleValue() == 1)
+                if (Double.parseDouble(s) == 1)
                     return true;
             }
             catch (NumberFormatException e)

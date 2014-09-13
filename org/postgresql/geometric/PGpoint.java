@@ -77,8 +77,8 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
         PGtokenizer t = new PGtokenizer(PGtokenizer.removePara(s), ',');
         try
         {
-            x = Double.valueOf(t.getToken(0)).doubleValue();
-            y = Double.valueOf(t.getToken(1)).doubleValue();
+            x = Double.parseDouble(t.getToken(0));
+            y = Double.parseDouble(t.getToken(1));
         }
         catch (NumberFormatException e)
         {

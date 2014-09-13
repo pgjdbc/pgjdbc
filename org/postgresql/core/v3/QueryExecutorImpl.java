@@ -36,7 +36,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         this.logger = logger;
 
         if (info.getProperty("allowEncodingChanges") != null) {
-            this.allowEncodingChanges = Boolean.valueOf(info.getProperty("allowEncodingChanges")).booleanValue();
+            this.allowEncodingChanges = Boolean.parseBoolean(info.getProperty("allowEncodingChanges"));
         } else {
             this.allowEncodingChanges = false;
         }
