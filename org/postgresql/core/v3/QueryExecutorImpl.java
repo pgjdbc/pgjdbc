@@ -36,7 +36,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         this.logger = logger;
 
         if (info.getProperty("allowEncodingChanges") != null) {
-            this.allowEncodingChanges = Boolean.valueOf(info.getProperty("allowEncodingChanges")).booleanValue();
+            this.allowEncodingChanges = Boolean.parseBoolean(info.getProperty("allowEncodingChanges"));
         } else {
             this.allowEncodingChanges = false;
         }
@@ -1218,7 +1218,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             for (int i = 0; i < fragments.length; ++i)
             {
                 if (i > 0)
-                    sbuf.append("$" + i);
+                    sbuf.append("$").append(i);
                 sbuf.append(fragments[i]);
             }
             sbuf.append("\",oids={");
@@ -1226,7 +1226,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             {
                 if (i != 1)
                     sbuf.append(",");
-                sbuf.append("" + params.getTypeOID(i));
+                sbuf.append(params.getTypeOID(i));
             }
             sbuf.append("})");
             logger.debug(sbuf.toString());
@@ -1298,7 +1298,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             StringBuffer sbuf = new StringBuffer(" FE=> Bind(stmt=" + statementName + ",portal=" + portal);
             for (int i = 1; i <= params.getParameterCount(); ++i)
             {
-                sbuf.append(",$" + i + "=<" + params.toString(i) + ">");
+                sbuf.append(",$").append(i).append("=<").append(params.toString(i)).append(">");
             }
             sbuf.append(")");
             logger.debug(sbuf.toString());

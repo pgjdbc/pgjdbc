@@ -78,7 +78,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         }
 
         //  - the TCP keep alive setting
-        boolean requireTCPKeepAlive = (Boolean.valueOf(info.getProperty("tcpKeepAlive")).booleanValue());
+        boolean requireTCPKeepAlive = Boolean.parseBoolean(info.getProperty("tcpKeepAlive"));
 
         // NOTE: To simplify this code, it is assumed that if we are
         // using the V3 protocol, then the database is at least 7.4.  That
@@ -510,7 +510,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                             info.getProperty("jaasApplicationName"),
                             info.getProperty("kerberosServerName"),
                             logger,
-                            Boolean.valueOf(info.getProperty("useSpnego")).booleanValue());
+                            Boolean.parseBoolean(info.getProperty("useSpnego")));
                     break;
 
                 case AUTH_REQ_OK:
