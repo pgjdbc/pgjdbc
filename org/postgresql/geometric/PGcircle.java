@@ -84,7 +84,7 @@ public class PGcircle extends PGobject implements Serializable, Cloneable
         try
         {
             center = new PGpoint(t.getToken(0));
-            radius = Double.valueOf(t.getToken(1)).doubleValue();
+            radius = Double.parseDouble(t.getToken(1));
         }
         catch (NumberFormatException e)
         {

@@ -130,7 +130,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         boolean binaryTransfer = true;
         try
         {
-            binaryTransfer = Boolean.valueOf(info.getProperty("binaryTransfer", "true")).booleanValue();
+            binaryTransfer = Boolean.parseBoolean(info.getProperty("binaryTransfer", "true"));
         }
         catch (Exception e)
         {
@@ -264,7 +264,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         _typeCache = createTypeInfo(this, unknownLength);
         initObjectTypes(info);
 
-        if (Boolean.valueOf(info.getProperty("logUnclosedConnections")).booleanValue()) {
+        if (Boolean.parseBoolean(info.getProperty("logUnclosedConnections"))) {
             openStackTrace = new Throwable("Connection was created at this point:");
             enableDriverManagerLogging();
         }

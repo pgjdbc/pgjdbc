@@ -178,6 +178,6 @@ class SimpleParameterList implements ParameterList {
      * nb: we explicitly say "new String" to avoid interning giving us an object that
      * might be the same (by identity) as a String elsewhere.
      */
-    private final static String NULL_OBJECT = new String("NULL");
+    private final static String NULL_OBJECT = "NULL";
 }
 

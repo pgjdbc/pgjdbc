@@ -553,7 +553,7 @@ public abstract class BaseDataSource implements Referenceable
         }
         sb.append("&tcpKeepAlive=").append(tcpKeepAlive);
         if (compatible != null) {
-            sb.append("&compatible="+compatible);
+            sb.append("&compatible=").append(compatible);
         }
         if (applicationName != null) {
             sb.append("&ApplicationName=");

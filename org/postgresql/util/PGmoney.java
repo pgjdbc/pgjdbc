@@ -64,7 +64,7 @@ public class PGmoney extends PGobject implements Serializable, Cloneable
                 pos = s1.indexOf(',');
             }
 
-            val = Double.valueOf(s1).doubleValue();
+            val = Double.parseDouble(s1);
             val = negative ? -val : val;
 
         }
