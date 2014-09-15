@@ -8,12 +8,14 @@
 package org.postgresql.jdbc2;
 
 
-import org.postgresql.core.BaseConnection;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.charset.Charset;
 import java.sql.Clob;
 import java.sql.SQLException;
+
+import org.postgresql.core.BaseConnection;
 
 public abstract class AbstractJdbc2Clob extends AbstractJdbc2BlobClob
 {
@@ -30,7 +32,8 @@ public abstract class AbstractJdbc2Clob extends AbstractJdbc2BlobClob
 
     public synchronized Reader getCharacterStream() throws SQLException
     {
-        return new InputStreamReader(getBinaryStream());
+        Charset connectionCharset = Charset.forName(conn.getEncoding().name());
+        return new InputStreamReader(getBinaryStream(), connectionCharset);
     }
 
     public synchronized String getSubString(long i, int j) throws SQLException
