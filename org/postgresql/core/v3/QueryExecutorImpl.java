@@ -164,8 +164,13 @@ public class QueryExecutorImpl implements QueryExecutor {
             case '?':
                 if (withParameters)
                 {
-                    fragmentList.add(query.substring(fragmentStart, i));
-                    fragmentStart = i + 1;
+                    if (i+1 < aChars.length && aChars[i+1] == '?') /* let '??' pass */
+                        i = i+1;
+                    else
+                    {
+                        fragmentList.add(query.substring(fragmentStart, i));
+                        fragmentStart = i + 1;
+                    }
                 }
                 break;
 

@@ -182,6 +182,68 @@ public class Parser {
         }
         return offset;
     }
+
+    /**
+     * unmark '??' in query back to '?'
+     * @param query
+     * @param standardConformingStrings
+     * @return
+     */
+    public static String unmarkDoubleQuestion(String query, boolean standardConformingStrings)
+    {
+        if (query == null) return query;
+
+        char[] aChars = query.toCharArray();
+        StringBuffer buf = new StringBuffer(aChars.length);
+        for(int i=0, j=-1; i< aChars.length; i++)
+        {
+            switch (aChars[i])
+            {
+                case '\'': // single-quotes
+                    j = Parser.parseSingleQuotes(aChars, i, standardConformingStrings);
+                    buf.append(aChars, i, j-i);
+                    i = j;
+                    break;
+
+                case '"': // double-quotes
+                    j = Parser.parseDoubleQuotes(aChars, i);
+                    buf.append(aChars, i, j-i);
+                    i = j;
+                    break;
+
+                case '-': // possibly -- style comment
+                    j = Parser.parseLineComment(aChars, i);
+                    buf.append(aChars, i, j-i);
+                    i = j;
+                    break;
+
+                case '/': // possibly /* */ style comment
+                    j = Parser.parseBlockComment(aChars, i);
+                    buf.append(aChars, i, j-i);
+                    i = j;
+                    break;
+
+                case '$': // possibly dollar quote start
+                    j = Parser.parseDollarQuotes(aChars, i);
+                    buf.append(aChars, i, j-i);
+                    i = j;
+                    break;
+
+                case '?': // unescape '??' back to '?'
+                    if (i+1 < aChars.length && aChars[i+1] == '?') {
+                        buf.append("?");
+                        i = i+1;
+                    } else buf.append("?");
+
+                    break;
+
+                default:
+                    buf.append(aChars[i]);
+            }
+        }
+
+        return buf.toString();
+    }
     
     /**
      * @return true if the character is a whitespace character as defined
