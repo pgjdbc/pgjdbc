@@ -117,7 +117,7 @@ public abstract class BaseDataSource implements Referenceable
     /**
      * @return the login timeout, in seconds.
      */
-    public int getLoginTimeout() throws SQLException
+    public int getLoginTimeout()
     {
         return loginTimeout;
     }
@@ -125,7 +125,7 @@ public abstract class BaseDataSource implements Referenceable
     /**
      * Set the login timeout, in seconds.
      */
-    public void setLoginTimeout(int i) throws SQLException
+    public void setLoginTimeout(int i)
     {
         this.loginTimeout = i;
     }
@@ -133,7 +133,7 @@ public abstract class BaseDataSource implements Referenceable
     /**
      * Gets the log writer used to log connections opened.
      */
-    public PrintWriter getLogWriter() throws SQLException
+    public PrintWriter getLogWriter()
     {
         return logger;
     }
@@ -141,7 +141,7 @@ public abstract class BaseDataSource implements Referenceable
     /**
      * The DataSource will note every connection opened to the provided log writer.
      */
-    public void setLogWriter(PrintWriter printWriter) throws SQLException
+    public void setLogWriter(PrintWriter printWriter)
     {
         logger = printWriter;
     }
@@ -592,9 +592,9 @@ public abstract class BaseDataSource implements Referenceable
     }
 
     /**
-     +     * Sets properties from a DriverManager URL.
-     +     */
-    public void setUrl(String url) throws SQLException {
+     * Sets properties from a DriverManager URL.
+     */
+    public void setUrl(String url) {
 
         Properties p = org.postgresql.Driver.parseURL(url, null);
      	serverName = p.getProperty("PGHOST", "localhost");

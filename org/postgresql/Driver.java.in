@@ -423,10 +423,8 @@ public class Driver implements java.sql.Driver
      * @see java.sql.Driver#acceptsURL
      * @param url the URL of the driver
      * @return true if this driver accepts the given URL
-     * @exception SQLException if a database-access error occurs
-     * (Dont know why it would *shrug*)
      */
-    public boolean acceptsURL(String url) throws SQLException
+    public boolean acceptsURL(String url)
     {
         if (parseURL(url, null) == null)
             return false;
@@ -506,10 +504,9 @@ public class Driver implements java.sql.Driver
      * @return An array of DriverPropertyInfo objects describing
      * possible properties.  This array may be an empty array if
      * no properties are required
-     * @exception SQLException if a database-access error occurs
      * @see java.sql.Driver#getPropertyInfo
      */
-    public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) throws SQLException
+    public DriverPropertyInfo[] getPropertyInfo(String url, Properties info)
     {
         Properties copy = new Properties(info);
         Properties parse = parseURL(url, copy);
@@ -584,9 +581,8 @@ public class Driver implements java.sql.Driver
      * @param url JDBC URL to parse
      * @param defaults Default properties
      * @return Properties with elements added from the url
-     * @exception SQLException
      */
-    public static Properties parseURL(String url, Properties defaults) throws SQLException
+    public static Properties parseURL(String url, Properties defaults)
     {
         Properties urlProps = new Properties(defaults);
 
