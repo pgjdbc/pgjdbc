@@ -2755,14 +2755,14 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             return index.intValue();
         }
         
-        index = (Integer)columnNameIndexMap.get(columnName.toUpperCase(Locale.US));
+        index = (Integer)columnNameIndexMap.get(columnName.toLowerCase(Locale.US));
         if (index != null)
         {
             columnNameIndexMap.put(columnName, index);
             return index.intValue();
         }
 
-        index = (Integer)columnNameIndexMap.get(columnName.toLowerCase(Locale.US));
+        index = (Integer)columnNameIndexMap.get(columnName.toUpperCase(Locale.US));
         if (index != null)
         {
             columnNameIndexMap.put(columnName, index);
