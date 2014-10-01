@@ -176,6 +176,7 @@ public class Utils {
  	{
         int vers;
         NumberFormat numformat = NumberFormat.getIntegerInstance();
+		numformat.setGroupingUsed(false);
         ParsePosition parsepos = new ParsePosition(0);
         Long parsed;
 
@@ -187,7 +188,7 @@ public class Utils {
         if (parsed == null) {
             return 0;
         }
-        if (parsed >= 10000)
+        if (parsed.intValue() >= 10000)
         {
             /*
              * PostgreSQL version 1000? I don't think so. We're seeing a version like
@@ -226,7 +227,7 @@ public class Utils {
              */
             return 0;
         }
-		if (parsed > 99)
+		if (parsed.intValue() > 99)
 			throw new NumberFormatException("Unsupported second part of major version > 99 in invalid version string: " + serverVersion);
         vers = vers + parsed.intValue() * 100;
 
@@ -244,7 +245,7 @@ public class Utils {
         /* Try to parse any remainder as a minor version */
         parsed = (Long) numformat.parseObject(serverVersion, parsepos);
         if (parsed != null) {
-			if (parsed > 99)
+			if (parsed.intValue() > 99)
 				throw new NumberFormatException("Unsupported minor version value > 99 in invalid version string: " + serverVersion);
             vers = vers + parsed.intValue();
         }
