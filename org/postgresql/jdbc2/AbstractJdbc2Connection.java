@@ -81,6 +81,8 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     /** Set of oids that use binary transfer when receiving from server. */
     private Set<Integer> useBinaryReceiveForOids;
 
+    private SharedTimer.Loan timerLoan = SharedTimer.loan();
+
     public abstract DatabaseMetaData getMetaData() throws SQLException;
 
     //
@@ -672,6 +674,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     {
         protoConnection.close();
         openStackTrace = null;
+        timerLoan.release();
     }
 
     /*
@@ -1323,5 +1326,11 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     protected void abort()
     {
        protoConnection.abort();
+    }
+
+    @Override
+    public void addTimerTask(TimerTask timerTask, long milliSeconds)
+    {
+        timerLoan.timer().schedule(timerTask, milliSeconds);
     }
 }

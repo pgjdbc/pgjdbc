@@ -32,6 +32,7 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.GT;
+import org.postgresql.util.SharedTimer;
 
 /**
  * This class defines methods of the jdbc2 specification.
@@ -3439,7 +3440,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	    }
 	};
 
-	Driver.addTimerTask( cancelTimer, timeout * 1000);
+	getPGConnection().addTimerTask(cancelTimer, timeout * 1000);
     }
 
     private synchronized void killTimer()
@@ -3448,7 +3449,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         {
             cancelTimer.cancel();
             cancelTimer = null;
-	    Driver.purgeTimerTasks();
+            SharedTimer.purge();
         }
             
     }

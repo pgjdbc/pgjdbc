@@ -8,6 +8,8 @@
 package org.postgresql;
 
 import java.sql.*;
+import java.util.TimerTask;
+
 import org.postgresql.copy.CopyManager;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.largeobject.LargeObjectManager;
@@ -116,5 +118,15 @@ public interface PGConnection
      * @return PID of backend server process. 
      */
     public int getBackendPID();
+
+    /**
+     * Adds the timer task to the {@link org.postgresql.util.SharedTimer} used driver-wide.
+     * This method exists on the connection object because the lifetime of the shared timer is governed by existence
+     * of connections.
+     *
+     * @param timerTask the task to add
+     * @param milliSeconds the delay before the task is executed
+     */
+    public void addTimerTask(TimerTask timerTask, long milliSeconds);
 }
 
