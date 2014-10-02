@@ -73,6 +73,10 @@ public final class SharedTimer
     {
         private boolean returned;
 
+        private Loan() {
+
+        }
+
         /**
          * @return the loaned timer. Don't keep a reference to the timer itself because it might be cancelled if this
          *         loan object is {@link #release()}ed.
