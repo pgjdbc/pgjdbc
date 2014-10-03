@@ -249,7 +249,6 @@ public class QueryExecutorImpl implements QueryExecutor {
             {
                 handler = sendQueryPreamble(handler, flags);
                 ErrorTrackingResultHandler trackingHandler = new ErrorTrackingResultHandler(handler);
-                queryCount = 0;
                 sendQuery((V3Query)query, (V3ParameterList)parameters, maxRows, fetchSize, flags, trackingHandler);
                 sendSync();
                 processResults(handler, flags);
@@ -304,11 +303,11 @@ public class QueryExecutorImpl implements QueryExecutor {
     // for the server to read some more data, and the server is blocked on write()
     // waiting for the driver to read some more data.
     //
-    // To avoid this, we guess at how many queries we can send before the server ->
-    // driver stream's buffer is full (MAX_BUFFERED_QUERIES). This is the point where
-    // the server blocks on write and stops reading data. If we reach this point, we
-    // force a Sync message and read pending data from the server until ReadyForQuery,
-    // then go back to writing more queries unless we saw an error.
+    // To avoid this, we guess at how much response data we can request from the
+    // server before the server -> driver stream's buffer is full (MAX_BUFFERED_RECV_BYTES).
+    // This is the point where the server blocks on write and stops reading data. If we
+    // reach this point, we force a Sync message and read pending data from the server
+    // until ReadyForQuery, then go back to writing more queries unless we saw an error.
     //
     // This is not 100% reliable -- it's only done in the batch-query case and only
     // at a reasonably high level (per query, not per message), and it's only an estimate
@@ -316,9 +315,23 @@ public class QueryExecutorImpl implements QueryExecutor {
     // separate send or receive thread as we can only do the Sync-and-read-results
     // operation at particular points, and also as we don't really know how much data
     // the server is sending.
-
-    // Assume 64k server->client buffering and 250 bytes response per query (conservative).
-    private static final int MAX_BUFFERED_QUERIES = (64000 / 250);
+    //
+    // Our message size estimation is coarse, and disregards asynchronous
+    // notifications, warnings/info/debug messages, etc, so the repsonse size may be
+    // quite different from the 250 bytes assumed here even for queries that don't
+    // return data.
+    //
+    // See github issue #194 and #195 .
+    //
+    // Assume 64k server->client buffering, which is extremely conservative. A typical
+    // system will have 200kb or more of buffers for its receive buffers, and the sending
+    // system will typically have the same on the send side, giving us 400kb or to work
+    // with. (We could check Java's receive buffer size, but prefer to assume a very
+    // conservative buffer instead, and we don't know how big the server's send
+    // buffer is.)
+    //
+    private static final int MAX_BUFFERED_RECV_BYTES = 64000;
+    private static final int NODATA_QUERY_RESPONSE_SIZE_BYTES = 250;
 
     // Helper handler that tracks error status.
     private static class ErrorTrackingResultHandler implements ResultHandler {
@@ -384,7 +397,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         {
             handler = sendQueryPreamble(handler, flags);
             ErrorTrackingResultHandler trackingHandler = new ErrorTrackingResultHandler(handler);
-            queryCount = 0;
+            estimatedReceiveBufferBytes = 0;
 
             for (int i = 0; i < queries.length; ++i)
             {
@@ -1123,13 +1136,15 @@ public class QueryExecutorImpl implements QueryExecutor {
 
         if (subqueries == null)
         {
-            ++queryCount;
-            if (disallowBatching || queryCount >= MAX_BUFFERED_QUERIES)
+            estimatedReceiveBufferBytes += NODATA_QUERY_RESPONSE_SIZE_BYTES;
+            System.err.println("Buffer is " + estimatedReceiveBufferBytes); //XXX
+            if (disallowBatching || estimatedReceiveBufferBytes >= MAX_BUFFERED_RECV_BYTES)
             {
+                if (logger.logDebug())
+                    logger.debug("Forcing Sync, receive buffer full or batching disallowed");
                 sendSync();
                 processResults(trackingHandler, flags);
-
-                queryCount = 0;
+                estimatedReceiveBufferBytes = 0;
             }
 
              // If we saw errors, don't send anything more.
@@ -1140,17 +1155,19 @@ public class QueryExecutorImpl implements QueryExecutor {
         {
             for (int i = 0; i < subqueries.length; ++i)
             {
-                ++queryCount;
-                if (disallowBatching || queryCount >= MAX_BUFFERED_QUERIES)
+                estimatedReceiveBufferBytes += NODATA_QUERY_RESPONSE_SIZE_BYTES;
+                System.err.println("Buffer is " + estimatedReceiveBufferBytes); //XXX
+                if (disallowBatching || estimatedReceiveBufferBytes >= MAX_BUFFERED_RECV_BYTES)
                 {
+                    if (logger.logDebug())
+                        logger.debug("Forcing Sync, receive buffer full or batching disallowed");
                     sendSync();
                     processResults(trackingHandler, flags);
+                    estimatedReceiveBufferBytes = 0;
 
                     // If we saw errors, don't send anything more.
                     if (trackingHandler.hasErrors())
                         break;
-
-                    queryCount = 0;
                 }
 
                 // In the situation where parameters is already
@@ -2290,10 +2307,14 @@ public class QueryExecutorImpl implements QueryExecutor {
     private final boolean allowEncodingChanges;
 
     /**
-     * The number of queries executed so far without processing any results.
-     * Used to avoid deadlocks, see MAX_BUFFERED_QUERIES.
+     * The estimated server response size since we last consumed the input stream
+     * from the server, in bytes.
+     *
+     * Starts at zero, reset by every Sync message. Mainly used for batches.
+     *
+     * Used to avoid deadlocks, see MAX_BUFFERED_RECV_BYTES.
      */
-    private int queryCount;
+    private int estimatedReceiveBufferBytes = 0;
 
     private final SimpleQuery beginTransactionQuery = new SimpleQuery(new String[] { "BEGIN" }, null);
 
