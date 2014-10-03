@@ -182,8 +182,8 @@ class SimpleQuery implements V3Query {
     private String statementName;
     private byte[] encodedStatementName;
     /**
-     * The stored fields from previous query of a prepared statement,
-     * if executed before. Always null for non-prepared statements.
+     * The stored fields from previous execution or describe of a prepared 
+     * statement. Always null for non-prepared statements.
      */
     private Field[] fields;
     private boolean portalDescribed;
