@@ -47,7 +47,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     protected final int resultsettype;   // the resultset type to return (ResultSet.TYPE_xxx)
     protected final int concurrency;   // is it updateable or not?     (ResultSet.CONCUR_xxx)
     protected int fetchdirection = ResultSet.FETCH_FORWARD;  // fetch direction hint (currently ignored)
-    private volatile TimerTask cancelTimer=null;
+    private volatile TimerTask cancelTimerTask = null;
 
     /**
      * Does the caller of execute/executeUpdate want generated keys for this
@@ -571,7 +571,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         }
         finally
         {
-            killTimer();
+            killTimerTask();
         }
         result = firstUnclosedResult = handler.getResults();
 
@@ -843,7 +843,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (isClosed)
             return ;
 
-        killTimer();
+        killTimerTask();
         
         closeForNextExecution();
 
@@ -2901,7 +2901,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 						  fetchSize,
 						  flags);
 	} finally {
-	    killTimer();
+	    killTimerTask();
 	}
 
         if (wantsGeneratedKeysAlways) {
@@ -3427,9 +3427,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	 * there shouldn't be any previous timer active, but better safe than
 	 * sorry.
 	 */
-	killTimer();
+	killTimerTask();
 
-	cancelTimer = new TimerTask() {
+	cancelTimerTask = new TimerTask() {
 	    public void run()
 	    {
 		try {
@@ -3439,16 +3439,15 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	    }
 	};
 
-	Driver.addTimerTask( cancelTimer, timeout * 1000);
+	Driver.addTimerTask(cancelTimerTask, timeout * 1000);
     }
 
-    private synchronized void killTimer()
+    private synchronized void killTimerTask()
     {
-        if ( cancelTimer != null )
-        {
-            cancelTimer.cancel();
-            cancelTimer = null;
-	    Driver.purgeTimerTasks();
+        if (cancelTimerTask != null) {
+            cancelTimerTask.cancel();
+            cancelTimerTask = null;
+	        Driver.purgeTimerTasks();
         }
             
     }
