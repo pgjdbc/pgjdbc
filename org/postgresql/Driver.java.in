@@ -768,9 +768,10 @@ public class Driver implements java.sql.Driver
         if ( cancelTimer != null ) cancelTimer.purge();
     }
 
-    public  static void addTimerTask(TimerTask timerTask, long milliSeconds)
-    {
-    	cancelTimer.schedule( timerTask, milliSeconds );
+    /**
+     * Return the static shared Timer.
+     */
+    public static Timer getTimer() {
+        return cancelTimer;
     }
-
 }

@@ -1324,4 +1324,13 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     {
        protoConnection.abort();
     }
+
+    public void addTimerTask(TimerTask timerTask, long milliSeconds) {
+        Timer cancelTimer = Driver.getTimer();
+        cancelTimer.schedule( timerTask, milliSeconds );
+    }
+
+    public void purgeTimerTasks() {
+        Driver.purgeTimerTasks();
+    }
 }

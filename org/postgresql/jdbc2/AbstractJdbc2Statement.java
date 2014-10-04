@@ -3439,7 +3439,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	    }
 	};
 
-	Driver.addTimerTask(cancelTimerTask, timeout * 1000);
+        connection.addTimerTask(cancelTimerTask, timeout * 1000);
     }
 
     private synchronized void killTimerTask()
@@ -3447,9 +3447,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (cancelTimerTask != null) {
             cancelTimerTask.cancel();
             cancelTimerTask = null;
-	        Driver.purgeTimerTasks();
+            connection.purgeTimerTasks();
         }
-            
     }
     
     protected boolean getForceBinaryTransfer()
