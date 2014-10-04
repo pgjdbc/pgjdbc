@@ -561,4 +561,43 @@ public class StatementTest extends TestCase
         ResultSet rsOther = stmt.getResultSet();
         assertNotNull(rsOther);
     }
+
+    public void testMultipleCancels() throws Exception {
+        org.postgresql.util.SharedTimer sharedTimer = org.postgresql.Driver.getSharedTimer();
+
+        Connection connA = null;
+        Connection connB = null;
+        Statement stmtA = null;
+        Statement stmtB = null;
+        ResultSet rsA = null;
+        ResultSet rsB = null;
+        try {
+            assertEquals(0, sharedTimer.getRefCount());
+            connA = TestUtil.openDB();
+            connB = TestUtil.openDB();
+            stmtA = connA.createStatement();
+            stmtB = connB.createStatement();
+            stmtA.setQueryTimeout(1);
+            stmtB.setQueryTimeout(1);
+            try {
+                rsA = stmtA.executeQuery("SELECT pg_sleep(2)");
+            } catch( SQLException e) {
+                // ignore the expected timeout
+            }
+            assertEquals(1, sharedTimer.getRefCount());
+            try {
+                rsB = stmtB.executeQuery("SELECT pg_sleep(2)");
+            } catch( SQLException e) {
+                // ignore the expected timeout
+            }
+        } finally {
+            TestUtil.closeQuietly(rsA);
+            TestUtil.closeQuietly(rsB);
+            TestUtil.closeQuietly(stmtA);
+            TestUtil.closeQuietly(stmtB);
+            TestUtil.closeQuietly(connA);
+            TestUtil.closeQuietly(connB);
+        }
+        assertEquals(0, sharedTimer.getRefCount());
+    }
 }

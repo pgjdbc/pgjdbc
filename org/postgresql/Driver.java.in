@@ -21,6 +21,7 @@ import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLDriverVersion;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
+import org.postgresql.util.SharedTimer;
 
 import org.postgresql.core.Logger;
 
@@ -54,7 +55,7 @@ public class Driver implements java.sql.Driver
     
     private static final Logger logger = new Logger();
     private static boolean logLevelSet = false;
-	private static Timer cancelTimer = new Timer(true);
+    private static SharedTimer sharedTimer = new SharedTimer(logger);
 
     static
     {
@@ -763,15 +764,7 @@ public class Driver implements java.sql.Driver
         throw notImplemented(this.getClass(), "getParentLogger()");
     }
 
-    public static void purgeTimerTasks()
-    {
-        if ( cancelTimer != null ) cancelTimer.purge();
-    }
-
-    /**
-     * Return the static shared Timer.
-     */
-    public static Timer getTimer() {
-        return cancelTimer;
+    public static SharedTimer getSharedTimer() {
+        return sharedTimer;
     }
 }
