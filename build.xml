@@ -88,8 +88,9 @@
     <include name="${package}/ssl/jdbc3/*.java" if="jdbc3any"/>
     <include name="${package}/ssl/*.java" if="jdbc3any"/>
 
-    <!-- gss -->
+    <!-- gss and sspi -->
     <include name="${package}/gss/*.java"/>
+    <include name="${package}/sspi/*.java"/>
 
     <!-- datasource stuff -->
     <include name="${package}/jdbc3/Jdbc3ConnectionPool.java" if="jdbc3any"/>

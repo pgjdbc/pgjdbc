@@ -12,12 +12,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.TimeZone;
-
 import java.sql.SQLException;
 import java.io.IOException;
 import java.net.ConnectException;
 
 import org.postgresql.core.*;
+import org.postgresql.sspi.SSPIClient;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLWarning;
@@ -392,146 +392,241 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         // or an authentication request
 
         String password = info.getProperty("password");
+        
+        /* SSPI negotiation state, if used */
+        SSPIClient sspiClient = null;
 
-        while (true)
-        {
-            int beresp = pgStream.ReceiveChar();
+        try {
+	        authloop:
+	        while (true)
+	        {
+	            int beresp = pgStream.ReceiveChar();
+	
+	            switch (beresp)
+	            {
+	            case 'E':
+	                // An error occured, so pass the error message to the
+	                // user.
+	                //
+	                // The most common one to be thrown here is:
+	                // "User authentication failed"
+	                //
+	                int l_elen = pgStream.ReceiveInteger4();
+	                if (l_elen > 30000)
+	                {
+	                    // if the error length is > than 30000 we assume this is really a v2 protocol
+	                    // server, so trigger fallback.
+	                    throw new UnsupportedProtocolException();
+	                }
+	
+	                ServerErrorMessage errorMsg = new ServerErrorMessage(pgStream.ReceiveString(l_elen - 4), logger.getLogLevel());
+	                if (logger.logDebug())
+	                    logger.debug(" <=BE ErrorMessage(" + errorMsg + ")");
+	                throw new PSQLException(errorMsg);
+	
+	            case 'R':
+	                // Authentication request.
+	                // Get the message length
+	                int l_msgLen = pgStream.ReceiveInteger4();
+	
+	                // Get the type of request
+	                int areq = pgStream.ReceiveInteger4();
+	
+	                // Process the request.
+	                switch (areq)
+	                {
+	                case AUTH_REQ_CRYPT:
+	                    {
+	                        byte[] salt = pgStream.Receive(2);
+	
+	                        if (logger.logDebug())
+	                            logger.debug(" <=BE AuthenticationReqCrypt(salt='" + new String(salt, "US-ASCII") + "')");
+	
+	                        if (password == null)
+	                            throw new PSQLException(GT.tr("The server requested password-based authentication, but no password was provided."), PSQLState.CONNECTION_REJECTED);
+	
+	                        byte[] encodedResult = UnixCrypt.crypt(salt, password.getBytes("UTF-8"));
+	
+	                        if (logger.logDebug())
+	                            logger.debug(" FE=> Password(crypt='" + new String(encodedResult, "US-ASCII") + "')");
+	
+	                        pgStream.SendChar('p');
+	                        pgStream.SendInteger4(4 + encodedResult.length + 1);
+	                        pgStream.Send(encodedResult);
+	                        pgStream.SendChar(0);
+	                        pgStream.flush();
+	
+	                        break;
+	                    }
+	
+	                case AUTH_REQ_MD5:
+	                    {
+	                        byte[] md5Salt = pgStream.Receive(4);
+	                        if (logger.logDebug())
+	                        {
+	                            logger.debug(" <=BE AuthenticationReqMD5(salt=" + Utils.toHexString(md5Salt) + ")");
+	                        }
+	
+	                        if (password == null)
+	                            throw new PSQLException(GT.tr("The server requested password-based authentication, but no password was provided."), PSQLState.CONNECTION_REJECTED);
+	
+	                        byte[] digest = MD5Digest.encode(user.getBytes("UTF-8"), password.getBytes("UTF-8"), md5Salt);
+	
+	                        if (logger.logDebug())
+	                        {
+	                            logger.debug(" FE=> Password(md5digest=" + new String(digest, "US-ASCII") + ")");
+	                        }
+	
+	                        pgStream.SendChar('p');
+	                        pgStream.SendInteger4(4 + digest.length + 1);
+	                        pgStream.Send(digest);
+	                        pgStream.SendChar(0);
+	                        pgStream.flush();
+	
+	                        break;
+	                    }
+	
+	                case AUTH_REQ_PASSWORD:
+	                    {
+	                        if (logger.logDebug())
+	                        {
+	                            logger.debug(" <=BE AuthenticationReqPassword");
+	                            logger.debug(" FE=> Password(password=<not shown>)");
+	                        }
+	
+	                        if (password == null)
+	                            throw new PSQLException(GT.tr("The server requested password-based authentication, but no password was provided."), PSQLState.CONNECTION_REJECTED);
+	
+	                        byte[] encodedPassword = password.getBytes("UTF-8");
+	
+	                        pgStream.SendChar('p');
+	                        pgStream.SendInteger4(4 + encodedPassword.length + 1);
+	                        pgStream.Send(encodedPassword);
+	                        pgStream.SendChar(0);
+	                        pgStream.flush();
+	
+	                        break;
+	                    }
+	
+	                case AUTH_REQ_GSS:
+                    case AUTH_REQ_SSPI:
+                        /* 
+                         * Use GSSAPI if requested on all platforms, via JSSE.
+                         *
+                         * For SSPI auth requests, if we're on Windows attempt native SSPI
+                         * authentication if available, and if not disabled by setting a
+                         * kerberosServerName. On other platforms, attempt JSSE GSSAPI
+                         * negotiation with the SSPI server.
+                         *
+                         * Note that this is slightly different to libpq, which uses SSPI
+                         * for GSSAPI where supported. We prefer to use the existing Java
+                         * JSSE Kerberos support rather than going to native (via JNA) calls
+                         * where possible, so that JSSE system properties etc continue
+                         * to work normally.
+                         *
+                         * Note that while SSPI is often Kerberos-based there's no guarantee
+                         * it will be; it may be NTLM or anything else. If the client responds
+                         * to an SSPI request via GSSAPI and the other end isn't using Kerberos
+                         * for SSPI then authentication will fail.
+                         */
+                        final String gsslib = info.getProperty("gsslib","auto");
+                        final boolean usespnego = Boolean.parseBoolean(info.getProperty("useSpnego"));
+                        
+                        boolean useSSPI = false;
 
-            switch (beresp)
-            {
-            case 'E':
-                // An error occured, so pass the error message to the
-                // user.
-                //
-                // The most common one to be thrown here is:
-                // "User authentication failed"
-                //
-                int l_elen = pgStream.ReceiveInteger4();
-                if (l_elen > 30000)
-                {
-                    // if the error length is > than 30000 we assume this is really a v2 protocol
-                    // server, so trigger fallback.
-                    throw new UnsupportedProtocolException();
-                }
-
-                ServerErrorMessage errorMsg = new ServerErrorMessage(pgStream.ReceiveString(l_elen - 4), logger.getLogLevel());
-                if (logger.logDebug())
-                    logger.debug(" <=BE ErrorMessage(" + errorMsg + ")");
-                throw new PSQLException(errorMsg);
-
-            case 'R':
-                // Authentication request.
-                // Get the message length
-                int l_msgLen = pgStream.ReceiveInteger4();
-
-                // Get the type of request
-                int areq = pgStream.ReceiveInteger4();
-
-                // Process the request.
-                switch (areq)
-                {
-                case AUTH_REQ_CRYPT:
-                    {
-                        byte[] salt = pgStream.Receive(2);
-
-                        if (logger.logDebug())
-                            logger.debug(" <=BE AuthenticationReqCrypt(salt='" + new String(salt, "US-ASCII") + "')");
-
-                        if (password == null)
-                            throw new PSQLException(GT.tr("The server requested password-based authentication, but no password was provided."), PSQLState.CONNECTION_REJECTED);
-
-                        byte[] encodedResult = UnixCrypt.crypt(salt, password.getBytes("UTF-8"));
-
-                        if (logger.logDebug())
-                            logger.debug(" FE=> Password(crypt='" + new String(encodedResult, "US-ASCII") + "')");
-
-                        pgStream.SendChar('p');
-                        pgStream.SendInteger4(4 + encodedResult.length + 1);
-                        pgStream.Send(encodedResult);
-                        pgStream.SendChar(0);
-                        pgStream.flush();
-
-                        break;
-                    }
-
-                case AUTH_REQ_MD5:
-                    {
-                        byte[] md5Salt = pgStream.Receive(4);
-                        if (logger.logDebug())
+                        /* 
+                         * Use SSPI if we're in auto mode on windows and have a
+                         * request for SSPI auth, or if it's forced. Otherwise
+                         * use gssapi. If the user has specified a Kerberos server
+                         * name we'll always use JSSE GSSAPI.
+                         */
+                        if (gsslib.equals("gssapi"))
+                            logger.debug("Using JSSE GSSAPI, param gsslib=gssapi");
+                        else if (areq == AUTH_REQ_GSS && !gsslib.equals("sspi"))
+                            logger.debug("Using JSSE GSSAPI, gssapi requested by server and gsslib=sspi not forced");
+                        else
                         {
-                            logger.debug(" <=BE AuthenticationReqMD5(salt=" + Utils.toHexString(md5Salt) + ")");
+                            /* Determine if SSPI is supported by the client */
+                            sspiClient = new SSPIClient(pgStream,
+                                    info.getProperty("sspiServiceClass"),
+                                    /* Use negotiation for SSPI, or if explicitly requested for GSS */
+                                    areq == AUTH_REQ_SSPI || (areq == AUTH_REQ_GSS && usespnego),
+                                    logger);
+                            
+                            useSSPI = sspiClient.isSSPISupported();
+                            logger.debug("SSPI support detected: " + useSSPI);
+                        
+                            if (!useSSPI) {
+                                /* No need to dispose() if no SSPI used */
+                                sspiClient = null;
+                                
+                                if (gsslib.equals("sspi"))
+                                    throw new PSQLException("SSPI forced with gsslib=sspi, but SSPI not available; set loglevel=2 for details", 
+                                            PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+                            }
+                            
+                            logger.debug("Using SSPI: " + useSSPI + ", gsslib="+gsslib+" and SSPI support detected");
                         }
 
-                        if (password == null)
-                            throw new PSQLException(GT.tr("The server requested password-based authentication, but no password was provided."), PSQLState.CONNECTION_REJECTED);
-
-                        byte[] digest = MD5Digest.encode(user.getBytes("UTF-8"), password.getBytes("UTF-8"), md5Salt);
-
-                        if (logger.logDebug())
+                        if (useSSPI)
                         {
-                            logger.debug(" FE=> Password(md5digest=" + new String(digest, "US-ASCII") + ")");
+                            /* SSPI requested and detected as available */
+    	                	sspiClient.startSSPI();
                         }
-
-                        pgStream.SendChar('p');
-                        pgStream.SendInteger4(4 + digest.length + 1);
-                        pgStream.Send(digest);
-                        pgStream.SendChar(0);
-                        pgStream.flush();
-
-                        break;
-                    }
-
-                case AUTH_REQ_PASSWORD:
-                    {
-                        if (logger.logDebug())
+                        else
                         {
-                            logger.debug(" <=BE AuthenticationReqPassword");
-                            logger.debug(" FE=> Password(password=<not shown>)");
+                            /* Use JGSS's GSSAPI for this request */
+                            org.postgresql.gss.MakeGSS.authenticate(pgStream, host,
+                                    user, password, 
+                                    info.getProperty("jaasApplicationName"),
+                                    info.getProperty("kerberosServerName"),
+                                    logger,
+                                    usespnego);
                         }
-
-                        if (password == null)
-                            throw new PSQLException(GT.tr("The server requested password-based authentication, but no password was provided."), PSQLState.CONNECTION_REJECTED);
-
-                        byte[] encodedPassword = password.getBytes("UTF-8");
-
-                        pgStream.SendChar('p');
-                        pgStream.SendInteger4(4 + encodedPassword.length + 1);
-                        pgStream.Send(encodedPassword);
-                        pgStream.SendChar(0);
-                        pgStream.flush();
-
-                        break;
-                    }
-
-                case AUTH_REQ_GSS:
-                case AUTH_REQ_SSPI:
-                    org.postgresql.gss.MakeGSS.authenticate(pgStream, host,
-                            user, password, 
-                            info.getProperty("jaasApplicationName"),
-                            info.getProperty("kerberosServerName"),
-                            logger,
-                            Boolean.parseBoolean(info.getProperty("useSpnego")));
-                    break;
-
-                case AUTH_REQ_OK:
-                    if (logger.logDebug())
-                        logger.debug(" <=BE AuthenticationOk");
-
-                    return ; // We're done.
-
-                default:
-                    if (logger.logDebug())
-                        logger.debug(" <=BE AuthenticationReq (unsupported type " + ((int)areq) + ")");
-
-                    throw new PSQLException(GT.tr("The authentication type {0} is not supported. Check that you have configured the pg_hba.conf file to include the client''s IP address or subnet, and that it is using an authentication scheme supported by the driver.", new Integer(areq)), PSQLState.CONNECTION_REJECTED);
-                }
-
-                break;
-
-            default:
-                throw new PSQLException(GT.tr("Protocol error.  Session setup failed."), PSQLState.PROTOCOL_VIOLATION);
-            }
+                        
+	                	break;
+	                
+	                case AUTH_REQ_GSS_CONTINUE:
+	                	 /* 
+	                	  * Only called for SSPI, as GSS is handled by an inner loop
+	                	  * in MakeGSS.
+	                	  */
+	                	sspiClient.continueSSPI(l_msgLen - 8);
+	                	break;
+	                	
+	                case AUTH_REQ_OK:
+	                    /* Cleanup after successful authentication */
+	                    if (logger.logDebug())
+	                        logger.debug(" <=BE AuthenticationOk");
+	                    
+	                    break authloop; // We're done.
+	
+	                default:
+	                    if (logger.logDebug())
+	                        logger.debug(" <=BE AuthenticationReq (unsupported type " + ((int)areq) + ")");
+	
+	                    throw new PSQLException(GT.tr("The authentication type {0} is not supported. Check that you have configured the pg_hba.conf file to include the client''s IP address or subnet, and that it is using an authentication scheme supported by the driver.", new Integer(areq)), PSQLState.CONNECTION_REJECTED);
+	                }
+	
+	                break;
+	
+	            default:
+	                throw new PSQLException(GT.tr("Protocol error.  Session setup failed."), PSQLState.PROTOCOL_VIOLATION);
+	            }
+	        }
+        } finally {
+        	/* Cleanup after successful or failed authentication attempts */
+        	if (sspiClient != null)
+        	{
+        		try {
+        			sspiClient.dispose();
+        		} catch (RuntimeException ex) {
+        			logger.log("Unexpected error during SSPI context disposal", ex);
+        		}
+        		
+        	}
         }
+        
     }
 
     private void readStartupMessages(PGStream pgStream, ProtocolConnectionImpl protoConnection, Logger logger) throws IOException, SQLException {
