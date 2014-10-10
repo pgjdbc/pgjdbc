@@ -7,8 +7,17 @@
 */
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import org.junit.Test;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PSQLException;
+
 import junit.framework.TestCase;
+
 import java.sql.*;
 
 /* TODO tests that can be added to this test case
@@ -46,6 +55,9 @@ public class BatchExecuteTest extends TestCase
         TestUtil.createTable(con, "testbatch", "pk INTEGER, col1 INTEGER");
 
         stmt.executeUpdate("INSERT INTO testbatch VALUES (1, 0)");
+        stmt.close();
+
+        TestUtil.createTable(con, "prep", "a integer, b integer");
 
         // Generally recommended with batch updates. By default we run all
         // tests in this test case with autoCommit disabled.
@@ -309,4 +321,27 @@ public class BatchExecuteTest extends TestCase
         stmt.close();
     }
 
+    public void testMixedBatch() throws SQLException {
+        try {
+            Statement st = con.createStatement();
+            st.executeUpdate("DELETE FROM prep;");
+            st.close();
+
+            st = con.createStatement();
+            st.addBatch("INSERT INTO prep (a, b) VALUES (1,2)");
+            st.addBatch("INSERT INTO prep (a, b) VALUES (100,200)");
+            st.addBatch("DELETE FROM prep WHERE a = 1 AND b = 2");
+            st.addBatch("CREATE TEMPORARY TABLE waffles(sauce text)");
+            st.addBatch("INSERT INTO waffles(sauce) VALUES ('cream'), ('strawberry jam')");
+            int[] batchResult = st.executeBatch();
+            assertEquals(1, batchResult[0]);
+            assertEquals(1, batchResult[1]);
+            assertEquals(1, batchResult[2]);
+            assertEquals(0, batchResult[3]);
+            assertEquals(2, batchResult[4]);
+        } catch (SQLException ex) {
+            ex.getNextException().printStackTrace();
+            throw ex;
+        }
+    }
 }
