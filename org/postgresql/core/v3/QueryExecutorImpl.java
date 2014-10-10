@@ -1124,6 +1124,26 @@ public class QueryExecutorImpl implements QueryExecutor {
 
         return op;
     }
+    
+    /*
+     * To prevent client/server protocol deadlocks, we try to manage the estimated
+     * recv buffer size and force a sync +flush and process results if we think it
+     * might be getting too full. 
+     * 
+     * See the comments above MAX_BUFFERED_RECV_BYTES's declaration for details.
+     */
+    private void flushIfDeadlockRisk(boolean disallowBatching, ErrorTrackingResultHandler trackingHandler, int flags) throws IOException
+    {
+    	estimatedReceiveBufferBytes += NODATA_QUERY_RESPONSE_SIZE_BYTES;
+        if (disallowBatching || estimatedReceiveBufferBytes >= MAX_BUFFERED_RECV_BYTES)
+        {
+            if (logger.logDebug())
+                logger.debug("Forcing Sync, receive buffer full or batching disallowed");
+            sendSync();
+            processResults(trackingHandler, flags);
+            estimatedReceiveBufferBytes = 0;
+        }
+    }
 
     /*
      * Send a query to the backend.
@@ -1136,17 +1156,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
         if (subqueries == null)
         {
-            estimatedReceiveBufferBytes += NODATA_QUERY_RESPONSE_SIZE_BYTES;
-            System.err.println("Buffer is " + estimatedReceiveBufferBytes); //XXX
-            if (disallowBatching || estimatedReceiveBufferBytes >= MAX_BUFFERED_RECV_BYTES)
-            {
-                if (logger.logDebug())
-                    logger.debug("Forcing Sync, receive buffer full or batching disallowed");
-                sendSync();
-                processResults(trackingHandler, flags);
-                estimatedReceiveBufferBytes = 0;
-            }
-
+            flushIfDeadlockRisk(disallowBatching, trackingHandler, flags);
              // If we saw errors, don't send anything more.
             if (!trackingHandler.hasErrors())
                 sendOneQuery((SimpleQuery)query, (SimpleParameterList)parameters, maxRows, fetchSize, flags);
@@ -1155,20 +1165,11 @@ public class QueryExecutorImpl implements QueryExecutor {
         {
             for (int i = 0; i < subqueries.length; ++i)
             {
-                estimatedReceiveBufferBytes += NODATA_QUERY_RESPONSE_SIZE_BYTES;
-                System.err.println("Buffer is " + estimatedReceiveBufferBytes); //XXX
-                if (disallowBatching || estimatedReceiveBufferBytes >= MAX_BUFFERED_RECV_BYTES)
-                {
-                    if (logger.logDebug())
-                        logger.debug("Forcing Sync, receive buffer full or batching disallowed");
-                    sendSync();
-                    processResults(trackingHandler, flags);
-                    estimatedReceiveBufferBytes = 0;
+                flushIfDeadlockRisk(disallowBatching, trackingHandler, flags);
 
-                    // If we saw errors, don't send anything more.
-                    if (trackingHandler.hasErrors())
-                        break;
-                }
+                // If we saw errors, don't send anything more.
+                if (trackingHandler.hasErrors())
+                    break;
 
                 // In the situation where parameters is already
                 // NO_PARAMETERS it cannot know the correct
