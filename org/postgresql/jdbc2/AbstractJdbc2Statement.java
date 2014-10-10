@@ -2857,11 +2857,11 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         boolean preDescribe = false;
 
         if (wantsGeneratedKeysAlways) {
-            // If a batch requests generated keys, we disable batching internally
-            // and send each statement individually. See v3.QueryExecutorImpl
-            // and the comments on MAX_BUFFERED_RECV_BYTES .
-            //
-            flags = QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS | QueryExecutor.QUERY_DISALLOW_BATCHING;
+            /*
+             * This batch will return generated keys, tell the executor to
+             * expect result rows. We force a Describe later, too.
+             */
+            flags = QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS;
         } else {
             // If a batch hasn't specified that it wants generated keys, using the appropriate
             // Connection.createStatement(...) interfaces, disallow any result set.

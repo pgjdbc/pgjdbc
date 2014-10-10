@@ -9,6 +9,7 @@
 package org.postgresql.core.v3;
 
 import org.postgresql.core.*;
+
 import java.lang.ref.PhantomReference;
 
 /**
@@ -62,6 +63,46 @@ class SimpleQuery implements V3Query {
     public SimpleQuery[] getSubqueries() {
         return null;
     }
+
+	/*
+	 * Return maximum size in bytes that each result row from this query may
+	 * return. Mainly used for batches that return results.
+	 *
+	 * Results are cached until/unless the query is re-described.
+	 *
+	 * @return Max size of result data in bytes according to returned fields, 0
+	 * if no results, -1 if result is unbounded.
+	 *
+	 * @throws IllegalStateException if the query is not described
+	 */
+	public int getMaxResultRowSize() {
+		if (cachedMaxResultRowSize != null) {
+			return cachedMaxResultRowSize.intValue();
+		}
+		if (!this.statementDescribed) {
+			throw new IllegalStateException(
+					"Cannot estimate result row size on a statement that is not described");
+		}
+		int maxResultRowSize = 0;
+		if (fields != null) {
+			for (int i = 0; i < fields.length; i++) {
+				Field f = fields[i];
+				final int fieldLength = f.getLength();
+				if (fieldLength < 1 || fieldLength >= 65535) {
+					/*
+					 * Field length unknown or large; we can't make any safe
+					 * estimates about the result size, so we have to fall back to
+					 * sending queries individually.
+					 */
+					maxResultRowSize = -1;
+					break;
+				}
+				maxResultRowSize += fieldLength;
+			}
+		}
+		cachedMaxResultRowSize = maxResultRowSize;
+		return maxResultRowSize;
+	}
 
     //
     // Implementation guts
@@ -125,6 +166,7 @@ class SimpleQuery implements V3Query {
      */
     void setFields(Field[] fields) {
         this.fields = fields;
+        this.cachedMaxResultRowSize = null;
     }
 
     /**
@@ -143,6 +185,7 @@ class SimpleQuery implements V3Query {
     }
     void setPortalDescribed(boolean portalDescribed) {
         this.portalDescribed = portalDescribed;
+        this.cachedMaxResultRowSize = null;
     }
 
     // Have we sent a Describe Statement message for this query yet?
@@ -152,6 +195,7 @@ class SimpleQuery implements V3Query {
     }
     void setStatementDescribed(boolean statementDescribed) {
         this.statementDescribed = statementDescribed;
+        this.cachedMaxResultRowSize = null;
     }
 
     void setCleanupRef(PhantomReference cleanupRef) {
@@ -175,6 +219,7 @@ class SimpleQuery implements V3Query {
         fields = null;
         portalDescribed = false;
         statementDescribed = false;
+        cachedMaxResultRowSize = null;
     }
 
     private final String[] fragments;
@@ -190,6 +235,8 @@ class SimpleQuery implements V3Query {
     private boolean statementDescribed;
     private PhantomReference cleanupRef;
     private int[] preparedTypes;
+
+    private Integer cachedMaxResultRowSize;
 
     final static SimpleParameterList NO_PARAMETERS = new SimpleParameterList(0, null);
 }
