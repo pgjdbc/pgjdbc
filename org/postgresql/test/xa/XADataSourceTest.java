@@ -19,7 +19,6 @@ import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
 
-
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.optional.BaseDataSourceTest;
 import org.postgresql.xa.PGXADataSource;
@@ -31,10 +30,12 @@ public class XADataSourceTest extends TestCase {
     private XADataSource _ds;
 
     private Connection _conn;
+    private boolean connIsSuper;
 
     private XAConnection xaconn;
     private XAResource xaRes;
     private Connection conn;
+
 
     public XADataSourceTest(String name) {
         super(name);
@@ -45,6 +46,14 @@ public class XADataSourceTest extends TestCase {
 
     protected void setUp() throws Exception {
         _conn = TestUtil.openDB();
+
+        // Check if we're operating as a superuser; some tests require it.
+        Statement st = _conn.createStatement();
+        st.executeQuery("SHOW is_superuser;");
+        ResultSet rs = st.getResultSet();
+        rs.next(); // One row is guaranteed
+        connIsSuper = rs.getBoolean(1); // One col is guaranteed
+        st.close();
 
         TestUtil.createTable(_conn, "testxa1", "foo int");
 
@@ -69,11 +78,17 @@ public class XADataSourceTest extends TestCase {
         Statement st = _conn.createStatement();
         try
         {
-            ResultSet rs = st.executeQuery("SELECT gid FROM pg_prepared_xacts");
+            ResultSet rs = st.executeQuery(
+                        "SELECT x.gid, x.owner = current_user "
+                      + "FROM pg_prepared_xacts x "
+                      + "WHERE x.database = current_database()");
 
             Statement st2 = _conn.createStatement();
             while (rs.next())
             {
+                // TODO: This should really use org.junit.Assume once we move to JUnit 4
+                assertTrue("Only prepared xacts owned by current user may be present in db",
+                           rs.getBoolean(2));
                 st2.executeUpdate("ROLLBACK PREPARED '" + rs.getString(1) + "'");
             }
             st2.close();
