@@ -69,7 +69,7 @@ public class TimezoneTest extends TestCase
     protected void setUp() throws Exception
     {
         // We must change the default TZ before establishing the connection.
-        TimeZone.setDefault(TimeZone.getTimeZone("GMT+01")); // Arbitary timezone that doesn't match our test timezones
+        TimeZone.setDefault(TimeZone.getTimeZone("GMT+01")); // Arbitrary timezone that doesn't match our test timezones
 
         con = TestUtil.openDB();
         TestUtil.createTable(con, "testtimezone",
@@ -692,12 +692,12 @@ public class TimezoneTest extends TestCase
             return;
 
         Statement stmt = con.createStatement();
-        stmt.execute("SET TimeZone = 'Europe/Helsinki'");
+        stmt.execute("SET TimeZone = 'Europe/Paris'");
         ResultSet rs = stmt.executeQuery("SELECT '1920-01-01'::timestamptz");
         rs.next();
         // select extract(epoch from '1920-01-01'::timestamptz - 'epoch'::timestamptz) * 1000;
 
-        assertEquals(-1577929192000L, rs.getTimestamp(1).getTime());
+        assertEquals(-1577923200000L, rs.getTimestamp(1).getTime());
     }
 
     /**
