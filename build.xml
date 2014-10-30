@@ -113,9 +113,17 @@
       <dependency groupId="com.github.dblock.waffle" artifactId="waffle-jna" version="1.7"/>
     </artifact:dependencies>
 
-    <artifact:dependencies pathId="dependency.test.classpath" useScope="test">
+    <artifact:dependencies pathId="dependency.test.classpath" filesetId="dependency.test.fileset" useScope="test">
       <dependency groupId="junit" artifactId="junit" version="4.0" scope="test"/>
     </artifact:dependencies>
+
+    <!-- To make life easier for IDE users, copy dependencies to lib/ -->
+    <copy todir="lib/">
+      <fileset refid="dependency.compile.fileset"/>
+      <fileset refid="dependency.waffle.fileset"/>
+      <fileset refid="dependency.test.fileset"/>
+      <mapper type="flatten"/>
+    </copy>
   </target>
 
   <target name="check_versions" depends="maven-dependencies">
