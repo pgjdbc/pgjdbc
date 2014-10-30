@@ -8,3 +8,4 @@ nbproject
 .idea
 *.iml
 build.local.properties
+*-dist.zip

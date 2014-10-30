@@ -108,11 +108,55 @@
     <include name="${package}/xa/jdbc4/*.java" if="jdbc4any"/>
   </patternset>
 
+  <property name="waffle-jna.version" value="1.7" />
+  <!-- Try to use at least the same slf4j that Waffle does -->
+  <property name="slf4j.version" value="1.7.7" />
+
   <target name="maven-dependencies">
+    <!--
+         This is all maven-ant-tasks dependency declaration code.
+         See http://maven.apache.org/ant-tasks/reference.html
+
+         These libraries should be visible to javac:
+    -->
     <artifact:dependencies pathId="dependency.compile.classpath" filesetId="dependency.compile.fileset">
-      <dependency groupId="com.github.dblock.waffle" artifactId="waffle-jna" version="1.7"/>
+      <!--
+           Waffle-JNA is used for SSPI authentication support on Windows.  We compile
+           against it on all platforms for consistent builds.
+      -->
+      <dependency groupId="com.github.dblock.waffle" artifactId="waffle-jna" version="${waffle-jna.version}" type="jar">
+	<!--
+	     We want to force most of Waffle's transitive dependencies to runtime
+	     dependencies so we can't accidentally depend on their contents at compile
+             time. So exclude them from the compile dependencies, then declare another
+             runtime dependency on waffle-jna without these exclusions later.
+        -->
+        <exclusion groupId="com.google.guava" artifactId="guava"/>
+        <exclusion groupId="org.slf4j" artifactId="slf4j-api"/>
+        <exclusion groupId="org.slf4j" artifactId="slf4j-simple"/>
+	<!--
+	     Note that we do NOT exclude net.java.dev.jna:jna or
+	     net.java.dev.jna:jna-platform since we intentionally use the one
+	     Waffle exposes.
+        -->
+      </dependency>
     </artifact:dependencies>
 
+    <!-- These libraries should be bundled for use at runtime and added to the classpath when running tests-->
+    <artifact:dependencies pathId="dependency.runtime.classpath" filesetId="dependency.runtime.fileset">
+      <!-- Re-declare our waffle-jna dependency without excludes for runtime bundling -->
+      <dependency groupId="com.github.dblock.waffle" artifactId="waffle-jna" version="${waffle-jna.version}"/>
+      <!--
+	   Pull in slf4j-simple too, since Waffle uses slf4j. 
+	   (It's declared optional by waffle so ant-tasks doesn't fetch it normally)
+      -->
+      <dependency groupId="org.slf4j" artifactId="slf4j-simple" version="${slf4j.version}"/>
+    </artifact:dependencies>
+
+    <!--
+	 These are used for test compilation and for test running only. They
+	 aren't exposed to javac during the main driver compilation.
+    -->
     <artifact:dependencies pathId="dependency.test.classpath" filesetId="dependency.test.fileset" useScope="test">
       <dependency groupId="junit" artifactId="junit" version="4.0" scope="test"/>
     </artifact:dependencies>
@@ -120,7 +164,7 @@
     <!-- To make life easier for IDE users, copy dependencies to lib/ -->
     <copy todir="lib/">
       <fileset refid="dependency.compile.fileset"/>
-      <fileset refid="dependency.waffle.fileset"/>
+      <fileset refid="dependency.runtime.fileset"/>
       <fileset refid="dependency.test.fileset"/>
       <mapper type="flatten"/>
     </copy>
@@ -241,8 +285,6 @@
         <include name="${package}/translation/*.class" />
       </fileset>
 
-      <fileset refid="dependency.compile.fileset"/>
-
       <metainf dir="META-INF">
       </metainf>
       <manifest>
@@ -251,15 +293,72 @@
     </jar>
   </target>
 
+  <!-- create a distribution with docs, dependencies, and driver jar -->
+  <target name="dist" depends="jar, publicapi">
+    <zip whenempty="fail" destfile="${artifact.version.string}-dist.zip" level="9">
+
+      <!-- Driver JAR -->
+      <filelist dir="${jardir}">
+        <file name="${artifact.version.string}.jar"/>
+      </filelist>
+
+      <!-- Create a lib/ directory with dependencies -->
+      <mappedresources>
+        <union>
+          <fileset refid="dependency.compile.fileset"/>
+          <fileset refid="dependency.runtime.fileset"/>
+	</union>
+        <chainedmapper>
+          <flattenmapper/>
+          <globmapper from="*.jar" to="lib/*.jar"/>
+        </chainedmapper>
+      </mappedresources>
+
+      <!-- API javadoc -->
+      <mappedresources>
+        <fileset dir="${builddir}">
+          <include name="publicapi/**"/>
+        </fileset>
+        <globmapper from="*" to="doc/*"/>
+      </mappedresources>
+
+      <!-- Manual from doc/pgjdbc.xml -->
+      <!-- TODO: include generated docbook -->
+      <filelist>
+        <file name="doc/pgjdbc.xml"/>
+      </filelist>
+
+      <!-- Misc docs -->
+      <filelist>
+        <file name="README.md"/>
+        <file name="LICENSE"/>
+      </filelist>
+
+      <!--
+           Processed sources, for IDE debugging use
+           
+           We don't attempt to make a compileable "dist". Just use git.
+      -->
+      <mappedresources>
+        <fileset dir="${srcdir}">
+          <patternset refid="jdbc.version.src.pattern"/>
+        </fileset>
+        <globmapper from="*" to="src/*"/>
+      </mappedresources>
+
+    </zip>
+  </target>
 
   <target name="compile" depends="prepare,check_versions,driver">
 
     <available classname="org.postgresql.Driver" property="old.driver.present" />
     <fail message="Old driver was detected on classpath or in jre/lib/ext, please remove and try again." if="old.driver.present" />
 
-    <javac classpath="${srcdir}" srcdir="${srcdir}" destdir="${builddir}" debug="${debug}" source="${java.specification.version}">
+    <javac classpath="${srcdir}" srcdir="${srcdir}" destdir="${builddir}"
+           debug="${debug}" source="${java.specification.version}" includeantruntime="false">
       <classpath refid="dependency.compile.classpath"/>
-      <classpath refid="dependency.test.classpath"/>
+      <!-- Do NOT add dependency.test here, we should not depend on junit -->
+      <!-- Similarly, omit dependency.runtime, we're intentionally not compiling against those libs -->
       <patternset refid="jdbc.version.src.pattern"/>
     </javac>
   </target>
@@ -466,8 +565,10 @@
   <!-- This compiles and builds the test jarfile. -->  
   <target name="testjar" depends="jar">
     <mkdir dir="${builddir}/tests"/>
-    <javac srcdir="${srcdir}" destdir="${builddir}/tests" debug="${debug}" source="${java.specification.version}">
+    <javac srcdir="${srcdir}" destdir="${builddir}/tests" debug="${debug}"
+           source="${java.specification.version}" includeantruntime="false">
       <classpath refid="dependency.compile.classpath" />
+      <classpath refid="dependency.runtime.classpath" />
       <classpath refid="dependency.test.classpath" />
       <include name="${package}/test/**" />
 
@@ -508,6 +609,7 @@
       <sysproperty key="ssltest.properties" value="${ssltest.properties}" />
 
       <classpath refid="dependency.compile.classpath" />
+      <classpath refid="dependency.runtime.classpath" />
       <classpath refid="dependency.test.classpath" />
       <classpath>
         <pathelement location="${artifact.jar}" />
