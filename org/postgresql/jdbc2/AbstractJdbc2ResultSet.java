@@ -1761,9 +1761,10 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             int columnIndex = findColumn( columnName ) - 1;
 
             Object valueObject = updateValues.get(columnName);
-            if (valueObject instanceof NullObject)
+            if (valueObject instanceof PGobject)
             {
-                rowBuffer[columnIndex] = null;
+                String value = ((PGobject)valueObject).getValue();
+                rowBuffer[columnIndex] = (value == null) ? null : connection.encodeString(value);
             }
             else
             {                
