@@ -973,6 +973,37 @@ openssl pkcs8 -topk8 -in client.key -out client.pk8 -outform DER -v1 PBE-SHA1-3D
        </listitem>
       </varlistentry>
 
+      <varlistentry>
+       <term><varname>targetServerType</varname></term>
+       <listitem>
+        <para>
+         Allows opening connections to only servers with required state, the allowed values are
+         <literal>any</literal>, <literal>master</literal>, <literal>slave</literal> and <literal>preferSlave</literal>.
+         The master/slave distinction is currently done by observing if the server allows writes.
+         The value <literal>preferSlave</literal> tries to connect to slaves if any are available,
+         otherwise allows falls back to connecting also to master.
+        </para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
+       <term><varname>hostRecheckSeconds</varname> = <type>int</type></term>
+       <listitem>
+        <para>
+          Controls how long in seconds the knowledge about a host state is cached in JVM wide global cache. The default value is 10 seconds.
+        </para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
+       <term><varname>loadBalanceHosts</varname> = <type>boolean</type></term>
+       <listitem>
+        <para>
+          In default mode (disabled) hosts are connected in the given order. If enabled hosts are chosen randomly from the set of suitable candidates.
+        </para>
+       </listitem>
+      </varlistentry>
+
      </variablelist>
     </para>
 
@@ -998,8 +1029,17 @@ jdbc:postgresql://<replaceable class="parameter">host1</replaceable>:<replaceabl
     <para>
       The simple connection fail-over is useful when running against
       a high availability postgres installation that has identical data on each node.
-      For example streaming replication postgres that only accepts connection on the master
-      node or postgres-xc cluster.
+      For example streaming replication postgres or postgres-xc cluster.
+    </para>
+
+    <para>
+      For example an application can create two connection pools. One data source is for writes, another for reads.
+
+      The write pool limits connections only to master node:
+      <programlisting>jdbc:postgresql://node1,node2,node3/accounting?targetServerType=master</programlisting>.
+
+      And read pool balances connections between slaves nodes, but allows connections also to master if no slaves are available:
+      <programlisting>jdbc:postgresql://node1,node2,node3/accounting?targetServerType=preferSlave&amp;loadBalanceHosts=true</programlisting>.
     </para>
    </sect2>
 

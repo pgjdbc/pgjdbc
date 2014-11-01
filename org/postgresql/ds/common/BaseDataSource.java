@@ -586,6 +586,54 @@ public abstract class BaseDataSource implements Referenceable
     }
 
     /**
+     * @see PGProperty#TARGET_SERVER_TYPE
+     */
+    public void setTargetServerType(String targetServerType)
+    {
+        PGProperty.TARGET_SERVER_TYPE.set(properties, targetServerType);
+    }
+
+    /**
+     * @see PGProperty#TARGET_SERVER_TYPE
+     */
+    public String getTargetServerType()
+    {
+        return PGProperty.TARGET_SERVER_TYPE.get(properties);
+    }
+
+    /**
+     * @see PGProperty#LOAD_BALANCE_HOSTS
+     */
+    public void setLoadBalanceHosts(boolean loadBalanceHosts)
+    {
+        PGProperty.LOAD_BALANCE_HOSTS.set(properties, loadBalanceHosts);
+    }
+
+    /**
+     * @see PGProperty#LOAD_BALANCE_HOSTS
+     */
+    public boolean getLoadBalanceHosts()
+    {
+        return PGProperty.LOAD_BALANCE_HOSTS.isPresent(properties);
+    }
+
+    /**
+     * @see PGProperty#HOST_RECHECK_SECONDS
+     */
+    public void setHostRecheckSeconds(int hostRecheckSeconds)
+    {
+        PGProperty.HOST_RECHECK_SECONDS.set(properties, hostRecheckSeconds);
+    }
+
+    /**
+     * @see PGProperty#HOST_RECHECK_SECONDS
+     */
+    public int getHostRecheckSeconds()
+    {
+        return PGProperty.HOST_RECHECK_SECONDS.getIntNoCheck(properties);
+    }
+
+    /**
      * @see PGProperty#TCP_KEEP_ALIVE
      */
     public void setTcpKeepAlive(boolean enabled)

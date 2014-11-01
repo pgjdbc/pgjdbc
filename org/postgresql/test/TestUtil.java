@@ -7,7 +7,6 @@
 */
 package org.postgresql.test;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.*;
@@ -24,6 +23,11 @@ public class TestUtil
      * Returns the Test database JDBC URL
      */
     public static String getURL()
+    {
+        return getURL(getServer(), getPort());
+    }
+
+    public static String getURL(String server, int port)
     {
         String protocolVersion = "";
         if (getProtocolVersion() != 0) {
@@ -46,8 +50,8 @@ public class TestUtil
 		}
 		
         return "jdbc:postgresql://"
-                                + getServer() + ":" 
-                                + getPort() + "/" 
+                                + server + ":"
+                                + port + "/"
                                 + getDatabase() 
                                 + "?prepareThreshold=" + getPrepareThreshold()
                                 + "&loglevel=" + getLogLevel()
