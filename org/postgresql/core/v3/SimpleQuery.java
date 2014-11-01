@@ -23,8 +23,8 @@ class SimpleQuery implements V3Query {
 
     SimpleQuery(String[] fragments, ProtocolConnectionImpl protoConnection)
     {
-        this.fragments = unmarkDoubleQuestion(fragments);
         this.protoConnection = protoConnection;
+        this.fragments = unmarkDoubleQuestion(fragments);
     }
 
     public ParameterList createParameterList() {
@@ -74,7 +74,7 @@ class SimpleQuery implements V3Query {
     // unmark '??' in fragments back to '?'
     String[] unmarkDoubleQuestion(String[] fragments)
     {
-        if (fragments != null)
+        if (fragments != null && protoConnection != null)
         {
             boolean standardConformingStrings = protoConnection.getStandardConformingStrings();
             for(int i=0; i< fragments.length; i++)
