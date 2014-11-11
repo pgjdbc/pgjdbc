@@ -109,14 +109,20 @@
   </patternset>
 
   <property name="waffle-jna.version" value="1.7" />
-  <!-- Try to use at least the same slf4j that Waffle does -->
-  <property name="slf4j.version" value="1.7.7" />
 
   <target name="maven-dependencies">
     <!--
          This is all maven-ant-tasks dependency declaration code.
          See http://maven.apache.org/ant-tasks/reference.html
+    -->
 
+    <!-- Expose the Waffle POM so we can reference its version attributes -->
+    <artifact:dependencies>
+      <dependency groupId="com.github.dblock.waffle" artifactId="waffle-jna" version="${waffle-jna.version}" type="pom"/>
+    </artifact:dependencies>
+    <artifact:pom id="waffle-pom" file="${com.github.dblock.waffle:waffle-jna:pom}" inheritAllProperties="true"/>
+
+    <!--
          These libraries should be visible to javac:
     -->
     <artifact:dependencies pathId="dependency.compile.classpath" filesetId="dependency.compile.fileset">
@@ -150,7 +156,7 @@
 	   Pull in slf4j-simple too, since Waffle uses slf4j. 
 	   (It's declared optional by waffle so ant-tasks doesn't fetch it normally)
       -->
-      <dependency groupId="org.slf4j" artifactId="slf4j-simple" version="${slf4j.version}"/>
+      <dependency groupId="org.slf4j" artifactId="slf4j-simple" version="${waffle-pom.properties.slf4j.version}"/>
     </artifact:dependencies>
 
     <!--
