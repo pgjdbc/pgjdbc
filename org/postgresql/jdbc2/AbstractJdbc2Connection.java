@@ -19,7 +19,6 @@ import org.postgresql.PGNotification;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.util.*;
-import org.postgresql.util.HostSpec;
 import org.postgresql.copy.*;
 
 /**
@@ -270,6 +269,12 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         }
         this.disableColumnSanitiser = Boolean.valueOf(info.getProperty(""
                 + "disableColumnSanitiser", Boolean.FALSE.toString()));
+
+        String currentSchema = info.getProperty("currentSchema");
+        if (currentSchema != null)
+        {
+            setSchema(currentSchema);
+        }
     }
 
     private Set<Integer> getOidSet(String oidList) throws PSQLException {
@@ -1272,5 +1277,26 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     public void setDisableColumnSanitiser(boolean disableColumnSanitiser)
     {
         this.disableColumnSanitiser = disableColumnSanitiser;
+    }
+
+    public void setSchema(String schema) throws SQLException
+    {
+        checkClosed();
+        Statement stmt = createStatement();
+        try
+        {
+            if (schema != null)
+            {
+                stmt.executeUpdate("SET SESSION search_path TO '" + schema + "'");
+            }
+            else
+            {
+                stmt.executeUpdate("SET SESSION search_path TO DEFAULT");
+            }
+        }
+        finally
+        {
+            stmt.close();
+        }
     }
 }

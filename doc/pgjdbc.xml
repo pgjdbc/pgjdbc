@@ -628,8 +628,8 @@ openssl pkcs8 -topk8 -in client.key -out client.pk8 -outform DER -v1 PBE-SHA1-3D
        <term><varname>charSet</varname> = <type>String</type></term>
        <listitem>
         <para>
-         The character set to use for data sent to the database or recieved
-         from the database.  This property is only relevent for server
+         The character set to use for data sent to the database or received
+         from the database.  This property is only relevant for server
          versions less than or equal to 7.2.  The 7.3 release was the first
          with multibyte support compiled by default and the driver uses
          its character set translation facilities instead of trying to do
@@ -846,6 +846,17 @@ openssl pkcs8 -topk8 -in client.key -out client.pk8 -outform DER -v1 PBE-SHA1-3D
         </para>
        </listitem>
       </varlistentry>
+
+      <varlistentry>
+       <term><varname>currentSchema</varname></term>
+       <listitem>
+        <para>
+         Specify the schema to be set in the search-path. This schema will be used
+         to resolve unqualified object names used in statements over this connection.
+        </para>
+       </listitem>
+      </varlistentry>
+
      </variablelist>
     </para>
 
