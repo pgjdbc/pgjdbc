@@ -13,6 +13,8 @@ import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.Executor;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.postgresql.core.Oid;
 import org.postgresql.core.Utils;
@@ -26,6 +28,11 @@ import org.postgresql.jdbc2.AbstractJdbc2Array;
 abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdbc3gConnection
 {
     private static final SQLPermission SQL_PERMISSION_ABORT = new SQLPermission("callAbort");
+
+    /**
+     * Pattern used to unquote the result of {@link #getSchema()}
+     */
+    private static final Pattern PATTERN_GET_SCHEMA = Pattern.compile("^\\\"(.*)\\\"(?!\\\")");
 
     private final Properties _clientInfo;
 
@@ -278,15 +285,25 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
             stmt.close();
         }
 
-        // keep only the first schema of the search path if there are many
-        int commaIndex = searchPath.indexOf(',');
-        if (commaIndex == -1)
+        if (searchPath.startsWith("\""))
         {
-            return searchPath;
+            // unquote the result if it's a quoted string
+            Matcher matcher = PATTERN_GET_SCHEMA.matcher(searchPath);
+            matcher.find();
+            return matcher.group(1).replaceAll("\"\"", "\"");
         }
         else
         {
-            return searchPath.substring(0, commaIndex);
+            // keep only the first schema of the search path if there are many
+            int commaIndex = searchPath.indexOf(',');
+            if (commaIndex == -1)
+            {
+                return searchPath;
+            }
+            else
+            {
+                return searchPath.substring(0, commaIndex);
+            }
         }
     }
 
