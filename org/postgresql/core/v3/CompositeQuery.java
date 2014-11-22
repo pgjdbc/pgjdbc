@@ -62,6 +62,15 @@ class CompositeQuery implements V3Query {
         return true;
     }
 
+    public boolean isEmpty()
+    {
+        for (int i = 0; i < subqueries.length; ++i)
+            if (!subqueries[i].isEmpty()) {
+                return false;
+            }
+        return true;
+    }
+
     private final SimpleQuery[] subqueries;
     private final int[] offsets;
 }

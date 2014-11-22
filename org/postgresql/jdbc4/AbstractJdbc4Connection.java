@@ -126,13 +126,11 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
         }
     	boolean valid = false;
         Statement stmt = null;
-		ResultSet rs;
     	try {
     		if (!isClosed()) {
             	stmt = createStatement();
             	stmt.setQueryTimeout( timeout );
-            	rs = stmt.executeQuery( "SELECT 1" );
-				rs.close();
+            	stmt.executeUpdate( "" );
             	valid = true;
     	    }
     	}

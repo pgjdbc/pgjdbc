@@ -106,6 +106,11 @@ class V2Query implements Query {
         return false;
     }
 
+    public boolean isEmpty()
+    {
+        return fragments.length == 1 && "".equals(fragments[0]);
+    }
+
     private static final ParameterList NO_PARAMETERS = new SimpleParameterList(0, false);
 
     private final String[] fragments;      // Query fragments, length == # of parameters + 1
