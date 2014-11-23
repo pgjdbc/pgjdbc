@@ -199,6 +199,24 @@ public class BlobTest extends TestCase
         is2.close();
     }
 
+    public void testLargeLargeObject() throws Exception
+    {
+        if (!TestUtil.haveMinimumServerVersion(con, "9.3"))
+        {
+            return;
+        }
+
+        Statement stmt = con.createStatement();
+        stmt.execute("INSERT INTO testblob(id,lo) VALUES ('1', lo_creat(-1))");
+        ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");
+        assertTrue(rs.next());
+
+        Blob lob = rs.getBlob(1);
+        long length = ((long)Integer.MAX_VALUE) + 1024;
+        lob.truncate(length);
+        assertEquals(length, lob.length());
+    }
+
     /*
      * Helper - uploads a file into a blob using old style methods. We use this
      * because it always works, and we can use it as a base to test the new
