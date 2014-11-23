@@ -97,6 +97,12 @@ class CompositeParameterList implements V3ParameterList {
         subparams[sub].setBytea(index - offsets[sub], stream, length);
     }
 
+    public void setBytea(int index, InputStream stream) throws SQLException
+    {
+        int sub = findSubParam(index);
+        subparams[sub].setBytea(index - offsets[sub], stream);
+    }
+
     public void setNull(int index, int oid) throws SQLException {
         int sub = findSubParam(index);
         subparams[sub].setNull(index - offsets[sub], oid);

@@ -132,7 +132,7 @@ abstract class AbstractJdbc4Statement extends org.postgresql.jdbc3g.AbstractJdbc
 
     public void setBinaryStream(int parameterIndex, InputStream value) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "setBinaryStream(int, InputStream)");
+        preparedParameters.setBytea(parameterIndex, value);
     }
 
     public void setAsciiStream(int parameterIndex, InputStream value, long length) throws SQLException
