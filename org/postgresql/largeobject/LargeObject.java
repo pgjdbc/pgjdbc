@@ -411,6 +411,17 @@ public class LargeObject
     }
 
     /**
+     * Returns an InputStream from this object, that will limit the amount of data that is visible
+     *
+     * @param limit maximum number of bytes the resulting stream will serve
+     * @exception SQLException if a database-access error occurs.
+     */
+    public InputStream getInputStream(long limit) throws SQLException
+    {
+        return new BlobInputStream(this, 4096, limit);
+    }
+
+    /**
      * Returns an OutputStream to this object.
      *
      * <p>This OutputStream can then be used in any method that requires an

@@ -1,6 +1,7 @@
 package org.postgresql.test.jdbc4;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -97,4 +98,45 @@ public class BlobTest extends TestCase
             selectStmt.close();
         }
     }
+
+    public void testGetBinaryStreamWithBoundaries() throws Exception
+    {
+        byte[] data = new String("Cras vestibulum tellus eu sapien imperdiet ornare.").getBytes("UTF-8");
+        PreparedStatement insertPS = _conn.prepareStatement(TestUtil.insertSQL("testblob", "lo", "?"));
+        try
+        {
+            insertPS.setBlob(1, new ByteArrayInputStream(data), data.length);
+            insertPS.executeUpdate();
+        }
+        finally
+        {
+            insertPS.close();
+        }
+
+        Statement selectStmt = _conn.createStatement();
+        try
+        {
+            ResultSet rs = selectStmt.executeQuery(TestUtil.selectSQL("testblob", "lo"));
+            assertTrue(rs.next());
+    
+            byte[] actualData = new byte[10];
+            Blob actualBlob = rs.getBlob(1);
+            InputStream stream = actualBlob.getBinaryStream(6, 10);
+            try
+            {
+                stream.read(actualData);
+                Assert.assertEquals("Stream should be at end", -1, stream.read(new byte[1]));
+            }
+            finally
+            {
+                stream.close();
+            }
+            Assert.assertEquals("vestibulum", new String(actualData, "UTF-8"));
+        }
+        finally
+        {
+            selectStmt.close();
+        }
+    }
+
 }
