@@ -3041,37 +3041,30 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         setString(i, x.toString(), oid);
     }
 
-    public void setBlob(int i, Blob x) throws SQLException
+    protected long createBlob(int i, InputStream inputStream, long length) throws SQLException
     {
-        checkClosed();
-
-        if (x == null)
-        {
-            setNull(i, Types.BLOB);
-            return;
-        }
-
-        InputStream l_inStream = x.getBinaryStream();
         LargeObjectManager lom = connection.getLargeObjectAPI();
         long oid = lom.createLO();
         LargeObject lob = lom.open(oid);
-        OutputStream los = lob.getOutputStream();
+        OutputStream outputStream = lob.getOutputStream();
         byte[] buf = new byte[4096];
         try
         {
-            // could be buffered, but then the OutputStream returned by LargeObject
-            // is buffered internally anyhow, so there would be no performance
-            // boost gained, if anything it would be worse!
-            long bytesRemaining = x.length();
-            int numRead = l_inStream.read(buf, 0, (int)Math.min((long)buf.length, bytesRemaining));
-            while (numRead != -1 && bytesRemaining > 0)
+            long remaining;
+            if (length > 0)
             {
-                bytesRemaining -= numRead;
-                if ( numRead == buf.length )
-                    los.write(buf); // saves a buffer creation and copy in LargeObject since it's full
-                else
-                    los.write(buf, 0, numRead);
-                numRead = l_inStream.read(buf, 0, (int)Math.min((long)buf.length, bytesRemaining));
+                remaining = length;
+            }
+            else
+            {
+                remaining = Long.MAX_VALUE;
+            }
+            int numRead = inputStream.read(buf, 0, (length > 0 && remaining < buf.length ? (int)remaining : buf.length));
+            while (numRead != -1 && remaining > 0)
+            {
+                remaining -= numRead;
+                outputStream.write(buf, 0, numRead);
+                numRead = inputStream.read(buf, 0, (length > 0 && remaining < buf.length ? (int)remaining : buf.length));
             }
         }
         catch (IOException se)
@@ -3082,14 +3075,41 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         {
             try
             {
-                los.close();
-                l_inStream.close();
+                outputStream.close();
             }
             catch ( Exception e )
             {
             }
         }
-        setLong(i, oid);
+        return oid;
+    }
+
+    public void setBlob(int i, Blob x) throws SQLException
+    {
+        checkClosed();
+
+        if (x == null)
+        {
+            setNull(i, Types.BLOB);
+            return;
+        }
+
+        InputStream inStream = x.getBinaryStream();
+        try
+        {
+            long oid = createBlob(i, inStream, x.length());
+            setLong(i, oid);
+        }
+        finally
+        {
+            try
+            {
+                inStream.close();
+            }
+            catch ( Exception e )
+            {
+            }
+        }
     }
 
     public void setCharacterStream(int i, java.io.Reader x, int length) throws SQLException

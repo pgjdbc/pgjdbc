@@ -162,12 +162,36 @@ abstract class AbstractJdbc4Statement extends org.postgresql.jdbc3g.AbstractJdbc
 
     public void setBlob(int parameterIndex, InputStream inputStream, long length) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "setBlob(int, InputStream, long)");
+        checkClosed();
+
+        if (inputStream == null)
+        {
+            setNull(parameterIndex, Types.BLOB);
+            return;
+        }
+
+        if (length < 0)
+        {
+            throw new PSQLException(GT.tr("Invalid stream length {0}.", new Long(length)),
+                                    PSQLState.INVALID_PARAMETER_VALUE);
+        }
+
+        long oid = createBlob(parameterIndex, inputStream, length);
+        setLong(parameterIndex, oid);
     }
 
     public void setBlob(int parameterIndex, InputStream inputStream) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "setBlob(int, InputStream)");
+        checkClosed();
+
+        if (inputStream == null)
+        {
+            setNull(parameterIndex, Types.BLOB);
+            return;
+        }
+
+        long oid = createBlob(parameterIndex, inputStream, -1);
+        setLong(parameterIndex, oid);
     }
 
     public void setNClob(int parameterIndex, Reader reader, long length) throws SQLException
