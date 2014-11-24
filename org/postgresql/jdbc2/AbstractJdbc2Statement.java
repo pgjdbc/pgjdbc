@@ -1833,9 +1833,18 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	            break;
             case Types.BLOB:
                 if (in instanceof Blob)
+                {
                     setBlob(parameterIndex, (Blob)in);
+                }
+                else if (in instanceof InputStream)
+                {
+                    long oid = createBlob(parameterIndex, (InputStream) in, -1);
+                    setLong(parameterIndex, oid);
+                }
                 else
+                {
                     throw new PSQLException(GT.tr("Cannot cast an instance of {0} to type {1}", new Object[]{in.getClass().getName(),"Types.BLOB"}), PSQLState.INVALID_PARAMETER_TYPE);
+                }
                 break;
             case Types.CLOB:
                 if (in instanceof Clob)
