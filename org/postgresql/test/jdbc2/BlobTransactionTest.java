@@ -37,8 +37,6 @@ public class BlobTransactionTest extends TestCase
 
     protected void setUp() throws Exception
     {
-        
-        
         con = TestUtil.openDB();
         con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
         con2 = TestUtil.openDB();
@@ -79,8 +77,27 @@ public class BlobTransactionTest extends TestCase
     	TestUtil.closeDB(con2);
     	
         con.setAutoCommit(true);
-        TestUtil.dropTable(con, "testblob");
-        TestUtil.closeDB(con);
+        try
+        {
+            Statement stmt = con.createStatement();
+            try
+            {
+                stmt.execute("SELECT lo_unlink(lo) FROM testblob");
+            }
+            finally
+            {
+                try
+                {
+                    stmt.close();
+                }
+                catch (Exception e) {}
+            }
+        }
+        finally
+        {
+            TestUtil.dropTable(con, "testblob");
+            TestUtil.closeDB(con);
+        }
     }
 
     private byte [] randomData()

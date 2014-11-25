@@ -6,6 +6,7 @@ import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 
 import junit.framework.TestCase;
@@ -32,8 +33,27 @@ public class BlobTest extends TestCase
     protected void tearDown() throws Exception
     {
         _conn.setAutoCommit(true);
-        TestUtil.dropTable(_conn, "testblob");
-        TestUtil.closeDB(_conn);
+        try
+        {
+            Statement stmt = _conn.createStatement();
+            try
+            {
+                stmt.execute("SELECT lo_unlink(lo) FROM testblob");
+            }
+            finally
+            {
+                try
+                {
+                    stmt.close();
+                }
+                catch (Exception e) {}
+            }
+        }
+        finally
+        {
+            TestUtil.dropTable(_conn, "testblob");
+            TestUtil.closeDB(_conn);
+        }
     }
 
     public void testSetBlobWithStream() throws Exception
@@ -139,4 +159,23 @@ public class BlobTest extends TestCase
         }
     }
 
+    public void testFree() throws SQLException
+    {
+        Statement stmt = _conn.createStatement();
+        stmt.execute("INSERT INTO testblob(lo) VALUES(lo_creat(-1))");
+        ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");
+        assertTrue(rs.next());
+
+        Blob blob = rs.getBlob(1);
+        blob.free();
+        try
+        {
+            blob.length();
+            fail("Should have thrown an Exception because it was freed.");
+        }
+        catch (SQLException sqle)
+        {
+            // expected
+        }
+    }
 }

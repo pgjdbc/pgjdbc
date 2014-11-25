@@ -27,7 +27,6 @@ public class Jdbc4TestSuite extends TestSuite
         Class.forName("org.postgresql.Driver");
         TestSuite suite = new TestSuite();
         
-        suite.addTestSuite(LOBTest.class);
         suite.addTestSuite(DatabaseMetaDataTest.class);
         suite.addTestSuite(ArrayTest.class);
         suite.addTestSuite(WrapperTest.class);
