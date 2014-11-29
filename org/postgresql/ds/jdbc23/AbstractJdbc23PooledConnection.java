@@ -97,7 +97,7 @@ public abstract class AbstractJdbc23PooledConnection
      * Gets a handle for a client to use.  This is a wrapper around the
      * physical connection, so the client can call close and it will just
      * return the connection to the pool without really closing the
-     * pgysical connection.
+     * physical connection.
      *
      * <p>According to the JDBC 2.0 Optional Package spec (6.2.3), only one
      * client may have an active handle to the connection at a time, so if
@@ -114,7 +114,7 @@ public abstract class AbstractJdbc23PooledConnection
             fireConnectionFatalError(sqlException);
             throw sqlException;
         }
-        // If any error occures while opening a new connection, the listeners
+        // If any error occurs while opening a new connection, the listeners
         // have to be notified. This gives a chance to connection pools to
         // eliminate bad pooled connections.
         try
@@ -324,13 +324,14 @@ public abstract class AbstractJdbc23PooledConnection
             }
             if (con == null || con.isClosed())
             {
-                throw new PSQLException(automatic ? GT.tr("Connection has been closed automatically because a new connection was opened for the same PooledConnection or the PooledConnection has been closed.") : GT.tr("Connection has been closed."),
-                        PSQLState.CONNECTION_DOES_NOT_EXIST);
+            	throw new PSQLException(automatic ? GT.tr("Connection has been closed automatically because a new connection was opened for the same PooledConnection or the PooledConnection has been closed.") : GT.tr("Connection has been closed."),
+            	             PSQLState.CONNECTION_DOES_NOT_EXIST);
             }
-
+            	
             // From here on in, we invoke via reflection, catch exceptions,
             // and check if they're fatal before rethrowing.
-            try {
+
+            try {            
                 if (methodName.equals("createStatement"))
                 {
                     Statement st = (Statement)method.invoke(con, args);
@@ -350,10 +351,10 @@ public abstract class AbstractJdbc23PooledConnection
                 {
                     return method.invoke(con, args);
                 }
-            } catch (final InvocationTargetException ite) {
-                final Throwable te = ite.getTargetException();
+            } catch (InvocationTargetException e) {
+                Throwable te = e.getTargetException();
                 if (te instanceof SQLException)
-                    fireConnectionError((SQLException) te); // Tell listeners about exception if it's fatal
+                    fireConnectionError((SQLException)te); // Tell listeners about exception if it's fatal
                 throw te;
             }
         }
@@ -393,10 +394,10 @@ public abstract class AbstractJdbc23PooledConnection
      * Connection proxy for the getConnection method.
      */
     private class StatementHandler implements InvocationHandler {
-        private ConnectionHandler con;
+        private AbstractJdbc23PooledConnection.ConnectionHandler con;
         private Statement st;
 
-        public StatementHandler(ConnectionHandler con, Statement st) {
+        public StatementHandler(AbstractJdbc23PooledConnection.ConnectionHandler con, Statement st) {
             this.con = con;
             this.st = st;
         }
@@ -421,40 +422,42 @@ public abstract class AbstractJdbc23PooledConnection
                 }
                 return method.invoke(st, args);
             }
-
             // All the rest is from the Statement interface
-            if (methodName.equals("isClosed"))
-            {
-                return st == null || st.isClosed();
-            }
             if (methodName.equals("close"))
             {
-                if (st == null || st.isClosed())
+                // closing an already closed object is a no-op
+                if (st == null || con.isClosed())
                     return null;
-                con = null;
-                final Statement oldSt = st;
-                st = null;
-                oldSt.close();
+
+                try
+                {
+                    st.close();
+                }
+                finally
+                {
+                    con = null;
+                    st = null;
+                }
                 return null;
             }
-            if (st == null || st.isClosed())
+            if (st == null || con.isClosed())
             {
                 throw new PSQLException(GT.tr("Statement has been closed."),
-                        PSQLState.OBJECT_NOT_IN_STATE);
+                                        PSQLState.OBJECT_NOT_IN_STATE);
             }
+            
             if (methodName.equals("getConnection"))
             {
                 return con.getProxy(); // the proxied connection, not a physical connection
             }
 
-            // Delegate the call to the proxied Statement.
             try
             {
                 return method.invoke(st, args);
-            } catch (final InvocationTargetException ite) {
-                final Throwable te = ite.getTargetException();
+            } catch (InvocationTargetException e) {
+                Throwable te = e.getTargetException();
                 if (te instanceof SQLException)
-                    fireConnectionError((SQLException) te); // Tell listeners about exception if it's fatal
+                    fireConnectionError((SQLException)te); // Tell listeners about exception if it's fatal
                 throw te;
             }
         }
