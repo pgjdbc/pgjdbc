@@ -66,15 +66,15 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     protected boolean forcebinary = false;
 
     // Connection's autocommit state.
-    public boolean autoCommit = true;
+    private boolean autoCommit = true;
     // Connection's readonly state.
-    public boolean readOnly = false;
+    private boolean readOnly = false;
 
     // Bind String to UNSPECIFIED or VARCHAR?
-    public final boolean bindStringAsVarchar;
+    private final boolean bindStringAsVarchar;
 
     // Current warnings; there might be more on protoConnection too.
-    public SQLWarning firstWarning = null;
+    private SQLWarning firstWarning = null;
 
     /** Set of oids that use binary transfer when sending to server. */
     private Set<Integer> useBinarySendForOids;
