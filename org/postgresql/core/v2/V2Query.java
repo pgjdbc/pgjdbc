@@ -59,8 +59,13 @@ class V2Query implements Query {
                 break;
 
             case '?':
-                v.add(query.substring (lastParmEnd, i));
-                lastParmEnd = i + 1;
+                if (i+1 < aChars.length && aChars[i+1] == '?') /* let '??' pass */
+                    i = i+1;
+                else
+                {
+                    v.add(query.substring (lastParmEnd, i));
+                    lastParmEnd = i + 1;
+                }
                 break;
 
             default:
@@ -72,7 +77,7 @@ class V2Query implements Query {
 
         fragments = new String[v.size()];
         for (int i = 0 ; i < fragments.length; ++i)
-            fragments[i] = (String)v.get(i);
+            fragments[i] = Parser.unmarkDoubleQuestion((String)v.get(i), stdStrings);
     }
 
     public ParameterList createParameterList() {

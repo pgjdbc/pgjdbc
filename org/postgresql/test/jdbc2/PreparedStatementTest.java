@@ -445,6 +445,25 @@ public class PreparedStatementTest extends TestCase
         assertFalse(rs.next());
         st.close();        
     }
+
+    public void testDoubleQuestionMark() throws SQLException {
+        PreparedStatement st;
+        ResultSet rs;
+
+        st = conn.prepareStatement("SELECT 'Top.Collections.Pictures.Astronomy.Stars'::ltree ?? '{\"*.Astronomy.*\"}'::lquery[];");
+        rs = st.executeQuery();
+        assertTrue(rs.next());
+        assertEquals("t", rs.getString(1));
+        assertFalse(rs.next());
+        st.close();
+
+        st = conn.prepareStatement("select '{\"Top.Collections.Pictures.Astronomy.Stars\"}'::ltree[] ??~ '*.Astronomy.*'::lquery");
+        rs = st.executeQuery();
+        assertTrue(rs.next());
+        assertEquals("Top.Collections.Pictures.Astronomy.Stars", rs.getString(1));
+        assertFalse(rs.next());
+        st.close();
+    }
     
     public void testDouble() throws SQLException
     {
