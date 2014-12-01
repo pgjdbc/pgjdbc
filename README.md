@@ -11,7 +11,22 @@ This isn't a guide on how to use JDBC - for that refer to [Oracle's website](htt
 
 For problems with this driver, refer to driver's [home page](http://jdbc.postgresql.org/) and associated [mailing list](http://archives.postgresql.org/pgsql-jdbc/).
 
-## Compiling
+## Downloading pre-built drivers
+
+Most people do not need to compile PgJDBC. You can download prebuilt versions of the driver 
+from the [Postgresql JDBC site](http://jdbc.postgresql.org/).
+
+## Compiling with Ant on the command line
+
+PgJDBC doesn't natively support compilation from IDEs like Eclipse, NetBeans or
+IntelliJ. You should compile with ant on the command line.
+
+Before you can compile the driver you must download the source code from git.
+You cannot compile from a jar or a .zip distribution. Run:
+
+    git clone https://github.com/pgjdbc/pgjdbc.git
+
+to download the source code. (You'll need git installed, of course).
 
 To compile you will need to have a Java 5 or newer JDK and will need to have
 Ant installed. To obtain Ant go to http://ant.apache.org/index.html and
@@ -29,53 +44,52 @@ corresponds to the version of Java used to compile the driver.
 that support that version of the API. You don't need to build it for each
 platform.
 
-If you are having problems, prebuilt versions of the driver 
-are available at the [Postgresql JDBC site](http://jdbc.postgresql.org/).
+## Creating a distribution zip
+
+To create a package of the driver jar, sources, and dependencies, run:
+
+    ant dist
+
+## Dependencies
+
+PgJDBC has optional dependencies on other libraries for some features. These
+libraries must also be on your classpath if you wish to use those features; if
+they aren't, you'll get a PSQLException at runtime when you try to use features
+with missing libraries.
+
+Ant will download additional dependencies from the Internet (from Maven
+respositories) to satisfy build requirements. Whether or not you intend to use
+the optional features the libraries used to implement them *must* be present to
+compile the driver.
+
+Currently Waffle-JNA and its dependencies are required for SSPI authentication
+support (only supported on a JVM running on Windows). Unless you're on Windows
+and using SSPI you can leave them out when you install the driver.
 
 ## Installing the driver
 
 To install the driver, the postgresql.jar file has to be in the classpath.
+When running standalone Java programs, use the `-cp` command line option,
+e.g.
 
-i.e. under LINUX/SOLARIS (the example here is my linux box):
+    java -cp postgresql-9.4-1200.jdbc4.jar -jar myprogram.jar
 
-	export CLASSPATH=.:/usr/local/pgsql/share/java/postgresql.jar
+If you're using an application server or servlet container, follow the
+instructions for installing JDBC drivers for that server or container.
+
+For users of IDEs like Eclipse, NetBeans, etc, you should simply add the
+driver JAR like any other JAR to use it in your program. To use it within
+the IDE its self (for database browsing etc) you should follow the IDE
+specific documentation on how to install JDBC drivers.
 
 ## Using the driver
 
-To use the driver, you must introduce it to JDBC. Again, there's two ways
-of doing this:
+Java 6 and above do not need any special action to enable the driver - if it's
+on the classpath it is automatically detected and loaded by the JVM.
 
-- Hardcoded
-
-   This method hardcodes your driver into your application/applet. You
-   introduce the driver using the following snippet of code:
-
-```java
-try {
-  Class.forName("org.postgresql.Driver");
-} catch(Exception e) {
-  // your error handling code goes here
-}
-```
-
-   Remember, this method restricts your code to just the postgresql database.
-   However, this is how most people load the driver.
-
-- Parameters
-
-   This method specifies the driver from the command line. When running the
-   application, you specify the driver using the option:
-
-    `-Djdbc.drivers=org.postgresql.Driver`
-
-   eg: This is an example of running one of my other projects with the driver:
-
-    `java -Djdbc.drivers=org.postgresql.Driver uk.org.retep.finder.Main`
-
-   note: This method only works with Applications (not for Applets).
-	 However, the application is not tied to one driver, so if you needed
-	 to switch databases (why I don't know ;-) ), you don't need to
-	 recompile the application (as long as you havent hardcoded the url's).
+For Java 1.5 and below, use `Class.forName` or a system parameter. See the main
+documentation and the JDBC tutorial for details - take a look at "more
+information" below.
 
 ## JDBC URL syntax
 
@@ -101,12 +115,12 @@ Notes:
 
 - The port defaults to 5432 if it's left out.
 
----
+There are many options you can pass on the URL to control the driver's behaviour.
+See the full JDBC driver documentation for details.
 
-That's the basics related to this driver. You'll need to read the JDBC Docs
-on how to use it.
+## More information
 
----
+For more information see the [the PgJDBC driver documentation](http://jdbc.postgresql.org/documentation/documentation.html) and [the JDBC tutorial](http://docs.oracle.com/javase/tutorial/jdbc/).
 
 ## Bug reports, patches and development
 

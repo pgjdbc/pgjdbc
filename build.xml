@@ -88,8 +88,9 @@
     <include name="${package}/ssl/jdbc3/*.java" if="jdbc3any"/>
     <include name="${package}/ssl/*.java" if="jdbc3any"/>
 
-    <!-- gss -->
+    <!-- gss and sspi -->
     <include name="${package}/gss/*.java"/>
+    <include name="${package}/sspi/*.java"/>
 
     <!-- datasource stuff -->
     <include name="${package}/jdbc3/Jdbc3ConnectionPool.java" if="jdbc3any"/>
@@ -107,9 +108,141 @@
     <include name="${package}/xa/jdbc4/*.java" if="jdbc4any"/>
   </patternset>
 
-  <artifact:dependencies pathId="dependency.classpath" useScope="test">
-    <dependency groupId="junit" artifactId="junit" version="4.0" scope="test"/>
-  </artifact:dependencies>
+  <property name="waffle-jna.version" value="1.7" />
+
+  <target name="maven-dependencies" depends="check_versions">
+    <!--
+         This is all maven-ant-tasks dependency declaration code.
+         See http://maven.apache.org/ant-tasks/reference.html
+
+         You must depend on either release-version or snapshot-version prior to
+         this, as it expects properties set by those tasks to be present.
+    -->
+
+    <fail unless="maven.artifact.version.string">snapshot-version or release-version target must run as the first task</fail>
+
+    <!-- Expose the Waffle POM so we can reference its version attributes -->
+    <artifact:dependencies>
+      <dependency groupId="com.github.dblock.waffle" artifactId="waffle-jna"
+                  version="${waffle-jna.version}" type="pom"/>
+    </artifact:dependencies>
+
+    <!-- Import Waffle's pom so we can reference its properties -->
+    <artifact:pom id="waffle-pom"
+                  file="${com.github.dblock.waffle:waffle-jna:pom}"
+                  inheritAllProperties="true"/>
+
+    <!--
+         Declare our own pom with dependencies, which we'll then extract into
+         filesets with separate artifact:dependencies clauses.
+
+         Base it on the template pom in src/pom/pom.xml
+    -->
+    <artifact:pom id="org.postgresql:postgresql:pom"
+                  groupId="${maven.group.id}"
+                  artifactId="${maven.artifact.id}"
+                  version="${maven.artifact.version.string}" 
+                  name="${maven.artifact.description} ${jdbc.version.upper}"
+                  url="http://jdbc.postgresql.org"
+                  >
+
+      <license name="The PostgreSQL License"
+               url="http://www.postgresql.org/about/licence/"/>
+
+      <developer id="davecramer" name="Dave Cramer"/>
+      <developer id="jurka" name="Kris Jurka"/>
+      <developer id="oliver" name="Oliver Jowett"/>
+      <developer id="ringerc" name="Craig Ringer"/>
+
+      <scm connection="scm:git:git@github.com:pgjdbc/pgjdbc.git"
+           url="https://github.com/pgjdbc/pgjdbc" />
+
+      <!--
+           TODO: Is this useful/required? Get pom generator to emit it.
+      <repository uniqueVersion="false"
+                  id="org.postgresql"
+                  url="https://oss.sonatype.org/content/repositories/snapshots"
+                  layout="legacy"
+                  />
+      -->
+
+      <!--
+           Waffle-JNA is used for SSPI authentication support on Windows.  We compile
+           against it on all platforms for consistent builds.
+      -->
+      <dependency groupId="com.github.dblock.waffle" artifactId="waffle-jna"
+                  version="${waffle-jna.version}" scope="compile">
+        <!--
+         We want to force most of Waffle's transitive dependencies to runtime
+         dependencies so we can't accidentally depend on their contents at
+         compile time. So exclude them from the compile dependencies, then
+         declare another runtime dependency on waffle-jna without these
+         exclusions later.
+        -->
+        <exclusion groupId="com.google.guava" artifactId="guava"/>
+        <exclusion groupId="org.slf4j" artifactId="slf4j-api"/>
+        <exclusion groupId="org.slf4j" artifactId="slf4j-simple"/>
+        <!--
+         Note that we do NOT exclude net.java.dev.jna:jna or
+         net.java.dev.jna:jna-platform since we intentionally use the one
+         Waffle exposes.
+        -->
+      </dependency>
+
+
+      <!--
+           Re-declare our waffle-jna dependency without excludes for runtime
+           bundling use.
+      -->
+      <dependency groupId="com.github.dblock.waffle" artifactId="waffle-jna"
+                  version="${waffle-jna.version}" scope="runtime"/>
+
+      <!--
+         Pull in slf4j-simple too, since Waffle uses slf4j. 
+         (It's declared optional by waffle so ant-tasks doesn't fetch it normally)
+      -->
+      <dependency groupId="org.slf4j" artifactId="slf4j-simple"
+                  version="${waffle-pom.properties.slf4j.version}" scope="runtime"/>
+
+      <!-- Ensure JUnit is available, since we hide the ant runtime -->
+      <dependency groupId="junit" artifactId="junit" version="4.0"
+                  scope="test"/>
+
+    </artifact:pom>
+
+    <!--
+         Select a subset of dependencies from our pom as a fileset.
+
+         These libraries should be visible to javac:
+    -->
+    <artifact:dependencies pathId="dependency.compile.classpath"
+                           filesetId="dependency.compile.fileset"
+                           pomRefId="org.postgresql:postgresql:pom"/>
+
+    <!-- These libraries should be bundled for use at runtime and added to the
+         classpath when running tests-->
+    <artifact:dependencies pathId="dependency.runtime.classpath"
+                           filesetId="dependency.runtime.fileset"
+                           pomRefId="org.postgresql:postgresql:pom"/>
+
+    <!--
+      These are used for test compilation and for test running only. They aren't
+      exposed to javac during the main driver compilation.
+    -->
+    <artifact:dependencies pathId="dependency.test.classpath"
+                           filesetId="dependency.test.fileset"
+                           useScope="test"
+                           pomRefId="org.postgresql:postgresql:pom"/>
+
+    <!-- To make life easier for IDE users, copy dependencies to lib/ -->
+    <copy todir="lib/">
+      <fileset refid="dependency.compile.fileset"/>
+      <fileset refid="dependency.runtime.fileset"/>
+      <fileset refid="dependency.test.fileset"/>
+      <mapper type="flatten"/>
+    </copy>
+
+  </target>
 
   <target name="check_versions">
     <condition property="jdbc2">
@@ -207,12 +340,10 @@
     </condition>
   </target>
 
-
   <!-- default target -->
-  <target name="all">
-    <antcall target="jar" />
+  <target name="all" depends="snapshot-version, jar">
+    <!-- This task is empty, it just exists to provide dependencies -->
   </target>
-
 
   <!-- create the jar file -->
   <target name="jar" depends="compile, artifact-version">
@@ -234,14 +365,72 @@
     </jar>
   </target>
 
+  <!-- create a distribution with docs, dependencies, and driver jar -->
+  <target name="dist" depends="jar, publicapi">
+    <zip whenempty="fail" destfile="${artifact.version.string}-dist.zip" level="9">
 
-  <target name="compile" depends="prepare,check_versions,driver">
+      <!-- Driver JAR -->
+      <filelist dir="${jardir}">
+        <file name="${artifact.version.string}.jar"/>
+      </filelist>
+
+      <!-- Create a lib/ directory with dependencies -->
+      <mappedresources>
+        <union>
+          <fileset refid="dependency.compile.fileset"/>
+          <fileset refid="dependency.runtime.fileset"/>
+	</union>
+        <chainedmapper>
+          <flattenmapper/>
+          <globmapper from="*.jar" to="lib/*.jar"/>
+        </chainedmapper>
+      </mappedresources>
+
+      <!-- API javadoc -->
+      <mappedresources>
+        <fileset dir="${builddir}">
+          <include name="publicapi/**"/>
+        </fileset>
+        <globmapper from="*" to="doc/*"/>
+      </mappedresources>
+
+      <!-- Manual from doc/pgjdbc.xml -->
+      <!-- TODO: include generated docbook -->
+      <filelist>
+        <file name="doc/pgjdbc.xml"/>
+      </filelist>
+
+      <!-- Misc docs -->
+      <filelist>
+        <file name="README.md"/>
+        <file name="LICENSE"/>
+      </filelist>
+
+      <!--
+           Processed sources, for IDE debugging use
+           
+           We don't attempt to make a compileable "dist". Just use git.
+      -->
+      <mappedresources>
+        <fileset dir="${srcdir}">
+          <patternset refid="jdbc.version.src.pattern"/>
+        </fileset>
+        <globmapper from="*" to="src/*"/>
+      </mappedresources>
+
+    </zip>
+  </target>
+
+  <target name="compile" depends="prepare,check_versions,driver,maven-dependencies">
 
     <available classname="org.postgresql.Driver" property="old.driver.present" />
     <fail message="Old driver was detected on classpath or in jre/lib/ext, please remove and try again." if="old.driver.present" />
 
-    <javac classpath="${srcdir}" srcdir="${srcdir}" destdir="${builddir}" debug="${debug}" source="${java.specification.version}">
-      <classpath refid="dependency.classpath" />
+    <javac classpath="${srcdir}" srcdir="${srcdir}" destdir="${builddir}"
+           debug="${debug}" source="${java.specification.version}" includeantruntime="false">
+      <classpath refid="dependency.compile.classpath"/>
+      <!-- Do NOT add dependency.test here, we should not depend on junit -->
+      <!-- Similarly, omit dependency.runtime, we're intentionally not compiling against those libs -->
       <patternset refid="jdbc.version.src.pattern"/>
     </javac>
   </target>
@@ -448,8 +637,11 @@
   <!-- This compiles and builds the test jarfile. -->  
   <target name="testjar" depends="jar">
     <mkdir dir="${builddir}/tests"/>
-    <javac srcdir="${srcdir}" destdir="${builddir}/tests" debug="${debug}" source="${java.specification.version}">
-      <classpath refid="dependency.classpath" />
+    <javac srcdir="${srcdir}" destdir="${builddir}/tests" debug="${debug}"
+           source="${java.specification.version}" includeantruntime="false">
+      <classpath refid="dependency.compile.classpath" />
+      <classpath refid="dependency.runtime.classpath" />
+      <classpath refid="dependency.test.classpath" />
       <include name="${package}/test/**" />
 
       <exclude name="${package}/test/jdbc4/**" unless="jdbc4tests" />
@@ -488,7 +680,9 @@
       <sysproperty key="protocolVersion" value="${protocolVersion}" />
       <sysproperty key="ssltest.properties" value="${ssltest.properties}" />
 
-      <classpath refid="dependency.classpath" />
+      <classpath refid="dependency.compile.classpath" />
+      <classpath refid="dependency.runtime.classpath" />
+      <classpath refid="dependency.test.classpath" />
       <classpath>
         <pathelement location="${artifact.jar}" />
         <pathelement location="${jardir}/postgresql-tests.jar" />
@@ -507,7 +701,7 @@
   </target>
   
   <!-- Build and run the tests. -->
-  <target name="test" depends="testjar,runtest"/>
+  <target name="test" depends="snapshot-version,testjar,runtest"/>
 
   <!-- Build public javadoc -->
   <target name="publicapi" depends="compile">
@@ -605,30 +799,33 @@
     </xmlvalidate>
   </target>
 
-  <target name="artifact-version" description="Sets the version string for the jar artifact">
+  <target name="artifact-version"
+          description="Sets the version string for the jar artifact"
+          depends="maven-dependencies">
     <property name="artifact.version.string" value="${maven.artifact.id}-${maven.artifact.version}.${jdbc.version}" />
     <echo message="Artifact version string: ${artifact.version.string}" />
   </target>
 
-  <target name="snapshot-version" description="Sets the version string to a snapshot version">
+  <target name="snapshot-version" description="Sets the version string to a snapshot version" depends="check_versions">
+    <fail if="maven.artifact.version.string">snapshot-version task run but version already set</fail>
     <property name="maven.artifact.version.string" value="${maven.artifact.version}-${jdbc.version}-SNAPSHOT" />
     <echo message="Maven version string: ${maven.artifact.version.string}" />
   </target>
 
-  <target name="release-version" description="Sets the version string to a release version">
+  <target name="release-version" description="Sets the version string to a release version" depends="check_versions">
+    <fail if="maven.artifact.version.string">release-version task run but version already set</fail>
     <property name="maven.artifact.version.string" value="${maven.artifact.version}-${jdbc.version}" />
     <echo message="Maven version string: ${maven.artifact.version.string}" />
   </target>
 
-  <target name="prepare-pom" depends="prepare,check_versions" description="Filters the pom depending on the jdbc version being built">
+  <target name="prepare-pom" depends="maven-dependencies"
+          description="Write a pom.xml for uploading to Maven Central">
+
     <mkdir dir="${builddir}/pom"/>
-    <!-- Copy the templated pom.xml with version info -->
-    <filter token="maven.group.id" value="${maven.group.id}"/>
-    <filter token="maven.artifact.id" value="${maven.artifact.id}"/>
-    <filter token="maven.artifact.version.string" value="${maven.artifact.version.string}"/>
-    <filter token="maven.artifact.description" value="${maven.artifact.description}"/>
-    <filter token="jdbc.version.upper" value="${jdbc.version.upper}"/>
-    <copy todir="${builddir}/pom" filtering="true" file="src/pom/pom.xml"/>
+
+    <!-- Write out the pom.xml so we can upload it to Maven Central -->
+    <artifact:writepom pomRefId="org.postgresql:postgresql:pom"
+                       file="${builddir}/pom/pom.xml" />
   </target>
 
   <target name="snapshot" depends="maven-jar,snapshot-version,prepare-pom" description="deploy snapshot version to Maven snapshot repository">
@@ -641,9 +838,9 @@
     </artifact:mvn>
   </target>
 
-  <!-- before this, update project version (both build.xml and pom.xml) from SNAPSHOT to RELEASE -->
   <target name="release" depends="maven-jar,release-version,prepare-pom" description="deploy release version to Maven staging repository">
     <!-- sign and deploy the main artifact -->
+    <fail unless="maven.artifact.version.string"/>
     <artifact:mvn>
       <artifact:arg value="org.apache.maven.plugins:maven-gpg-plugin:1.4:sign-and-deploy-file" />
       <artifact:arg value="-Durl=${maven.staging.repository.url}" />
