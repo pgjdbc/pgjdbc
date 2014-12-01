@@ -1180,7 +1180,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             break;
         case Types.VARCHAR:
         case Types.LONGVARCHAR:
-            oid = Oid.VARCHAR;
+            oid = connection.getStringVarcharFlag() ? Oid.VARCHAR : Oid.UNSPECIFIED;
             break;
         case Types.DATE:
             oid = Oid.DATE;
