@@ -14,6 +14,7 @@ import java.sql.*;
 import java.util.Properties;
 
 import org.postgresql.jdbc2.AbstractJdbc2Connection;
+import org.postgresql.util.SharedTimer;
 
 /**
  * Utility class for JDBC tests
@@ -222,6 +223,8 @@ public class TestUtil
     {
         if (con != null)
             con.close();
+
+        assert SharedTimer.getLoanCount() == 0 : "Some connections remain open after the test.";
     }
 
     /*
