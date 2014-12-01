@@ -92,7 +92,10 @@ public interface QueryExecutor {
     /**
      * Flag to disable batch execution when we expect results (generated keys)
      * from a statement.
+     *
+     * @deprecated in PgJDBC 9.4 as we now auto-size batches.
      */
+    @Deprecated
     static int QUERY_DISALLOW_BATCHING = 128;
 
     /**
