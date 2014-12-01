@@ -121,6 +121,17 @@ public interface ParameterList {
     void setBytea(int index, InputStream stream, int length) throws SQLException;
 
     /**
+     * Binds a binary bytea value stored as an InputStream. The
+     * parameter's type is implicitly set to 'bytea'. The stream should
+     * remain valid until query execution has completed.
+     *
+     * @param index the 1-based parameter index to bind.
+     * @param stream a stream containing the parameter data.
+     * @throws SQLException on error or if <code>index</code> is out of range
+     */
+    void setBytea(int index, InputStream stream) throws SQLException;
+
+    /**
      * Binds given byte[] value to a parameter. The bytes must already
      * be in correct format matching the OID.
      *

@@ -108,7 +108,7 @@
   </patternset>
 
   <artifact:dependencies pathId="dependency.classpath" useScope="test">
-    <dependency groupId="junit" artifactId="junit" version="4.0" scope="test"/>
+    <dependency groupId="junit" artifactId="junit" version="4.11" scope="test"/>
   </artifact:dependencies>
 
   <target name="check_versions">
