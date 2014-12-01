@@ -154,6 +154,11 @@ class SimpleQuery implements V3Query {
         this.statementDescribed = statementDescribed;
     }
 
+    public boolean isEmpty()
+    {
+        return fragments.length == 1 && "".equals(fragments[0]);
+    }
+
     void setCleanupRef(PhantomReference cleanupRef) {
         if (this.cleanupRef != null) {
             this.cleanupRef.clear();

@@ -54,4 +54,6 @@ public interface Query {
     void close();
 
     boolean isStatementDescribed();
+
+    boolean isEmpty();
 }

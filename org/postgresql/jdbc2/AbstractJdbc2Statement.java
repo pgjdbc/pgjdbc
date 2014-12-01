@@ -547,6 +547,11 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (concurrency != ResultSet.CONCUR_READ_ONLY)
             flags |= QueryExecutor.QUERY_NO_BINARY_TRANSFER;
 
+        if (queryToExecute.isEmpty())
+        {
+            flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
+        }
+
         if (!queryToExecute.isStatementDescribed() && forceBinaryTransfers) {
                 int flags2 = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
                 StatementResultHandler handler2 = new StatementResultHandler();
