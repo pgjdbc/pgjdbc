@@ -39,19 +39,20 @@ public class MakeGSS
             kerberosServerName = "postgres";
 
         try {
+            boolean performAuthentication = true;
             GSSCredential gssCredential = null;
             Subject sub = Subject.getSubject(AccessController.getContext());
-            if(sub == null) {
-                LoginContext lc = new LoginContext(jaasApplicationName, new GSSCallbackHandler(user, password));
-                lc.login();
-                sub = lc.getSubject();
-            } else {
+            if(sub != null) {
                 Set<GSSCredential> gssCreds = sub.getPrivateCredentials(GSSCredential.class);
                 if (gssCreds != null && gssCreds.size() > 0) {
                     gssCredential = gssCreds.iterator().next();
-                } else {
-                    throw new PSQLException(GT.tr("GSS No valid credentials in subject"), PSQLState.CONNECTION_FAILURE);
+                    performAuthentication = false;
                 }
+            }
+            if(performAuthentication) {
+                LoginContext lc = new LoginContext(jaasApplicationName, new GSSCallbackHandler(user, password));
+                lc.login();
+                sub = lc.getSubject();
             }
             PrivilegedAction action = new GssAction(pgStream, gssCredential, host, user, password, kerberosServerName, logger, useSpnego);
 
