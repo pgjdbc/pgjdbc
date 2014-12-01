@@ -125,6 +125,8 @@
     <artifact:dependencies>
       <dependency groupId="com.github.dblock.waffle" artifactId="waffle-jna"
                   version="${waffle-jna.version}" type="pom"/>
+      <remoteRepository id="${maven.remote.repository.id}"
+			url="${maven.remote.repository.url}" />
     </artifact:dependencies>
 
     <!-- Import Waffle's pom so we can reference its properties -->
@@ -217,13 +219,19 @@
     -->
     <artifact:dependencies pathId="dependency.compile.classpath"
                            filesetId="dependency.compile.fileset"
-                           pomRefId="org.postgresql:postgresql:pom"/>
+                           pomRefId="org.postgresql:postgresql:pom">
+      <remoteRepository id="${maven.remote.repository.id}"
+                        url="${maven.remote.repository.url}"/>
+    </artifact:dependencies>
 
     <!-- These libraries should be bundled for use at runtime and added to the
          classpath when running tests-->
     <artifact:dependencies pathId="dependency.runtime.classpath"
                            filesetId="dependency.runtime.fileset"
-                           pomRefId="org.postgresql:postgresql:pom"/>
+                           pomRefId="org.postgresql:postgresql:pom">
+      <remoteRepository id="${maven.remote.repository.id}"
+                        url="${maven.remote.repository.url}"/>
+    </artifact:dependencies>
 
     <!--
       These are used for test compilation and for test running only. They aren't
@@ -232,7 +240,10 @@
     <artifact:dependencies pathId="dependency.test.classpath"
                            filesetId="dependency.test.fileset"
                            useScope="test"
-                           pomRefId="org.postgresql:postgresql:pom"/>
+                           pomRefId="org.postgresql:postgresql:pom">
+      <remoteRepository id="${maven.remote.repository.id}"
+                        url="${maven.remote.repository.url}"/>
+    </artifact:dependencies>
 
     <!-- To make life easier for IDE users, copy dependencies to lib/ -->
     <copy todir="lib/">
