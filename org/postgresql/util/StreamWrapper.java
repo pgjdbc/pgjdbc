@@ -23,7 +23,7 @@ import java.io.OutputStream;
  */
 public class StreamWrapper {
 
-    private static final int MAX_MEMORY_CACHE_BYTES = 51200;
+    private static final int MAX_MEMORY_BUFFER_BYTES = 51200;
     
     private static final String TEMP_FILE_PREFIX = "postgres-pgjdbc-stream";
 
@@ -46,7 +46,7 @@ public class StreamWrapper {
         try
         {
             ByteArrayOutputStream memoryOutputStream = new ByteArrayOutputStream();
-            final int memoryLength = copyStream(stream, memoryOutputStream, MAX_MEMORY_CACHE_BYTES);
+            final int memoryLength = copyStream(stream, memoryOutputStream, MAX_MEMORY_BUFFER_BYTES);
             byte[] rawData = memoryOutputStream.toByteArray();
 
             if (memoryLength == -1)
