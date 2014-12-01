@@ -185,6 +185,13 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 // User has not explicitly told us that this is a 9.0+ server so stick to old default:
                 paramList.add(new String[] {"extra_float_digits", "2"});
             }
+
+            String currentSchema = info.getProperty("currentSchema");
+            if (currentSchema != null)
+            {
+                paramList.add(new String[] {"search_path", currentSchema});
+            }
+
             String[][] params = paramList.toArray(new String[][]{});
 
             sendStartupPacket(newStream, params, logger);

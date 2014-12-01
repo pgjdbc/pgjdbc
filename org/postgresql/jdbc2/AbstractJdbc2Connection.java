@@ -270,12 +270,6 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         }
         this.disableColumnSanitiser = Boolean.valueOf(info.getProperty(""
                 + "disableColumnSanitiser", Boolean.FALSE.toString()));
-
-        String currentSchema = info.getProperty("currentSchema");
-        if (currentSchema != null)
-        {
-            setSchema(currentSchema);
-        }
     }
 
     private Set<Integer> getOidSet(String oidList) throws PSQLException {
