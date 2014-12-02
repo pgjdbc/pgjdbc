@@ -646,7 +646,7 @@
        built, and not whatever happens to be in builddir. -->
 
   <!-- This compiles and builds the test jarfile. -->  
-  <target name="testjar" depends="jar">
+  <target name="testjar" depends="snapshot-version, jar">
     <mkdir dir="${builddir}/tests"/>
     <javac srcdir="${srcdir}" destdir="${builddir}/tests" debug="${debug}"
            source="${java.specification.version}" includeantruntime="false">
