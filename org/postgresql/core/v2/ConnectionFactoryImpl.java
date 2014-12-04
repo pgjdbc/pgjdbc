@@ -490,5 +490,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             sb.append("'");
             SetupQueryRunner.run(protoConnection, sb.toString(), false);
         }
+
+        String currentSchema = info.getProperty("currentSchema");
+        if (currentSchema != null)
+        {
+            StringBuffer sb = new StringBuffer("SET search_path = '");
+            Utils.appendEscapedLiteral(sb, appName, protoConnection.getStandardConformingStrings());
+            sb.append("'");
+            SetupQueryRunner.run(protoConnection, sb.toString(), false);
+        }
     }
 }

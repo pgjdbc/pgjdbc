@@ -15,6 +15,7 @@ import java.sql.SQLException;
 import java.util.Locale;
 
 import junit.framework.TestCase;
+import org.postgresql.util.PGobject;
 
 /*
  * ResultSet tests.
@@ -93,6 +94,9 @@ public class ResultSetTest extends TestCase
         stmt.executeUpdate("INSERT INTO testnumeric VALUES('9223372036854775808')");
         stmt.executeUpdate("INSERT INTO testnumeric VALUES('-9223372036854775809')");
 
+        TestUtil.createTable(con, "testpgobject", "id integer, d date");
+        stmt.execute("INSERT INTO testpgobject VALUES(1, '2010-11-3')");
+
         stmt.close();
 
 
@@ -107,6 +111,7 @@ public class ResultSetTest extends TestCase
         //TestUtil.dropTable(con, "testbit");
         TestUtil.dropTable(con, "testboolstring");
         TestUtil.dropTable(con, "testnumeric");
+        TestUtil.dropTable(con, "testpgobject");
         TestUtil.closeDB(con);
     }
 
@@ -722,6 +727,29 @@ public class ResultSetTest extends TestCase
         } finally {
             Locale.setDefault(current);
         }
+    }
+
+    public void testUpdateWithPGobject() throws SQLException
+    {
+        Statement stmt = con.createStatement();
+
+        ResultSet rs = stmt.executeQuery("select * from testpgobject where id = 1");
+        assertTrue(rs.next());
+        assertEquals("2010-11-3", rs.getDate("d").toString());
+
+        PGobject pgobj = new PGobject();
+        pgobj.setType("date");
+        pgobj.setValue("2014-12-23");
+        rs.updateObject("d", pgobj);
+        rs.updateRow();
+        rs.close();
+
+        ResultSet rs1 = stmt.executeQuery("select * from testpgobject where id = 1");
+        assertTrue(rs1.next());
+        assertEquals("2014-12-23", rs1.getDate("d").toString());
+        rs1.close();
+
+        stmt.close();
     }
 
 }

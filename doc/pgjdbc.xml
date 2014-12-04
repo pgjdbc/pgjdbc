@@ -805,6 +805,11 @@ openssl pkcs8 -topk8 -in client.key -out client.pk8 -outform DER -v1 PBE-SHA1-3D
          equivalent to libpq's PGKRBSRVNAME environment variable and defaults to
          "postgres".
         </para>
+        <para>
+         If set, this variable forces native <literal>JGSS</literal> kerberos
+         authentication to be used even on Windows, where SSPI would otherwise
+         be attempted.
+        </para>
        </listitem>
       </varlistentry>
 
@@ -814,6 +819,61 @@ openssl pkcs8 -topk8 -in client.key -out client.pk8 -outform DER -v1 PBE-SHA1-3D
         <para>
          Specifies the name of the <acronym>JAAS</acronym> system or application
          login configuration.
+        </para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
+       <term><varname>gsslib</varname> = <type>String</type></term>
+       <listitem>
+        <para>
+	  Force either <acronym>SSPI</acronym> (Windows transparent
+	  single-sign-on) or <acronym>GSSAPI</acronym> (Kerberos, via
+	  <acronym>JSSE</acronym>) to be used when the server requests Kerberos
+	  or SSPI authentication. Permissible values are
+	  <literal>auto</literal> (default, see below), <literal>sspi</literal>
+	  (force SSPI) or <literal>gssapi</literal> (force GSSAPI-JSSE).
+	</para>
+	<para>
+	  If this parameter is <literal>auto</literal>, SSPI is attempted if
+	  the server requests SSPI authentication, the JDBC client is running
+	  on Windows, and the Waffle libraries required for SSPI are on the
+	  CLASSPATH.  Otherwise Kerberos/GSSAPI via JSSE is used. Note that
+	  this behaviour does not exactly match that of <literal>libpq</literal>,
+	  which uses Windows' SSPI libraries for Kerberos (GSSAPI) requests
+	  by default when on Windows.
+	</para>
+	<para>
+	  <literal>gssapi</literal> mode forces JSSE's GSSAPI to be used even
+	  if SSPI is available, matching the pre-9.4 behaviour.
+	</para>
+	<para>
+	  On non-Windows platforms or where SSPI is unavailable, forcing <literal>sspi</literal>
+	  mode will fail with a <literal>PSQLException</literal>.
+	</para>
+	<para>
+	  Since: 9.4
+	</para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
+       <term><varname>sspiServiceClass</varname> = <type>String</type></term>
+       <listitem>
+        <para>
+         Specifies the name of the Windows <acronym>SSPI</acronym> service class
+         that forms the service class part of the <acronym>SPN</acronym>.
+         The default, <literal>POSTGRES</literal>, is almost always correct.
+        </para>
+        <para>
+         See:
+           <ulink url="http://www.postgresql.org/docs/current/static/auth-methods.html#SSPI-AUTH">SSPI authentication (Pg docs)</ulink>
+           <ulink url="http://msdn.microsoft.com/en-us/library/ms677949(v=vs.85).aspx">Service Principal Names (MSDN)</ulink>,
+           <ulink url="http://msdn.microsoft.com/en-us/library/ms676007(v=vs.85).aspx">DsMakeSpn (MSDN)</ulink>
+           <ulink url="https://wiki.postgresql.org/wiki/Configuring_for_single_sign-on_using_SSPI_on_Windows">Configuring SSPI (Pg wiki)</ulink>.
+        </para>
+        <para>
+         This parameter is ignored on non-Windows platforms.
         </para>
        </listitem>
       </varlistentry>

@@ -31,8 +31,14 @@ public class SchemaTest extends TestCase
         Statement stmt = _conn.createStatement();
         stmt.execute("CREATE SCHEMA schema1");
         stmt.execute("CREATE SCHEMA schema2");
+        stmt.execute("CREATE SCHEMA \"schema 3\"");
+        stmt.execute("CREATE SCHEMA \"schema \"\"4\"");
+        stmt.execute("CREATE SCHEMA \"schema '5\"");
+        stmt.execute("CREATE SCHEMA \"schema ,6\"");
+        stmt.execute("CREATE SCHEMA \"UpperCase\"");
         TestUtil.createTable(_conn, "schema1.table1", "id integer");
         TestUtil.createTable(_conn, "schema2.table2", "id integer");
+        TestUtil.createTable(_conn, "\"UpperCase\".table3", "id integer");
     }
 
     protected void tearDown() throws SQLException
@@ -41,6 +47,11 @@ public class SchemaTest extends TestCase
         Statement stmt = _conn.createStatement();
         stmt.execute("DROP SCHEMA schema1 CASCADE");
         stmt.execute("DROP SCHEMA schema2 CASCADE");
+        stmt.execute("DROP SCHEMA \"schema 3\" CASCADE");
+        stmt.execute("DROP SCHEMA \"schema \"\"4\" CASCADE");
+        stmt.execute("DROP SCHEMA \"schema '5\" CASCADE");
+        stmt.execute("DROP SCHEMA \"schema ,6\"");
+        stmt.execute("DROP SCHEMA \"UpperCase\" CASCADE");
         TestUtil.closeDB(_conn);
     }
 
@@ -53,6 +64,14 @@ public class SchemaTest extends TestCase
         assertEquals("schema1", _conn.getSchema());
         _conn.setSchema("schema2");
         assertEquals("schema2", _conn.getSchema());
+        _conn.setSchema("schema 3");
+        assertEquals("schema 3", _conn.getSchema());
+        _conn.setSchema("schema \"4");
+        assertEquals("schema \"4", _conn.getSchema());
+        _conn.setSchema("schema '5");
+        assertEquals("schema '5", _conn.getSchema());
+        _conn.setSchema("UpperCase");
+        assertEquals("UpperCase", _conn.getSchema());
     }
 
     /**
@@ -82,6 +101,19 @@ public class SchemaTest extends TestCase
 
                 _conn.setSchema("schema2");
                 stmt.executeQuery(TestUtil.selectSQL("table2", "*"));
+                stmt.executeQuery(TestUtil.selectSQL("schema1.table1", "*"));
+                try
+                {
+                    stmt.executeQuery(TestUtil.selectSQL("table1", "*"));
+                    fail("Objects of schema1 should not be visible without prefix");
+                }
+                catch (SQLException e)
+                {
+                    // expected
+                }
+
+                _conn.setSchema("UpperCase");
+                stmt.executeQuery(TestUtil.selectSQL("table3", "*"));
                 stmt.executeQuery(TestUtil.selectSQL("schema1.table1", "*"));
                 try
                 {
@@ -132,6 +164,23 @@ public class SchemaTest extends TestCase
             }
         }
         assertEquals("schema1", _conn.getSchema());
+
+        stmt = _conn.createStatement();
+        try
+        {
+            stmt.execute("SET search_path TO \"schema ,6\",schema2");
+        }
+        finally
+        {
+            try
+            {
+                stmt.close();
+            }
+            catch (SQLException e)
+            {
+            }
+        }
+        assertEquals("schema ,6", _conn.getSchema());
     }
 
     public void testSchemaInProperties() throws Exception

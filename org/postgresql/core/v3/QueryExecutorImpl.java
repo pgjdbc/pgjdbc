@@ -249,10 +249,10 @@ public class QueryExecutorImpl implements QueryExecutor {
             {
                 handler = sendQueryPreamble(handler, flags);
                 ErrorTrackingResultHandler trackingHandler = new ErrorTrackingResultHandler(handler);
-                queryCount = 0;
                 sendQuery((V3Query)query, (V3ParameterList)parameters, maxRows, fetchSize, flags, trackingHandler);
                 sendSync();
                 processResults(handler, flags);
+                estimatedReceiveBufferBytes = 0;
             }
             catch (PGBindException se)
             {
@@ -272,6 +272,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                 //
                 sendSync();
                 processResults(handler, flags);
+                estimatedReceiveBufferBytes = 0;
                 handler.handleError(new PSQLException(GT.tr("Unable to bind parameter values for statement."), PSQLState.INVALID_PARAMETER_VALUE, se.getIOException()));
             }
         }
@@ -304,11 +305,11 @@ public class QueryExecutorImpl implements QueryExecutor {
     // for the server to read some more data, and the server is blocked on write()
     // waiting for the driver to read some more data.
     //
-    // To avoid this, we guess at how many queries we can send before the server ->
-    // driver stream's buffer is full (MAX_BUFFERED_QUERIES). This is the point where
-    // the server blocks on write and stops reading data. If we reach this point, we
-    // force a Sync message and read pending data from the server until ReadyForQuery,
-    // then go back to writing more queries unless we saw an error.
+    // To avoid this, we guess at how much response data we can request from the
+    // server before the server -> driver stream's buffer is full (MAX_BUFFERED_RECV_BYTES).
+    // This is the point where the server blocks on write and stops reading data. If we
+    // reach this point, we force a Sync message and read pending data from the server
+    // until ReadyForQuery, then go back to writing more queries unless we saw an error.
     //
     // This is not 100% reliable -- it's only done in the batch-query case and only
     // at a reasonably high level (per query, not per message), and it's only an estimate
@@ -316,9 +317,23 @@ public class QueryExecutorImpl implements QueryExecutor {
     // separate send or receive thread as we can only do the Sync-and-read-results
     // operation at particular points, and also as we don't really know how much data
     // the server is sending.
-
-    // Assume 64k server->client buffering and 250 bytes response per query (conservative).
-    private static final int MAX_BUFFERED_QUERIES = (64000 / 250);
+    //
+    // Our message size estimation is coarse, and disregards asynchronous
+    // notifications, warnings/info/debug messages, etc, so the repsonse size may be
+    // quite different from the 250 bytes assumed here even for queries that don't
+    // return data.
+    //
+    // See github issue #194 and #195 .
+    //
+    // Assume 64k server->client buffering, which is extremely conservative. A typical
+    // system will have 200kb or more of buffers for its receive buffers, and the sending
+    // system will typically have the same on the send side, giving us 400kb or to work
+    // with. (We could check Java's receive buffer size, but prefer to assume a very
+    // conservative buffer instead, and we don't know how big the server's send
+    // buffer is.)
+    //
+    private static final int MAX_BUFFERED_RECV_BYTES = 64000;
+    private static final int NODATA_QUERY_RESPONSE_SIZE_BYTES = 250;
 
     // Helper handler that tracks error status.
     private static class ErrorTrackingResultHandler implements ResultHandler {
@@ -384,7 +399,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         {
             handler = sendQueryPreamble(handler, flags);
             ErrorTrackingResultHandler trackingHandler = new ErrorTrackingResultHandler(handler);
-            queryCount = 0;
+            estimatedReceiveBufferBytes = 0;
 
             for (int i = 0; i < queries.length; ++i)
             {
@@ -403,6 +418,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             {
                 sendSync();
                 processResults(handler, flags);
+                estimatedReceiveBufferBytes = 0;
             }
         }
         catch (IOException e)
@@ -549,6 +565,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                 sendOneQuery(beginTransactionQuery, SimpleQuery.NO_PARAMETERS, 0, 0, QueryExecutor.QUERY_NO_METADATA);
                 sendSync();
                 processResults(handler, 0);
+                estimatedReceiveBufferBytes = 0;
             }
             catch (IOException ioe)
             {
@@ -1113,24 +1130,74 @@ public class QueryExecutorImpl implements QueryExecutor {
     }
 
     /*
+     * To prevent client/server protocol deadlocks, we try to manage the
+     * estimated recv buffer size and force a sync +flush and process results if
+     * we think it might be getting too full.
+     *
+     * See the comments above MAX_BUFFERED_RECV_BYTES's declaration for details.
+     */
+    private void flushIfDeadlockRisk(Query query, boolean disallowBatching,
+            ErrorTrackingResultHandler trackingHandler, final int flags)
+            throws IOException {
+        // Assume all statements need at least this much reply buffer space,
+        // plus params
+        estimatedReceiveBufferBytes += NODATA_QUERY_RESPONSE_SIZE_BYTES;
+
+        SimpleQuery sq = (SimpleQuery) query;
+        if (sq.isStatementDescribed()) {
+            /*
+             * Estimate the response size of the fields and add it to the
+             * expected response size.
+             *
+             * It's impossible for us to estimate the rowcount. We'll assume one
+             * row, as that's the common case for batches and we're leaving
+             * plenty of breathing room in this approach. It's still not
+             * deadlock-proof though; see pgjdbc github issues #194 and #195.
+             */
+            int maxResultRowSize = sq.getMaxResultRowSize();
+            if (maxResultRowSize >= 0) {
+                estimatedReceiveBufferBytes += maxResultRowSize;
+            } else {
+                logger.debug("Couldn't estimate result size or result size unbounded, "
+                        + "disabling batching for this query.");
+                disallowBatching = true;
+            }
+        } else {
+            /*
+             * We only describe a statement if we're expecting results from it,
+             * so it's legal to batch unprepared statements. We'll abort later
+             * if we get any uresults from them where none are expected. For now
+             * all we can do is hope the user told us the truth and assume that
+             * NODATA_QUERY_RESPONSE_SIZE_BYTES is enough to cover it.
+             */
+        }
+
+        if (disallowBatching
+                || estimatedReceiveBufferBytes >= MAX_BUFFERED_RECV_BYTES) {
+            logger.debug("Forcing Sync, receive buffer full or batching disallowed");
+            sendSync();
+            processResults(trackingHandler, flags);
+            estimatedReceiveBufferBytes = 0;
+        }
+
+    }
+
+    /*
      * Send a query to the backend.
      */
     private void sendQuery(V3Query query, V3ParameterList parameters, int maxRows, int fetchSize, int flags, ErrorTrackingResultHandler trackingHandler) throws IOException, SQLException {
         // Now the query itself.
         SimpleQuery[] subqueries = query.getSubqueries();
         SimpleParameterList[] subparams = parameters.getSubparams();
+
+        // We know this is deprecated, but still respect it in case anyone's using it.
+        // PgJDBC its self no longer does.
+        @SuppressWarnings("deprecation")
         boolean disallowBatching = (flags & QueryExecutor.QUERY_DISALLOW_BATCHING) != 0;
 
         if (subqueries == null)
         {
-            ++queryCount;
-            if (disallowBatching || queryCount >= MAX_BUFFERED_QUERIES)
-            {
-                sendSync();
-                processResults(trackingHandler, flags);
-
-                queryCount = 0;
-            }
+            flushIfDeadlockRisk(query, disallowBatching, trackingHandler, flags);
 
              // If we saw errors, don't send anything more.
             if (!trackingHandler.hasErrors())
@@ -1140,18 +1207,12 @@ public class QueryExecutorImpl implements QueryExecutor {
         {
             for (int i = 0; i < subqueries.length; ++i)
             {
-                ++queryCount;
-                if (disallowBatching || queryCount >= MAX_BUFFERED_QUERIES)
-                {
-                    sendSync();
-                    processResults(trackingHandler, flags);
+                final SimpleQuery subquery = subqueries[i];
+                flushIfDeadlockRisk(subquery, disallowBatching, trackingHandler, flags);
 
-                    // If we saw errors, don't send anything more.
-                    if (trackingHandler.hasErrors())
-                        break;
-
-                    queryCount = 0;
-                }
+                // If we saw errors, don't send anything more.
+                if (trackingHandler.hasErrors())
+                    break;
 
                 // In the situation where parameters is already
                 // NO_PARAMETERS it cannot know the correct
@@ -1164,7 +1225,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                 {
                     subparam = subparams[i];
                 }
-                sendOneQuery(subqueries[i], subparam, maxRows, fetchSize, flags);
+                sendOneQuery(subquery, subparam, maxRows, fetchSize, flags);
             }
         }
     }
@@ -2128,6 +2189,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             sendSync();
 
             processResults(handler, 0);
+            estimatedReceiveBufferBytes = 0;
         }
         catch (IOException e)
         {
@@ -2290,10 +2352,14 @@ public class QueryExecutorImpl implements QueryExecutor {
     private final boolean allowEncodingChanges;
 
     /**
-     * The number of queries executed so far without processing any results.
-     * Used to avoid deadlocks, see MAX_BUFFERED_QUERIES.
+     * The estimated server response size since we last consumed the input stream
+     * from the server, in bytes.
+     *
+     * Starts at zero, reset by every Sync message. Mainly used for batches.
+     *
+     * Used to avoid deadlocks, see MAX_BUFFERED_RECV_BYTES.
      */
-    private int queryCount;
+    private int estimatedReceiveBufferBytes = 0;
 
     private final SimpleQuery beginTransactionQuery = new SimpleQuery(new String[] { "BEGIN" }, null);
 

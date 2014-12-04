@@ -547,6 +547,11 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (concurrency != ResultSet.CONCUR_READ_ONLY)
             flags |= QueryExecutor.QUERY_NO_BINARY_TRANSFER;
 
+        if (queryToExecute.isEmpty())
+        {
+            flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
+        }
+
         if (!queryToExecute.isStatementDescribed() && forceBinaryTransfers) {
                 int flags2 = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
                 StatementResultHandler handler2 = new StatementResultHandler();
@@ -1175,7 +1180,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             break;
         case Types.VARCHAR:
         case Types.LONGVARCHAR:
-            oid = Oid.VARCHAR;
+            oid = connection.getStringVarcharFlag() ? Oid.VARCHAR : Oid.UNSPECIFIED;
             break;
         case Types.DATE:
             oid = Oid.DATE;
@@ -2859,12 +2864,21 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         batchStatements.clear();
         batchParameters.clear();
 
-        int flags;
+        int flags = 0;
+
+        // Force a Describe before any execution? We need to do this if we're going
+        // to send anything dependent on the Desribe results, e.g. binary parameters.
         boolean preDescribe = false;
 
         if (wantsGeneratedKeysAlways) {
-            flags = QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS | QueryExecutor.QUERY_DISALLOW_BATCHING;
+            /*
+             * This batch will return generated keys, tell the executor to
+             * expect result rows. We force a Describe later, too.
+             */
+            flags = QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS;
         } else {
+            // If a batch hasn't specified that it wants generated keys, using the appropriate
+            // Connection.createStatement(...) interfaces, disallow any result set.
             flags = QueryExecutor.QUERY_NO_RESULTS;
         }
 
@@ -2876,6 +2890,12 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (m_prepareThreshold == 0 || m_useCount < m_prepareThreshold) {
             flags |= QueryExecutor.QUERY_ONESHOT;
         } else {
+            // If a batch requests generated keys and isn't already described,
+            // force a Describe of the query before proceeding. That way we can
+            // determine the appropriate size of each batch by estimating the
+            // maximum data returned. Without that, we don't know how many queries
+            // we'll be able to queue up before we risk a deadlock.
+            // (see v3.QueryExecutorImpl's MAX_BUFFERED_RECV_BYTES)
             preDescribe = wantsGeneratedKeysAlways && !queries[0].isStatementDescribed();
         }
 
@@ -2883,6 +2903,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
 
         if (preDescribe || forceBinaryTransfers) {
+            // Do a client-server round trip, parsing and describing the query so we
+            // can determine its result types for use in binary parameters, batch sizing,
+            // etc.
             int flags2 = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
             StatementResultHandler handler2 = new StatementResultHandler();
             connection.getQueryExecutor().execute(queries[0], parameterLists[0], handler2, 0, 0, flags2);
