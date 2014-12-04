@@ -734,6 +734,7 @@ public class ResultSetTest extends TestCase
         Statement stmt = con.createStatement();
 
         ResultSet rs = stmt.executeQuery("select * from testpgobject where id = 1");
+        assertTrue(rs.next());
         assertEquals("2010-11-3", rs.getDate("d").toString());
 
         PGobject pgobj = new PGobject();
@@ -744,6 +745,7 @@ public class ResultSetTest extends TestCase
         rs.close();
 
         ResultSet rs1 = stmt.executeQuery("select * from testpgobject where id = 1");
+        assertTrue(rs1.next());
         assertEquals("2014-12-23", rs1.getDate("d").toString());
         rs1.close();
 
