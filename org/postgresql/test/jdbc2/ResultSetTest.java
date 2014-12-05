@@ -94,7 +94,7 @@ public class ResultSetTest extends TestCase
         stmt.executeUpdate("INSERT INTO testnumeric VALUES('9223372036854775808')");
         stmt.executeUpdate("INSERT INTO testnumeric VALUES('-9223372036854775809')");
 
-        TestUtil.createTable(con, "testpgobject", "id integer, d date");
+        TestUtil.createTable(con, "testpgobject", "id integer NOT NULL, d date, PRIMARY KEY (id)");
         stmt.execute("INSERT INTO testpgobject VALUES(1, '2010-11-3')");
 
         stmt.close();
@@ -731,7 +731,8 @@ public class ResultSetTest extends TestCase
 
     public void testUpdateWithPGobject() throws SQLException
     {
-        Statement stmt = con.createStatement();
+        Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+                                             ResultSet.CONCUR_UPDATABLE);
 
         ResultSet rs = stmt.executeQuery("select * from testpgobject where id = 1");
         assertTrue(rs.next());
