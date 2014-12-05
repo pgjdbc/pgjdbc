@@ -735,7 +735,7 @@ public class ResultSetTest extends TestCase
 
         ResultSet rs = stmt.executeQuery("select * from testpgobject where id = 1");
         assertTrue(rs.next());
-        assertEquals("2010-11-3", rs.getDate("d").toString());
+        assertEquals("2010-11-03", rs.getDate("d").toString());
 
         PGobject pgobj = new PGobject();
         pgobj.setType("date");
