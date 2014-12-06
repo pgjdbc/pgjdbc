@@ -675,7 +675,7 @@
     <property name="testResultsDir" value="${builddir}/testresults" />
     <mkdir dir="${testResultsDir}" />
  
-    <junit>
+    <junit failureproperty="test.fail">
       <formatter type="brief" usefile="false"/>
       <formatter type="xml" usefile="true" />
 
@@ -709,6 +709,7 @@
       <test name="org.postgresql.test.ssl.SslTestSuite" if="jdbc4tests" outfile="${testResultsDir}/ssl"/>
       <test name="org.postgresql.test.ssl.SingleCertValidatingFactoryTest" if="jdbc4tests" outfile="${testResultsDir}/scsf-ssl"/>
     </junit>
+    <fail if="test.fail" message="Some tests are in failure or error"/>
   </target>
   
   <!-- Build and run the tests. -->
