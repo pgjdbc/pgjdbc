@@ -369,7 +369,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest
             assertTrue(!con.isClosed());
             int pid = ((PGConnection) con).getBackendPID();
 
-            Connection adminCon = TestUtil.openDB();
+            Connection adminCon = TestUtil.openPrivilegedDB();
             try
             {
                 Statement statement = adminCon.createStatement();
