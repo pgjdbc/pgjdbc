@@ -195,6 +195,8 @@ public class CallableStmtTest extends TestCase
 
     public void testRaiseNotice() throws SQLException
     {
+        Statement statement = con.createStatement();
+        statement.execute("SET SESSION client_min_messages = 'NOTICE'");
         CallableStatement call = con.prepareCall(func + pkgName + "raisenotice()}");
         call.registerOutParameter(1, Types.INTEGER);
         call.execute();
