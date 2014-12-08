@@ -309,21 +309,14 @@
     <fail if="jdbc2" message="1.4 or higher JDK is required to build the JDBC driver." />
     <fail if="unknownjvm" message="Unknown JDK version." />
 
-    <available property="junit" classname="junit.framework.Test"/>
     <available property="junit.task" classname="org.apache.tools.ant.taskdefs.optional.junit.JUnitTask"/>
 
     <condition property="jdbc4tests">
-      <and>
-        <isset property="jdbc4any" />
-        <isset property="junit" />
-      </and>
+      <isset property="jdbc4any" />
     </condition>
 
     <condition property="jdbc41tests">
-      <and>
-        <isset property="jdbc41" />
-        <isset property="junit" />
-      </and>
+      <isset property="jdbc41" />
     </condition>
 
     <condition property="jdbc.version" value="jdbc3">
@@ -675,7 +668,7 @@
     <property name="testResultsDir" value="${builddir}/testresults" />
     <mkdir dir="${testResultsDir}" />
  
-    <junit>
+    <junit failureproperty="test.fail">
       <formatter type="brief" usefile="false"/>
       <formatter type="xml" usefile="true" />
 
@@ -709,6 +702,7 @@
       <test name="org.postgresql.test.ssl.SslTestSuite" if="jdbc4tests" outfile="${testResultsDir}/ssl"/>
       <test name="org.postgresql.test.ssl.SingleCertValidatingFactoryTest" if="jdbc4tests" outfile="${testResultsDir}/scsf-ssl"/>
     </junit>
+    <fail if="test.fail" message="Some tests are in failure or error"/>
   </target>
   
   <!-- Build and run the tests. -->

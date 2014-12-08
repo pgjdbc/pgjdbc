@@ -7,8 +7,41 @@ before_script:
 
 script: ant -lib lib test
 
-jdk:
- - openjdk7
- - openjdk6
- - oraclejdk7
- - oraclejdk8
+matrix:
+  include:
+    - jdk: openjdk7
+      addons:
+        postgresql: "9.1"
+    - jdk: openjdk6
+      addons:
+        postgresql: "9.1"
+    - jdk: oraclejdk7
+      addons:
+        postgresql: "9.1"
+    - jdk: oraclejdk8
+      addons:
+        postgresql: "9.1"
+    - jdk: openjdk7
+      addons:
+        postgresql: "9.2"
+    - jdk: openjdk6
+      addons:
+        postgresql: "9.2"
+    - jdk: oraclejdk7
+      addons:
+        postgresql: "9.2"
+    - jdk: oraclejdk8
+      addons:
+        postgresql: "9.3"
+    - jdk: openjdk7
+      addons:
+        postgresql: "9.3"
+    - jdk: openjdk6
+      addons:
+        postgresql: "9.3"
+    - jdk: oraclejdk7
+      addons:
+        postgresql: "9.3"
+    - jdk: oraclejdk8
+      addons:
+        postgresql: "9.3"
