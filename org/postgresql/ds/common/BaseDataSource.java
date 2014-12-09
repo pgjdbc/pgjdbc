@@ -8,8 +8,11 @@
 package org.postgresql.ds.common;
 
 import javax.naming.*;
-import java.sql.*;
 
+import org.postgresql.PGProperty;
+import org.postgresql.util.PSQLException;
+
+import java.sql.*;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.ObjectInputStream;
@@ -48,26 +51,9 @@ public abstract class BaseDataSource implements Referenceable
     private String user;
     private String password;
     private int portNumber = 0;
-    private int prepareThreshold = 5;
-    private int unknownLength = Integer.MAX_VALUE;
-    private boolean binaryTransfer = true;
-    private String binaryTransferEnable;
-    private String binaryTransferDisable;
-    private int loginTimeout = 0; // in seconds
-    private int socketTimeout = 0; // in seconds
-    private int receiveBufferSize = -1; // off (-1), not in use
-    private int sendBufferSize = -1; // off (-1), not in use
-    private boolean ssl = false;
-    private String sslfactory=null;
-    private boolean tcpKeepAlive = false;
-    private String compatible=null;
-    private int logLevel = 0;
-    private int protocolVersion = 0;
-    private String applicationName;
-    private String stringType=null;
-    private boolean logLevelSet = false;
-    private boolean disableColumnSanitiser = false;
-    private String currentSchema;
+
+    // Map for all other properties
+    private Properties properties = new Properties();
 
     /**
      * Gets a connection to the PostgreSQL database.  The database is identified by the
@@ -115,22 +101,6 @@ public abstract class BaseDataSource implements Referenceable
     }
 
     /**
-     * @return the login timeout, in seconds.
-     */
-    public int getLoginTimeout()
-    {
-        return loginTimeout;
-    }
-
-    /**
-     * Set the login timeout, in seconds.
-     */
-    public void setLoginTimeout(int i)
-    {
-        this.loginTimeout = i;
-    }
-
-    /**
      * Gets the log writer used to log connections opened.
      */
     public PrintWriter getLogWriter()
@@ -169,37 +139,6 @@ public abstract class BaseDataSource implements Referenceable
         {
             this.serverName = serverName;
         }
-    }
-
-    public String getCompatible()
-    {
-        return compatible;
-    }
-
-    public void setCompatible(String compatible)
-    {
-        this.compatible = compatible;
-    }
-
-    public int getLogLevel()
-    {
-        return logLevel;
-    }
-
-    public void setLogLevel(int logLevel)
-    {
-        this.logLevel = logLevel;
-        logLevelSet = true;
-    }
-
-    public int getProtocolVersion()
-    {
-        return protocolVersion;
-    }
-
-    public void setProtocolVersion(int protocolVersion)
-    {
-        this.protocolVersion = protocolVersion;
     }
 
     /**
@@ -289,243 +228,641 @@ public abstract class BaseDataSource implements Referenceable
     }
 
     /**
-     * Sets the default threshold for enabling server-side prepare.
-     * See {@link org.postgresql.PGConnection#setPrepareThreshold(int)} for details.
-     *
-     * @param count the number of times a statement object must be reused before server-side
-     *   prepare is enabled.
+     * @see PGProperty#COMPATIBLE 
      */
-    public void setPrepareThreshold(int count)
+    public String getCompatible()
     {
-        this.prepareThreshold = count;
+        return PGProperty.COMPATIBLE.get(properties);
     }
 
     /**
-     * Gets the write buffer size of TCP/IP socket.
+     * @see PGProperty#COMPATIBLE 
+     */
+    public void setCompatible(String compatible)
+    {
+        PGProperty.COMPATIBLE.set(properties, compatible);
+    }
+
+    /**
+     * @see PGProperty#LOGIN_TIMEOUT 
+     */
+    public int getLoginTimeout()
+    {
+        return PGProperty.LOGIN_TIMEOUT.getIntNoCheck(properties);
+    }
+
+    /**
+     * @see PGProperty#LOGIN_TIMEOUT 
+     */
+    public void setLoginTimeout(int loginTimeout)
+    {
+        PGProperty.LOGIN_TIMEOUT.set(properties, loginTimeout);
+    }
+
+    /**
+     * @see PGProperty#CONNECT_TIMEOUT 
+     */
+    public int getConnectTimeout()
+    {
+        return PGProperty.CONNECT_TIMEOUT.getIntNoCheck(properties);
+    }
+
+    /**
+     * @see PGProperty#CONNECT_TIMEOUT 
+     */
+    public void setConnectTimeout(int connectTimeout)
+    {
+        PGProperty.CONNECT_TIMEOUT.set(properties, connectTimeout);
+    }
+
+    /**
+     * @see PGProperty#LOG_LEVEL 
+     */
+    public int getLogLevel()
+    {
+        return PGProperty.LOG_LEVEL.getIntNoCheck(properties);
+    }
+
+    /**
+     * @see PGProperty#LOG_LEVEL 
+     */
+    public void setLogLevel(int logLevel)
+    {
+        PGProperty.LOG_LEVEL.set(properties, logLevel);
+    }
+
+    /**
+     * @see PGProperty#PROTOCOL_VERSION 
+     */
+    public int getProtocolVersion()
+    {
+        if (!PGProperty.PROTOCOL_VERSION.isPresent(properties))
+        {
+            return 0;
+        }
+        else
+        {
+            return PGProperty.PROTOCOL_VERSION.getIntNoCheck(properties);
+        }
+    }
+
+    /**
+     * @see PGProperty#PROTOCOL_VERSION 
+     */
+    public void setProtocolVersion(int protocolVersion)
+    {
+        if (protocolVersion == 0)
+        {
+            PGProperty.PROTOCOL_VERSION.set(properties, null);
+        }
+        else
+        {
+            PGProperty.PROTOCOL_VERSION.set(properties, protocolVersion);
+        }
+    }
+
+    /**
+     * @see PGProperty#RECEIVE_BUFFER_SIZE 
      */
     public int getReceiveBufferSize()
     {
-        return receiveBufferSize;
+        return PGProperty.RECEIVE_BUFFER_SIZE.getIntNoCheck(properties);
     }
-    
+
     /**
-     * Sets the write buffer size of TCP/IP socket.
+     * @see PGProperty#RECEIVE_BUFFER_SIZE 
      */
     public void setReceiveBufferSize(int nbytes)
     {
-        this.receiveBufferSize = nbytes;
+        PGProperty.RECEIVE_BUFFER_SIZE.set(properties, nbytes);
     }
 
     /**
-     * Gets the send buffer size of TCP/IP socket.
+     * @see PGProperty#SEND_BUFFER_SIZE 
      */
     public int getSendBufferSize()
     {
-        return sendBufferSize;
+        return PGProperty.SEND_BUFFER_SIZE.getIntNoCheck(properties);
     }
-    
+
     /**
-     * Sets the send buffer size of TCP/IP socket.
+     * @see PGProperty#SEND_BUFFER_SIZE 
      */
     public void setSendBufferSize(int nbytes)
     {
-        this.sendBufferSize = nbytes;
+        PGProperty.SEND_BUFFER_SIZE.set(properties, nbytes);
     }
 
     /**
-     * Gets the default threshold for enabling server-side prepare.
-     *
-     * @see #setPrepareThreshold(int)
+     * @see PGProperty#PREPARE_THRESHOLD 
+     */
+    public void setPrepareThreshold(int count)
+    {
+        PGProperty.PREPARE_THRESHOLD.set(properties, count);
+    }
+
+    /**
+     * @see PGProperty#PREPARE_THRESHOLD 
      */
     public int getPrepareThreshold()
     {
-        return prepareThreshold;
-    }
-
-    public void setUnknownLength(int unknownLength)
-    {
-        this.unknownLength = unknownLength;
-    }
-
-    public int getUnknownLength()
-    {
-        return unknownLength;
+        return PGProperty.PREPARE_THRESHOLD.getIntNoCheck(properties);
     }
 
     /**
-     * Sets the socket timeout (SOTimeout), in seconds 
+     * @see PGProperty#UNKNOWN_LENGTH 
+     */
+    public void setUnknownLength(int unknownLength)
+    {
+        PGProperty.UNKNOWN_LENGTH.set(properties, unknownLength);
+    }
+
+    /**
+     * @see PGProperty#UNKNOWN_LENGTH 
+     */
+    public int getUnknownLength()
+    {
+        return PGProperty.UNKNOWN_LENGTH.getIntNoCheck(properties);
+    }
+
+    /**
+     * @see PGProperty#SOCKET_TIMEOUT 
      */
     public void setSocketTimeout(int seconds)
     {
-        this.socketTimeout = seconds;
+        PGProperty.SOCKET_TIMEOUT.set(properties, seconds);
     }
-    
+
     /**
-     * @return the socket timeout (SOTimeout), in seconds
+     * @see PGProperty#SOCKET_TIMEOUT 
      */
     public int getSocketTimeout() 
     {
-        return this.socketTimeout;
+        return PGProperty.SOCKET_TIMEOUT.getIntNoCheck(properties);
     }
 
 
     /**
-     * Set whether the connection will be SSL encrypted or not.
-     *
-     * @param enabled if <CODE>true</CODE>, connect with SSL.
+     * @see PGProperty#SSL 
      */
     public void setSsl(boolean enabled)
     {
-        this.ssl = enabled;
+        if (enabled)
+        {
+            PGProperty.SSL.set(properties, true);
+        }
+        else
+        {
+            PGProperty.SSL.set(properties, null);
+        }
     }
 
     /**
-     * Gets SSL encryption setting.
-     *
-     * @return <CODE>true</CODE> if connections will be encrypted with SSL.
+     * @see PGProperty#SSL
      */
     public boolean getSsl()
     {
-        return this.ssl;
+        return PGProperty.SSL.isPresent(properties);
     }
 
     /**
-     * Set the name of the {@link javax.net.ssl.SSLSocketFactory} to use for connections.
-     * Use <CODE>org.postgresql.ssl.NonValidatingFactory</CODE> if you don't want certificate validation.
-     *
-     * @param classname name of a subclass of <CODE>javax.net.ssl.SSLSocketFactory</CODE> or <CODE>null</CODE> for the default implementation.
+     * @see PGProperty#SSL_FACTORY
      */
     public void setSslfactory(String classname)
     {
-        this.sslfactory = classname;
+        PGProperty.SSL_FACTORY.set(properties, classname);
     }
 
     /**
-     * Gets the name of the {@link javax.net.ssl.SSLSocketFactory} used for connections.
-     *
-     * @return name of the class or <CODE>null</CODE> if the default implementation is used.
+     * @see PGProperty#SSL_FACTORY
      */
     public String getSslfactory()
     {
-        return this.sslfactory;
-    }
-
-    public void setApplicationName(String applicationName)
-    {
-        this.applicationName = applicationName;
-    }
-
-    public String getApplicationName()
-    {
-        return applicationName;
-    }
-
-    public void setTcpKeepAlive(boolean enabled)
-    {
-        tcpKeepAlive = enabled;
-    }
-
-    public boolean getTcpKeepAlive()
-    {
-        return tcpKeepAlive;
+        return PGProperty.SSL_FACTORY.get(properties);
     }
 
     /**
-     * Sets protocol transfer mode.
-     *
-     * @param enabled True if the binary transfer mode is used for supported field types,
-     * false if text based transfer is used.
+     * @see PGProperty#SSL_MODE
+     */
+    public String getSslMode()
+    {
+        return PGProperty.SSL_MODE.get(properties);
+    }
+
+    /**
+     * @see PGProperty#SSL_MODE
+     */
+    public void setSslMode(String mode)
+    {
+        PGProperty.SSL_MODE.set(properties, mode);
+    }
+
+    /**
+     * @see PGProperty#SSL_FACTORY_ARG
+     */
+    public String getSslFactoryArg()
+    {
+        return PGProperty.SSL_FACTORY_ARG.get(properties);
+    }
+
+    /**
+     * @see PGProperty#SSL_FACTORY_ARG
+     */
+    public void setSslFactoryArg(String arg)
+    {
+        PGProperty.SSL_FACTORY_ARG.set(properties, arg);
+    }
+
+    /**
+     * @see PGProperty#SSL_HOSTNAME_VERIFIER
+     */
+    public String getSslHostnameVerifier()
+    {
+        return PGProperty.SSL_HOSTNAME_VERIFIER.get(properties);
+    }
+
+    /**
+     * @see PGProperty#SSL_HOSTNAME_VERIFIER
+     */
+    public void setSslHostnameVerifier(String className)
+    {
+        PGProperty.SSL_HOSTNAME_VERIFIER.set(properties, className);
+    }
+
+    /**
+     * @see PGProperty#SSL_CERT
+     */
+    public String getSslCert()
+    {
+        return PGProperty.SSL_CERT.get(properties);
+    }
+
+    /**
+     * @see PGProperty#SSL_CERT
+     */
+    public void setSslCert(String file)
+    {
+        PGProperty.SSL_CERT.set(properties, file);
+    }
+
+    /**
+     * @see PGProperty#SSL_KEY
+     */
+    public String getSslKey()
+    {
+        return PGProperty.SSL_KEY.get(properties);
+    }
+
+    /**
+     * @see PGProperty#SSL_KEY
+     */
+    public void setSslKey(String file)
+    {
+        PGProperty.SSL_KEY.set(properties, file);
+    }
+
+    /**
+     * @see PGProperty#SSL_ROOT_CERT
+     */
+    public String getSslRootCert()
+    {
+        return PGProperty.SSL_ROOT_CERT.get(properties);
+    }
+
+    /**
+     * @see PGProperty#SSL_ROOT_CERT
+     */
+    public void setSslRootCert(String file)
+    {
+        PGProperty.SSL_ROOT_CERT.set(properties, file);
+    }
+
+    /**
+     * @see PGProperty#SSL_PASSWORD
+     */
+    public String getSslPassword()
+    {
+        return PGProperty.SSL_PASSWORD.get(properties);
+    }
+
+    /**
+     * @see PGProperty#SSL_PASSWORD
+     */
+    public void setSslPassword(String password)
+    {
+        PGProperty.SSL_PASSWORD.set(properties, password);
+    }
+
+    /**
+     * @see PGProperty#SSL_PASSWORD_CALLBACK
+     */
+    public String getSslPasswordCallback()
+    {
+        return PGProperty.SSL_PASSWORD_CALLBACK.get(properties);
+    }
+
+    /**
+     * @see PGProperty#SSL_PASSWORD_CALLBACK
+     */
+    public void setSslPasswordCallback(String className)
+    {
+        PGProperty.SSL_PASSWORD_CALLBACK.set(properties, className);
+    }
+
+    /**
+     * @see PGProperty#APPLICATION_NAME
+     */
+    public void setApplicationName(String applicationName)
+    {
+        PGProperty.APPLICATION_NAME.set(properties, applicationName);
+    }
+
+    /**
+     * @see PGProperty#APPLICATION_NAME
+     */
+    public String getApplicationName()
+    {
+        return PGProperty.APPLICATION_NAME.get(properties);
+    }
+
+    /**
+     * @see PGProperty#TCP_KEEP_ALIVE
+     */
+    public void setTcpKeepAlive(boolean enabled)
+    {
+        PGProperty.TCP_KEEP_ALIVE.set(properties, enabled);
+    }
+
+    /**
+     * @see PGProperty#TCP_KEEP_ALIVE
+     */
+    public boolean getTcpKeepAlive()
+    {
+        return PGProperty.TCP_KEEP_ALIVE.getBoolean(properties);
+    }
+
+    /**
+     * @see PGProperty#BINARY_TRANSFER
      */
     public void setBinaryTransfer(boolean enabled)
     {
-        this.binaryTransfer = enabled;
+        PGProperty.BINARY_TRANSFER.set(properties, enabled);
     }
 
     /**
-     * Gets the protocol transfer mode.
-     *
-     * @see #setBinaryTransfer(boolean)
+     * @see PGProperty#BINARY_TRANSFER
      */
     public boolean getBinaryTransfer()
     {
-        return binaryTransfer;
+        return PGProperty.BINARY_TRANSFER.getBoolean(properties);
     }
 
     /**
-     * Add types to the override set of {@link org.postgresql.core.Oid} values used for binary transfer.
-     *
-     * @param oidList The comma separated list of Oids. Either textual or numeric value. 
+     * @see PGProperty#BINARY_TRANSFER_ENABLE
      */
     public void setBinaryTransferEnable(String oidList)
     {
-        this.binaryTransferEnable = oidList;
+        PGProperty.BINARY_TRANSFER_ENABLE.set(properties, oidList);
     }
 
     /**
-     * Gets override set of Oid values that have binary transfer enabled.  
-     *
-     * @see #setBinaryTransferEnable(String)
+     * @see PGProperty#BINARY_TRANSFER_ENABLE
      */
     public String getBinaryTransferEnable()
     {
-        return binaryTransferEnable;
+        return PGProperty.BINARY_TRANSFER_ENABLE.get(properties);
     }
 
     /**
-     * Add types to the override set of {@link org.postgresql.core.Oid} values that will not be used for binary transfer.
-     * This overrides any values in the driver detault set or values set with {@link #setBinaryTransferEnable(String)}.
-     *
-     * @param oidList The comma separated list of Oids. Either textual or numeric value. 
+     * @see PGProperty#BINARY_TRANSFER_DISABLE
      */
     public void setBinaryTransferDisable(String oidList)
     {
-        this.binaryTransferDisable = oidList;
+        PGProperty.BINARY_TRANSFER_DISABLE.set(properties, oidList);
     }
 
     /**
-     * Gets override set of Oid values that have binary transfer disabled.  
-     *
-     * @see #setBinaryTransferDisable(String)
+     * @see PGProperty#BINARY_TRANSFER_DISABLE
      */
     public String getBinaryTransferDisable()
     {
-        return binaryTransferDisable;
+        return PGProperty.BINARY_TRANSFER_DISABLE.get(properties);
     }
 
+    /**
+     * @see PGProperty#STRING_TYPE
+     */
     public String getStringType()
     {
-        return stringType;
+        return PGProperty.STRING_TYPE.get(properties);
     }
 
+    /**
+     * @see PGProperty#STRING_TYPE
+     */
     public void setStringType(String stringType)
     {
-        this.stringType = stringType;
+        PGProperty.STRING_TYPE.set(properties, stringType);
     }
-    
-    /**
-     * Returns the state of column sanitiser optimisation.
-     * @return boolean is optimisation enabled 
-     */
-    public boolean isColumnSanitiserDisabled() {
-		return disableColumnSanitiser;
-	}
 
     /**
-     * Set the state of column sanitiser optimisation.
-     * @param disableColumnSanitiser new optimisation state
+     * @see PGProperty#DISABLE_COLUMN_SANITISER
      */
-	public void setDisableColumnSanitiser(boolean disableColumnSanitiser) {
-		this.disableColumnSanitiser = disableColumnSanitiser;
-	}
+    public boolean isColumnSanitiserDisabled()
+    {
+        return PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(properties);
+    }
 
+    /**
+     * @see PGProperty#DISABLE_COLUMN_SANITISER
+     */
+    public boolean getDisableColumnSanitiser()
+    {
+        return PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(properties);
+    }
+
+    /**
+     * @see PGProperty#DISABLE_COLUMN_SANITISER
+     */
+    public void setDisableColumnSanitiser(boolean disableColumnSanitiser)
+    {
+        PGProperty.DISABLE_COLUMN_SANITISER.set(properties, disableColumnSanitiser);
+    }
+
+    /**
+     * @see PGProperty#CURRENT_SCHEMA
+     */
     public String getCurrentSchema()
     {
-        return currentSchema;
+        return PGProperty.CURRENT_SCHEMA.get(properties);
     }
 
+    /**
+     * @see PGProperty#CURRENT_SCHEMA
+     */
     public void setCurrentSchema(String currentSchema)
     {
-        this.currentSchema = currentSchema;
+        PGProperty.CURRENT_SCHEMA.set(properties, currentSchema);
+    }
+
+    /**
+     * @see PGProperty#READ_ONLY
+     */
+    public boolean getReadOnly()
+    {
+        return PGProperty.READ_ONLY.getBoolean(properties);
+    }
+
+    /**
+     * @see PGProperty#READ_ONLY
+     */
+    public void setReadOnly(boolean readOnly)
+    {
+        PGProperty.READ_ONLY.set(properties, readOnly);
+    }
+
+    /**
+     * @see PGProperty#LOG_UNCLOSED_CONNECTIONS
+     */
+    public boolean getLogUnclosedConnections()
+    {
+        return PGProperty.LOG_UNCLOSED_CONNECTIONS.getBoolean(properties);
+    }
+
+    /**
+     * @see PGProperty#LOG_UNCLOSED_CONNECTIONS
+     */
+    public void setLogUnclosedConnections(boolean enabled)
+    {
+        PGProperty.LOG_UNCLOSED_CONNECTIONS.set(properties, enabled);
+    }
+
+    /**
+     * @see PGProperty#ASSUME_MIN_SERVER_VERSION
+     */
+    public String getAssumeMinServerVersion()
+    {
+        return PGProperty.ASSUME_MIN_SERVER_VERSION.get(properties);
+    }
+
+    /**
+     * @see PGProperty#ASSUME_MIN_SERVER_VERSION
+     */
+    public void setAssumeMinServerVersion(String minVersion)
+    {
+        PGProperty.ASSUME_MIN_SERVER_VERSION.set(properties, minVersion);
+    }
+
+    /**
+     * @see PGProperty#JAAS_APPLICATION_NAME
+     */
+    public String getJaasApplicationName()
+    {
+        return PGProperty.JAAS_APPLICATION_NAME.get(properties);
+    }
+
+    /**
+     * @see PGProperty#JAAS_APPLICATION_NAME
+     */
+    public void setJaasApplicationName(String name)
+    {
+        PGProperty.JAAS_APPLICATION_NAME.set(properties, name);
+    }
+
+    /**
+     * @see PGProperty#KERBEROS_SERVER_NAME
+     */
+    public String getKerberosServerName()
+    {
+        return PGProperty.KERBEROS_SERVER_NAME.get(properties);
+    }
+
+    /**
+     * @see PGProperty#KERBEROS_SERVER_NAME
+     */
+    public void setKerberosServerName(String serverName)
+    {
+        PGProperty.KERBEROS_SERVER_NAME.set(properties, serverName);
+    }
+
+    /**
+     * @see PGProperty#USE_SPNEGO
+     */
+    public boolean getUseSpNego()
+    {
+        return PGProperty.USE_SPNEGO.getBoolean(properties);
+    }
+
+    /**
+     * @see PGProperty#USE_SPNEGO
+     */
+    public void setUseSpNego(boolean use)
+    {
+        PGProperty.USE_SPNEGO.set(properties, use);
+    }
+
+    /**
+     * @see PGProperty#GSS_LIB
+     */
+    public String getGssLib()
+    {
+        return PGProperty.GSS_LIB.get(properties);
+    }
+
+    /**
+     * @see PGProperty#GSS_LIB
+     */
+    public void setGssLib(String lib)
+    {
+        PGProperty.GSS_LIB.set(properties, lib);
+    }
+
+    /**
+     * @see PGProperty#SSPI_SERVICE_CLASS
+     */
+    public String getSspiServiceClass()
+    {
+        return PGProperty.SSPI_SERVICE_CLASS.get(properties);
+    }
+
+    /**
+     * @see PGProperty#SSPI_SERVICE_CLASS
+     */
+    public void setSspiServiceClass(String serviceClass)
+    {
+        PGProperty.SSPI_SERVICE_CLASS.set(properties, serviceClass);
+    }
+
+    /**
+     * @see PGProperty#CHARSET
+     */
+    public String getCharset()
+    {
+        return PGProperty.CHARSET.get(properties);
+    }
+
+    /**
+     * @see PGProperty#CHARSET
+     */
+    public void setCharset(String charset)
+    {
+        PGProperty.CHARSET.set(properties, charset);
+    }
+
+    /**
+     * @see PGProperty#ALLOW_ENCODING_CHANGES
+     */
+    public boolean getAllowEncodingChanges()
+    {
+        return PGProperty.ALLOW_ENCODING_CHANGES.getBoolean(properties);
+    }
+
+    /**
+     * @see PGProperty#ALLOW_ENCODING_CHANGES
+     */
+    public void setAllowEncodingChanges(boolean allow)
+    {
+        PGProperty.ALLOW_ENCODING_CHANGES.set(properties, allow);
     }
 
     /**
@@ -533,62 +870,36 @@ public abstract class BaseDataSource implements Referenceable
      */
     public String getUrl()
     {
-        StringBuffer sb = new StringBuffer(100);
-        sb.append("jdbc:postgresql://");
-        sb.append(serverName);
+        StringBuilder url = new StringBuilder(100);
+        url.append("jdbc:postgresql://");
+        url.append(serverName);
         if (portNumber != 0) {
-            sb.append(":").append(portNumber);
+            url.append(":").append(portNumber);
         }
-        sb.append("/").append(databaseName);
-        sb.append("?loginTimeout=").append(loginTimeout);
-        sb.append("&socketTimeout=").append(socketTimeout);
-        sb.append("&prepareThreshold=").append(prepareThreshold);
-        sb.append("&unknownLength=").append(unknownLength);
-        if (logLevelSet) {
-            sb.append("&loglevel=").append(logLevel);
-        }
-        if (protocolVersion != 0) {
-            sb.append("&protocolVersion=").append(protocolVersion);
-        }
-        if (ssl) {
-            sb.append("&ssl=true");
-            if (sslfactory != null) {
-                sb.append("&sslfactory=").append(sslfactory);
+        url.append("/").append(databaseName);
+
+        StringBuilder query = new StringBuilder(100);
+        for (PGProperty property: PGProperty.values())
+        {
+            if (property.isPresent(properties))
+            {
+                if (query.length() != 0)
+                {
+                    query.append("&");
+                }
+                query.append(property.getName());
+                query.append("=");
+                query.append(property.get(properties));
             }
         }
-        if (receiveBufferSize != -1) {
-            sb.append("&receiveBufferSize=").append(receiveBufferSize);
-        }
-        if (sendBufferSize != -1) {
-            sb.append("&sendBufferSize=").append(sendBufferSize);
-        }
-        sb.append("&tcpKeepAlive=").append(tcpKeepAlive);
-        if (compatible != null) {
-            sb.append("&compatible=").append(compatible);
-        }
-        if (applicationName != null) {
-            sb.append("&ApplicationName=");
-            sb.append(applicationName);
-        }
-        sb.append("&binaryTransfer=").append(binaryTransfer);
 
-        if ( stringType != null ) {
-            sb.append("&stringtype=");
-            sb.append(stringType);
+        if (query.length() > 0)
+        {
+            url.append("?");
+            url.append(query);
         }
 
-        if (binaryTransferEnable != null) {
-            sb.append("&binaryTransferEnable=").append(binaryTransferEnable);
-        }
-        if (binaryTransferDisable != null) {
-            sb.append("&binaryTransferDisable=").append(binaryTransferDisable);
-        }
-        sb.append("&disableColumnSanitiser=").append(disableColumnSanitiser);
-
-        if (currentSchema != null) {
-            sb.append("&currentSchema=").append(currentSchema);
-        }
-        return sb.toString();
+        return url.toString();
     }
 
     /**
@@ -597,26 +908,37 @@ public abstract class BaseDataSource implements Referenceable
     public void setUrl(String url) {
 
         Properties p = org.postgresql.Driver.parseURL(url, null);
-     	serverName = p.getProperty("PGHOST", "localhost");
-     	portNumber = Integer.parseInt(p.getProperty("PGPORT", "0"));
-     	databaseName = p.getProperty("PGDBNAME");
-     	loginTimeout = Integer.parseInt(p.getProperty("loginTimeout", "0"));
-     	socketTimeout = Integer.parseInt(p.getProperty("socketTimeout", "0"));
-     	prepareThreshold = Integer.parseInt(p.getProperty("prepareThreshold", "5"));
-     	unknownLength = Integer.parseInt(p.getProperty("unknownLength", "0"));
-     	logLevel = Integer.parseInt(p.getProperty("loglevel", "0"));
-     	protocolVersion = Integer.parseInt(p.getProperty("protocolVersion", "0"));
-     	ssl = Boolean.parseBoolean(p.getProperty("ssl"));
-     	sslfactory = p.getProperty("sslfactory");
-     	receiveBufferSize = Integer.parseInt(p.getProperty("receiveBufferSize", "-1"));
-     	sendBufferSize = Integer.parseInt(p.getProperty("sendBufferSize", "-1"));
-     	tcpKeepAlive = Boolean.parseBoolean(p.getProperty("tcpKeepAlive"));
-     	compatible = p.getProperty("compatible");
-     	applicationName = p.getProperty("ApplicationName");
-        stringType = p.getProperty("stringtype");
-     	binaryTransfer = Boolean.parseBoolean(p.getProperty("binaryTransfer"));
-     	disableColumnSanitiser = Boolean.parseBoolean(p.getProperty("disableColumnSanitiser"));
-     	currentSchema = p.getProperty("currentSchema");
+        
+        for (PGProperty property: PGProperty.values())
+        {
+            switch(property)
+            {
+                case PG_HOST:
+                    serverName = property.get(properties);
+                    break;
+                case PG_PORT:
+                    try
+                    {
+                        portNumber = property.getInt(properties);
+                    }
+                    catch (PSQLException e)
+                    {
+                        portNumber = 0;
+                    }
+                    break;
+                case PG_DBNAME:
+                    databaseName = property.get(properties);
+                    break;
+                case USER:
+                    user = property.get(properties);
+                    break;
+                case PASSWORD:
+                    password = property.get(properties);
+                    break;
+                default:
+                    properties.setProperty(property.getName(), property.get(properties));
+            }
+        }
     }
 
     /**
@@ -646,50 +968,44 @@ public abstract class BaseDataSource implements Referenceable
         {
             ref.add(new StringRefAddr("password", password));
         }
-        
-        ref.add(new StringRefAddr("prepareThreshold", Integer.toString(prepareThreshold)));
-        ref.add(new StringRefAddr("unknownLength", Integer.toString(unknownLength)));
-        ref.add(new StringRefAddr("binaryTransfer", Boolean.toString(binaryTransfer)));
-        if (binaryTransferEnable != null)
-        {
-            ref.add(new StringRefAddr("binaryTransferEnable", binaryTransferEnable));
-        }
-        if (binaryTransferDisable != null)
-        {
-            ref.add(new StringRefAddr("binaryTransferDisable", binaryTransferDisable));
-        }
-        ref.add(new StringRefAddr("loginTimeout", Integer.toString(loginTimeout)));
-        ref.add(new StringRefAddr("socketTimeout", Integer.toString(socketTimeout)));
 
-        ref.add(new StringRefAddr("ssl", Boolean.toString(ssl)));
-        if(sslfactory !=null)
+        for (PGProperty property: PGProperty.values())
         {
-            ref.add(new StringRefAddr("sslfactory", sslfactory));
+            if (property.isPresent(properties))
+            {
+                ref.add(new StringRefAddr(property.getName(), property.get(properties)));
+            }
         }
-
-        ref.add(new StringRefAddr("receiveBufferSize", Integer.toString(receiveBufferSize)));
-        ref.add(new StringRefAddr("sendBufferSize", Integer.toString(sendBufferSize)));
-        ref.add(new StringRefAddr("tcpKeepAlive", Boolean.toString(tcpKeepAlive)));
-        if (compatible != null)
-        {
-            ref.add(new StringRefAddr("compatible", compatible));
-        }
-        if ( stringType != null )
-        {
-            ref.add(new StringRefAddr("stringtype", stringType));
-        }
-        if(logLevelSet)
-        {
-            ref.add(new StringRefAddr("logLevel", Integer.toString(logLevel)));
-        }
-        ref.add(new StringRefAddr("protocolVersion", Integer.toString(protocolVersion)));
-        if(applicationName != null)
-        {
-            ref.add(new StringRefAddr("ApplicationName", applicationName));
-        }
-        ref.add(new StringRefAddr("disableColumnSanitiser", Boolean.toString(disableColumnSanitiser)));
 
         return ref;
+    }
+
+    public void setFromReference(Reference ref)
+    {
+        databaseName = getReferenceProperty(ref, "databaseName");
+        String port = getReferenceProperty(ref, "portNumber");
+        if (port != null)
+        {
+            portNumber = Integer.parseInt(port);
+        }
+        serverName = getReferenceProperty(ref, "serverName");
+        user = getReferenceProperty(ref, "user");
+        password = getReferenceProperty(ref, "password");
+
+        for (PGProperty property: PGProperty.values())
+        {
+            property.set(properties, getReferenceProperty(ref, property.getName()));
+        }
+    }
+
+    private String getReferenceProperty(Reference ref, String propertyName)
+    {
+        RefAddr addr = ref.get(propertyName);
+        if (addr == null)
+        {
+            return null;
+        }
+        return (String)addr.getContent();
     }
 
     protected void writeBaseObject(ObjectOutputStream out) throws IOException
@@ -699,26 +1015,8 @@ public abstract class BaseDataSource implements Referenceable
         out.writeObject(user);
         out.writeObject(password);
         out.writeInt(portNumber);
-        out.writeInt(prepareThreshold);
-        out.writeInt(unknownLength);
-        out.writeInt(loginTimeout);
-        out.writeInt(socketTimeout);
-        out.writeBoolean(ssl);
-        out.writeObject(sslfactory);
-        out.writeInt(receiveBufferSize);
-        out.writeInt(sendBufferSize);
-        out.writeBoolean(tcpKeepAlive);
-        out.writeObject(compatible);
-        out.writeObject(stringType);
-        out.writeInt(logLevel);
-        out.writeInt(protocolVersion);
-        out.writeObject(applicationName);
-        out.writeBoolean(binaryTransfer);
-        out.writeObject(binaryTransferEnable);
-        out.writeObject(binaryTransferDisable);
-        out.writeBoolean(logLevelSet);
-        out.writeBoolean(disableColumnSanitiser);
-        out.writeObject(currentSchema);
+
+        out.writeObject(properties);
     }
 
     protected void readBaseObject(ObjectInputStream in) throws IOException, ClassNotFoundException
@@ -728,26 +1026,8 @@ public abstract class BaseDataSource implements Referenceable
         user = (String)in.readObject();
         password = (String)in.readObject();
         portNumber = in.readInt();
-        prepareThreshold = in.readInt();
-        unknownLength = in.readInt();
-        loginTimeout = in.readInt();
-        socketTimeout = in.readInt();
-        ssl = in.readBoolean();
-        sslfactory = (String)in.readObject();
-        receiveBufferSize = in.readInt();
-        sendBufferSize = in.readInt();
-        tcpKeepAlive = in.readBoolean();
-        compatible = (String)in.readObject();
-        stringType = (String)in.readObject();
-        logLevel = in.readInt();
-        protocolVersion = in.readInt();
-        applicationName = (String)in.readObject();
-        binaryTransfer = in.readBoolean();
-        binaryTransferEnable = (String)in.readObject();
-        binaryTransferDisable = (String)in.readObject();
-        logLevelSet = in.readBoolean();
-        disableColumnSanitiser = in.readBoolean();
-        currentSchema = (String)in.readObject();
+
+        properties = (Properties)in.readObject();
     }
 
     public void initializeFrom(BaseDataSource source) throws IOException, ClassNotFoundException {

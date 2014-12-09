@@ -16,6 +16,7 @@ import java.util.concurrent.Executor;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.postgresql.PGProperty;
 import org.postgresql.core.Oid;
 import org.postgresql.core.Utils;
 import org.postgresql.core.TypeInfo;
@@ -46,7 +47,7 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
 
         _clientInfo = new Properties();
         if (haveMinimumServerVersion("9.0")) {
-            String appName = info.getProperty("ApplicationName");
+            String appName = PGProperty.APPLICATION_NAME.get(info);
             if (appName == null) {
                 appName = "";
             }

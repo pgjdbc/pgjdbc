@@ -31,6 +31,7 @@ import javax.security.auth.callback.PasswordCallback;
 import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.x500.X500Principal;
 
+import org.postgresql.PGProperty;
 import org.postgresql.ssl.NonValidatingFactory.NonValidatingTM;
 import org.postgresql.ssl.WrappedFactory;
 import org.postgresql.util.GT;
@@ -57,7 +58,7 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
     public LibPQFactory(Properties info) throws PSQLException {
       try
       {
-        sslmode = info.getProperty("sslmode");
+        sslmode = PGProperty.SSL_MODE.get(info);
         SSLContext ctx = SSLContext.getInstance("TLS"); // or "SSL" ?
         
         //Determinig the default file location
@@ -72,13 +73,13 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
         }
         
         //Load the client's certificate and key
-        String sslcertfile = info.getProperty("sslcert");
+        String sslcertfile = PGProperty.SSL_CERT.get(info);
         if (sslcertfile == null)
         { //Fall back to default
           defaultfile = true;
           sslcertfile = defaultdir + "postgresql.crt";
         }
-        String sslkeyfile = info.getProperty("sslkey");
+        String sslkeyfile = PGProperty.SSL_KEY.get(info);
         if (sslkeyfile == null)
         { //Fall back to default
           defaultfile = true;
@@ -87,7 +88,7 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
         
         //Determine the callback handler
         CallbackHandler cbh;
-        String sslpasswordcallback = info.getProperty("sslpasswordcallback");
+        String sslpasswordcallback = PGProperty.SSL_PASSWORD_CALLBACK.get(info);
         if (sslpasswordcallback != null)
         {
           try
@@ -99,7 +100,7 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
               throw new PSQLException(GT.tr("The password callback class provided {0} could not be instantiated.", sslpasswordcallback), PSQLState.CONNECTION_FAILURE, e);
           }
         } else {
-          cbh = new ConsoleCallbackHandler(info.getProperty("sslpassword"));
+          cbh = new ConsoleCallbackHandler(PGProperty.SSL_PASSWORD.get(info));
         }
          
         //If the properies are empty, give null to prevent client key selection
@@ -119,7 +120,7 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
           {
             throw new NoSuchAlgorithmException("jks KeyStore not available"); //this should never happen
           }
-          String sslrootcertfile = info.getProperty("sslrootcert");
+          String sslrootcertfile = PGProperty.SSL_ROOT_CERT.get(info);
           if (sslrootcertfile == null)
           { //Fall back to default
             sslrootcertfile = defaultdir + "root.crt";

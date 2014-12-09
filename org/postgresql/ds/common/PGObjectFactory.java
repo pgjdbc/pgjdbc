@@ -98,31 +98,7 @@ public class PGObjectFactory implements ObjectFactory
 
     protected Object loadBaseDataSource(BaseDataSource ds, Reference ref)
     {
-        ds.setDatabaseName(getProperty(ref, "databaseName"));
-        ds.setPassword(getProperty(ref, "password"));
-        String port = getProperty(ref, "portNumber");
-        if (port != null)
-        {
-            ds.setPortNumber(Integer.parseInt(port));
-        }
-        ds.setServerName(getProperty(ref, "serverName"));
-        ds.setUser(getProperty(ref, "user"));
-
-        String prepareThreshold = getProperty(ref, "prepareThreshold");
-        if (prepareThreshold != null)
-            ds.setPrepareThreshold(Integer.parseInt(prepareThreshold));
-
-        String binaryTransfer = getProperty(ref, "binaryTransfer");
-        if (binaryTransfer != null)
-            ds.setBinaryTransfer(Boolean.getBoolean(binaryTransfer));
-
-        String binaryTransferEnable = getProperty(ref, "binaryTransferEnable");
-        if (binaryTransferEnable != null)
-            ds.setBinaryTransferEnable(binaryTransferEnable);
-
-        String binaryTransferDisable = getProperty(ref, "binaryTransferDisable");
-        if (binaryTransferDisable != null)
-            ds.setBinaryTransferDisable(binaryTransferDisable);
+        ds.setFromReference(ref);
 
         return ds;
     }

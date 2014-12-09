@@ -10,12 +10,12 @@ package org.postgresql.core.v2;
 
 import java.util.Properties;
 import java.util.StringTokenizer;
-
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.io.IOException;
 import java.net.ConnectException;
 
+import org.postgresql.PGProperty;
 import org.postgresql.core.*;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -43,10 +43,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         //  - the SSL setting
         boolean requireSSL;
         boolean trySSL;
-        String sslmode = info.getProperty("sslmode");
+        String sslmode = PGProperty.SSL_MODE.get(info);
         if (sslmode==null)
         { //Fall back to the ssl property
-          requireSSL = trySSL  = (info.getProperty("ssl") != null);
+          requireSSL = trySSL  = PGProperty.SSL.isPresent(info);
         } else {
           if ("disable".equals(sslmode))
           {
@@ -68,7 +68,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         }
 
         //  - the TCP keep alive setting
-        boolean requireTCPKeepAlive = Boolean.parseBoolean(info.getProperty("tcpKeepAlive"));
+        boolean requireTCPKeepAlive = PGProperty.TCP_KEEP_ALIVE.getBoolean(info);
 
         for (int whichHost = 0; whichHost < hostSpecs.length; ++whichHost) {
             HostSpec hostSpec = hostSpecs[whichHost];
@@ -78,13 +78,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             //
             // Establish a connection.
             //
-        int connectTimeout = 0;
-        String connectTimeoutProperty = info.getProperty("connectTimeout", "0");
-        try {
-            connectTimeout = Integer.parseInt(connectTimeoutProperty) * 1000;
-        } catch (NumberFormatException nfe) {
-            logger.info("Couldn't parse connectTimeout value:" + connectTimeoutProperty);
-        }
+        int connectTimeout = PGProperty.CONNECT_TIMEOUT.getInt(info) * 1000;
 
         PGStream newStream = null;
         try
@@ -97,16 +91,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             
             
             // Set the socket timeout if the "socketTimeout" property has been set.
-            String socketTimeoutProperty = info.getProperty("socketTimeout", "0");
-            try {
-                int socketTimeout = Integer.parseInt(socketTimeoutProperty);
-                if (socketTimeout > 0) {
-                    newStream.getSocket().setSoTimeout(socketTimeout*1000);
-                }
-            } catch (NumberFormatException nfe) {
-                logger.info("Couldn't parse socketTimeout value:" + socketTimeoutProperty);
+            int socketTimeout = PGProperty.SOCKET_TIMEOUT.getInt(info);
+            if (socketTimeout > 0) {
+                newStream.getSocket().setSoTimeout(socketTimeout*1000);
             }
-
 
             // Enable TCP keep-alive probe if required.
             newStream.getSocket().setKeepAlive(requireTCPKeepAlive);
@@ -115,7 +103,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             sendStartupPacket(newStream, user, database, logger);
 
             // Do authentication (until AuthenticationOk).
-            doAuthentication(newStream, user, info.getProperty("password"), logger);
+            doAuthentication(newStream, user, PGProperty.PASSWORD.get(info), logger);
 
             // Do final startup.
             ProtocolConnectionImpl protoConnection = new ProtocolConnectionImpl(newStream, user, database, logger, connectTimeout);
@@ -441,7 +429,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         }
         else
         {
-            String charSet = info.getProperty("charSet");
+            String charSet = PGProperty.CHARSET.get(info);
             String dbEncoding = (results[1] == null ? null : protoConnection.getEncoding().decode(results[1]));
             if (logger.logDebug())
             {
@@ -482,7 +470,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             protoConnection.setStandardConformingStrings(false);
         }
 
-        String appName = info.getProperty("ApplicationName");
+        String appName = PGProperty.APPLICATION_NAME.get(info);
         if (appName != null && dbVersion.compareTo("9.0") >= 0)
         {
             StringBuffer sb = new StringBuffer("SET application_name = '");
@@ -491,7 +479,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             SetupQueryRunner.run(protoConnection, sb.toString(), false);
         }
 
-        String currentSchema = info.getProperty("currentSchema");
+        String currentSchema = PGProperty.CURRENT_SCHEMA.get(info);
         if (currentSchema != null)
         {
             StringBuffer sb = new StringBuffer("SET search_path = '");
