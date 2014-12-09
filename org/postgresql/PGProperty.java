@@ -459,4 +459,16 @@ public enum PGProperty
         propertyInfo.choices = _choices;
         return propertyInfo;
     }
+
+    public static PGProperty forName(String name)
+    {
+        for (PGProperty property : PGProperty.values())
+        {
+            if (property.getName().equals(name))
+            {
+                return property;
+            }
+        }
+        return null;
+    }
 }

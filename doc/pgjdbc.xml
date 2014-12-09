@@ -701,6 +701,25 @@ openssl pkcs8 -topk8 -in client.key -out client.pk8 -outform DER -v1 PBE-SHA1-3D
       </varlistentry>
 
       <varlistentry>
+       <term><varname>binaryTransferEnable</varname>  = <type>String</type></term>
+       <listitem>
+        <para>
+          A comma separated list of types to enable binary transfer. Either OID numbers or names.
+        </para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
+       <term><varname>binaryTransferDisable</varname> = <type>String</type></term>
+       <listitem>
+        <para>
+          A comma separated list of types to disable binary transfer. Either OID numbers or names.
+          Overrides values in the driver default set and values set with binaryTransferEnable.
+        </para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
        <term><varname>prepareThreshold</varname> = <type>int</type></term>
        <listitem>
         <para>
@@ -879,6 +898,15 @@ openssl pkcs8 -topk8 -in client.key -out client.pk8 -outform DER -v1 PBE-SHA1-3D
       </varlistentry>
 
       <varlistentry>
+       <term><varname>useSpnego</varname> = <type>boolean</type></term>
+       <listitem>
+        <para>
+         Use SPNEGO in SSPI authentication requests
+        </para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
        <term><varname>ApplicationName</varname> = <type>String</type></term>
        <listitem>
         <para>
@@ -899,7 +927,7 @@ openssl pkcs8 -topk8 -in client.key -out client.pk8 -outform DER -v1 PBE-SHA1-3D
       </varlistentry>
 
 	  <varlistentry>
-       <term><varname>recvBufferSize</varname> = <type>int</type></term>
+       <term><varname>receiveBufferSize</varname> = <type>int</type></term>
        <listitem>
         <para>
          Sets SO_RCVBUF on the connection stream
@@ -908,7 +936,35 @@ openssl pkcs8 -topk8 -in client.key -out client.pk8 -outform DER -v1 PBE-SHA1-3D
       </varlistentry>
 
       <varlistentry>
-       <term><varname>currentSchema</varname></term>
+       <term><varname>readOnly</varname>  = <type>boolean</type></term>
+       <listitem>
+        <para>
+          Put the connection in read-only mode
+        </para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
+       <term><varname>disableColumnSanitiser</varname> = <type>boolean</type></term>
+       <listitem>
+        <para>
+         Enable optimization that disables column name sanitiser.
+        </para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
+       <term><varname>assumeMinServerVersion</varname> = <type>String</type></term>
+       <listitem>
+        <para>
+         Assume that the server is at least the given version, thus enabling to some optimization at connection time
+         instead of trying to be version blind.
+        </para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
+       <term><varname>currentSchema</varname> = <type>String</type></term>
        <listitem>
         <para>
          Specify the schema to be set in the search-path. This schema will be used
