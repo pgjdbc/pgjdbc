@@ -16,6 +16,7 @@ import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
+import org.postgresql.PGProperty;
 import org.postgresql.core.Logger;
 import org.postgresql.core.PGStream;
 import org.postgresql.util.GT;
@@ -83,10 +84,10 @@ public class AbstractJdbc4MakeSSL {
 
         SSLSocketFactory factory;
 
-        String sslmode = info.getProperty("sslmode");
+        String sslmode = PGProperty.SSL_MODE.get(info);
         // Use the default factory if no specific factory is requested
         // unless sslmode is set
-        String classname = info.getProperty("sslfactory");
+        String classname = PGProperty.SSL_FACTORY.get(info);
         if (classname == null)
         {
           //If sslmode is set, use the libp compatible factory
@@ -103,7 +104,7 @@ public class AbstractJdbc4MakeSSL {
         {
             try
             {
-                factory = (SSLSocketFactory)instantiate(classname, info, true, info.getProperty("sslfactoryarg"));
+                factory = (SSLSocketFactory)instantiate(classname, info, true, PGProperty.SSL_FACTORY_ARG.get(info));
             }
             catch (Exception e)
             {
@@ -125,7 +126,7 @@ public class AbstractJdbc4MakeSSL {
           throw new PSQLException(GT.tr("SSL error: {0}", ex.getMessage()), PSQLState.CONNECTION_FAILURE, ex);
         }
         
-        String sslhostnameverifier = info.getProperty("sslhostnameverifier");
+        String sslhostnameverifier = PGProperty.SSL_HOSTNAME_VERIFIER.get(info);
         if (sslhostnameverifier!=null)
         {
           HostnameVerifier hvn;

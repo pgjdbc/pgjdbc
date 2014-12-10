@@ -96,7 +96,9 @@ public class Jdbc2TestSuite extends TestSuite
         suite.addTestSuite(TestACL.class);
 
         suite.addTestSuite(ConnectTimeoutTest.class);
-        
+
+        suite.addTestSuite(PGPropertyTest.class);
+
         Connection conn = TestUtil.openDB();
         if (TestUtil.isProtocolVersion(conn, 3)) {
             suite.addTestSuite(CopyTest.class);

@@ -13,9 +13,9 @@ import java.sql.*;
 import java.util.*;
 
 import org.postgresql.core.*;
-
 import org.postgresql.Driver;
 import org.postgresql.PGNotification;
+import org.postgresql.PGProperty;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.util.*;
@@ -95,14 +95,9 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         // standard out if no other printwriter is set
 
         int logLevel = Driver.getLogLevel();
-        String connectionLogLevel = info.getProperty("loglevel");
+        Integer connectionLogLevel = PGProperty.LOG_LEVEL.getInteger(info);
         if (connectionLogLevel != null) {
-            try {
-                logLevel = Integer.parseInt(connectionLogLevel);
-            } catch (Exception l_e) {
-                // XXX revisit
-                // invalid value for loglevel; ignore it
-            }
+            logLevel = connectionLogLevel.intValue();
         }
 
         synchronized (AbstractJdbc2Connection.class) {
@@ -113,26 +108,11 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         if (logLevel > 0)
             enableDriverManagerLogging();
 
-        prepareThreshold = 5;
-        try
-        {
-            prepareThreshold = Integer.parseInt(info.getProperty("prepareThreshold", "5"));
-            // special value to set forceBinary to true
-            if (prepareThreshold == -1)
-                forcebinary = true;
-        }
-        catch (Exception e)
-        {
-        }
+        prepareThreshold = PGProperty.PREPARE_THRESHOLD.getInt(info);
+        if (prepareThreshold == -1)
+            forcebinary = true;
         
-        boolean binaryTransfer = true;
-        try
-        {
-            binaryTransfer = Boolean.parseBoolean(info.getProperty("binaryTransfer", "true"));
-        }
-        catch (Exception e)
-        {
-        }
+        boolean binaryTransfer = PGProperty.BINARY_TRANSFER.getBoolean(info);
 
         //Print out the driver version number
         if (logger.logInfo())
@@ -140,13 +120,13 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
         // Now make the initial connection and set up local state
         this.protoConnection = ConnectionFactory.openConnection(hostSpecs, user, database, info, logger);
-        int compat = Utils.parseServerVersionStr(info.getProperty("compatible"));
+        int compat = Utils.parseServerVersionStr(PGProperty.COMPATIBLE.get(info));
         if (compat == 0)
             compat = Driver.MAJORVERSION * 10000 + Driver.MINORVERSION * 100;
         this.compatibleInt = compat;
 
         // Set read-only early if requested
-        if (Boolean.valueOf(info.getProperty("readOnly", "false")))
+        if (PGProperty.READ_ONLY.getBoolean(info))
         {
             setReadOnly(true);
         }
@@ -197,8 +177,8 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
             binaryOids.remove(Oid.TEXT_ARRAY);
         }
 
-        binaryOids.addAll(getOidSet(info.getProperty("binaryTransferEnable", "")));
-        binaryOids.removeAll(getOidSet(info.getProperty("binaryTransferDisable", "")));
+        binaryOids.addAll(getOidSet(PGProperty.BINARY_TRANSFER_ENABLE.get(info)));
+        binaryOids.removeAll(getOidSet(PGProperty.BINARY_TRANSFER_DISABLE.get(info)));
 
         // split for receive and send for better control
         useBinarySendForOids = new HashSet<Integer>();
@@ -229,7 +209,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         // String -> text or unknown?
         //
 
-        String stringType = info.getProperty("stringtype");
+        String stringType = PGProperty.STRING_TYPE.get(info);
         if (stringType != null) {
             if (stringType.equalsIgnoreCase("unspecified"))
                 bindStringAsVarchar = false;
@@ -250,26 +230,17 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         commitQuery = getQueryExecutor().createSimpleQuery("COMMIT");
         rollbackQuery = getQueryExecutor().createSimpleQuery("ROLLBACK");
 
-        int unknownLength = Integer.MAX_VALUE;
-        String strLength = info.getProperty("unknownLength");
-        if (strLength != null) {
-            try {
-                unknownLength = Integer.parseInt(strLength);
-            } catch (NumberFormatException nfe) {
-                throw new PSQLException(GT.tr("unknownLength parameter value must be an integer"), PSQLState.INVALID_PARAMETER_VALUE, nfe);
-            }
-        }
+        int unknownLength = PGProperty.UNKNOWN_LENGTH.getInt(info);
 
         // Initialize object handling
         _typeCache = createTypeInfo(this, unknownLength);
         initObjectTypes(info);
 
-        if (Boolean.parseBoolean(info.getProperty("logUnclosedConnections"))) {
+        if (PGProperty.LOG_UNCLOSED_CONNECTIONS.getBoolean(info)) {
             openStackTrace = new Throwable("Connection was created at this point:");
             enableDriverManagerLogging();
         }
-        this.disableColumnSanitiser = Boolean.valueOf(info.getProperty(""
-                + "disableColumnSanitiser", Boolean.FALSE.toString()));
+        this.disableColumnSanitiser = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
     }
 
     private Set<Integer> getOidSet(String oidList) throws PSQLException {

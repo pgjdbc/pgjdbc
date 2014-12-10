@@ -11,6 +11,7 @@ package org.postgresql.core;
 import java.util.Properties;
 import java.sql.SQLException;
 
+import org.postgresql.PGProperty;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.GT;
@@ -52,7 +53,7 @@ public abstract class ConnectionFactory {
      * @throws SQLException if the connection could not be established.
      */
     public static ProtocolConnection openConnection(HostSpec[] hostSpecs, String user, String database, Properties info, Logger logger) throws SQLException {
-        String protoName = info.getProperty("protocolVersion");
+        String protoName = PGProperty.PROTOCOL_VERSION.get(info);
 
         for (int i = 0; i < versions.length; ++i)
         {

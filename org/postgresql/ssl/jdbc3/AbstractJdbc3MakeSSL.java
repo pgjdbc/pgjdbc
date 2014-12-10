@@ -14,6 +14,7 @@ import java.lang.reflect.Constructor;
 
 import javax.net.ssl.SSLSocketFactory;
 
+import org.postgresql.PGProperty;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.Logger;
 import org.postgresql.util.GT;
@@ -28,14 +29,14 @@ public class AbstractJdbc3MakeSSL {
 
         // Use the default factory if no specific factory is requested
         //
-        String classname = info.getProperty("sslfactory");
+        String classname = PGProperty.SSL_FACTORY.get(info);
         if (classname == null)
         {
             factory = (SSLSocketFactory)SSLSocketFactory.getDefault();
         }
         else
         {
-            Object[] args = {info.getProperty("sslfactoryarg")};
+            Object[] args = {PGProperty.SSL_FACTORY_ARG.get(info)};
             Constructor ctor;
             Class factoryClass;
 

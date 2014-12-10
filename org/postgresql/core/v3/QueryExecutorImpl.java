@@ -8,17 +8,17 @@
 */
 package org.postgresql.core.v3;
 
+import org.postgresql.PGProperty;
 import org.postgresql.core.*;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Properties;
-
 import java.lang.ref.*;
-
 import java.io.IOException;
 import java.sql.*;
+
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLWarning;
 import org.postgresql.util.PSQLState;
@@ -35,11 +35,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         this.pgStream = pgStream;
         this.logger = logger;
 
-        if (info.getProperty("allowEncodingChanges") != null) {
-            this.allowEncodingChanges = Boolean.parseBoolean(info.getProperty("allowEncodingChanges"));
-        } else {
-            this.allowEncodingChanges = false;
-        }
+        this.allowEncodingChanges = PGProperty.ALLOW_ENCODING_CHANGES.getBoolean(info);
     }
 
     /**

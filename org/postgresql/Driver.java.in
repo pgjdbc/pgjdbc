@@ -100,7 +100,7 @@ public class Driver implements java.sql.Driver
         // setLogLevel() already.
         synchronized (Driver.class) {
             if (!logLevelSet) {
-                String driverLogLevel = defaultProperties.getProperty("loglevel");
+                String driverLogLevel = PGProperty.LOG_LEVEL.get(defaultProperties);
                 if (driverLogLevel != null) {
                     try {
                         setLogLevel(Integer.parseInt(driverLogLevel));
@@ -119,7 +119,7 @@ public class Driver implements java.sql.Driver
         Properties merged = new Properties();
 
         try {
-            merged.setProperty("user", System.getProperty("user.name"));
+            PGProperty.USER.set(merged, System.getProperty("user.name"));
         } catch (java.lang.SecurityException se) {
             // We're just trying to set a default, so if we can't
             // it's not a big deal.
@@ -431,64 +431,6 @@ public class Driver implements java.sql.Driver
         return true;
     }
 
-    private static final Object[][] knownProperties = {
-                { "PGDBNAME", Boolean.TRUE,
-                  "Database name to connect to; may be specified directly in the JDBC URL." },
-                { "user", Boolean.TRUE,
-                  "Username to connect to the database as.", null },
-                { "PGHOST", Boolean.FALSE,
-                  "Hostname of the PostgreSQL server; may be specified directly in the JDBC URL." },
-                { "PGPORT", Boolean.FALSE,
-                  "Port number to connect to the PostgreSQL server on; may be specified directly in the JDBC URL.", },
-                { "password", Boolean.FALSE,
-                  "Password to use when authenticating.", },
-                { "protocolVersion", Boolean.FALSE,
-                  "Force use of a particular protocol version when connecting; if set, disables protocol version fallback.", },
-                { "ssl", Boolean.FALSE,
-                  "Control use of SSL; any nonnull value causes SSL to be required." },
-                { "sslfactory", Boolean.FALSE,
-                  "Provide a SSLSocketFactory class when using SSL." },
-                { "sslfactoryarg", Boolean.FALSE,
-                  "Argument forwarded to constructor of SSLSocketFactory class." },
-                { "loglevel", Boolean.FALSE,
-                  "Control the driver's log verbosity: 0 is OFF, 1 is INFO, 2 is DEBUG.",
-                  new String[] { "0", "1", "2" } },
-                { "allowEncodingChanges", Boolean.FALSE,
-                  "Allow the user to change the client_encoding variable." },
-                { "logUnclosedConnections", Boolean.FALSE,
-                  "When connections that are not explicitly closed are garbage collected, log the stacktrace from the opening of the connection to trace the leak source."},
-                { "prepareThreshold", Boolean.FALSE,
-                  "Default statement prepare threshold (numeric)." },
-                { "binaryTransfer", Boolean.FALSE,
-                  "Use binary format for sending and receiving data if possible." },
-                { "binaryTransferEnable", Boolean.FALSE,
-                  "Comma separated list of types to enable binary transfer. Either OID numbers or names." },
-                { "binaryTransferDisable", Boolean.FALSE,
-                  "Comma separated list of types to disable binary transfer. Either OID numbers or names. Overrides values in the driver default set and values set with binaryTransferEnable." },
-                { "charSet", Boolean.FALSE,
-                  "When connecting to a pre-7.3 server, the database encoding to assume is in use." },
-                { "compatible", Boolean.FALSE,
-                  "Force compatibility of some features with an older version of the driver.",
-                  new String[] { "7.1", "7.2", "7.3", "7.4", "8.0", "8.1", "8.2" } },
-                { "loginTimeout", Boolean.FALSE,
-                  "The login timeout, in seconds; 0 means no timeout beyond the normal TCP connection timout." },
-                { "socketTimeout", Boolean.FALSE,
-                  "The timeout value for socket read operations, in seconds; 0 means no timeout." },
-                { "tcpKeepAlive", Boolean.FALSE,
-                  "Enable or disable TCP keep-alive probe." },
-                { "stringtype", Boolean.FALSE,
-                  "The type to bind String parameters as (usually 'varchar'; 'unspecified' allows implicit casting to other types)",
-                  new String[] { "varchar", "unspecified" } },
-                { "kerberosServerName", Boolean.FALSE,
-                  "The Kerberos service name to use when authenticating with GSSAPI.  This is equivalent to libpq's PGKRBSRVNAME environment variable." },
-                { "jaasApplicationName", Boolean.FALSE,
-                  "Specifies the name of the JAAS system or application login configuration." },
-                { "disableColumnSanitiser", Boolean.FALSE,
-                  "Enable optimization that disables column name sanitiser." },
-                { "currentSchema", Boolean.FALSE,
-                  "Specify the schema to set in the search_path to resolve unqualified object names." }
-            };
-
     /**
      * The getPropertyInfo method is intended to allow a generic GUI
      * tool to discover what properties it should prompt a human for
@@ -512,15 +454,11 @@ public class Driver implements java.sql.Driver
         Properties parse = parseURL(url, copy);
         if (parse != null) copy = parse;
 
+        PGProperty[] knownProperties = PGProperty.values();
         DriverPropertyInfo[] props = new DriverPropertyInfo[knownProperties.length];
-        for (int i = 0; i < knownProperties.length; ++i)
+        for(int i = 0; i < props.length; ++i)
         {
-            String name = (String) knownProperties[i][0];
-            props[i] = new DriverPropertyInfo(name, copy.getProperty(name));
-            props[i].required = ((Boolean) knownProperties[i][1]).booleanValue();
-            props[i].description = (String) knownProperties[i][2];
-            if (knownProperties[i].length > 3)
-                props[i].choices = (String[]) knownProperties[i][3];
+            props[i] = knownProperties[i].toDriverPropertyInfo(copy);
         }
 
         return props;
@@ -699,7 +637,7 @@ public class Driver implements java.sql.Driver
      */
     private static long timeout(Properties props)
     {
-        String timeout = props.getProperty("loginTimeout");
+        String timeout = PGProperty.LOGIN_TIMEOUT.get(props);
         if (timeout != null) {
             try {
                 return (long) (Float.parseFloat(timeout) * 1000);

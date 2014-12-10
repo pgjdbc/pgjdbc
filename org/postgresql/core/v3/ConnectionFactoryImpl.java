@@ -16,6 +16,7 @@ import java.sql.SQLException;
 import java.io.IOException;
 import java.net.ConnectException;
 
+import org.postgresql.PGProperty;
 import org.postgresql.core.*;
 import org.postgresql.sspi.SSPIClient;
 import org.postgresql.util.PSQLException;
@@ -53,10 +54,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         //  - the SSL setting
         boolean requireSSL;
         boolean trySSL;
-        String sslmode = info.getProperty("sslmode");
+        String sslmode = PGProperty.SSL_MODE.get(info);
         if (sslmode==null)
         { //Fall back to the ssl property
-          requireSSL = trySSL  = (info.getProperty("ssl") != null);
+          requireSSL = trySSL  = PGProperty.SSL.isPresent(info);
         } else {
           if ("disable".equals(sslmode))
           {
@@ -78,7 +79,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         }
 
         //  - the TCP keep alive setting
-        boolean requireTCPKeepAlive = Boolean.parseBoolean(info.getProperty("tcpKeepAlive"));
+        boolean requireTCPKeepAlive = PGProperty.TCP_KEEP_ALIVE.getBoolean(info);
 
         // NOTE: To simplify this code, it is assumed that if we are
         // using the V3 protocol, then the database is at least 7.4.  That
@@ -97,13 +98,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         // Establish a connection.
         //
 
-        int connectTimeout = 0;
-        String connectTimeoutProperty = info.getProperty("connectTimeout", "0");
-        try {
-            connectTimeout = Integer.parseInt(connectTimeoutProperty) * 1000;
-        } catch (NumberFormatException nfe) {
-            logger.info("Couldn't parse connectTimeout value:" + connectTimeoutProperty);
-        }
+        int connectTimeout = PGProperty.CONNECT_TIMEOUT.getInt(info) * 1000;
 
         PGStream newStream = null;
         try
@@ -115,14 +110,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 newStream = enableSSL(newStream, requireSSL, info, logger, connectTimeout);
             
             // Set the socket timeout if the "socketTimeout" property has been set.
-            String socketTimeoutProperty = info.getProperty("socketTimeout", "0");
-            try {
-                int socketTimeout = Integer.parseInt(socketTimeoutProperty);
-                if (socketTimeout > 0) {
-                    newStream.getSocket().setSoTimeout(socketTimeout*1000);
-                }
-            } catch (NumberFormatException nfe) {
-                logger.info("Couldn't parse socketTimeout value:" + socketTimeoutProperty);
+            int socketTimeout = PGProperty.SOCKET_TIMEOUT.getInt(info); 
+            if (socketTimeout > 0) {
+                newStream.getSocket().setSoTimeout(socketTimeout*1000);
             }
 
             // Enable TCP keep-alive probe if required.
@@ -134,34 +124,24 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // supported.
 
             // Set SO_RECVBUF read buffer size
-            String receiveBufferSizeProperty = info.getProperty("receiveBufferSize", "-1");
-            try {
-                int receiveBufferSize = Integer.parseInt(receiveBufferSizeProperty);
-                if (receiveBufferSize > -1) {
-                    // value of 0 not a valid buffer size value
-                    if (receiveBufferSize > 0) {
-                        newStream.getSocket().setReceiveBufferSize(receiveBufferSize);
-                    } else {
-                        logger.info("Ignore invalid value for receiveBufferSize: " + receiveBufferSize);
-                    }
+            int receiveBufferSize = PGProperty.RECEIVE_BUFFER_SIZE.getInt(info);
+            if (receiveBufferSize > -1) {
+                // value of 0 not a valid buffer size value
+                if (receiveBufferSize > 0) {
+                    newStream.getSocket().setReceiveBufferSize(receiveBufferSize);
+                } else {
+                    logger.info("Ignore invalid value for receiveBufferSize: " + receiveBufferSize);
                 }
-            } catch (NumberFormatException nfe) {
-                logger.info("Couldn't parse receiveBufferSize value: " + receiveBufferSizeProperty);
             }
 
             // Set SO_SNDBUF write buffer size 
-            String sendBufferSizeProperty = info.getProperty("sendBufferSize", "-1");
-            try {
-                int sendBufferSize = Integer.parseInt(sendBufferSizeProperty);
-                if (sendBufferSize > -1) {
-                    if (sendBufferSize > 0) {
-                        newStream.getSocket().setSendBufferSize(sendBufferSize);
-                    } else {
-                        logger.info("Ignore invalid value for sendBufferSize: " + sendBufferSize);
-                    }
+            int sendBufferSize = PGProperty.SEND_BUFFER_SIZE.getInt(info);
+            if (sendBufferSize > -1) {
+                if (sendBufferSize > 0) {
+                    newStream.getSocket().setSendBufferSize(sendBufferSize);
+                } else {
+                    logger.info("Ignore invalid value for sendBufferSize: " + sendBufferSize);
                 }
-            } catch (NumberFormatException nfe) {
-                logger.info("Couldn't parse sendBufferSize value: " + sendBufferSizeProperty);
             }
 
             logger.info("Receive Buffer Size is " + newStream.getSocket().getReceiveBufferSize());
@@ -173,11 +153,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             paramList.add(new String[] {"client_encoding", "UTF8"});
             paramList.add(new String[] {"DateStyle", "ISO"});
             paramList.add(new String[] {"TimeZone",  createPostgresTimeZone()});
-            String assumeMinServerVersion = info.getProperty("assumeMinServerVersion");
+            String assumeMinServerVersion = PGProperty.ASSUME_MIN_SERVER_VERSION.get(info);
             if( Utils.parseServerVersionStr(assumeMinServerVersion) >= 90000 ) {
                 // User is explicitly telling us this is a 9.0+ server so set properties here:
                 paramList.add(new String[] {"extra_float_digits", "3"});
-                String appName = info.getProperty("ApplicationName");
+                String appName = PGProperty.APPLICATION_NAME.get(info);
                 if( appName != null ) {
                     paramList.add(new String[] {"application_name", appName});
                 }
@@ -186,7 +166,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 paramList.add(new String[] {"extra_float_digits", "2"});
             }
 
-            String currentSchema = info.getProperty("currentSchema");
+            String currentSchema = PGProperty.CURRENT_SCHEMA.get(info);
             if (currentSchema != null)
             {
                 paramList.add(new String[] {"search_path", currentSchema});
@@ -398,7 +378,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         // Now get the response from the backend, either an error message
         // or an authentication request
 
-        String password = info.getProperty("password");
+        String password = PGProperty.PASSWORD.get(info);
         
         /* SSPI negotiation state, if used */
         SSPIClient sspiClient = null;
@@ -536,8 +516,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                          * to an SSPI request via GSSAPI and the other end isn't using Kerberos
                          * for SSPI then authentication will fail.
                          */
-                        final String gsslib = info.getProperty("gsslib","auto");
-                        final boolean usespnego = Boolean.parseBoolean(info.getProperty("useSpnego"));
+                        final String gsslib = PGProperty.GSS_LIB.get(info);
+                        final boolean usespnego = PGProperty.USE_SPNEGO.getBoolean(info);
                         
                         boolean useSSPI = false;
 
@@ -555,7 +535,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                         {
                             /* Determine if SSPI is supported by the client */
                             sspiClient = new SSPIClient(pgStream,
-                                    info.getProperty("sspiServiceClass"),
+                                    PGProperty.SSPI_SERVICE_CLASS.get(info),
                                     /* Use negotiation for SSPI, or if explicitly requested for GSS */
                                     areq == AUTH_REQ_SSPI || (areq == AUTH_REQ_GSS && usespnego),
                                     logger);
@@ -585,8 +565,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                             /* Use JGSS's GSSAPI for this request */
                             org.postgresql.gss.MakeGSS.authenticate(pgStream, host,
                                     user, password, 
-                                    info.getProperty("jaasApplicationName"),
-                                    info.getProperty("kerberosServerName"),
+                                    PGProperty.JAAS_APPLICATION_NAME.get(info),
+                                    PGProperty.KERBEROS_SERVER_NAME.get(info),
                                     logger,
                                     usespnego);
                         }
@@ -756,7 +736,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     private void runInitialQueries(ProtocolConnection protoConnection, Properties info, Logger logger) throws SQLException
     {
-        String assumeMinServerVersion = info.getProperty("assumeMinServerVersion");
+        String assumeMinServerVersion = PGProperty.ASSUME_MIN_SERVER_VERSION.get(info);
         if( Utils.parseServerVersionStr(assumeMinServerVersion) >= 90000 ) {
             // We already sent the parameter values in the StartupMessage so skip this
             return;
@@ -768,7 +748,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             SetupQueryRunner.run(protoConnection, "SET extra_float_digits = 3", false);
         }
 
-        String appName = info.getProperty("ApplicationName");
+        String appName = PGProperty.APPLICATION_NAME.get(info);
         if (appName != null && dbVersion >= 90000) {
             StringBuffer sql = new StringBuffer();
             sql.append("SET application_name = '");
