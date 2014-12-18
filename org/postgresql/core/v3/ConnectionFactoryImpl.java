@@ -8,9 +8,10 @@
 */
 package org.postgresql.core.v3;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.util.TimeZone;
-
 import java.sql.SQLException;
 import java.io.IOException;
 import java.net.ConnectException;
@@ -165,15 +166,21 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             logger.info("Receive Buffer Size is " + newStream.getSocket().getReceiveBufferSize());
             logger.info("Send Buffer Size is " + newStream.getSocket().getSendBufferSize());
 
-            // Construct and send a startup packet.
-            String[][] params = {
-                                    { "user", user },
-                                    { "database", database },
-                                    { "client_encoding", "UTF8" },
-                                    { "DateStyle", "ISO" },
-                                    { "extra_float_digits", "2" },
-                                    { "TimeZone",  createPostgresTimeZone() },                                    
-                                };
+            List<String[]> paramList = new ArrayList<String[]>();
+            paramList.add(new String[] {"user", user});
+            paramList.add(new String[] {"database", database});
+            paramList.add(new String[] {"client_encoding", "UTF8"});
+            paramList.add(new String[] {"DateStyle", "ISO"});
+            paramList.add(new String[] {"TimeZone",  createPostgresTimeZone()});
+            paramList.add(new String[] {"extra_float_digits", "2"});
+
+            String currentSchema = info.getProperty("currentSchema");
+            if (currentSchema != null)
+            {
+                paramList.add(new String[] {"search_path", currentSchema});
+            }
+
+            String[][] params = paramList.toArray(new String[][]{});
 
             sendStartupPacket(newStream, params, logger);
 

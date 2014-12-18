@@ -269,12 +269,6 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         }
         this.disableColumnSanitiser = Boolean.valueOf(info.getProperty(""
                 + "disableColumnSanitiser", Boolean.FALSE.toString()));
-
-        String currentSchema = info.getProperty("currentSchema");
-        if (currentSchema != null)
-        {
-            setSchema(currentSchema);
-        }
     }
 
     private Set<Integer> getOidSet(String oidList) throws PSQLException {
@@ -1287,7 +1281,11 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         {
             if (schema != null)
             {
-                stmt.executeUpdate("SET SESSION search_path TO '" + schema + "'");
+                StringBuffer sb = new StringBuffer();
+                sb.append("SET SESSION search_path TO '");
+                Utils.appendEscapedLiteral(sb, schema, protoConnection.getStandardConformingStrings());
+                sb.append("'");
+                stmt.executeUpdate(sb.toString());
             }
             else
             {
