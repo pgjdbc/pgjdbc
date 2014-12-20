@@ -133,8 +133,9 @@ public class Parser {
     public static int parseLineComment(final char[] query, int offset) {
         if (offset + 1 < query.length && query[offset + 1] == '-')
         {
-            while (++offset < query.length)
+            while (offset + 1 < query.length)
             {
+                offset++;
                 if (query[offset] == '\r' || query[offset] == '\n')
                     break;
             }
@@ -201,31 +202,31 @@ public class Parser {
             {
                 case '\'': // single-quotes
                     j = Parser.parseSingleQuotes(aChars, i, standardConformingStrings);
-                    buf.append(aChars, i, j-i);
+                    buf.append(aChars, i, j-i+1);
                     i = j;
                     break;
 
                 case '"': // double-quotes
                     j = Parser.parseDoubleQuotes(aChars, i);
-                    buf.append(aChars, i, j-i);
+                    buf.append(aChars, i, j-i+1);
                     i = j;
                     break;
 
                 case '-': // possibly -- style comment
                     j = Parser.parseLineComment(aChars, i);
-                    buf.append(aChars, i, j-i);
+                    buf.append(aChars, i, j-i+1);
                     i = j;
                     break;
 
                 case '/': // possibly /* */ style comment
                     j = Parser.parseBlockComment(aChars, i);
-                    buf.append(aChars, i, j-i);
+                    buf.append(aChars, i, j-i+1);
                     i = j;
                     break;
 
                 case '$': // possibly dollar quote start
                     j = Parser.parseDollarQuotes(aChars, i);
-                    buf.append(aChars, i, j-i);
+                    buf.append(aChars, i, j-i+1);
                     i = j;
                     break;
 
