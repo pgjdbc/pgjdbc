@@ -450,17 +450,17 @@ public class PreparedStatementTest extends TestCase
         PreparedStatement st;
         ResultSet rs;
 
-        st = conn.prepareStatement("SELECT 'Top.Collections.Pictures.Astronomy.Stars'::ltree ?? '{\"*.Astronomy.*\"}'::lquery[];");
+        st = conn.prepareStatement("select ??- lseg '((-1,0),(1,0))';");
         rs = st.executeQuery();
         assertTrue(rs.next());
         assertEquals("t", rs.getString(1));
         assertFalse(rs.next());
         st.close();
 
-        st = conn.prepareStatement("select '{\"Top.Collections.Pictures.Astronomy.Stars\"}'::ltree[] ??~ '*.Astronomy.*'::lquery");
+        st = conn.prepareStatement("select lseg '((-1,0),(1,0))' ??# box '((-2,-2),(2,2))';");
         rs = st.executeQuery();
         assertTrue(rs.next());
-        assertEquals("Top.Collections.Pictures.Astronomy.Stars", rs.getString(1));
+        assertEquals("t", rs.getString(1));
         assertFalse(rs.next());
         st.close();
     }
