@@ -445,7 +445,26 @@ public class PreparedStatementTest extends TestCase
         assertFalse(rs.next());
         st.close();        
     }
-    
+
+    public void testDoubleQuestionMark() throws SQLException {
+        PreparedStatement st;
+        ResultSet rs;
+
+        st = conn.prepareStatement("select ??- lseg '((-1,0),(1,0))';");
+        rs = st.executeQuery();
+        assertTrue(rs.next());
+        assertEquals("t", rs.getString(1));
+        assertFalse(rs.next());
+        st.close();
+
+        st = conn.prepareStatement("select lseg '((-1,0),(1,0))' ??# box '((-2,-2),(2,2))';");
+        rs = st.executeQuery();
+        assertTrue(rs.next());
+        assertEquals("t", rs.getString(1));
+        assertFalse(rs.next());
+        st.close();
+    }
+
     public void testDouble() throws SQLException
     {
         PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE double_tab (max_double float, min_double float, null_value float)");

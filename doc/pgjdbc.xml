@@ -2482,6 +2482,23 @@ rs = stmt.executeQuery( "select * from {oj a left outer join b on (a.i=b.i)} ");
 
 
   </sect1>
+
+  <sect1 id="question-operator-escapes">
+    <title>?-contained operator escapes</title>
+    <para>
+      There are many ?-contained operators in postgres, such as hstore's ?&amp;/?| and ltree's ?/?~/?@ and so on, which can't be used normally in PreparedStatement, since '?' was used as a parameter placeholder.
+    </para>
+    <para>
+      <acronym>JDBC</acronym> specification doesn't tell how to escape, but PgJDBC provides a way to resolve it. That is, double mark the `?` when passing a raw sql to connection's prepareStatement method, as below:
+    </para>
+    <programlisting>
+      st = conn.prepareStatement("SELECT 'Top.Collections.Pictures.Astronomy.Stars'::ltree ?? '{\"*.Astronomy.*\"}'::lquery[];");
+    </programlisting>
+    <para>
+      Then PgJDBC won't treat the '??' as parameter placeholders, and will restore it back to '?' before sending to postgres server.
+    </para>
+  </sect1>
+
  </chapter> 
 
  <chapter id="ext">
