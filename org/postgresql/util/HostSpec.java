@@ -31,4 +31,14 @@ public class HostSpec {
     public String toString() {
         return host + ":" + port;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof HostSpec && port == ((HostSpec) obj).port && host.equals(((HostSpec) obj).host);
+    }
+
+    @Override
+    public int hashCode() {
+        return port ^ host.hashCode();
+    }
 }

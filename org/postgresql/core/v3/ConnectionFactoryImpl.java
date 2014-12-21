@@ -9,6 +9,7 @@
 package org.postgresql.core.v3;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 import java.util.TimeZone;
@@ -19,6 +20,11 @@ import java.net.ConnectException;
 import org.postgresql.PGProperty;
 import org.postgresql.core.*;
 import org.postgresql.sspi.SSPIClient;
+import org.postgresql.hostchooser.GlobalHostStatusTracker;
+import org.postgresql.hostchooser.HostChooser;
+import org.postgresql.hostchooser.HostChooserFactory;
+import org.postgresql.hostchooser.HostRequirement;
+import org.postgresql.hostchooser.HostStatus;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLWarning;
@@ -88,17 +94,26 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         //
         // Change by Chris Smith <cdsmith@twu.net>
 
-        for (int whichHost = 0; whichHost < hostSpecs.length; ++whichHost) {
-            HostSpec hostSpec = hostSpecs[whichHost];
-            
+        int connectTimeout = PGProperty.CONNECT_TIMEOUT.getInt(info) * 1000;
+
+        //  - the targetServerType setting
+        HostRequirement targetServerType;
+        try {
+            targetServerType = HostRequirement.valueOf(info.getProperty("targetServerType", HostRequirement.any.name()));
+        } catch (IllegalArgumentException ex) {
+            throw new PSQLException (GT.tr("Invalid targetServerType value: {0}", info.getProperty("targetServerType")), PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+        }
+
+        HostChooser hostChooser = HostChooserFactory.createHostChooser(hostSpecs, targetServerType, info);
+        for (Iterator<HostSpec> hostIter = hostChooser.iterator(); hostIter.hasNext(); ) {
+            HostSpec hostSpec = hostIter.next();
+
         if (logger.logDebug())
             logger.debug("Trying to establish a protocol version 3 connection to " + hostSpec);
 
         //
         // Establish a connection.
         //
-
-        int connectTimeout = PGProperty.CONNECT_TIMEOUT.getInt(info) * 1000;
 
         PGStream newStream = null;
         try
@@ -183,6 +198,21 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             ProtocolConnectionImpl protoConnection = new ProtocolConnectionImpl(newStream, user, database, info, logger, connectTimeout);
             readStartupMessages(newStream, protoConnection, logger);
 
+            // Check Master or Slave
+            HostStatus hostStatus = HostStatus.ConnectOK;
+            if (targetServerType != HostRequirement.any) {
+                hostStatus = isMaster(protoConnection, logger) ? HostStatus.Master : HostStatus.Slave;
+            }
+            GlobalHostStatusTracker.reportHostStatus(hostSpec, hostStatus);
+            if (!targetServerType.allowConnectingTo(hostStatus)) {
+                protoConnection.close();
+                if (hostIter.hasNext()) {
+                    // still more addresses to try
+                    continue;
+                }
+                throw new PSQLException (GT.tr("Could not find a server with specified targetServerType: {0}", targetServerType) , PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+            }
+
             runInitialQueries(protoConnection, info, logger);
 
             // And we're done.
@@ -193,13 +223,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // Swallow this and return null so ConnectionFactory tries the next protocol.
             if (logger.logDebug())
                 logger.debug("Protocol not supported, abandoning connection.");
-            try
-            {
-                newStream.close();
-            }
-            catch (IOException e)
-            {
-            }
+            closeStream(newStream);
             return null;
         }
         catch (ConnectException cex)
@@ -207,25 +231,18 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // Added by Peter Mount <peter@retep.org.uk>
             // ConnectException is thrown when the connection cannot be made.
             // we trap this an return a more meaningful message for the end user
-            if (whichHost + 1 < hostSpecs.length) {
+            GlobalHostStatusTracker.reportHostStatus(hostSpec, HostStatus.ConnectFail);
+            if (hostIter.hasNext()) {
                 // still more addresses to try
                 continue;
             }
-            throw new PSQLException (GT.tr("Connection refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections."), PSQLState.CONNECTION_UNABLE_TO_CONNECT, cex);
+            throw new PSQLException (GT.tr("Connection to {0} refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.", hostSpec), PSQLState.CONNECTION_UNABLE_TO_CONNECT, cex);
         }
         catch (IOException ioe)
         {
-            if (newStream != null)
-            {
-                try
-                {
-                    newStream.close();
-                }
-                catch (IOException e)
-                {
-                }
-            }
-            if (whichHost + 1 < hostSpecs.length) {
+            closeStream(newStream);
+            GlobalHostStatusTracker.reportHostStatus(hostSpec, HostStatus.ConnectFail);
+            if (hostIter.hasNext()) {
                 // still more addresses to try
                 continue;
             }
@@ -233,17 +250,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         }
         catch (SQLException se)
         {
-            if (newStream != null)
-            {
-                try
-                {
-                    newStream.close();
-                }
-                catch (IOException e)
-                {
-                }
-            }
-            if (whichHost + 1 < hostSpecs.length) {
+            closeStream(newStream);
+            if (hostIter.hasNext()) {
                 // still more addresses to try
                 continue;
             }
@@ -759,4 +767,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     }
 
+    private boolean isMaster(ProtocolConnectionImpl protoConnection, Logger logger) throws SQLException, IOException {
+        byte[][] results = SetupQueryRunner.run(protoConnection, "show transaction_read_only", true);
+        String value = protoConnection.getEncoding().decode(results[0]);
+        return value.equalsIgnoreCase("off");
+    }
 }

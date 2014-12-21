@@ -9,6 +9,7 @@
 package org.postgresql.core;
 
 import java.util.Properties;
+import java.io.IOException;
 import java.sql.SQLException;
 
 import org.postgresql.PGProperty;
@@ -87,4 +88,22 @@ public abstract class ConnectionFactory {
      *    than protocol version incompatibility.
      */
     public abstract ProtocolConnection openConnectionImpl(HostSpec[] hostSpecs, String user, String database, Properties info, Logger logger) throws SQLException;
+
+    /**
+     * Safely close the given stream.
+     *
+     * @param newStream The stream to close.
+     */
+    protected void closeStream(PGStream newStream) {
+        if (newStream != null)
+        {
+            try
+            {
+                newStream.close();
+            }
+            catch (IOException e)
+            {
+            }
+        }
+    }
 }
