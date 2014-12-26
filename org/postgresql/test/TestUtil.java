@@ -587,4 +587,40 @@ public class TestUtil
         rs.close();
         return returnValue;
     }
+
+    /**
+     * Close a Connection and ignore any errors during closing.
+     */
+    public static void closeQuietly(Connection conn) {
+        if( conn != null ) {
+            try {
+                conn.close();
+            } catch(SQLException ignore) {
+            }
+        }
+    }
+
+    /**
+     * Close a Statement and ignore any errors during closing.
+     */
+    public static void closeQuietly(Statement stmt) {
+        if( stmt != null ) {
+            try {
+                stmt.close();
+            } catch(SQLException ignore) {
+            }
+        }
+    }
+
+    /**
+     * Close a ResultSet and ignore any errors during closing.
+     */
+    public static void closeQuietly(ResultSet rs) {
+        if( rs != null ) {
+            try {
+                rs.close();
+            } catch(SQLException ignore) {
+            }
+        }
+    }
 }

@@ -7,6 +7,7 @@
 */
 package org.postgresql.core;
 
+import java.util.TimerTask;
 import java.sql.*;
 import org.postgresql.PGConnection;
 import org.postgresql.jdbc2.TimestampUtils;
@@ -196,4 +197,15 @@ public interface BaseConnection extends PGConnection, Connection
      *  Return whether to disable column name sanitization. 
      */
     public boolean isColumnSanitiserDisabled();
+
+    /**
+     *  Schedule a TimerTask for later execution.
+     *  The task will be scheduled with the shared Timer for this connection.
+     */
+    public void addTimerTask(TimerTask timerTask, long milliSeconds);
+
+    /**
+     *  Invoke purge() on the underlying shared Timer so that internal resources will be released.
+     */
+    public void purgeTimerTasks();
 }

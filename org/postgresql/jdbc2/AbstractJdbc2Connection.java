@@ -21,6 +21,7 @@ import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.util.*;
 import org.postgresql.copy.*;
 import org.postgresql.core.Utils;
+import org.postgresql.util.SharedTimer;
 
 /**
  * This class defines methods of the jdbc2 specification.
@@ -82,6 +83,10 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     private Set<Integer> useBinaryReceiveForOids;
 
     public abstract DatabaseMetaData getMetaData() throws SQLException;
+
+    // Timer for scheduling TimerTasks for this connection.
+    // Only instantiated if a task is actually scheduled.
+    private volatile Timer cancelTimer = null;
 
     //
     // Ctor.
@@ -635,6 +640,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
      */
     public void close()
     {
+        releaseTimer();
         protoConnection.close();
         openStackTrace = null;
     }
@@ -1292,5 +1298,31 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     protected void abort()
     {
        protoConnection.abort();
+    }
+
+    private synchronized Timer getTimer() {
+        if( cancelTimer == null ) {
+            cancelTimer = Driver.getSharedTimer().getTimer();
+        }
+        return cancelTimer;
+    }
+
+    private synchronized void releaseTimer() {
+        if( cancelTimer != null ) {
+            cancelTimer = null;
+            Driver.getSharedTimer().releaseTimer();
+        }
+    }
+
+    public void addTimerTask(TimerTask timerTask, long milliSeconds) {
+        Timer timer = getTimer();
+        timer.schedule( timerTask, milliSeconds );
+    }
+
+    public void purgeTimerTasks() {
+        Timer timer = cancelTimer;
+        if( timer != null ) {
+            timer.purge();
+        }
     }
 }
