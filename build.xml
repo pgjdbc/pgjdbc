@@ -255,6 +255,9 @@
     </copy>
 
   </target>
+  <artifact:dependencies pathId="dependency.classpath" useScope="test">
+    <dependency groupId="junit" artifactId="junit" version="4.11" scope="test"/>
+  </artifact:dependencies>
 
   <target name="check_versions">
     <condition property="jdbc2">
