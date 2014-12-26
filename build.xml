@@ -208,7 +208,7 @@
                   version="${waffle-pom.properties.slf4j.version}" scope="runtime"/>
 
       <!-- Ensure JUnit is available, since we hide the ant runtime -->
-      <dependency groupId="junit" artifactId="junit" version="4.0"
+      <dependency groupId="junit" artifactId="junit" version="4.11"
                   scope="test"/>
 
     </artifact:pom>

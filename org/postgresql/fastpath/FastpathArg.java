@@ -44,6 +44,25 @@ public class FastpathArg
     }
 
     /**
+     * Constructs an argument that consists of an integer value
+     * @param value int value to set
+     */
+    public FastpathArg(long value)
+    {
+        bytes = new byte[8];
+        bytes[7] = (byte) (value);
+        bytes[6] = (byte) (value >> 8);
+        bytes[5] = (byte) (value >> 16);
+        bytes[4] = (byte) (value >> 24);
+        bytes[3] = (byte) (value >> 32);
+        bytes[2] = (byte) (value >> 40);
+        bytes[1] = (byte) (value >> 48);
+        bytes[0] = (byte) (value >> 56);
+        bytesStart = 0;
+        bytesLength = 8;
+    }
+
+    /**
      * Constructs an argument that consists of an array of bytes
      * @param bytes array to store
      */

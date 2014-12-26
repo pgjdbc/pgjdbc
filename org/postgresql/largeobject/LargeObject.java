@@ -190,7 +190,7 @@ public class LargeObject
             // finally close
             FastpathArg args[] = new FastpathArg[1];
             args[0] = new FastpathArg(fd);
-            fp.fastpath("lo_close", false, args); // true here as we dont care!!
+            fp.fastpath("lo_close", args); // true here as we dont care!!
             closed = true;
 	    if (this.commitOnClose == true)
 	    {
@@ -245,7 +245,7 @@ public class LargeObject
         FastpathArg args[] = new FastpathArg[2];
         args[0] = new FastpathArg(fd);
         args[1] = new FastpathArg(buf);
-        fp.fastpath("lowrite", false, args);
+        fp.fastpath("lowrite", args);
     }
 
     /**
@@ -261,7 +261,7 @@ public class LargeObject
         FastpathArg args[] = new FastpathArg[2];
         args[0] = new FastpathArg(fd);
         args[1] = new FastpathArg(buf, off, len);
-        fp.fastpath("lowrite", false, args);
+        fp.fastpath("lowrite", args);
     }
 
     /**
@@ -280,7 +280,23 @@ public class LargeObject
         args[0] = new FastpathArg(fd);
         args[1] = new FastpathArg(pos);
         args[2] = new FastpathArg(ref);
-        fp.fastpath("lo_lseek", false, args);
+        fp.fastpath("lo_lseek", args);
+    }
+
+    /**
+     * Sets the current position within the object using 64-bit value (9.3+)
+     *
+     * @param pos position within object
+     * @param ref Either SEEK_SET, SEEK_CUR or SEEK_END
+     * @exception SQLException if a database-access error occurs.
+     */
+    public void seek64(long pos, int ref) throws SQLException
+    {
+        FastpathArg args[] = new FastpathArg[3];
+        args[0] = new FastpathArg(fd);
+        args[1] = new FastpathArg(pos);
+        args[2] = new FastpathArg(ref);
+        fp.fastpath("lo_lseek64", args);
     }
 
     /**
@@ -309,6 +325,17 @@ public class LargeObject
     }
 
     /**
+     * @return the current position within the object
+     * @exception SQLException if a database-access error occurs.
+     */
+    public long tell64() throws SQLException
+    {
+        FastpathArg args[] = new FastpathArg[1];
+        args[0] = new FastpathArg(fd);
+        return fp.getLong("lo_tell64", args);
+    }
+
+    /**
      * This method is inefficient, as the only way to find out the size of
      * the object is to seek to the end, record the current position, then
      * return to the original position.
@@ -328,6 +355,21 @@ public class LargeObject
     }
 
     /**
+     * See #size() for information about efficiency.
+     * 
+     * @return the size of the large object
+     * @exception SQLException if a database-access error occurs.
+     */
+    public long size64() throws SQLException
+    {
+        long cp = tell64();
+        seek64(0, SEEK_END);
+        long sz = tell64();
+        seek64(cp, SEEK_SET);
+        return sz;
+    }
+
+    /**
      * Truncates the large object to the given length in bytes.
      * If the number of bytes is larger than the current large
      * object length, the large object will be filled with zero
@@ -342,6 +384,20 @@ public class LargeObject
     }
 
     /**
+     * Truncates the large object to the given length in bytes.
+     * If the number of bytes is larger than the current large
+     * object length, the large object will be filled with zero
+     * bytes.  This method does not modify the current file offset.
+     */
+    public void truncate64(long len) throws SQLException
+    {
+        FastpathArg args[] = new FastpathArg[2];
+        args[0] = new FastpathArg(fd);
+        args[1] = new FastpathArg(len);
+        fp.getInteger("lo_truncate64", args);
+    }
+
+    /**
      * Returns an InputStream from this object.
      *
      * <p>This InputStream can then be used in any method that requires an
@@ -352,6 +408,17 @@ public class LargeObject
     public InputStream getInputStream() throws SQLException
     {
         return new BlobInputStream(this, 4096);
+    }
+
+    /**
+     * Returns an InputStream from this object, that will limit the amount of data that is visible
+     *
+     * @param limit maximum number of bytes the resulting stream will serve
+     * @exception SQLException if a database-access error occurs.
+     */
+    public InputStream getInputStream(long limit) throws SQLException
+    {
+        return new BlobInputStream(this, 4096, limit);
     }
 
     /**

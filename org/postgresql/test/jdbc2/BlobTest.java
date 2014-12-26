@@ -8,7 +8,9 @@
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.test.TestUtil;
+
 import junit.framework.TestCase;
+
 import java.io.*;
 import java.sql.*;
 
@@ -42,8 +44,27 @@ public class BlobTest extends TestCase
     protected void tearDown() throws Exception
     {
         con.setAutoCommit(true);
-        TestUtil.dropTable(con, "testblob");
-        TestUtil.closeDB(con);
+        try
+        {
+            Statement stmt = con.createStatement();
+            try
+            {
+                stmt.execute("SELECT lo_unlink(lo) FROM testblob");
+            }
+            finally
+            {
+                try
+                {
+                    stmt.close();
+                }
+                catch (Exception e) {}
+            }
+        }
+        finally
+        {
+            TestUtil.dropTable(con, "testblob");
+            TestUtil.closeDB(con);
+        }
     }
 
     public void testSetNull() throws Exception
@@ -197,6 +218,24 @@ public class BlobTest extends TestCase
 
         is1.close();
         is2.close();
+    }
+
+    public void testLargeLargeObject() throws Exception
+    {
+        if (!TestUtil.haveMinimumServerVersion(con, "9.3"))
+        {
+            return;
+        }
+
+        Statement stmt = con.createStatement();
+        stmt.execute("INSERT INTO testblob(id,lo) VALUES ('1', lo_creat(-1))");
+        ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");
+        assertTrue(rs.next());
+
+        Blob lob = rs.getBlob(1);
+        long length = ((long)Integer.MAX_VALUE) + 1024;
+        lob.truncate(length);
+        assertEquals(length, lob.length());
     }
 
     /*

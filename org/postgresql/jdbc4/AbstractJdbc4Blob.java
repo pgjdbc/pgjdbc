@@ -10,6 +10,8 @@ package org.postgresql.jdbc4;
 
 import java.sql.*;
 
+import org.postgresql.largeobject.LargeObject;
+
 public abstract class AbstractJdbc4Blob extends org.postgresql.jdbc3.AbstractJdbc3Blob
 {
 
@@ -21,7 +23,17 @@ public abstract class AbstractJdbc4Blob extends org.postgresql.jdbc3.AbstractJdb
     public synchronized java.io.InputStream getBinaryStream(long pos, long length) throws SQLException
     {
         checkFreed();
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "getBinaryStream(long, long)");
+        LargeObject subLO = getLo(false).copy();
+        addSubLO(subLO);
+        if (pos > Integer.MAX_VALUE)
+        {
+            subLO.seek64(pos - 1, LargeObject.SEEK_SET);
+        }
+        else
+        {
+            subLO.seek((int) pos - 1, LargeObject.SEEK_SET);
+        }
+        return subLO.getInputStream(length);
     }
 
 }

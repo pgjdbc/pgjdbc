@@ -15,6 +15,7 @@ import java.util.Map;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ParameterList;
+import org.postgresql.util.ByteConverter;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.GT;
@@ -54,14 +55,48 @@ public class Fastpath
 
     /**
      * Send a function call to the PostgreSQL backend
-     *
+     * 
+     * @deprecated please use {@link #fastpath(int, FastpathArg[])}
      * @param fnId Function id
-     * @param resultType True if the result is an integer, false for other results
+     * @param resultType True if the result is a numeric (Integer or Long)
      * @param args FastpathArguments to pass to fastpath
-     * @return null if no data, Integer if an integer result, or byte[] otherwise
+     * @return null if no data, Integer if an integer result, Long if a long result, or byte[] otherwise
      * @exception SQLException if a database-access error occurs.
      */
+    @Deprecated
     public Object fastpath(int fnId, boolean resultType, FastpathArg[] args) throws SQLException
+    {
+        // Run it.
+        byte[] returnValue = fastpath(fnId, args);
+
+        // Interpret results.
+        if (!resultType || returnValue == null)
+            return returnValue;
+
+        if (returnValue.length == 4)
+        {
+            return new Integer(ByteConverter.int4(returnValue, 0));
+        }
+        else if (returnValue.length == 8)
+        {
+            return new Long(ByteConverter.int8(returnValue, 0));
+        }
+        else
+        {
+            throw new PSQLException(GT.tr("Fastpath call {0} - No result was returned and we expected a numeric.", new Integer(fnId)),
+                                    PSQLState.NO_DATA);
+        }
+    }
+
+    /**
+     * Send a function call to the PostgreSQL backend
+     *
+     * @param fnId Function id
+     * @param args FastpathArguments to pass to fastpath
+     * @return null if no data, byte[] otherwise
+     * @exception SQLException if a database-access error occurs.
+     */
+    public byte[] fastpath(int fnId, FastpathArg[] args) throws SQLException
     {
         // Turn fastpath array into a parameter list.
         ParameterList params = executor.createFastpathParameters(args.length);
@@ -73,40 +108,22 @@ public class Fastpath
         // Run it.
         byte[] returnValue = executor.fastpathCall(fnId, params, connection.getAutoCommit());
 
-        // Interpret results.
-        if (!resultType || returnValue == null)
-            return returnValue;
-
-        if (returnValue.length != 4)
-            throw new PSQLException(GT.tr("Fastpath call {0} - No result was returned and we expected an integer.", new Integer(fnId)),
-                                    PSQLState.NO_DATA);
-
-        return new Integer((returnValue[3] & 255) |
-                           ((returnValue[2] & 255) << 8) |
-                           ((returnValue[1] & 255) << 16) |
-                           ((returnValue[0] & 255) << 24));
+        return returnValue;
     }
 
     /**
-     * Send a function call to the PostgreSQL backend by name.
-     *
-     * Note: the mapping for the procedure name to function id needs to exist,
-     * usually to an earlier call to addfunction().
-     *
-     * This is the prefered method to call, as function id's can/may change
-     * between versions of the backend.
-     *
-     * For an example of how this works, refer to org.postgresql.largeobject.LargeObject
-     *
      * @param name Function name
-     * @param resulttype True if the result is an integer, false for other
-     * results
+     * @param resultType True if the result is a numeric (Integer or Long)
      * @param args FastpathArguments to pass to fastpath
-     * @return null if no data, Integer if an integer result, or byte[] otherwise
-     * @exception SQLException if name is unknown or if a database-access error
-     * occurs.
-     * @see org.postgresql.largeobject.LargeObject
+     * @return null if no data, Integer if an integer result, Long if a long result, or byte[] otherwise
+     * 
+     * @deprecated Use {@link #getData(String, FastpathArg[])} if you expect a binary result, 
+     * or one of {@link #getInteger(String, FastpathArg[])} or {@link #getLong(String, FastpathArg[])} if you
+     * expect a numeric one
+     * @see #fastpath(int, FastpathArg[])
+     * @see #fastpath(String, FastpathArg[])
      */
+    @Deprecated
     public Object fastpath(String name, boolean resulttype, FastpathArg[] args) throws SQLException
     {
         if (connection.getLogger().logDebug())
@@ -115,7 +132,32 @@ public class Fastpath
     }
 
     /**
-     * This convenience method assumes that the return value is an Integer
+     * Send a function call to the PostgreSQL backend by name.
+     *
+     * Note: the mapping for the procedure name to function id needs to exist,
+     * usually to an earlier call to addfunction().
+     *
+     * This is the preferred method to call, as function id's can/may change
+     * between versions of the backend.
+     *
+     * For an example of how this works, refer to org.postgresql.largeobject.LargeObject
+     *
+     * @param name Function name
+     * @param args FastpathArguments to pass to fastpath
+     * @return null if no data, byte[] otherwise
+     * @exception SQLException if name is unknown or if a database-access error
+     * occurs.
+     * @see org.postgresql.largeobject.LargeObject
+     */
+    public byte[] fastpath(String name, FastpathArg[] args) throws SQLException
+    {
+        if (connection.getLogger().logDebug())
+            connection.getLogger().debug("Fastpath: calling " + name);
+        return fastpath(getID(name), args);
+    }
+
+    /**
+     * This convenience method assumes that the return value is an integer
      * @param name Function name
      * @param args Function arguments
      * @return integer result
@@ -123,11 +165,51 @@ public class Fastpath
      */
     public int getInteger(String name, FastpathArg[] args) throws SQLException
     {
-        Integer i = (Integer)fastpath(name, true, args);
-        if (i == null)
+        byte[] returnValue = fastpath(name, args);
+        if (returnValue == null)
+        {
             throw new PSQLException(GT.tr("Fastpath call {0} - No result was returned and we expected an integer.", name),
-                                    PSQLState.NO_DATA);
-        return i.intValue();
+                    PSQLState.NO_DATA);
+        }
+
+        if (returnValue.length == 4)
+        {
+            int i = ByteConverter.int4(returnValue, 0);
+            return i;
+        }
+        else
+        {
+            throw new PSQLException(GT.tr("Fastpath call {0} - No result was returned or wrong size while expecting an integer.", name),
+                    PSQLState.NO_DATA);
+        }
+    }
+
+    /**
+     * This convenience method assumes that the return value is a long (bigint)
+     * @param name Function name
+     * @param args Function arguments
+     * @return long result
+     * @exception SQLException if a database-access error occurs or no result
+     */
+    public long getLong(String name, FastpathArg[] args) throws SQLException
+    {
+        byte[] returnValue = fastpath(name, args);
+        if (returnValue == null)
+        {
+            throw new PSQLException(GT.tr("Fastpath call {0} - No result was returned and we expected a long.", name),
+                    PSQLState.NO_DATA);
+        }
+        if (returnValue.length == 8)
+        {
+            long l = ByteConverter.int8(returnValue, 0);
+            return l;
+            
+        }
+        else
+        {
+            throw new PSQLException(GT.tr("Fastpath call {0} - No result was returned or wrong size while expecting a long.", name),
+                    PSQLState.NO_DATA);
+        }
     }
 
     /**
@@ -153,7 +235,7 @@ public class Fastpath
      */
     public byte[] getData(String name, FastpathArg[] args) throws SQLException
     {
-        return (byte[])fastpath(name, false, args);
+        return (byte[])fastpath(name, args);
     }
 
     /**

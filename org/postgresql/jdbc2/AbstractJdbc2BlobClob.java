@@ -34,6 +34,7 @@ public abstract class AbstractJdbc2BlobClob
     private LargeObject currentLo;
     private long loPos;
     private boolean currentLoIsWriteable;
+    private boolean support64bit;
     
     
     /**
@@ -51,7 +52,15 @@ public abstract class AbstractJdbc2BlobClob
         this.currentLo = null;
         this.currentLoIsWriteable = false;
         
-       
+        if (conn.haveMinimumServerVersion(90300))
+        {
+            support64bit = true;
+        }
+        else
+        {
+            support64bit = false;
+        }
+
         subLOs = new ArrayList();
     }
 
@@ -88,16 +97,32 @@ public abstract class AbstractJdbc2BlobClob
         }
         if (len > Integer.MAX_VALUE)
         {
-            throw new PSQLException(GT.tr("PostgreSQL LOBs can only index to: {0}", new Integer(Integer.MAX_VALUE)), PSQLState.INVALID_PARAMETER_VALUE);
+            if (support64bit)
+            {
+                getLo(true).truncate64(len);
+            }
+            else
+            {
+                throw new PSQLException(GT.tr("PostgreSQL LOBs can only index to: {0}", new Integer(Integer.MAX_VALUE)), PSQLState.INVALID_PARAMETER_VALUE);
+            }
         }
-
-        getLo(true).truncate((int)len);
+        else
+        {
+            getLo(true).truncate((int)len);
+        }
     }
 
     public synchronized long length() throws SQLException
     {
         checkFreed();
-        return getLo(false).size();
+        if (support64bit)
+        {
+            return getLo(false).size64();
+        }
+        else
+        {
+            return getLo(false).size();
+        }
     }
 
     public synchronized byte[] getBytes(long pos, int length) throws SQLException
@@ -112,7 +137,7 @@ public abstract class AbstractJdbc2BlobClob
     {
         checkFreed();
         LargeObject subLO = getLo(false).copy();
-        subLOs.add(subLO);
+        addSubLO(subLO);
         subLO.seek(0, LargeObject.SEEK_SET);
         return subLO.getInputStream();
     }
@@ -121,7 +146,7 @@ public abstract class AbstractJdbc2BlobClob
     {
         assertPosition(pos);
         LargeObject subLO = getLo(true).copy();
-        subLOs.add(subLO);
+        addSubLO(subLO);
         subLO.seek((int)(pos-1));
         return subLO.getOutputStream();
     }
@@ -280,5 +305,10 @@ public abstract class AbstractJdbc2BlobClob
 	    currentLo = lom.open(oid, forWrite ? LargeObjectManager.READWRITE : LargeObjectManager.READ);
 	    currentLoIsWriteable = forWrite;
 	    return currentLo;
+	}
+
+	protected void addSubLO(LargeObject subLO)
+	{
+	    subLOs.add(subLO);
 	}
 }

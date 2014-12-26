@@ -22,6 +22,11 @@ public class BlobInputStream extends InputStream
     private LargeObject lo;
 
     /**
+     * The absolute position
+     */
+    private long apos;
+
+    /**
      * Buffer used to improve performance
      */
     private byte[] buffer;
@@ -42,6 +47,11 @@ public class BlobInputStream extends InputStream
     private int mpos = 0;
 
     /**
+     * The limit
+     */
+    private long limit = -1;
+
+    /**
      * @param lo LargeObject to read from
      */
     public BlobInputStream(LargeObject lo)
@@ -53,12 +63,24 @@ public class BlobInputStream extends InputStream
      * @param lo LargeObject to read from
      * @param bsize buffer size
      */
+
     public BlobInputStream(LargeObject lo, int bsize)
+    {
+        this(lo, 1024, -1);
+    }
+
+    /**
+     * @param lo LargeObject to read from
+     * @param bsize buffer size
+     */
+    public BlobInputStream(LargeObject lo, int bsize, long limit)
     {
         this.lo = lo;
         buffer = null;
         bpos = 0;
+        apos = 0;
         this.bsize = bsize;
+        this.limit = limit;
     }
 
     /**
@@ -69,6 +91,10 @@ public class BlobInputStream extends InputStream
         checkClosed();
         try
         {
+            if (limit > 0 && apos >= limit)
+            {
+                return -1;
+            }
             if (buffer == null || bpos >= buffer.length)
             {
                 buffer = lo.read(bsize);
@@ -88,6 +114,7 @@ public class BlobInputStream extends InputStream
             }
 
             bpos++;
+            apos++;
 
             return ret;
         }

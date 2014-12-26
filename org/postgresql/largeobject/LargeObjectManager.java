@@ -123,10 +123,13 @@ public class LargeObjectManager
                " or proname = 'lo_creat'" +
                " or proname = 'lo_unlink'" +
                " or proname = 'lo_lseek'" +
+               " or proname = 'lo_lseek64'" +
                " or proname = 'lo_tell'" +
+               " or proname = 'lo_tell64'" +
                " or proname = 'loread'" +
                " or proname = 'lowrite'" +
-               " or proname = 'lo_truncate'";
+               " or proname = 'lo_truncate'" +
+               " or proname = 'lo_truncate64'";
 
         if (conn.getMetaData().supportsSchemasInTableDefinitions())
         {
@@ -329,7 +332,7 @@ public class LargeObjectManager
     {
         FastpathArg args[] = new FastpathArg[1];
         args[0] = Fastpath.createOIDArg(oid);
-        fp.fastpath("lo_unlink", false, args);
+        fp.fastpath("lo_unlink", args);
     }
 
     /**

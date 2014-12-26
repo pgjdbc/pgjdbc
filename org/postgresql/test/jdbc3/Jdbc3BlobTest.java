@@ -15,6 +15,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Arrays;
 
 import junit.framework.TestCase;
@@ -47,8 +48,27 @@ public class Jdbc3BlobTest extends TestCase
     protected void tearDown() throws SQLException
     {
         _conn.setAutoCommit(true);
-        TestUtil.dropTable(_conn, TABLE);
-        TestUtil.closeDB(_conn);
+        try
+        {
+            Statement stmt = _conn.createStatement();
+            try
+            {
+                stmt.execute("SELECT lo_unlink(DATA) FROM " + TABLE);
+            }
+            finally
+            {
+                try
+                {
+                    stmt.close();
+                }
+                catch (Exception e) {}
+            }
+        }
+        finally
+        {
+            TestUtil.dropTable(_conn, TABLE);
+            TestUtil.closeDB(_conn);
+        }
     }
 
     /**
