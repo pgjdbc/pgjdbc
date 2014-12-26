@@ -86,6 +86,14 @@ class FastpathParameterList implements ParameterList {
         paramValues[index - 1] = new StreamWrapper(stream, length);
     }
 
+    public void setBytea(int index, InputStream stream) throws SQLException
+    {
+        if (index < 1 || index > paramValues.length)
+            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE );
+
+        paramValues[index - 1] = new StreamWrapper(stream);
+    }
+
     public void setNull(int index, int oid) throws SQLException {
         throw new IllegalArgumentException("can't setNull() on a v2 fastpath parameter");
     }
