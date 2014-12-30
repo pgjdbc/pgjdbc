@@ -573,7 +573,7 @@ public abstract class BaseDataSource implements Referenceable
         sb.append("&binaryTransfer=").append(binaryTransfer);
 
         if ( stringType != null ) {
-            sb.append("&stringtype");
+            sb.append("&stringtype=");
             sb.append(stringType);
         }
 
