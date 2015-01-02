@@ -127,6 +127,14 @@ public class XADataSourceTest extends TestCase {
         }
     }
 
+    /*
+     * Check that the equals method works for the connection wrapper returned
+     * by PGXAConnection.getConnection().
+     */
+    public void testWrapperEquals() throws Exception {
+        assertTrue("Wrappers should be equal", conn.equals(conn));
+    }
+
     public void testOnePhase() throws Exception {
         Xid xid = new CustomXid(1);
         xaRes.start(xid, XAResource.TMNOFLAGS);
