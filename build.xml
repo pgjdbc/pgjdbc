@@ -423,6 +423,7 @@
       <attribute name="Bundle-DocURL" value="http://jdbc.postgresql.org/" />
 
       <attribute name="Bundle-Classpath" value="." />
+      <attribute name="Bundle-Activator" value="org.postgresql.osgi.PGBundleActivator" />
       <attribute name="Export-Package" value="org.postgresql*; version=${fullversion}" />
       <attribute name="Import-Package" value="javax.sql, javax.transaction.xa, javax.naming, *;resolution:=optional" />
     </manifest>
@@ -760,6 +761,7 @@
       <test name="org.postgresql.test.jdbc3.Jdbc3TestSuite" outfile="${testResultsDir}/jdbc3"/>
       <test name="org.postgresql.test.xa.XATestSuite" outfile="${testResultsDir}/xa"/>
       <test name="org.postgresql.test.extensions.ExtensionsSuite" outfile="${testResultsDir}/extensions"/>
+      <test name="org.postgresql.test.osgi.OsgiTestSuite" outfile="${testResultsDir}/osgi"/>
       <test name="org.postgresql.test.jdbc4.Jdbc4TestSuite" if="jdbc4tests" outfile="${testResultsDir}/jdbc4"/>
       <test name="org.postgresql.test.jdbc4.jdbc41.Jdbc41TestSuite" if="jdbc41tests" outfile="${testResultsDir}/jdbc41"/>
       <test name="org.postgresql.test.hostchooser.MultiHostSuite" outfile="${testResultsDir}/hostchooser"/>
