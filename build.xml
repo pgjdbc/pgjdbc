@@ -76,12 +76,17 @@
     <include name="${package}/jdbc3/Jdbc3Statement.java" if="jdbc3"/>
 
     <!-- jdbc3g subpackage -->
-    <include name="${package}/jdbc3g/*.java" if="jdbc3g"/>
+    <include name="${package}/jdbc3g/*.java" if="jdbc3plus"/>
     <exclude name="${package}/jdbc3g/Jdbc3g*.java" unless="jdbc3g"/>
 
     <!-- jdbc4 subpackage -->
-    <include name="${package}/jdbc4/*.java" if="jdbc4any"/>
-    <exclude name="${package}/jdcb4/Jdbc4*.java" unless="jdbc4any"/>
+    <include name="${package}/jdbc4/Abstract*.java" if="jdbc4plus"/>
+    <include name="${package}/jdbc4/Jdbc4*.java" unless="jdbc4"/>
+    <include name="${package}/jdbc4/Jdbc4*.java" unless="jdbc41"/>
+
+    <!-- jdbc42 subpackage -->
+    <include name="${package}/jdbc42/Abstract*.java" if="jdbc42plus"/>
+    <include name="${package}/jdbc42/Jdbc42*.java" if="jdbc42"/>
 
     <!-- ssl -->
     <include name="${package}/ssl/SingleCertValidatingFactory.java" if="jdbc4any"/>
@@ -270,33 +275,50 @@
         <equals arg1="${java.specification.version}" arg2="1.4"/>
     </condition>
     <condition property="jdbc3g">
-	<equals arg1="${java.specification.version}" arg2="1.5"/>
+        <equals arg1="${java.specification.version}" arg2="1.5"/>
     </condition>
     <condition property="jdbc4">
         <equals arg1="${java.specification.version}" arg2="1.6"/>
     </condition>
     <condition property="jdbc41">
-      <or>
-	<equals arg1="${java.specification.version}" arg2="1.7"/>
+        <equals arg1="${java.specification.version}" arg2="1.7"/>
+    </condition>
+    <condition property="jdbc42">
         <equals arg1="${java.specification.version}" arg2="1.8"/>
-      </or>
     </condition>
     <condition property="jdbc4any">
       <or>
         <isset property="jdbc4" />
-	<isset property="jdbc41" />
+        <isset property="jdbc41" />
+        <isset property="jdbc42" />
       </or>
     </condition>
     <condition property="jdbc3any">
       <or>
         <isset property="jdbc3" />
-	<isset property="jdbc3g" />
+        <isset property="jdbc3g" />
       </or>
     </condition>
     <condition property="jdbc3plus">
       <or>
         <isset property="jdbc3any" />
-	<isset property="jdbc4any" />
+        <isset property="jdbc4any" />
+      </or>
+    </condition>
+    <condition property="jdbc4plus">
+      <or>
+        <isset property="jdbc4any" />
+      </or>
+    </condition>
+    <condition property="jdbc41plus">
+      <or>
+        <isset property="jdbc41" />
+        <isset property="jdbc42" />
+      </or>
+    </condition>
+    <condition property="jdbc42plus">
+      <or>
+        <isset property="jdbc42" />
       </or>
     </condition>
 
@@ -316,11 +338,15 @@
     <available property="junit.task" classname="org.apache.tools.ant.taskdefs.optional.junit.JUnitTask"/>
 
     <condition property="jdbc4tests">
-      <isset property="jdbc4any" />
+      <isset property="jdbc4plus" />
     </condition>
 
     <condition property="jdbc41tests">
-      <isset property="jdbc41" />
+      <isset property="jdbc41plus" />
+    </condition>
+
+    <condition property="jdbc42tests">
+      <isset property="jdbc42plus" />
     </condition>
 
     <condition property="jdbc.version" value="jdbc3">
@@ -335,6 +361,10 @@
       <isset property="jdbc41" />
     </condition>
 
+    <condition property="jdbc.version" value="jdbc42">
+      <isset property="jdbc42" />
+    </condition>
+
     <condition property="jdbc.version.upper" value="JDBC3">
       <isset property="jdbc3any" />
     </condition>
@@ -346,6 +376,11 @@
     <condition property="jdbc.version.upper" value="JDBC41">
       <isset property="jdbc41" />
     </condition>
+
+    <condition property="jdbc.version.upper" value="JDBC42">
+      <isset property="jdbc42" />
+    </condition>
+
   </target>
 
   <!-- default target -->
@@ -466,27 +501,36 @@
           unless="driver.uptodate">
     <!-- determine the edition text -->
     <condition property="edition" value="JDBC3">
-        <equals arg1="${jdbc3}" arg2="true"/>
+        <isset property="jdbc3" />
     </condition>
     <condition property="edition" value="JDBC3g">
-    	<equals arg1="${jdbc3g}" arg2="true" />
+        <isset property="jdbc3g" />
     </condition>
     <condition property="edition" value="JDBC4">
-	<equals arg1="${jdbc4}" arg2="true" />
+        <isset property="jdbc4" />
     </condition>
     <condition property="edition" value="JDBC4.1">
-	<equals arg1="${jdbc41}" arg2="true" />
+        <isset property="jdbc41" />
+    </condition>
+    <condition property="edition" value="JDBC4.2">
+        <isset property="jdbc42" />
     </condition>
 
     <!-- determine the connection class -->
     <condition property="connectclass" value="org.postgresql.jdbc3.Jdbc3Connection">
-        <equals arg1="${jdbc3}" arg2="true"/>
+        <isset property="jdbc3" />
     </condition>
     <condition property="connectclass" value="org.postgresql.jdbc3g.Jdbc3gConnection">
-        <equals arg1="${jdbc3g}" arg2="true"/>
+        <isset property="jdbc3g" />
     </condition>
     <condition property="connectclass" value="org.postgresql.jdbc4.Jdbc4Connection">
-        <equals arg1="${jdbc4any}" arg2="true" />
+        <or>
+            <isset property="jdbc4" />
+            <isset property="jdbc41" />
+        </or>
+    </condition>
+    <condition property="connectclass" value="org.postgresql.jdbc4.Jdbc4Connection">
+        <isset property="jdbc42" />
     </condition>
 
     <condition property="notimplementedexception" value="java.sql.SQLException">
