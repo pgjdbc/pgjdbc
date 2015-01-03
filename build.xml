@@ -698,6 +698,7 @@
 
       <exclude name="${package}/test/jdbc4/**" unless="jdbc4tests" />
       <exclude name="${package}/test/jdbc4/jdbc41/**" unless="jdbc41tests" />
+      <exclude name="${package}/test/jdbc42/**" unless="jdbc42tests" />
       <exclude name="${package}/test/ssl/**" unless="jdbc4tests" />
 
       <classpath>
@@ -747,6 +748,7 @@
       <test name="org.postgresql.test.extensions.ExtensionsSuite" outfile="${testResultsDir}/extensions"/>
       <test name="org.postgresql.test.jdbc4.Jdbc4TestSuite" if="jdbc4tests" outfile="${testResultsDir}/jdbc4"/>
       <test name="org.postgresql.test.jdbc4.jdbc41.Jdbc41TestSuite" if="jdbc41tests" outfile="${testResultsDir}/jdbc41"/>
+      <test name="org.postgresql.test.jdbc42.Jdbc42TestSuite" if="jdbc42tests" outfile="${testResultsDir}/jdbc42"/>
       <test name="org.postgresql.test.hostchooser.MultiHostSuite" outfile="${testResultsDir}/hostchooser"/>
       <test name="org.postgresql.test.ssl.SslTestSuite" if="jdbc4tests" outfile="${testResultsDir}/ssl"/>
       <test name="org.postgresql.test.ssl.SingleCertValidatingFactoryTest" if="jdbc4tests" outfile="${testResultsDir}/scsf-ssl"/>
