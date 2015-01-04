@@ -107,6 +107,9 @@
     <include name="${package}/xa/*.java"/>
     <include name="${package}/xa/jdbc3/*.java"/>
     <include name="${package}/xa/jdbc4/*.java" if="jdbc4any"/>
+
+    <!-- OSGi package -->
+    <include name="${package}/osgi/*.java"/>
   </patternset>
 
   <property name="waffle-jna.version" value="1.7" />
@@ -211,7 +214,7 @@
       <dependency groupId="junit" artifactId="junit" version="4.11"
                   scope="test"/>
 
-      <dependency groupId="org.osgi" artifactId="org.osgi.core" version="4.2.0"
+      <dependency groupId="org.osgi" artifactId="org.osgi.core" version="4.3.1"
                   scope="provided"/>
       <dependency groupId="org.osgi" artifactId="org.osgi.enterprise" version="4.2.0"
                   scope="provided"/>
@@ -254,7 +257,7 @@
       These are used for building only and are only exposed for ant script
     -->
     <artifact:dependencies pathId="dependency.build.classpath">
-      <dependency groupId="biz.aQute" artifactId="bnd" version="1.50.0"/>
+      <dependency groupId="biz.aQute.bnd" artifactId="bnd" version="2.4.0"/>
     </artifact:dependencies>
 
     <!-- To make life easier for IDE users, copy dependencies to lib/ -->
@@ -410,23 +413,24 @@
     <mkdir dir="${osgidir}"/>
 
     <!--   create a bnd file named after the JAR file so that bnd wrap tool find it -->
-    <manifest file="${osgidir}/${artifact.version.string}.bnd" mode="replace">
-      <attribute name="Bundle-ManifestVersion" value="2" />
+    <echo file="${osgidir}/${artifact.version.string}.bnd">
+Bundle-ManifestVersion: 2
 
-      <attribute name="Bundle-Name" value="PostgreSQL JDBC Driver ${jdbc.version.upper}" />
-      <attribute name="Bundle-SymbolicName" value="org.postgresql.${jdbc.version}" />
-      <attribute name="Bundle-Version" value="${osgi.version}" />
+Bundle-Name: PostgreSQL JDBC Driver ${jdbc.version.upper}
+Bundle-SymbolicName: org.postgresql.${jdbc.version}
+Bundle-Version: ${osgi.version}
 
-      <attribute name="Bundle-Vendor" value="PostgreSQL Global Development Group" />
-      <attribute name="Bundle-Copyright" value="Copyright (c) 2003-2015, PostgreSQL Global Development Group" />
-      <attribute name="Bundle-License" value="http://www.postgresql.org/about/licence/" />
-      <attribute name="Bundle-DocURL" value="http://jdbc.postgresql.org/" />
+Bundle-Vendor: PostgreSQL Global Development Group
+Bundle-Copyright: Copyright (c) 2003-2015, PostgreSQL Global Development Group
+Bundle-License: http://www.postgresql.org/about/licence/
+Bundle-DocURL: http://jdbc.postgresql.org/
 
-      <attribute name="Bundle-Classpath" value="." />
-      <attribute name="Bundle-Activator" value="org.postgresql.osgi.PGBundleActivator" />
-      <attribute name="Export-Package" value="org.postgresql*; version=${fullversion}" />
-      <attribute name="Import-Package" value="javax.sql, javax.transaction.xa, javax.naming, *;resolution:=optional" />
-    </manifest>
+Bundle-Classpath: .
+Bundle-Activator: org.postgresql.osgi.PGBundleActivator
+Require-Capability: osgi.ee;filter:="(&amp;(|(osgi.ee=J2SE)(osgi.ee=JavaSE))(version>=${java.specification.version}))"
+Export-Package: org.postgresql*; version=${fullversion}
+Import-Package: javax.sql, javax.transaction.xa, javax.naming, *;resolution:=optional
+    </echo>
 
     <!--   run wrap task from bnd -->
     <taskdef resource="aQute/bnd/ant/taskdef.properties" classpathref="dependency.build.classpath"/> 

@@ -7,7 +7,8 @@
 */
 package org.postgresql.osgi;
 
-import java.util.Properties;
+import java.util.Dictionary;
+import java.util.Hashtable;
 
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
@@ -24,9 +25,9 @@ public class PGBundleActivator implements BundleActivator
 
     public void start(BundleContext context) throws Exception
     {
-        Properties properties = new Properties();
+        Dictionary<String,Object> properties = new Hashtable<String,Object>();
         properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_CLASS, Driver.class.getName());
-        properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_NAME, "Postgresql JDBC Driver");
+        properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_NAME, "PostgreSQL JDBC Driver");
         properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_VERSION, Driver.getVersion());
         _registration = context.registerService(DataSourceFactory.class.getName(),
                                                 new PGDataSourceFactory(),
@@ -38,6 +39,7 @@ public class PGBundleActivator implements BundleActivator
         if (_registration != null)
         {
             _registration.unregister();
+            _registration = null;
         }
 
         if (Driver.isRegistered())
