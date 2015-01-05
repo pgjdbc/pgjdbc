@@ -52,7 +52,8 @@ public class Driver implements java.sql.Driver
     public static final int DEBUG = 2;
     public static final int INFO = 1;
     public static final int OFF = 0;
-    
+
+    private static Driver registeredDriver;
     private static final Logger logger = new Logger();
     private static boolean logLevelSet = false;
     private static SharedTimer sharedTimer = new SharedTimer(logger);
@@ -65,11 +66,11 @@ public class Driver implements java.sql.Driver
             // because some clients call the driver themselves (I know, as
             // my early jdbc work did - and that was based on other examples).
             // Placing it here, means that the driver is registered once only.
-            java.sql.DriverManager.registerDriver(new Driver());
+            register();
         }
         catch (SQLException e)
         {
-            e.printStackTrace();
+            throw new ExceptionInInitializerError(e);
         }
     }
 
@@ -700,5 +701,49 @@ public class Driver implements java.sql.Driver
 
     public static SharedTimer getSharedTimer() {
         return sharedTimer;
+    }
+
+    /**
+     * Register the driver against {@link DriverManager}. This is done automatically when the class is loaded.
+     * Dropping the driver from DriverManager's list is possible using {@link #deregister()} method. 
+     * 
+     * @throws IllegalStateException if the driver is already registered
+     * @throws SQLException if registering the driver fails
+     */
+    public static void register() throws SQLException
+    {
+        if (isRegistered())
+        {
+            throw new IllegalStateException("Driver is already registered. It can only be registered once.");
+        }
+        Driver registeredDriver = new Driver();
+        DriverManager.registerDriver(registeredDriver);
+        Driver.registeredDriver = registeredDriver;
+    }
+
+    /**
+     * According to JDBC specification, this driver is registered against {@link DriverManager}
+     * when the class is loaded. To avoid leaks, this method allow unregistering the driver
+     * so that the class can be gc'ed if necessary.
+     * @throws IllegalStateException if the driver is not registered
+     * @throws SQLException if deregistering the driver fails
+     */
+    public static void deregister() throws SQLException
+    {
+        if (!isRegistered())
+        {
+            throw new IllegalStateException("Driver is not registered (or it has not been registered using Driver.register() method)");
+        }
+        DriverManager.deregisterDriver(registeredDriver);
+        registeredDriver = null;
+    }
+
+    /**
+     * 
+     * @return {@code true} if the driver is registered against {@link DriverManager}
+     */
+    public static boolean isRegistered()
+    {
+        return registeredDriver != null;
     }
 }

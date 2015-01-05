@@ -107,6 +107,9 @@
     <include name="${package}/xa/*.java"/>
     <include name="${package}/xa/jdbc3/*.java"/>
     <include name="${package}/xa/jdbc4/*.java" if="jdbc4any"/>
+
+    <!-- OSGi package -->
+    <include name="${package}/osgi/*.java"/>
   </patternset>
 
   <property name="waffle-jna.version" value="1.7" />
@@ -211,6 +214,10 @@
       <dependency groupId="junit" artifactId="junit" version="4.11"
                   scope="test"/>
 
+      <dependency groupId="org.osgi" artifactId="org.osgi.core" version="4.3.1"
+                  scope="provided"/>
+      <dependency groupId="org.osgi" artifactId="org.osgi.enterprise" version="4.2.0"
+                  scope="provided"/>
     </artifact:pom>
 
     <!--
@@ -246,6 +253,13 @@
                         url="${maven.remote.repository.url}"/>
     </artifact:dependencies>
 
+    <!--
+      These are used for building only and are only exposed for ant script
+    -->
+    <artifact:dependencies pathId="dependency.build.classpath">
+      <dependency groupId="biz.aQute.bnd" artifactId="bnd" version="2.4.0"/>
+    </artifact:dependencies>
+
     <!-- To make life easier for IDE users, copy dependencies to lib/ -->
     <copy todir="lib/">
       <fileset refid="dependency.compile.fileset"/>
@@ -255,9 +269,6 @@
     </copy>
 
   </target>
-  <artifact:dependencies pathId="dependency.classpath" useScope="test">
-    <dependency groupId="junit" artifactId="junit" version="4.11" scope="test"/>
-  </artifact:dependencies>
 
   <target name="check_versions">
     <condition property="jdbc2">
@@ -346,6 +357,18 @@
     <condition property="jdbc.version.upper" value="JDBC41">
       <isset property="jdbc41" />
     </condition>
+
+    <condition property="jdbc.version.numeric" value="3.0">
+      <isset property="jdbc3any" />
+    </condition>
+
+    <condition property="jdbc.version.numeric" value="4.0">
+      <isset property="jdbc4" />
+    </condition>
+
+    <condition property="jdbc.version.numeric" value="4.1">
+      <isset property="jdbc41" />
+    </condition>
   </target>
 
   <!-- default target -->
@@ -355,8 +378,13 @@
 
   <!-- create the jar file -->
   <target name="jar" depends="compile, artifact-version">
+    <property name="temp.jar.dir" value="${builddir}/${jardir}"/>
     <property name="artifact.jar" value="${jardir}/${artifact.version.string}.jar"/>
-    <jar jarfile="${artifact.jar}">
+    <property name="artifact.jar.build" value="${temp.jar.dir}/${artifact.version.string}.jar"/>
+
+    <mkdir dir="${temp.jar.dir}" />
+
+    <jar jarfile="${artifact.jar.build}">
       <fileset dir="${builddir}">
         <include name="${package}/**/*.class" />
       </fileset>
@@ -369,8 +397,44 @@
       </metainf>
       <manifest>
         <attribute name="Main-Class" value="org.postgresql.util.PGJDBCMain"/>
+
+        <attribute name="Specification-Title" value="JDBC" />
+        <attribute name="Specification-Version" value="${jdbc.version.numeric}" />
+        <attribute name="Specification-Vendor" value="Oracle Corporation" />
+
+        <attribute name="Implementation-Title" value="PostgreSQL JDBC Driver" />
+        <attribute name="Implementation-Version" value="${fullversion}" />
+        <attribute name="Implementation-Vendor" value="PostgreSQL Global Development Group" />
       </manifest>
     </jar>
+
+    <!-- add OSGi meta information -->
+    <property name="osgidir" value="${builddir}/osgi"/>
+    <mkdir dir="${osgidir}"/>
+
+    <!--   create a bnd file named after the JAR file so that bnd wrap tool find it -->
+    <echo file="${osgidir}/${artifact.version.string}.bnd">
+Bundle-ManifestVersion: 2
+
+Bundle-Name: PostgreSQL JDBC Driver ${jdbc.version.upper}
+Bundle-SymbolicName: org.postgresql.${jdbc.version}
+Bundle-Version: ${osgi.version}
+
+Bundle-Vendor: PostgreSQL Global Development Group
+Bundle-Copyright: Copyright (c) 2003-2015, PostgreSQL Global Development Group
+Bundle-License: http://www.postgresql.org/about/licence/
+Bundle-DocURL: http://jdbc.postgresql.org/
+
+Bundle-Classpath: .
+Bundle-Activator: org.postgresql.osgi.PGBundleActivator
+Require-Capability: osgi.ee;filter:="(&amp;(|(osgi.ee=J2SE)(osgi.ee=JavaSE))(version>=${java.specification.version}))"
+Export-Package: org.postgresql*; version=${fullversion}
+Import-Package: javax.sql, javax.transaction.xa, javax.naming, *;resolution:=optional
+    </echo>
+
+    <!--   run wrap task from bnd -->
+    <taskdef resource="aQute/bnd/ant/taskdef.properties" classpathref="dependency.build.classpath"/> 
+    <bndwrap jars="${artifact.jar.build}" output="${artifact.jar}" definitions="${osgidir}"/>
   </target>
 
   <!-- create a distribution with docs, dependencies, and driver jar -->
@@ -701,6 +765,7 @@
       <test name="org.postgresql.test.jdbc3.Jdbc3TestSuite" outfile="${testResultsDir}/jdbc3"/>
       <test name="org.postgresql.test.xa.XATestSuite" outfile="${testResultsDir}/xa"/>
       <test name="org.postgresql.test.extensions.ExtensionsSuite" outfile="${testResultsDir}/extensions"/>
+      <test name="org.postgresql.test.osgi.OsgiTestSuite" outfile="${testResultsDir}/osgi"/>
       <test name="org.postgresql.test.jdbc4.Jdbc4TestSuite" if="jdbc4tests" outfile="${testResultsDir}/jdbc4"/>
       <test name="org.postgresql.test.jdbc4.jdbc41.Jdbc41TestSuite" if="jdbc41tests" outfile="${testResultsDir}/jdbc41"/>
       <test name="org.postgresql.test.hostchooser.MultiHostSuite" outfile="${testResultsDir}/hostchooser"/>
