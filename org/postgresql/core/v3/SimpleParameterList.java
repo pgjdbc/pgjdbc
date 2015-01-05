@@ -187,7 +187,7 @@ class SimpleParameterList implements V3ParameterList {
             boolean hasBackslash = param.indexOf('\\') != -1;
 
             // add room for quotes + potential escaping.
-            StringBuffer p = new StringBuffer(3 + param.length() * 11 / 10);
+            StringBuilder p = new StringBuilder(3 + param.length() * 11 / 10);
 
             boolean standardConformingStrings = false;
             boolean supportsEStringSyntax = false;
@@ -203,7 +203,7 @@ class SimpleParameterList implements V3ParameterList {
             p.append('\'');
             try
             {
-                p = Utils.appendEscapedLiteral(p, param, standardConformingStrings);
+                p = Utils.escapeLiteral(p, param, standardConformingStrings);
             }
             catch (SQLException sqle)
             {

@@ -550,8 +550,8 @@ public class Driver implements java.sql.Driver
             urlProps.setProperty("PGDBNAME", l_urlServer.substring(slash + 1));
 
             String[] addresses = l_urlServer.substring(0, slash).split(",");
-            StringBuffer hosts = new StringBuffer();
-            StringBuffer ports = new StringBuffer();
+            StringBuilder hosts = new StringBuilder();
+            StringBuilder ports = new StringBuilder();
             for (int addr = 0; addr < addresses.length; ++addr) {
                 String address = addresses[addr];
                 

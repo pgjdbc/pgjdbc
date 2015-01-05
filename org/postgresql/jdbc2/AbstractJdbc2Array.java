@@ -385,7 +385,7 @@ public abstract class AbstractJdbc2Array
         {
 
             char[] chars = fieldString.toCharArray();
-            StringBuffer buffer = null;
+            StringBuilder buffer = null;
             boolean insideString = false;
             boolean wasInsideString = false; // needed for checking if NULL
             // value occured
@@ -446,7 +446,7 @@ public abstract class AbstractJdbc2Array
                         }
                     }
 
-                    buffer = new StringBuffer();
+                    buffer = new StringBuilder();
                     continue;
                 }
 
@@ -483,7 +483,7 @@ public abstract class AbstractJdbc2Array
                     }
 
                     wasInsideString = false;
-                    buffer = new StringBuffer();
+                    buffer = new StringBuilder();
 
                     // when end of an array
                     if (chars[i] == '}')
@@ -887,7 +887,7 @@ public abstract class AbstractJdbc2Array
      */
     private String toString(PgArrayList list) throws SQLException
     {
-        StringBuffer b = new StringBuffer().append('{');
+        StringBuilder b = new StringBuilder().append('{');
 
         char delim = connection.getTypeInfo().getArrayDelimiter(oid);
 
@@ -913,7 +913,7 @@ public abstract class AbstractJdbc2Array
         return b.toString();
     }
 
-    public static void escapeArrayElement(StringBuffer b, String s)
+    public static void escapeArrayElement(StringBuilder b, String s)
     {
         b.append('"');
         for (int j = 0; j < s.length(); j++) {

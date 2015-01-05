@@ -67,7 +67,7 @@ public class HStoreConverter {
        if (map.isEmpty()) {
            return "";
        }
-       StringBuffer sb = new StringBuffer(map.size() * 8);
+       StringBuilder sb = new StringBuilder(map.size() * 8);
        for (Iterator i = map.entrySet().iterator(); i.hasNext(); ) {
            Entry e = (Entry) i.next();
            appendEscaped(sb, e.getKey());
@@ -79,7 +79,7 @@ public class HStoreConverter {
        return sb.toString();
    }
 
-   private static void appendEscaped(StringBuffer sb, Object val) {
+   private static void appendEscaped(StringBuilder sb, Object val) {
       if (val != null) {
           sb.append('"');
           String s = val.toString();
@@ -99,7 +99,7 @@ public class HStoreConverter {
    public static Map fromString(String s) {
        Map m = new HashMap();
        int pos = 0;
-       StringBuffer sb = new StringBuffer();
+       StringBuilder sb = new StringBuilder();
        while (pos < s.length()) {
            sb.setLength(0);
            int start = s.indexOf('"', pos);
@@ -123,7 +123,7 @@ public class HStoreConverter {
        return m;
    }
 
-   private static int appendUntilQuote(StringBuffer sb, String s, int pos) {
+   private static int appendUntilQuote(StringBuilder sb, String s, int pos) {
        for (pos += 1; pos < s.length(); pos++) {
            char ch = s.charAt(pos);
            if (ch == '"') {
