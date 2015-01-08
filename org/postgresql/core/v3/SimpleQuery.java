@@ -36,7 +36,7 @@ class SimpleQuery implements V3Query {
     }
 
     public String toString(ParameterList parameters) {
-        StringBuffer sbuf = new StringBuffer(fragments[0]);
+        StringBuilder sbuf = new StringBuilder(fragments[0]);
         for (int i = 1; i < fragments.length; ++i)
         {
             if (parameters == null)

@@ -37,7 +37,7 @@ public class CacheMetadata {
   }
   
   protected String getIdFields(Field[] fields) {
-    StringBuffer sb = new StringBuffer();
+    StringBuilder sb = new StringBuilder();
     
     for (int i = 0 ; i < fields.length ; i++) {
       sb.append(getIdField(fields[i])).append('/');

@@ -139,7 +139,7 @@ public class EscapedFunctions {
     // ** numeric functions translations **
     /** ceiling to ceil translation */
     public static String sqlceiling(List parsedArgs) throws SQLException{
-        StringBuffer buf = new StringBuffer();
+        StringBuilder buf = new StringBuilder();
         buf.append("ceil(");
         if (parsedArgs.size()!=1){
             throw new PSQLException(GT.tr("{0} function takes one and only one argument.","ceiling"),
@@ -151,7 +151,7 @@ public class EscapedFunctions {
     
     /** log to ln translation */
     public static String sqllog(List parsedArgs) throws SQLException{
-        StringBuffer buf = new StringBuffer();
+        StringBuilder buf = new StringBuilder();
         buf.append("ln(");
         if (parsedArgs.size()!=1){
             throw new PSQLException(GT.tr("{0} function takes one and only one argument.","log"),
@@ -163,7 +163,7 @@ public class EscapedFunctions {
     
     /** log10 to log translation */
     public static String sqllog10(List parsedArgs) throws SQLException{
-        StringBuffer buf = new StringBuffer();
+        StringBuilder buf = new StringBuilder();
         buf.append("log(");
         if (parsedArgs.size()!=1){
             throw new PSQLException(GT.tr("{0} function takes one and only one argument.","log10"),
@@ -175,7 +175,7 @@ public class EscapedFunctions {
     
     /** power to pow translation */
     public static String sqlpower(List parsedArgs) throws SQLException{
-        StringBuffer buf = new StringBuffer();
+        StringBuilder buf = new StringBuilder();
         buf.append("pow(");
         if (parsedArgs.size()!=2){
             throw new PSQLException(GT.tr("{0} function takes two and only two arguments.","power"),
@@ -187,7 +187,7 @@ public class EscapedFunctions {
     
     /** truncate to trunc translation */
     public static String sqltruncate(List parsedArgs) throws SQLException{
-        StringBuffer buf = new StringBuffer();
+        StringBuilder buf = new StringBuilder();
         buf.append("trunc(");
         if (parsedArgs.size()!=2){
             throw new PSQLException(GT.tr("{0} function takes two and only two arguments.","truncate"),
@@ -200,7 +200,7 @@ public class EscapedFunctions {
     // ** string functions translations **
     /** char to chr translation */
     public static String sqlchar(List parsedArgs) throws SQLException{
-        StringBuffer buf = new StringBuffer();
+        StringBuilder buf = new StringBuilder();
         buf.append("chr(");
         if (parsedArgs.size()!=1){
             throw new PSQLException(GT.tr("{0} function takes one and only one argument.","char"),
@@ -212,7 +212,7 @@ public class EscapedFunctions {
 
     /** concat translation */
     public static String sqlconcat(List parsedArgs){
-        StringBuffer buf = new StringBuffer();
+        StringBuilder buf = new StringBuilder();
         buf.append('(');
         for (int iArg = 0;iArg<parsedArgs.size();iArg++){
             buf.append(parsedArgs.get(iArg));
@@ -224,7 +224,7 @@ public class EscapedFunctions {
 
     /** insert to overlay translation */
     public static String sqlinsert(List parsedArgs) throws SQLException{
-        StringBuffer buf = new StringBuffer();
+        StringBuilder buf = new StringBuilder();
         buf.append("overlay(");
         if (parsedArgs.size()!=4){
             throw new PSQLException(GT.tr("{0} function takes four and only four argument.","insert"),
@@ -237,7 +237,7 @@ public class EscapedFunctions {
 
     /** lcase to lower translation */
     public static String sqllcase(List parsedArgs) throws SQLException{
-        StringBuffer buf = new StringBuffer();
+        StringBuilder buf = new StringBuilder();
         buf.append("lower(");
         if (parsedArgs.size()!=1){
             throw new PSQLException(GT.tr("{0} function takes one and only one argument.","lcase"),
@@ -249,7 +249,7 @@ public class EscapedFunctions {
 
     /** left to substring translation */
     public static String sqlleft(List parsedArgs) throws SQLException{
-        StringBuffer buf = new StringBuffer();
+        StringBuilder buf = new StringBuilder();
         buf.append("substring(");
         if (parsedArgs.size()!=2){
             throw new PSQLException(GT.tr("{0} function takes two and only two arguments.","left"),
@@ -261,7 +261,7 @@ public class EscapedFunctions {
 
     /** length translation */
     public static String sqllength(List parsedArgs) throws SQLException{
-        StringBuffer buf = new StringBuffer();
+        StringBuilder buf = new StringBuilder();
         buf.append("length(trim(trailing from ");
         if (parsedArgs.size()!=1){
             throw new PSQLException(GT.tr("{0} function takes one and only one argument.","length"),
@@ -286,7 +286,7 @@ public class EscapedFunctions {
 
     /** ltrim translation */
     public static String sqlltrim(List parsedArgs) throws SQLException{
-        StringBuffer buf = new StringBuffer();
+        StringBuilder buf = new StringBuilder();
         buf.append("trim(leading from ");
         if (parsedArgs.size()!=1){
             throw new PSQLException(GT.tr("{0} function takes one and only one argument.","ltrim"),
@@ -298,7 +298,7 @@ public class EscapedFunctions {
 
     /** right to substring translation */
     public static String sqlright(List parsedArgs) throws SQLException{
-        StringBuffer buf = new StringBuffer();
+        StringBuilder buf = new StringBuilder();
         buf.append("substring(");
         if (parsedArgs.size()!=2){
             throw new PSQLException(GT.tr("{0} function takes two and only two arguments.","right"),
@@ -310,7 +310,7 @@ public class EscapedFunctions {
 
     /** rtrim translation */
     public static String sqlrtrim(List parsedArgs) throws SQLException{
-        StringBuffer buf = new StringBuffer();
+        StringBuilder buf = new StringBuilder();
         buf.append("trim(trailing from ");
         if (parsedArgs.size()!=1){
             throw new PSQLException(GT.tr("{0} function takes one and only one argument.","rtrim"),
@@ -322,7 +322,7 @@ public class EscapedFunctions {
 
     /** space translation */
     public static String sqlspace(List parsedArgs) throws SQLException{
-        StringBuffer buf = new StringBuffer();
+        StringBuilder buf = new StringBuilder();
         buf.append("repeat(' ',");
         if (parsedArgs.size()!=1){
             throw new PSQLException(GT.tr("{0} function takes one and only one argument.","space"),
@@ -346,7 +346,7 @@ public class EscapedFunctions {
 
     /** ucase to upper translation */
     public static String sqlucase(List parsedArgs) throws SQLException{
-        StringBuffer buf = new StringBuffer();
+        StringBuilder buf = new StringBuilder();
         buf.append("upper(");
         if (parsedArgs.size()!=1){
             throw new PSQLException(GT.tr("{0} function takes one and only one argument.","ucase"),
@@ -490,7 +490,7 @@ public class EscapedFunctions {
                                     PSQLState.SYNTAX_ERROR);
         }
         String interval = EscapedFunctions.constantToInterval(parsedArgs.get(0).toString(),parsedArgs.get(1).toString());
-        StringBuffer buf = new StringBuffer();
+        StringBuilder buf = new StringBuilder();
         buf.append("(").append(interval).append("+");
         buf.append(parsedArgs.get(2)).append(")");
         return buf.toString();
@@ -532,7 +532,7 @@ public class EscapedFunctions {
                                     PSQLState.SYNTAX_ERROR);
         }
         String datePart = EscapedFunctions.constantToDatePart(parsedArgs.get(0).toString());
-        StringBuffer buf = new StringBuffer();
+        StringBuilder buf = new StringBuilder();
         buf.append("extract( ").append(datePart)
         .append(" from (").append(parsedArgs.get(2)).append("-").append(parsedArgs.get(1)).append("))");
         return buf.toString();

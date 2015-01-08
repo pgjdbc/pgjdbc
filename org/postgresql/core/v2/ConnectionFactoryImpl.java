@@ -485,8 +485,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         String appName = PGProperty.APPLICATION_NAME.get(info);
         if (appName != null && dbVersion.compareTo("9.0") >= 0)
         {
-            StringBuffer sb = new StringBuffer("SET application_name = '");
-            Utils.appendEscapedLiteral(sb, appName, protoConnection.getStandardConformingStrings());
+            StringBuilder sb = new StringBuilder("SET application_name = '");
+            Utils.escapeLiteral(sb, appName, protoConnection.getStandardConformingStrings());
             sb.append("'");
             SetupQueryRunner.run(protoConnection, sb.toString(), false);
         }
@@ -494,8 +494,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         String currentSchema = PGProperty.CURRENT_SCHEMA.get(info);
         if (currentSchema != null)
         {
-            StringBuffer sb = new StringBuffer("SET search_path = '");
-            Utils.appendEscapedLiteral(sb, appName, protoConnection.getStandardConformingStrings());
+            StringBuilder sb = new StringBuilder("SET search_path = '");
+            Utils.escapeLiteral(sb, appName, protoConnection.getStandardConformingStrings());
             sb.append("'");
             SetupQueryRunner.run(protoConnection, sb.toString(), false);
         }

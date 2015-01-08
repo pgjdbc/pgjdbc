@@ -259,7 +259,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     }
 
     private String oidsToString(Set<Integer> oids) {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (Integer oid : oids) {
             sb.append(Oid.toString(oid));
             sb.append(',');
@@ -658,7 +658,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     public String nativeSQL(String sql) throws SQLException
     {
         checkClosed();
-        StringBuffer buf = new StringBuffer(sql.length());
+        StringBuilder buf = new StringBuilder(sql.length());
         AbstractJdbc2Statement.parseSql(sql,0,buf,false,getStandardConformingStrings());
         return buf.toString();
     }
@@ -1129,7 +1129,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     }
 
     public String escapeString(String str) throws SQLException {
-        return Utils.appendEscapedLiteral(null, str,
+        return Utils.escapeLiteral(null, str,
                 protoConnection.getStandardConformingStrings()).toString();
     }
 
@@ -1278,9 +1278,9 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         {
             if (schema != null)
             {
-                StringBuffer sb = new StringBuffer();
+                StringBuilder sb = new StringBuilder();
                 sb.append("SET SESSION search_path TO '");
-                Utils.appendEscapedLiteral(sb, schema, protoConnection.getStandardConformingStrings());
+                Utils.escapeLiteral(sb, schema, protoConnection.getStandardConformingStrings());
                 sb.append("'");
                 stmt.executeUpdate(sb.toString());
             }

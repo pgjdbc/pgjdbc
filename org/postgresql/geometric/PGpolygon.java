@@ -114,7 +114,7 @@ public class PGpolygon extends PGobject implements Serializable, Cloneable
      */
     public String getValue()
     {
-        StringBuffer b = new StringBuffer();
+        StringBuilder b = new StringBuilder();
         b.append("(");
         for (int p = 0;p < points.length;p++)
         {

@@ -154,7 +154,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
         if (sql.endsWith(";"))
             sql = sql.substring(0, sql.length()-1);
 
-        StringBuffer sb = new StringBuffer(sql);
+        StringBuilder sb = new StringBuilder(sql);
         sb.append(" RETURNING ");
         for (int i=0; i<columns.length; i++) {
             if (i != 0)
@@ -165,7 +165,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
             // DatabaseMetaData.getColumns and is necessary for the same
             // reasons.
             if (escape)
-                Utils.appendEscapedIdentifier(sb, columns[i]);
+                Utils.escapeIdentifier(sb, columns[i]);
             else
                 sb.append(columns[i]);
         }

@@ -93,7 +93,7 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
             throw new PSQLException(GT.tr("Unable to find server array type for provided name {0}.", typeName), PSQLState.INVALID_NAME);
 
         char delim = getTypeInfo().getArrayDelimiter(oid);
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         appendArray(sb, elements, delim);
 
         // This will not work once we have a JDBC 5,
@@ -101,7 +101,7 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
         return new Jdbc4Array(this, oid, sb.toString());
     }
 
-    private static void appendArray(StringBuffer sb, Object elements, char delim)
+    private static void appendArray(StringBuilder sb, Object elements, char delim)
     {
         sb.append('{');
 
@@ -172,8 +172,8 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
                 value = "";
 
             try {
-                StringBuffer sql = new StringBuffer("SET application_name = '");
-                Utils.appendEscapedLiteral(sql, value, getStandardConformingStrings());
+                StringBuilder sql = new StringBuilder("SET application_name = '");
+                Utils.escapeLiteral(sql, value, getStandardConformingStrings());
                 sql.append("'");
                 execSQLUpdate(sql.toString());
             } catch (SQLException sqle) {
