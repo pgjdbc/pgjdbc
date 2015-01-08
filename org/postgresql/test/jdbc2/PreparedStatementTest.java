@@ -636,7 +636,7 @@ public class PreparedStatementTest extends TestCase
         pstmt.close();
         
         Integer maxInt = new Integer( 127 ), minInt = new Integer(-127);
-        Float maxIntFloat = new Float( 127 ), minIntFloat = new Float( -127 ); 
+        Float maxIntFloat = new Float( 127 ), minIntFloat = new Float( -127 );
         
         pstmt = conn.prepareStatement( "insert into tiny_int values (?,?,?)");
         pstmt.setObject(1,maxIntFloat,Types.TINYINT );
@@ -665,7 +665,7 @@ public class PreparedStatementTest extends TestCase
         pstmt.close();
         
         Integer maxInt = new Integer( 32767 ), minInt = new Integer(-32768);
-        Float maxIntFloat = new Float( 32767 ), minIntFloat = new Float( -32768 ); 
+        Float maxIntFloat = new Float( 32767 ), minIntFloat = new Float( -32768 );
         
         pstmt = conn.prepareStatement( "insert into small_int values (?,?,?)");
         pstmt.setObject(1,maxIntFloat,Types.SMALLINT );
@@ -693,7 +693,7 @@ public class PreparedStatementTest extends TestCase
         pstmt.close();
         
         Integer maxInt = new Integer( 1000 ), minInt = new Integer(-1000);
-        Float maxIntFloat = new Float( 1000 ), minIntFloat = new Float( -1000 ); 
+        Float maxIntFloat = new Float( 1000 ), minIntFloat = new Float( -1000 );
         
         pstmt = conn.prepareStatement( "insert into int_tab values (?,?,?)");
         pstmt.setObject(1,maxIntFloat,Types.INTEGER );
@@ -721,7 +721,7 @@ public class PreparedStatementTest extends TestCase
         pstmt.close();
         
         Boolean trueVal = Boolean.TRUE, falseVal = Boolean.FALSE;
-        Double dBooleanTrue = new Double(1), dBooleanFalse = new Double( 0 ); 
+        Double dBooleanTrue = new Double(1), dBooleanFalse = new Double( 0 );
         
         pstmt = conn.prepareStatement( "insert into double_tab values (?,?,?)");
         pstmt.setObject(1,trueVal,Types.DOUBLE );

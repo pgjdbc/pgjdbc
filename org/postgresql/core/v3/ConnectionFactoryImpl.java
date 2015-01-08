@@ -371,9 +371,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         pgStream.SendInteger4(length);
         pgStream.SendInteger2(3); // protocol major
         pgStream.SendInteger2(0); // protocol minor
-        for (int i = 0; i < encodedParams.length; ++i)
-        {
-            pgStream.Send(encodedParams[i]);
+        for (byte[] encodedParam : encodedParams) {
+            pgStream.Send(encodedParam);
             pgStream.SendChar(0);
         }
 
@@ -600,7 +599,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 	                    if (logger.logDebug())
 	                        logger.debug(" <=BE AuthenticationReq (unsupported type " + ((int)areq) + ")");
 	
-	                    throw new PSQLException(GT.tr("The authentication type {0} is not supported. Check that you have configured the pg_hba.conf file to include the client''s IP address or subnet, and that it is using an authentication scheme supported by the driver.", new Integer(areq)), PSQLState.CONNECTION_REJECTED);
+	                    throw new PSQLException(GT.tr("The authentication type {0} is not supported. Check that you have configured the pg_hba.conf file to include the client''s IP address or subnet, and that it is using an authentication scheme supported by the driver.", areq), PSQLState.CONNECTION_REJECTED);
 	                }
 	
 	                break;

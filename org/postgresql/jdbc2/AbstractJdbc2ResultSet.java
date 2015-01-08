@@ -138,18 +138,18 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         case Types.TINYINT:
         case Types.SMALLINT:
         case Types.INTEGER:
-            return new Integer(getInt(columnIndex));
+            return getInt(columnIndex);
         case Types.BIGINT:
-            return new Long(getLong(columnIndex));
+            return getLong(columnIndex);
         case Types.NUMERIC:
         case Types.DECIMAL:
             return getBigDecimal
                    (columnIndex, (field.getMod() == -1) ? -1 : ((field.getMod() - 4) & 0xffff));
         case Types.REAL:
-            return new Float(getFloat(columnIndex));
+            return getFloat(columnIndex);
         case Types.FLOAT:
         case Types.DOUBLE:
-            return new Double(getDouble(columnIndex));
+            return getDouble(columnIndex);
         case Types.CHAR:
         case Types.VARCHAR:
         case Types.LONGVARCHAR:
@@ -786,7 +786,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             checkScrollable();
             break;
         default:
-            throw new PSQLException(GT.tr("Invalid fetch direction constant: {0}.", new Integer(direction)),
+            throw new PSQLException(GT.tr("Invalid fetch direction constant: {0}.", direction),
                                     PSQLState.INVALID_PARAMETER_VALUE);
         }
 
@@ -940,7 +940,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
                 long insertedOID = ((AbstractJdbc2Statement) insertStatement).getLastOID();
 
-                updateValues.put("oid", new Long(insertedOID) );
+                updateValues.put("oid", insertedOID);
 
             }
 
@@ -1140,7 +1140,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public synchronized void updateBoolean(int columnIndex, boolean x)
     throws SQLException
     {
-        updateValue(columnIndex, new Boolean(x));
+        updateValue(columnIndex, x);
     }
 
 
@@ -1204,28 +1204,28 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public synchronized void updateDouble(int columnIndex, double x)
     throws SQLException
     {
-        updateValue(columnIndex, new Double(x));
+        updateValue(columnIndex, x);
     }
 
 
     public synchronized void updateFloat(int columnIndex, float x)
     throws SQLException
     {
-        updateValue(columnIndex, new Float(x));
+        updateValue(columnIndex, x);
     }
 
 
     public synchronized void updateInt(int columnIndex, int x)
     throws SQLException
     {
-        updateValue(columnIndex, new Integer(x));
+        updateValue(columnIndex, x);
     }
 
 
     public synchronized void updateLong(int columnIndex, long x)
     throws SQLException
     {
-        updateValue(columnIndex, new Long(x));
+        updateValue(columnIndex, x);
     }
 
 
@@ -1403,7 +1403,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public synchronized void updateShort(int columnIndex, short x)
     throws SQLException
     {
-        updateValue(columnIndex, new Short(x));
+        updateValue(columnIndex, x);
     }
 
 
@@ -2743,9 +2743,9 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             for (int i = fields.length - 1; i >= 0; i--)
             {
                 if (isSanitiserDisabled){
-                    columnNameIndexMap.put(fields[i].getColumnLabel(), new Integer(i + 1));
+                    columnNameIndexMap.put(fields[i].getColumnLabel(), i + 1);
                 } else {
-                    columnNameIndexMap.put(fields[i].getColumnLabel().toLowerCase(Locale.US), new Integer(i + 1));
+                    columnNameIndexMap.put(fields[i].getColumnLabel().toLowerCase(Locale.US), i + 1);
                 }
             }
         }
@@ -2753,21 +2753,21 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         Integer index = (Integer)columnNameIndexMap.get(columnName);
         if (index != null)
         {
-            return index.intValue();
+            return index;
         }
         
         index = (Integer)columnNameIndexMap.get(columnName.toLowerCase(Locale.US));
         if (index != null)
         {
             columnNameIndexMap.put(columnName, index);
-            return index.intValue();
+            return index;
         }
 
         index = (Integer)columnNameIndexMap.get(columnName.toUpperCase(Locale.US));
         if (index != null)
         {
             columnNameIndexMap.put(columnName, index);
-            return index.intValue();
+            return index;
         }
     
         return 0;
@@ -2864,7 +2864,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     protected void checkColumnIndex(int column) throws SQLException
     {
         if ( column < 1 || column > fields.length )
-            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(column), new Integer(fields.length)}), PSQLState.INVALID_PARAMETER_VALUE );
+            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{column, fields.length}), PSQLState.INVALID_PARAMETER_VALUE );
     }
 
     /**
@@ -3198,7 +3198,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                     PSQLState.DATA_TYPE_MISMATCH);
         }
         if (val < minVal || val > maxVal) {
-            throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{targetType, new Long(val)}),
+            throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{targetType, val}),
                                     PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
         }
         return val;

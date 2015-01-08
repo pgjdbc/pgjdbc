@@ -150,7 +150,7 @@ public abstract class AbstractJdbc2Array
         // array index is out of range
         if (index < 1)
         {
-            throw new PSQLException(GT.tr("The array index is out of range: {0}", new Long(index)), PSQLState.DATA_ERROR);
+            throw new PSQLException(GT.tr("The array index is out of range: {0}", index), PSQLState.DATA_ERROR);
         }
 
         if (fieldBytes != null) {
@@ -165,7 +165,7 @@ public abstract class AbstractJdbc2Array
         // array index out of range
         if ((--index) + count > arrayList.size())
         {
-            throw new PSQLException(GT.tr("The array index is out of range: {0}, number of elements: {1}.", new Object[] { new Long(index + count), new Long(arrayList.size()) }), PSQLState.DATA_ERROR);
+            throw new PSQLException(GT.tr("The array index is out of range: {0}, number of elements: {1}.", new Object[] {index + count, (long) arrayList.size()}), PSQLState.DATA_ERROR);
         }
 
         return buildArray(arrayList, (int) index, count);
@@ -213,19 +213,19 @@ public abstract class AbstractJdbc2Array
                 }
                 switch (elementOid) {
                     case Oid.INT2:
-                        arr[i] = new Short(ByteConverter.int2(fieldBytes, pos));
+                        arr[i] = ByteConverter.int2(fieldBytes, pos);
                         break;
                     case Oid.INT4:
-                        arr[i] = new Integer(ByteConverter.int4(fieldBytes, pos));
+                        arr[i] = ByteConverter.int4(fieldBytes, pos);
                         break;
                     case Oid.INT8:
-                        arr[i] = new Long(ByteConverter.int8(fieldBytes, pos));
+                        arr[i] = ByteConverter.int8(fieldBytes, pos);
                         break;
                     case Oid.FLOAT4:
-                        arr[i] = new Float(ByteConverter.float4(fieldBytes, pos));
+                        arr[i] = ByteConverter.float4(fieldBytes, pos);
                         break;
                     case Oid.FLOAT8:
-                        arr[i] = new Double(ByteConverter.float8(fieldBytes, pos));
+                        arr[i] = ByteConverter.float8(fieldBytes, pos);
                         break;
                     case Oid.TEXT:
                     case Oid.VARCHAR:
@@ -813,7 +813,7 @@ public abstract class AbstractJdbc2Array
         // array index is out of range
         if (index < 1)
         {
-            throw new PSQLException(GT.tr("The array index is out of range: {0}", new Long(index)), PSQLState.DATA_ERROR);
+            throw new PSQLException(GT.tr("The array index is out of range: {0}", index), PSQLState.DATA_ERROR);
         }
 
         if (fieldBytes != null) {
@@ -830,7 +830,7 @@ public abstract class AbstractJdbc2Array
         // array index out of range
         if ((--index) + count > arrayList.size())
         {
-            throw new PSQLException(GT.tr("The array index is out of range: {0}, number of elements: {1}.", new Object[] { new Long(index + count), new Long(arrayList.size()) }), PSQLState.DATA_ERROR);
+            throw new PSQLException(GT.tr("The array index is out of range: {0}, number of elements: {1}.", new Object[] {index + count, (long) arrayList.size()}), PSQLState.DATA_ERROR);
         }
 
         List rows = new ArrayList();

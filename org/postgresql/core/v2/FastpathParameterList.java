@@ -52,7 +52,7 @@ class FastpathParameterList implements ParameterList {
     
     public void setIntParameter(int index, int value) throws SQLException {
         if (index < 1 || index > paramValues.length)
-            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE );
+            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{index, paramValues.length}), PSQLState.INVALID_PARAMETER_VALUE );
 
         byte[] data = new byte[4];
         data[3] = (byte)value;
@@ -74,14 +74,14 @@ class FastpathParameterList implements ParameterList {
 
     public void setBytea(int index, byte[] data, int offset, int length) throws SQLException {
         if (index < 1 || index > paramValues.length)
-            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE );
+            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{index, paramValues.length}), PSQLState.INVALID_PARAMETER_VALUE );
 
         paramValues[index - 1] = new StreamWrapper(data, offset, length);
     }
 
     public void setBytea(int index, final InputStream stream, final int length) throws SQLException {
         if (index < 1 || index > paramValues.length)
-            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE );
+            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{index, paramValues.length}), PSQLState.INVALID_PARAMETER_VALUE );
 
         paramValues[index - 1] = new StreamWrapper(stream, length);
     }
@@ -89,7 +89,7 @@ class FastpathParameterList implements ParameterList {
     public void setBytea(int index, InputStream stream) throws SQLException
     {
         if (index < 1 || index > paramValues.length)
-            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(paramValues.length)}), PSQLState.INVALID_PARAMETER_VALUE );
+            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{index, paramValues.length}), PSQLState.INVALID_PARAMETER_VALUE );
 
         paramValues[index - 1] = new StreamWrapper(stream);
     }
@@ -147,7 +147,7 @@ class FastpathParameterList implements ParameterList {
         for (int i = 0; i < paramValues.length; i++)
         {
             if (paramValues[i] == null)
-                throw new PSQLException(GT.tr("No value specified for parameter {0}.", new Integer(i + 1)), PSQLState.INVALID_PARAMETER_VALUE);
+                throw new PSQLException(GT.tr("No value specified for parameter {0}.", i + 1), PSQLState.INVALID_PARAMETER_VALUE);
         }
     }
 

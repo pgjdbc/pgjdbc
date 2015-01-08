@@ -38,7 +38,7 @@ public class SslTestSuite  extends TestSuite {
 
       String[] hostmode = {"sslhost","sslhostssl","sslhostsslcert","sslcert"};
       String[] certmode = {"gh","bh"};
-      
+
       for (int i=0; i<hostmode.length; i++)
       {
         for (int j=0; j<certmode.length; j++)

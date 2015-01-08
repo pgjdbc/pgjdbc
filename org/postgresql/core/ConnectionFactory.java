@@ -56,13 +56,12 @@ public abstract class ConnectionFactory {
     public static ProtocolConnection openConnection(HostSpec[] hostSpecs, String user, String database, Properties info, Logger logger) throws SQLException {
         String protoName = PGProperty.PROTOCOL_VERSION.get(info);
 
-        for (int i = 0; i < versions.length; ++i)
-        {
-            String versionProtoName = (String) versions[i][0];
+        for (Object[] version : versions) {
+            String versionProtoName = (String) version[0];
             if (protoName != null && !protoName.equals(versionProtoName))
                 continue;
 
-            ConnectionFactory factory = (ConnectionFactory) versions[i][1];
+            ConnectionFactory factory = (ConnectionFactory) version[1];
             ProtocolConnection connection = factory.openConnectionImpl(hostSpecs, user, database, info, logger);
             if (connection != null)
                 return connection;
