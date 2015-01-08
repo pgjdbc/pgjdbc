@@ -38,14 +38,12 @@ public class SslTestSuite  extends TestSuite {
 
       String[] hostmode = {"sslhost","sslhostssl","sslhostsslcert","sslcert"};
       String[] certmode = {"gh","bh"};
-      
-      for (int i=0; i<hostmode.length; i++)
-      {
-        for (int j=0; j<certmode.length; j++)
-        {
-          add(suite,hostmode[i]+certmode[j]+"8");
-          add(suite,hostmode[i]+certmode[j]+"9");
-        }
+
+      for (String aHostmode : hostmode) {
+          for (String aCertmode : certmode) {
+              add(suite, aHostmode + aCertmode + "8");
+              add(suite, aHostmode + aCertmode + "9");
+          }
       }
       
       TestUtil.initDriver();

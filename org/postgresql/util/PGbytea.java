@@ -137,36 +137,29 @@ public class PGbytea
         if (p_buf == null)
             return null;
         StringBuilder l_strbuf = new StringBuilder(2 * p_buf.length);
-        for (int i = 0; i < p_buf.length; i++)
-        {
-            int l_int = (int)p_buf[i];
-            if (l_int < 0)
-            {
+        for (byte aP_buf : p_buf) {
+            int l_int = (int) aP_buf;
+            if (l_int < 0) {
                 l_int = 256 + l_int;
             }
             //we escape the same non-printable characters as the backend
             //we must escape all 8bit characters otherwise when convering
             //from java unicode to the db character set we may end up with
             //question marks if the character set is SQL_ASCII
-            if (l_int < 040 || l_int > 0176)
-            {
+            if (l_int < 040 || l_int > 0176) {
                 //escape charcter with the form \000, but need two \\ because of
                 //the Java parser
                 l_strbuf.append("\\");
-                l_strbuf.append((char)(((l_int >> 6) & 0x3) + 48));
-                l_strbuf.append((char)(((l_int >> 3) & 0x7) + 48));
-                l_strbuf.append((char)((l_int & 0x07) + 48));
-            }
-            else if (p_buf[i] == (byte)'\\')
-            {
+                l_strbuf.append((char) (((l_int >> 6) & 0x3) + 48));
+                l_strbuf.append((char) (((l_int >> 3) & 0x7) + 48));
+                l_strbuf.append((char) ((l_int & 0x07) + 48));
+            } else if (aP_buf == (byte) '\\') {
                 //escape the backslash character as \\, but need four \\\\ because
                 //of the Java parser
                 l_strbuf.append("\\\\");
-            }
-            else
-            {
+            } else {
                 //other characters are left alone
-                l_strbuf.append((char)p_buf[i]);
+                l_strbuf.append((char) aP_buf);
             }
         }
         return l_strbuf.toString();

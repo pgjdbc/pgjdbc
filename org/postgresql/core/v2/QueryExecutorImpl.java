@@ -167,7 +167,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                     protoConnection.addWarning(receiveNotification());
                     break;
                 default:
-                    throw new PSQLException(GT.tr("Unknown Response Type {0}.", new Character((char) c)), PSQLState.CONNECTION_FAILURE);
+                    throw new PSQLException(GT.tr("Unknown Response Type {0}.", (char) c), PSQLState.CONNECTION_FAILURE);
                 }
             }
         } catch (IOException ioe) {
@@ -222,7 +222,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                 }
 
                 if (c != '0')
-                    throw new PSQLException(GT.tr("Unknown Response Type {0}.", new Character((char) c)), PSQLState.CONNECTION_FAILURE);
+                    throw new PSQLException(GT.tr("Unknown Response Type {0}.", (char) c), PSQLState.CONNECTION_FAILURE);
 
                 break;
 
@@ -233,7 +233,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                 break;
 
             default:
-                throw new PSQLException(GT.tr("Unknown Response Type {0}.", new Character((char) c)), PSQLState.CONNECTION_FAILURE);
+                throw new PSQLException(GT.tr("Unknown Response Type {0}.", (char) c), PSQLState.CONNECTION_FAILURE);
             }
 
         }
@@ -431,8 +431,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                         }
                     }
 
-                    for (int i = 0; i < fields.length; i++)
-                        fields[i].setFormat(Field.BINARY_FORMAT); //Set the field to binary format
+                    for (Field field : fields) field.setFormat(Field.BINARY_FORMAT); //Set the field to binary format
                     if (maxRows == 0 || tuples.size() < maxRows)
                         tuples.add(tuple);
                 }

@@ -358,7 +358,7 @@ public enum PGProperty
      */
     public boolean getBoolean(Properties properties)
     {
-        return Boolean.valueOf(get(properties)).booleanValue();
+        return Boolean.valueOf(get(properties));
     }
 
     /**

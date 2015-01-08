@@ -50,8 +50,9 @@ public class CopyTest extends TestCase {
     private byte[] getData(String[] origData) {
         ByteArrayOutputStream buf = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(buf);
-        for(int i=0; i<origData.length; i++)
-            ps.print(origData[i]);
+        for (String anOrigData : origData) {
+            ps.print(anOrigData);
+        }
         return buf.toByteArray();
     }
 
@@ -82,8 +83,8 @@ public class CopyTest extends TestCase {
     public void testCopyInByRow() throws SQLException {
         String sql = "COPY copytest FROM STDIN";
         CopyIn cp = copyAPI.copyIn(sql);
-        for(int i=0; i<origData.length; i++) {
-            byte[] buf = origData[i].getBytes();
+        for (String anOrigData : origData) {
+            byte[] buf = anOrigData.getBytes();
             cp.writeToCopy(buf, 0, buf.length);
         }
 
@@ -109,8 +110,8 @@ public class CopyTest extends TestCase {
     public void testCopyInAsOutputStream() throws SQLException, IOException {
         String sql = "COPY copytest FROM STDIN";
         OutputStream os = new PGCopyOutputStream((PGConnection)con, sql, 1000);
-        for(int i=0; i<origData.length; i++) {
-            byte[] buf = origData[i].getBytes();
+        for (String anOrigData : origData) {
+            byte[] buf = anOrigData.getBytes();
             os.write(buf);
         }
         os.close();
@@ -132,7 +133,7 @@ public class CopyTest extends TestCase {
                 public int read() { throw new RuntimeException("COPYTEST"); }
             }, 3 );
         } catch(Exception e) {
-            if(e.toString().indexOf("COPYTEST") == -1)
+            if(!e.toString().contains("COPYTEST"))
                 fail("should have failed trying to read from our bogus stream.");
         }
         int rowCount = getCount();
@@ -291,10 +292,10 @@ public class CopyTest extends TestCase {
         // I expect an SQLException 
         String sql = "COPY copytest FROM STDIN with xxx (format 'csv')";
         CopyIn cp = manager.copyIn(sql);
-        for(int i=0; i<origData.length; i++) {
-            byte[] buf = origData[i].getBytes();
-            cp.writeToCopy(buf, 0, buf.length);
-        }
+            for (String anOrigData : origData) {
+                byte[] buf = anOrigData.getBytes();
+                cp.writeToCopy(buf, 0, buf.length);
+            }
 
         long count1 = cp.endCopy();
         long count2 = cp.getHandledRowCount();

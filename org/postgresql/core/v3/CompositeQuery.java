@@ -46,8 +46,9 @@ class CompositeQuery implements V3Query {
     }
 
     public void close() {
-        for (int i = 0; i < subqueries.length; ++i)
-            subqueries[i].close();
+        for (SimpleQuery subquery : subqueries) {
+            subquery.close();
+        }
     }
 
     public SimpleQuery[] getSubqueries() {
@@ -55,8 +56,8 @@ class CompositeQuery implements V3Query {
     }
 
     public boolean isStatementDescribed() {
-        for (int i = 0; i < subqueries.length; ++i)
-            if (!subqueries[i].isStatementDescribed()) {
+        for (SimpleQuery subquery : subqueries)
+            if (!subquery.isStatementDescribed()) {
                 return false;
             }
         return true;
@@ -64,8 +65,8 @@ class CompositeQuery implements V3Query {
 
     public boolean isEmpty()
     {
-        for (int i = 0; i < subqueries.length; ++i)
-            if (!subqueries[i].isEmpty()) {
+        for (SimpleQuery subquery : subqueries)
+            if (!subquery.isEmpty()) {
                 return false;
             }
         return true;

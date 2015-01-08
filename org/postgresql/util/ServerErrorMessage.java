@@ -14,23 +14,23 @@ import java.io.Serializable;
 public class ServerErrorMessage implements Serializable
 {
 
-    private static final Character SEVERITY = new Character('S');
-    private static final Character MESSAGE = new Character('M');
-    private static final Character DETAIL = new Character('D');
-    private static final Character HINT = new Character('H');
-    private static final Character POSITION = new Character('P');
-    private static final Character WHERE = new Character('W');
-    private static final Character FILE = new Character('F');
-    private static final Character LINE = new Character('L');
-    private static final Character ROUTINE = new Character('R');
-    private static final Character SQLSTATE = new Character('C');
-    private static final Character INTERNAL_POSITION = new Character('p');
-    private static final Character INTERNAL_QUERY = new Character('q');
-    private static final Character SCHEMA = new Character('s');
-    private static final Character TABLE = new Character('t');
-    private static final Character COLUMN = new Character('c');
-    private static final Character DATATYPE = new Character('d');
-    private static final Character CONSTRAINT = new Character('n');
+    private static final Character SEVERITY = 'S';
+    private static final Character MESSAGE = 'M';
+    private static final Character DETAIL = 'D';
+    private static final Character HINT = 'H';
+    private static final Character POSITION = 'P';
+    private static final Character WHERE = 'W';
+    private static final Character FILE = 'F';
+    private static final Character LINE = 'L';
+    private static final Character ROUTINE = 'R';
+    private static final Character SQLSTATE = 'C';
+    private static final Character INTERNAL_POSITION = 'p';
+    private static final Character INTERNAL_QUERY = 'q';
+    private static final Character SCHEMA = 's';
+    private static final Character TABLE = 't';
+    private static final Character COLUMN = 'c';
+    private static final Character DATATYPE = 'd';
+    private static final Character CONSTRAINT = 'n';
 
     private final Map m_mesgParts = new HashMap();
     private final int verbosity;
@@ -55,7 +55,7 @@ public class ServerErrorMessage implements Serializable
                     l_pos++;
                 }
                 String l_mesgPart = new String(l_chars, l_startString, l_pos - l_startString);
-                m_mesgParts.put(new Character(l_mesgType), l_mesgPart);
+                m_mesgParts.put(l_mesgType, l_mesgPart);
             }
             l_pos++;
         }

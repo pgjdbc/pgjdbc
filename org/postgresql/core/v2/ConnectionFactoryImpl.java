@@ -359,7 +359,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                     if (logger.logDebug())
                         logger.debug(" <=BE AuthenticationReq (unsupported type " + ((int)areq) + ")");
 
-                    throw new PSQLException(GT.tr("The authentication type {0} is not supported. Check that you have configured the pg_hba.conf file to include the client''s IP address or subnet, and that it is using an authentication scheme supported by the driver.", new Integer(areq)), PSQLState.CONNECTION_REJECTED);
+                    throw new PSQLException(GT.tr("The authentication type {0} is not supported. Check that you have configured the pg_hba.conf file to include the client''s IP address or subnet, and that it is using an authentication scheme supported by the driver.", areq), PSQLState.CONNECTION_REJECTED);
                 }
 
                 break;
