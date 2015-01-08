@@ -205,7 +205,7 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
 
         fieldInfoFetched = true;
 
-        StringBuffer sql = new StringBuffer();
+        StringBuilder sql = new StringBuilder();
         sql.append("SELECT c.oid, a.attnum, a.attname, c.relname, n.nspname, ");
         sql.append("a.attnotnull OR (t.typtype = 'd' AND t.typnotnull), ");
         sql.append("pg_catalog.pg_get_expr(d.adbin, d.adrelid) LIKE '%nextval(%' ");

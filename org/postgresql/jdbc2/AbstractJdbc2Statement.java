@@ -894,7 +894,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             // Since escape codes can only appear in SQL CODE, we keep track
             // of if we enter a string or not.
             int len = p_sql.length();
-            StringBuffer newsql = new StringBuffer(len);
+            StringBuilder newsql = new StringBuilder(len);
             int i=0;
             while (i<len){
                 i=parseSql(p_sql,i,newsql,false,connection.getStandardConformingStrings());
@@ -929,7 +929,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
      * @param stdStrings whether standard_conforming_strings is on
      * @return the position we stopped processing at
      */
-    protected static int parseSql(String p_sql,int i,StringBuffer newsql, boolean stopOnComma,
+    protected static int parseSql(String p_sql,int i,StringBuilder newsql, boolean stopOnComma,
                                   boolean stdStrings)throws SQLException{
         short state = IN_SQLCODE;
         int len = p_sql.length();
@@ -1036,7 +1036,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                     functionName=p_sql.substring(i,posArgs).trim();
                     // extract arguments
                     i= posArgs+1;// we start the scan after the first (
-                    StringBuffer args=new StringBuffer();
+                    StringBuilder args=new StringBuilder();
                     i = parseSql(p_sql,i,args,false,stdStrings);
                     // translate the function and parse arguments
                     newsql.append(escapeFunction(functionName,args.toString(),stdStrings));
@@ -1073,7 +1073,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         int i=0;
         ArrayList parsedArgs = new ArrayList();
         while (i<len){
-            StringBuffer arg = new StringBuffer();
+            StringBuilder arg = new StringBuilder();
             int lastPos=i;
             i=parseSql(args,i,arg,true,stdStrings);
             if (lastPos!=i){
@@ -1093,7 +1093,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                                         PSQLState.SYSTEM_ERROR);
         }catch (Exception e){
             // by default the function name is kept unchanged
-            StringBuffer buf = new StringBuffer();
+            StringBuilder buf = new StringBuilder();
             buf.append(functionName).append('(');
             for (int iArg = 0;iArg<parsedArgs.size();iArg++){
                 buf.append(parsedArgs.get(iArg));
@@ -2531,7 +2531,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (connection.haveMinimumServerVersion("8.1") && ((AbstractJdbc2Connection)connection).getProtocolVersion() == 3)
         {
             String s = p_sql.substring(startIndex, endIndex );
-            StringBuffer sb = new StringBuffer(s);
+            StringBuilder sb = new StringBuilder(s);
             if ( outParmBeforeFunc )
             {
 	    	        // move the single out parameter into the function call 

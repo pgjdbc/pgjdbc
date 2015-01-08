@@ -195,7 +195,7 @@ public class Parser {
         if (query == null) return query;
 
         char[] aChars = query.toCharArray();
-        StringBuffer buf = new StringBuffer(aChars.length);
+        StringBuilder buf = new StringBuilder(aChars.length);
         for(int i=0, j=-1; i< aChars.length; i++)
         {
             switch (aChars[i])

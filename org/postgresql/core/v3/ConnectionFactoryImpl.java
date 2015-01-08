@@ -339,7 +339,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     private void sendStartupPacket(PGStream pgStream, String[][] params, Logger logger) throws IOException {
         if (logger.logDebug())
         {
-            StringBuffer details = new StringBuffer();
+            StringBuilder details = new StringBuilder();
             for (int i = 0; i < params.length; ++i)
             {
                 if (i != 0)
@@ -758,9 +758,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
         String appName = PGProperty.APPLICATION_NAME.get(info);
         if (appName != null && dbVersion >= 90000) {
-            StringBuffer sql = new StringBuffer();
+            StringBuilder sql = new StringBuilder();
             sql.append("SET application_name = '");
-            Utils.appendEscapedLiteral(sql, appName, protoConnection.getStandardConformingStrings());
+            Utils.escapeLiteral(sql, appName, protoConnection.getStandardConformingStrings());
             sql.append("'");
             SetupQueryRunner.run(protoConnection, sql.toString(), false);
         }
