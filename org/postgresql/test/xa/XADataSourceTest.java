@@ -192,10 +192,8 @@ public class XADataSourceTest extends TestCase {
 
             boolean recoveredXid = false;
 
-            for (int i = 0; i < recoveredXidArray.length; i++)
-            {
-                if (xid.equals(recoveredXidArray[i]))
-                {
+            for (Xid aRecoveredXidArray : recoveredXidArray) {
+                if (xid.equals(aRecoveredXidArray)) {
                     recoveredXid = true;
                     break;
                 }
@@ -212,10 +210,8 @@ public class XADataSourceTest extends TestCase {
 
             boolean recoveredXid = false;
 
-            for (int c = 0; c < recoveredXidArray.length; c++)
-            {
-                if (xaRes.equals(recoveredXidArray[c]))
-                {
+            for (Xid aRecoveredXidArray : recoveredXidArray) {
+                if (xaRes.equals(aRecoveredXidArray)) {
                     recoveredXid = true;
                     break;
                 }

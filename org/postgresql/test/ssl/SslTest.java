@@ -93,14 +93,13 @@ public class SslTest extends TestCase {
     Map expected = (Map)expectedmap.get(param);
     if (expected == null) {;expected = defaultexpected;}
     int j=0;
-    for (int i=0; i<csslmode.length; i++)
-    {
-      suite.addTest(new SslTest(param + "-"+csslmode[i]+"GG2",certdir,sconnstr,csslmode[i],2,true, true,sprefix,(Object[])expected.get(csslmode[i]+"GG")));
-      suite.addTest(new SslTest(param + "-"+csslmode[i]+"GG3",certdir,sconnstr,csslmode[i],3,true, true,sprefix,(Object[])expected.get(csslmode[i]+"GG")));
-      suite.addTest(new SslTest(param + "-"+csslmode[i]+"GB2",certdir,sconnstr,csslmode[i],2,true,false,sprefix,(Object[])expected.get(csslmode[i]+"GB")));
-      suite.addTest(new SslTest(param + "-"+csslmode[i]+"GB3",certdir,sconnstr,csslmode[i],3,true,false,sprefix,(Object[])expected.get(csslmode[i]+"GB")));
-      suite.addTest(new SslTest(param + "-"+csslmode[i]+"BG2",certdir,sconnstr,csslmode[i],2,false,true,sprefix,(Object[])expected.get(csslmode[i]+"BG")));
-      suite.addTest(new SslTest(param + "-"+csslmode[i]+"BG3",certdir,sconnstr,csslmode[i],3,false,true,sprefix,(Object[])expected.get(csslmode[i]+"BG")));
+    for (String aCsslmode : csslmode) {
+      suite.addTest(new SslTest(param + "-" + aCsslmode + "GG2", certdir, sconnstr, aCsslmode, 2, true, true, sprefix, (Object[]) expected.get(aCsslmode + "GG")));
+      suite.addTest(new SslTest(param + "-" + aCsslmode + "GG3", certdir, sconnstr, aCsslmode, 3, true, true, sprefix, (Object[]) expected.get(aCsslmode + "GG")));
+      suite.addTest(new SslTest(param + "-" + aCsslmode + "GB2", certdir, sconnstr, aCsslmode, 2, true, false, sprefix, (Object[]) expected.get(aCsslmode + "GB")));
+      suite.addTest(new SslTest(param + "-" + aCsslmode + "GB3", certdir, sconnstr, aCsslmode, 3, true, false, sprefix, (Object[]) expected.get(aCsslmode + "GB")));
+      suite.addTest(new SslTest(param + "-" + aCsslmode + "BG2", certdir, sconnstr, aCsslmode, 2, false, true, sprefix, (Object[]) expected.get(aCsslmode + "BG")));
+      suite.addTest(new SslTest(param + "-" + aCsslmode + "BG3", certdir, sconnstr, aCsslmode, 3, false, true, sprefix, (Object[]) expected.get(aCsslmode + "BG")));
     }
     return suite;
   }

@@ -586,10 +586,10 @@ public class Jdbc3CallableStatementTest extends TestCase
             cstmt.close();
             ResultSet rs = con.createStatement().executeQuery("select * from real_tab");
             assertTrue ( rs.next() );
-            Float oVal = new Float( intValues[0]);
+            Float oVal = (float) intValues[0];
             Float rVal = new Float(rs.getObject(1).toString());
             assertTrue ( oVal.equals(rVal) );
-            oVal = new Float( intValues[1] );
+            oVal = (float) intValues[1];
             rVal = new Float(rs.getObject(2).toString());
             assertTrue ( oVal.equals(rVal) );
             rs.close();
@@ -738,10 +738,10 @@ public class Jdbc3CallableStatementTest extends TestCase
             cstmt.registerOutParameter(3,java.sql.Types.FLOAT);
             cstmt.executeUpdate();
             Double val = (Double)cstmt.getObject(1);
-            assertTrue( val.doubleValue() == doubleValues[0] );
+            assertTrue(val == doubleValues[0] );
             
             val = (Double)cstmt.getObject(2);
-            assertTrue( val.doubleValue() == doubleValues[1]);
+            assertTrue(val == doubleValues[1]);
             
             val = (Double)cstmt.getObject(3);            
             assertTrue( cstmt.wasNull() );

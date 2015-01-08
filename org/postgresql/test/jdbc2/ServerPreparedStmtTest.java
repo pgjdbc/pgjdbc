@@ -153,7 +153,7 @@ public class ServerPreparedStmtTest extends TestCase
         ((PGStatement)pstmt).setUseServerPrepare(true);
         assertTrue(((PGStatement)pstmt).isUseServerPrepare());
 
-        pstmt.setObject(1, new Boolean(false), java.sql.Types.BIT);
+        pstmt.setObject(1, false, java.sql.Types.BIT);
         ResultSet rs = pstmt.executeQuery();
         assertTrue(rs.next());
         assertEquals(9, rs.getInt(1));
@@ -167,7 +167,7 @@ public class ServerPreparedStmtTest extends TestCase
         ((PGStatement)pstmt).setUseServerPrepare(true);
         assertTrue(((PGStatement)pstmt).isUseServerPrepare());
 
-        pstmt.setObject(1, new Boolean(true), java.sql.Types.INTEGER);
+        pstmt.setObject(1, true, java.sql.Types.INTEGER);
         ResultSet rs = pstmt.executeQuery();
         assertTrue(rs.next());
         assertEquals(1, rs.getInt(1));

@@ -60,7 +60,7 @@ public class HStoreTest extends TestCase {
     }
 
     public void testHStoreSend() throws SQLException {
-        Map correct = Collections.singletonMap("a", new Integer(1));
+        Map correct = Collections.singletonMap("a", 1);
         PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::text");
         pstmt.setObject(1, correct);
         ResultSet rs = pstmt.executeQuery();

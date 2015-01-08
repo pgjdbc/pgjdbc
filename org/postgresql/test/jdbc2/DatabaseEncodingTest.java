@@ -54,7 +54,7 @@ public class DatabaseEncodingTest extends TestCase
     }
 
     private static String dumpString(String s) {
-        StringBuffer sb = new StringBuffer(s.length() * 6);
+        StringBuilder sb = new StringBuilder(s.length() * 6);
         for (int i = 0; i < s.length(); ++i)
         {
             sb.append("\\u");

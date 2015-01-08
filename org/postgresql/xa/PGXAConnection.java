@@ -143,7 +143,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
                 if (methodName.equals("commit") ||
                     methodName.equals("rollback") ||
                     methodName.equals("setSavePoint") ||
-                    (methodName.equals("setAutoCommit") && ((Boolean) args[0]).booleanValue()))
+                    (methodName.equals("setAutoCommit") && (Boolean) args[0]))
                 {
 		    throw new PSQLException(GT.tr("Transaction control methods setAutoCommit(true), commit, rollback and setSavePoint not allowed while an XA transaction is active."),
 					    PSQLState.OBJECT_NOT_IN_STATE);

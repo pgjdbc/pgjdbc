@@ -191,10 +191,10 @@ public class ResultSetTest extends TestCase
         if (useServerPrepare)
             ((org.postgresql.PGStatement)pstmt).setUseServerPrepare(true);
 
-        pstmt.setObject(1, new Float(0), java.sql.Types.BIT);
+        pstmt.setObject(1, (float) 0, java.sql.Types.BIT);
         pstmt.executeUpdate();
 
-        pstmt.setObject(1, new Float(1), java.sql.Types.BIT);
+        pstmt.setObject(1, (float) 1, java.sql.Types.BIT);
         pstmt.executeUpdate();
 
         pstmt.setObject(1, "False", java.sql.Types.BIT);

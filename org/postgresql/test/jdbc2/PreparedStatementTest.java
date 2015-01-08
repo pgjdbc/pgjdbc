@@ -349,13 +349,12 @@ public class PreparedStatementTest extends TestCase
                                    "no backslash interpretation here: \\",
                                };
 
-        for (int i = 0; i < testStrings.length; ++i)
-        {
-            PreparedStatement pstmt = conn.prepareStatement("CREATE TABLE \"" + testStrings[i] + "\" (i integer)");
+        for (String testString : testStrings) {
+            PreparedStatement pstmt = conn.prepareStatement("CREATE TABLE \"" + testString + "\" (i integer)");
             pstmt.executeUpdate();
             pstmt.close();
 
-            pstmt = conn.prepareStatement("DROP TABLE \"" + testStrings[i] + "\"");
+            pstmt = conn.prepareStatement("DROP TABLE \"" + testString + "\"");
             pstmt.executeUpdate();
             pstmt.close();
         }
@@ -549,9 +548,9 @@ public class PreparedStatementTest extends TestCase
         pstmt.executeUpdate();
         pstmt.close();
         
-        Integer maxInteger= new Integer(2147483647), minInteger = new Integer(-2147483648);
+        Integer maxInteger= 2147483647, minInteger = -2147483648;
         
-        Double maxFloat=new Double( 2147483647), minFloat = new Double( -2147483648 );
+        Double maxFloat= (double) 2147483647, minFloat = (double) -2147483648;
         
         pstmt = conn.prepareStatement( "insert into float_tab values (?,?,?)");
         pstmt.setObject(1,maxInteger,Types.FLOAT );
@@ -579,7 +578,7 @@ public class PreparedStatementTest extends TestCase
         pstmt.close();
         
         String maxStringFloat = new String("1.0E37"), minStringFloat = new String("1.0E-37");
-        Double maxFloat=new Double(1.0E37), minFloat = new Double( 1.0E-37 );
+        Double maxFloat= 1.0E37, minFloat = 1.0E-37;
         
         pstmt = conn.prepareStatement( "insert into float_tab values (?,?,?)");
         pstmt.setObject(1,maxStringFloat,Types.FLOAT );
@@ -608,7 +607,7 @@ public class PreparedStatementTest extends TestCase
         pstmt.close();
         
         BigDecimal maxBigDecimalFloat = new BigDecimal("1.0E37"), minBigDecimalFloat = new BigDecimal("1.0E-37");
-        Double maxFloat=new Double(1.0E37), minFloat = new Double( 1.0E-37 );
+        Double maxFloat= 1.0E37, minFloat = 1.0E-37;
         
         pstmt = conn.prepareStatement( "insert into float_tab values (?,?,?)");
         pstmt.setObject(1,maxBigDecimalFloat,Types.FLOAT );
@@ -635,8 +634,8 @@ public class PreparedStatementTest extends TestCase
         pstmt.executeUpdate();
         pstmt.close();
         
-        Integer maxInt = new Integer( 127 ), minInt = new Integer(-127);
-        Float maxIntFloat = new Float( 127 ), minIntFloat = new Float( -127 ); 
+        Integer maxInt = 127, minInt = -127;
+        Float maxIntFloat = (float) 127, minIntFloat = (float) -127;
         
         pstmt = conn.prepareStatement( "insert into tiny_int values (?,?,?)");
         pstmt.setObject(1,maxIntFloat,Types.TINYINT );
@@ -664,8 +663,8 @@ public class PreparedStatementTest extends TestCase
         pstmt.executeUpdate();
         pstmt.close();
         
-        Integer maxInt = new Integer( 32767 ), minInt = new Integer(-32768);
-        Float maxIntFloat = new Float( 32767 ), minIntFloat = new Float( -32768 ); 
+        Integer maxInt = 32767, minInt = -32768;
+        Float maxIntFloat = (float) 32767, minIntFloat = (float) -32768;
         
         pstmt = conn.prepareStatement( "insert into small_int values (?,?,?)");
         pstmt.setObject(1,maxIntFloat,Types.SMALLINT );
@@ -692,8 +691,8 @@ public class PreparedStatementTest extends TestCase
         pstmt.executeUpdate();
         pstmt.close();
         
-        Integer maxInt = new Integer( 1000 ), minInt = new Integer(-1000);
-        Float maxIntFloat = new Float( 1000 ), minIntFloat = new Float( -1000 ); 
+        Integer maxInt = 1000, minInt = -1000;
+        Float maxIntFloat = (float) 1000, minIntFloat = (float) -1000;
         
         pstmt = conn.prepareStatement( "insert into int_tab values (?,?,?)");
         pstmt.setObject(1,maxIntFloat,Types.INTEGER );
@@ -721,7 +720,7 @@ public class PreparedStatementTest extends TestCase
         pstmt.close();
         
         Boolean trueVal = Boolean.TRUE, falseVal = Boolean.FALSE;
-        Double dBooleanTrue = new Double(1), dBooleanFalse = new Double( 0 ); 
+        Double dBooleanTrue = (double) 1, dBooleanFalse = (double) 0;
         
         pstmt = conn.prepareStatement( "insert into double_tab values (?,?,?)");
         pstmt.setObject(1,trueVal,Types.DOUBLE );
@@ -824,7 +823,7 @@ public class PreparedStatementTest extends TestCase
     public void testSetObjectCharacter() throws SQLException
     {
         PreparedStatement ps = conn.prepareStatement("INSERT INTO texttable(te) VALUES (?)");
-        ps.setObject(1, new Character('z'));
+        ps.setObject(1, 'z');
         ps.executeUpdate();
         ps.close();
     }
@@ -838,7 +837,7 @@ public class PreparedStatementTest extends TestCase
     public void testStatementDescribe() throws SQLException
     {
         PreparedStatement pstmt = conn.prepareStatement("SELECT ?::int");
-        pstmt.setObject(1, new Integer(2), Types.OTHER);
+        pstmt.setObject(1, 2, Types.OTHER);
         for (int i=0; i<10; i++) {
             ResultSet rs = pstmt.executeQuery();
             assertTrue(rs.next());

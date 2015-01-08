@@ -53,8 +53,8 @@ public class ConnectionPoolTest extends BaseDataSourceTest
     
     protected void tearDown() throws Exception
     {
-        for (Iterator i = connections.iterator(); i.hasNext(); ) {
-            PooledConnection c = (PooledConnection) i.next();
+        for (Object connection : connections) {
+            PooledConnection c = (PooledConnection) connection;
             try {
                 c.close();
             } catch (Exception ex) {

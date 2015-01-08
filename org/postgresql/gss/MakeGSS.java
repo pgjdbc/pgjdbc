@@ -101,8 +101,8 @@ class GssAction implements PrivilegedAction
         org.ietf.jgss.Oid spnego = new org.ietf.jgss.Oid("1.3.6.1.5.5.2");
         org.ietf.jgss.Oid mechs[] = manager.getMechs();
 
-        for (int i = 0; i < mechs.length; ++i) {
-            if (mechs[i].equals(spnego)) {
+        for (Oid mech : mechs) {
+            if (mech.equals(spnego)) {
                 return true;
             }
         }
