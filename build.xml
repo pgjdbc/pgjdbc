@@ -466,8 +466,9 @@ Bundle-DocURL: http://jdbc.postgresql.org/
 Bundle-Classpath: .
 Bundle-Activator: org.postgresql.osgi.PGBundleActivator
 Require-Capability: osgi.ee;filter:="(&amp;(|(osgi.ee=J2SE)(osgi.ee=JavaSE))(version>=${java.specification.version}))"
+
 Export-Package: org.postgresql*; version=${fullversion}
-Import-Package: javax.sql, javax.transaction.xa, javax.naming, *;resolution:=optional
+Import-Package: javax.*, org.osgi.*, *;resolution:=optional
     </echo>
 
     <!--   run wrap task from bnd -->

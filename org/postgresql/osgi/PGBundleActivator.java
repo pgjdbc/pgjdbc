@@ -7,13 +7,9 @@
 */
 package org.postgresql.osgi;
 
-import java.util.Dictionary;
-import java.util.Hashtable;
-
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
-import org.osgi.service.jdbc.DataSourceFactory;
 import org.postgresql.Driver;
 
 /**
@@ -25,20 +21,26 @@ public class PGBundleActivator implements BundleActivator
 
     public void start(BundleContext context) throws Exception
     {
-        Dictionary<String,Object> properties = new Hashtable<String,Object>();
-        properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_CLASS, Driver.class.getName());
-        properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_NAME, "PostgreSQL JDBC Driver");
-        properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_VERSION, Driver.getVersion());
-        _registration = context.registerService(DataSourceFactory.class.getName(),
-                                                new PGDataSourceFactory(),
-                                                properties);
+        if (!Driver.isRegistered())
+        {
+            Driver.register();
+        }
+
+        _registration = new PGDataSourceFactory().register(context);
     }
 
     public void stop(BundleContext context) throws Exception
     {
         if (_registration != null)
         {
-            _registration.unregister();
+            try
+            {
+                _registration.unregister();
+            }
+            catch (IllegalStateException e)
+            {
+                // continue: service has already been unregistered somewhere else but do not prevent correct stop
+            }
             _registration = null;
         }
 
