@@ -104,6 +104,12 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                                   ResultCursor cursor, int maxRows, int maxFieldSize,
                                   int rsType, int rsConcurrency) throws SQLException
     {
+        // Fail-fast on invalid null inputs
+        if (tuples == null)
+            throw new NullPointerException("tuples must be non-null");
+        if (fields == null)
+            throw new NullPointerException("fields must be non-null");
+
         this.originalQuery = originalQuery;
         this.connection = (BaseConnection) statement.getConnection();
         this.statement = statement;
