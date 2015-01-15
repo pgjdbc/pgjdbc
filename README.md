@@ -19,7 +19,8 @@ from the [Postgresql JDBC site](http://jdbc.postgresql.org/).
 ## Compiling with Ant on the command line
 
 PgJDBC doesn't natively support compilation from IDEs like Eclipse, NetBeans or
-IntelliJ. You should compile with ant on the command line.
+IntelliJ. You should compile with ant on the command line or create your own
+IDE project. Tips for use with some IDEs follow below.
 
 Before you can compile the driver you must download the source code from git.
 You cannot compile from a jar or a .zip distribution. Run:
@@ -175,16 +176,60 @@ For information about the unit tests and how to run them, see
 
 ### Ideas
 
-If you have ideas or proposed changes, please post on the mailing list.
+If you have ideas or proposed changes, please post on the mailing list or
+open a detailed, specific GitHub issue.
+
 Think about how the change would affect other users, what side effects it
 might have, how practical it is to implement, what implications it would
-have for standards compliance and security, etc.
+have for standards compliance and security, etc. Include a detailed use-case
+description.
 
 Few of the PgJDBC developers have much spare time, so it's unlikely that your
 idea will be picked up and implemented for you. The best way to make sure a
 desired feature or improvement happens is to implement it yourself. The PgJDBC
 sources are reasonably clear and they're pure Java, so it's sometimes easier
 than you might expect.
+
+## Support for IDEs
+
+It's possible to debug and test PgJDBC with various IDEs, not just with ant on
+the command line. Projects aren't supplied, but it's easy to prepare them.
+
+### Eclipse
+
+On Eclipse Luna, to import PgJDBC as an Eclipse Java project with full
+support for on-demand compile, debugging, etc, you must:
+
+* Perform a git clone of PgJDBC on the command line
+* Use Ant to fetch the dependency JARs:
+
+          ant -lib lib snapshot-version maven-dependencies
+
+* In Eclipse, File -> New -> Java Project
+* Uncheck "Use default location" and find your git clone of PgJDBC then
+  press Next
+* Under Source, open "configure inclusion and exclusion filters"
+* Add the exclusion filters:
+    `org/postgresql/jdbc3/Jdbc3*.java`
+    `org/postgresql/jdbc3g/Jdbc3g*.java`
+  ... and accept the dialog.
+
+* Under Libraries, choose Add JARs and add everything under `lib`
+* Click finish to create the project
+
+Note that unlike a JDBC4 JAR an Eclipse project will not be
+auto-detected using service discovery, so you'll have to use an
+explicit load:
+
+    Class.forName("org.postgresql.Driver")
+
+Eclipse will interoperate fine with Ant, so you can test and debug
+with Eclipse then do dist builds with Ant.
+
+### Other IDEs
+
+Please submit build instructions for your preferred IDE.
+
 
 ### Sponsors
 
