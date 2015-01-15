@@ -499,7 +499,7 @@ Import-Package: javax.sql, javax.transaction.xa, javax.naming, *;resolution:=opt
     <fail message="Old driver was detected on classpath or in jre/lib/ext, please remove and try again." if="old.driver.present" />
 
     <javac classpath="${srcdir}" srcdir="${srcdir}" destdir="${builddir}"
-           debug="${debug}" source="${java.specification.version}" includeantruntime="false">
+           debug="${debug}" debuglevel="lines,vars,source" source="${java.specification.version}" includeantruntime="false">
       <classpath refid="dependency.compile.classpath"/>
       <!-- Do NOT add dependency.test here, we should not depend on junit -->
       <!-- Similarly, omit dependency.runtime, we're intentionally not compiling against those libs -->
@@ -710,6 +710,7 @@ Import-Package: javax.sql, javax.transaction.xa, javax.naming, *;resolution:=opt
   <target name="testjar" depends="snapshot-version, jar">
     <mkdir dir="${builddir}/tests"/>
     <javac srcdir="${srcdir}" destdir="${builddir}/tests" debug="${debug}"
+           debuglevel="lines,vars,source"
            source="${java.specification.version}" includeantruntime="false">
       <classpath refid="dependency.compile.classpath" />
       <classpath refid="dependency.runtime.classpath" />
