@@ -1933,10 +1933,19 @@ public class QueryExecutorImpl implements QueryExecutor {
                     if (fields != null && !noResults && tuples == null)
                         tuples = new ArrayList();
 
-                    if (fields != null || tuples != null)
-                    { // There was a resultset.
-                        handler.handleResultRows(currentQuery, fields, tuples, null);
-                        tuples = null;
+					// If we received tuples we must know the structure of the
+					// resultset, otherwise we won't be able to fetch columns
+                    // from it, etc, later.
+					if (fields == null && tuples != null) {
+						throw new IllegalStateException(
+								"Received resultset tuples, but no field structure for them");
+					}
+
+					if (fields != null || tuples != null) {
+						// There was a resultset.
+						handler.handleResultRows(currentQuery, fields, tuples,
+								null);
+						tuples = null;
 
                         if (bothRowsAndStatus)
                             interpretCommandStatus(status, handler);
