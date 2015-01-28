@@ -139,7 +139,7 @@ public class PGpath extends PGobject implements Serializable, Cloneable
      */
     public String getValue()
     {
-        StringBuffer b = new StringBuffer(open ? "[" : "(");
+        StringBuilder b = new StringBuilder(open ? "[" : "(");
 
         for (int p = 0;p < points.length;p++)
         {

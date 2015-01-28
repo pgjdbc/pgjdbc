@@ -173,7 +173,7 @@ public class ServerErrorMessage implements Serializable
         //included.  If DEBUG level logging is enabled then all information
         //is included.
 
-        StringBuffer l_totalMessage = new StringBuffer();
+        StringBuilder l_totalMessage = new StringBuilder();
         String l_message = (String)m_mesgParts.get(SEVERITY);
         if (l_message != null)
             l_totalMessage.append(l_message).append(": ");

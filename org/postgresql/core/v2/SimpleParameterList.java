@@ -60,12 +60,12 @@ class SimpleParameterList implements ParameterList {
     }
 
     public void setStringParameter(int index, String value, int oid) throws SQLException {
-        StringBuffer sbuf = new StringBuffer(2 + value.length() * 11 / 10); // Add 10% for escaping.
+        StringBuilder sbuf = new StringBuilder(2 + value.length() * 11 / 10); // Add 10% for escaping.
 
         if (useEStringSyntax)
             sbuf.append(' ').append('E');
         sbuf.append('\'');
-        Utils.appendEscapedLiteral(sbuf, value, false);
+        Utils.escapeLiteral(sbuf, value, false);
         sbuf.append('\'');
 
         setLiteralParameter(index, sbuf.toString(), oid);

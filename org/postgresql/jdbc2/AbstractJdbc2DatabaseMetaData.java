@@ -1576,7 +1576,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      * needed around it.
      */
     protected String escapeQuotes(String s) throws SQLException {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         if (!connection.getStandardConformingStrings() && connection.haveMinimumServerVersion("8.1")) {
             sb.append("E");
         }

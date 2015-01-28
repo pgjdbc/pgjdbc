@@ -1276,7 +1276,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
         if (logger.logDebug())
         {
-            StringBuffer sbuf = new StringBuffer(" FE=> Parse(stmt=" + statementName + ",query=\"");
+            StringBuilder sbuf = new StringBuilder(" FE=> Parse(stmt=" + statementName + ",query=\"");
             for (int i = 0; i < fragments.length; ++i)
             {
                 if (i > 0)
@@ -1357,7 +1357,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
         if (logger.logDebug())
         {
-            StringBuffer sbuf = new StringBuffer(" FE=> Bind(stmt=" + statementName + ",portal=" + portal);
+            StringBuilder sbuf = new StringBuilder(" FE=> Bind(stmt=" + statementName + ",portal=" + portal);
             for (int i = 1; i <= params.getParameterCount(); ++i)
             {
                 sbuf.append(",$").append(i).append("=<").append(params.toString(i)).append(">");
@@ -1933,10 +1933,19 @@ public class QueryExecutorImpl implements QueryExecutor {
                     if (fields != null && !noResults && tuples == null)
                         tuples = new ArrayList();
 
-                    if (fields != null || tuples != null)
-                    { // There was a resultset.
-                        handler.handleResultRows(currentQuery, fields, tuples, null);
-                        tuples = null;
+					// If we received tuples we must know the structure of the
+					// resultset, otherwise we won't be able to fetch columns
+                    // from it, etc, later.
+					if (fields == null && tuples != null) {
+						throw new IllegalStateException(
+								"Received resultset tuples, but no field structure for them");
+					}
+
+					if (fields != null || tuples != null) {
+						// There was a resultset.
+						handler.handleResultRows(currentQuery, fields, tuples,
+								null);
+						tuples = null;
 
                         if (bothRowsAndStatus)
                             interpretCommandStatus(status, handler);

@@ -104,6 +104,12 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                                   ResultCursor cursor, int maxRows, int maxFieldSize,
                                   int rsType, int rsConcurrency) throws SQLException
     {
+        // Fail-fast on invalid null inputs
+        if (tuples == null)
+            throw new NullPointerException("tuples must be non-null");
+        if (fields == null)
+            throw new NullPointerException("fields must be non-null");
+
         this.originalQuery = originalQuery;
         this.connection = (BaseConnection) statement.getConnection();
         this.statement = statement;
@@ -191,8 +197,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                 // Fetch all results.
                 String cursorName = getString(columnIndex);
 
-                StringBuffer sb = new StringBuffer("FETCH ALL IN ");
-                Utils.appendEscapedIdentifier(sb, cursorName);
+                StringBuilder sb = new StringBuilder("FETCH ALL IN ");
+                Utils.escapeIdentifier(sb, cursorName);
 
                 // nb: no BEGIN triggered here. This is fine. If someone
                 // committed, and the cursor was not holdable (closing the
@@ -212,7 +218,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
 
                 sb.setLength(0);
                 sb.append("CLOSE ");
-                Utils.appendEscapedIdentifier(sb, cursorName);
+                Utils.escapeIdentifier(sb, cursorName);
                 connection.execSQLUpdate(sb.toString());
                 ((AbstractJdbc2ResultSet)rs).setRefCursor(cursorName);
                 return rs;
@@ -846,11 +852,11 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         {
 
 
-            StringBuffer deleteSQL = new StringBuffer("DELETE FROM " ).append(onlyTable).append(tableName).append(" where " );
+            StringBuilder deleteSQL = new StringBuilder("DELETE FROM " ).append(onlyTable).append(tableName).append(" where " );
 
             for ( int i = 0; i < numKeys; i++ )
             {
-                Utils.appendEscapedIdentifier(deleteSQL, ((PrimaryKey)primaryKeys.get(i)).name);
+                Utils.escapeIdentifier(deleteSQL, ((PrimaryKey)primaryKeys.get(i)).name);
                 deleteSQL.append(" = ?");
                 if ( i < numKeys - 1 )
                 {
@@ -897,8 +903,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             // we have to create the sql every time since the user could insert different
             // columns each time
 
-            StringBuffer insertSQL = new StringBuffer("INSERT INTO ").append(tableName).append(" (");
-            StringBuffer paramSQL = new StringBuffer(") values (" );
+            StringBuilder insertSQL = new StringBuilder("INSERT INTO ").append(tableName).append(" (");
+            StringBuilder paramSQL = new StringBuilder(") values (" );
 
             Iterator columnNames = updateValues.keySet().iterator();
             int numColumns = updateValues.size();
@@ -907,7 +913,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             {
                 String columnName = (String) columnNames.next();
 
-                Utils.appendEscapedIdentifier(insertSQL, columnName);
+                Utils.escapeIdentifier(insertSQL, columnName);
                 if ( i < numColumns - 1 )
                 {
                     insertSQL.append(", ");
@@ -1263,7 +1269,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         if (isBeforeFirst() || isAfterLast() || rows.size() == 0)
             return ;
 
-        StringBuffer selectSQL = new StringBuffer( "select ");
+        StringBuilder selectSQL = new StringBuilder( "select ");
 
         ResultSetMetaData rsmd = getMetaData();
         PGResultSetMetaData pgmd = (PGResultSetMetaData)rsmd;
@@ -1338,7 +1344,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         if (!doingUpdates)
             return; // No work pending.
 
-        StringBuffer updateSQL = new StringBuffer("UPDATE " + onlyTable + tableName + " SET  ");
+        StringBuilder updateSQL = new StringBuilder("UPDATE " + onlyTable + tableName + " SET  ");
         
         int numColumns = updateValues.size();
         Iterator columns = updateValues.keySet().iterator();
@@ -1346,7 +1352,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         for (int i = 0; columns.hasNext(); i++ )
         {
             String column = (String) columns.next();
-            Utils.appendEscapedIdentifier(updateSQL, column);
+            Utils.escapeIdentifier(updateSQL, column);
             updateSQL.append(" = ?");
             
             if ( i < numColumns - 1 )
@@ -1360,7 +1366,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         for ( int i = 0; i < numKeys; i++ )
         {                
             PrimaryKey primaryKey = ((PrimaryKey) primaryKeys.get(i));
-            Utils.appendEscapedIdentifier(updateSQL, primaryKey.name);
+            Utils.escapeIdentifier(updateSQL, primaryKey.name);
             updateSQL.append(" = ?");
             
             if ( i < numKeys - 1 )
@@ -1676,7 +1682,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public static String[] quotelessTableName(String fullname) {
 
         String[] parts = new String[] {null, ""};
-        StringBuffer acc = new StringBuffer();
+        StringBuilder acc = new StringBuilder();
         boolean betweenQuotes = false;
         for (int i = 0; i < fullname.length(); i++)
         {
@@ -1703,7 +1709,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                 else
                 {    // Have schema name
                     parts[1] = acc.toString();
-                    acc = new StringBuffer();
+                    acc = new StringBuilder();
                 }
                 break;
             default:

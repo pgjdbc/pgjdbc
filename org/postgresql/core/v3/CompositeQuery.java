@@ -32,7 +32,7 @@ class CompositeQuery implements V3Query {
     }
 
     public String toString(ParameterList parameters) {
-        StringBuffer sbuf = new StringBuffer(subqueries[0].toString());
+        StringBuilder sbuf = new StringBuilder(subqueries[0].toString());
         for (int i = 1; i < subqueries.length; ++i)
         {
             sbuf.append(';');

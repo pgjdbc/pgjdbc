@@ -7,6 +7,7 @@
 */
 package org.postgresql.test.jdbc2;
 
+import org.junit.Assert;
 import org.postgresql.Driver;
 import org.postgresql.test.TestUtil;
 
@@ -14,6 +15,9 @@ import junit.framework.TestCase;
 
 import java.lang.reflect.Method;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Properties;
 
 /*
@@ -120,5 +124,55 @@ public class DriverTest extends TestCase
         assertNotNull(con); 
         assertFalse(con.isReadOnly());
         con.close();
+    }
+
+    public void testRegistration() throws Exception
+    {
+        TestUtil.initDriver();
+        ArrayList<java.sql.Driver> drivers;
+
+        // Driver is initially registered because it is automatically done when class is loaded
+        Assert.assertTrue(org.postgresql.Driver.isRegistered());
+
+        drivers = Collections.list(DriverManager.getDrivers());
+        searchInstanceOf:
+        {
+            
+            for (java.sql.Driver driver : drivers)
+            {
+                if (driver instanceof org.postgresql.Driver)
+                {
+                    break searchInstanceOf;
+                }
+            }
+            Assert.fail("Driver has not been found in DriverManager's list but it should be registered");
+        }
+
+        // Deregister the driver
+        Driver.deregister();
+        Assert.assertFalse(Driver.isRegistered());
+        
+        drivers = Collections.list(DriverManager.getDrivers());
+        for (java.sql.Driver driver : drivers)
+        {
+            if (driver instanceof org.postgresql.Driver)
+            {
+                Assert.fail("Driver should be deregistered but it is still present in DriverManager's list");
+            }
+        }
+
+        // register again the driver
+        Driver.register();
+        Assert.assertTrue(Driver.isRegistered());
+
+        drivers = Collections.list(DriverManager.getDrivers());
+        for (java.sql.Driver driver : drivers)
+        {
+            if (driver instanceof org.postgresql.Driver)
+            {
+                return;
+            }
+        }
+        Assert.fail("Driver has not been found in DriverManager's list but it should be registered");
     }
 }

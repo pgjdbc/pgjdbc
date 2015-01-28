@@ -10,7 +10,9 @@ package org.postgresql.ds.common;
 import javax.naming.*;
 
 import org.postgresql.PGProperty;
+import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 import java.sql.*;
 import java.io.IOException;
@@ -959,33 +961,73 @@ public abstract class BaseDataSource implements Referenceable
         
         for (PGProperty property: PGProperty.values())
         {
-            switch(property)
-            {
-                case PG_HOST:
-                    serverName = property.get(properties);
-                    break;
-                case PG_PORT:
-                    try
-                    {
-                        portNumber = property.getInt(properties);
-                    }
-                    catch (PSQLException e)
-                    {
-                        portNumber = 0;
-                    }
-                    break;
-                case PG_DBNAME:
-                    databaseName = property.get(properties);
-                    break;
-                case USER:
-                    user = property.get(properties);
-                    break;
-                case PASSWORD:
-                    password = property.get(properties);
-                    break;
-                default:
-                    properties.setProperty(property.getName(), property.get(properties));
-            }
+            setProperty(property, property.get(p));
+        }
+    }
+
+    public String getProperty(String name)
+      throws SQLException
+    {
+        PGProperty pgProperty = PGProperty.forName(name);
+        if (pgProperty != null)
+        {
+            return getProperty(pgProperty);
+        }
+        else
+        {
+            throw new PSQLException(GT.tr("Unsupported property name: {0}", name),
+                                    PSQLState.INVALID_PARAMETER_VALUE);
+        }
+    }
+
+    public void setProperty(String name, String value)
+      throws SQLException
+    {
+        PGProperty pgProperty = PGProperty.forName(name);
+        if (pgProperty != null)
+        {
+            setProperty(pgProperty, value);
+        }
+        else
+        {
+            throw new PSQLException(GT.tr("Unsupported property name: {0}", name),
+                                    PSQLState.INVALID_PARAMETER_VALUE);
+        }
+    }
+
+    public String getProperty(PGProperty property)
+    {
+        return property.get(properties);
+    }
+
+    public void setProperty(PGProperty property, String value)
+    {
+        switch(property)
+        {
+            case PG_HOST:
+                serverName = value;
+                break;
+            case PG_PORT:
+                try
+                {
+                    portNumber = Integer.parseInt(value);
+                }
+                catch (NumberFormatException e)
+                {
+                    portNumber = 0;
+                }
+                break;
+            case PG_DBNAME:
+                databaseName = value;
+                break;
+            case USER:
+                user = value;
+                break;
+            case PASSWORD:
+                password = value;
+                break;
+            default:
+                properties.setProperty(property.getName(), value);
         }
     }
 
