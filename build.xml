@@ -148,7 +148,8 @@
                   groupId="${maven.group.id}"
                   artifactId="${maven.artifact.id}"
                   version="${maven.artifact.version.string}" 
-                  name="${maven.artifact.description} ${jdbc.version.upper}"
+                  name="PostgreSQL JDBC Driver"
+                  description="${maven.artifact.description} ${jdbc.version.upper}"
                   url="http://jdbc.postgresql.org"
                   >
 
@@ -904,7 +905,7 @@ Import-Package: javax.sql, javax.transaction.xa, javax.naming, *;resolution:=opt
                        file="${builddir}/pom/pom.xml" />
   </target>
 
-  <target name="snapshot" depends="maven-jar,snapshot-version,prepare-pom" description="deploy snapshot version to Maven snapshot repository">
+  <target name="snapshot" depends="snapshot-version,maven-jar,prepare-pom" description="deploy snapshot version to Maven snapshot repository">
     <artifact:mvn>
       <artifact:arg value="org.apache.maven.plugins:maven-deploy-plugin:2.6:deploy-file"/>
       <artifact:arg value="-Durl=${maven.snapshots.repository.url}"/>
@@ -914,7 +915,7 @@ Import-Package: javax.sql, javax.transaction.xa, javax.naming, *;resolution:=opt
     </artifact:mvn>
   </target>
 
-  <target name="release" depends="maven-jar,release-version,prepare-pom" description="deploy release version to Maven staging repository">
+  <target name="release" depends="release-version,maven-jar,prepare-pom" description="deploy release version to Maven staging repository">
     <!-- sign and deploy the main artifact -->
     <fail unless="maven.artifact.version.string"/>
     <artifact:mvn>
