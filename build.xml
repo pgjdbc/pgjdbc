@@ -148,7 +148,8 @@
                   groupId="${maven.group.id}"
                   artifactId="${maven.artifact.id}"
                   version="${maven.artifact.version.string}" 
-                  name="${maven.artifact.description} ${jdbc.version.upper}"
+                  name="PostgreSQL JDBC Driver"
+                  description="${maven.artifact.description} ${jdbc.version.upper}"
                   url="http://jdbc.postgresql.org"
                   >
 
