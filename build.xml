@@ -203,13 +203,6 @@
       <dependency groupId="com.github.dblock.waffle" artifactId="waffle-jna"
                   version="${waffle-jna.version}" scope="runtime"/>
 
-      <!--
-         Pull in slf4j-simple too, since Waffle uses slf4j. 
-         (It's declared optional by waffle so ant-tasks doesn't fetch it normally)
-      -->
-      <dependency groupId="org.slf4j" artifactId="slf4j-simple"
-                  version="${waffle-pom.properties.slf4j.version}" scope="runtime"/>
-
       <!-- Ensure JUnit is available, since we hide the ant runtime -->
       <dependency groupId="junit" artifactId="junit" version="4.11"
                   scope="test"/>
