@@ -30,6 +30,9 @@
   <property file="build.local.properties" />
   <property file="build.properties"/>
 
+  <taskdef uri="antlib:org.apache.maven.artifact.ant"
+           classpath="lib/maven-ant-tasks-2.1.3.jar"/>
+
  <!-- define artifacts' name, which follows the convention of Maven -->
   <property name="maven.jar" value="${jardir}/${maven.artifact.id}-${maven.artifact.version}.jar"/>
   <property name="maven.javadoc.jar" value="${jardir}/${maven.artifact.id}-${maven.artifact.version}-javadoc.jar"/>
