@@ -676,6 +676,12 @@ Import-Package: javax.sql, javax.transaction.xa, javax.naming, *;resolution:=opt
     <delete quiet="true" file="${srcdir}/${package}/ds/PGConnectionPoolDataSource.java" />
     <delete quiet="true" file="${srcdir}/${package}/xa/PGXADataSource.java" />
     <delete quiet="true" file="${srcdir}/${package}/ssl/MakeSSL.java" />
+    <delete quiet="true">
+      <fileset dir="lib">
+        <include name="*"/>
+        <exclude name="maven-ant-tasks*.jar"/>
+      </fileset>
+    </delete>
   </target>
 
   <!-- This compiles and executes the JUnit tests -->
