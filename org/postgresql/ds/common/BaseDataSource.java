@@ -918,6 +918,20 @@ public abstract class BaseDataSource implements Referenceable
     /**
      * Generates a DriverManager URL from the other properties supplied.
      */
+    public String getURL() {
+        return getUrl();
+    }
+
+    /**
+     * Sets properties from a DriverManager URL.
+     */
+    public void setURL(String url) {
+        setUrl(url);
+    }
+
+    /**
+     * Generates a DriverManager URL from the other properties supplied.
+     */
     public String getUrl()
     {
         StringBuilder url = new StringBuilder(100);
