@@ -205,7 +205,7 @@
 
       <!-- Ensure JUnit is available, since we hide the ant runtime -->
       <dependency groupId="junit" artifactId="junit" version="4.11"
-                  scope="test"/>
+                  scope="test" optional="true"/>
 
       <dependency groupId="org.osgi" artifactId="org.osgi.core" version="4.3.1"
                   scope="provided" optional="true"/>
@@ -897,7 +897,7 @@ Import-Package: javax.sql, javax.transaction.xa, javax.naming, *;resolution:=opt
                        file="${builddir}/pom/pom.xml" />
   </target>
 
-  <target name="snapshot" depends="maven-jar,snapshot-version,prepare-pom" description="deploy snapshot version to Maven snapshot repository">
+  <target name="snapshot" depends="snapshot-version,maven-jar,prepare-pom" description="deploy snapshot version to Maven snapshot repository">
     <artifact:mvn>
       <artifact:arg value="org.apache.maven.plugins:maven-deploy-plugin:2.6:deploy-file"/>
       <artifact:arg value="-Durl=${maven.snapshots.repository.url}"/>
@@ -907,7 +907,7 @@ Import-Package: javax.sql, javax.transaction.xa, javax.naming, *;resolution:=opt
     </artifact:mvn>
   </target>
 
-  <target name="release" depends="maven-jar,release-version,prepare-pom" description="deploy release version to Maven staging repository">
+  <target name="release" depends="release-version,prepare-pom" description="deploy release version to Maven staging repository">
     <!-- sign and deploy the main artifact -->
     <fail unless="maven.artifact.version.string"/>
     <artifact:mvn>
