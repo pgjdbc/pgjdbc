@@ -240,7 +240,7 @@ we use the git commit messages to **generate the change log**.
 
 ### Commit Message Format
 Each commit message consists of a **header**, a **body** and a **footer**.  The header has a special
-format that includes a **type**, a **scope** and a **subject**:
+format that includes a **type**, and a **subject**:
 
 ```
 <type>: <subject>
