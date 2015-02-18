@@ -151,7 +151,7 @@
                   groupId="${maven.group.id}"
                   artifactId="${maven.artifact.id}"
                   version="${maven.artifact.version.string}" 
-                  name="PostgreSQL JDBC Driver"
+		  name="PostgreSQL JDBC Driver"
                   description="${maven.artifact.description} ${jdbc.version.upper}"
                   url="http://jdbc.postgresql.org"
                   >
@@ -181,7 +181,7 @@
            against it on all platforms for consistent builds.
       -->
       <dependency groupId="com.github.dblock.waffle" artifactId="waffle-jna"
-                  version="${waffle-jna.version}" scope="compile">
+                  version="${waffle-jna.version}" scope="compile" optional="true">
         <!--
          We want to force most of Waffle's transitive dependencies to runtime
          dependencies so we can't accidentally depend on their contents at
@@ -199,29 +199,21 @@
         -->
       </dependency>
 
-
       <!--
            Re-declare our waffle-jna dependency without excludes for runtime
            bundling use.
       -->
       <dependency groupId="com.github.dblock.waffle" artifactId="waffle-jna"
-                  version="${waffle-jna.version}" scope="runtime"/>
-
-      <!--
-         Pull in slf4j-simple too, since Waffle uses slf4j. 
-         (It's declared optional by waffle so ant-tasks doesn't fetch it normally)
-      -->
-      <dependency groupId="org.slf4j" artifactId="slf4j-simple"
-                  version="${waffle-pom.properties.slf4j.version}" scope="runtime"/>
+                  version="${waffle-jna.version}" scope="runtime" optional="true"/>
 
       <!-- Ensure JUnit is available, since we hide the ant runtime -->
       <dependency groupId="junit" artifactId="junit" version="4.11"
-                  scope="test"/>
+                  scope="test" optional="true"/>
 
       <dependency groupId="org.osgi" artifactId="org.osgi.core" version="4.3.1"
-                  scope="provided"/>
+                  scope="provided" optional="true"/>
       <dependency groupId="org.osgi" artifactId="org.osgi.enterprise" version="4.2.0"
-                  scope="provided"/>
+                  scope="provided" optional="true"/>
     </artifact:pom>
 
     <!--
@@ -924,7 +916,7 @@ Import-Package: javax.sql, javax.transaction.xa, javax.naming, *;resolution:=opt
     </artifact:mvn>
   </target>
 
-  <target name="release" depends="release-version,maven-jar,prepare-pom" description="deploy release version to Maven staging repository">
+  <target name="release" depends="release-version,prepare-pom" description="deploy release version to Maven staging repository">
     <!-- sign and deploy the main artifact -->
     <fail unless="maven.artifact.version.string"/>
     <artifact:mvn>
