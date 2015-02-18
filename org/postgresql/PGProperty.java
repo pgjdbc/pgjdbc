@@ -448,7 +448,7 @@ public enum PGProperty
      */
     public boolean isPresent(Properties properties)
     {
-        return properties.containsKey(_name) && get(properties) != null;
+        return get(properties) != null;
     }
 
     /**
