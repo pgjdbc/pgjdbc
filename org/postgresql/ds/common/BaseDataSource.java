@@ -1002,6 +1002,9 @@ public abstract class BaseDataSource implements Referenceable
 
     public void setProperty(PGProperty property, String value)
     {
+        if (value == null) {
+            return;
+        }
         switch(property)
         {
             case PG_HOST:
