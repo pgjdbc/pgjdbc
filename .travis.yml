@@ -5,7 +5,7 @@ before_script:
   - psql -c 'create database test owner test;' -U postgres
  
 
-script: ant -lib lib test
+script: ant test
 
 matrix:
   include:
