@@ -916,7 +916,7 @@ Import-Package: javax.sql, javax.transaction.xa, javax.naming, *;resolution:=opt
     </artifact:mvn>
   </target>
 
-  <target name="release" depends="release-version,prepare-pom" description="deploy release version to Maven staging repository">
+  <target name="release" depends="release-version,maven-jar,prepare-pom" description="deploy release version to Maven staging repository">
     <!-- sign and deploy the main artifact -->
     <fail unless="maven.artifact.version.string"/>
     <artifact:mvn>
