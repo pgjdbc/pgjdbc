@@ -66,7 +66,7 @@ public class BlobInputStream extends InputStream
 
     public BlobInputStream(LargeObject lo, int bsize)
     {
-        this(lo, 1024, -1);
+        this(lo, bsize, -1);
     }
 
     /**
