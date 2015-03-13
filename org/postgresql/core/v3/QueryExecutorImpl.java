@@ -1254,7 +1254,9 @@ public class QueryExecutorImpl implements QueryExecutor {
         query.unprepare();
         processDeadParsedQueries();
 
-        // Remove any cached Field values
+        // Remove any cached Field values. The re-parsed query might report different
+        // fields because input parameter types may result in different type inferences
+        // for unspecified types.
         query.setFields(null);
 
         String statementName = null;
@@ -1686,13 +1688,25 @@ public class QueryExecutorImpl implements QueryExecutor {
         // A statement describe will also output a RowDescription,
         // so don't reissue it here if we've already done so.
         //
-        if (!noMeta && !describeStatement) {
-            // don't send describe if we already have cached the
-            // descriptionrow from previous executions
-            if (query.getFields() == null) {
-              sendDescribePortal(query, portal);
-            }
-        }
+		if (!noMeta && !describeStatement) {
+			/*
+			 * don't send describe if we already have cached the row description
+			 * from previous executions
+			 *
+			 * XXX Clearing the fields / unpreparing the query is incorrect, see
+			 * bug #267. We might clear the cached fields in a later execution
+			 * of this query if the bind parameter types change, but we're
+			 * assuming here that they'll still be valid when we come to process
+			 * the results of this query, so we don't send a new describe here.
+			 * We re-describe after the fields are cleared, but the result of
+			 * that gets processed after processing the results from earlier
+			 * executions that we didn't describe because we didn't think we had
+			 * to.
+			 */
+			if (query.getFields() == null) {
+				sendDescribePortal(query, portal);
+			}
+		}
 
         sendExecute(query, portal, rows);
     }

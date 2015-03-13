@@ -2873,9 +2873,17 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (wantsGeneratedKeysAlways) {
             /*
              * This batch will return generated keys, tell the executor to
-             * expect result rows. We force a Describe later, too.
+             * expect result rows. We also force a Describe later so we know
+             * the size of the results to expect.
+             *
+             * If the parameter type(s) change between batch entries and the
+             * default binary-mode changes we might get mixed binary and text
+             * in a single result set column, which we cannot handle. To prevent
+             * this, disable binary transfer mode in batches that return generated
+             * keys. See GitHub issue #267
              */
-            flags = QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS;
+            flags = QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS
+                    | QueryExecutor.QUERY_NO_BINARY_TRANSFER;
         } else {
             // If a batch hasn't specified that it wants generated keys, using the appropriate
             // Connection.createStatement(...) interfaces, disallow any result set.
