@@ -1338,7 +1338,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             pgStream.Send(parts[i]);
         }
         pgStream.SendChar(0);       // End of query string.
-        pgStream.SendInteger2(params.getParameterCount());       // # of parameter types specified
+        pgStream.SendInteger4(params.getParameterCount());       // # of parameter types specified
         for (int i = 1; i <= params.getParameterCount(); ++i)
             pgStream.SendInteger4(params.getTypeOID(i));
 
