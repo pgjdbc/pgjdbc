@@ -8,6 +8,8 @@
 package org.postgresql.osgi;
 
 import java.sql.SQLException;
+import java.util.Dictionary;
+import java.util.Hashtable;
 import java.util.Map.Entry;
 import java.util.Properties;
 
@@ -15,6 +17,8 @@ import javax.sql.ConnectionPoolDataSource;
 import javax.sql.DataSource;
 import javax.sql.XADataSource;
 
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.jdbc.DataSourceFactory;
 import org.postgresql.ds.common.BaseDataSource;
 import org.postgresql.jdbc2.optional.ConnectionPool;
@@ -166,5 +170,16 @@ public class PGDataSourceFactory implements DataSourceFactory
         PGXADataSource dataSource = new PGXADataSource();
         configureBaseDataSource(dataSource, props);
         return dataSource;
+    }
+
+    ServiceRegistration register(BundleContext context)
+    {
+        Dictionary<String,Object> properties = new Hashtable<String,Object>();
+        properties.put(OSGI_JDBC_DRIVER_CLASS, org.postgresql.Driver.class.getName());
+        properties.put(OSGI_JDBC_DRIVER_NAME, "PostgreSQL JDBC Driver");
+        properties.put(OSGI_JDBC_DRIVER_VERSION, org.postgresql.Driver.getVersion());
+        return  context.registerService(DataSourceFactory.class.getName(),
+                                        this,
+                                        properties);
     }
 }

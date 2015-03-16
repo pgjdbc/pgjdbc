@@ -5,21 +5,22 @@
 *
 *-------------------------------------------------------------------------
 */
-package org.postgresql.jdbc4;
+package org.postgresql.jdbc42;
 
 import java.sql.SQLXML;
 
 import org.postgresql.core.BaseConnection;
+import org.postgresql.jdbc4.AbstractJdbc4SQLXML;
 
-public class Jdbc4SQLXML extends AbstractJdbc4SQLXML implements SQLXML
+public class Jdbc42SQLXML extends AbstractJdbc4SQLXML implements SQLXML
 {
 
-    public Jdbc4SQLXML(BaseConnection conn)
+    public Jdbc42SQLXML(BaseConnection conn)
     {
         super(conn);
     }
 
-    public Jdbc4SQLXML(BaseConnection conn, String data)
+    public Jdbc42SQLXML(BaseConnection conn, String data)
     {
         super(conn, data);
     }

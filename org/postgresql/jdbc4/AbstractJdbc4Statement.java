@@ -17,19 +17,19 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLException;
 
-abstract class AbstractJdbc4Statement extends org.postgresql.jdbc3g.AbstractJdbc3gStatement
+public abstract class AbstractJdbc4Statement extends org.postgresql.jdbc3g.AbstractJdbc3gStatement
 {
 
     private boolean poolable;
     private boolean closeOnCompletion = false;
 
-    AbstractJdbc4Statement (Jdbc4Connection c, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
+    protected AbstractJdbc4Statement (AbstractJdbc4Connection c, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
     {
         super(c, rsType, rsConcurrency, rsHoldability);
         poolable = true;
     }
 
-    public AbstractJdbc4Statement(Jdbc4Connection connection, String sql, boolean isCallable, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
+    protected AbstractJdbc4Statement(AbstractJdbc4Connection connection, String sql, boolean isCallable, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
     {
         super(connection, sql, isCallable, rsType, rsConcurrency, rsHoldability);
     }
