@@ -1624,6 +1624,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         boolean usePortal = (flags & QueryExecutor.QUERY_FORWARD_CURSOR) != 0 && !noResults && !noMeta && fetchSize > 0 && !describeOnly;
         boolean oneShot = (flags & QueryExecutor.QUERY_ONESHOT) != 0 && !usePortal;
         boolean noBinaryTransfer = (flags & QUERY_NO_BINARY_TRANSFER) != 0;
+        boolean forceDescribePortal = (flags & QUERY_FORCE_DESCRIBE_PORTAL) != 0;
 
         // Work out how many rows to fetch in this pass.
 
@@ -1692,18 +1693,24 @@ public class QueryExecutorImpl implements QueryExecutor {
 			/*
 			 * don't send describe if we already have cached the row description
 			 * from previous executions
-			 *
-			 * XXX Clearing the fields / unpreparing the query is incorrect, see
-			 * bug #267. We might clear the cached fields in a later execution
-			 * of this query if the bind parameter types change, but we're
-			 * assuming here that they'll still be valid when we come to process
-			 * the results of this query, so we don't send a new describe here.
-			 * We re-describe after the fields are cleared, but the result of
-			 * that gets processed after processing the results from earlier
-			 * executions that we didn't describe because we didn't think we had
-			 * to.
+			 * 
+			 * XXX Clearing the fields / unpreparing the query (in sendParse) is
+			 * incorrect, see bug #267. We might clear the cached fields in a
+			 * later execution of this query if the bind parameter types change,
+			 * but we're assuming here that they'll still be valid when we come
+			 * to process the results of this query, so we don't send a new
+			 * describe here. We re-describe after the fields are cleared, but
+			 * the result of that gets processed after processing the results
+			 * from earlier executions that we didn't describe because we didn't
+			 * think we had to.
+			 * 
+			 * To work around this, force a Describe at each execution in
+			 * batches where this can be a problem. It won't cause more round
+			 * trips so the performance impact is low, and it'll ensure that the
+			 * field information available when we decoded the results. This
+			 * is undeniably a hack, but there aren't many good alternatives.
 			 */
-			if (query.getFields() == null) {
+			if (query.getFields() == null || forceDescribePortal) {
 				sendDescribePortal(query, portal);
 			}
 		}

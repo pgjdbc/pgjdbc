@@ -88,6 +88,13 @@ public interface QueryExecutor {
      * both the ResultSet and associated update count from the command status.
      */
     static int QUERY_BOTH_ROWS_AND_STATUS = 64;
+    
+    /**
+     * Force this query to be described at each execution. This is done in
+     * pipelined batches where we might need to detect mismatched result
+     * types.
+     */
+    static int QUERY_FORCE_DESCRIBE_PORTAL = 128;
 
     /**
      * Flag to disable batch execution when we expect results (generated keys)

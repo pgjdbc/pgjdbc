@@ -2905,6 +2905,12 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             // we'll be able to queue up before we risk a deadlock.
             // (see v3.QueryExecutorImpl's MAX_BUFFERED_RECV_BYTES)
             preDescribe = wantsGeneratedKeysAlways && !queries[0].isStatementDescribed();
+            /*
+             * It's also necessary to force a Describe on the first execution of the
+             * new statement, even though we already described it, to work around
+             * bug #267.
+             */
+            flags |= QueryExecutor.QUERY_FORCE_DESCRIBE_PORTAL;
         }
 
         if (connection.getAutoCommit())
