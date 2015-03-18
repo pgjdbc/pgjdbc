@@ -856,6 +856,16 @@ openssl pkcs8 -topk8 -in client.key -out client.pk8 -outform DER -v1 PBE-SHA1-3D
         </para>
        </listitem>
       </varlistentry>
+	  
+	  <varlistentry>
+       <term><varname>allowAutoCommitRowLocking</varname> = <type>boolean</type></term>
+       <listitem>
+        <para>
+        Allow row locking in AutoCommit on mode. The default is
+        <literal>false</literal>.
+        </para>
+       </listitem>
+      </varlistentry>
 
      </variablelist>
     </para>
