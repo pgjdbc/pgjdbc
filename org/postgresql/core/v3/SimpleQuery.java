@@ -25,6 +25,8 @@ class SimpleQuery implements V3Query {
     {
         this.fragments = fragments;
         this.protoConnection = protoConnection;
+		// -- row locking query ? --
+		rowLockingQuery = is_RowLockingQuery();
     }
 
     public ParameterList createParameterList() {
@@ -294,6 +296,7 @@ class SimpleQuery implements V3Query {
     private boolean statementDescribed;
     private PhantomReference cleanupRef;
     private int[] preparedTypes;
+	private boolean	rowLockingQuery;
 
     final static SimpleParameterList NO_PARAMETERS = new SimpleParameterList(0, null);
 }
