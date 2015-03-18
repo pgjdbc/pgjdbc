@@ -1900,6 +1900,19 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                 current_row = rows.size();
                 this_row = null;
                 rowBuffer = null;
+				// -- if row locking in autocommit mode active --
+				if (connection.isAutoCommitRowLockingAllowed() 
+				// -- if autocommit mode on --
+				&& connection.getAutoCommit() && 
+				// -- if call for metadata, query is null -> null testing --
+				originalQuery != null
+				// -- if query with row locking keyword --
+				&& originalQuery.isRowLockingQuery()) {
+					// -- Do a commit for release lock because end of resultset --
+					if (connection.getTransactionState() != ProtocolConnection.TRANSACTION_IDLE) {
+						connection.execSQLCommit();
+					}
+				}
                 return false;  // End of the resultset.
             }
 
@@ -1943,6 +1956,19 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             cursor.close();
             cursor = null;
         }
+		// -- if row locking in autocommit mode active
+		if (connection.isAutoCommitRowLockingAllowed() 
+		// -- if autocommit mode on --
+		&& connection.getAutoCommit() && 
+		// -- if call for metadata, query is null -> null testing --
+		originalQuery != null
+		// -- if query with row locking keyword --
+		&& originalQuery.isRowLockingQuery()) {
+			// -- Do a commit for release lock because close resultset --
+			if (connection.getTransactionState() != ProtocolConnection.TRANSACTION_IDLE) {
+				connection.execSQLCommit();
+			}
+		}
     }
 
     public boolean wasNull() throws SQLException

@@ -54,4 +54,11 @@ public interface Query {
     void close();
 
     boolean isStatementDescribed();
+	
+	/**
+	 * Identify query with row locking keyword
+	 * 
+	 * @return true if query with row locking keyword
+	 */
+	boolean isRowLockingQuery();
 }

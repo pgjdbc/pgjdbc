@@ -537,8 +537,20 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                 flags |= QueryExecutor.QUERY_ONESHOT;
         }
 
-        if (connection.getAutoCommit())
-            flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
+        // -- if row locking in autocommit mode active --
+		if (connection.isAutoCommitRowLockingAllowed()) {
+			// -- if autocommit mode on --
+			if (connection.getAutoCommit()
+			// -- if query without row locking keyword -> no transaction --
+			&& !queryToExecute.isRowLockingQuery()) {
+				flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
+			}
+			// -- if query with row locking keyword -> transaction active -> can lock --
+
+			// -- Other case -> no lock possible in autocommit mode --
+		} else if (connection.getAutoCommit()) {
+			flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
+		}
 
         // updateable result sets do not yet support binary updates
         if (concurrency != ResultSet.CONCUR_READ_ONLY)
@@ -565,8 +577,21 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                                                   maxrows,
                                                   fetchSize,
                                                   flags);
-        }
-        finally
+        } catch (SQLException e) {
+			// -- if row locking in autocommit mode active --
+			if (connection.isAutoCommitRowLockingAllowed() 
+			// -- if autocommit mode on --
+			&& connection.getAutoCommit()
+			// -- if query with row locking keyword --
+			&& queryToExecute.isRowLockingQuery()
+			// -- if already locked --
+			&& e.getErrorCode() == 0 && "55P03".equals(e.getSQLState())) {
+				// -- Do a rollback for this connection --
+				connection.execSQLRollback();
+			}
+			// -- Lets return the error --
+			throw e;
+		} finally
         {
             killTimer();
         }

@@ -62,6 +62,110 @@ class SimpleQuery implements V3Query {
     public SimpleQuery[] getSubqueries() {
         return null;
     }
+	
+	/*
+	 * (non-Javadoc)
+	 * @see org.postgresql.core.Query#isRowLockingQuery()
+	 */
+	public boolean isRowLockingQuery() {
+		return rowLockingQuery;
+	}
+
+	/**
+	 * Test if the query contains row locking keyword
+	 * 
+	 * @return true if query with row locking keyword
+	 */
+	private final boolean is_RowLockingQuery() {
+		// -- Row locking active ? --
+		if (protoConnection == null || !protoConnection.isAutoCommitRowLockingAllowed()) {
+			return false;
+		}
+		// -- SELECT query ? --
+		if (!fragments[0].trim().toLowerCase().startsWith("select ")) {
+			return false;
+		}
+		boolean standardConformingStrings = protoConnection.getStandardConformingStrings();
+		int i;
+		int j;
+		int max = fragments.length;
+		int max_chars;
+		char[] aChars;
+		String fragment;
+		String s;
+		for (i = 0; i < max; i++) {
+			// -- Possibly row locking keyword, we must parse this fragment
+			// -- to lower case --
+			fragment = fragments[i].toLowerCase();
+			aChars = fragment.toCharArray();
+			max_chars = aChars.length;
+			for (j = 0; j < max_chars; j++) {
+				switch (aChars[j]) {
+					case '\'' : // single-quotes
+						j = Parser.parseSingleQuotes(aChars, j, standardConformingStrings);
+						break;
+
+					case '"' : // double-quotes
+						j = Parser.parseDoubleQuotes(aChars, j);
+						break;
+
+					case '-' : // possibly -- style comment
+						j = Parser.parseLineComment(aChars, j);
+						break;
+
+					case '/' : // possibly /* */ style comment
+						j = Parser.parseBlockComment(aChars, j);
+						break;
+
+					case '$' : // possibly dollar quote start
+						j = Parser.parseDollarQuotes(aChars, j);
+						break;
+
+					case 'f' : // possibly row locking keyword
+						// -- previous character must be ' ' --
+						if (j > 0 && aChars[j - 1] == ' ') {
+							s = fragment.substring(j);
+							// -- starts with 'for ' ? --
+							if (!s.startsWith("for ")) {
+								continue;
+							}
+							s = s.substring(4).trim();
+							// -- FOR UPDATE --
+							if (s.startsWith("update ")) {
+								return true;
+
+								// -- FOR SHARE --
+							} else if (s.startsWith("share ")) {
+								return true;
+
+								// -- starts with 'for key ' ? --
+							} else if (s.startsWith("key ")) {
+								s = s.substring(4).trim();
+								// -- FOR KEY SHARE --
+								if (s.startsWith("share ")) {
+									return true;
+								}
+
+								// -- starts with 'for no ' ? --
+							} else if (s.startsWith("no ")) {
+								s = s.substring(3).trim();
+								// -- starts with 'for no key ' ? --
+								if (s.startsWith("key ")) {
+									s = s.substring(4).trim();
+									// -- FOR NO KEY UPDATE --
+									if (s.startsWith("update ")) {
+										return true;
+									}
+								}
+							}
+						}
+						break;
+				}
+			}
+		}
+		return false;
+	}
+
 
     //
     // Implementation guts

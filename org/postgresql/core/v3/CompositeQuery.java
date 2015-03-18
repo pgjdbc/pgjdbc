@@ -61,6 +61,15 @@ class CompositeQuery implements V3Query {
             }
         return true;
     }
+	
+	/*
+	 * (non-Javadoc)
+	 * @see org.postgresql.core.Query#isRowLockingQuery()
+	 */
+	public boolean isRowLockingQuery() {
+		// -- Not available here --
+		return false;
+	}
 
     private final SimpleQuery[] subqueries;
     private final int[] offsets;

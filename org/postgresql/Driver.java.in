@@ -488,7 +488,9 @@ public class Driver implements java.sql.Driver
                 { "disableColumnSanitiser", Boolean.FALSE,
                   "Enable optimization that disables column name sanitiser." },
                 { "currentSchema", Boolean.FALSE,
-                  "Specify the schema to set in the search_path to resolve unqualified object names." }
+                  "Specify the schema to set in the search_path to resolve unqualified object names." },
+				{ "allowAutoCommitRowLocking", Boolean.FALSE,
+                  "Active row locking in AutoCommit on mode." }
             };
 
     /**

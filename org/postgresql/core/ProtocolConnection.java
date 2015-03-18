@@ -148,4 +148,11 @@ public interface ProtocolConnection {
      * Return the process ID (PID) of the backend server process handling this connection.
      */
     public int getBackendPID();
+	
+	/**
+     * Return if row locking is possible in AutoCommit on mode
+     * 
+     * @return true if row locking active
+     */
+    public boolean isAutoCommitRowLockingAllowed();
 }

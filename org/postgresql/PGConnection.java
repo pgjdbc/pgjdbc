@@ -116,5 +116,12 @@ public interface PGConnection
      * @return PID of backned server process. 
      */
     public int getBackendPID();
+	
+	/**
+	 * Return if row locking is possible in AutoCommit on mode
+	 * 
+	 * @return true if row locking active
+	 */
+	public boolean isAutoCommitRowLockingAllowed();
 }
 

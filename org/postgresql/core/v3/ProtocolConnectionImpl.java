@@ -36,6 +36,12 @@ class ProtocolConnectionImpl implements ProtocolConnection {
         // default value for server versions that don't report standard_conforming_strings
         this.standardConformingStrings = false;
         this.connectTimeout = connectTimeout;
+		// -- Get if row locking is possible in AutoCommit on mode --
+        try {
+            this.autoCommitRowLocking = Boolean.parseBoolean(info.getProperty("allowAutoCommitRowLocking", "false"));
+        }catch (Exception e) {
+        	//-- Nothing --
+        }
     }
 
     public HostSpec getHostSpec() {
@@ -221,6 +227,14 @@ class ProtocolConnectionImpl implements ProtocolConnection {
     public boolean getIntegerDateTimes() {
         return integerDateTimes;
     }
+	
+	/*
+     * (non-Javadoc)
+     * @see org.postgresql.core.ProtocolConnection#isAutoCommitRowLockingAllowed()
+     */
+    public boolean isAutoCommitRowLockingAllowed(){
+    	return this.autoCommitRowLocking;
+    }
 
    /**
      * True if server uses integers for date and time fields. False if
@@ -252,4 +266,6 @@ class ProtocolConnectionImpl implements ProtocolConnection {
     private final Logger logger;
 
     private final int connectTimeout;
+	// Default administration of row locking in AutoCommit on mode
+    private boolean autoCommitRowLocking = false;
 }

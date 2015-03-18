@@ -106,6 +106,15 @@ class V2Query implements Query {
     public boolean isStatementDescribed() {
         return false;
     }
+	
+	/*
+     * (non-Javadoc)
+     * @see org.postgresql.core.Query#isRowLockingQuery()
+     */
+	public boolean isRowLockingQuery() {
+		// -- Not available here --
+		return false;
+	}
 
     private static final ParameterList NO_PARAMETERS = new SimpleParameterList(0, false);
 

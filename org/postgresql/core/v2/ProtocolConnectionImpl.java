@@ -212,6 +212,14 @@ class ProtocolConnectionImpl implements ProtocolConnection {
     {
     	return cancelPid;
     }
+	
+	/*
+     * (non-Javadoc)
+     * @see org.postgresql.core.ProtocolConnection#isAutoCommitRowLockingAllowed()
+     */
+    public boolean isAutoCommitRowLockingAllowed(){
+    	return false;
+    }
 
     private String serverVersion;
     private int cancelPid;

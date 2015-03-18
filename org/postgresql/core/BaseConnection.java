@@ -44,6 +44,20 @@ public interface BaseConnection extends PGConnection, Connection
      * @throws SQLException if something goes wrong.
      */
     public void execSQLUpdate(String s) throws SQLException;
+	
+	/**
+	 * Execute a SQL Commit
+	 * 
+	 * @throws SQLException if something goes wrong.
+	 */
+	public void execSQLCommit() throws SQLException;
+
+	/**
+	 * Execute a SQL RollBack
+	 * 
+	 * @throws SQLException if something goes wrong.
+	 */
+	public void execSQLRollback() throws SQLException;
 
     /**
      * Get the QueryExecutor implementation for this connection.

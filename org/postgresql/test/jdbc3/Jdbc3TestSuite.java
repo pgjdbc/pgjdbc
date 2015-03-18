@@ -51,6 +51,8 @@ public class Jdbc3TestSuite extends TestSuite
         suite.addTestSuite(DatabaseMetaDataTest.class);
 		suite.addTestSuite(SendRecvBufferSizeTest.class);
         suite.addTestSuite(StringTypeParameterTest.class);
+		suite.addTestSuite(AutoCommitRowLockingEnabledTest.class);
+		suite.addTestSuite(AutoCommitRowLockingDisabledTest.class);
         return suite;
     }
 }

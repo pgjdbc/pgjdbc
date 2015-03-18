@@ -390,6 +390,28 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
         stmt.close();
     }
+	
+	/*
+	 * (non-Javadoc)
+	 * @see org.postgresql.core.BaseConnection#execSQLCommit()
+	 */
+	public final void execSQLCommit() throws SQLException {
+		checkClosed();
+		if (protoConnection.getTransactionState() != ProtocolConnection.TRANSACTION_IDLE) {
+			executeTransactionCommand(commitQuery);
+		}
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.postgresql.core.BaseConnection#execSQLRollback()
+	 */
+	public final void execSQLRollback() throws SQLException {
+		checkClosed();
+		if (protoConnection.getTransactionState() != ProtocolConnection.TRANSACTION_IDLE) {
+			executeTransactionCommand(rollbackQuery);
+		}
+	}
 
     /*
      * In SQL, a result table can be retrieved through a cursor that
@@ -1262,6 +1284,14 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     public int getBackendPID()
     {
     	return protoConnection.getBackendPID();
+    }
+	
+	/*
+     * (non-Javadoc)
+     * @see org.postgresql.PGConnection#isAutoCommitRowLockingAllowed()
+     */
+    public boolean isAutoCommitRowLockingAllowed() {
+    	return protoConnection.isAutoCommitRowLockingAllowed();
     }
     
     public boolean isColumnSanitiserDisabled() {
