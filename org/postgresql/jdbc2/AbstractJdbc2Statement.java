@@ -583,9 +583,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 			// -- if autocommit mode on --
 			&& connection.getAutoCommit()
 			// -- if query with row locking keyword --
-			&& queryToExecute.isRowLockingQuery()
-			// -- if already locked --
-			&& e.getErrorCode() == 0 && "55P03".equals(e.getSQLState())) {
+			&& queryToExecute.isRowLockingQuery()) {
 				// -- Do a rollback for this connection --
 				connection.execSQLRollback();
 			}
