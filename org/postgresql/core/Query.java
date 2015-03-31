@@ -61,4 +61,30 @@ public interface Query {
 	 * @return true if query with row locking keyword
 	 */
 	boolean isRowLockingQuery();
+	
+	/**
+	 * Set execution flags for this query
+	 * 
+	 * @param _flags Execution flags
+	 */
+	void setFlags(int _flags);
+
+	/**
+	 * Test if the flag is set for this query
+	 * 
+	 * @param _flag Flag among :
+	 *        <ul>
+	 *        <li>{@linkplain QueryExecutor#QUERY_BOTH_ROWS_AND_STATUS}</li>
+	 *        <li>{@linkplain QueryExecutor#QUERY_DESCRIBE_ONLY}</li>
+	 *        <li>{@linkplain QueryExecutor#QUERY_DISALLOW_BATCHING}</li>
+	 *        <li>{@linkplain QueryExecutor#QUERY_FORWARD_CURSOR}</li>
+	 *        <li>{@linkplain QueryExecutor#QUERY_NO_BINARY_TRANSFER}</li>
+	 *        <li>{@linkplain QueryExecutor#QUERY_NO_METADATA}</li>
+	 *        <li>{@linkplain QueryExecutor#QUERY_NO_RESULTS}</li>
+	 *        <li>{@linkplain QueryExecutor#QUERY_ONESHOT}</li>
+	 *        <li>{@linkplain QueryExecutor#QUERY_SUPPRESS_BEGIN}</li>
+	 *        </ul>
+	 * @return true if flag set
+	 */
+	boolean isFlagOn(int _flag);
 }

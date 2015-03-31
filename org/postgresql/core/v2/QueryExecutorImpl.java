@@ -302,7 +302,8 @@ public class QueryExecutorImpl implements QueryExecutor {
                          ResultHandler handler,
                          int maxRows, int flags) throws SQLException
     {
-
+		// -- Keep execution flags in the query object --
+        query.setFlags(flags);
         // The V2 protocol has no support for retrieving metadata
         // without executing the whole query.
         if ((flags & QueryExecutor.QUERY_DESCRIBE_ONLY) != 0)

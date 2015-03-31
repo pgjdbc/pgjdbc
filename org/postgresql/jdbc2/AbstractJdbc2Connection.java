@@ -1293,6 +1293,14 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     public boolean isAutoCommitRowLockingAllowed() {
     	return protoConnection.isAutoCommitRowLockingAllowed();
     }
+	
+	/*
+     * (non-Javadoc)
+     * @see org.postgresql.PGConnection#isAutoCommitFetchAllowed()
+     */
+    public boolean isAutoCommitFetchAllowed() {
+    	return protoConnection.isAutoCommitFetchAllowed();
+    }
     
     public boolean isColumnSanitiserDisabled() {
     	return this.disableColumnSanitiser;

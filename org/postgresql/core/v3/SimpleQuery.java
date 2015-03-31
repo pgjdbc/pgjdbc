@@ -72,6 +72,22 @@ class SimpleQuery implements V3Query {
 	public boolean isRowLockingQuery() {
 		return rowLockingQuery;
 	}
+	
+	/*
+	 * (non-Javadoc)
+	 * @see org.postgresql.core.Query#setFlags(int)
+	 */
+	public void setFlags(int _flags) {
+		flags = _flags;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.postgresql.core.Query#isFlagOn(int)
+	 */
+	public boolean isFlagOn(int _flag) {
+		return (flags & _flag) != 0;
+	}
 
 	/**
 	 * Test if the query contains row locking keyword
@@ -297,6 +313,8 @@ class SimpleQuery implements V3Query {
     private PhantomReference cleanupRef;
     private int[] preparedTypes;
 	private boolean	rowLockingQuery;
+	// -- Execution flags associated --
+	private int	flags;
 
     final static SimpleParameterList NO_PARAMETERS = new SimpleParameterList(0, null);
 }

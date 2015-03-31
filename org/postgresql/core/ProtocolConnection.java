@@ -155,4 +155,11 @@ public interface ProtocolConnection {
      * @return true if row locking active
      */
     public boolean isAutoCommitRowLockingAllowed();
+	
+	/**
+	 * Return if fetch is possible in AutoCommit on mode
+	 * 
+	 * @return true if fetch active
+	 */
+	public boolean isAutoCommitFetchAllowed();
 }

@@ -514,8 +514,10 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         closeForNextExecution();
 
         // Enable cursor-based resultset if possible.
-        if (fetchSize > 0 && !wantsScrollableResultSet() && !connection.getAutoCommit() && !wantsHoldableResultSet())
-            flags |= QueryExecutor.QUERY_FORWARD_CURSOR;
+		if (fetchSize > 0 && !wantsScrollableResultSet() && !wantsHoldableResultSet()
+		// -- If Autocommit off or (AutoCommit on and fetch allowed) --
+		&& (!connection.getAutoCommit() || connection.isAutoCommitFetchAllowed()))
+			flags |= QueryExecutor.QUERY_FORWARD_CURSOR;
 
         if (wantsGeneratedKeysOnce || wantsGeneratedKeysAlways)
         {
@@ -537,19 +539,26 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                 flags |= QueryExecutor.QUERY_ONESHOT;
         }
 
-        // -- if row locking in autocommit mode active --
-		if (connection.isAutoCommitRowLockingAllowed()) {
-			// -- if autocommit mode on --
-			if (connection.getAutoCommit()
-			// -- if query without row locking keyword -> no transaction --
-			&& !queryToExecute.isRowLockingQuery()) {
-				flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
-			}
-			// -- if query with row locking keyword -> transaction active -> can lock --
+        // -- If AutoCommit on mode --
+		if (connection.getAutoCommit()) {
+			while (true) {
+				// -- If row locking in autocommit mode active --
+				if (connection.isAutoCommitRowLockingAllowed()
+				// -- And if query with row locking keyword -> transaction --
+				&& queryToExecute.isRowLockingQuery()) {
+					break;
+				}
 
-			// -- Other case -> no lock possible in autocommit mode --
-		} else if (connection.getAutoCommit()) {
-			flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
+				// -- If fetch in autocommit mode active --
+				if (connection.isAutoCommitFetchAllowed()
+				// -- And cursor-based resultset enabled -> transaction for keep the cursor open --
+				&& (flags & QueryExecutor.QUERY_FORWARD_CURSOR) != 0) {
+					break;
+				}
+				// -- Other case -> no transaction --
+				flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
+				break;
+			}
 		}
 
         // updateable result sets do not yet support binary updates
@@ -578,12 +587,18 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                                                   fetchSize,
                                                   flags);
         } catch (SQLException e) {
-			// -- if row locking in autocommit mode active --
-			if (connection.isAutoCommitRowLockingAllowed() 
-			// -- if autocommit mode on --
-			&& connection.getAutoCommit()
-			// -- if query with row locking keyword --
-			&& queryToExecute.isRowLockingQuery()) {
+			// -- if AutoCommit off --
+			if (!connection.getAutoCommit()) {
+				// -- Nothing, lets return the error --
+				throw e;
+			}
+			// -- AutoCommit mode on --
+			// -- If row locking in autocommit mode active and if query with row locking keyword -> transaction
+			// active -> do a rollback for release lock --
+			if ((connection.isAutoCommitRowLockingAllowed() && queryToExecute.isRowLockingQuery())
+			// -- Or if fetch in autocommit mode active and cursor-based resultset enabled -> transaction active
+			// -> do a rollback for close cursor --
+			|| (connection.isAutoCommitFetchAllowed() && (flags & QueryExecutor.QUERY_FORWARD_CURSOR) != 0)) {
 				// -- Do a rollback for this connection --
 				connection.execSQLRollback();
 			}
