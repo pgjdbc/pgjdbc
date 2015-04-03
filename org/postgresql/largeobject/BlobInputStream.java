@@ -226,5 +226,4 @@ public class BlobInputStream extends InputStream
         if (lo == null)
             throw new IOException("BlobOutputStream is closed");
     }
-
 }

@@ -43,5 +43,4 @@ class Jdbc3gStatement extends org.postgresql.jdbc3g.AbstractJdbc3gStatement impl
     {
         return new Jdbc3gParameterMetaData(conn, oids);
     }
-
 }

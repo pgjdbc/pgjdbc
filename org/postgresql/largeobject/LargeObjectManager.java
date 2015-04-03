@@ -375,5 +375,4 @@ public class LargeObjectManager
     {
         delete((long)oid);
     }
-
 }

@@ -36,7 +36,6 @@ public class GT {
         return _gt.translate(message, args);
     }
 
-
     private ResourceBundle _bundle;
 
     private GT() {
@@ -83,6 +82,4 @@ public class GT {
 
         return message;
     }
-
 }
-

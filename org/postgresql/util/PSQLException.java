@@ -35,5 +35,4 @@ public class PSQLException extends SQLException
     {
         return _serverError;
     }
-
 }

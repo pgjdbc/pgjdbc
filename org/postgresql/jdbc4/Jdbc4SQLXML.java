@@ -292,6 +292,4 @@ public class Jdbc4SQLXML implements SQLXML {
         public void fatalError(SAXParseException e) { }
         public void warning(SAXParseException e) { }
     }
-
 }
-

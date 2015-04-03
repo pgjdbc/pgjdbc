@@ -341,5 +341,4 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
             abort();
         }
     }
-
 }

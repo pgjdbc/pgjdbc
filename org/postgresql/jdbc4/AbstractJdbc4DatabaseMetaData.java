@@ -120,5 +120,4 @@ public abstract class AbstractJdbc4DatabaseMetaData extends org.postgresql.jdbc3
     public boolean generatedKeyAlwaysReturned() throws SQLException {
         return true;
     }
-
 }

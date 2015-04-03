@@ -62,4 +62,3 @@ abstract public class DbKeyStoreSocketFactory extends org.postgresql.ssl.Wrapped
         }
     }
 }
-

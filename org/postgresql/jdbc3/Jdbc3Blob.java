@@ -17,5 +17,4 @@ public class Jdbc3Blob extends org.postgresql.jdbc3.AbstractJdbc3Blob implements
     {
         super(conn, oid);
     }
-
 }

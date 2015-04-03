@@ -208,6 +208,4 @@ public abstract class AbstractJdbc3ResultSet extends org.postgresql.jdbc2.Abstra
     {
         updateArray(findColumn(columnName), x);
     }
-
 }
-

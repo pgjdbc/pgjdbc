@@ -474,7 +474,4 @@ public abstract class AbstractJdbc3Connection extends org.postgresql.jdbc2.Abstr
 
         return ps;
     }
-
 }
-
-

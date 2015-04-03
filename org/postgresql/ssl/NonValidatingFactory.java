@@ -49,6 +49,4 @@ public class NonValidatingFactory extends WrappedFactory {
         public void checkServerTrusted(X509Certificate[] certs, String authType) {
         }
     }
-
 }
-

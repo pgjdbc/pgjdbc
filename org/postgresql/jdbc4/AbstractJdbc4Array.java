@@ -31,5 +31,4 @@ public abstract class AbstractJdbc4Array extends AbstractJdbc2Array
         fieldBytes = null;
         arrayList = null;
     }
-
 }

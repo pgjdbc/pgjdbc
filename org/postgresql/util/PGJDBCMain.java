@@ -20,5 +20,4 @@ public class PGJDBCMain {
 
 		System.exit(1);
 	}
-
 }

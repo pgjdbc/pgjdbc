@@ -286,6 +286,4 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
         return CN.equals(hostname);
       }
     }
-
 }
-

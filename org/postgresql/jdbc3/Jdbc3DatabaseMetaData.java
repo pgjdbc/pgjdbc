@@ -15,5 +15,4 @@ public class Jdbc3DatabaseMetaData extends org.postgresql.jdbc3.AbstractJdbc3Dat
     {
         super(conn);
     }
-
 }

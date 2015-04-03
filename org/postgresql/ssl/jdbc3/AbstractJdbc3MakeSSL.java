@@ -65,5 +65,3 @@ public class AbstractJdbc3MakeSSL {
     }
 
 }
-
-

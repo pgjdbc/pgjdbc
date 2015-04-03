@@ -16,6 +16,4 @@ public class Jdbc3ResultSetMetaData extends org.postgresql.jdbc2.AbstractJdbc2Re
     {
         super(connection, fields);
     }
-
 }
-

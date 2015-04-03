@@ -645,6 +645,4 @@ public class UnixCrypt extends Object
         }
         return result;
     }
-
 }
-

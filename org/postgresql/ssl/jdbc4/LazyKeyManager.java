@@ -249,6 +249,4 @@ public class LazyKeyManager implements X509KeyManager {
   public String[] getServerAliases(String keyType, Principal[] issuers) {
     return new String[]{};
   }
-  
-
 }

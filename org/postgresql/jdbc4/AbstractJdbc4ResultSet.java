@@ -321,6 +321,4 @@ abstract class AbstractJdbc4ResultSet extends org.postgresql.jdbc3g.AbstractJdbc
     {
         return getObject(findColumn(columnLabel), type);
     }
-
 }
-

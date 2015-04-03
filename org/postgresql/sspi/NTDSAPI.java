@@ -51,5 +51,4 @@ interface NTDSAPI extends StdCallLibrary {
         ERROR_SUCCESS = 0,
         ERROR_INVALID_PARAMETER = 87,
         ERROR_BUFFER_OVERFLOW = 111;
-    
 }

@@ -43,5 +43,4 @@ public class Jdbc3gArray extends org.postgresql.jdbc2.AbstractJdbc2Array impleme
     {
         return getResultSetImpl(index, count, map);
     }
-
 }
