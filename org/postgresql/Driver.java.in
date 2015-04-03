@@ -490,7 +490,9 @@ public class Driver implements java.sql.Driver
                 { "currentSchema", Boolean.FALSE,
                   "Specify the schema to set in the search_path to resolve unqualified object names." },
 				{ "allowAutoCommitRowLocking", Boolean.FALSE,
-                  "Active row locking in AutoCommit on mode." }
+                  "Active row locking in AutoCommit on mode." },
+				{ "allowAutoCommitFetch", Boolean.FALSE,
+                  "Active fetch in AutoCommit on mode." }
             };
 
     /**

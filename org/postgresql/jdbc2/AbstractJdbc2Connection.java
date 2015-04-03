@@ -81,6 +81,8 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     private Set<Integer> useBinarySendForOids;
     /** Set of oids that use binary transfer when receiving from server. */
     private Set<Integer> useBinaryReceiveForOids;
+	/** AutoCommit handler */
+	private AutoCommitHandler autoCommitHandler;
 
     public abstract DatabaseMetaData getMetaData() throws SQLException;
 
@@ -143,6 +145,8 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         this.protoConnection = ConnectionFactory.openConnection(hostSpecs, user, database, info, logger);
         this.dbVersionNumber = protoConnection.getServerVersion();
         this.compatible = info.getProperty("compatible", Driver.MAJORVERSION + "." + Driver.MINORVERSION);
+		// -- Create the AutoCommit handler --
+		autoCommitHandler= new AutoCommitHandler(this,info); 
 
         // Set read-only early if requested
         if (Boolean.valueOf(info.getProperty("readOnly", "false")))
@@ -687,6 +691,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     {
         protoConnection.close();
         openStackTrace = null;
+		autoCommitHandler.close();
     }
 
     /*
@@ -825,6 +830,14 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         checkClosed();
         return this.autoCommit;
     }
+	
+	/*
+	 * (non-Javadoc)
+	 * @see org.postgresql.core.BaseConnection#getAutoCommitHandler()
+	 */
+	public AutoCommitHandler getAutoCommitHandler() {
+		return autoCommitHandler;
+	}
 
     private void executeTransactionCommand(Query query) throws SQLException {
         int flags = QueryExecutor.QUERY_NO_METADATA | QueryExecutor.QUERY_NO_RESULTS | QueryExecutor.QUERY_SUPPRESS_BEGIN;
@@ -1284,22 +1297,6 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     public int getBackendPID()
     {
     	return protoConnection.getBackendPID();
-    }
-	
-	/*
-     * (non-Javadoc)
-     * @see org.postgresql.PGConnection#isAutoCommitRowLockingAllowed()
-     */
-    public boolean isAutoCommitRowLockingAllowed() {
-    	return protoConnection.isAutoCommitRowLockingAllowed();
-    }
-	
-	/*
-     * (non-Javadoc)
-     * @see org.postgresql.PGConnection#isAutoCommitFetchAllowed()
-     */
-    public boolean isAutoCommitFetchAllowed() {
-    	return protoConnection.isAutoCommitFetchAllowed();
     }
     
     public boolean isColumnSanitiserDisabled() {

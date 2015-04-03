@@ -1900,8 +1900,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                 current_row = rows.size();
                 this_row = null;
                 rowBuffer = null;
-				// -- Do a commit if transaction active in AutoCommit mode --
-				handleAutoCommitResultSetClosed();
+				 // -- Handle end of result set in AutoCommit on mode --
+                connection.getAutoCommitHandler().handleEndOfResultSet();
                 return false;  // End of the resultset.
             }
 
@@ -1945,40 +1945,9 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             cursor.close();
             cursor = null;
         }
-		// -- Do a commit if transaction active in AutoCommit mode --
-		handleAutoCommitResultSetClosed();
+		 // -- Handle end of result set in AutoCommit on mode --
+        connection.getAutoCommitHandler().handleEndOfResultSet();
     }
-	
-	/**
-	 * If end of resultset or resulset closed, 
-	 * do a commit if transaction active in AutoCommit mode.
-	 * 
-	 * @throws SQLException
-	 */
-	private final void handleAutoCommitResultSetClosed() throws SQLException {
-		// -- If AutoCommit off --
-		if (!connection.getAutoCommit()) {
-			// -- Finish --
-			return;
-		}
-		// -- null testing, if call for metadata, query is null --
-		if (originalQuery == null) {
-			// -- Finish --
-			return;
-		}
-		// -- Autocommit mode on --
-		// -- if row locking in autocommit mode active and if query with row locking keyword
-		// -> transaction active -> do a commit for release lock --
-		if ((connection.isAutoCommitRowLockingAllowed() && originalQuery.isRowLockingQuery())
-		// -- Or if fetch in autocommit mode active and cursor-based resultset enabled 
-		//-> transaction active -> do a commit for close cursor --
-		|| (connection.isAutoCommitFetchAllowed() && originalQuery.isFlagOn(QueryExecutor.QUERY_FORWARD_CURSOR))) {
-			// -- Do a commit --
-			if (connection.getTransactionState() != ProtocolConnection.TRANSACTION_IDLE) {
-				connection.execSQLCommit();
-			}
-		}
-	}
 
     public boolean wasNull() throws SQLException
     {

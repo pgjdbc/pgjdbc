@@ -512,11 +512,13 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
     protected void execute(Query queryToExecute, ParameterList queryParameters, int flags) throws SQLException {
         closeForNextExecution();
+		// -- AutoCommit handler --
+		AutoCommitHandler autoCommitHandler = connection.getAutoCommitHandler();
 
         // Enable cursor-based resultset if possible.
 		if (fetchSize > 0 && !wantsScrollableResultSet() && !wantsHoldableResultSet()
 		// -- If Autocommit off or (AutoCommit on and fetch allowed) --
-		&& (!connection.getAutoCommit() || connection.isAutoCommitFetchAllowed()))
+		&& autoCommitHandler.allowRowFetching())
 			flags |= QueryExecutor.QUERY_FORWARD_CURSOR;
 
         if (wantsGeneratedKeysOnce || wantsGeneratedKeysAlways)
@@ -539,26 +541,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                 flags |= QueryExecutor.QUERY_ONESHOT;
         }
 
-        // -- If AutoCommit on mode --
-		if (connection.getAutoCommit()) {
-			while (true) {
-				// -- If row locking in autocommit mode active --
-				if (connection.isAutoCommitRowLockingAllowed()
-				// -- And if query with row locking keyword -> transaction --
-				&& queryToExecute.isRowLockingQuery()) {
-					break;
-				}
-
-				// -- If fetch in autocommit mode active --
-				if (connection.isAutoCommitFetchAllowed()
-				// -- And cursor-based resultset enabled -> transaction for keep the cursor open --
-				&& (flags & QueryExecutor.QUERY_FORWARD_CURSOR) != 0) {
-					break;
-				}
-				// -- Other case -> no transaction --
-				flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
-				break;
-			}
+        // -- If no transaction -> no Begin --
+		if (!autoCommitHandler.isTransactional()){
+			flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
 		}
 
         // updateable result sets do not yet support binary updates
@@ -587,21 +572,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                                                   fetchSize,
                                                   flags);
         } catch (SQLException e) {
-			// -- if AutoCommit off --
-			if (!connection.getAutoCommit()) {
-				// -- Nothing, lets return the error --
-				throw e;
-			}
-			// -- AutoCommit mode on --
-			// -- If row locking in autocommit mode active and if query with row locking keyword -> transaction
-			// active -> do a rollback for release lock --
-			if ((connection.isAutoCommitRowLockingAllowed() && queryToExecute.isRowLockingQuery())
-			// -- Or if fetch in autocommit mode active and cursor-based resultset enabled -> transaction active
-			// -> do a rollback for close cursor --
-			|| (connection.isAutoCommitFetchAllowed() && (flags & QueryExecutor.QUERY_FORWARD_CURSOR) != 0)) {
-				// -- Do a rollback for this connection --
-				connection.execSQLRollback();
-			}
+			// -- Handle exception in AutoCommit on mode --
+			autoCommitHandler.handleException();
 			// -- Lets return the error --
 			throw e;
 		} finally

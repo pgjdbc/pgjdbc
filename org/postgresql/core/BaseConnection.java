@@ -9,6 +9,7 @@ package org.postgresql.core;
 
 import java.sql.*;
 import org.postgresql.PGConnection;
+import org.postgresql.jdbc2.AutoCommitHandler;
 import org.postgresql.jdbc2.TimestampUtils;
 
 /**
@@ -173,4 +174,11 @@ public interface BaseConnection extends PGConnection, Connection
      *  Return whether to disable column name sanitization. 
      */
     public boolean isColumnSanitiserDisabled();
+	
+	/**
+	 * Return the AutoCommit handler
+	 * 
+	 * @return AutoCommit handler
+	 */
+    public AutoCommitHandler getAutoCommitHandler();
 }

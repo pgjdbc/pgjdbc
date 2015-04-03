@@ -866,6 +866,16 @@ openssl pkcs8 -topk8 -in client.key -out client.pk8 -outform DER -v1 PBE-SHA1-3D
         </para>
        </listitem>
       </varlistentry>
+	  
+	  <varlistentry>
+       <term><varname>allowAutoCommitFetch</varname> = <type>boolean</type></term>
+       <listitem>
+        <para>
+        Allow fetch in AutoCommit on mode. The default is
+        <literal>false</literal>.
+        </para>
+       </listitem>
+      </varlistentry>
 
      </variablelist>
     </para>

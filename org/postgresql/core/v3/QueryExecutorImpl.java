@@ -231,9 +231,6 @@ public class QueryExecutorImpl implements QueryExecutor {
             logger.debug("simple execute, handler=" + handler +
                          ", maxRows=" + maxRows + ", fetchSize=" + fetchSize + ", flags=" + flags);
         }
-		
-		// -- Keep execution flags in the query object --
-        query.setFlags(flags);
 
         if (parameters == null)
             parameters = SimpleQuery.NO_PARAMETERS;
@@ -392,8 +389,6 @@ public class QueryExecutorImpl implements QueryExecutor {
             for (int i = 0; i < queries.length; ++i)
             {
                 V3Query query = (V3Query)queries[i];
-				// -- Keep execution flags in the query object --
-                query.setFlags(flags);
                 V3ParameterList parameters = (V3ParameterList)parameterLists[i];
                 if (parameters == null)
                     parameters = SimpleQuery.NO_PARAMETERS;

@@ -61,34 +61,7 @@ class CompositeQuery implements V3Query {
             }
         return true;
     }
-	
-	/*
-	 * (non-Javadoc)
-	 * @see org.postgresql.core.Query#isRowLockingQuery()
-	 */
-	public boolean isRowLockingQuery() {
-		// -- Not available here --
-		return false;
-	}
-	
-	/*
-	 * (non-Javadoc)
-	 * @see org.postgresql.core.Query#setFlags(int)
-	 */
-	public void setFlags(int _flags) {
-		flags = _flags;
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see org.postgresql.core.Query#isFlagOn(int)
-	 */
-	public boolean isFlagOn(int _flag) {
-		return (flags & _flag) != 0;
-	}
 
     private final SimpleQuery[] subqueries;
     private final int[] offsets;
-	// -- Execution flags associated --
-	private int	flags;
 }
