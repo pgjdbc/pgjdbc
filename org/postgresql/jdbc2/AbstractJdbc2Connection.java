@@ -1325,4 +1325,12 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
             timer.purge();
         }
     }
+
+    public String escapeIdentifier(String identifier) throws SQLException {
+        return Utils.escapeIdentifier(null, identifier).toString();
+    }
+
+    public String escapeLiteral(String literal) throws SQLException {
+        return Utils.escapeLiteral(null, literal, protoConnection.getStandardConformingStrings()).toString();
+    }
 }
