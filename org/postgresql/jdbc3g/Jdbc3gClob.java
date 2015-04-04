@@ -15,5 +15,4 @@ public class Jdbc3gClob extends org.postgresql.jdbc3.AbstractJdbc3Clob implement
     {
         super(conn, oid);
     }
-
 }

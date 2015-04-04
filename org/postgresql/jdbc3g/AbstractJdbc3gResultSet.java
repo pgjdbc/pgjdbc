@@ -27,7 +27,6 @@ public abstract class AbstractJdbc3gResultSet extends org.postgresql.jdbc3.Abstr
         super (originalQuery, statement, fields, tuples, cursor, maxRows, maxFieldSize, rsType, rsConcurrency, rsHoldability);
     }
 
-
     protected Object getUUID(String data) throws SQLException
     {
         UUID uuid;
@@ -45,4 +44,3 @@ public abstract class AbstractJdbc3gResultSet extends org.postgresql.jdbc3.Abstr
         return new UUID(ByteConverter.int8(data, 0), ByteConverter.int8(data, 8));
     }
 }
-

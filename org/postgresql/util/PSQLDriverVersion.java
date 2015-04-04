@@ -26,5 +26,4 @@ public class PSQLDriverVersion {
         System.out.println(Driver.getVersion());
         System.out.println("Found in: " + url);
     }
-
 }

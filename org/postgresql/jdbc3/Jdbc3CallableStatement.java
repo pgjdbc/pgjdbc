@@ -33,5 +33,4 @@ class Jdbc3CallableStatement extends Jdbc3PreparedStatement implements CallableS
     {
         return getObjectImpl(s, map);
     }
-    
 }

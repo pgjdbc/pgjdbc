@@ -31,6 +31,4 @@ public abstract class AbstractJdbc4ParameterMetaData extends org.postgresql.jdbc
         }
         throw new SQLException("Cannot unwrap to " + iface.getName());
     }
-
 }
-

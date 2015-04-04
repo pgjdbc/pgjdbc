@@ -60,6 +60,4 @@ public class Jdbc4ResultSet extends AbstractJdbc4ResultSet implements java.sql.R
     {
         return getObjectImpl(i, map);
     }
-
 }
-

@@ -32,6 +32,4 @@ public interface PGNotification
      * @since 8.0
      */
     public String getParameter();
-
 }
-

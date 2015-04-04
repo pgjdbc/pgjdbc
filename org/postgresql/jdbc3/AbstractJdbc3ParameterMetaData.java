@@ -80,5 +80,4 @@ public abstract class AbstractJdbc3ParameterMetaData {
         if (param < 1 || param > _oids.length)
             throw new PSQLException(GT.tr("The parameter index is out of range: {0}, number of parameters: {1}.", new Object[]{new Integer(param), new Integer(_oids.length)}), PSQLState.INVALID_PARAMETER_VALUE);
     }
-
 }

@@ -56,5 +56,3 @@ public class GSSCallbackHandler implements CallbackHandler {
     }
 
 }
-
-

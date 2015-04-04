@@ -496,4 +496,3 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
         }
     }
 }
-

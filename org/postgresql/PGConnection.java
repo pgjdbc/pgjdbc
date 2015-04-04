@@ -117,4 +117,3 @@ public interface PGConnection
      */
     public int getBackendPID();
 }
-

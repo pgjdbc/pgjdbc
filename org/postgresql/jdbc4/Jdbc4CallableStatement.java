@@ -32,5 +32,4 @@ class Jdbc4CallableStatement extends Jdbc4PreparedStatement implements CallableS
     {
         return getObjectImpl(s, map);
     }
-
 }

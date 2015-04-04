@@ -723,5 +723,4 @@ public class TypeInfoCache implements TypeInfo {
         }
         return true;
     }
-
 }

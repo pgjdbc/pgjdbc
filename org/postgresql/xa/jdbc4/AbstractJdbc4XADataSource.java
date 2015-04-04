@@ -18,6 +18,4 @@ public class AbstractJdbc4XADataSource
     {
         throw org.postgresql.Driver.notImplemented(this.getClass(), "getParentLogger()");
     }
-
 }
-

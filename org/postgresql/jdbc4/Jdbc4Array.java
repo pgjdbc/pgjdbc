@@ -51,5 +51,4 @@ public class Jdbc4Array extends AbstractJdbc4Array implements java.sql.Array
     {
         return getResultSetImpl(index, count, map);
     }
-
 }

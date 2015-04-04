@@ -36,7 +36,6 @@ public class PGInterval extends PGobject implements Serializable, Cloneable
         secondsFormat.setDecimalFormatSymbols(dfs);
     }
 
-
     /**
      * required by the driver
      */
@@ -434,5 +433,4 @@ public class PGInterval extends PGobject implements Serializable, Cloneable
                 months) * 31 +
                 years) * 31;
     }
-
 }

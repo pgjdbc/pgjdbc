@@ -16,6 +16,4 @@ public class Jdbc3gParameterMetaData extends org.postgresql.jdbc3.AbstractJdbc3P
     {
         super(connection, oids);
     }
-
 }
-

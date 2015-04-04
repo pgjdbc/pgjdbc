@@ -258,6 +258,4 @@ public class SSPIClient {
 			clientCredentials = null;
 		}
 	}
-	
-
 }

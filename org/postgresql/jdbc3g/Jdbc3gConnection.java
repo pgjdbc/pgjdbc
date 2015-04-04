@@ -32,7 +32,6 @@ public class Jdbc3gConnection extends org.postgresql.jdbc3g.AbstractJdbc3gConnec
         return s;
     }
 
-
     public java.sql.PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException
     {
         checkClosed();
@@ -61,5 +60,4 @@ public class Jdbc3gConnection extends org.postgresql.jdbc3g.AbstractJdbc3gConnec
     {
         setTypeMapImpl(map);
     }
-
 }

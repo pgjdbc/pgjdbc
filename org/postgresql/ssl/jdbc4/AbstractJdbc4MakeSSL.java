@@ -156,5 +156,3 @@ public class AbstractJdbc4MakeSSL {
     }
 
 }
-
-

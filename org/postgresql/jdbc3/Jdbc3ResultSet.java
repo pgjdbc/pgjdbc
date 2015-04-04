@@ -60,6 +60,4 @@ public class Jdbc3ResultSet extends org.postgresql.jdbc3.AbstractJdbc3ResultSet 
     {
         return getObjectImpl(i, map);
     }
-
 }
-

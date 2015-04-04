@@ -32,7 +32,4 @@ abstract class AbstractJdbc4ResultSetMetaData extends org.postgresql.jdbc2.Abstr
         }
         throw new SQLException("Cannot unwrap to " + iface.getName());
     }
-
 }
-
-

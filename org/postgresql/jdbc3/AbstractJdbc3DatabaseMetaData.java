@@ -377,5 +377,4 @@ public abstract class AbstractJdbc3DatabaseMetaData extends org.postgresql.jdbc2
     {
         return getSchemas(3, null, null);
     }
-
 }

@@ -49,5 +49,4 @@ public abstract class WrappedFactory extends SSLSocketFactory {
     public String[] getSupportedCipherSuites() {
         return _factory.getSupportedCipherSuites();
     }
-
 }

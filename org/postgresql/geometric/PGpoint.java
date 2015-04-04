@@ -200,5 +200,4 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
     {
         setLocation(p.x, p.y);
     }
-
 }

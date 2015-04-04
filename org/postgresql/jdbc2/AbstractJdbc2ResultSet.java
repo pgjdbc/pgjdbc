@@ -3293,6 +3293,4 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     public void registerRealStatement(Statement realStatement) {
         this.realStatement = realStatement;
     }
-
 }
-

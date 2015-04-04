@@ -435,5 +435,4 @@ public class LargeObject
             os = new BlobOutputStream(this, 4096);
         return os;
     }
-
 }
