@@ -2629,8 +2629,6 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             forceBinaryTransfers = true;
             newThreshold = 1;
         }
-        else
-            forceBinaryTransfers = false;
 
         this.m_prepareThreshold = newThreshold;
     }
