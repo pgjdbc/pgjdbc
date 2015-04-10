@@ -79,7 +79,7 @@
     <include name="${package}/jdbc3/Jdbc3Statement.java" if="jdbc3"/>
 
     <!-- jdbc3g subpackage -->
-    <include name="${package}/jdbc3g/*.java" if="jdbc3g"/>
+    <include name="${package}/jdbc3g/*.java" if="jdbc3plus"/>
     <exclude name="${package}/jdbc3g/Jdbc3g*.java" unless="jdbc3g"/>
 
     <!-- jdbc4 subpackage -->
