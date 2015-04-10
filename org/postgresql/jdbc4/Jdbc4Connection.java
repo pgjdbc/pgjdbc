@@ -9,8 +9,14 @@ package org.postgresql.jdbc4;
 
 import java.util.Map;
 import java.util.Properties;
+import java.sql.Array;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.NClob;
 import java.sql.SQLException;
+import java.sql.SQLXML;
 
+import org.postgresql.core.BaseConnection;
 import org.postgresql.util.HostSpec;
 
 /**
@@ -60,4 +66,26 @@ public class Jdbc4Connection extends AbstractJdbc4Connection implements java.sql
     {
         setTypeMapImpl(map);
     }
+
+    protected Array makeArray(int oid, String fieldString)
+        throws SQLException
+    {
+        return new Jdbc4Array(this, oid, fieldString);
+    }
+
+    protected Blob makeBlob(long oid) throws SQLException
+    {
+        return new Jdbc4Blob(this, oid);
+    }
+
+    protected Clob makeClob(long oid) throws SQLException
+    {
+        return new Jdbc4Clob(this, oid);
+    }
+
+    protected SQLXML makeSQLXML() throws SQLException
+    {
+        return new Jdbc4SQLXML(this);
+    }
+
 }
