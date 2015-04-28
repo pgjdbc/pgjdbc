@@ -43,5 +43,21 @@ interface V3ParameterList extends ParameterList {
    */
   SimpleParameterList[] getSubparams();
 
+  /**
+   * Return the parameter type information.
+   * @return an array of {@link org.postgresql.core.Oid} type information
+   */
+  int[] getParamTypes();
 
+  /**
+   * Return the flags for each parameter.
+   * @return an array of bytes used to store flags.
+   */
+  byte[] getFlags();
+
+  /**
+   * Return the encoding for each parameter.
+   * @return nested byte array of bytes with encoding information.
+   */
+  byte[][] getEncoding();
 }

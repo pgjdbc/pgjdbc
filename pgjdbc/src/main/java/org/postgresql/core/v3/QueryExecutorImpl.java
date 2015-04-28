@@ -57,6 +57,7 @@ public class QueryExecutorImpl implements QueryExecutor {
     this.logger = logger;
 
     this.allowEncodingChanges = PGProperty.ALLOW_ENCODING_CHANGES.getBoolean(info);
+    this.allowReWriteBatchedInserts = PGProperty.REWRITE_BATCHED_INSERTS.getBoolean(info);
   }
 
   /**
@@ -83,6 +84,7 @@ public class QueryExecutorImpl implements QueryExecutor {
     if (lockedFor == obtainer) {
       throw new PSQLException(GT.tr("Tried to obtain lock while already holding it"),
           PSQLState.OBJECT_NOT_IN_STATE);
+
     }
     waitOnLock();
     lockedFor = obtainer;
@@ -148,7 +150,11 @@ public class QueryExecutorImpl implements QueryExecutor {
       return EMPTY_QUERY;
     }
     if (queries.size() == 1) {
-      return new SimpleQuery(queries.get(0), protoConnection);
+      if (allowReWriteBatchedInserts && queries.get(0).isBatchedReWriteCompatible ) {
+        return new BatchedQueryDecorator(queries.get(0), protoConnection);
+      } else {
+        return new SimpleQuery(queries.get(0), protoConnection);
+      }
     }
 
     // Multiple statements.
@@ -1332,6 +1338,9 @@ public class QueryExecutorImpl implements QueryExecutor {
     }
 
     pendingParseQueue.add(query);
+    if (allowReWriteBatchedInserts && query instanceof BatchedQueryDecorator) { // not waiting for async message
+      ((BatchedQueryDecorator) query).registerQueryParsedStatus(true);
+    }
   }
 
   private void sendBind(SimpleQuery query, SimpleParameterList params, Portal portal,
@@ -2379,6 +2388,8 @@ public class QueryExecutorImpl implements QueryExecutor {
   private final PGStream pgStream;
   private final Logger logger;
   private final boolean allowEncodingChanges;
+  private final boolean allowReWriteBatchedInserts;
+
 
   /**
    * The estimated server response size since we last consumed the input stream from the server, in
@@ -2391,7 +2402,7 @@ public class QueryExecutorImpl implements QueryExecutor {
   private int estimatedReceiveBufferBytes = 0;
 
   private final SimpleQuery beginTransactionQuery =
-      new SimpleQuery(new NativeQuery("BEGIN", new int[0]), null);
+      new SimpleQuery(new NativeQuery("BEGIN", new int[0], false), null);
 
-  private final SimpleQuery EMPTY_QUERY = new SimpleQuery(new NativeQuery("", new int[0]), null);
+  private final SimpleQuery EMPTY_QUERY = new SimpleQuery(new NativeQuery("", new int[0], false), null);
 }

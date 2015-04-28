@@ -36,7 +36,7 @@ class SimpleQuery implements V3Query {
       return NO_PARAMETERS;
     }
 
-    return new SimpleParameterList(nativeQuery.bindPositions.length, protoConnection);
+    return new SimpleParameterList(getBindPositions(), protoConnection);
   }
 
   public String toString(ParameterList parameters) {
@@ -105,8 +105,13 @@ class SimpleQuery implements V3Query {
   }
 
   void setStatementName(String statementName) {
-    this.statementName = statementName;
-    this.encodedStatementName = Utils.encodeUTF8(statementName);
+    if (statementName == null) {
+      this.statementName = null;
+      this.encodedStatementName = null;
+    } else {
+      this.statementName = statementName;
+      this.encodedStatementName = Utils.encodeUTF8(statementName);
+    }
   }
 
   void setStatementTypes(int[] paramTypes) {
@@ -126,6 +131,7 @@ class SimpleQuery implements V3Query {
       return false; // Not prepared.
     }
 
+    assert paramTypes.length == preparedTypes.length : String.format("paramTypes:%1$d preparedTypes:%2$d", paramTypes.length, preparedTypes.length);
     // Check for compatible types.
     for (int i = 0; i < paramTypes.length; ++i) {
       if (paramTypes[i] != Oid.UNSPECIFIED && paramTypes[i] != preparedTypes[i]) {
@@ -249,6 +255,33 @@ class SimpleQuery implements V3Query {
     cachedMaxResultRowSize = null;
   }
 
+  @Override
+  public boolean isStatementReWritableInsert() {
+    return nativeQuery.isBatchedReWriteCompatible;
+  }
+
+  @Override
+  public int getBatchSize() {
+    return batchedCount;
+  }
+
+  @Override
+  public void incrementBatchSize() {
+    batchedCount += 1;
+  }
+
+  public void resetBatchedCount() {
+    batchedCount = 1;
+  }
+
+  public NativeQuery getNativeQuery() {
+    return nativeQuery;
+  }
+
+  public int getBindPositions() {
+    return nativeQuery.bindPositions.length * getBatchSize();
+  }
+
   private final NativeQuery nativeQuery;
 
   private final ProtocolConnectionImpl protoConnection;
@@ -268,6 +301,7 @@ class SimpleQuery implements V3Query {
 
   private Integer cachedMaxResultRowSize;
 
+  private int batchedCount = 1;
+
   final static SimpleParameterList NO_PARAMETERS = new SimpleParameterList(0, null);
 }
-
