@@ -170,4 +170,23 @@ public interface ParameterList {
    * @return a string representation of the parameter.
    */
   String toString(int index);
+
+  /**
+   * Overwrite current parameters with parameters in the provided list.
+   * Current parameters are cleared.
+   * @param list of parameters to overwrite with.
+   */
+  void addAll(ParameterList list);
+
+  /**
+   * Use this operation to append more parameters to the current list.
+   * @param list of parameters to append with.
+   */
+  void appendAll(ParameterList list);
+
+  /**
+   * Returns the bound parameter values.
+   * @return Object array containing the parameter values.
+   */
+  Object[] getValues();
 }

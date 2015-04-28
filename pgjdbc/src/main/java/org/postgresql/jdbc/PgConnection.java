@@ -157,6 +157,8 @@ public class PgConnection implements BaseConnection {
   // Thus we synchronize access to avoid java.util.ConcurrentModificationException
   private final LruCache<Object, CachedQuery> statementCache;
 
+  private boolean reWriteBatchedInserts = false;
+
   CachedQuery borrowQuery(String sql, boolean isCallable) throws SQLException {
     Object key = isCallable ? new CallableQueryKey(sql) : sql;
     // Synchronized to fix #368
@@ -371,6 +373,8 @@ public class PgConnection implements BaseConnection {
       }
       this._clientInfo.put("ApplicationName", appName);
     }
+
+    reWriteBatchedInserts = PGProperty.REWRITE_BATCHED_INSERTS.getBoolean(info);
   }
 
   private Set<Integer> getOidSet(String oidList) throws PSQLException {
@@ -1109,9 +1113,17 @@ public class PgConnection implements BaseConnection {
     this.forcebinary = newValue;
   }
 
-
   public void setTypeMapImpl(Map<String, Class<?>> map) throws SQLException {
     typemap = map;
+  }
+
+  @Override
+  public boolean isReWriteBatchedInsertsEnabled() {
+    return this.reWriteBatchedInserts;
+  }
+
+  public void setReWriteBatchedInserts(boolean reWrite) {
+    this.reWriteBatchedInserts = reWrite;
   }
 
   public Logger getLogger() {

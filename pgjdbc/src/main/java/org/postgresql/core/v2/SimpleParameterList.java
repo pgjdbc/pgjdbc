@@ -208,6 +208,44 @@ class SimpleParameterList implements ParameterList {
     throw new UnsupportedOperationException();
   }
 
+  @Override
+  public Object[] getValues() {
+    return paramValues;
+  }
+
+  @Override
+  /**
+   * Replace all parameters with new values in provided list.
+   */
+  public void addAll(ParameterList list) {
+    if (list instanceof SimpleParameterList ) {
+      /* only v2.SimpleParameterList is compatible with this type. The list
+      of parameters is expected to already be cloned from the values
+      passed by application. */
+      SimpleParameterList spl = (SimpleParameterList) list;
+      Arrays.fill(paramValues, null);
+      System.arraycopy(spl.getValues(), 0, paramValues, 0,
+          spl.getInParameterCount());
+    }
+  }
+
+  @Override
+  /**
+   * Append parameters to the list.
+   */
+  public void appendAll(ParameterList list) {
+    if (list instanceof SimpleParameterList ) {
+      /* only v2.SimpleParameterList is compatible with this type. The list
+      of parameters is expected to already be cloned from the values
+      passed by application. */
+      SimpleParameterList spl = (SimpleParameterList) list;
+      int count = spl.getInParameterCount();
+      System.arraycopy(spl.getValues(), 0, paramValues,
+          getInParameterCount() - count,
+          count);
+    }
+  }
+
   private final Object[] paramValues;
 
   private final boolean useEStringSyntax;

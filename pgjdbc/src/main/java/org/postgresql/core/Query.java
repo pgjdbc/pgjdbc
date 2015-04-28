@@ -51,4 +51,21 @@ public interface Query {
   boolean isStatementDescribed();
 
   boolean isEmpty();
+
+  /**
+   * Convenience to check if the Query has an insert statement
+   * that can be re-written.
+   */
+  boolean isStatementReWritableInsert();
+
+  /**
+   * Increment the number of batched rows for this Query.
+   */
+  void incrementBatchSize();
+
+  /**
+   * Get the number of times this Query has been batched.
+   * @return number of times <code>addBatch()</code> has been called.
+   */
+  int getBatchSize();
 }
