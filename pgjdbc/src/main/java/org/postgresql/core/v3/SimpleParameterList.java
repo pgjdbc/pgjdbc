@@ -368,6 +368,53 @@ class SimpleParameterList implements V3ParameterList {
     return null;
   }
 
+  @Override
+  public Object[] getValues() {
+    return paramValues;
+  }
+
+  @Override
+  public int[] getParamTypes() {
+    return paramTypes;
+  }
+
+  @Override
+  public byte[] getFlags() {
+    return flags;
+  }
+
+  @Override
+  public byte[][] getEncoding() {
+    return encoded;
+  }
+
+  @Override
+  public void addAll(ParameterList list) {
+    if (list instanceof org.postgresql.core.v3.SimpleParameterList ) {
+      /* only v3.SimpleParameterList is compatible with this type
+      we need to create copies of our parameters, otherwise the values can be changed */
+      SimpleParameterList spl = (SimpleParameterList) list.copy();
+      System.arraycopy(spl.getValues(), 0, this.paramValues, 0, spl.getInParameterCount());
+      System.arraycopy(spl.getParamTypes(), 0, this.paramTypes, 0, spl.getInParameterCount());
+      System.arraycopy(spl.getFlags(), 0, this.flags, 0, spl.getInParameterCount());
+      System.arraycopy(spl.getEncoding(), 0, this.encoded, 0, spl.getInParameterCount());
+    }
+  }
+
+  @Override
+  public void appendAll(ParameterList list) {
+    if (list instanceof org.postgresql.core.v3.SimpleParameterList ) {
+      /* only v3.SimpleParameterList is compatible with this type
+      we need to create copies of our parameters, otherwise the values can be changed */
+      SimpleParameterList spl = (SimpleParameterList) list.copy();
+      int start = this.paramValues.length - spl.getInParameterCount();
+      System.arraycopy(spl.getValues(), 0, this.paramValues, start, spl.getInParameterCount());
+      System.arraycopy(spl.getParamTypes(), 0, this.paramTypes, start, spl.getInParameterCount());
+      System.arraycopy(spl.getFlags(), 0, this.flags, start, spl.getInParameterCount());
+      System.arraycopy(spl.getEncoding(), 0, this.encoded, start, spl.getInParameterCount());
+    }
+  }
+
   private final Object[] paramValues;
   private final int[] paramTypes;
   private final byte[] flags;

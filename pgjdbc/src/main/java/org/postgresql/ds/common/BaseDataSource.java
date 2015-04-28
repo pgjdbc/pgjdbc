@@ -1179,4 +1179,18 @@ public abstract class BaseDataSource implements Referenceable {
   public int getLoglevel() {
     return PGProperty.LOG_LEVEL.getIntNoCheck(properties);
   }
+
+  /**
+   * @see PGProperty#REWRITE_BATCHED_INSERTS
+   */
+  public boolean getReWriteBatchedInserts() {
+    return PGProperty.REWRITE_BATCHED_INSERTS.getBoolean(properties);
+  }
+
+  /**
+   * @see PGProperty#REWRITE_BATCHED_INSERTS
+   */
+  public void setReWriteBatchedInserts(boolean reWrite) {
+    PGProperty.REWRITE_BATCHED_INSERTS.set(properties, reWrite);
+  }
 }

@@ -231,4 +231,10 @@ public interface BaseConnection extends PGConnection, Connection {
    * Invoke purge() on the underlying shared Timer so that internal resources will be released.
    */
   public void purgeTimerTasks();
+
+  /**
+   * To be used for checking if the batched insert re-write optimization is enabled.
+   * @return true if re-write feature is enabled
+   */
+  public boolean isReWriteBatchedInsertsEnabled();
 }

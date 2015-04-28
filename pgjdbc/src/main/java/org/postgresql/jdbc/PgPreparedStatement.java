@@ -16,6 +16,7 @@ import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.core.v3.BatchedQueryDecorator;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.util.ByteConverter;
@@ -62,6 +63,7 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 //#endif
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -82,6 +84,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
    */
   protected boolean outParmBeforeFunc = false;
 
+  protected boolean reWriteBatchedInserts = false;
+
   PgPreparedStatement(PgConnection connection, String sql, int rsType, int rsConcurrency,
       int rsHoldability) throws SQLException {
     this(connection, sql, false, rsType, rsConcurrency, rsHoldability);
@@ -93,6 +97,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
     this.preparedQuery = connection.borrowQuery(sql, isCallable);
     this.preparedParameters = this.preparedQuery.query.createParameterList();
+    this.reWriteBatchedInserts = connection.isReWriteBatchedInsertsEnabled();
 
     setPoolable(true); // As per JDBC spec: prepared and callable statements are poolable by
   }
@@ -1116,10 +1121,19 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       batchStatements = new ArrayList<Query>();
       batchParameters = new ArrayList<ParameterList>();
     }
-
-    // we need to create copies of our parameters, otherwise the values can be changed
-    batchStatements.add(preparedQuery.query);
-    batchParameters.add(preparedParameters.copy());
+    if (reWriteBatchedInserts && preparedQuery.query.isStatementReWritableInsert()) {
+      if (batchStatements.size() == 0) {
+        batchStatements.add(preparedQuery.query);
+        // we need to create copies of our parameters, otherwise the values can be changed
+        batchParameters.add(preparedParameters.copy());
+      } else {
+        reWrite(batchStatements, batchParameters, preparedParameters);
+      }
+    } else {
+      // we need to create copies of our parameters, otherwise the values can be changed
+      batchStatements.add(preparedQuery.query);
+      batchParameters.add(preparedParameters.copy());
+    }
   }
 
   public ResultSetMetaData getMetaData() throws SQLException {
@@ -1647,4 +1661,35 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     return null;
 
   }
+
+  /**
+   * Purpose of this method is to rewrite the prior Query with additional
+   * parameterized fields, parameters and type information.
+   * @param batchStatements all the statements
+   * @param batchParameters all the parameters
+   * @param preparedParameters all the prepared parameters
+   */
+  private void reWrite(List<Query> batchStatements,
+      List<ParameterList> batchParameters, ParameterList preparedParameters) {
+    Query prior = batchStatements.get(batchStatements.size() - 1);
+    BatchedQueryDecorator decoratedQuery = (BatchedQueryDecorator)prior;
+    decoratedQuery.incrementBatchSize();
+
+    // create a new paramlist that is sized correctly
+    ParameterList replacement = decoratedQuery.createParameterList();
+    ParameterList old = (ParameterList)batchParameters.remove(batchParameters.size() - 1);
+    replacement.addAll(old);
+    replacement.appendAll(preparedParameters);
+    batchParameters.add(replacement);
+
+    // resize and populate .fields and .preparedTypes meta data
+    int singleBatchparamCount = replacement.getParameterCount() / decoratedQuery.getBatchSize();
+
+    int[] userTypeInformation = preparedParameters.getTypeOIDs();
+    if (userTypeInformation != null && userTypeInformation.length > 0
+        && userTypeInformation.length == singleBatchparamCount) {
+      decoratedQuery.setStatementTypes(userTypeInformation);
+    }
+  }
+
 }
