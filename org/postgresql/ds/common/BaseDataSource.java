@@ -1133,4 +1133,8 @@ public abstract class BaseDataSource implements Referenceable
         readBaseObject(ois);
     }
 
+    public void setLoglevel(int logLevel)
+    {
+        PGProperty.LOG_LEVEL.set(properties, logLevel);
+    }
 }
