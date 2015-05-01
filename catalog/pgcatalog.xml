@@ -1,0 +1,6 @@
+<catalog xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog">
+
+<public publicId="-//OASIS//DTD DocBook XML V4.2//EN"
+        uri="docbookx.dtd"/>
+
+</catalog>
