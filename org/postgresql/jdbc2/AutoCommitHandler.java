@@ -56,6 +56,10 @@ public class AutoCommitHandler {
 	 * @throws SQLException
 	 */
 	final void handleEndOfResultSet() throws SQLException {
+		// -- Test connection --
+		if (connection == null) {
+			return;
+		}
 		// -- If AutoCommit on and row locking or row fetching active we are implicitly in transaction so if
 		// end of result set we must commit this transaction --
 		if (connection.getAutoCommit() && (allowRowLocking || allowRowFetching)) {
@@ -69,6 +73,10 @@ public class AutoCommitHandler {
 	 * @throws SQLException
 	 */
 	final void handleException() throws SQLException {
+		// -- Test connection --
+		if (connection == null) {
+			return;
+		}
 		// -- If AutoCommit on and row locking or row fetching active we are implicitly in transaction so if
 		// query throw a exception we must rollback this transaction --
 		if (connection.getAutoCommit() && (allowRowLocking || allowRowFetching)) {

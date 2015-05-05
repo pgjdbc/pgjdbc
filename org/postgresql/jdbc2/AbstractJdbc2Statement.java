@@ -581,6 +581,11 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             killTimer();
         }
         result = firstUnclosedResult = handler.getResults();
+		// -- Verify if resultset exist, if don't exist --
+        if(result.getResultSet() == null){
+        	// -- Handle implicit transaction --
+        	autoCommitHandler.handleEndOfResultSet();
+        }
 
         if (wantsGeneratedKeysOnce || wantsGeneratedKeysAlways)
         {
