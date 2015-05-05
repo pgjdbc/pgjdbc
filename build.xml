@@ -187,6 +187,8 @@
       <!-- Ensure JUnit is available, since we hide the ant runtime -->
       <dependency groupId="junit" artifactId="junit" version="4.11"
                   scope="test" optional="true"/>
+      <dependency groupId="xml-resolver" artifactId="xml-resolver" version="1.2"
+    	          scope="compile" optional="true"/>
 
       <dependency groupId="org.osgi" artifactId="org.osgi.core" version="4.3.1"
                   scope="provided" optional="true"/>
@@ -677,6 +679,11 @@ Import-Package: javax.sql, javax.transaction.xa, javax.naming, *;resolution:=opt
         <pathelement location="${artifact.jar}"/>
       </classpath>
     </javac>
+  	<copy todir="${builddir}/tests">
+  	    <fileset dir="${srcdir}">
+   	    	<include name="catalog/**/*"/>
+  	    </fileset>
+  	</copy>
     <jar jarfile="${jardir}/postgresql-tests.jar" basedir="${builddir}/tests"/>
   </target>
     
@@ -712,6 +719,7 @@ Import-Package: javax.sql, javax.transaction.xa, javax.naming, *;resolution:=opt
         <pathelement location="${artifact.jar}" />
         <pathelement location="${jardir}/postgresql-tests.jar" />
         <pathelement path="${java.class.path}" />
+      	<pathelement path="catalog" />
       </classpath>
       <test name="org.postgresql.test.jdbc2.Jdbc2TestSuite" outfile="${testResultsDir}/jdbc2"/>
       <test name="org.postgresql.test.jdbc2.optional.OptionalTestSuite" outfile="${testResultsDir}/jdbc2optional"/>
