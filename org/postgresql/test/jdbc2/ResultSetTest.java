@@ -35,6 +35,7 @@ public class ResultSetTest extends TestCase
         Statement stmt = con.createStatement();
 
         TestUtil.createTable(con, "testrs", "id integer");
+        TestUtil.createTable(con, "testrs_dup", "id integer");
 
         stmt.executeUpdate("INSERT INTO testrs VALUES (1)");
         stmt.executeUpdate("INSERT INTO testrs VALUES (2)");
@@ -42,6 +43,8 @@ public class ResultSetTest extends TestCase
         stmt.executeUpdate("INSERT INTO testrs VALUES (4)");
         stmt.executeUpdate("INSERT INTO testrs VALUES (6)");
         stmt.executeUpdate("INSERT INTO testrs VALUES (9)");
+        
+        stmt.executeUpdate("INSERT INTO testrs_dup VALUES (5)");
 
         TestUtil.createTable(con, "teststring", "a text");
         stmt.executeUpdate("INSERT INTO teststring VALUES ('12345')");
@@ -105,6 +108,7 @@ public class ResultSetTest extends TestCase
     protected void tearDown() throws SQLException
     {
         TestUtil.dropTable(con, "testrs");
+        TestUtil.dropTable(con, "testrs_dup");
         TestUtil.dropTable(con, "teststring");
         TestUtil.dropTable(con, "testint");
         TestUtil.dropTable(con, "testbool");
@@ -711,6 +715,18 @@ public class ResultSetTest extends TestCase
         assertEquals(1, rs.getInt("a"));
     }
 
+    /*
+     * Tests the improvement when there are duplicate column names that the
+     * client can distinguish one from the other by prepending the columna name.
+     */
+    public void testDuplicateColumnName() throws SQLException
+    {
+        Statement stmt = con.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT * FROM testrs, testrs_dup");
+        assertTrue(rs.next());
+        assertEquals(5, rs.getInt("testrs_dup.id"));
+    }
+    
     public void testTurkishLocale() throws SQLException
     {
         Locale current = Locale.getDefault();
