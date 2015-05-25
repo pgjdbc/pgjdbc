@@ -1,27 +1,27 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2004-2014, PostgreSQL Global Development Group
+* Copyright (c) 2004-2015, PostgreSQL Global Development Group
 *
 *
 *-------------------------------------------------------------------------
 */
-package org.postgresql.jdbc4;
+package org.postgresql.jdbc42;
 
-import java.util.Map;
-import org.postgresql.core.*;
-
-import java.sql.SQLException;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Map;
 
-public class Jdbc4Array extends AbstractJdbc4Array implements java.sql.Array
+import org.postgresql.core.BaseConnection;
+import org.postgresql.jdbc4.AbstractJdbc4Array;
+
+public class Jdbc42Array extends AbstractJdbc4Array implements java.sql.Array
 {
-
-    public Jdbc4Array(BaseConnection conn, int oid, String fieldString) throws SQLException
+    public Jdbc42Array(BaseConnection conn, int oid, String fieldString) throws SQLException
     {
         super(conn, oid, fieldString);
     }
 
-    public Jdbc4Array(BaseConnection conn, int oid, byte[] fieldBytes) throws SQLException
+    public Jdbc42Array(BaseConnection conn, int oid, byte[] fieldBytes) throws SQLException
     {
         super(conn, oid, fieldBytes);
     }
@@ -45,4 +45,5 @@ public class Jdbc4Array extends AbstractJdbc4Array implements java.sql.Array
     {
         return getResultSetImpl(index, count, map);
     }
+
 }

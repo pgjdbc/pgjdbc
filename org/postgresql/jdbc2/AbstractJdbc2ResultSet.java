@@ -1618,6 +1618,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         int oidIndex = findColumnIndex( "oid" ); // 0 if not present
 
         int i = 0;
+        int numPKcolumns = 0;
 
         // if we find the oid then just use it
 
@@ -1625,6 +1626,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         if ( oidIndex > 0 )
         {
             i++;
+            numPKcolumns++;
             primaryKeys.add( new PrimaryKey( oidIndex, "oid" ) );
             usingOID = true;
         }
@@ -1635,13 +1637,15 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             String quotelessTableName = s[0];
             String quotelessSchemaName = s[1];
             java.sql.ResultSet rs = ((java.sql.Connection) connection).getMetaData().getPrimaryKeys("", quotelessSchemaName, quotelessTableName);
-            for (; rs.next(); i++ )
+            while (rs.next())
             {
+                numPKcolumns++;
                 String columnName = rs.getString(4); // get the columnName
-                int index = findColumn( columnName );
+                int index = findColumnIndex( columnName );
 
                 if ( index > 0 )
                 {
+                    i++;
                     primaryKeys.add( new PrimaryKey(index, columnName ) ); // get the primary key information
                 }
             }
@@ -1658,7 +1662,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                                     PSQLState.DATA_ERROR);
         }
 
-        updateable = primaryKeys.size() > 0;
+        updateable = (i == numPKcolumns);
 
         if ( connection.getLogger().logDebug() )
             connection.getLogger().debug( "checking primary key " + updateable );

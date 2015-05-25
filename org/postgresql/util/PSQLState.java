@@ -25,6 +25,18 @@ public class PSQLState implements java.io.Serializable
         this.state = state;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        PSQLState psqlState = (PSQLState) o;
+        return !(state != null ? !state.equals(psqlState.state) : psqlState.state != null);
+    }
+
+    @Override
+    public int hashCode() {
+        return state != null ? state.hashCode() : 0;
+    }
 
     // begin constant state codes
     public final static PSQLState UNKNOWN_STATE = new PSQLState("");
