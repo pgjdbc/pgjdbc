@@ -736,6 +736,20 @@ openssl pkcs8 -topk8 -in client.key -out client.pk8 -outform DER -v1 PBE-SHA1-3D
         </para>
        </listitem>
       </varlistentry>
+	  
+	  <varlistentry>
+       <term><varname>defaultRowFetchSize</varname> = <type>int</type></term>
+       <listitem>
+        <para>
+         Determine the number of rows fetched in <classname>ResultSet</classname>
+		 by one fetch with trip to the database. Limiting the number of rows are fetch with 
+		 each trip to the database allow avoids unnecessary memory consumption 
+		 and as a consequence <classname>OutOfMemoryException</classname>.
+		 The default is zero, meaning that in <classname>ResultSet</classname>
+		 will be fetch all rows at once. Negative number is not available.
+        </para>
+       </listitem>
+      </varlistentry>
 
       <varlistentry>
        <term><varname>loginTimeout</varname> = <type>int</type></term>

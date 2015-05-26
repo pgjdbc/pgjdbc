@@ -63,6 +63,12 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     // Default statement prepare threshold.
     protected int prepareThreshold;
 
+    /**
+     * Default fetch size for statement
+     * @see PGProperty#DEFAULT_ROW_FETCH_SIZE
+     */
+    protected int defaultFetchSize;
+
     // Default forcebinary option.
     protected boolean forcebinary = false;
 
@@ -112,6 +118,8 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
         if (logLevel > 0)
             enableDriverManagerLogging();
+
+        setDefaultFetchSize(PGProperty.DEFAULT_ROW_FETCH_SIZE.getInt(info));
 
         prepareThreshold = PGProperty.PREPARE_THRESHOLD.getInt(info);
         if (prepareThreshold == -1)
@@ -1196,6 +1204,18 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
     public int getPrepareThreshold() {
         return prepareThreshold;
+    }
+
+    public void setDefaultFetchSize(int fetchSize) throws SQLException {
+        if (fetchSize < 0)
+            throw new PSQLException(GT.tr("Fetch size must be a value greater to or equal to 0."),
+                                    PSQLState.INVALID_PARAMETER_VALUE);
+
+        this.defaultFetchSize = fetchSize;
+    }
+
+    public int getDefaultFetchSize() {
+        return defaultFetchSize;
     }
 
     public void setPrepareThreshold(int newThreshold) {
