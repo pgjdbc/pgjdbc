@@ -12,11 +12,11 @@ public class ArrayAssistantRegistry {
     private static Map arrayAssistantMap = new HashMap();
 
     public static ArrayAssistant getAssistant(int oid) {
-        return (ArrayAssistant) arrayAssistantMap.get(new Integer(oid));
+        return (ArrayAssistant) arrayAssistantMap.get(oid);
     }
 
     ////
     public static void register(int oid, ArrayAssistant assistant) {
-        arrayAssistantMap.put(new Integer(oid), assistant);
+        arrayAssistantMap.put(oid, assistant);
     }
 }

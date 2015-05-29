@@ -27,9 +27,9 @@ public class CacheMetadata {
   
   protected void setCache(String idFields, Field[] fields) {
     List<CacheMetadataField> liste = new LinkedList<CacheMetadataField>();
-    
-    for (int i = 0 ; i < fields.length ; i++) {
-      CacheMetadataField c = new CacheMetadataField(fields[i]);
+
+    for (Field field : fields) {
+      CacheMetadataField c = new CacheMetadataField(field);
       liste.add(c);
     }
     
@@ -38,9 +38,9 @@ public class CacheMetadata {
   
   protected String getIdFields(Field[] fields) {
     StringBuilder sb = new StringBuilder();
-    
-    for (int i = 0 ; i < fields.length ; i++) {
-      sb.append(getIdField(fields[i])).append('/');
+
+    for (Field field : fields) {
+      sb.append(getIdField(field)).append('/');
     }
     
     return sb.toString();

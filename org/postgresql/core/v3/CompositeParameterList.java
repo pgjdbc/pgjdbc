@@ -32,7 +32,7 @@ class CompositeParameterList implements V3ParameterList {
 
     private final int findSubParam(int index) throws SQLException {
         if (index < 1 || index > total)
-            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(index), new Integer(total)}), PSQLState.INVALID_PARAMETER_VALUE );
+            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{index, total}), PSQLState.INVALID_PARAMETER_VALUE );
 
         for (int i = offsets.length - 1; i >= 0; --i)
             if (offsets[i] < index)
@@ -129,9 +129,8 @@ class CompositeParameterList implements V3ParameterList {
     }
 
     public void clear() {
-        for (int sub = 0; sub < subparams.length; ++sub)
-        {
-            subparams[sub].clear();
+        for (SimpleParameterList subparam : subparams) {
+            subparam.clear();
         }
     }
 
@@ -140,14 +139,16 @@ class CompositeParameterList implements V3ParameterList {
     }
 
     public void checkAllParametersSet() throws SQLException {
-        for (int sub = 0; sub < subparams.length; ++sub)
-            subparams[sub].checkAllParametersSet();
+        for (SimpleParameterList subparam : subparams) {
+            subparam.checkAllParametersSet();
+        }
     }
 
     public void convertFunctionOutParameters()
     {
-        for (int sub = 0; sub < subparams.length; ++sub)
-            subparams[sub].convertFunctionOutParameters();
+        for (SimpleParameterList subparam : subparams) {
+            subparam.convertFunctionOutParameters();
+        }
     }
 
     private final int total;

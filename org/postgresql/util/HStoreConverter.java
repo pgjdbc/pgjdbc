@@ -41,17 +41,20 @@ public class HStoreConverter {
        byte[] lenBuf = new byte[4];
        try {
            ByteConverter.int4(lenBuf, 0, m.size()); baos.write(lenBuf);
-           for (Iterator i = m.entrySet().iterator(); i.hasNext(); ) {
-               Entry e = (Entry) i.next();
+           for (Object o : m.entrySet()) {
+               Entry e = (Entry) o;
                byte[] key = encoding.encode(e.getKey().toString());
-               ByteConverter.int4(lenBuf, 0, key.length); baos.write(lenBuf);
+               ByteConverter.int4(lenBuf, 0, key.length);
+               baos.write(lenBuf);
                baos.write(key);
-               
+
                if (e.getValue() == null) {
-                   ByteConverter.int4(lenBuf, 0, -1); baos.write(lenBuf);
+                   ByteConverter.int4(lenBuf, 0, -1);
+                   baos.write(lenBuf);
                } else {
                    byte[] val = encoding.encode(e.getValue().toString());
-                   ByteConverter.int4(lenBuf, 0, val.length); baos.write(lenBuf);
+                   ByteConverter.int4(lenBuf, 0, val.length);
+                   baos.write(lenBuf);
                    baos.write(val);
                }
            }
@@ -68,8 +71,8 @@ public class HStoreConverter {
            return "";
        }
        StringBuilder sb = new StringBuilder(map.size() * 8);
-       for (Iterator i = map.entrySet().iterator(); i.hasNext(); ) {
-           Entry e = (Entry) i.next();
+       for (Object o : map.entrySet()) {
+           Entry e = (Entry) o;
            appendEscaped(sb, e.getKey());
            sb.append("=>");
            appendEscaped(sb, e.getValue());

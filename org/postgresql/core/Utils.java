@@ -34,10 +34,9 @@ public class Utils {
      */
     public static String toHexString(byte[] data) {
         StringBuilder sb = new StringBuilder(data.length * 2);
-        for (int i = 0; i < data.length; ++i)
-        {
-            sb.append(Integer.toHexString((data[i] >> 4) & 15));
-            sb.append(Integer.toHexString(data[i] & 15));
+        for (byte element : data) {
+            sb.append(Integer.toHexString((element >> 4) & 15));
+            sb.append(Integer.toHexString(element & 15));
         }
         return sb.toString();
     }

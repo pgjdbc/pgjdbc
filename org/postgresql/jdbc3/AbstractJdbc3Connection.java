@@ -57,7 +57,7 @@ public abstract class AbstractJdbc3Connection extends org.postgresql.jdbc2.Abstr
             rsHoldability = holdability;
             break;
         default:
-            throw new PSQLException(GT.tr("Unknown ResultSet holdability setting: {0}.", new Integer(holdability)),
+            throw new PSQLException(GT.tr("Unknown ResultSet holdability setting: {0}.", holdability),
                                     PSQLState.INVALID_PARAMETER_VALUE);
         }
     }

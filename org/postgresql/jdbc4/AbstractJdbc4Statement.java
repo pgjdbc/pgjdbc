@@ -172,7 +172,7 @@ public abstract class AbstractJdbc4Statement extends org.postgresql.jdbc3g.Abstr
 
         if (length < 0)
         {
-            throw new PSQLException(GT.tr("Invalid stream length {0}.", new Long(length)),
+            throw new PSQLException(GT.tr("Invalid stream length {0}.", length),
                                     PSQLState.INVALID_PARAMETER_VALUE);
         }
 
