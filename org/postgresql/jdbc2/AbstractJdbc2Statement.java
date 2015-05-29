@@ -39,8 +39,12 @@ import org.postgresql.util.GT;
  */
 public abstract class AbstractJdbc2Statement implements BaseStatement
 {
+    /**
+     * Default state for use or not binary transfers. Can use only for testing purposes
+     */
+    private static final boolean DEFAULT_FORCE_BINARY_TRANSFERS = Boolean.getBoolean("org.postgresql.forceBinary");
     // only for testing purposes. even single shot statements will use binary transfers
-    private boolean forceBinaryTransfers = Boolean.getBoolean("org.postgresql.forceBinary");
+    private boolean forceBinaryTransfers = DEFAULT_FORCE_BINARY_TRANSFERS;
 
     protected ArrayList batchStatements = null;
     protected ArrayList batchParameters = null;
