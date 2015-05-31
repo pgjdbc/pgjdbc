@@ -155,4 +155,19 @@ public interface PGConnection
      * @return the quoted literal
      */
     public String escapeLiteral(String literal) throws SQLException;
+
+    /**
+     * @see PGProperty#AUTO_CLOSE_UNCLOSED_STATEMENTS
+     * @return true if new Statement instance should be wrap to finalizer and close own resources on GC phase
+     */
+    boolean isAutoCloseUnclosedStatements();
+
+    /**
+     * Define necessary create finalizer wrapper for Statement instance for close resources
+     * on GC phase
+     * @param flag true if statement
+     *
+     * @see PGProperty#AUTO_CLOSE_UNCLOSED_STATEMENTS
+     */
+    void setAutoCloseUnclosedStatements(boolean flag);
 }

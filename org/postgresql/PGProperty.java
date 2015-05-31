@@ -7,7 +7,9 @@
 */
 package org.postgresql;
 
+import java.sql.Connection;
 import java.sql.DriverPropertyInfo;
+import java.sql.Statement;
 import java.util.Properties;
 
 import org.postgresql.util.GT;
@@ -105,6 +107,19 @@ public enum PGProperty
      * When connections that are not explicitly closed are garbage collected, log the stacktrace from the opening of the connection to trace the leak source.
      */
     LOG_UNCLOSED_CONNECTIONS("logUnclosedConnections", "false", "When connections that are not explicitly closed are garbage collected, log the stacktrace from the opening of the connection to trace the leak source"),
+
+    /**
+     * <p>
+     *     When {@link Statement} without explicitly close leaks critical resources remain busy,
+     *     it parameter allow during finalize() release critical resources. By default all resources should be close manually.
+     * </p>
+     * <p>
+     *     <b>Note:</b> Parameter affect performance(increase GC time, creation instance time) and should be use only for debugging
+     * </p>
+     * @see Statement#close()
+     * @see Object#finalize()
+     */
+    AUTO_CLOSE_UNCLOSED_STATEMENTS("autoCloseUnclosedStatements", "false", "When Statement without explicitly close leaks critical resources remain busy, it parameter allow during finalize() release critical resources. Parameter affect application performance and should be use only for debugging"),
 
     /**
      * Enable optimization that disables column name sanitiser.

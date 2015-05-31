@@ -804,6 +804,22 @@ public abstract class BaseDataSource implements Referenceable
     }
 
     /**
+     * @see PGProperty#AUTO_CLOSE_UNCLOSED_STATEMENTS
+     */
+    public boolean getAutoCloseUnclosedStatements()
+    {
+        return PGProperty.AUTO_CLOSE_UNCLOSED_STATEMENTS.getBoolean(properties);
+    }
+
+    /**
+     * @see PGProperty#AUTO_CLOSE_UNCLOSED_STATEMENTS
+     */
+    public void setAutoCloseUnclosedStatements(boolean enable)
+    {
+        PGProperty.AUTO_CLOSE_UNCLOSED_STATEMENTS.set(properties, enable);
+    }
+
+    /**
      * @see PGProperty#ASSUME_MIN_SERVER_VERSION
      */
     public String getAssumeMinServerVersion()

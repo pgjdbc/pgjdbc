@@ -681,6 +681,28 @@ openssl pkcs8 -topk8 -in client.key -out client.pk8 -outform DER -v1 PBE-SHA1-3D
       </varlistentry>
 
       <varlistentry>
+       <term><varname>autoCloseUnclosedStatements</varname> = <type>boolean</type></term>
+       <listitem>
+        <para>
+	 Clients may leak <classname>Statement</classname> objects by
+	 failing to call its <function>close()</function> method.
+   If <literal>autoCloseUnclosedStatements</literal> is set to true, then
+   finalizer will be used as a stopgap solution to <function>close()</function>
+   the resource.
+        </para>
+		 <note>
+			<para>
+				Creating finalizable objects is very expensive in lots of JVM.
+				It dramatically impacts <classname>Statement</classname> instantiation
+				and increases time spent in garbage collection, so avoid using autoCloseUnclosedStatements=true
+        for highly loaded applications unless you are sure your JVM can crater
+        finalizer traffic.
+			</para>
+		 </note>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
        <term><varname>binaryTransfer</varname> = <type>boolean</type></term>
        <listitem>
         <para>
