@@ -138,11 +138,6 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     protected Object []callResult;
     protected int maxfieldSize = 0;
 
-    /**
-     * Finalizer that close resources if they was leak
-     */
-    private final StatementFinalizer statementFinalizer;
-
     public ResultSet createDriverResultSet(Field[] fields, List tuples)
     throws SQLException
     {
@@ -158,7 +153,6 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         forceBinaryTransfers |= c.getForceBinary();
         resultsettype = rsType;
         concurrency = rsConcurrency;
-        statementFinalizer = getFinalizer(c);
     }
 
     public AbstractJdbc2Statement(AbstractJdbc2Connection connection, String sql, boolean isCallable, int rsType, int rsConcurrency) throws SQLException
@@ -181,16 +175,6 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
         resultsettype = rsType;
         concurrency = rsConcurrency;
-
-        statementFinalizer = getFinalizer(connection);
-    }
-
-    private StatementFinalizer getFinalizer(AbstractJdbc2Connection connection) {
-        if(!connection.isAutoCloseUnclosedStatements())
-        {
-            return null;
-        }
-        return new StatementFinalizer(this);
     }
 
     public abstract ResultSet createResultSet(Query originalQuery, Field[] fields, List tuples, ResultCursor cursor)
@@ -868,18 +852,6 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (isClosed)
             return ;
 
-        if (statementFinalizer != null)
-        {
-            Statement statement = statementFinalizer.shouldClose();
-            statementFinalizer.cleanup();
-            if (statement != null)
-            {
-                // This connection was just closed by the finalizer.
-                // No extra work to be done.
-                return;
-            }
-        }
-
         killTimerTask();
         
         closeForNextExecution();
@@ -888,6 +860,24 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             preparedQuery.close();
 
         isClosed = true;
+    }
+
+    /**
+     * This finalizer ensures that statements that have allocated server-side
+     * resources free them when they become unreferenced.
+     */
+    protected void finalize() throws Throwable {
+        try
+        {
+            close();
+        }
+        catch (SQLException e)
+        {
+        }
+        finally
+        {
+            super.finalize();
+        }
     }
 
     /*

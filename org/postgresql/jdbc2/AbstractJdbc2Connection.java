@@ -94,11 +94,6 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     // Only instantiated if a task is actually scheduled.
     private volatile Timer cancelTimer = null;
 
-    /**
-     * True if cleanup-in-finalizer is required for the statements of this connection.
-     */
-    private boolean autoCloseUnclosedStatements;
-
     //
     // Ctor.
     //
@@ -259,8 +254,6 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
             enableDriverManagerLogging();
         }
         this.disableColumnSanitiser = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
-
-        this.autoCloseUnclosedStatements = PGProperty.AUTO_CLOSE_UNCLOSED_STATEMENTS.getBoolean(info);
     }
 
     private Set<Integer> getOidSet(String oidList) throws PSQLException {
@@ -1359,15 +1352,5 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
     public String escapeLiteral(String literal) throws SQLException {
         return Utils.escapeLiteral(null, literal, protoConnection.getStandardConformingStrings()).toString();
-    }
-
-    public void setAutoCloseUnclosedStatements(boolean flag)
-    {
-        autoCloseUnclosedStatements = flag;
-    }
-
-    public boolean isAutoCloseUnclosedStatements()
-    {
-        return autoCloseUnclosedStatements;
     }
 }
