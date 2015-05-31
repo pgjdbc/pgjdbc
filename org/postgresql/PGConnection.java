@@ -111,6 +111,27 @@ public interface PGConnection
     public int getPrepareThreshold();
 
     /**
+     * Set the default fetch size for statements created from this connection
+     *
+     * @param fetchSize new default fetch size
+     * @throws SQLException if specified negative <code>fetchSize</code> parameter
+     *
+     * @see Statement#setFetchSize(int)
+     *
+     */
+    public void setDefaultFetchSize(int fetchSize) throws SQLException;
+
+
+    /**
+     * Get the default fetch size for statements created from this connection
+     *
+     * @return current state for default fetch size
+     * @see PGProperty#DEFAULT_ROW_FETCH_SIZE
+     * @see Statement#getFetchSize()
+     */
+    public int getDefaultFetchSize();
+
+    /**
      * Return the process ID (PID) of the backend server process handling this connection.
      * 
      * @return PID of backend server process. 

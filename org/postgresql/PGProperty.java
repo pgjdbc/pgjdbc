@@ -62,6 +62,11 @@ public enum PGProperty
     PREPARE_THRESHOLD("prepareThreshold", "5", "Statement prepare threshold. A value of {@code -1} stands for forceBinary"),
 
     /**
+     * Default parameter for {@link java.sql.Statement#getFetchSize()}. A value of {@code 0} means that need fetch all rows at once
+     */
+    DEFAULT_ROW_FETCH_SIZE("defaultRowFetchSize", "0", "Positive number of rows that should be fetched from the database when more rows are needed for ResultSet by each fetch iteration"),
+
+    /**
      * Use binary format for sending and receiving data if possible.
      */
     BINARY_TRANSFER("binaryTransfer", "true", "Use binary format for sending and receiving data if possible"),
