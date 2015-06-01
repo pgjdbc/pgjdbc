@@ -645,7 +645,11 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             return false;
 
         final int rows_size = rows.size();
-        return (current_row >= rows_size && rows_size > 0);
+        if (row_offset + rows_size == 0)
+        {
+            return false;
+        }
+        return (current_row >= rows_size);
     }
 
 
@@ -664,6 +668,12 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         checkClosed();
         if (onInsertRow)
             return false;
+
+        final int rows_size = rows.size();
+        if (row_offset + rows_size == 0)
+        {
+            return false;
+        }
 
         return ((row_offset + current_row) == 0);
     }
