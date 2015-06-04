@@ -1846,7 +1846,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                     long tempAllArgTypes[] = (long[])allArgTypesArray.getArray();
                     allArgTypes = new Long[tempAllArgTypes.length];
                     for (int i=0; i<tempAllArgTypes.length; i++) {
-                        allArgTypes[i] = new Long(tempAllArgTypes[i]);
+                        allArgTypes[i] = tempAllArgTypes[i];
                     }
                 }
                 numArgs = allArgTypes.length;
@@ -2124,12 +2124,10 @@ public abstract class AbstractJdbc2DatabaseMetaData
         }
         if (types != null) {
             select += " AND (false ";
-            for (int i = 0; i < types.length; i++)
-            {
-                Map clauses = (Map)tableTypeClauses.get(types[i]);
-                if (clauses != null)
-                {
-                    String clause = (String)clauses.get(useSchemas);
+            for (String type : types) {
+                Map clauses = (Map) tableTypeClauses.get(type);
+                if (clauses != null) {
+                    String clause = (String) clauses.get(useSchemas);
                     select += " OR ( " + clause + " ) ";
                 }
             }
@@ -2495,12 +2493,12 @@ public abstract class AbstractJdbc2DatabaseMetaData
             {
                 if ( pgType.equals("int4") )
                 {
-                    if (defval.indexOf("nextval(") != -1)
+                    if (defval.contains("nextval("))
                         tuple[5] = connection.encodeString("serial"); // Type name == serial
                 }
                 else if ( pgType.equals("int8") )
                 {
-                    if (defval.indexOf("nextval(") != -1)
+                    if (defval.contains("nextval("))
                         tuple[5] = connection.encodeString("bigserial"); // Type name == bigserial
                 }
             }
@@ -2542,7 +2540,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
             if (jdbcVersion >= 4) {
                 String autoinc = "NO";
-                if (defval != null && defval.indexOf("nextval(") != -1) {
+                if (defval != null && defval.contains("nextval(")) {
                     autoinc = "YES";
                 }
                 tuple[22] = connection.encodeString(autoinc);
@@ -2742,20 +2740,20 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 {
                 	List grantor = (List)grantees.get(granteeUsers[j]);
                 	String grantee = (String)granteeUsers[j];
-                	for (int l = 0; l < grantor.size(); l++) {
-                		String[] grants = (String[])grantor.get(l);                	
-	                    String grantable = owner.equals(grantee) ? "YES" : grants[1];
-                    byte[][] tuple = new byte[8][];
-                    tuple[0] = null;
-                    tuple[1] = schemaName;
-                    tuple[2] = tableName;
-                    tuple[3] = column;
-	                    tuple[4] = connection.encodeString(grants[0]);
-                    tuple[5] = connection.encodeString(grantee);
-                    tuple[6] = privilege;
-                    tuple[7] = connection.encodeString(grantable);
-                    v.add(tuple);
-                }
+                    for (Object element : grantor) {
+                        String[] grants = (String[]) element;
+                        String grantable = owner.equals(grantee) ? "YES" : grants[1];
+                        byte[][] tuple = new byte[8][];
+                        tuple[0] = null;
+                        tuple[1] = schemaName;
+                        tuple[2] = tableName;
+                        tuple[3] = column;
+                        tuple[4] = connection.encodeString(grants[0]);
+                        tuple[5] = connection.encodeString(grantee);
+                        tuple[6] = privilege;
+                        tuple[7] = connection.encodeString(grantable);
+                        v.add(tuple);
+                    }
             }
         }
 	}
@@ -2862,27 +2860,26 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 while (g.hasNext()){
                 	granteeUsers[k++] = (String)g.next();
                 }
-                for (int j = 0; j < granteeUsers.length; j++)
-                {
-                	List grants = (List)grantees.get(granteeUsers[j]);
-                	String grantee = (String)granteeUsers[j];
-                	for (int l = 0; l < grants.size(); l++) {
-                		String[] grantTuple = (String[])grants.get(l);
-                		// report the owner as grantor if it's missing
+                for (String granteeUser : granteeUsers) {
+                    List grants = (List) grantees.get(granteeUser);
+                    String grantee = (String) granteeUser;
+                    for (Object grant : grants) {
+                        String[] grantTuple = (String[]) grant;
+                        // report the owner as grantor if it's missing
                         String grantor = grantTuple[0].equals(null) ? owner : grantTuple[0];
                         // owner always has grant privileges
                         String grantable = owner.equals(grantee) ? "YES" : grantTuple[1];
-                    	byte[][] tuple = new byte[7][];
-                    	tuple[0] = null;
-                    	tuple[1] = schema;
-                    	tuple[2] = table;
+                        byte[][] tuple = new byte[7][];
+                        tuple[0] = null;
+                        tuple[1] = schema;
+                        tuple[2] = table;
                         tuple[3] = connection.encodeString(grantor);
-                    	tuple[4] = connection.encodeString(grantee);
-                    	tuple[5] = privilege;
-                    	tuple[6] = connection.encodeString(grantable);
-                    	v.add(tuple);
-                    		
-                	}
+                        tuple[4] = connection.encodeString(grantee);
+                        tuple[5] = privilege;
+                        tuple[6] = connection.encodeString(grantable);
+                        v.add(tuple);
+
+                    }
                 }
             }
         }
@@ -3075,9 +3072,8 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
         List acls = parseACLArray(aclArray);
         Map privileges = new HashMap();
-        for (int i = 0; i < acls.size(); i++)
-        {
-            String acl = (String)acls.get(i);
+        for (Object element : acls) {
+            String acl = (String) element;
             addACLPrivileges(acl, privileges);
         }
         return privileges;
@@ -4392,16 +4388,14 @@ public abstract class AbstractJdbc2DatabaseMetaData
         if ( types != null )
         {
             toAdd += " and (false ";
-            for (int i = 0; i < types.length; i++)
-            {
-                switch (types[i] )
-                {
-                case java.sql.Types.STRUCT:
-                    toAdd += " or t.typtype = 'c'";
-                    break;
-                case java.sql.Types.DISTINCT:
-                    toAdd += " or t.typtype = 'd'";
-                    break;
+            for (int type : types) {
+                switch (type) {
+                    case Types.STRUCT:
+                        toAdd += " or t.typtype = 'c'";
+                        break;
+                    case Types.DISTINCT:
+                        toAdd += " or t.typtype = 'd'";
+                        break;
                 }
             }
             toAdd += " ) ";

@@ -33,23 +33,23 @@ public class PGBoolean implements PGType
         switch ( targetType )
         {
             case Types.BIGINT:
-                return new PGLong(new Long( val.booleanValue()==true?1:0 ));
+                return new PGLong((long) (val == true ? 1 : 0));
             case Types.INTEGER:
-                return new PGInteger( new Integer(  val.booleanValue()==true?1:0  ) );
+                return new PGInteger(val == true ? 1 : 0);
             case Types.SMALLINT:
             case Types.TINYINT:
-                return new PGShort( new Short( val.booleanValue()==true?(short)1:(short)0  ) );
+                return new PGShort(val == true ? (short) 1 : (short) 0);
             case Types.VARCHAR:
             case Types.LONGVARCHAR:                
-                return new PGString( val.booleanValue()==true?"true":"false" );
+                return new PGString(val ==true?"true":"false" );
             case Types.DOUBLE:
             case Types.FLOAT:
-            		return new PGDouble( new Double(val.booleanValue()==true?1:0));
+            		return new PGDouble((double) (val == true ? 1 : 0));
             case Types.REAL:
-        		return new PGFloat( new Float(val.booleanValue()==true?1:0));
+        		return new PGFloat((float) (val == true ? 1 : 0));
             case Types.NUMERIC:
             case Types.DECIMAL:
-                return new PGBigDecimal( new java.math.BigDecimal(val.booleanValue()==true?1:0));
+                return new PGBigDecimal( new java.math.BigDecimal(val ==true?1:0));
             
             case Types.BIT:
                 return new PGBoolean( val );
@@ -64,7 +64,7 @@ public class PGBoolean implements PGType
     }
     public String toString()
     {
-        return val.booleanValue()==true?"true":"false";
+        return val ==true?"true":"false";
     }
     
 }

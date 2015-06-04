@@ -65,7 +65,7 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
         String pathsep = System.getProperty("file.separator");
         String defaultdir;
         boolean defaultfile = false;
-        if (System.getProperty("os.name").toLowerCase().indexOf("windows") > -1)
+        if (System.getProperty("os.name").toLowerCase().contains("windows"))
         { //It is Windows
           defaultdir = System.getenv("APPDATA")+pathsep+"postgresql"+pathsep;
         } else {
@@ -207,21 +207,18 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
           UnsupportedCallbackException {
         Console cons = System.console();
         if (cons==null && password==null) {throw new UnsupportedCallbackException(callbacks[0], "Console is not available");}
-        for (int i=0; i<callbacks.length; i++)
-        {
-          if (callbacks[i] instanceof PasswordCallback)
-          {
-            if (password==null)
-            {
+        for (Callback callback : callbacks) {
+          if (callback instanceof PasswordCallback) {
+            if (password == null) {
               //It is used instead of cons.readPassword(prompt), because the prompt may contain '%' characters
-              ((PasswordCallback)callbacks[i]).setPassword(cons.readPassword("%s", new Object[]{((PasswordCallback)callbacks[i]).getPrompt()}));
+              ((PasswordCallback) callback).setPassword(cons.readPassword("%s", new Object[]{((PasswordCallback) callback).getPrompt()}));
             } else {
-              ((PasswordCallback)callbacks[i]).setPassword(password);
+              ((PasswordCallback) callback).setPassword(password);
             }
           } else {
-            throw new UnsupportedCallbackException(callbacks[i]);
+            throw new UnsupportedCallbackException(callback);
           }
-      }
+        }
       
     }
   }

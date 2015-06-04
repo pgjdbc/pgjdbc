@@ -389,10 +389,9 @@ public class QueryExecutorImpl implements QueryExecutor {
         boolean describeOnly = (QUERY_DESCRIBE_ONLY & flags) != 0;
         // Check parameters and resolve OIDs.
         if (!describeOnly) {
-            for (int i = 0; i < parameterLists.length; ++i)
-            {
-                if (parameterLists[i] != null)
-                    ((V3ParameterList)parameterLists[i]).checkAllParametersSet();
+            for (ParameterList parameterList : parameterLists) {
+                if (parameterList != null)
+                    ((V3ParameterList) parameterList).checkAllParametersSet();
             }
         }
 
@@ -646,7 +645,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                     protoConnection.addWarning(warning);
                     break;
                 default:
-                    throw new PSQLException(GT.tr("Unknown Response Type {0}.", new Character((char) c)), PSQLState.CONNECTION_FAILURE);
+                    throw new PSQLException(GT.tr("Unknown Response Type {0}.", (char) c), PSQLState.CONNECTION_FAILURE);
                 }
             }
         } catch (IOException ioe) {
@@ -704,7 +703,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                 break;
 
             default:
-                throw new PSQLException(GT.tr("Unknown Response Type {0}.", new Character((char) c)), PSQLState.CONNECTION_FAILURE);
+                throw new PSQLException(GT.tr("Unknown Response Type {0}.", (char) c), PSQLState.CONNECTION_FAILURE);
             }
 
         }
@@ -1335,9 +1334,8 @@ public class QueryExecutorImpl implements QueryExecutor {
         if (encodedStatementName != null)
             pgStream.Send(encodedStatementName);
         pgStream.SendChar(0);   // End of statement name
-        for (int i = 0; i < parts.length; ++i)
-        { // Query string
-            pgStream.Send(parts[i]);
+        for (byte[] part : parts) { // Query string
+            pgStream.Send(part);
         }
         pgStream.SendChar(0);       // End of query string.
         pgStream.SendInteger2(params.getParameterCount());       // # of parameter types specified
@@ -1389,9 +1387,9 @@ public class QueryExecutorImpl implements QueryExecutor {
         int numBinaryFields = 0;
         Field[] fields = query.getFields();
         if (!noBinaryTransfer && fields != null) {
-            for (int i = 0; i < fields.length; ++i) {
-                if (useBinary(fields[i])) {
-                    fields[i].setFormat(Field.BINARY_FORMAT);
+            for (Field field : fields) {
+                if (useBinary(field)) {
+                    field.setFormat(Field.BINARY_FORMAT);
                     numBinaryFields = fields.length;
                 }
             }
@@ -1412,7 +1410,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         //
         if (encodedSize > 0x3fffffff)
         {
-            throw new PGBindException(new IOException(GT.tr("Bind message length {0} too long.  This can be caused by very large or incorrect length specifications on InputStream parameters.", new Long(encodedSize))));
+            throw new PGBindException(new IOException(GT.tr("Bind message length {0} too long.  This can be caused by very large or incorrect length specifications on InputStream parameters.", encodedSize)));
         }
 
         pgStream.SendChar('B');                  // Bind
@@ -1529,7 +1527,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             pgStream.Send(encodedStatementName);    // Statement name
         pgStream.SendChar(0);                       // end message
 
-        pendingDescribeStatementQueue.add(new Object[]{query, params, new Boolean(describeOnly), query.getStatementName()});
+        pendingDescribeStatementQueue.add(new Object[]{query, params, describeOnly, query.getStatementName()});
         pendingDescribePortalQueue.add(query);
         query.setStatementDescribed(true);
         query.setPortalDescribed(true);
@@ -1852,7 +1850,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                     Object describeData[] = (Object[])pendingDescribeStatementQueue.get(describeIndex);
                     SimpleQuery query = (SimpleQuery)describeData[0];
                     SimpleParameterList params = (SimpleParameterList)describeData[1];
-                    boolean describeOnly = ((Boolean)describeData[2]).booleanValue();
+                    boolean describeOnly = (Boolean) describeData[2];
                     String origStatementName = (String)describeData[3];
 
                     int numParams = pgStream.ReceiveInteger2();
@@ -2005,9 +2003,9 @@ public class QueryExecutorImpl implements QueryExecutor {
                         length = -1;
                     } else {
                         length = 0;
-                        for (int i=0; i< tuple.length; ++i) {
-                            if (tuple[i] == null) continue;
-                            length += tuple[i].length;
+                        for (byte[] aTuple : tuple) {
+                            if (aTuple == null) continue;
+                            length += aTuple.length;
                         }
                     }
                     logger.debug(" <=BE DataRow(len=" + length + ")");

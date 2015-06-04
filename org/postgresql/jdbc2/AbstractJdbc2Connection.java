@@ -63,6 +63,12 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     // Default statement prepare threshold.
     protected int prepareThreshold;
 
+    /**
+     * Default fetch size for statement
+     * @see PGProperty#DEFAULT_ROW_FETCH_SIZE
+     */
+    protected int defaultFetchSize;
+
     // Default forcebinary option.
     protected boolean forcebinary = false;
 
@@ -102,7 +108,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         int logLevel = Driver.getLogLevel();
         Integer connectionLogLevel = PGProperty.LOG_LEVEL.getInteger(info);
         if (connectionLogLevel != null) {
-            logLevel = connectionLogLevel.intValue();
+            logLevel = connectionLogLevel;
         }
 
         synchronized (AbstractJdbc2Connection.class) {
@@ -112,6 +118,8 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
         if (logLevel > 0)
             enableDriverManagerLogging();
+
+        setDefaultFetchSize(PGProperty.DEFAULT_ROW_FETCH_SIZE.getInt(info));
 
         prepareThreshold = PGProperty.PREPARE_THRESHOLD.getInt(info);
         if (prepareThreshold == -1)
@@ -894,13 +902,13 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
             return Connection.TRANSACTION_READ_COMMITTED; // Best guess.
 
         level = level.toUpperCase(Locale.US);
-        if (level.indexOf("READ COMMITTED") != -1)
+        if (level.contains("READ COMMITTED"))
             return Connection.TRANSACTION_READ_COMMITTED;
-        if (level.indexOf("READ UNCOMMITTED") != -1)
+        if (level.contains("READ UNCOMMITTED"))
             return Connection.TRANSACTION_READ_UNCOMMITTED;
-        if (level.indexOf("REPEATABLE READ") != -1)
+        if (level.contains("REPEATABLE READ"))
             return Connection.TRANSACTION_REPEATABLE_READ;
-        if (level.indexOf("SERIALIZABLE") != -1)
+        if (level.contains("SERIALIZABLE"))
             return Connection.TRANSACTION_SERIALIZABLE;
 
         return Connection.TRANSACTION_READ_COMMITTED; // Best guess.
@@ -929,7 +937,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
         String isolationLevelName = getIsolationLevelName(level);
         if (isolationLevelName == null)
-            throw new PSQLException(GT.tr("Transaction isolation level {0} not supported.", new Integer(level)), PSQLState.NOT_IMPLEMENTED);
+            throw new PSQLException(GT.tr("Transaction isolation level {0} not supported.", level), PSQLState.NOT_IMPLEMENTED);
 
         String isolationLevelSQL = "SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL " + isolationLevelName;
         execSQLUpdate(isolationLevelSQL); // nb: no BEGIN triggered
@@ -1196,6 +1204,18 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
     public int getPrepareThreshold() {
         return prepareThreshold;
+    }
+
+    public void setDefaultFetchSize(int fetchSize) throws SQLException {
+        if (fetchSize < 0)
+            throw new PSQLException(GT.tr("Fetch size must be a value greater to or equal to 0."),
+                                    PSQLState.INVALID_PARAMETER_VALUE);
+
+        this.defaultFetchSize = fetchSize;
+    }
+
+    public int getDefaultFetchSize() {
+        return defaultFetchSize;
     }
 
     public void setPrepareThreshold(int newThreshold) {

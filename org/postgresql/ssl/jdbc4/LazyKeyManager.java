@@ -95,9 +95,10 @@ public class LazyKeyManager implements X509KeyManager {
         } else {
           X500Principal ourissuer = certchain[certchain.length-1].getIssuerX500Principal();
           boolean found = false;
-          for (int i=0; i<issuers.length; i++)
-          {
-            if (ourissuer.equals(issuers[i])) { found = true;}
+          for (Principal issuer : issuers) {
+            if (ourissuer.equals(issuer)) {
+              found = true;
+            }
           }
           return (found ? "user" : null);
         }

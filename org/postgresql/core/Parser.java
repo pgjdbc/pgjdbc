@@ -193,6 +193,7 @@ public class Parser {
     public static String unmarkDoubleQuestion(String query, boolean standardConformingStrings)
     {
         if (query == null) return query;
+        if (!query.contains("??")) return query;
 
         char[] aChars = query.toCharArray();
         StringBuilder buf = new StringBuilder(aChars.length);

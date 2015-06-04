@@ -32,6 +32,7 @@ public class Jdbc42Connection extends AbstractJdbc42Connection
     {
         checkClosed();
         Jdbc42Statement s = new Jdbc42Statement(this, resultSetType, resultSetConcurrency, resultSetHoldability, getPrepareThreshold());
+        s.setFetchSize(getDefaultFetchSize());
         return s;
     }
 
@@ -39,6 +40,7 @@ public class Jdbc42Connection extends AbstractJdbc42Connection
     {
         checkClosed();
         Jdbc42PreparedStatement s = new Jdbc42PreparedStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability, getPrepareThreshold());
+        s.setFetchSize(getDefaultFetchSize());
         return s;
     }
 
@@ -46,6 +48,7 @@ public class Jdbc42Connection extends AbstractJdbc42Connection
     {
         checkClosed();
         Jdbc42CallableStatement s = new Jdbc42CallableStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability, getPrepareThreshold());
+        s.setFetchSize(getDefaultFetchSize());
         return s;
     }
 

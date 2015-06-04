@@ -35,6 +35,7 @@ public class Jdbc4Connection extends AbstractJdbc4Connection implements java.sql
         checkClosed();
         Jdbc4Statement s = new Jdbc4Statement(this, resultSetType, resultSetConcurrency, resultSetHoldability);
         s.setPrepareThreshold(getPrepareThreshold());
+        s.setFetchSize(getDefaultFetchSize());
         return s;
     }
 
@@ -43,6 +44,7 @@ public class Jdbc4Connection extends AbstractJdbc4Connection implements java.sql
         checkClosed();
         Jdbc4PreparedStatement s = new Jdbc4PreparedStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
         s.setPrepareThreshold(getPrepareThreshold());
+        s.setFetchSize(getDefaultFetchSize());
         return s;
     }
 
@@ -51,6 +53,7 @@ public class Jdbc4Connection extends AbstractJdbc4Connection implements java.sql
         checkClosed();
         Jdbc4CallableStatement s = new Jdbc4CallableStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
         s.setPrepareThreshold(getPrepareThreshold());
+        s.setFetchSize(getDefaultFetchSize());
         return s;
     }
 

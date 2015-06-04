@@ -154,8 +154,7 @@ Remember to test proposed PgJDBC patches when running against older PostgreSQL
 versions where possible, not just against the PostgreSQL you use yourself.
 
 You also need to test your changes with older JDKs. PgJDBC must support JDK5
-("Java 1.5") and newer, which means you can't use annotations, auto-boxing, for
-(:), and numerous other features added since JDK 5. Code that's JDBC4 specific
+("Java 1.5") and newer. Code that's JDBC4 specific
 may use JDK6 features, and code that's JDBC4.1 specific may use JDK7 features.
 Common code and JDBC3 code needs to stick to Java 1.5.
 

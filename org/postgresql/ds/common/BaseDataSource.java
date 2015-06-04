@@ -372,6 +372,22 @@ public abstract class BaseDataSource implements Referenceable
     }
 
     /**
+     * @see PGProperty#DEFAULT_ROW_FETCH_SIZE
+     */
+    public void setDefaultRowFetchSize(int fetchSize)
+    {
+        PGProperty.DEFAULT_ROW_FETCH_SIZE.set(properties, fetchSize);
+    }
+
+    /**
+     * @see PGProperty#DEFAULT_ROW_FETCH_SIZE
+     */
+    public int getDefaultRowFetchSize()
+    {
+        return PGProperty.DEFAULT_ROW_FETCH_SIZE.getIntNoCheck(properties);
+    }
+
+    /**
      * @see PGProperty#UNKNOWN_LENGTH 
      */
     public void setUnknownLength(int unknownLength)
@@ -1133,4 +1149,12 @@ public abstract class BaseDataSource implements Referenceable
         readBaseObject(ois);
     }
 
+    public void setLoglevel(int logLevel)
+    {
+        PGProperty.LOG_LEVEL.set(properties, logLevel);
+    }
+
+    public int getLoglevel() {
+        return PGProperty.LOG_LEVEL.getIntNoCheck(properties);
+    }
 }

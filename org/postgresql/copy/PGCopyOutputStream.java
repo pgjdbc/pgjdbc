@@ -65,7 +65,7 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
     public void write(int b) throws IOException {
         checkClosed();
         if(b<0 || b>255)
-            throw new IOException(GT.tr("Cannot write to copy a byte of value {0}", new Integer(b)));
+            throw new IOException(GT.tr("Cannot write to copy a byte of value {0}", b));
         singleByteBuffer[0] = (byte)b;
         write(singleByteBuffer, 0, 1);
     }

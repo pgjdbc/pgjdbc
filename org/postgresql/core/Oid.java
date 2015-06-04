@@ -83,9 +83,9 @@ public class Oid {
     public static String toString(int oid) {
         try {
             Field[] fields = Oid.class.getFields();
-            for (int i = 0; i < fields.length; ++i) {
-                if (fields[i].getInt(null) == oid) {
-                    return fields[i].getName();
+            for (Field field : fields) {
+                if (field.getInt(null) == oid) {
+                    return field.getName();
                 }
             }
         } catch (IllegalAccessException e) {
@@ -102,9 +102,9 @@ public class Oid {
         try {
             oid = oid.toUpperCase();
             Field[] fields = Oid.class.getFields();
-            for (int i = 0; i < fields.length; ++i) {
-                if (fields[i].getName().toUpperCase().equals(oid)) {
-                    return fields[i].getInt(null);
+            for (Field field : fields) {
+                if (field.getName().toUpperCase().equals(oid)) {
+                    return field.getInt(null);
                 }
             }
         } catch (IllegalAccessException e) {
