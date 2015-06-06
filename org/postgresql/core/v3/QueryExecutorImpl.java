@@ -30,6 +30,17 @@ import org.postgresql.copy.CopyOperation;
  * QueryExecutor implementation for the V3 protocol.
  */
 public class QueryExecutorImpl implements QueryExecutor {
+    /**
+     * Cache UTF8-encoded values for $1, $2, etc, so we do not have to repeatedly generate them for prepared statements.
+     */
+    private final static byte[][] BIND_NAMES = new byte[128][];
+
+    static {
+        for (int i = 1; i < BIND_NAMES.length; i++) {
+            BIND_NAMES[i] = Utils.encodeUTF8("$" + i);
+        }
+    }
+
     public QueryExecutorImpl(ProtocolConnectionImpl protoConnection, PGStream pgStream, Properties info, Logger logger) {
         this.protoConnection = protoConnection;
         this.pgStream = pgStream;
@@ -1314,7 +1325,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         {
             if (i != 0)
             {
-                parts[j] = Utils.encodeUTF8("$" + i);
+                parts[j] = i < BIND_NAMES.length ? BIND_NAMES[i] : Utils.encodeUTF8("$" + i);
                 encodedSize += parts[j].length;
                 ++j;
             }
