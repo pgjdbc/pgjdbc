@@ -30,6 +30,9 @@
   <property file="build.local.properties" />
   <property file="build.properties"/>
 
+  <taskdef uri="antlib:org.apache.maven.artifact.ant"
+           classpath="lib/maven-ant-tasks-2.1.3.jar"/>
+
  <!-- define artifacts' name, which follows the convention of Maven -->
   <property name="maven.jar" value="${jardir}/${maven.artifact.id}-${maven.artifact.version}.jar"/>
   <property name="maven.javadoc.jar" value="${jardir}/${maven.artifact.id}-${maven.artifact.version}-javadoc.jar"/>
@@ -61,52 +64,30 @@
     <include name="${package}/jdbc2/**"/>
 
     <!-- jdbc3 subpackage -->
-    <include name="${package}/jdbc3/Abstract*.java"/>
-    <include name="${package}/jdbc3/PSQLSavepoint.java"/>
-
-    <include name="${package}/jdbc3/Jdbc3Array.java" if="jdbc3"/>
-    <include name="${package}/jdbc3/Jdbc3Blob.java" if="jdbc3"/>
-    <include name="${package}/jdbc3/Jdbc3CallableStatement.java" if="jdbc3"/>
-    <include name="${package}/jdbc3/Jdbc3Clob.java" if="jdbc3"/>
-    <include name="${package}/jdbc3/Jdbc3Connection.java" if="jdbc3"/>
-    <include name="${package}/jdbc3/Jdbc3DatabaseMetaData.java" if="jdbc3"/>
-    <include name="${package}/jdbc3/Jdbc3PreparedStatement.java" if="jdbc3"/>
-    <include name="${package}/jdbc3/Jdbc3ResultSet.java" if="jdbc3"/>
-    <include name="${package}/jdbc3/Jdbc3ResultSetMetaData.java.java" if="jdbc3"/>
-    <include name="${package}/jdbc3/Jdbc3Statement.java" if="jdbc3"/>
+    <include name="${package}/jdbc3/**"/>
 
     <!-- jdbc3g subpackage -->
-    <include name="${package}/jdbc3g/*.java" if="jdbc3g"/>
-    <exclude name="${package}/jdbc3g/Jdbc3g*.java" unless="jdbc3g"/>
+    <include name="${package}/jdbc3g/**"/>
 
     <!-- jdbc4 subpackage -->
-    <include name="${package}/jdbc4/*.java" if="jdbc4any"/>
-    <exclude name="${package}/jdcb4/Jdbc4*.java" unless="jdbc4any"/>
+    <include name="${package}/jdbc4/Abstract*.java"/>
+    <exclude name="${package}/jdbc4/Jdbc4*.java" unless="jdbc42"/>
+
+    <!-- jdbc42 subpackage -->
+    <include name="${package}/jdbc42/**" if="jdbc42" />
 
     <!-- ssl -->
-    <include name="${package}/ssl/SingleCertValidatingFactory.java" if="jdbc4any"/>
-    <include name="${package}/ssl/jdbc4/*.java" if="jdbc4any"/>
-    <include name="${package}/ssl/jdbc3/*.java" if="jdbc3any"/>
-    <include name="${package}/ssl/*.java" if="jdbc3any"/>
+    <include name="${package}/ssl/**" />
 
     <!-- gss and sspi -->
     <include name="${package}/gss/*.java"/>
     <include name="${package}/sspi/*.java"/>
 
     <!-- datasource stuff -->
-    <include name="${package}/jdbc3/Jdbc3ConnectionPool.java" if="jdbc3any"/>
-    <include name="${package}/jdbc3/Jdbc3PoolingDataSource.java" if="jdbc3any"/>
-    <include name="${package}/jdbc3/Jdbc3SimpleDataSource.java" if="jdbc3any"/>
-
-    <include name="${package}/ds/*.java"/>
-    <include name="${package}/ds/common/*.java"/>
-    <include name="${package}/ds/jdbc23/*.java"/>
-    <include name="${package}/ds/jdbc4/*.java" if="jdbc4any"/>
+    <include name="${package}/ds/**"/>
 
     <!-- XA stuff -->
-    <include name="${package}/xa/*.java"/>
-    <include name="${package}/xa/jdbc3/*.java"/>
-    <include name="${package}/xa/jdbc4/*.java" if="jdbc4any"/>
+    <include name="${package}/xa/**"/>
 
     <!-- OSGi package -->
     <include name="${package}/osgi/*.java"/>
@@ -148,7 +129,8 @@
                   groupId="${maven.group.id}"
                   artifactId="${maven.artifact.id}"
                   version="${maven.artifact.version.string}" 
-                  name="${maven.artifact.description} ${jdbc.version.upper}"
+		  name="PostgreSQL JDBC Driver"
+                  description="${maven.artifact.description} ${jdbc.version.upper}"
                   url="http://jdbc.postgresql.org"
                   >
 
@@ -177,7 +159,7 @@
            against it on all platforms for consistent builds.
       -->
       <dependency groupId="com.github.dblock.waffle" artifactId="waffle-jna"
-                  version="${waffle-jna.version}" scope="compile">
+                  version="${waffle-jna.version}" scope="compile" optional="true">
         <!--
          We want to force most of Waffle's transitive dependencies to runtime
          dependencies so we can't accidentally depend on their contents at
@@ -195,29 +177,23 @@
         -->
       </dependency>
 
-
       <!--
            Re-declare our waffle-jna dependency without excludes for runtime
            bundling use.
       -->
       <dependency groupId="com.github.dblock.waffle" artifactId="waffle-jna"
-                  version="${waffle-jna.version}" scope="runtime"/>
-
-      <!--
-         Pull in slf4j-simple too, since Waffle uses slf4j. 
-         (It's declared optional by waffle so ant-tasks doesn't fetch it normally)
-      -->
-      <dependency groupId="org.slf4j" artifactId="slf4j-simple"
-                  version="${waffle-pom.properties.slf4j.version}" scope="runtime"/>
+                  version="${waffle-jna.version}" scope="runtime" optional="true"/>
 
       <!-- Ensure JUnit is available, since we hide the ant runtime -->
       <dependency groupId="junit" artifactId="junit" version="4.11"
-                  scope="test"/>
+                  scope="test" optional="true"/>
+      <dependency groupId="xml-resolver" artifactId="xml-resolver" version="1.2"
+    	          scope="compile" optional="true"/>
 
       <dependency groupId="org.osgi" artifactId="org.osgi.core" version="4.3.1"
-                  scope="provided"/>
+                  scope="provided" optional="true"/>
       <dependency groupId="org.osgi" artifactId="org.osgi.enterprise" version="4.2.0"
-                  scope="provided"/>
+                  scope="provided" optional="true"/>
     </artifact:pom>
 
     <!--
@@ -271,71 +247,66 @@
   </target>
 
   <target name="check_versions">
-    <condition property="jdbc2">
+    <condition property="oldjava">
       <or>
         <equals arg1="${java.specification.version}" arg2="1.2"/>
         <equals arg1="${java.specification.version}" arg2="1.3"/>
-      </or>
-    </condition>
-    <condition property="jdbc3">
         <equals arg1="${java.specification.version}" arg2="1.4"/>
-    </condition>
-    <condition property="jdbc3g">
 	<equals arg1="${java.specification.version}" arg2="1.5"/>
+      </or>
     </condition>
     <condition property="jdbc4">
         <equals arg1="${java.specification.version}" arg2="1.6"/>
     </condition>
     <condition property="jdbc41">
-      <or>
 	<equals arg1="${java.specification.version}" arg2="1.7"/>
+    </condition>
+    <condition property="jdbc42">
         <equals arg1="${java.specification.version}" arg2="1.8"/>
-      </or>
     </condition>
     <condition property="jdbc4any">
       <or>
         <isset property="jdbc4" />
 	<isset property="jdbc41" />
+	<isset property="jdbc42" />
       </or>
     </condition>
-    <condition property="jdbc3any">
+    <condition property="jdbc4_or_jdbc41">
       <or>
-        <isset property="jdbc3" />
-	<isset property="jdbc3g" />
+        <isset property="jdbc4" />
+	<isset property="jdbc41" />
       </or>
     </condition>
-    <condition property="jdbc3plus">
+    <condition property="jdbc41plus">
       <or>
-        <isset property="jdbc3any" />
-	<isset property="jdbc4any" />
+	<isset property="jdbc41" />
+	<isset property="jdbc42" />
       </or>
+    </condition>
+    <condition property="jdbc42plus">
+	<isset property="jdbc42" />
     </condition>
 
     <condition property="unknownjvm">
       <not>
         <or>
-          <isset property="jdbc2" />
-          <isset property="jdbc3any" />
+          <isset property="oldjava" />
           <isset property="jdbc4any" />
         </or>
       </not>
     </condition>
 
-    <fail if="jdbc2" message="1.4 or higher JDK is required to build the JDBC driver." />
+    <fail if="oldjava" message="1.6 or higher JDK is required to build the JDBC driver." />
     <fail if="unknownjvm" message="Unknown JDK version." />
 
     <available property="junit.task" classname="org.apache.tools.ant.taskdefs.optional.junit.JUnitTask"/>
 
-    <condition property="jdbc4tests">
-      <isset property="jdbc4any" />
-    </condition>
-
     <condition property="jdbc41tests">
-      <isset property="jdbc41" />
+      <isset property="jdbc41plus" />
     </condition>
 
-    <condition property="jdbc.version" value="jdbc3">
-      <isset property="jdbc3any" />
+    <condition property="jdbc42tests">
+      <isset property="jdbc42plus" />
     </condition>
 
     <condition property="jdbc.version" value="jdbc4">
@@ -346,8 +317,8 @@
       <isset property="jdbc41" />
     </condition>
 
-    <condition property="jdbc.version.upper" value="JDBC3">
-      <isset property="jdbc3any" />
+    <condition property="jdbc.version" value="jdbc42">
+      <isset property="jdbc42" />
     </condition>
 
     <condition property="jdbc.version.upper" value="JDBC4">
@@ -358,8 +329,8 @@
       <isset property="jdbc41" />
     </condition>
 
-    <condition property="jdbc.version.numeric" value="3.0">
-      <isset property="jdbc3any" />
+    <condition property="jdbc.version.upper" value="JDBC42">
+      <isset property="jdbc42" />
     </condition>
 
     <condition property="jdbc.version.numeric" value="4.0">
@@ -369,6 +340,11 @@
     <condition property="jdbc.version.numeric" value="4.1">
       <isset property="jdbc41" />
     </condition>
+
+    <condition property="jdbc.version.numeric" value="4.2">
+      <isset property="jdbc42" />
+    </condition>
+
   </target>
 
   <!-- default target -->
@@ -529,73 +505,46 @@ Import-Package: javax.sql, javax.transaction.xa, javax.naming, *;resolution:=opt
   <target name="driver" depends="prepare,check_versions,check_driver"
           unless="driver.uptodate">
     <!-- determine the edition text -->
-    <condition property="edition" value="JDBC3">
-        <equals arg1="${jdbc3}" arg2="true"/>
-    </condition>
-    <condition property="edition" value="JDBC3g">
-    	<equals arg1="${jdbc3g}" arg2="true" />
-    </condition>
     <condition property="edition" value="JDBC4">
 	<equals arg1="${jdbc4}" arg2="true" />
     </condition>
     <condition property="edition" value="JDBC4.1">
 	<equals arg1="${jdbc41}" arg2="true" />
     </condition>
+    <condition property="edition" value="JDBC4.2">
+	<equals arg1="${jdbc42}" arg2="true" />
+    </condition>
 
     <!-- determine the connection class -->
-    <condition property="connectclass" value="org.postgresql.jdbc3.Jdbc3Connection">
-        <equals arg1="${jdbc3}" arg2="true"/>
-    </condition>
-    <condition property="connectclass" value="org.postgresql.jdbc3g.Jdbc3gConnection">
-        <equals arg1="${jdbc3g}" arg2="true"/>
-    </condition>
     <condition property="connectclass" value="org.postgresql.jdbc4.Jdbc4Connection">
-        <equals arg1="${jdbc4any}" arg2="true" />
+        <equals arg1="${jdbc4_or_jdbc41}" arg2="true" />
+    </condition>
+    <condition property="connectclass" value="org.postgresql.jdbc42.Jdbc42Connection">
+        <equals arg1="${jdbc42}" arg2="true" />
     </condition>
 
-    <condition property="notimplementedexception" value="java.sql.SQLException">
-        <equals arg1="${jdbc3any}" arg2="true" />
-    </condition>
     <condition property="notimplementedexception" value="java.sql.SQLFeatureNotSupportedException">
         <equals arg1="${jdbc4any}" arg2="true" />
     </condition>
 
-    <condition property="simpledsclass" value="org.postgresql.ds.jdbc23.AbstractJdbc23SimpleDataSource">
-        <equals arg1="${jdbc3any}" arg2="true" />
-    </condition>
     <condition property="simpledsclass" value="org.postgresql.ds.jdbc4.AbstractJdbc4SimpleDataSource">
         <equals arg1="${jdbc4any}" arg2="true" />
     </condition>
 
-    <condition property="poolingdsclass" value="org.postgresql.ds.jdbc23.AbstractJdbc23PoolingDataSource">
-        <equals arg1="${jdbc3any}" arg2="true" />
-    </condition>
     <condition property="poolingdsclass" value="org.postgresql.ds.jdbc4.AbstractJdbc4PoolingDataSource">
         <equals arg1="${jdbc4any}" arg2="true" />
 </condition>
 
-    <condition property="pooledconnclass" value="org.postgresql.ds.jdbc23.AbstractJdbc23PooledConnection">
-        <equals arg1="${jdbc3any}" arg2="true" />
-    </condition>
     <condition property="pooledconnclass" value="org.postgresql.ds.jdbc4.AbstractJdbc4PooledConnection">
         <equals arg1="${jdbc4any}" arg2="true" />
     </condition>
 
-    <condition property="connpooldsclass" value="org.postgresql.ds.jdbc23.AbstractJdbc23ConnectionPoolDataSource">
-        <equals arg1="${jdbc3any}" arg2="true" />
-    </condition>
     <condition property="connpooldsclass" value="org.postgresql.ds.jdbc4.AbstractJdbc4ConnectionPoolDataSource">
         <equals arg1="${jdbc4any}" arg2="true" />
     </condition>
 
-    <condition property="xadsclass" value="org.postgresql.xa.jdbc3.AbstractJdbc3XADataSource">
-        <equals arg1="${jdbc3any}" arg2="true" />
-    </condition>
     <condition property="xadsclass" value="org.postgresql.xa.jdbc4.AbstractJdbc4XADataSource">
         <equals arg1="${jdbc4any}" arg2="true" />
-    </condition>
-    <condition property="makesslclass" value="org.postgresql.ssl.jdbc3.AbstractJdbc3MakeSSL">
-        <equals arg1="${jdbc3any}" arg2="true" />
     </condition>
     <condition property="makesslclass" value="org.postgresql.ssl.jdbc4.AbstractJdbc4MakeSSL">
         <equals arg1="${jdbc4any}" arg2="true" />
@@ -681,6 +630,12 @@ Import-Package: javax.sql, javax.transaction.xa, javax.naming, *;resolution:=opt
     <delete quiet="true" file="${srcdir}/${package}/ds/PGConnectionPoolDataSource.java" />
     <delete quiet="true" file="${srcdir}/${package}/xa/PGXADataSource.java" />
     <delete quiet="true" file="${srcdir}/${package}/ssl/MakeSSL.java" />
+    <delete quiet="true">
+      <fileset dir="lib">
+        <include name="*"/>
+        <exclude name="maven-ant-tasks*.jar"/>
+      </fileset>
+    </delete>
   </target>
 
   <!-- This compiles and executes the JUnit tests -->
@@ -717,14 +672,18 @@ Import-Package: javax.sql, javax.transaction.xa, javax.naming, *;resolution:=opt
       <classpath refid="dependency.test.classpath" />
       <include name="${package}/test/**" />
 
-      <exclude name="${package}/test/jdbc4/**" unless="jdbc4tests" />
       <exclude name="${package}/test/jdbc4/jdbc41/**" unless="jdbc41tests" />
-      <exclude name="${package}/test/ssl/**" unless="jdbc4tests" />
+      <exclude name="${package}/test/jdbc42/**" unless="jdbc42tests" />
 
       <classpath>
         <pathelement location="${artifact.jar}"/>
       </classpath>
     </javac>
+  	<copy todir="${builddir}/tests">
+  	    <fileset dir="${srcdir}">
+   	    	<include name="catalog/**/*"/>
+  	    </fileset>
+  	</copy>
     <jar jarfile="${jardir}/postgresql-tests.jar" basedir="${builddir}/tests"/>
   </target>
     
@@ -760,6 +719,7 @@ Import-Package: javax.sql, javax.transaction.xa, javax.naming, *;resolution:=opt
         <pathelement location="${artifact.jar}" />
         <pathelement location="${jardir}/postgresql-tests.jar" />
         <pathelement path="${java.class.path}" />
+      	<pathelement path="catalog" />
       </classpath>
       <test name="org.postgresql.test.jdbc2.Jdbc2TestSuite" outfile="${testResultsDir}/jdbc2"/>
       <test name="org.postgresql.test.jdbc2.optional.OptionalTestSuite" outfile="${testResultsDir}/jdbc2optional"/>
@@ -767,11 +727,12 @@ Import-Package: javax.sql, javax.transaction.xa, javax.naming, *;resolution:=opt
       <test name="org.postgresql.test.xa.XATestSuite" outfile="${testResultsDir}/xa"/>
       <test name="org.postgresql.test.extensions.ExtensionsSuite" outfile="${testResultsDir}/extensions"/>
       <test name="org.postgresql.test.osgi.OsgiTestSuite" outfile="${testResultsDir}/osgi"/>
-      <test name="org.postgresql.test.jdbc4.Jdbc4TestSuite" if="jdbc4tests" outfile="${testResultsDir}/jdbc4"/>
+      <test name="org.postgresql.test.jdbc4.Jdbc4TestSuite" outfile="${testResultsDir}/jdbc4"/>
       <test name="org.postgresql.test.jdbc4.jdbc41.Jdbc41TestSuite" if="jdbc41tests" outfile="${testResultsDir}/jdbc41"/>
+      <test name="org.postgresql.test.jdbc42.Jdbc42TestSuite" if="jdbc42tests" outfile="${testResultsDir}/jdbc42"/>
       <test name="org.postgresql.test.hostchooser.MultiHostSuite" outfile="${testResultsDir}/hostchooser"/>
-      <test name="org.postgresql.test.ssl.SslTestSuite" if="jdbc4tests" outfile="${testResultsDir}/ssl"/>
-      <test name="org.postgresql.test.ssl.SingleCertValidatingFactoryTest" if="jdbc4tests" outfile="${testResultsDir}/scsf-ssl"/>
+      <test name="org.postgresql.test.ssl.SslTestSuite" outfile="${testResultsDir}/ssl"/>
+      <test name="org.postgresql.test.ssl.SingleCertValidatingFactoryTest" outfile="${testResultsDir}/scsf-ssl"/>
     </junit>
     <fail if="test.fail" message="Some tests are in failure or error"/>
   </target>
@@ -816,8 +777,6 @@ Import-Package: javax.sql, javax.transaction.xa, javax.naming, *;resolution:=opt
       </classpath>
       <fileset dir="${srcdir}/${package}">
         <include name="**/*.java"/>
-	<exclude name="jdbc3/Jdbc3*.java" unless="jdbc3" />
-	<exclude name="jdbc3g/Jdbc3g*.java" unless="jdbc3g" />
 	<exclude name="jdbc4/*.java" unless="jdbc4any" />
 	<exclude name="ds/jdbc4/*.java" unless="jdbc4any" />
         <exclude name="test/**/*.java"/>
@@ -904,7 +863,7 @@ Import-Package: javax.sql, javax.transaction.xa, javax.naming, *;resolution:=opt
                        file="${builddir}/pom/pom.xml" />
   </target>
 
-  <target name="snapshot" depends="maven-jar,snapshot-version,prepare-pom" description="deploy snapshot version to Maven snapshot repository">
+  <target name="snapshot" depends="snapshot-version,maven-jar,prepare-pom" description="deploy snapshot version to Maven snapshot repository">
     <artifact:mvn>
       <artifact:arg value="org.apache.maven.plugins:maven-deploy-plugin:2.6:deploy-file"/>
       <artifact:arg value="-Durl=${maven.snapshots.repository.url}"/>
@@ -914,7 +873,7 @@ Import-Package: javax.sql, javax.transaction.xa, javax.naming, *;resolution:=opt
     </artifact:mvn>
   </target>
 
-  <target name="release" depends="maven-jar,release-version,prepare-pom" description="deploy release version to Maven staging repository">
+  <target name="release" depends="release-version,maven-jar,prepare-pom" description="deploy release version to Maven staging repository">
     <!-- sign and deploy the main artifact -->
     <fail unless="maven.artifact.version.string"/>
     <artifact:mvn>

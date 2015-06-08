@@ -103,7 +103,7 @@ public abstract class AbstractJdbc2BlobClob
             }
             else
             {
-                throw new PSQLException(GT.tr("PostgreSQL LOBs can only index to: {0}", new Integer(Integer.MAX_VALUE)), PSQLState.INVALID_PARAMETER_VALUE);
+                throw new PSQLException(GT.tr("PostgreSQL LOBs can only index to: {0}", Integer.MAX_VALUE), PSQLState.INVALID_PARAMETER_VALUE);
             }
         }
         else
@@ -267,7 +267,7 @@ public abstract class AbstractJdbc2BlobClob
         }
         if (pos + len - 1 > Integer.MAX_VALUE)
         {
-            throw new PSQLException(GT.tr("PostgreSQL LOBs can only index to: {0}", new Integer(Integer.MAX_VALUE)), PSQLState.INVALID_PARAMETER_VALUE);
+            throw new PSQLException(GT.tr("PostgreSQL LOBs can only index to: {0}", Integer.MAX_VALUE), PSQLState.INVALID_PARAMETER_VALUE);
         }
     }
 

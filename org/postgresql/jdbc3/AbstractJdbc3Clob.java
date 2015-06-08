@@ -103,5 +103,4 @@ public abstract class AbstractJdbc3Clob extends org.postgresql.jdbc2.AbstractJdb
         checkFreed();
         throw org.postgresql.Driver.notImplemented(this.getClass(), "setCharacteStream(long)");
     }
-
 }

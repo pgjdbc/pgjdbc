@@ -76,5 +76,4 @@ public class PSQLSavepoint implements Savepoint {
 
         return "JDBC_SAVEPOINT_" + _id;
     }
-
 }

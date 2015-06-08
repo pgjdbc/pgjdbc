@@ -16,6 +16,4 @@ public class Jdbc4ResultSetMetaData extends AbstractJdbc4ResultSetMetaData imple
     {
         super(connection, fields);
     }
-
 }
-

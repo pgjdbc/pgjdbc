@@ -344,4 +344,97 @@ public class BatchExecuteTest extends TestCase
             throw ex;
         }
     }
+
+	/*
+	 * A user reported that a query that uses RETURNING (via getGeneratedKeys)
+	 * in a batch, and a 'text' field value in a table is assigned NULL in the first 
+	 * execution of the batch then non-NULL afterwards using 
+	 * PreparedStatement.setObject(int, Object) (i.e. no Types param or setString call)
+	 * the batch may fail with:
+	 * 
+	 * "Received resultset tuples, but no field structure for them"
+	 * 
+	 * at org.postgresql.core.v3.QueryExecutorImpl.processResults
+	 * 
+	 * Prior to 245b388 it would instead fail with a NullPointerException
+	 * in AbstractJdbc2ResultSet.checkColumnIndex
+	 * 
+	 * The cause is complicated. The failure arises because the query gets
+	 * re-planned mid-batch. This re-planning clears the cached information
+	 * about field types. The field type information for parameters gets
+	 * re-acquired later but the information for *returned* values does not.
+	 * 
+	 * (The reason why the returned value types aren't recalculated is not
+	 *  yet known.)
+	 * 
+	 * The re-plan's cause is its self complicated.
+	 * 
+	 * The first bind of the parameter, which is null, gets the type oid 0 
+	 * (unknown/unspecified). Unless Types.VARCHAR is specified or setString
+	 * is used, in which case the oid is set to 1043 (varchar).
+	 * 
+	 * The second bind identifies the object class as String so it calls
+	 * setString internally. This sets the type to 1043 (varchar).
+	 * 
+	 * The third and subsequent binds, whether null or non-null, will get type
+	 * 1043, becaues there's logic to avoid overwriting a known parameter type
+	 * with the unknown type oid. This is why the issue can only occur when
+	 * null is the first entry.
+	 * 
+	 * When executed the first time a describe is run. This reports the parameter
+	 * oid to be 25 (text), because that's the type of the table column the param
+	 * is being assigned to. That's why the cast to ?::varchar works - because it
+	 * overrides the type for the parameter to 1043 (varchar).
+	 * 
+	 * The second execution sees that the bind parameter type is already known
+	 * to PgJDBC as 1043 (varchar). PgJDBC doesn't see that text and varchar are
+	 * the same - and, in fact, under some circumstances they aren't exactly the
+	 * same. So it discards the planned query and re-plans.
+	 * 
+	 * This issue can be reproduced with any pair of implicitly or assignment
+	 * castable types; for example, using Integer in JDBC and bigint in the Pg
+	 * table will do it.
+	 */
+    public void testBatchReturningMixedNulls() throws SQLException {
+	    String[] testData = new String[] { null, "test", null, null, null };
+
+    	try {
+    		Statement setup = con.createStatement();
+    		setup.execute("DROP TABLE IF EXISTS mixednulltest;");
+    		// It's significant that "value' is 'text' not 'varchar' here;
+    		// if 'varchar' is used then everything works fine.
+    		setup.execute("CREATE TABLE mixednulltest (key serial primary key, value text);");
+    		setup.close();
+
+    		// If the parameter is given as ?::varchar then this issue
+    		// does not arise.
+		    PreparedStatement st = con.prepareStatement(
+                "INSERT INTO mixednulltest (value) VALUES (?)",
+                new String[] { "key" });
+
+			for (String val : testData) {
+				/*
+				 * This is the crucial bit. It's set to null first time around,
+				 * so the RETURNING clause's type oid is undefined.
+				 *
+				 * The second time around the value is assigned so Pg reports
+				 * the type oid is TEXT, like the table. But we expected VARCHAR.
+				 *
+				 * This causes PgJDBC to replan the query, and breaks other things.
+				 */
+				st.setObject(1, val);
+				st.addBatch();
+			}
+			st.executeBatch();
+			ResultSet rs = st.getGeneratedKeys();
+			for (int i = 1; i <= testData.length; i++) {
+				rs.next();
+				assertEquals(i, rs.getInt(1));
+			}
+			assertTrue(!rs.next());
+    	} catch (SQLException ex) {
+            ex.getNextException().printStackTrace();
+            throw ex;
+    	}
+    }
 }

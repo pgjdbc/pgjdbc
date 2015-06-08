@@ -15,5 +15,4 @@ public class Jdbc4Clob extends AbstractJdbc4Clob implements java.sql.Clob
     {
         super(conn, oid);
     }
-
 }

@@ -17,14 +17,17 @@ import javax.xml.xpath.XPathFactory;
 
 import junit.framework.TestCase;
 
+import org.apache.xml.resolver.tools.CatalogResolver;
 import org.junit.Assert;
 import org.postgresql.Driver;
 import org.postgresql.PGProperty;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.postgresql.ds.common.BaseDataSource;
+import org.postgresql.test.TestUtil;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+
 
 public class PGPropertyTest extends TestCase
 {
@@ -142,6 +145,7 @@ public class PGPropertyTest extends TestCase
     {
         DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
+        documentBuilder.setEntityResolver(new CatalogResolver());
         Document document = documentBuilder.parse(new FileInputStream(DOCUMENTATION_FILE));
 
         XPathFactory xpathFactory = XPathFactory.newInstance();
@@ -171,6 +175,7 @@ public class PGPropertyTest extends TestCase
     {
         DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
+        documentBuilder.setEntityResolver(new CatalogResolver());
         Document document = documentBuilder.parse(new FileInputStream(DOCUMENTATION_FILE));
 
         XPathFactory xpathFactory = XPathFactory.newInstance();
@@ -188,5 +193,29 @@ public class PGPropertyTest extends TestCase
             PGProperty enumProperty = PGProperty.forName(propertyName);
             Assert.assertNotNull("Connection parameter [" + propertyName + "] documented in [" + DOCUMENTATION_FILE + "] does not exist in the code (see PGProperty enum)", enumProperty);
         }
+    }
+
+    /**
+     * Test that {@link PGProperty#isPresent(Properties)} returns a correct result in all cases
+     */
+    public void testIsPresentWithParseURLResult() throws Exception
+    {
+        Properties givenProperties = new Properties();
+        givenProperties.setProperty("user", TestUtil.getUser());
+        givenProperties.setProperty("password", TestUtil.getPassword());
+
+        Properties parsedProperties = Driver.parseURL(TestUtil.getURL(), givenProperties);
+        Assert.assertFalse("SSL property should not be present", PGProperty.SSL.isPresent(parsedProperties));
+
+        givenProperties.setProperty("ssl", "true");
+        parsedProperties = Driver.parseURL(TestUtil.getURL(), givenProperties);
+        Assert.assertTrue("SSL property should be present", PGProperty.SSL.isPresent(parsedProperties));
+
+        givenProperties.setProperty("ssl", "anotherValue");
+        parsedProperties = Driver.parseURL(TestUtil.getURL(), givenProperties);
+        Assert.assertTrue("SSL property should be present", PGProperty.SSL.isPresent(parsedProperties));
+
+        parsedProperties = Driver.parseURL(TestUtil.getURL() + "&ssl=true" , null);
+        Assert.assertTrue("SSL property should be present", PGProperty.SSL.isPresent(parsedProperties));
     }
 }

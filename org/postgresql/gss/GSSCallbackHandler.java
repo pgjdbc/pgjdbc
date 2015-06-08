@@ -24,9 +24,9 @@ public class GSSCallbackHandler implements CallbackHandler {
 
     public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException
     {
-        for (int i=0; i<callbacks.length; i++) {
-            if (callbacks[i] instanceof TextOutputCallback) {
-                TextOutputCallback toc = (TextOutputCallback)callbacks[i];
+        for (Callback callback : callbacks) {
+            if (callback instanceof TextOutputCallback) {
+                TextOutputCallback toc = (TextOutputCallback) callback;
                 switch (toc.getMessageType()) {
                     case TextOutputCallback.INFORMATION:
                         System.out.println("INFO: " + toc.getMessage());
@@ -40,21 +40,19 @@ public class GSSCallbackHandler implements CallbackHandler {
                     default:
                         throw new IOException("Unsupported message type: " + toc.getMessageType());
                 }
-            } else if (callbacks[i] instanceof NameCallback) {
-                NameCallback nc = (NameCallback)callbacks[i];
+            } else if (callback instanceof NameCallback) {
+                NameCallback nc = (NameCallback) callback;
                 nc.setName(user);
-            } else if (callbacks[i] instanceof PasswordCallback) {
-                PasswordCallback pc = (PasswordCallback)callbacks[i];
+            } else if (callback instanceof PasswordCallback) {
+                PasswordCallback pc = (PasswordCallback) callback;
                 if (password == null) {
                     throw new IOException("No cached kerberos ticket found and no password supplied.");
                 }
                 pc.setPassword(password.toCharArray());
             } else {
-                throw new UnsupportedCallbackException(callbacks[i], "Unrecognized Callback");
+                throw new UnsupportedCallbackException(callback, "Unrecognized Callback");
             }
         }
     }
 
 }
-
-

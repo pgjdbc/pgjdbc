@@ -75,15 +75,15 @@ public class Fastpath
 
         if (returnValue.length == 4)
         {
-            return new Integer(ByteConverter.int4(returnValue, 0));
+            return ByteConverter.int4(returnValue, 0);
         }
         else if (returnValue.length == 8)
         {
-            return new Long(ByteConverter.int8(returnValue, 0));
+            return ByteConverter.int8(returnValue, 0);
         }
         else
         {
-            throw new PSQLException(GT.tr("Fastpath call {0} - No result was returned and we expected a numeric.", new Integer(fnId)),
+            throw new PSQLException(GT.tr("Fastpath call {0} - No result was returned and we expected a numeric.", fnId),
                                     PSQLState.NO_DATA);
         }
     }
@@ -251,7 +251,7 @@ public class Fastpath
      */
     public void addFunction(String name, int fnid)
     {
-        func.put(name, new Integer(fnid));
+        func.put(name, fnid);
     }
 
     /**
@@ -290,7 +290,7 @@ public class Fastpath
     {
         while (rs.next())
         {
-            func.put(rs.getString(1), new Integer(rs.getInt(2)));
+            func.put(rs.getString(1), rs.getInt(2));
         }
     }
 
@@ -318,7 +318,7 @@ public class Fastpath
         if (id == null)
             throw new PSQLException(GT.tr("The fastpath function {0} is unknown.", name), PSQLState.UNEXPECTED_ERROR);
 
-        return id.intValue();
+        return id;
     }
 
     /**

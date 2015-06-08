@@ -35,6 +35,4 @@ public abstract class AbstractJdbc4Blob extends org.postgresql.jdbc3.AbstractJdb
         }
         return subLO.getInputStream(length);
     }
-
 }
-

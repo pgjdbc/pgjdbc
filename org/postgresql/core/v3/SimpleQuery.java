@@ -77,7 +77,7 @@ class SimpleQuery implements V3Query {
 	 */
 	public int getMaxResultRowSize() {
 		if (cachedMaxResultRowSize != null) {
-			return cachedMaxResultRowSize.intValue();
+			return cachedMaxResultRowSize;
 		}
 		if (!this.statementDescribed) {
 			throw new IllegalStateException(
@@ -85,20 +85,19 @@ class SimpleQuery implements V3Query {
 		}
 		int maxResultRowSize = 0;
 		if (fields != null) {
-			for (int i = 0; i < fields.length; i++) {
-				Field f = fields[i];
-				final int fieldLength = f.getLength();
-				if (fieldLength < 1 || fieldLength >= 65535) {
-					/*
+            for (Field f : fields) {
+                final int fieldLength = f.getLength();
+                if (fieldLength < 1 || fieldLength >= 65535) {
+                    /*
 					 * Field length unknown or large; we can't make any safe
 					 * estimates about the result size, so we have to fall back to
 					 * sending queries individually.
 					 */
-					maxResultRowSize = -1;
-					break;
-				}
-				maxResultRowSize += fieldLength;
-			}
+                    maxResultRowSize = -1;
+                    break;
+                }
+                maxResultRowSize += fieldLength;
+            }
 		}
 		cachedMaxResultRowSize = maxResultRowSize;
 		return maxResultRowSize;
@@ -161,8 +160,8 @@ class SimpleQuery implements V3Query {
         if (preparedTypes == null)
             return true;
 
-        for (int i=0; i<preparedTypes.length; i++) {
-            if (preparedTypes[i] == Oid.UNSPECIFIED)
+        for (int preparedType : preparedTypes) {
+            if (preparedType == Oid.UNSPECIFIED)
                 return true;
         }
 

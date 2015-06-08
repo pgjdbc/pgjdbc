@@ -17,5 +17,4 @@ public class Jdbc4Blob extends AbstractJdbc4Blob implements java.sql.Blob
     {
         super(conn, oid);
     }
-
 }

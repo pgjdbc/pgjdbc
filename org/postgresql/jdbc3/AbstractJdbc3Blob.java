@@ -67,5 +67,4 @@ public abstract class AbstractJdbc3Blob extends org.postgresql.jdbc2.AbstractJdb
         getLo(true).write(bytes, offset, len);
         return len;
     }
-
 }

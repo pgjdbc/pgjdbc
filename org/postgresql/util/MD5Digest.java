@@ -22,7 +22,6 @@ public class MD5Digest
     {
     }
 
-
     /*
      * Encodes user/password/salt information in the following way:
      *  MD5(MD5(password + user) + salt)
@@ -64,7 +63,6 @@ public class MD5Digest
 
         return hex_digest;
     }
-
 
     /*
      * Turn 16-byte stream into a human-readable 32-byte hex string

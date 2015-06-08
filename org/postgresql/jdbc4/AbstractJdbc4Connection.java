@@ -17,6 +17,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.postgresql.PGProperty;
+import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Oid;
 import org.postgresql.core.Utils;
 import org.postgresql.core.TypeInfo;
@@ -26,7 +27,7 @@ import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLException;
 import org.postgresql.jdbc2.AbstractJdbc2Array;
 
-abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdbc3gConnection
+public abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdbc3gConnection
 {
     private static final SQLPermission SQL_PERMISSION_ABORT = new SQLPermission("callAbort");
 
@@ -55,6 +56,11 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
         }
     }
 
+    protected abstract Array makeArray(int oid, String fieldString) throws SQLException;
+    protected abstract Clob makeClob(long oid) throws SQLException;
+    protected abstract Blob makeBlob(long oid) throws SQLException;
+    protected abstract SQLXML makeSQLXML() throws SQLException;
+
     public Clob createClob() throws SQLException
     {
         checkClosed();
@@ -76,7 +82,7 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
     public SQLXML createSQLXML() throws SQLException
     {
         checkClosed();
-        return new Jdbc4SQLXML(this);
+        return makeSQLXML();
     }
 
     public Struct createStruct(String typeName, Object[] attributes) throws SQLException
@@ -96,9 +102,7 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
         StringBuilder sb = new StringBuilder();
         appendArray(sb, elements, delim);
 
-        // This will not work once we have a JDBC 5,
-        // but it'll do for now.
-        return new Jdbc4Array(this, oid, sb.toString());
+        return makeArray(oid, sb.toString());
     }
 
     private static void appendArray(StringBuilder sb, Object elements, char delim)
@@ -341,5 +345,4 @@ abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdb
             abort();
         }
     }
-
 }

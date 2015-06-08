@@ -9,8 +9,14 @@ package org.postgresql.jdbc4;
 
 import java.util.Map;
 import java.util.Properties;
+import java.sql.Array;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.NClob;
 import java.sql.SQLException;
+import java.sql.SQLXML;
 
+import org.postgresql.core.BaseConnection;
 import org.postgresql.util.HostSpec;
 
 /**
@@ -29,15 +35,16 @@ public class Jdbc4Connection extends AbstractJdbc4Connection implements java.sql
         checkClosed();
         Jdbc4Statement s = new Jdbc4Statement(this, resultSetType, resultSetConcurrency, resultSetHoldability);
         s.setPrepareThreshold(getPrepareThreshold());
+        s.setFetchSize(getDefaultFetchSize());
         return s;
     }
-
 
     public java.sql.PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException
     {
         checkClosed();
         Jdbc4PreparedStatement s = new Jdbc4PreparedStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
         s.setPrepareThreshold(getPrepareThreshold());
+        s.setFetchSize(getDefaultFetchSize());
         return s;
     }
 
@@ -46,6 +53,7 @@ public class Jdbc4Connection extends AbstractJdbc4Connection implements java.sql
         checkClosed();
         Jdbc4CallableStatement s = new Jdbc4CallableStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
         s.setPrepareThreshold(getPrepareThreshold());
+        s.setFetchSize(getDefaultFetchSize());
         return s;
     }
 
@@ -60,6 +68,27 @@ public class Jdbc4Connection extends AbstractJdbc4Connection implements java.sql
     public void setTypeMap(Map < String, Class < ? >> map) throws SQLException
     {
         setTypeMapImpl(map);
+    }
+
+    protected Array makeArray(int oid, String fieldString)
+        throws SQLException
+    {
+        return new Jdbc4Array(this, oid, fieldString);
+    }
+
+    protected Blob makeBlob(long oid) throws SQLException
+    {
+        return new Jdbc4Blob(this, oid);
+    }
+
+    protected Clob makeClob(long oid) throws SQLException
+    {
+        return new Jdbc4Clob(this, oid);
+    }
+
+    protected SQLXML makeSQLXML() throws SQLException
+    {
+        return new Jdbc4SQLXML(this);
     }
 
 }

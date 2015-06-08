@@ -11,10 +11,10 @@ import org.postgresql.core.*;
 
 import java.sql.SQLException;
 
-abstract class AbstractJdbc4ResultSetMetaData extends org.postgresql.jdbc2.AbstractJdbc2ResultSetMetaData
+public abstract class AbstractJdbc4ResultSetMetaData extends org.postgresql.jdbc2.AbstractJdbc2ResultSetMetaData
 {
 
-    public AbstractJdbc4ResultSetMetaData(BaseConnection connection, Field[] fields)
+    protected AbstractJdbc4ResultSetMetaData(BaseConnection connection, Field[] fields)
     {
         super(connection, fields);
     }
@@ -32,7 +32,4 @@ abstract class AbstractJdbc4ResultSetMetaData extends org.postgresql.jdbc2.Abstr
         }
         throw new SQLException("Cannot unwrap to " + iface.getName());
     }
-
 }
-
-

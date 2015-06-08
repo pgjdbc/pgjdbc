@@ -35,21 +35,21 @@ public class PGFloat implements PGType
             switch ( targetType )
             {
 	            case Types.BIT:
-	                return new PGBoolean( val.floatValue() == 0?Boolean.FALSE:Boolean.TRUE );
+	                return new PGBoolean(val == 0?Boolean.FALSE:Boolean.TRUE );
 	            
 	            case Types.BIGINT:
-	                return new PGLong(new Long( val.longValue() ));
+	                return new PGLong(val.longValue());
 	            case Types.INTEGER:
-	                return new PGInteger(new Integer( val.intValue() ) );
+	                return new PGInteger(val.intValue());
 	            case Types.SMALLINT:
 	            case Types.TINYINT:
-	                return new PGShort(new Short( val.shortValue() ));
+	                return new PGShort(val.shortValue());
 	            case Types.VARCHAR:
 	            case Types.LONGVARCHAR:                
 	                return new PGString( val.toString() );
 	            case Types.DOUBLE:
 	            case Types.FLOAT:
-	                return( new PGDouble( new Double( val.doubleValue())));
+	                return( new PGDouble(val.doubleValue()));
 	            case Types.REAL:
 	                return new PGFloat( val );
 	            case Types.DECIMAL:

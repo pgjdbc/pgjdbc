@@ -42,9 +42,12 @@ public class UpdateableResultTest extends TestCase
         TestUtil.createTable(con, "updateable", "id int primary key, name text, notselected text, ts timestamp with time zone, intarr int[]", true);
         TestUtil.createTable(con, "second", "id1 int primary key, name1 text");
         TestUtil.createTable(con, "stream", "id int primary key, asi text, chr text, bin bytea");
+        TestUtil.createTable(con, "multicol", "id1 int not null, id2 int not null, val text");
 
-        // put some dummy data into second
         Statement st2 = con.createStatement();
+        // create pk for multicol table
+        st2.execute("ALTER TABLE multicol ADD CONSTRAINT multicol_pk PRIMARY KEY (id1, id2)");
+        // put some dummy data into second
         st2.execute( "insert into second values (1,'anyvalue' )");
         st2.close();
 
@@ -500,4 +503,37 @@ public class UpdateableResultTest extends TestCase
         rs.close();
         stmt.close();
     }
+
+    public void testMultiColumnUpdateWithoutAllColumns() throws Exception {
+        Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+                                           ResultSet.CONCUR_UPDATABLE);
+        ResultSet rs = st.executeQuery( "select id1,val from multicol");
+        try {
+            rs.moveToInsertRow();
+        } catch (SQLException sqle) {
+            // Ensure we're reporting that the RS is not updatable.
+            assertEquals("24000", sqle.getSQLState());
+        }
+    }
+
+    public void testMultiColumnUpdate() throws Exception {
+        Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+                                           ResultSet.CONCUR_UPDATABLE);
+        st.executeUpdate("INSERT INTO multicol (id1,id2,val) VALUES (1,2,'val')");
+
+        ResultSet rs = st.executeQuery("SELECT id1, id2, val FROM multicol");
+        assertTrue(rs.next());
+        assertEquals("val", rs.getString("val"));
+        rs.updateString("val", "newval");
+        rs.updateRow();
+        rs.close();
+
+        rs = st.executeQuery("SELECT id1, id2, val FROM multicol");
+        assertTrue(rs.next());
+        assertEquals("newval", rs.getString("val"));
+        rs.close();
+
+        st.close();
+    }
+        
 }

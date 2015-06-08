@@ -14,10 +14,10 @@ import java.io.InputStream;
 import java.util.List;
 import org.postgresql.core.*;
 
-abstract class AbstractJdbc4ResultSet extends org.postgresql.jdbc3g.AbstractJdbc3gResultSet
+public abstract class AbstractJdbc4ResultSet extends org.postgresql.jdbc3g.AbstractJdbc3gResultSet
 {
-    AbstractJdbc4ResultSet(Query originalQuery, BaseStatement statement, Field[] fields, List tuples, ResultCursor cursor,
-                    int maxRows, int maxFieldSize, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
+    protected AbstractJdbc4ResultSet(Query originalQuery, BaseStatement statement, Field[] fields, List tuples, ResultCursor cursor,
+                                  int maxRows, int maxFieldSize, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
     {
         super(originalQuery, statement, fields, tuples, cursor, maxRows, maxFieldSize, rsType, rsConcurrency, rsHoldability);
     }
@@ -321,6 +321,4 @@ abstract class AbstractJdbc4ResultSet extends org.postgresql.jdbc3g.AbstractJdbc
     {
         return getObject(findColumn(columnLabel), type);
     }
-
 }
-

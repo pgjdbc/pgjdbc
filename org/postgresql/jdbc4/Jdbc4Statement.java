@@ -43,5 +43,4 @@ class Jdbc4Statement extends AbstractJdbc4Statement implements Statement
     {
         return new Jdbc4ParameterMetaData(conn, oids);
     }
-
 }

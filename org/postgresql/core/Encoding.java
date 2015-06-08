@@ -128,11 +128,9 @@ public class Encoding
         String[] candidates = (String[]) encodings.get(databaseEncoding);
         if (candidates != null)
         {
-            for (int i = 0; i < candidates.length; i++)
-            {
-                if (isAvailable(candidates[i]))
-                {
-                    return new Encoding(candidates[i]);
+            for (String candidate : candidates) {
+                if (isAvailable(candidate)) {
+                    return new Encoding(candidate);
                 }
             }
         }

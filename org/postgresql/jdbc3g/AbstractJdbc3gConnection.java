@@ -25,6 +25,4 @@ public abstract class AbstractJdbc3gConnection extends org.postgresql.jdbc3.Abst
             types.addCoreType("uuid", Oid.UUID, java.sql.Types.OTHER, "java.util.UUID", Oid.UUID_ARRAY);
         }
     }
-
 }
-

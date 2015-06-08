@@ -66,7 +66,7 @@ public class BlobInputStream extends InputStream
 
     public BlobInputStream(LargeObject lo, int bsize)
     {
-        this(lo, 1024, -1);
+        this(lo, bsize, -1);
     }
 
     /**
@@ -226,5 +226,4 @@ public class BlobInputStream extends InputStream
         if (lo == null)
             throw new IOException("BlobOutputStream is closed");
     }
-
 }

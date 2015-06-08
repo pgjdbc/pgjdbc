@@ -27,6 +27,7 @@ public class OptionalTestSuite extends TestSuite
         Class.forName("org.postgresql.Driver");
         TestSuite suite = new TestSuite();
         suite.addTestSuite(SimpleDataSourceTest.class);
+        suite.addTestSuite(SimpleDataSourceWithUrlTest.class);
         suite.addTestSuite(ConnectionPoolTest.class);
         suite.addTestSuite(PoolingDataSourceTest.class);
         suite.addTestSuite(CaseOptimiserDataSourceTest.class);

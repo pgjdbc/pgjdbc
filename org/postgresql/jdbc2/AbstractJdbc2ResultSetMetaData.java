@@ -220,19 +220,19 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
         // so we've got to fake that with a JOIN here.
         //
         boolean hasSourceInfo = false;
-        for (int i=0; i<fields.length; i++) {
-            if (fields[i].getTableOid() == 0)
+        for (Field field : fields) {
+            if (field.getTableOid() == 0)
                 continue;
 
             if (hasSourceInfo)
                 sql.append(" UNION ALL ");
 
             sql.append("SELECT ");
-            sql.append(fields[i].getTableOid());
+            sql.append(field.getTableOid());
             if (!hasSourceInfo)
                 sql.append(" AS oid ");
             sql.append(", ");
-            sql.append(fields[i].getPositionInTable());
+            sql.append(field.getPositionInTable());
             if (!hasSourceInfo)
                 sql.append(" AS attnum");
 
@@ -254,13 +254,13 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
             String schemaName = rs.getString(5);
             int nullable = rs.getBoolean(6) ? ResultSetMetaData.columnNoNulls : ResultSetMetaData.columnNullable;
             boolean autoIncrement = rs.getBoolean(7);
-            for (int i=0; i<fields.length; i++) {
-                if (fields[i].getTableOid() == table && fields[i].getPositionInTable() == column) {
-                    fields[i].setColumnName(columnName);
-                    fields[i].setTableName(tableName);
-                    fields[i].setSchemaName(schemaName);
-                    fields[i].setNullable(nullable);
-                    fields[i].setAutoIncrement(autoIncrement);
+            for (Field field : fields) {
+                if (field.getTableOid() == table && field.getPositionInTable() == column) {
+                    field.setColumnName(columnName);
+                    field.setTableName(tableName);
+                    field.setSchemaName(schemaName);
+                    field.setNullable(nullable);
+                    field.setAutoIncrement(autoIncrement);
                 }
             }
         }
@@ -442,7 +442,7 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
     protected Field getField(int columnIndex) throws SQLException
     {
         if (columnIndex < 1 || columnIndex > fields.length)
-            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{new Integer(columnIndex), new Integer(fields.length)}), PSQLState.INVALID_PARAMETER_VALUE );
+            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{columnIndex, fields.length}), PSQLState.INVALID_PARAMETER_VALUE );
         return fields[columnIndex - 1];
     }
 
@@ -496,4 +496,3 @@ public abstract class AbstractJdbc2ResultSetMetaData implements PGResultSetMetaD
         }
     }
 }
-

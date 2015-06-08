@@ -67,27 +67,27 @@ public class TypeInfoCache implements TypeInfo {
     // 5 - conditional minimum server version
     // 6 - conditional minimum JDK build version
     private static final Object types[][] = {
-        {"int2", new Integer(Oid.INT2), new Integer(Types.SMALLINT), "java.lang.Integer", new Integer(Oid.INT2_ARRAY)},
-        {"int4", new Integer(Oid.INT4), new Integer(Types.INTEGER), "java.lang.Integer", new Integer(Oid.INT4_ARRAY)},
-        {"oid", new Integer(Oid.OID), new Integer(Types.BIGINT), "java.lang.Long", new Integer(Oid.OID_ARRAY)},
-        {"int8", new Integer(Oid.INT8), new Integer(Types.BIGINT), "java.lang.Long", new Integer(Oid.INT8_ARRAY)},
-        {"money", new Integer(Oid.MONEY), new Integer(Types.DOUBLE), "java.lang.Double", new Integer(Oid.MONEY_ARRAY)},
-        {"numeric", new Integer(Oid.NUMERIC), new Integer(Types.NUMERIC), "java.math.BigDecimal", new Integer(Oid.NUMERIC_ARRAY)},
-        {"float4", new Integer(Oid.FLOAT4), new Integer(Types.REAL), "java.lang.Float", new Integer(Oid.FLOAT4_ARRAY)},
-        {"float8", new Integer(Oid.FLOAT8), new Integer(Types.DOUBLE), "java.lang.Double", new Integer(Oid.FLOAT8_ARRAY)},
-        {"char", new Integer(Oid.CHAR), new Integer(Types.CHAR), "java.lang.String", new Integer(Oid.CHAR_ARRAY)},
-        {"bpchar", new Integer(Oid.BPCHAR), new Integer(Types.CHAR), "java.lang.String", new Integer(Oid.BPCHAR_ARRAY)},
-        {"varchar", new Integer(Oid.VARCHAR), new Integer(Types.VARCHAR), "java.lang.String", new Integer(Oid.VARCHAR_ARRAY)},
-        {"text", new Integer(Oid.TEXT), new Integer(Types.VARCHAR), "java.lang.String", new Integer(Oid.TEXT_ARRAY)},
-        {"name", new Integer(Oid.NAME), new Integer(Types.VARCHAR), "java.lang.String", new Integer(Oid.NAME_ARRAY)},
-        {"bytea", new Integer(Oid.BYTEA), new Integer(Types.BINARY), "[B", new Integer(Oid.BYTEA_ARRAY)},
-        {"bool", new Integer(Oid.BOOL), new Integer(Types.BIT), "java.lang.Boolean", new Integer(Oid.BOOL_ARRAY)},
-        {"bit", new Integer(Oid.BIT), new Integer(Types.BIT), "java.lang.Boolean", new Integer(Oid.BIT_ARRAY)},
-        {"date", new Integer(Oid.DATE), new Integer(Types.DATE), "java.sql.Date", new Integer(Oid.DATE_ARRAY)},
-        {"time", new Integer(Oid.TIME), new Integer(Types.TIME), "java.sql.Time", new Integer(Oid.TIME_ARRAY)},
-        {"timetz", new Integer(Oid.TIMETZ), new Integer(Types.TIME), "java.sql.Time", new Integer(Oid.TIMETZ_ARRAY)},
-        {"timestamp", new Integer(Oid.TIMESTAMP), new Integer(Types.TIMESTAMP), "java.sql.Timestamp", new Integer(Oid.TIMESTAMP_ARRAY)},
-        {"timestamptz", new Integer(Oid.TIMESTAMPTZ), new Integer(Types.TIMESTAMP), "java.sql.Timestamp", new Integer(Oid.TIMESTAMPTZ_ARRAY)},
+        {"int2", Oid.INT2, Types.SMALLINT, "java.lang.Integer", Oid.INT2_ARRAY},
+        {"int4", Oid.INT4, Types.INTEGER, "java.lang.Integer", Oid.INT4_ARRAY},
+        {"oid", Oid.OID, Types.BIGINT, "java.lang.Long", Oid.OID_ARRAY},
+        {"int8", Oid.INT8, Types.BIGINT, "java.lang.Long", Oid.INT8_ARRAY},
+        {"money", Oid.MONEY, Types.DOUBLE, "java.lang.Double", Oid.MONEY_ARRAY},
+        {"numeric", Oid.NUMERIC, Types.NUMERIC, "java.math.BigDecimal", Oid.NUMERIC_ARRAY},
+        {"float4", Oid.FLOAT4, Types.REAL, "java.lang.Float", Oid.FLOAT4_ARRAY},
+        {"float8", Oid.FLOAT8, Types.DOUBLE, "java.lang.Double", Oid.FLOAT8_ARRAY},
+        {"char", Oid.CHAR, Types.CHAR, "java.lang.String", Oid.CHAR_ARRAY},
+        {"bpchar", Oid.BPCHAR, Types.CHAR, "java.lang.String", Oid.BPCHAR_ARRAY},
+        {"varchar", Oid.VARCHAR, Types.VARCHAR, "java.lang.String", Oid.VARCHAR_ARRAY},
+        {"text", Oid.TEXT, Types.VARCHAR, "java.lang.String", Oid.TEXT_ARRAY},
+        {"name", Oid.NAME, Types.VARCHAR, "java.lang.String", Oid.NAME_ARRAY},
+        {"bytea", Oid.BYTEA, Types.BINARY, "[B", Oid.BYTEA_ARRAY},
+        {"bool", Oid.BOOL, Types.BIT, "java.lang.Boolean", Oid.BOOL_ARRAY},
+        {"bit", Oid.BIT, Types.BIT, "java.lang.Boolean", Oid.BIT_ARRAY},
+        {"date", Oid.DATE, Types.DATE, "java.sql.Date", Oid.DATE_ARRAY},
+        {"time", Oid.TIME, Types.TIME, "java.sql.Time", Oid.TIME_ARRAY},
+        {"timetz", Oid.TIMETZ, Types.TIME, "java.sql.Time", Oid.TIMETZ_ARRAY},
+        {"timestamp", Oid.TIMESTAMP, Types.TIMESTAMP, "java.sql.Timestamp", Oid.TIMESTAMP_ARRAY},
+        {"timestamptz", Oid.TIMESTAMPTZ, Types.TIMESTAMP, "java.sql.Timestamp", Oid.TIMESTAMPTZ_ARRAY},
     };
 
     /**
@@ -122,12 +122,12 @@ public class TypeInfoCache implements TypeInfo {
         // from getPGTypeNamesWithSQLTypes()
         _pgNameToSQLType = Collections.synchronizedMap(new HashMap());
 
-        for (int i=0; i<types.length; i++) {
-            String pgTypeName = (String)types[i][0];
-            Integer oid = (Integer)types[i][1];
-            Integer sqlType = (Integer)types[i][2];
-            String javaClass = (String)types[i][3];
-            Integer arrayOid = (Integer)types[i][4];
+        for (Object[] type : types) {
+            String pgTypeName = (String) type[0];
+            Integer oid = (Integer) type[1];
+            Integer sqlType = (Integer) type[2];
+            String javaClass = (String) type[3];
+            Integer arrayOid = (Integer) type[4];
 
             addCoreType(pgTypeName, oid, sqlType, javaClass, arrayOid);
         }
@@ -147,12 +147,12 @@ public class TypeInfoCache implements TypeInfo {
         // to a comma.  In a stock install the only exception is
         // the box datatype and it's not a JDBC core type.
         //
-        Character delim = new Character(',');
+        Character delim = ',';
         _arrayOidToDelimiter.put(oid, delim);
 
         String pgArrayTypeName = "_" + pgTypeName;
         _pgNameToJavaClass.put(pgArrayTypeName, "java.sql.Array");
-        _pgNameToSQLType.put(pgArrayTypeName, new Integer(Types.ARRAY));
+        _pgNameToSQLType.put(pgArrayTypeName, Types.ARRAY);
     }
 
 
@@ -179,7 +179,7 @@ public class TypeInfoCache implements TypeInfo {
     {
         Integer i = (Integer)_pgNameToSQLType.get(pgTypeName);
         if (i != null)
-            return i.intValue();
+            return i;
 
         if (_getTypeInfoStatement == null) {
             // There's no great way of telling what's an array type.
@@ -226,32 +226,32 @@ public class TypeInfoCache implements TypeInfo {
             boolean isArray = rs.getBoolean(1);
             String typtype = rs.getString(2);
             if (isArray) {
-                type = new Integer(Types.ARRAY);
+                type = Types.ARRAY;
             } else if ("c".equals(typtype)) {
-                type = new Integer(Types.STRUCT);
+                type = Types.STRUCT;
             } else if ("d".equals(typtype)) {
-                type = new Integer(Types.DISTINCT);
+                type = Types.DISTINCT;
             } else if ("e".equals(typtype)) {
-                type = new Integer(Types.VARCHAR);
+                type = Types.VARCHAR;
             }
         }
 
         if (type == null) {
-             type = new Integer(Types.OTHER);
+             type = Types.OTHER;
         }
         rs.close();
 
         if ( pgTypeName != null ){            
             _pgNameToSQLType.put(pgTypeName, type);
         }
-        return type.intValue();
+        return type;
     }
 
     public synchronized int getPGType(String pgTypeName) throws SQLException
     {
         Integer oid = (Integer)_pgNameToOid.get(pgTypeName);
         if (oid != null)
-            return oid.intValue();
+            return oid;
 
         if (_getOidStatement == null) {
             String sql;
@@ -285,16 +285,16 @@ public class TypeInfoCache implements TypeInfo {
         if (!((BaseStatement)_getOidStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN))
             throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
 
-        oid = new Integer(Oid.UNSPECIFIED);
+        oid = Oid.UNSPECIFIED;
         ResultSet rs = _getOidStatement.getResultSet();
         if (rs.next()) {
-            oid = new Integer((int)rs.getLong(1));
+            oid = (int) rs.getLong(1);
             _oidToPgName.put(oid, pgTypeName);
         }
         _pgNameToOid.put(pgTypeName, oid);
         rs.close();
 
-        return oid.intValue();
+        return oid;
     }
 
     public synchronized String getPGType(int oid) throws SQLException
@@ -302,7 +302,7 @@ public class TypeInfoCache implements TypeInfo {
         if (oid == Oid.UNSPECIFIED)
             return null;
 
-        String pgTypeName = (String)_oidToPgName.get(new Integer(oid));
+        String pgTypeName = (String)_oidToPgName.get(oid);
         if (pgTypeName != null)
             return pgTypeName;
 
@@ -326,8 +326,8 @@ public class TypeInfoCache implements TypeInfo {
         ResultSet rs = _getNameStatement.getResultSet();
         if (rs.next()) {
             pgTypeName = rs.getString(1);
-            _pgNameToOid.put(pgTypeName, new Integer(oid));
-            _oidToPgName.put(new Integer(oid), pgTypeName);
+            _pgNameToOid.put(pgTypeName, oid);
+            _oidToPgName.put(oid, pgTypeName);
         }
         rs.close();
 
@@ -349,10 +349,10 @@ public class TypeInfoCache implements TypeInfo {
      */
     protected synchronized int convertArrayToBaseOid(int oid)
     {
-        Integer i = (Integer)_pgArrayToPgType.get(new Integer(oid));
+        Integer i = (Integer)_pgArrayToPgType.get(oid);
         if (i == null)
             return oid;
-        return i.intValue();
+        return i;
     }
 
     public synchronized char getArrayDelimiter(int oid) throws SQLException
@@ -360,9 +360,9 @@ public class TypeInfoCache implements TypeInfo {
         if (oid == Oid.UNSPECIFIED)
             return ',';
 
-        Character delim = (Character) _arrayOidToDelimiter.get(new Integer(oid));
+        Character delim = (Character) _arrayOidToDelimiter.get(oid);
         if (delim != null)
-            return delim.charValue();
+            return delim;
 
         if (_getArrayDelimiterStatement == null) {
             String sql;
@@ -385,13 +385,13 @@ public class TypeInfoCache implements TypeInfo {
             throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
 
         String s = rs.getString(1);
-        delim = new Character(s.charAt(0));
+        delim = s.charAt(0);
 
-        _arrayOidToDelimiter.put(new Integer(oid), delim);
+        _arrayOidToDelimiter.put(oid, delim);
 
         rs.close();
 
-        return delim.charValue();
+        return delim;
     }
 
     public synchronized int getPGArrayElement (int oid) throws SQLException
@@ -399,10 +399,10 @@ public class TypeInfoCache implements TypeInfo {
         if (oid == Oid.UNSPECIFIED)
             return Oid.UNSPECIFIED;
 
-        Integer pgType = (Integer) _pgArrayToPgType.get(new Integer(oid));
+        Integer pgType = (Integer) _pgArrayToPgType.get(oid);
 
         if (pgType != null)
-            return pgType.intValue();
+            return pgType;
 
         if (_getArrayElementOidStatement == null) {
             String sql;
@@ -424,14 +424,14 @@ public class TypeInfoCache implements TypeInfo {
         if (!rs.next())
             throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
 
-        pgType = new Integer((int)rs.getLong(1));
-        _pgArrayToPgType.put(new Integer(oid), pgType);
+        pgType = (int) rs.getLong(1);
+        _pgArrayToPgType.put(oid, pgType);
         _pgNameToOid.put(rs.getString(2), pgType);
         _oidToPgName.put(pgType, rs.getString(2));
 
         rs.close();
 
-        return pgType.intValue();
+        return pgType;
     }
 
     public synchronized Class getPGobject(String type)
@@ -723,5 +723,4 @@ public class TypeInfoCache implements TypeInfo {
         }
         return true;
     }
-
 }

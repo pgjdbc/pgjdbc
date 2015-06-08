@@ -16,6 +16,4 @@ public class Jdbc4ParameterMetaData extends AbstractJdbc4ParameterMetaData imple
     {
         super(connection, oids);
     }
-
 }
-

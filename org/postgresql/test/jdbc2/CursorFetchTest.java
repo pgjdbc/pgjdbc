@@ -429,4 +429,117 @@ public class CursorFetchTest extends TestCase
         assertEquals(3, count);
     }
 
+    // isLast() may change the results of other positioning methods as it has to
+    // buffer some more results. This tests avoid using it so as to test robustness
+    // other positioning methods
+    public void testRowResultPositioningWithoutIsLast() throws Exception
+    {
+        String msg;
+
+        int rowCount = 4;
+        createRows(rowCount);
+
+        int[] sizes = { 1, 2, 3, 4, 5 };
+        for (int i = 0; i < sizes.length; ++i)
+        {
+            Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+            stmt.setFetchSize(sizes[i]);
+            
+            ResultSet rs = stmt.executeQuery("select * from test_fetch order by value");
+            msg = "before-first row positioning error with fetchsize=" + sizes[i];
+            assertTrue(msg, rs.isBeforeFirst());
+            assertTrue(msg, !rs.isAfterLast());
+            assertTrue(msg, !rs.isFirst());
+
+            for (int j = 0; j < rowCount; ++j)
+            {
+                msg = "row " + j + " positioning error with fetchsize=" + sizes[i];
+                assertTrue(msg, rs.next());
+                assertEquals(msg, j, rs.getInt(1));
+                
+                assertTrue(msg, !rs.isBeforeFirst());
+                assertTrue(msg, !rs.isAfterLast());
+                if (j == 0)
+                    assertTrue(msg, rs.isFirst());
+                else
+                    assertTrue(msg, !rs.isFirst());
+            }
+
+            msg = "after-last row positioning error with fetchsize=" + sizes[i];
+            assertTrue(msg, !rs.next());
+
+            assertTrue(msg, !rs.isBeforeFirst());
+            assertTrue(msg, rs.isAfterLast());
+            assertTrue(msg, !rs.isFirst());
+            assertTrue(msg, !rs.isLast());
+            
+            rs.close();
+            stmt.close();
+        }
+    }
+
+
+    // Empty resultsets require all row positioning methods to return false
+    public void testNoRowResultPositioning() throws Exception
+    {
+        String msg;
+        
+        int[] sizes = { 0, 1, 50, 100 };
+        for (int i = 0; i < sizes.length; ++i)
+        {
+            Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+            stmt.setFetchSize(sizes[i]);
+
+            ResultSet rs = stmt.executeQuery("select * from test_fetch order by value");
+            msg = "no row (empty resultset) positioning error with fetchsize=" + sizes[i];
+            assertTrue(msg, !rs.isBeforeFirst());
+            assertTrue(msg, !rs.isAfterLast());
+            assertTrue(msg, !rs.isFirst());
+            assertTrue(msg, !rs.isLast());
+
+            assertTrue(msg, !rs.next());
+            assertTrue(msg, !rs.isBeforeFirst());
+            assertTrue(msg, !rs.isAfterLast());
+            assertTrue(msg, !rs.isFirst());
+            assertTrue(msg, !rs.isLast());
+
+            rs.close();
+            stmt.close();
+        }
+    }
+
+    // Empty resultsets require all row positioning methods to return false
+    public void testScrollableNoRowResultPositioning() throws Exception
+    {
+        String msg;
+        
+        int[] sizes = { 0, 1, 50, 100 };
+        for (int i = 0; i < sizes.length; ++i)
+        {
+            Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+            stmt.setFetchSize(sizes[i]);
+
+            ResultSet rs = stmt.executeQuery("select * from test_fetch order by value");
+            msg = "no row (empty resultset) positioning error with fetchsize=" + sizes[i];
+            assertTrue(msg, !rs.isBeforeFirst());
+            assertTrue(msg, !rs.isAfterLast());
+            assertTrue(msg, !rs.isFirst());
+            assertTrue(msg, !rs.isLast());
+
+            assertTrue(msg, !rs.first());
+            assertTrue(msg, !rs.isBeforeFirst());
+            assertTrue(msg, !rs.isAfterLast());
+            assertTrue(msg, !rs.isFirst());
+            assertTrue(msg, !rs.isLast());
+
+            assertTrue(msg, !rs.next());
+            assertTrue(msg, !rs.isBeforeFirst());
+            assertTrue(msg, !rs.isAfterLast());
+            assertTrue(msg, !rs.isFirst());
+            assertTrue(msg, !rs.isLast());
+
+            rs.close();
+            stmt.close();
+        }
+    }
 }

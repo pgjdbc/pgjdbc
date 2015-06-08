@@ -5,6 +5,8 @@
 
 This is a simple readme describing how to compile and use the Postgresql JDBC driver.
 
+ - [Commit Message Guidelines](#commit)
+
 ## Info
 
 This isn't a guide on how to use JDBC - for that refer to [Oracle's website](http://www.oracle.com/technetwork/java/javase/jdbc/) and the [JDBC tutorial](http://docs.oracle.com/javase/tutorial/jdbc/).
@@ -152,8 +154,7 @@ Remember to test proposed PgJDBC patches when running against older PostgreSQL
 versions where possible, not just against the PostgreSQL you use yourself.
 
 You also need to test your changes with older JDKs. PgJDBC must support JDK5
-("Java 1.5") and newer, which means you can't use annotations, auto-boxing, for
-(:), and numerous other features added since JDK 5. Code that's JDBC4 specific
+("Java 1.5") and newer. Code that's JDBC4 specific
 may use JDK6 features, and code that's JDBC4.1 specific may use JDK7 features.
 Common code and JDBC3 code needs to stick to Java 1.5.
 
@@ -229,6 +230,56 @@ with Eclipse then do dist builds with Ant.
 ### Other IDEs
 
 Please submit build instructions for your preferred IDE.
+
+## <a name="commit"></a> Git Commit Guidelines
+
+We have very precise rules over how our git commit messages can be formatted.  This leads to **more
+readable messages** that are easy to follow when looking through the **project history**.  But also,
+we use the git commit messages to **generate the change log**.
+
+### Commit Message Format
+Each commit message consists of a **header**, a **body** and a **footer**.  The header has a special
+format that includes a **type**, and a **subject**:
+
+```
+<type>: <subject>
+<BLANK LINE>
+<body>
+<BLANK LINE>
+<footer>
+```
+
+Any line of the commit message cannot be longer 100 characters! This allows the message to be easier
+to read on github as well as in various git tools.
+
+### Type
+Must be one of the following:
+
+* **feat**: A new feature
+* **fix**: A bug fix
+* **docs**: Documentation only changes
+* **style**: Changes that do not affect the meaning of the code (white-space, formatting, missing
+  semi-colons, etc)
+* **refactor**: A code change that neither fixes a bug or adds a feature
+* **perf**: A code change that improves performance
+* **test**: Adding missing tests
+* **chore**: Changes to the build process or auxiliary tools and libraries such as documentation
+  generation
+
+### Subject
+The subject contains succinct description of the change:
+
+* use the imperative, present tense: "change" not "changed" nor "changes"
+* don't capitalize first letter
+* no dot (.) at the end
+
+###Body
+Just as in the **subject**, use the imperative, present tense: "change" not "changed" nor "changes"
+The body should include the motivation for the change and contrast this with previous behavior.
+
+###Footer
+The footer should contain any information about **Breaking Changes** and is also the place to
+reference GitHub issues that this commit **Closes**.
 
 
 ### Sponsors

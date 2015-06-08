@@ -111,10 +111,48 @@ public interface PGConnection
     public int getPrepareThreshold();
 
     /**
+     * Set the default fetch size for statements created from this connection
+     *
+     * @param fetchSize new default fetch size
+     * @throws SQLException if specified negative <code>fetchSize</code> parameter
+     *
+     * @see Statement#setFetchSize(int)
+     *
+     */
+    public void setDefaultFetchSize(int fetchSize) throws SQLException;
+
+
+    /**
+     * Get the default fetch size for statements created from this connection
+     *
+     * @return current state for default fetch size
+     * @see PGProperty#DEFAULT_ROW_FETCH_SIZE
+     * @see Statement#getFetchSize()
+     */
+    public int getDefaultFetchSize();
+
+    /**
      * Return the process ID (PID) of the backend server process handling this connection.
      * 
      * @return PID of backend server process. 
      */
     public int getBackendPID();
-}
 
+    /**
+     * Return the given string suitably quoted to be used as an identifier in an SQL statement string.
+     * Quotes are added only if necessary (i.e., if the string contains non-identifier characters or would be case-folded).
+     * Embedded quotes are properly doubled.
+     *
+     * @return the escaped identifier
+     */
+    public String escapeIdentifier(String identifier) throws SQLException;
+
+    /**
+     * Return the given string suitably quoted to be used as a string literal in an SQL statement string.
+     * Embedded single-quotes and backslashes are properly doubled.
+     * Note that quote_literal returns null on null input.
+     *
+     * @return the quoted literal
+     */
+    public String escapeLiteral(String literal) throws SQLException;
+}
