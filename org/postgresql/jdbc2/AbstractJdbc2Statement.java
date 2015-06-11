@@ -22,6 +22,7 @@ import java.util.TimeZone;
 import java.util.Calendar;
 
 import org.postgresql.Driver;
+import org.postgresql.core.v3.QueryExecutorImpl;
 import org.postgresql.largeobject.*;
 import org.postgresql.core.*;
 import org.postgresql.core.types.*;
@@ -863,22 +864,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     }
 
     /**
-     * This finalizer ensures that statements that have allocated server-side
-     * resources free them when they become unreferenced.
+     * Statement finalizer is not required as "statement" at the database side
+     * is managed by a {@link java.lang.ref.PhantomReference} in {@link QueryExecutorImpl#processDeadParsedQueries()}.
      */
-    protected void finalize() throws Throwable {
-        try
-        {
-            close();
-        }
-        catch (SQLException e)
-        {
-        }
-        finally
-        {
-            super.finalize();
-        }
-    }
 
     /*
      * Filter the SQL string of Java SQL Escape clauses.
