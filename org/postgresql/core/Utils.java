@@ -55,16 +55,11 @@ public class Utils {
      * @return the UTF-8 representation of <code>str</code>
      */
     public static byte[] encodeUTF8(String str) {
-        // Previously we just used str.getBytes("UTF-8"), but when
-        // the JVM is using more than one encoding the lookup cost
-        // makes that a loser to the below (even in the single thread case).
-        // When multiple threads are doing Charset lookups, they all get
-        // blocked and must wait, severely dropping throughput.
-        //
-        ByteBuffer buf = utf8Charset.encode(CharBuffer.wrap(str));
-        byte b[] = new byte[buf.limit()];
-        buf.get(b, 0, buf.limit());
-        return b;
+        // See org.postgresql.benchmark.encoding.UTF8Encoding#string_getBytes
+        // for performance measurements.
+        // In OracleJDK 6u65, 7u55, and 8u40 String.getBytes(Charset) is
+        // 3 times faster than other JDK approaches.
+        return str.getBytes(utf8Charset);
     }
 
     /**
