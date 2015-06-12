@@ -22,30 +22,21 @@ import java.lang.ref.PhantomReference;
  */
 class SimpleQuery implements V3Query {
 
-    SimpleQuery(String[] fragments, ProtocolConnectionImpl protoConnection)
+    SimpleQuery(NativeQuery query, ProtocolConnectionImpl protoConnection)
     {
-        this.fragments = unmarkDoubleQuestion(fragments, protoConnection);
+        this.nativeQuery = query;
         this.protoConnection = protoConnection;
     }
 
     public ParameterList createParameterList() {
-        if (fragments.length == 1)
+        if (nativeQuery.bindPositions.length == 0)
             return NO_PARAMETERS;
 
-        return new SimpleParameterList(fragments.length - 1, protoConnection);
+        return new SimpleParameterList(nativeQuery.bindPositions.length, protoConnection);
     }
 
     public String toString(ParameterList parameters) {
-        StringBuilder sbuf = new StringBuilder(fragments[0]);
-        for (int i = 1; i < fragments.length; ++i)
-        {
-            if (parameters == null)
-                sbuf.append('?');
-            else
-                sbuf.append(parameters.toString(i));
-            sbuf.append(fragments[i]);
-        }
-        return sbuf.toString();
+        return nativeQuery.toString(parameters);
     }
 
     public String toString() {
@@ -107,24 +98,8 @@ class SimpleQuery implements V3Query {
     // Implementation guts
     //
 
-    String[] getFragments() {
-        return fragments;
-    }
-
-    // unmark '??' in fragments back to '?'
-    String[] unmarkDoubleQuestion(String[] fragments, ProtocolConnectionImpl protoConnection)
-    {
-        if (fragments != null && protoConnection != null)
-        {
-            boolean standardConformingStrings = protoConnection.getStandardConformingStrings();
-            for(int i=0; i< fragments.length; i++)
-                if (fragments[i] != null)
-                {
-                    fragments[i] = Parser.unmarkDoubleQuestion(fragments[i], standardConformingStrings);
-                }
-        }
-
-        return fragments;
+    String getNativeSql() {
+        return nativeQuery.nativeSql;
     }
 
     void setStatementName(String statementName) {
@@ -213,7 +188,7 @@ class SimpleQuery implements V3Query {
 
     public boolean isEmpty()
     {
-        return fragments.length == 1 && "".equals(fragments[0]);
+        return getNativeSql().isEmpty();
     }
 
     void setCleanupRef(PhantomReference cleanupRef) {
@@ -240,7 +215,8 @@ class SimpleQuery implements V3Query {
         cachedMaxResultRowSize = null;
     }
 
-    private final String[] fragments;
+    private final NativeQuery nativeQuery;
+
     private final ProtocolConnectionImpl protoConnection;
     private String statementName;
     private byte[] encodedStatementName;

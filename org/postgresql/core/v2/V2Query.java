@@ -21,90 +21,28 @@ class V2Query implements Query {
         useEStringSyntax = pconn.getServerVersionNum() >= 80100;
         boolean stdStrings = pconn.getStandardConformingStrings();
 
-        if (!withParameters)
-        {
-            fragments = new String[] { query };
-            return ;
-        }
+        List<NativeQuery> queries = Parser.parseJdbcSql(query, stdStrings, withParameters, false);
+        assert queries.size() <= 1 : "Exactly one query expected in V2. " + queries.size() + " queries given.";
 
-        // Parse query and find parameter placeholders.
-
-        List v = new ArrayList();
-        int lastParmEnd = 0;
-
-        char []aChars = query.toCharArray();
-
-        for (int i = 0; i < aChars.length; ++i)
-        {
-            switch (aChars[i])
-            {
-            case '\'': // single-quotes
-                i = Parser.parseSingleQuotes(aChars, i, stdStrings);
-                break;
-
-            case '"': // double-quotes
-                i = Parser.parseDoubleQuotes(aChars, i);
-                break;
-
-            case '-': // possibly -- style comment
-                i = Parser.parseLineComment(aChars, i);
-                break;
-
-            case '/': // possibly /* */ style comment
-                i = Parser.parseBlockComment(aChars, i);
-                break;
-            
-            case '$': // possibly dollar quote start
-                i = Parser.parseDollarQuotes(aChars, i);
-                break;
-
-            case '?':
-                if (i+1 < aChars.length && aChars[i+1] == '?') /* let '??' pass */
-                    i = i+1;
-                else
-                {
-                    v.add(query.substring (lastParmEnd, i));
-                    lastParmEnd = i + 1;
-                }
-                break;
-
-            default:
-                break;
-            }
-        }
-
-        v.add(query.substring (lastParmEnd, query.length()));
-
-        fragments = new String[v.size()];
-        for (int i = 0 ; i < fragments.length; ++i)
-            fragments[i] = Parser.unmarkDoubleQuestion((String)v.get(i), stdStrings);
+        nativeQuery = queries.isEmpty() ? new NativeQuery("") : queries.get(0);
     }
 
     public ParameterList createParameterList() {
-        if (fragments.length == 1)
+        if (nativeQuery.bindPositions.length == 0)
             return NO_PARAMETERS;
 
-        return new SimpleParameterList(fragments.length - 1, useEStringSyntax);
+        return new SimpleParameterList(nativeQuery.bindPositions.length, useEStringSyntax);
     }
 
     public String toString(ParameterList parameters) {
-        StringBuilder sbuf = new StringBuilder(fragments[0]);
-        for (int i = 1; i < fragments.length; ++i)
-        {
-            if (parameters == null)
-                sbuf.append("?");
-            else
-                sbuf.append(parameters.toString(i));
-            sbuf.append(fragments[i]);
-        }
-        return sbuf.toString();
+        return nativeQuery.toString(parameters);
     }
 
     public void close() {
     }
 
-    String[] getFragments() {
-        return fragments;
+    NativeQuery getNativeQuery() {
+        return nativeQuery;
     }
 
     public boolean isStatementDescribed() {
@@ -113,12 +51,12 @@ class V2Query implements Query {
 
     public boolean isEmpty()
     {
-        return fragments.length == 1 && "".equals(fragments[0]);
+        return nativeQuery.nativeSql.isEmpty();
     }
 
     private static final ParameterList NO_PARAMETERS = new SimpleParameterList(0, false);
 
-    private final String[] fragments;      // Query fragments, length == # of parameters + 1
+    private final NativeQuery nativeQuery;
     
     private final boolean useEStringSyntax; // whether escaped string syntax should be used
 }

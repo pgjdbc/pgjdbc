@@ -7,12 +7,138 @@
 */
 package org.postgresql.core;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 /**
  * Basic query parser infrastructure.
  * 
  * @author Michael Paesold (mpaesold@gmx.at)
  */
 public class Parser {
+    private final static int[] NO_BINDS = new int[0];
+
+    /**
+     * Parses JDBC query into PostgreSQL's native format. Several queries might be given if separated by semicolon.
+     * @param query jdbc query to parse
+     * @param standardConformingStrings whether to allow backslashes to be used as escape characters in single quote literals
+     * @param withParameters whether to replace ?, ? with $1, $2, etc
+     * @param splitStatements whether to split statements by semicolon
+     * @return list of native queries
+     */
+    public static List<NativeQuery> parseJdbcSql(String query, boolean standardConformingStrings, boolean withParameters, boolean splitStatements)
+    {
+        if (!withParameters && !splitStatements)
+            return Collections.singletonList(new NativeQuery(query));
+
+        int fragmentStart = 0;
+        int inParen = 0;
+
+        char[] aChars = query.toCharArray();
+
+        StringBuilder nativeSql = new StringBuilder(query.length() + 10);
+        List<Integer> bindPositions = null; // initialized on demand
+        List<NativeQuery> nativeQueries = null;
+
+        for (int i = 0; i < aChars.length; ++i)
+        {
+            switch (aChars[i])
+            {
+            case '\'': // single-quotes
+                i = Parser.parseSingleQuotes(aChars, i, standardConformingStrings);
+                break;
+
+            case '"': // double-quotes
+                i = Parser.parseDoubleQuotes(aChars, i);
+                break;
+
+            case '-': // possibly -- style comment
+                i = Parser.parseLineComment(aChars, i);
+                break;
+
+            case '/': // possibly /* */ style comment
+                i = Parser.parseBlockComment(aChars, i);
+                break;
+
+            case '$': // possibly dollar quote start
+                i = Parser.parseDollarQuotes(aChars, i);
+                break;
+
+            case '(':
+                inParen++;
+                break;
+
+            case ')':
+                inParen--;
+                break;
+
+            case '?':
+                nativeSql.append(aChars, fragmentStart, i - fragmentStart);
+                if (i + 1 < aChars.length && aChars[i + 1] == '?') /* replace ?? with ? */
+                {
+                    nativeSql.append('?');
+                    i++; // make sure the coming ? is not treated as a bind
+                } else
+                {
+                    if (bindPositions == null)
+                        bindPositions = new ArrayList<Integer>();
+                    bindPositions.add(nativeSql.length());
+                    int bindIndex = bindPositions.size();
+                    nativeSql.append(NativeQuery.bindName(bindIndex));
+                }
+                fragmentStart = i + 1;
+                break;
+
+            case ';':
+                if (inParen == 0 && splitStatements)
+                {
+                    nativeSql.append(aChars, fragmentStart, i - fragmentStart);
+                    fragmentStart = i + 1;
+                    if (nativeSql.length() > 0)
+                    {
+                        if (nativeQueries == null)
+                            nativeQueries = new ArrayList<NativeQuery>();
+
+                        nativeQueries.add(new NativeQuery(nativeSql.toString(), toIntList(bindPositions)));
+                    }
+                    // Prepare for next query
+                    if (bindPositions != null)
+                        bindPositions.clear();
+                    nativeSql.setLength(0);
+                }
+                break;
+
+            default:
+                break;
+            }
+        }
+
+        if (fragmentStart < aChars.length)
+            nativeSql.append(aChars, fragmentStart, aChars.length - fragmentStart);
+
+        if (nativeSql.length() == 0)
+            return nativeQueries != null ? nativeQueries : Collections.<NativeQuery>emptyList();
+
+        NativeQuery lastQuery = new NativeQuery(nativeSql.toString(), toIntList(bindPositions));
+
+        if (nativeQueries == null)
+            return Collections.singletonList(lastQuery);
+
+        nativeQueries.add(lastQuery);
+        return nativeQueries;
+    }
+
+    private static int[] toIntList(List<Integer> list) {
+        if (list == null || list.isEmpty())
+            return NO_BINDS;
+        int[] res = new int[list.size()];
+        for (int i = 0; i < list.size(); i++)
+        {
+            res[i] = list.get(i); // must not be null
+        }
+        return res;
+    }
 
     /**
      * Find the end of the single-quoted string starting at the given offset.
@@ -182,69 +308,6 @@ public class Parser {
             }
         }
         return offset;
-    }
-
-    /**
-     * unmark '??' in query back to '?'
-     * @param query
-     * @param standardConformingStrings
-     * @return
-     */
-    public static String unmarkDoubleQuestion(String query, boolean standardConformingStrings)
-    {
-        if (query == null) return query;
-        if (!query.contains("??")) return query;
-
-        char[] aChars = query.toCharArray();
-        StringBuilder buf = new StringBuilder(aChars.length);
-        for(int i=0, j=-1; i< aChars.length; i++)
-        {
-            switch (aChars[i])
-            {
-                case '\'': // single-quotes
-                    j = Parser.parseSingleQuotes(aChars, i, standardConformingStrings);
-                    buf.append(aChars, i, j-i+1);
-                    i = j;
-                    break;
-
-                case '"': // double-quotes
-                    j = Parser.parseDoubleQuotes(aChars, i);
-                    buf.append(aChars, i, j-i+1);
-                    i = j;
-                    break;
-
-                case '-': // possibly -- style comment
-                    j = Parser.parseLineComment(aChars, i);
-                    buf.append(aChars, i, j-i+1);
-                    i = j;
-                    break;
-
-                case '/': // possibly /* */ style comment
-                    j = Parser.parseBlockComment(aChars, i);
-                    buf.append(aChars, i, j-i+1);
-                    i = j;
-                    break;
-
-                case '$': // possibly dollar quote start
-                    j = Parser.parseDollarQuotes(aChars, i);
-                    buf.append(aChars, i, j-i+1);
-                    i = j;
-                    break;
-
-                case '?': // unescape '??' back to '?'
-                    if (i+1 < aChars.length && aChars[i+1] == '?') {
-                        buf.append("?");
-                        i = i+1;
-                    } else buf.append("?");
-
-                    break;
-
-                default:
-                    buf.append(aChars[i]);
-            }
-        }
-
-        return buf.toString();
     }
 
     /**
