@@ -934,4 +934,26 @@ public abstract class AbstractJdbc2Array
     public byte[] toBytes() {
         return fieldBytes;
     }
+
+    public int hashCode() {
+        if (fieldBytes != null)
+            return fieldBytes.hashCode();
+
+        return fieldString.hashCode();
+    }
+
+    public boolean equals(Object other) {
+        if (!(other instanceof AbstractJdbc2Array))
+            return false;
+
+        if (other == this)
+            return true;
+
+        AbstractJdbc2Array otherArray = (AbstractJdbc2Array) other;
+
+        if (fieldBytes != null)
+            return fieldBytes == otherArray.fieldBytes;
+
+        return fieldString.equals(otherArray.fieldString);
+    }
 }
