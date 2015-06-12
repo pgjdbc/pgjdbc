@@ -15,6 +15,7 @@ import java.math.*;
 import java.nio.charset.Charset;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Map;
 import java.util.TimerTask;
@@ -28,6 +29,7 @@ import org.postgresql.core.types.*;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.HStoreConverter;
 import org.postgresql.util.PGBinaryObject;
+import org.postgresql.util.PGTimestamp;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PGobject;
@@ -39,12 +41,8 @@ import org.postgresql.util.GT;
  */
 public abstract class AbstractJdbc2Statement implements BaseStatement
 {
-    /**
-     * Default state for use or not binary transfers. Can use only for testing purposes
-     */
-    private static final boolean DEFAULT_FORCE_BINARY_TRANSFERS = Boolean.getBoolean("org.postgresql.forceBinary");
     // only for testing purposes. even single shot statements will use binary transfers
-    private boolean forceBinaryTransfers = DEFAULT_FORCE_BINARY_TRANSFERS;
+    private boolean forceBinaryTransfers = Boolean.getBoolean("org.postgresql.forceBinary");
 
     protected ArrayList batchStatements = null;
     protected ArrayList batchParameters = null;
@@ -468,12 +466,12 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                     {
                         // return it as a float
                         if ( callResult[j] != null)
-                            callResult[j] = ((Double) callResult[j]).floatValue();
+                            callResult[j] = new Float(((Double)callResult[j]).floatValue());
                     }
                     else
                     {    
 	                    throw new PSQLException (GT.tr("A CallableStatement function was executed and the out parameter {0} was of type {1} however type {2} was registered.",
-	                            new Object[]{i + 1,
+	                            new Object[]{new Integer(i+1),
 	                                "java.sql.Types=" + columnType, "java.sql.Types=" + functionReturnType[j] }),
 	                      PSQLState.DATA_TYPE_MISMATCH);
                     }
@@ -1498,7 +1496,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             return ;
         }
         if (length < 0)
-            throw new PSQLException(GT.tr("Invalid stream length {0}.", length),
+            throw new PSQLException(GT.tr("Invalid stream length {0}.", new Integer(length)),
                                     PSQLState.INVALID_PARAMETER_VALUE);
 
 
@@ -1623,7 +1621,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         }
 
         if (length < 0)
-            throw new PSQLException(GT.tr("Invalid stream length {0}.", length),
+            throw new PSQLException(GT.tr("Invalid stream length {0}.", new Integer(length)),
                                     PSQLState.INVALID_PARAMETER_VALUE);
 
         if (connection.haveMinimumCompatibleVersion("7.2"))
@@ -1877,7 +1875,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                     bindString(parameterIndex, in.toString(), Oid.UNSPECIFIED);
 	            break;
 	        default:
-	            throw new PSQLException(GT.tr("Unsupported Types value: {0}", targetSqlType), PSQLState.INVALID_PARAMETER_TYPE);
+	            throw new PSQLException(GT.tr("Unsupported Types value: {0}", new Integer(targetSqlType)), PSQLState.INVALID_PARAMETER_TYPE);
         }
     }
 
@@ -1899,15 +1897,15 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         else if (x instanceof BigDecimal)
             setBigDecimal(parameterIndex, (BigDecimal)x);
         else if (x instanceof Short)
-            setShort(parameterIndex, (Short) x);
+            setShort(parameterIndex, ((Short)x).shortValue());
         else if (x instanceof Integer)
-            setInt(parameterIndex, (Integer) x);
+            setInt(parameterIndex, ((Integer)x).intValue());
         else if (x instanceof Long)
-            setLong(parameterIndex, (Long) x);
+            setLong(parameterIndex, ((Long)x).longValue());
         else if (x instanceof Float)
-            setFloat(parameterIndex, (Float) x);
+            setFloat(parameterIndex, ((Float)x).floatValue());
         else if (x instanceof Double)
-            setDouble(parameterIndex, (Double) x);
+            setDouble(parameterIndex, ((Double)x).doubleValue());
         else if (x instanceof byte[])
             setBytes(parameterIndex, (byte[])x);
         else if (x instanceof java.sql.Date)
@@ -1917,9 +1915,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         else if (x instanceof Timestamp)
             setTimestamp(parameterIndex, (Timestamp)x);
         else if (x instanceof Boolean)
-            setBoolean(parameterIndex, (Boolean) x);
+            setBoolean(parameterIndex, ((Boolean)x).booleanValue());
         else if (x instanceof Byte)
-            setByte(parameterIndex, (Byte) x);
+            setByte(parameterIndex, ((Byte)x).byteValue());
         else if (x instanceof Blob)
             setBlob(parameterIndex, (Blob)x);
         else if (x instanceof Clob)
@@ -2069,7 +2067,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (callResult[parameterIndex-1] == null)
             return false;
         
-        return (Boolean) callResult[parameterIndex - 1];
+        return ((Boolean)callResult[parameterIndex-1]).booleanValue ();
     }
 
     /*
@@ -2123,7 +2121,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (callResult[parameterIndex-1] == null)
             return 0;
         
-        return (Integer) callResult[parameterIndex - 1];
+        return ((Integer)callResult[parameterIndex-1]).intValue ();
     }
 
     /*
@@ -2140,7 +2138,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (callResult[parameterIndex-1] == null)
             return 0;
         
-        return (Long) callResult[parameterIndex - 1];
+        return ((Long)callResult[parameterIndex-1]).longValue ();
     }
 
     /*
@@ -2157,7 +2155,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (callResult[parameterIndex-1] == null)
             return 0;
 
-        return (Float) callResult[parameterIndex - 1];
+        return ((Float)callResult[parameterIndex-1]).floatValue ();
     }
 
     /*
@@ -2174,7 +2172,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (callResult[parameterIndex-1] == null)
             return 0;
         
-        return (Double) callResult[parameterIndex - 1];
+        return ((Double)callResult[parameterIndex-1]).doubleValue ();
     }
 
     /*
@@ -2529,7 +2527,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         }
 
         if (syntaxError)
-            throw new PSQLException (GT.tr("Malformed function or procedure escape syntax at offset {0}.", i),
+            throw new PSQLException (GT.tr("Malformed function or procedure escape syntax at offset {0}.", new Integer(i)),
                                      PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
 
         if (connection.haveMinimumServerVersion("8.1") && ((AbstractJdbc2Connection)connection).getProtocolVersion() == 3)
@@ -2764,7 +2762,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                     queryString = queries[resultIndex].toString(parameterLists[resultIndex]);
 
                 batchException = new BatchUpdateException(GT.tr("Batch entry {0} {1} was aborted.  Call getNextException to see the cause.",
-                                 new Object[]{resultIndex,
+                                 new Object[]{ new Integer(resultIndex),
                                                queryString}),
                                  newError.getSQLState(),
                                  successCounts);
@@ -2834,7 +2832,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                     queryString = queries[resultIndex].toString(parameterLists[resultIndex]);
 
                 batchException = new BatchUpdateException(GT.tr("Batch entry {0} {1} was aborted.  Call getNextException to see the cause.",
-                                 new Object[]{resultIndex,
+                                 new Object[]{ new Integer(resultIndex),
                                                queryString}),
                                  newError.getSQLState(),
                                  successCounts);
@@ -2877,17 +2875,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (wantsGeneratedKeysAlways) {
             /*
              * This batch will return generated keys, tell the executor to
-             * expect result rows. We also force a Describe later so we know
-             * the size of the results to expect.
-             *
-             * If the parameter type(s) change between batch entries and the
-             * default binary-mode changes we might get mixed binary and text
-             * in a single result set column, which we cannot handle. To prevent
-             * this, disable binary transfer mode in batches that return generated
-             * keys. See GitHub issue #267
+             * expect result rows. We force a Describe later, too.
              */
-            flags = QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS
-                    | QueryExecutor.QUERY_NO_BINARY_TRANSFER;
+            flags = QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS;
         } else {
             // If a batch hasn't specified that it wants generated keys, using the appropriate
             // Connection.createStatement(...) interfaces, disallow any result set.
@@ -2909,12 +2899,6 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             // we'll be able to queue up before we risk a deadlock.
             // (see v3.QueryExecutorImpl's MAX_BUFFERED_RECV_BYTES)
             preDescribe = wantsGeneratedKeysAlways && !queries[0].isStatementDescribed();
-            /*
-             * It's also necessary to force a Describe on the first execution of the
-             * new statement, even though we already described it, to work around
-             * bug #267.
-             */
-            flags |= QueryExecutor.QUERY_FORCE_DESCRIBE_PORTAL;
         }
 
         if (connection.getAutoCommit())
@@ -3003,7 +2987,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             fetchdirection = direction;
             break;
         default:
-            throw new PSQLException(GT.tr("Invalid fetch direction constant: {0}.", direction),
+            throw new PSQLException(GT.tr("Invalid fetch direction constant: {0}.", new Integer(direction)),
                                     PSQLState.INVALID_PARAMETER_VALUE);
         }
     }
@@ -3176,7 +3160,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         }
 
         if (length < 0)
-            throw new PSQLException(GT.tr("Invalid stream length {0}.", length),
+            throw new PSQLException(GT.tr("Invalid stream length {0}.", new Integer(length)),
                                     PSQLState.INVALID_PARAMETER_VALUE);
 
         if (connection.haveMinimumCompatibleVersion("7.2"))
@@ -3365,6 +3349,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (cal != null)
             cal = (Calendar)cal.clone();
 
+        int oid = Oid.UNSPECIFIED;
+
         // Use UNSPECIFIED as a compromise to get both TIMESTAMP and TIMESTAMPTZ working.
         // This is because you get this in a +1300 timezone:
         // 
@@ -3395,7 +3381,17 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         // we're actually dealing with, UNSPECIFIED seems the lesser evil, even if it
         // does give more scope for type-mismatch errors being silently hidden.
 
-        bindString(i, connection.getTimestampUtils().toString(cal, t), Oid.UNSPECIFIED); // Let the server infer the right type.
+        // If a PGTimestamp is used, we can define the OID explicitly.
+        if (t instanceof PGTimestamp) {
+            PGTimestamp pgTimestamp = (PGTimestamp)t;
+            if (pgTimestamp.getTimeZone() == null) {
+        	oid = Oid.TIMESTAMP;
+            } else {
+        	oid = Oid.TIMESTAMPTZ;
+            }
+        }
+
+        bindString(i, connection.getTimestampUtils().toString(cal, t), oid); // Let the server infer the right type.
     }
 
     // ** JDBC 2 Extensions for CallableStatement**
