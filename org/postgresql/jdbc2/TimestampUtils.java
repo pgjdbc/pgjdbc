@@ -8,6 +8,7 @@
 package org.postgresql.jdbc2;
 
 import java.sql.*;
+
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
@@ -17,7 +18,6 @@ import org.postgresql.PGStatement;
 import org.postgresql.core.Oid;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
-import org.postgresql.util.PGTimestamp;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLException;
 
@@ -58,7 +58,7 @@ public class TimestampUtils {
         if (calCache != null && calCacheZone == rawOffset)
             return calCache;
                 
-        StringBuffer zoneID = new StringBuffer("GMT");
+        StringBuilder zoneID = new StringBuilder("GMT");
         zoneID.append(sign < 0 ? '-' : '+');
         if (hr < 10) zoneID.append('0');
         zoneID.append(hr);
@@ -485,43 +485,25 @@ public class TimestampUtils {
     }
 
     public synchronized String toString(Calendar cal, Timestamp x) {
-
-	if (cal == null)
+        if (cal == null)
             cal = defaultCal;
 
-	TimeZone oldTimeZone = null;
-
-        try {
-            // If the Timestamp is a PGTimestamp with a time zone, use its time zone.
-            if (x instanceof PGTimestamp && ((PGTimestamp) x).getTimeZone() != null) {
-                PGTimestamp pgTimestamp = (PGTimestamp) x;
-                oldTimeZone = cal.getTimeZone();
-                cal.setTimeZone(pgTimestamp.getTimeZone());
-            }
-
-            cal.setTime(x);
-            sbuf.setLength(0);
-
-            if (x.getTime() == PGStatement.DATE_POSITIVE_INFINITY) {
-                sbuf.append("infinity");
-            }
-            else if (x.getTime() == PGStatement.DATE_NEGATIVE_INFINITY) {
-                sbuf.append("-infinity");
-            } else {
-                appendDate(sbuf, cal);
-                sbuf.append(' ');
-                appendTime(sbuf, cal, x.getNanos());
-                appendTimeZone(sbuf, cal);
-                appendEra(sbuf, cal);
-            }
-
-            showString("timestamp", cal, x, sbuf.toString());
-        } finally {
-            if (oldTimeZone != null) {
-                cal.setTimeZone(oldTimeZone);
-            }
+        cal.setTime(x);
+        sbuf.setLength(0);
+        
+        if (x.getTime() == PGStatement.DATE_POSITIVE_INFINITY) {
+            sbuf.append("infinity");
+        } else if (x.getTime() == PGStatement.DATE_NEGATIVE_INFINITY) {
+            sbuf.append("-infinity");
+        } else {
+            appendDate(sbuf, cal);
+            sbuf.append(' ');
+            appendTime(sbuf, cal, x.getNanos());
+            appendTimeZone(sbuf, cal);
+            appendEra(sbuf, cal);
         }
-
+        
+        showString("timestamp", cal, x, sbuf.toString());        
         return sbuf.toString();
     }
 
