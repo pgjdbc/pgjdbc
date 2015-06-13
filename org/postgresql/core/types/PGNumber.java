@@ -22,10 +22,15 @@ public class PGNumber implements PGType
 {
     private Number val;
     
-    protected PGNumber( Number x )
+    private PGNumber( Number x )
     {
         val = x;
     }
+    
+    static final PGNumber valueOf(final Number value) {
+        return new PGNumber(value);
+    }
+    
     public static PGType castToServerType( Number val, int targetType ) throws PSQLException
     {
         try
@@ -33,28 +38,28 @@ public class PGNumber implements PGType
             switch ( targetType )
             {
 	            case Types.BIT:
-	                return new PGBoolean( val.doubleValue() == 0?Boolean.FALSE:Boolean.TRUE );
+	                return PGBoolean.valueOf(val.doubleValue() != 0d);
 	            
 	            case Types.BIGINT:
-	                return new PGLong(val.longValue());
+	                return PGLong.valueOf(val.longValue());
 	            case Types.INTEGER:
-	                return new PGInteger(val.intValue());
+	                return PGInteger.valueOf(val.intValue());
 	            case Types.TINYINT:
 	            case Types.SMALLINT:
-	                return new PGShort(val.shortValue());
+	                return PGShort.valueOf(val.shortValue());
 	            case Types.VARCHAR:
 	            case Types.LONGVARCHAR:                
-	                return new PGString( val.toString() );
+	                return PGString.valueOf( val.toString() );
 	            case Types.DOUBLE:
 	            case Types.FLOAT:
-	                return( new PGDouble(val.doubleValue()));
+	                return PGDouble.valueOf(val.doubleValue());
 	            case Types.REAL:
-	                return (new PGFloat(val.floatValue()));
+	                return PGFloat.valueOf(val.floatValue());
 	            case Types.DECIMAL:
 	            case Types.NUMERIC:
-	                return new PGNumber( val );
+	                return PGNumber.valueOf( val );
 	            default:
-	                return new PGUnknown(val);                
+	                return PGUnknown.valueOf(val);                
 	            }
         }
         catch( Exception ex )

@@ -14,5 +14,6 @@ package org.postgresql.core.types;
  */
 public interface PGType
 {
+    @Override
     public String toString();
 }

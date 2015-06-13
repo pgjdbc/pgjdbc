@@ -20,14 +20,22 @@ import org.postgresql.util.PSQLState;
  */
 public class PGBigDecimal implements PGType
 {
+    static final PGBigDecimal ZERO = new PGBigDecimal(BigDecimal.ZERO);
+    
+    static final PGBigDecimal ONE = new PGBigDecimal(BigDecimal.ONE);
+    
     private BigDecimal val;
     
-    protected PGBigDecimal( BigDecimal x )
+    private PGBigDecimal( BigDecimal x )
     {
         // ensure the value is a valid numeric value to avoid
         // sql injection attacks
         val = new BigDecimal(x.toString());
         
+    }
+    
+    static final PGBigDecimal valueOf(final BigDecimal value) {
+        return BigDecimal.ZERO.equals(value) ? PGBigDecimal.ZERO : BigDecimal.ONE.equals(value) ? PGBigDecimal.ONE : new PGBigDecimal(value);
     }
 
     public static PGType castToServerType( BigDecimal val, int targetType ) throws PSQLException
@@ -37,25 +45,25 @@ public class PGBigDecimal implements PGType
             switch ( targetType )
             {
 	            case Types.BIT:
-	                return new PGBoolean( val.doubleValue() == 0?Boolean.FALSE:Boolean.TRUE );            
+	                return PGBoolean.valueOf(val.doubleValue() != 0d);            
 	            case Types.BIGINT:
-	                return new PGLong(val.longValue());
+	                return PGLong.valueOf(val.longValue());
 	            case Types.INTEGER:
-	                return new PGInteger(val.intValue()) ;
+	                return PGInteger.valueOf(val.intValue()) ;
 	            case Types.SMALLINT:
 	            case Types.TINYINT:
-	                return new PGShort(val.shortValue());
+	                return PGShort.valueOf(val.shortValue());
 	            case Types.VARCHAR:
 	            case Types.LONGVARCHAR:
-	                return new PGString( val.toString() );
+	                return PGString.valueOf( val.toString() );
 	            case Types.DECIMAL:
 	            case Types.NUMERIC:
 	            case Types.DOUBLE:
 	            case Types.FLOAT:
 	            case Types.REAL:
-	                return new PGBigDecimal( val );
+	                return PGBigDecimal.valueOf( val );
 	            default:
-	                return new PGUnknown(val);            
+	                return PGUnknown.valueOf(val);            
             }
         }
         catch( Exception ex )

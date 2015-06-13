@@ -21,13 +21,17 @@ import org.postgresql.util.PSQLState;
  */
 public class PGByte implements PGType
 {
-
     private Byte val;
     
-    public PGByte( Byte x )
+    private PGByte( Byte x )
     {
         val = x;
     }
+    
+    static final PGByte valueOf(final Byte value) {
+        return new PGByte(value);
+    }
+    
     /* (non-Javadoc)
      * @see org.postgresql.types.PGType#castToServerType(int)
      */
@@ -38,24 +42,24 @@ public class PGByte implements PGType
             switch ( targetType )
             {
 	            case Types.BIT:
-	                return new PGBoolean(val == 0?Boolean.FALSE:Boolean.TRUE );
+	                return PGBoolean.valueOf(val != (byte) 0);
 	            
 	            case Types.SMALLINT:
 	            case Types.TINYINT:
-	                return new PGByte( val );
+	                return PGByte.valueOf( val );
 	            case Types.REAL:
-	                return new PGFloat(val.floatValue());
+	                return PGFloat.valueOf(val.floatValue());
 	            case Types.DOUBLE:
 	            case Types.FLOAT:
-	                return new PGDouble(val.doubleValue());
+	                return PGDouble.valueOf(val.doubleValue());
 	            case Types.NUMERIC:
 	            case Types.DECIMAL:
-	                return new PGBigDecimal( new BigDecimal(val.toString()) );
+	                return PGBigDecimal.valueOf( new BigDecimal(val.toString()) );
 	            case Types.VARCHAR:
 	            case Types.LONGVARCHAR:                
-	                return new PGString ( val.toString() );
+	                return PGString.valueOf ( val.toString() );
 	            default:
-	                return new PGUnknown(val);
+	                return PGUnknown.valueOf(val);
             }
         }
         catch( Exception ex )
