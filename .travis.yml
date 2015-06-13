@@ -5,7 +5,7 @@ before_script:
   - psql -U postgres -c "create user test with password 'test';"
   - psql -c 'create database test owner test;' -U postgres
 
-script: ant test
+script: mvn clean package
 
 matrix:
   include:
