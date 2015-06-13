@@ -33,28 +33,19 @@ public class Jdbc4Connection extends AbstractJdbc4Connection implements java.sql
     public java.sql.Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException
     {
         checkClosed();
-        Jdbc4Statement s = new Jdbc4Statement(this, resultSetType, resultSetConcurrency, resultSetHoldability);
-        s.setPrepareThreshold(getPrepareThreshold());
-        s.setFetchSize(getDefaultFetchSize());
-        return s;
+        return new Jdbc4Statement(this, resultSetType, resultSetConcurrency, resultSetHoldability);
     }
 
     public java.sql.PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException
     {
         checkClosed();
-        Jdbc4PreparedStatement s = new Jdbc4PreparedStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
-        s.setPrepareThreshold(getPrepareThreshold());
-        s.setFetchSize(getDefaultFetchSize());
-        return s;
+        return new Jdbc4PreparedStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
     }
 
     public java.sql.CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException
     {
         checkClosed();
-        Jdbc4CallableStatement s = new Jdbc4CallableStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
-        s.setPrepareThreshold(getPrepareThreshold());
-        s.setFetchSize(getDefaultFetchSize());
-        return s;
+        return new Jdbc4CallableStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
     }
 
     public java.sql.DatabaseMetaData getMetaData() throws SQLException

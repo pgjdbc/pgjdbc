@@ -154,6 +154,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         forceBinaryTransfers |= c.getForceBinary();
         resultsettype = rsType;
         concurrency = rsConcurrency;
+        setFetchSize(c.getDefaultFetchSize());
+        setPrepareThreshold(c.getPrepareThreshold());
     }
 
     public AbstractJdbc2Statement(AbstractJdbc2Connection connection, String sql, boolean isCallable, int rsType, int rsConcurrency) throws SQLException
@@ -176,6 +178,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
         resultsettype = rsType;
         concurrency = rsConcurrency;
+        setFetchSize(connection.getDefaultFetchSize());
+        setPrepareThreshold(connection.getPrepareThreshold());
     }
 
     public abstract ResultSet createResultSet(Query originalQuery, Field[] fields, List tuples, ResultCursor cursor)

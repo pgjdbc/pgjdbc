@@ -17,16 +17,14 @@ import org.postgresql.jdbc4.AbstractJdbc4Statement;
 public abstract class AbstractJdbc42Statement extends AbstractJdbc4Statement
 {
 
-    protected AbstractJdbc42Statement(AbstractJdbc4Connection c, int rsType, int rsConcurrency, int rsHoldability, int prepareThreshold) throws SQLException
+    protected AbstractJdbc42Statement(AbstractJdbc4Connection c, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
     {
         super(c, rsType, rsConcurrency, rsHoldability);
-        setPrepareThreshold(prepareThreshold);
     }
 
-    protected AbstractJdbc42Statement(AbstractJdbc42Connection connection, String sql, boolean isCallable, int rsType, int rsConcurrency, int rsHoldability, int prepareThreshold) throws SQLException
+    protected AbstractJdbc42Statement(AbstractJdbc42Connection connection, String sql, boolean isCallable, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
     {
         super(connection, sql, isCallable, rsType, rsConcurrency, rsHoldability);
-        setPrepareThreshold(prepareThreshold);
     }
 
     public long getLargeUpdateCount() throws SQLException
