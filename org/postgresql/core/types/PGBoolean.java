@@ -18,14 +18,23 @@ import org.postgresql.util.PSQLState;
  * TODO To change the template for this generated type comment go to
  * Window - Preferences - Java - Code Style - Code Templates
  */
-public class PGBoolean implements PGType 
+public class PGBoolean implements PGType
 {
+    static final PGBoolean TRUE = new PGBoolean(Boolean.TRUE);
+
+    static final PGBoolean FALSE = new PGBoolean(Boolean.FALSE);
+
     private Boolean val;
-    
-    public PGBoolean(Boolean x)
+
+    private PGBoolean(Boolean x)
     {
         val = x;
     }
+
+    static final PGBoolean valueOf(final Boolean value) {
+        return Boolean.FALSE.equals(value) ? PGBoolean.FALSE : Boolean.TRUE.equals(value) ? PGBoolean.TRUE : new PGBoolean(value);
+    }
+
     public static PGType castToServerType( Boolean val, int targetType ) throws PSQLException
     {
         try
@@ -33,28 +42,28 @@ public class PGBoolean implements PGType
         switch ( targetType )
         {
             case Types.BIGINT:
-                return new PGLong((long) (val == true ? 1 : 0));
+                return val == true ? PGLong.ONE : PGLong.ZERO;
             case Types.INTEGER:
-                return new PGInteger(val == true ? 1 : 0);
+                return val == true ? PGInteger.ONE : PGInteger.ZERO;
             case Types.SMALLINT:
             case Types.TINYINT:
-                return new PGShort(val == true ? (short) 1 : (short) 0);
+                return val == true ? PGShort.ONE : PGShort.ZERO;
             case Types.VARCHAR:
-            case Types.LONGVARCHAR:                
-                return new PGString(val ==true?"true":"false" );
+            case Types.LONGVARCHAR:
+                return val == true ? PGString.TRUE : PGString.FALSE;
             case Types.DOUBLE:
             case Types.FLOAT:
-            		return new PGDouble((double) (val == true ? 1 : 0));
+            		return val == true ? PGDouble.ONE : PGDouble.ZERO;
             case Types.REAL:
-        		return new PGFloat((float) (val == true ? 1 : 0));
+        		return val == true ? PGFloat.ONE : PGFloat.ZERO;
             case Types.NUMERIC:
             case Types.DECIMAL:
-                return new PGBigDecimal( new java.math.BigDecimal(val ==true?1:0));
-            
+                return val == true ? PGBigDecimal.ONE : PGBigDecimal.ZERO;
+
             case Types.BIT:
-                return new PGBoolean( val );
+                return PGBoolean.valueOf(val);
             default:
-                return new PGUnknown( val );
+                return PGUnknown.valueOf( val );
         }
         }
         catch(Exception ex)
@@ -62,9 +71,10 @@ public class PGBoolean implements PGType
             throw new PSQLException(GT.tr("Cannot convert an instance of {0} to type {1}", new Object[]{val.getClass().getName(),"Types.OTHER"}), PSQLState.INVALID_PARAMETER_TYPE, ex);
         }
     }
+    @Override
     public String toString()
     {
         return val ==true?"true":"false";
     }
-    
+
 }

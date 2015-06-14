@@ -21,13 +21,22 @@ import org.postgresql.util.PSQLState;
  */
 public class PGFloat implements PGType
 {
+    static final PGFloat ZERO = new PGFloat(0f);
+
+    static final PGFloat ONE = new PGFloat(1f);
+
     private Float val;
-    
-    protected PGFloat( Float x )
+
+    private PGFloat( Float x )
     {
         val = x;
     }
-        
+
+    static final PGFloat valueOf(final Float value) {
+        final float v = value; // Prevent double auto-unboxing
+        return v == 0f ? PGFloat.ZERO : v == 1f ? PGFloat.ONE : new PGFloat(value);
+    }
+
     public static PGType castToServerType( Float val, int targetType ) throws PSQLException
     {
         try
@@ -35,28 +44,28 @@ public class PGFloat implements PGType
             switch ( targetType )
             {
 	            case Types.BIT:
-	                return new PGBoolean(val == 0?Boolean.FALSE:Boolean.TRUE );
-	            
+	                return PGBoolean.valueOf(val != 0f);
+
 	            case Types.BIGINT:
-	                return new PGLong(val.longValue());
+	                return PGLong.valueOf(val.longValue());
 	            case Types.INTEGER:
-	                return new PGInteger(val.intValue());
+	                return PGInteger.valueOf(val.intValue());
 	            case Types.SMALLINT:
 	            case Types.TINYINT:
-	                return new PGShort(val.shortValue());
+	                return PGShort.valueOf(val.shortValue());
 	            case Types.VARCHAR:
-	            case Types.LONGVARCHAR:                
-	                return new PGString( val.toString() );
+	            case Types.LONGVARCHAR:
+	                return PGString.valueOf( val.toString() );
 	            case Types.DOUBLE:
 	            case Types.FLOAT:
-	                return( new PGDouble(val.doubleValue()));
+	                return PGDouble.valueOf(val.doubleValue());
 	            case Types.REAL:
-	                return new PGFloat( val );
+	                return PGFloat.valueOf( val );
 	            case Types.DECIMAL:
 	            case Types.NUMERIC:
-	                return new PGBigDecimal( new BigDecimal( val.toString()));
+	                return PGBigDecimal.valueOf( new BigDecimal( val.toString()));
 	            default:
-	                return new PGUnknown(val);            
+	                return PGUnknown.valueOf(val);
             }
         }
         catch( Exception ex)
@@ -64,6 +73,7 @@ public class PGFloat implements PGType
             throw new PSQLException(GT.tr("Cannot convert an instance of {0} to type {1}", new Object[]{val.getClass().getName(),"Types.OTHER"}), PSQLState.INVALID_PARAMETER_TYPE, ex);
         }
     }
+    @Override
     public String toString()
     {
         return val.toString();

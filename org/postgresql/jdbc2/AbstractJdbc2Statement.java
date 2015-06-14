@@ -1684,7 +1684,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         // since all of the above are instances of Number make sure this is after them
         if ( x instanceof Number ) return PGNumber.castToServerType((Number)x, targetType );
         if ( x instanceof Boolean) return PGBoolean.castToServerType((Boolean)x, targetType );
-        return new PGUnknown(x);
+        return PGUnknown.valueOf(x);
         
     }
     // Helper method for setting parameters to PGobject subclasses.

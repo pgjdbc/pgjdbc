@@ -19,14 +19,23 @@ import org.postgresql.util.PSQLState;
  * TODO To change the template for this generated type comment go to
  * Window - Preferences - Java - Code Style - Code Templates
  */
-public class PGString implements PGType
+class PGString implements PGType
 {
+    static final PGString FALSE = new PGString("false");
 
-    String val;
-    protected PGString( String x )
+    static final PGString TRUE = new PGString("true");
+
+    private String val;
+
+    private PGString( String x )
     {
         val = x;
     }
+
+    static final PGString valueOf(final String value) {
+        return new PGString(value);
+    }
+
     /* (non-Javadoc)
      * @see org.postgresql.types.PGType#castToServerType(int)
      */
@@ -39,33 +48,33 @@ public class PGString implements PGType
 	            case Types.BIT:
 	            {
 	                if ( val.equalsIgnoreCase("true") || val.equalsIgnoreCase("1") || val.equalsIgnoreCase("t"))
-	                    return new PGBoolean( Boolean.TRUE );
+	                    return PGBoolean.TRUE;
 	                if ( val.equalsIgnoreCase("false") || val.equalsIgnoreCase("0") || val.equalsIgnoreCase("f"))
-	                    return new PGBoolean( Boolean.FALSE);
+	                    return PGBoolean.FALSE;
 	            }
-	            
-	            return new PGBoolean( Boolean.FALSE);
-	            
+
+	            return PGBoolean.FALSE;
+
 	            case Types.VARCHAR:
-	            case Types.LONGVARCHAR:                
-	                return new PGString(val);
+	            case Types.LONGVARCHAR:
+	                return PGString.valueOf(val);
 	            case Types.BIGINT:
-	                return new PGLong(Long.parseLong(val));
+	                return PGLong.valueOf(Long.parseLong(val));
 	            case Types.INTEGER:
-	                return new PGInteger(Integer.parseInt(val));
+	                return PGInteger.valueOf(Integer.parseInt(val));
 	            case Types.TINYINT:
-	                return new PGShort(Short.parseShort(val));
+	                return PGShort.valueOf(Short.parseShort(val));
 	            case Types.FLOAT:
 	            case Types.DOUBLE:
-	                return new PGDouble(Double.parseDouble(val));
+	                return PGDouble.valueOf(Double.parseDouble(val));
 	            case Types.REAL:
-	                return new PGFloat(Float.parseFloat(val));
+	                return PGFloat.valueOf(Float.parseFloat(val));
 	            case Types.NUMERIC:
 	            case Types.DECIMAL:
-	                return new PGBigDecimal( new BigDecimal( val));
+	                return PGBigDecimal.valueOf( new BigDecimal( val));
 	            default:
-	                return new PGUnknown( val );
-	            
+	                return PGUnknown.valueOf( val );
+
 	            }
         }
         catch( Exception ex )
@@ -73,6 +82,7 @@ public class PGString implements PGType
             throw new PSQLException(GT.tr("Cannot convert an instance of {0} to type {1}", new Object[]{val.getClass().getName(),"Types.OTHER"}), PSQLState.INVALID_PARAMETER_TYPE, ex);
         }
     }
+    @Override
     public String toString()
     {
         return val;

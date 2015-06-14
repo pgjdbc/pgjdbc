@@ -18,14 +18,20 @@ public class PGUnknown implements PGType
     /* (non-Javadoc)
      * @see org.postgresql.types.PGType#castToServerType(int)
      */
-    Object val;
-    public PGUnknown( Object x)
+    private Object val;
+
+    private PGUnknown( Object x)
     {
         val = x;
     }
+
+    public static final PGUnknown valueOf(final Object value) {
+        return new PGUnknown(value);
+    }
+
     public static PGType castToServerType(Object val, int targetType) 
     {
-        return new PGUnknown( val );
+        return PGUnknown.valueOf( val );
     }
     public String toString()
     {
