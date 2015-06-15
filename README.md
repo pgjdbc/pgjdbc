@@ -127,7 +127,7 @@ For more information see the [the PgJDBC driver documentation](http://jdbc.postg
 
 ## Bug reports, patches and development
 
-PgJDBC development is carried out on the [PgJDBC mailing list](http://jdbc.postgresql.org/lists.html) and on [GitHub](https://github.com/pgjdbc/pgjdbc).
+PgJDBC development is carried out on the [PgJDBC mailing list](https://jdbc.postgresql.org/community/mailinglist.html) and on [GitHub](https://github.com/pgjdbc/pgjdbc).
 
 ### Bug reports
 
