@@ -737,6 +737,39 @@ openssl pkcs8 -topk8 -in client.key -out client.pk8 -outform DER -v1 PBE-SHA1-3D
        </listitem>
       </varlistentry>
 	  
+      <varlistentry>
+       <term><varname>preparedStatementCacheQueries</varname> = <type>int</type></term>
+       <listitem>
+        <para>
+         Determine the number of queries that are cached in each connection.
+         The default is 256, meaning if you use more than 256 different queries
+         in <function>prepareStatement()</function> calls, the least recently used ones
+         will be discarded. The cache allows application to benefit from <xref linkend="server-prepare" />
+         (see <varname>prepareThreshold</varname>) even if the prepared statement is
+         closed after each execution. The value of 0 disables the cache.
+         <note>
+          <para>
+           Each connection has its own statement cache.
+          </para>
+         </note>
+        </para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
+       <term><varname>preparedStatementCacheSizeMiB</varname> = <type>int</type></term>
+       <listitem>
+        <para>
+         Determine the maximum size (in mebibytes) of the prepared queries cache
+         (see <varname>preparedStatementCacheQueries</varname>).
+         The default is 5, meaning if you happen to cache more than 5 MiB of queries
+         the least recently used ones will be discarded.
+         The main aim of this setting is to prevent <classname>OutOfMemoryError</classname>.
+         The value of 0 disables the cache.
+        </para>
+       </listitem>
+      </varlistentry>
+
 	  <varlistentry>
        <term><varname>defaultRowFetchSize</varname> = <type>int</type></term>
        <listitem>

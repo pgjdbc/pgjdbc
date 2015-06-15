@@ -47,8 +47,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     // only for testing purposes. even single shot statements will use binary transfers
     private boolean forceBinaryTransfers = DEFAULT_FORCE_BINARY_TRANSFERS;
 
-    protected ArrayList batchStatements = null;
-    protected ArrayList batchParameters = null;
+    protected ArrayList<Query> batchStatements = null;
+    protected ArrayList<ParameterList> batchParameters = null;
     protected final int resultsettype;   // the resultset type to return (ResultSet.TYPE_xxx)
     protected final int concurrency;   // is it updateable or not?     (ResultSet.CONCUR_xxx)
     protected int fetchdirection = ResultSet.FETCH_FORWARD;  // fetch direction hint (currently ignored)
@@ -120,12 +120,11 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     private static final short ESC_OUTERJOIN = 5;
     private static final short ESC_ESCAPECHAR = 7;
     
-    protected final Query preparedQuery;              // Query fragments for prepared statement.
+    protected final CachedQuery preparedQuery;              // Query fragments for prepared statement.
     protected final ParameterList preparedParameters; // Parameter values for prepared statement.
     protected Query lastSimpleQuery;
 
     protected int m_prepareThreshold;                // Reuse threshold to enable use of PREPARE
-    protected int m_useCount = 0;                    // Number of times this statement has been used
 
     //Used by the callablestatement style methods
     private boolean isFunction;
@@ -161,12 +160,15 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         this.connection = connection;
         this.lastSimpleQuery = null;
 
-        String parsed_sql = replaceProcessing(sql);
+        CachedQuery cachedQuery = connection.borrowQuery(sql, isCallable);
         if (isCallable)
-            parsed_sql = modifyJdbcCall(parsed_sql);
+        {
+            this.isFunction = cachedQuery.isFunction;
+            this.outParmBeforeFunc = cachedQuery.outParmBeforeFunc;
+        }
 
-        this.preparedQuery = connection.getQueryExecutor().createParameterizedQuery(parsed_sql);
-        this.preparedParameters = preparedQuery.createParameterList();
+        this.preparedQuery = cachedQuery;
+        this.preparedParameters = preparedQuery.query.createParameterList();
 
         int inParamCount =  preparedParameters.getInParameterCount() + 1;
         this.testReturn = new int[inParamCount];
@@ -406,7 +408,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public boolean executeWithFlags(String p_sql, int flags) throws SQLException
     {
         checkClosed();
-        p_sql = replaceProcessing(p_sql);
+        p_sql = replaceProcessing(p_sql, replaceProcessingEnabled, connection.getStandardConformingStrings());
         Query simpleQuery = connection.getQueryExecutor().createSimpleQuery(p_sql);
         execute(simpleQuery, null, QueryExecutor.QUERY_ONESHOT | flags);
         this.lastSimpleQuery = simpleQuery;
@@ -422,7 +424,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     {
         checkClosed();
    
-        execute(preparedQuery, preparedParameters, flags);
+        execute(preparedQuery.query, preparedParameters, flags);
 
         // If we are executing and there are out parameters 
         // callable statement function set the return data
@@ -538,10 +540,10 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
         // Only use named statements after we hit the threshold. Note that only
         // named statements can be transferred in binary format.
-        if (preparedQuery != null)
+        if (preparedQuery != null && preparedQuery.query == queryToExecute)
         {
-            ++m_useCount; // We used this statement once more.
-            if ((m_prepareThreshold == 0 || m_useCount < m_prepareThreshold) && !forceBinaryTransfers)
+            preparedQuery.increaseExecuteCount();
+            if ((m_prepareThreshold == 0 || preparedQuery.getExecuteCount() < m_prepareThreshold) && !forceBinaryTransfers)
                 flags |= QueryExecutor.QUERY_ONESHOT;
         }
 
@@ -858,7 +860,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         closeForNextExecution();
 
         if (preparedQuery != null)
-            preparedQuery.close();
+            ((AbstractJdbc2Connection) connection).releaseQuery(preparedQuery);
 
         isClosed = true;
     }
@@ -879,7 +881,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
      * So, something like "select * from x where d={d '2001-10-09'}" would
      * return "select * from x where d= '2001-10-09'".
      */
-    protected String replaceProcessing(String p_sql) throws SQLException
+    static String replaceProcessing(String p_sql, boolean replaceProcessingEnabled, boolean standardConformingStrings) throws SQLException
     {
         if (replaceProcessingEnabled)
         {
@@ -889,7 +891,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             StringBuilder newsql = new StringBuilder(len);
             int i=0;
             while (i<len){
-                i=parseSql(p_sql,i,newsql,false,connection.getStandardConformingStrings());
+                i = parseSql(p_sql, i, newsql, false, standardConformingStrings);
                 // We need to loop here in case we encounter invalid
                 // SQL, consider: SELECT a FROM t WHERE (1 > 0)) ORDER BY a
                 // We can't ending replacing after the extra closing paren
@@ -2280,7 +2282,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (preparedQuery == null)
             return super.toString();
 
-        return preparedQuery.toString(preparedParameters);
+        return preparedQuery.query.toString(preparedParameters);
     }
 
 
@@ -2314,249 +2316,6 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (adjustIndex)
             paramIndex--;
         preparedParameters.setStringParameter( paramIndex, s, oid);
-    }
-
-    /**
-     * this method will turn a string of the form
-     * { [? =] call <some_function> [(?, [?,..])] }
-     * into the PostgreSQL format which is
-     * select <some_function> (?, [?, ...]) as result
-     * or select * from <some_function> (?, [?, ...]) as result (7.3)
-     */
-    private String modifyJdbcCall(String p_sql) throws SQLException
-    {
-        checkClosed();
-
-        // Mini-parser for JDBC function-call syntax (only)
-        // TODO: Merge with escape processing (and parameter parsing?)
-        // so we only parse each query once.
-
-        isFunction = false;
-
-        boolean stdStrings = connection.getStandardConformingStrings();
-
-        int len = p_sql.length();
-        int state = 1;
-        boolean inQuotes = false, inEscape = false;
-        outParmBeforeFunc = false;
-        int startIndex = -1, endIndex = -1;
-        boolean syntaxError = false;
-        int i = 0;
-
-        while (i < len && !syntaxError)
-        {
-            char ch = p_sql.charAt(i);
-
-            switch (state)
-            {
-            case 1:  // Looking for { at start of query
-                if (ch == '{')
-                {
-                    ++i;
-                    ++state;
-                }
-                else if (Character.isWhitespace(ch))
-                {
-                    ++i;
-                }
-                else
-                {
-                    // Not function-call syntax. Skip the rest of the string.
-                    i = len;
-                }
-                break;
-
-            case 2:  // After {, looking for ? or =, skipping whitespace
-                if (ch == '?')
-                {
-                    outParmBeforeFunc = isFunction = true;   // { ? = call ... }  -- function with one out parameter
-                    ++i;
-                    ++state;
-                }
-                else if (ch == 'c' || ch == 'C')
-                {  // { call ... }      -- proc with no out parameters
-                    state += 3; // Don't increase 'i'
-                }
-                else if (Character.isWhitespace(ch))
-                {
-                    ++i;
-                }
-                else
-                {
-                    // "{ foo ...", doesn't make sense, complain.
-                    syntaxError = true;
-                }
-                break;
-
-            case 3:  // Looking for = after ?, skipping whitespace
-                if (ch == '=')
-                {
-                    ++i;
-                    ++state;
-                }
-                else if (Character.isWhitespace(ch))
-                {
-                    ++i;
-                }
-                else
-                {
-                    syntaxError = true;
-                }
-                break;
-
-            case 4:  // Looking for 'call' after '? =' skipping whitespace
-                if (ch == 'c' || ch == 'C')
-                {
-                    ++state; // Don't increase 'i'.
-                }
-                else if (Character.isWhitespace(ch))
-                {
-                    ++i;
-                }
-                else
-                {
-                    syntaxError = true;
-                }
-                break;
-
-            case 5:  // Should be at 'call ' either at start of string or after ?=
-                if ((ch == 'c' || ch == 'C') && i + 4 <= len && p_sql.substring(i, i + 4).equalsIgnoreCase("call"))
-                {
-                    isFunction=true;
-                    i += 4;
-                    ++state;
-                }
-                else if (Character.isWhitespace(ch))
-                {
-                    ++i;
-                }
-                else
-                {
-                    syntaxError = true;
-                }
-                break;
-
-            case 6:  // Looking for whitespace char after 'call'
-                if (Character.isWhitespace(ch))
-                {
-                    // Ok, we found the start of the real call.
-                    ++i;
-                    ++state;
-                    startIndex = i;
-                }
-                else
-                {
-                    syntaxError = true;
-                }
-                break;
-
-            case 7:  // In "body" of the query (after "{ [? =] call ")
-                if (ch == '\'')
-                {
-                    inQuotes = !inQuotes;
-                    ++i;
-                }
-                else if (inQuotes && ch == '\\' && !stdStrings)
-                {
-                    // Backslash in string constant, skip next character.
-                    i += 2;
-                }
-                else if (!inQuotes && ch == '{')
-                {
-                    inEscape = !inEscape;
-                    ++i;
-                }
-                else if (!inQuotes && ch == '}')
-                {
-                    if (!inEscape)
-                    {
-                        // Should be end of string.
-                        endIndex = i;
-                        ++i;
-                        ++state;
-                    }
-                    else
-                    {
-                        inEscape = false;
-                    }
-                }
-                else if (!inQuotes && ch == ';')
-                {
-                    syntaxError = true;
-                }
-                else
-                {
-                    // Everything else is ok.
-                    ++i;
-                }
-                break;
-
-            case 8:  // At trailing end of query, eating whitespace
-                if (Character.isWhitespace(ch))
-                {
-                    ++i;
-                }
-                else
-                {
-                    syntaxError = true;
-                }
-                break;
-
-            default:
-                throw new IllegalStateException("somehow got into bad state " + state);
-            }
-        }
-
-        // We can only legally end in a couple of states here.
-        if (i == len && !syntaxError)
-        {
-            if (state == 1)
-                return p_sql; // Not an escaped syntax.
-            if (state != 8)
-                syntaxError = true; // Ran out of query while still parsing
-        }
-
-        if (syntaxError)
-            throw new PSQLException (GT.tr("Malformed function or procedure escape syntax at offset {0}.", i),
-                                     PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
-
-        if (connection.haveMinimumServerVersion("8.1") && ((AbstractJdbc2Connection)connection).getProtocolVersion() == 3)
-        {
-            String s = p_sql.substring(startIndex, endIndex );
-            StringBuilder sb = new StringBuilder(s);
-            if ( outParmBeforeFunc )
-            {
-	    	        // move the single out parameter into the function call 
-	    	        // so that it can be treated like all other parameters
-	    	        boolean needComma=false;
-	    	        
-	    	        // have to use String.indexOf for java 2
-	    	        int opening = s.indexOf('(')+1;
-	    	        int closing = s.indexOf(')');
-	    	        for ( int j=opening; j< closing;j++ )
-	    	        {
-	    	            if ( !Character.isWhitespace(sb.charAt(j)) )
-	    	            {
-	    	                needComma = true;
-	    	                break;
-	    	            }
-	    	        }
-	    	        if ( needComma ) 
-	    	        {
-	    	            sb.insert(opening, "?,");       
-	    	        }
-	    	        else
-	    	        {
-	    	            sb.insert(opening, "?");
-	    	        }
-    	        
-            }
-            return "select * from " + sb.toString() + " as result";
-        }
-        else
-        {
-            return "select " + p_sql.substring(startIndex, endIndex) + " as result";
-        }
     }
 
     /** helperfunction for the getXXX calls to check isFunction and index == 1
@@ -2634,7 +2393,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     }
 
     public boolean isUseServerPrepare() {
-        return (preparedQuery != null && m_prepareThreshold != 0 && m_useCount + 1 >= m_prepareThreshold);
+        return (preparedQuery != null && m_prepareThreshold != 0 && preparedQuery.getExecuteCount() + 1 >= m_prepareThreshold);
     }
 
     protected void checkClosed() throws SQLException
@@ -2656,11 +2415,11 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
         if (batchStatements == null)
         {
-            batchStatements = new ArrayList();
-            batchParameters = new ArrayList();
+            batchStatements = new ArrayList<Query>();
+            batchParameters = new ArrayList<ParameterList>();
         }
 
-        p_sql = replaceProcessing(p_sql);
+        p_sql = replaceProcessing(p_sql, replaceProcessingEnabled, connection.getStandardConformingStrings());
 
         batchStatements.add(connection.getQueryExecutor().createSimpleQuery(p_sql));
         batchParameters.add(null);
@@ -2849,8 +2608,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         int[] updateCounts = new int[size];
 
         // Construct query/parameter arrays.
-        Query[] queries = (Query[])batchStatements.toArray(new Query[batchStatements.size()]);
-        ParameterList[] parameterLists = (ParameterList[])batchParameters.toArray(new ParameterList[batchParameters.size()]);
+        Query[] queries = batchStatements.toArray(new Query[batchStatements.size()]);
+        ParameterList[] parameterLists = batchParameters.toArray(new ParameterList[batchParameters.size()]);
         batchStatements.clear();
         batchParameters.clear();
 
@@ -2883,9 +2642,9 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         // Only use named statements after we hit the threshold
         if (preparedQuery != null)
         {
-            m_useCount += queries.length;
+            preparedQuery.increaseExecuteCount(queries.length);
         }
-        if (m_prepareThreshold == 0 || m_useCount < m_prepareThreshold) {
+        if (m_prepareThreshold == 0 || preparedQuery == null || preparedQuery.getExecuteCount() < m_prepareThreshold) {
             flags |= QueryExecutor.QUERY_ONESHOT;
         } else {
             // If a batch requests generated keys and isn't already described,
@@ -3009,12 +2768,12 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
         if (batchStatements == null)
         {
-            batchStatements = new ArrayList();
-            batchParameters = new ArrayList();
+            batchStatements = new ArrayList<Query>();
+            batchParameters = new ArrayList<ParameterList>();
         }
 
         // we need to create copies of our parameters, otherwise the values can be changed
-        batchStatements.add(preparedQuery);
+        batchStatements.add(preparedQuery.query);
         batchParameters.add(preparedParameters.copy());
     }
 
@@ -3031,7 +2790,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
             int flags = QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_DESCRIBE_ONLY | QueryExecutor.QUERY_SUPPRESS_BEGIN;
             StatementResultHandler handler = new StatementResultHandler();
-            connection.getQueryExecutor().execute(preparedQuery, preparedParameters, handler, 0, 0, flags);
+            connection.getQueryExecutor().execute(preparedQuery.query, preparedParameters, handler, 0, 0, flags);
             ResultWrapper wrapper = handler.getResults();
             if (wrapper != null) {
                 rs = wrapper.getResultSet();

@@ -7,6 +7,11 @@
 */
 package org.postgresql.core;
 
+import org.postgresql.util.GT;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -425,4 +430,257 @@ public class Parser {
     
         return true;
     }
+
+    /**
+     * Contains parse flags from {@link #modifyJdbcCall(String, boolean, int, int)}.
+     * Originally {@link #modifyJdbcCall(String, boolean, int, int)} was located in {@link org.postgresql.jdbc2.AbstractJdbc2Statement},
+     * however it was moved out to avoid parse on each prepareCall.
+     */
+    public static class JdbcCallParseInfo {
+        private String sql;
+        private boolean isFunction;
+        private boolean outParmBeforeFunc;
+
+        public String getSql() {
+            return sql;
+        }
+
+        public boolean isFunction()
+        {
+            return isFunction;
+        }
+
+        public boolean isOutParmBeforeFunc()
+        {
+            return outParmBeforeFunc;
+        }
+    }
+
+    /**
+     * this method will turn a string of the form
+     * { [? =] call <some_function> [(?, [?,..])] }
+     * into the PostgreSQL format which is
+     * select <some_function> (?, [?, ...]) as result
+     * or select * from <some_function> (?, [?, ...]) as result (7.3)
+     */
+    public static JdbcCallParseInfo modifyJdbcCall(String p_sql, boolean stdStrings, int serverVersion, int protocolVersion) throws SQLException
+    {
+        // Mini-parser for JDBC function-call syntax (only)
+        // TODO: Merge with escape processing (and parameter parsing?)
+        // so we only parse each query once.
+        JdbcCallParseInfo info = new JdbcCallParseInfo();
+        info.sql = p_sql;
+        info.isFunction = false;
+
+        int len = p_sql.length();
+        int state = 1;
+        boolean inQuotes = false, inEscape = false;
+        info.outParmBeforeFunc = false;
+        int startIndex = -1, endIndex = -1;
+        boolean syntaxError = false;
+        int i = 0;
+
+        while (i < len && !syntaxError)
+        {
+            char ch = p_sql.charAt(i);
+
+            switch (state)
+            {
+            case 1:  // Looking for { at start of query
+                if (ch == '{')
+                {
+                    ++i;
+                    ++state;
+                } else if (Character.isWhitespace(ch))
+                {
+                    ++i;
+                } else
+                {
+                    // Not function-call syntax. Skip the rest of the string.
+                    i = len;
+                }
+                break;
+
+            case 2:  // After {, looking for ? or =, skipping whitespace
+                if (ch == '?')
+                {
+                    info.outParmBeforeFunc = info.isFunction = true;   // { ? = call ... }  -- function with one out parameter
+                    ++i;
+                    ++state;
+                } else if (ch == 'c' || ch == 'C')
+                {  // { call ... }      -- proc with no out parameters
+                    state += 3; // Don't increase 'i'
+                } else if (Character.isWhitespace(ch))
+                {
+                    ++i;
+                } else
+                {
+                    // "{ foo ...", doesn't make sense, complain.
+                    syntaxError = true;
+                }
+                break;
+
+            case 3:  // Looking for = after ?, skipping whitespace
+                if (ch == '=')
+                {
+                    ++i;
+                    ++state;
+                } else if (Character.isWhitespace(ch))
+                {
+                    ++i;
+                } else
+                {
+                    syntaxError = true;
+                }
+                break;
+
+            case 4:  // Looking for 'call' after '? =' skipping whitespace
+                if (ch == 'c' || ch == 'C')
+                {
+                    ++state; // Don't increase 'i'.
+                } else if (Character.isWhitespace(ch))
+                {
+                    ++i;
+                } else
+                {
+                    syntaxError = true;
+                }
+                break;
+
+            case 5:  // Should be at 'call ' either at start of string or after ?=
+                if ((ch == 'c' || ch == 'C') && i + 4 <= len && p_sql.substring(i, i + 4).equalsIgnoreCase("call"))
+                {
+                    info.isFunction = true;
+                    i += 4;
+                    ++state;
+                } else if (Character.isWhitespace(ch))
+                {
+                    ++i;
+                } else
+                {
+                    syntaxError = true;
+                }
+                break;
+
+            case 6:  // Looking for whitespace char after 'call'
+                if (Character.isWhitespace(ch))
+                {
+                    // Ok, we found the start of the real call.
+                    ++i;
+                    ++state;
+                    startIndex = i;
+                } else
+                {
+                    syntaxError = true;
+                }
+                break;
+
+            case 7:  // In "body" of the query (after "{ [? =] call ")
+                if (ch == '\'')
+                {
+                    inQuotes = !inQuotes;
+                    ++i;
+                } else if (inQuotes && ch == '\\' && !stdStrings)
+                {
+                    // Backslash in string constant, skip next character.
+                    i += 2;
+                } else if (!inQuotes && ch == '{')
+                {
+                    inEscape = !inEscape;
+                    ++i;
+                } else if (!inQuotes && ch == '}')
+                {
+                    if (!inEscape)
+                    {
+                        // Should be end of string.
+                        endIndex = i;
+                        ++i;
+                        ++state;
+                    } else
+                    {
+                        inEscape = false;
+                    }
+                } else if (!inQuotes && ch == ';')
+                {
+                    syntaxError = true;
+                } else
+                {
+                    // Everything else is ok.
+                    ++i;
+                }
+                break;
+
+            case 8:  // At trailing end of query, eating whitespace
+                if (Character.isWhitespace(ch))
+                {
+                    ++i;
+                } else
+                {
+                    syntaxError = true;
+                }
+                break;
+
+            default:
+                throw new IllegalStateException("somehow got into bad state " + state);
+            }
+        }
+
+        // We can only legally end in a couple of states here.
+        if (i == len && !syntaxError)
+        {
+            if (state == 1)
+            {
+                return info; // Not an escaped syntax.
+            }
+            if (state != 8)
+            {
+                syntaxError = true; // Ran out of query while still parsing
+            }
+        }
+
+        if (syntaxError)
+        {
+            throw new PSQLException(GT.tr("Malformed function or procedure escape syntax at offset {0}.", i),
+                    PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
+        }
+
+        if (serverVersion < 80100 /* 8.1 */ || protocolVersion != 3)
+        {
+            info.sql = "select " + p_sql.substring(startIndex, endIndex) + " as result";
+            return info;
+        } else
+        {
+            String s = p_sql.substring(startIndex, endIndex);
+            StringBuilder sb = new StringBuilder(s);
+            if (info.outParmBeforeFunc)
+            {
+                // move the single out parameter into the function call
+                // so that it can be treated like all other parameters
+                boolean needComma = false;
+
+                // have to use String.indexOf for java 2
+                int opening = s.indexOf('(') + 1;
+                int closing = s.indexOf(')');
+                for (int j = opening; j < closing; j++)
+                {
+                    if (!Character.isWhitespace(sb.charAt(j)))
+                    {
+                        needComma = true;
+                        break;
+                    }
+                }
+                if (needComma)
+                {
+                    sb.insert(opening, "?,");
+                } else
+                {
+                    sb.insert(opening, "?");
+                }
+
+            }
+            info.sql = "select * from " + sb.toString() + " as result";
+            return info;
+        }
+    }
+
 }

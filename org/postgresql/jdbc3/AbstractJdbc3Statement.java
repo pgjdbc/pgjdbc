@@ -409,7 +409,7 @@ public abstract class AbstractJdbc3Statement extends org.postgresql.jdbc2.Abstra
     {
         int flags = QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_DESCRIBE_ONLY | QueryExecutor.QUERY_SUPPRESS_BEGIN;
         StatementResultHandler handler = new StatementResultHandler();
-        connection.getQueryExecutor().execute(preparedQuery, preparedParameters, handler, 0, 0, flags);
+        connection.getQueryExecutor().execute(preparedQuery.query, preparedParameters, handler, 0, 0, flags);
 
         int oids[] = preparedParameters.getTypeOIDs();
         if (oids != null)

@@ -62,6 +62,16 @@ public enum PGProperty
     PREPARE_THRESHOLD("prepareThreshold", "5", "Statement prepare threshold. A value of {@code -1} stands for forceBinary"),
 
     /**
+     * Specifies the maximum number of entries in cache of prepared statements. A value of {@code 0} disables the cache.
+     */
+    PREPARED_STATEMENT_CACHE_QUERIES("preparedStatementCacheQueries", "256", "Specifies the maximum number of entries in per-connection cache of prepared statements. A value of {@code 0} disables the cache."),
+
+    /**
+     * Specifies the maximum size (in megabytes) of the prepared statement cache. A value of {@code 0} disables the cache.
+     */
+    PREPARED_STATEMENT_CACHE_SIZE_MIB("preparedStatementCacheSizeMiB", "5", "Specifies the maximum size (in megabytes) of a per-connection prepared statement cache. A value of {@code 0} disables the cache."),
+
+    /**
      * Default parameter for {@link java.sql.Statement#getFetchSize()}. A value of {@code 0} means that need fetch all rows at once
      */
     DEFAULT_ROW_FETCH_SIZE("defaultRowFetchSize", "0", "Positive number of rows that should be fetched from the database when more rows are needed for ResultSet by each fetch iteration"),
