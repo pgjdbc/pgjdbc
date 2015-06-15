@@ -2316,7 +2316,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         //read l_len -5 bytes (-4 for l_len and -1 for trailing \0)
         String status = pgStream.ReceiveString(l_len - 5);
         //now read and discard the trailing \0
-        pgStream.Receive(1);
+        pgStream.ReceiveChar(); // Receive(1) would allocate new byte[1], so avoid it
 
         if (logger.logDebug())
             logger.debug(" <=BE CommandStatus(" + status + ")");
