@@ -19,6 +19,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -933,5 +934,27 @@ public abstract class AbstractJdbc2Array
 
     public byte[] toBytes() {
         return fieldBytes;
+    }
+
+    public int hashCode() {
+        if (fieldBytes != null)
+            return fieldBytes.hashCode();
+
+        return fieldString.hashCode();
+    }
+
+    public boolean equals(Object other) {
+        if (other == this)
+            return true;
+
+        if (!(other instanceof AbstractJdbc2Array))
+            return false;
+
+        AbstractJdbc2Array otherArray = (AbstractJdbc2Array) other;
+
+        if (fieldBytes != null)
+            return Arrays.equals(fieldBytes, otherArray.fieldBytes);
+
+        return fieldString.equals(otherArray.fieldString);
     }
 }
