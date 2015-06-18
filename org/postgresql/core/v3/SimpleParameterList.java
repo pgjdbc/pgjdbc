@@ -28,18 +28,18 @@ import org.postgresql.util.ByteConverter;
  */
 class SimpleParameterList implements V3ParameterList {
     
-    private final static int IN = 1;
-    private final static int OUT = 2;
-    private final static int INOUT = IN|OUT;
+    private final static byte IN = 1;
+    private final static byte OUT = 2;
+    private final static byte INOUT = IN|OUT;
 
-    private final static int TEXT = 0;
-    private final static int BINARY = 4;
+    private final static byte TEXT = 0;
+    private final static byte BINARY = 4;
 
     SimpleParameterList(int paramCount, ProtocolConnectionImpl protoConnection) {
         this.paramValues = new Object[paramCount];
         this.paramTypes = new int[paramCount];
         this.encoded = new byte[paramCount][];
-        this.flags = new int[paramCount];
+        this.flags = new byte[paramCount];
         this.protoConnection = protoConnection;
     }        
     
@@ -51,7 +51,7 @@ class SimpleParameterList implements V3ParameterList {
         flags[index-1] |= OUT;
     }
 
-    private void bind(int index, Object value, int oid, int binary) throws SQLException {
+    private void bind(int index, Object value, int oid, byte binary) throws SQLException {
         if (index < 1 || index > paramValues.length)
             throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{index, paramValues.length}), PSQLState.INVALID_PARAMETER_VALUE);
 
@@ -59,7 +59,7 @@ class SimpleParameterList implements V3ParameterList {
 
         encoded[index] = null;
         paramValues[index] = value ;
-        flags[index] = direction(index) | IN | binary;
+        flags[index] = (byte) (direction(index) | IN | binary);
         
         // If we are setting something to an UNSPECIFIED NULL, don't overwrite
         // our existing type for it.  We don't need the correct type info to
@@ -137,7 +137,7 @@ class SimpleParameterList implements V3ParameterList {
 
     public void setNull(int index, int oid) throws SQLException {
         
-        int binaryTransfer = TEXT;
+        byte binaryTransfer = TEXT;
         
         if (protoConnection.useBinaryForReceive(oid))
         {
@@ -293,8 +293,8 @@ class SimpleParameterList implements V3ParameterList {
         return (flags[index-1] & BINARY) != 0;
     }
 
-    private int direction(int index) {
-    	return flags[index] & INOUT;
+    private byte direction(int index) {
+        return (byte) (flags[index] & INOUT);
     }
 
     int getV3Length(int index) {
@@ -363,7 +363,7 @@ class SimpleParameterList implements V3ParameterList {
         Arrays.fill(paramValues, null);
         Arrays.fill(paramTypes, 0);
         Arrays.fill(encoded, null);
-        Arrays.fill(flags, 0);
+        Arrays.fill(flags, (byte) 0);
     }
     public SimpleParameterList[] getSubparams() {
         return null;
@@ -371,7 +371,7 @@ class SimpleParameterList implements V3ParameterList {
 
     private final Object[] paramValues;
     private final int[] paramTypes;
-    private final int[] flags;
+    private final byte[] flags;
     private final byte[][] encoded;
     private final ProtocolConnectionImpl protoConnection;
     
