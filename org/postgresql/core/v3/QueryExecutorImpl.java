@@ -11,10 +11,7 @@ package org.postgresql.core.v3;
 import org.postgresql.PGProperty;
 import org.postgresql.core.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.HashMap;
-import java.util.Properties;
+import java.util.*;
 import java.lang.ref.*;
 import java.io.IOException;
 import java.sql.*;
@@ -1353,7 +1350,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         for (int i = 1; i <= params.getParameterCount(); ++i)
             pgStream.SendInteger4(params.getTypeOID(i));
 
-        pendingParseQueue.add(new Object[]{query, query.getStatementName()});
+        pendingParseQueue.add(query);
     }
 
     private void sendBind(SimpleQuery query, SimpleParameterList params,
@@ -1471,7 +1468,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             pgStream.SendInteger2(fields[i].getFormat());
         }
 
-        pendingBindQueue.add(portal);
+        pendingBindQueue.add(portal == null ? UNNAMED_PORTAL : portal);
 
         if (bindException != null)
         {
@@ -1538,7 +1535,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             pgStream.Send(encodedStatementName);    // Statement name
         pgStream.SendChar(0);                       // end message
 
-        pendingDescribeStatementQueue.add(new Object[]{query, params, describeOnly, query.getStatementName()});
+        pendingDescribeStatementQueue.add(new DescribeRequest(query, params, describeOnly));
         pendingDescribePortalQueue.add(query);
         query.setStatementDescribed(true);
         query.setPortalDescribed(true);
@@ -1565,7 +1562,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         pgStream.SendChar(0);                 // portal name terminator
         pgStream.SendInteger4(limit);       // row limit
 
-        pendingExecuteQueue.add(new Object[] { query, portal });
+        pendingExecuteQueue.add(new ExecuteRequest(query, portal));
     }
 
     private void sendClosePortal(String portalName) throws IOException {
@@ -1785,8 +1782,10 @@ public class QueryExecutorImpl implements QueryExecutor {
     private final HashMap openPortalMap = new HashMap();
     private final ReferenceQueue openPortalCleanupQueue = new ReferenceQueue();
 
+    private static final Portal UNNAMED_PORTAL = new Portal(null, "unnamed");
+
     private void registerOpenPortal(Portal portal) {
-        if (portal == null)
+        if (portal == UNNAMED_PORTAL)
             return ; // Using the unnamed portal.
 
         String portalName = portal.getPortalName();
@@ -1822,12 +1821,6 @@ public class QueryExecutorImpl implements QueryExecutor {
         // from there.
         boolean doneAfterRowDescNoData = false;
 
-        int parseIndex = 0;
-        int describeIndex = 0;
-        int describePortalIndex = 0;
-        int bindIndex = 0;
-        int executeIndex = 0;
-
         while (!endQuery)
         {
             c = pgStream.ReceiveChar();
@@ -1840,10 +1833,8 @@ public class QueryExecutorImpl implements QueryExecutor {
             case '1':    // Parse Complete (response to Parse)
                 pgStream.ReceiveInteger4(); // len, discarded
 
-                Object[] parsedQueryAndStatement = (Object[])pendingParseQueue.get(parseIndex++);
-
-                SimpleQuery parsedQuery = (SimpleQuery)parsedQueryAndStatement[0];
-                String parsedStatementName = (String)parsedQueryAndStatement[1];
+                SimpleQuery parsedQuery = pendingParseQueue.removeFirst();
+                String parsedStatementName = parsedQuery.getStatementName();
 
                 if (logger.logDebug())
                     logger.debug(" <=BE ParseComplete [" + parsedStatementName + "]");
@@ -1858,11 +1849,11 @@ public class QueryExecutorImpl implements QueryExecutor {
                     logger.debug(" <=BE ParameterDescription");
 
                 {
-                    Object describeData[] = (Object[])pendingDescribeStatementQueue.get(describeIndex);
-                    SimpleQuery query = (SimpleQuery)describeData[0];
-                    SimpleParameterList params = (SimpleParameterList)describeData[1];
-                    boolean describeOnly = (Boolean) describeData[2];
-                    String origStatementName = (String)describeData[3];
+                    DescribeRequest describeData = pendingDescribeStatementQueue.getFirst();
+                    SimpleQuery query = describeData.query;
+                    SimpleParameterList params = describeData.parameterList;
+                    boolean describeOnly = describeData.describeOnly;
+                    String origStatementName = query.getStatementName();
 
                     int numParams = pgStream.ReceiveInteger2();
 
@@ -1883,14 +1874,14 @@ public class QueryExecutorImpl implements QueryExecutor {
                     if (describeOnly)
                         doneAfterRowDescNoData = true;
                     else
-                        describeIndex++;
+                        pendingDescribeStatementQueue.removeFirst();
                 }
                 break;
 
             case '2':    // Bind Complete  (response to Bind)
                 pgStream.ReceiveInteger4(); // len, discarded
 
-                Portal boundPortal = (Portal)pendingBindQueue.get(bindIndex++);
+                Portal boundPortal = pendingBindQueue.removeFirst();
                 if (logger.logDebug())
                     logger.debug(" <=BE BindComplete [" + boundPortal + "]");
 
@@ -1908,11 +1899,11 @@ public class QueryExecutorImpl implements QueryExecutor {
                 if (logger.logDebug())
                     logger.debug(" <=BE NoData");
 
-                describePortalIndex++;
+                pendingDescribePortalQueue.removeFirst();
 
                 if (doneAfterRowDescNoData) {
-                    Object describeData[] = (Object[])pendingDescribeStatementQueue.get(describeIndex++);
-                    SimpleQuery currentQuery = (SimpleQuery)describeData[0];
+                    DescribeRequest describeData = pendingDescribeStatementQueue.removeFirst();
+                    SimpleQuery currentQuery = describeData.query;
 
                     Field[] fields = currentQuery.getFields();
 
@@ -1934,9 +1925,9 @@ public class QueryExecutorImpl implements QueryExecutor {
                     logger.debug(" <=BE PortalSuspended");
 
                 {
-                    Object[] executeData = (Object[])pendingExecuteQueue.get(executeIndex++);
-                    SimpleQuery currentQuery = (SimpleQuery)executeData[0];
-                    Portal currentPortal = (Portal)executeData[1];
+                    ExecuteRequest executeData = pendingExecuteQueue.removeFirst();
+                    SimpleQuery currentQuery = executeData.query;
+                    Portal currentPortal = executeData.portal;
 
                     Field[] fields = currentQuery.getFields();
                     if (fields != null && !noResults && tuples == null)
@@ -1955,9 +1946,9 @@ public class QueryExecutorImpl implements QueryExecutor {
                 doneAfterRowDescNoData = false;
 
                 {
-                    Object[] executeData = (Object[])pendingExecuteQueue.get(executeIndex++);
-                    SimpleQuery currentQuery = (SimpleQuery)executeData[0];
-                    Portal currentPortal = (Portal)executeData[1];
+                    ExecuteRequest executeData = pendingExecuteQueue.removeFirst();
+                    SimpleQuery currentQuery = executeData.query;
+                    Portal currentPortal = executeData.portal;
 
                     Field[] fields = currentQuery.getFields();
                     if (fields != null && !noResults && tuples == null)
@@ -2038,9 +2029,9 @@ public class QueryExecutorImpl implements QueryExecutor {
                     logger.debug(" <=BE EmptyQuery");
 
                 {
-                    Object[] executeData = (Object[])pendingExecuteQueue.get(executeIndex++);
-                    Query currentQuery = (Query)executeData[0];
-                    Portal currentPortal = (Portal)executeData[1];
+                    ExecuteRequest executeData = pendingExecuteQueue.removeFirst();
+                    SimpleQuery currentQuery = executeData.query;
+                    Portal currentPortal = executeData.portal;
                     handler.handleCommandStatus("EMPTY", 0, 0);
                     if (currentPortal != null)
                         currentPortal.close();
@@ -2095,12 +2086,12 @@ public class QueryExecutorImpl implements QueryExecutor {
                 Field[] fields = receiveFields();
                 tuples = new ArrayList();
 
-                SimpleQuery query = (SimpleQuery)pendingDescribePortalQueue.get(describePortalIndex++);
+                SimpleQuery query = pendingDescribePortalQueue.removeFirst();
                 query.setFields(fields);
 
                 if (doneAfterRowDescNoData) {
-                    Object describeData[] = (Object[])pendingDescribeStatementQueue.get(describeIndex++);
-                    SimpleQuery currentQuery = (SimpleQuery)describeData[0];
+                    DescribeRequest describeData = pendingDescribeStatementQueue.removeFirst();
+                    SimpleQuery currentQuery = describeData.query;
                     currentQuery.setFields(fields);
 
                     handler.handleResultRows(currentQuery, fields, tuples, null);
@@ -2113,10 +2104,9 @@ public class QueryExecutorImpl implements QueryExecutor {
                 endQuery = true;
 
                 // Reset the statement name of Parses that failed.
-                while (parseIndex < pendingParseQueue.size())
+                while (!pendingParseQueue.isEmpty())
                 {
-                    Object[] failedQueryAndStatement = (Object[])pendingParseQueue.get(parseIndex++);
-                    SimpleQuery failedQuery = (SimpleQuery)failedQueryAndStatement[0];
+                    SimpleQuery failedQuery = pendingParseQueue.removeFirst();
                     failedQuery.unprepare();
                 }
 
@@ -2379,11 +2369,11 @@ public class QueryExecutorImpl implements QueryExecutor {
         }
     }
 
-    private final ArrayList pendingParseQueue = new ArrayList(); // list of SimpleQuery instances
-    private final ArrayList pendingBindQueue = new ArrayList(); // list of Portal instances
-    private final ArrayList pendingExecuteQueue = new ArrayList(); // list of {SimpleQuery,Portal} object arrays
-    private final ArrayList pendingDescribeStatementQueue = new ArrayList(); // list of {SimpleQuery, SimpleParameterList, Boolean} object arrays
-    private final ArrayList pendingDescribePortalQueue = new ArrayList(); // list of SimpleQuery
+    private final Deque<SimpleQuery> pendingParseQueue = new ArrayDeque<SimpleQuery>();
+    private final Deque<Portal> pendingBindQueue = new ArrayDeque<Portal>();
+    private final Deque<ExecuteRequest> pendingExecuteQueue = new ArrayDeque<ExecuteRequest>();
+    private final Deque<DescribeRequest> pendingDescribeStatementQueue = new ArrayDeque<DescribeRequest>();
+    private final Deque<SimpleQuery> pendingDescribePortalQueue = new ArrayDeque<SimpleQuery>();
 
     private long nextUniqueID = 1;
     private final ProtocolConnectionImpl protoConnection;
