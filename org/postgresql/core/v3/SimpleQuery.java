@@ -180,6 +180,8 @@ class SimpleQuery implements V3Query {
     void setFields(Field[] fields) {
         this.fields = fields;
         this.cachedMaxResultRowSize = null;
+        this.needUpdateFieldFormats = fields != null;
+        this.hasBinaryFields = false; // just in case
     }
 
     /**
@@ -190,6 +192,29 @@ class SimpleQuery implements V3Query {
      */
     Field[] getFields() {
         return fields;
+    }
+
+    /**
+     * Returns true if current query needs field formats be adjusted as per connection configuration.
+     * Subsequent invocations would return {@code false}.
+     * The idea is to perform adjustments only once, not for each {@link QueryExecutorImpl#sendBind(SimpleQuery, SimpleParameterList, Portal, boolean)}.
+     * @return true if current query needs field formats be adjusted as per connection configuration
+     */
+    boolean needUpdateFieldFormats() {
+        if (needUpdateFieldFormats) {
+            needUpdateFieldFormats = false;
+            return true;
+        }
+        return false;
+    }
+
+
+    public boolean hasBinaryFields() {
+        return hasBinaryFields;
+    }
+
+    public void setHasBinaryFields(boolean hasBinaryFields) {
+        this.hasBinaryFields = hasBinaryFields;
     }
 
     // Have we sent a Describe Portal message for this query yet?
@@ -249,6 +274,8 @@ class SimpleQuery implements V3Query {
      * statement. Always null for non-prepared statements.
      */
     private Field[] fields;
+    private boolean needUpdateFieldFormats;
+    private boolean hasBinaryFields;
     private boolean portalDescribed;
     private boolean statementDescribed;
     private PhantomReference cleanupRef;
