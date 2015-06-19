@@ -168,9 +168,11 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         this.preparedQuery = connection.getQueryExecutor().createParameterizedQuery(parsed_sql);
         this.preparedParameters = preparedQuery.createParameterList();
 
-        int inParamCount =  preparedParameters.getInParameterCount() + 1;
-        this.testReturn = new int[inParamCount];
-        this.functionReturnType = new int[inParamCount];
+        if (isFunction) {
+            int inParamCount =  preparedParameters.getInParameterCount() + 1;
+            this.testReturn = new int[inParamCount];
+            this.functionReturnType = new int[inParamCount];
+        }
 
         forceBinaryTransfers |= connection.getForceBinary();
 
