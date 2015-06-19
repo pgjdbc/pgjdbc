@@ -8,6 +8,7 @@
 package org.postgresql.util;
 
 import java.sql.Timestamp;
+import java.util.Calendar;
 import java.util.TimeZone;
 
 /**
@@ -20,7 +21,7 @@ public class PGTimestamp extends Timestamp
     private static final long serialVersionUID = -6245623465210738466L;
 
     /** The optional time zone for this timestamp. */
-    private TimeZone timeZone;
+    private Calendar timeZone;
 
     /**
      * Constructs a <code>PGTimestamp</code> without a time zone. The integral
@@ -53,7 +54,7 @@ public class PGTimestamp extends Timestamp
      *            the time zone for the given time or <code>null</code>.
      * @see Timestamp#Timestamp(long)
      */
-    public PGTimestamp(long time, TimeZone timeZone)
+    public PGTimestamp(long time, Calendar timeZone)
     {
 	super(time);
 	this.setTimeZone(timeZone);
@@ -65,7 +66,7 @@ public class PGTimestamp extends Timestamp
      * @param timeZone
      *            the time zone or <code>null</code>.
      */
-    public void setTimeZone(TimeZone timeZone)
+    public void setTimeZone(Calendar timeZone)
     {
 	this.timeZone = timeZone;
     }
@@ -75,10 +76,11 @@ public class PGTimestamp extends Timestamp
      *
      * @return the time zone or <code>null</code>.
      */
-    public TimeZone getTimeZone()
+    public Calendar getTimeZone()
     {
 	return timeZone;
     }
+
     @Override
     public int hashCode()
     {
@@ -103,7 +105,8 @@ public class PGTimestamp extends Timestamp
         {
             if (other.timeZone != null)
                 return false;
-        } else if (!timeZone.equals(other.timeZone))
+        }
+        else if (!timeZone.equals(other.timeZone))
             return false;
         return true;
     }

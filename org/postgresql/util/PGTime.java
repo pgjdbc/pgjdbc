@@ -8,6 +8,7 @@
 package org.postgresql.util;
 
 import java.sql.Time;
+import java.util.Calendar;
 import java.util.TimeZone;
 
 /**
@@ -20,7 +21,7 @@ public class PGTime extends Time
     private static final long serialVersionUID = 3592492258676494276L;
 
     /** The optional time zone for this timestamp. */
-    private TimeZone timeZone;
+    private Calendar timeZone;
 
     /**
      * Constructs a <code>PGTime</code> without a time zone.
@@ -45,7 +46,7 @@ public class PGTime extends Time
      *            the time zone for the given time or <code>null</code>.
      * @see Time#Time(long)
      */
-    public PGTime(long time, TimeZone timeZone)
+    public PGTime(long time, Calendar timeZone)
     {
 	super(time);
 	this.setTimeZone(timeZone);
@@ -57,7 +58,7 @@ public class PGTime extends Time
      * @param timeZone
      *            the time zone or <code>null</code>.
      */
-    public void setTimeZone(TimeZone timeZone)
+    public void setTimeZone(Calendar timeZone)
     {
 	this.timeZone = timeZone;
     }
@@ -67,7 +68,7 @@ public class PGTime extends Time
      *
      * @return the time zone or <code>null</code>.
      */
-    public TimeZone getTimeZone()
+    public Calendar getTimeZone()
     {
 	return timeZone;
     }
@@ -96,7 +97,8 @@ public class PGTime extends Time
         {
             if (other.timeZone != null)
                 return false;
-        } else if (!timeZone.equals(other.timeZone))
+        }
+        else if (!timeZone.equals(other.timeZone))
             return false;
         return true;
     }
