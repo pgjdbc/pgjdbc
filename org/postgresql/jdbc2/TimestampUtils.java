@@ -58,7 +58,7 @@ public class TimestampUtils {
         if (calCache != null && calCacheZone == rawOffset)
             return calCache;
                 
-        StringBuffer zoneID = new StringBuffer("GMT");
+        StringBuilder zoneID = new StringBuilder("GMT");
         zoneID.append(sign < 0 ? '-' : '+');
         if (hr < 10) zoneID.append('0');
         zoneID.append(hr);
