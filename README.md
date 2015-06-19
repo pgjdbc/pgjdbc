@@ -98,11 +98,19 @@ information" below.
 
 The driver recognises JDBC URLs of the form:
 
+    jdbc:postgresql/
+
     jdbc:postgresql:database
 
     jdbc:postgresql://host/database
 
+    jdbc:postgresql://host/
+
     jdbc:postgresql://host:port/database
+
+    jdbc:postgresql://host:port/
+
+When the parameter `database` is omitted it defaults to the username. 
 
 Also, you can supply both username and passwords as arguments, by appending
 them to the URL. e.g.:
