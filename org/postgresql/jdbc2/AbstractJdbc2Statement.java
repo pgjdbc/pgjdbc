@@ -3362,6 +3362,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                 oid = Oid.TIME;
             } else {
                 oid = Oid.TIMETZ;
+                cal = (Calendar) pgTime.getTimeZone().clone();
             }
         }
 
@@ -3419,10 +3420,11 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                 oid = Oid.TIMESTAMP;
             } else {
                 oid = Oid.TIMESTAMPTZ;
+                cal = (Calendar) pgTimestamp.getTimeZone().clone();
             }
         }
 
-        bindString(i, connection.getTimestampUtils().toString(cal, t), oid); // Let the server infer the right type.
+        bindString(i, connection.getTimestampUtils().toString(cal, t), oid);
     }
 
     // ** JDBC 2 Extensions for CallableStatement**
