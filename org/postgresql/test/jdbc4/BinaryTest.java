@@ -114,6 +114,20 @@ public class BinaryTest extends TestCase {
         ((PGStatement) statement).setPrepareThreshold(5);
     }
 
+    public void testReceiveBinary() throws Exception
+    {
+        PreparedStatement ps = connection.prepareStatement("select ?");
+        for (int i = 0; i < 10; i++)
+        {
+            ps.setInt(1, 42 + i);
+            ResultSet rs = ps.executeQuery();
+            assertEquals("One row should be returned", true, rs.next());
+            assertEquals(42 + i, rs.getInt(1));
+            rs.close();
+        }
+        ps.close();
+    }
+
     private int getFormat(ResultSet results) throws SQLException {
         return ((PGResultSetMetaData) results.getMetaData()).getFormat(1);
     }

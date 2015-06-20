@@ -1388,20 +1388,20 @@ public class QueryExecutorImpl implements QueryExecutor {
                 encodedSize += (long)4 + params.getV3Length(i);
         }
 
-        // This is not the number of binary fields, but the total number
-        // of fields if any of them are binary or zero if all of them
-        // are text.
-
-        int numBinaryFields = 0;
         Field[] fields = query.getFields();
-        if (!noBinaryTransfer && fields != null) {
+        if (!noBinaryTransfer && query.needUpdateFieldFormats()) {
             for (Field field : fields) {
                 if (useBinary(field)) {
                     field.setFormat(Field.BINARY_FORMAT);
-                    numBinaryFields = fields.length;
+                    query.setHasBinaryFields(true);
                 }
             }
         }
+
+        // This is not the number of binary fields, but the total number
+        // of fields if any of them are binary or zero if all of them
+        // are text.
+        int numBinaryFields = !noBinaryTransfer && query.hasBinaryFields() ? fields.length : 0;
 
         encodedSize = 4
                       + (encodedPortalName == null ? 0 : encodedPortalName.length) + 1
