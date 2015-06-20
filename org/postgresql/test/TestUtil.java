@@ -372,6 +372,33 @@ public class TestUtil
         }
     }
 
+    /**
+     * Helper creates an composite type
+     * @param con Connection
+     * @param name String
+     * @param values String
+     * @throws SQLException
+     */
+
+    public static void createCompositeType( Connection con,
+                                            String name,
+                                            String values) throws SQLException
+    {
+        Statement st = con.createStatement();
+        try
+        {
+            dropType(con, name);
+
+
+            // Now create the table
+            st.executeUpdate("create type " + name + " as (" + values + ")");
+        }
+        finally
+        {
+            st.close();
+        }
+    }
+
     /*
      * drop a sequence because older versions don't have dependency
      * information for serials
