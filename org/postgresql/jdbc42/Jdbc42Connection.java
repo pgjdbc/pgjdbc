@@ -31,25 +31,19 @@ public class Jdbc42Connection extends AbstractJdbc42Connection
     public Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException
     {
         checkClosed();
-        Jdbc42Statement s = new Jdbc42Statement(this, resultSetType, resultSetConcurrency, resultSetHoldability, getPrepareThreshold());
-        s.setFetchSize(getDefaultFetchSize());
-        return s;
+        return new Jdbc42Statement(this, resultSetType, resultSetConcurrency, resultSetHoldability);
     }
 
     public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException
     {
         checkClosed();
-        Jdbc42PreparedStatement s = new Jdbc42PreparedStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability, getPrepareThreshold());
-        s.setFetchSize(getDefaultFetchSize());
-        return s;
+        return new Jdbc42PreparedStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
     }
 
     public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException
     {
         checkClosed();
-        Jdbc42CallableStatement s = new Jdbc42CallableStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability, getPrepareThreshold());
-        s.setFetchSize(getDefaultFetchSize());
-        return s;
+        return new Jdbc42CallableStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
     }
 
     public DatabaseMetaData getMetaData() throws SQLException

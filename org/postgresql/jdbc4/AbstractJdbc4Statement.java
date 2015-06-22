@@ -26,12 +26,12 @@ public abstract class AbstractJdbc4Statement extends org.postgresql.jdbc3g.Abstr
     protected AbstractJdbc4Statement (AbstractJdbc4Connection c, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
     {
         super(c, rsType, rsConcurrency, rsHoldability);
-        poolable = true;
     }
 
     protected AbstractJdbc4Statement(AbstractJdbc4Connection connection, String sql, boolean isCallable, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
     {
         super(connection, sql, isCallable, rsType, rsConcurrency, rsHoldability);
+        poolable = true; // As per JDBC spec: prepared and callable statements are poolable by default
     }
 
     public boolean isClosed() throws SQLException

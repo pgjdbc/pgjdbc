@@ -21,14 +21,14 @@ import org.postgresql.jdbc4.AbstractJdbc4Connection;
 public class Jdbc42Statement extends AbstractJdbc42Statement
 {
 
-    Jdbc42Statement(AbstractJdbc4Connection c, int rsType, int rsConcurrency, int rsHoldability, int prepareThreshold) throws SQLException
+    Jdbc42Statement(AbstractJdbc4Connection c, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
     {
-        super(c, rsType, rsConcurrency, rsHoldability, prepareThreshold);
+        super(c, rsType, rsConcurrency, rsHoldability);
     }
 
-    Jdbc42Statement(AbstractJdbc42Connection connection, String sql, boolean isCallable, int rsType, int rsConcurrency, int rsHoldability, int prepareThreshold) throws SQLException
+    Jdbc42Statement(AbstractJdbc42Connection connection, String sql, boolean isCallable, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
     {
-        super(connection, sql, isCallable, rsType, rsConcurrency, rsHoldability, prepareThreshold);
+        super(connection, sql, isCallable, rsType, rsConcurrency, rsHoldability);
     }
 
     public ResultSet createResultSet (Query originalQuery, Field[] fields, List tuples, ResultCursor cursor)
