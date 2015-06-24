@@ -3358,11 +3358,11 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         // If a PGTimeis used, we can define the OID explicitly.
         if (t instanceof PGTime) {
             PGTime pgTime = (PGTime)t;
-            if (pgTime.getTimeZone() == null) {
+            if (pgTime.getCalendar() == null) {
                 oid = Oid.TIME;
             } else {
                 oid = Oid.TIMETZ;
-                cal = (Calendar) pgTime.getTimeZone().clone();
+                cal = (Calendar) pgTime.getCalendar().clone();
             }
         }
 
@@ -3416,11 +3416,11 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         // If a PGTimestamp is used, we can define the OID explicitly.
         if (t instanceof PGTimestamp) {
             PGTimestamp pgTimestamp = (PGTimestamp)t;
-            if (pgTimestamp.getTimeZone() == null) {
+            if (pgTimestamp.getCalendar() == null) {
                 oid = Oid.TIMESTAMP;
             } else {
                 oid = Oid.TIMESTAMPTZ;
-                cal = (Calendar) pgTimestamp.getTimeZone().clone();
+                cal = (Calendar) pgTimestamp.getCalendar().clone();
             }
         }
 
