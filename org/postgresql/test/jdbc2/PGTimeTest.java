@@ -71,12 +71,12 @@ public class PGTimeTest extends TestCase
         verifyTimeWithInterval(new PGTime(now, Calendar.getInstance(TimeZone.getTimeZone("GMT+01:00"))), new PGInterval(0, 0, 0, 1, 2, 3.456), false);
     }
 
-    private void verifyTimeWithInterval(PGTime pgTime, PGInterval pgInterval, boolean useSetObject) throws SQLException
+    private void verifyTimeWithInterval(PGTime time, PGInterval pgInterval, boolean useSetObject) throws SQLException
     {
         // Construct a local calendar for the expected result.
         Calendar cal = Calendar.getInstance();
         final int seconds = (int)pgInterval.getSeconds();
-        cal.setTime(pgTime);
+        cal.setTime(time);
         cal.add(Calendar.HOUR_OF_DAY, pgInterval.getHours());
         cal.add(Calendar.MINUTE, pgInterval.getMinutes());
         cal.add(Calendar.SECOND, seconds);
@@ -84,28 +84,22 @@ public class PGTimeTest extends TestCase
         cal.add(Calendar.MILLISECOND, milliseconds);
         Time expected = new Time(cal.getTimeInMillis());
 
-        // Construct the SQL query and date format.
+        // Construct the SQL query.
         String sql;
-        String pattern = "HH:mm:ss.SSS";
-        if (pgTime.getTimeZone() != null)
+        if (time.getTimeZone() != null)
         {
             sql = "SELECT ?::time with time zone + ?";
-            pattern += " Z";
         }
         else
         {
            sql = "SELECT ?::time + ?";
         }
 
-        SimpleDateFormat sdf = new SimpleDateFormat(pattern);
-        if (pgTime.getTimeZone() != null)
-        {
-            sdf.setTimeZone(pgTime.getTimeZone().getTimeZone());
-        }
+        SimpleDateFormat sdf = createSimpleDateFormat(time);
 
         // Execute a query using a casted time string + PGInterval.
         PreparedStatement stmt = con.prepareStatement(sql);
-        stmt.setString(1, sdf.format(pgTime));
+        stmt.setString(1, sdf.format(time));
         stmt.setObject(2, pgInterval);
 
         ResultSet rs = stmt.executeQuery();
@@ -120,11 +114,11 @@ public class PGTimeTest extends TestCase
         stmt = con.prepareStatement("SELECT ? + ?");
         if (useSetObject)
         {
-            stmt.setObject(1, pgTime);
+            stmt.setObject(1, time);
         }
         else
         {
-            stmt.setTime(1, pgTime);
+            stmt.setTime(1, time);
         }
         stmt.setObject(2, pgInterval);
 
@@ -134,6 +128,93 @@ public class PGTimeTest extends TestCase
         actual = rs.getTime(1);
         //System.out.println(stmt + " = " + sdf.format(actual));
         assertEquals(sdf.format(expected) + " != " + sdf.format(actual), expected, actual);
+        stmt.close();
+    }
+
+    /**
+     * Creates a <code>SimpleDateFormat</code> that is appropriate for the given time.
+     * 
+     * @param time
+     *           the time object.
+     * @return the new format instance.
+     */
+    private SimpleDateFormat createSimpleDateFormat(PGTime time)
+    {
+        String pattern = "HH:mm:ss.SSS";
+        if (time.getTimeZone() != null)
+        {
+           pattern += " Z";
+        }
+
+        SimpleDateFormat sdf = new SimpleDateFormat(pattern);
+        if (time.getTimeZone() != null)
+        {
+            sdf.setTimeZone(time.getTimeZone().getTimeZone());
+        }
+        return sdf;
+    }
+
+    public void testTimeInsertAndSelect() throws SQLException
+    {
+        Calendar cal = Calendar.getInstance();
+        cal.set(1970, 0, 1);
+
+        final long now = cal.getTimeInMillis();
+        verifyInsertAndSelect(new PGTime(now), true);
+        verifyInsertAndSelect(new PGTime(now), false);
+
+        verifyInsertAndSelect(new PGTime(now, Calendar.getInstance(TimeZone.getTimeZone("GMT"))), true);
+        verifyInsertAndSelect(new PGTime(now, Calendar.getInstance(TimeZone.getTimeZone("GMT"))), false);
+        
+        verifyInsertAndSelect(new PGTime(now, Calendar.getInstance(TimeZone.getTimeZone("GMT+01:00"))), true);
+        verifyInsertAndSelect(new PGTime(now, Calendar.getInstance(TimeZone.getTimeZone("GMT+01:00"))), false);
+    }
+
+    private void verifyInsertAndSelect(PGTime time, boolean useSetObject) throws SQLException
+    {
+        // Insert the test value.
+        PreparedStatement pstmt = con.prepareStatement("INSERT INTO testtime VALUES (?, ?)");
+        
+        if (useSetObject)
+        {
+            pstmt.setObject(1, time);
+            pstmt.setObject(2, time);
+        }
+        else if (time.getTimeZone() != null)
+        {
+            pstmt.setTime(1, time, time.getTimeZone());
+            pstmt.setTime(2, time, time.getTimeZone());
+        }
+        else
+        {
+            pstmt.setTime(1, time);
+            pstmt.setTime(2, time);
+        }
+
+        System.out.println("Executing statement: " + pstmt);
+        assertEquals(1, pstmt.executeUpdate());
+        pstmt.close();
+
+        Statement stmt = con.createStatement();
+
+        ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testtime", "tm,tz"));
+        assertNotNull(rs);
+        assertTrue(rs.next());
+
+        Time tm = rs.getTime(1);
+        Time tz = rs.getTime(2);
+
+        SimpleDateFormat sdf = createSimpleDateFormat(time);
+        System.out.println(sdf.format(time) + " -> " + tm + ", " + sdf.format(tz));
+
+        // If the original PGTime is without a time zone, also check for daylight savings.
+        if (time.getTimeZone() == null)
+        {
+            tz.setTime(tz.getTime() + TimeZone.getDefault().getDSTSavings());
+            System.out.println("DST: " + sdf.format(time) + " -> " + tm + ", " + sdf.format(tz));
+        }
+
+        assertEquals(1, stmt.executeUpdate("DELETE FROM testtime"));
         stmt.close();
     }
 
