@@ -3355,7 +3355,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
         int oid = Oid.UNSPECIFIED;
 
-        // If a PGTimeis used, we can define the OID explicitly.
+        // If a PGTime is used, we can define the OID explicitly.
         if (t instanceof PGTime) {
             PGTime pgTime = (PGTime)t;
             if (pgTime.getCalendar() == null) {
