@@ -24,7 +24,8 @@ import org.postgresql.util.PGInterval;
 import org.postgresql.util.PGTime;
 
 /**
- * <code>PGTimeTest</code> provides unit tests of {@link PGTime}.
+ * Tests {@link PGTime} in various scenarios including setTime, setObject for both
+ * <code>time with time zone</code> and <code>time without time zone</code> data types.
  */
 public class PGTimeTest extends TestCase
 {

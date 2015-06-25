@@ -12,7 +12,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -25,9 +24,8 @@ import org.postgresql.util.PGInterval;
 import org.postgresql.util.PGTimestamp;
 
 /**
- * Tests {@link PGTimestamp} in various scenarios including setTimestamp,
- * setObject for both timestamp with time zone and timestamp without time
- * zone datatypes.
+ * Tests {@link PGTimestamp} in various scenarios including setTimestamp, setObject for both
+ * <code>timestamp with time zone</code> and <code>timestamp without time zone</code> data types.
  */
 public class PGTimestampTest extends TestCase
 {
@@ -56,6 +54,7 @@ public class PGTimestampTest extends TestCase
 
     /**
      * Tests {@link PGTimestamp} with {@link PGInterval}.
+     *
      * @throws SQLException
      *            if a JDBC or database problem occurs.
      */
@@ -91,24 +90,26 @@ public class PGTimestampTest extends TestCase
      */
     private void verifyTimestampWithInterval(PGTimestamp timestamp, PGInterval interval, boolean useSetObject) throws SQLException
     {
-       // Execute a query using a casted timestamp string + PGInterval.
-       PreparedStatement ps;
+       // Construct the SQL query.
+       String sql;
        if (timestamp.getCalendar() != null)
        {
-           ps = con.prepareStatement("SELECT ?::timestamp with time zone + ?");
+           sql = "SELECT ?::timestamp with time zone + ?";
        }
        else
        {
-           ps = con.prepareStatement("SELECT ?::timestamp + ?");
+           sql = "SELECT ?::timestamp + ?";
        }
 
+       // Execute a query using a casted timestamp string + PGInterval.
+       PreparedStatement ps = con.prepareStatement(sql);
        SimpleDateFormat sdf = createSimpleDateFormat(timestamp);
        final String timestampString = sdf.format(timestamp);
        ps.setString(1, timestampString);
        ps.setObject(2, interval);
        ResultSet rs = ps.executeQuery();
+       assertNotNull(rs);
 
-       // Verify that the query produces the same results.
        assertTrue(rs.next());
        Timestamp result1 = rs.getTimestamp(1);
        assertNotNull(result1);
@@ -127,7 +128,7 @@ public class PGTimestampTest extends TestCase
        ps.setObject(2, interval);
        rs = ps.executeQuery();
 
-       // Verify that the query produces the expected results.
+       // Verify that the query produces the same results.
        assertTrue(rs.next());
        Timestamp result2 = rs.getTimestamp(1);
        assertEquals(result1, result2);
