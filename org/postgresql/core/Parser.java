@@ -7,12 +7,143 @@
 */
 package org.postgresql.core;
 
+import org.postgresql.util.GT;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 /**
  * Basic query parser infrastructure.
  * 
  * @author Michael Paesold (mpaesold@gmx.at)
  */
 public class Parser {
+    private final static int[] NO_BINDS = new int[0];
+
+    /**
+     * Parses JDBC query into PostgreSQL's native format. Several queries might be given if separated by semicolon.
+     * @param query jdbc query to parse
+     * @param standardConformingStrings whether to allow backslashes to be used as escape characters in single quote literals
+     * @param withParameters whether to replace ?, ? with $1, $2, etc
+     * @param splitStatements whether to split statements by semicolon
+     * @return list of native queries
+     */
+    public static List<NativeQuery> parseJdbcSql(String query, boolean standardConformingStrings, boolean withParameters, boolean splitStatements)
+    {
+        if (!withParameters && !splitStatements)
+            return Collections.singletonList(new NativeQuery(query));
+
+        int fragmentStart = 0;
+        int inParen = 0;
+
+        char[] aChars = query.toCharArray();
+
+        StringBuilder nativeSql = new StringBuilder(query.length() + 10);
+        List<Integer> bindPositions = null; // initialized on demand
+        List<NativeQuery> nativeQueries = null;
+
+        for (int i = 0; i < aChars.length; ++i)
+        {
+            switch (aChars[i])
+            {
+            case '\'': // single-quotes
+                i = Parser.parseSingleQuotes(aChars, i, standardConformingStrings);
+                break;
+
+            case '"': // double-quotes
+                i = Parser.parseDoubleQuotes(aChars, i);
+                break;
+
+            case '-': // possibly -- style comment
+                i = Parser.parseLineComment(aChars, i);
+                break;
+
+            case '/': // possibly /* */ style comment
+                i = Parser.parseBlockComment(aChars, i);
+                break;
+
+            case '$': // possibly dollar quote start
+                i = Parser.parseDollarQuotes(aChars, i);
+                break;
+
+            case '(':
+                inParen++;
+                break;
+
+            case ')':
+                inParen--;
+                break;
+
+            case '?':
+                nativeSql.append(aChars, fragmentStart, i - fragmentStart);
+                if (i + 1 < aChars.length && aChars[i + 1] == '?') /* replace ?? with ? */
+                {
+                    nativeSql.append('?');
+                    i++; // make sure the coming ? is not treated as a bind
+                } else
+                {
+                    if (bindPositions == null)
+                        bindPositions = new ArrayList<Integer>();
+                    bindPositions.add(nativeSql.length());
+                    int bindIndex = bindPositions.size();
+                    nativeSql.append(NativeQuery.bindName(bindIndex));
+                }
+                fragmentStart = i + 1;
+                break;
+
+            case ';':
+                if (inParen == 0 && splitStatements)
+                {
+                    nativeSql.append(aChars, fragmentStart, i - fragmentStart);
+                    fragmentStart = i + 1;
+                    if (nativeSql.length() > 0)
+                    {
+                        if (nativeQueries == null)
+                            nativeQueries = new ArrayList<NativeQuery>();
+
+                        nativeQueries.add(new NativeQuery(nativeSql.toString(), toIntList(bindPositions)));
+                    }
+                    // Prepare for next query
+                    if (bindPositions != null)
+                        bindPositions.clear();
+                    nativeSql.setLength(0);
+                }
+                break;
+
+            default:
+                break;
+            }
+        }
+
+        if (fragmentStart < aChars.length)
+            nativeSql.append(aChars, fragmentStart, aChars.length - fragmentStart);
+
+        if (nativeSql.length() == 0)
+            return nativeQueries != null ? nativeQueries : Collections.<NativeQuery>emptyList();
+
+        NativeQuery lastQuery = new NativeQuery(nativeSql.toString(), toIntList(bindPositions));
+
+        if (nativeQueries == null)
+            return Collections.singletonList(lastQuery);
+
+        nativeQueries.add(lastQuery);
+        return nativeQueries;
+    }
+
+    private static int[] toIntList(List<Integer> list) {
+        if (list == null || list.isEmpty())
+            return NO_BINDS;
+        int[] res = new int[list.size()];
+        for (int i = 0; i < list.size(); i++)
+        {
+            res[i] = list.get(i); // must not be null
+        }
+        return res;
+    }
 
     /**
      * Find the end of the single-quoted string starting at the given offset.
@@ -185,69 +316,6 @@ public class Parser {
     }
 
     /**
-     * unmark '??' in query back to '?'
-     * @param query
-     * @param standardConformingStrings
-     * @return
-     */
-    public static String unmarkDoubleQuestion(String query, boolean standardConformingStrings)
-    {
-        if (query == null) return query;
-        if (!query.contains("??")) return query;
-
-        char[] aChars = query.toCharArray();
-        StringBuilder buf = new StringBuilder(aChars.length);
-        for(int i=0, j=-1; i< aChars.length; i++)
-        {
-            switch (aChars[i])
-            {
-                case '\'': // single-quotes
-                    j = Parser.parseSingleQuotes(aChars, i, standardConformingStrings);
-                    buf.append(aChars, i, j-i+1);
-                    i = j;
-                    break;
-
-                case '"': // double-quotes
-                    j = Parser.parseDoubleQuotes(aChars, i);
-                    buf.append(aChars, i, j-i+1);
-                    i = j;
-                    break;
-
-                case '-': // possibly -- style comment
-                    j = Parser.parseLineComment(aChars, i);
-                    buf.append(aChars, i, j-i+1);
-                    i = j;
-                    break;
-
-                case '/': // possibly /* */ style comment
-                    j = Parser.parseBlockComment(aChars, i);
-                    buf.append(aChars, i, j-i+1);
-                    i = j;
-                    break;
-
-                case '$': // possibly dollar quote start
-                    j = Parser.parseDollarQuotes(aChars, i);
-                    buf.append(aChars, i, j-i+1);
-                    i = j;
-                    break;
-
-                case '?': // unescape '??' back to '?'
-                    if (i+1 < aChars.length && aChars[i+1] == '?') {
-                        buf.append("?");
-                        i = i+1;
-                    } else buf.append("?");
-
-                    break;
-
-                default:
-                    buf.append(aChars[i]);
-            }
-        }
-
-        return buf.toString();
-    }
-
-    /**
      * @return true if the character is a whitespace character as defined
      *         in the backend's parser
      */
@@ -362,4 +430,257 @@ public class Parser {
     
         return true;
     }
+
+    /**
+     * Contains parse flags from {@link #modifyJdbcCall(String, boolean, int, int)}.
+     * Originally {@link #modifyJdbcCall(String, boolean, int, int)} was located in {@link org.postgresql.jdbc2.AbstractJdbc2Statement},
+     * however it was moved out to avoid parse on each prepareCall.
+     */
+    public static class JdbcCallParseInfo {
+        private String sql;
+        private boolean isFunction;
+        private boolean outParmBeforeFunc;
+
+        public String getSql() {
+            return sql;
+        }
+
+        public boolean isFunction()
+        {
+            return isFunction;
+        }
+
+        public boolean isOutParmBeforeFunc()
+        {
+            return outParmBeforeFunc;
+        }
+    }
+
+    /**
+     * this method will turn a string of the form
+     * { [? =] call <some_function> [(?, [?,..])] }
+     * into the PostgreSQL format which is
+     * select <some_function> (?, [?, ...]) as result
+     * or select * from <some_function> (?, [?, ...]) as result (7.3)
+     */
+    public static JdbcCallParseInfo modifyJdbcCall(String p_sql, boolean stdStrings, int serverVersion, int protocolVersion) throws SQLException
+    {
+        // Mini-parser for JDBC function-call syntax (only)
+        // TODO: Merge with escape processing (and parameter parsing?)
+        // so we only parse each query once.
+        JdbcCallParseInfo info = new JdbcCallParseInfo();
+        info.sql = p_sql;
+        info.isFunction = false;
+
+        int len = p_sql.length();
+        int state = 1;
+        boolean inQuotes = false, inEscape = false;
+        info.outParmBeforeFunc = false;
+        int startIndex = -1, endIndex = -1;
+        boolean syntaxError = false;
+        int i = 0;
+
+        while (i < len && !syntaxError)
+        {
+            char ch = p_sql.charAt(i);
+
+            switch (state)
+            {
+            case 1:  // Looking for { at start of query
+                if (ch == '{')
+                {
+                    ++i;
+                    ++state;
+                } else if (Character.isWhitespace(ch))
+                {
+                    ++i;
+                } else
+                {
+                    // Not function-call syntax. Skip the rest of the string.
+                    i = len;
+                }
+                break;
+
+            case 2:  // After {, looking for ? or =, skipping whitespace
+                if (ch == '?')
+                {
+                    info.outParmBeforeFunc = info.isFunction = true;   // { ? = call ... }  -- function with one out parameter
+                    ++i;
+                    ++state;
+                } else if (ch == 'c' || ch == 'C')
+                {  // { call ... }      -- proc with no out parameters
+                    state += 3; // Don't increase 'i'
+                } else if (Character.isWhitespace(ch))
+                {
+                    ++i;
+                } else
+                {
+                    // "{ foo ...", doesn't make sense, complain.
+                    syntaxError = true;
+                }
+                break;
+
+            case 3:  // Looking for = after ?, skipping whitespace
+                if (ch == '=')
+                {
+                    ++i;
+                    ++state;
+                } else if (Character.isWhitespace(ch))
+                {
+                    ++i;
+                } else
+                {
+                    syntaxError = true;
+                }
+                break;
+
+            case 4:  // Looking for 'call' after '? =' skipping whitespace
+                if (ch == 'c' || ch == 'C')
+                {
+                    ++state; // Don't increase 'i'.
+                } else if (Character.isWhitespace(ch))
+                {
+                    ++i;
+                } else
+                {
+                    syntaxError = true;
+                }
+                break;
+
+            case 5:  // Should be at 'call ' either at start of string or after ?=
+                if ((ch == 'c' || ch == 'C') && i + 4 <= len && p_sql.substring(i, i + 4).equalsIgnoreCase("call"))
+                {
+                    info.isFunction = true;
+                    i += 4;
+                    ++state;
+                } else if (Character.isWhitespace(ch))
+                {
+                    ++i;
+                } else
+                {
+                    syntaxError = true;
+                }
+                break;
+
+            case 6:  // Looking for whitespace char after 'call'
+                if (Character.isWhitespace(ch))
+                {
+                    // Ok, we found the start of the real call.
+                    ++i;
+                    ++state;
+                    startIndex = i;
+                } else
+                {
+                    syntaxError = true;
+                }
+                break;
+
+            case 7:  // In "body" of the query (after "{ [? =] call ")
+                if (ch == '\'')
+                {
+                    inQuotes = !inQuotes;
+                    ++i;
+                } else if (inQuotes && ch == '\\' && !stdStrings)
+                {
+                    // Backslash in string constant, skip next character.
+                    i += 2;
+                } else if (!inQuotes && ch == '{')
+                {
+                    inEscape = !inEscape;
+                    ++i;
+                } else if (!inQuotes && ch == '}')
+                {
+                    if (!inEscape)
+                    {
+                        // Should be end of string.
+                        endIndex = i;
+                        ++i;
+                        ++state;
+                    } else
+                    {
+                        inEscape = false;
+                    }
+                } else if (!inQuotes && ch == ';')
+                {
+                    syntaxError = true;
+                } else
+                {
+                    // Everything else is ok.
+                    ++i;
+                }
+                break;
+
+            case 8:  // At trailing end of query, eating whitespace
+                if (Character.isWhitespace(ch))
+                {
+                    ++i;
+                } else
+                {
+                    syntaxError = true;
+                }
+                break;
+
+            default:
+                throw new IllegalStateException("somehow got into bad state " + state);
+            }
+        }
+
+        // We can only legally end in a couple of states here.
+        if (i == len && !syntaxError)
+        {
+            if (state == 1)
+            {
+                return info; // Not an escaped syntax.
+            }
+            if (state != 8)
+            {
+                syntaxError = true; // Ran out of query while still parsing
+            }
+        }
+
+        if (syntaxError)
+        {
+            throw new PSQLException(GT.tr("Malformed function or procedure escape syntax at offset {0}.", i),
+                    PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
+        }
+
+        if (serverVersion < 80100 /* 8.1 */ || protocolVersion != 3)
+        {
+            info.sql = "select " + p_sql.substring(startIndex, endIndex) + " as result";
+            return info;
+        } else
+        {
+            String s = p_sql.substring(startIndex, endIndex);
+            StringBuilder sb = new StringBuilder(s);
+            if (info.outParmBeforeFunc)
+            {
+                // move the single out parameter into the function call
+                // so that it can be treated like all other parameters
+                boolean needComma = false;
+
+                // have to use String.indexOf for java 2
+                int opening = s.indexOf('(') + 1;
+                int closing = s.indexOf(')');
+                for (int j = opening; j < closing; j++)
+                {
+                    if (!Character.isWhitespace(sb.charAt(j)))
+                    {
+                        needComma = true;
+                        break;
+                    }
+                }
+                if (needComma)
+                {
+                    sb.insert(opening, "?,");
+                } else
+                {
+                    sb.insert(opening, "?");
+                }
+
+            }
+            info.sql = "select * from " + sb.toString() + " as result";
+            return info;
+        }
+    }
+
 }

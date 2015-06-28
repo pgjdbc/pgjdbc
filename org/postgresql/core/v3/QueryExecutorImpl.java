@@ -27,17 +27,6 @@ import org.postgresql.copy.CopyOperation;
  * QueryExecutor implementation for the V3 protocol.
  */
 public class QueryExecutorImpl implements QueryExecutor {
-    /**
-     * Cache UTF8-encoded values for $1, $2, etc, so we do not have to repeatedly generate them for prepared statements.
-     */
-    private final static byte[][] BIND_NAMES = new byte[128][];
-
-    static {
-        for (int i = 1; i < BIND_NAMES.length; i++) {
-            BIND_NAMES[i] = Utils.encodeUTF8("$" + i);
-        }
-    }
-
     public QueryExecutorImpl(ProtocolConnectionImpl protoConnection, PGStream pgStream, Properties info, Logger logger) {
         this.protoConnection = protoConnection;
         this.pgStream = pgStream;
@@ -120,103 +109,24 @@ public class QueryExecutorImpl implements QueryExecutor {
     }
 
     private Query parseQuery(String query, boolean withParameters) {
-        // Parse query and find parameter placeholders;
-        // also break the query into separate statements.
 
-        ArrayList statementList = new ArrayList();
-        ArrayList fragmentList = new ArrayList(15);
-
-        int fragmentStart = 0;
-        int inParen = 0;
-
-        boolean standardConformingStrings = protoConnection.getStandardConformingStrings();
-        
-        char []aChars = query.toCharArray();
-
-        for (int i = 0; i < aChars.length; ++i)
-        {
-            switch (aChars[i])
-            {
-            case '\'': // single-quotes
-                i = Parser.parseSingleQuotes(aChars, i, standardConformingStrings);
-                break;
-
-            case '"': // double-quotes
-                i = Parser.parseDoubleQuotes(aChars, i);
-                break;
-
-            case '-': // possibly -- style comment
-                i = Parser.parseLineComment(aChars, i);
-                break;
-
-            case '/': // possibly /* */ style comment
-                i = Parser.parseBlockComment(aChars, i);
-                break;
-            
-            case '$': // possibly dollar quote start
-                i = Parser.parseDollarQuotes(aChars, i);
-                break;
-
-            case '(':
-                inParen++;
-                break;
-
-            case ')':
-                inParen--;
-                break;
-
-            case '?':
-                if (withParameters)
-                {
-                    if (i+1 < aChars.length && aChars[i+1] == '?') /* let '??' pass */
-                        i = i+1;
-                    else
-                    {
-                        fragmentList.add(query.substring(fragmentStart, i));
-                        fragmentStart = i + 1;
-                    }
-                }
-                break;
-
-            case ';':
-                if (inParen == 0)
-                {
-                    fragmentList.add(query.substring(fragmentStart, i));
-                    fragmentStart = i + 1;
-                    if (fragmentList.size() > 1 || ((String)fragmentList.get(0)).trim().length() > 0)
-                        statementList.add(fragmentList.toArray(new String[fragmentList.size()]));
-                    fragmentList.clear();
-                }
-                break;
-
-            default:
-                break;
-            }
-        }
-
-        fragmentList.add(query.substring(fragmentStart));
-        if (fragmentList.size() > 1 || ((String)fragmentList.get(0)).trim().length() > 0)
-            statementList.add(fragmentList.toArray(new String[fragmentList.size()]));
-
-        if (statementList.isEmpty())  // Empty query.
+        List<NativeQuery> queries = Parser.parseJdbcSql(query, protoConnection.getStandardConformingStrings(), withParameters, true);
+        if (queries.isEmpty())  // Empty query.
             return EMPTY_QUERY;
-
-        if (statementList.size() == 1)
-        {
-            // Only one statement.
-            return new SimpleQuery((String[]) statementList.get(0), protoConnection);
+        if (queries.size() == 1) {
+            return new SimpleQuery(queries.get(0), protoConnection);
         }
 
         // Multiple statements.
-        SimpleQuery[] subqueries = new SimpleQuery[statementList.size()];
-        int[] offsets = new int[statementList.size()];
+        SimpleQuery[] subqueries = new SimpleQuery[queries.size()];
+        int[] offsets = new int[subqueries.length];
         int offset = 0;
-        for (int i = 0; i < statementList.size(); ++i)
+        for (int i = 0; i < queries.size(); ++i)
         {
-            String[] fragments = (String[]) statementList.get(i);
+            NativeQuery nativeQuery = queries.get(i);
             offsets[i] = offset;
-            subqueries[i] = new SimpleQuery(fragments, protoConnection);
-            offset += fragments.length - 1;
+            subqueries[i] = new SimpleQuery(nativeQuery, protoConnection);
+            offset += nativeQuery.bindPositions.length;
         }
 
         return new CompositeQuery(subqueries, offsets);
@@ -1281,17 +1191,12 @@ public class QueryExecutorImpl implements QueryExecutor {
         }
 
         byte[] encodedStatementName = query.getEncodedStatementName();
-        String[] fragments = query.getFragments();
+        String nativeSql = query.getNativeSql();
 
         if (logger.logDebug())
         {
             StringBuilder sbuf = new StringBuilder(" FE=> Parse(stmt=" + statementName + ",query=\"");
-            for (int i = 0; i < fragments.length; ++i)
-            {
-                if (i > 0)
-                    sbuf.append("$").append(i);
-                sbuf.append(fragments[i]);
-            }
+            sbuf.append(nativeSql);
             sbuf.append("\",oids={");
             for (int i = 1; i <= params.getParameterCount(); ++i)
             {
@@ -1307,34 +1212,15 @@ public class QueryExecutorImpl implements QueryExecutor {
         // Send Parse.
         //
 
-        byte[][] parts = new byte[fragments.length * 2 - 1][];
-        int j = 0;
-        int encodedSize = 0;
+        byte[] queryUtf8 = Utils.encodeUTF8(nativeSql);
 
         // Total size = 4 (size field)
         //            + N + 1 (statement name, zero-terminated)
         //            + N + 1 (query, zero terminated)
         //            + 2 (parameter count) + N * 4 (parameter types)
-        // original query: "frag0 ? frag1 ? frag2"
-        // fragments: { "frag0", "frag1", "frag2" }
-        // output: "frag0 $1 frag1 $2 frag2"
-        for (int i = 0; i < fragments.length; ++i)
-        {
-            if (i != 0)
-            {
-                parts[j] = i < BIND_NAMES.length ? BIND_NAMES[i] : Utils.encodeUTF8("$" + i);
-                encodedSize += parts[j].length;
-                ++j;
-            }
-
-            parts[j] = Utils.encodeUTF8(fragments[i]);
-            encodedSize += parts[j].length;
-            ++j;
-        }
-
-        encodedSize = 4
+        int encodedSize = 4
                       + (encodedStatementName == null ? 0 : encodedStatementName.length) + 1
-                      + encodedSize + 1
+                      + queryUtf8.length + 1
                       + 2 + 4 * params.getParameterCount();
 
         pgStream.SendChar('P'); // Parse
@@ -1342,9 +1228,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         if (encodedStatementName != null)
             pgStream.Send(encodedStatementName);
         pgStream.SendChar(0);   // End of statement name
-        for (byte[] part : parts) { // Query string
-            pgStream.Send(part);
-        }
+        pgStream.Send(queryUtf8); // Query string
         pgStream.SendChar(0);       // End of query string.
         pgStream.SendInteger2(params.getParameterCount());       // # of parameter types specified
         for (int i = 1; i <= params.getParameterCount(); ++i)
@@ -2391,7 +2275,7 @@ public class QueryExecutorImpl implements QueryExecutor {
      */
     private int estimatedReceiveBufferBytes = 0;
 
-    private final SimpleQuery beginTransactionQuery = new SimpleQuery(new String[] { "BEGIN" }, null);
+    private final SimpleQuery beginTransactionQuery = new SimpleQuery(new NativeQuery("BEGIN", new int[0]), null);
 
-    private final SimpleQuery EMPTY_QUERY = new SimpleQuery(new String[] { "" }, null);
+    private final SimpleQuery EMPTY_QUERY = new SimpleQuery(new NativeQuery("", new int[0]), null);
 }

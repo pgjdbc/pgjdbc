@@ -255,7 +255,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                                      int maxRows, int fetchSize, int flags)
     throws SQLException
     {
-        execute((V2Query)query, (SimpleParameterList)parameters, handler, maxRows, flags);
+        execute((V2Query) query, (SimpleParameterList) parameters, handler, maxRows, flags);
     }
 
     // Nothing special yet, just run the queries one at a time.
@@ -386,12 +386,24 @@ public class QueryExecutorImpl implements QueryExecutor {
         if (queryPrefix != null)
             encodingWriter.write(queryPrefix);
 
-        String[] fragments = query.getFragments();
-        for (int i = 0 ; i < fragments.length; ++i)
+        NativeQuery nativeQuery = query.getNativeQuery();
+
+        String nativeSql = nativeQuery.nativeSql;
+        if (params.getParameterCount() == 0) {
+            encodingWriter.write(nativeSql);
+        }
+        else
         {
-            encodingWriter.write(fragments[i]);
-            if (i < params.getParameterCount())
-                params.writeV2Value(i + 1, encodingWriter);
+            int[] bindPositions = nativeQuery.bindPositions;
+            encodingWriter.write(nativeSql, 0, bindPositions[0]);
+            for (int i = 1 ; i <= bindPositions.length; i++)
+            {
+                params.writeV2Value(i, encodingWriter);
+
+                int nextBind = i < bindPositions.length ? bindPositions[i] : nativeSql.length();
+                int off = bindPositions[i - 1] + NativeQuery.bindName(i).length();
+                encodingWriter.write(nativeSql, off, nextBind - off);
+            }
         }
 
         encodingWriter.write(0);

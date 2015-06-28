@@ -364,11 +364,43 @@ public abstract class BaseDataSource implements Referenceable
     }
 
     /**
-     * @see PGProperty#PREPARE_THRESHOLD 
+     * @see PGProperty#PREPARE_THRESHOLD
      */
     public int getPrepareThreshold()
     {
         return PGProperty.PREPARE_THRESHOLD.getIntNoCheck(properties);
+    }
+
+    /**
+     * @see PGProperty#PREPARED_STATEMENT_CACHE_QUERIES
+     */
+    public int getPreparedStatementCacheQueries()
+    {
+        return PGProperty.PREPARED_STATEMENT_CACHE_QUERIES.getIntNoCheck(properties);
+    }
+
+    /**
+     * @see PGProperty#PREPARED_STATEMENT_CACHE_QUERIES
+     */
+    public void setPreparedStatementCacheQueries(int cacheSize)
+    {
+        PGProperty.PREPARED_STATEMENT_CACHE_QUERIES.set(properties, cacheSize);
+    }
+
+    /**
+     * @see PGProperty#PREPARED_STATEMENT_CACHE_SIZE_MIB
+     */
+    public int getPreparedStatementCacheSizeMiB()
+    {
+        return PGProperty.PREPARED_STATEMENT_CACHE_SIZE_MIB.getIntNoCheck(properties);
+    }
+
+    /**
+     * @see PGProperty#PREPARED_STATEMENT_CACHE_SIZE_MIB
+     */
+    public void setPreparedStatementCacheSizeMiB(int cacheSize)
+    {
+        PGProperty.PREPARED_STATEMENT_CACHE_SIZE_MIB.set(properties, cacheSize);
     }
 
     /**

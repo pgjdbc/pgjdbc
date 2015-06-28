@@ -26,9 +26,14 @@ public class ParseStatement {
     @Param({"0", "1", "10", "20"})
     private int bindCount;
 
+    @Param({"false"})
+    public boolean unique;
+
     private Connection connection;
 
     private String sql;
+
+    private int cntr;
 
     @Setup(Level.Trial)
     public void setUp() throws SQLException {
@@ -51,6 +56,8 @@ public class ParseStatement {
 
     @Benchmark
     public Statement bindExecuteFetch(Blackhole b) throws SQLException {
+        String sql = this.sql;
+        if (unique) sql += " -- " + cntr++;
         PreparedStatement ps = connection.prepareStatement(sql);
         for (int i = 1; i <= bindCount; i++) {
             ps.setInt(i, i);

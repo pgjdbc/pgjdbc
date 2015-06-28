@@ -21,7 +21,6 @@ import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.util.*;
 import org.postgresql.copy.*;
 import org.postgresql.core.Utils;
-import org.postgresql.util.SharedTimer;
 
 /**
  * This class defines methods of the jdbc2 specification.
@@ -93,6 +92,18 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     // Timer for scheduling TimerTasks for this connection.
     // Only instantiated if a task is actually scheduled.
     private volatile Timer cancelTimer = null;
+
+    private final LruCache<Object, CachedQuery> statementCache;
+
+    CachedQuery borrowQuery(String sql, boolean isCallable) throws SQLException {
+        Object key = isCallable ? new CallableQueryKey(sql) : sql;
+        return statementCache.borrow(key);
+    }
+
+    void releaseQuery(CachedQuery cachedQuery)
+    {
+        statementCache.put(cachedQuery.key, cachedQuery);
+    }
 
     //
     // Ctor.
@@ -254,6 +265,18 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
             enableDriverManagerLogging();
         }
         this.disableColumnSanitiser = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
+        statementCache = new LruCache<Object, CachedQuery>(
+                Math.max(0, PGProperty.PREPARED_STATEMENT_CACHE_QUERIES.getInt(info)),
+                Math.max(0, PGProperty.PREPARED_STATEMENT_CACHE_SIZE_MIB.getInt(info) * 1024 * 1024),
+                new CachedQueryCreateAction(this, protoConnection.getServerVersionNum()),
+                new LruCache.EvictAction<CachedQuery>() {
+                    @Override
+                    public void evict(CachedQuery cachedQuery) throws SQLException
+                    {
+                        cachedQuery.query.close();
+                    }
+                }
+        );
     }
 
     private Set<Integer> getOidSet(String oidList) throws PSQLException {
@@ -1353,4 +1376,5 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     public String escapeLiteral(String literal) throws SQLException {
         return Utils.escapeLiteral(null, literal, protoConnection.getStandardConformingStrings()).toString();
     }
+
 }
