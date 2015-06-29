@@ -766,6 +766,8 @@ openssl pkcs8 -topk8 -in client.key -out client.pk8 -outform DER -v1 PBE-SHA1-3D
          the least recently used ones will be discarded.
          The main aim of this setting is to prevent <classname>OutOfMemoryError</classname>.
          The value of 0 disables the cache.
+         If a query would consume more than a half of <varname>preparedStatementCacheSizeMiB</varname>,
+         then it is discarded immediately.
         </para>
        </listitem>
       </varlistentry>
