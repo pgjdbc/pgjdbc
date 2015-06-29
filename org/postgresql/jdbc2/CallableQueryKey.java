@@ -33,13 +33,13 @@ class CallableQueryKey {
 
         CallableQueryKey that = (CallableQueryKey) o;
 
-        return !(sql != null ? !sql.equals(that.sql) : that.sql != null);
+        return sql == null ? that.sql == null : sql.equals(that.sql);
 
     }
 
     @Override
     public int hashCode()
     {
-        return sql != null ? sql.hashCode() : 0;
+        return sql == null ? 0 : sql.hashCode();
     }
 }

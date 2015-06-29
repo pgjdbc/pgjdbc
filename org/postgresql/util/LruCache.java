@@ -103,12 +103,13 @@ public class LruCache<Key, Value extends CanEstimateSize> {
      */
     public void put(Key key, Value value)
     {
-        if (maxSizeBytes == 0 || maxSizeEntries == 0) {
-            // Just destroy the value if cache is disabled
+        long valueSize = value.getSize();
+        if (maxSizeBytes == 0 || maxSizeEntries == 0 || valueSize * 2 > maxSizeBytes) {
+            // Just destroy the value if cache is disabled or if entry would consume more than a half of the cache
             evictValue(value);
             return;
         }
-        currentSize += value.getSize();
+        currentSize += valueSize;
         cache.put(key, value);
     }
 }

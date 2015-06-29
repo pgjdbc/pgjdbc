@@ -120,7 +120,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     private static final short ESC_OUTERJOIN = 5;
     private static final short ESC_ESCAPECHAR = 7;
     
-    protected final CachedQuery preparedQuery;              // Query fragments for prepared statement.
+    protected final CachedQuery preparedQuery;        // Query fragments for prepared statement.
     protected final ParameterList preparedParameters; // Parameter values for prepared statement.
     protected Query lastSimpleQuery;
 

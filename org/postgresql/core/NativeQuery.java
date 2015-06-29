@@ -52,14 +52,20 @@ public class NativeQuery {
         if (bindPositions.length == 0)
             return nativeSql;
 
-        StringBuilder sbuf = new StringBuilder(nativeSql.length());
+        int queryLength = nativeSql.length();
+        String[] params = new String[bindPositions.length];
+        for (int i = 1; i <= bindPositions.length; ++i)
+        {
+            String param = parameters == null ? "?" : parameters.toString(i);
+            params[i - 1] = param;
+            queryLength += param.length() - bindName(i).length();
+        }
+
+        StringBuilder sbuf = new StringBuilder(queryLength);
         sbuf.append(nativeSql, 0, bindPositions[0]);
         for (int i = 1; i <= bindPositions.length; ++i)
         {
-            if (parameters == null)
-                sbuf.append('?');
-            else
-                sbuf.append(parameters.toString(i));
+            sbuf.append(params[i - 1]);
             int nextBind = i < bindPositions.length ? bindPositions[i] : nativeSql.length();
             sbuf.append(nativeSql, bindPositions[i - 1] + bindName(i).length(), nextBind);
         }

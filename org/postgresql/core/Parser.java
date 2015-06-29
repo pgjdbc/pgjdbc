@@ -105,7 +105,7 @@ public class Parser {
                         if (nativeQueries == null)
                             nativeQueries = new ArrayList<NativeQuery>();
 
-                        nativeQueries.add(new NativeQuery(nativeSql.toString(), toIntList(bindPositions)));
+                        nativeQueries.add(new NativeQuery(nativeSql.toString(), toIntArray(bindPositions)));
                     }
                     // Prepare for next query
                     if (bindPositions != null)
@@ -125,7 +125,7 @@ public class Parser {
         if (nativeSql.length() == 0)
             return nativeQueries != null ? nativeQueries : Collections.<NativeQuery>emptyList();
 
-        NativeQuery lastQuery = new NativeQuery(nativeSql.toString(), toIntList(bindPositions));
+        NativeQuery lastQuery = new NativeQuery(nativeSql.toString(), toIntArray(bindPositions));
 
         if (nativeQueries == null)
             return Collections.singletonList(lastQuery);
@@ -134,7 +134,12 @@ public class Parser {
         return nativeQueries;
     }
 
-    private static int[] toIntList(List<Integer> list) {
+    /**
+     * Converts {@code List<Integer>} to {@code int[]}. Empty and {@code null} lists are converted to empty array.
+     * @param list input list
+     * @return output array
+     */
+    private static int[] toIntArray(List<Integer> list) {
         if (list == null || list.isEmpty())
             return NO_BINDS;
         int[] res = new int[list.size()];
@@ -432,57 +437,36 @@ public class Parser {
     }
 
     /**
-     * Contains parse flags from {@link #modifyJdbcCall(String, boolean, int, int)}.
-     * Originally {@link #modifyJdbcCall(String, boolean, int, int)} was located in {@link org.postgresql.jdbc2.AbstractJdbc2Statement},
-     * however it was moved out to avoid parse on each prepareCall.
-     */
-    public static class JdbcCallParseInfo {
-        private String sql;
-        private boolean isFunction;
-        private boolean outParmBeforeFunc;
-
-        public String getSql() {
-            return sql;
-        }
-
-        public boolean isFunction()
-        {
-            return isFunction;
-        }
-
-        public boolean isOutParmBeforeFunc()
-        {
-            return outParmBeforeFunc;
-        }
-    }
-
-    /**
-     * this method will turn a string of the form
-     * { [? =] call <some_function> [(?, [?,..])] }
+     * Converts JDBC-specific callable statement escapes {@code { [? =] call <some_function> [(?, [?,..])] }}
      * into the PostgreSQL format which is
      * select <some_function> (?, [?, ...]) as result
      * or select * from <some_function> (?, [?, ...]) as result (7.3)
+     * @param jdbcSql sql text with JDBC escapes
+     * @param stdStrings if backslash in single quotes should be regular character or escape one
+     * @param serverVersion server version
+     * @param protocolVersion protocol version
+     * @return SQL in appropriate for given server format
+     * @throws SQLException if given SQL is malformed
      */
-    public static JdbcCallParseInfo modifyJdbcCall(String p_sql, boolean stdStrings, int serverVersion, int protocolVersion) throws SQLException
+    public static JdbcCallParseInfo modifyJdbcCall(String jdbcSql, boolean stdStrings, int serverVersion, int protocolVersion) throws SQLException
     {
         // Mini-parser for JDBC function-call syntax (only)
-        // TODO: Merge with escape processing (and parameter parsing?)
-        // so we only parse each query once.
-        JdbcCallParseInfo info = new JdbcCallParseInfo();
-        info.sql = p_sql;
-        info.isFunction = false;
+        // TODO: Merge with escape processing (and parameter parsing?) so we only parse each query once.
+        // RE: frequently used statements are cached (see {@link org.postgresql.jdbc2.AbstractJdbc2Connection.borrowQuery}), so this "merge" is not that important.
+        String sql = jdbcSql;
+        boolean isFunction = false;
+        boolean outParmBeforeFunc = false;
 
-        int len = p_sql.length();
+        int len = jdbcSql.length();
         int state = 1;
         boolean inQuotes = false, inEscape = false;
-        info.outParmBeforeFunc = false;
         int startIndex = -1, endIndex = -1;
         boolean syntaxError = false;
         int i = 0;
 
         while (i < len && !syntaxError)
         {
-            char ch = p_sql.charAt(i);
+            char ch = jdbcSql.charAt(i);
 
             switch (state)
             {
@@ -504,7 +488,7 @@ public class Parser {
             case 2:  // After {, looking for ? or =, skipping whitespace
                 if (ch == '?')
                 {
-                    info.outParmBeforeFunc = info.isFunction = true;   // { ? = call ... }  -- function with one out parameter
+                    outParmBeforeFunc = isFunction = true;   // { ? = call ... }  -- function with one out parameter
                     ++i;
                     ++state;
                 } else if (ch == 'c' || ch == 'C')
@@ -548,9 +532,9 @@ public class Parser {
                 break;
 
             case 5:  // Should be at 'call ' either at start of string or after ?=
-                if ((ch == 'c' || ch == 'C') && i + 4 <= len && p_sql.substring(i, i + 4).equalsIgnoreCase("call"))
+                if ((ch == 'c' || ch == 'C') && i + 4 <= len && jdbcSql.substring(i, i + 4).equalsIgnoreCase("call"))
                 {
-                    info.isFunction = true;
+                    isFunction = true;
                     i += 4;
                     ++state;
                 } else if (Character.isWhitespace(ch))
@@ -630,7 +614,8 @@ public class Parser {
         {
             if (state == 1)
             {
-                return info; // Not an escaped syntax.
+                // Not an escaped syntax.
+                return new JdbcCallParseInfo(sql, isFunction, outParmBeforeFunc);
             }
             if (state != 8)
             {
@@ -646,41 +631,38 @@ public class Parser {
 
         if (serverVersion < 80100 /* 8.1 */ || protocolVersion != 3)
         {
-            info.sql = "select " + p_sql.substring(startIndex, endIndex) + " as result";
-            return info;
-        } else
-        {
-            String s = p_sql.substring(startIndex, endIndex);
-            StringBuilder sb = new StringBuilder(s);
-            if (info.outParmBeforeFunc)
-            {
-                // move the single out parameter into the function call
-                // so that it can be treated like all other parameters
-                boolean needComma = false;
-
-                // have to use String.indexOf for java 2
-                int opening = s.indexOf('(') + 1;
-                int closing = s.indexOf(')');
-                for (int j = opening; j < closing; j++)
-                {
-                    if (!Character.isWhitespace(sb.charAt(j)))
-                    {
-                        needComma = true;
-                        break;
-                    }
-                }
-                if (needComma)
-                {
-                    sb.insert(opening, "?,");
-                } else
-                {
-                    sb.insert(opening, "?");
-                }
-
-            }
-            info.sql = "select * from " + sb.toString() + " as result";
-            return info;
+            sql = "select " + jdbcSql.substring(startIndex, endIndex) + " as result";
+            return new JdbcCallParseInfo(sql, isFunction, outParmBeforeFunc);
         }
+        String s = jdbcSql.substring(startIndex, endIndex);
+        StringBuilder sb = new StringBuilder(s);
+        if (outParmBeforeFunc)
+        {
+            // move the single out parameter into the function call
+            // so that it can be treated like all other parameters
+            boolean needComma = false;
+
+            // have to use String.indexOf for java 2
+            int opening = s.indexOf('(') + 1;
+            int closing = s.indexOf(')');
+            for (int j = opening; j < closing; j++)
+            {
+                if (!Character.isWhitespace(sb.charAt(j)))
+                {
+                    needComma = true;
+                    break;
+                }
+            }
+            if (needComma)
+            {
+                sb.insert(opening, "?,");
+            } else
+            {
+                sb.insert(opening, "?");
+            }
+        }
+        sql = "select * from " + sb.toString() + " as result";
+        return new JdbcCallParseInfo(sql, isFunction, outParmBeforeFunc);
     }
 
 }

@@ -8,6 +8,7 @@
 package org.postgresql.jdbc2;
 
 import org.postgresql.core.CachedQuery;
+import org.postgresql.core.JdbcCallParseInfo;
 import org.postgresql.core.Parser;
 import org.postgresql.core.Query;
 import org.postgresql.util.LruCache;
@@ -36,7 +37,7 @@ class CachedQueryCreateAction implements LruCache.CreateAction<Object, CachedQue
         boolean outParmBeforeFunc;
         if (key instanceof CallableQueryKey)
         {
-            Parser.JdbcCallParseInfo callInfo = Parser.modifyJdbcCall(parsedSql, connection.getStandardConformingStrings(), serverVersionNum, connection.getProtocolVersion());
+            JdbcCallParseInfo callInfo = Parser.modifyJdbcCall(parsedSql, connection.getStandardConformingStrings(), serverVersionNum, connection.getProtocolVersion());
             parsedSql = callInfo.getSql();
             isFunction = callInfo.isFunction();
             outParmBeforeFunc = callInfo.isOutParmBeforeFunc();
