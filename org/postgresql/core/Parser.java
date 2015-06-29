@@ -105,7 +105,7 @@ public class Parser {
                         if (nativeQueries == null)
                             nativeQueries = new ArrayList<NativeQuery>();
 
-                        nativeQueries.add(new NativeQuery(nativeSql.toString(), toIntList(bindPositions)));
+                        nativeQueries.add(new NativeQuery(nativeSql.toString(), toIntArray(bindPositions)));
                     }
                     // Prepare for next query
                     if (bindPositions != null)
@@ -125,7 +125,7 @@ public class Parser {
         if (nativeSql.length() == 0)
             return nativeQueries != null ? nativeQueries : Collections.<NativeQuery>emptyList();
 
-        NativeQuery lastQuery = new NativeQuery(nativeSql.toString(), toIntList(bindPositions));
+        NativeQuery lastQuery = new NativeQuery(nativeSql.toString(), toIntArray(bindPositions));
 
         if (nativeQueries == null)
             return Collections.singletonList(lastQuery);
@@ -134,7 +134,12 @@ public class Parser {
         return nativeQueries;
     }
 
-    private static int[] toIntList(List<Integer> list) {
+    /**
+     * Converts {@code List<Integer>} to {@code int[]}. Empty and {@code null} lists are converted to empty array.
+     * @param list input list
+     * @return output array
+     */
+    private static int[] toIntArray(List<Integer> list) {
         if (list == null || list.isEmpty())
             return NO_BINDS;
         int[] res = new int[list.size()];
