@@ -6,8 +6,6 @@
 *-------------------------------------------------------------------------
 */
 
-// Portions Copyright [2015] [Phillip Ross, Luminosity Labs LLC]
-
 package org.postgresql.util;
 
 import java.util.ArrayList;

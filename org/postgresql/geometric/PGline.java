@@ -6,8 +6,6 @@
 *-------------------------------------------------------------------------
 */
 
-// Portions Copyright [2015] [Phillip Ross, Luminosity Labs LLC]
-
 package org.postgresql.geometric;
 
 import org.postgresql.util.GT;
