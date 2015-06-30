@@ -60,9 +60,14 @@ public class PGline extends PGobject implements Serializable, Cloneable
     public PGline(double x1, double y1, double x2, double y2)
     {
         this();
-        double a = (y2 - y1) / (x2 - x1);
-        double b = -1;
-        double c = y1 - a * x1;
+        if (x1 == x2) {
+            a = -1;
+            b = 0;
+        } else {
+            a = (y2 - y1) / (x2 - x1);
+            b = -1;
+        }
+        c = y1 - a * x1;
     }
 
     /**
