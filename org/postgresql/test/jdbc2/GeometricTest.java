@@ -11,6 +11,8 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGobject;
 import org.postgresql.geometric.*;
 import junit.framework.TestCase;
+import org.postgresql.util.PSQLException;
+
 import java.sql.*;
 
 /*
@@ -31,8 +33,8 @@ public class GeometricTest extends TestCase
     {
         con = TestUtil.openDB();
         TestUtil.createTable(con,
-                             "testgeometric",
-                             "boxval box, circleval circle, lsegval lseg, pathval path, polygonval polygon, pointval point");
+                "testgeometric",
+                "boxval box, circleval circle, lsegval lseg, pathval path, polygonval polygon, pointval point, lineval line");
     }
 
     // Tear down the fixture for this test case.
@@ -107,7 +109,37 @@ public class GeometricTest extends TestCase
         checkReadWrite(new PGpolygon(points), "polygonval");
     }
 
+    public void testPGline() throws Exception {
+        final String columnName = "lineval";
+        // Apparently the driver requires public no-args constructor, and postgresql doesn't accept lines with A and B
+        // coefficients both being zero... so assert a no-arg instantiated instance throws an exception.
+        try {
+            checkReadWrite(new PGline(), columnName);
+            fail("Expected a PGSQLException to be thrown");
+        } catch (PSQLException e) {
+            assertTrue(e.getMessage().contains("A and B cannot both be zero"));
+        }
+
+        for (double i = 1; i <= 3; i += 0.25) {
+            // Test the 3-arg constructor (coefficients+constant)
+            checkReadWrite(new PGline(i, (0 - i), (1 / i)), columnName);
+            checkReadWrite(new PGline("{" + i + "," + (0 - i) + "," + (1 / i) + "}"), columnName);
+            // Test the 4-arg constructor (x/y coords of two points on the line)
+            checkReadWrite(new PGline(i, (0 - i), (1 / i), ( 1 / i / i)), columnName);
+            checkReadWrite(new PGline(i, (0 - i), i, ( 1 / i / i)), columnName); // tests vertical line
+            // Test 2-arg constructor (2 PGpoints on the line);
+            checkReadWrite(new PGline(new PGpoint(i, (0 - i)), new PGpoint((1 / i),( 1 / i / i))), columnName);
+            checkReadWrite(new PGline(new PGpoint(i, (0 - i)), new PGpoint(i,(1 / i / i))), columnName); // tests vertical line
+            // Test 1-arg constructor (PGlseg on the line);
+            checkReadWrite(new PGline(new PGlseg(i, (0 - i), (1 / i), ( 1 / i / i))), columnName);
+            checkReadWrite(new PGline(new PGlseg(i, (0 - i), i, ( 1 / i / i))), columnName);
+            checkReadWrite(new PGline(new PGlseg(new PGpoint(i, (0 - i)), new PGpoint((1 / i),( 1 / i / i)))), columnName);
+            checkReadWrite(new PGline(new PGlseg(new PGpoint(i, (0 - i)), new PGpoint(i,(1 / i / i)))), columnName);
+        }
+    }
+
     public void testPGpoint() throws Exception {
         checkReadWrite(new PGpoint(1.0, 2.0), "pointval");
     }
+
 }
