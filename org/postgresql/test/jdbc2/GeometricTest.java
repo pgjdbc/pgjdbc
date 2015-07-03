@@ -14,6 +14,9 @@ import junit.framework.TestCase;
 import org.postgresql.util.PSQLException;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
 
 /*
  * Test case for geometric type I/O
@@ -111,30 +114,50 @@ public class GeometricTest extends TestCase
 
     public void testPGline() throws Exception {
         final String columnName = "lineval";
-        // Apparently the driver requires public no-args constructor, and postgresql doesn't accept lines with A and B
-        // coefficients both being zero... so assert a no-arg instantiated instance throws an exception.
-        try {
-            checkReadWrite(new PGline(), columnName);
-            fail("Expected a PGSQLException to be thrown");
-        } catch (PSQLException e) {
-            assertTrue(e.getMessage().contains("A and B cannot both be zero"));
-        }
 
-        for (double i = 1; i <= 3; i += 0.25) {
-            // Test the 3-arg constructor (coefficients+constant)
-            checkReadWrite(new PGline(i, (0 - i), (1 / i)), columnName);
-            checkReadWrite(new PGline("{" + i + "," + (0 - i) + "," + (1 / i) + "}"), columnName);
-            // Test the 4-arg constructor (x/y coords of two points on the line)
-            checkReadWrite(new PGline(i, (0 - i), (1 / i), ( 1 / i / i)), columnName);
-            checkReadWrite(new PGline(i, (0 - i), i, ( 1 / i / i)), columnName); // tests vertical line
-            // Test 2-arg constructor (2 PGpoints on the line);
-            checkReadWrite(new PGline(new PGpoint(i, (0 - i)), new PGpoint((1 / i),( 1 / i / i))), columnName);
-            checkReadWrite(new PGline(new PGpoint(i, (0 - i)), new PGpoint(i,(1 / i / i))), columnName); // tests vertical line
-            // Test 1-arg constructor (PGlseg on the line);
-            checkReadWrite(new PGline(new PGlseg(i, (0 - i), (1 / i), ( 1 / i / i))), columnName);
-            checkReadWrite(new PGline(new PGlseg(i, (0 - i), i, ( 1 / i / i))), columnName);
-            checkReadWrite(new PGline(new PGlseg(new PGpoint(i, (0 - i)), new PGpoint((1 / i),( 1 / i / i)))), columnName);
-            checkReadWrite(new PGline(new PGlseg(new PGpoint(i, (0 - i)), new PGpoint(i,(1 / i / i)))), columnName);
+        // PostgreSQL versions older than 9.4 support creating columns with the LINE datatype, but
+        // not actually writing to those columns.  Only try to write if the version if at least 9.4
+        final boolean roundTripToDatabase = TestUtil.haveMinimumServerVersion(con, "9.4");
+
+        if (TestUtil.haveMinimumServerVersion(con, "9.4")) {
+
+            // Apparently the driver requires public no-args constructor, and postgresql doesn't accept lines with A and B
+            // coefficients both being zero... so assert a no-arg instantiated instance throws an exception.
+            if (roundTripToDatabase) {
+                try {
+                    checkReadWrite(new PGline(), columnName);
+                    fail("Expected a PGSQLException to be thrown");
+                } catch (PSQLException e) {
+                    assertTrue(e.getMessage().contains("A and B cannot both be zero"));
+                }
+            }
+
+            // Generate a dataset for testing.
+            List<PGline> linesToTest = new ArrayList<PGline>();
+            for (double i = 1; i <= 3; i += 0.25) {
+                // Test the 3-arg constructor (coefficients+constant)
+                linesToTest.add(new PGline(i, (0 - i), (1 / i)));
+                linesToTest.add(new PGline("{" + i + "," + (0 - i) + "," + (1 / i) + "}"));
+                // Test the 4-arg constructor (x/y coords of two points on the line)
+                linesToTest.add(new PGline(i, (0 - i), (1 / i), (1 / i / i)));
+                linesToTest.add(new PGline(i, (0 - i), i, (1 / i / i))); // tests vertical line
+                // Test 2-arg constructor (2 PGpoints on the line);
+                linesToTest.add(new PGline(new PGpoint(i, (0 - i)), new PGpoint((1 / i), (1 / i / i))));
+                linesToTest.add(new PGline(new PGpoint(i, (0 - i)), new PGpoint(i, (1 / i / i)))); // tests vertical line
+                // Test 1-arg constructor (PGlseg on the line);
+                linesToTest.add(new PGline(new PGlseg(i, (0 - i), (1 / i), (1 / i / i))));
+                linesToTest.add(new PGline(new PGlseg(i, (0 - i), i, (1 / i / i))));
+                linesToTest.add(new PGline(new PGlseg(new PGpoint(i, (0 - i)), new PGpoint((1 / i), (1 / i / i)))));
+                linesToTest.add(new PGline(new PGlseg(new PGpoint(i, (0 - i)), new PGpoint(i, (1 / i / i)))));
+            }
+
+            // Include persistence an querying if the postgresql version supports it.
+            if (roundTripToDatabase) {
+                for (PGline testLine : linesToTest) {
+                    checkReadWrite(testLine, columnName);
+                }
+            }
+
         }
     }
 
