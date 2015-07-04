@@ -72,6 +72,7 @@ public class Oid {
     public static final int XML_ARRAY = 143;
     public static final int POINT = 600;
     public static final int BOX = 603;
+    public static final int JSONB_ARRAY = 3807;
 
     /**
      * Returns the name of the oid as string.
