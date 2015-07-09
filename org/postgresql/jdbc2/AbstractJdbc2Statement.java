@@ -25,7 +25,6 @@ import org.postgresql.Driver;
 import org.postgresql.core.v3.QueryExecutorImpl;
 import org.postgresql.largeobject.*;
 import org.postgresql.core.*;
-import org.postgresql.core.types.*;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.HStoreConverter;
 import org.postgresql.util.PGBinaryObject;
@@ -1680,21 +1679,6 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         preparedParameters.clear();
     }
 
-    private PGType createInternalType( Object x, int targetType ) throws PSQLException
-    {
-        if ( x instanceof Byte ) return PGByte.castToServerType((Byte)x, targetType );
-        if ( x instanceof Short ) return PGShort.castToServerType((Short)x, targetType );
-        if ( x instanceof Integer ) return PGInteger.castToServerType((Integer)x, targetType );
-        if ( x instanceof Long ) return PGLong.castToServerType((Long)x, targetType );
-        if ( x instanceof Double ) return PGDouble.castToServerType((Double)x, targetType );
-        if ( x instanceof Float ) return PGFloat.castToServerType((Float)x, targetType );
-        if ( x instanceof BigDecimal) return PGBigDecimal.castToServerType((BigDecimal)x, targetType );
-        // since all of the above are instances of Number make sure this is after them
-        if ( x instanceof Number ) return PGNumber.castToServerType((Number)x, targetType );
-        if ( x instanceof Boolean) return PGBoolean.castToServerType((Boolean)x, targetType );
-        return PGUnknown.valueOf(x);
-        
-    }
     // Helper method for setting parameters to PGobject subclasses.
     private void setPGobject(int parameterIndex, PGobject x) throws SQLException {
         String typename = x.getType();
@@ -1753,89 +1737,86 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             return ;
         }
 
-	    	Object pgType = createInternalType( in, targetSqlType );
-	    	switch (targetSqlType)
-	    {
-	        case Types.INTEGER:
-	            bindLiteral(parameterIndex, pgType.toString(), Oid.INT4);
-	            break;
-	        case Types.TINYINT:
-	        case Types.SMALLINT:
-	            bindLiteral(parameterIndex, pgType.toString(), Oid.INT2);
-	            break;
-	        case Types.BIGINT:
-	            bindLiteral(parameterIndex, pgType.toString(), Oid.INT8);
-	            break;
-	        case Types.REAL:
-	            //TODO: is this really necessary ?
-	            //bindLiteral(parameterIndex, new Float(pgType.toString()).toString(), Oid.FLOAT4);
-            		bindLiteral(parameterIndex, pgType.toString(), Oid.FLOAT4);
-	            break;
-	        case Types.DOUBLE:
-	        case Types.FLOAT:
-	            bindLiteral(parameterIndex, pgType.toString(), Oid.FLOAT8);
-	            break;
-	        case Types.DECIMAL:
-	        case Types.NUMERIC:
-	            bindLiteral(parameterIndex, pgType.toString(), Oid.NUMERIC);
-	            break;
-	        case Types.CHAR:
-	            setString(parameterIndex, pgType.toString(), Oid.BPCHAR);
-	            break;
-	        case Types.VARCHAR:
-	        case Types.LONGVARCHAR:
-	            setString(parameterIndex, pgType.toString(), getStringType());
-	            break;
-	        case Types.DATE:
-	            if (in instanceof java.sql.Date)
-	                setDate(parameterIndex, (java.sql.Date)in);
-	            else
-	            {
-	                java.sql.Date tmpd;
-	                if (in instanceof java.util.Date) {
-	                    tmpd = new java.sql.Date(((java.util.Date)in).getTime());
-	                } else {
-	                    tmpd = connection.getTimestampUtils().toDate(null, in.toString());
-	                }
-	                setDate(parameterIndex, tmpd);
-	            }
-	            break;
-	        case Types.TIME:
-	            if (in instanceof java.sql.Time)
-	                setTime(parameterIndex, (java.sql.Time)in);
-	            else
-	            {
-	                java.sql.Time tmpt;
-	                if (in instanceof java.util.Date) {
-	                    tmpt = new java.sql.Time(((java.util.Date)in).getTime());
-	                } else {
-	                    tmpt = connection.getTimestampUtils().toTime(null, in.toString());
-	                }
-	                setTime(parameterIndex, tmpt);
-	            }
-	            break;
-	        case Types.TIMESTAMP:
-	            if (in instanceof java.sql.Timestamp)
-	                setTimestamp(parameterIndex , (java.sql.Timestamp)in);
-	            else
-	            {
-	                java.sql.Timestamp tmpts;
-	                if (in instanceof java.util.Date) {
-	                    tmpts = new java.sql.Timestamp(((java.util.Date)in).getTime());
-	                } else {
-	                    tmpts = connection.getTimestampUtils().toTimestamp(null, in.toString());
-	                }
-	                setTimestamp(parameterIndex, tmpts);
-	            }
-	            break;
-	        case Types.BIT:
-	            bindLiteral(parameterIndex, pgType.toString(), Oid.BOOL);
-	            break;
-	        case Types.BINARY:
-	        case Types.VARBINARY:
-	        case Types.LONGVARBINARY:
-	            setObject(parameterIndex, in);
-	            break;
+            switch (targetSqlType)
+        {
+            case Types.INTEGER:
+                setInt(parameterIndex, castToInt(in));
+                break;
+            case Types.TINYINT:
+            case Types.SMALLINT:
+                setShort(parameterIndex, castToShort(in));
+                break;
+            case Types.BIGINT:
+                setLong(parameterIndex, castToLong(in));
+                break;
+            case Types.REAL:
+                setFloat(parameterIndex, castToFloat(in));
+                break;
+            case Types.DOUBLE:
+            case Types.FLOAT:
+                setDouble(parameterIndex, castToDouble(in));
+                break;
+            case Types.DECIMAL:
+            case Types.NUMERIC:
+                setBigDecimal(parameterIndex, castToBigDecimal(in, scale));
+                break;
+            case Types.CHAR:
+                setString(parameterIndex, castToString(in), Oid.BPCHAR);
+                break;
+            case Types.VARCHAR:
+            case Types.LONGVARCHAR:
+                setString(parameterIndex, castToString(in), getStringType());
+                break;
+            case Types.DATE:
+                if (in instanceof java.sql.Date)
+                    setDate(parameterIndex, (java.sql.Date)in);
+                else
+                {
+                    java.sql.Date tmpd;
+                    if (in instanceof java.util.Date) {
+                        tmpd = new java.sql.Date(((java.util.Date)in).getTime());
+                    } else {
+                        tmpd = connection.getTimestampUtils().toDate(null, in.toString());
+                    }
+                    setDate(parameterIndex, tmpd);
+                }
+                break;
+            case Types.TIME:
+                if (in instanceof java.sql.Time)
+                    setTime(parameterIndex, (java.sql.Time)in);
+                else
+                {
+                    java.sql.Time tmpt;
+                    if (in instanceof java.util.Date) {
+                        tmpt = new java.sql.Time(((java.util.Date)in).getTime());
+                    } else {
+                        tmpt = connection.getTimestampUtils().toTime(null, in.toString());
+                    }
+                    setTime(parameterIndex, tmpt);
+                }
+                break;
+            case Types.TIMESTAMP:
+                if (in instanceof java.sql.Timestamp)
+                    setTimestamp(parameterIndex , (java.sql.Timestamp)in);
+                else
+                {
+                    java.sql.Timestamp tmpts;
+                    if (in instanceof java.util.Date) {
+                        tmpts = new java.sql.Timestamp(((java.util.Date)in).getTime());
+                    } else {
+                        tmpts = connection.getTimestampUtils().toTimestamp(null, in.toString());
+                    }
+                    setTimestamp(parameterIndex, tmpts);
+                }
+                break;
+            case Types.BIT:
+                setBoolean(parameterIndex, castToBoolean(in));
+                break;
+            case Types.BINARY:
+            case Types.VARBINARY:
+            case Types.LONGVARBINARY:
+                setObject(parameterIndex, in);
+                break;
             case Types.BLOB:
                 if (in instanceof Blob)
                 {
@@ -1866,15 +1847,191 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             case Types.DISTINCT:
                 bindString(parameterIndex, in.toString(), Oid.UNSPECIFIED);
                 break;
-	        case Types.OTHER:
-	            if (in instanceof PGobject)
-	                setPGobject(parameterIndex, (PGobject)in);
-	            else
+            case Types.OTHER:
+                if (in instanceof PGobject)
+                    setPGobject(parameterIndex, (PGobject)in);
+                else
                     bindString(parameterIndex, in.toString(), Oid.UNSPECIFIED);
-	            break;
-	        default:
-	            throw new PSQLException(GT.tr("Unsupported Types value: {0}", targetSqlType), PSQLState.INVALID_PARAMETER_TYPE);
+                break;
+            default:
+                throw new PSQLException(GT.tr("Unsupported Types value: {0}", targetSqlType), PSQLState.INVALID_PARAMETER_TYPE);
         }
+    }
+
+    private static String asString(final Clob in) throws SQLException {
+        return in.getSubString(1, (int) in.length());
+    }
+
+    private static int castToInt(final Object in) throws SQLException {
+        try {
+            if (in instanceof String)
+                return Integer.parseInt((String) in);
+            if (in instanceof Number)
+                return ((Number) in).intValue();
+            if (in instanceof java.util.Date)
+                return (int) ((java.util.Date) in).getTime();
+            if (in instanceof Boolean)
+                return (Boolean) in ? 1 : 0;
+            if (in instanceof Clob)
+                return Integer.parseInt(asString((Clob) in));
+            if (in instanceof Character)
+                return Integer.parseInt(in.toString());
+        } catch (final Exception e) {
+            throw cannotCastException(in.getClass().getName(), "int", e);
+        }
+        throw cannotCastException(in.getClass().getName(), "int");
+    }
+
+    private static short castToShort(final Object in) throws SQLException {
+        try {
+            if (in instanceof String)
+                return Short.parseShort((String) in);
+            if (in instanceof Number)
+                return ((Number) in).shortValue();
+            if (in instanceof java.util.Date)
+                return (short) ((java.util.Date) in).getTime();
+            if (in instanceof Boolean)
+                return (Boolean) in ? (short) 1 : (short) 0;
+            if (in instanceof Clob)
+                return Short.parseShort(asString((Clob) in));
+            if (in instanceof Character)
+                return Short.parseShort(in.toString());
+        } catch (final Exception e) {
+            throw cannotCastException(in.getClass().getName(), "short", e);
+        }
+        throw cannotCastException(in.getClass().getName(), "short");
+    }
+
+    private static long castToLong(final Object in) throws SQLException {
+        try {
+            if (in instanceof String)
+                return Long.parseLong((String) in);
+            if (in instanceof Number)
+                return ((Number) in).longValue();
+            if (in instanceof java.util.Date)
+                return ((java.util.Date) in).getTime();
+            if (in instanceof Boolean)
+                return (Boolean) in ? 1L : 0L;
+            if (in instanceof Clob)
+                return Long.parseLong(asString((Clob) in));
+            if (in instanceof Character)
+                return Long.parseLong(in.toString());
+        } catch (final Exception e) {
+            throw cannotCastException(in.getClass().getName(), "long", e);
+        }
+        throw cannotCastException(in.getClass().getName(), "long");
+    }
+
+    private static float castToFloat(final Object in) throws SQLException {
+        try {
+            if (in instanceof String)
+                return Float.parseFloat((String) in);
+            if (in instanceof Number)
+                return ((Number) in).floatValue();
+            if (in instanceof java.util.Date)
+                return ((java.util.Date) in).getTime();
+            if (in instanceof Boolean)
+                return (Boolean) in ? 1f : 0f;
+            if (in instanceof Clob)
+                return Float.parseFloat(asString((Clob) in));
+            if (in instanceof Character)
+                return Float.parseFloat(in.toString());
+        } catch (final Exception e) {
+            throw cannotCastException(in.getClass().getName(), "float", e);
+        }
+        throw cannotCastException(in.getClass().getName(), "float");
+    }
+
+    private static double castToDouble(final Object in) throws SQLException {
+        try {
+            if (in instanceof String)
+                return Double.parseDouble((String) in);
+            if (in instanceof Number)
+                return ((Number) in).doubleValue();
+            if (in instanceof java.util.Date)
+                return ((java.util.Date) in).getTime();
+            if (in instanceof Boolean)
+                return (Boolean) in ? 1d : 0d;
+            if (in instanceof Clob)
+                return Double.parseDouble(asString((Clob) in));
+            if (in instanceof Character)
+                return Double.parseDouble(in.toString());
+        } catch (final Exception e) {
+            throw cannotCastException(in.getClass().getName(), "double", e);
+        }
+        throw cannotCastException(in.getClass().getName(), "double");
+    }
+
+    private static BigDecimal castToBigDecimal(final Object in, final int scale) throws SQLException {
+        try {
+            if (in instanceof String)
+                return new BigDecimal((String) in).setScale(scale, RoundingMode.HALF_UP);
+            if (in instanceof BigDecimal)
+                return ((BigDecimal) in).setScale(scale, RoundingMode.HALF_UP);
+            if (in instanceof BigInteger)
+                return new BigDecimal((BigInteger) in, scale);
+            if (in instanceof Long || in instanceof Integer || in instanceof Short || in instanceof Byte)
+                return BigDecimal.valueOf(((Number) in).longValue(), scale);
+            if (in instanceof Double || in instanceof Float)
+                return BigDecimal.valueOf(((Number) in).doubleValue()).setScale(scale, RoundingMode.HALF_UP);
+            if (in instanceof java.util.Date)
+                return BigDecimal.valueOf(((java.util.Date) in).getTime(), scale);
+            if (in instanceof Boolean)
+                return (Boolean) in ? BigDecimal.ONE : BigDecimal.ZERO;
+            if (in instanceof Clob)
+                return new BigDecimal(asString((Clob) in));
+            if (in instanceof Character)
+                return new BigDecimal(new char[] {(Character) in}).setScale(scale, RoundingMode.HALF_UP);
+        } catch (final Exception e) {
+            throw cannotCastException(in.getClass().getName(), "BigDecimal", e);
+        }
+        throw cannotCastException(in.getClass().getName(), "BigDecimal");
+    }
+
+    private static boolean castToBoolean(final Object in) throws SQLException {
+        try {
+            if (in instanceof String)
+                return ((String) in).equalsIgnoreCase("true") || ((String) in).equals("1") || ((String) in).equalsIgnoreCase("t");
+            if (in instanceof BigDecimal)
+                return ((BigDecimal) in).signum() != 0;
+            if (in instanceof Number)
+                return ((Number) in).longValue() != 0L;
+            if (in instanceof java.util.Date)
+                return ((java.util.Date) in).getTime() != 0L;
+            if (in instanceof Boolean)
+                return (Boolean) in;
+            if (in instanceof Clob) {
+                final String asString = asString((Clob) in);
+                return asString.equalsIgnoreCase("true") || asString.equals("1") || asString.equalsIgnoreCase("t");
+            }
+            if (in instanceof Character)
+                return (Character) in == '1' || (Character) in == 't' || (Character) in == 'T';
+        } catch (final Exception e) {
+            throw cannotCastException(in.getClass().getName(), "boolean", e);
+        }
+        throw cannotCastException(in.getClass().getName(), "boolean");
+    }
+
+    private static String castToString(final Object in) throws SQLException {
+        try {
+            if (in instanceof String)
+                return (String) in;
+            if (in instanceof Number || in instanceof Boolean || in instanceof Character || in instanceof java.util.Date)
+                return in.toString();
+            if (in instanceof Clob)
+                return asString((Clob) in);
+        } catch (final Exception e) {
+            throw cannotCastException(in.getClass().getName(), "String", e);
+        }
+        throw cannotCastException(in.getClass().getName(), "String");
+    }
+
+    private static PSQLException cannotCastException(final String fromType, final String toType) {
+        return cannotCastException(fromType, toType, null);
+    }
+
+    private static PSQLException cannotCastException(final String fromType, final String toType, final Exception cause) {
+        return new PSQLException(GT.tr("Cannot convert an instance of {0} to type {1}", new Object[] { fromType, toType }), PSQLState.INVALID_PARAMETER_TYPE, cause);
     }
 
     public void setObject(int parameterIndex, Object x, int targetSqlType) throws SQLException
