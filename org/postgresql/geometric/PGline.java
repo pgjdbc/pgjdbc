@@ -17,38 +17,72 @@ import java.io.Serializable;
 import java.sql.SQLException;
 
 /**
- * This implements a line consisting of two points.
+ * This implements a line represented by the linear equation Ax + By + C = 0
  *
- * Currently line is not yet implemented in the backend, but this class
- * ensures that when it's done were ready for it.
- */
+ **/
 public class PGline extends PGobject implements Serializable, Cloneable
 {
-    /**
-     * These are the two points.
-     */
-    public PGpoint point[] = new PGpoint[2];
 
     /**
-     * @param x1 coordinate for first point
-     * @param y1 coordinate for first point
-     * @param x2 coordinate for second point
-     * @param y2 coordinate for second point
+     * Coefficient of x
      */
-    public PGline(double x1, double y1, double x2, double y2)
-    {
-        this(new PGpoint(x1, y1), new PGpoint(x2, y2));
+    public double a;
+
+    /**
+     * Coefficient of y
+     */
+    public double b;
+
+    /**
+     * Constant
+     */
+    public double c;
+
+    /**
+     * @param a coefficient of x
+     * @param b coefficient of y
+     * @param c constant
+     */
+    public PGline(double a, double b, double c) {
+        this();
+        this.a = a;
+        this.b = b;
+        this.c = c;
     }
 
     /**
-     * @param p1 first point
-     * @param p2 second point
+     * @param x1 coordinate for first point on the line
+     * @param y1 coordinate for first point on the line
+     * @param x2 coordinate for second point on the line
+     * @param y2 coordinate for second point on the line
+     */
+    public PGline(double x1, double y1, double x2, double y2)
+    {
+        this();
+        if (x1 == x2) {
+            a = -1;
+            b = 0;
+        } else {
+            a = (y2 - y1) / (x2 - x1);
+            b = -1;
+        }
+        c = y1 - a * x1;
+    }
+
+    /**
+     * @param p1 first point on the line
+     * @param p2 second point on the line
      */
     public PGline(PGpoint p1, PGpoint p2)
     {
-        this();
-        this.point[0] = p1;
-        this.point[1] = p2;
+        this(p1.x, p1.y, p2.x, p2.y);
+    }
+
+    /**
+     * @param lseg Line segment which calls on this line.
+     */
+    public PGline(PGlseg lseg) {
+        this(lseg.point[0], lseg.point[1]);
     }
 
     /**
@@ -62,7 +96,7 @@ public class PGline extends PGobject implements Serializable, Cloneable
     }
 
     /**
-     * reuired by the driver
+     * required by the driver
      */
     public PGline()
     {
@@ -75,44 +109,51 @@ public class PGline extends PGobject implements Serializable, Cloneable
      */
     public void setValue(String s) throws SQLException
     {
-        PGtokenizer t = new PGtokenizer(PGtokenizer.removeBox(s), ',');
-        if (t.getSize() != 2)
-            throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", new Object[]{type,s}), PSQLState.DATA_TYPE_MISMATCH);
-
-        point[0] = new PGpoint(t.getToken(0));
-        point[1] = new PGpoint(t.getToken(1));
+        if (s.trim().startsWith("{")) {
+            PGtokenizer t = new PGtokenizer(PGtokenizer.removeCurlyBrace(s), ',');
+            if (t.getSize() != 3)
+                throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", new Object[]{type,s}), PSQLState.DATA_TYPE_MISMATCH);
+            a = Double.parseDouble(t.getToken(0));
+            b = Double.parseDouble(t.getToken(1));
+            c = Double.parseDouble(t.getToken(2));
+        } else if (s.trim().startsWith("[")) {
+            PGtokenizer t = new PGtokenizer(PGtokenizer.removeBox(s), ',');
+            if (t.getSize() != 2)
+                throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", new Object[]{type,s}), PSQLState.DATA_TYPE_MISMATCH);
+            PGpoint point1 = new PGpoint(t.getToken(0));
+            PGpoint point2 = new PGpoint(t.getToken(1));
+            a = point2.x - point1.x;
+            b = point2.y - point1.y;
+            c = point1.y;
+        }
     }
 
     /**
      * @param obj Object to compare with
      * @return true if the two lines are identical
      */
-    public boolean equals(Object obj)
-    {
-        if (obj instanceof PGline)
-        {
-            PGline p = (PGline)obj;
-            return (p.point[0].equals(point[0]) && p.point[1].equals(point[1])) ||
-                   (p.point[0].equals(point[1]) && p.point[1].equals(point[0]));
-        }
-        return false;
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        if (!super.equals(obj)) return false;
+
+        PGline pGline = (PGline)obj;
+
+        return Double.compare(pGline.a, a) == 0 &&
+                Double.compare(pGline.b, b) == 0 &&
+                Double.compare(pGline.c, c) == 0;
     }
 
     public int hashCode() {
-        return point[0].hashCode() ^ point[1].hashCode();
-    }
-
-    public Object clone() throws CloneNotSupportedException
-    {
-        PGline newPGline = (PGline) super.clone();
-        if( newPGline.point != null )
-        {
-            newPGline.point = (PGpoint[]) newPGline.point.clone();
-            for( int i = 0; i < newPGline.point.length; ++i )
-                if( newPGline.point[i] != null )
-                    newPGline.point[i] = (PGpoint) newPGline.point[i].clone();
-        }
-        return newPGline;
+        int result = super.hashCode();
+        long temp;
+        temp = Double.doubleToLongBits(a);
+        result = 31 * result + (int)(temp ^ (temp >>> 32));
+        temp = Double.doubleToLongBits(b);
+        result = 31 * result + (int)(temp ^ (temp >>> 32));
+        temp = Double.doubleToLongBits(c);
+        result = 31 * result + (int)(temp ^ (temp >>> 32));
+        return result;
     }
 
     /**
@@ -120,6 +161,7 @@ public class PGline extends PGobject implements Serializable, Cloneable
      */
     public String getValue()
     {
-        return "[" + point[0] + "," + point[1] + "]";
+        return "{" + a + "," + b + "," + c + "}";
     }
+
 }
