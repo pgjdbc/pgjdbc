@@ -762,6 +762,25 @@ public abstract class AbstractJdbc2Array
             }
         }
 
+        else if (dims == 1)
+        {
+            Object[] oa = new Object[count];
+            String typeName = getBaseTypeName();
+            for (; count > 0; count--)
+            {
+                Object v = input.get(index++);
+                if (v instanceof String) {
+                    oa[length++] = connection.getObject(typeName, (String) v, null);
+                } else if (v instanceof byte[]) {
+                    oa[length++] = connection.getObject(typeName, null, (byte[])v);
+                } else if (v == null) {
+                    oa[length++] = null;
+                } else {
+                    throw org.postgresql.Driver.notImplemented(this.getClass(), "getArrayImpl(long,int,Map)");
+                }
+            }
+            ret = oa;
+        }
         // other datatypes not currently supported
         else
         {

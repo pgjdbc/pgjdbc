@@ -2981,9 +2981,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         // from ResultSet.getArray(). Eventually we need a proper implementation
         // here that works for any Array implementation.
 
-        // Use a typename that is "_" plus the base type; this matches how the
-        // backend looks for array types.
-        String typename = "_" + x.getBaseTypeName();
+        // Add special suffix for array identification
+        String typename = x.getBaseTypeName() + "[]";
         int oid = connection.getTypeInfo().getPGType(typename);
         if (oid == Oid.UNSPECIFIED)
             throw new PSQLException(GT.tr("Unknown type {0}.", typename), PSQLState.INVALID_PARAMETER_TYPE);
