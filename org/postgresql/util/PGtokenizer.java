@@ -1,10 +1,11 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2003 PostgreSQL Global Development Group
+* Copyright (c) 2003-2015 PostgreSQL Global Development Group
 *
 *
 *-------------------------------------------------------------------------
 */
+
 package org.postgresql.util;
 
 import java.util.ArrayList;
@@ -233,4 +234,26 @@ public class PGtokenizer
         remove
             ("<", ">");
     }
+
+    /*
+     * Removes curly braces { and } from the beginning and end of a string
+     * @param s String to remove from
+     * @return String without the { or }
+     */
+    public static String removeCurlyBrace(String s)
+    {
+        return remove
+                (s, "{", "}");
+    }
+
+    /*
+     * Removes &lt; and &gt; from the beginning and end of all tokens
+     * @return String without the &lt; or &gt;
+     */
+    public void removeCurlyBrace()
+    {
+        remove
+                ("{", "}");
+    }
+
 }
