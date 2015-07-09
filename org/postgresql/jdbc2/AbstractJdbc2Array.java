@@ -698,7 +698,7 @@ public abstract class AbstractJdbc2Array
             }
         }
 
-        else if (type == Types.CHAR || type == Types.VARCHAR)
+        else if (type == Types.CHAR || type == Types.VARCHAR || oid == Oid.JSONB_ARRAY)
         {
             Object[] oa = null;
             ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(String.class, dimsLength) : new String[count]);
