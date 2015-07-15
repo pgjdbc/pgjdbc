@@ -1983,11 +1983,11 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                 rc=new BigDecimal(asString((Clob) in));
             else if (in instanceof Character)
                 rc=new BigDecimal(new char[] {(Character) in});
-            if (scale>=0) {
-               rc.setScale(scale,RoundingMode.HALF_UP);
-            }
             if (rc!=null) {
-               return rc;
+                if (scale>=0) {
+                    rc=rc.setScale(scale,RoundingMode.HALF_UP);
+                }
+                return rc;
             }
         } catch (final Exception e) {
             throw cannotCastException(in.getClass().getName(), "BigDecimal", e);

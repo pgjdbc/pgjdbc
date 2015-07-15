@@ -13,6 +13,7 @@ import junit.framework.TestCase;
 import java.io.*;
 import java.sql.*;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 
 public class PreparedStatementTest extends TestCase
@@ -796,7 +797,82 @@ public class PreparedStatementTest extends TestCase
         assertTrue( rs.wasNull() );
         rs.close();
         pstmt.close();
-        
+
+    }
+
+    public void testSetObjectBigDecimalUnscaled() throws SQLException
+    {
+        TestUtil.createTempTable( conn, "decimal_scale","n1 numeric, n2 numeric, n3 numeric, n4 numeric" );
+        PreparedStatement pstmt = conn.prepareStatement( "insert into decimal_scale values(?,?,?,?)" );
+        BigDecimal v = new BigDecimal( "3.141593" );
+        pstmt.setObject( 1, v, Types.NUMERIC );
+
+        String vs=v.toPlainString();
+        pstmt.setObject( 2, vs, Types.NUMERIC );
+
+        Float vf=Float.valueOf( vs );
+        pstmt.setObject( 3, vf, Types.NUMERIC );
+
+        Double vd=Double.valueOf( vs );
+        pstmt.setObject( 4, vd, Types.NUMERIC );
+
+        pstmt.executeUpdate();
+        pstmt.close();
+
+        pstmt = conn.prepareStatement( "select n1,n2,n3,n4 from decimal_scale" );
+        ResultSet rs = pstmt.executeQuery();
+        assertTrue( rs.next() );
+        assertTrue( "expected numeric set via BigDecimal " + v + " stored as " + rs.getBigDecimal( 1 ),
+                    v.compareTo( rs.getBigDecimal( 1 ) ) == 0 );
+        assertTrue( "expected numeric set via String" + vs + " stored as " + rs.getBigDecimal( 2 ),
+                    v.compareTo( rs.getBigDecimal( 2 ) ) == 0 );
+        assertTrue( "expected numeric set via Float" + vf + " stored as " + rs.getBigDecimal( 3 ),
+                    v.compareTo( rs.getBigDecimal( 3 ).setScale(6,RoundingMode.HALF_UP)) == 0 ); // float is really bad...
+        assertTrue( "expected numeric set via Double" + vd + " stored as " + rs.getBigDecimal( 4 ),
+                    v.compareTo( rs.getBigDecimal( 4 ) ) == 0 );
+
+        rs.close();
+        pstmt.close();
+    }
+
+    public void testSetObjectBigDecimalWithScale() throws SQLException
+    {
+        TestUtil.createTempTable( conn, "decimal_scale","n1 numeric, n2 numeric, n3 numeric, n4 numeric" );
+        PreparedStatement psinsert = conn.prepareStatement( "insert into decimal_scale values(?,?,?,?)" );
+        PreparedStatement psselect = conn.prepareStatement( "select n1,n2,n3,n4 from decimal_scale" );
+        PreparedStatement pstruncate = conn.prepareStatement( "truncate table decimal_scale" );
+
+        BigDecimal v = new BigDecimal( "3.141593" );
+        String vs = v.toPlainString();
+        Float vf = Float.valueOf( vs );
+        Double vd = Double.valueOf( vs );
+
+        for( int s = 0; s < 6; s++ ) {
+            psinsert.setObject( 1, v,  Types.NUMERIC, s );
+            psinsert.setObject( 2, vs, Types.NUMERIC, s );
+            psinsert.setObject( 3, vf, Types.NUMERIC, s );
+            psinsert.setObject( 4, vd, Types.NUMERIC, s );
+
+            psinsert.executeUpdate();
+
+            ResultSet rs = psselect.executeQuery();
+            assertTrue( rs.next() );
+            BigDecimal vscaled=v.setScale( s, RoundingMode.HALF_UP );
+            assertTrue( "expected numeric set via BigDecimal " + v + " with scale " + s + " stored as " + vscaled,
+                        vscaled.compareTo( rs.getBigDecimal( 1 ) ) == 0 );
+            assertTrue( "expected numeric set via String" + vs + " with scale " + s + " stored as " + vscaled,
+                        vscaled.compareTo( rs.getBigDecimal( 2 ) ) == 0 );
+            assertTrue( "expected numeric set via Float" + vf + " with scale " + s + " stored as " + vscaled,
+                        vscaled.compareTo( rs.getBigDecimal( 3 ) ) == 0 );
+            assertTrue( "expected numeric set via Double" + vd + " with scale " + s + " stored as " + vscaled,
+                        vscaled.compareTo( rs.getBigDecimal( 4 ) ) == 0 );
+            rs.close();
+            pstruncate.executeUpdate();
+        }
+
+        psinsert.close();
+        psselect.close();
+        pstruncate.close();
     }
 
     public void testUnknownSetObject() throws SQLException
