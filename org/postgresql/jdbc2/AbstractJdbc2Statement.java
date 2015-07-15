@@ -1964,24 +1964,31 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
     private static BigDecimal castToBigDecimal(final Object in, final int scale) throws SQLException {
         try {
+            BigDecimal rc=null;
             if (in instanceof String)
-                return new BigDecimal((String) in).setScale(scale, RoundingMode.HALF_UP);
-            if (in instanceof BigDecimal)
-                return ((BigDecimal) in).setScale(scale, RoundingMode.HALF_UP);
-            if (in instanceof BigInteger)
-                return new BigDecimal((BigInteger) in, scale);
-            if (in instanceof Long || in instanceof Integer || in instanceof Short || in instanceof Byte)
-                return BigDecimal.valueOf(((Number) in).longValue(), scale);
-            if (in instanceof Double || in instanceof Float)
-                return BigDecimal.valueOf(((Number) in).doubleValue()).setScale(scale, RoundingMode.HALF_UP);
-            if (in instanceof java.util.Date)
-                return BigDecimal.valueOf(((java.util.Date) in).getTime(), scale);
-            if (in instanceof Boolean)
-                return (Boolean) in ? BigDecimal.ONE : BigDecimal.ZERO;
-            if (in instanceof Clob)
-                return new BigDecimal(asString((Clob) in));
-            if (in instanceof Character)
-                return new BigDecimal(new char[] {(Character) in}).setScale(scale, RoundingMode.HALF_UP);
+                rc=new BigDecimal((String) in);
+            else if (in instanceof BigDecimal)
+                rc=((BigDecimal) in);
+            else if (in instanceof BigInteger)
+                rc=new BigDecimal((BigInteger) in);
+            else if (in instanceof Long || in instanceof Integer || in instanceof Short || in instanceof Byte)
+                rc=BigDecimal.valueOf(((Number) in).longValue());
+            else if (in instanceof Double || in instanceof Float)
+                rc=BigDecimal.valueOf(((Number) in).doubleValue());
+            else if (in instanceof java.util.Date)
+                rc=BigDecimal.valueOf(((java.util.Date) in).getTime());
+            else if (in instanceof Boolean)
+                rc=(Boolean) in ? BigDecimal.ONE : BigDecimal.ZERO;
+            else if (in instanceof Clob)
+                rc=new BigDecimal(asString((Clob) in));
+            else if (in instanceof Character)
+                rc=new BigDecimal(new char[] {(Character) in});
+            if (scale>=0) {
+               rc.setScale(scale,RoundingMode.HALF_UP);
+            }
+            if (rc!=null) {
+               return rc;
+            }
         } catch (final Exception e) {
             throw cannotCastException(in.getClass().getName(), "BigDecimal", e);
         }
@@ -2036,7 +2043,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
     public void setObject(int parameterIndex, Object x, int targetSqlType) throws SQLException
     {
-        setObject(parameterIndex, x, targetSqlType, 0);
+        setObject(parameterIndex, x, targetSqlType, -1);
     }
 
     /*
