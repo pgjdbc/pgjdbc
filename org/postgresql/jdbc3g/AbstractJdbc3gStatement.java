@@ -8,10 +8,12 @@
 
 package org.postgresql.jdbc3g;
 
-import java.sql.*;
+import java.sql.SQLException;
+import java.sql.Types;
 import java.util.UUID;
 
 import org.postgresql.core.Oid;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc3.AbstractJdbc3Connection;
 import org.postgresql.util.ByteConverter;
 
@@ -29,7 +31,7 @@ public abstract class AbstractJdbc3gStatement extends org.postgresql.jdbc3.Abstr
 
     public void setObject(int parameterIndex, Object x) throws SQLException
     {
-        if (x instanceof UUID && connection.haveMinimumServerVersion("8.3"))
+        if (x instanceof UUID && connection.haveMinimumServerVersion(ServerVersion.v8_3))
         {
             setUuid(parameterIndex, (UUID)x);
         } else {
@@ -39,7 +41,7 @@ public abstract class AbstractJdbc3gStatement extends org.postgresql.jdbc3.Abstr
 
     public void setObject(int parameterIndex, Object x, int targetSqlType, int scale) throws SQLException
     {
-        if (targetSqlType == Types.OTHER && x instanceof UUID && connection.haveMinimumServerVersion("8.3"))
+        if (targetSqlType == Types.OTHER && x instanceof UUID && connection.haveMinimumServerVersion(ServerVersion.v8_3))
         {
             setUuid(parameterIndex, (UUID) x);
         } else {

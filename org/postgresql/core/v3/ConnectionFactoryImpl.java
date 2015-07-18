@@ -8,31 +8,39 @@
 */
 package org.postgresql.core.v3;
 
+import java.io.IOException;
+import java.net.ConnectException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 import java.util.TimeZone;
-import java.sql.SQLException;
-import java.io.IOException;
-import java.net.ConnectException;
 
 import org.postgresql.PGProperty;
-import org.postgresql.core.*;
-import org.postgresql.sspi.SSPIClient;
+import org.postgresql.core.ConnectionFactory;
+import org.postgresql.core.Encoding;
+import org.postgresql.core.Logger;
+import org.postgresql.core.PGStream;
+import org.postgresql.core.ProtocolConnection;
+import org.postgresql.core.ServerVersion;
+import org.postgresql.core.SetupQueryRunner;
+import org.postgresql.core.Utils;
+import org.postgresql.core.Version;
 import org.postgresql.hostchooser.GlobalHostStatusTracker;
 import org.postgresql.hostchooser.HostChooser;
 import org.postgresql.hostchooser.HostChooserFactory;
 import org.postgresql.hostchooser.HostRequirement;
 import org.postgresql.hostchooser.HostStatus;
+import org.postgresql.sspi.SSPIClient;
+import org.postgresql.util.GT;
+import org.postgresql.util.HostSpec;
+import org.postgresql.util.MD5Digest;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLWarning;
 import org.postgresql.util.ServerErrorMessage;
 import org.postgresql.util.UnixCrypt;
-import org.postgresql.util.MD5Digest;
-import org.postgresql.util.GT;
-import org.postgresql.util.HostSpec;
 
 /**
  * ConnectionFactory implementation for version 3 (7.4+) connections.
@@ -169,7 +177,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             paramList.add(new String[] {"DateStyle", "ISO"});
             paramList.add(new String[] {"TimeZone",  createPostgresTimeZone()});
             String assumeMinServerVersion = PGProperty.ASSUME_MIN_SERVER_VERSION.get(info);
-            if( Utils.parseServerVersionStr(assumeMinServerVersion) >= 90000 ) {
+            if( Utils.parseServerVersionStr(assumeMinServerVersion) >= ServerVersion.v9_0.getVersionNum() ) {
                 // User is explicitly telling us this is a 9.0+ server so set properties here:
                 paramList.add(new String[] {"extra_float_digits", "3"});
                 String appName = PGProperty.APPLICATION_NAME.get(info);
@@ -744,19 +752,19 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     private void runInitialQueries(ProtocolConnection protoConnection, Properties info, Logger logger) throws SQLException
     {
         String assumeMinServerVersion = PGProperty.ASSUME_MIN_SERVER_VERSION.get(info);
-        if( Utils.parseServerVersionStr(assumeMinServerVersion) >= 90000 ) {
+        if( Utils.parseServerVersionStr(assumeMinServerVersion) >= ServerVersion.v9_0.getVersionNum() ) {
             // We already sent the parameter values in the StartupMessage so skip this
             return;
         }
 
         final int dbVersion = protoConnection.getServerVersionNum();
 
-        if (dbVersion >= 90000) {
+        if (dbVersion >= ServerVersion.v9_0.getVersionNum()) {
             SetupQueryRunner.run(protoConnection, "SET extra_float_digits = 3", false);
         }
 
         String appName = PGProperty.APPLICATION_NAME.get(info);
-        if (appName != null && dbVersion >= 90000) {
+        if (appName != null && dbVersion >= ServerVersion.v9_0.getVersionNum()) {
             StringBuilder sql = new StringBuilder();
             sql.append("SET application_name = '");
             Utils.escapeLiteral(sql, appName, protoConnection.getStandardConformingStrings());

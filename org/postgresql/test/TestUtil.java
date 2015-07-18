@@ -9,9 +9,17 @@ package org.postgresql.test;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Properties;
 
+import org.postgresql.core.ServerVersion;
+import org.postgresql.core.Version;
 import org.postgresql.jdbc2.AbstractJdbc2Connection;
 
 /**
@@ -260,7 +268,7 @@ public class TestUtil
         try
         {
             String sql = "DROP SCHEMA " + schema;
-            if (haveMinimumServerVersion(con, "7.3"))
+            if (haveMinimumServerVersion(con, ServerVersion.v7_3))
             {
                 sql += " CASCADE ";
             }
@@ -307,7 +315,7 @@ public class TestUtil
 
             // Starting with 8.0 oids may be turned off by default.
             // Some tests need them, so they flag that here.
-            if (withOids && haveMinimumServerVersion(con,"8.0")) {
+            if (withOids && haveMinimumServerVersion(con, ServerVersion.v8_0)) {
                 sql += " WITH OIDS";
             }
             st.executeUpdate(sql);
@@ -427,7 +435,7 @@ public class TestUtil
         try
         {
             String sql = "DROP TABLE " + table;
-            if (haveMinimumServerVersion(con, "7.3"))
+            if (haveMinimumServerVersion(con, ServerVersion.v7_3))
             {
                 sql += " CASCADE ";
             }
@@ -541,6 +549,22 @@ public class TestUtil
      * not an Postgres connection.
      */
     public static boolean haveMinimumServerVersion(Connection con, String version) throws SQLException {
+        if (con instanceof org.postgresql.jdbc2.AbstractJdbc2Connection)
+        {
+            return ((org.postgresql.jdbc2.AbstractJdbc2Connection)con).haveMinimumServerVersion(version);
+        }
+        return false;
+    }
+
+    public static boolean haveMinimumServerVersion(Connection con, int version) throws SQLException {
+        if (con instanceof org.postgresql.jdbc2.AbstractJdbc2Connection)
+        {
+            return ((org.postgresql.jdbc2.AbstractJdbc2Connection)con).haveMinimumServerVersion(version);
+        }
+        return false;
+    }
+
+    public static boolean haveMinimumServerVersion(Connection con, Version version) throws SQLException {
         if (con instanceof org.postgresql.jdbc2.AbstractJdbc2Connection)
         {
             return ((org.postgresql.jdbc2.AbstractJdbc2Connection)con).haveMinimumServerVersion(version);

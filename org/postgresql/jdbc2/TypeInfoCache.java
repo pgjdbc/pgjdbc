@@ -8,24 +8,25 @@
 
 package org.postgresql.jdbc2;
 
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Collections;
-import java.sql.Types;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.PreparedStatement;
-import org.postgresql.Driver;
-import org.postgresql.core.Oid;
-import org.postgresql.core.BaseStatement;
+import java.sql.Types;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+
 import org.postgresql.core.BaseConnection;
+import org.postgresql.core.BaseStatement;
+import org.postgresql.core.Oid;
 import org.postgresql.core.QueryExecutor;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.PGobject;
-import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 public class TypeInfoCache implements TypeInfo {
 
@@ -196,7 +197,7 @@ public class TypeInfoCache implements TypeInfo {
             // Other types use typelem that aren't actually arrays, like box.
             //
             String sql;
-            if (_conn.haveMinimumServerVersion("8.0")) {
+            if (_conn.haveMinimumServerVersion(ServerVersion.v8_0)) {
                 // in case of multiple records (in different schemas) choose the one from the current schema,
                 // otherwise take the last version of a type that is at least more deterministic then before
                 // (keeping old behaviour of finding types, that should not be found without correct search path)
@@ -213,7 +214,7 @@ public class TypeInfoCache implements TypeInfo {
                       "    ON sp.nspoid = typnamespace " +
                       " WHERE typname = ? " +
                       " ORDER BY sp.r, pg_type.oid DESC LIMIT 1;";
-            } else if (_conn.haveMinimumServerVersion("7.3")) {
+            } else if (_conn.haveMinimumServerVersion(ServerVersion.v7_3)) {
                 sql = "SELECT typinput='array_in'::regproc, typtype FROM pg_catalog.pg_type WHERE typname = ? ORDER BY oid DESC LIMIT 1";
             } else {
                 sql = "SELECT typinput='array_in'::regproc, typtype FROM pg_type WHERE typname = ? LIMIT 1";
@@ -267,7 +268,7 @@ public class TypeInfoCache implements TypeInfo {
         if (!hasSchema) {
             if (_getOidStatementSimple == null) {
                 String sql;
-                if (_conn.haveMinimumServerVersion("8.0")) {
+                if (_conn.haveMinimumServerVersion(ServerVersion.v8_0)) {
                     // see comments in @getSQLType()
                     sql = "SELECT pg_type.oid " +
                             "  FROM pg_catalog.pg_type " +
@@ -282,7 +283,7 @@ public class TypeInfoCache implements TypeInfo {
                             "    ON sp.nspoid = typnamespace " +
                             " WHERE typname = ? " +
                             " ORDER BY sp.r, pg_type.oid DESC LIMIT 1;";
-                } else if (_conn.haveMinimumServerVersion("7.3")) {
+                } else if (_conn.haveMinimumServerVersion(ServerVersion.v7_3)) {
                     sql = "SELECT oid FROM pg_catalog.pg_type WHERE typname = ? ORDER BY oid DESC LIMIT 1";
                 } else {
                     sql = "SELECT oid FROM pg_type WHERE typname = ? ORDER BY oid DESC LIMIT 1";
@@ -387,7 +388,7 @@ public class TypeInfoCache implements TypeInfo {
 
         if (_getNameStatement == null) {
             String sql;
-            if (_conn.haveMinimumServerVersion("7.3")) {
+            if (_conn.haveMinimumServerVersion(ServerVersion.v7_3)) {
                 sql = "SELECT n.nspname = ANY(current_schemas(true)), n.nspname, t.typname FROM pg_catalog.pg_type t JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid WHERE t.oid = ?";
             } else {
                 sql = "SELECT n.nspname = ANY(current_schemas(true)), n.nspname, t.typname FROM pg_type t JOIN pg_namespace n ON t.typnamespace = n.oid WHERE t.oid = ?";
@@ -460,7 +461,7 @@ public class TypeInfoCache implements TypeInfo {
 
         if (_getArrayDelimiterStatement == null) {
             String sql;
-            if (_conn.haveMinimumServerVersion("7.3")) {
+            if (_conn.haveMinimumServerVersion(ServerVersion.v7_3)) {
                 sql = "SELECT e.typdelim FROM pg_catalog.pg_type t, pg_catalog.pg_type e WHERE t.oid = ? and t.typelem = e.oid";
             } else {
                 sql = "SELECT e.typdelim FROM pg_type t, pg_type e WHERE t.oid = ? and t.typelem = e.oid";
@@ -500,7 +501,7 @@ public class TypeInfoCache implements TypeInfo {
 
         if (_getArrayElementOidStatement == null) {
             String sql;
-            if (_conn.haveMinimumServerVersion("7.3")) {
+            if (_conn.haveMinimumServerVersion(ServerVersion.v7_3)) {
                 sql = "SELECT e.oid, n.nspname = ANY(current_schemas(true)), n.nspname, e.typname FROM pg_catalog.pg_type t JOIN pg_catalog.pg_type e ON t.typelem = e.oid JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid WHERE t.oid = ?";
             } else {
                 sql = "SELECT e.oid, n.nspname = ANY(current_schemas(true)), n.nspname, e.typname FROM pg_type t JOIN pg_type e ON t.typelem = e.oid JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid WHERE t.oid = ?";

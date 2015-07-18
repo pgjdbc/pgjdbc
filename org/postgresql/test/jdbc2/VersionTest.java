@@ -1,10 +1,9 @@
 package org.postgresql.test.jdbc2;
 
-import junit.framework.Assert;
-import junit.framework.TestCase;
-import org.postgresql.test.TestUtil;
-
+import org.postgresql.core.ServerVersion;
 import org.postgresql.core.Utils;
+
+import junit.framework.TestCase;
 
 public class VersionTest extends TestCase {
 
@@ -14,17 +13,23 @@ public class VersionTest extends TestCase {
     }
 
     public void testVersionParsing() {
+        assertNotNull(Utils.class);
+        System.out.println(Utils.class.getProtectionDomain().getCodeSource().getLocation());
 		/* Boring versions */
 		assertEquals(70400, Utils.parseServerVersionStr("7.4.0"));
+		assertEquals(ServerVersion.v7_4.getVersionNum(), Utils.parseServerVersionStr("7.4.0"));
 		assertEquals(90001, Utils.parseServerVersionStr("9.0.1"));
 		assertEquals(90000, Utils.parseServerVersionStr("9.0.0"));
+        assertEquals(ServerVersion.v9_0.getVersionNum(), Utils.parseServerVersionStr("9.0.0"));
 		assertEquals(90201, Utils.parseServerVersionStr("9.2.1"));
 
 		/* Major-only versions */
 		assertEquals(70400, Utils.parseServerVersionStr("7.4"));
 		assertEquals(90000, Utils.parseServerVersionStr("9.0"));
 		assertEquals(90000, Utils.parseServerVersionStr("9.0"));
+        assertEquals(ServerVersion.v9_0.getVersionNum(), Utils.parseServerVersionStr("9.0"));
 		assertEquals(90200, Utils.parseServerVersionStr("9.2"));
+        assertEquals(ServerVersion.v9_2.getVersionNum(), Utils.parseServerVersionStr("9.2"));
 
 		/* Multi-digit versions */
 		assertEquals(90410, Utils.parseServerVersionStr("9.4.10"));

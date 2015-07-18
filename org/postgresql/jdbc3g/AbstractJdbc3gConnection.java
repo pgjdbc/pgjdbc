@@ -11,6 +11,7 @@ import java.sql.SQLException;
 import java.util.Properties;
 
 import org.postgresql.core.Oid;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.util.HostSpec;
 
@@ -21,7 +22,7 @@ public abstract class AbstractJdbc3gConnection extends org.postgresql.jdbc3.Abst
         super(hostSpecs, user, database, info, url);
 
         TypeInfo types = getTypeInfo();
-        if (haveMinimumServerVersion("8.3")) {
+        if (haveMinimumServerVersion(ServerVersion.v8_3)) {
             types.addCoreType("uuid", Oid.UUID, java.sql.Types.OTHER, "java.util.UUID", Oid.UUID_ARRAY);
         }
     }

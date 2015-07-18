@@ -7,13 +7,19 @@
 */
 package org.postgresql.jdbc3;
 
+import java.sql.CallableStatement;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Savepoint;
+import java.sql.Statement;
 import java.util.Properties;
-import java.sql.*;
 
+import org.postgresql.core.ServerVersion;
+import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
-import org.postgresql.util.GT;
 
 /**
  * This class defines methods of the jdbc3 specification.  This class extends
@@ -95,7 +101,7 @@ public abstract class AbstractJdbc3Connection extends org.postgresql.jdbc2.Abstr
     {
 	String pgName;
         checkClosed();
-        if (!haveMinimumServerVersion("8.0"))
+        if (!haveMinimumServerVersion(ServerVersion.v8_0))
             throw new PSQLException(GT.tr("Server versions prior to 8.0 do not support savepoints."), PSQLState.NOT_IMPLEMENTED);
         if (getAutoCommit())
             throw new PSQLException(GT.tr("Cannot establish a savepoint in auto-commit mode."),
@@ -128,7 +134,7 @@ public abstract class AbstractJdbc3Connection extends org.postgresql.jdbc2.Abstr
     public Savepoint setSavepoint(String name) throws SQLException
     {
         checkClosed();
-        if (!haveMinimumServerVersion("8.0"))
+        if (!haveMinimumServerVersion(ServerVersion.v8_0))
             throw new PSQLException(GT.tr("Server versions prior to 8.0 do not support savepoints."), PSQLState.NOT_IMPLEMENTED);
         if (getAutoCommit())
             throw new PSQLException(GT.tr("Cannot establish a savepoint in auto-commit mode."),
@@ -163,7 +169,7 @@ public abstract class AbstractJdbc3Connection extends org.postgresql.jdbc2.Abstr
     public void rollback(Savepoint savepoint) throws SQLException
     {
         checkClosed();
-        if (!haveMinimumServerVersion("8.0"))
+        if (!haveMinimumServerVersion(ServerVersion.v8_0))
             throw new PSQLException(GT.tr("Server versions prior to 8.0 do not support savepoints."), PSQLState.NOT_IMPLEMENTED);
 
         PSQLSavepoint pgSavepoint = (PSQLSavepoint)savepoint;
@@ -185,7 +191,7 @@ public abstract class AbstractJdbc3Connection extends org.postgresql.jdbc2.Abstr
     public void releaseSavepoint(Savepoint savepoint) throws SQLException
     {
         checkClosed();
-        if (!haveMinimumServerVersion("8.0"))
+        if (!haveMinimumServerVersion(ServerVersion.v8_0))
             throw new PSQLException(GT.tr("Server versions prior to 8.0 do not support savepoints."), PSQLState.NOT_IMPLEMENTED);
 
         PSQLSavepoint pgSavepoint = (PSQLSavepoint)savepoint;

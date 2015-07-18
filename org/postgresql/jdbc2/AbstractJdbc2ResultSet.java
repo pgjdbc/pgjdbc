@@ -7,36 +7,60 @@
 */
 package org.postgresql.jdbc2;
 
+import java.io.ByteArrayInputStream;
 import java.io.CharArrayReader;
-import java.io.InputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
-import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.sql.*;
+import java.sql.Array;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.Ref;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.SQLWarning;
+import java.sql.Statement;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
-import java.util.Calendar;
-import java.util.Locale;
 
-import org.postgresql.core.*;
-import org.postgresql.largeobject.*;
+import org.postgresql.PGResultSetMetaData;
+import org.postgresql.core.BaseConnection;
+import org.postgresql.core.BaseResultSet;
+import org.postgresql.core.BaseStatement;
+import org.postgresql.core.Encoding;
+import org.postgresql.core.Field;
+import org.postgresql.core.Oid;
+import org.postgresql.core.Query;
+import org.postgresql.core.ResultCursor;
+import org.postgresql.core.ResultHandler;
+import org.postgresql.core.ServerVersion;
+import org.postgresql.core.Utils;
+import org.postgresql.largeobject.LargeObject;
+import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.GT;
 import org.postgresql.util.HStoreConverter;
-import org.postgresql.util.PGobject;
 import org.postgresql.util.PGbytea;
+import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
-import org.postgresql.util.GT;
-import org.postgresql.PGResultSetMetaData;
 
 
 public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postgresql.PGRefCursorResultSet
@@ -398,7 +422,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         if (wasNullFlag)
             return null;
 
-        if (((AbstractJdbc2Connection) connection).haveMinimumCompatibleVersion("7.2"))
+        if (((AbstractJdbc2Connection) connection).haveMinimumCompatibleVersion(ServerVersion.v7_2))
         {
             //Version 7.2 supports AsciiStream for all the PG text types
             //As the spec/javadoc for this method indicate this is to be used for
@@ -2447,7 +2471,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             //If the data is already binary then just return it
             return this_row[columnIndex - 1];
         }
-        else if (connection.haveMinimumCompatibleVersion("7.2"))
+        else if (connection.haveMinimumCompatibleVersion(ServerVersion.v7_2))
         {
             //Version 7.2 supports the bytea datatype for byte arrays
             if (fields[columnIndex - 1].getOID() == Oid.BYTEA)
@@ -2499,7 +2523,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         if (wasNullFlag)
             return null;
 
-        if (connection.haveMinimumCompatibleVersion("7.2"))
+        if (connection.haveMinimumCompatibleVersion(ServerVersion.v7_2))
         {
             //Version 7.2 supports AsciiStream for all the PG text types
             //As the spec/javadoc for this method indicate this is to be used for
@@ -2529,7 +2553,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         if (wasNullFlag)
             return null;
 
-        if (connection.haveMinimumCompatibleVersion("7.2"))
+        if (connection.haveMinimumCompatibleVersion(ServerVersion.v7_2))
         {
             //Version 7.2 supports AsciiStream for all the PG text types
             //As the spec/javadoc for this method indicate this is to be used for
@@ -2559,7 +2583,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         if (wasNullFlag)
             return null;
 
-        if (connection.haveMinimumCompatibleVersion("7.2"))
+        if (connection.haveMinimumCompatibleVersion(ServerVersion.v7_2))
         {
             //Version 7.2 supports BinaryStream for all PG bytea type
             //As the spec/javadoc for this method indicate this is to be used for
