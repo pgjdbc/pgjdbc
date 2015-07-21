@@ -183,14 +183,14 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         }        
         // the pre 8.0 servers do not disclose their internal encoding for
         // time fields so do not try to use them.
-        if (!haveMinimumCompatibleVersion("8.0")) {
+        if (!haveMinimumCompatibleVersion(ServerVersion.v8_0)) {
             binaryOids.remove(Oid.TIME);
             binaryOids.remove(Oid.TIMETZ);
             binaryOids.remove(Oid.TIMESTAMP);
             binaryOids.remove(Oid.TIMESTAMPTZ);
         }
         // driver supports only null-compatible arrays
-        if (!haveMinimumCompatibleVersion("8.3")) {
+        if (!haveMinimumCompatibleVersion(ServerVersion.v8_3)) {
             binaryOids.remove(Oid.INT2_ARRAY);
             binaryOids.remove(Oid.INT4_ARRAY);
             binaryOids.remove(Oid.INT8_ARRAY);
@@ -243,11 +243,11 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
                 throw new PSQLException(GT.tr("Unsupported value for stringtype parameter: {0}", stringType),
                                         PSQLState.INVALID_PARAMETER_VALUE);
         } else {
-            bindStringAsVarchar = haveMinimumCompatibleVersion("8.0");
+            bindStringAsVarchar = haveMinimumCompatibleVersion(ServerVersion.v8_0);
         }
 
         // Initialize timestamp stuff
-        timestampUtils = new TimestampUtils(haveMinimumServerVersion("7.4"), haveMinimumServerVersion("8.2"),
+        timestampUtils = new TimestampUtils(haveMinimumServerVersion(ServerVersion.v7_4), haveMinimumServerVersion(ServerVersion.v8_2),
                                             !protoConnection.getIntegerDateTimes());
 
         // Initialize common queries.
@@ -749,7 +749,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
             throw new PSQLException(GT.tr("Cannot change transaction read-only property in the middle of a transaction."),
                                     PSQLState.ACTIVE_SQL_TRANSACTION);
 
-        if (haveMinimumServerVersion("7.4") && readOnly != this.readOnly)
+        if (haveMinimumServerVersion(ServerVersion.v7_4) && readOnly != this.readOnly)
         {
             String readOnlySql = "SET SESSION CHARACTERISTICS AS TRANSACTION " + (readOnly ? "READ ONLY" : "READ WRITE");
             execSQLUpdate(readOnlySql); // nb: no BEGIN triggered.
@@ -891,7 +891,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
         String level = null;
 
-        if (haveMinimumServerVersion("7.3"))
+        if (haveMinimumServerVersion(ServerVersion.v7_3))
         {
             // 7.3+ returns the level as a query result.
             ResultSet rs = execSQLQuery("SHOW TRANSACTION ISOLATION LEVEL"); // nb: no BEGIN triggered
@@ -968,7 +968,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
     protected String getIsolationLevelName(int level)
     {
-        boolean pg80 = haveMinimumServerVersion("8.0");
+        boolean pg80 = haveMinimumServerVersion(ServerVersion.v8_0);
 
         if (level == Connection.TRANSACTION_READ_COMMITTED)
         {
@@ -1118,6 +1118,11 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         return protoConnection.getServerVersionNum() >= ver;
     }
 
+    public boolean haveMinimumServerVersion(Version ver)
+    {
+        return haveMinimumServerVersion(ver.getVersionNum());
+    }
+
     /*
      * This method returns true if the compatible level set in the connection
      * (which can be passed into the connection or specified in the URL)
@@ -1140,7 +1145,12 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     /* Prefer the int form */
     public boolean haveMinimumCompatibleVersion(String ver)
     {
-        return haveMinimumCompatibleVersion(Utils.parseServerVersionStr(ver));
+        return haveMinimumCompatibleVersion(ServerVersion.from(ver));
+    }
+
+    public boolean haveMinimumCompatibleVersion(Version ver)
+    {
+        return haveMinimumCompatibleVersion(ver.getVersionNum());
     }
 
 

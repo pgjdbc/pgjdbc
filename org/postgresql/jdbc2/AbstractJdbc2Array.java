@@ -95,8 +95,8 @@ public abstract class AbstractJdbc2Array
     private AbstractJdbc2Array(BaseConnection connection, int oid) throws SQLException {
         this.connection = connection;
         this.oid = oid;
-        this.useObjects = connection.haveMinimumCompatibleVersion("8.3");
-        this.haveMinServer82 = connection.haveMinimumServerVersion("8.2");
+        this.useObjects = connection.haveMinimumCompatibleVersion(ServerVersion.v8_3);
+        this.haveMinServer82 = connection.haveMinimumServerVersion(ServerVersion.v8_2);
     }
 
     /**

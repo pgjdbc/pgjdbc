@@ -8,30 +8,63 @@
 package org.postgresql.jdbc2;
 
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Reader;
+import java.io.UnsupportedEncodingException;
+import java.io.Writer;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.math.*;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.nio.charset.Charset;
-import java.sql.*;
+import java.sql.Array;
+import java.sql.BatchUpdateException;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.Ref;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.SQLWarning;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
-import java.util.TimerTask;
 import java.util.TimeZone;
-import java.util.Calendar;
+import java.util.TimerTask;
 
 import org.postgresql.Driver;
+import org.postgresql.core.BaseConnection;
+import org.postgresql.core.BaseStatement;
+import org.postgresql.core.CachedQuery;
+import org.postgresql.core.Field;
+import org.postgresql.core.Oid;
+import org.postgresql.core.ParameterList;
+import org.postgresql.core.Query;
+import org.postgresql.core.QueryExecutor;
+import org.postgresql.core.ResultCursor;
+import org.postgresql.core.ResultHandler;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.core.v3.QueryExecutorImpl;
-import org.postgresql.largeobject.*;
-import org.postgresql.core.*;
+import org.postgresql.largeobject.LargeObject;
+import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.GT;
 import org.postgresql.util.HStoreConverter;
 import org.postgresql.util.PGBinaryObject;
+import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
-import org.postgresql.util.PGobject;
-import org.postgresql.util.GT;
 
 /**
  * This class defines methods of the jdbc2 specification.
@@ -1194,7 +1227,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         case Types.BINARY:
         case Types.VARBINARY:
         case Types.LONGVARBINARY:
-            if (connection.haveMinimumCompatibleVersion("7.2"))
+            if (connection.haveMinimumCompatibleVersion(ServerVersion.v7_2))
             {
                 oid = Oid.BYTEA;
             }
@@ -1426,7 +1459,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             return ;
         }
 
-        if (connection.haveMinimumCompatibleVersion("7.2"))
+        if (connection.haveMinimumCompatibleVersion(ServerVersion.v7_2))
         {
             //Version 7.2 supports the bytea datatype for byte arrays
             byte[] copy = new byte[x.length];
@@ -1551,7 +1584,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public void setAsciiStream(int parameterIndex, InputStream x, int length) throws SQLException
     {
         checkClosed();
-        if (connection.haveMinimumCompatibleVersion("7.2"))
+        if (connection.haveMinimumCompatibleVersion(ServerVersion.v7_2))
         {
             setCharacterStreamPost71(parameterIndex, x, length, "ASCII");
         }
@@ -1581,7 +1614,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public void setUnicodeStream(int parameterIndex, InputStream x, int length) throws SQLException
     {
         checkClosed();
-        if (connection.haveMinimumCompatibleVersion("7.2"))
+        if (connection.haveMinimumCompatibleVersion(ServerVersion.v7_2))
         {
             setCharacterStreamPost71(parameterIndex, x, length, "UTF-8");
         }
@@ -1621,7 +1654,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             throw new PSQLException(GT.tr("Invalid stream length {0}.", length),
                                     PSQLState.INVALID_PARAMETER_VALUE);
 
-        if (connection.haveMinimumCompatibleVersion("7.2"))
+        if (connection.haveMinimumCompatibleVersion(ServerVersion.v7_2))
         {
             //Version 7.2 supports BinaryStream for for the PG bytea type
             //As the spec/javadoc for this method indicate this is to be used for
@@ -3074,7 +3107,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         checkClosed();
 
         if (x == null) {
-            if (connection.haveMinimumServerVersion("7.2")) {
+            if (connection.haveMinimumServerVersion(ServerVersion.v7_2)) {
                 setNull(i, Types.VARCHAR);
             } else {
                 setNull(i, Types.CLOB);
@@ -3086,7 +3119,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             throw new PSQLException(GT.tr("Invalid stream length {0}.", length),
                                     PSQLState.INVALID_PARAMETER_VALUE);
 
-        if (connection.haveMinimumCompatibleVersion("7.2"))
+        if (connection.haveMinimumCompatibleVersion(ServerVersion.v7_2))
         {
             //Version 7.2 supports CharacterStream for for the PG text types
             //As the spec/javadoc for this method indicate this is to be used for

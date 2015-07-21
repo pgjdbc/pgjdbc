@@ -6,22 +6,30 @@
 */
 package org.postgresql.xa;
 
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.LinkedList;
+
+import javax.sql.XAConnection;
+import javax.transaction.xa.XAException;
+import javax.transaction.xa.XAResource;
+import javax.transaction.xa.Xid;
+
 import org.postgresql.PGConnection;
-import org.postgresql.ds.PGPooledConnection;
 import org.postgresql.core.BaseConnection;
-import org.postgresql.core.ProtocolConnection;
 import org.postgresql.core.Logger;
+import org.postgresql.core.ProtocolConnection;
+import org.postgresql.core.ServerVersion;
+import org.postgresql.ds.PGPooledConnection;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
-
-import javax.sql.*;
-import java.sql.*;
-import java.util.*;
-import java.lang.reflect.*;
-import javax.transaction.xa.Xid;
-import javax.transaction.xa.XAResource;
-import javax.transaction.xa.XAException;
 
 /**
  * The PostgreSQL implementation of {@link XAResource}.
@@ -305,7 +313,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         state = STATE_IDLE;
         currentXid = null;
 
-        if (!conn.haveMinimumServerVersion("8.1"))
+        if (!conn.haveMinimumServerVersion(ServerVersion.v8_1))
             throw new PGXAException(GT.tr("Server versions prior to 8.1 do not support two-phase commit."), XAException.XAER_RMERR);
 
         try

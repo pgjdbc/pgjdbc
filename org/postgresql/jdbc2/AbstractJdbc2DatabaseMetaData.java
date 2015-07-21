@@ -43,11 +43,11 @@ public abstract class AbstractJdbc2DatabaseMetaData
         if (INDEX_MAX_KEYS == 0)
         {
             String sql;
-            if (connection.haveMinimumServerVersion("8.0")) {
+            if (connection.haveMinimumServerVersion(ServerVersion.v8_0)) {
                 sql = "SELECT setting FROM pg_catalog.pg_settings WHERE name='max_index_keys'";
             } else {
                 String from;
-                if (connection.haveMinimumServerVersion("7.3"))
+                if (connection.haveMinimumServerVersion(ServerVersion.v7_3))
                 {
                     from = "pg_catalog.pg_namespace n, pg_catalog.pg_type t1, pg_catalog.pg_type t2 WHERE t1.typnamespace=n.oid AND n.nspname='pg_catalog' AND ";
                 }
@@ -75,7 +75,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         if (NAMEDATALEN == 0)
         {
             String sql;
-            if (connection.haveMinimumServerVersion("7.3"))
+            if (connection.haveMinimumServerVersion(ServerVersion.v7_3))
             {
                 sql = "SELECT t.typlen FROM pg_catalog.pg_type t, pg_catalog.pg_namespace n WHERE t.typnamespace=n.oid AND t.typname='name' AND n.nspname='pg_catalog'";
             }
@@ -162,7 +162,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean nullsAreSortedHigh() throws SQLException
     {
-        return connection.haveMinimumServerVersion("7.2");
+        return connection.haveMinimumServerVersion(ServerVersion.v7_2);
     }
 
     /*
@@ -195,7 +195,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean nullsAreSortedAtEnd() throws SQLException
     {
-        return !connection.haveMinimumServerVersion("7.2");
+        return !connection.haveMinimumServerVersion(ServerVersion.v7_2);
     }
 
     /*
@@ -454,7 +454,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         //','+EscapedFunctions.INSERT+','+EscapedFunctions.LOCATE+
         //','+EscapedFunctions.RIGHT+
  
-        if (connection.haveMinimumServerVersion("7.3")) {
+        if (connection.haveMinimumServerVersion(ServerVersion.v7_3)) {
             funcs += ','+EscapedFunctions.REPLACE;
         }
 
@@ -463,7 +463,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
     public String getSystemFunctions() throws SQLException
     {
-        if (connection.haveMinimumServerVersion("7.3")){
+        if (connection.haveMinimumServerVersion(ServerVersion.v7_3)){
             return EscapedFunctions.DATABASE+','+EscapedFunctions.IFNULL+
                 ','+EscapedFunctions.USER;
         } else {
@@ -483,7 +483,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         ','+EscapedFunctions.QUARTER+','+EscapedFunctions.SECOND+
         ','+EscapedFunctions.WEEK+','+EscapedFunctions.YEAR;
 
-        if (connection.haveMinimumServerVersion("8.0")) {
+        if (connection.haveMinimumServerVersion(ServerVersion.v8_0)) {
             timeDateFuncs += ','+EscapedFunctions.TIMESTAMPADD;
         }
 
@@ -555,7 +555,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsAlterTableWithDropColumn() throws SQLException
     {
-        return connection.haveMinimumServerVersion("7.3");
+        return connection.haveMinimumServerVersion(ServerVersion.v7_3);
     }
 
     /*
@@ -648,7 +648,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsOrderByUnrelated() throws SQLException
     {
-        return connection.haveMinimumServerVersion("6.4");
+        return connection.haveMinimumServerVersion(ServerVersion.v6_4);
     }
 
     /*
@@ -671,7 +671,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsGroupByUnrelated() throws SQLException
     {
-        return connection.haveMinimumServerVersion("6.4");
+        return connection.haveMinimumServerVersion(ServerVersion.v6_4);
     }
 
     /*
@@ -686,7 +686,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsGroupByBeyondSelect() throws SQLException
     {
-        return connection.haveMinimumServerVersion("6.4");
+        return connection.haveMinimumServerVersion(ServerVersion.v6_4);
     }
 
     /*
@@ -698,7 +698,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsLikeEscapeClause() throws SQLException
     {
-        return connection.haveMinimumServerVersion("7.1");
+        return connection.haveMinimumServerVersion(ServerVersion.v7_1);
     }
 
     /*
@@ -796,7 +796,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsANSI92EntryLevelSQL() throws SQLException
     {
-        return connection.haveMinimumServerVersion("7.3");
+        return connection.haveMinimumServerVersion(ServerVersion.v7_3);
     }
 
     /*
@@ -842,7 +842,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsOuterJoins() throws SQLException
     {
-        return connection.haveMinimumServerVersion("7.1");
+        return connection.haveMinimumServerVersion(ServerVersion.v7_1);
     }
 
     /*
@@ -853,7 +853,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsFullOuterJoins() throws SQLException
     {
-        return connection.haveMinimumServerVersion("7.1");
+        return connection.haveMinimumServerVersion(ServerVersion.v7_1);
     }
 
     /*
@@ -864,7 +864,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsLimitedOuterJoins() throws SQLException
     {
-        return connection.haveMinimumServerVersion("7.1");
+        return connection.haveMinimumServerVersion(ServerVersion.v7_1);
     }
 
     /*
@@ -934,7 +934,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsSchemasInDataManipulation() throws SQLException
     {
-        return connection.haveMinimumServerVersion("7.3");
+        return connection.haveMinimumServerVersion(ServerVersion.v7_3);
     }
 
     /*
@@ -945,7 +945,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsSchemasInProcedureCalls() throws SQLException
     {
-        return connection.haveMinimumServerVersion("7.3");
+        return connection.haveMinimumServerVersion(ServerVersion.v7_3);
     }
 
     /*
@@ -956,7 +956,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsSchemasInTableDefinitions() throws SQLException
     {
-        return connection.haveMinimumServerVersion("7.3");
+        return connection.haveMinimumServerVersion(ServerVersion.v7_3);
     }
 
     /*
@@ -967,7 +967,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsSchemasInIndexDefinitions() throws SQLException
     {
-        return connection.haveMinimumServerVersion("7.3");
+        return connection.haveMinimumServerVersion(ServerVersion.v7_3);
     }
 
     /*
@@ -978,7 +978,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsSchemasInPrivilegeDefinitions() throws SQLException
     {
-        return connection.haveMinimumServerVersion("7.3");
+        return connection.haveMinimumServerVersion(ServerVersion.v7_3);
     }
 
     /*
@@ -1067,7 +1067,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsSelectForUpdate() throws SQLException
     {
-        return connection.haveMinimumServerVersion("6.5");
+        return connection.haveMinimumServerVersion(ServerVersion.v6_5);
     }
 
     /*
@@ -1144,7 +1144,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsCorrelatedSubqueries() throws SQLException
     {
-        return connection.haveMinimumServerVersion("7.1");
+        return connection.haveMinimumServerVersion(ServerVersion.v7_1);
     }
 
     /*
@@ -1166,7 +1166,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public boolean supportsUnionAll() throws SQLException
     {
-        return connection.haveMinimumServerVersion("7.1");
+        return connection.haveMinimumServerVersion(ServerVersion.v7_1);
     }
 
     /*
@@ -1385,7 +1385,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public int getMaxRowSize() throws SQLException
     {
-        if (connection.haveMinimumServerVersion("7.1"))
+        if (connection.haveMinimumServerVersion(ServerVersion.v7_1))
             return 1073741824; // 1 GB
         else
             return 8192;  // XXX could be altered
@@ -1411,7 +1411,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     public int getMaxStatementLength() throws SQLException
     {
-        if (connection.haveMinimumServerVersion("7.0"))
+        if (connection.haveMinimumServerVersion(ServerVersion.v7_0))
             return 0;  // actually whatever fits in size_t
         else
             return 16384;
@@ -1505,7 +1505,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         if (level == Connection.TRANSACTION_SERIALIZABLE ||
             level == Connection.TRANSACTION_READ_COMMITTED)
             return true;
-        else if (connection.haveMinimumServerVersion("8.0") && (level == Connection.TRANSACTION_READ_UNCOMMITTED || level == Connection.TRANSACTION_REPEATABLE_READ))
+        else if (connection.haveMinimumServerVersion(ServerVersion.v8_0) && (level == Connection.TRANSACTION_READ_UNCOMMITTED || level == Connection.TRANSACTION_REPEATABLE_READ))
             return true;
         else
             return false;
@@ -1577,7 +1577,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
      */
     protected String escapeQuotes(String s) throws SQLException {
         StringBuilder sb = new StringBuilder();
-        if (!connection.getStandardConformingStrings() && connection.haveMinimumServerVersion("8.1")) {
+        if (!connection.getStandardConformingStrings() && connection.haveMinimumServerVersion(ServerVersion.v8_1)) {
             sb.append("E");
         }
         sb.append("'");
@@ -1626,7 +1626,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
     protected java.sql.ResultSet getProcedures(int jdbcVersion, String catalog, String schemaPattern, String procedureNamePattern) throws SQLException
     {
         String sql;
-        if (connection.haveMinimumServerVersion("7.3"))
+        if (connection.haveMinimumServerVersion(ServerVersion.v7_3))
         {
             sql = "SELECT NULL AS PROCEDURE_CAT, n.nspname AS PROCEDURE_SCHEM, p.proname AS PROCEDURE_NAME, NULL, NULL, NULL, d.description AS REMARKS, " + java.sql.DatabaseMetaData.procedureReturnsResult + " AS PROCEDURE_TYPE ";
             if (jdbcVersion >= 4) {
@@ -1647,7 +1647,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
             }
             sql += " ORDER BY PROCEDURE_SCHEM, PROCEDURE_NAME, p.oid::text ";
         }
-        else if (connection.haveMinimumServerVersion("7.1"))
+        else if (connection.haveMinimumServerVersion(ServerVersion.v7_1))
         {
             sql = "SELECT NULL AS PROCEDURE_CAT, NULL AS PROCEDURE_SCHEM, p.proname AS PROCEDURE_NAME, NULL, NULL, NULL, d.description AS REMARKS, " + java.sql.DatabaseMetaData.procedureReturnsResult + " AS PROCEDURE_TYPE ";
             if (jdbcVersion >= 4) {
@@ -1655,7 +1655,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
             }
             sql += " FROM pg_proc p " +
                   " LEFT JOIN pg_description d ON (p.oid=d.objoid) ";
-            if (connection.haveMinimumServerVersion("7.2"))
+            if (connection.haveMinimumServerVersion(ServerVersion.v7_2))
             {
                 sql += " LEFT JOIN pg_class c ON (d.classoid=c.oid AND c.relname='pg_proc') ";
             }
@@ -1765,13 +1765,13 @@ public abstract class AbstractJdbc2DatabaseMetaData
         }
 
         String sql;
-        if (connection.haveMinimumServerVersion("7.3"))
+        if (connection.haveMinimumServerVersion(ServerVersion.v7_3))
         {
             sql = "SELECT n.nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid ";
 
-            if (connection.haveMinimumServerVersion("8.1"))
+            if (connection.haveMinimumServerVersion(ServerVersion.v8_1))
                 sql += ", p.proargnames, p.proargmodes, p.proallargtypes  ";
-            else if (connection.haveMinimumServerVersion("8.0"))
+            else if (connection.haveMinimumServerVersion(ServerVersion.v8_0))
                 sql += ", p.proargnames, NULL AS proargmodes, NULL AS proallargtypes ";
             else
                 sql += ", NULL AS proargnames, NULL AS proargmodes, NULL AS proallargtypes ";
@@ -1840,7 +1840,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 // either long[] or Long[] back, and there's no
                 // obvious way for the driver to override this for
                 // it's own usage.
-                if (connection.haveMinimumCompatibleVersion("8.3")) {
+                if (connection.haveMinimumCompatibleVersion(ServerVersion.v8_3)) {
                     allArgTypes = (Long[])allArgTypesArray.getArray();
                 } else {
                     long tempAllArgTypes[] = (long[])allArgTypesArray.getArray();
@@ -1926,7 +1926,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
             if (returnTypeType.equals("c") || (returnTypeType.equals("p") && argModesArray != null))
             {
                 String columnsql = "SELECT a.attname,a.atttypid FROM ";
-                if (connection.haveMinimumServerVersion("7.3")) {
+                if (connection.haveMinimumServerVersion(ServerVersion.v7_3)) {
                     columnsql += "pg_catalog.";
                 }
                 columnsql += "pg_attribute a WHERE a.attrelid = " + returnTypeRelid + " AND a.attnum > 0 ORDER BY a.attnum ";
@@ -2006,7 +2006,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         String select;
         String orderby;
         String useSchemas;
-        if (connection.haveMinimumServerVersion("7.3"))
+        if (connection.haveMinimumServerVersion(ServerVersion.v7_3))
         {
             useSchemas = "SCHEMAS";
             select = "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, c.relname AS TABLE_NAME, " +
@@ -2095,7 +2095,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                                " ELSE NULL " +
                                " END ";
             orderby = " ORDER BY TABLE_TYPE,TABLE_NAME ";
-            if (connection.haveMinimumServerVersion("7.2"))
+            if (connection.haveMinimumServerVersion(ServerVersion.v7_2))
             {
                 select = "SELECT NULL AS TABLE_CAT, NULL AS TABLE_SCHEM, c.relname AS TABLE_NAME, " + tableType + " AS TABLE_TYPE, d.description AS REMARKS " +
                          " FROM pg_class c " +
@@ -2103,7 +2103,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                          " LEFT JOIN pg_class dc ON (d.classoid = dc.oid AND dc.relname='pg_class') " +
                          " WHERE true ";
             }
-            else if (connection.haveMinimumServerVersion("7.1"))
+            else if (connection.haveMinimumServerVersion(ServerVersion.v7_1))
             {
                 select = "SELECT NULL AS TABLE_CAT, NULL AS TABLE_SCHEM, c.relname AS TABLE_NAME, " + tableType + " AS TABLE_TYPE, d.description AS REMARKS " +
                          " FROM pg_class c " +
@@ -2228,13 +2228,13 @@ public abstract class AbstractJdbc2DatabaseMetaData
         String sql;
         // Show only the users temp schemas, but not other peoples
         // because they can't access any objects in them.
-        if (connection.haveMinimumServerVersion("7.3"))
+        if (connection.haveMinimumServerVersion(ServerVersion.v7_3))
         {
             // 7.3 can't extract elements from an array returned by
             // a function, so we've got to coerce it to text and then
             // hack it up with a regex.
             String tempSchema = "substring(textin(array_out(pg_catalog.current_schemas(true))) from '{(pg_temp_[0-9]+),')";
-            if (connection.haveMinimumServerVersion("7.4")) {
+            if (connection.haveMinimumServerVersion(ServerVersion.v7_4)) {
                 tempSchema = "(pg_catalog.current_schemas(true))[1]";
             }
             sql = "SELECT nspname AS TABLE_SCHEM ";
@@ -2371,7 +2371,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         }
 
         String sql;
-        if (connection.haveMinimumServerVersion("7.3"))
+        if (connection.haveMinimumServerVersion(ServerVersion.v7_3))
         {
             // a.attnum isn't decremented when preceding columns are dropped,
             // so the only way to calculate the correct column number is with
@@ -2381,14 +2381,14 @@ public abstract class AbstractJdbc2DatabaseMetaData
             // function as possible (schema/table names), but must leave
             // column name outside so we correctly count the other columns.
             //
-            if (connection.haveMinimumServerVersion("8.4"))
+            if (connection.haveMinimumServerVersion(ServerVersion.v8_4))
                 sql = "SELECT * FROM (";
             else
                 sql = "";
 
             sql += "SELECT n.nspname,c.relname,a.attname,a.atttypid,a.attnotnull OR (t.typtype = 'd' AND t.typnotnull) AS attnotnull,a.atttypmod,a.attlen,";
             
-            if (connection.haveMinimumServerVersion("8.4"))
+            if (connection.haveMinimumServerVersion(ServerVersion.v8_4))
                 sql += "row_number() OVER (PARTITION BY a.attrelid ORDER BY a.attnum) AS attnum, ";
             else
                 sql += "a.attnum,";
@@ -2414,11 +2414,11 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 sql += " AND c.relname LIKE " + escapeQuotes(tableNamePattern);
             }
 
-            if (connection.haveMinimumServerVersion("8.4"))
+            if (connection.haveMinimumServerVersion(ServerVersion.v8_4))
                 sql += ") c WHERE true ";
 
         }
-        else if (connection.haveMinimumServerVersion("7.2"))
+        else if (connection.haveMinimumServerVersion(ServerVersion.v7_2))
         {
             sql = "SELECT NULL::text AS nspname,c.relname,a.attname,a.atttypid,a.attnotnull,a.atttypmod,a.attlen,a.attnum,pg_get_expr(def.adbin,def.adrelid) AS adsrc,dsc.description,NULL::oid AS typbasetype,t.typtype " +
                   " FROM pg_class c " +
@@ -2429,7 +2429,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                   " LEFT JOIN pg_class dc ON (dc.oid=dsc.classoid AND dc.relname='pg_class') " +
                   " WHERE a.attnum > 0 ";
         }
-        else if (connection.haveMinimumServerVersion("7.1"))
+        else if (connection.haveMinimumServerVersion(ServerVersion.v7_1))
         {
             sql = "SELECT NULL::text AS nspname,c.relname,a.attname,a.atttypid,a.attnotnull,a.atttypmod,a.attlen,a.attnum,def.adsrc,dsc.description,NULL::oid AS typbasetype, 'b' AS typtype  " +
                   " FROM pg_class c " +
@@ -2446,7 +2446,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                   " WHERE a.attrelid=c.oid AND a.attnum > 0 ";
         }
 
-        if (!connection.haveMinimumServerVersion("7.3") && tableNamePattern != null && !"".equals(tableNamePattern))
+        if (!connection.haveMinimumServerVersion(ServerVersion.v7_3) && tableNamePattern != null && !"".equals(tableNamePattern))
         {
             sql += " AND c.relname LIKE " + escapeQuotes(tableNamePattern);
         }
@@ -2655,7 +2655,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         f[7] = new Field("IS_GRANTABLE", Oid.VARCHAR);
 
         String sql;
-        if (connection.haveMinimumServerVersion("8.4"))
+        if (connection.haveMinimumServerVersion(ServerVersion.v8_4))
         {
             sql = "SELECT n.nspname,c.relname,r.rolname,c.relacl,a.attacl,a.attname " +
                   " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class c, pg_catalog.pg_roles r, pg_catalog.pg_attribute a " +
@@ -2669,7 +2669,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                 sql += " AND n.nspname = " + escapeQuotes(schema);
             }
         }
-        else if (connection.haveMinimumServerVersion("7.3"))
+        else if (connection.haveMinimumServerVersion(ServerVersion.v7_3))
         {
             sql = "SELECT n.nspname,c.relname,r.rolname,c.relacl,a.attname " +
                   " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class c, pg_catalog.pg_roles r, pg_catalog.pg_attribute a " +
@@ -2712,7 +2712,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
             
             Map permissions = parseACL(relAcl, owner);
             
-            if (connection.haveMinimumServerVersion("8.4"))
+            if (connection.haveMinimumServerVersion(ServerVersion.v8_4))
             {
                 String acl = rs.getString("attacl");
                 Map relPermissions = parseACL(acl, owner);
@@ -2807,7 +2807,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         f[6] = new Field("IS_GRANTABLE", Oid.VARCHAR);
 
         String sql;
-        if (connection.haveMinimumServerVersion("7.3"))
+        if (connection.haveMinimumServerVersion(ServerVersion.v7_3))
         {
             sql = "SELECT n.nspname,c.relname,r.rolname,c.relacl " +
                   " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class c, pg_catalog.pg_roles r " +
@@ -3060,10 +3060,10 @@ public abstract class AbstractJdbc2DatabaseMetaData
         {
             //null acl is a shortcut for owner having full privs
             String perms = "arwdRxt";
-            if (connection.haveMinimumServerVersion("8.2")) {
+            if (connection.haveMinimumServerVersion(ServerVersion.v8_2)) {
                 // 8.2 Removed the separate RULE permission
                 perms = "arwdxt";
-            } else if (connection.haveMinimumServerVersion("8.4")) {
+            } else if (connection.haveMinimumServerVersion(ServerVersion.v8_4)) {
                 // 8.4 Added a separate TRUNCATE permission
                 perms = "arwdDxt";
             }
@@ -3134,7 +3134,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
          */
 
         String sql;
-        if (connection.haveMinimumServerVersion("8.1"))
+        if (connection.haveMinimumServerVersion(ServerVersion.v8_1))
         {
             sql = "SELECT a.attname, a.atttypid, atttypmod "
                 + "FROM pg_catalog.pg_class ct "
@@ -3154,7 +3154,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         {
             String from;
             String where = "";
-            if (connection.haveMinimumServerVersion("7.3"))
+            if (connection.haveMinimumServerVersion(ServerVersion.v7_3))
             {
                 from = " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class ct, pg_catalog.pg_class ci, pg_catalog.pg_attribute a, pg_catalog.pg_index i ";
                 where = " AND ct.relnamespace = n.oid ";
@@ -3299,7 +3299,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
     public java.sql.ResultSet getPrimaryKeys(String catalog, String schema, String table) throws SQLException
     {
         String sql;
-        if (connection.haveMinimumServerVersion("8.1"))
+        if (connection.haveMinimumServerVersion(ServerVersion.v8_1))
         {
             sql = "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, "
                 + "  ct.relname AS TABLE_NAME, a.attname AS COLUMN_NAME, "
@@ -3322,7 +3322,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
             String from;
             String where = "";
 
-            if (connection.haveMinimumServerVersion("7.3"))
+            if (connection.haveMinimumServerVersion(ServerVersion.v7_3))
             {
                 select = "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, ";
                 from = " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class ct, pg_catalog.pg_class ci, pg_catalog.pg_attribute a, pg_catalog.pg_index i ";
@@ -3405,7 +3405,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
          *   the PK_NAME field.
          */
 
-        if (connection.haveMinimumServerVersion("7.4"))
+        if (connection.haveMinimumServerVersion(ServerVersion.v7_4))
         {
             String sql = "SELECT NULL::text AS PKTABLE_CAT, pkn.nspname AS PKTABLE_SCHEM, pkc.relname AS PKTABLE_NAME, pka.attname AS PKCOLUMN_NAME, " +
                          "NULL::text AS FKTABLE_CAT, fkn.nspname AS FKTABLE_SCHEM, fkc.relname AS FKTABLE_NAME, fka.attname AS FKCOLUMN_NAME, " +
@@ -3434,7 +3434,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                          " pg_catalog.pg_namespace pkn, pg_catalog.pg_class pkc, pg_catalog.pg_attribute pka, " +
                          " pg_catalog.pg_namespace fkn, pg_catalog.pg_class fkc, pg_catalog.pg_attribute fka, " +
                          " pg_catalog.pg_constraint con, ";
-            if (connection.haveMinimumServerVersion("8.0")) {
+            if (connection.haveMinimumServerVersion(ServerVersion.v8_0)) {
                 sql += " pg_catalog.generate_series(1, " + getMaxIndexKeys() + ") pos(n), ";
             } else {
                 sql += " information_schema._pg_keypositions() pos(n), ";
@@ -3471,7 +3471,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
             return createMetaDataStatement().executeQuery(sql);
         }
-        else if (connection.haveMinimumServerVersion("7.3"))
+        else if (connection.haveMinimumServerVersion(ServerVersion.v7_3))
         {
             select = "SELECT DISTINCT n1.nspname as pnspname,n2.nspname as fnspname, ";
             from = " FROM pg_catalog.pg_namespace n1 " +
@@ -3555,7 +3555,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
 
         if (primaryTable != null)
         {
-            if (connection.haveMinimumServerVersion("7.3"))
+            if (connection.haveMinimumServerVersion(ServerVersion.v7_3))
             {
                 sql += "fnspname,";
             }
@@ -3563,7 +3563,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         }
         else
         {
-            if (connection.haveMinimumServerVersion("7.3"))
+            if (connection.haveMinimumServerVersion(ServerVersion.v7_3))
             {
                 sql += "pnspname,";
             }
@@ -3961,7 +3961,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         f[17] = new Field("NUM_PREC_RADIX", Oid.INT4);
 
         String sql;
-        if (connection.haveMinimumServerVersion("7.3"))
+        if (connection.haveMinimumServerVersion(ServerVersion.v7_3))
         {
             sql = "SELECT t.typname,t.oid FROM pg_catalog.pg_type t"
             	+ " JOIN pg_catalog.pg_namespace n ON (t.typnamespace = n.oid) "
@@ -4108,7 +4108,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
          * the function operates on.
          */
         String sql;
-        if (connection.haveMinimumServerVersion("8.3"))
+        if (connection.haveMinimumServerVersion(ServerVersion.v8_3))
         {
             sql = "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, "
                 + "  ct.relname AS TABLE_NAME, NOT i.indisunique AS NON_UNIQUE, "
@@ -4153,13 +4153,13 @@ public abstract class AbstractJdbc2DatabaseMetaData
             String from;
             String where = "";
 
-            if (connection.haveMinimumServerVersion("7.3"))
+            if (connection.haveMinimumServerVersion(ServerVersion.v7_3))
             {
                 select = "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, ";
                 from = " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class ct, pg_catalog.pg_class ci, pg_catalog.pg_attribute a, pg_catalog.pg_am am ";
                 where = " AND n.oid = ct.relnamespace ";
 
-                if (!connection.haveMinimumServerVersion("7.4")) {
+                if (!connection.haveMinimumServerVersion(ServerVersion.v7_4)) {
                     from += ", pg_catalog.pg_attribute ai, pg_catalog.pg_index i LEFT JOIN pg_catalog.pg_proc ip ON (i.indproc = ip.oid) ";
                     where += " AND ai.attnum = i.indkey[0] AND ai.attrelid = ct.oid ";
                 } else {
@@ -4188,7 +4188,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                      " END AS TYPE, " +
                      " a.attnum AS ORDINAL_POSITION, ";
 
-            if( connection.haveMinimumServerVersion("7.4"))
+            if( connection.haveMinimumServerVersion(ServerVersion.v7_4))
             {
                 sql += " CASE WHEN i.indexprs IS NULL THEN a.attname ELSE pg_catalog.pg_get_indexdef(ci.oid,a.attnum,false) END AS COLUMN_NAME, ";
             }
@@ -4202,11 +4202,11 @@ public abstract class AbstractJdbc2DatabaseMetaData
                      " ci.reltuples AS CARDINALITY, " +
                      " ci.relpages AS PAGES, ";
 
-            if( connection.haveMinimumServerVersion("7.3"))
+            if( connection.haveMinimumServerVersion(ServerVersion.v7_3))
             {
                 sql += " pg_catalog.pg_get_expr(i.indpred, i.indrelid) AS FILTER_CONDITION ";
             }
-            else if( connection.haveMinimumServerVersion("7.2"))
+            else if( connection.haveMinimumServerVersion(ServerVersion.v7_2))
             {
                 sql += " pg_get_expr(i.indpred, i.indrelid) AS FILTER_CONDITION ";
             }

@@ -51,7 +51,7 @@ public abstract class AbstractJdbc4DatabaseMetaData extends org.postgresql.jdbc3
 
         List v = new ArrayList();
 
-        if (connection.haveMinimumServerVersion("9.0")) {
+        if (connection.haveMinimumServerVersion(ServerVersion.v9_0)) {
             byte[][] tuple = new byte[4][];
             tuple[0] = connection.encodeString("ApplicationName");
             tuple[1] = connection.encodeString(Integer.toString(getMaxNameLength()));

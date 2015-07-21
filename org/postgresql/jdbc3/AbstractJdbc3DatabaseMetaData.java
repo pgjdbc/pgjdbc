@@ -8,7 +8,12 @@
 package org.postgresql.jdbc3;
 
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+import org.postgresql.core.ServerVersion;
 
 public abstract class AbstractJdbc3DatabaseMetaData extends org.postgresql.jdbc2.AbstractJdbc2DatabaseMetaData
 {
@@ -29,7 +34,7 @@ public abstract class AbstractJdbc3DatabaseMetaData extends org.postgresql.jdbc2
      */
     public boolean supportsSavepoints() throws SQLException
     {
-        return connection.haveMinimumServerVersion("8.0");
+        return connection.haveMinimumServerVersion(ServerVersion.v8_0);
     }
 
     /**
@@ -76,7 +81,7 @@ public abstract class AbstractJdbc3DatabaseMetaData extends org.postgresql.jdbc2
         // We don't support returning generated keys by column index,
         // but that should be a rarer case than the ones we do support.
         //
-        return connection.haveMinimumServerVersion("8.2");
+        return connection.haveMinimumServerVersion(ServerVersion.v8_2);
     }
 
     /**

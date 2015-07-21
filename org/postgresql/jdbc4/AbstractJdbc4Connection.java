@@ -7,9 +7,21 @@
 */
 package org.postgresql.jdbc4;
 
-import java.sql.*;
-import java.util.Map;
+import java.sql.Array;
+import java.sql.Blob;
+import java.sql.ClientInfoStatus;
+import java.sql.Clob;
+import java.sql.NClob;
+import java.sql.ResultSet;
+import java.sql.SQLClientInfoException;
+import java.sql.SQLException;
+import java.sql.SQLPermission;
+import java.sql.SQLWarning;
+import java.sql.SQLXML;
+import java.sql.Statement;
+import java.sql.Struct;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.Executor;
@@ -17,15 +29,15 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.postgresql.PGProperty;
-import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Oid;
-import org.postgresql.core.Utils;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TypeInfo;
+import org.postgresql.core.Utils;
+import org.postgresql.jdbc2.AbstractJdbc2Array;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
-import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLException;
-import org.postgresql.jdbc2.AbstractJdbc2Array;
+import org.postgresql.util.PSQLState;
 
 public abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdbc3gConnection
 {
@@ -42,12 +54,12 @@ public abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.Abst
         super(hostSpecs, user, database, info, url);
 
         TypeInfo types = getTypeInfo();
-        if (haveMinimumServerVersion("8.3")) {
+        if (haveMinimumServerVersion(ServerVersion.v8_3)) {
             types.addCoreType("xml", Oid.XML, java.sql.Types.SQLXML, "java.sql.SQLXML", Oid.XML_ARRAY);
         }
 
         _clientInfo = new Properties();
-        if (haveMinimumServerVersion("9.0")) {
+        if (haveMinimumServerVersion(ServerVersion.v9_0)) {
             String appName = PGProperty.APPLICATION_NAME.get(info);
             if (appName == null) {
                 appName = "";
@@ -171,7 +183,7 @@ public abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.Abst
                                              cause);
         }
 
-        if (haveMinimumServerVersion("9.0") && "ApplicationName".equals(name)) {
+        if (haveMinimumServerVersion(ServerVersion.v9_0) && "ApplicationName".equals(name)) {
             if (value == null)
                 value = "";
 

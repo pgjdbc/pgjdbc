@@ -7,15 +7,18 @@
 */
 package org.postgresql.jdbc4;
 
-import java.sql.*;
+import java.sql.CallableStatement;
+import java.sql.SQLException;
 import java.util.Map;
+
+import org.postgresql.core.ServerVersion;
 
 class Jdbc4CallableStatement extends Jdbc4PreparedStatement implements CallableStatement
 {
     Jdbc4CallableStatement(Jdbc4Connection connection, String sql, int rsType, int rsConcurrency, int rsHoldability) throws SQLException
     {
         super(connection, sql, true, rsType, rsConcurrency, rsHoldability);
-        if ( !connection.haveMinimumServerVersion("8.1") || connection.getProtocolVersion() == 2)
+        if ( !connection.haveMinimumServerVersion(ServerVersion.v8_1) || connection.getProtocolVersion() == 2)
         {
             // if there is no out parameter before the function determined by modifyJdbcCall then do not
             // set adjustIndex to true

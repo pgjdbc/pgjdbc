@@ -108,6 +108,19 @@ public interface BaseConnection extends PGConnection, Connection
     public boolean haveMinimumCompatibleVersion(int ver);
 
     /**
+     * Check if we should use driver behaviour introduced in a particular
+     * driver version.
+     *
+     * This defaults to behaving as the actual driver's version but can be
+     * overridden by the "compatible" URL parameter.
+     *
+     * @param ver the driver version to check
+     * @return true if the driver's behavioural version is at least "ver".
+     * @throws SQLException if something goes wrong
+     */
+    public boolean haveMinimumCompatibleVersion(Version ver);
+
+    /**
      * Check if we have at least a particular server version.
      *
      * @deprecated Use haveMinimumServerVersion(int) instead
@@ -130,6 +143,18 @@ public interface BaseConnection extends PGConnection, Connection
      * @throws SQLException if something goes wrong
      */
     public boolean haveMinimumServerVersion(int ver);
+
+    /**
+     * Check if we have at least a particular server version.
+     *
+     * The input version is of the form xxyyzz, matching a PostgreSQL
+     * version like xx.yy.zz. So 9.0.12 is 90012 .
+     *
+     * @param ver the server version to check
+     * @return true if the server version is at least "ver".
+     * @throws SQLException if something goes wrong
+     */
+    public boolean haveMinimumServerVersion(Version ver);
 
     /**
      * Encode a string using the database's client_encoding
