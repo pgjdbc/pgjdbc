@@ -25,8 +25,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.Executor;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.Oid;
@@ -42,11 +40,6 @@ import org.postgresql.util.PSQLState;
 public abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.AbstractJdbc3gConnection
 {
     private static final SQLPermission SQL_PERMISSION_ABORT = new SQLPermission("callAbort");
-
-    /**
-     * Pattern used to unquote the result of {@link #getSchema()}
-     */
-    private static final Pattern PATTERN_GET_SCHEMA = Pattern.compile("^\\\"(.*)\\\"(?!\\\")");
 
     private final Properties _clientInfo;
 
@@ -277,18 +270,17 @@ public abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.Abst
     public String getSchema() throws SQLException
     {
         checkClosed();
-        String searchPath;
         Statement stmt = createStatement();
         try
         {
-            ResultSet rs = stmt.executeQuery( "SHOW search_path");
+            ResultSet rs = stmt.executeQuery( "select current_schema()");
             try
             {
                 if (!rs.next())
                 {
-                    return null;
+                    return null; // Is it ever possible?
                 }
-                searchPath = rs.getString(1);
+                return rs.getString(1);
             }
             finally
             {
@@ -299,26 +291,29 @@ public abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.Abst
         {
             stmt.close();
         }
+    }
 
-        if (searchPath.startsWith("\""))
+    public void setSchema(String schema) throws SQLException
+    {
+        checkClosed();
+        Statement stmt = createStatement();
+        try
         {
-            // unquote the result if it's a quoted string
-            Matcher matcher = PATTERN_GET_SCHEMA.matcher(searchPath);
-            matcher.find();
-            return matcher.group(1).replaceAll("\"\"", "\"");
+            if (schema == null)
+            {
+                stmt.executeUpdate("SET SESSION search_path TO DEFAULT");
+            } else
+            {
+                StringBuilder sb = new StringBuilder();
+                sb.append("SET SESSION search_path TO '");
+                Utils.escapeLiteral(sb, schema, getStandardConformingStrings());
+                sb.append("'");
+                stmt.executeUpdate(sb.toString());
+            }
         }
-        else
+        finally
         {
-            // keep only the first schema of the search path if there are many
-            int commaIndex = searchPath.indexOf(',');
-            if (commaIndex == -1)
-            {
-                return searchPath;
-            }
-            else
-            {
-                return searchPath.substring(0, commaIndex);
-            }
+            stmt.close();
         }
     }
 
