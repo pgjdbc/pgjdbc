@@ -1323,31 +1323,6 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         this.disableColumnSanitiser = disableColumnSanitiser;
     }
 
-    public void setSchema(String schema) throws SQLException
-    {
-        checkClosed();
-        Statement stmt = createStatement();
-        try
-        {
-            if (schema != null)
-            {
-                StringBuilder sb = new StringBuilder();
-                sb.append("SET SESSION search_path TO '");
-                Utils.escapeLiteral(sb, schema, protoConnection.getStandardConformingStrings());
-                sb.append("'");
-                stmt.executeUpdate(sb.toString());
-            }
-            else
-            {
-                stmt.executeUpdate("SET SESSION search_path TO DEFAULT");
-            }
-        }
-        finally
-        {
-            stmt.close();
-        }
-    }
-
     protected void abort()
     {
        protoConnection.abort();

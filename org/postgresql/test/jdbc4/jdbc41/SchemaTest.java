@@ -20,6 +20,8 @@ public class SchemaTest extends TestCase
 
     private Connection _conn;
 
+    private boolean dropUserSchema;
+
     public SchemaTest(String name)
     {
         super(name);
@@ -29,6 +31,12 @@ public class SchemaTest extends TestCase
     {
         _conn = TestUtil.openDB();
         Statement stmt = _conn.createStatement();
+        try {
+            stmt.execute("CREATE SCHEMA " + TestUtil.getUser());
+            dropUserSchema = true;
+        } catch (SQLException e) {
+            /* assume schema existed */
+        }
         stmt.execute("CREATE SCHEMA schema1");
         stmt.execute("CREATE SCHEMA schema2");
         stmt.execute("CREATE SCHEMA \"schema 3\"");
@@ -45,6 +53,9 @@ public class SchemaTest extends TestCase
     {
         _conn.setSchema(null);
         Statement stmt = _conn.createStatement();
+        if (dropUserSchema) {
+            stmt.execute("DROP SCHEMA " + TestUtil.getUser()  + " CASCADE");
+        }
         stmt.execute("DROP SCHEMA schema1 CASCADE");
         stmt.execute("DROP SCHEMA schema2 CASCADE");
         stmt.execute("DROP SCHEMA \"schema 3\" CASCADE");
@@ -148,38 +159,10 @@ public class SchemaTest extends TestCase
      */
     public void testMultipleSearchPath() throws SQLException
     {
-        Statement stmt = _conn.createStatement();
-        try
-        {
-            stmt.execute("SET search_path TO schema1,schema2");
-        }
-        finally
-        {
-            try
-            {
-                stmt.close();
-            }
-            catch (SQLException e)
-            {
-            }
-        }
+        execute("SET search_path TO schema1,schema2");
         assertEquals("schema1", _conn.getSchema());
 
-        stmt = _conn.createStatement();
-        try
-        {
-            stmt.execute("SET search_path TO \"schema ,6\",schema2");
-        }
-        finally
-        {
-            try
-            {
-                stmt.close();
-            }
-            catch (SQLException e)
-            {
-            }
-        }
+        execute("SET search_path TO \"schema ,6\",schema2");
         assertEquals("schema ,6", _conn.getSchema());
     }
 
@@ -210,4 +193,30 @@ public class SchemaTest extends TestCase
             TestUtil.closeDB(conn);
         }
     }
+
+    public void testSchemaPath$User() throws Exception
+    {
+        execute("SET search_path TO \"$user\",public,schema2");
+        assertEquals(TestUtil.getUser(), _conn.getSchema());
+    }
+
+    private void execute(String sql) throws SQLException
+    {
+        Statement stmt = _conn.createStatement();
+        try
+        {
+            stmt.execute(sql);
+        }
+        finally
+        {
+            try
+            {
+                stmt.close();
+            }
+            catch (SQLException e)
+            {
+            }
+        }
+    }
+
 }
