@@ -731,6 +731,14 @@ public class QueryExecutorImpl implements QueryExecutor {
 
         } catch(IOException ioe) {
             throw new PSQLException(GT.tr("Database connection failed when canceling copy operation"), PSQLState.CONNECTION_FAILURE, ioe);
+        } finally {
+            // Need to ensure the lock isn't held anymore, or else
+            // future operations, rather than failing due to the
+            // broken connection, will simply hang waiting for this
+            // lock.
+            synchronized(this) {
+                if(hasLock(op)) unlock(op);
+            }
         }
 
         if (op instanceof CopyInImpl) {

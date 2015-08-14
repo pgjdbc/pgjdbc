@@ -9,6 +9,7 @@ package org.postgresql.test.jdbc2;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -66,8 +67,16 @@ public class CopyTest extends TestCase {
     }
 
     protected void tearDown() throws Exception {
-        TestUtil.dropTable(con, "copytest");
         TestUtil.closeDB(con);
+
+        // one of the tests will render the existing connection broken,
+        // so we need to drop the table on a fresh one.
+        con = TestUtil.openDB();
+        try {
+            TestUtil.dropTable(con, "copytest");
+        } finally {
+            con.close();
+        }
     }
 
     private int getCount() throws SQLException {
@@ -308,6 +317,102 @@ public class CopyTest extends TestCase {
             assertEquals("42601",ex.getSQLState());
             con.rollback();
         }
+    }
+
+    public void testLockReleaseOnCancelFailure() throws SQLException, InterruptedException {
+        // This is a fairly complex test because it is testing a
+        // deadlock that only occurs when the connection to postgres
+        // is broken during a copy operation.  We'll start a copy
+        // operation, use pg_terminate_backend to rudely break it,
+        // and then cancel.  The test passes if a subsequent operation
+        // on the Connection object fails to deadlock.
+        con.setAutoCommit(false);
+
+        Statement stmt = con.createStatement();
+        ResultSet rs = stmt.executeQuery("select pg_backend_pid()");
+        rs.next();
+        int pid = rs.getInt(1);
+        rs.close();
+        stmt.close();
+
+        CopyManager manager = con.unwrap(PGConnection.class).getCopyAPI();
+        CopyIn copyIn = manager.copyIn("COPY copytest FROM STDIN with (format 'csv')");
+        try {
+            killConnection(pid);
+            byte[] bunchOfNulls = ",,\n".getBytes();
+            while(true) {
+                copyIn.writeToCopy(bunchOfNulls, 0, bunchOfNulls.length);
+            }
+        } catch (SQLException e) {
+            acceptIOCause(e);
+        } finally {
+            if(copyIn.isActive()) {
+                try {
+                    copyIn.cancelCopy();
+                    fail("cancelCopy should have thrown an exception");
+                } catch (SQLException e) {
+                    acceptIOCause(e);
+                }
+            }
+        }
+
+        // Now we'll execute rollback on another thread so that if the
+        // deadlock _does_ occur the testcase doesn't just hange forever.
+        Rollback rollback = new Rollback(con);
+        rollback.start();
+        rollback.join(1000);
+        if(rollback.isAlive()) {
+            TestCase.fail("rollback did not terminate");
+        }
+        SQLException rollbackException = rollback.exception();
+        if(rollbackException == null) {
+            TestCase.fail("rollback should have thrown an exception");
+        }
+        acceptIOCause(rollbackException);
+    }
+
+    private static class Rollback extends Thread {
+        private final Connection con;
+        private SQLException rollbackException;
+
+        public Rollback(Connection con) {
+            setName("Asynchronous rollback");
+            setDaemon(true);
+            this.con = con;
+        }
+
+        public void run() {
+            try {
+                con.rollback();
+            } catch(SQLException e) {
+                rollbackException = e;
+            }
+        }
+
+        public SQLException exception() {
+            return rollbackException;
+        }
+    }
+
+    private void killConnection(int pid) throws SQLException {
+        Connection killerCon;
+        try {
+            killerCon = TestUtil.openDB();
+        } catch (Exception e) {
+            fail("Unable to open secondary connection to terminate copy");
+            return; // persuade Java killerCon will not be used uninitialized
+        }
+        try {
+            PreparedStatement stmt = killerCon.prepareStatement("select pg_terminate_backend(?)");
+            stmt.setInt(1, pid);
+            stmt.execute();
+        } finally {
+            killerCon.close();
+        }
+    }
+
+    private void acceptIOCause(SQLException e) throws SQLException {
+        if(!(e.getCause() instanceof IOException)) throw e;
     }
 
 }
