@@ -24,8 +24,14 @@ class SimpleQuery implements V3Query {
 
     SimpleQuery(NativeQuery query, ProtocolConnectionImpl protoConnection)
     {
+        this(query, protoConnection, true);
+    }
+
+    SimpleQuery(NativeQuery query, ProtocolConnectionImpl protoConnection, boolean useExtendedProtocol)
+    {
         this.nativeQuery = query;
         this.protoConnection = protoConnection;
+        this.useExtendedProtocol = useExtendedProtocol;
     }
 
     public ParameterList createParameterList() {
@@ -240,7 +246,12 @@ class SimpleQuery implements V3Query {
         cachedMaxResultRowSize = null;
     }
 
+    public boolean useExtendedProtocol() {
+        return useExtendedProtocol;
+    }
+
     private final NativeQuery nativeQuery;
+    private final boolean useExtendedProtocol;
 
     private final ProtocolConnectionImpl protoConnection;
     private String statementName;

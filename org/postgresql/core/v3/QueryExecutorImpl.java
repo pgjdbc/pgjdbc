@@ -168,8 +168,13 @@ public class QueryExecutorImpl implements QueryExecutor {
             {
                 handler = sendQueryPreamble(handler, flags);
                 ErrorTrackingResultHandler trackingHandler = new ErrorTrackingResultHandler(handler);
-                sendQuery((V3Query)query, (V3ParameterList)parameters, maxRows, fetchSize, flags, trackingHandler);
-                sendSync();
+                V3Query v3Query = (V3Query)query;
+                if (v3Query.useExtendedProtocol()) {
+                    sendQuery(v3Query, (V3ParameterList) parameters, maxRows, fetchSize, flags, trackingHandler);
+                    sendSync();
+                } else {
+                    sendSimpleQuery((SimpleQuery)v3Query);
+                }
                 processResults(handler, flags);
                 estimatedReceiveBufferBytes = 0;
             }
@@ -1457,6 +1462,27 @@ public class QueryExecutorImpl implements QueryExecutor {
         pendingExecuteQueue.add(new ExecuteRequest(query, portal));
     }
 
+    private void sendSimpleQuery(SimpleQuery query) throws IOException {
+        //
+        // Send Query.
+        //
+
+        if (logger.logDebug())
+        {
+            logger.debug(" FE=> Query");
+        }
+
+        byte[] queryUtf8 = Utils.encodeUTF8(query.getNativeSql());
+
+        // Total size = 4 (size field) + 1 + N (source portal) + 4 (max rows)
+        pgStream.SendChar('Q');   // Simple protocol query
+        pgStream.SendInteger4(4 + 1 + queryUtf8.length);  // message size
+        pgStream.Send(queryUtf8); // query text
+        pgStream.SendChar(0);      // command terminator
+        pgStream.flush();
+        simpleQuery = query;
+    }
+
     private void sendClosePortal(String portalName) throws IOException {
         //
         // Send Close.
@@ -1838,9 +1864,15 @@ public class QueryExecutorImpl implements QueryExecutor {
                 doneAfterRowDescNoData = false;
 
                 {
-                    ExecuteRequest executeData = pendingExecuteQueue.removeFirst();
-                    SimpleQuery currentQuery = executeData.query;
-                    Portal currentPortal = executeData.portal;
+                    Portal currentPortal = null;
+                    SimpleQuery currentQuery = null;
+                    if (simpleQuery != null) {
+                        currentQuery = simpleQuery;
+                    } else {
+                        ExecuteRequest executeData = pendingExecuteQueue.removeFirst();
+                        currentPortal = executeData.portal;
+                        currentQuery = executeData.query;
+                    }
 
                     Field[] fields = currentQuery.getFields();
                     if (fields != null && !noResults && tuples == null)
@@ -1978,7 +2010,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                 Field[] fields = receiveFields();
                 tuples = new ArrayList();
 
-                SimpleQuery query = pendingDescribePortalQueue.removeFirst();
+                SimpleQuery query = simpleQuery != null ? simpleQuery : pendingDescribePortalQueue.removeFirst();
                 query.setFields(fields);
 
                 if (doneAfterRowDescNoData) {
@@ -2007,6 +2039,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                 pendingDescribePortalQueue.clear();     // No more RowDescription messages expected.
                 pendingBindQueue.clear();               // No more BindComplete messages expected.
                 pendingExecuteQueue.clear();            // No more query executions expected.
+                simpleQuery = null;
                 break;
 
             case 'G':  // CopyInResponse
@@ -2266,6 +2299,7 @@ public class QueryExecutorImpl implements QueryExecutor {
     private final Deque<ExecuteRequest> pendingExecuteQueue = new ArrayDeque<ExecuteRequest>();
     private final Deque<DescribeRequest> pendingDescribeStatementQueue = new ArrayDeque<DescribeRequest>();
     private final Deque<SimpleQuery> pendingDescribePortalQueue = new ArrayDeque<SimpleQuery>();
+    private SimpleQuery simpleQuery;
 
     private long nextUniqueID = 1;
     private final ProtocolConnectionImpl protoConnection;

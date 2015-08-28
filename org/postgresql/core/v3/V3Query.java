@@ -16,6 +16,7 @@ import org.postgresql.core.Query;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 interface V3Query extends Query {
+    boolean useExtendedProtocol();
     /**
      * Return a list of the SimpleQuery objects that
      * make up this query. If this object is already a
