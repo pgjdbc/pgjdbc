@@ -19,9 +19,14 @@ import org.postgresql.core.*;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 class CompositeQuery implements V3Query {
+
     CompositeQuery(SimpleQuery[] subqueries, int[] offsets) {
         this.subqueries = subqueries;
         this.offsets = offsets;
+    }
+
+    public boolean useExtendedProtocol() {
+        return true;
     }
 
     public ParameterList createParameterList() {
