@@ -84,12 +84,12 @@ public abstract class AbstractJdbc4DatabaseMetaData extends org.postgresql.jdbc3
 
     public ResultSet getFunctions(String catalog, String schemaPattern, String functionNamePattern) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "getFunction(String, String, String)");
+        return getProcedures(4,catalog, schemaPattern, functionNamePattern);
     }
-
+    
     public ResultSet getFunctionColumns(String catalog, String schemaPattern, String functionNamePattern, String columnNamePattern) throws SQLException
     {
-        throw org.postgresql.Driver.notImplemented(this.getClass(), "getFunctionColumns(String, String, String, String)");
+        return getFunctionColumns(4,catalog, schemaPattern, functionNamePattern, columnNamePattern);
     }
 
     public int getJDBCMajorVersion() throws SQLException
