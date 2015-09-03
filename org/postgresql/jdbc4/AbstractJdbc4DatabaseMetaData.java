@@ -89,7 +89,7 @@ public abstract class AbstractJdbc4DatabaseMetaData extends org.postgresql.jdbc3
     
     public ResultSet getFunctionColumns(String catalog, String schemaPattern, String functionNamePattern, String columnNamePattern) throws SQLException
     {
-        return getFunctionColumns(4,catalog, schemaPattern, functionNamePattern, columnNamePattern);
+        return getProcedureColumns(4,catalog, schemaPattern, functionNamePattern, columnNamePattern);
     }
 
     public int getJDBCMajorVersion() throws SQLException
