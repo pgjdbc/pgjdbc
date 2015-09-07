@@ -38,6 +38,7 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
@@ -63,6 +64,8 @@ import org.postgresql.util.GT;
 import org.postgresql.util.HStoreConverter;
 import org.postgresql.util.PGBinaryObject;
 import org.postgresql.util.PGobject;
+import org.postgresql.util.PGTime;
+import org.postgresql.util.PGTimestamp;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -3297,7 +3300,20 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (cal != null)
             cal = (Calendar)cal.clone();
 
-        bindString(i, connection.getTimestampUtils().toString(cal, t), Oid.UNSPECIFIED);
+        int oid = Oid.UNSPECIFIED;
+
+        // If a PGTime is used, we can define the OID explicitly.
+        if (t instanceof PGTime) {
+            PGTime pgTime = (PGTime)t;
+            if (pgTime.getCalendar() == null) {
+                oid = Oid.TIME;
+            } else {
+                oid = Oid.TIMETZ;
+                cal = (Calendar) pgTime.getCalendar().clone();
+            }
+        }
+
+        bindString(i, connection.getTimestampUtils().toString(cal, t), oid);
     }
 
     public void setTimestamp(int i, Timestamp t, java.util.Calendar cal) throws SQLException
@@ -3311,6 +3327,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
         if (cal != null)
             cal = (Calendar)cal.clone();
+
+        int oid = Oid.UNSPECIFIED;
 
         // Use UNSPECIFIED as a compromise to get both TIMESTAMP and TIMESTAMPTZ working.
         // This is because you get this in a +1300 timezone:
@@ -3342,7 +3360,18 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         // we're actually dealing with, UNSPECIFIED seems the lesser evil, even if it
         // does give more scope for type-mismatch errors being silently hidden.
 
-        bindString(i, connection.getTimestampUtils().toString(cal, t), Oid.UNSPECIFIED); // Let the server infer the right type.
+        // If a PGTimestamp is used, we can define the OID explicitly.
+        if (t instanceof PGTimestamp) {
+            PGTimestamp pgTimestamp = (PGTimestamp)t;
+            if (pgTimestamp.getCalendar() == null) {
+                oid = Oid.TIMESTAMP;
+            } else {
+                oid = Oid.TIMESTAMPTZ;
+                cal = (Calendar) pgTimestamp.getCalendar().clone();
+            }
+        }
+
+        bindString(i, connection.getTimestampUtils().toString(cal, t), oid);
     }
 
     // ** JDBC 2 Extensions for CallableStatement**
