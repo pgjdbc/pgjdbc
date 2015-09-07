@@ -292,5 +292,5 @@ reference GitHub issues that this commit **Closes**.
 
 ### Sponsors
 
-[credativ ltd (Canada)](http://www.credativ.ca) 
+[PostgreSQL International](http://www.postgresintl.com) 
  
