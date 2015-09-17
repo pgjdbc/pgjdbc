@@ -160,9 +160,13 @@ public class CopyManager {
         int len;
         CopyIn cp = copyIn(sql);
         try {
-            while ( (len = from.read(cbuf)) > 0) {
-                byte[] buf = encoding.encode(new String(cbuf, 0, len));
-                cp.writeToCopy(buf, 0, buf.length);
+            while ( (len = from.read(cbuf)) > 0) 
+	    {
+		if (len > 0)
+                {
+		   byte[] buf = encoding.encode(new String(cbuf, 0, len));
+                   cp.writeToCopy(buf, 0, buf.length);
+		}
             }
             return cp.endCopy();
         } finally { // see to it that we do not leave the connection locked
@@ -197,8 +201,12 @@ public class CopyManager {
         int len;
         CopyIn cp = copyIn(sql);
         try {
-            while( (len = from.read(buf)) > 0 ) {
-                cp.writeToCopy(buf, 0, len);
+            while( (len = from.read(buf)) > 0 ) 
+	    {
+		if (len > 0)
+                {
+		   cp.writeToCopy(buf, 0, len);
+		}
             }
             return cp.endCopy();
         } finally { // see to it that we do not leave the connection locked
