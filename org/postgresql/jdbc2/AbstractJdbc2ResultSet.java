@@ -488,7 +488,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                 return connection.getTimestampUtils().toDateBin(tz, this_row[col]);
             } else if (oid == Oid.TIMESTAMP || oid == Oid.TIMESTAMPTZ) {
                 // JDBC spec says getDate of Timestamp must be supported
-                return connection.getTimestampUtils().convertToDate(getTimestamp(i, cal), tz);
+                return connection.getTimestampUtils().convertToDate(getTimestamp(i, Calendar.getInstance(TimeZone.getTimeZone("UTC"))), tz);
             } else {
                 throw new PSQLException (GT.tr("Cannot convert the column of type {0} to requested type {1}.",
                         new Object[]{Oid.toString(oid), "date"}),
