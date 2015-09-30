@@ -160,7 +160,7 @@ public class CopyManager {
         int len;
         CopyIn cp = copyIn(sql);
         try {
-            while ( (len = from.read(cbuf)) > 0) 
+            while ( (len = from.read(cbuf)) >= 0)
 	    {
 		if (len > 0)
                 {
@@ -201,7 +201,7 @@ public class CopyManager {
         int len;
         CopyIn cp = copyIn(sql);
         try {
-            while( (len = from.read(buf)) > 0 ) 
+            while( (len = from.read(buf)) >= 0 )
 	    {
 		if (len > 0)
                 {
