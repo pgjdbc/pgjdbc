@@ -104,6 +104,7 @@ public class Jdbc2TestSuite extends TestSuite
         Connection conn = TestUtil.openDB();
         if (TestUtil.isProtocolVersion(conn, 3)) {
             suite.addTestSuite(CopyTest.class);
+            suite.addTestSuite(CopyLargeFileTest.class);
         }
         if (TestUtil.haveMinimumServerVersion(conn, "9.3")) {
             suite.addTestSuite(ServerErrorTest.class);
