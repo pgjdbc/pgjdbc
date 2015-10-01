@@ -36,8 +36,8 @@ public class StrangeFileInputStream extends InputStream {
 
     @Override
     public int read(byte[] b) throws IOException {
-        int x = rand.nextInt(1000);
-        if (x == 0) // ~0.1% chance of returning 0 bytes
+        int x = rand.nextInt(100);
+        if (x == 0) // ~1% chance of returning 0 bytes
             return 0;
         else
             return super.read(b);

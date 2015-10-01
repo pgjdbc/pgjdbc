@@ -10,7 +10,7 @@ import java.util.Random;
  * Created by amozhenin on 30.09.2015.
  */
 public class BufferGenerator {
-    public final static int ROW_COUNT = 1000000;
+    public final static int ROW_COUNT = 100000;
 
     public static void main(String[] args) throws Exception {
         Random random = new Random();
