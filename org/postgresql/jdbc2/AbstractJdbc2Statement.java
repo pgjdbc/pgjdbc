@@ -3262,9 +3262,6 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             return;
         }
         
-        if (cal != null)
-            cal = (Calendar)cal.clone();
-
         // We must use UNSPECIFIED here, or inserting a Date-with-timezone into a
         // timestamptz field does an unexpected rotation by the server's TimeZone:
         //
@@ -3297,9 +3294,6 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             return;
         }
 
-        if (cal != null)
-            cal = (Calendar)cal.clone();
-
         int oid = Oid.UNSPECIFIED;
 
         // If a PGTime is used, we can define the OID explicitly.
@@ -3309,7 +3303,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                 oid = Oid.TIME;
             } else {
                 oid = Oid.TIMETZ;
-                cal = (Calendar) pgTime.getCalendar().clone();
+                cal = pgTime.getCalendar();
             }
         }
 
@@ -3324,9 +3318,6 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             setNull(i, Types.TIMESTAMP);
             return;
         }
-
-        if (cal != null)
-            cal = (Calendar)cal.clone();
 
         int oid = Oid.UNSPECIFIED;
 
@@ -3367,7 +3358,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                 oid = Oid.TIMESTAMP;
             } else {
                 oid = Oid.TIMESTAMPTZ;
-                cal = (Calendar) pgTimestamp.getCalendar().clone();
+                cal = pgTimestamp.getCalendar();
             }
         }
 
