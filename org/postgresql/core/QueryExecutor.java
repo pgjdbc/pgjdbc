@@ -94,7 +94,7 @@ public interface QueryExecutor {
      * pipelined batches where we might need to detect mismatched result
      * types.
      */
-    static int QUERY_FORCE_DESCRIBE_PORTAL = 128;
+    static int QUERY_FORCE_DESCRIBE_PORTAL = 512;
 
     /**
      * Flag to disable batch execution when we expect results (generated keys)
