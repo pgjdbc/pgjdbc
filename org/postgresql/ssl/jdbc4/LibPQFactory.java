@@ -103,7 +103,7 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
           cbh = new ConsoleCallbackHandler(PGProperty.SSL_PASSWORD.get(info));
         }
          
-        //If the properies are empty, give null to prevent client key selection
+        //If the properties are empty, give null to prevent client key selection
         km = new LazyKeyManager(("".equals(sslcertfile) ? null : sslcertfile), ("".equals(sslkeyfile) ? null : sslkeyfile), cbh, defaultfile);
         
         TrustManager[] tm;    
