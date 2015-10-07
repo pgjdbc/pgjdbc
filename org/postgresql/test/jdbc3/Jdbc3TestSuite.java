@@ -42,7 +42,7 @@ public class Jdbc3TestSuite extends TestSuite
         {
             ex.printStackTrace();
         }
-        
+        suite.addTestSuite(CompositeQueryParseTest.class);
         suite.addTestSuite(Jdbc3SavepointTest.class);
         suite.addTestSuite(TypesTest.class);
         suite.addTestSuite(ResultSetTest.class);

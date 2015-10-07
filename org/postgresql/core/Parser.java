@@ -46,9 +46,13 @@ public class Parser {
         List<Integer> bindPositions = null; // initialized on demand
         List<NativeQuery> nativeQueries = null;
 
+        boolean whitespaceOnly = true;
         for (int i = 0; i < aChars.length; ++i)
         {
-            switch (aChars[i])
+            char aChar = aChars[i];
+            // ';' is ignored as it splits the queries
+            whitespaceOnly &= aChar == ';' || Character.isWhitespace(aChar);
+            switch (aChar)
             {
             case '\'': // single-quotes
                 i = Parser.parseSingleQuotes(aChars, i, standardConformingStrings);
@@ -98,7 +102,11 @@ public class Parser {
             case ';':
                 if (inParen == 0 && splitStatements)
                 {
-                    nativeSql.append(aChars, fragmentStart, i - fragmentStart);
+                    if (!whitespaceOnly)
+                    {
+                        nativeSql.append(aChars, fragmentStart, i - fragmentStart);
+                        whitespaceOnly = true;
+                    }
                     fragmentStart = i + 1;
                     if (nativeSql.length() > 0)
                     {
@@ -119,7 +127,7 @@ public class Parser {
             }
         }
 
-        if (fragmentStart < aChars.length)
+        if (fragmentStart < aChars.length && !whitespaceOnly)
             nativeSql.append(aChars, fragmentStart, aChars.length - fragmentStart);
 
         if (nativeSql.length() == 0)
@@ -130,7 +138,8 @@ public class Parser {
         if (nativeQueries == null)
             return Collections.singletonList(lastQuery);
 
-        nativeQueries.add(lastQuery);
+        if (!whitespaceOnly)
+            nativeQueries.add(lastQuery);
         return nativeQueries;
     }
 
