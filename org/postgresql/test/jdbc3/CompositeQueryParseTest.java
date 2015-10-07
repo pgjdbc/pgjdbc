@@ -8,6 +8,21 @@ import java.util.List;
 
 public class CompositeQueryParseTest extends TestCase {
 
+    public void testEmptyQuery()
+    {
+        assertEquals("", reparse("", true, false, true));
+    }
+
+    public void testWhitespaceQuery()
+    {
+        assertEquals("", reparse("     ", true, false, true));
+    }
+
+    public void testOnlyEmptyQueries()
+    {
+        assertEquals("", reparse(";;;;  ;  \n;\n", true, false, true));
+    }
+
     public void testSimpleQuery()
     {
         assertEquals("select 1", reparse("select 1", true, false, true));
