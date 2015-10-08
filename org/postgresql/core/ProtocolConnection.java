@@ -148,4 +148,11 @@ public interface ProtocolConnection {
      * Return the process ID (PID) of the backend server process handling this connection.
      */
     public int getBackendPID();
+    
+    /**
+     * Do not attempt to send anything to the backend, just close the underlying connection 
+     * and mark the protocol closed 
+     * 
+     */
+    public void abort();
 }
