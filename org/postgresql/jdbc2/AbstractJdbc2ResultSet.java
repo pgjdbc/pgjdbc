@@ -30,7 +30,6 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -114,8 +113,6 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     private ResultSetMetaData rsMetaData;
 
     protected abstract ResultSetMetaData createMetaData() throws SQLException;
-
-    private static final Calendar UTC = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 
     public ResultSetMetaData getMetaData() throws SQLException
     {
@@ -489,18 +486,17 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             if (oid == Oid.DATE) {
                 return connection.getTimestampUtils().toDateBin(tz, this_row[col]);
             } else if (oid == Oid.TIMESTAMP || oid == Oid.TIMESTAMPTZ) {
-                // JDBC spec says getDate of Timestamp must be supported
-                // don't add offset to the timestamp, convertToDate will add the tz specified
-                return connection.getTimestampUtils().convertToDate(getTimestamp(i, UTC), tz);
+                // If backend provides just TIMESTAMP, we use "cal" timezone
+                // If backend provides TIMESTAMPTZ, we ignore "cal" as we know true instant value
+                Timestamp timestamp = getTimestamp(i, cal);
+                // Here we just truncate date to 00:00 in a given time zone
+                return connection.getTimestampUtils().convertToDate(timestamp.getTime(), tz);
             } else {
                 throw new PSQLException (GT.tr("Cannot convert the column of type {0} to requested type {1}.",
                         new Object[]{Oid.toString(oid), "date"}),
                         PSQLState.DATA_TYPE_MISMATCH);
             }
         }
-
-        if (cal != null)
-            cal = (Calendar)cal.clone();
 
         return connection.getTimestampUtils().toDate(cal, getString(i));
     }
@@ -519,9 +515,11 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             if (oid == Oid.TIME || oid == Oid.TIMETZ) {
                 return connection.getTimestampUtils().toTimeBin(tz, this_row[col]);
             } else if (oid == Oid.TIMESTAMP || oid == Oid.TIMESTAMPTZ) {
-                // JDBC spec says getTime of Timestamp must be supported
-                // use timestamp at UTC
-                return connection.getTimestampUtils().convertToTime(getTimestamp(i, UTC), tz);
+                // If backend provides just TIMESTAMP, we use "cal" timezone
+                // If backend provides TIMESTAMPTZ, we ignore "cal" as we know true instant value
+                Timestamp timestamp = getTimestamp(i, cal);
+                // Here we just truncate date part
+                return connection.getTimestampUtils().convertToTime(timestamp.getTime(), tz);
             } else {
                 throw new PSQLException (GT.tr("Cannot convert the column of type {0} to requested type {1}.",
                         new Object[]{Oid.toString(oid), "time"}),
@@ -529,10 +527,8 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             }
         }
 
-        if (cal != null)
-            cal = (Calendar)cal.clone();
-
-        return connection.getTimestampUtils().toTime(cal, getString(i));
+        String string = getString(i);
+        return connection.getTimestampUtils().toTime(cal, string);
     }
 
 
@@ -542,9 +538,9 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         if (wasNullFlag)
             return null;
 
+        int col = i - 1;
+        int oid = fields[col].getOID();
         if (isBinary(i)) {
-            int col = i - 1;
-            int oid = fields[col].getOID();
             if (oid == Oid.TIMESTAMPTZ || oid == Oid.TIMESTAMP) {
                 boolean hasTimeZone = oid == Oid.TIMESTAMPTZ;
                 TimeZone tz = cal == null ? null : cal.getTimeZone();
@@ -565,13 +561,15 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
             }
         }
 
-        if (cal != null)
-            cal = (Calendar)cal.clone();
-
         // If this is actually a timestamptz, the server-provided timezone will override
         // the one we pass in, which is the desired behaviour. Otherwise, we'll
         // interpret the timezone-less value in the provided timezone.
-        return connection.getTimestampUtils().toTimestamp(cal, getString(i));
+        String string = getString(i);
+        if (oid == Oid.TIME || oid == Oid.TIMETZ) {
+            // If server sends us a TIME, we ensure java counterpart has date of 1970-01-01
+            return new Timestamp(connection.getTimestampUtils().toTime(cal, string).getTime());
+        }
+        return connection.getTimestampUtils().toTimestamp(cal, string);
     }
 
 

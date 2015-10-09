@@ -7,19 +7,21 @@
 */
 package org.postgresql.jdbc2;
 
-import java.sql.*;
-
-import java.util.Calendar;
-import java.util.GregorianCalendar;
-import java.util.TimeZone;
-import java.util.SimpleTimeZone;
-
 import org.postgresql.PGStatement;
 import org.postgresql.core.Oid;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+
+import java.sql.Date;
+import java.sql.SQLException;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
+import java.util.SimpleTimeZone;
+import java.util.TimeZone;
 
 
 /**
@@ -43,11 +45,10 @@ public class TimestampUtils {
 
     private final StringBuilder sbuf = new StringBuilder();
 
-    private final Calendar defaultCal = new GregorianCalendar();
     // This calendar is used when user provides calendar in setX(, Calendar) method.
     // It ensures calendar is Gregorian.
     private final Calendar calendarWithUserTz = new GregorianCalendar();
-    private final TimeZone defaultTz = defaultCal.getTimeZone();
+    private final TimeZone utcTz = TimeZone.getTimeZone("UTC");
 
     private Calendar calCache;
     private int calCacheZone;
@@ -106,7 +107,7 @@ public class TimestampUtils {
      * Load date/time information into the provided calendar
      * returning the fractional seconds.
      */
-    private ParsedTimestamp loadCalendar(Calendar defaultTz, String str, String type) throws SQLException {
+    private ParsedTimestamp parseBackendTimestamp(String str) throws SQLException {
         char []s = str.toCharArray();
         int slen = s.length;
 
@@ -268,81 +269,12 @@ public class TimestampUtils {
                 throw new NumberFormatException("Timestamp has neither date nor time");
 
         } catch (NumberFormatException nfe) {
-            throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{type,str}), PSQLState.BAD_DATETIME_FORMAT, nfe);
+            throw new PSQLException(GT.tr("Bad value for type timestamp/date/time: {1}", new Object[]{str}), PSQLState.BAD_DATETIME_FORMAT, nfe);
         }
 
         return result;
     }
 
-    //
-    // Debugging hooks, not normally used unless developing -- uncomment the
-    // bodies for stderr debug spam.
-    //
-
-    private static void showParse(String type, String what, Calendar cal, java.util.Date result, Calendar resultCal) {
-//         java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd G HH:mm:ss Z");
-//         sdf.setTimeZone(resultCal.getTimeZone());
-
-//         StringBuilder sb = new StringBuilder("Parsed ");
-//         sb.append(type);
-//         sb.append(" '");
-//         sb.append(what);
-//         sb.append("' in zone ");
-//         sb.append(cal.getTimeZone().getID());
-//         sb.append(" as ");
-//         sb.append(sdf.format(result));
-//         sb.append(" (millis=");
-//         sb.append(result.getTime());
-//         sb.append(")");
-        
-//         System.err.println(sb.toString());
-    }
-    
-    /**
-     * Parse a string and return a calendar with time zone representing its value.
-     *
-     * @param s      The ISO formated date string to parse.
-     *
-     * @return null if s is null or a calendar of the parsed string s.
-     *
-     * @throws SQLException if there is a problem parsing s.
-     **/
-    public synchronized Calendar toCalendar(Calendar cal, String s) throws SQLException
-    {
-        if (s == null)
-            return null;
-
-        if (cal == null)
-            cal = defaultCal;
-
-        int slen = s.length();
-
-        // convert postgres's infinity values to internal infinity magic value
-        if (slen == 8 && s.equals("infinity")) {
-            cal.setTime(new Timestamp(PGStatement.DATE_POSITIVE_INFINITY));
-            return cal;
-        }
-
-        if (slen == 9 && s.equals("-infinity")) {
-            cal.setTime(new Timestamp(PGStatement.DATE_NEGATIVE_INFINITY));
-            return cal;
-        }
-
-        ParsedTimestamp ts = loadCalendar(cal, s, "timestamp");
-        Calendar useCal = (ts.tz == null ? cal : ts.tz);
-        useCal.set(Calendar.ERA,          ts.era);
-        useCal.set(Calendar.YEAR,         ts.year);
-        useCal.set(Calendar.MONTH,        ts.month-1);
-        useCal.set(Calendar.DAY_OF_MONTH, ts.day);
-        useCal.set(Calendar.HOUR_OF_DAY,  ts.hour);
-        useCal.set(Calendar.MINUTE,       ts.minute);
-        useCal.set(Calendar.SECOND,       ts.second);
-        useCal.set(Calendar.MILLISECOND,  0);
-
-        showParse("calendar", s, cal, null, useCal);
-        return useCal;
-    }
-    
     /**
     * Parse a string and return a timestamp representing its value.
     *
@@ -368,11 +300,8 @@ public class TimestampUtils {
             return new Timestamp(PGStatement.DATE_NEGATIVE_INFINITY);
         }
 
-        if (cal == null)
-            cal = defaultCal;
-
-        ParsedTimestamp ts = loadCalendar(cal, s, "timestamp");
-        Calendar useCal = (ts.tz == null ? cal : ts.tz);
+        ParsedTimestamp ts = parseBackendTimestamp(s);
+        Calendar useCal = ts.tz != null ? ts.tz : setupCalendar(cal);
         useCal.set(Calendar.ERA,          ts.era);
         useCal.set(Calendar.YEAR,         ts.year);
         useCal.set(Calendar.MONTH,        ts.month-1);
@@ -381,114 +310,49 @@ public class TimestampUtils {
         useCal.set(Calendar.MINUTE,       ts.minute);
         useCal.set(Calendar.SECOND,       ts.second);
         useCal.set(Calendar.MILLISECOND,  0);
-        
-        Timestamp result = new Timestamp(useCal.getTime().getTime());
+
+        Timestamp result = new Timestamp(useCal.getTimeInMillis());
         result.setNanos(ts.nanos);
-        showParse("timestamp", s, cal, result, useCal);
         return result;
     }
 
     public synchronized Time toTime(Calendar cal, String s) throws SQLException
     {
-        if (s == null)
+        // 1) Parse backend string
+        Timestamp timestamp = toTimestamp(cal, s);
+
+        if (timestamp == null)
             return null;
 
-        int slen = s.length();
-
+        long millis = timestamp.getTime();
         // infinity cannot be represented as Time
         // so there's not much we can do here.
-        if ((slen == 8 && s.equals("infinity")) || (slen == 9 && s.equals("-infinity"))) {
+        if (millis <= PGStatement.DATE_NEGATIVE_INFINITY || millis >= PGStatement.DATE_POSITIVE_INFINITY) {
             throw new PSQLException(GT.tr("Infinite value found for timestamp/date. This cannot be represented as time."),
                                     PSQLState.DATETIME_OVERFLOW);
         }
 
-        if (cal == null)
-            cal = defaultCal;
 
-        ParsedTimestamp ts = loadCalendar(cal, s, "time");
-        
-        Calendar useCal = (ts.tz == null ? cal : ts.tz);
-        useCal.set(Calendar.HOUR_OF_DAY,  ts.hour);
-        useCal.set(Calendar.MINUTE,       ts.minute);
-        useCal.set(Calendar.SECOND,       ts.second);
-        useCal.set(Calendar.MILLISECOND,  (ts.nanos + 500000) / 1000000);
-        
-        if (ts.hasDate) {
-            // Rotate it into the requested timezone before we zero out the date
-            useCal.set(Calendar.ERA,          ts.era);
-            useCal.set(Calendar.YEAR,         ts.year);
-            useCal.set(Calendar.MONTH,        ts.month-1);
-            useCal.set(Calendar.DAY_OF_MONTH, ts.day);
-            cal.setTime(new Date(useCal.getTime().getTime()));
-            useCal = cal;
-        }
-        
-        useCal.set(Calendar.ERA,          GregorianCalendar.AD);
-        useCal.set(Calendar.YEAR,         1970);
-        useCal.set(Calendar.MONTH,        0);
-        useCal.set(Calendar.DAY_OF_MONTH, 1);                
-        
-        Time result = new Time(useCal.getTime().getTime());
-        showParse("time", s, cal, result, useCal);
-        return result;
+        // 2) Truncate date part so in given time zone the date would be formatted as 00:00
+        return convertToTime(timestamp.getTime(), cal == null ? null : cal.getTimeZone());
     }
 
     public synchronized Date toDate(Calendar cal, String s) throws SQLException
     {
-        if (s == null)
+        // 1) Parse backend string
+        Timestamp timestamp = toTimestamp(cal, s);
+
+        if (timestamp == null)
             return null;
 
-        int slen = s.length();
-
-        // convert postgres's infinity values to internal infinity magic value
-        if (slen == 8 && s.equals("infinity")) {
-            return new Date(PGStatement.DATE_POSITIVE_INFINITY);
-        }
-
-        if (slen == 9 && s.equals("-infinity")) {
-            return new Date(PGStatement.DATE_NEGATIVE_INFINITY);
-        }
-
-        if (cal == null)
-            cal = defaultCal;
-
-        ParsedTimestamp ts = loadCalendar(cal, s, "date");
-        Calendar useCal = (ts.tz == null ? cal : ts.tz);
-        
-        useCal.set(Calendar.ERA,          ts.era);
-        useCal.set(Calendar.YEAR,         ts.year);
-        useCal.set(Calendar.MONTH,        ts.month-1);
-        useCal.set(Calendar.DAY_OF_MONTH, ts.day);
-        
-        if (ts.hasTime) {
-            // Rotate it into the requested timezone before we zero out the time
-            useCal.set(Calendar.HOUR_OF_DAY,  ts.hour);
-            useCal.set(Calendar.MINUTE,       ts.minute);
-            useCal.set(Calendar.SECOND,       ts.second);
-            useCal.set(Calendar.MILLISECOND,  (ts.nanos + 500000) / 1000000);
-            cal.setTime(new Date(useCal.getTime().getTime()));
-            useCal = cal;
-        }
-        
-        useCal.set(Calendar.HOUR_OF_DAY,  0);
-        useCal.set(Calendar.MINUTE,       0);
-        useCal.set(Calendar.SECOND,       0);
-        useCal.set(Calendar.MILLISECOND,  0);
-        
-        Date result = new Date(useCal.getTime().getTime());
-        showParse("date", s, cal, result, useCal);
-        return result;
+        //    Note: infinite dates are handled in convertToDate
+        // 2) Truncate date part so in given time zone the date would be formatted as 00:00
+        return convertToDate(timestamp.getTime(), cal == null ? null : cal.getTimeZone());
     }
 
-    private Calendar setupCalendar(Calendar cal, java.util.Date x) {
-        Calendar tmp;
-        if (cal == null) {
-            tmp = defaultCal;
-        } else {
-            tmp = calendarWithUserTz;
-            tmp.setTimeZone(cal.getTimeZone());
-        }
-        tmp.setTime(x);
+    private Calendar setupCalendar(Calendar cal) {
+        Calendar tmp = calendarWithUserTz;
+        tmp.setTimeZone(cal == null ? getDefaultTz() : cal.getTimeZone());
         return tmp;
     }
 
@@ -499,7 +363,8 @@ public class TimestampUtils {
             return "-infinity";
         }
 
-        cal = setupCalendar(cal, x);
+        cal = setupCalendar(cal);
+        cal.setTime(x);
 
         sbuf.setLength(0);
 
@@ -519,7 +384,8 @@ public class TimestampUtils {
             sbuf.append("-infinity");
         }
 
-        cal = setupCalendar(cal, x);
+        cal = setupCalendar(cal);
+        cal.setTime(x);
 
         sbuf.setLength(0);
 
@@ -531,7 +397,8 @@ public class TimestampUtils {
     }
 
     public synchronized String toString(Calendar cal, Time x) {
-        cal = setupCalendar(cal, x);
+        cal = setupCalendar(cal);
+        cal.setTime(x);
 
         sbuf.setLength(0);
         
@@ -678,7 +545,7 @@ public class TimestampUtils {
         }
         int days = ByteConverter.int4(bytes, 0);
         if (tz == null) {
-            tz = defaultTz;
+            tz = getDefaultTz();
         }
         long secs = toJavaSecs(days * 86400L);
         long millis = secs * 1000L;
@@ -691,6 +558,11 @@ public class TimestampUtils {
             offset = 0;
         } 
         return new Date(millis - offset);
+    }
+
+    private static TimeZone getDefaultTz()
+    {
+        return TimeZone.getDefault();
     }
 
     /**
@@ -727,14 +599,14 @@ public class TimestampUtils {
             timeOffset *= -1000;
         } else {
             if (tz == null) {
-                tz = defaultTz;
+                tz = getDefaultTz();
             }
             
             timeOffset = tz.getOffset(millis);
         }
-        
+
         millis -= timeOffset;
-        return new Time(millis);
+        return convertToTime(millis, tz); // Ensure date part is 1970-01-01
     }
 
     /**
@@ -789,68 +661,167 @@ public class TimestampUtils {
             nanos += 1000000;
         }
         nanos *= 1000;
-        
+
         secs = toJavaSecs(secs);
         long millis = secs * 1000L;
         if (!timestamptz) {
-            if (tz == null) {
-                tz = defaultTz;
-            }
-            millis -= tz.getOffset(millis);
+            // Here be dragons: backend did not provide us the timezone, so we guess the actual point in time
+            millis = guessTimestamp(millis, tz);
         }
 
         Timestamp ts = new Timestamp(millis);
         ts.setNanos(nanos);
         return ts;
     }
-    
+
+    /**
+     * Given a UTC timestamp {@code millis} finds another point in time that is rendered in given time zone {@code tz}
+     * exactly as "millis in UTC".
+     *
+     * For instance, given 7 Jan 16:00 UTC and tz=GMT+02:00 it returns 7 Jan 14:00 UTC == 7 Jan 16:00 GMT+02:00
+     * Note that is not trivial for timestamps near DST change.
+     * For such cases, we rely on {@link Calendar} to figure out the proper timestamp.
+     *
+     * @param millis source timestamp
+     * @param tz desired time zone
+     * @return timestamp that would be rendered in {@code tz} like {@code millis} in UTC
+     */
+    private long guessTimestamp(long millis, TimeZone tz)
+    {
+        if (tz == null) {
+            // If client did not provide us with time zone, we use system default time zone
+            tz = getDefaultTz();
+        }
+        // The story here:
+        //   Backend provided us with something like '2015-10-04 13:40' and it did NOT provide us with a time zone.
+        //   On top of that, user asked us to treat the timestamp as if it were in GMT+02:00.
+        //
+        // The code below creates such a timestamp that is rendered as '2015-10-04 13:40 GMT+02:00'ю
+        // In other words, its UTC value should be 11:40 UTC == 13:40 GMT+02:00.
+        // It is not sufficient to just subtract offset as you might cross DST change as you subtract.
+        //
+        // For instance, on 2000-03-26 02:00:00 Moscow went to DST, thus local time became 03:00:00
+        // Suppose we deal with 2000-03-26 02:00:01
+        // If you subtract offset from the timestamp, the time will be "a hour behind" since
+        // "just a couple of hours ago the OFFSET was different"
+        //
+        // To make a long story short: we have UTC timestamp that looks like "2000-03-26 02:00:01" when rendered in UTC tz.
+        // We want to know another timestamp that will look like "2000-03-26 02:00:01" in Europe/Moscow time zone.
+
+        if (isSimpleTimeZone(tz.getID()))
+        {
+            // For well-known non-DST time zones, just subtract offset
+            return millis - tz.getRawOffset();
+        }
+        // For all the other time zones, enjoy debugging Calendar API
+        // Here we do a straight-forward implementation that splits original timestamp into pieces and composes it back.
+        // Note: cal.setTimeZone alone is not sufficient as it would alter hour (it will try to keep the same time instant value)
+        Calendar cal = calendarWithUserTz;
+        cal.setTimeZone(utcTz);
+        cal.setTimeInMillis(millis);
+        int era = cal.get(Calendar.ERA);
+        int year = cal.get(Calendar.YEAR);
+        int month = cal.get(Calendar.MONTH);
+        int day = cal.get(Calendar.DAY_OF_MONTH);
+        int hour = cal.get(Calendar.HOUR_OF_DAY);
+        int min = cal.get(Calendar.MINUTE);
+        int sec = cal.get(Calendar.SECOND);
+        int ms = cal.get(Calendar.MILLISECOND);
+        cal.setTimeZone(tz);
+        cal.set(Calendar.ERA, era);
+        cal.set(Calendar.YEAR, year);
+        cal.set(Calendar.MONTH, month);
+        cal.set(Calendar.DAY_OF_MONTH, day);
+        cal.set(Calendar.HOUR_OF_DAY, hour);
+        cal.set(Calendar.MINUTE, min);
+        cal.set(Calendar.SECOND, sec);
+        cal.set(Calendar.MILLISECOND, ms);
+        return cal.getTimeInMillis();
+    }
+
+    private static boolean isSimpleTimeZone(String id)
+    {
+        return id.startsWith("GMT") || id.startsWith("UTC");
+    }
+
     /**
      * Extracts the date part from a timestamp.
-     * 
-     * @param timestamp The timestamp from which to extract the date.
+     *
+     * @param millis The timestamp from which to extract the date.
      * @param tz The time zone of the date.
      * @return The extracted date.
      */
-    public Date convertToDate(Timestamp timestamp, TimeZone tz) {
+    public Date convertToDate(long millis, TimeZone tz) {
 
-        long millis = timestamp.getTime();
         // no adjustments for the inifity hack values
         if (millis <= PGStatement.DATE_NEGATIVE_INFINITY ||
             millis >= PGStatement.DATE_POSITIVE_INFINITY) {
             return new Date(millis);
         }
         if (tz == null) {
-            tz = defaultTz;
+            tz = getDefaultTz();
         }
-        millis = millis / 86400000 * 86400000;
-
-        millis -= tz.getOffset(millis);
-
-        return new Date(millis);
+        if (isSimpleTimeZone(tz.getID()))
+        {
+            // Truncate to 00:00 of the day.
+            // Suppose the input date is 7 Jan 15:40 GMT+02:00 (that is 13:40 UTC)
+            // We want it to become 7 Jan 00:00 GMT+02:00
+            // 1) Make sure millis becomes 15:40 in UTC, so add offset
+            int offset = tz.getRawOffset();
+            millis += offset;
+            // 2) Truncate hours, minutes, etc. Day is always 86400 seconds, no matter what leap seconds are
+            millis = millis / ONEDAY * ONEDAY;
+            // 2) Now millis is 7 Jan 00:00 UTC, however we need that in GMT+02:00, so subtract some offset
+            millis -= offset;
+            // Now we have brand-new 7 Jan 00:00 GMT+02:00
+            return new Date(millis);
+        }
+        Calendar cal = calendarWithUserTz;
+        cal.setTimeZone(tz);
+        cal.setTimeInMillis(millis);
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+        return new Date(cal.getTimeInMillis());
     }
 
     /**
      * Extracts the time part from a timestamp.
-     * 
-     * @param timestamp The timestamp from which to extract the time.
-     * @param tz The time zone of the time.
+     * This method ensures the date part of output timestamp looks like 1970-01-01 in given timezone.
+     *
+     * @param millis The timestamp from which to extract the time.
+     * @param tz timezone to use.
      * @return The extracted time.
      */
-    public Time convertToTime(Timestamp timestamp, TimeZone tz) {
-        long millis = timestamp.getTime();
+    public Time convertToTime(long millis, TimeZone tz) {
         if (tz == null) {
-            tz = defaultTz;
+            tz = getDefaultTz();
         }
-        int offset = tz.getOffset(millis);
-        long low = - tz.getOffset(millis);
-        long high = low + ONEDAY;
-        if (millis < low) {
-            do { millis += ONEDAY; } while (millis < low);
-        } else if (millis >= high) {
-            do { millis -= ONEDAY; } while (millis > high);
+        if (isSimpleTimeZone(tz.getID()))
+        {
+            // Leave just time part of the day.
+            // Suppose the input date is 2015 7 Jan 15:40 GMT+02:00 (that is 13:40 UTC)
+            // We want it to become 1970 1 Jan 15:40 GMT+02:00
+            // 1) Make sure millis becomes 15:40 in UTC, so add offset
+            int offset = tz.getRawOffset();
+            millis += offset;
+            // 2) Truncate year, month, day. Day is always 86400 seconds, no matter what leap seconds are
+            millis = millis % ONEDAY;
+            // 2) Now millis is 1970 1 Jan 15:40 UTC, however we need that in GMT+02:00, so subtract some offset
+            millis -= offset;
+            // Now we have brand-new 1970 1 Jan 15:40 GMT+02:00
+            return new Time(millis);
         }
+        Calendar cal = calendarWithUserTz;
+        cal.setTimeZone(tz);
+        cal.setTimeInMillis(millis);
+        cal.set(Calendar.ERA,          GregorianCalendar.AD);
+        cal.set(Calendar.YEAR,         1970);
+        cal.set(Calendar.MONTH,        0);
+        cal.set(Calendar.DAY_OF_MONTH, 1);
 
-        return new Time(millis);
+        return new Time(cal.getTimeInMillis());
     }
     
     /**
@@ -929,12 +900,16 @@ public class TimestampUtils {
      */
     public void toBinDate(TimeZone tz, byte[] bytes, Date value) throws PSQLException {
         long millis = value.getTime();
-        
+
         if (tz == null) {
-            tz = defaultTz;
+            tz = getDefaultTz();
         }
+        // It "getOffset" is UNTESTED
+        // See org.postgresql.jdbc2.AbstractJdbc2Statement.setDate(int, java.sql.Date, java.util.Calendar)
+        // The problem is we typically do not know for sure what is the exact required date/timestamp type
+        // Thus pgjdbc sticks to text transfer.
         millis += tz.getOffset(millis);
-        
+
         long secs = toPgSecs(millis / 1000);
         ByteConverter.int4(bytes, 0, (int) (secs / 86400));
     }
