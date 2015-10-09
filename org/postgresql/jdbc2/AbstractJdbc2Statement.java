@@ -659,6 +659,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         // No-op.
     }
 
+    // This is intentionally non-volatile to avoid performance hit in isClosed checks
+    // see #close()
     protected boolean isClosed = false;
     private int lastIndex = 0;
     /*
@@ -898,8 +900,16 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         
         closeForNextExecution();
 
-        if (preparedQuery != null)
-            ((AbstractJdbc2Connection) connection).releaseQuery(preparedQuery);
+        if (preparedQuery != null) {
+            // See #368. We need to prevent closing the same statement twice
+            // Otherwise we might "release" a query that someone else is already using
+            // In other words, client does .close() as usual, however cleanup thread might fail to observe isClosed=true
+            synchronized (preparedQuery) {
+                if (!isClosed) {
+                    ((AbstractJdbc2Connection) connection).releaseQuery(preparedQuery);
+                }
+            }
+        }
 
         isClosed = true;
     }

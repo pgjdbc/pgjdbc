@@ -7,11 +7,15 @@
 */
 package org.postgresql.test.jdbc2;
 
+import junit.framework.TestCase;
 import org.postgresql.test.TestUtil;
-import junit.framework.*;
+
 import java.sql.*;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 /*
  * Test for getObject
  */
@@ -599,5 +603,47 @@ public class StatementTest extends TestCase
             TestUtil.closeQuietly(connB);
         }
         assertEquals(0, sharedTimer.getRefCount());
+    }
+
+    /**
+     * Tests that calling {@code java.sql.Statement#close()} from a concurrent thread does not result in {@link java.util.ConcurrentModificationException}
+     */
+    public void testSideStatementFinalizers() throws SQLException
+    {
+        long deadline = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(2);
+
+        final AtomicInteger leaks = new AtomicInteger();
+        final AtomicReference<Throwable> cleanupFailure = new AtomicReference<Throwable>();
+
+        for (int q = 0; System.currentTimeMillis() < deadline || leaks.get() < 10000; q++)
+        {
+            for (int i = 0; i < 100; i++)
+            {
+                PreparedStatement ps = con.prepareStatement("select " + (i + q));
+                ps.close();
+            }
+            final int nextId = q;
+            new Object() {
+                PreparedStatement ps = con.prepareStatement("select /*leak*/ " + nextId);
+
+                @Override
+                protected void finalize() throws Throwable
+                {
+                    super.finalize();
+                    try
+                    {
+                        ps.close();
+                    } catch (Throwable t)
+                    {
+                        cleanupFailure.compareAndSet(null, t);
+                    }
+                    leaks.incrementAndGet();
+                }
+            };
+        }
+        if (cleanupFailure.get() != null)
+        {
+            throw new IllegalStateException("Detected failure in cleanup thread", cleanupFailure.get());
+        }
     }
 }
