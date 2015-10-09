@@ -93,16 +93,26 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     // Only instantiated if a task is actually scheduled.
     private volatile Timer cancelTimer = null;
 
+    // In general, it is not expected that connection would be used in multiple threads concurrently
+    // However, if client performs cleanup of statements via finalizers/phantomreferences, then it might
+    // result in AbstractJdbc2Statement.close to be called concurrently with active operation on connection
+    // Thus we synchronize access to avoid java.util.ConcurrentModificationException
     private final LruCache<Object, CachedQuery> statementCache;
 
     CachedQuery borrowQuery(String sql, boolean isCallable) throws SQLException {
         Object key = isCallable ? new CallableQueryKey(sql) : sql;
-        return statementCache.borrow(key);
+        // Synchronized to fix #368
+        synchronized (statementCache) {
+            return statementCache.borrow(key);
+        }
     }
 
     void releaseQuery(CachedQuery cachedQuery)
     {
-        statementCache.put(cachedQuery.key, cachedQuery);
+        // Synchronized to fix #368
+        synchronized (statementCache) {
+            statementCache.put(cachedQuery.key, cachedQuery);
+        }
     }
 
     //
