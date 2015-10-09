@@ -365,7 +365,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         }
         catch (IOException e)
         {
-            protoConnection.close();
+            protoConnection.abort();
             handler.handleError(new PSQLException(GT.tr("An I/O error occurred while sending to the backend."), PSQLState.CONNECTION_FAILURE, e));
         }
 
