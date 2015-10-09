@@ -18,6 +18,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
 
+import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.Version;
 import org.postgresql.jdbc2.AbstractJdbc2Connection;
@@ -61,8 +62,7 @@ public class TestUtil
                                 + server + ":"
                                 + port + "/"
                                 + getDatabase() 
-                                + "?prepareThreshold=" + getPrepareThreshold()
-                                + "&loglevel=" + getLogLevel()
+                                + "?loglevel=" + getLogLevel()
                                 + protocolVersion
                                 + binaryTransfer
 								+ receiveBufferSize
@@ -223,6 +223,9 @@ public class TestUtil
 
         props.setProperty("user", getUser());
         props.setProperty("password", getPassword());
+        if (!props.containsKey(PGProperty.PREPARE_THRESHOLD.getName())) {
+            PGProperty.PREPARE_THRESHOLD.set(props, getPrepareThreshold());
+        }
 
         return DriverManager.getConnection(getURL(), props);
     }

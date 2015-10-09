@@ -37,8 +37,6 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
@@ -3412,9 +3410,6 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (callResult[i-1] == null)
             return null;
 
-        if (cal != null)
-            cal = (Calendar)cal.clone();
-
         String value = callResult[i-1].toString();
         return connection.getTimestampUtils().toDate(cal, value);
     }
@@ -3427,9 +3422,6 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         if (callResult[i-1] == null)
             return null;
 
-        if (cal != null)
-            cal = (Calendar)cal.clone();
-
         String value = callResult[i-1].toString();
         return connection.getTimestampUtils().toTime(cal, value);
     }
@@ -3441,9 +3433,6 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
         if (callResult[i-1] == null)
             return null;
-
-        if (cal != null)
-            cal = (Calendar)cal.clone();
 
         String value = callResult[i-1].toString();
         return connection.getTimestampUtils().toTimestamp(cal, value);
