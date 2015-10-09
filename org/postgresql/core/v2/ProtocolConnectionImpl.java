@@ -143,6 +143,23 @@ class ProtocolConnectionImpl implements ProtocolConnection {
         closed = true;
     }
 
+    /*
+     * (non-Javadoc)
+     * @see org.postgresql.core.ProtocolConnection#abort()
+     */
+    public void abort() 
+    {
+        try
+        {
+            pgStream.getSocket().close();
+        }
+        catch (IOException e)
+        {
+            // ignore
+        }
+        closed = true;
+    }
+    
     public Encoding getEncoding() {
         return pgStream.getEncoding();
     }
