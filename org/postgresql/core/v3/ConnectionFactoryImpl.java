@@ -26,7 +26,6 @@ import org.postgresql.core.ProtocolConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.SetupQueryRunner;
 import org.postgresql.core.Utils;
-import org.postgresql.core.Version;
 import org.postgresql.hostchooser.GlobalHostStatusTracker;
 import org.postgresql.hostchooser.HostChooser;
 import org.postgresql.hostchooser.HostChooserFactory;
@@ -63,7 +62,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     private static class UnsupportedProtocolException extends IOException {
     }
 
-    public ProtocolConnection openConnectionImpl(HostSpec[] hostSpecs, String user, String database, Properties info, Logger logger) throws SQLException {
+    @Override
+	public ProtocolConnection openConnectionImpl(HostSpec[] hostSpecs, String user, String database, Properties info, Logger logger) throws SQLException {
         // Extract interesting values from the info properties:
         //  - the SSL setting
         boolean requireSSL;
@@ -79,7 +79,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
           }
           //allow and prefer are not handled yet
           /*else if ("allow".equals(sslmode) || "prefer".equals(sslmode))
-          {  
+          {
             //XXX Allow and prefer are treated the same way
             requireSSL = false;
             trySSL = true;
@@ -116,8 +116,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         for (Iterator<HostSpec> hostIter = hostChooser.iterator(); hostIter.hasNext(); ) {
             HostSpec hostSpec = hostIter.next();
 
-        if (logger.logDebug())
-            logger.debug("Trying to establish a protocol version 3 connection to " + hostSpec);
+        if (logger.logDebug()) {
+			logger.debug("Trying to establish a protocol version 3 connection to " + hostSpec);
+		}
 
         //
         // Establish a connection.
@@ -126,14 +127,15 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         PGStream newStream = null;
         try
         {
-            newStream = new PGStream(hostSpec, connectTimeout);
+            newStream = new PGStream(hostSpec, connectTimeout, info);
 
             // Construct and send an ssl startup packet if requested.
-            if (trySSL)
-                newStream = enableSSL(newStream, requireSSL, info, logger, connectTimeout);
-            
+            if (trySSL) {
+				newStream = enableSSL(newStream, requireSSL, info, logger, connectTimeout);
+			}
+
             // Set the socket timeout if the "socketTimeout" property has been set.
-            int socketTimeout = PGProperty.SOCKET_TIMEOUT.getInt(info); 
+            int socketTimeout = PGProperty.SOCKET_TIMEOUT.getInt(info);
             if (socketTimeout > 0) {
                 newStream.getSocket().setSoTimeout(socketTimeout*1000);
             }
@@ -157,7 +159,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 }
             }
 
-            // Set SO_SNDBUF write buffer size 
+            // Set SO_SNDBUF write buffer size
             int sendBufferSize = PGProperty.SEND_BUFFER_SIZE.getInt(info);
             if (sendBufferSize > -1) {
                 if (sendBufferSize > 0) {
@@ -229,8 +231,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         catch (UnsupportedProtocolException upe)
         {
             // Swallow this and return null so ConnectionFactory tries the next protocol.
-            if (logger.logDebug())
-                logger.debug("Protocol not supported, abandoning connection.");
+            if (logger.logDebug()) {
+				logger.debug("Protocol not supported, abandoning connection.");
+			}
             closeStream(newStream);
             return null;
         }
@@ -271,9 +274,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     /**
      * Convert Java time zone to postgres time zone.
-     * All others stay the same except that GMT+nn changes to GMT-nn and 
+     * All others stay the same except that GMT+nn changes to GMT-nn and
      * vise versa.
-     *  
+     *
      * @return The current JVM time zone in postgresql format.
      */
     private String createPostgresTimeZone() {
@@ -291,13 +294,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // unknown type
             return tz;
         }
-            
+
         return start + tz.substring(4);
     }
 
     private PGStream enableSSL(PGStream pgStream, boolean requireSSL, Properties info, Logger logger, int connectTimeout) throws IOException, SQLException {
-        if (logger.logDebug())
-            logger.debug(" FE=> SSLRequest");
+        if (logger.logDebug()) {
+			logger.debug(" FE=> SSLRequest");
+		}
 
         // Send SSL request packet
         pgStream.SendInteger4(8);
@@ -310,30 +314,35 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         switch (beresp)
         {
         case 'E':
-            if (logger.logDebug())
-                logger.debug(" <=BE SSLError");
+            if (logger.logDebug()) {
+				logger.debug(" <=BE SSLError");
+			}
 
             // Server doesn't even know about the SSL handshake protocol
-            if (requireSSL)
-                throw new PSQLException(GT.tr("The server does not support SSL."), PSQLState.CONNECTION_REJECTED);
+            if (requireSSL) {
+				throw new PSQLException(GT.tr("The server does not support SSL."), PSQLState.CONNECTION_REJECTED);
+			}
 
             // We have to reconnect to continue.
             pgStream.close();
-            return new PGStream(pgStream.getHostSpec(), connectTimeout);
+            return new PGStream(pgStream.getHostSpec(), connectTimeout, info);
 
         case 'N':
-            if (logger.logDebug())
-                logger.debug(" <=BE SSLRefused");
+            if (logger.logDebug()) {
+				logger.debug(" <=BE SSLRefused");
+			}
 
             // Server does not support ssl
-            if (requireSSL)
-                throw new PSQLException(GT.tr("The server does not support SSL."), PSQLState.CONNECTION_REJECTED);
+            if (requireSSL) {
+				throw new PSQLException(GT.tr("The server does not support SSL."), PSQLState.CONNECTION_REJECTED);
+			}
 
             return pgStream;
 
         case 'S':
-            if (logger.logDebug())
-                logger.debug(" <=BE SSLOk");
+            if (logger.logDebug()) {
+				logger.debug(" <=BE SSLOk");
+			}
 
             // Server supports ssl
             org.postgresql.ssl.MakeSSL.convert(pgStream, info, logger);
@@ -350,8 +359,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             StringBuilder details = new StringBuilder();
             for (int i = 0; i < params.length; ++i)
             {
-                if (i != 0)
-		    details.append(", ");
+                if (i != 0) {
+					details.append(", ");
+				}
 		details.append(params[i][0]);
 		details.append("=");
 		details.append(params[i][1]);
@@ -394,7 +404,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         // or an authentication request
 
         String password = PGProperty.PASSWORD.get(info);
-        
+
         /* SSPI negotiation state, if used */
         SSPIClient sspiClient = null;
 
@@ -403,7 +413,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 	        while (true)
 	        {
 	            int beresp = pgStream.ReceiveChar();
-	
+
 	            switch (beresp)
 	            {
 	            case 'E':
@@ -420,47 +430,51 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 	                    // server, so trigger fallback.
 	                    throw new UnsupportedProtocolException();
 	                }
-	
+
 	                ServerErrorMessage errorMsg = new ServerErrorMessage(pgStream.ReceiveString(l_elen - 4), logger.getLogLevel());
-	                if (logger.logDebug())
-	                    logger.debug(" <=BE ErrorMessage(" + errorMsg + ")");
+	                if (logger.logDebug()) {
+						logger.debug(" <=BE ErrorMessage(" + errorMsg + ")");
+					}
 	                throw new PSQLException(errorMsg);
-	
+
 	            case 'R':
 	                // Authentication request.
 	                // Get the message length
 	                int l_msgLen = pgStream.ReceiveInteger4();
-	
+
 	                // Get the type of request
 	                int areq = pgStream.ReceiveInteger4();
-	
+
 	                // Process the request.
 	                switch (areq)
 	                {
 	                case AUTH_REQ_CRYPT:
 	                    {
 	                        byte[] salt = pgStream.Receive(2);
-	
-	                        if (logger.logDebug())
-	                            logger.debug(" <=BE AuthenticationReqCrypt(salt='" + new String(salt, "US-ASCII") + "')");
-	
-	                        if (password == null)
-	                            throw new PSQLException(GT.tr("The server requested password-based authentication, but no password was provided."), PSQLState.CONNECTION_REJECTED);
-	
+
+	                        if (logger.logDebug()) {
+								logger.debug(" <=BE AuthenticationReqCrypt(salt='" + new String(salt, "US-ASCII") + "')");
+							}
+
+	                        if (password == null) {
+								throw new PSQLException(GT.tr("The server requested password-based authentication, but no password was provided."), PSQLState.CONNECTION_REJECTED);
+							}
+
 	                        byte[] encodedResult = UnixCrypt.crypt(salt, password.getBytes("UTF-8"));
-	
-	                        if (logger.logDebug())
-	                            logger.debug(" FE=> Password(crypt='" + new String(encodedResult, "US-ASCII") + "')");
-	
+
+	                        if (logger.logDebug()) {
+								logger.debug(" FE=> Password(crypt='" + new String(encodedResult, "US-ASCII") + "')");
+							}
+
 	                        pgStream.SendChar('p');
 	                        pgStream.SendInteger4(4 + encodedResult.length + 1);
 	                        pgStream.Send(encodedResult);
 	                        pgStream.SendChar(0);
 	                        pgStream.flush();
-	
+
 	                        break;
 	                    }
-	
+
 	                case AUTH_REQ_MD5:
 	                    {
 	                        byte[] md5Salt = pgStream.Receive(4);
@@ -468,26 +482,27 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 	                        {
 	                            logger.debug(" <=BE AuthenticationReqMD5(salt=" + Utils.toHexString(md5Salt) + ")");
 	                        }
-	
-	                        if (password == null)
-	                            throw new PSQLException(GT.tr("The server requested password-based authentication, but no password was provided."), PSQLState.CONNECTION_REJECTED);
-	
+
+	                        if (password == null) {
+								throw new PSQLException(GT.tr("The server requested password-based authentication, but no password was provided."), PSQLState.CONNECTION_REJECTED);
+							}
+
 	                        byte[] digest = MD5Digest.encode(user.getBytes("UTF-8"), password.getBytes("UTF-8"), md5Salt);
-	
+
 	                        if (logger.logDebug())
 	                        {
 	                            logger.debug(" FE=> Password(md5digest=" + new String(digest, "US-ASCII") + ")");
 	                        }
-	
+
 	                        pgStream.SendChar('p');
 	                        pgStream.SendInteger4(4 + digest.length + 1);
 	                        pgStream.Send(digest);
 	                        pgStream.SendChar(0);
 	                        pgStream.flush();
-	
+
 	                        break;
 	                    }
-	
+
 	                case AUTH_REQ_PASSWORD:
 	                    {
 	                        if (logger.logDebug())
@@ -495,24 +510,25 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 	                            logger.debug(" <=BE AuthenticationReqPassword");
 	                            logger.debug(" FE=> Password(password=<not shown>)");
 	                        }
-	
-	                        if (password == null)
-	                            throw new PSQLException(GT.tr("The server requested password-based authentication, but no password was provided."), PSQLState.CONNECTION_REJECTED);
-	
+
+	                        if (password == null) {
+								throw new PSQLException(GT.tr("The server requested password-based authentication, but no password was provided."), PSQLState.CONNECTION_REJECTED);
+							}
+
 	                        byte[] encodedPassword = password.getBytes("UTF-8");
-	
+
 	                        pgStream.SendChar('p');
 	                        pgStream.SendInteger4(4 + encodedPassword.length + 1);
 	                        pgStream.Send(encodedPassword);
 	                        pgStream.SendChar(0);
 	                        pgStream.flush();
-	
+
 	                        break;
 	                    }
-	
+
 	                case AUTH_REQ_GSS:
                     case AUTH_REQ_SSPI:
-                        /* 
+                        /*
                          * Use GSSAPI if requested on all platforms, via JSSE.
                          *
                          * For SSPI auth requests, if we're on Windows attempt native SSPI
@@ -533,20 +549,20 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                          */
                         final String gsslib = PGProperty.GSS_LIB.get(info);
                         final boolean usespnego = PGProperty.USE_SPNEGO.getBoolean(info);
-                        
+
                         boolean useSSPI = false;
 
-                        /* 
+                        /*
                          * Use SSPI if we're in auto mode on windows and have a
                          * request for SSPI auth, or if it's forced. Otherwise
                          * use gssapi. If the user has specified a Kerberos server
                          * name we'll always use JSSE GSSAPI.
                          */
-                        if (gsslib.equals("gssapi"))
-                            logger.debug("Using JSSE GSSAPI, param gsslib=gssapi");
-                        else if (areq == AUTH_REQ_GSS && !gsslib.equals("sspi"))
-                            logger.debug("Using JSSE GSSAPI, gssapi requested by server and gsslib=sspi not forced");
-                        else
+                        if (gsslib.equals("gssapi")) {
+							logger.debug("Using JSSE GSSAPI, param gsslib=gssapi");
+						} else if (areq == AUTH_REQ_GSS && !gsslib.equals("sspi")) {
+							logger.debug("Using JSSE GSSAPI, gssapi requested by server and gsslib=sspi not forced");
+						} else
                         {
                             /* Determine if SSPI is supported by the client */
                             sspiClient = new SSPIClient(pgStream,
@@ -554,19 +570,20 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                                     /* Use negotiation for SSPI, or if explicitly requested for GSS */
                                     areq == AUTH_REQ_SSPI || (areq == AUTH_REQ_GSS && usespnego),
                                     logger);
-                            
+
                             useSSPI = sspiClient.isSSPISupported();
                             logger.debug("SSPI support detected: " + useSSPI);
-                        
+
                             if (!useSSPI) {
                                 /* No need to dispose() if no SSPI used */
                                 sspiClient = null;
-                                
-                                if (gsslib.equals("sspi"))
-                                    throw new PSQLException("SSPI forced with gsslib=sspi, but SSPI not available; set loglevel=2 for details", 
+
+                                if (gsslib.equals("sspi")) {
+									throw new PSQLException("SSPI forced with gsslib=sspi, but SSPI not available; set loglevel=2 for details",
                                             PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+								}
                             }
-                            
+
                             logger.debug("Using SSPI: " + useSSPI + ", gsslib="+gsslib+" and SSPI support detected");
                         }
 
@@ -579,39 +596,41 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                         {
                             /* Use JGSS's GSSAPI for this request */
                             org.postgresql.gss.MakeGSS.authenticate(pgStream, host,
-                                    user, password, 
+                                    user, password,
                                     PGProperty.JAAS_APPLICATION_NAME.get(info),
                                     PGProperty.KERBEROS_SERVER_NAME.get(info),
                                     logger,
                                     usespnego);
                         }
-                        
+
 	                	break;
-	                
+
 	                case AUTH_REQ_GSS_CONTINUE:
-	                	 /* 
+	                	 /*
 	                	  * Only called for SSPI, as GSS is handled by an inner loop
 	                	  * in MakeGSS.
 	                	  */
 	                	sspiClient.continueSSPI(l_msgLen - 8);
 	                	break;
-	                	
+
 	                case AUTH_REQ_OK:
 	                    /* Cleanup after successful authentication */
-	                    if (logger.logDebug())
-	                        logger.debug(" <=BE AuthenticationOk");
-	                    
+	                    if (logger.logDebug()) {
+							logger.debug(" <=BE AuthenticationOk");
+						}
+
 	                    break authloop; // We're done.
-	
+
 	                default:
-	                    if (logger.logDebug())
-	                        logger.debug(" <=BE AuthenticationReq (unsupported type " + ((int)areq) + ")");
-	
+	                    if (logger.logDebug()) {
+							logger.debug(" <=BE AuthenticationReq (unsupported type " + ((int)areq) + ")");
+						}
+
 	                    throw new PSQLException(GT.tr("The authentication type {0} is not supported. Check that you have configured the pg_hba.conf file to include the client''s IP address or subnet, and that it is using an authentication scheme supported by the driver.", areq), PSQLState.CONNECTION_REJECTED);
 	                }
-	
+
 	                break;
-	
+
 	            default:
 	                throw new PSQLException(GT.tr("Protocol error.  Session setup failed."), PSQLState.PROTOCOL_VIOLATION);
 	            }
@@ -625,10 +644,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         		} catch (RuntimeException ex) {
         			logger.log("Unexpected error during SSPI context disposal", ex);
         		}
-        		
+
         	}
         }
-        
+
     }
 
     private void readStartupMessages(PGStream pgStream, ProtocolConnectionImpl protoConnection, Logger logger) throws IOException, SQLException {
@@ -639,12 +658,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             {
             case 'Z':
                 // Ready For Query; we're done.
-                if (pgStream.ReceiveInteger4() != 5)
-                    throw new IOException("unexpected length of ReadyForQuery packet");
+                if (pgStream.ReceiveInteger4() != 5) {
+					throw new IOException("unexpected length of ReadyForQuery packet");
+				}
 
                 char tStatus = (char)pgStream.ReceiveChar();
-                if (logger.logDebug())
-                    logger.debug(" <=BE ReadyForQuery(" + tStatus + ")");
+                if (logger.logDebug()) {
+					logger.debug(" <=BE ReadyForQuery(" + tStatus + ")");
+				}
 
                 // Update connection state.
                 switch (tStatus)
@@ -668,14 +689,16 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             case 'K':
                 // BackendKeyData
                 int l_msgLen = pgStream.ReceiveInteger4();
-                if (l_msgLen != 12)
-                    throw new PSQLException(GT.tr("Protocol error.  Session setup failed."), PSQLState.PROTOCOL_VIOLATION);
+                if (l_msgLen != 12) {
+					throw new PSQLException(GT.tr("Protocol error.  Session setup failed."), PSQLState.PROTOCOL_VIOLATION);
+				}
 
                 int pid = pgStream.ReceiveInteger4();
                 int ckey = pgStream.ReceiveInteger4();
 
-                if (logger.logDebug())
-                    logger.debug(" <=BE BackendKeyData(pid=" + pid + ",ckey=" + ckey + ")");
+                if (logger.logDebug()) {
+					logger.debug(" <=BE BackendKeyData(pid=" + pid + ",ckey=" + ckey + ")");
+				}
 
                 protoConnection.setBackendKeyData(pid, ckey);
                 break;
@@ -685,8 +708,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 int l_elen = pgStream.ReceiveInteger4();
                 ServerErrorMessage l_errorMsg = new ServerErrorMessage(pgStream.ReceiveString(l_elen - 4), logger.getLogLevel());
 
-                if (logger.logDebug())
-                    logger.debug(" <=BE ErrorMessage(" + l_errorMsg + ")");
+                if (logger.logDebug()) {
+					logger.debug(" <=BE ErrorMessage(" + l_errorMsg + ")");
+				}
 
                 throw new PSQLException(l_errorMsg);
 
@@ -695,8 +719,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 int l_nlen = pgStream.ReceiveInteger4();
                 ServerErrorMessage l_warnMsg = new ServerErrorMessage(pgStream.ReceiveString(l_nlen - 4), logger.getLogLevel());
 
-                if (logger.logDebug())
-                    logger.debug(" <=BE NoticeResponse(" + l_warnMsg + ")");
+                if (logger.logDebug()) {
+					logger.debug(" <=BE NoticeResponse(" + l_warnMsg + ")");
+				}
 
                 protoConnection.addWarning(new PSQLWarning(l_warnMsg));
                 break;
@@ -707,43 +732,49 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 String name = pgStream.ReceiveString();
                 String value = pgStream.ReceiveString();
 
-                if (logger.logDebug())
-                    logger.debug(" <=BE ParameterStatus(" + name + " = " + value + ")");
+                if (logger.logDebug()) {
+					logger.debug(" <=BE ParameterStatus(" + name + " = " + value + ")");
+				}
 
-                if (name.equals("server_version_num"))
-                    protoConnection.setServerVersionNum(Integer.parseInt(value));
-                if (name.equals("server_version"))
-                    protoConnection.setServerVersion(value);
-                else if (name.equals("client_encoding"))
+                if (name.equals("server_version_num")) {
+					protoConnection.setServerVersionNum(Integer.parseInt(value));
+				}
+                if (name.equals("server_version")) {
+					protoConnection.setServerVersion(value);
+				} else if (name.equals("client_encoding"))
                 {
-                    if (!value.equals("UTF8"))
-                        throw new PSQLException(GT.tr("Protocol error.  Session setup failed."), PSQLState.PROTOCOL_VIOLATION);
+                    if (!value.equals("UTF8")) {
+						throw new PSQLException(GT.tr("Protocol error.  Session setup failed."), PSQLState.PROTOCOL_VIOLATION);
+					}
                     pgStream.setEncoding(Encoding.getDatabaseEncoding("UTF8"));
                 }
                 else if (name.equals("standard_conforming_strings"))
                 {
-                    if (value.equals("on"))
-                        protoConnection.setStandardConformingStrings(true);
-                    else if (value.equals("off"))
-                        protoConnection.setStandardConformingStrings(false);
-                    else
-                        throw new PSQLException(GT.tr("Protocol error.  Session setup failed."), PSQLState.PROTOCOL_VIOLATION);
+                    if (value.equals("on")) {
+						protoConnection.setStandardConformingStrings(true);
+					} else if (value.equals("off")) {
+						protoConnection.setStandardConformingStrings(false);
+					} else {
+						throw new PSQLException(GT.tr("Protocol error.  Session setup failed."), PSQLState.PROTOCOL_VIOLATION);
+					}
                 }
                 else if (name.equals("integer_datetimes"))
                 {
-                    if (value.equals("on"))
-                        protoConnection.setIntegerDateTimes(true);
-                    else if (value.equals("off"))
-                        protoConnection.setIntegerDateTimes(false);
-                    else
-                        throw new PSQLException(GT.tr("Protocol error.  Session setup failed."), PSQLState.PROTOCOL_VIOLATION);
+                    if (value.equals("on")) {
+						protoConnection.setIntegerDateTimes(true);
+					} else if (value.equals("off")) {
+						protoConnection.setIntegerDateTimes(false);
+					} else {
+						throw new PSQLException(GT.tr("Protocol error.  Session setup failed."), PSQLState.PROTOCOL_VIOLATION);
+					}
                 }
 
                 break;
 
             default:
-                if (logger.logDebug())
-                    logger.debug("invalid message type=" + (char)beresp);
+                if (logger.logDebug()) {
+					logger.debug("invalid message type=" + (char)beresp);
+				}
                 throw new PSQLException(GT.tr("Protocol error.  Session setup failed."), PSQLState.PROTOCOL_VIOLATION);
             }
         }

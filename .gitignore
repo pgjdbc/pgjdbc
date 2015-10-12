@@ -11,3 +11,4 @@ build.local.properties
 *-dist.zip
 
 ubenchmark/target
+/bin/
