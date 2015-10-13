@@ -60,7 +60,7 @@ public class PGStream
         Socket socket = new Socket();
         socket.connect(new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort()), timeout);
         changeSocket(socket);
-        setEncoding(Encoding.getJVMEncoding("US-ASCII"));
+        setEncoding(Encoding.getJVMEncoding("UTF-8"));
 
         _int2buf = new byte[2];
         _int4buf = new byte[4];
