@@ -2217,7 +2217,18 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
      * the exception is always caught and is not visible to users.
      */
     private static final NumberFormatException FAST_NUMBER_FAILED = 
-        new NumberFormatException();
+        new NumberFormatException() {
+
+            // Override fillInStackTrace to prevent memory leak via Throwable.backtrace hidden field
+            // The field is not observable via reflection, however when throwable contains stacktrace, it does
+            // hold strong references to user objects (e.g. classes -> classloaders), thus it might lead to
+            // OutOfMemory conditions.
+            @Override
+            public synchronized Throwable fillInStackTrace()
+            {
+                return this;
+            }
+        };
 
     /**
      * Optimised byte[] to number parser.  This code does not
