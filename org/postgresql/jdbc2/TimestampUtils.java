@@ -696,7 +696,7 @@ public class TimestampUtils {
         //   Backend provided us with something like '2015-10-04 13:40' and it did NOT provide us with a time zone.
         //   On top of that, user asked us to treat the timestamp as if it were in GMT+02:00.
         //
-        // The code below creates such a timestamp that is rendered as '2015-10-04 13:40 GMT+02:00'ю
+        // The code below creates such a timestamp that is rendered as '2015-10-04 13:40 GMT+02:00'
         // In other words, its UTC value should be 11:40 UTC == 13:40 GMT+02:00.
         // It is not sufficient to just subtract offset as you might cross DST change as you subtract.
         //
