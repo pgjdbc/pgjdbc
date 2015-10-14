@@ -9,3 +9,4 @@ org.osgi.core-4.3.1.jar
 slf4j-api-1.7.7.jar
 slf4j-simple-1.7.7.jar
 waffle-jna-1.7.jar
+xml-resolver-1.2.jar
