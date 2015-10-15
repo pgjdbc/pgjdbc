@@ -57,7 +57,7 @@
 						<configuration>
 							<artifacts>
 								<artifact>
-									<file>${basedir}/build/jars/postgresql*.jar</file>
+									<file>${basedir}/build/jars/${env.pgjdbcJarName}</file>
 									<type>jar</type>
 								</artifact>
 							</artifacts>
