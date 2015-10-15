@@ -22,6 +22,7 @@
 		            <configuration>
 		              <files>
 		                <file>${basedir}/build.properties</file>
+		                <file>${basedir}/jarname.properties</file>
 		              </files>
 		            </configuration>
 		          </execution>
@@ -57,7 +58,7 @@
 						<configuration>
 							<artifacts>
 								<artifact>
-									<file>${basedir}/build/jars/${env.pgjdbcJarName}</file>
+									<file>${basedir}/build/jars/${pgjdbcJarName}</file>
 									<type>jar</type>
 								</artifact>
 							</artifacts>
