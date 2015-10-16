@@ -11,7 +11,9 @@ import java.sql.*;
 import java.util.UUID;
 
 import junit.framework.TestCase;
+import org.junit.Assert;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
 import org.postgresql.geometric.PGbox;
 
@@ -28,12 +30,15 @@ public class ArrayTest extends TestCase {
         TestUtil.createTable(_conn, "arrtest", "intarr int[], decarr decimal(2,1)[], strarr text[], uuidarr uuid[]");
         TestUtil.createTable(_conn, "arrcompprnttest", "id serial, name character(10)");
         TestUtil.createTable(_conn, "arrcompchldttest", "id serial, name character(10), description character varying, parent integer");
+        TestUtil.createTable(_conn, "\"CorrectCasing\"", "id serial");
+        TestUtil.createTable(_conn, "\"Evil.Table\"", "id serial");
     }
 
     protected void tearDown() throws SQLException {
         TestUtil.dropTable(_conn, "arrtest");
         TestUtil.dropTable(_conn, "arrcompprnttest");
         TestUtil.dropTable(_conn, "arrcompchldttest");
+        TestUtil.dropTable(_conn, "\"CorrectCasing\"");
         TestUtil.closeDB(_conn);
     }
 
@@ -310,5 +315,69 @@ public class ArrayTest extends TestCase {
 			} else
 				fail("Needs to have 3 tokens");
 		}
+    }
+
+    public void testCasingComposite() throws SQLException {
+        PGobject cc = new PGobject();
+        cc.setType("\"CorrectCasing\"");
+        cc.setValue("(1)");
+        Object[] in = new Object[1];
+        in[0] = cc;
+
+        Array arr = _conn.createArrayOf("\"CorrectCasing\"", in);
+        PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::\"CorrectCasing\"[]");
+        pstmt.setArray(1, arr);
+        ResultSet rs = pstmt.executeQuery();
+
+        assertTrue(rs.next());
+        Object[] resArr = (Object[])rs.getArray(1).getArray();
+
+        assertTrue(resArr[0] instanceof PGobject);
+        PGobject resObj = (PGobject) resArr[0];
+        assertEquals("(1)", resObj.getValue());
+    }
+
+    public void testCasingBuiltinAlias() throws SQLException {
+        Array arr = _conn.createArrayOf("INT", new Integer[] { 1 , 2, 3});
+        PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::INT[]");
+        pstmt.setArray(1, arr);
+        ResultSet rs = pstmt.executeQuery();
+
+        assertTrue(rs.next());
+        Integer[] resArr = (Integer[])rs.getArray(1).getArray();
+
+        Assert.assertArrayEquals(new Integer[]{1, 2, 3}, resArr);
+    }
+
+    public void testCasingBuiltinNonAlias() throws SQLException {
+        Array arr = _conn.createArrayOf("INT4", new Integer[] { 1 , 2, 3});
+        PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::INT4[]");
+        pstmt.setArray(1, arr);
+        ResultSet rs = pstmt.executeQuery();
+
+        assertTrue(rs.next());
+        Integer[] resArr = (Integer[])rs.getArray(1).getArray();
+
+        Assert.assertArrayEquals(new Integer[]{1, 2, 3}, resArr);
+    }
+
+    public void testEvilCasing() throws SQLException {
+        PGobject cc = new PGobject();
+        cc.setType("\"Evil.Table\"");
+        cc.setValue("(1)");
+        Object[] in = new Object[1];
+        in[0] = cc;
+
+        Array arr = _conn.createArrayOf("\"Evil.Table\"", in);
+        PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::\"Evil.Table\"[]");
+        pstmt.setArray(1, arr);
+        ResultSet rs = pstmt.executeQuery();
+
+        assertTrue(rs.next());
+        Object[] resArr = (Object[])rs.getArray(1).getArray();
+
+        assertTrue(resArr[0] instanceof PGobject);
+        PGobject resObj = (PGobject) resArr[0];
+        assertEquals("(1)", resObj.getValue());
     }
 }

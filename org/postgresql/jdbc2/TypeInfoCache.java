@@ -12,10 +12,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
@@ -260,12 +257,10 @@ public class TypeInfoCache implements TypeInfo {
     private PreparedStatement getOidStatement(String pgTypeName) throws SQLException
     {
         boolean isArray = pgTypeName.endsWith("[]");
-        //TODO: not fully correct, but better than before
-        boolean hasSchema = pgTypeName.contains("\".\"")
-                || pgTypeName.contains(".") && (pgTypeName.charAt(0) != '"'
-                                                || pgTypeName.charAt(pgTypeName.length() - 1) != '"');
+        boolean hasQuote = pgTypeName.contains("\"");
+        int dotIndex = pgTypeName.indexOf('.');
 
-        if (!hasSchema) {
+        if (dotIndex == -1 && !hasQuote) {
             if (_getOidStatementSimple == null) {
                 String sql;
                 if (_conn.haveMinimumServerVersion(ServerVersion.v8_0)) {
@@ -290,8 +285,10 @@ public class TypeInfoCache implements TypeInfo {
                 }
                 _getOidStatementSimple = _conn.prepareStatement(sql);
             }
+            // coerce to lower case to handle upper case type names
+            String lcName = pgTypeName.toLowerCase();
             //default arrays are represented with _ as prefix ... this dont even work for public schema fully
-            _getOidStatementSimple.setString(1, isArray ? "_" + pgTypeName.substring(0, pgTypeName.length() - 2) : pgTypeName);
+            _getOidStatementSimple.setString(1, isArray ? "_" + lcName.substring(0, lcName.length() - 2) : lcName);
             return _getOidStatementSimple;
         }
         PreparedStatement oidStatementComplex;
@@ -300,7 +297,7 @@ public class TypeInfoCache implements TypeInfo {
                 String sql = "SELECT t.typarray " +
                         "  FROM pg_catalog.pg_type t" +
                         "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid" +
-                        " WHERE t.typname = ? AND n.nspname = ?" +
+                        " WHERE t.typname = ? AND (n.nspname = ? OR ? IS NULL AND n.nspname = ANY (current_schemas(false)))" +
                         " ORDER BY t.oid DESC LIMIT 1;";
                 _getOidStatementComplexArray = _conn.prepareStatement(sql);
             }
@@ -310,7 +307,7 @@ public class TypeInfoCache implements TypeInfo {
                 String sql = "SELECT t.oid " +
                         "  FROM pg_catalog.pg_type t" +
                         "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid" +
-                        " WHERE t.typname = ? AND n.nspname = ?" +
+                        " WHERE t.typname = ? AND (n.nspname = ? OR ? IS NULL AND n.nspname = ANY (current_schemas(false)))" +
                         " ORDER BY t.oid DESC LIMIT 1;";
                 _getOidStatementComplexNonArray = _conn.prepareStatement(sql);
             }
@@ -320,36 +317,38 @@ public class TypeInfoCache implements TypeInfo {
         String schema;
         String name;
         //simple use case
-        int firstDotIndex = fullName.indexOf('.');
-        int lastDotIndex = fullName.lastIndexOf('.');
-        if (firstDotIndex == lastDotIndex) {
-            String[] parts = fullName.split("\\.");
-            schema = parts[0];
-            name = parts[1];
+        if (dotIndex == -1) {
+            schema = null;
+            name = fullName;
         } else {
             if (fullName.startsWith("\"")) {
                 if (fullName.endsWith("\"")) {
-                    //TODO: only covers simple scenario...
                     String[] parts = fullName.split("\"\\.\"");
-                    schema = parts[0];
-                    name = parts[1];
+                    schema = parts.length == 2 ? parts[0] + "\"" : null;
+                    name = parts.length == 2 ? "\"" + parts[1] : parts[0];
                 } else {
+                    int lastDotIndex = fullName.lastIndexOf('.');
                     name = fullName.substring(lastDotIndex + 1);
                     schema = fullName.substring(0, lastDotIndex);
                 }
             } else {
-                schema = fullName.substring(0, firstDotIndex);
-                name = fullName.substring(firstDotIndex + 1);
+                schema = fullName.substring(0, dotIndex);
+                name = fullName.substring(dotIndex + 1);
             }
         }
-        if (schema.startsWith("\"") && schema.endsWith("\"")) {
+        if (schema != null && schema.startsWith("\"") && schema.endsWith("\"")) {
             schema = schema.substring(1, schema.length() - 1);
-        } //TODO: should lowercase otherwise?
+        } else if (schema != null) {
+            schema = schema.toLowerCase();
+        }
         if (name.startsWith("\"") && name.endsWith("\"")) {
             name = name.substring(1, name.length() - 1);
+        } else {
+            name = name.toLowerCase();
         }
         oidStatementComplex.setString(1, name);
         oidStatementComplex.setString(2, schema);
+        oidStatementComplex.setString(3, schema);
         return oidStatementComplex;
     }
 
@@ -504,7 +503,7 @@ public class TypeInfoCache implements TypeInfo {
             if (_conn.haveMinimumServerVersion(ServerVersion.v7_3)) {
                 sql = "SELECT e.oid, n.nspname = ANY(current_schemas(true)), n.nspname, e.typname FROM pg_catalog.pg_type t JOIN pg_catalog.pg_type e ON t.typelem = e.oid JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid WHERE t.oid = ?";
             } else {
-                sql = "SELECT e.oid, n.nspname = ANY(current_schemas(true)), n.nspname, e.typname FROM pg_type t JOIN pg_type e ON t.typelem = e.oid JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid WHERE t.oid = ?";
+                sql = "SELECT e.oid, n.nspname = ANY(current_schemas(true)), n.nspname, e.typname FROM pg_type t JOIN pg_type e ON t.typelem = e.oid JOIN pg_namespace n ON t.typnamespace = n.oid WHERE t.oid = ?";
             }
             _getArrayElementOidStatement = _conn.prepareStatement(sql);
         }
@@ -565,6 +564,11 @@ public class TypeInfoCache implements TypeInfo {
         String type = (String) typeAliases.get(alias);
         if (type != null)
             return type;
+        if (alias.indexOf('"') == -1) {
+            type = (String) typeAliases.get(alias.toLowerCase());
+            if (type != null)
+                return type;
+        }
         return alias;
     }
 
