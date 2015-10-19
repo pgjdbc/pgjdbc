@@ -90,7 +90,7 @@ public class CompositeTest extends TestCase
         pstmt.setObject(1, pgo1);
         String[] ctArr = new String[1];
         ctArr[0] = "(\"{1,2}\",{},\"(1,2.2,)\")";
-        Array pgarr1 = _conn.createArrayOf("Composites.ComplexCompositeTest", ctArr);
+        Array pgarr1 = _conn.createArrayOf("\"Composites\".\"ComplexCompositeTest\"", ctArr);
         pstmt.setArray(2, pgarr1);
         int res = pstmt.executeUpdate();
         assertEquals(1, res);

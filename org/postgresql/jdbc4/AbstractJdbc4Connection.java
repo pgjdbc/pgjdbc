@@ -100,8 +100,7 @@ public abstract class AbstractJdbc4Connection extends org.postgresql.jdbc3g.Abst
     {
         checkClosed();
 
-        // coerce to lower case to handle upper case type names
-        int oid = getTypeInfo().getPGArrayType(typeName.toLowerCase());
+        int oid = getTypeInfo().getPGArrayType(typeName);
 
         if (oid == Oid.UNSPECIFIED)
             throw new PSQLException(GT.tr("Unable to find server array type for provided name {0}.", typeName), PSQLState.INVALID_NAME);
