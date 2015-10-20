@@ -8,10 +8,14 @@
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.test.TestUtil;
+
 import junit.framework.TestCase;
+
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /*
  * TestCase to test the internal functionality of org.postgresql.jdbc2.DatabaseMetaData
@@ -1099,6 +1103,77 @@ public class DatabaseMetaDataTest extends TestCase
         }
     }
 
+// these all work from 9.1 on. Not meant to be exhaustive, but it's better than nothing. 
+    private String [] typeArray = new String[] {
+            	"bool",
+ 		"bytea",
+ 		"char",
+ 		"name",
+ 		"int8",
+ 		"int2",
+ 		"int2vector",
+ 		"int4",
+ 		"text",
+ 		"oid",
+ 		"tid",
+ 		"xid",
+ 		"cid",
+		 "oidvector",
+		 "xml",
+ 		"point",
+ 		"lseg",
+ 		"path",
+ 		"box",
+ 		"polygon",
+ 		"line",
+ 		"float4",
+ 		"float8",
+ 		"abstime",
+ 		"reltime",
+ 		"tinterval",
+ 		"unknown",
+ 		"circle",
+ 		"money",
+ 		"macaddr",
+ 		"inet",
+ 		"cidr",
+ 		"aclitem",
+ 		"bpchar",
+ 		"varchar",
+ 		"date",
+ 		"time",
+ 		"timestamp",
+ 		"timestamptz",
+ 		"interval",
+ 		"timetz",
+ 		"bit",
+ 		"varbit",
+ 		"numeric",
+ 		"refcursor",
+ 		"uuid",
+ 		"tsvector",
+ 		"gtsvector",
+ 		"tsquery",
+ 		"any",
+ 		"anyarray",
+ 		"void",
+};
+    public void testTypes() throws SQLException
+    {
+        DatabaseMetaData dbmd = con.getMetaData();
+        ResultSet rs = dbmd.getTypeInfo();
+        Map types = new HashMap();
+        
+        while (rs.next()) 
+        {
+            types.put(rs.getString("TYPE_NAME"),true);
+        }
+        for (String typeName : typeArray)
+        {
+            assertTrue(types.containsKey(typeName));
+        }
+        
+    }
     public void testTypeInfoSigned() throws SQLException
     {
         DatabaseMetaData dbmd = con.getMetaData();
