@@ -2402,7 +2402,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                   " LEFT JOIN pg_catalog.pg_description dsc ON (c.oid=dsc.objoid AND a.attnum = dsc.objsubid) " +
                   " LEFT JOIN pg_catalog.pg_class dc ON (dc.oid=dsc.classoid AND dc.relname='pg_class') " +
                   " LEFT JOIN pg_catalog.pg_namespace dn ON (dc.relnamespace=dn.oid AND dn.nspname='pg_catalog') " +
-                  " WHERE c.relkind='r' and a.attnum > 0 AND NOT a.attisdropped ";
+                  " WHERE c.relkind in ('r','v','f','m') and a.attnum > 0 AND NOT a.attisdropped ";
 
             if (schemaPattern != null && !"".equals(schemaPattern))
             {
@@ -2427,7 +2427,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                   " LEFT JOIN pg_attrdef def ON (a.attrelid=def.adrelid AND a.attnum = def.adnum) " +
                   " LEFT JOIN pg_description dsc ON (c.oid=dsc.objoid AND a.attnum = dsc.objsubid) " +
                   " LEFT JOIN pg_class dc ON (dc.oid=dsc.classoid AND dc.relname='pg_class') " +
-                  " WHERE c.relkind='r' and a.attnum > 0 ";
+                  " WHERE c.relkind in ('r','v','f','m') and a.attnum > 0 ";
         }
         else if (connection.haveMinimumServerVersion(ServerVersion.v7_1))
         {
@@ -2436,14 +2436,14 @@ public abstract class AbstractJdbc2DatabaseMetaData
                   " JOIN pg_attribute a ON (a.attrelid=c.oid) " +
                   " LEFT JOIN pg_attrdef def ON (a.attrelid=def.adrelid AND a.attnum = def.adnum) " +
                   " LEFT JOIN pg_description dsc ON (a.oid=dsc.objoid) " +
-                  " WHERE c.relkind='r' and a.attnum > 0 ";
+                  " WHERE c.relkind in ('r','v','f','m') and a.attnum > 0 ";
         }
         else
         {
             // if < 7.1 then don't get defaults or descriptions.
             sql = "SELECT NULL::text AS nspname,c.relname,a.attname,a.atttypid,a.attnotnull,a.atttypmod,a.attlen,a.attnum,NULL AS adsrc,NULL AS description,NULL AS typbasetype, 'b' AS typtype " +
                   " FROM pg_class c, pg_attribute a " +
-                  " WHERE c.relkind='r' and a.attrelid=c.oid AND a.attnum > 0 ";
+                  " WHERE c.relkind in ('r','v','f','m') and a.attrelid=c.oid AND a.attnum > 0 ";
         }
 
         if (!connection.haveMinimumServerVersion(ServerVersion.v7_3) && tableNamePattern != null && !"".equals(tableNamePattern))
@@ -3965,7 +3965,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         {
             sql = "SELECT t.typname,t.oid FROM pg_catalog.pg_type t"
             	+ " JOIN pg_catalog.pg_namespace n ON (t.typnamespace = n.oid) "
-            	+ " WHERE n.nspname not in ('pg_toast','pg_catalog', 'information_schema')";
+            	+ " WHERE n.nspname  != 'pg_toast'";
         }
         else
         {
