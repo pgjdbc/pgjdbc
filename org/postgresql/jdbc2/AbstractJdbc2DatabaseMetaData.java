@@ -3965,7 +3965,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
         {
             sql = "SELECT t.typname,t.oid FROM pg_catalog.pg_type t"
             	+ " JOIN pg_catalog.pg_namespace n ON (t.typnamespace = n.oid) "
-            	+ " WHERE n.nspname not in ('pg_toast','pg_catalog', 'information_schema')";
+            	+ " WHERE n.nspname  != 'pg_toast'";
         }
         else
         {
