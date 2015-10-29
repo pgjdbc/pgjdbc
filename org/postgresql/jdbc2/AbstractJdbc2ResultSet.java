@@ -49,6 +49,7 @@ import org.postgresql.core.Query;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandler;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.core.TypeInfo;
 import org.postgresql.core.Utils;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
@@ -1275,7 +1276,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     throws SQLException
     {
         checkColumnIndex(columnIndex);
-        String columnTypeName = connection.getTypeInfo().getPGType(fields[columnIndex - 1].getOID());
+        String columnTypeName = getPGType(columnIndex);
         updateValue(columnIndex, new NullObject(columnTypeName));
     }
 
@@ -2880,14 +2881,30 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         return s;
     }
 
-    protected String getPGType( int column ) throws SQLException
+    protected String getPGType(int column) throws SQLException
     {
-        return connection.getTypeInfo().getPGType(fields[column - 1].getOID());
+        Field field = fields[column - 1];
+        initSqlType(field);
+        return field.getPGType();
     }
 
-    protected int getSQLType( int column ) throws SQLException
+    protected int getSQLType(int column) throws SQLException
     {
-        return connection.getTypeInfo().getSQLType(fields[column - 1].getOID());
+        Field field = fields[column - 1];
+        initSqlType(field);
+        return field.getSQLType();
+    }
+
+    private void initSqlType(Field field) throws SQLException
+    {
+        if (field.isTypeInitialized())
+            return;
+        TypeInfo typeInfo = connection.getTypeInfo();
+        int oid = field.getOID();
+        String pgType = typeInfo.getPGType(oid);
+        int sqlType = typeInfo.getSQLType(pgType);
+        field.setSQLType(sqlType);
+        field.setPGType(pgType);
     }
 
     private void checkUpdateable() throws SQLException

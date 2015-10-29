@@ -38,6 +38,11 @@ public class Field
     private String schemaName = "";
     private int nullable = ResultSetMetaData.columnNullableUnknown;
     private boolean autoIncrement = false;
+    private int sqlType;
+    private String pgType = NOT_YET_LOADED;
+
+    // New string to avoid clashes with other strings
+    private static final String NOT_YET_LOADED = new String("pgType is not yet loaded");
 
     /*
      * Construct a field based on the information fed to it.
@@ -199,5 +204,29 @@ public class Field
         return "Field("+ (columnName != null ? columnName : "") + "," +
                 Oid.toString(oid) + "," + length + "," +
                 (format == TEXT_FORMAT ? 'T' : 'B') + ")";
+    }
+
+    public void setSQLType(int sqlType)
+    {
+        this.sqlType = sqlType;
+    }
+
+    public int getSQLType()
+    {
+        return sqlType;
+    }
+
+    public void setPGType(String pgType)
+    {
+        this.pgType = pgType;
+    }
+
+    public String getPGType()
+    {
+        return pgType;
+    }
+
+    public boolean isTypeInitialized() {
+        return pgType != NOT_YET_LOADED;
     }
 }
