@@ -2447,6 +2447,18 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         checkResultSet(columnIndex);
         if (wasNullFlag)
             return null;
+
+        if (isBinary(columnIndex)) {
+            int sqlType = getSQLType(columnIndex);
+            if (sqlType != Types.NUMERIC && sqlType != Types.DECIMAL) {
+                Object obj = internalGetObject(columnIndex, fields[columnIndex - 1]);
+                if (obj == null) return null;
+                if (obj instanceof Long || obj instanceof Integer || obj instanceof Byte) {
+                    return BigDecimal.valueOf(((Number) obj).longValue(), scale);
+                }
+                return toBigDecimal(trimMoney(String.valueOf(obj)), scale);
+            }
+        }
         
         Encoding encoding = connection.getEncoding();
         if (encoding.hasAsciiNumbers()) {
@@ -2848,7 +2860,11 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
      */
     public String getFixedString(int col) throws SQLException
     {
-        String s = getString(col);
+        return trimMoney(getString(col));
+    }
+
+    private String trimMoney(String s)
+    {
         if (s == null)
             return null;
 
