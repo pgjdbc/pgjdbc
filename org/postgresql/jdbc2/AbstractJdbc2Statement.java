@@ -115,7 +115,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     /** Number of rows to get in a batch. */
     protected int fetchSize = 0;
 
-    /** Timeout (in seconds) for a query */
+    /** Timeout (in milli-seconds) for a query */
     protected int timeout = 0;
 
     protected boolean replaceProcessingEnabled = true;
@@ -758,8 +758,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
      */
     public int getQueryTimeout() throws SQLException
     {
-        checkClosed();
-        return timeout;
+        return getQueryTimeoutMs() / 1000;
     }
 
     /*
@@ -770,12 +769,37 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
      */
     public void setQueryTimeout(int seconds) throws SQLException
     {
+        setQueryTimeoutMs(seconds * 1000);
+    }
+
+    /*
+     * The queryTimeout limit is the number of seconds the driver
+     * will wait for a Statement to execute.  If the limit is
+     * exceeded, a SQLException is thrown.
+     *
+     * @return the current query timeout limit in seconds; 0 = unlimited
+     * @exception SQLException if a database access error occurs
+     */
+    public int getQueryTimeoutMs() throws SQLException
+    {
+        checkClosed();
+        return timeout;
+    }
+
+    /*
+     * Sets the queryTimeout limit
+     *
+     * @param seconds - the new query timeout limit in seconds
+     * @exception SQLException if a database access error occurs
+     */
+    public void setQueryTimeoutMs(int millis) throws SQLException
+    {
         checkClosed();
 
-        if (seconds < 0)
+        if (millis < 0)
             throw new PSQLException(GT.tr("Query timeout must be a value greater than or equals to 0."),
                                     PSQLState.INVALID_PARAMETER_VALUE);
-        timeout = seconds;
+        timeout = millis;
     }
 
     /**
@@ -3475,7 +3499,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 	    }
 	};
 
-        connection.addTimerTask(cancelTimerTask, timeout * 1000);
+        connection.addTimerTask(cancelTimerTask, timeout);
     }
 
     private synchronized void killTimerTask()

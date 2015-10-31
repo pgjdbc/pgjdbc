@@ -8,6 +8,7 @@
 package org.postgresql.test.jdbc2;
 
 import junit.framework.TestCase;
+import org.postgresql.jdbc2.AbstractJdbc2Statement;
 import org.postgresql.test.TestUtil;
 
 import java.sql.*;
@@ -503,6 +504,30 @@ public class StatementTest extends TestCase
     		if (sqle.getSQLState().compareTo("57014") == 0) 
     			timer.cancel();
     	}
+    }
+
+    /**
+     * Test executes two queries one after another.
+     * The first one has timeout of 1ms, and the second one does not.
+     * The timeout of the first query should not impact the second one.
+     * @throws SQLException
+     */
+    public void testShortQueryTimeout() throws SQLException
+    {
+        long deadLine = System.currentTimeMillis() + 10000;
+        Statement stmt = con.createStatement();
+        ((AbstractJdbc2Statement) stmt).setQueryTimeoutMs(1);
+        Statement stmt2 = con.createStatement();
+        while(System.currentTimeMillis() < deadLine) {
+            try
+            {
+                stmt.execute("select 1");
+            } catch (SQLException e)
+            {
+                // ignore "statement cancelled"
+            }
+            stmt2.executeQuery("select 1");
+        }
     }
 
     public void testSetQueryTimeoutWithSleep() throws SQLException, InterruptedException
