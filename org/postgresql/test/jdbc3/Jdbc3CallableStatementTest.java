@@ -39,6 +39,7 @@ public class Jdbc3CallableStatementTest extends TestCase
         Statement stmt = con.createStatement ();
         stmt.execute("create temp table numeric_tab (MAX_VAL NUMERIC(30,15), MIN_VAL NUMERIC(30,15), NULL_VAL NUMERIC(30,15) NULL)");
         stmt.execute("insert into numeric_tab values ( 999999999999999,0.000000000000001, null)");
+        stmt.execute("CREATE OR REPLACE FUNCTION mysum(a int, b int) returns int AS 'BEGIN return a + b; END;' LANGUAGE plpgsql");
         stmt.execute("CREATE OR REPLACE FUNCTION myiofunc(a INOUT int, b OUT int) AS 'BEGIN b := a; a := 1; END;' LANGUAGE plpgsql");
         stmt.execute("CREATE OR REPLACE FUNCTION myif(a INOUT int, b IN int) AS 'BEGIN a := b; END;' LANGUAGE plpgsql");
 
@@ -90,6 +91,7 @@ public class Jdbc3CallableStatementTest extends TestCase
         stmt.execute("drop function Numeric_Proc(out decimal, out decimal, out decimal)");
         stmt.execute("drop function test_somein_someout(int4)");
         stmt.execute("drop function test_allinout( inout int4, inout varchar, inout int8)");
+        stmt.execute("drop function mysum(a int, b int)");
         stmt.execute("drop function myiofunc(a INOUT int, b OUT int) ");
         stmt.execute("drop function myif(a INOUT int, b IN int)");
         stmt.close();
@@ -1111,6 +1113,16 @@ public class Jdbc3CallableStatementTest extends TestCase
             assertEquals(i, cs.getInt(2));
             cs.clearParameters();
         }
+    }
+
+    public void testSum() throws SQLException
+    {
+        CallableStatement cs = con.prepareCall("{?= call mysum(?, ?)}");
+        cs.registerOutParameter(1, Types.INTEGER);
+        cs.setInt(2, 2);
+        cs.setInt(3, 3);
+        cs.execute();
+        assertEquals("2+3 should be 5 when executed via {?= call mysum(?, ?)}", 5, cs.getInt(1));
     }
 
 }
