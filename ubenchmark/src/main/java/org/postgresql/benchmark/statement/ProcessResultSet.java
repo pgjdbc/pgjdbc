@@ -7,6 +7,7 @@ import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
+import org.postgresql.benchmark.profilers.FlightRecorderProfiler;
 import org.postgresql.util.ConnectionUtil;
 
 import java.sql.*;
@@ -27,9 +28,15 @@ public class ProcessResultSet {
     public enum FieldType {
         INT,
         BIGINT,
+        BIGDECIMAL,
         STRING,
         TIMESTAMP,
         TIMESTAMPTZ,
+    }
+
+    public enum GetterType {
+        BEST,
+        OBJECT
     }
 
     @Param({"1", "50", "100"})
@@ -43,6 +50,9 @@ public class ProcessResultSet {
 
     @Param({"false"})
     public boolean unique;
+
+    @Param({"BEST"})
+    public GetterType getter;
 
     private Connection connection;
 
@@ -66,6 +76,8 @@ public class ProcessResultSet {
                 sb.append("t.x");
             } if (type == FieldType.BIGINT) {
                 sb.append("1234567890123456789");
+            } if (type == FieldType.BIGDECIMAL) {
+                sb.append("12345678901234567890123456789");
             } else if (type == FieldType.STRING) {
                 sb.append("'test string'");
             } else if (type == FieldType.TIMESTAMP) {
@@ -93,9 +105,13 @@ public class ProcessResultSet {
         ResultSet rs = ps.executeQuery();
         while (rs.next()) {
             for (int i = 1; i <= ncols; i++) {
-                if (type == FieldType.INT) {
+                if (getter == GetterType.OBJECT) {
+                    b.consume(rs.getObject(i));
+                } else if (type == FieldType.INT) {
                     b.consume(rs.getInt(i));
                 } else if (type == FieldType.BIGINT) {
+                    b.consume(rs.getBigDecimal(i));
+                } else if (type == FieldType.BIGDECIMAL) {
                     b.consume(rs.getBigDecimal(i));
                 } else if (type == FieldType.STRING) {
                     b.consume(rs.getString(i));
