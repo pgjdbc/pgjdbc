@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2003-2014, PostgreSQL Global Development Group
+* Copyright (c) 2003-2011, PostgreSQL Global Development Group
 *
 *
 *-------------------------------------------------------------------------
@@ -8,24 +8,25 @@
 package org.postgresql.core;
 
 import java.io.BufferedOutputStream;
-import java.io.EOFException;
-import java.io.FilterOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.FilterOutputStream;
+import java.io.IOException;
+import java.io.EOFException;
 import java.io.Writer;
-import java.lang.reflect.Constructor;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.sql.SQLException;
-import java.util.Properties;
-
-import javax.net.SocketFactory;
 
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
-import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.PSQLException;
+
+import javax.net.SocketFactory;
+import java.lang.reflect.Constructor;
+import java.util.Properties;
+import java.net.SocketException;
 
 /**
  * Wrapper around the raw connection to the server that implements some basic
@@ -90,9 +91,8 @@ public class PGStream
 
         Socket socket = new Socket();
         socket.connect(new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort()), timeout);
-        if (socketFactory == null) {
-            socketFactory = SocketFactory.getDefault();
-        }
+        if (socketFactory == null)
+			socketFactory = SocketFactory.getDefault();
         this.socketFactory = socketFactory;
         changeSocket(this.socketFactory.createSocket(hostSpec.getHost(), hostSpec.getPort()));
         setEncoding(Encoding.getJVMEncoding("US-ASCII"));
@@ -113,10 +113,8 @@ public class PGStream
         //
         String classname = info.getProperty("socketfactory");
         if (classname == null)
-        {
-            factory = SocketFactory.getDefault();
-        }
-        else
+			factory = SocketFactory.getDefault();
+		else
         {
             Object[] args = {info.getProperty("socketfactoryarg")};
             Constructor ctor;
@@ -184,15 +182,18 @@ public class PGStream
         // Submitted by Jason Venner <jason@idiom.com>. Disable Nagle
         // as we are selective about flushing output only when we
         // really need to.
-        connection.setTcpNoDelay(true);
+        try {
+              connection.setTcpNoDelay(true);
+        } catch (SocketException e) {
+              // Ignore if the operation wasn't supported.
+        }
 
         // Buffer sizes submitted by Sverre H Huseby <sverrehu@online.no>
         pg_input = new VisibleBufferedInputStream(connection.getInputStream(), 8192);
         pg_output = new BufferedOutputStream(connection.getOutputStream(), 8192);
 
-        if (encoding != null) {
-			setEncoding(encoding);
-		}
+        if (encoding != null)
+            setEncoding(encoding);
     }
 
     public Encoding getEncoding() {
@@ -207,20 +208,17 @@ public class PGStream
      */
     public void setEncoding(Encoding encoding) throws IOException {
         // Close down any old writer.
-        if (encodingWriter != null) {
-			encodingWriter.close();
-		}
+        if (encodingWriter != null)
+            encodingWriter.close();
 
         this.encoding = encoding;
 
         // Intercept flush() downcalls from the writer; our caller
         // will call PGStream.flush() as needed.
         OutputStream interceptor = new FilterOutputStream(pg_output) {
-                                       @Override
-									public void flush() throws IOException {
+                                       public void flush() throws IOException {
                                        }
-                                       @Override
-									public void close() throws IOException {
+                                       public void close() throws IOException {
                                            super.flush();
                                        }
                                    };
@@ -241,9 +239,8 @@ public class PGStream
      * @throws IOException if something goes wrong.
      */
     public Writer getEncodingWriter() throws IOException {
-        if (encodingWriter == null) {
-			throw new IOException("No encoding has been set on this connection");
-		}
+        if (encodingWriter == null)
+            throw new IOException("No encoding has been set on this connection");
         return encodingWriter;
     }
 
@@ -281,9 +278,8 @@ public class PGStream
      */
     public void SendInteger2(int val) throws IOException
     {
-        if (val < Short.MIN_VALUE || val > Short.MAX_VALUE) {
-			throw new IOException("Tried to send an out-of-range integer as a 2-byte value: " + val);
-		}
+        if (val < Short.MIN_VALUE || val > Short.MAX_VALUE)
+            throw new IOException("Tried to send an out-of-range integer as a 2-byte value: " + val);
 
         _int2buf[0] = (byte)(val >>> 8);
         _int2buf[1] = (byte)val;
@@ -343,9 +339,8 @@ public class PGStream
     public int PeekChar() throws IOException
     {
         int c = pg_input.peek();
-        if (c < 0) {
-			throw new EOFException();
-		}
+        if (c < 0)
+            throw new EOFException();
         return c;
     }
 
@@ -358,9 +353,8 @@ public class PGStream
     public int ReceiveChar() throws IOException
     {
         int c = pg_input.read();
-        if (c < 0) {
-			throw new EOFException();
-		}
+        if (c < 0)
+            throw new EOFException();
         return c;
     }
 
@@ -372,9 +366,8 @@ public class PGStream
      */
     public int ReceiveInteger4() throws IOException
     {
-        if (pg_input.read(_int4buf) != 4) {
-			throw new EOFException();
-		}
+        if (pg_input.read(_int4buf) != 4)
+            throw new EOFException();
 
         return (_int4buf[0] & 0xFF) << 24 | (_int4buf[1] & 0xFF) << 16 | (_int4buf[2] & 0xFF) << 8 | _int4buf[3] & 0xFF;
     }
@@ -387,9 +380,8 @@ public class PGStream
      */
     public int ReceiveInteger2() throws IOException
     {
-        if (pg_input.read(_int2buf) != 2) {
-			throw new EOFException();
-		}
+        if (pg_input.read(_int2buf) != 2)
+            throw new EOFException();
 
         return (_int2buf[0] & 0xFF) << 8 | _int2buf[1] & 0xFF;
     }
@@ -459,9 +451,8 @@ public class PGStream
             }
         }
 
-        if (oom != null) {
-			throw oom;
-		}
+        if (oom != null)
+            throw oom;
 
         return answer;
     }
@@ -499,12 +490,10 @@ public class PGStream
             if (!isNull)
             {
                 int len = ReceiveInteger4();
-                if (!bin) {
-					len -= 4;
-				}
-                if (len < 0) {
-					len = 0;
-				}
+                if (!bin)
+                    len -= 4;
+                if (len < 0)
+                    len = 0;
                 try {
                     answer[i] = new byte[len];
                     Receive(answer[i], 0, len);
@@ -515,9 +504,8 @@ public class PGStream
             }
         }
 
-        if (oom != null) {
-			throw oom;
-		}
+        if (oom != null)
+            throw oom;
 
         return answer;
     }
@@ -551,9 +539,8 @@ public class PGStream
         while (s < siz)
         {
             int w = pg_input.read(buf, off + s, siz - s);
-            if (w < 0) {
-				throw new EOFException();
-			}
+            if (w < 0)
+                throw new EOFException();
             s += w;
         }
     }
@@ -574,9 +561,8 @@ public class PGStream
      */
     public void SendStream(InputStream inStream, int remaining) throws IOException {
         int expectedLength = remaining;
-        if (streamBuffer == null) {
-			streamBuffer = new byte[8192];
-		}
+        if (streamBuffer == null)
+            streamBuffer = new byte[8192];
 
         while (remaining > 0)
         {
@@ -586,9 +572,8 @@ public class PGStream
             try
             {
                 readCount = inStream.read(streamBuffer, 0, count);
-                if (readCount < 0) {
-					throw new EOFException(GT.tr("Premature end of input stream, expected {0} bytes, but only read {1}.", new Object[]{expectedLength, expectedLength - remaining}));
-				}
+                if (readCount < 0)
+                    throw new EOFException(GT.tr("Premature end of input stream, expected {0} bytes, but only read {1}.", new Object[]{new Integer(expectedLength), new Integer(expectedLength - remaining)}));
             }
             catch (IOException ioe)
             {
@@ -614,9 +599,8 @@ public class PGStream
      */
     public void flush() throws IOException
     {
-        if (encodingWriter != null) {
-			encodingWriter.flush();
-		}
+        if (encodingWriter != null)
+            encodingWriter.flush();
         pg_output.flush();
     }
 
@@ -627,10 +611,9 @@ public class PGStream
     public void ReceiveEOF() throws SQLException, IOException
     {
         int c = pg_input.read();
-        if (c < 0) {
-			return;
-		}
-        throw new PSQLException(GT.tr("Expected an EOF from server, got: {0}", c), PSQLState.COMMUNICATION_ERROR);
+        if (c < 0)
+            return;
+        throw new PSQLException(GT.tr("Expected an EOF from server, got: {0}", new Integer(c)), PSQLState.COMMUNICATION_ERROR);
     }
 
     /**
@@ -640,9 +623,8 @@ public class PGStream
      */
     public void close() throws IOException
     {
-        if (encodingWriter != null) {
-			encodingWriter.close();
-		}
+        if (encodingWriter != null)
+            encodingWriter.close();
 
         pg_output.close();
         pg_input.close();
