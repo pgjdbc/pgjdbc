@@ -87,7 +87,7 @@ public class PGStream
 
     public PGStream(HostSpec hostSpec, int timeout, SocketFactory socketFactory) throws IOException
     {
-    	this.hostSpec = hostSpec;
+        this.hostSpec = hostSpec;
 
         Socket socket = new Socket();
         socket.connect(new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort()), timeout);
