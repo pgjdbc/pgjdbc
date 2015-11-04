@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2004-2011, PostgreSQL Global Development Group
+* Copyright (c) 2004-2014, PostgreSQL Global Development Group
 * Copyright (c) 2004, Open Cloud Limited.
 *
 *
@@ -47,6 +47,12 @@ class ProtocolConnectionImpl implements ProtocolConnection {
 
     public String getServerVersion() {
         return serverVersion;
+    }
+
+    public int getServerVersionNum() {
+        if (serverVersionNum != 0)
+            return serverVersionNum;
+        return Utils.parseServerVersionStr(serverVersion);
     }
 
     public synchronized boolean getStandardConformingStrings()
@@ -143,23 +149,6 @@ class ProtocolConnectionImpl implements ProtocolConnection {
         closed = true;
     }
 
-    /*
-     * (non-Javadoc)
-     * @see org.postgresql.core.ProtocolConnection#abort()
-     */
-    public void abort() 
-    {
-        try
-        {
-            pgStream.getSocket().close();
-        }
-        catch (IOException e)
-        {
-            // ignore
-        }
-        closed = true;
-    }
-    
     public Encoding getEncoding() {
         return pgStream.getEncoding();
     }
@@ -179,6 +168,10 @@ class ProtocolConnectionImpl implements ProtocolConnection {
     void setServerVersion(String serverVersion) {
         this.serverVersion = serverVersion;
     }
+
+    void setServerVersionNum(int serverVersionNum) {
+        this.serverVersionNum = serverVersionNum;
+    }  
 
     void setBackendKeyData(int cancelPid, int cancelKey) {
         this.cancelPid = cancelPid;
@@ -230,7 +223,20 @@ class ProtocolConnectionImpl implements ProtocolConnection {
     	return cancelPid;
     }
 
+    public void abort() {
+        try
+        {
+            pgStream.getSocket().close();
+        }
+        catch (IOException e)
+        {
+            // ignore
+        }
+        closed = true;
+    }
+
     private String serverVersion;
+    private int serverVersionNum = 0;
     private int cancelPid;
     private int cancelKey;
 
@@ -249,9 +255,4 @@ class ProtocolConnectionImpl implements ProtocolConnection {
     private final Logger logger;
 
     private final int connectTimeout;
-	
-	public int getServerVersionNum() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
 }

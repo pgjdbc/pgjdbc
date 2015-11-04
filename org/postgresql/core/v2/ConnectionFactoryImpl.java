@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2003-2011, PostgreSQL Global Development Group
+* Copyright (c) 2003-2014, PostgreSQL Global Development Group
 * Copyright (c) 2004, Open Cloud Limited.
 *
 *
@@ -8,15 +8,21 @@
 */
 package org.postgresql.core.v2;
 
+import java.util.Iterator;
 import java.util.Properties;
 import java.util.StringTokenizer;
-
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.io.IOException;
 import java.net.ConnectException;
 
+import org.postgresql.PGProperty;
 import org.postgresql.core.*;
+import org.postgresql.hostchooser.GlobalHostStatusTracker;
+import org.postgresql.hostchooser.HostChooser;
+import org.postgresql.hostchooser.HostChooserFactory;
+import org.postgresql.hostchooser.HostRequirement;
+import org.postgresql.hostchooser.HostStatus;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.UnixCrypt;
@@ -43,10 +49,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         //  - the SSL setting
         boolean requireSSL;
         boolean trySSL;
-        String sslmode = info.getProperty("sslmode");
+        String sslmode = PGProperty.SSL_MODE.get(info);
         if (sslmode==null)
         { //Fall back to the ssl property
-          requireSSL = trySSL  = (info.getProperty("ssl") != null);
+          requireSSL = trySSL  = PGProperty.SSL.isPresent(info);
         } else {
           if ("disable".equals(sslmode))
           {
@@ -68,23 +74,27 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         }
 
         //  - the TCP keep alive setting
-        boolean requireTCPKeepAlive = Boolean.parseBoolean(info.getProperty("tcpKeepAlive"));
+        boolean requireTCPKeepAlive = PGProperty.TCP_KEEP_ALIVE.getBoolean(info);
 
-        for (int whichHost = 0; whichHost < hostSpecs.length; ++whichHost) {
-            HostSpec hostSpec = hostSpecs[whichHost];
+        //  - the targetServerType setting
+        HostRequirement targetServerType;
+        try {
+            targetServerType = HostRequirement.valueOf(info.getProperty("targetServerType", HostRequirement.any.name()));
+        } catch (IllegalArgumentException ex) {
+            throw new PSQLException (GT.tr("Invalid targetServerType value: {0}", info.getProperty("targetServerType")), PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+        }
+
+        HostChooser hostChooser = HostChooserFactory.createHostChooser(hostSpecs, targetServerType, info);
+        for (Iterator<HostSpec> hostIter = hostChooser.iterator(); hostIter.hasNext(); ) {
+            HostSpec hostSpec = hostIter.next();
+
             if (logger.logDebug())
                 logger.debug("Trying to establish a protocol version 2 connection to " + hostSpec);
 
             //
             // Establish a connection.
             //
-        int connectTimeout = 0;
-        String connectTimeoutProperty = info.getProperty("connectTimeout", "0");
-        try {
-            connectTimeout = Integer.parseInt(connectTimeoutProperty) * 1000;
-        } catch (NumberFormatException nfe) {
-            logger.info("Couldn't parse connectTimeout value:" + connectTimeoutProperty);
-        }
+        int connectTimeout = PGProperty.CONNECT_TIMEOUT.getInt(info) * 1000;
 
         PGStream newStream = null;
         try
@@ -97,16 +107,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             
             
             // Set the socket timeout if the "socketTimeout" property has been set.
-            String socketTimeoutProperty = info.getProperty("socketTimeout", "0");
-            try {
-                int socketTimeout = Integer.parseInt(socketTimeoutProperty);
-                if (socketTimeout > 0) {
-                    newStream.getSocket().setSoTimeout(socketTimeout*1000);
-                }
-            } catch (NumberFormatException nfe) {
-                logger.info("Couldn't parse socketTimeout value:" + socketTimeoutProperty);
+            int socketTimeout = PGProperty.SOCKET_TIMEOUT.getInt(info);
+            if (socketTimeout > 0) {
+                newStream.getSocket().setSoTimeout(socketTimeout*1000);
             }
-
 
             // Enable TCP keep-alive probe if required.
             newStream.getSocket().setKeepAlive(requireTCPKeepAlive);
@@ -115,11 +119,26 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             sendStartupPacket(newStream, user, database, logger);
 
             // Do authentication (until AuthenticationOk).
-            doAuthentication(newStream, user, info.getProperty("password"), logger);
+            doAuthentication(newStream, user, PGProperty.PASSWORD.get(info), logger);
 
             // Do final startup.
             ProtocolConnectionImpl protoConnection = new ProtocolConnectionImpl(newStream, user, database, logger, connectTimeout);
             readStartupMessages(newStream, protoConnection, logger);
+
+            // Check Master or Slave
+            HostStatus hostStatus = HostStatus.ConnectOK;
+            if (targetServerType != HostRequirement.any) {
+                hostStatus = isMaster(protoConnection, logger) ? HostStatus.Master : HostStatus.Slave;
+            }
+            GlobalHostStatusTracker.reportHostStatus(hostSpec, hostStatus);
+            if (!targetServerType.allowConnectingTo(hostStatus)) {
+                protoConnection.close();
+                if (hostIter.hasNext()) {
+                    // still more addresses to try
+                    continue;
+                }
+                throw new PSQLException (GT.tr("Could not find a server with specified targetServerType: {0}", targetServerType) , PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+            }
 
             // Run some initial queries
             runInitialQueries(protoConnection, info, logger);
@@ -132,8 +151,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // Added by Peter Mount <peter@retep.org.uk>
             // ConnectException is thrown when the connection cannot be made.
             // we trap this an return a more meaningful message for the end user
-
-            if (whichHost + 1 < hostSpecs.length) {
+            GlobalHostStatusTracker.reportHostStatus(hostSpec, HostStatus.ConnectFail);
+            if (hostIter.hasNext()) {
                 // still more addresses to try
                 continue;
             }
@@ -141,18 +160,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         }
         catch (IOException ioe)
         {
-            if (newStream != null)
-            {
-                try
-                {
-                    newStream.close();
-                }
-                catch (IOException e)
-                {
-                }
-            }
-
-            if (whichHost + 1 < hostSpecs.length) {
+            closeStream(newStream);
+            GlobalHostStatusTracker.reportHostStatus(hostSpec, HostStatus.ConnectFail);
+            if (hostIter.hasNext()) {
                 // still more addresses to try
                 continue;
             }
@@ -160,18 +170,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         }
         catch (SQLException se)
         {
-            if (newStream != null)
-            {
-                try
-                {
-                    newStream.close();
-                }
-                catch (IOException e)
-                {
-                }
-            }
-
-            if (whichHost + 1 < hostSpecs.length) {
+            closeStream(newStream);
+            if (hostIter.hasNext()) {
                 // still more addresses to try
                 continue;
             }
@@ -359,7 +359,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                     if (logger.logDebug())
                         logger.debug(" <=BE AuthenticationReq (unsupported type " + ((int)areq) + ")");
 
-                    throw new PSQLException(GT.tr("The authentication type {0} is not supported. Check that you have configured the pg_hba.conf file to include the client''s IP address or subnet, and that it is using an authentication scheme supported by the driver.", new Integer(areq)), PSQLState.CONNECTION_REJECTED);
+                    throw new PSQLException(GT.tr("The authentication type {0} is not supported. Check that you have configured the pg_hba.conf file to include the client''s IP address or subnet, and that it is using an authentication scheme supported by the driver.", areq), PSQLState.CONNECTION_REJECTED);
                 }
 
                 break;
@@ -441,7 +441,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         }
         else
         {
-            String charSet = info.getProperty("charSet");
+            String charSet = PGProperty.CHARSET.get(info);
             String dbEncoding = (results[1] == null ? null : protoConnection.getEncoding().decode(results[1]));
             if (logger.logDebug())
             {
@@ -482,22 +482,28 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             protoConnection.setStandardConformingStrings(false);
         }
 
-        String appName = info.getProperty("ApplicationName");
+        String appName = PGProperty.APPLICATION_NAME.get(info);
         if (appName != null && dbVersion.compareTo("9.0") >= 0)
         {
-            StringBuffer sb = new StringBuffer("SET application_name = '");
-            Utils.appendEscapedLiteral(sb, appName, protoConnection.getStandardConformingStrings());
+            StringBuilder sb = new StringBuilder("SET application_name = '");
+            Utils.escapeLiteral(sb, appName, protoConnection.getStandardConformingStrings());
             sb.append("'");
             SetupQueryRunner.run(protoConnection, sb.toString(), false);
         }
 
-        String currentSchema = info.getProperty("currentSchema");
+        String currentSchema = PGProperty.CURRENT_SCHEMA.get(info);
         if (currentSchema != null)
         {
-            StringBuffer sb = new StringBuffer("SET search_path = '");
-            Utils.appendEscapedLiteral(sb, appName, protoConnection.getStandardConformingStrings());
+            StringBuilder sb = new StringBuilder("SET search_path = '");
+            Utils.escapeLiteral(sb, appName, protoConnection.getStandardConformingStrings());
             sb.append("'");
             SetupQueryRunner.run(protoConnection, sb.toString(), false);
         }
+    }
+
+    private boolean isMaster(ProtocolConnectionImpl protoConnection, Logger logger) throws SQLException, IOException {
+        byte[][] results = SetupQueryRunner.run(protoConnection, "show transaction_read_only", true);
+        String value = protoConnection.getEncoding().decode(results[0]);
+        return value.equalsIgnoreCase("off");
     }
 }

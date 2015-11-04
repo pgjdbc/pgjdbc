@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2003-2011, PostgreSQL Global Development Group
+* Copyright (c) 2003-2014, PostgreSQL Global Development Group
 *
 *
 *-------------------------------------------------------------------------
@@ -573,7 +573,7 @@ public class PGStream
             {
                 readCount = inStream.read(streamBuffer, 0, count);
                 if (readCount < 0)
-                    throw new EOFException(GT.tr("Premature end of input stream, expected {0} bytes, but only read {1}.", new Object[]{new Integer(expectedLength), new Integer(expectedLength - remaining)}));
+                    throw new EOFException(GT.tr("Premature end of input stream, expected {0} bytes, but only read {1}.", new Object[]{expectedLength, expectedLength - remaining}));
             }
             catch (IOException ioe)
             {
@@ -613,7 +613,7 @@ public class PGStream
         int c = pg_input.read();
         if (c < 0)
             return;
-        throw new PSQLException(GT.tr("Expected an EOF from server, got: {0}", new Integer(c)), PSQLState.COMMUNICATION_ERROR);
+        throw new PSQLException(GT.tr("Expected an EOF from server, got: {0}", c), PSQLState.COMMUNICATION_ERROR);
     }
 
     /**
