@@ -413,6 +413,7 @@ public class ArrayTest extends TestCase
 
         assertTrue(!arrRS.next());
     }
+    
     public void testEmptyBinaryArray() throws SQLException
     {
         
@@ -421,19 +422,13 @@ public class ArrayTest extends TestCase
         ((org.postgresql.PGStatement)pstmt).setPrepareThreshold(-1);
         
         ResultSet rs = pstmt.executeQuery();
+ 
         while (rs.next()) {
             Array array = rs.getArray(1);
             if (!rs.wasNull())
             {
                 ResultSet ars  = array.getResultSet();
-                try
-                {
-                    ars.getMetaData().getColumnType(1); // this throws NPE
-                }
-                catch (NullPointerException ex)
-                {
-                    assertTrue("should not get here",true);
-                }
+                assertEquals(java.sql.Types.INTEGER,ars.getMetaData().getColumnType(1)); 
             }
 
         }
