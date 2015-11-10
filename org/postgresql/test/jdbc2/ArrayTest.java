@@ -420,24 +420,22 @@ public class ArrayTest extends TestCase
         // force binary
         ((org.postgresql.PGStatement)pstmt).setPrepareThreshold(-1);
         
-        try (ResultSet rs = pstmt.executeQuery()) {
-            while (rs.next()) {
-                Array array = rs.getArray(1);
-                if (!rs.wasNull())
+        ResultSet rs = pstmt.executeQuery();
+        while (rs.next()) {
+            Array array = rs.getArray(1);
+            if (!rs.wasNull())
+            {
+                ResultSet ars  = array.getResultSet();
+                try
                 {
-                    ResultSet ars  = array.getResultSet();
-                    try
-                    {
-                        ars.getMetaData().getColumnType(1); // this throws NPE
-                    }
-                    catch (NullPointerException ex)
-                    {
-                        assertTrue("should not get here",true);
-                    }
+                    ars.getMetaData().getColumnType(1); // this throws NPE
                 }
-
-
+                catch (NullPointerException ex)
+                {
+                    assertTrue("should not get here",true);
+                }
             }
+
         }
     }
         
