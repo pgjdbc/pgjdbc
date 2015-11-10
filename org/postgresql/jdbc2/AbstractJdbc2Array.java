@@ -264,15 +264,30 @@ public abstract class AbstractJdbc2Array
         }
         List rows = new ArrayList();
         Field[] fields = new Field[2];
-        if (dimensions > 0) {
-            storeValues(rows, fields, elementOid, dims, pos, 0, index);
-        }
+
+        storeValues(rows, fields, elementOid, dims, pos, 0, index);
+
         BaseStatement stat = (BaseStatement) connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
         return stat.createDriverResultSet(fields, rows);
     }
 
-    private int storeValues(List rows, Field[] fields, int elementOid, final int[] dims, int pos, final int thisDimension, int index) throws SQLException {
-        if (thisDimension == dims.length - 1) {
+    private int storeValues(List rows, Field[] fields, int elementOid, final int[] dims, int pos, final int thisDimension, int index) throws SQLException
+    {
+        // handle an empty array
+        if (dims.length == 0)
+        {
+            fields[0] = new Field("INDEX", Oid.INT4);
+            fields[0].setFormat(Field.BINARY_FORMAT);
+            fields[1] = new Field("VALUE", elementOid);
+            fields[1].setFormat(Field.BINARY_FORMAT);
+            for (int i = 1; i < index; ++i) {
+                int len = ByteConverter.int4(fieldBytes, pos); pos += 4;
+                if (len != -1) {
+                    pos += len;
+                }
+            }
+        }
+        else if (thisDimension == dims.length - 1) {
             fields[0] = new Field("INDEX", Oid.INT4);
             fields[0].setFormat(Field.BINARY_FORMAT);
             fields[1] = new Field("VALUE", elementOid);
