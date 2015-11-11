@@ -428,7 +428,7 @@ public class ArrayTest extends TestCase
             if (!rs.wasNull())
             {
                 ResultSet ars  = array.getResultSet();
-                assertEquals(java.sql.Types.INTEGER,ars.getMetaData().getColumnType(1)); 
+                assertEquals("get columntype should return Types.INTEGER",java.sql.Types.INTEGER,ars.getMetaData().getColumnType(1)); 
             }
 
         }
