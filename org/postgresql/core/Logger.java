@@ -90,6 +90,7 @@ public final class Logger {
                 if (t != null)
                     t.printStackTrace(writer);
             }
+            writer.flush();
         }
     }
 }
