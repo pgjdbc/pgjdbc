@@ -636,7 +636,7 @@ public abstract class AbstractJdbc2Array
             for (; count > 0; count--)
             {
                 Object v = input.get(index++);
-                oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1) : (v == null ? null : AbstractJdbc2ResultSet.toBigDecimal((String) v, -1));
+                oa[length++] = dims > 1 && v != null ? buildArray((PgArrayList) v, 0, -1) : (v == null ? null : AbstractJdbc2ResultSet.toBigDecimal((String) v));
             }
         }
 
