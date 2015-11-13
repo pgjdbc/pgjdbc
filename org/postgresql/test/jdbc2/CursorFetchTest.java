@@ -9,17 +9,13 @@ package org.postgresql.test.jdbc2;
 
 import java.sql.*;
 
-import junit.framework.TestCase;
-
 import org.postgresql.test.TestUtil;
 
 /*
  *  Tests for using non-zero setFetchSize().
  */
-public class CursorFetchTest extends TestCase
+public class CursorFetchTest extends BaseTest
 {
-    private Connection con;
-
     public CursorFetchTest(String name)
     {
         super(name);
@@ -27,19 +23,19 @@ public class CursorFetchTest extends TestCase
 
     protected void setUp() throws Exception
     {
-        con = TestUtil.openDB();
+        super.setUp();
         TestUtil.createTable(con, "test_fetch", "value integer");
         con.setAutoCommit(false);
     }
 
-    protected void tearDown() throws Exception
+    protected void tearDown() throws SQLException
     {
         if (!con.getAutoCommit())
             con.rollback();
 
         con.setAutoCommit(true);
         TestUtil.dropTable(con, "test_fetch");
-        TestUtil.closeDB(con);
+        super.tearDown();
     }
 
     protected void createRows(int count) throws Exception

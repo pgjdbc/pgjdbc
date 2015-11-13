@@ -11,6 +11,7 @@ import java.sql.Connection;
 
 import junit.framework.TestSuite;
 
+import org.postgresql.test.CursorFetchBinaryTest;
 import org.postgresql.test.TestUtil;
 
 /*
@@ -64,6 +65,7 @@ public class Jdbc2TestSuite extends TestSuite
 
         // PreparedStatement
         suite.addTestSuite(PreparedStatementTest.class);
+        suite.addTestSuite(PreparedStatementBinaryTest.class);
         suite.addTestSuite(StatementTest.class);
 
         // ServerSide Prepared Statements
@@ -71,6 +73,7 @@ public class Jdbc2TestSuite extends TestSuite
 
         // BatchExecute
         suite.addTestSuite(BatchExecuteTest.class);
+        suite.addTestSuite(BatchExecuteBinaryTest.class);
 
 
         // Other misc tests, based on previous problems users have had or specific
@@ -89,6 +92,7 @@ public class Jdbc2TestSuite extends TestSuite
 
         suite.addTestSuite(CallableStmtTest.class );
         suite.addTestSuite(CursorFetchTest.class);
+        suite.addTestSuite(CursorFetchBinaryTest.class);
         suite.addTestSuite(ServerCursorTest.class);
 
         suite.addTestSuite(IntervalTest.class);

@@ -2351,7 +2351,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
      * @throws SQLException If an error occurs while fetching column.
      * @throws NumberFormatException If the number is invalid or the
      * out of range for fast parsing. The value must then be parsed by
-     * {@link #toBigDecimal(String)}.
+     * {@link #toBigDecimal(String, int)}.
      */
     private BigDecimal getFastBigDecimal(int columnIndex) throws SQLException,
         NumberFormatException {
@@ -2454,7 +2454,9 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
                 Object obj = internalGetObject(columnIndex, fields[columnIndex - 1]);
                 if (obj == null) return null;
                 if (obj instanceof Long || obj instanceof Integer || obj instanceof Byte) {
-                    return BigDecimal.valueOf(((Number) obj).longValue(), scale);
+                    BigDecimal res = BigDecimal.valueOf(((Number) obj).longValue());
+                    res = scaleBigDecimal(res, scale);
+                    return res;
                 }
                 return toBigDecimal(trimMoney(String.valueOf(obj)), scale);
             }
@@ -2463,7 +2465,9 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         Encoding encoding = connection.getEncoding();
         if (encoding.hasAsciiNumbers()) {
             try {
-                return getFastBigDecimal(columnIndex);
+                BigDecimal res = getFastBigDecimal(columnIndex);
+                res = scaleBigDecimal(res, scale);
+                return res;
             } catch (NumberFormatException ex) {
             }
         }
@@ -3088,34 +3092,45 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         return 0;  // SQL NULL
     }
 
-    public static BigDecimal toBigDecimal(String s, int scale) throws SQLException
+    public static BigDecimal toBigDecimal(String s) throws SQLException
     {
-        BigDecimal val;
-        if (s != null)
-        {
-            try
-            {
-                s = s.trim();
-                val = new BigDecimal(s);
-            }
-            catch (NumberFormatException e)
-            {
-                throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{"BigDecimal",s}),
-                                        PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-            }
-            if (scale == -1)
-                return val;
-            try
-            {
-                return val.setScale(scale);
-            }
-            catch (ArithmeticException e)
-            {
-                throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{"BigDecimal",s}),
-                                        PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-            }
+        if (s == null) {
+            return null;
         }
-        return null;  // SQL NULL
+        try
+        {
+            s = s.trim();
+            return new BigDecimal(s);
+        }
+        catch (NumberFormatException e)
+        {
+            throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{"BigDecimal",s}),
+                    PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+        }
+    }
+
+    public BigDecimal toBigDecimal(String s, int scale) throws SQLException
+    {
+        if (s == null) {
+            return null;
+        }
+        BigDecimal val = toBigDecimal(s);
+        return scaleBigDecimal(val, scale);
+    }
+
+    private BigDecimal scaleBigDecimal(BigDecimal val, int scale) throws PSQLException
+    {
+        if (scale == -1)
+            return val;
+        try
+        {
+            return val.setScale(scale);
+        }
+        catch (ArithmeticException e)
+        {
+            throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{"BigDecimal",val}),
+                                    PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+        }
     }
 
     public static float toFloat(String s) throws SQLException
