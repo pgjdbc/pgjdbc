@@ -7,18 +7,14 @@
 */
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import java.sql.BatchUpdateException;
+import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
-import org.junit.Test;
 import org.postgresql.test.TestUtil;
-import org.postgresql.util.PSQLException;
-
-import junit.framework.TestCase;
-
-import java.sql.*;
 
 /* TODO tests that can be added to this test case
  * - SQLExceptions chained to a BatchUpdateException
@@ -28,26 +24,19 @@ import java.sql.*;
 /*
  * Test case for Statement.batchExecute()
  */
-public class BatchExecuteTest extends TestCase
+public class BatchExecuteTest extends BaseTest
 {
-
-    private Connection con;
 
     public BatchExecuteTest(String name)
     {
         super(name);
-        try
-        {
-            Class.forName("org.postgresql.Driver");
-        }
-        catch( Exception ex){}
     }
 
     // Set up the fixture for this testcase: a connection to a database with
     // a table for this test.
     protected void setUp() throws Exception
     {
-        con = TestUtil.openDB();
+        super.setUp();
         Statement stmt = con.createStatement();
 
         // Drop the test table if it already exists for some reason. It is
@@ -65,12 +54,12 @@ public class BatchExecuteTest extends TestCase
     }
 
     // Tear down the fixture for this test case.
-    protected void tearDown() throws Exception
+    protected void tearDown() throws SQLException
     {
         con.setAutoCommit(true);
 
         TestUtil.dropTable(con, "testbatch");
-        TestUtil.closeDB(con);
+        super.tearDown();
     }
 
     public void testSupportsBatchUpdates() throws Exception

@@ -9,44 +9,35 @@ package org.postgresql.test.jdbc2;
 
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.BrokenInputStream;
-import junit.framework.TestCase;
+
 import java.io.*;
 import java.sql.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
 
-public class PreparedStatementTest extends TestCase
+public class PreparedStatementTest extends BaseTest
 {
-
-    private Connection conn;
 
     public PreparedStatementTest(String name)
     {
         super(name);
-        
-        try 
-        { 
-            org.postgresql.Driver driver = new org.postgresql.Driver();
-        } 
-        catch (Exception ex) 
-        {;}
     }
 
     protected void setUp() throws Exception
     {
-        conn = TestUtil.openDB();
-        TestUtil.createTable(conn, "streamtable", "bin bytea, str text");
-        TestUtil.createTable(conn, "texttable", "ch char(3), te text, vc varchar(3)");
-        TestUtil.createTable(conn, "intervaltable", "i interval");
+        super.setUp();
+        TestUtil.createTable(con, "streamtable", "bin bytea, str text");
+        TestUtil.createTable(con, "texttable", "ch char(3), te text, vc varchar(3)");
+        TestUtil.createTable(con, "intervaltable", "i interval");
     }
 
     protected void tearDown() throws SQLException
     {
-        TestUtil.dropTable(conn, "streamtable");
-        TestUtil.dropTable(conn, "texttable");
-        TestUtil.dropTable(conn, "intervaltable");
-        TestUtil.closeDB(conn);
+        TestUtil.dropTable(con, "streamtable");
+        TestUtil.dropTable(con, "texttable");
+        TestUtil.dropTable(con, "intervaltable");
+        super.tearDown();
     }
 
     public void testSetBinaryStream() throws SQLException
@@ -91,7 +82,7 @@ public class PreparedStatementTest extends TestCase
     }
 
     public void testExecuteStringOnPreparedStatement() throws Exception {
-        PreparedStatement pstmt = conn.prepareStatement("SELECT 1");
+        PreparedStatement pstmt = con.prepareStatement("SELECT 1");
 
         try
         {
@@ -127,7 +118,7 @@ public class PreparedStatementTest extends TestCase
         // introducing a syntax error to force the query to fail, but
         // that seems dangerous.
         //
-        if (!TestUtil.isProtocolVersion(conn, 3))
+        if (!TestUtil.isProtocolVersion(con, 3))
         {
             return ;
         }
@@ -160,7 +151,7 @@ public class PreparedStatementTest extends TestCase
         PreparedStatement pstmt = null;
         try
         {
-            pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)");
+            pstmt = con.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)");
             pstmt.setBinaryStream(1, is, length);
             pstmt.setString(2, "Other");
             pstmt.executeUpdate();
@@ -172,7 +163,7 @@ public class PreparedStatementTest extends TestCase
             pstmt.close();
 
             // verify the connection is still valid and the row didn't go in.
-            Statement stmt = conn.createStatement();
+            Statement stmt = con.createStatement();
             ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM streamtable");
             assertTrue(rs.next());
             assertEquals(0, rs.getInt(1));
@@ -183,7 +174,7 @@ public class PreparedStatementTest extends TestCase
 
     private void doSetBinaryStream(ByteArrayInputStream bais, int length) throws SQLException
     {
-        PreparedStatement pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)");
+        PreparedStatement pstmt = con.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)");
         pstmt.setBinaryStream(1, bais, length);
         pstmt.setString(2, null);
         pstmt.executeUpdate();
@@ -192,7 +183,7 @@ public class PreparedStatementTest extends TestCase
 
     private void doSetAsciiStream(InputStream is, int length) throws SQLException
     {
-        PreparedStatement pstmt = conn.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)");
+        PreparedStatement pstmt = con.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)");
         pstmt.setBytes(1, null);
         pstmt.setAsciiStream(2, is, length);
         pstmt.executeUpdate();
@@ -200,7 +191,7 @@ public class PreparedStatementTest extends TestCase
     }
 
     public void testTrailingSpaces() throws SQLException {
-        PreparedStatement pstmt = conn.prepareStatement("INSERT INTO texttable (ch, te, vc) VALUES (?, ?, ?) ");
+        PreparedStatement pstmt = con.prepareStatement("INSERT INTO texttable (ch, te, vc) VALUES (?, ?, ?) ");
         String str = "a  ";
         pstmt.setString(1, str);
         pstmt.setString(2, str);
@@ -208,7 +199,7 @@ public class PreparedStatementTest extends TestCase
         pstmt.executeUpdate();
         pstmt.close();
 
-        pstmt = conn.prepareStatement("SELECT ch, te, vc FROM texttable WHERE ch=? AND te=? AND vc=?");
+        pstmt = con.prepareStatement("SELECT ch, te, vc FROM texttable WHERE ch=? AND te=? AND vc=?");
         pstmt.setString(1, str);
         pstmt.setString(2, str);
         pstmt.setString(3, str);
@@ -223,7 +214,7 @@ public class PreparedStatementTest extends TestCase
 
     public void testSetNull() throws SQLException {
         // valid: fully qualified type to setNull()
-        PreparedStatement pstmt = conn.prepareStatement("INSERT INTO texttable (te) VALUES (?)");
+        PreparedStatement pstmt = con.prepareStatement("INSERT INTO texttable (te) VALUES (?)");
         pstmt.setNull(1, Types.VARCHAR);
         pstmt.executeUpdate();
 
@@ -284,11 +275,11 @@ public class PreparedStatementTest extends TestCase
                                 "double \" quote",
                             };
 
-        if (! TestUtil.haveMinimumServerVersion(conn, "8.2"))
+        if (! TestUtil.haveMinimumServerVersion(con, "8.2"))
         {
             for (int i = 0; i < testStrings.length; ++i)
             {
-                PreparedStatement pstmt = conn.prepareStatement("SELECT '" + testStrings[i] + "'");
+                PreparedStatement pstmt = con.prepareStatement("SELECT '" + testStrings[i] + "'");
                 ResultSet rs = pstmt.executeQuery();
                 assertTrue(rs.next());
                 assertEquals(expected[i], rs.getString(1));
@@ -298,14 +289,14 @@ public class PreparedStatementTest extends TestCase
         }
         else
         {
-            boolean oldStdStrings = TestUtil.getStandardConformingStrings(conn);
-            Statement stmt = conn.createStatement();
+            boolean oldStdStrings = TestUtil.getStandardConformingStrings(con);
+            Statement stmt = con.createStatement();
 
             // Test with standard_conforming_strings turned off.
             stmt.execute("SET standard_conforming_strings TO off");
             for (int i = 0; i < testStrings.length; ++i)
             {
-                PreparedStatement pstmt = conn.prepareStatement("SELECT '" + testStrings[i] + "'");
+                PreparedStatement pstmt = con.prepareStatement("SELECT '" + testStrings[i] + "'");
                 ResultSet rs = pstmt.executeQuery();
                 assertTrue(rs.next());
                 assertEquals(expected[i], rs.getString(1));
@@ -318,7 +309,7 @@ public class PreparedStatementTest extends TestCase
             stmt.execute("SET standard_conforming_strings TO on");
             for (int i = 0; i < testStrings.length; ++i)
             {
-                PreparedStatement pstmt = conn.prepareStatement("SELECT E'" + testStrings[i] + "'");
+                PreparedStatement pstmt = con.prepareStatement("SELECT E'" + testStrings[i] + "'");
                 ResultSet rs = pstmt.executeQuery();
                 assertTrue(rs.next());
                 assertEquals(expected[i], rs.getString(1));
@@ -328,7 +319,7 @@ public class PreparedStatementTest extends TestCase
             // ... using standard conforming input strings.
             for (int i = 0; i < testStrings.length; ++i)
             {
-                PreparedStatement pstmt = conn.prepareStatement("SELECT '" + testStringsStdConf[i] + "'");
+                PreparedStatement pstmt = con.prepareStatement("SELECT '" + testStringsStdConf[i] + "'");
                 ResultSet rs = pstmt.executeQuery();
                 assertTrue(rs.next());
                 assertEquals(expected[i], rs.getString(1));
@@ -352,11 +343,11 @@ public class PreparedStatementTest extends TestCase
 
         for (int i = 0; i < testStrings.length; ++i)
         {
-            PreparedStatement pstmt = conn.prepareStatement("CREATE TABLE \"" + testStrings[i] + "\" (i integer)");
+            PreparedStatement pstmt = con.prepareStatement("CREATE TABLE \"" + testStrings[i] + "\" (i integer)");
             pstmt.executeUpdate();
             pstmt.close();
 
-            pstmt = conn.prepareStatement("DROP TABLE \"" + testStrings[i] + "\"");
+            pstmt = con.prepareStatement("DROP TABLE \"" + testStrings[i] + "\"");
             pstmt.executeUpdate();
             pstmt.close();
         }
@@ -364,13 +355,13 @@ public class PreparedStatementTest extends TestCase
     
     public void testDollarQuotes() throws SQLException {
         // dollar-quotes are supported in the backend since version 8.0
-        if (!TestUtil.haveMinimumServerVersion(conn, "8.0"))
+        if (!TestUtil.haveMinimumServerVersion(con, "8.0"))
             return;
 
         PreparedStatement st;
         ResultSet rs;
         
-        st = conn.prepareStatement("SELECT $$;$$ WHERE $x$?$x$=$_0$?$_0$ AND $$?$$=?");
+        st = con.prepareStatement("SELECT $$;$$ WHERE $x$?$x$=$_0$?$_0$ AND $$?$$=?");
         st.setString(1, "?");
         rs = st.executeQuery();
         assertTrue(rs.next());
@@ -378,7 +369,7 @@ public class PreparedStatementTest extends TestCase
         assertFalse(rs.next());
         st.close();
         
-        st = conn.prepareStatement(
+        st = con.prepareStatement(
                   "SELECT $__$;$__$ WHERE ''''=$q_1$'$q_1$ AND ';'=?;"
                 + "SELECT $x$$a$;$x $a$$x$ WHERE $$;$$=? OR ''=$c$c$;$c$;"
                 + "SELECT ?");
@@ -408,20 +399,20 @@ public class PreparedStatementTest extends TestCase
     
     public void testDollarQuotesAndIdentifiers() throws SQLException {
         // dollar-quotes are supported in the backend since version 8.0
-        if (!TestUtil.haveMinimumServerVersion(conn, "8.0"))
+        if (!TestUtil.haveMinimumServerVersion(con, "8.0"))
             return;
         
         PreparedStatement st;
         
-        conn.createStatement().execute("CREATE TEMP TABLE a$b$c(a varchar, b varchar)");
-        st = conn.prepareStatement("INSERT INTO a$b$c (a, b) VALUES (?, ?)");
+        con.createStatement().execute("CREATE TEMP TABLE a$b$c(a varchar, b varchar)");
+        st = con.prepareStatement("INSERT INTO a$b$c (a, b) VALUES (?, ?)");
         st.setString(1, "a");
         st.setString(2, "b");
         st.executeUpdate();
         st.close();
 
-        conn.createStatement().execute("CREATE TEMP TABLE e$f$g(h varchar, e$f$g varchar) ");
-        st = conn.prepareStatement("UPDATE e$f$g SET h = ? || e$f$g");
+        con.createStatement().execute("CREATE TEMP TABLE e$f$g(h varchar, e$f$g varchar) ");
+        st = con.prepareStatement("UPDATE e$f$g SET h = ? || e$f$g");
         st.setString(1, "a");
         st.executeUpdate();
         st.close();
@@ -431,14 +422,14 @@ public class PreparedStatementTest extends TestCase
         PreparedStatement st;
         ResultSet rs;
 
-        st = conn.prepareStatement("SELECT /*?*/ /*/*/*/**/*/*/*/1;SELECT ?;--SELECT ?");
+        st = con.prepareStatement("SELECT /*?*/ /*/*/*/**/*/*/*/1;SELECT ?;--SELECT ?");
         st.setString(1, "a");
         assertTrue(st.execute());
         assertTrue(st.getMoreResults());
         assertFalse(st.getMoreResults());
         st.close();
         
-        st = conn.prepareStatement("SELECT /**/'?'/*/**/*/ WHERE '?'=/*/*/*?*/*/*/--?\n?");
+        st = con.prepareStatement("SELECT /**/'?'/*/**/*/ WHERE '?'=/*/*/*?*/*/*/--?\n?");
         st.setString(1, "?");
         rs = st.executeQuery();
         assertTrue(rs.next());
@@ -451,14 +442,14 @@ public class PreparedStatementTest extends TestCase
         PreparedStatement st;
         ResultSet rs;
 
-        st = conn.prepareStatement("select ??- lseg '((-1,0),(1,0))';");
+        st = con.prepareStatement("select ??- lseg '((-1,0),(1,0))';");
         rs = st.executeQuery();
         assertTrue(rs.next());
         assertEquals("t", rs.getString(1));
         assertFalse(rs.next());
         st.close();
 
-        st = conn.prepareStatement("select lseg '((-1,0),(1,0))' ??# box '((-2,-2),(2,2))';");
+        st = con.prepareStatement("select lseg '((-1,0),(1,0))' ??# box '((-2,-2),(2,2))';");
         rs = st.executeQuery();
         assertTrue(rs.next());
         assertEquals("t", rs.getString(1));
@@ -468,18 +459,18 @@ public class PreparedStatementTest extends TestCase
 
     public void testDouble() throws SQLException
     {
-        PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE double_tab (max_double float, min_double float, null_value float)");
+        PreparedStatement pstmt = con.prepareStatement("CREATE TEMP TABLE double_tab (max_double float, min_double float, null_value float)");
         pstmt.executeUpdate();
         pstmt.close();
         
-        pstmt = conn.prepareStatement( "insert into double_tab values (?,?,?)");
+        pstmt = con.prepareStatement( "insert into double_tab values (?,?,?)");
         pstmt.setDouble(1, 1.0E125);
         pstmt.setDouble(2, 1.0E-130);
         pstmt.setNull(3,Types.DOUBLE);
         pstmt.executeUpdate();
         pstmt.close();
         
-        pstmt = conn.prepareStatement( "select * from double_tab");
+        pstmt = con.prepareStatement( "select * from double_tab");
         ResultSet rs = pstmt.executeQuery();
         assertTrue( rs.next());
         double d = rs.getDouble(1);
@@ -494,18 +485,18 @@ public class PreparedStatementTest extends TestCase
     
     public void testFloat() throws SQLException
     {
-        PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE float_tab (max_float real, min_float real, null_value real)");
+        PreparedStatement pstmt = con.prepareStatement("CREATE TEMP TABLE float_tab (max_float real, min_float real, null_value real)");
         pstmt.executeUpdate();
         pstmt.close();
        
-        pstmt = conn.prepareStatement( "insert into float_tab values (?,?,?)");
+        pstmt = con.prepareStatement( "insert into float_tab values (?,?,?)");
         pstmt.setFloat(1,(float)1.0E37 );
         pstmt.setFloat(2, (float)1.0E-37);
         pstmt.setNull(3,Types.FLOAT);
         pstmt.executeUpdate();
         pstmt.close();
         
-        pstmt = conn.prepareStatement( "select * from float_tab");
+        pstmt = con.prepareStatement( "select * from float_tab");
         ResultSet rs = pstmt.executeQuery();
         assertTrue( rs.next());
         float f = rs.getFloat(1);
@@ -520,18 +511,18 @@ public class PreparedStatementTest extends TestCase
     
     public void testBoolean() throws SQLException
     {
-        PreparedStatement pstmt = conn.prepareStatement("CREATE TEMP TABLE bool_tab (max_val boolean, min_val boolean, null_val boolean)");
+        PreparedStatement pstmt = con.prepareStatement("CREATE TEMP TABLE bool_tab (max_val boolean, min_val boolean, null_val boolean)");
         pstmt.executeUpdate();
         pstmt.close();
        
-        pstmt = conn.prepareStatement( "insert into bool_tab values (?,?,?)");
+        pstmt = con.prepareStatement( "insert into bool_tab values (?,?,?)");
         pstmt.setBoolean(1,true );
         pstmt.setBoolean(2, false);
         pstmt.setNull(3,Types.BIT);
         pstmt.executeUpdate();
         pstmt.close();
         
-        pstmt = conn.prepareStatement( "select * from bool_tab");
+        pstmt = con.prepareStatement( "select * from bool_tab");
         ResultSet rs = pstmt.executeQuery();
         assertTrue( rs.next());
 
@@ -546,7 +537,7 @@ public class PreparedStatementTest extends TestCase
     
     public void testSetFloatInteger() throws SQLException
     {
-        PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE float_tab (max_val float8, min_val float, null_val float8)");
+        PreparedStatement pstmt = con.prepareStatement("CREATE temp TABLE float_tab (max_val float8, min_val float, null_val float8)");
         pstmt.executeUpdate();
         pstmt.close();
         
@@ -554,14 +545,14 @@ public class PreparedStatementTest extends TestCase
         
         Double maxFloat=new Double( 2147483647), minFloat = new Double( -2147483648 );
         
-        pstmt = conn.prepareStatement( "insert into float_tab values (?,?,?)");
+        pstmt = con.prepareStatement( "insert into float_tab values (?,?,?)");
         pstmt.setObject(1,maxInteger,Types.FLOAT );
         pstmt.setObject(2,minInteger,Types.FLOAT);
         pstmt.setNull(3,Types.FLOAT);
         pstmt.executeUpdate();
         pstmt.close();
         
-        pstmt = conn.prepareStatement( "select * from float_tab");
+        pstmt = con.prepareStatement( "select * from float_tab");
         ResultSet rs = pstmt.executeQuery();
         assertTrue( rs.next());
 
@@ -575,21 +566,21 @@ public class PreparedStatementTest extends TestCase
     }
     public void testSetFloatString() throws SQLException
     {
-        PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE float_tab (max_val float8, min_val float8, null_val float8)");
+        PreparedStatement pstmt = con.prepareStatement("CREATE temp TABLE float_tab (max_val float8, min_val float8, null_val float8)");
         pstmt.executeUpdate();
         pstmt.close();
         
         String maxStringFloat = new String("1.0E37"), minStringFloat = new String("1.0E-37");
         Double maxFloat=new Double(1.0E37), minFloat = new Double( 1.0E-37 );
         
-        pstmt = conn.prepareStatement( "insert into float_tab values (?,?,?)");
+        pstmt = con.prepareStatement( "insert into float_tab values (?,?,?)");
         pstmt.setObject(1,maxStringFloat,Types.FLOAT );
         pstmt.setObject(2,minStringFloat,Types.FLOAT );
         pstmt.setNull(3,Types.FLOAT);
         pstmt.executeUpdate();
         pstmt.close();
         
-        pstmt = conn.prepareStatement( "select * from float_tab");
+        pstmt = con.prepareStatement( "select * from float_tab");
         ResultSet rs = pstmt.executeQuery();
         assertTrue( rs.next());
 
@@ -604,21 +595,21 @@ public class PreparedStatementTest extends TestCase
     
     public void testSetFloatBigDecimal() throws SQLException
     {
-        PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE float_tab (max_val float8, min_val float8, null_val float8)");
+        PreparedStatement pstmt = con.prepareStatement("CREATE temp TABLE float_tab (max_val float8, min_val float8, null_val float8)");
         pstmt.executeUpdate();
         pstmt.close();
         
         BigDecimal maxBigDecimalFloat = new BigDecimal("1.0E37"), minBigDecimalFloat = new BigDecimal("1.0E-37");
         Double maxFloat=new Double(1.0E37), minFloat = new Double( 1.0E-37 );
         
-        pstmt = conn.prepareStatement( "insert into float_tab values (?,?,?)");
+        pstmt = con.prepareStatement( "insert into float_tab values (?,?,?)");
         pstmt.setObject(1,maxBigDecimalFloat,Types.FLOAT );
         pstmt.setObject(2,minBigDecimalFloat,Types.FLOAT );
         pstmt.setNull(3,Types.FLOAT);
         pstmt.executeUpdate();
         pstmt.close();
         
-        pstmt = conn.prepareStatement( "select * from float_tab");
+        pstmt = con.prepareStatement( "select * from float_tab");
         ResultSet rs = pstmt.executeQuery();
         assertTrue( rs.next());
 
@@ -632,26 +623,46 @@ public class PreparedStatementTest extends TestCase
     }
     public void testSetTinyIntFloat() throws SQLException
     {
-        PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE tiny_int (max_val int4, min_val int4, null_val int4)");
+        PreparedStatement pstmt = con.prepareStatement("CREATE temp TABLE tiny_int (max_val int4, min_val int4, null_val int4)");
         pstmt.executeUpdate();
         pstmt.close();
         
         Integer maxInt = new Integer( 127 ), minInt = new Integer(-127);
         Float maxIntFloat = new Float( 127 ), minIntFloat = new Float( -127 );
         
-        pstmt = conn.prepareStatement( "insert into tiny_int values (?,?,?)");
+        pstmt = con.prepareStatement( "insert into tiny_int values (?,?,?)");
         pstmt.setObject(1,maxIntFloat,Types.TINYINT );
         pstmt.setObject(2,minIntFloat,Types.TINYINT );
         pstmt.setNull(3,Types.TINYINT);
         pstmt.executeUpdate();
         pstmt.close();
         
-        pstmt = conn.prepareStatement( "select * from tiny_int");
+        pstmt = con.prepareStatement( "select * from tiny_int");
         ResultSet rs = pstmt.executeQuery();
         assertTrue( rs.next());
 
-        assertTrue( "expected " + maxInt+" ,received " + rs.getObject(1), ((Integer)rs.getObject(1)).equals( maxInt ) );
-        assertTrue( "expected " + minInt+" ,received " + rs.getObject(2), ((Integer)rs.getObject(2)).equals( minInt ) );
+        assertEquals("maxInt as rs.getObject", maxInt, rs.getObject(1));
+        assertEquals("minInt as rs.getObject", minInt, rs.getObject(2));
+        rs.getObject(3);
+        assertTrue("rs.wasNull after rs.getObject", rs.wasNull());
+        assertEquals("maxInt as rs.getInt", maxInt, (Integer) rs.getInt(1));
+        assertEquals("minInt as rs.getInt", minInt, (Integer) rs.getInt(2));
+        rs.getInt(3);
+        assertTrue("rs.wasNull after rs.getInt", rs.wasNull());
+        assertEquals("maxInt as rs.getLong", Long.valueOf(maxInt), (Long) rs.getLong(1));
+        assertEquals("minInt as rs.getLong", Long.valueOf(minInt), (Long) rs.getLong(2));
+        rs.getLong(3);
+        assertTrue("rs.wasNull after rs.getLong", rs.wasNull());
+        assertEquals("maxInt as rs.getBigDecimal", BigDecimal.valueOf(maxInt), rs.getBigDecimal(1));
+        assertEquals("minInt as rs.getBigDecimal", BigDecimal.valueOf(minInt), rs.getBigDecimal(2));
+        assertNull("rs.getBigDecimal", rs.getBigDecimal(3));
+        assertTrue("rs.getBigDecimal after rs.getLong", rs.wasNull());
+        assertEquals("maxInt as rs.getBigDecimal(scale=0)", BigDecimal.valueOf(maxInt), rs.getBigDecimal(1, 0));
+        assertEquals("minInt as rs.getBigDecimal(scale=0)", BigDecimal.valueOf(minInt), rs.getBigDecimal(2, 0));
+        assertNull("rs.getBigDecimal(scale=0)", rs.getBigDecimal(3, 0));
+        assertTrue("rs.getBigDecimal after rs.getLong", rs.wasNull());
+        assertEquals("maxInt as rs.getBigDecimal(scale=1)", BigDecimal.valueOf(maxInt).setScale(1, BigDecimal.ROUND_HALF_EVEN), rs.getBigDecimal(1, 1));
+        assertEquals("minInt as rs.getBigDecimal(scale=1)", BigDecimal.valueOf(minInt).setScale(1, BigDecimal.ROUND_HALF_EVEN), rs.getBigDecimal(2, 1));
         rs.getFloat(3);
         assertTrue( rs.wasNull() );
         rs.close();
@@ -661,21 +672,21 @@ public class PreparedStatementTest extends TestCase
 
     public void testSetSmallIntFloat() throws SQLException
     {
-        PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE small_int (max_val int4, min_val int4, null_val int4)");
+        PreparedStatement pstmt = con.prepareStatement("CREATE temp TABLE small_int (max_val int4, min_val int4, null_val int4)");
         pstmt.executeUpdate();
         pstmt.close();
         
         Integer maxInt = new Integer( 32767 ), minInt = new Integer(-32768);
         Float maxIntFloat = new Float( 32767 ), minIntFloat = new Float( -32768 );
         
-        pstmt = conn.prepareStatement( "insert into small_int values (?,?,?)");
+        pstmt = con.prepareStatement( "insert into small_int values (?,?,?)");
         pstmt.setObject(1,maxIntFloat,Types.SMALLINT );
         pstmt.setObject(2,minIntFloat,Types.SMALLINT );
         pstmt.setNull(3,Types.TINYINT);
         pstmt.executeUpdate();
         pstmt.close();
         
-        pstmt = conn.prepareStatement( "select * from small_int");
+        pstmt = con.prepareStatement( "select * from small_int");
         ResultSet rs = pstmt.executeQuery();
         assertTrue( rs.next());
 
@@ -689,21 +700,21 @@ public class PreparedStatementTest extends TestCase
     }   
     public void testSetIntFloat() throws SQLException
     {
-        PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE int_TAB (max_val int4, min_val int4, null_val int4)");
+        PreparedStatement pstmt = con.prepareStatement("CREATE temp TABLE int_TAB (max_val int4, min_val int4, null_val int4)");
         pstmt.executeUpdate();
         pstmt.close();
         
         Integer maxInt = new Integer( 1000 ), minInt = new Integer(-1000);
         Float maxIntFloat = new Float( 1000 ), minIntFloat = new Float( -1000 );
         
-        pstmt = conn.prepareStatement( "insert into int_tab values (?,?,?)");
+        pstmt = con.prepareStatement( "insert into int_tab values (?,?,?)");
         pstmt.setObject(1,maxIntFloat,Types.INTEGER );
         pstmt.setObject(2,minIntFloat,Types.INTEGER );
         pstmt.setNull(3,Types.INTEGER);
         pstmt.executeUpdate();
         pstmt.close();
         
-        pstmt = conn.prepareStatement( "select * from int_tab");
+        pstmt = con.prepareStatement( "select * from int_tab");
         ResultSet rs = pstmt.executeQuery();
         assertTrue( rs.next());
 
@@ -717,21 +728,21 @@ public class PreparedStatementTest extends TestCase
     }
     public void testSetBooleanDouble() throws SQLException
     {
-        PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE double_tab (max_val float, min_val float, null_val float)");
+        PreparedStatement pstmt = con.prepareStatement("CREATE temp TABLE double_tab (max_val float, min_val float, null_val float)");
         pstmt.executeUpdate();
         pstmt.close();
         
         Boolean trueVal = Boolean.TRUE, falseVal = Boolean.FALSE;
         Double dBooleanTrue = new Double(1), dBooleanFalse = new Double( 0 );
         
-        pstmt = conn.prepareStatement( "insert into double_tab values (?,?,?)");
+        pstmt = con.prepareStatement( "insert into double_tab values (?,?,?)");
         pstmt.setObject(1,trueVal,Types.DOUBLE );
         pstmt.setObject(2,falseVal,Types.DOUBLE );
         pstmt.setNull(3,Types.DOUBLE);
         pstmt.executeUpdate();
         pstmt.close();
         
-        pstmt = conn.prepareStatement( "select * from double_tab");
+        pstmt = con.prepareStatement( "select * from double_tab");
         ResultSet rs = pstmt.executeQuery();
         assertTrue( rs.next());
 
@@ -745,21 +756,21 @@ public class PreparedStatementTest extends TestCase
     }
     public void testSetBooleanNumeric() throws SQLException
     {
-        PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE numeric_tab (max_val numeric(30,15), min_val numeric(30,15), null_val numeric(30,15))");
+        PreparedStatement pstmt = con.prepareStatement("CREATE temp TABLE numeric_tab (max_val numeric(30,15), min_val numeric(30,15), null_val numeric(30,15))");
         pstmt.executeUpdate();
         pstmt.close();
         
         Boolean trueVal = Boolean.TRUE, falseVal = Boolean.FALSE;
         BigDecimal dBooleanTrue = new BigDecimal(1), dBooleanFalse = new BigDecimal( 0 ); 
         
-        pstmt = conn.prepareStatement( "insert into numeric_tab values (?,?,?)");
+        pstmt = con.prepareStatement( "insert into numeric_tab values (?,?,?)");
         pstmt.setObject(1,trueVal,Types.NUMERIC,2 );
         pstmt.setObject(2,falseVal,Types.NUMERIC,2 );
         pstmt.setNull(3,Types.DOUBLE);
         pstmt.executeUpdate();
         pstmt.close();
         
-        pstmt = conn.prepareStatement( "select * from numeric_tab");
+        pstmt = con.prepareStatement( "select * from numeric_tab");
         ResultSet rs = pstmt.executeQuery();
         assertTrue( rs.next());
 
@@ -773,21 +784,21 @@ public class PreparedStatementTest extends TestCase
     }
     public void testSetBooleanDecimal() throws SQLException
     {
-        PreparedStatement pstmt = conn.prepareStatement("CREATE temp TABLE DECIMAL_TAB (max_val numeric(30,15), min_val numeric(30,15), null_val numeric(30,15))");
+        PreparedStatement pstmt = con.prepareStatement("CREATE temp TABLE DECIMAL_TAB (max_val numeric(30,15), min_val numeric(30,15), null_val numeric(30,15))");
         pstmt.executeUpdate();
         pstmt.close();
         
         Boolean trueVal = Boolean.TRUE, falseVal = Boolean.FALSE;
         BigDecimal dBooleanTrue = new BigDecimal(1), dBooleanFalse = new BigDecimal( 0 ); 
         
-        pstmt = conn.prepareStatement( "insert into DECIMAL_TAB values (?,?,?)");
+        pstmt = con.prepareStatement( "insert into DECIMAL_TAB values (?,?,?)");
         pstmt.setObject(1,trueVal,Types.DECIMAL,2 );
         pstmt.setObject(2,falseVal,Types.DECIMAL,2 );
         pstmt.setNull(3,Types.DOUBLE);
         pstmt.executeUpdate();
         pstmt.close();
         
-        pstmt = conn.prepareStatement( "select * from DECIMAL_TAB");
+        pstmt = con.prepareStatement( "select * from DECIMAL_TAB");
         ResultSet rs = pstmt.executeQuery();
         assertTrue( rs.next());
 
@@ -802,8 +813,8 @@ public class PreparedStatementTest extends TestCase
 
     public void testSetObjectBigDecimalUnscaled() throws SQLException
     {
-        TestUtil.createTempTable( conn, "decimal_scale","n1 numeric, n2 numeric, n3 numeric, n4 numeric" );
-        PreparedStatement pstmt = conn.prepareStatement( "insert into decimal_scale values(?,?,?,?)" );
+        TestUtil.createTempTable(con, "decimal_scale","n1 numeric, n2 numeric, n3 numeric, n4 numeric" );
+        PreparedStatement pstmt = con.prepareStatement( "insert into decimal_scale values(?,?,?,?)" );
         BigDecimal v = new BigDecimal( "3.141593" );
         pstmt.setObject( 1, v, Types.NUMERIC );
 
@@ -819,7 +830,7 @@ public class PreparedStatementTest extends TestCase
         pstmt.executeUpdate();
         pstmt.close();
 
-        pstmt = conn.prepareStatement( "select n1,n2,n3,n4 from decimal_scale" );
+        pstmt = con.prepareStatement( "select n1,n2,n3,n4 from decimal_scale" );
         ResultSet rs = pstmt.executeQuery();
         assertTrue( rs.next() );
         assertTrue( "expected numeric set via BigDecimal " + v + " stored as " + rs.getBigDecimal( 1 ),
@@ -837,10 +848,10 @@ public class PreparedStatementTest extends TestCase
 
     public void testSetObjectBigDecimalWithScale() throws SQLException
     {
-        TestUtil.createTempTable( conn, "decimal_scale","n1 numeric, n2 numeric, n3 numeric, n4 numeric" );
-        PreparedStatement psinsert = conn.prepareStatement( "insert into decimal_scale values(?,?,?,?)" );
-        PreparedStatement psselect = conn.prepareStatement( "select n1,n2,n3,n4 from decimal_scale" );
-        PreparedStatement pstruncate = conn.prepareStatement( "truncate table decimal_scale" );
+        TestUtil.createTempTable(con, "decimal_scale","n1 numeric, n2 numeric, n3 numeric, n4 numeric" );
+        PreparedStatement psinsert = con.prepareStatement( "insert into decimal_scale values(?,?,?,?)" );
+        PreparedStatement psselect = con.prepareStatement( "select n1,n2,n3,n4 from decimal_scale" );
+        PreparedStatement pstruncate = con.prepareStatement( "truncate table decimal_scale" );
 
         BigDecimal v = new BigDecimal( "3.141593" );
         String vs = v.toPlainString();
@@ -877,9 +888,9 @@ public class PreparedStatementTest extends TestCase
 
     public void testUnknownSetObject() throws SQLException
     {
-        PreparedStatement pstmt = conn.prepareStatement("INSERT INTO intervaltable(i) VALUES (?)");
+        PreparedStatement pstmt = con.prepareStatement("INSERT INTO intervaltable(i) VALUES (?)");
 
-        if (TestUtil.isProtocolVersion(conn, 3))
+        if (TestUtil.isProtocolVersion(con, 3))
         {
             pstmt.setString(1, "1 week");
             try {
@@ -899,7 +910,7 @@ public class PreparedStatementTest extends TestCase
      */
     public void testSetObjectCharacter() throws SQLException
     {
-        PreparedStatement ps = conn.prepareStatement("INSERT INTO texttable(te) VALUES (?)");
+        PreparedStatement ps = con.prepareStatement("INSERT INTO texttable(te) VALUES (?)");
         ps.setObject(1, new Character('z'));
         ps.executeUpdate();
         ps.close();
@@ -913,7 +924,7 @@ public class PreparedStatementTest extends TestCase
      */
     public void testStatementDescribe() throws SQLException
     {
-        PreparedStatement pstmt = conn.prepareStatement("SELECT ?::int");
+        PreparedStatement pstmt = con.prepareStatement("SELECT ?::int");
         pstmt.setObject(1, new Integer(2), Types.OTHER);
         for (int i=0; i<10; i++) {
             ResultSet rs = pstmt.executeQuery();
