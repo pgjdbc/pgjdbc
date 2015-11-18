@@ -83,6 +83,9 @@ public class Parser {
                 break;
 
             case '?':
+				if (!withParameters)
+					break;
+
                 nativeSql.append(aChars, fragmentStart, i - fragmentStart);
                 if (i + 1 < aChars.length && aChars[i + 1] == '?') /* replace ?? with ? */
                 {
