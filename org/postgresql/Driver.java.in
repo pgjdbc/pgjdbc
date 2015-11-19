@@ -309,7 +309,7 @@ public class Driver implements java.sql.Driver
     /**
      * Perform a connect in a separate thread; supports
      * getting the results from the original thread while enforcing
-     * a login timout.
+     * a login timeout.
      */
     private static class ConnectThread implements Runnable {
         ConnectThread(String url, Properties props) {
