@@ -11,3 +11,9 @@ build.local.properties
 *-dist.zip
 
 ubenchmark/target
+
+# Translation items
+org/postgresql/translation/*.class
+org/postgresql/translation/*.po~
+org/postgresql/translation/messages.pot
+translation.filelist

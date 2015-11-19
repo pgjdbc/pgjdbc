@@ -47,7 +47,7 @@ public class UTF8Encoding {
     public void setup() {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < length; i++) {
-            sb.append("Hello мир,");
+            sb.append("Hello Mir,");
         }
         source = sb.toString();
         encoder = UTF_8.newEncoder();
