@@ -83,9 +83,6 @@ public class Parser {
                 break;
 
             case '?':
-				if (!withParameters)
-					break;
-
                 nativeSql.append(aChars, fragmentStart, i - fragmentStart);
                 if (i + 1 < aChars.length && aChars[i + 1] == '?') /* replace ?? with ? */
                 {
@@ -93,11 +90,16 @@ public class Parser {
                     i++; // make sure the coming ? is not treated as a bind
                 } else
                 {
-                    if (bindPositions == null)
-                        bindPositions = new ArrayList<Integer>();
-                    bindPositions.add(nativeSql.length());
-                    int bindIndex = bindPositions.size();
-                    nativeSql.append(NativeQuery.bindName(bindIndex));
+                    if (withParameters)
+                    {
+                        if (bindPositions == null)
+                            bindPositions = new ArrayList<Integer>();
+                        bindPositions.add(nativeSql.length());
+                        int bindIndex = bindPositions.size();
+                        nativeSql.append(NativeQuery.bindName(bindIndex));
+                    }
+                    else
+                        nativeSql.append('?');
                 }
                 fragmentStart = i + 1;
                 break;

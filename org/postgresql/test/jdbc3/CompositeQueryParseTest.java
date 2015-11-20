@@ -30,7 +30,12 @@ public class CompositeQueryParseTest extends TestCase {
 
     public void testSimpleBind()
     {
-        assertEquals("select $1", reparse("select ?", true, false, true));
+        assertEquals("select $1", reparse("select ?", true, true, true));
+    }
+
+    public void testUnquotedQuestionmark()
+    {
+        assertEquals("select '{\"key\": \"val\"}'::jsonb ? 'key'", reparse("select '{\"key\": \"val\"}'::jsonb ? 'key'", true, false, true));
     }
 
     public void testQuotedQuestionmark()
@@ -40,7 +45,7 @@ public class CompositeQueryParseTest extends TestCase {
 
     public void testDoubleQuestionmark()
     {
-        assertEquals("select '?', $1 ?=> $2", reparse("select '?', ? ??=> ?", true, false, true));
+        assertEquals("select '?', $1 ?=> $2", reparse("select '?', ? ??=> ?", true, true, true));
     }
 
     public void testCompositeBasic()
@@ -50,7 +55,7 @@ public class CompositeQueryParseTest extends TestCase {
 
     public void testCompositeWithBinds()
     {
-        assertEquals("select $1;/*cut*/\n select $1", reparse("select ?; select ?", true, false, true));
+        assertEquals("select $1;/*cut*/\n select $1", reparse("select ?; select ?", true, true, true));
     }
 
     public void testTrailingSemicolon()
