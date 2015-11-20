@@ -634,6 +634,7 @@ Import-Package: javax.sql, javax.transaction.xa, javax.naming, *;resolution:=opt
       <fileset dir="lib">
         <include name="*"/>
         <exclude name="maven-ant-tasks*.jar"/>
+        <exclude name=".gitignore"/>
       </fileset>
     </delete>
   </target>
