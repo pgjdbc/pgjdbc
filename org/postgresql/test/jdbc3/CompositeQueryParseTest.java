@@ -38,6 +38,11 @@ public class CompositeQueryParseTest extends TestCase {
         assertEquals("select '{\"key\": \"val\"}'::jsonb ? 'key'", reparse("select '{\"key\": \"val\"}'::jsonb ? 'key'", true, false, true));
     }
 
+    public void testRepeatedQuestionmark()
+    {
+        assertEquals("select '{\"key\": \"val\"}'::jsonb ? 'key'", reparse("select '{\"key\": \"val\"}'::jsonb ?? 'key'", true, false, true));
+    }
+
     public void testQuotedQuestionmark()
     {
         assertEquals("select '?'", reparse("select '?'", true, false, true));

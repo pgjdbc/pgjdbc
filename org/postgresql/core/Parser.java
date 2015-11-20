@@ -90,7 +90,11 @@ public class Parser {
                     i++; // make sure the coming ? is not treated as a bind
                 } else
                 {
-                    if (withParameters)
+                    if (!withParameters)
+                    {
+                        nativeSql.append('?');
+                    }
+                    else
                     {
                         if (bindPositions == null)
                             bindPositions = new ArrayList<Integer>();
@@ -98,8 +102,6 @@ public class Parser {
                         int bindIndex = bindPositions.size();
                         nativeSql.append(NativeQuery.bindName(bindIndex));
                     }
-                    else
-                        nativeSql.append('?');
                 }
                 fragmentStart = i + 1;
                 break;
