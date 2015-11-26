@@ -3,7 +3,7 @@
 
 [![Build Status](https://travis-ci.org/pgjdbc/pgjdbc.png)](https://travis-ci.org/pgjdbc/pgjdbc)
 
-This is a simple readme describing how to compile and use the Postgresql JDBC driver.
+This is a simple readme describing how to compile and use the PostgreSQL JDBC driver.
 
  - [Commit Message Guidelines](#commit)
 
@@ -16,42 +16,64 @@ For problems with this driver, refer to driver's [home page](http://jdbc.postgre
 ## Downloading pre-built drivers
 
 Most people do not need to compile PgJDBC. You can download prebuilt versions of the driver 
-from the [Postgresql JDBC site](http://jdbc.postgresql.org/).
+from the [Postgresql JDBC site](http://jdbc.postgresql.org/) or using your chosen dependency management tool:
 
-## Compiling with Ant on the command line
+### Maven
+```xml
+<dependency>
+  <groupId>org.postgresql</groupId>
+  <artifactId>postgresql</artifactId>
+  <version>9.4-1201-jdbc41</version>
+</dependency>
+```
+### Gradle
+```
+'org.postgresql:postgresql:9.4-1201-jdbc41'
+```
+### Ivy
+```xml
+<dependency org="org.postgresql" name="postgresql" rev="9.4-1201-jdbc41"/>
+```
 
-PgJDBC doesn't natively support compilation from IDEs like Eclipse, NetBeans or
-IntelliJ. You should compile with ant on the command line or create your own
-IDE project. Tips for use with some IDEs follow below.
+## Build requirements
 
-Before you can compile the driver you must download the source code from git.
-You cannot compile from a jar or a .zip distribution. Run:
+In order to build the source code for PgJDBC you will need the following tools:
+
+- A git client
+- A recent version of Maven (3.x)
+- A JDK for the JDBC version you'd like to build (JDK6 for JDBC 4, JDK7 for JDBC 4.1 or JDK8 for JDBC 4.2)
+- A running PostgreSQL instance
+
+## Checking out the source code
+
+The PgJDBC project uses git for version control. You can check out the current code by running:
 
     git clone https://github.com/pgjdbc/pgjdbc.git
+    
+This will create a pgjdbc directory containing the checked-out source code.
 
-to download the source code. (You'll need git installed, of course).
+## Compiling with Maven on the command line
 
-To compile you will need to have a Java 5 or newer JDK and will need to have
-Ant installed. To obtain Ant go to http://ant.apache.org/index.html and
-download the binary. Being pure Java it will run on virtually all Java
-platforms. If you have any problems please email the pgsql-jdbc list.
+After checking out the code you can compile and test the PgJDBC driver by running the following
+on a command line:
 
-Once you have Ant, simply run ant using 'ant -lib lib' in the top level directory.  
-This will compile the correct driver for your JVM, and build a .jar file (Java ARchive)
+    mvn clean package
+
+PgJDBC doesn't natively support compilation from IDEs like Eclipse, NetBeans or
+IntelliJ. However you can use the tools Maven support from within the IDE if you wish. 
+  
+After running the build , and build a .jar file (Java ARchive)
 depending on the version of java and which release you have the jar will be named
 postgresql-<major>.<minor>-<release>.jdbc<N>.jar. Where major,minor are the postgreSQL major,minor
 version numbers. release is the jdbc release number. N is the version of the JDBC API which 
 corresponds to the version of Java used to compile the driver.
 
+The target directory will contain a number of built artifacts including archives. These
+contain a packaged version of the driver jar, source code, documentation and runtime dependencies.
+
 *REMEMBER*: Once you have compiled the driver, it will work on ALL platforms
 that support that version of the API. You don't need to build it for each
 platform.
-
-## Creating a distribution zip
-
-To create a package of the driver jar, sources, and dependencies, run:
-
-    ant dist
 
 ## Dependencies
 
@@ -60,9 +82,9 @@ libraries must also be on your classpath if you wish to use those features; if
 they aren't, you'll get a PSQLException at runtime when you try to use features
 with missing libraries.
 
-Ant will download additional dependencies from the Internet (from Maven
-respositories) to satisfy build requirements. Whether or not you intend to use
-the optional features the libraries used to implement them *must* be present to
+Maven will download additional dependencies from the Internet (from Maven
+repositories) to satisfy build requirements. Whether or not you intend to use
+the optional features the libraries used to implement them they *must* be present to
 compile the driver.
 
 Currently Waffle-JNA and its dependencies are required for SSPI authentication
@@ -71,28 +93,24 @@ and using SSPI you can leave them out when you install the driver.
 
 ## Installing the driver
 
-To install the driver, the postgresql.jar file has to be in the classpath.
+To install the driver, the postgresql jar file has to be in the classpath.
 When running standalone Java programs, use the `-cp` command line option,
 e.g.
 
-    java -cp postgresql-9.4-1200.jdbc4.jar -jar myprogram.jar
+    java -cp postgresql-9.4-1201.jdbc4.jar -jar myprogram.jar
 
 If you're using an application server or servlet container, follow the
 instructions for installing JDBC drivers for that server or container.
 
 For users of IDEs like Eclipse, NetBeans, etc, you should simply add the
 driver JAR like any other JAR to use it in your program. To use it within
-the IDE its self (for database browsing etc) you should follow the IDE
+the IDE itself (for database browsing etc) you should follow the IDE
 specific documentation on how to install JDBC drivers.
 
 ## Using the driver
 
 Java 6 and above do not need any special action to enable the driver - if it's
 on the classpath it is automatically detected and loaded by the JVM.
-
-For Java 1.5 and below, use `Class.forName` or a system parameter. See the main
-documentation and the JDBC tutorial for details - take a look at "more
-information" below.
 
 ## JDBC URL syntax
 
@@ -161,24 +179,24 @@ For information on working with GitHub, see: http://help.github.com/articles/for
 Remember to test proposed PgJDBC patches when running against older PostgreSQL
 versions where possible, not just against the PostgreSQL you use yourself.
 
-You also need to test your changes with older JDKs. PgJDBC must support JDK5
-("Java 1.5") and newer. Code that's JDBC4 specific
-may use JDK6 features, and code that's JDBC4.1 specific may use JDK7 features.
-Common code and JDBC3 code needs to stick to Java 1.5.
+You also need to test your changes with older JDKs. PgJDBC must support JDK6
+("Java 1.6") and newer. Code that is specific to a particular spec version
+may use features from that version of the language. i.e. JDBC4.1 specific 
+may use JDK7 features, JDBC4.2 may use JDK8 features.
+Common code and JDBC4 code needs to be compiled using JDK6.
 
-Two different versions of PgJDBC can be built, the JDBC 3 and JDBC 4 drivers.
-The former may be built with JDK 5, while building JDBC4 requires JDK 6 or 7.
+Three different versions of PgJDBC can be built, the JDBC 4, 4.1 and 4.2 drivers.
+These require JDK6, JDK7 and JDK8 respectively.
 The driver to build is auto-selected based on the JDK version used to run the
-build. The best way to test a proposed change with both the JDBC3 and JDBC4
-drivers is to build and test with both JDK5 and JDK6 or 7.
+build. The best way to test a proposed change is to build and test with JDK6, 7 and 8.
 
 You can get old JDK versions from the [Oracle Java Archive](http://www.oracle.com/technetwork/java/archive-139210.html).
 
 Typically you can test against an old JDK with:
 
-    export JAVA_HOME=/path/to/jdk_1_5
+    export JAVA_HOME=/path/to/jdk_1_6
     export PATH=$JAVA_HOME/bin:$JAVA_HOME/jre/bin:
-    ant clean test
+    mvn clean test
 
 For information about the unit tests and how to run them, see
   [org/postgresql/test/README](org/postgresql/test/README)
@@ -201,7 +219,7 @@ than you might expect.
 
 ## Support for IDEs
 
-It's possible to debug and test PgJDBC with various IDEs, not just with ant on
+It's possible to debug and test PgJDBC with various IDEs, not just with mvn on
 the command line. Projects aren't supplied, but it's easy to prepare them.
 
 ### Eclipse
@@ -210,9 +228,9 @@ On Eclipse Luna, to import PgJDBC as an Eclipse Java project with full
 support for on-demand compile, debugging, etc, you must:
 
 * Perform a git clone of PgJDBC on the command line
-* Use Ant to fetch the dependency JARs:
+* Use Maven to fetch the dependency JARs:
 
-          ant -lib lib snapshot-version maven-dependencies
+          mvn clean compile
 
 * In Eclipse, File -> New -> Java Project
 * Uncheck "Use default location" and find your git clone of PgJDBC then
@@ -232,8 +250,8 @@ explicit load:
 
     Class.forName("org.postgresql.Driver")
 
-Eclipse will interoperate fine with Ant, so you can test and debug
-with Eclipse then do dist builds with Ant.
+Eclipse will interoperate fine with Maven, so you can test and debug
+with Eclipse then do dist builds with Maven.
 
 ### Other IDEs
 
