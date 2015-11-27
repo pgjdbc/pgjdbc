@@ -233,14 +233,18 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         } else if(state == STATE_ENDED)
             throw new PGXAException(GT.tr("Transaction interleaving not implemented"), XAException.XAER_RMERR);
 
-        try
+        // Only need save localAutoCommitMode for NOFLAGS, TMRESUME and TMJOIN already saved old localAutoCommitMode.
+        if (flags == TMNOFLAGS)
         {
-            localAutoCommitMode = conn.getAutoCommit();
-            conn.setAutoCommit(false);
-        }
-        catch (SQLException ex)
-        {
-            throw new PGXAException(GT.tr("Error disabling autocommit"), ex, XAException.XAER_RMERR);
+            try
+            {
+                localAutoCommitMode = conn.getAutoCommit();
+                conn.setAutoCommit(false);
+            }
+            catch (SQLException ex)
+            {
+                throw new PGXAException(GT.tr("Error disabling autocommit"), ex, XAException.XAER_RMERR);
+            }
         }
 
         // Preconditions are met, Associate connection with the transaction
