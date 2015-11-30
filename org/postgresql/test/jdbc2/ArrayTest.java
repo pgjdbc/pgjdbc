@@ -413,6 +413,26 @@ public class ArrayTest extends TestCase
 
         assertTrue(!arrRS.next());
     }
+    
+    public void testEmptyBinaryArray() throws SQLException
+    {
+        
+        PreparedStatement pstmt = conn.prepareStatement("SELECT '{}'::int[]");
+        // force binary
+        ((org.postgresql.PGStatement)pstmt).setPrepareThreshold(-1);
+        
+        ResultSet rs = pstmt.executeQuery();
+ 
+        while (rs.next()) {
+            Array array = rs.getArray(1);
+            if (!rs.wasNull())
+            {
+                ResultSet ars  = array.getResultSet();
+                assertEquals("get columntype should return Types.INTEGER",java.sql.Types.INTEGER,ars.getMetaData().getColumnType(1)); 
+            }
 
+        }
+    }
+        
 }
 

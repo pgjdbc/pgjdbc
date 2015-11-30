@@ -16,10 +16,15 @@ while(<>) {
 
   my $pr = '';
   if ($body =~ /(?:fix|fixes|close|closes) *#?(\d+)/) {
-    $pr = ' PR #'.$1;
+    $pr = $1;
   }
   if ($pr == '' && $mergeSubject =~ /Merge pull request #(\d+)/) {
-    $pr = ' PR #'.$1;
+    $pr = $1;
   }
-  print $subject.$pr." (".$shortSha.")\n";
+  if ($pr != '') {
+    $pr = ' [PR#'.$pr.'](https://github.com/pgjdbc/pgjdbc/pull/'.$pr.')';
+  }
+  $subject =~ s/^\s+/* /;
+
+  print $subject.$pr." [".$shortSha."](https://github.com/pgjdbc/pgjdbc/commit/$sha)\n";
 }

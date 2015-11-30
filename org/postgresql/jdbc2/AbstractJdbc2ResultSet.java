@@ -49,6 +49,7 @@ import org.postgresql.core.Query;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandler;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.core.TypeInfo;
 import org.postgresql.core.Utils;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
@@ -1275,7 +1276,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
     throws SQLException
     {
         checkColumnIndex(columnIndex);
-        String columnTypeName = connection.getTypeInfo().getPGType(fields[columnIndex - 1].getOID());
+        String columnTypeName = getPGType(columnIndex);
         updateValue(columnIndex, new NullObject(columnTypeName));
     }
 
@@ -2217,7 +2218,18 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
      * the exception is always caught and is not visible to users.
      */
     private static final NumberFormatException FAST_NUMBER_FAILED = 
-        new NumberFormatException();
+        new NumberFormatException() {
+
+            // Override fillInStackTrace to prevent memory leak via Throwable.backtrace hidden field
+            // The field is not observable via reflection, however when throwable contains stacktrace, it does
+            // hold strong references to user objects (e.g. classes -> classloaders), thus it might lead to
+            // OutOfMemory conditions.
+            @Override
+            public synchronized Throwable fillInStackTrace()
+            {
+                return this;
+            }
+        };
 
     /**
      * Optimised byte[] to number parser.  This code does not
@@ -2339,7 +2351,7 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
      * @throws SQLException If an error occurs while fetching column.
      * @throws NumberFormatException If the number is invalid or the
      * out of range for fast parsing. The value must then be parsed by
-     * {@link #toBigDecimal(String)}.
+     * {@link #toBigDecimal(String, int)}.
      */
     private BigDecimal getFastBigDecimal(int columnIndex) throws SQLException,
         NumberFormatException {
@@ -2435,11 +2447,27 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         checkResultSet(columnIndex);
         if (wasNullFlag)
             return null;
+
+        if (isBinary(columnIndex)) {
+            int sqlType = getSQLType(columnIndex);
+            if (sqlType != Types.NUMERIC && sqlType != Types.DECIMAL) {
+                Object obj = internalGetObject(columnIndex, fields[columnIndex - 1]);
+                if (obj == null) return null;
+                if (obj instanceof Long || obj instanceof Integer || obj instanceof Byte) {
+                    BigDecimal res = BigDecimal.valueOf(((Number) obj).longValue());
+                    res = scaleBigDecimal(res, scale);
+                    return res;
+                }
+                return toBigDecimal(trimMoney(String.valueOf(obj)), scale);
+            }
+        }
         
         Encoding encoding = connection.getEncoding();
         if (encoding.hasAsciiNumbers()) {
             try {
-                return getFastBigDecimal(columnIndex);
+                BigDecimal res = getFastBigDecimal(columnIndex);
+                res = scaleBigDecimal(res, scale);
+                return res;
             } catch (NumberFormatException ex) {
             }
         }
@@ -2836,7 +2864,11 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
      */
     public String getFixedString(int col) throws SQLException
     {
-        String s = getString(col);
+        return trimMoney(getString(col));
+    }
+
+    private String trimMoney(String s)
+    {
         if (s == null)
             return null;
 
@@ -2869,14 +2901,30 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         return s;
     }
 
-    protected String getPGType( int column ) throws SQLException
+    protected String getPGType(int column) throws SQLException
     {
-        return connection.getTypeInfo().getPGType(fields[column - 1].getOID());
+        Field field = fields[column - 1];
+        initSqlType(field);
+        return field.getPGType();
     }
 
-    protected int getSQLType( int column ) throws SQLException
+    protected int getSQLType(int column) throws SQLException
     {
-        return connection.getTypeInfo().getSQLType(fields[column - 1].getOID());
+        Field field = fields[column - 1];
+        initSqlType(field);
+        return field.getSQLType();
+    }
+
+    private void initSqlType(Field field) throws SQLException
+    {
+        if (field.isTypeInitialized())
+            return;
+        TypeInfo typeInfo = connection.getTypeInfo();
+        int oid = field.getOID();
+        String pgType = typeInfo.getPGType(oid);
+        int sqlType = typeInfo.getSQLType(pgType);
+        field.setSQLType(sqlType);
+        field.setPGType(pgType);
     }
 
     private void checkUpdateable() throws SQLException
@@ -3044,34 +3092,45 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         return 0;  // SQL NULL
     }
 
-    public static BigDecimal toBigDecimal(String s, int scale) throws SQLException
+    public static BigDecimal toBigDecimal(String s) throws SQLException
     {
-        BigDecimal val;
-        if (s != null)
-        {
-            try
-            {
-                s = s.trim();
-                val = new BigDecimal(s);
-            }
-            catch (NumberFormatException e)
-            {
-                throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{"BigDecimal",s}),
-                                        PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-            }
-            if (scale == -1)
-                return val;
-            try
-            {
-                return val.setScale(scale);
-            }
-            catch (ArithmeticException e)
-            {
-                throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{"BigDecimal",s}),
-                                        PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-            }
+        if (s == null) {
+            return null;
         }
-        return null;  // SQL NULL
+        try
+        {
+            s = s.trim();
+            return new BigDecimal(s);
+        }
+        catch (NumberFormatException e)
+        {
+            throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{"BigDecimal",s}),
+                    PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+        }
+    }
+
+    public BigDecimal toBigDecimal(String s, int scale) throws SQLException
+    {
+        if (s == null) {
+            return null;
+        }
+        BigDecimal val = toBigDecimal(s);
+        return scaleBigDecimal(val, scale);
+    }
+
+    private BigDecimal scaleBigDecimal(BigDecimal val, int scale) throws PSQLException
+    {
+        if (scale == -1)
+            return val;
+        try
+        {
+            return val.setScale(scale);
+        }
+        catch (ArithmeticException e)
+        {
+            throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{"BigDecimal",val}),
+                                    PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+        }
     }
 
     public static float toFloat(String s) throws SQLException
