@@ -204,6 +204,16 @@ public enum PGProperty
      * is specified in seconds and a value of zero means that it is disabled.
      */
     SOCKET_TIMEOUT("socketTimeout", "0", "The timeout value used for socket read operations."),
+    
+    /**
+     * Socket factory used to create socket. A null value, which is the default, means system default.
+     */
+    SOCKET_FACTORY("socketFactory", null, "Specify a socket factory for socket creation"),
+    
+    /**
+     * The String argument to give to the constructor of the Socket Factory
+     */
+    SOCKET_FACTORY_ARG("socketFactoryArg", null, "Argument forwarded to constructor of SocketFactory class."),
 
     /**
      * Socket read buffer size (SO_RECVBUF). A value of {@code -1}, which is the default, means system default.

@@ -16,7 +16,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 import java.util.TimeZone;
-
+import javax.net.SocketFactory;
 import org.postgresql.PGProperty;
 import org.postgresql.core.ConnectionFactory;
 import org.postgresql.core.Encoding;
@@ -36,6 +36,7 @@ import org.postgresql.sspi.SSPIClient;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.MD5Digest;
+import org.postgresql.util.ObjectFactory;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLWarning;
@@ -111,6 +112,19 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         } catch (IllegalArgumentException ex) {
             throw new PSQLException (GT.tr("Invalid targetServerType value: {0}", info.getProperty("targetServerType")), PSQLState.CONNECTION_UNABLE_TO_CONNECT);
         }
+        
+        // Socket factory
+        String socketFactoryClassName = PGProperty.SOCKET_FACTORY.get(info);
+        SocketFactory socketFactory;
+        if (socketFactoryClassName == null) {
+            socketFactory = SocketFactory.getDefault();
+        } else {
+            try {
+                socketFactory = (SocketFactory) ObjectFactory.instantiate(socketFactoryClassName, info, true, PGProperty.SOCKET_FACTORY_ARG.get(info));
+            } catch (Exception e) {
+                throw new PSQLException(GT.tr("The SocketFactory class provided {0} could not be instantiated.", socketFactoryClassName), PSQLState.CONNECTION_FAILURE, e);
+            } 
+        }
 
         HostChooser hostChooser = HostChooserFactory.createHostChooser(hostSpecs, targetServerType, info);
         for (Iterator<HostSpec> hostIter = hostChooser.iterator(); hostIter.hasNext(); ) {
@@ -126,7 +140,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         PGStream newStream = null;
         try
         {
-            newStream = new PGStream(hostSpec, connectTimeout);
+            newStream = new PGStream(socketFactory, hostSpec, connectTimeout);
 
             // Construct and send an ssl startup packet if requested.
             if (trySSL)
@@ -294,7 +308,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             
         return start + tz.substring(4);
     }
-
+    
     private PGStream enableSSL(PGStream pgStream, boolean requireSSL, Properties info, Logger logger, int connectTimeout) throws IOException, SQLException {
         if (logger.logDebug())
             logger.debug(" FE=> SSLRequest");
@@ -319,7 +333,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
             // We have to reconnect to continue.
             pgStream.close();
-            return new PGStream(pgStream.getHostSpec(), connectTimeout);
+            return new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), connectTimeout);
 
         case 'N':
             if (logger.logDebug())

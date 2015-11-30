@@ -17,7 +17,7 @@ import java.io.Writer;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.sql.SQLException;
-
+import javax.net.SocketFactory;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLState;
@@ -32,6 +32,7 @@ import org.postgresql.util.PSQLException;
  */
 public class PGStream
 {
+    private final SocketFactory socketFactory;
     private final HostSpec hostSpec;
 
     private final byte[] _int4buf;
@@ -53,11 +54,12 @@ public class PGStream
      * @param timeout timeout in milliseconds, or 0 if no timeout set
      * @exception IOException if an IOException occurs below it.
      */
-    public PGStream(HostSpec hostSpec, int timeout) throws IOException
+    public PGStream(SocketFactory socketFactory, HostSpec hostSpec, int timeout) throws IOException
     {
+        this.socketFactory = socketFactory;
         this.hostSpec = hostSpec;
 
-        Socket socket = new Socket();
+        Socket socket = socketFactory.createSocket();
         socket.connect(new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort()), timeout);
         changeSocket(socket);
         setEncoding(Encoding.getJVMEncoding("UTF-8"));
@@ -74,8 +76,8 @@ public class PGStream
      * @throws IOException if an IOException occurs below it.
      * @deprecated use {@link #PGStream(org.postgresql.util.HostSpec, int)}
      */
-    public PGStream(HostSpec hostSpec) throws IOException {
-      this(hostSpec, 0);
+    public PGStream(SocketFactory socketFactory, HostSpec hostSpec) throws IOException {
+      this(socketFactory, hostSpec, 0);
     }
 
     public HostSpec getHostSpec() {
@@ -84,6 +86,10 @@ public class PGStream
 
     public Socket getSocket() {
         return connection;
+    }
+    
+    public SocketFactory getSocketFactory() {
+        return socketFactory;
     }
 
     /**
