@@ -463,7 +463,7 @@ public enum PGProperty
      */
     public boolean isPresent(Properties properties)
     {
-        return get(properties) != null;
+        return getSetString(properties) != null;
     }
 
     /**
@@ -490,6 +490,19 @@ public enum PGProperty
                 return property;
             }
         }
+        return null;
+    }
+    /**
+     * Return the property if exists but avoiding the default. Allowing the caller
+     * to detect the lack of a property. 
+     * @param properties properties bundle
+     * @return the value of a set property
+     */
+    public String getSetString(Properties properties)
+    {
+        Object o = properties.get(_name);
+        if (o instanceof String)
+            return (String) o;
         return null;
     }
 }
