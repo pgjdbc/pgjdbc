@@ -97,6 +97,15 @@ public class ResultSetTest extends TestCase
         TestUtil.createTable(con, "testpgobject", "id integer NOT NULL, d date, PRIMARY KEY (id)");
         stmt.execute("INSERT INTO testpgobject VALUES(1, '2010-11-3')");
 
+	// Money
+	TestUtil.createTable(con, "testmoney", "amt money");
+        stmt.execute("INSERT INTO testmoney VALUES(1.00)");
+        stmt.execute("INSERT INTO testmoney VALUES(-1.00)");
+        stmt.execute("INSERT INTO testmoney VALUES(1000)");
+        stmt.execute("INSERT INTO testmoney VALUES(-1000)");
+        stmt.execute("INSERT INTO testmoney VALUES(10000000)");
+        stmt.execute("INSERT INTO testmoney VALUES(-10000000)");
+	
         stmt.close();
 
 
@@ -112,6 +121,7 @@ public class ResultSetTest extends TestCase
         TestUtil.dropTable(con, "testboolstring");
         TestUtil.dropTable(con, "testnumeric");
         TestUtil.dropTable(con, "testpgobject");
+        TestUtil.dropTable(con, "testmoney");
         TestUtil.closeDB(con);
     }
 
@@ -751,6 +761,29 @@ public class ResultSetTest extends TestCase
         rs1.close();
 
         stmt.close();
+    }
+
+    public void testMoneyConversionToDouble() throws SQLException
+    {
+	Statement stmt = con.createStatement();
+	ResultSet rs = stmt.executeQuery("SELECT * from testmoney");
+
+	assertTrue(rs.next());
+	assertEquals(1.0,rs.getDouble("amt"));
+	assertTrue(rs.next());
+	assertEquals(-1.0,rs.getDouble("amt"));
+	assertTrue(rs.next());
+	assertEquals(1000.0,rs.getDouble("amt"));
+	assertTrue(rs.next());
+	assertEquals(-1000.0,rs.getDouble("amt"));
+	assertTrue(rs.next());
+	assertEquals(10000000.0,rs.getDouble("amt"));
+	assertTrue(rs.next());
+	assertEquals(-10000000.0,rs.getDouble("amt"));
+
+	  rs.close();
+	stmt.close();
+
     }
 
 }
