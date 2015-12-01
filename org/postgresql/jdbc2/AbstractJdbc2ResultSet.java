@@ -2897,8 +2897,10 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         {
             s = "-" + s.substring(2);
         }
-
-        return s;
+	//commas occur every 3rd character, best to just replace all occurrences. 
+	//This would be problematic in the future for localizations using the comma as the decimal mark.
+	//e.g. 1234567,89
+        return s.replace(",",""); 
     }
 
     protected String getPGType(int column) throws SQLException
