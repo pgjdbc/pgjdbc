@@ -218,4 +218,26 @@ public class PGPropertyTest extends TestCase
         parsedProperties = Driver.parseURL(TestUtil.getURL() + "&ssl=true" , null);
         Assert.assertTrue("SSL property should be present", PGProperty.SSL.isPresent(parsedProperties));
     }
+    
+    /**
+     * Check whether the isPresent method really works.
+     */
+    public void testPresenceCheck() 
+    {
+        Properties empty = new Properties();
+        Object value = PGProperty.LOG_LEVEL.get(empty);
+        assertNotNull(value);
+        Assert.assertFalse(PGProperty.LOG_LEVEL.isPresent(empty));
+    }
+    
+    public void testNullValue() 
+    {
+        Properties empty = new Properties();
+        assertNull(PGProperty.LOG_LEVEL.getSetString(empty));
+        assertNull(PGProperty.LOG_LEVEL.getSetString(empty));
+        Properties withLogging = new Properties();
+        withLogging.setProperty(PGProperty.LOG_LEVEL.getName(), "2");
+        assertNotNull(PGProperty.LOG_LEVEL.getSetString(withLogging));
+    }
+    
 }
