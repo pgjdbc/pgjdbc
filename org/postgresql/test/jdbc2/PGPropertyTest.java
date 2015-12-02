@@ -204,9 +204,11 @@ public class PGPropertyTest extends TestCase
         givenProperties.setProperty("user", TestUtil.getUser());
         givenProperties.setProperty("password", TestUtil.getPassword());
 
+        System.setProperty("ssl", null);
         Properties parsedProperties = Driver.parseURL(TestUtil.getURL(), givenProperties);
-        Assert.assertFalse("SSL property should not be present", PGProperty.SSL.isPresent(parsedProperties));
+        Assert.assertTrue("SSL property should not be present", PGProperty.SSL.isPresent(parsedProperties));
 
+        System.setProperty("ssl", "true");
         givenProperties.setProperty("ssl", "true");
         parsedProperties = Driver.parseURL(TestUtil.getURL(), givenProperties);
         Assert.assertTrue("SSL property should be present", PGProperty.SSL.isPresent(parsedProperties));
