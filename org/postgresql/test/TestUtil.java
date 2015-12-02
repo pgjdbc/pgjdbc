@@ -58,11 +58,11 @@ public class TestUtil
 			sendBufferSize = "&sendBufferSize="+getSendBufferSize();
 		}
 		
-		String ssl = "";
+        String ssl = "";
         if (getSSL() != null ){
             ssl = "&ssl="+getSSL();
         }
-		
+        
         return "jdbc:postgresql://"
                                 + server + ":"
                                 + port + "/"

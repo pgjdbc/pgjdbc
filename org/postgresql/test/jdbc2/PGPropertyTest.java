@@ -204,9 +204,11 @@ public class PGPropertyTest extends TestCase
         givenProperties.setProperty("user", TestUtil.getUser());
         givenProperties.setProperty("password", TestUtil.getPassword());
 
-        System.setProperty("ssl", null);
+        Properties sysProperties = System.getProperties();
+        sysProperties.remove("ssl");
+        System.setProperties(sysProperties);
         Properties parsedProperties = Driver.parseURL(TestUtil.getURL(), givenProperties);
-        Assert.assertTrue("SSL property should not be present", PGProperty.SSL.isPresent(parsedProperties));
+        Assert.assertFalse("SSL property should not be present", PGProperty.SSL.isPresent(parsedProperties));
 
         System.setProperty("ssl", "true");
         givenProperties.setProperty("ssl", "true");
@@ -236,10 +238,31 @@ public class PGPropertyTest extends TestCase
     {
         Properties empty = new Properties();
         assertNull(PGProperty.LOG_LEVEL.getSetString(empty));
-        assertNull(PGProperty.LOG_LEVEL.getSetString(empty));
         Properties withLogging = new Properties();
         withLogging.setProperty(PGProperty.LOG_LEVEL.getName(), "2");
         assertNotNull(PGProperty.LOG_LEVEL.getSetString(withLogging));
     }
+
+    public void setUp()
+    {
+        bootSSLPropertyValue = System.getProperty("ssl");
+    }
+
+    public void tearDown()
+    {
+        if (bootSSLPropertyValue == null) {
+            System.getProperties().remove("ssl");
+        }
+        else
+        {
+            System.setProperty("ssl", bootSSLPropertyValue);
+        }
+    }
     
+    /**
+     * Some tests modify the "ssl" system property. To not disturb 
+     * other test cases in the suite store the value of the property 
+     * and restore it.
+     */
+    private String bootSSLPropertyValue;
 }
