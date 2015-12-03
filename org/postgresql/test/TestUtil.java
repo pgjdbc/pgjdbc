@@ -58,6 +58,11 @@ public class TestUtil
 			sendBufferSize = "&sendBufferSize="+getSendBufferSize();
 		}
 		
+        String ssl = "";
+        if (getSSL() != null ){
+            ssl = "&ssl="+getSSL();
+        }
+        
         return "jdbc:postgresql://"
                                 + server + ":"
                                 + port + "/"
@@ -66,7 +71,8 @@ public class TestUtil
                                 + protocolVersion
                                 + binaryTransfer
 								+ receiveBufferSize
-								+ sendBufferSize;
+								+ sendBufferSize
+								+ ssl;
     }
 
     /*
@@ -159,6 +165,11 @@ public class TestUtil
 	public static int getReceiveBufferSize()
 	{
 		return Integer.parseInt(System.getProperty("receiveBufferSize","-1"));
+	}
+	
+	public static String getSSL()
+	{
+	    return System.getProperty("ssl");
 	}
 	
     private static boolean initialized = false;

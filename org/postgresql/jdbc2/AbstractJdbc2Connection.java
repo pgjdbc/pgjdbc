@@ -8,7 +8,6 @@
 package org.postgresql.jdbc2;
 
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.sql.*;
 import java.util.*;
 
@@ -122,12 +121,22 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     {
         this.creatingURL = url;
 
-        // Read loglevel arg and set the loglevel based on this value;
+        // Read loglevel arg and set the loglevel based on this value
+        // otherwise use the programmatic or init logger level;
         // In addition to setting the log level, enable output to
         // standard out if no other printwriter is set
 
         int logLevel = Driver.getLogLevel();
-
+        String connectionLogLevel = PGProperty.LOG_LEVEL.getSetString(info);
+        if (connectionLogLevel != null) {
+            try
+            {
+                logLevel = Integer.parseInt(connectionLogLevel);
+            } catch (NumberFormatException nfe) 
+            {
+                // ignore
+            }
+        }
         synchronized (AbstractJdbc2Connection.class) {
             logger = new Logger(nextConnectionID++);
             logger.setLogLevel(logLevel);
