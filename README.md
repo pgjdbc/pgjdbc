@@ -239,6 +239,28 @@ with Eclipse then do dist builds with Ant.
 
 Please submit build instructions for your preferred IDE.
 
+## <a name="tests"></a> Coding Guidelines
+
+### Java
+
+Use 4 spaces for indenting.
+Always put braces, even for single-line `if`.
+Always put `default:` case for `switch` statement.
+
+### Test
+
+General rule: failing test should look like a good bug report. Thus `Assert.fail()` is bad.
+
+* Consider using "single assertion" per test method. Having separate test methods helps manual execution of the tests,
+and it makes test report cleaner
+
+* Consider using `assertEquals(String message, expected, actual)` instead of `assertTrue(expected == actual)`.
+The former allows you to provide human readable message and it integrates well with IDEs (i.e. it allows to open diff
+of expected and actual).
+
+ If using just `assertTrue(expected == actual)` all you get is a stacktrace and if such a test fails a developer
+has to reverse engineer the intention behind that code.
+
 ## <a name="commit"></a> Git Commit Guidelines
 
 We have very precise rules over how our git commit messages can be formatted.  This leads to **more
