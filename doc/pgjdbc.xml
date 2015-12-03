@@ -1052,6 +1052,24 @@ openssl pkcs8 -topk8 -in client.key -out client.pk8 -outform DER -v1 PBE-SHA1-3D
         </para>
        </listitem>
       </varlistentry>
+      
+      <varlistentry>
+       <term><varname>socketFactory</varname> = <type>String</type></term>
+       <listitem>
+        <para>
+         Specifies the class name of the socket factory that will be used to create sockets
+        </para>
+       </listitem>
+      </varlistentry>
+      
+      <varlistentry>
+       <term><varname>socketFactoryArg</varname> = <type>String</type></term>
+       <listitem>
+        <para>
+         Specifies a custom String argument used to create the custom socket factory
+        </para>
+       </listitem>
+      </varlistentry>
 
      </variablelist>
     </para>
