@@ -8,9 +8,13 @@
 */
 package org.postgresql.core.v2;
 
-import java.util.ArrayList;
+import org.postgresql.core.NativeQuery;
+import org.postgresql.core.ParameterList;
+import org.postgresql.core.Parser;
+import org.postgresql.core.ProtocolConnection;
+import org.postgresql.core.Query;
+
 import java.util.List;
-import org.postgresql.core.*;
 
 /**
  * Query implementation for all queries via the V2 protocol.
@@ -28,8 +32,9 @@ class V2Query implements Query {
     }
 
     public ParameterList createParameterList() {
-        if (nativeQuery.bindPositions.length == 0)
+        if (nativeQuery.bindPositions.length == 0) {
             return NO_PARAMETERS;
+        }
 
         return new SimpleParameterList(nativeQuery.bindPositions.length, useEStringSyntax);
     }
@@ -49,15 +54,14 @@ class V2Query implements Query {
         return false;
     }
 
-    public boolean isEmpty()
-    {
+    public boolean isEmpty() {
         return nativeQuery.nativeSql.isEmpty();
     }
 
     private static final ParameterList NO_PARAMETERS = new SimpleParameterList(0, false);
 
     private final NativeQuery nativeQuery;
-    
+
     private final boolean useEStringSyntax; // whether escaped string syntax should be used
 }
 

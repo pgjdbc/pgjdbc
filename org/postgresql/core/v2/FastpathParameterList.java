@@ -8,16 +8,17 @@
 */
 package org.postgresql.core.v2;
 
-import org.postgresql.core.*;
-
-import java.io.InputStream;
-import java.io.IOException;
-import java.sql.SQLException;
-import java.util.Arrays;
+import org.postgresql.core.PGStream;
+import org.postgresql.core.ParameterList;
+import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.StreamWrapper;
-import org.postgresql.util.GT;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.sql.SQLException;
+import java.util.Arrays;
 
 /**
  * Implementation of fastpath parameter lists for the V2 protocol.
@@ -32,33 +33,38 @@ class FastpathParameterList implements ParameterList {
         this.paramValues = new Object[paramCount];
     }
 
-    public void registerOutParameter(int index, int sqlType ){}
-    public void registerOutParameter(int index, int sqlType, int precision ){};
-    
+    public void registerOutParameter(int index, int sqlType) {
+    }
+
+    public void registerOutParameter(int index, int sqlType, int precision) {
+    }
+
     public int getInParameterCount() {
         return paramValues.length;
     }
-    public int getOutParameterCount()
-    {
+
+    public int getOutParameterCount() {
         return 0;
     }
-    public int getParameterCount()
-    {
+
+    public int getParameterCount() {
         return paramValues.length;
     }
+
     public int[] getTypeOIDs() {
         return null;
     }
-    
+
     public void setIntParameter(int index, int value) throws SQLException {
-        if (index < 1 || index > paramValues.length)
-            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{index, paramValues.length}), PSQLState.INVALID_PARAMETER_VALUE );
+        if (index < 1 || index > paramValues.length) {
+            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{index, paramValues.length}), PSQLState.INVALID_PARAMETER_VALUE);
+        }
 
         byte[] data = new byte[4];
-        data[3] = (byte)value;
-        data[2] = (byte)(value >> 8);
-        data[1] = (byte)(value >> 16);
-        data[0] = (byte)(value >> 24);
+        data[3] = (byte) value;
+        data[2] = (byte) (value >> 8);
+        data[1] = (byte) (value >> 16);
+        data[0] = (byte) (value >> 24);
 
         paramValues[index - 1] = data;
     }
@@ -73,23 +79,26 @@ class FastpathParameterList implements ParameterList {
     }
 
     public void setBytea(int index, byte[] data, int offset, int length) throws SQLException {
-        if (index < 1 || index > paramValues.length)
-            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{index, paramValues.length}), PSQLState.INVALID_PARAMETER_VALUE );
+        if (index < 1 || index > paramValues.length) {
+            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{index, paramValues.length}), PSQLState.INVALID_PARAMETER_VALUE);
+        }
 
         paramValues[index - 1] = new StreamWrapper(data, offset, length);
     }
 
     public void setBytea(int index, final InputStream stream, final int length) throws SQLException {
-        if (index < 1 || index > paramValues.length)
-            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{index, paramValues.length}), PSQLState.INVALID_PARAMETER_VALUE );
+        if (index < 1 || index > paramValues.length) {
+            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{index, paramValues.length}), PSQLState.INVALID_PARAMETER_VALUE);
+        }
 
         paramValues[index - 1] = new StreamWrapper(stream, length);
     }
 
     public void setBytea(int index, InputStream stream) throws SQLException
     {
-        if (index < 1 || index > paramValues.length)
-            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{index, paramValues.length}), PSQLState.INVALID_PARAMETER_VALUE );
+        if (index < 1 || index > paramValues.length) {
+            throw new PSQLException(GT.tr("The column index is out of range: {0}, number of columns: {1}.", new Object[]{index, paramValues.length}), PSQLState.INVALID_PARAMETER_VALUE);
+        }
 
         paramValues[index - 1] = new StreamWrapper(stream);
     }
@@ -99,18 +108,18 @@ class FastpathParameterList implements ParameterList {
     }
 
     public String toString(int index) {
-        if (index < 1 || index > paramValues.length)
+        if (index < 1 || index > paramValues.length) {
             throw new IllegalArgumentException("parameter " + index + " out of range");
+        }
 
         return "<fastpath parameter>";
     }
 
     private void copyStream(PGStream pgStream, StreamWrapper wrapper) throws IOException {
         byte[] rawData = wrapper.getBytes();
-        if (rawData != null)
-        {
+        if (rawData != null) {
             pgStream.Send(rawData, wrapper.getOffset(), wrapper.getLength());
-            return ;
+            return;
         }
 
         pgStream.SendStream(wrapper.getStream(), wrapper.getLength());
@@ -119,35 +128,28 @@ class FastpathParameterList implements ParameterList {
     void writeV2FastpathValue(int index, PGStream pgStream) throws IOException {
         --index;
 
-        if (paramValues[index] instanceof StreamWrapper)
-        {
-            StreamWrapper wrapper = (StreamWrapper)paramValues[index];
+        if (paramValues[index] instanceof StreamWrapper) {
+            StreamWrapper wrapper = (StreamWrapper) paramValues[index];
             pgStream.SendInteger4(wrapper.getLength());
             copyStream(pgStream, wrapper);
-        }
-        else if (paramValues[index] instanceof byte[])
-        {
-            byte[] data = (byte[])paramValues[index];
+        } else if (paramValues[index] instanceof byte[]) {
+            byte[] data = (byte[]) paramValues[index];
             pgStream.SendInteger4(data.length);
             pgStream.Send(data);
-        }
-        else if (paramValues[index] instanceof String)
-        {
-            byte[] data = pgStream.getEncoding().encode((String)paramValues[index]);
+        } else if (paramValues[index] instanceof String) {
+            byte[] data = pgStream.getEncoding().encode((String) paramValues[index]);
             pgStream.SendInteger4(data.length);
             pgStream.Send(data);
-        }
-        else
-        {
+        } else {
             throw new IllegalArgumentException("don't know how to stream parameter " + index);
         }
     }
 
     void checkAllParametersSet() throws SQLException {
-        for (int i = 0; i < paramValues.length; i++)
-        {
-            if (paramValues[i] == null)
+        for (int i = 0; i < paramValues.length; i++) {
+            if (paramValues[i] == null) {
                 throw new PSQLException(GT.tr("No value specified for parameter {0}.", i + 1), PSQLState.INVALID_PARAMETER_VALUE);
+            }
         }
     }
 

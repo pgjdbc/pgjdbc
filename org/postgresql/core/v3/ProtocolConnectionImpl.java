@@ -9,16 +9,21 @@
 package org.postgresql.core.v3;
 
 import org.postgresql.PGNotification;
-import org.postgresql.core.*;
+import org.postgresql.core.Encoding;
+import org.postgresql.core.Logger;
+import org.postgresql.core.PGStream;
+import org.postgresql.core.ProtocolConnection;
+import org.postgresql.core.QueryExecutor;
+import org.postgresql.core.Utils;
 import org.postgresql.util.HostSpec;
 
+import java.io.IOException;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Set;
 import java.util.HashSet;
 import java.util.Properties;
+import java.util.Set;
 
 
 /**
@@ -55,29 +60,27 @@ class ProtocolConnectionImpl implements ProtocolConnection {
     }
 
     public int getServerVersionNum() {
-        if (serverVersionNum != 0)
+        if (serverVersionNum != 0) {
             return serverVersionNum;
+        }
         return Utils.parseServerVersionStr(serverVersion);
     }
 
-    public synchronized boolean getStandardConformingStrings()
-    {
+    public synchronized boolean getStandardConformingStrings() {
         return standardConformingStrings;
     }
 
-    public synchronized int getTransactionState()
-    {
+    public synchronized int getTransactionState() {
         return transactionState;
     }
 
     public synchronized PGNotification[] getNotifications() throws SQLException {
-        PGNotification[] array = (PGNotification[])notifications.toArray(new PGNotification[notifications.size()]);
+        PGNotification[] array = (PGNotification[]) notifications.toArray(new PGNotification[notifications.size()]);
         notifications.clear();
         return array;
     }
 
-    public synchronized SQLWarning getWarnings()
-    {
+    public synchronized SQLWarning getWarnings() {
         SQLWarning chain = warnings;
         warnings = null;
         return chain;
@@ -91,10 +94,10 @@ class ProtocolConnectionImpl implements ProtocolConnection {
         PGStream cancelStream = null;
 
         // Now we need to construct and send a cancel packet
-        try
-        {
-            if (logger.logDebug())
+        try {
+            if (logger.logDebug()) {
                 logger.debug(" FE=> CancelRequest(pid=" + cancelPid + ",ckey=" + cancelKey + ")");
+            }
 
             cancelStream = new PGStream(pgStream.getHostSpec(), connectTimeout);
             cancelStream.SendInteger4(16);
@@ -106,23 +109,16 @@ class ProtocolConnectionImpl implements ProtocolConnection {
             cancelStream.ReceiveEOF();
             cancelStream.close();
             cancelStream = null;
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             // Safe to ignore.
-            if (logger.logDebug())
+            if (logger.logDebug()) {
                 logger.debug("Ignoring exception on cancel request:", e);
-        }
-        finally
-        {
-            if (cancelStream != null)
-            {
-                try
-                {
+            }
+        } finally {
+            if (cancelStream != null) {
+                try {
                     cancelStream.close();
-                }
-                catch (IOException e)
-                {
+                } catch (IOException e) {
                     // Ignored.
                 }
             }
@@ -130,24 +126,24 @@ class ProtocolConnectionImpl implements ProtocolConnection {
     }
 
     public void close() {
-        if (closed)
-            return ;
+        if (closed) {
+            return;
+        }
 
-        try
-        {
-            if (logger.logDebug())
+        try {
+            if (logger.logDebug()) {
                 logger.debug(" FE=> Terminate");
+            }
 
             pgStream.SendChar('X');
             pgStream.SendInteger4(4);
             pgStream.flush();
             pgStream.close();
-        }
-        catch (IOException ioe)
-        {
+        } catch (IOException ioe) {
             // Forget it.
-            if (logger.logDebug())
+            if (logger.logDebug()) {
                 logger.debug("Discarding IOException on close:", ioe);
+            }
         }
 
         closed = true;
@@ -171,7 +167,7 @@ class ProtocolConnectionImpl implements ProtocolConnection {
 
     void setServerVersionNum(int serverVersionNum) {
         this.serverVersionNum = serverVersionNum;
-    }  
+    }
 
     void setBackendKeyData(int cancelPid, int cancelKey) {
         this.cancelPid = cancelPid;
@@ -182,37 +178,31 @@ class ProtocolConnectionImpl implements ProtocolConnection {
     // Package-private accessors called by the query executor
     //
 
-    synchronized void addWarning(SQLWarning newWarning)
-    {
-        if (warnings == null)
+    synchronized void addWarning(SQLWarning newWarning) {
+        if (warnings == null) {
             warnings = newWarning;
-        else
+        } else
             warnings.setNextWarning(newWarning);
     }
 
-    synchronized void addNotification(PGNotification notification)
-    {
+    synchronized void addNotification(PGNotification notification) {
         notifications.add(notification);
     }
 
-    synchronized void setTransactionState(int state)
-    {
+    synchronized void setTransactionState(int state) {
         transactionState = state;
     }
 
-    synchronized void setStandardConformingStrings(boolean value)
-    {
+    synchronized void setStandardConformingStrings(boolean value) {
         standardConformingStrings = value;
     }
 
-    public int getProtocolVersion()
-    {
+    public int getProtocolVersion() {
         return 3;
     }
-    
-    public int getBackendPID()
-    {
-    	return cancelPid;
+
+    public int getBackendPID() {
+        return cancelPid;
     }
 
     public boolean useBinaryForReceive(int oid) {
@@ -233,27 +223,24 @@ class ProtocolConnectionImpl implements ProtocolConnection {
     }
 
     public void abort() {
-        try
-        {
+        try {
             pgStream.getSocket().close();
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             // ignore
         }
         closed = true;
     }
 
-   /**
+    /**
      * True if server uses integers for date and time fields. False if
      * server uses double.
      */
     private boolean integerDateTimes;
 
     /**
-    * Bit set that has a bit set for each oid which should be received
-    * using binary format.
-    */
+     * Bit set that has a bit set for each oid which should be received
+     * using binary format.
+     */
     private final Set<Integer> useBinaryForOids = new HashSet<Integer>();
     private String serverVersion;
     private int serverVersionNum = 0;

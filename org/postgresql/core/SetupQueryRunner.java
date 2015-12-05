@@ -8,13 +8,13 @@
 */
 package org.postgresql.core;
 
-import java.util.List;
-import java.sql.SQLWarning;
-import java.sql.SQLException;
-
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+
+import java.sql.SQLException;
+import java.sql.SQLWarning;
+import java.util.List;
 
 /**
  * Poor man's Statement & ResultSet, used for initial queries while we're
@@ -48,15 +48,17 @@ public class SetupQueryRunner {
         }
 
         public void handleError(SQLException newError) {
-            if (error == null)
+            if (error == null) {
                 error = newError;
-            else
+            } else {
                 error.setNextException(newError);
+            }
         }
 
         public void handleCompletion() throws SQLException {
-            if (error != null)
+            if (error != null) {
                 throw error;
+            }
         }
     }
 
@@ -66,24 +68,24 @@ public class SetupQueryRunner {
         SimpleResultHandler handler = new SimpleResultHandler(protoConnection);
 
         int flags = QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_SUPPRESS_BEGIN;
-        if (!wantResults)
+        if (!wantResults) {
             flags |= QueryExecutor.QUERY_NO_RESULTS | QueryExecutor.QUERY_NO_METADATA;
-
-        try
-        {
-            executor.execute(query, null, handler, 0, 0, flags);
         }
-        finally
-        {
+
+        try {
+            executor.execute(query, null, handler, 0, 0, flags);
+        } finally {
             query.close();
         }
 
-        if (!wantResults)
+        if (!wantResults) {
             return null;
+        }
 
         List tuples = handler.getResults();
-        if (tuples == null || tuples.size() != 1)
+        if (tuples == null || tuples.size() != 1) {
             throw new PSQLException(GT.tr("An unexpected result was returned by a query."), PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+        }
 
         return (byte[][]) tuples.get(0);
     }

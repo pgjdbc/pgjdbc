@@ -7,31 +7,30 @@
 */
 package org.postgresql.core;
 
+import org.postgresql.util.GT;
+import org.postgresql.util.HostSpec;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+
 import java.io.BufferedOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.EOFException;
 import java.io.FilterOutputStream;
 import java.io.IOException;
-import java.io.EOFException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.Writer;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.sql.SQLException;
 
-import org.postgresql.util.GT;
-import org.postgresql.util.HostSpec;
-import org.postgresql.util.PSQLState;
-import org.postgresql.util.PSQLException;
-
 /**
  * Wrapper around the raw connection to the server that implements some basic
  * primitives (reading/writing formatted data, doing string encoding, etc).
- *<p>
+ * <p>
  * In general, instances of PGStream are not threadsafe; the caller must ensure
  * that only one thread at a time is accessing a particular PGStream instance.
  */
-public class PGStream
-{
+public class PGStream {
     private final HostSpec hostSpec;
 
     private final byte[] _int4buf;
@@ -50,11 +49,10 @@ public class PGStream
      * a stream connection.
      *
      * @param hostSpec the host and port to connect to
-     * @param timeout timeout in milliseconds, or 0 if no timeout set
-     * @exception IOException if an IOException occurs below it.
+     * @param timeout  timeout in milliseconds, or 0 if no timeout set
+     * @throws IOException if an IOException occurs below it.
      */
-    public PGStream(HostSpec hostSpec, int timeout) throws IOException
-    {
+    public PGStream(HostSpec hostSpec, int timeout) throws IOException {
         this.hostSpec = hostSpec;
 
         Socket socket = new Socket();
@@ -75,7 +73,7 @@ public class PGStream
      * @deprecated use {@link #PGStream(org.postgresql.util.HostSpec, int)}
      */
     public PGStream(HostSpec hostSpec) throws IOException {
-      this(hostSpec, 0);
+        this(hostSpec, 0);
     }
 
     public HostSpec getHostSpec() {
@@ -94,6 +92,7 @@ public class PGStream
      * notifies from the backend, when available.
      *
      * @return true if there is a pending backend message
+     * @throws IOException
      */
     public boolean hasMessagePending() throws IOException {
         return pg_input.available() > 0 || connection.getInputStream().available() > 0;
@@ -119,8 +118,9 @@ public class PGStream
         pg_input = new VisibleBufferedInputStream(connection.getInputStream(), 8192);
         pg_output = new BufferedOutputStream(connection.getOutputStream(), 8192);
 
-        if (encoding != null)
+        if (encoding != null) {
             setEncoding(encoding);
+        }
     }
 
     public Encoding getEncoding() {
@@ -135,27 +135,29 @@ public class PGStream
      */
     public void setEncoding(Encoding encoding) throws IOException {
         // Close down any old writer.
-        if (encodingWriter != null)
+        if (encodingWriter != null) {
             encodingWriter.close();
+        }
 
         this.encoding = encoding;
 
         // Intercept flush() downcalls from the writer; our caller
         // will call PGStream.flush() as needed.
         OutputStream interceptor = new FilterOutputStream(pg_output) {
-                                       public void flush() throws IOException {
-                                       }
-                                       public void close() throws IOException {
-                                           super.flush();
-                                       }
-                                   };
+            public void flush() throws IOException {
+            }
+
+            public void close() throws IOException {
+                super.flush();
+            }
+        };
 
         encodingWriter = encoding.getEncodingWriter(interceptor);
     }
 
     /**
      * Get a Writer instance that encodes directly onto the underlying stream.
-     *<p>
+     * <p>
      * The returned Writer should not be closed, as it's a shared object.
      * Writer.flush needs to be called when switching between use of the Writer and
      * use of the PGStream write methods, but it won't actually flush output
@@ -166,74 +168,71 @@ public class PGStream
      * @throws IOException if something goes wrong.
      */
     public Writer getEncodingWriter() throws IOException {
-        if (encodingWriter == null)
+        if (encodingWriter == null) {
             throw new IOException("No encoding has been set on this connection");
+        }
         return encodingWriter;
     }
 
     /**
-     * Sends a single character to the back end
+     * Sends a single character to the back end.
      *
      * @param val the character to be sent
-     * @exception IOException if an I/O error occurs
+     * @throws IOException if an I/O error occurs
      */
-    public void SendChar(int val) throws IOException
-    {
+    public void SendChar(int val) throws IOException {
         pg_output.write(val);
     }
 
     /**
-     * Sends a 4-byte integer to the back end
+     * Sends a 4-byte integer to the back end.
      *
      * @param val the integer to be sent
-     * @exception IOException if an I/O error occurs
+     * @throws IOException if an I/O error occurs
      */
-    public void SendInteger4(int val) throws IOException
-    {
-        _int4buf[0] = (byte)(val >>> 24);
-        _int4buf[1] = (byte)(val >>> 16);
-        _int4buf[2] = (byte)(val >>> 8);
-        _int4buf[3] = (byte)(val);
+    public void SendInteger4(int val) throws IOException {
+        _int4buf[0] = (byte) (val >>> 24);
+        _int4buf[1] = (byte) (val >>> 16);
+        _int4buf[2] = (byte) (val >>> 8);
+        _int4buf[3] = (byte) (val);
         pg_output.write(_int4buf);
     }
 
     /**
-     * Sends a 2-byte integer (short) to the back end
+     * Sends a 2-byte integer (short) to the back end.
      *
      * @param val the integer to be sent
-     * @exception IOException if an I/O error occurs or <code>val</code> cannot be encoded in 2 bytes
+     * @throws IOException if an I/O error occurs or <code>val</code> cannot be encoded in 2 bytes
      */
-    public void SendInteger2(int val) throws IOException
-    {
-        if (val < Short.MIN_VALUE || val > Short.MAX_VALUE)
+    public void SendInteger2(int val) throws IOException {
+        if (val < Short.MIN_VALUE || val > Short.MAX_VALUE) {
             throw new IOException("Tried to send an out-of-range integer as a 2-byte value: " + val);
+        }
 
-        _int2buf[0] = (byte)(val >>> 8);
-        _int2buf[1] = (byte)val;
+        _int2buf[0] = (byte) (val >>> 8);
+        _int2buf[1] = (byte) val;
         pg_output.write(_int2buf);
     }
 
     /**
-     * Send an array of bytes to the backend
+     * Send an array of bytes to the backend.
      *
      * @param buf The array of bytes to be sent
-     * @exception IOException if an I/O error occurs
+     * @throws IOException if an I/O error occurs
      */
-    public void Send(byte buf[]) throws IOException
-    {
+    public void Send(byte buf[]) throws IOException {
         pg_output.write(buf);
     }
 
     /**
      * Send a fixed-size array of bytes to the backend. If buf.length < siz,
-     * pad with zeros. If buf.lengh > siz, truncate the array.
+     * pad with zeros. If buf.length > siz, truncate the array.
      *
      * @param buf the array of bytes to be sent
      * @param siz the number of bytes to be sent
-     * @exception IOException if an I/O error occurs
+     * @throws IOException if an I/O error occurs
      */
-    public void Send(byte buf[], int siz) throws IOException
-    {
+    public void Send(byte buf[], int siz) throws IOException {
         Send(buf, 0, siz);
     }
 
@@ -244,14 +243,12 @@ public class PGStream
      * @param buf the array of bytes to be sent
      * @param off offset in the array to start sending from
      * @param siz the number of bytes to be sent
-     * @exception IOException if an I/O error occurs
+     * @throws IOException if an I/O error occurs
      */
-    public void Send(byte buf[], int off, int siz) throws IOException
-    {
-	int bufamt = buf.length - off;
+    public void Send(byte buf[], int off, int siz) throws IOException {
+        int bufamt = buf.length - off;
         pg_output.write(buf, off, bufamt < siz ? bufamt : siz);
-        for (int i = bufamt ; i < siz ; ++i)
-        {
+        for (int i = bufamt; i < siz; ++i) {
             pg_output.write(0);
         }
     }
@@ -261,13 +258,13 @@ public class PGStream
      * advancing the current protocol stream position.
      *
      * @return the character received
-     * @exception IOException if an I/O Error occurs
+     * @throws IOException if an I/O Error occurs
      */
-    public int PeekChar() throws IOException
-    {
+    public int PeekChar() throws IOException {
         int c = pg_input.peek();
-        if (c < 0)
+        if (c < 0) {
             throw new EOFException();
+        }
         return c;
     }
 
@@ -275,13 +272,13 @@ public class PGStream
      * Receives a single character from the backend
      *
      * @return the character received
-     * @exception IOException if an I/O Error occurs
+     * @throws IOException if an I/O Error occurs
      */
-    public int ReceiveChar() throws IOException
-    {
+    public int ReceiveChar() throws IOException {
         int c = pg_input.read();
-        if (c < 0)
+        if (c < 0) {
             throw new EOFException();
+        }
         return c;
     }
 
@@ -289,26 +286,26 @@ public class PGStream
      * Receives a four byte integer from the backend
      *
      * @return the integer received from the backend
-     * @exception IOException if an I/O error occurs
+     * @throws IOException if an I/O error occurs
      */
-    public int ReceiveInteger4() throws IOException
-    {
-        if (pg_input.read(_int4buf) != 4)
+    public int ReceiveInteger4() throws IOException {
+        if (pg_input.read(_int4buf) != 4) {
             throw new EOFException();
+        }
 
         return (_int4buf[0] & 0xFF) << 24 | (_int4buf[1] & 0xFF) << 16 | (_int4buf[2] & 0xFF) << 8 | _int4buf[3] & 0xFF;
     }
 
     /**
-     * Receives a two byte integer from the backend
+     * Receives a two byte integer from the backend.
      *
      * @return the integer received from the backend
-     * @exception IOException if an I/O error occurs
+     * @throws IOException if an I/O error occurs
      */
-    public int ReceiveInteger2() throws IOException
-    {
-        if (pg_input.read(_int2buf) != 2)
+    public int ReceiveInteger2() throws IOException {
+        if (pg_input.read(_int2buf) != 2) {
             throw new EOFException();
+        }
 
         return (_int2buf[0] & 0xFF) << 8 | _int2buf[1] & 0xFF;
     }
@@ -318,6 +315,7 @@ public class PGStream
      *
      * @param len the length of the string to receive, in bytes.
      * @return the decoded string
+     * @throws IOException
      */
     public String ReceiveString(int len) throws IOException {
         if (!pg_input.ensureBytes(len)) {
@@ -325,7 +323,7 @@ public class PGStream
         }
 
         String res = encoding.decode(pg_input.getBuffer(), pg_input.getIndex(),
-                                     len);
+                len);
         pg_input.skip(len);
         return res;
     }
@@ -335,13 +333,12 @@ public class PGStream
      * null, then we assume something has gone wrong.
      *
      * @return string from back end
-     * @exception IOException if an I/O error occurs, or end of file
+     * @throws IOException if an I/O error occurs, or end of file
      */
-    public String ReceiveString() throws IOException
-    {
+    public String ReceiveString() throws IOException {
         int len = pg_input.scanCStringLength();
         String res = encoding.decode(pg_input.getBuffer(), pg_input.getIndex(),
-                                     len - 1);
+                len - 1);
         pg_input.skip(len);
         return res;
     }
@@ -353,10 +350,10 @@ public class PGStream
      *
      * @return null if the current response has no more tuples, otherwise
      * an array of bytearrays
-     * @exception IOException if a data I/O error occurs
+     * @throws IOException      if a data I/O error occurs
+     * @throws OutOfMemoryError
      */
-    public byte[][] ReceiveTupleV3() throws IOException, OutOfMemoryError
-    {
+    public byte[][] ReceiveTupleV3() throws IOException, OutOfMemoryError {
         //TODO: use l_msgSize
         int l_msgSize = ReceiveInteger4();
         int i;
@@ -364,22 +361,22 @@ public class PGStream
         byte[][] answer = new byte[l_nf][];
 
         OutOfMemoryError oom = null;
-        for (i = 0 ; i < l_nf ; ++i)
-        {
+        for (i = 0; i < l_nf; ++i) {
             int l_size = ReceiveInteger4();
             if (l_size != -1) {
                 try {
                     answer[i] = new byte[l_size];
                     Receive(answer[i], 0, l_size);
-                } catch(OutOfMemoryError oome) {
+                } catch (OutOfMemoryError oome) {
                     oom = oome;
                     Skip(l_size);
                 }
             }
         }
 
-        if (oom != null)
+        if (oom != null) {
             throw oom;
+        }
 
         return answer;
     }
@@ -389,14 +386,14 @@ public class PGStream
      * array of bytes. This variant reads the V2 protocol's tuple
      * representation.
      *
-     * @param nf the number of fields expected
+     * @param nf  the number of fields expected
      * @param bin true if the tuple is a binary tuple
      * @return null if the current response has no more tuples, otherwise
      * an array of bytearrays
-     * @exception IOException if a data I/O error occurs
+     * @throws IOException      if a data I/O error occurs
+     * @throws OutOfMemoryError
      */
-    public byte[][] ReceiveTupleV2(int nf, boolean bin) throws IOException, OutOfMemoryError
-    {
+    public byte[][] ReceiveTupleV2(int nf, boolean bin) throws IOException, OutOfMemoryError {
         int i, bim = (nf + 7) / 8;
         byte[] bitmask = Receive(bim);
         byte[][] answer = new byte[nf][];
@@ -405,17 +402,14 @@ public class PGStream
         int whichbyte = 0;
 
         OutOfMemoryError oom = null;
-        for (i = 0 ; i < nf ; ++i)
-        {
+        for (i = 0; i < nf; ++i) {
             boolean isNull = ((bitmask[whichbyte] & whichbit) == 0);
             whichbit >>= 1;
-            if (whichbit == 0)
-            {
+            if (whichbit == 0) {
                 ++whichbyte;
                 whichbit = 0x80;
             }
-            if (!isNull)
-            {
+            if (!isNull) {
                 int len = ReceiveInteger4();
                 if (!bin)
                     len -= 4;
@@ -424,7 +418,7 @@ public class PGStream
                 try {
                     answer[i] = new byte[len];
                     Receive(answer[i], 0, len);
-                } catch(OutOfMemoryError oome) {
+                } catch (OutOfMemoryError oome) {
                     oom = oome;
                     Skip(len);
                 }
@@ -438,36 +432,34 @@ public class PGStream
     }
 
     /**
-     * Reads in a given number of bytes from the backend
+     * Reads in a given number of bytes from the backend.
      *
      * @param siz number of bytes to read
      * @return array of bytes received
-     * @exception IOException if a data I/O error occurs
+     * @throws IOException if a data I/O error occurs
      */
-    public byte[] Receive(int siz) throws IOException
-    {
+    public byte[] Receive(int siz) throws IOException {
         byte[] answer = new byte[siz];
         Receive(answer, 0, siz);
         return answer;
     }
 
     /**
-     * Reads in a given number of bytes from the backend
+     * Reads in a given number of bytes from the backend.
      *
      * @param buf buffer to store result
      * @param off offset in buffer
      * @param siz number of bytes to read
-     * @exception IOException if a data I/O error occurs
+     * @throws IOException if a data I/O error occurs
      */
-    public void Receive(byte[] buf, int off, int siz) throws IOException
-    {
+    public void Receive(byte[] buf, int off, int siz) throws IOException {
         int s = 0;
 
-        while (s < siz)
-        {
+        while (s < siz) {
             int w = pg_input.read(buf, off + s, siz - s);
-            if (w < 0)
+            if (w < 0) {
                 throw new EOFException();
+            }
             s += w;
         }
     }
@@ -483,29 +475,27 @@ public class PGStream
     /**
      * Copy data from an input stream to the connection.
      *
-     * @param inStream the stream to read data from
+     * @param inStream  the stream to read data from
      * @param remaining the number of bytes to copy
+     * @throws IOException
      */
     public void SendStream(InputStream inStream, int remaining) throws IOException {
         int expectedLength = remaining;
-        if (streamBuffer == null)
+        if (streamBuffer == null) {
             streamBuffer = new byte[8192];
+        }
 
-        while (remaining > 0)
-        {
+        while (remaining > 0) {
             int count = (remaining > streamBuffer.length ? streamBuffer.length : remaining);
             int readCount;
 
-            try
-            {
+            try {
                 readCount = inStream.read(streamBuffer, 0, count);
-                if (readCount < 0)
+                if (readCount < 0) {
                     throw new EOFException(GT.tr("Premature end of input stream, expected {0} bytes, but only read {1}.", new Object[]{expectedLength, expectedLength - remaining}));
-            }
-            catch (IOException ioe)
-            {
-                while (remaining > 0)
-                {
+                }
+            } catch (IOException ioe) {
+                while (remaining > 0) {
                     Send(streamBuffer, count);
                     remaining -= count;
                     count = (remaining > streamBuffer.length ? streamBuffer.length : remaining);
@@ -519,39 +509,41 @@ public class PGStream
     }
 
 
-
     /**
      * Flush any pending output to the backend.
-     * @exception IOException if an I/O error occurs
+     *
+     * @throws IOException if an I/O error occurs
      */
-    public void flush() throws IOException
-    {
-        if (encodingWriter != null)
+    public void flush() throws IOException {
+        if (encodingWriter != null) {
             encodingWriter.flush();
+        }
         pg_output.flush();
     }
 
     /**
-     * Consume an expected EOF from the backend
-     * @exception SQLException if we get something other than an EOF
+     * Consume an expected EOF from the backend.
+     *
+     * @throws SQLException if we get something other than an EOF
+     * @throws IOException
      */
-    public void ReceiveEOF() throws SQLException, IOException
-    {
+    public void ReceiveEOF() throws SQLException, IOException {
         int c = pg_input.read();
-        if (c < 0)
+        if (c < 0) {
             return;
+        }
         throw new PSQLException(GT.tr("Expected an EOF from server, got: {0}", c), PSQLState.COMMUNICATION_ERROR);
     }
 
     /**
-     * Closes the connection
+     * Closes the connection.
      *
-     * @exception IOException if an I/O Error occurs
+     * @throws IOException if an I/O Error occurs
      */
-    public void close() throws IOException
-    {
-        if (encodingWriter != null)
+    public void close() throws IOException {
+        if (encodingWriter != null) {
             encodingWriter.close();
+        }
 
         pg_output.close();
         pg_input.close();

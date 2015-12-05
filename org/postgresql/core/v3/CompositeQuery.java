@@ -8,7 +8,7 @@
 */
 package org.postgresql.core.v3;
 
-import org.postgresql.core.*;
+import org.postgresql.core.ParameterList;
 
 /**
  * V3 Query implementation for queries that involve multiple statements.
@@ -26,15 +26,15 @@ class CompositeQuery implements V3Query {
 
     public ParameterList createParameterList() {
         SimpleParameterList[] subparams = new SimpleParameterList[subqueries.length];
-        for (int i = 0; i < subqueries.length; ++i)
-            subparams[i] = (SimpleParameterList)subqueries[i].createParameterList();
+        for (int i = 0; i < subqueries.length; ++i) {
+            subparams[i] = (SimpleParameterList) subqueries[i].createParameterList();
+        }
         return new CompositeParameterList(subparams, offsets);
     }
 
     public String toString(ParameterList parameters) {
         StringBuilder sbuf = new StringBuilder(subqueries[0].toString());
-        for (int i = 1; i < subqueries.length; ++i)
-        {
+        for (int i = 1; i < subqueries.length; ++i) {
             sbuf.append(';');
             sbuf.append(subqueries[i]);
         }
@@ -56,19 +56,20 @@ class CompositeQuery implements V3Query {
     }
 
     public boolean isStatementDescribed() {
-        for (SimpleQuery subquery : subqueries)
+        for (SimpleQuery subquery : subqueries) {
             if (!subquery.isStatementDescribed()) {
-                return false;
-            }
+                            return false;
+                        }
+        }
         return true;
     }
 
-    public boolean isEmpty()
-    {
-        for (SimpleQuery subquery : subqueries)
+    public boolean isEmpty() {
+        for (SimpleQuery subquery : subqueries) {
             if (!subquery.isEmpty()) {
-                return false;
-            }
+                            return false;
+                        }
+        }
         return true;
     }
 

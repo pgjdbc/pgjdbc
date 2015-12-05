@@ -13,8 +13,8 @@ import java.io.InputStream;
 
 /**
  * A faster version of BufferedInputStream. Does no synchronisation and
- * allows direct access to the used byte[] buffer. 
- * 
+ * allows direct access to the used byte[] buffer.
+ *
  * @author Mikko Tiihonen
  */
 public class VisibleBufferedInputStream extends InputStream {
@@ -26,7 +26,7 @@ public class VisibleBufferedInputStream extends InputStream {
      * reads are directly done to the provided byte array.
      */
     private static final int MINIMUM_READ = 1024;
-    
+
     /**
      * In how large spans is the C string zero-byte scanned.
      */
@@ -54,19 +54,20 @@ public class VisibleBufferedInputStream extends InputStream {
 
     /**
      * Creates a new buffer around the given stream.
-     * 
-     * @param in The stream to buffer.
-     * @param bufferSize The initial size of the buffer. 
+     *
+     * @param in         The stream to buffer.
+     * @param bufferSize The initial size of the buffer.
      */
     public VisibleBufferedInputStream(InputStream in, int bufferSize) {
         wrapped = in;
-        buffer = new byte[bufferSize < MINIMUM_READ ?
-                          MINIMUM_READ : bufferSize];
+        buffer = new byte[bufferSize < MINIMUM_READ
+                ? MINIMUM_READ : bufferSize];
     }
 
     /**
      * {@inheritDoc}
      */
+    @Override
     public int read() throws IOException {
         if (ensureBytes(1)) {
             return buffer[index++] & 0xFF;
@@ -89,10 +90,10 @@ public class VisibleBufferedInputStream extends InputStream {
      * reads from the underlaying stream.
      * Before calling this method the {@link #ensureBytes} method must
      * have been called.
-     * 
+     *
      * @return The next byte from the buffer.
      * @throws ArrayIndexOutOfBoundsException If ensureBytes was not called
-     * to make sure the buffer contains the byte.  
+     *                                        to make sure the buffer contains the byte.
      */
     public byte readRaw() {
         return buffer[index++];
@@ -101,7 +102,7 @@ public class VisibleBufferedInputStream extends InputStream {
     /**
      * Ensures that the buffer contains at least n bytes.
      * This method invalidates the buffer and index fields.
-     * 
+     *
      * @param n The amount of bytes to ensure exists in buffer
      * @return true if required bytes are available and false if EOF
      * @throws IOException If reading of the wrapped stream failed.
@@ -119,7 +120,7 @@ public class VisibleBufferedInputStream extends InputStream {
 
     /**
      * Reads more bytes into the buffer.
-     * 
+     *
      * @param wanted How much should be at least read.
      * @return True if at least some bytes were read.
      * @throws IOException If reading of the wrapped stream failed.
@@ -167,7 +168,7 @@ public class VisibleBufferedInputStream extends InputStream {
     /**
      * Moves bytes from the buffer to the begining of the destination buffer.
      * Also sets the index and endIndex variables.
-     * 
+     *
      * @param dest The destination buffer.
      */
     private void moveBufferTo(byte[] dest) {
@@ -211,7 +212,7 @@ public class VisibleBufferedInputStream extends InputStream {
         // good place to reset index because the buffer is fully drained
         index = 0;
         endIndex = 0;
-        
+
         // then directly from wrapped stream
         do {
             int r = wrapped.read(to, off, len);
@@ -260,8 +261,8 @@ public class VisibleBufferedInputStream extends InputStream {
      * Returns direct handle to the used buffer. Use the {@link #ensureBytes}
      * to prefill required bytes the buffer and {@link #getIndex} to fetch
      * the current position of the buffer.
-     *  
-     * @return The underlaying buffer. 
+     *
+     * @return The underlying buffer.
      */
     public byte[] getBuffer() {
         return buffer;
@@ -269,7 +270,7 @@ public class VisibleBufferedInputStream extends InputStream {
 
     /**
      * Returns the current read position in the buffer.
-     * 
+     *
      * @return the current read position in the buffer.
      */
     public int getIndex() {
@@ -279,14 +280,14 @@ public class VisibleBufferedInputStream extends InputStream {
     /**
      * Scans the length of the next null terminated string (C-style string) from
      * the stream.
-     * 
+     *
      * @return The length of the next null terminated string.
-     * @throws IOException If reading of stream fails.
-     * @throws EOFxception If the stream did not contain any null terminators.
+     * @throws IOException  If reading of stream fails.
+     * @throws EOFException If the stream did not contain any null terminators.
      */
     public int scanCStringLength() throws IOException {
         int pos = index;
-        for (;;) {
+        for (; ; ) {
             while (pos < endIndex) {
                 if (buffer[pos++] == '\0') {
                     return pos - index;

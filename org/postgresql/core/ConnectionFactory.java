@@ -8,15 +8,15 @@
 */
 package org.postgresql.core;
 
-import java.util.Properties;
-import java.io.IOException;
-import java.sql.SQLException;
-
 import org.postgresql.PGProperty;
+import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
-import org.postgresql.util.GT;
 import org.postgresql.util.PSQLState;
+
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.Properties;
 
 /**
  * Handles protocol-specific connection setup.
@@ -31,8 +31,8 @@ public abstract class ConnectionFactory {
      * connection is returned.
      */
     private static final Object[][] versions = {
-                { "3", new org.postgresql.core.v3.ConnectionFactoryImpl() },
-                { "2", new org.postgresql.core.v2.ConnectionFactoryImpl() },
+                {"3", new org.postgresql.core.v3.ConnectionFactoryImpl() },
+                {"2", new org.postgresql.core.v2.ConnectionFactoryImpl() },
             };
 
     /**
@@ -58,13 +58,15 @@ public abstract class ConnectionFactory {
 
         for (Object[] version : versions) {
             String versionProtoName = (String) version[0];
-            if (protoName != null && !protoName.equals(versionProtoName))
+            if (protoName != null && !protoName.equals(versionProtoName)) {
                 continue;
+            }
 
             ConnectionFactory factory = (ConnectionFactory) version[1];
             ProtocolConnection connection = factory.openConnectionImpl(hostSpecs, user, database, info, logger);
-            if (connection != null)
+            if (connection != null) {
                 return connection;
+            }
         }
 
         throw new PSQLException(GT.tr("A connection could not be made using the requested protocol {0}.", protoName),
@@ -94,14 +96,10 @@ public abstract class ConnectionFactory {
      * @param newStream The stream to close.
      */
     protected void closeStream(PGStream newStream) {
-        if (newStream != null)
-        {
-            try
-            {
+        if (newStream != null) {
+            try {
                 newStream.close();
-            }
-            catch (IOException e)
-            {
+            } catch (IOException e) {
             }
         }
     }
