@@ -59,8 +59,9 @@ public final class Logger {
     }
 
     public void debug(String str, Throwable t) {
-        if (logDebug())
+        if (logDebug()) {
             log(str, t);
+        }
     }
 
     public void info(String str) {
@@ -68,27 +69,30 @@ public final class Logger {
     }
 
     public void info(String str, Throwable t) {
-        if (logInfo())
+        if (logInfo()) {
             log(str, t);
+        }
     }
 
     public void log(String str, Throwable t) {
         PrintWriter writer = DriverManager.getLogWriter();
-        if (writer == null)
+        if (writer == null) {
             return;
+        }
 
         synchronized (this) {
             buffer.setLength(0);
             dateFormat.format(new Date(), buffer, dummyPosition);
             buffer.append(connectionIDString);
             buffer.append(str);
-            
+
             // synchronize to ensure that the exception (if any) does
             // not get split up from the corresponding log message
             synchronized (writer) {
-                writer.println(buffer.toString());        
-                if (t != null)
+                writer.println(buffer.toString());
+                if (t != null) {
                     t.printStackTrace(writer);
+                }
             }
             writer.flush();
         }

@@ -8,7 +8,11 @@
 */
 package org.postgresql.core.v3;
 
-import org.postgresql.core.*;
+import org.postgresql.core.Field;
+import org.postgresql.core.NativeQuery;
+import org.postgresql.core.Oid;
+import org.postgresql.core.ParameterList;
+import org.postgresql.core.Utils;
 
 import java.lang.ref.PhantomReference;
 
@@ -17,20 +21,20 @@ import java.lang.ref.PhantomReference;
  * This also holds the state of any associated server-side
  * named statement. We use a PhantomReference managed by
  * the QueryExecutor to handle statement cleanup.
- * 
+ *
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 class SimpleQuery implements V3Query {
 
-    SimpleQuery(NativeQuery query, ProtocolConnectionImpl protoConnection)
-    {
+    SimpleQuery(NativeQuery query, ProtocolConnectionImpl protoConnection) {
         this.nativeQuery = query;
         this.protoConnection = protoConnection;
     }
 
     public ParameterList createParameterList() {
-        if (nativeQuery.bindPositions.length == 0)
+        if (nativeQuery.bindPositions.length == 0) {
             return NO_PARAMETERS;
+        }
 
         return new SimpleParameterList(nativeQuery.bindPositions.length, protoConnection);
     }
@@ -55,44 +59,44 @@ class SimpleQuery implements V3Query {
         return null;
     }
 
-	/*
-	 * Return maximum size in bytes that each result row from this query may
-	 * return. Mainly used for batches that return results.
-	 *
-	 * Results are cached until/unless the query is re-described.
-	 *
-	 * @return Max size of result data in bytes according to returned fields, 0
-	 * if no results, -1 if result is unbounded.
-	 *
-	 * @throws IllegalStateException if the query is not described
-	 */
-	public int getMaxResultRowSize() {
-		if (cachedMaxResultRowSize != null) {
-			return cachedMaxResultRowSize;
-		}
-		if (!this.statementDescribed) {
-			throw new IllegalStateException(
-					"Cannot estimate result row size on a statement that is not described");
-		}
-		int maxResultRowSize = 0;
-		if (fields != null) {
+    /*
+     * Return maximum size in bytes that each result row from this query may
+     * return. Mainly used for batches that return results.
+     *
+     * Results are cached until/unless the query is re-described.
+     *
+     * @return Max size of result data in bytes according to returned fields, 0
+     * if no results, -1 if result is unbounded.
+     *
+     * @throws IllegalStateException if the query is not described
+     */
+    public int getMaxResultRowSize() {
+        if (cachedMaxResultRowSize != null) {
+            return cachedMaxResultRowSize;
+        }
+        if (!this.statementDescribed) {
+            throw new IllegalStateException(
+                    "Cannot estimate result row size on a statement that is not described");
+        }
+        int maxResultRowSize = 0;
+        if (fields != null) {
             for (Field f : fields) {
                 final int fieldLength = f.getLength();
                 if (fieldLength < 1 || fieldLength >= 65535) {
                     /*
-					 * Field length unknown or large; we can't make any safe
-					 * estimates about the result size, so we have to fall back to
-					 * sending queries individually.
-					 */
+                     * Field length unknown or large; we can't make any safe
+                     * estimates about the result size, so we have to fall back to
+                     * sending queries individually.
+                     */
                     maxResultRowSize = -1;
                     break;
                 }
                 maxResultRowSize += fieldLength;
             }
-		}
-		cachedMaxResultRowSize = maxResultRowSize;
-		return maxResultRowSize;
-	}
+        }
+        cachedMaxResultRowSize = maxResultRowSize;
+        return maxResultRowSize;
+    }
 
     //
     // Implementation guts
@@ -120,24 +124,29 @@ class SimpleQuery implements V3Query {
     }
 
     boolean isPreparedFor(int[] paramTypes) {
-        if (statementName == null)
+        if (statementName == null) {
             return false; // Not prepared.
+        }
 
         // Check for compatible types.
-        for (int i = 0; i < paramTypes.length; ++i)
-            if (paramTypes[i] != Oid.UNSPECIFIED && paramTypes[i] != preparedTypes[i])
+        for (int i = 0; i < paramTypes.length; ++i) {
+            if (paramTypes[i] != Oid.UNSPECIFIED && paramTypes[i] != preparedTypes[i]) {
                 return false;
+            }
+        }
 
         return true;
     }
 
     boolean hasUnresolvedTypes() {
-        if (preparedTypes == null)
+        if (preparedTypes == null) {
             return true;
+        }
 
         for (int preparedType : preparedTypes) {
-            if (preparedType == Oid.UNSPECIFIED)
+            if (preparedType == Oid.UNSPECIFIED) {
                 return true;
+            }
         }
 
         return false;
@@ -173,6 +182,7 @@ class SimpleQuery implements V3Query {
      * Returns true if current query needs field formats be adjusted as per connection configuration.
      * Subsequent invocations would return {@code false}.
      * The idea is to perform adjustments only once, not for each {@link QueryExecutorImpl#sendBind(SimpleQuery, SimpleParameterList, Portal, boolean)}.
+     *
      * @return true if current query needs field formats be adjusted as per connection configuration
      */
     boolean needUpdateFieldFormats() {
@@ -196,6 +206,7 @@ class SimpleQuery implements V3Query {
     boolean isPortalDescribed() {
         return portalDescribed;
     }
+
     void setPortalDescribed(boolean portalDescribed) {
         this.portalDescribed = portalDescribed;
         this.cachedMaxResultRowSize = null;
@@ -206,13 +217,13 @@ class SimpleQuery implements V3Query {
     public boolean isStatementDescribed() {
         return statementDescribed;
     }
+
     void setStatementDescribed(boolean statementDescribed) {
         this.statementDescribed = statementDescribed;
         this.cachedMaxResultRowSize = null;
     }
 
-    public boolean isEmpty()
-    {
+    public boolean isEmpty() {
         return getNativeSql().isEmpty();
     }
 
@@ -225,8 +236,7 @@ class SimpleQuery implements V3Query {
     }
 
     void unprepare() {
-        if (cleanupRef != null)
-        {
+        if (cleanupRef != null) {
             cleanupRef.clear();
             cleanupRef.enqueue();
             cleanupRef = null;
@@ -246,7 +256,7 @@ class SimpleQuery implements V3Query {
     private String statementName;
     private byte[] encodedStatementName;
     /**
-     * The stored fields from previous execution or describe of a prepared 
+     * The stored fields from previous execution or describe of a prepared
      * statement. Always null for non-prepared statements.
      */
     private Field[] fields;
@@ -259,7 +269,7 @@ class SimpleQuery implements V3Query {
 
     private Integer cachedMaxResultRowSize;
 
-    final static SimpleParameterList NO_PARAMETERS = new SimpleParameterList(0, null);
+    static final SimpleParameterList NO_PARAMETERS = new SimpleParameterList(0, null);
 }
 
 

@@ -8,8 +8,8 @@
 */
 package org.postgresql.core;
 
-import java.sql.SQLException;
 import java.io.InputStream;
+import java.sql.SQLException;
 
 /**
  * Abstraction of a list of parameters to be substituted into a Query.
@@ -26,9 +26,8 @@ import java.io.InputStream;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 public interface ParameterList {
-    
-    
-    void registerOutParameter( int index, int sqlType ) throws SQLException;
+
+    void registerOutParameter(int index, int sqlType) throws SQLException;
     /**
      * Get the number of parameters in this list. This value never changes
      * for a particular instance, and might be zero.
@@ -36,17 +35,17 @@ public interface ParameterList {
      * @return the number of parameters in this list.
      */
     int getParameterCount();
-    
+
     /**
-     * Get the number of IN parameters in this list. 
-     * 
+     * Get the number of IN parameters in this list.
+     *
      * @return the number of IN parameters in this list
      */
     int getInParameterCount();
 
     /**
-     * Get the number of OUT parameters in this list. 
-     * 
+     * Get the number of OUT parameters in this list.
+     *
      * @return the number of OUT parameters in this list
      */
     int getOutParameterCount();
@@ -55,7 +54,7 @@ public interface ParameterList {
      * Return the oids of the parameters in this list.  May be null for
      * a ParameterList that does not support typing of parameters.
      */
-    public int[] getTypeOIDs();
+    int[] getTypeOIDs();
 
     /**
      * Binds an integer value to a parameter. The type of the parameter is

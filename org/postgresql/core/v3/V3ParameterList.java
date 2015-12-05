@@ -8,12 +8,13 @@
 */
 package org.postgresql.core.v3;
 
-import java.sql.SQLException;
 import org.postgresql.core.ParameterList;
+
+import java.sql.SQLException;
 
 /**
  * Common interface for all V3 parameter list implementations.
- * 
+ *
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 interface V3ParameterList extends ParameterList {
@@ -39,11 +40,8 @@ interface V3ParameterList extends ParameterList {
      * construction in the common case).
      *
      * @return an array of single-statement parameter lists, or
-     *   <code>null</code> if this object is already a single-statement
-     *   parameter list.
+     * <code>null</code> if this object is already a single-statement
+     * parameter list.
      */
     SimpleParameterList[] getSubparams();
-    
-   
-    
 }

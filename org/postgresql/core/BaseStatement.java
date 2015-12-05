@@ -8,15 +8,17 @@
 package org.postgresql.core;
 
 import org.postgresql.PGStatement;
-import java.sql.*;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
 
 /**
  * Driver-internal statement interface. Application code should not use
  * this interface.
  */
-public interface BaseStatement extends PGStatement, Statement
-{
+public interface BaseStatement extends PGStatement, Statement {
     /**
      * Create a synthetic resultset from data provided by the driver.
      *
@@ -25,7 +27,7 @@ public interface BaseStatement extends PGStatement, Statement
      * @return the new ResultSet
      * @throws SQLException if something goes wrong
      */
-    public ResultSet createDriverResultSet(Field[] fields, List tuples) throws SQLException;
+    ResultSet createDriverResultSet(Field[] fields, List tuples) throws SQLException;
 
     /**
      * Create a resultset from data retrieved from the server.
@@ -37,7 +39,7 @@ public interface BaseStatement extends PGStatement, Statement
      * @return the new ResultSet
      * @throws SQLException if something goes wrong
      */
-    public ResultSet createResultSet(Query originalQuery, Field[] fields, List tuples, ResultCursor cursor) throws SQLException;
+    ResultSet createResultSet(Query originalQuery, Field[] fields, List tuples, ResultCursor cursor) throws SQLException;
 
     /**
      * Execute a query, passing additional query flags.
@@ -47,7 +49,7 @@ public interface BaseStatement extends PGStatement, Statement
      *  are bitwise-ORed into the default flags.
      * @throws SQLException if something goes wrong.
      */
-    public boolean executeWithFlags(String p_sql, int flags) throws SQLException;
+    boolean executeWithFlags(String p_sql, int flags) throws SQLException;
 
     /**
      * Execute a prepared query, passing additional query flags.
@@ -56,5 +58,5 @@ public interface BaseStatement extends PGStatement, Statement
      *  are bitwise-ORed into the default flags.
      * @throws SQLException if something goes wrong.
      */
-    public boolean executeWithFlags(int flags) throws SQLException;
+    boolean executeWithFlags(int flags) throws SQLException;
 }

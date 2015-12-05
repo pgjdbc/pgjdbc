@@ -7,57 +7,61 @@
 */
 package org.postgresql.core;
 
-import java.io.IOException;
 import org.postgresql.util.GT;
 
-class UTF8Encoding extends Encoding {
-    UTF8Encoding(String jvmEncoding) {
-        super(jvmEncoding);
-    }
+import java.io.IOException;
 
+class UTF8Encoding extends Encoding {
     private static final int MIN_2_BYTES = 0x80;
     private static final int MIN_3_BYTES = 0x800;
     private static final int MIN_4_BYTES = 0x10000;
     private static final int MAX_CODE_POINT = 0x10ffff;
 
     private char[] decoderArray = new char[1024];
-    
-    // helper for decode
-    private final static void checkByte(int ch, int pos, int len) throws IOException {
-        if ((ch & 0xc0) != 0x80)
-            throw new IOException(GT.tr("Illegal UTF-8 sequence: byte {0} of {1} byte sequence is not 10xxxxxx: {2}",
-                                        new Object[] {pos, len, ch}));
-    }    
 
-    private final static void checkMinimal(int ch, int minValue) throws IOException {
-        if (ch >= minValue)
+    UTF8Encoding(String jvmEncoding) {
+        super(jvmEncoding);
+    }
+
+    // helper for decode
+    private static void checkByte(int ch, int pos, int len) throws IOException {
+        if ((ch & 0xc0) != 0x80) {
+            throw new IOException(GT.tr("Illegal UTF-8 sequence: byte {0} of {1} byte sequence is not 10xxxxxx: {2}",
+                    new Object[]{pos, len, ch}));
+        }
+    }
+
+    private static void checkMinimal(int ch, int minValue) throws IOException {
+        if (ch >= minValue) {
             return;
+        }
 
         int actualLen;
         switch (minValue) {
-        case MIN_2_BYTES:
-            actualLen = 2;
-            break;
-        case MIN_3_BYTES:
-            actualLen = 3;
-            break;
-        case MIN_4_BYTES:
-            actualLen = 4;
-            break;
-        default:
-            throw new IllegalArgumentException("unexpected minValue passed to checkMinimal: " + minValue);
+            case MIN_2_BYTES:
+                actualLen = 2;
+                break;
+            case MIN_3_BYTES:
+                actualLen = 3;
+                break;
+            case MIN_4_BYTES:
+                actualLen = 4;
+                break;
+            default:
+                throw new IllegalArgumentException("unexpected minValue passed to checkMinimal: " + minValue);
         }
-            
+
         int expectedLen;
-        if (ch < MIN_2_BYTES)
+        if (ch < MIN_2_BYTES) {
             expectedLen = 1;
-        else if (ch < MIN_3_BYTES)
+        } else if (ch < MIN_3_BYTES) {
             expectedLen = 2;
-        else if (ch < MIN_4_BYTES)
+        } else if (ch < MIN_4_BYTES) {
             expectedLen = 3;
-        else
+        } else {
             throw new IllegalArgumentException("unexpected ch passed to checkMinimal: " + ch);
-        
+        }
+
         throw new IOException(GT.tr("Illegal UTF-8 sequence: {0} bytes used to encode a {1} byte value: {2}",
                                     new Object[] {actualLen, expectedLen, ch}));
     }
@@ -77,27 +81,26 @@ class UTF8Encoding extends Encoding {
      */
     public synchronized String decode(byte[] data, int offset, int length) throws IOException {
         char[] cdata = decoderArray;
-        if (cdata.length < length)
+        if (cdata.length < length) {
             cdata = decoderArray = new char[length];
+        }
 
         int in = offset;
         int out = 0;
         int end = length + offset;
 
-        try
-        {
-            while (in < end)
-            {
+        try {
+            while (in < end) {
                 int ch = data[in++] & 0xff;
-                
+
                 // Convert UTF-8 to 21-bit codepoint.
                 if (ch < 0x80) {
                     // 0xxxxxxx -- length 1.
                 } else if (ch < 0xc0) {
                     // 10xxxxxx -- illegal!
                     throw new IOException(GT.tr("Illegal UTF-8 sequence: initial byte is {0}: {1}",
-                                                new Object[] { "10xxxxxx", ch}));
-                } else if (ch < 0xe0) { 
+                            new Object[]{"10xxxxxx", ch}));
+                } else if (ch < 0xe0) {
                     // 110xxxxx 10xxxxxx
                     ch = ((ch & 0x1f) << 6);
                     checkByte(data[in], 2, 2);
@@ -123,18 +126,19 @@ class UTF8Encoding extends Encoding {
                     checkMinimal(ch, MIN_4_BYTES);
                 } else {
                     throw new IOException(GT.tr("Illegal UTF-8 sequence: initial byte is {0}: {1}",
-                                                new Object[] { "11111xxx", ch}));
+                            new Object[]{"11111xxx", ch}));
                 }
-                
-                if (ch > MAX_CODE_POINT)
+
+                if (ch > MAX_CODE_POINT) {
                     throw new IOException(GT.tr("Illegal UTF-8 sequence: final value is out of range: {0}",
-                            ch));
+                                                ch));
+                }
 
                 // Convert 21-bit codepoint to Java chars:
                 //   0..ffff are represented directly as a single char
                 //   10000..10ffff are represented as a "surrogate pair" of two chars
                 // See: http://java.sun.com/developer/technicalArticles/Intl/Supplementary/
-                
+
                 if (ch > 0xffff) {
                     // Use a surrogate pair to represent it.
                     ch -= 0x10000;  // ch is now 0..fffff (20 bits)
@@ -149,15 +153,14 @@ class UTF8Encoding extends Encoding {
                     cdata[out++] = (char) ch;
                 }
             }
-        }
-        catch (ArrayIndexOutOfBoundsException a)
-        {
+        } catch (ArrayIndexOutOfBoundsException a) {
             throw new IOException("Illegal UTF-8 sequence: multibyte sequence was truncated");
         }
 
         // Check if we ran past the end without seeing an exception.
-        if (in > end)
+        if (in > end) {
             throw new IOException("Illegal UTF-8 sequence: multibyte sequence was truncated");
+        }
 
         return new String(cdata, 0, out);
     }

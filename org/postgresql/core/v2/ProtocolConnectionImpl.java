@@ -8,15 +8,20 @@
 */
 package org.postgresql.core.v2;
 
+import org.postgresql.PGNotification;
+import org.postgresql.core.Encoding;
+import org.postgresql.core.Logger;
+import org.postgresql.core.PGStream;
+import org.postgresql.core.ProtocolConnection;
+import org.postgresql.core.QueryExecutor;
+import org.postgresql.core.Utils;
+import org.postgresql.util.HostSpec;
+
+import java.io.IOException;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Set;
-
-import org.postgresql.PGNotification;
-import org.postgresql.core.*;
-import org.postgresql.util.HostSpec;
 
 /**
  * V2 implementation of ProtocolConnection.
@@ -50,29 +55,27 @@ class ProtocolConnectionImpl implements ProtocolConnection {
     }
 
     public int getServerVersionNum() {
-        if (serverVersionNum != 0)
+        if (serverVersionNum != 0) {
             return serverVersionNum;
+        }
         return Utils.parseServerVersionStr(serverVersion);
     }
 
-    public synchronized boolean getStandardConformingStrings()
-    {
+    public synchronized boolean getStandardConformingStrings() {
         return standardConformingStrings;
     }
 
-    public synchronized int getTransactionState()
-    {
+    public synchronized int getTransactionState() {
         return transactionState;
     }
 
     public synchronized PGNotification[] getNotifications() throws SQLException {
-        PGNotification[] array = (PGNotification[])notifications.toArray(new PGNotification[notifications.size()]);
+        PGNotification[] array = (PGNotification[]) notifications.toArray(new PGNotification[notifications.size()]);
         notifications.clear();
         return array;
     }
 
-    public synchronized SQLWarning getWarnings()
-    {
+    public synchronized SQLWarning getWarnings() {
         SQLWarning chain = warnings;
         warnings = null;
         return chain;
@@ -83,16 +86,17 @@ class ProtocolConnectionImpl implements ProtocolConnection {
     }
 
     public void sendQueryCancel() throws SQLException {
-        if (cancelPid <= 0)
-            return ;
+        if (cancelPid <= 0) {
+            return;
+        }
 
         PGStream cancelStream = null;
 
         // Now we need to construct and send a cancel packet
-        try
-        {
-            if (logger.logDebug())
+        try {
+            if (logger.logDebug()) {
                 logger.debug(" FE=> CancelRequest(pid=" + cancelPid + ",ckey=" + cancelKey + ")");
+            }
 
             cancelStream = new PGStream(pgStream.getHostSpec(), connectTimeout);
             cancelStream.SendInteger4(16);
@@ -104,23 +108,16 @@ class ProtocolConnectionImpl implements ProtocolConnection {
             cancelStream.ReceiveEOF();
             cancelStream.close();
             cancelStream = null;
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             // Safe to ignore.
-            if (logger.logDebug())
+            if (logger.logDebug()) {
                 logger.debug("Ignoring exception on cancel request:", e);
-        }
-        finally
-        {
-            if (cancelStream != null)
-            {
-                try
-                {
+            }
+        } finally {
+            if (cancelStream != null) {
+                try {
                     cancelStream.close();
-                }
-                catch (IOException e)
-                {
+                } catch (IOException e) {
                     // Ignored.
                 }
             }
@@ -128,22 +125,22 @@ class ProtocolConnectionImpl implements ProtocolConnection {
     }
 
     public void close() {
-        if (closed)
-            return ;
+        if (closed) {
+            return;
+        }
 
-        try
-        {
-            if (logger.logDebug())
+        try {
+            if (logger.logDebug()) {
                 logger.debug(" FE=> Terminate");
+            }
             pgStream.SendChar('X');
             pgStream.flush();
             pgStream.close();
-        }
-        catch (IOException ioe)
-        {
+        } catch (IOException ioe) {
             // Forget it.
-            if (logger.logDebug())
+            if (logger.logDebug()) {
                 logger.debug("Discarding IOException on close:", ioe);
+            }
         }
 
         closed = true;
@@ -171,7 +168,7 @@ class ProtocolConnectionImpl implements ProtocolConnection {
 
     void setServerVersionNum(int serverVersionNum) {
         this.serverVersionNum = serverVersionNum;
-    }  
+    }
 
     void setBackendKeyData(int cancelPid, int cancelKey) {
         this.cancelPid = cancelPid;
@@ -186,29 +183,26 @@ class ProtocolConnectionImpl implements ProtocolConnection {
     // Package-private accessors called by the query executor
     //
 
-    synchronized void addWarning(SQLWarning newWarning)
-    {
-        if (warnings == null)
+    synchronized void addWarning(SQLWarning newWarning) {
+        if (warnings == null) {
             warnings = newWarning;
-        else
+        } else {
             warnings.setNextWarning(newWarning);
+        }
     }
 
-    synchronized void addNotification(PGNotification notification)
-    {
+    synchronized void addNotification(PGNotification notification) {
         notifications.add(notification);
     }
 
-    synchronized void setTransactionState(int state)
-    {
+    synchronized void setTransactionState(int state) {
         transactionState = state;
     }
-    
-    public int getProtocolVersion()
-    {
+
+    public int getProtocolVersion() {
         return 2;
     }
-    
+
     public void setBinaryReceiveOids(Set<Integer> ignored) {
         // ignored for v2 connections
     }
@@ -218,18 +212,14 @@ class ProtocolConnectionImpl implements ProtocolConnection {
         return false;
     }
 
-    public int getBackendPID()
-    {
-    	return cancelPid;
+    public int getBackendPID() {
+        return cancelPid;
     }
 
     public void abort() {
-        try
-        {
+        try {
             pgStream.getSocket().close();
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             // ignore
         }
         closed = true;

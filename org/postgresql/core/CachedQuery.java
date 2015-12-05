@@ -26,8 +26,7 @@ public class CachedQuery implements CanEstimateSize {
 
     private int executeCount;
 
-    public CachedQuery(Object key, Query query, boolean isFunction, boolean outParmBeforeFunc)
-    {
+    public CachedQuery(Object key, Query query, boolean isFunction, boolean outParmBeforeFunc) {
         this.key = key;
         this.query = query;
         this.isFunction = isFunction;
@@ -35,18 +34,22 @@ public class CachedQuery implements CanEstimateSize {
     }
 
     public void increaseExecuteCount() {
-        if (executeCount < Integer.MAX_VALUE)
+        if (executeCount < Integer.MAX_VALUE) {
             executeCount++;
+        }
     }
 
     public void increaseExecuteCount(int inc) {
         int newValue = executeCount + inc;
-        if (newValue > 0) // if overflows, just ignore the update
+        if (newValue > 0) {
+            // if overflows, just ignore the update
             executeCount = newValue;
+        }
     }
 
     /**
-     * Number of times this statement has been used
+     * Number of times this statement has been used.
+     *
      * @return number of times this statement has been used
      */
     public int getExecuteCount() {
@@ -54,8 +57,7 @@ public class CachedQuery implements CanEstimateSize {
     }
 
     @Override
-    public long getSize()
-    {
+    public long getSize() {
         int queryLength = String.valueOf(key).length() * 2 /* 2 bytes per char */;
         return queryLength * 2 /* original query and native sql */ + 100 /* entry in hash map, CachedQuery wrapper, etc */;
     }

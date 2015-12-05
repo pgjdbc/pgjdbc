@@ -11,7 +11,8 @@ package org.postgresql.core;
 import org.postgresql.PGNotification;
 import org.postgresql.util.HostSpec;
 
-import java.sql.*;
+import java.sql.SQLException;
+import java.sql.SQLWarning;
 import java.util.Set;
 
 /**
@@ -24,20 +25,20 @@ public interface ProtocolConnection {
      * Constant returned by {@link #getTransactionState} indicating that no
      * transaction is currently open.
      */
-    static final int TRANSACTION_IDLE = 0;
+    int TRANSACTION_IDLE = 0;
 
     /**
      * Constant returned by {@link #getTransactionState} indicating that a
      * transaction is currently open.
      */
-    static final int TRANSACTION_OPEN = 1;
+    int TRANSACTION_OPEN = 1;
 
     /**
      * Constant returned by {@link #getTransactionState} indicating that a
      * transaction is currently open, but it has seen errors and will
      * refuse subsequent queries until a ROLLBACK.
      */
-    static final int TRANSACTION_FAILED = 2;
+    int TRANSACTION_FAILED = 2;
 
     /**
      * @return the host and port this connection is connected to.
@@ -74,7 +75,7 @@ public interface ProtocolConnection {
     /**
      * Get a machine-readable server version.
      *
-     * This returns the value of the server_version_num GUC. If no such GUC exists, 
+     * This returns the value of the server_version_num GUC. If no such GUC exists,
      * it falls back on attempting to parse the text server version for the major version.
      * If there's no minor version (e.g. a devel or beta release) then the
      * minor version is set to zero. If the version could not be parsed, zero is returned.
@@ -87,14 +88,14 @@ public interface ProtocolConnection {
      * @return the current encoding in use by this connection
      */
     Encoding getEncoding();
-    
+
     /**
      * Returns whether the server treats string-literals according to the SQL
      * standard or if it uses traditional PostgreSQL escaping rules. Versions
      * up to 8.1 always treated backslashes as escape characters in
      * string-literals. Since 8.2, this depends on the value of the
-     * <tt>standard_conforming_strings<tt> server variable.
-     * 
+     * <tt>standard_conforming_strings</tt> server variable.
+     *
      * @return true if the server treats string literals according to the SQL
      *   standard
      */
@@ -102,7 +103,7 @@ public interface ProtocolConnection {
 
     /**
      * Get the current transaction state of this connection.
-     * 
+     *
      * @return a ProtocolConnection.TRANSACTION_* constant.
      */
     int getTransactionState();
@@ -113,6 +114,7 @@ public interface ProtocolConnection {
      *
      * @return an array of notifications; if there are no notifications, an empty
      *   array is returned.
+     * @throws SQLException
      */
     PGNotification[] getNotifications() throws SQLException;
 
@@ -146,35 +148,35 @@ public interface ProtocolConnection {
      * @return true iff the connection is closed.
      */
     boolean isClosed();
-    
+
     /**
-     * 
+     *
      * @return the version of the implementation
      */
-    public int getProtocolVersion();
+    int getProtocolVersion();
 
     /**
      * Sets the oids that should be received using binary encoding.
      *
      * @param useBinaryForOids The oids to request with binary encoding.
      */
-    public void setBinaryReceiveOids(Set<Integer> useBinaryForOids);
+    void setBinaryReceiveOids(Set<Integer> useBinaryForOids);
 
     /**
      * Returns true if server uses integer instead of double for binary
      * date and time encodings.
-     * 
+     *
      * @return the server integer_datetime setting.
      */
-    public boolean getIntegerDateTimes();
+    boolean getIntegerDateTimes();
 
     /**
      * Return the process ID (PID) of the backend server process handling this connection.
      */
-    public int getBackendPID();
+    int getBackendPID();
 
     /**
      * Abort at network level without sending the Terminate message to the backend.
      */
-    public void abort();
+    void abort();
 }

@@ -17,15 +17,14 @@ public class JdbcCallParseInfo {
     private final boolean isFunction;
     private final boolean outParmBeforeFunc;
 
-    public JdbcCallParseInfo(String sql, boolean isFunction, boolean outParmBeforeFunc)
-    {
+    public JdbcCallParseInfo(String sql, boolean isFunction, boolean outParmBeforeFunc) {
         this.sql = sql;
         this.isFunction = isFunction;
         this.outParmBeforeFunc = outParmBeforeFunc;
     }
 
     /**
-     * SQL in a native for certain backend version
+     * SQL in a native for certain backend version.
      * @return SQL in a native for certain backend version
      */
     public String getSql() {
@@ -33,21 +32,18 @@ public class JdbcCallParseInfo {
     }
 
     /**
-     * Returns if given SQL is a function
+     * Returns if given SQL is a function.
      * @return {@code true} if given SQL is a function
      */
-    public boolean isFunction()
-    {
+    public boolean isFunction() {
         return isFunction;
     }
 
     /**
-     * Returns if given SQL is a function with one out parameter
+     * Returns if given SQL is a function with one out parameter.
      * @return {@code true} if given SQL is a function with one out parameter
-     * @return
      */
-    public boolean isOutParmBeforeFunc()
-    {
+    public boolean isOutParmBeforeFunc() {
         return outParmBeforeFunc;
     }
 }

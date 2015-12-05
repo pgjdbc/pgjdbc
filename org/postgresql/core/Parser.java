@@ -18,11 +18,11 @@ import java.util.List;
 
 /**
  * Basic query parser infrastructure.
- * 
+ *
  * @author Michael Paesold (mpaesold@gmx.at)
  */
 public class Parser {
-    private final static int[] NO_BINDS = new int[0];
+    private static final int[] NO_BINDS = new int[0];
 
     /**
      * Parses JDBC query into PostgreSQL's native format. Several queries might be given if separated by semicolon.
@@ -32,10 +32,10 @@ public class Parser {
      * @param splitStatements whether to split statements by semicolon
      * @return list of native queries
      */
-    public static List<NativeQuery> parseJdbcSql(String query, boolean standardConformingStrings, boolean withParameters, boolean splitStatements)
-    {
-        if (!withParameters && !splitStatements)
+    public static List<NativeQuery> parseJdbcSql(String query, boolean standardConformingStrings, boolean withParameters, boolean splitStatements) {
+        if (!withParameters && !splitStatements) {
             return Collections.singletonList(new NativeQuery(query));
+        }
 
         int fragmentStart = 0;
         int inParen = 0;
@@ -47,106 +47,104 @@ public class Parser {
         List<NativeQuery> nativeQueries = null;
 
         boolean whitespaceOnly = true;
-        for (int i = 0; i < aChars.length; ++i)
-        {
+        for (int i = 0; i < aChars.length; ++i) {
             char aChar = aChars[i];
             // ';' is ignored as it splits the queries
             whitespaceOnly &= aChar == ';' || Character.isWhitespace(aChar);
-            switch (aChar)
-            {
-            case '\'': // single-quotes
-                i = Parser.parseSingleQuotes(aChars, i, standardConformingStrings);
-                break;
+            switch (aChar) {
+                case '\'': // single-quotes
+                    i = Parser.parseSingleQuotes(aChars, i, standardConformingStrings);
+                    break;
 
-            case '"': // double-quotes
-                i = Parser.parseDoubleQuotes(aChars, i);
-                break;
+                case '"': // double-quotes
+                    i = Parser.parseDoubleQuotes(aChars, i);
+                    break;
 
-            case '-': // possibly -- style comment
-                i = Parser.parseLineComment(aChars, i);
-                break;
+                case '-': // possibly -- style comment
+                    i = Parser.parseLineComment(aChars, i);
+                    break;
 
-            case '/': // possibly /* */ style comment
-                i = Parser.parseBlockComment(aChars, i);
-                break;
+                case '/': // possibly /* */ style comment
+                    i = Parser.parseBlockComment(aChars, i);
+                    break;
 
-            case '$': // possibly dollar quote start
-                i = Parser.parseDollarQuotes(aChars, i);
-                break;
+                case '$': // possibly dollar quote start
+                    i = Parser.parseDollarQuotes(aChars, i);
+                    break;
 
-            case '(':
-                inParen++;
-                break;
+                case '(':
+                    inParen++;
+                    break;
 
-            case ')':
-                inParen--;
-                break;
+                case ')':
+                    inParen--;
+                    break;
 
-            case '?':
-                nativeSql.append(aChars, fragmentStart, i - fragmentStart);
-                if (i + 1 < aChars.length && aChars[i + 1] == '?') /* replace ?? with ? */
-                {
-                    nativeSql.append('?');
-                    i++; // make sure the coming ? is not treated as a bind
-                } else
-                {
-                    if (!withParameters)
-                    {
+                case '?':
+                    nativeSql.append(aChars, fragmentStart, i - fragmentStart);
+                    if (i + 1 < aChars.length && aChars[i + 1] == '?') /* replace ?? with ? */ {
                         nativeSql.append('?');
-                    }
-                    else
-                    {
-                        if (bindPositions == null)
-                            bindPositions = new ArrayList<Integer>();
-                        bindPositions.add(nativeSql.length());
-                        int bindIndex = bindPositions.size();
-                        nativeSql.append(NativeQuery.bindName(bindIndex));
-                    }
-                }
-                fragmentStart = i + 1;
-                break;
-
-            case ';':
-                if (inParen == 0 && splitStatements)
-                {
-                    if (!whitespaceOnly)
-                    {
-                        nativeSql.append(aChars, fragmentStart, i - fragmentStart);
-                        whitespaceOnly = true;
+                        i++; // make sure the coming ? is not treated as a bind
+                    } else {
+                        if (!withParameters) {
+                            nativeSql.append('?');
+                        } else {
+                            if (bindPositions == null) {
+                                bindPositions = new ArrayList<Integer>();
+                            }
+                            bindPositions.add(nativeSql.length());
+                            int bindIndex = bindPositions.size();
+                            nativeSql.append(NativeQuery.bindName(bindIndex));
+                        }
                     }
                     fragmentStart = i + 1;
-                    if (nativeSql.length() > 0)
-                    {
-                        if (nativeQueries == null)
-                            nativeQueries = new ArrayList<NativeQuery>();
+                    break;
 
-                        nativeQueries.add(new NativeQuery(nativeSql.toString(), toIntArray(bindPositions)));
+                case ';':
+                    if (inParen == 0 && splitStatements) {
+                        if (!whitespaceOnly) {
+                            nativeSql.append(aChars, fragmentStart, i - fragmentStart);
+                            whitespaceOnly = true;
+                        }
+                        fragmentStart = i + 1;
+                        if (nativeSql.length() > 0) {
+                            if (nativeQueries == null) {
+                                nativeQueries = new ArrayList<NativeQuery>();
+                            }
+
+                            nativeQueries.add(new NativeQuery(nativeSql.toString(), toIntArray(bindPositions)));
+                        }
+                        // Prepare for next query
+                        if (bindPositions != null) {
+                            bindPositions.clear();
+                        }
+                        nativeSql.setLength(0);
                     }
-                    // Prepare for next query
-                    if (bindPositions != null)
-                        bindPositions.clear();
-                    nativeSql.setLength(0);
-                }
-                break;
+                    break;
 
-            default:
-                break;
+                default:
+                    break;
             }
         }
 
-        if (fragmentStart < aChars.length && !whitespaceOnly)
+        if (fragmentStart < aChars.length && !whitespaceOnly) {
             nativeSql.append(aChars, fragmentStart, aChars.length - fragmentStart);
+        }
 
-        if (nativeSql.length() == 0)
+        if (nativeSql.length() == 0) {
             return nativeQueries != null ? nativeQueries : Collections.<NativeQuery>emptyList();
+        }
 
         NativeQuery lastQuery = new NativeQuery(nativeSql.toString(), toIntArray(bindPositions));
 
-        if (nativeQueries == null)
+        if (nativeQueries == null) {
             return Collections.singletonList(lastQuery);
+        }
 
-        if (!whitespaceOnly)
+        if (!whitespaceOnly) {
             nativeQueries.add(lastQuery);
+        }
+
         return nativeQueries;
     }
 
@@ -156,11 +154,11 @@ public class Parser {
      * @return output array
      */
     private static int[] toIntArray(List<Integer> list) {
-        if (list == null || list.isEmpty())
+        if (list == null || list.isEmpty()) {
             return NO_BINDS;
+        }
         int[] res = new int[list.size()];
-        for (int i = 0; i < list.size(); i++)
-        {
+        for (int i = 0; i < list.size(); i++) {
             res[i] = list.get(i); // must not be null
         }
         return res;
@@ -168,7 +166,7 @@ public class Parser {
 
     /**
      * Find the end of the single-quoted string starting at the given offset.
-     * 
+     *
      * Note: for <tt>'single '' quote in string'</tt>, this method currently
      * returns the offset of first <tt>'</tt> character after the initial
      * one. The caller must call the method a second time for the second
@@ -179,44 +177,36 @@ public class Parser {
         // check for escape string syntax (E'')
         if (standardConformingStrings
                 && offset >= 2
-                && (query[offset-1] == 'e' || query[offset-1] == 'E')
-                && charTerminatesIdentifier(query[offset-2]))
-        {
+                && (query[offset - 1] == 'e' || query[offset - 1] == 'E')
+                && charTerminatesIdentifier(query[offset - 2])) {
             standardConformingStrings = false;
         }
-        
-        if (standardConformingStrings)
-        {
+
+        if (standardConformingStrings) {
             // do NOT treat backslashes as escape characters
-            while (++offset < query.length)
-            {
-                switch (query[offset])
-                {
-                case '\'':
-                    return offset;
-                default:
-                    break;
+            while (++offset < query.length) {
+                switch (query[offset]) {
+                    case '\'':
+                        return offset;
+                    default:
+                        break;
                 }
             }
-        }
-        else
-        {
+        } else {
             // treat backslashes as escape characters
-            while (++offset < query.length)
-            {
-                switch (query[offset])
-                {
-                case '\\':
-                    ++offset;
-                    break;
-                case '\'':
-                    return offset;
-                default:
-                    break;
+            while (++offset < query.length) {
+                switch (query[offset]) {
+                    case '\\':
+                        ++offset;
+                        break;
+                    case '\'':
+                        return offset;
+                    default:
+                        break;
                 }
             }
         }
-        
+
         return query.length;
     }
 
@@ -240,40 +230,33 @@ public class Parser {
      */
     public static int parseDollarQuotes(final char[] query, int offset) {
         if (offset + 1 < query.length
-                && (offset == 0 || !isIdentifierContChar(query[offset-1])))
-        {
+                && (offset == 0 || !isIdentifierContChar(query[offset - 1]))) {
             int endIdx = -1;
-            if (query[offset + 1] == '$')
+            if (query[offset + 1] == '$') {
                 endIdx = offset + 1;
-            else if (isDollarQuoteStartChar(query[offset + 1]))
-            {
-                for (int d = offset + 2; d < query.length; ++d)
-                {
-                    if (query[d] == '$')
-                    {
+            } else if (isDollarQuoteStartChar(query[offset + 1])) {
+                for (int d = offset + 2; d < query.length; ++d) {
+                    if (query[d] == '$') {
                         endIdx = d;
                         break;
-                    }
-                    else if (!isDollarQuoteContChar(query[d]))
+                    } else if (!isDollarQuoteContChar(query[d])) {
                         break;
+                    }
                 }
             }
-            if (endIdx > 0)
-            {
+            if (endIdx > 0) {
                 // found; note: tag includes start and end $ character
                 int tagIdx = offset, tagLen = endIdx - offset + 1;
                 offset = endIdx; // loop continues at endIdx + 1
-                for (++offset; offset < query.length; ++offset)
-                {
-                    if (query[offset] == '$' &&
-                        subArraysEqual(query, tagIdx, offset, tagLen))
-                    {
+                for (++offset; offset < query.length; ++offset) {
+                    if (query[offset] == '$'
+                            && subArraysEqual(query, tagIdx, offset, tagLen)) {
                         offset += tagLen - 1;
                         break;
                     }
                 }
             }
-        }        
+        }
         return offset;
     }
 
@@ -283,13 +266,12 @@ public class Parser {
      * <tt>\r</tt> or <tt>\n</tt> character.
      */
     public static int parseLineComment(final char[] query, int offset) {
-        if (offset + 1 < query.length && query[offset + 1] == '-')
-        {
-            while (offset + 1 < query.length)
-            {
+        if (offset + 1 < query.length && query[offset + 1] == '-') {
+            while (offset + 1 < query.length) {
                 offset++;
-                if (query[offset] == '\r' || query[offset] == '\n')
+                if (query[offset] == '\r' || query[offset] == '\n') {
                     break;
+                }
             }
         }
         return offset;
@@ -300,34 +282,28 @@ public class Parser {
      * comment, and return the position of the last <tt>/</tt> character.
      */
     public static int parseBlockComment(final char[] query, int offset) {
-        if (offset + 1 < query.length && query[offset + 1] == '*')
-        {
+        if (offset + 1 < query.length && query[offset + 1] == '*') {
             // /* /* */ */ nest, according to SQL spec
             int level = 1;
-            for (offset += 2; offset < query.length; ++offset)
-            {
-                switch (query[offset-1])
-                {
-                case '*':
-                    if (query[offset] == '/')
-                    {
-                        --level;
-                        ++offset; // don't parse / in */* twice
-                    }
-                    break;
-                case '/':
-                    if (query[offset] == '*')
-                    {
-                        ++level;
-                        ++offset; // don't parse * in /*/ twice
-                    }
-                    break;
-                default:
-                    break;
+            for (offset += 2; offset < query.length; ++offset) {
+                switch (query[offset - 1]) {
+                    case '*':
+                        if (query[offset] == '/') {
+                            --level;
+                            ++offset; // don't parse / in */* twice
+                        }
+                        break;
+                    case '/':
+                        if (query[offset] == '*') {
+                            ++level;
+                            ++offset; // don't parse * in /*/ twice
+                        }
+                        break;
+                    default:
+                        break;
                 }
 
-                if (level == 0)
-                {
+                if (level == 0) {
                     --offset; // reset position to last '/' char
                     break;
                 }
@@ -343,7 +319,7 @@ public class Parser {
     public static boolean isSpace(char c) {
        return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f';
     }
-    
+
     /**
      * @return true if the given character is a valid character for an
      *         operator in the backend's parser
@@ -370,13 +346,13 @@ public class Parser {
          * ident_cont     [A-Za-z\200-\377_0-9\$]
          */
         return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
-                || c == '_' || c > 127 ;
+                || c == '_' || c > 127;
     }
-    
+
     /**
      * Checks if a character is valid as the second or later character of an
      * identifier.
-     * 
+     *
      * @param c the character to check
      * @return true if valid as second or later character of an identifier; false if not
      */
@@ -386,7 +362,7 @@ public class Parser {
                 || (c >= '0' && c <= '9')
                 || c == '$';
     }
-    
+
     /**
      * @return true if the character terminates an identifier
      */
@@ -396,7 +372,7 @@ public class Parser {
 
     /**
      * Checks if a character is valid as the start of a dollar quoting tag.
-     * 
+     *
      * @param c the character to check
      * @return true if valid as first character of a dollar quoting tag; false if not
      */
@@ -413,7 +389,7 @@ public class Parser {
     /**
      * Checks if a character is valid as the second or later character of a
      * dollar quoting tag.
-     * 
+     *
      * @param c the character to check
      * @return true if valid as second or later character of a dollar quoting tag;
      *         false if not
@@ -428,7 +404,7 @@ public class Parser {
      * Compares two sub-arrays of the given character array for equalness.
      * If the length is zero, the result is true if and only if the offsets
      * are within the bounds of the array.
-     * 
+     *
      * @param arr  a char array
      * @param offA first sub-array start offset
      * @param offB second sub-array start offset
@@ -440,15 +416,16 @@ public class Parser {
                                           final int len) {
         if (offA < 0 || offB < 0
                 || offA >= arr.length || offB >= arr.length
-                || offA + len > arr.length || offB + len > arr.length)
+                || offA + len > arr.length || offB + len > arr.length) {
             return false;
-        
-        for (int i = 0; i < len; ++i)
-        {
-            if (arr[offA + i] != arr[offB + i])
-                return false;
         }
-    
+
+        for (int i = 0; i < len; ++i) {
+            if (arr[offA + i] != arr[offB + i]) {
+                return false;
+            }
+        }
+
         return true;
     }
 
@@ -464,8 +441,7 @@ public class Parser {
      * @return SQL in appropriate for given server format
      * @throws SQLException if given SQL is malformed
      */
-    public static JdbcCallParseInfo modifyJdbcCall(String jdbcSql, boolean stdStrings, int serverVersion, int protocolVersion) throws SQLException
-    {
+    public static JdbcCallParseInfo modifyJdbcCall(String jdbcSql, boolean stdStrings, int serverVersion, int protocolVersion) throws SQLException {
         // Mini-parser for JDBC function-call syntax (only)
         // TODO: Merge with escape processing (and parameter parsing?) so we only parse each query once.
         // RE: frequently used statements are cached (see {@link org.postgresql.jdbc2.AbstractJdbc2Connection.borrowQuery}), so this "merge" is not that important.
@@ -480,180 +456,144 @@ public class Parser {
         boolean syntaxError = false;
         int i = 0;
 
-        while (i < len && !syntaxError)
-        {
+        while (i < len && !syntaxError) {
             char ch = jdbcSql.charAt(i);
 
-            switch (state)
-            {
-            case 1:  // Looking for { at start of query
-                if (ch == '{')
-                {
-                    ++i;
-                    ++state;
-                } else if (Character.isWhitespace(ch))
-                {
-                    ++i;
-                } else
-                {
-                    // Not function-call syntax. Skip the rest of the string.
-                    i = len;
-                }
-                break;
-
-            case 2:  // After {, looking for ? or =, skipping whitespace
-                if (ch == '?')
-                {
-                    outParmBeforeFunc = isFunction = true;   // { ? = call ... }  -- function with one out parameter
-                    ++i;
-                    ++state;
-                } else if (ch == 'c' || ch == 'C')
-                {  // { call ... }      -- proc with no out parameters
-                    state += 3; // Don't increase 'i'
-                } else if (Character.isWhitespace(ch))
-                {
-                    ++i;
-                } else
-                {
-                    // "{ foo ...", doesn't make sense, complain.
-                    syntaxError = true;
-                }
-                break;
-
-            case 3:  // Looking for = after ?, skipping whitespace
-                if (ch == '=')
-                {
-                    ++i;
-                    ++state;
-                } else if (Character.isWhitespace(ch))
-                {
-                    ++i;
-                } else
-                {
-                    syntaxError = true;
-                }
-                break;
-
-            case 4:  // Looking for 'call' after '? =' skipping whitespace
-                if (ch == 'c' || ch == 'C')
-                {
-                    ++state; // Don't increase 'i'.
-                } else if (Character.isWhitespace(ch))
-                {
-                    ++i;
-                } else
-                {
-                    syntaxError = true;
-                }
-                break;
-
-            case 5:  // Should be at 'call ' either at start of string or after ?=
-                if ((ch == 'c' || ch == 'C') && i + 4 <= len && jdbcSql.substring(i, i + 4).equalsIgnoreCase("call"))
-                {
-                    isFunction = true;
-                    i += 4;
-                    ++state;
-                } else if (Character.isWhitespace(ch))
-                {
-                    ++i;
-                } else
-                {
-                    syntaxError = true;
-                }
-                break;
-
-            case 6:  // Looking for whitespace char after 'call'
-                if (Character.isWhitespace(ch))
-                {
-                    // Ok, we found the start of the real call.
-                    ++i;
-                    ++state;
-                    startIndex = i;
-                } else
-                {
-                    syntaxError = true;
-                }
-                break;
-
-            case 7:  // In "body" of the query (after "{ [? =] call ")
-                if (ch == '\'')
-                {
-                    inQuotes = !inQuotes;
-                    ++i;
-                } else if (inQuotes && ch == '\\' && !stdStrings)
-                {
-                    // Backslash in string constant, skip next character.
-                    i += 2;
-                } else if (!inQuotes && ch == '{')
-                {
-                    inEscape = !inEscape;
-                    ++i;
-                } else if (!inQuotes && ch == '}')
-                {
-                    if (!inEscape)
-                    {
-                        // Should be end of string.
-                        endIndex = i;
+            switch (state) {
+                case 1:  // Looking for { at start of query
+                    if (ch == '{') {
                         ++i;
                         ++state;
-                    } else
-                    {
-                        inEscape = false;
+                    } else if (Character.isWhitespace(ch)) {
+                        ++i;
+                    } else {
+                        // Not function-call syntax. Skip the rest of the string.
+                        i = len;
                     }
-                } else if (!inQuotes && ch == ';')
-                {
-                    syntaxError = true;
-                } else
-                {
-                    // Everything else is ok.
-                    ++i;
-                }
-                break;
+                    break;
 
-            case 8:  // At trailing end of query, eating whitespace
-                if (Character.isWhitespace(ch))
-                {
-                    ++i;
-                } else
-                {
-                    syntaxError = true;
-                }
-                break;
+                case 2:  // After {, looking for ? or =, skipping whitespace
+                    if (ch == '?') {
+                        outParmBeforeFunc = isFunction = true;   // { ? = call ... }  -- function with one out parameter
+                        ++i;
+                        ++state;
+                    } else if (ch == 'c' || ch == 'C') {  // { call ... }      -- proc with no out parameters
+                        state += 3; // Don't increase 'i'
+                    } else if (Character.isWhitespace(ch)) {
+                        ++i;
+                    } else {
+                        // "{ foo ...", doesn't make sense, complain.
+                        syntaxError = true;
+                    }
+                    break;
 
-            default:
-                throw new IllegalStateException("somehow got into bad state " + state);
+                case 3:  // Looking for = after ?, skipping whitespace
+                    if (ch == '=') {
+                        ++i;
+                        ++state;
+                    } else if (Character.isWhitespace(ch)) {
+                        ++i;
+                    } else {
+                        syntaxError = true;
+                    }
+                    break;
+
+                case 4:  // Looking for 'call' after '? =' skipping whitespace
+                    if (ch == 'c' || ch == 'C') {
+                        ++state; // Don't increase 'i'.
+                    } else if (Character.isWhitespace(ch)) {
+                        ++i;
+                    } else {
+                        syntaxError = true;
+                    }
+                    break;
+
+                case 5:  // Should be at 'call ' either at start of string or after ?=
+                    if ((ch == 'c' || ch == 'C') && i + 4 <= len && jdbcSql.substring(i, i + 4).equalsIgnoreCase("call")) {
+                        isFunction = true;
+                        i += 4;
+                        ++state;
+                    } else if (Character.isWhitespace(ch)) {
+                        ++i;
+                    } else {
+                        syntaxError = true;
+                    }
+                    break;
+
+                case 6:  // Looking for whitespace char after 'call'
+                    if (Character.isWhitespace(ch)) {
+                        // Ok, we found the start of the real call.
+                        ++i;
+                        ++state;
+                        startIndex = i;
+                    } else {
+                        syntaxError = true;
+                    }
+                    break;
+
+                case 7:  // In "body" of the query (after "{ [? =] call ")
+                    if (ch == '\'') {
+                        inQuotes = !inQuotes;
+                        ++i;
+                    } else if (inQuotes && ch == '\\' && !stdStrings) {
+                        // Backslash in string constant, skip next character.
+                        i += 2;
+                    } else if (!inQuotes && ch == '{') {
+                        inEscape = !inEscape;
+                        ++i;
+                    } else if (!inQuotes && ch == '}') {
+                        if (!inEscape) {
+                            // Should be end of string.
+                            endIndex = i;
+                            ++i;
+                            ++state;
+                        } else {
+                            inEscape = false;
+                        }
+                    } else if (!inQuotes && ch == ';') {
+                        syntaxError = true;
+                    } else {
+                        // Everything else is ok.
+                        ++i;
+                    }
+                    break;
+
+                case 8:  // At trailing end of query, eating whitespace
+                    if (Character.isWhitespace(ch)) {
+                        ++i;
+                    } else {
+                        syntaxError = true;
+                    }
+                    break;
+
+                default:
+                    throw new IllegalStateException("somehow got into bad state " + state);
             }
         }
 
         // We can only legally end in a couple of states here.
-        if (i == len && !syntaxError)
-        {
-            if (state == 1)
-            {
+        if (i == len && !syntaxError) {
+            if (state == 1) {
                 // Not an escaped syntax.
                 return new JdbcCallParseInfo(sql, isFunction, outParmBeforeFunc);
             }
-            if (state != 8)
-            {
+            if (state != 8) {
                 syntaxError = true; // Ran out of query while still parsing
             }
         }
 
-        if (syntaxError)
-        {
+        if (syntaxError) {
             throw new PSQLException(GT.tr("Malformed function or procedure escape syntax at offset {0}.", i),
                     PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
         }
 
-        if (serverVersion < 80100 /* 8.1 */ || protocolVersion != 3)
-        {
+        if (serverVersion < 80100 /* 8.1 */ || protocolVersion != 3) {
             sql = "select " + jdbcSql.substring(startIndex, endIndex) + " as result";
             return new JdbcCallParseInfo(sql, isFunction, outParmBeforeFunc);
         }
         String s = jdbcSql.substring(startIndex, endIndex);
         StringBuilder sb = new StringBuilder(s);
-        if (outParmBeforeFunc)
-        {
+        if (outParmBeforeFunc) {
             // move the single out parameter into the function call
             // so that it can be treated like all other parameters
             boolean needComma = false;
@@ -661,19 +601,15 @@ public class Parser {
             // have to use String.indexOf for java 2
             int opening = s.indexOf('(') + 1;
             int closing = s.indexOf(')');
-            for (int j = opening; j < closing; j++)
-            {
-                if (!Character.isWhitespace(sb.charAt(j)))
-                {
+            for (int j = opening; j < closing; j++) {
+                if (!Character.isWhitespace(sb.charAt(j))) {
                     needComma = true;
                     break;
                 }
             }
-            if (needComma)
-            {
+            if (needComma) {
                 sb.insert(opening, "?,");
-            } else
-            {
+            } else {
                 sb.insert(opening, "?");
             }
         }

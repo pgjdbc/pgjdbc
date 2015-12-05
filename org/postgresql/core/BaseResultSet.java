@@ -7,14 +7,14 @@
 */
 package org.postgresql.core;
 
-import java.sql.*;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 /**
  * Driver-internal resultset interface. Application code should not use
  * this interface.
  */
-public interface BaseResultSet extends ResultSet
-{
+public interface BaseResultSet extends ResultSet {
     /**
      * Return a sanitized numeric string for a column. This handles
      * "money" representations, stripping $ and () as appropriate.
@@ -23,6 +23,6 @@ public interface BaseResultSet extends ResultSet
      * @return the sanitized string
      * @throws SQLException if something goes wrong
      */
-    public String getFixedString(int col) throws SQLException;
+    String getFixedString(int col) throws SQLException;
 
 }

@@ -27,12 +27,11 @@ public enum ServerVersion implements Version {
     v9_3("9.3.0"),
     v9_4("9.4.0"),
     v9_5("9.5.0"),
-
     ;
 
     private final int version;
 
-    private ServerVersion(String version) {
+    ServerVersion(String version) {
         this.version = parseServerVersionStr(version);
     }
 
@@ -49,7 +48,7 @@ public enum ServerVersion implements Version {
     /**
      * Attempt to parse the server version string into an XXYYZZ form version
      * number into a {@link Version}.
-     *
+     * <p>
      * If the specified version cannot be parsed, the
      * {@link Version#getVersionNum()} will return 0.
      *
@@ -86,61 +85,64 @@ public enum ServerVersion implements Version {
 
     /**
      * Attempt to parse the server version string into an XXYYZZ form version number.
-     *
+     * <p>
      * Returns 0 if the version could not be parsed.
-     *
+     * <p>
      * Returns minor version 0 if the minor version could not be determined, e.g. devel
      * or beta releases.
-     *
+     * <p>
      * If a single major part like 90400 is passed, it's assumed to be a pre-parsed
      * version and returned verbatim. (Anything equal to or greater than 10000
      * is presumed to be this form).
-     *
+     * <p>
      * The yy or zz version parts may be larger than 99. A
      * NumberFormatException is thrown if a version part is out of range.
      */
-    /* package */ static int parseServerVersionStr(String serverVersion)
-        throws NumberFormatException
-    {
+    /* package */
+    static int parseServerVersionStr(String serverVersion)
+            throws NumberFormatException {
         int vers;
         NumberFormat numformat = NumberFormat.getIntegerInstance();
         numformat.setGroupingUsed(false);
         ParsePosition parsepos = new ParsePosition(0);
         Long parsed;
 
-        if (serverVersion == null)
+        if (serverVersion == null) {
             return 0;
+        }
 
         /* Get first major version part */
         parsed = (Long) numformat.parseObject(serverVersion, parsepos);
         if (parsed == null) {
             return 0;
         }
-        if (parsed.intValue() >= 10000)
-        {
+        if (parsed.intValue() >= 10000) {
             /*
              * PostgreSQL version 1000? I don't think so. We're seeing a version like
              * 90401; return it verbatim, but only if there's nothing else in the version.
              * If there is, treat it as a parse error.
              */
-            if (parsepos.getIndex() == serverVersion.length())
+            if (parsepos.getIndex() == serverVersion.length()) {
                 return parsed.intValue();
-            else
+            } else {
                 throw new NumberFormatException("First major-version part equal to or greater than 10000 in invalid version string: " + serverVersion);
+            }
         }
 
         vers = parsed.intValue() * 10000;
 
         /* Did we run out of string? */
-        if (parsepos.getIndex() == serverVersion.length())
+        if (parsepos.getIndex() == serverVersion.length()) {
             return 0;
+        }
 
         /* Skip the . */
-        if (serverVersion.charAt(parsepos.getIndex()) == '.')
+        if (serverVersion.charAt(parsepos.getIndex()) == '.') {
             parsepos.setIndex(parsepos.getIndex() + 1);
-        else
+        } else {
             /* Unexpected version format */
             return 0;
+        }
 
         /*
          * Get second major version part. If this isn't purely an integer,
@@ -155,26 +157,30 @@ public enum ServerVersion implements Version {
              */
             return 0;
         }
-        if (parsed.intValue() > 99)
+        if (parsed.intValue() > 99) {
             throw new NumberFormatException("Unsupported second part of major version > 99 in invalid version string: " + serverVersion);
+        }
         vers = vers + parsed.intValue() * 100;
 
         /* Did we run out of string? Return just the major. */
-        if (parsepos.getIndex() == serverVersion.length())
+        if (parsepos.getIndex() == serverVersion.length()) {
             return vers;
+        }
 
         /* Skip the . */
-        if (serverVersion.charAt(parsepos.getIndex()) == '.')
+        if (serverVersion.charAt(parsepos.getIndex()) == '.') {
             parsepos.setIndex(parsepos.getIndex() + 1);
-        else
+        } else {
             /* Doesn't look like an x.y.z version, return what we have */
             return vers;
+        }
 
         /* Try to parse any remainder as a minor version */
         parsed = (Long) numformat.parseObject(serverVersion, parsepos);
         if (parsed != null) {
-            if (parsed.intValue() > 99)
+            if (parsed.intValue() > 99) {
                 throw new NumberFormatException("Unsupported minor version value > 99 in invalid version string: " + serverVersion);
+            }
             vers = vers + parsed.intValue();
         }
 

@@ -11,8 +11,7 @@ import java.sql.ResultSetMetaData;
 
 /*
  */
-public class Field
-{
+public class Field {
     //The V3 protocol defines two constants for the format of data
     public static final int TEXT_FORMAT = 0;
     public static final int BINARY_FORMAT = 1;
@@ -51,8 +50,7 @@ public class Field
      * @param oid the OID of the field
      * @param len the length of the field
      */
-    public Field(String name, int oid, int length, int mod)
-    {
+    public Field(String name, int oid, int length, int mod) {
         this(name, name, oid, length, mod, 0, 0);
     }
 
@@ -63,8 +61,7 @@ public class Field
      * @param oid the OID of the field
      * @param len the length of the field
      */
-    public Field(String name, int oid)
-    {
+    public Field(String name, int oid) {
         this(name, oid, 0, -1);
     }
 
@@ -78,8 +75,7 @@ public class Field
      * @param tableOid the OID of the columns' table
      * @param positionInTable the position of column in the table (first column is 1, second column is 2, etc...)
      */
-    public Field(String columnLabel, String columnName, int oid, int length, int mod, int tableOid, int positionInTable)
-    {
+    public Field(String columnLabel, String columnName, int oid, int length, int mod, int tableOid, int positionInTable) {
         this.columnLabel = columnLabel;
         this.columnName = columnName;
         this.oid = oid;
@@ -92,137 +88,115 @@ public class Field
     /*
      * @return the oid of this Field's data type
      */
-    public int getOID()
-    {
+    public int getOID() {
         return oid;
     }
 
     /*
      * @return the mod of this Field's data type
      */
-    public int getMod()
-    {
+    public int getMod() {
         return mod;
     }
 
     /*
      * @return the column label of this Field's data type
      */
-    public String getColumnLabel()
-    {
+    public String getColumnLabel() {
         return columnLabel;
     }
 
     /*
      * @return the length of this Field's data type
      */
-    public int getLength()
-    {
+    public int getLength() {
         return length;
     }
 
     /*
      * @return the format of this Field's data (text=0, binary=1)
      */
-    public int getFormat()
-    {
+    public int getFormat() {
         return format;
     }
 
     /*
      * @param format the format of this Field's data (text=0, binary=1)
      */
-    public void setFormat(int format)
-    {
+    public void setFormat(int format) {
         this.format = format;
     }
 
     /*
      * @return the columns' table oid, zero if no oid available
      */
-    public int getTableOid()
-    {
+    public int getTableOid() {
         return tableOid;
     }
 
-    public int getPositionInTable()
-    {
+    public int getPositionInTable() {
         return positionInTable;
     }
 
-    public void setNullable(int nullable)
-    {
+    public void setNullable(int nullable) {
         this.nullable = nullable;
     }
 
-    public int getNullable()
-    {
+    public int getNullable() {
         return nullable;
     }
 
-    public void setAutoIncrement(boolean autoIncrement)
-    {
+    public void setAutoIncrement(boolean autoIncrement) {
         this.autoIncrement = autoIncrement;
     }
 
-    public boolean getAutoIncrement()
-    {
+    public boolean getAutoIncrement() {
         return autoIncrement;
     }
 
-    public void setColumnName(String columnName)
-    {
+    public void setColumnName(String columnName) {
         this.columnName = columnName;
     }
 
-    public String getColumnName()
-    {
+    public String getColumnName() {
         return columnName;
     }
 
-    public void setTableName(String tableName)
-    {
+    public void setTableName(String tableName) {
         this.tableName = tableName;
     }
 
-    public String getTableName()
-    {
+    public String getTableName() {
         return tableName;
     }
 
-    public void setSchemaName(String schemaName)
-    {
+    public void setSchemaName(String schemaName) {
         this.schemaName = schemaName;
     }
 
-    public String getSchemaName()
-    {
+    public String getSchemaName() {
         return schemaName;
     }
 
     public String toString() {
-        return "Field("+ (columnName != null ? columnName : "") + "," +
-                Oid.toString(oid) + "," + length + "," +
-                (format == TEXT_FORMAT ? 'T' : 'B') + ")";
+        return "Field(" + (columnName != null ? columnName : "") + ","
+                + Oid.toString(oid) + "," + length + ","
+                + (format == TEXT_FORMAT ? 'T' : 'B') + ")";
     }
 
-    public void setSQLType(int sqlType)
-    {
+    public void setSQLType(int sqlType) {
         this.sqlType = sqlType;
     }
 
-    public int getSQLType()
-    {
+    public int getSQLType() {
         return sqlType;
     }
 
-    public void setPGType(String pgType)
-    {
+    public void setPGType(String pgType) {
         this.pgType = pgType;
     }
 
-    public String getPGType()
-    {
+    public String getPGType() {
         return pgType;
     }
 

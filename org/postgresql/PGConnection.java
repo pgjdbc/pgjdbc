@@ -7,43 +7,44 @@
 */
 package org.postgresql;
 
-import java.sql.*;
 import org.postgresql.copy.CopyManager;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.largeobject.LargeObjectManager;
+
+import java.sql.SQLException;
+import java.sql.Statement;
 
 /**
  *  This interface defines the public PostgreSQL extensions to
  *  java.sql.Connection. All Connections returned by the PostgreSQL driver
  *  implement PGConnection.
  */
-public interface PGConnection
-{
+public interface PGConnection {
     /**
      * This method returns any notifications that have been received
      * since the last call to this method.
      * Returns null if there have been no notifications.
      * @since 7.3
      */
-    public PGNotification[] getNotifications() throws SQLException;
+    PGNotification[] getNotifications() throws SQLException;
 
     /**
      * This returns the COPY API for the current connection.
      * @since 8.4
      */
-    public CopyManager getCopyAPI() throws SQLException;
+    CopyManager getCopyAPI() throws SQLException;
 
     /**
      * This returns the LargeObject API for the current connection.
      * @since 7.3
      */
-    public LargeObjectManager getLargeObjectAPI() throws SQLException;
+    LargeObjectManager getLargeObjectAPI() throws SQLException;
 
     /**
      * This returns the Fastpath API for the current connection.
      * @since 7.3
      */
-    public Fastpath getFastpathAPI() throws SQLException;
+    Fastpath getFastpathAPI() throws SQLException;
 
     /**
      * This allows client code to add a handler for one of org.postgresql's
@@ -57,7 +58,7 @@ public interface PGConnection
      * @throws RuntimeException if the type cannot be registered (class not
      *   found, etc).
      */
-    public void addDataType(String type, String name);
+    void addDataType(String type, String name);
 
     /**
      * This allows client code to add a handler for one of org.postgresql's
@@ -88,7 +89,7 @@ public interface PGConnection
      *
      * @see org.postgresql.util.PGobject
      */
-    public void addDataType(String type, Class klass)
+    void addDataType(String type, Class klass)
     throws SQLException;
 
     /**
@@ -99,7 +100,7 @@ public interface PGConnection
      * @since build 302
      * @param threshold the new threshold
      */
-    public void setPrepareThreshold(int threshold);
+    void setPrepareThreshold(int threshold);
 
     /**
      * Get the default server-side prepare reuse threshold for statements created
@@ -108,7 +109,7 @@ public interface PGConnection
      * @since build 302
      * @return the current threshold
      */
-    public int getPrepareThreshold();
+    int getPrepareThreshold();
 
     /**
      * Set the default fetch size for statements created from this connection
@@ -119,7 +120,7 @@ public interface PGConnection
      * @see Statement#setFetchSize(int)
      *
      */
-    public void setDefaultFetchSize(int fetchSize) throws SQLException;
+    void setDefaultFetchSize(int fetchSize) throws SQLException;
 
 
     /**
@@ -129,14 +130,14 @@ public interface PGConnection
      * @see PGProperty#DEFAULT_ROW_FETCH_SIZE
      * @see Statement#getFetchSize()
      */
-    public int getDefaultFetchSize();
+    int getDefaultFetchSize();
 
     /**
      * Return the process ID (PID) of the backend server process handling this connection.
      * 
      * @return PID of backend server process. 
      */
-    public int getBackendPID();
+    int getBackendPID();
 
     /**
      * Return the given string suitably quoted to be used as an identifier in an SQL statement string.
@@ -145,7 +146,7 @@ public interface PGConnection
      *
      * @return the escaped identifier
      */
-    public String escapeIdentifier(String identifier) throws SQLException;
+    String escapeIdentifier(String identifier) throws SQLException;
 
     /**
      * Return the given string suitably quoted to be used as a string literal in an SQL statement string.
@@ -154,5 +155,5 @@ public interface PGConnection
      *
      * @return the quoted literal
      */
-    public String escapeLiteral(String literal) throws SQLException;
+    String escapeLiteral(String literal) throws SQLException;
 }

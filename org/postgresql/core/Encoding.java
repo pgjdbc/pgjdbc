@@ -19,8 +19,7 @@ import java.util.HashMap;
 /**
  * Representation of a particular character encoding.
  */
-public class Encoding
-{
+public class Encoding {
     private static final Encoding DEFAULT_ENCODING = new Encoding(null);
 
     /*
@@ -75,16 +74,15 @@ public class Encoding
     private final String encoding;
     private final boolean fastASCIINumbers;
 
-    protected Encoding(String encoding)
-    {
+    protected Encoding(String encoding) {
         this.encoding = encoding;
         fastASCIINumbers = testAsciiNumbers();
     }
-    
+
     /**
      * Returns true if this encoding has characters
      * '-' and '0'..'9' in exactly same posision as ascii.
-     *  
+     *
      * @return true if the bytes can be scanned directly for ascii numbers.
      */
     public boolean hasAsciiNumbers() {
@@ -93,41 +91,39 @@ public class Encoding
 
     /**
      * Construct an Encoding for a given JVM encoding.
-     * 
+     *
      * @param jvmEncoding the name of the JVM encoding
      * @return an Encoding instance for the specified encoding,
      *   or an Encoding instance for the default JVM encoding if the
      *   specified encoding is unavailable.
      */
     public static Encoding getJVMEncoding(String jvmEncoding) {
-        if (isAvailable(jvmEncoding))
-        {
-            if (jvmEncoding.equals("UTF-8") || jvmEncoding.equals("UTF8"))
+        if (isAvailable(jvmEncoding)) {
+            if (jvmEncoding.equals("UTF-8") || jvmEncoding.equals("UTF8")) {
                 return new UTF8Encoding(jvmEncoding);
-            else
+            } else {
                 return new Encoding(jvmEncoding);
-        }
-        else
+            }
+        } else {
             return defaultEncoding();
+        }
     }
 
     /**
      * Construct an Encoding for a given database encoding.
-     * 
+     *
      * @param databaseEncoding the name of the database encoding
      * @return an Encoding instance for the specified encoding,
      *   or an Encoding instance for the default JVM encoding if the
      *   specified encoding is unavailable.
      */
-    public static Encoding getDatabaseEncoding(String databaseEncoding)
-    {
+    public static Encoding getDatabaseEncoding(String databaseEncoding) {
         // If the backend encoding is known and there is a suitable
         // encoding in the JVM we use that. Otherwise we fall back
         // to the default encoding of the JVM.
 
         String[] candidates = (String[]) encodings.get(databaseEncoding);
-        if (candidates != null)
-        {
+        if (candidates != null) {
             for (String candidate : candidates) {
                 if (isAvailable(candidate)) {
                     return new Encoding(candidate);
@@ -137,8 +133,9 @@ public class Encoding
 
         // Try the encoding name directly -- maybe the charset has been
         // provided by the user.
-        if (isAvailable(databaseEncoding))
+        if (isAvailable(databaseEncoding)) {
             return new Encoding(databaseEncoding);
+        }
 
         // Fall back to default JVM encoding.
         return defaultEncoding();
@@ -149,8 +146,7 @@ public class Encoding
      *
      * @return the JVM encoding name used by this instance.
      */
-    public String name()
-    {
+    public String name() {
         return encoding;
     }
 
@@ -161,30 +157,31 @@ public class Encoding
      * @return a bytearray containing the encoded string
      * @throws IOException if something goes wrong
      */
-    public byte[] encode(String s) throws IOException
-    {
-        if (s == null)
+    public byte[] encode(String s) throws IOException {
+        if (s == null) {
             return null;
+        }
 
-        if (encoding == null)
+        if (encoding == null) {
             return s.getBytes();
+        }
 
         return s.getBytes(encoding);
     }
 
     /**
      * Decode an array of bytes into a string.
-     * 
+     *
      * @param encodedString a bytearray containing the encoded string  the string to encod
      * @param offset the offset in <code>encodedString</code> of the first byte of the encoded representation
      * @param length the length, in bytes, of the encoded representation
      * @return the decoded string
      * @throws IOException if something goes wrong
      */
-    public String decode(byte[] encodedString, int offset, int length) throws IOException
-    {
-        if (encoding == null)
+    public String decode(byte[] encodedString, int offset, int length) throws IOException {
+        if (encoding == null) {
             return new String(encodedString, offset, length);
+        }
 
         return new String(encodedString, offset, length, encoding);
     }
@@ -196,8 +193,7 @@ public class Encoding
      * @return the decoded string
      * @throws IOException if something goes wrong
      */
-    public String decode(byte[] encodedString) throws IOException
-    {
+    public String decode(byte[] encodedString) throws IOException {
         return decode(encodedString, 0, encodedString.length);
     }
 
@@ -208,10 +204,10 @@ public class Encoding
      * @return a non-null Reader implementation.
      * @throws IOException if something goes wrong
      */
-    public Reader getDecodingReader(InputStream in) throws IOException
-    {
-        if (encoding == null)
+    public Reader getDecodingReader(InputStream in) throws IOException {
+        if (encoding == null) {
             return new InputStreamReader(in);
+        }
 
         return new InputStreamReader(in, encoding);
     }
@@ -223,10 +219,10 @@ public class Encoding
      * @return a non-null Writer implementation.
      * @throws IOException if something goes wrong
      */
-    public Writer getEncodingWriter(OutputStream out) throws IOException
-    {
-        if (encoding == null)
+    public Writer getEncodingWriter(OutputStream out) throws IOException {
+        if (encoding == null) {
             return new OutputStreamWriter(out);
+        }
 
         return new OutputStreamWriter(out, encoding);
     }
@@ -235,8 +231,7 @@ public class Encoding
      * Get an Encoding using the default encoding for the JVM.
      * @return an Encoding instance
      */
-    public static Encoding defaultEncoding()
-    {
+    public static Encoding defaultEncoding() {
         return DEFAULT_ENCODING;
     }
 
@@ -246,28 +241,25 @@ public class Encoding
      * @param encodingName the JVM encoding name to test
      * @return true iff the encoding is supported
      */
-    private static boolean isAvailable(String encodingName)
-    {
-        try
-        {
+    private static boolean isAvailable(String encodingName) {
+        try {
             "DUMMY".getBytes(encodingName);
             return true;
-        }
-        catch (java.io.UnsupportedEncodingException e)
-        {
+        } catch (java.io.UnsupportedEncodingException e) {
             return false;
         }
     }
 
+    @Override
     public String toString() {
         return (encoding == null ? "<default JVM encoding>" : encoding);
     }
-    
+
     /**
      * Checks weather this encoding is compatible with ASCII for the number
      * characters '-' and '0'..'9'. Where compatible means that they are encoded
-     * with exactly same values. 
-     * 
+     * with exactly same values.
+     *
      * @return If faster ASCII number parsing can be used with this encoding.
      */
     private boolean testAsciiNumbers() {
@@ -275,15 +267,15 @@ public class Encoding
         // any which do _not_ have ascii numbers in same location
         // at least all the encoding listed in the encodings hashmap have
         // working ascii numbers
-	try {
-	    String test = "-0123456789";
-	    byte[] bytes = encode(test);
-	    String res = new String(bytes, "US-ASCII");
-	    return test.equals(res);
-	} catch (java.io.UnsupportedEncodingException e) {
-	    return false;
-	} catch (IOException e) {
-	    return false;
-	}
+        try {
+            String test = "-0123456789";
+            byte[] bytes = encode(test);
+            String res = new String(bytes, "US-ASCII");
+            return test.equals(res);
+        } catch (java.io.UnsupportedEncodingException e) {
+            return false;
+        } catch (IOException e) {
+            return false;
+        }
     }
 }
