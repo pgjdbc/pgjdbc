@@ -16,6 +16,7 @@ public interface CopyIn extends CopyOperation {
 
     /**
      * Writes specified part of given byte array to an open and writable copy operation.
+     *
      * @param buf array of bytes to write
      * @param off offset of first byte to write (normally zero)
      * @param siz number of bytes to write (normally buf.length)
@@ -29,13 +30,16 @@ public interface CopyIn extends CopyOperation {
      * pushed over in due time or when endCopy is called.  Some specific
      * modified server versions (Truviso) want this data sooner.
      * If you are unsure if you need to use this method, don't.
+     *
+     * @throws SQLException if the operation fails
      */
     void flushCopy() throws SQLException;
-    
+
     /**
-     * Finishes copy operation succesfully.
+     * Finishes copy operation successfully.
+     *
      * @return number of updated rows for server 8.2 or newer (see getHandledRowCount())
      * @throws SQLException if the operation fails.
      */
-    public long endCopy() throws SQLException;
+    long endCopy() throws SQLException;
 }

@@ -7,15 +7,15 @@
 */
 package org.postgresql.copy;
 
+import org.postgresql.PGConnection;
+import org.postgresql.util.GT;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.SQLException;
 
-import org.postgresql.PGConnection;
-import org.postgresql.util.GT;
-
 /**
- * OutputStream for buffered input into a PostgreSQL COPY FROM STDIN operation
+ * OutputStream for buffered input into a PostgreSQL COPY FROM STDIN operation.
  */
 public class PGCopyOutputStream extends OutputStream implements CopyIn {
     private CopyIn op;
@@ -24,9 +24,10 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
     private int at = 0;
 
     /**
-     * Uses given connection for specified COPY FROM STDIN operation
+     * Uses given connection for specified COPY FROM STDIN operation.
+     *
      * @param connection database connection to use for copying (protocol version 3 required)
-     * @param sql COPY FROM STDIN statement
+     * @param sql        COPY FROM STDIN statement
      * @throws SQLException if initializing the operation fails
      */
     public PGCopyOutputStream(PGConnection connection, String sql) throws SQLException {
@@ -34,9 +35,10 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
     }
 
     /**
-     * Uses given connection for specified COPY FROM STDIN operation
+     * Uses given connection for specified COPY FROM STDIN operation.
+     *
      * @param connection database connection to use for copying (protocol version 3 required)
-     * @param sql COPY FROM STDIN statement
+     * @param sql        COPY FROM STDIN statement
      * @param bufferSize try to send this many bytes at a time
      * @throws SQLException if initializing the operation fails
      */
@@ -45,7 +47,8 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
     }
 
     /**
-     * Use given CopyIn operation for writing
+     * Use given CopyIn operation for writing.
+     *
      * @param op COPY FROM STDIN operation
      */
     public PGCopyOutputStream(CopyIn op) {
@@ -53,8 +56,9 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
     }
 
     /**
-     * Use given CopyIn operation for writing
-     * @param op COPY FROM STDIN operation
+     * Use given CopyIn operation for writing.
+     *
+     * @param op         COPY FROM STDIN operation
      * @param bufferSize try to send this many bytes at a time
      */
     public PGCopyOutputStream(CopyIn op, int bufferSize) {
@@ -64,9 +68,10 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
 
     public void write(int b) throws IOException {
         checkClosed();
-        if(b<0 || b>255)
+        if (b < 0 || b > 255) {
             throw new IOException(GT.tr("Cannot write to copy a byte of value {0}", b));
-        singleByteBuffer[0] = (byte)b;
+        }
+        singleByteBuffer[0] = (byte) b;
         write(singleByteBuffer, 0, 1);
     }
 
@@ -78,7 +83,7 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
         checkClosed();
         try {
             writeToCopy(buf, off, siz);
-        } catch(SQLException se) {
+        } catch (SQLException se) {
             IOException ioe = new IOException("Write to copy failed.");
             ioe.initCause(se);
             throw ioe;
@@ -93,12 +98,13 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
 
     public void close() throws IOException {
         // Don't complain about a double close.
-        if (op == null)
+        if (op == null) {
             return;
+        }
 
-        try{
+        try {
             endCopy();
-        } catch(SQLException se) {
+        } catch (SQLException se) {
             IOException ioe = new IOException("Ending write to copy failed.");
             ioe.initCause(se);
             throw ioe;
@@ -119,11 +125,11 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
     }
 
     public void writeToCopy(byte[] buf, int off, int siz) throws SQLException {
-        if(at > 0 && siz > copyBuffer.length - at) { // would not fit into rest of our buf, so flush buf
+        if (at > 0 && siz > copyBuffer.length - at) { // would not fit into rest of our buf, so flush buf
             op.writeToCopy(copyBuffer, 0, at);
             at = 0;
         }
-        if(siz > copyBuffer.length) { // would still not fit into buf, so just pass it through
+        if (siz > copyBuffer.length) { // would still not fit into buf, so just pass it through
             op.writeToCopy(buf, off, siz);
         } else { // fits into our buf, so save it there
             System.arraycopy(buf, off, copyBuffer, at, siz);
@@ -156,7 +162,7 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
     }
 
     public long endCopy() throws SQLException {
-        if(at > 0) {
+        if (at > 0) {
             op.writeToCopy(copyBuffer, 0, at);
         }
         op.endCopy();
