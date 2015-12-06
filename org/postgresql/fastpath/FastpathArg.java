@@ -7,8 +7,9 @@
 */
 package org.postgresql.fastpath;
 
-import java.sql.SQLException;
 import org.postgresql.core.ParameterList;
+
+import java.sql.SQLException;
 
 // Not a very clean mapping to the new QueryExecutor/ParameterList
 // stuff, but it seems hard to support both v2 and v3 cleanly with
@@ -16,11 +17,10 @@ import org.postgresql.core.ParameterList;
 // done it the ugly way..
 
 /**
- *     Each fastpath call requires an array of arguments, the number and type
- *     dependent on the function being called.
+ * Each fastpath call requires an array of arguments, the number and type
+ * dependent on the function being called.
  */
-public class FastpathArg
-{
+public class FastpathArg {
     /**
      * Encoded byte value of argument.
      */
@@ -29,11 +29,11 @@ public class FastpathArg
     private final int bytesLength;
 
     /**
-     * Constructs an argument that consists of an integer value
+     * Constructs an argument that consists of an integer value.
+     *
      * @param value int value to set
      */
-    public FastpathArg(int value)
-    {
+    public FastpathArg(int value) {
         bytes = new byte[4];
         bytes[3] = (byte) (value);
         bytes[2] = (byte) (value >> 8);
@@ -44,11 +44,11 @@ public class FastpathArg
     }
 
     /**
-     * Constructs an argument that consists of an integer value
+     * Constructs an argument that consists of an integer value.
+     *
      * @param value int value to set
      */
-    public FastpathArg(long value)
-    {
+    public FastpathArg(long value) {
         bytes = new byte[8];
         bytes[7] = (byte) (value);
         bytes[6] = (byte) (value >> 8);
@@ -63,22 +63,22 @@ public class FastpathArg
     }
 
     /**
-     * Constructs an argument that consists of an array of bytes
+     * Constructs an argument that consists of an array of bytes.
+     *
      * @param bytes array to store
      */
-    public FastpathArg(byte bytes[])
-    {
+    public FastpathArg(byte bytes[]) {
         this(bytes, 0, bytes.length);
     }
 
     /**
-     * Constructs an argument that consists of part of a byte array
+     * Constructs an argument that consists of part of a byte array.
+     *
      * @param buf source array
      * @param off offset within array
      * @param len length of data to include
      */
-    public FastpathArg(byte buf[], int off, int len)
-    {
+    public FastpathArg(byte buf[], int off, int len) {
         this.bytes = buf;
         this.bytesStart = off;
         this.bytesLength = len;
@@ -86,18 +86,19 @@ public class FastpathArg
 
     /**
      * Constructs an argument that consists of a String.
+     *
      * @param s String to store
      */
-    public FastpathArg(String s)
-    {
+    public FastpathArg(String s) {
         this(s.getBytes());
     }
 
     void populateParameter(ParameterList params, int index) throws SQLException {
-        if (bytes == null)
+        if (bytes == null) {
             params.setNull(index, 0);
-        else
+        } else {
             params.setBytea(index, bytes, bytesStart, bytesLength);
+        }
     }
 }
 
