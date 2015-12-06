@@ -7,12 +7,12 @@
 */
 package org.postgresql.ds.jdbc23;
 
-import java.io.Serializable;
-import java.io.ObjectOutputStream;
-import java.io.ObjectInputStream;
-import java.io.IOException;
+import org.postgresql.ds.common.BaseDataSource;
 
-import org.postgresql.ds.common.*;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 
 /**
  * Simple DataSource which does not perform connection pooling.  In order to use
@@ -22,23 +22,19 @@ import org.postgresql.ds.common.*;
  *
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  */
-public abstract class AbstractJdbc23SimpleDataSource extends BaseDataSource implements Serializable
-{
+public abstract class AbstractJdbc23SimpleDataSource extends BaseDataSource implements Serializable {
     /**
      * Gets a description of this DataSource.
      */
-    public String getDescription()
-    {
+    public String getDescription() {
         return "Non-Pooling DataSource from " + org.postgresql.Driver.getVersion();
     }
 
-    private void writeObject(ObjectOutputStream out) throws IOException
-    {
+    private void writeObject(ObjectOutputStream out) throws IOException {
         writeBaseObject(out);
     }
 
-    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException
-    {
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
         readBaseObject(in);
     }
 }

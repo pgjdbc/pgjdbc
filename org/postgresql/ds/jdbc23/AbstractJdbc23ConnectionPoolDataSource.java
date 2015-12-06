@@ -7,15 +7,15 @@
 */
 package org.postgresql.ds.jdbc23;
 
-import javax.sql.PooledConnection;
-import java.sql.SQLException;
-import java.io.Serializable;
-import java.io.ObjectOutputStream;
-import java.io.ObjectInputStream;
-import java.io.IOException;
-
-import org.postgresql.ds.common.*;
 import org.postgresql.ds.PGPooledConnection;
+import org.postgresql.ds.common.BaseDataSource;
+
+import javax.sql.PooledConnection;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+import java.sql.SQLException;
 
 /**
  * PostgreSQL implementation of ConnectionPoolDataSource.  The app server or
@@ -34,15 +34,13 @@ import org.postgresql.ds.PGPooledConnection;
  *
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  */
-public class AbstractJdbc23ConnectionPoolDataSource extends BaseDataSource implements Serializable
-{
+public class AbstractJdbc23ConnectionPoolDataSource extends BaseDataSource implements Serializable {
     private boolean defaultAutoCommit = true;
 
     /**
      * Gets a description of this DataSource.
      */
-    public String getDescription()
-    {
+    public String getDescription() {
         return "ConnectionPoolDataSource from " + org.postgresql.Driver.getVersion();
     }
 
@@ -50,11 +48,9 @@ public class AbstractJdbc23ConnectionPoolDataSource extends BaseDataSource imple
      * Gets a connection which may be pooled by the app server or middleware
      * implementation of DataSource.
      *
-     * @throws java.sql.SQLException
-     *     Occurs when the physical database connection cannot be established.
+     * @throws java.sql.SQLException Occurs when the physical database connection cannot be established.
      */
-    public PooledConnection getPooledConnection() throws SQLException
-    {
+    public PooledConnection getPooledConnection() throws SQLException {
         return new PGPooledConnection(getConnection(), defaultAutoCommit);
     }
 
@@ -62,11 +58,11 @@ public class AbstractJdbc23ConnectionPoolDataSource extends BaseDataSource imple
      * Gets a connection which may be pooled by the app server or middleware
      * implementation of DataSource.
      *
-     * @throws java.sql.SQLException
-     *     Occurs when the physical database connection cannot be established.
+     * @param user
+     * @param password
+     * @throws java.sql.SQLException Occurs when the physical database connection cannot be established.
      */
-    public PooledConnection getPooledConnection(String user, String password) throws SQLException
-    {
+    public PooledConnection getPooledConnection(String user, String password) throws SQLException {
         return new PGPooledConnection(getConnection(user, password), defaultAutoCommit);
     }
 
@@ -75,8 +71,7 @@ public class AbstractJdbc23ConnectionPoolDataSource extends BaseDataSource imple
      * turned on by default.  The default value is <tt>false</tt>, so that
      * autoCommit will be turned off by default.
      */
-    public boolean isDefaultAutoCommit()
-    {
+    public boolean isDefaultAutoCommit() {
         return defaultAutoCommit;
     }
 
@@ -84,22 +79,20 @@ public class AbstractJdbc23ConnectionPoolDataSource extends BaseDataSource imple
      * Sets whether connections supplied by this pool will have autoCommit
      * turned on by default.  The default value is <tt>false</tt>, so that
      * autoCommit will be turned off by default.
+     *
+     * @param defaultAutoCommit
      */
-    public void setDefaultAutoCommit(boolean defaultAutoCommit)
-    {
+    public void setDefaultAutoCommit(boolean defaultAutoCommit) {
         this.defaultAutoCommit = defaultAutoCommit;
     }
 
-    private void writeObject(ObjectOutputStream out) throws IOException
-    {
+    private void writeObject(ObjectOutputStream out) throws IOException {
         writeBaseObject(out);
         out.writeBoolean(defaultAutoCommit);
     }
 
-    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException
-    {
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
         readBaseObject(in);
         defaultAutoCommit = in.readBoolean();
     }
-
 }
