@@ -30,14 +30,15 @@ public interface CopyOperation {
      * @return format of requested field: 0 = textual, 1 = binary
      */
     int getFieldFormat(int field);
-    
+
     /**
      * @return is connection reserved for this Copy operation?
      */
     boolean isActive();
-    
+
     /**
      * Cancels this copy operation, discarding any exchanged data.
+     *
      * @throws SQLException if cancelling fails
      */
     void cancelCopy() throws SQLException;
@@ -47,7 +48,8 @@ public interface CopyOperation {
      * of database records handled in that operation.
      * Only implemented in PostgreSQL server version 8.2 and up.
      * Otherwise, returns -1.
+     *
      * @return number of handled rows or -1
      */
-    public long getHandledRowCount();
+    long getHandledRowCount();
 }
