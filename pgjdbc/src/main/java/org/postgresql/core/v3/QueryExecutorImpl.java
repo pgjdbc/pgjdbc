@@ -1196,6 +1196,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             // under us.
             query.setStatementName(statementName);
             query.setStatementTypes((int[])typeOIDs.clone());
+            registerParsedQuery(query, statementName);
         }
 
         byte[] encodedStatementName = query.getEncodedStatementName();
@@ -1731,7 +1732,6 @@ public class QueryExecutorImpl implements QueryExecutor {
                 if (logger.logDebug())
                     logger.debug(" <=BE ParseComplete [" + parsedStatementName + "]");
 
-                registerParsedQuery(parsedQuery, parsedStatementName);
                 break;
 
             case 't':    // ParameterDescription
