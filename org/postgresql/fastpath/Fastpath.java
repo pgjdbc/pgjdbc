@@ -7,34 +7,32 @@
 */
 package org.postgresql.fastpath;
 
-import java.sql.SQLException;
-import java.sql.ResultSet;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.postgresql.core.BaseConnection;
-import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ParameterList;
+import org.postgresql.core.QueryExecutor;
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
-import org.postgresql.util.GT;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * This class implements the Fastpath api.
  *
  * <p>This is a means of executing functions embedded in the
- *  backend from within a java application.
+ * backend from within a java application.
  *
  * <p>It is based around the file src/interfaces/libpq/fe-exec.c
- *
  */
-public class Fastpath
-{
+public class Fastpath {
     // Java passes oids around as longs, but in the backend
     // it's an unsigned int, so we use this to make the conversion
     // of long -> signed int which the backend interprets as unsigned.
-    private final static long NUM_OIDS = 4294967296L; // 2^32
+    private static final long NUM_OIDS = 4294967296L; // 2^32
 
     // This maps the functions names to their id's (possible unique just
     // to a connection).
@@ -43,48 +41,42 @@ public class Fastpath
     private final BaseConnection connection;
 
     /**
-     * Initialises the fastpath system
+     * Initialises the fastpath system.
      *
      * @param conn BaseConnection to attach to
      */
-    public Fastpath(BaseConnection conn)
-    {
+    public Fastpath(BaseConnection conn) {
         this.connection = conn;
         this.executor = conn.getQueryExecutor();
     }
 
     /**
-     * Send a function call to the PostgreSQL backend
-     * 
-     * @deprecated please use {@link #fastpath(int, FastpathArg[])}
-     * @param fnId Function id
+     * Send a function call to the PostgreSQL backend.
+     *
+     * @param fnId       Function id
      * @param resultType True if the result is a numeric (Integer or Long)
-     * @param args FastpathArguments to pass to fastpath
+     * @param args       FastpathArguments to pass to fastpath
      * @return null if no data, Integer if an integer result, Long if a long result, or byte[] otherwise
-     * @exception SQLException if a database-access error occurs.
+     * @throws SQLException if a database-access error occurs.
+     * @deprecated please use {@link #fastpath(int, FastpathArg[])}
      */
     @Deprecated
-    public Object fastpath(int fnId, boolean resultType, FastpathArg[] args) throws SQLException
-    {
+    public Object fastpath(int fnId, boolean resultType, FastpathArg[] args) throws SQLException {
         // Run it.
         byte[] returnValue = fastpath(fnId, args);
 
         // Interpret results.
-        if (!resultType || returnValue == null)
+        if (!resultType || returnValue == null) {
             return returnValue;
+        }
 
-        if (returnValue.length == 4)
-        {
+        if (returnValue.length == 4) {
             return ByteConverter.int4(returnValue, 0);
-        }
-        else if (returnValue.length == 8)
-        {
+        } else if (returnValue.length == 8) {
             return ByteConverter.int8(returnValue, 0);
-        }
-        else
-        {
+        } else {
             throw new PSQLException(GT.tr("Fastpath call {0} - No result was returned and we expected a numeric.", fnId),
-                                    PSQLState.NO_DATA);
+                    PSQLState.NO_DATA);
         }
     }
 
@@ -94,14 +86,12 @@ public class Fastpath
      * @param fnId Function id
      * @param args FastpathArguments to pass to fastpath
      * @return null if no data, byte[] otherwise
-     * @exception SQLException if a database-access error occurs.
+     * @throws SQLException if a database-access error occurs.
      */
-    public byte[] fastpath(int fnId, FastpathArg[] args) throws SQLException
-    {
+    public byte[] fastpath(int fnId, FastpathArg[] args) throws SQLException {
         // Turn fastpath array into a parameter list.
         ParameterList params = executor.createFastpathParameters(args.length);
-        for (int i = 0; i < args.length; ++i)
-        {
+        for (int i = 0; i < args.length; ++i) {
             args[i].populateParameter(params, i + 1);
         }
 
@@ -112,22 +102,21 @@ public class Fastpath
     }
 
     /**
-     * @param name Function name
+     * @param name       Function name
      * @param resultType True if the result is a numeric (Integer or Long)
-     * @param args FastpathArguments to pass to fastpath
+     * @param args       FastpathArguments to pass to fastpath
      * @return null if no data, Integer if an integer result, Long if a long result, or byte[] otherwise
-     * 
-     * @deprecated Use {@link #getData(String, FastpathArg[])} if you expect a binary result, 
-     * or one of {@link #getInteger(String, FastpathArg[])} or {@link #getLong(String, FastpathArg[])} if you
-     * expect a numeric one
      * @see #fastpath(int, FastpathArg[])
      * @see #fastpath(String, FastpathArg[])
+     * @deprecated Use {@link #getData(String, FastpathArg[])} if you expect a binary result,
+     * or one of {@link #getInteger(String, FastpathArg[])} or {@link #getLong(String, FastpathArg[])} if you
+     * expect a numeric one
      */
     @Deprecated
-    public Object fastpath(String name, boolean resulttype, FastpathArg[] args) throws SQLException
-    {
-        if (connection.getLogger().logDebug())
+    public Object fastpath(String name, boolean resulttype, FastpathArg[] args) throws SQLException {
+        if (connection.getLogger().logDebug()) {
             connection.getLogger().debug("Fastpath: calling " + name);
+        }
         return fastpath(getID(name), resulttype, args);
     }
 
@@ -145,40 +134,36 @@ public class Fastpath
      * @param name Function name
      * @param args FastpathArguments to pass to fastpath
      * @return null if no data, byte[] otherwise
-     * @exception SQLException if name is unknown or if a database-access error
-     * occurs.
+     * @throws SQLException if name is unknown or if a database-access error
+     *                      occurs.
      * @see org.postgresql.largeobject.LargeObject
      */
-    public byte[] fastpath(String name, FastpathArg[] args) throws SQLException
-    {
-        if (connection.getLogger().logDebug())
+    public byte[] fastpath(String name, FastpathArg[] args) throws SQLException {
+        if (connection.getLogger().logDebug()) {
             connection.getLogger().debug("Fastpath: calling " + name);
+        }
         return fastpath(getID(name), args);
     }
 
     /**
      * This convenience method assumes that the return value is an integer
+     *
      * @param name Function name
      * @param args Function arguments
      * @return integer result
-     * @exception SQLException if a database-access error occurs or no result
+     * @throws SQLException if a database-access error occurs or no result
      */
-    public int getInteger(String name, FastpathArg[] args) throws SQLException
-    {
+    public int getInteger(String name, FastpathArg[] args) throws SQLException {
         byte[] returnValue = fastpath(name, args);
-        if (returnValue == null)
-        {
+        if (returnValue == null) {
             throw new PSQLException(GT.tr("Fastpath call {0} - No result was returned and we expected an integer.", name),
                     PSQLState.NO_DATA);
         }
 
-        if (returnValue.length == 4)
-        {
+        if (returnValue.length == 4) {
             int i = ByteConverter.int4(returnValue, 0);
             return i;
-        }
-        else
-        {
+        } else {
             throw new PSQLException(GT.tr("Fastpath call {0} - No result was returned or wrong size while expecting an integer.", name),
                     PSQLState.NO_DATA);
         }
@@ -186,27 +171,23 @@ public class Fastpath
 
     /**
      * This convenience method assumes that the return value is a long (bigint)
+     *
      * @param name Function name
      * @param args Function arguments
      * @return long result
-     * @exception SQLException if a database-access error occurs or no result
+     * @throws SQLException if a database-access error occurs or no result
      */
-    public long getLong(String name, FastpathArg[] args) throws SQLException
-    {
+    public long getLong(String name, FastpathArg[] args) throws SQLException {
         byte[] returnValue = fastpath(name, args);
-        if (returnValue == null)
-        {
+        if (returnValue == null) {
             throw new PSQLException(GT.tr("Fastpath call {0} - No result was returned and we expected a long.", name),
                     PSQLState.NO_DATA);
         }
-        if (returnValue.length == 8)
-        {
+        if (returnValue.length == 8) {
             long l = ByteConverter.int8(returnValue, 0);
             return l;
-            
-        }
-        else
-        {
+
+        } else {
             throw new PSQLException(GT.tr("Fastpath call {0} - No result was returned or wrong size while expecting a long.", name),
                     PSQLState.NO_DATA);
         }
@@ -214,28 +195,29 @@ public class Fastpath
 
     /**
      * This convenience method assumes that the return value is an oid.
+     *
      * @param name Function name
      * @param args Function arguments
-     * @exception SQLException if a database-access error occurs or no result
+     * @throws SQLException if a database-access error occurs or no result
      */
-    public long getOID(String name, FastpathArg[] args) throws SQLException
-    {
+    public long getOID(String name, FastpathArg[] args) throws SQLException {
         long oid = getInteger(name, args);
-        if (oid < 0)
+        if (oid < 0) {
             oid += NUM_OIDS;
+        }
         return oid;
     }
 
     /**
-     * This convenience method assumes that the return value is not an Integer
+     * This convenience method assumes that the return value is not an Integer.
+     *
      * @param name Function name
      * @param args Function arguments
      * @return byte[] array containing result
-     * @exception SQLException if a database-access error occurs or no result
+     * @throws SQLException if a database-access error occurs or no result
      */
-    public byte[] getData(String name, FastpathArg[] args) throws SQLException
-    {
-        return (byte[])fastpath(name, args);
+    public byte[] getData(String name, FastpathArg[] args) throws SQLException {
+        return (byte[]) fastpath(name, args);
     }
 
     /**
@@ -249,8 +231,7 @@ public class Fastpath
      * @param name Function name
      * @param fnid Function id
      */
-    public void addFunction(String name, int fnid)
-    {
+    public void addFunction(String name, int fnid) {
         func.put(name, fnid);
     }
 
@@ -283,13 +264,11 @@ public class Fastpath
      * unwarranted headaches in the future.
      *
      * @param rs ResultSet
-     * @exception SQLException if a database-access error occurs.
+     * @throws SQLException if a database-access error occurs.
      * @see org.postgresql.largeobject.LargeObjectManager
      */
-    public void addFunctions(ResultSet rs) throws SQLException
-    {
-        while (rs.next())
-        {
+    public void addFunctions(ResultSet rs) throws SQLException {
+        while (rs.next()) {
             func.put(rs.getString(1), rs.getInt(2));
         }
     }
@@ -302,11 +281,10 @@ public class Fastpath
      *
      * @param name Function name to lookup
      * @return Function ID for fastpath call
-     * @exception SQLException is function is unknown.
+     * @throws SQLException is function is unknown.
      */
-    public int getID(String name) throws SQLException
-    {
-        Integer id = (Integer)func.get(name);
+    public int getID(String name) throws SQLException {
+        Integer id = (Integer) func.get(name);
 
         // may be we could add a lookup to the database here, and store the result
         // in our lookup table, throwing the exception if that fails.
@@ -315,8 +293,9 @@ public class Fastpath
         //
         // so, until we know we can do this (needs testing, on the TODO list)
         // for now, we throw the exception and do no lookups.
-        if (id == null)
+        if (id == null) {
             throw new PSQLException(GT.tr("The fastpath function {0} is unknown.", name), PSQLState.UNEXPECTED_ERROR);
+        }
 
         return id;
     }
@@ -327,11 +306,11 @@ public class Fastpath
      * because the constructor can't tell the difference between
      * an long that's really int8 and a long thats an oid.
      */
-    public static FastpathArg createOIDArg(long oid)
-    {
-        if (oid > Integer.MAX_VALUE)
+    public static FastpathArg createOIDArg(long oid) {
+        if (oid > Integer.MAX_VALUE) {
             oid -= NUM_OIDS;
-        return new FastpathArg((int)oid);
+        }
+        return new FastpathArg((int) oid);
     }
 
 }
