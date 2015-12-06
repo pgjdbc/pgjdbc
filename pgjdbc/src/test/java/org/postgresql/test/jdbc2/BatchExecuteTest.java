@@ -426,4 +426,441 @@ public class BatchExecuteTest extends BaseTest
             throw ex;
     	}
     }
+
+    /**
+     * Tests {@link PreparedStatement#addBatch} in case types of parameters change from one batch to another.
+     * Change of the datatypes causes re-prepare server-side statement, thus exactly the same query object
+     * might have different statement names.
+     * @throws Exception
+     */
+    public void testBatchWithAlternatingTypes() throws SQLException
+    {
+        try {
+            Statement s = con.createStatement();
+            s.execute("BEGIN");
+            PreparedStatement ps;
+            ps = con.prepareStatement("insert into prep(a,b)  values(?::int4,?)");
+            ps.setInt(1, 2);
+            ps.setInt(2, 2);
+            ps.addBatch();
+            ps.addBatch();
+            ps.addBatch();
+            ps.addBatch();
+            ps.addBatch();
+            ps.setString(1, "1");
+            ps.setInt(2, 2);
+            ps.addBatch();
+            ps.executeBatch();
+            ps.setString(1, "2");
+            ps.setInt(2, 2);
+            ps.addBatch();
+            ps.executeBatch();
+            ps.close();
+            s.execute("COMMIT");
+        } catch(BatchUpdateException e) {
+            throw e.getNextException();
+        }
+        /*
+    Key part is (see "before the fix"):
+         23:00:30.354 (1)  <=BE ParseComplete [S_2]
+         23:00:30.356 (1)  <=BE ParseComplete [S_2]
+    The problem is ParseRequest is reusing the same Query object and it updates StatementName in place.
+    This dodges ParseComplete message as previously QueryExecutor just picked statementName from Query object.
+    Eventually this causes closing of "new" statement instead of old S_1
+        23:00:30.356 (1)  FE=> CloseStatement(S_2)
+
+    The fix is to make ParseComplete a no-op, so as soon as the driver allocates a statement name, it registers
+     the name for cleanup.
+
+    Trace before the fix:
+23:00:30.261 (1) PostgreSQL 9.4 JDBC4.1 (build 1206)
+23:00:30.266 (1) Trying to establish a protocol version 3 connection to localhost:5432
+23:00:30.280 (1) Receive Buffer Size is 408300
+23:00:30.281 (1) Send Buffer Size is 146988
+23:00:30.283 (1)  FE=> StartupPacket(user=postgres, database=vladimirsitnikov, client_encoding=UTF8, DateStyle=ISO, TimeZone=Europe/Volgograd, extra_float_digits=2)
+23:00:30.289 (1)  <=BE AuthenticationOk
+23:00:30.300 (1)  <=BE ParameterStatus(application_name = )
+23:00:30.300 (1)  <=BE ParameterStatus(client_encoding = UTF8)
+23:00:30.300 (1)  <=BE ParameterStatus(DateStyle = ISO, DMY)
+23:00:30.300 (1)  <=BE ParameterStatus(integer_datetimes = on)
+23:00:30.300 (1)  <=BE ParameterStatus(IntervalStyle = postgres)
+23:00:30.301 (1)  <=BE ParameterStatus(is_superuser = on)
+23:00:30.301 (1)  <=BE ParameterStatus(server_encoding = SQL_ASCII)
+23:00:30.301 (1)  <=BE ParameterStatus(server_version = 9.4.5)
+23:00:30.301 (1)  <=BE ParameterStatus(session_authorization = postgres)
+23:00:30.301 (1)  <=BE ParameterStatus(standard_conforming_strings = on)
+23:00:30.301 (1)  <=BE ParameterStatus(TimeZone = Europe/Volgograd)
+23:00:30.301 (1)  <=BE BackendKeyData(pid=81221,ckey=2048823749)
+23:00:30.301 (1)  <=BE ReadyForQuery(I)
+23:00:30.304 (1) simple execute, handler=org.postgresql.core.SetupQueryRunner$SimpleResultHandler@531d72ca, maxRows=0, fetchSize=0, flags=23
+23:00:30.304 (1)  FE=> Parse(stmt=null,query="SET extra_float_digits = 3",oids={})
+23:00:30.304 (1)  FE=> Bind(stmt=null,portal=null)
+23:00:30.305 (1)  FE=> Execute(portal=null,limit=1)
+23:00:30.305 (1)  FE=> Sync
+23:00:30.306 (1)  <=BE ParseComplete [null]
+23:00:30.306 (1)  <=BE BindComplete [unnamed]
+23:00:30.306 (1)  <=BE CommandStatus(SET)
+23:00:30.306 (1)  <=BE ReadyForQuery(I)
+23:00:30.306 (1)     compatible = 90400
+23:00:30.306 (1)     loglevel = 10
+23:00:30.307 (1)     prepare threshold = 5
+23:00:30.309 (1)     types using binary send = TIMESTAMPTZ,UUID,INT2_ARRAY,INT4_ARRAY,BYTEA,TEXT_ARRAY,TIMETZ,INT8,INT2,INT4,VARCHAR_ARRAY,INT8_ARRAY,POINT,TIMESTAMP,TIME,BOX,FLOAT4,FLOAT8,FLOAT4_ARRAY,FLOAT8_ARRAY
+23:00:30.310 (1)     types using binary receive = TIMESTAMPTZ,UUID,INT2_ARRAY,INT4_ARRAY,BYTEA,TEXT_ARRAY,TIMETZ,INT8,INT2,INT4,VARCHAR_ARRAY,INT8_ARRAY,POINT,DATE,TIMESTAMP,TIME,BOX,FLOAT4,FLOAT8,FLOAT4_ARRAY,FLOAT8_ARRAY
+23:00:30.310 (1)     integer date/time = true
+23:00:30.331 (1) simple execute, handler=org.postgresql.jdbc2.AbstractJdbc2Statement$StatementResultHandler@255316f2, maxRows=0, fetchSize=0, flags=21
+23:00:30.331 (1)  FE=> Parse(stmt=null,query="DROP TABLE testbatch CASCADE ",oids={})
+23:00:30.331 (1)  FE=> Bind(stmt=null,portal=null)
+23:00:30.331 (1)  FE=> Describe(portal=null)
+23:00:30.331 (1)  FE=> Execute(portal=null,limit=1)
+23:00:30.331 (1)  FE=> Sync
+23:00:30.332 (1)  <=BE ParseComplete [null]
+23:00:30.332 (1)  <=BE BindComplete [unnamed]
+23:00:30.332 (1)  <=BE NoData
+23:00:30.334 (1)  <=BE ErrorMessage(ERROR: table "testbatch" does not exist
+  Location: File: tablecmds.c, Routine: DropErrorMsgNonExistent, Line: 727
+  Server SQLState: 42P01)
+23:00:30.335 (1)  <=BE ReadyForQuery(I)
+23:00:30.335 (1) simple execute, handler=org.postgresql.jdbc2.AbstractJdbc2Statement$StatementResultHandler@4b9af9a9, maxRows=0, fetchSize=0, flags=21
+23:00:30.336 (1)  FE=> Parse(stmt=null,query="CREATE TABLE testbatch (pk INTEGER, col1 INTEGER) ",oids={})
+23:00:30.336 (1)  FE=> Bind(stmt=null,portal=null)
+23:00:30.336 (1)  FE=> Describe(portal=null)
+23:00:30.336 (1)  FE=> Execute(portal=null,limit=1)
+23:00:30.336 (1)  FE=> Sync
+23:00:30.339 (1)  <=BE ParseComplete [null]
+23:00:30.339 (1)  <=BE BindComplete [unnamed]
+23:00:30.339 (1)  <=BE NoData
+23:00:30.339 (1)  <=BE CommandStatus(CREATE TABLE)
+23:00:30.339 (1)  <=BE ReadyForQuery(I)
+23:00:30.339 (1) simple execute, handler=org.postgresql.jdbc2.AbstractJdbc2Statement$StatementResultHandler@5387f9e0, maxRows=0, fetchSize=0, flags=21
+23:00:30.339 (1)  FE=> Parse(stmt=null,query="INSERT INTO testbatch VALUES (1, 0)",oids={})
+23:00:30.340 (1)  FE=> Bind(stmt=null,portal=null)
+23:00:30.340 (1)  FE=> Describe(portal=null)
+23:00:30.340 (1)  FE=> Execute(portal=null,limit=1)
+23:00:30.340 (1)  FE=> Sync
+23:00:30.341 (1)  <=BE ParseComplete [null]
+23:00:30.341 (1)  <=BE BindComplete [unnamed]
+23:00:30.341 (1)  <=BE NoData
+23:00:30.341 (1)  <=BE CommandStatus(INSERT 0 1)
+23:00:30.341 (1)  <=BE ReadyForQuery(I)
+23:00:30.341 (1) simple execute, handler=org.postgresql.jdbc2.AbstractJdbc2Statement$StatementResultHandler@6e5e91e4, maxRows=0, fetchSize=0, flags=21
+23:00:30.341 (1)  FE=> Parse(stmt=null,query="DROP TABLE prep CASCADE ",oids={})
+23:00:30.341 (1)  FE=> Bind(stmt=null,portal=null)
+23:00:30.341 (1)  FE=> Describe(portal=null)
+23:00:30.342 (1)  FE=> Execute(portal=null,limit=1)
+23:00:30.342 (1)  FE=> Sync
+23:00:30.343 (1)  <=BE ParseComplete [null]
+23:00:30.343 (1)  <=BE BindComplete [unnamed]
+23:00:30.343 (1)  <=BE NoData
+23:00:30.344 (1)  <=BE CommandStatus(DROP TABLE)
+23:00:30.344 (1)  <=BE ReadyForQuery(I)
+23:00:30.344 (1) simple execute, handler=org.postgresql.jdbc2.AbstractJdbc2Statement$StatementResultHandler@2cdf8d8a, maxRows=0, fetchSize=0, flags=21
+23:00:30.344 (1)  FE=> Parse(stmt=null,query="CREATE TABLE prep (a integer, b integer) ",oids={})
+23:00:30.344 (1)  FE=> Bind(stmt=null,portal=null)
+23:00:30.344 (1)  FE=> Describe(portal=null)
+23:00:30.344 (1)  FE=> Execute(portal=null,limit=1)
+23:00:30.344 (1)  FE=> Sync
+23:00:30.345 (1)  <=BE ParseComplete [null]
+23:00:30.345 (1)  <=BE BindComplete [unnamed]
+23:00:30.345 (1)  <=BE NoData
+23:00:30.345 (1)  <=BE CommandStatus(CREATE TABLE)
+23:00:30.346 (1)  <=BE ReadyForQuery(I)
+23:00:30.346 (1) simple execute, handler=org.postgresql.jdbc2.AbstractJdbc2Statement$StatementResultHandler@30946e09, maxRows=0, fetchSize=0, flags=1
+23:00:30.346 (1)  FE=> Parse(stmt=null,query="BEGIN",oids={})
+23:00:30.346 (1)  FE=> Bind(stmt=null,portal=null)
+23:00:30.346 (1)  FE=> Execute(portal=null,limit=0)
+23:00:30.347 (1)  FE=> Parse(stmt=null,query="BEGIN",oids={})
+23:00:30.347 (1)  FE=> Bind(stmt=null,portal=null)
+23:00:30.347 (1)  FE=> Describe(portal=null)
+23:00:30.347 (1)  FE=> Execute(portal=null,limit=0)
+23:00:30.347 (1)  FE=> Sync
+23:00:30.348 (1)  <=BE ParseComplete [null]
+23:00:30.348 (1)  <=BE BindComplete [unnamed]
+23:00:30.348 (1)  <=BE CommandStatus(BEGIN)
+23:00:30.348 (1)  <=BE ParseComplete [null]
+23:00:30.348 (1)  <=BE BindComplete [unnamed]
+23:00:30.348 (1)  <=BE NoData
+23:00:30.348 (1)  <=BE NoticeResponse(WARNING: there is already a transaction in progress
+  Location: File: xact.c, Routine: BeginTransactionBlock, Line: 3279
+  Server SQLState: 25001)
+23:00:30.348 (1)  <=BE CommandStatus(BEGIN)
+23:00:30.348 (1)  <=BE ReadyForQuery(T)
+23:00:30.351 (1) batch execute 6 queries, handler=org.postgresql.jdbc2.AbstractJdbc2Statement$BatchResultHandler@5cb0d902, maxRows=0, fetchSize=0, flags=516
+23:00:30.351 (1)  FE=> Parse(stmt=S_1,query="insert into prep(a,b)  values($1::int4,$2)",oids={23,23})
+23:00:30.351 (1)  FE=> Bind(stmt=S_1,portal=null,$1=<2>,$2=<2>)
+23:00:30.351 (1)  FE=> Describe(portal=null)
+23:00:30.351 (1)  FE=> Execute(portal=null,limit=1)
+23:00:30.351 (1)  FE=> Bind(stmt=S_1,portal=null,$1=<2>,$2=<2>)
+23:00:30.351 (1)  FE=> Describe(portal=null)
+23:00:30.351 (1)  FE=> Execute(portal=null,limit=1)
+23:00:30.352 (1)  FE=> Bind(stmt=S_1,portal=null,$1=<2>,$2=<2>)
+23:00:30.352 (1)  FE=> Describe(portal=null)
+23:00:30.352 (1)  FE=> Execute(portal=null,limit=1)
+23:00:30.352 (1)  FE=> Bind(stmt=S_1,portal=null,$1=<2>,$2=<2>)
+23:00:30.352 (1)  FE=> Describe(portal=null)
+23:00:30.352 (1)  FE=> Execute(portal=null,limit=1)
+23:00:30.352 (1)  FE=> Bind(stmt=S_1,portal=null,$1=<2>,$2=<2>)
+23:00:30.352 (1)  FE=> Describe(portal=null)
+23:00:30.352 (1)  FE=> Execute(portal=null,limit=1)
+23:00:30.352 (1)  FE=> Parse(stmt=S_2,query="insert into prep(a,b)  values($1::int4,$2)",oids={1043,23})
+23:00:30.353 (1)  FE=> Bind(stmt=S_2,portal=null,$1=<'1'>,$2=<2>)
+23:00:30.353 (1)  FE=> Describe(portal=null)
+23:00:30.353 (1)  FE=> Execute(portal=null,limit=1)
+23:00:30.353 (1)  FE=> Sync
+23:00:30.354 (1)  <=BE ParseComplete [S_2]
+23:00:30.354 (1)  <=BE BindComplete [unnamed]
+23:00:30.354 (1)  <=BE NoData
+23:00:30.354 (1)  <=BE CommandStatus(INSERT 0 1)
+23:00:30.355 (1)  <=BE BindComplete [unnamed]
+23:00:30.355 (1)  <=BE NoData
+23:00:30.355 (1)  <=BE CommandStatus(INSERT 0 1)
+23:00:30.355 (1)  <=BE BindComplete [unnamed]
+23:00:30.355 (1)  <=BE NoData
+23:00:30.355 (1)  <=BE CommandStatus(INSERT 0 1)
+23:00:30.355 (1)  <=BE BindComplete [unnamed]
+23:00:30.355 (1)  <=BE NoData
+23:00:30.355 (1)  <=BE CommandStatus(INSERT 0 1)
+23:00:30.355 (1)  <=BE BindComplete [unnamed]
+23:00:30.355 (1)  <=BE NoData
+23:00:30.356 (1)  <=BE CommandStatus(INSERT 0 1)
+23:00:30.356 (1)  <=BE ParseComplete [S_2]
+23:00:30.356 (1)  <=BE BindComplete [unnamed]
+23:00:30.356 (1)  <=BE NoData
+23:00:30.356 (1)  <=BE CommandStatus(INSERT 0 1)
+23:00:30.356 (1)  <=BE ReadyForQuery(T)
+23:00:30.356 (1) batch execute 1 queries, handler=org.postgresql.jdbc2.AbstractJdbc2Statement$BatchResultHandler@5ef04b5, maxRows=0, fetchSize=0, flags=516
+23:00:30.356 (1)  FE=> CloseStatement(S_2)
+23:00:30.356 (1)  FE=> Bind(stmt=S_2,portal=null,$1=<'2'>,$2=<2>)
+23:00:30.356 (1)  FE=> Describe(portal=null)
+23:00:30.356 (1)  FE=> Execute(portal=null,limit=1)
+23:00:30.357 (1)  FE=> Sync
+23:00:30.357 (1)  <=BE CloseComplete
+23:00:30.357 (1)  <=BE ErrorMessage(ERROR: prepared statement "S_2" does not exist
+  Location: File: prepare.c, Routine: FetchPreparedStatement, Line: 505
+  Server SQLState: 26000)
+23:00:30.358 (1)  <=BE ReadyForQuery(E)
+23:00:30.358 (1) simple execute, handler=org.postgresql.jdbc2.AbstractJdbc2Connection$TransactionCommandHandler@5f4da5c3, maxRows=0, fetchSize=0, flags=22
+23:00:30.358 (1)  FE=> Parse(stmt=S_3,query="COMMIT",oids={})
+23:00:30.358 (1)  FE=> Bind(stmt=S_3,portal=null)
+23:00:30.358 (1)  FE=> Execute(portal=null,limit=1)
+23:00:30.358 (1)  FE=> Sync
+23:00:30.359 (1)  <=BE ParseComplete [S_3]
+23:00:30.359 (1)  <=BE BindComplete [unnamed]
+23:00:30.359 (1)  <=BE CommandStatus(ROLLBACK)
+23:00:30.359 (1)  <=BE ReadyForQuery(I)
+23:00:30.359 (1) simple execute, handler=org.postgresql.jdbc2.AbstractJdbc2Statement$StatementResultHandler@14514713, maxRows=0, fetchSize=0, flags=21
+23:00:30.359 (1)  FE=> Parse(stmt=null,query="DROP TABLE testbatch CASCADE ",oids={})
+23:00:30.359 (1)  FE=> Bind(stmt=null,portal=null)
+23:00:30.359 (1)  FE=> Describe(portal=null)
+23:00:30.359 (1)  FE=> Execute(portal=null,limit=1)
+23:00:30.359 (1)  FE=> Sync
+23:00:30.360 (1)  <=BE ParseComplete [null]
+23:00:30.360 (1)  <=BE BindComplete [unnamed]
+23:00:30.360 (1)  <=BE NoData
+23:00:30.361 (1)  <=BE CommandStatus(DROP TABLE)
+23:00:30.361 (1)  <=BE ReadyForQuery(I)
+23:00:30.361 (1)  FE=> Terminate
+
+org.postgresql.util.PSQLException: ERROR: prepared statement "S_2" does not exist
+  Location: File: prepare.c, Routine: FetchPreparedStatement, Line: 505
+  Server SQLState: 26000
+
+	at org.postgresql.core.v3.QueryExecutorImpl.receiveErrorResponse(QueryExecutorImpl.java:2183)
+	at org.postgresql.core.v3.QueryExecutorImpl.processResults(QueryExecutorImpl.java:1912)
+	at org.postgresql.core.v3.QueryExecutorImpl.execute(QueryExecutorImpl.java:338)
+	at org.postgresql.jdbc2.AbstractJdbc2Statement.executeBatch(AbstractJdbc2Statement.java:2959)
+	at org.postgresql.test.jdbc2.BatchExecuteTest.testBatchWithAlternatingTypes(BatchExecuteTest.java:457)
+         */
+
+        /*
+        Trace after the fix:
+23:15:33.776 (1) PostgreSQL 9.4 JDBC4.1 (build 1206)
+23:15:33.785 (1) Trying to establish a protocol version 3 connection to localhost:5432
+23:15:33.804 (1) Receive Buffer Size is 408300
+23:15:33.804 (1) Send Buffer Size is 146988
+23:15:33.813 (1)  FE=> StartupPacket(user=postgres, database=vladimirsitnikov, client_encoding=UTF8, DateStyle=ISO, TimeZone=Europe/Volgograd, extra_float_digits=2)
+23:15:33.816 (1)  <=BE AuthenticationOk
+23:15:33.827 (1)  <=BE ParameterStatus(application_name = )
+23:15:33.827 (1)  <=BE ParameterStatus(client_encoding = UTF8)
+23:15:33.827 (1)  <=BE ParameterStatus(DateStyle = ISO, DMY)
+23:15:33.827 (1)  <=BE ParameterStatus(integer_datetimes = on)
+23:15:33.827 (1)  <=BE ParameterStatus(IntervalStyle = postgres)
+23:15:33.827 (1)  <=BE ParameterStatus(is_superuser = on)
+23:15:33.827 (1)  <=BE ParameterStatus(server_encoding = SQL_ASCII)
+23:15:33.828 (1)  <=BE ParameterStatus(server_version = 9.4.5)
+23:15:33.828 (1)  <=BE ParameterStatus(session_authorization = postgres)
+23:15:33.828 (1)  <=BE ParameterStatus(standard_conforming_strings = on)
+23:15:33.828 (1)  <=BE ParameterStatus(TimeZone = Europe/Volgograd)
+23:15:33.828 (1)  <=BE BackendKeyData(pid=82726,ckey=1081936502)
+23:15:33.828 (1)  <=BE ReadyForQuery(I)
+23:15:33.832 (1) simple execute, handler=org.postgresql.core.SetupQueryRunner$SimpleResultHandler@531d72ca, maxRows=0, fetchSize=0, flags=23
+23:15:33.832 (1)  FE=> Parse(stmt=null,query="SET extra_float_digits = 3",oids={})
+23:15:33.833 (1)  FE=> Bind(stmt=null,portal=null)
+23:15:33.833 (1)  FE=> Execute(portal=null,limit=1)
+23:15:33.834 (1)  FE=> Sync
+23:15:33.836 (1)  <=BE ParseComplete [null]
+23:15:33.836 (1)  <=BE BindComplete [unnamed]
+23:15:33.836 (1)  <=BE CommandStatus(SET)
+23:15:33.836 (1)  <=BE ReadyForQuery(I)
+23:15:33.837 (1)     compatible = 90400
+23:15:33.837 (1)     loglevel = 10
+23:15:33.837 (1)     prepare threshold = 5
+23:15:33.839 (1)     types using binary send = TIMESTAMPTZ,UUID,INT2_ARRAY,INT4_ARRAY,BYTEA,TEXT_ARRAY,TIMETZ,INT8,INT2,INT4,VARCHAR_ARRAY,INT8_ARRAY,POINT,TIMESTAMP,TIME,BOX,FLOAT4,FLOAT8,FLOAT4_ARRAY,FLOAT8_ARRAY
+23:15:33.841 (1)     types using binary receive = TIMESTAMPTZ,UUID,INT2_ARRAY,INT4_ARRAY,BYTEA,TEXT_ARRAY,TIMETZ,INT8,INT2,INT4,VARCHAR_ARRAY,INT8_ARRAY,POINT,DATE,TIMESTAMP,TIME,BOX,FLOAT4,FLOAT8,FLOAT4_ARRAY,FLOAT8_ARRAY
+23:15:33.841 (1)     integer date/time = true
+23:15:33.899 (1) simple execute, handler=org.postgresql.jdbc2.AbstractJdbc2Statement$StatementResultHandler@255316f2, maxRows=0, fetchSize=0, flags=21
+23:15:33.899 (1)  FE=> Parse(stmt=null,query="DROP TABLE testbatch CASCADE ",oids={})
+23:15:33.899 (1)  FE=> Bind(stmt=null,portal=null)
+23:15:33.899 (1)  FE=> Describe(portal=null)
+23:15:33.900 (1)  FE=> Execute(portal=null,limit=1)
+23:15:33.900 (1)  FE=> Sync
+23:15:33.900 (1)  <=BE ParseComplete [null]
+23:15:33.900 (1)  <=BE BindComplete [unnamed]
+23:15:33.900 (1)  <=BE NoData
+23:15:33.905 (1)  <=BE ErrorMessage(ERROR: table "testbatch" does not exist
+  Location: File: tablecmds.c, Routine: DropErrorMsgNonExistent, Line: 727
+  Server SQLState: 42P01)
+23:15:33.906 (1)  <=BE ReadyForQuery(I)
+23:15:33.906 (1) simple execute, handler=org.postgresql.jdbc2.AbstractJdbc2Statement$StatementResultHandler@4b9af9a9, maxRows=0, fetchSize=0, flags=21
+23:15:33.906 (1)  FE=> Parse(stmt=null,query="CREATE TABLE testbatch (pk INTEGER, col1 INTEGER) ",oids={})
+23:15:33.907 (1)  FE=> Bind(stmt=null,portal=null)
+23:15:33.907 (1)  FE=> Describe(portal=null)
+23:15:33.907 (1)  FE=> Execute(portal=null,limit=1)
+23:15:33.907 (1)  FE=> Sync
+23:15:33.911 (1)  <=BE ParseComplete [null]
+23:15:33.912 (1)  <=BE BindComplete [unnamed]
+23:15:33.912 (1)  <=BE NoData
+23:15:33.912 (1)  <=BE CommandStatus(CREATE TABLE)
+23:15:33.912 (1)  <=BE ReadyForQuery(I)
+23:15:33.912 (1) simple execute, handler=org.postgresql.jdbc2.AbstractJdbc2Statement$StatementResultHandler@5387f9e0, maxRows=0, fetchSize=0, flags=21
+23:15:33.912 (1)  FE=> Parse(stmt=null,query="INSERT INTO testbatch VALUES (1, 0)",oids={})
+23:15:33.913 (1)  FE=> Bind(stmt=null,portal=null)
+23:15:33.913 (1)  FE=> Describe(portal=null)
+23:15:33.913 (1)  FE=> Execute(portal=null,limit=1)
+23:15:33.913 (1)  FE=> Sync
+23:15:33.914 (1)  <=BE ParseComplete [null]
+23:15:33.914 (1)  <=BE BindComplete [unnamed]
+23:15:33.914 (1)  <=BE NoData
+23:15:33.914 (1)  <=BE CommandStatus(INSERT 0 1)
+23:15:33.914 (1)  <=BE ReadyForQuery(I)
+23:15:33.914 (1) simple execute, handler=org.postgresql.jdbc2.AbstractJdbc2Statement$StatementResultHandler@6e5e91e4, maxRows=0, fetchSize=0, flags=21
+23:15:33.914 (1)  FE=> Parse(stmt=null,query="DROP TABLE prep CASCADE ",oids={})
+23:15:33.914 (1)  FE=> Bind(stmt=null,portal=null)
+23:15:33.914 (1)  FE=> Describe(portal=null)
+23:15:33.914 (1)  FE=> Execute(portal=null,limit=1)
+23:15:33.915 (1)  FE=> Sync
+23:15:33.916 (1)  <=BE ParseComplete [null]
+23:15:33.916 (1)  <=BE BindComplete [unnamed]
+23:15:33.916 (1)  <=BE NoData
+23:15:33.917 (1)  <=BE CommandStatus(DROP TABLE)
+23:15:33.917 (1)  <=BE ReadyForQuery(I)
+23:15:33.917 (1) simple execute, handler=org.postgresql.jdbc2.AbstractJdbc2Statement$StatementResultHandler@2cdf8d8a, maxRows=0, fetchSize=0, flags=21
+23:15:33.917 (1)  FE=> Parse(stmt=null,query="CREATE TABLE prep (a integer, b integer) ",oids={})
+23:15:33.917 (1)  FE=> Bind(stmt=null,portal=null)
+23:15:33.917 (1)  FE=> Describe(portal=null)
+23:15:33.917 (1)  FE=> Execute(portal=null,limit=1)
+23:15:33.917 (1)  FE=> Sync
+23:15:33.919 (1)  <=BE ParseComplete [null]
+23:15:33.919 (1)  <=BE BindComplete [unnamed]
+23:15:33.919 (1)  <=BE NoData
+23:15:33.919 (1)  <=BE CommandStatus(CREATE TABLE)
+23:15:33.919 (1)  <=BE ReadyForQuery(I)
+23:15:33.919 (1) simple execute, handler=org.postgresql.jdbc2.AbstractJdbc2Statement$StatementResultHandler@30946e09, maxRows=0, fetchSize=0, flags=1
+23:15:33.919 (1)  FE=> Parse(stmt=null,query="BEGIN",oids={})
+23:15:33.920 (1)  FE=> Bind(stmt=null,portal=null)
+23:15:33.920 (1)  FE=> Execute(portal=null,limit=0)
+23:15:33.920 (1)  FE=> Parse(stmt=null,query="BEGIN",oids={})
+23:15:33.920 (1)  FE=> Bind(stmt=null,portal=null)
+23:15:33.920 (1)  FE=> Describe(portal=null)
+23:15:33.920 (1)  FE=> Execute(portal=null,limit=0)
+23:15:33.921 (1)  FE=> Sync
+23:15:33.921 (1)  <=BE ParseComplete [null]
+23:15:33.921 (1)  <=BE BindComplete [unnamed]
+23:15:33.921 (1)  <=BE CommandStatus(BEGIN)
+23:15:33.921 (1)  <=BE ParseComplete [null]
+23:15:33.921 (1)  <=BE BindComplete [unnamed]
+23:15:33.921 (1)  <=BE NoData
+23:15:33.921 (1)  <=BE NoticeResponse(WARNING: there is already a transaction in progress
+  Location: File: xact.c, Routine: BeginTransactionBlock, Line: 3279
+  Server SQLState: 25001)
+23:15:33.922 (1)  <=BE CommandStatus(BEGIN)
+23:15:33.922 (1)  <=BE ReadyForQuery(T)
+23:15:33.924 (1) batch execute 6 queries, handler=org.postgresql.jdbc2.AbstractJdbc2Statement$BatchResultHandler@5cb0d902, maxRows=0, fetchSize=0, flags=516
+23:15:33.924 (1)  FE=> Parse(stmt=S_1,query="insert into prep(a,b)  values($1::int4,$2)",oids={23,23})
+23:15:33.925 (1)  FE=> Bind(stmt=S_1,portal=null,$1=<2>,$2=<2>)
+23:15:33.925 (1)  FE=> Describe(portal=null)
+23:15:33.925 (1)  FE=> Execute(portal=null,limit=1)
+23:15:33.925 (1)  FE=> Bind(stmt=S_1,portal=null,$1=<2>,$2=<2>)
+23:15:33.925 (1)  FE=> Describe(portal=null)
+23:15:33.925 (1)  FE=> Execute(portal=null,limit=1)
+23:15:33.925 (1)  FE=> Bind(stmt=S_1,portal=null,$1=<2>,$2=<2>)
+23:15:33.925 (1)  FE=> Describe(portal=null)
+23:15:33.925 (1)  FE=> Execute(portal=null,limit=1)
+23:15:33.925 (1)  FE=> Bind(stmt=S_1,portal=null,$1=<2>,$2=<2>)
+23:15:33.926 (1)  FE=> Describe(portal=null)
+23:15:33.926 (1)  FE=> Execute(portal=null,limit=1)
+23:15:33.926 (1)  FE=> Bind(stmt=S_1,portal=null,$1=<2>,$2=<2>)
+23:15:33.926 (1)  FE=> Describe(portal=null)
+23:15:33.926 (1)  FE=> Execute(portal=null,limit=1)
+23:15:33.926 (1)  FE=> CloseStatement(S_1)
+23:15:33.926 (1)  FE=> Parse(stmt=S_2,query="insert into prep(a,b)  values($1::int4,$2)",oids={1043,23})
+23:15:33.926 (1)  FE=> Bind(stmt=S_2,portal=null,$1=<'1'>,$2=<2>)
+23:15:33.927 (1)  FE=> Describe(portal=null)
+23:15:33.927 (1)  FE=> Execute(portal=null,limit=1)
+23:15:33.927 (1)  FE=> Sync
+23:15:33.928 (1)  <=BE ParseComplete [S_2]
+23:15:33.928 (1)  <=BE BindComplete [unnamed]
+23:15:33.928 (1)  <=BE NoData
+23:15:33.928 (1)  <=BE CommandStatus(INSERT 0 1)
+23:15:33.928 (1)  <=BE BindComplete [unnamed]
+23:15:33.928 (1)  <=BE NoData
+23:15:33.928 (1)  <=BE CommandStatus(INSERT 0 1)
+23:15:33.929 (1)  <=BE BindComplete [unnamed]
+23:15:33.929 (1)  <=BE NoData
+23:15:33.929 (1)  <=BE CommandStatus(INSERT 0 1)
+23:15:33.929 (1)  <=BE BindComplete [unnamed]
+23:15:33.929 (1)  <=BE NoData
+23:15:33.929 (1)  <=BE CommandStatus(INSERT 0 1)
+23:15:33.929 (1)  <=BE BindComplete [unnamed]
+23:15:33.929 (1)  <=BE NoData
+23:15:33.929 (1)  <=BE CommandStatus(INSERT 0 1)
+23:15:33.929 (1)  <=BE CloseComplete
+23:15:33.929 (1)  <=BE ParseComplete [S_2]
+23:15:33.929 (1)  <=BE BindComplete [unnamed]
+23:15:33.929 (1)  <=BE NoData
+23:15:33.930 (1)  <=BE CommandStatus(INSERT 0 1)
+23:15:33.930 (1)  <=BE ReadyForQuery(T)
+23:15:33.930 (1) batch execute 1 queries, handler=org.postgresql.jdbc2.AbstractJdbc2Statement$BatchResultHandler@5ef04b5, maxRows=0, fetchSize=0, flags=516
+23:15:33.930 (1)  FE=> Bind(stmt=S_2,portal=null,$1=<'2'>,$2=<2>)
+23:15:33.930 (1)  FE=> Describe(portal=null)
+23:15:33.930 (1)  FE=> Execute(portal=null,limit=1)
+23:15:33.930 (1)  FE=> Sync
+23:15:33.930 (1)  <=BE BindComplete [unnamed]
+23:15:33.931 (1)  <=BE NoData
+23:15:33.931 (1)  <=BE CommandStatus(INSERT 0 1)
+23:15:33.931 (1)  <=BE ReadyForQuery(T)
+23:15:33.931 (1) simple execute, handler=org.postgresql.jdbc2.AbstractJdbc2Statement$StatementResultHandler@5f4da5c3, maxRows=0, fetchSize=0, flags=1
+23:15:33.931 (1)  FE=> Parse(stmt=null,query="COMMIT",oids={})
+23:15:33.931 (1)  FE=> Bind(stmt=null,portal=null)
+23:15:33.931 (1)  FE=> Describe(portal=null)
+23:15:33.931 (1)  FE=> Execute(portal=null,limit=0)
+23:15:33.931 (1)  FE=> Sync
+23:15:33.932 (1)  <=BE ParseComplete [null]
+23:15:33.932 (1)  <=BE BindComplete [unnamed]
+23:15:33.932 (1)  <=BE NoData
+23:15:33.932 (1)  <=BE CommandStatus(COMMIT)
+23:15:33.932 (1)  <=BE ReadyForQuery(I)
+23:15:33.932 (1) simple execute, handler=org.postgresql.jdbc2.AbstractJdbc2Statement$StatementResultHandler@443b7951, maxRows=0, fetchSize=0, flags=21
+23:15:33.932 (1)  FE=> Parse(stmt=null,query="DROP TABLE testbatch CASCADE ",oids={})
+23:15:33.933 (1)  FE=> Bind(stmt=null,portal=null)
+23:15:33.933 (1)  FE=> Describe(portal=null)
+23:15:33.933 (1)  FE=> Execute(portal=null,limit=1)
+23:15:33.933 (1)  FE=> Sync
+23:15:33.934 (1)  <=BE ParseComplete [null]
+23:15:33.934 (1)  <=BE BindComplete [unnamed]
+23:15:33.934 (1)  <=BE NoData
+23:15:33.934 (1)  <=BE CommandStatus(DROP TABLE)
+23:15:33.934 (1)  <=BE ReadyForQuery(I)
+23:15:33.934 (1)  FE=> Terminate
+         */
+    }
 }
