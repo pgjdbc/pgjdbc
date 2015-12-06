@@ -45,6 +45,7 @@ public interface BaseStatement extends PGStatement, Statement
      * @param p_sql the query to execute
      * @param flags additional {@link QueryExecutor} flags for execution; these
      *  are bitwise-ORed into the default flags.
+     * @return true if there is a result set
      * @throws SQLException if something goes wrong.
      */
     public boolean executeWithFlags(String p_sql, int flags) throws SQLException;
@@ -54,6 +55,7 @@ public interface BaseStatement extends PGStatement, Statement
      *
      * @param flags additional {@link QueryExecutor} flags for execution; these
      *  are bitwise-ORed into the default flags.
+     * @return true if there is a result set
      * @throws SQLException if something goes wrong.
      */
     public boolean executeWithFlags(int flags) throws SQLException;

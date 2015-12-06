@@ -98,8 +98,11 @@ public enum ServerVersion implements Version {
      *
      * The yy or zz version parts may be larger than 99. A
      * NumberFormatException is thrown if a version part is out of range.
+     *
+     * @param serverVersion server vertion in a XXYYZZ form
+     * @return server version in number form
      */
-    /* package */ static int parseServerVersionStr(String serverVersion)
+    static int parseServerVersionStr(String serverVersion)
         throws NumberFormatException
     {
         int vers;

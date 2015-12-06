@@ -53,6 +53,7 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
      * point is embedded within their definition.
      *
      * @param value Definition of this point in PostgreSQL's syntax
+     * @throws SQLException if something goes wrong
      */
     public PGpoint(String value) throws SQLException
     {

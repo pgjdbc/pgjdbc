@@ -24,24 +24,32 @@ public interface PGConnection
      * since the last call to this method.
      * Returns null if there have been no notifications.
      * @since 7.3
+     * @throws SQLException if something wrong happens
+     * @return notifications that have been received
      */
     public PGNotification[] getNotifications() throws SQLException;
 
     /**
      * This returns the COPY API for the current connection.
      * @since 8.4
+     * @throws SQLException if something wrong happens
+     * @return COPY API for the current connection
      */
     public CopyManager getCopyAPI() throws SQLException;
 
     /**
      * This returns the LargeObject API for the current connection.
      * @since 7.3
+     * @throws SQLException if something wrong happens
+     * @return LargeObject API for the current connection
      */
     public LargeObjectManager getLargeObjectAPI() throws SQLException;
 
     /**
      * This returns the Fastpath API for the current connection.
      * @since 7.3
+     * @throws SQLException if something wrong happens
+     * @return Fastpath API for the current connection
      */
     public Fastpath getFastpathAPI() throws SQLException;
 
@@ -54,10 +62,12 @@ public interface PGConnection
      *   {@link #addDataType(String,Class)}. This deprecated method does not
      *   work correctly for registering classes that cannot be directly loaded
      *   by the JDBC driver's classloader.
+     * @param type JDBC type name
+     * @param className class name
      * @throws RuntimeException if the type cannot be registered (class not
      *   found, etc).
      */
-    public void addDataType(String type, String name);
+    public void addDataType(String type, String className);
 
     /**
      * This allows client code to add a handler for one of org.postgresql's
@@ -67,7 +77,7 @@ public interface PGConnection
      *
      * <p>The best way to use this is as follows:
      *
-     * <p><pre>
+     * <pre>
      * ...
      * ((org.postgresql.PGConnection)myconn).addDataType("mytype", my.class.name.class);
      * ...
@@ -143,7 +153,9 @@ public interface PGConnection
      * Quotes are added only if necessary (i.e., if the string contains non-identifier characters or would be case-folded).
      * Embedded quotes are properly doubled.
      *
+     * @param identifier input identifier
      * @return the escaped identifier
+     * @throws SQLException if something goes wrong
      */
     public String escapeIdentifier(String identifier) throws SQLException;
 
@@ -152,7 +164,9 @@ public interface PGConnection
      * Embedded single-quotes and backslashes are properly doubled.
      * Note that quote_literal returns null on null input.
      *
+     * @param literal input literal
      * @return the quoted literal
+     * @throws SQLException if something goes wrong
      */
     public String escapeLiteral(String literal) throws SQLException;
 }

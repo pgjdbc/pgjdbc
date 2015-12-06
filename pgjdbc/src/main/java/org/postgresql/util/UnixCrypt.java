@@ -580,7 +580,7 @@ public class UnixCrypt extends Object
         return (out);
     }
 
-    /*
+    /**
      * <P>Encrypt a password given the cleartext password and a "salt".</P>
      * @param salt A two-character string representing the salt used to
      * iterate the encryption engine in lots of different ways. If you

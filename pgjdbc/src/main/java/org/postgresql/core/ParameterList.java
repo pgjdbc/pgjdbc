@@ -54,6 +54,8 @@ public interface ParameterList {
     /**
      * Return the oids of the parameters in this list.  May be null for
      * a ParameterList that does not support typing of parameters.
+     *
+     * @return oids of the parameters
      */
     public int[] getTypeOIDs();
 

@@ -34,8 +34,11 @@ public class PgParameterMetaData implements ParameterMetaData {
         return _oids.length;
     }
 
-    // For now report all parameters as inputs.  CallableStatements may
-    // have one output, but ignore that for now.
+    /**
+     * {@inheritDoc}
+     * For now report all parameters as inputs.  CallableStatements may
+     * have one output, but ignore that for now.
+     */
     public int getParameterMode(int param) throws SQLException {
         checkParamIndex(param);
         return ParameterMetaData.parameterModeIn;
@@ -69,7 +72,10 @@ public class PgParameterMetaData implements ParameterMetaData {
         return ParameterMetaData.parameterNullableUnknown;
     }
 
-    // pg doesn't have unsigned numbers
+    /**
+     * {@inheritDoc}
+     * PostgreSQL doesn't have unsigned numbers
+     */
     public boolean isSigned(int param) throws SQLException {
         checkParamIndex(param);
         return _connection.getTypeInfo().isSigned(_oids[param-1]);

@@ -168,11 +168,16 @@ public class Parser {
 
     /**
      * Find the end of the single-quoted string starting at the given offset.
-     * 
+     *
      * Note: for <tt>'single '' quote in string'</tt>, this method currently
      * returns the offset of first <tt>'</tt> character after the initial
      * one. The caller must call the method a second time for the second
      * part of the quoted string.
+     *
+     * @param query query
+     * @param offset start offset
+     * @param standardConformingStrings standard conforming strings
+     * @return position of the end of the single-quoted string
      */
     public static int parseSingleQuotes(final char[] query, int offset,
                                         boolean standardConformingStrings) {
@@ -227,6 +232,10 @@ public class Parser {
      * this method currently returns the offset of first <tt>&quot;</tt>
      * character after the initial one. The caller must call the method a
      * second time for the second part of the quoted string.
+     *
+     * @param query query
+     * @param offset start offset
+     * @return position of the end of the double-quoted string
      */
     public static int parseDoubleQuotes(final char[] query, int offset) {
         while (++offset < query.length && query[offset] != '"') ;
@@ -237,6 +246,10 @@ public class Parser {
      * Test if the dollar character (<tt>$</tt>) at the given offset starts
      * a dollar-quoted string and return the offset of the ending dollar
      * character.
+     *
+     * @param query query
+     * @param offset start offset
+     * @return offset of the ending dollar character
      */
     public static int parseDollarQuotes(final char[] query, int offset) {
         if (offset + 1 < query.length
@@ -281,6 +294,10 @@ public class Parser {
      * Test if the <tt>-</tt> character at <tt>offset</tt> starts a
      * <tt>--</tt> style line comment, and return the position of the first
      * <tt>\r</tt> or <tt>\n</tt> character.
+     *
+     * @param query query
+     * @param offset start offset
+     * @return position of the first <tt>\r</tt> or <tt>\n</tt> character
      */
     public static int parseLineComment(final char[] query, int offset) {
         if (offset + 1 < query.length && query[offset + 1] == '-')
@@ -298,6 +315,10 @@ public class Parser {
     /**
      * Test if the <tt>/</tt> character at <tt>offset</tt> starts a block
      * comment, and return the position of the last <tt>/</tt> character.
+     *
+     * @param query query
+     * @param offset start offset
+     * @return position of the last <tt>/</tt> character
      */
     public static int parseBlockComment(final char[] query, int offset) {
         if (offset + 1 < query.length && query[offset + 1] == '*')
@@ -337,6 +358,7 @@ public class Parser {
     }
 
     /**
+     * @param c character
      * @return true if the character is a whitespace character as defined
      *         in the backend's parser
      */
@@ -345,6 +367,7 @@ public class Parser {
     }
     
     /**
+     * @param c character
      * @return true if the given character is a valid character for an
      *         operator in the backend's parser
      */
@@ -388,6 +411,7 @@ public class Parser {
     }
     
     /**
+     * @param c character
      * @return true if the character terminates an identifier
      */
     public static boolean charTerminatesIdentifier(char c) {
@@ -455,8 +479,9 @@ public class Parser {
     /**
      * Converts JDBC-specific callable statement escapes {@code { [? =] call <some_function> [(?, [?,..])] }}
      * into the PostgreSQL format which is
-     * select <some_function> (?, [?, ...]) as result
-     * or select * from <some_function> (?, [?, ...]) as result (7.3)
+     * {@code select <some_function> (?, [?, ...]) as result}
+     * or {@code select * from <some_function> (?, [?, ...]) as result} (7.3)
+     *
      * @param jdbcSql sql text with JDBC escapes
      * @param stdStrings if backslash in single quotes should be regular character or escape one
      * @param serverVersion server version
@@ -468,7 +493,7 @@ public class Parser {
     {
         // Mini-parser for JDBC function-call syntax (only)
         // TODO: Merge with escape processing (and parameter parsing?) so we only parse each query once.
-        // RE: frequently used statements are cached (see {@link org.postgresql.jdbc2.AbstractJdbc2Connection.borrowQuery}), so this "merge" is not that important.
+        // RE: frequently used statements are cached (see {@link org.postgresql.jdbc.PgConnection#borrowQuery}), so this "merge" is not that important.
         String sql = jdbcSql;
         boolean isFunction = false;
         boolean outParmBeforeFunc = false;

@@ -10,25 +10,25 @@ public interface ArrayAssistant {
     /**
      * get array base type
      *
-     * @return
+     * @return array base type
      */
     Class baseType();
 
     /**
      * build a array element from its binary bytes
      *
-     * @param bytes
-     * @param pos
-     * @param len
-     * @return
+     * @param bytes input bytes
+     * @param pos position in input array
+     * @param len length of the element
+     * @return array element from its binary bytes
      */
     Object buildElement(byte[] bytes, int pos, int len);
 
     /**
      * build an array element from its literal string
      *
-     * @param literal
-     * @return
+     * @param literal string representation of array element
+     * @return array element
      */
     Object buildElement(String literal);
 }

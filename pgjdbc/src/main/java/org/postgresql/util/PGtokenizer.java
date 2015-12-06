@@ -29,7 +29,7 @@ public class PGtokenizer
     // Our tokens
     protected List tokens;
 
-    /*
+    /**
      * Create a tokeniser.
      *
      * <p>We could have used StringTokenizer to do this, however, we needed to
@@ -44,11 +44,12 @@ public class PGtokenizer
         tokenize(string, delim);
     }
 
-    /*
+    /**
      * This resets this tokenizer with a new string and/or delimiter.
      *
      * @param string containing tokens
      * @param delim single character to split the tokens
+     * @return number of tokens
      */
     public int tokenize(String string, char delim)
     {
@@ -108,7 +109,7 @@ public class PGtokenizer
         return tokens.size();
     }
 
-    /*
+    /**
      * @return the number of tokens available
      */
     public int getSize()
@@ -116,7 +117,7 @@ public class PGtokenizer
         return tokens.size();
     }
 
-    /*
+    /**
      * @param n Token number ( 0 ... getSize()-1 )
      * @return The token value
      */
@@ -125,7 +126,7 @@ public class PGtokenizer
         return (String)tokens.get(n);
     }
 
-    /*
+    /**
      * This returns a new tokenizer based on one of our tokens.
      *
      * The geometric datatypes use this to process nested tokens (usually
@@ -140,7 +141,7 @@ public class PGtokenizer
         return new PGtokenizer(getToken(n), delim);
     }
 
-    /*
+    /**
      * This removes the lead/trailing strings from a string
      * @param s Source string
      * @param l Leading string to remove
@@ -157,7 +158,7 @@ public class PGtokenizer
         return s;
     }
 
-    /*
+    /**
      * This removes the lead/trailing strings from all tokens
      * @param l Leading string to remove
      * @param t Trailing string to remove
@@ -172,7 +173,7 @@ public class PGtokenizer
         }
     }
 
-    /*
+    /**
      * Removes ( and ) from the beginning and end of a string
      * @param s String to remove from
      * @return String without the ( or )
@@ -183,9 +184,8 @@ public class PGtokenizer
                    (s, "(", ")");
     }
 
-    /*
+    /**
      * Removes ( and ) from the beginning and end of all tokens
-     * @return String without the ( or )
      */
     public void removePara()
     {
@@ -193,7 +193,7 @@ public class PGtokenizer
             ("(", ")");
     }
 
-    /*
+    /**
      * Removes [ and ] from the beginning and end of a string
      * @param s String to remove from
      * @return String without the [ or ]
@@ -204,9 +204,8 @@ public class PGtokenizer
                    (s, "[", "]");
     }
 
-    /*
+    /**
      * Removes [ and ] from the beginning and end of all tokens
-     * @return String without the [ or ]
      */
     public void removeBox()
     {
@@ -214,7 +213,7 @@ public class PGtokenizer
             ("[", "]");
     }
 
-    /*
+    /**
      * Removes &lt; and &gt; from the beginning and end of a string
      * @param s String to remove from
      * @return String without the &lt; or &gt;
@@ -225,9 +224,8 @@ public class PGtokenizer
                    (s, "<", ">");
     }
 
-    /*
+    /**
      * Removes &lt; and &gt; from the beginning and end of all tokens
-     * @return String without the &lt; or &gt;
      */
     public void removeAngle()
     {
@@ -235,7 +233,7 @@ public class PGtokenizer
             ("<", ">");
     }
 
-    /*
+    /**
      * Removes curly braces { and } from the beginning and end of a string
      * @param s String to remove from
      * @return String without the { or }
@@ -246,9 +244,8 @@ public class PGtokenizer
                 (s, "{", "}");
     }
 
-    /*
+    /**
      * Removes &lt; and &gt; from the beginning and end of all tokens
-     * @return String without the &lt; or &gt;
      */
     public void removeCurlyBrace()
     {

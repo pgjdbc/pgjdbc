@@ -212,12 +212,12 @@ public class Driver implements java.sql.Driver
      * character encoding , see
      * http://java.sun.com/products/jdk/1.2/docs/guide/internat/encoding.doc.html
      * Note that you will probably want to have set up the Postgres database
-     * itself to use the same encoding, with the "-E <encoding>" argument
+     * itself to use the same encoding, with the {@code -E <encoding>} argument
      * to createdb.
      *
      * Our protocol takes the forms:
      * <PRE>
-     * jdbc:postgresql://host:port/database?param1=val1&...
+     * jdbc:postgresql://host:port/database?param1=val1&amp;...
      * </PRE>
      *
      * @param url the URL of the database to connect to
@@ -500,6 +500,8 @@ public class Driver implements java.sql.Driver
     /**
      * Returns the server version series of this driver and the
      * specific build number.
+     *
+     * @return JDBC driver version
      */
     public static String getVersion()
     {
@@ -660,7 +662,7 @@ public class Driver implements java.sql.Driver
         return (long) DriverManager.getLoginTimeout() * 1000;
     }
 
-    /*
+    /**
      * This method was added in v6.5, and simply throws an SQLException
      * for an unimplemented method. I decided to do it this way while
      * implementing the JDBC2 extensions to JDBC, as it should help keep the

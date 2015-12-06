@@ -44,37 +44,38 @@ public class Field
     // New string to avoid clashes with other strings
     private static final String NOT_YET_LOADED = new String("pgType is not yet loaded");
 
-    /*
+    /**
      * Construct a field based on the information fed to it.
      *
      * @param name the name (column name and label) of the field
      * @param oid the OID of the field
-     * @param len the length of the field
+     * @param length the length of the field
+     * @param mod modifier
      */
     public Field(String name, int oid, int length, int mod)
     {
         this(name, name, oid, length, mod, 0, 0);
     }
 
-    /*
+    /**
      * Constructor without mod parameter.
      *
      * @param name the name (column name and label) of the field
      * @param oid the OID of the field
-     * @param len the length of the field
      */
     public Field(String name, int oid)
     {
         this(name, oid, 0, -1);
     }
 
-    /*
+    /**
      * Construct a field based on the information fed to it.
      *
      * @param columnLabel the column label of the field
      * @param columnName the column label the name of the field
      * @param oid the OID of the field
      * @param length the length of the field
+     * @param mod modifier
      * @param tableOid the OID of the columns' table
      * @param positionInTable the position of column in the table (first column is 1, second column is 2, etc...)
      */
@@ -89,7 +90,7 @@ public class Field
         this.positionInTable = positionInTable;
     }
 
-    /*
+    /**
      * @return the oid of this Field's data type
      */
     public int getOID()
@@ -97,7 +98,7 @@ public class Field
         return oid;
     }
 
-    /*
+    /**
      * @return the mod of this Field's data type
      */
     public int getMod()
@@ -105,7 +106,7 @@ public class Field
         return mod;
     }
 
-    /*
+    /**
      * @return the column label of this Field's data type
      */
     public String getColumnLabel()
@@ -113,7 +114,7 @@ public class Field
         return columnLabel;
     }
 
-    /*
+    /**
      * @return the length of this Field's data type
      */
     public int getLength()
@@ -121,7 +122,7 @@ public class Field
         return length;
     }
 
-    /*
+    /**
      * @return the format of this Field's data (text=0, binary=1)
      */
     public int getFormat()
@@ -129,7 +130,7 @@ public class Field
         return format;
     }
 
-    /*
+    /**
      * @param format the format of this Field's data (text=0, binary=1)
      */
     public void setFormat(int format)
@@ -137,7 +138,7 @@ public class Field
         this.format = format;
     }
 
-    /*
+    /**
      * @return the columns' table oid, zero if no oid available
      */
     public int getTableOid()

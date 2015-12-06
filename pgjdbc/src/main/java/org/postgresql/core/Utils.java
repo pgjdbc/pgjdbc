@@ -71,7 +71,7 @@ public class Utils {
      * 
      * @param sbuf the string buffer to append to; or <tt>null</tt>
      * @param value the string value
-     * @param standardConformingStrings
+     * @param standardConformingStrings if standard conforming strings should be used
      * @return the sbuf argument; or a new string buffer for sbuf == null
      * @throws SQLException if the string contains a <tt>\0</tt> character
      * @deprecated use {@link #escapeLiteral(StringBuilder, String, boolean)} instead
@@ -96,7 +96,7 @@ public class Utils {
      * 
      * @param sbuf the string builder to append to; or <tt>null</tt>
      * @param value the string value
-     * @param standardConformingStrings
+     * @param standardConformingStrings if standard conforming strings should be used
      * @return the sbuf argument; or a new string builder for sbuf == null
      * @throws SQLException if the string contains a <tt>\0</tt> character
      */
@@ -114,8 +114,8 @@ public class Utils {
     /**
      * Common part for {@link #appendEscapedLiteral(StringBuffer, String, boolean)} and {@link #escapeLiteral(StringBuilder, String, boolean)}
      * @param sbuf Either StringBuffer or StringBuilder as we do not expect any IOException to be thrown
-     * @param value
-     * @param standardConformingStrings
+     * @param value value to append
+     * @param standardConformingStrings if standard conforming strings should be used
      * @throws SQLException
      */
     private static void doAppendEscapedLiteral(Appendable sbuf, String value, boolean standardConformingStrings)
@@ -210,7 +210,7 @@ public class Utils {
     /**
      * Common part for appendEscapedIdentifier
      * @param sbuf Either StringBuffer or StringBuilder as we do not expect any IOException to be thrown.
-     * @param value
+     * @param value value to append
      * @throws SQLException
      */
     private static void doAppendEscapedIdentifier(Appendable sbuf, String value)
@@ -252,7 +252,11 @@ public class Utils {
      *
 	 * The yy or zz version parts may be larger than 99. A
 	 * NumberFormatException is thrown if a version part is out of range.
-	 * @deprecated use specific {@link Version} instance
+     *
+     * @param serverVersion server vertion in a XXYYZZ form
+     * @return server version in number form
+     *
+     * @deprecated use specific {@link Version} instance
      */
     @Deprecated
     public static int parseServerVersionStr(String serverVersion)

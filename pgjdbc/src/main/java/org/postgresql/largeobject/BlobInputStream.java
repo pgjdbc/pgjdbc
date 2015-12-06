@@ -72,6 +72,7 @@ public class BlobInputStream extends InputStream
     /**
      * @param lo LargeObject to read from
      * @param bsize buffer size
+     * @param limit max number of bytes to read
      */
     public BlobInputStream(LargeObject lo, int bsize, long limit)
     {

@@ -273,6 +273,7 @@ public class Base64
      * Does not GZip-compress data.
      *
      * @param source The data to convert
+     * @return Base64 notation of input data
      * @since 1.4
      */
     public static String encodeBytes( byte[] source )
@@ -298,6 +299,7 @@ public class Base64
      *
      * @param source The data to convert
      * @param options Specified options
+     * @return Base64 notation
      * @see Base64#DONT_BREAK_LINES
      * @since 2.0
      */
@@ -314,6 +316,7 @@ public class Base64
      * @param source The data to convert
      * @param off Offset in array where conversion should begin
      * @param len Length of data to convert
+     * @return Base64 notation
      * @since 1.4
      */
     public static String encodeBytes( byte[] source, int off, int len )
@@ -341,6 +344,7 @@ public class Base64
      * @param off Offset in array where conversion should begin
      * @param len Length of data to convert
      * @param options Specified options
+     * @return Base64 notation
      * @see Base64#DONT_BREAK_LINES
      * @since 2.0
      */

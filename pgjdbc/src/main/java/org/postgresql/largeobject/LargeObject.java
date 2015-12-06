@@ -374,6 +374,9 @@ public class LargeObject
      * If the number of bytes is larger than the current large
      * object length, the large object will be filled with zero
      * bytes.  This method does not modify the current file offset.
+     *
+     * @param len given length in bytes
+     * @throws SQLException if something goes wrong
      */
     public void truncate(int len) throws SQLException
     {
@@ -388,6 +391,9 @@ public class LargeObject
      * If the number of bytes is larger than the current large
      * object length, the large object will be filled with zero
      * bytes.  This method does not modify the current file offset.
+     *
+     * @param len given length in bytes
+     * @throws SQLException if something goes wrong
      */
     public void truncate64(long len) throws SQLException
     {
@@ -398,12 +404,13 @@ public class LargeObject
     }
 
     /**
-     * Returns an InputStream from this object.
+     * Returns an {@link InputStream} from this object.
      *
-     * <p>This InputStream can then be used in any method that requires an
+     * <p>This {@link InputStream} can then be used in any method that requires an
      * InputStream.
      *
      * @exception SQLException if a database-access error occurs.
+     * @return {@link InputStream} from this object
      */
     public InputStream getInputStream() throws SQLException
     {
@@ -411,10 +418,11 @@ public class LargeObject
     }
 
     /**
-     * Returns an InputStream from this object, that will limit the amount of data that is visible
+     * Returns an {@link InputStream} from this object, that will limit the amount of data that is visible
      *
      * @param limit maximum number of bytes the resulting stream will serve
      * @exception SQLException if a database-access error occurs.
+     * @return {@link InputStream} from this object
      */
     public InputStream getInputStream(long limit) throws SQLException
     {
@@ -422,12 +430,13 @@ public class LargeObject
     }
 
     /**
-     * Returns an OutputStream to this object.
+     * Returns an {@link OutputStream} to this object.
      *
      * <p>This OutputStream can then be used in any method that requires an
      * OutputStream.
      *
      * @exception SQLException if a database-access error occurs.
+     * @return {@link OutputStream} from this object
      */
     public OutputStream getOutputStream() throws SQLException
     {

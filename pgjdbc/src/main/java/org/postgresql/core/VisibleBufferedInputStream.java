@@ -76,6 +76,9 @@ public class VisibleBufferedInputStream extends InputStream {
 
     /**
      * Reads a byte from the buffer without advancing the index pointer.
+     *
+     * @throws IOException if something wrong happens
+     * @return byte from the buffer without advancing the index pointer
      */
     public int peek() throws IOException {
         if (ensureBytes(1)) {
@@ -282,7 +285,7 @@ public class VisibleBufferedInputStream extends InputStream {
      * 
      * @return The length of the next null terminated string.
      * @throws IOException If reading of stream fails.
-     * @throws EOFxception If the stream did not contain any null terminators.
+     * @throws EOFException If the stream did not contain any null terminators.
      */
     public int scanCStringLength() throws IOException {
         int pos = index;

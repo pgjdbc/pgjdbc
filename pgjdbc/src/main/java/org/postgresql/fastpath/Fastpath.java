@@ -113,8 +113,9 @@ public class Fastpath
 
     /**
      * @param name Function name
-     * @param resultType True if the result is a numeric (Integer or Long)
+     * @param resulttype True if the result is a numeric (Integer or Long)
      * @param args FastpathArguments to pass to fastpath
+     * @throws SQLException if something goes wrong
      * @return null if no data, Integer if an integer result, Long if a long result, or byte[] otherwise
      * 
      * @deprecated Use {@link #getData(String, FastpathArg[])} if you expect a binary result, 
@@ -217,6 +218,7 @@ public class Fastpath
      * @param name Function name
      * @param args Function arguments
      * @exception SQLException if a database-access error occurs or no result
+     * @return oid of the given call
      */
     public long getOID(String name, FastpathArg[] args) throws SQLException
     {
@@ -326,6 +328,9 @@ public class Fastpath
      * This is here instead of a constructor of FastpathArg
      * because the constructor can't tell the difference between
      * an long that's really int8 and a long thats an oid.
+     *
+     * @param oid input oid
+     * @return FastpathArg with an oid parameter
      */
     public static FastpathArg createOIDArg(long oid)
     {

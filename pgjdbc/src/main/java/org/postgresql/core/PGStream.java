@@ -93,6 +93,7 @@ public class PGStream
      * underlying socket. This is used to detect asynchronous
      * notifies from the backend, when available.
      *
+     * @throws IOException if something wrong happens
      * @return true if there is a pending backend message
      */
     public boolean hasMessagePending() throws IOException {
@@ -225,8 +226,8 @@ public class PGStream
     }
 
     /**
-     * Send a fixed-size array of bytes to the backend. If buf.length < siz,
-     * pad with zeros. If buf.lengh > siz, truncate the array.
+     * Send a fixed-size array of bytes to the backend. If {@code buf.length < siz},
+     * pad with zeros. If {@code buf.lengh > siz}, truncate the array.
      *
      * @param buf the array of bytes to be sent
      * @param siz the number of bytes to be sent
@@ -238,8 +239,8 @@ public class PGStream
     }
 
     /**
-     * Send a fixed-size array of bytes to the backend. If length < siz,
-     * pad with zeros. If length > siz, truncate the array.
+     * Send a fixed-size array of bytes to the backend. If {@code length < siz},
+     * pad with zeros. If {@code length > siz}, truncate the array.
      *
      * @param buf the array of bytes to be sent
      * @param off offset in the array to start sending from
@@ -317,6 +318,7 @@ public class PGStream
      * Receives a fixed-size string from the backend.
      *
      * @param len the length of the string to receive, in bytes.
+     * @throws IOException if something wrong happens
      * @return the decoded string
      */
     public String ReceiveString(int len) throws IOException {
@@ -354,6 +356,7 @@ public class PGStream
      * @return null if the current response has no more tuples, otherwise
      * an array of bytearrays
      * @exception IOException if a data I/O error occurs
+     * @return tuple from the back end
      */
     public byte[][] ReceiveTupleV3() throws IOException, OutOfMemoryError
     {
@@ -485,6 +488,7 @@ public class PGStream
      *
      * @param inStream the stream to read data from
      * @param remaining the number of bytes to copy
+     * @exception IOException if a data I/O error occurs
      */
     public void SendStream(InputStream inStream, int remaining) throws IOException {
         int expectedLength = remaining;
@@ -533,7 +537,8 @@ public class PGStream
 
     /**
      * Consume an expected EOF from the backend
-     * @exception SQLException if we get something other than an EOF
+     * @throws IOException if an I/O error occurs
+     * @throws SQLException if we get something other than an EOF
      */
     public void ReceiveEOF() throws SQLException, IOException
     {

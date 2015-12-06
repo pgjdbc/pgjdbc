@@ -203,6 +203,8 @@ public interface QueryExecutor {
      * The notification retrieval in ProtocolConnection cannot do this
      * as it is prone to deadlock, so the higher level caller must be
      * responsible which requires exposing this method.
+     *
+     * @throws SQLException if and error occurs while fetching notifications
      */
     void processNotifies() throws SQLException;
 
@@ -225,7 +227,7 @@ public interface QueryExecutor {
      * @param fnid the OID of the backend function to invoke
      * @param params a ParameterList returned from {@link #createFastpathParameters}
      *  containing the parameters to pass to the backend function
-     *
+     * @param suppressBegin if begin should be suppressed
      * @return the binary-format result of the fastpath call, or <code>null</code>
      *  if a void result was returned
      * @throws SQLException if an error occurs while executing the fastpath call
@@ -237,7 +239,11 @@ public interface QueryExecutor {
      * handler for associated operation.  Until the copy operation completes,
      * no other database operation may be performed.
      * Implemented for protocol version 3 only.
+     *
+     * @param sql input sql
+     * @param suppressBegin if begin should be suppressed
      * @throws SQLException when initializing the given query fails
+     * @return handler for associated operation
      */
     CopyOperation startCopy(String sql, boolean suppressBegin) throws SQLException;
 }

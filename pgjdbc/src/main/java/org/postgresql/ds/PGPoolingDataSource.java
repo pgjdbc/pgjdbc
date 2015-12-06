@@ -22,9 +22,9 @@ import org.postgresql.ds.*;
 import org.postgresql.ds.common.*;
 
 /**
- * DataSource which uses connection pooling.  <font color="red">Don't use this if
+ * DataSource which uses connection pooling.  <span style="color: red;">Don't use this if
  * your server/middleware vendor provides a connection pooling implementation
- * which interfaces with the PostgreSQL ConnectionPoolDataSource implementation!</font>
+ * which interfaces with the PostgreSQL ConnectionPoolDataSource implementation!</span>
  * This class is provided as a convenience, but the JDBC Driver is really not
  * supposed to handle the connection pooling algorithm.  Instead, the server or
  * middleware product is supposed to handle the mechanics of connection pooling,

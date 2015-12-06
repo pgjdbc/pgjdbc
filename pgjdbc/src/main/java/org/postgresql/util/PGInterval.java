@@ -61,6 +61,12 @@ public class PGInterval extends PGobject implements Serializable, Cloneable
     /**
      * Initializes all values of this interval to the specified values
      *
+     * @param years years
+     * @param months months
+     * @param days days
+     * @param hours hours
+     * @param minutes minutes
+     * @param seconds seconds
      * @see #setValue(int, int, int, int, int, double)
      */
     public PGInterval(int years, int months, int days, int hours, int minutes, double seconds)
@@ -176,6 +182,13 @@ public class PGInterval extends PGobject implements Serializable, Cloneable
 
     /**
      * Set all values of this interval to the specified values
+     *
+     * @param years years
+     * @param months months
+     * @param days days
+     * @param hours hours
+     * @param minutes minutes
+     * @param seconds seconds
      */
     public void setValue(int years, int months, int days, int hours, int minutes, double seconds)
     {
@@ -204,6 +217,8 @@ public class PGInterval extends PGobject implements Serializable, Cloneable
 
     /**
      * Returns the years represented by this interval
+     *
+     * @return years represented by this interval
      */
     public int getYears()
     {
@@ -212,6 +227,8 @@ public class PGInterval extends PGobject implements Serializable, Cloneable
 
     /**
      * Set the years of this interval to the specified value
+     *
+     * @param years years to set
      */
     public void setYears(int years)
     {
@@ -220,6 +237,8 @@ public class PGInterval extends PGobject implements Serializable, Cloneable
 
     /**
      * Returns the months represented by this interval
+     *
+     * @return months represented by this interval
      */
     public int getMonths()
     {
@@ -228,6 +247,8 @@ public class PGInterval extends PGobject implements Serializable, Cloneable
 
     /**
      * Set the months of this interval to the specified value
+     *
+     * @param months months to set
      */
     public void setMonths(int months)
     {
@@ -236,6 +257,8 @@ public class PGInterval extends PGobject implements Serializable, Cloneable
 
     /**
      * Returns the days represented by this interval
+     *
+     * @return days represented by this interval
      */
     public int getDays()
     {
@@ -244,6 +267,8 @@ public class PGInterval extends PGobject implements Serializable, Cloneable
 
     /**
      * Set the days of this interval to the specified value
+     *
+     * @param days days to set
      */
     public void setDays(int days)
     {
@@ -252,6 +277,8 @@ public class PGInterval extends PGobject implements Serializable, Cloneable
 
     /**
      * Returns the hours represented by this interval
+     *
+     * @return hours represented by this interval
      */
     public int getHours()
     {
@@ -260,6 +287,8 @@ public class PGInterval extends PGobject implements Serializable, Cloneable
 
     /**
      * Set the hours of this interval to the specified value
+     *
+     * @param hours hours to set
      */
     public void setHours(int hours)
     {
@@ -268,6 +297,8 @@ public class PGInterval extends PGobject implements Serializable, Cloneable
 
     /**
      * Returns the minutes represented by this interval
+     *
+     * @return minutes represented by this interval
      */
     public int getMinutes()
     {
@@ -276,6 +307,8 @@ public class PGInterval extends PGobject implements Serializable, Cloneable
 
     /**
      * Set the minutes of this interval to the specified value
+     *
+     * @param minutes minutes to set
      */
     public void setMinutes(int minutes)
     {
@@ -284,6 +317,8 @@ public class PGInterval extends PGobject implements Serializable, Cloneable
 
     /**
      * Returns the seconds represented by this interval
+     *
+     * @return seconds represented by this interval
      */
     public double getSeconds()
     {
@@ -292,6 +327,8 @@ public class PGInterval extends PGobject implements Serializable, Cloneable
 
     /**
      * Set the seconds of this interval to the specified value
+     *
+     * @param seconds seconds to set
      */
     public void setSeconds(double seconds)
     {
@@ -335,6 +372,8 @@ public class PGInterval extends PGobject implements Serializable, Cloneable
      * Add this interval's value to the passed interval.
      * This is backwards to what I would expect, but
      * this makes it match the other existing add methods.
+     *
+     * @param interval intval to add
      */
     public void add(PGInterval interval)
     {
@@ -353,6 +392,8 @@ public class PGInterval extends PGobject implements Serializable, Cloneable
      * like getDays() or providing our own justification of fractional
      * intervals.  Neither of these seem like a good idea without a
      * strong use case.
+     *
+     * @param factor scale factor
      */
     public void scale(int factor)
     {

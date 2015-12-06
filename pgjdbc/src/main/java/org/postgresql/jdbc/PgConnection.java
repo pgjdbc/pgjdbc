@@ -26,9 +26,9 @@ public class PgConnection implements BaseConnection
 {
 
     private static final SQLPermission SQL_PERMISSION_ABORT = new SQLPermission("callAbort");
-    //
-    // Driver-wide connection ID counter, used for logging
-    //
+    /**
+     * Driver-wide connection ID counter, used for logging
+     */
     private static int nextConnectionID = 1;
 
     //
@@ -337,7 +337,7 @@ public class PgConnection implements BaseConnection
     private final TimestampUtils timestampUtils;
     public TimestampUtils getTimestampUtils() { return timestampUtils; }
 
-    /*
+    /**
      * The current type mappings
      */
     protected java.util.Map typemap;
@@ -364,7 +364,6 @@ public class PgConnection implements BaseConnection
         return typemap;
     }
 
-    // Query executor associated with this connection.
     public QueryExecutor getQueryExecutor() {
         return protoConnection.getQueryExecutor();
     }
@@ -388,9 +387,6 @@ public class PgConnection implements BaseConnection
         return execSQLQuery(s, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
     }
 
-    /**
-     * Simple query execution.
-     */
     public ResultSet execSQLQuery(String s, int resultSetType, int resultSetConcurrency) throws SQLException {
         BaseStatement stat = (BaseStatement) createStatement(resultSetType, resultSetConcurrency);
         boolean hasResultSet = stat.executeWithFlags(s, QueryExecutor.QUERY_SUPPRESS_BEGIN);
@@ -480,28 +476,6 @@ public class PgConnection implements BaseConnection
         return protoConnection.getUser();
     }
 
-    /*
-     * This returns the Fastpath API for the current connection.
-     *
-     * <p><b>NOTE:</b> This is not part of JDBC, but allows access to
-     * functions on the org.postgresql backend itself.
-     *
-     * <p>It is primarily used by the LargeObject API
-     *
-     * <p>The best way to use this is as follows:
-     *
-     * <p><pre>
-     * import org.postgresql.fastpath.*;
-     * ...
-     * Fastpath fp = ((org.postgresql.Connection)myconn).getFastpathAPI();
-     * </pre>
-     *
-     * <p>where myconn is an open Connection to org.postgresql.
-     *
-     * @return Fastpath object allowing access to functions on the org.postgresql
-     * backend.
-     * @exception SQLException by Fastpath when initialising for first time
-     */
     public Fastpath getFastpathAPI() throws SQLException
     {
         checkClosed();
@@ -513,25 +487,6 @@ public class PgConnection implements BaseConnection
     // This holds a reference to the Fastpath API if already open
     private Fastpath fastpath = null;
 
-    /*
-     * This returns the LargeObject API for the current connection.
-     *
-     * <p><b>NOTE:</b> This is not part of JDBC, but allows access to
-     * functions on the org.postgresql backend itself.
-     *
-     * <p>The best way to use this is as follows:
-     *
-     * <p><pre>
-     * import org.postgresql.largeobject.*;
-     * ...
-     * LargeObjectManager lo = ((org.postgresql.Connection)myconn).getLargeObjectAPI();
-     * </pre>
-     *
-     * <p>where myconn is an open Connection to org.postgresql.
-     *
-     * @return LargeObject object that implements the API
-     * @exception SQLException by LargeObject when initialising for first time
-     */
     public LargeObjectManager getLargeObjectAPI() throws SQLException
     {
         checkClosed();
@@ -685,33 +640,18 @@ public class PgConnection implements BaseConnection
     }
 
     /**
-     * In some cases, it is desirable to immediately release a Connection's
-     * database and JDBC resources instead of waiting for them to be
-     * automatically released.
-     *
-     * <B>Note:</B> A Connection is automatically closed when it is
-     * garbage collected.  Certain fatal errors also result in a closed
-     * connection.
-     *
-     * @exception SQLException if a database access error occurs
+     * <B>Note:</B> even though {@code Statement} is automatically closed when it is
+     * garbage collected, it is better to close it explicitly to lower resource consumption.
+     * 
+     * {@inheritDoc}
      */
-    public void close()
+    public void close() throws SQLException
     {
         releaseTimer();
         protoConnection.close();
         openStackTrace = null;
     }
 
-    /*
-     * A driver may convert the JDBC sql grammar into its system's
-     * native SQL grammar prior to sending it; nativeSQL returns the
-     * native form of the statement that the driver would have sent.
-     *
-     * @param sql a SQL statement that may contain one or more '?'
-     * parameter placeholders
-     * @return the native form of this statement
-     * @exception SQLException if a database access error occurs
-     */
     public String nativeSQL(String sql) throws SQLException
     {
         checkClosed();
@@ -720,16 +660,6 @@ public class PgConnection implements BaseConnection
         return buf.toString();
     }
 
-    /*
-     * The first warning reported by calls on this Connection is
-     * returned.
-     *
-     * <B>Note:</B> Sebsequent warnings will be changed to this
-     * SQLWarning
-     *
-     * @return the first SQLWarning or null
-     * @exception SQLException if a database access error occurs
-     */
     public synchronized SQLWarning getWarnings()
     throws SQLException
     {
@@ -743,12 +673,6 @@ public class PgConnection implements BaseConnection
         return firstWarning;
     }
 
-    /*
-     * After this call, getWarnings returns null until a new warning
-     * is reported for this connection.
-     *
-     * @exception SQLException if a database access error occurs
-     */
     public synchronized void clearWarnings()
     throws SQLException
     {
@@ -758,16 +682,6 @@ public class PgConnection implements BaseConnection
     }
 
 
-    /*
-     * You can put a connection in read-only mode as a hunt to enable
-     * database optimizations
-     *
-     * <B>Note:</B> setReadOnly cannot be called while in the middle
-     * of a transaction
-     *
-     * @param readOnly - true enables read-only mode; false disables it
-     * @exception SQLException if a database access error occurs
-     */
     public void setReadOnly(boolean readOnly) throws SQLException
     {
         checkClosed();
@@ -784,36 +698,12 @@ public class PgConnection implements BaseConnection
         this.readOnly = readOnly;
     }
 
-    /*
-     * Tests to see if the connection is in Read Only Mode.
-     *
-     * @return true if the connection is read only
-     * @exception SQLException if a database access error occurs
-     */
     public boolean isReadOnly() throws SQLException
     {
         checkClosed();
         return readOnly;
     }
 
-    /*
-     * If a connection is in auto-commit mode, than all its SQL
-     * statements will be executed and committed as individual
-     * transactions.  Otherwise, its SQL statements are grouped
-     * into transactions that are terminated by either commit()
-     * or rollback().  By default, new connections are in auto-
-     * commit mode.  The commit occurs when the statement completes
-     * or the next execute occurs, whichever comes first.  In the
-     * case of statements returning a ResultSet, the statement
-     * completes when the last row of the ResultSet has been retrieved
-     * or the ResultSet has been closed.  In advanced cases, a single
-     * statement may return multiple results as well as output parameter
-     * values. Here the commit occurs when all results and output param
-     * values have been retrieved.
-     *
-     * @param autoCommit - true enables auto-commit; false disables it
-     * @exception SQLException if a database access error occurs
-     */
     public void setAutoCommit(boolean autoCommit) throws SQLException
     {
         checkClosed();
@@ -827,12 +717,6 @@ public class PgConnection implements BaseConnection
         this.autoCommit = autoCommit;
     }
 
-    /*
-     * gets the current auto-commit state
-     *
-     * @return Current state of the auto-commit mode
-     * @see setAutoCommit
-     */
     public boolean getAutoCommit() throws SQLException
     {
         checkClosed();
@@ -849,17 +733,6 @@ public class PgConnection implements BaseConnection
                                    0, 0, flags);
     }
 
-    /*
-     * The method commit() makes all changes made since the previous
-     * commit/rollback permanent and releases any database locks currently
-     * held by the Connection. This method should only be used when
-     * auto-commit has been disabled.
-     *
-     * @exception SQLException if a database access error occurs,
-     *                         this method  is called on a closed connection or
-     *                         this Connection object is in auto-commit mode
-     * @see setAutoCommit
-     */
     public void commit() throws SQLException
     {
         checkClosed();
@@ -879,16 +752,6 @@ public class PgConnection implements BaseConnection
     }
  
 
-    /*
-     * The method rollback() drops all changes made since the previous
-     * commit/rollback and releases any database locks currently held by
-     * the Connection.
-     *
-     * @exception SQLException if a database access error occurs,
-     *                         this method  is called on a closed connection or
-     *                         this Connection object is in auto-commit mode
-     * @see commit
-     */
     public void rollback() throws SQLException
     {
         checkClosed();
@@ -905,12 +768,6 @@ public class PgConnection implements BaseConnection
         return protoConnection.getTransactionState();
     }
 
-    /*
-     * Get this Connection's current transaction isolation mode.
-     *
-     * @return the current TRANSACTION_* mode value
-     * @exception SQLException if a database access error occurs
-     */
     public int getTransactionIsolation() throws SQLException
     {
         checkClosed();
@@ -963,19 +820,6 @@ public class PgConnection implements BaseConnection
         return Connection.TRANSACTION_READ_COMMITTED; // Best guess.
     }
 
-    /*
-     * You can call this method to try to change the transaction
-     * isolation level using one of the TRANSACTION_* values.
-     *
-     * <B>Note:</B> setTransactionIsolation cannot be called while
-     * in the middle of a transaction
-     *
-     * @param level one of the TRANSACTION_* isolation values with
-     * the exception of TRANSACTION_NONE; some databases may
-     * not support other values
-     * @exception SQLException if a database access error occurs
-     * @see java.sql.DatabaseMetaData#supportsTransactionIsolationLevel
-     */
     public void setTransactionIsolation(int level) throws SQLException
     {
         checkClosed();
@@ -1016,26 +860,12 @@ public class PgConnection implements BaseConnection
         return null;
     }
 
-    /*
-     * A sub-space of this Connection's database may be selected by
-     * setting a catalog name. If the driver does not support catalogs,
-     * it will silently ignore this request
-     *
-     * @exception SQLException if a database access error occurs
-     */
     public void setCatalog(String catalog) throws SQLException
     {
         checkClosed();
         //no-op
     }
 
-    /*
-     * Return the connections current catalog name, or null if no
-     * catalog name is set, or we dont support catalogs.
-     *
-     * @return the current catalog name or null
-     * @exception SQLException if a database access error occurs
-     */
     public String getCatalog() throws SQLException
     {
         checkClosed();
@@ -1113,9 +943,6 @@ public class PgConnection implements BaseConnection
         }
     }
 
-    /**
-     * Is the server we are connected to running at least this version?
-     */
     public boolean haveMinimumServerVersion(String ver)
     {
         int requiredver = Utils.parseServerVersionStr(ver);
@@ -1139,26 +966,11 @@ public class PgConnection implements BaseConnection
         return haveMinimumServerVersion(ver.getVersionNum());
     }
 
-    /*
-     * This method returns true if the compatible level set in the connection
-     * (which can be passed into the connection or specified in the URL)
-     * is at least the value passed to this method.  This is used to toggle
-     * between different functionality as it changes across different releases
-     * of the jdbc driver code.  The values here are versions of the jdbc client
-     * and not server versions.  For example in 7.1 get/setBytes worked on
-     * LargeObject values, in 7.2 these methods were changed to work on bytea
-     * values. This change in functionality could be disabled by setting the
-     * "compatible" level to be 7.1, in which case the driver will revert to
-     * the 7.1 functionality.
-     *
-     * Introduced in 9.4.
-     */
     public boolean haveMinimumCompatibleVersion(int ver)
     {
         return compatibleInt >= ver;
     }
 
-    /* Prefer the int form */
     public boolean haveMinimumCompatibleVersion(String ver)
     {
         return haveMinimumCompatibleVersion(ServerVersion.from(ver));
@@ -1197,12 +1009,6 @@ public class PgConnection implements BaseConnection
     // This is a cache of the DatabaseMetaData instance for this connection
     protected java.sql.DatabaseMetaData metadata;
 
-    /*
-     * Tests to see if a Connection is closed
-     *
-     * @return the status of the connection
-     * @exception SQLException (why?)
-     */
     public boolean isClosed() throws SQLException
     {
         return protoConnection.isClosed();
@@ -1223,9 +1029,9 @@ public class PgConnection implements BaseConnection
         return (notifications.length == 0 ? null : notifications);
     }
 
-    //
-    // Handler for transaction queries
-    //
+    /**
+     * Handler for transaction queries
+     */
     private class TransactionCommandHandler implements ResultHandler {
         private SQLException error;
 
@@ -1668,21 +1474,6 @@ public class PgConnection implements BaseConnection
         throw org.postgresql.Driver.notImplemented(this.getClass(), "getNetworkTimeout()");
     }
 
-    /**
-     * Changes the holdability of <code>ResultSet</code> objects
-     * created using this <code>Connection</code> object to the given
-     * holdability.
-     *
-     * @param holdability a <code>ResultSet</code> holdability constant; one of
-     *                    <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or
-     *                    <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
-     * @throws SQLException if a database access occurs, the given parameter
-     *                      is not a <code>ResultSet</code> constant indicating holdability,
-     *                      or the given holdability is not supported
-     * @see #getHoldability
-     * @see ResultSet
-     * @since 1.4
-     */
     public void setHoldability(int holdability) throws SQLException {
         checkClosed();
 
@@ -1699,34 +1490,11 @@ public class PgConnection implements BaseConnection
         }
     }
 
-    /**
-     * Retrieves the current holdability of <code>ResultSet</code> objects
-     * created using this <code>Connection</code> object.
-     *
-     * @return the holdability, one of
-     * <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or
-     * <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
-     * @throws SQLException if a database access occurs
-     * @see #setHoldability
-     * @see ResultSet
-     * @since 1.4
-     */
     public int getHoldability() throws SQLException {
         checkClosed();
         return rsHoldability;
     }
 
-    /**
-     * Creates an unnamed savepoint in the current transaction and
-     * returns the new <code>Savepoint</code> object that represents it.
-     *
-     * @return the new <code>Savepoint</code> object
-     * @throws SQLException if a database access error occurs
-     *                      or this <code>Connection</code> object is currently in
-     *                      auto-commit mode
-     * @see Savepoint
-     * @since 1.4
-     */
     public Savepoint setSavepoint() throws SQLException {
         String pgName;
         checkClosed();
@@ -1748,18 +1516,6 @@ public class PgConnection implements BaseConnection
         return savepoint;
     }
 
-    /**
-     * Creates a savepoint with the given name in the current transaction
-     * and returns the new <code>Savepoint</code> object that represents it.
-     *
-     * @param name a <code>String</code> containing the name of the savepoint
-     * @return the new <code>Savepoint</code> object
-     * @throws SQLException if a database access error occurs
-     *                      or this <code>Connection</code> object is currently in
-     *                      auto-commit mode
-     * @see Savepoint
-     * @since 1.4
-     */
     public Savepoint setSavepoint(String name) throws SQLException {
         checkClosed();
         if (!haveMinimumServerVersion(ServerVersion.v8_0))
@@ -1779,21 +1535,6 @@ public class PgConnection implements BaseConnection
         return savepoint;
     }
 
-    /**
-     * Undoes all changes made after the given <code>Savepoint</code> object
-     * was set.
-     * <p>
-     * This method should be used only when auto-commit has been disabled.
-     *
-     * @param savepoint the <code>Savepoint</code> object to roll back to
-     * @throws SQLException if a database access error occurs,
-     *                      the <code>Savepoint</code> object is no longer valid,
-     *                      or this <code>Connection</code> object is currently in
-     *                      auto-commit mode
-     * @see Savepoint
-     * @see #rollback
-     * @since 1.4
-     */
     public void rollback(Savepoint savepoint) throws SQLException {
         checkClosed();
         if (!haveMinimumServerVersion(ServerVersion.v8_0))
@@ -1803,17 +1544,6 @@ public class PgConnection implements BaseConnection
         execSQLUpdate("ROLLBACK TO SAVEPOINT " + pgSavepoint.getPGName());
     }
 
-    /**
-     * Removes the given <code>Savepoint</code> object from the current
-     * transaction. Any reference to the savepoint after it have been removed
-     * will cause an <code>SQLException</code> to be thrown.
-     *
-     * @param savepoint the <code>Savepoint</code> object to be removed
-     * @throws SQLException if a database access error occurs or
-     *                      the given <code>Savepoint</code> object is not a valid
-     *                      savepoint in the current transaction
-     * @since 1.4
-     */
     public void releaseSavepoint(Savepoint savepoint) throws SQLException {
         checkClosed();
         if (!haveMinimumServerVersion(ServerVersion.v8_0))
@@ -1840,43 +1570,6 @@ public class PgConnection implements BaseConnection
         return prepareCall(sql, resultSetType, resultSetConcurrency, getHoldability());
     }
 
-    /**
-     * Creates a default <code>PreparedStatement</code> object that has
-     * the capability to retrieve auto-generated keys. The given constant
-     * tells the driver whether it should make auto-generated keys
-     * available for retrieval.  This parameter is ignored if the SQL
-     * statement is not an <code>INSERT</code> statement.
-     * <p>
-     * <B>Note:</B> This method is optimized for handling
-     * parametric SQL statements that benefit from precompilation. If
-     * the driver supports precompilation,
-     * the method <code>prepareStatement</code> will send
-     * the statement to the database for precompilation. Some drivers
-     * may not support precompilation. In this case, the statement may
-     * not be sent to the database until the <code>PreparedStatement</code>
-     * object is executed. This has no direct effect on users; however, it does
-     * affect which methods throw certain SQLExceptions.
-     * <p>
-     * Result sets created using the returned <code>PreparedStatement</code>
-     * object will by default be type <code>TYPE_FORWARD_ONLY</code>
-     * and have a concurrency level of <code>CONCUR_READ_ONLY</code>.
-     *
-     * @param sql               an SQL statement that may contain one or more '?' IN
-     *                          parameter placeholders
-     * @param autoGeneratedKeys a flag indicating whether auto-generated keys
-     *                          should be returned; one of the following <code>Statement</code>
-     *                          constants:
-     *                          <code>Statement.RETURN_GENERATED_KEYS</code> or
-     *                          <code>Statement.NO_GENERATED_KEYS</code>.
-     * @return a new <code>PreparedStatement</code> object, containing the
-     * pre-compiled SQL statement, that will have the capability of
-     * returning auto-generated keys
-     * @throws SQLException if a database access error occurs
-     *                      or the given parameter is not a <code>Statement</code>
-     *                      constant indicating whether auto-generated keys should be
-     *                      returned
-     * @since 1.4
-     */
     public PreparedStatement prepareStatement(String sql, int autoGeneratedKeys)
             throws SQLException {
         checkClosed();
@@ -1891,44 +1584,6 @@ public class PgConnection implements BaseConnection
         return ps;
     }
 
-    /**
-     * Creates a default <code>PreparedStatement</code> object capable
-     * of returning the auto-generated keys designated by the given array.
-     * This array contains the indexes of the columns in the target
-     * table that contain the auto-generated keys that should be made
-     * available. This array is ignored if the SQL
-     * statement is not an <code>INSERT</code> statement.
-     * <p>
-     * An SQL statement with or without IN parameters can be
-     * pre-compiled and stored in a <code>PreparedStatement</code> object. This
-     * object can then be used to efficiently execute this statement
-     * multiple times.
-     * <p>
-     * <B>Note:</B> This method is optimized for handling
-     * parametric SQL statements that benefit from precompilation. If
-     * the driver supports precompilation,
-     * the method <code>prepareStatement</code> will send
-     * the statement to the database for precompilation. Some drivers
-     * may not support precompilation. In this case, the statement may
-     * not be sent to the database until the <code>PreparedStatement</code>
-     * object is executed. This has no direct effect on users; however, it does
-     * affect which methods throw certain SQLExceptions.
-     * <p>
-     * Result sets created using the returned <code>PreparedStatement</code>
-     * object will by default be type <code>TYPE_FORWARD_ONLY</code>
-     * and have a concurrency level of <code>CONCUR_READ_ONLY</code>.
-     *
-     * @param sql           an SQL statement that may contain one or more '?' IN
-     *                      parameter placeholders
-     * @param columnIndexes an array of column indexes indicating the columns
-     *                      that should be returned from the inserted row or rows
-     * @return a new <code>PreparedStatement</code> object, containing the
-     * pre-compiled statement, that is capable of returning the
-     * auto-generated keys designated by the given array of column
-     * indexes
-     * @throws SQLException if a database access error occurs
-     * @since 1.4
-     */
     public PreparedStatement prepareStatement(String sql, int columnIndexes[])
             throws SQLException {
         if (columnIndexes == null || columnIndexes.length == 0)
@@ -1938,44 +1593,6 @@ public class PgConnection implements BaseConnection
         throw new PSQLException(GT.tr("Returning autogenerated keys is not supported."), PSQLState.NOT_IMPLEMENTED);
     }
 
-    /**
-     * Creates a default <code>PreparedStatement</code> object capable
-     * of returning the auto-generated keys designated by the given array.
-     * This array contains the names of the columns in the target
-     * table that contain the auto-generated keys that should be returned.
-     * This array is ignored if the SQL
-     * statement is not an <code>INSERT</code> statement.
-     * <p>
-     * An SQL statement with or without IN parameters can be
-     * pre-compiled and stored in a <code>PreparedStatement</code> object. This
-     * object can then be used to efficiently execute this statement
-     * multiple times.
-     * <p>
-     * <B>Note:</B> This method is optimized for handling
-     * parametric SQL statements that benefit from precompilation. If
-     * the driver supports precompilation,
-     * the method <code>prepareStatement</code> will send
-     * the statement to the database for precompilation. Some drivers
-     * may not support precompilation. In this case, the statement may
-     * not be sent to the database until the <code>PreparedStatement</code>
-     * object is executed. This has no direct effect on users; however, it does
-     * affect which methods throw certain SQLExceptions.
-     * <p>
-     * Result sets created using the returned <code>PreparedStatement</code>
-     * object will by default be type <code>TYPE_FORWARD_ONLY</code>
-     * and have a concurrency level of <code>CONCUR_READ_ONLY</code>.
-     *
-     * @param sql         an SQL statement that may contain one or more '?' IN
-     *                    parameter placeholders
-     * @param columnNames an array of column names indicating the columns
-     *                    that should be returned from the inserted row or rows
-     * @return a new <code>PreparedStatement</code> object, containing the
-     * pre-compiled statement, that is capable of returning the
-     * auto-generated keys designated by the given array of column
-     * names
-     * @throws SQLException if a database access error occurs
-     * @since 1.4
-     */
     public PreparedStatement prepareStatement(String sql, String columnNames[])
             throws SQLException {
         if (columnNames != null && columnNames.length != 0)

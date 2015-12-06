@@ -26,6 +26,9 @@ public class NonValidatingFactory extends WrappedFactory {
      * because the ssl calling code will look for this constructor
      * first and then fall back to the no argument constructor, so
      * we avoid an exception and additional reflection lookups.
+     *
+     * @param arg input argument
+     * @throws GeneralSecurityException if something goes wrong
      */
     public NonValidatingFactory(String arg) throws GeneralSecurityException {
         SSLContext ctx = SSLContext.getInstance("TLS"); // or "SSL" ?

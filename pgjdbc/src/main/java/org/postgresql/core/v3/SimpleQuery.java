@@ -55,8 +55,8 @@ class SimpleQuery implements V3Query {
         return null;
     }
 
-	/*
-	 * Return maximum size in bytes that each result row from this query may
+    /**
+     * Return maximum size in bytes that each result row from this query may
 	 * return. Mainly used for batches that return results.
 	 *
 	 * Results are cached until/unless the query is re-described.

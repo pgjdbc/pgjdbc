@@ -15,7 +15,7 @@ public class NTDSAPIWrapper {
      * Convenience wrappre for NTDSAPI DsMakeSpn with Java
      * friendly string and exception handling.
      * 
-     * @see http://msdn.microsoft.com/en-us/library/ms676007(v=vs.85).aspx
+     * @see <a href="http://msdn.microsoft.com/en-us/library/ms676007(v=vs.85).aspx">http://msdn.microsoft.com/en-us/library/ms676007</a>
      * 
      * @param serviceClass See MSDN
      * @param serviceName See MSDN

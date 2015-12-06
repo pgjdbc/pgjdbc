@@ -266,8 +266,10 @@ public class TestUtil
         
     }
     
-    /*
+    /**
      * Helper - opens a connection.
+     *
+     * @return connection
      */
     public static java.sql.Connection openDB() throws Exception
     {

@@ -2498,8 +2498,8 @@ public class PgResultSet
         return toBigDecimal( getFixedString(columnIndex), scale );
     }
 
-    /*
-     * Get the value of a column in the current row as a Java byte array.
+    /**
+     * {@inheritDoc}
      *
      * <p>In normal use, the bytes represent the raw values returned by the
      * backend. However, if the column is an OID, then it is assumed to
@@ -2507,11 +2507,6 @@ public class PgResultSet
      *
      * <p><b>Be warned</b> If the large object is huge, then you may run out
      * of memory.
-     *
-     * @param columnIndex the first column is 1, the second is 2, ...
-     * @return the column value; if the value is SQL NULL, the result
-     * is null
-     * @exception SQLException if a database access error occurs
      */
     public byte[] getBytes(int columnIndex) throws SQLException
     {
@@ -2768,21 +2763,6 @@ public class PgResultSet
         return null;
     }
 
-    /*
-     * Get the value of a column in the current row as a Java object
-     *
-     * <p>This method will return the value of the given column as a
-     * Java object.  The type of the Java object will be the default
-     * Java Object type corresponding to the column's SQL type, following
-     * the mapping specified in the JDBC specification.
-     *
-     * <p>This method may also be used to read database specific abstract
-     * data types.
-     *
-     * @param columnIndex the first column is 1, the second is 2...
-     * @return a Object holding the column value
-     * @exception SQLException if a database access error occurs
-     */
     public Object getObject(int columnIndex) throws SQLException {
         Field field;
 
@@ -2814,9 +2794,6 @@ public class PgResultSet
         return getObject(findColumn(columnName));
     }
 
-    /*
-     * Map a ResultSet column name to a ResultSet column index
-     */
     public int findColumn(String columnName) throws SQLException
     {
         checkClosed();
@@ -2870,20 +2847,25 @@ public class PgResultSet
         return 0;
     }
 
-    /*
-     * returns the OID of a field.<p>
-     * It is used internally by the driver.
+    /**
+     * Returns the OID of a field. It is used internally by the driver.
+     * @param field field index
+     * @return OID of a field
      */
     public int getColumnOID(int field)
     {
         return fields[field -1].getOID();
     }
 
-    /*
+    /**
      * This is used to fix get*() methods on Money fields. It should only be
      * used by those methods!
      *
      * It converts ($##.##) to -##.## and $##.## to ##.##
+     * 
+     * @param col column position (1-based)
+     * @return numeric-parsable representation of money string literal
+     * @throws SQLException if something wrong happens
      */
     public String getFixedString(int col) throws SQLException
     {

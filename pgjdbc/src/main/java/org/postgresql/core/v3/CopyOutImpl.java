@@ -15,27 +15,27 @@ import org.postgresql.copy.CopyOut;
  * Anticipated flow of a COPY TO STDOUT operation:
  * 
  * CopyManager.copyOut()
- *   ->QueryExecutor.startCopy()
+ *   -&gt;QueryExecutor.startCopy()
  *       - sends given query to server
- *       ->processCopyResults():
+ *       -&gt;processCopyResults():
  *           - receives CopyOutResponse from Server
  *           - creates new CopyOutImpl
- *           ->initCopy():
+ *           -&gt;initCopy():
  *              - receives copy metadata from server
- *              ->CopyOutImpl.init()
- *              ->lock() connection for this operation
+ *              -&gt;CopyOutImpl.init()
+ *              -&gt;lock() connection for this operation
  *   - if query fails an exception is thrown
  *   - if query returns wrong CopyOperation, copyOut() cancels it before throwing exception
- * <-returned: new CopyOutImpl holding lock on connection
+ * &lt;-returned: new CopyOutImpl holding lock on connection
  * repeat CopyOut.readFromCopy() until null
- *   ->CopyOutImpl.readFromCopy()
- *       ->QueryExecutorImpl.readFromCopy()
- *           ->processCopyResults()
+ *   -&gt;CopyOutImpl.readFromCopy()
+ *       -&gt;QueryExecutorImpl.readFromCopy()
+ *           -&gt;processCopyResults()
  *               - on copydata row from server
- *                   ->CopyOutImpl.handleCopydata() stores reference to byte array
+ *                   -&gt;CopyOutImpl.handleCopydata() stores reference to byte array
  *               -  on CopyDone, CommandComplete, ReadyForQuery
- *                   ->unlock() connection for use by other operations
- * <-returned: byte array of data received from server or null at end.
+ *                   -&gt;unlock() connection for use by other operations
+ * &lt;-returned: byte array of data received from server or null at end.
  */
 public class CopyOutImpl extends CopyOperationImpl implements CopyOut {
     private byte[] currentDataRow;

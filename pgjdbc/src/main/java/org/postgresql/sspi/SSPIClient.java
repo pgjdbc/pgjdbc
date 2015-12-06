@@ -58,7 +58,8 @@ public class SSPIClient {
 	 *
 	 * @param pgStream PostgreSQL connection stream
 	 * @param spnServiceClass SSPI SPN service class, defaults to POSTGRES if null
-	 * @param logger
+	 * @param enableNegotiate enable negotiate
+	 * @param logger logger
 	 */
 	public SSPIClient(PGStream pgStream,
 	        String spnServiceClass,
@@ -196,8 +197,8 @@ public class SSPIClient {
 	 * of type AUTH_REQ_GSS_CONT.
 	 * 
 	 * @param msgLength Length of message to read, excluding length word and message type word
-	 * @throws SQLException
-	 * @throws IOException 
+	 * @throws SQLException if something wrong happens
+	 * @throws IOException if something wrong happens
 	 */
 	public void continueSSPI(int msgLength) throws SQLException, IOException {
 		

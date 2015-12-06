@@ -78,7 +78,7 @@ public class Oid {
      * Returns the name of the oid as string.
      *
      * @param oid The oid to convert to name.
-     * @return The name of the oid or "<unknown>" if oid no constant for
+     * @return The name of the oid or {@code "<unknown>"} if oid no constant for
      * oid value has been defined.
      */
     public static String toString(int oid) {

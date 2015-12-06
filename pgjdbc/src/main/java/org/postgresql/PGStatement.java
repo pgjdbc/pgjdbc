@@ -30,8 +30,10 @@ public interface PGStatement
 
     /**
      * Returns the Last inserted/updated oid.
+     *
+     * @throws SQLException if something goes wrong
      * @return OID of last insert
-        * @since 7.3
+     * @since 7.3
      */
     public long getLastOID() throws SQLException;
 
@@ -41,8 +43,11 @@ public interface PGStatement
      * As of build 302, this method is equivalent to
      *  <code>setPrepareThreshold(1)</code>.
      *
+     * @param flag use server prepare
+     * @throws SQLException if something goes wrong
+     *
      * @deprecated As of build 302, replaced by {@link #setPrepareThreshold(int)}
-        * @since 7.3
+     * @since 7.3
      */
     public void setUseServerPrepare(boolean flag) throws SQLException;
 

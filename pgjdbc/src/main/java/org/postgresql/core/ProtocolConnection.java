@@ -93,7 +93,7 @@ public interface ProtocolConnection {
      * standard or if it uses traditional PostgreSQL escaping rules. Versions
      * up to 8.1 always treated backslashes as escape characters in
      * string-literals. Since 8.2, this depends on the value of the
-     * <tt>standard_conforming_strings<tt> server variable.
+     * <tt>standard_conforming_strings</tt> server variable.
      * 
      * @return true if the server treats string literals according to the SQL
      *   standard
@@ -111,6 +111,7 @@ public interface ProtocolConnection {
      * Retrieve and clear the set of asynchronous notifications pending on this
      * connection.
      *
+     * @throws SQLException if and error occurs while fetching notifications
      * @return an array of notifications; if there are no notifications, an empty
      *   array is returned.
      */
@@ -170,6 +171,8 @@ public interface ProtocolConnection {
 
     /**
      * Return the process ID (PID) of the backend server process handling this connection.
+     *
+     * @return process ID (PID) of the backend server process handling this connection
      */
     public int getBackendPID();
 

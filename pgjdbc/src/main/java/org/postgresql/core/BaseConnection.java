@@ -87,7 +87,6 @@ public interface BaseConnection extends PGConnection, Connection
      *
      * @param ver the driver version to check
      * @return true if the driver's behavioural version is at least "ver".
-     * @throws SQLException if something goes wrong
      */
     @Deprecated
     public boolean haveMinimumCompatibleVersion(String ver);
@@ -100,10 +99,18 @@ public interface BaseConnection extends PGConnection, Connection
      * overridden by the "compatible" URL parameter.
      *
      * The version is of the form xxyyzz, e.g. 90401 for PgJDBC 9.4.1.
+     * 
+     * This is used to toggle
+     * between different functionality as it changes across different releases
+     * of the jdbc driver code.  The values here are versions of the jdbc client
+     * and not server versions.  For example in 7.1 get/setBytes worked on
+     * LargeObject values, in 7.2 these methods were changed to work on bytea
+     * values. This change in functionality could be disabled by setting the
+     * "compatible" level to be 7.1, in which case the driver will revert to
+     * the 7.1 functionality.
      *
      * @param ver the driver version to check, eg 90401 for 9.4.1
      * @return true if the driver's behavioural version is at least "ver".
-     * @throws SQLException if something goes wrong
      */
     public boolean haveMinimumCompatibleVersion(int ver);
 
@@ -116,7 +123,6 @@ public interface BaseConnection extends PGConnection, Connection
      *
      * @param ver the driver version to check
      * @return true if the driver's behavioural version is at least "ver".
-     * @throws SQLException if something goes wrong
      */
     public boolean haveMinimumCompatibleVersion(Version ver);
 
@@ -127,7 +133,6 @@ public interface BaseConnection extends PGConnection, Connection
      *
      * @param ver the server version to check
      * @return true if the server version is at least "ver".
-     * @throws SQLException if something goes wrong
      */
     @Deprecated
     public boolean haveMinimumServerVersion(String ver);
@@ -140,7 +145,6 @@ public interface BaseConnection extends PGConnection, Connection
      *
      * @param ver the server version to check, of the form xxyyzz eg 90401
      * @return true if the server version is at least "ver".
-     * @throws SQLException if something goes wrong
      */
     public boolean haveMinimumServerVersion(int ver);
 
@@ -152,7 +156,6 @@ public interface BaseConnection extends PGConnection, Connection
      *
      * @param ver the server version to check
      * @return true if the server version is at least "ver".
-     * @throws SQLException if something goes wrong
      */
     public boolean haveMinimumServerVersion(Version ver);
 
@@ -184,7 +187,7 @@ public interface BaseConnection extends PGConnection, Connection
      * standard or if it uses traditional PostgreSQL escaping rules. Versions
      * up to 8.1 always treated backslashes as escape characters in
      * string-literals. Since 8.2, this depends on the value of the
-     * <tt>standard_conforming_strings<tt> server variable.
+     * <tt>standard_conforming_strings</tt> server variable.
      * 
      * @return true if the server treats string literals according to the SQL
      *   standard
@@ -219,13 +222,18 @@ public interface BaseConnection extends PGConnection, Connection
     public boolean binaryTransferSend(int oid);
     
     /**
-     *  Return whether to disable column name sanitization. 
+     * Return whether to disable column name sanitation.
+     *
+     * @return true column sanitizer is disabled
      */
     public boolean isColumnSanitiserDisabled();
 
     /**
-     *  Schedule a TimerTask for later execution.
-     *  The task will be scheduled with the shared Timer for this connection.
+     * Schedule a TimerTask for later execution.
+     * The task will be scheduled with the shared Timer for this connection.
+     *
+     * @param timerTask timer task to schedule
+     * @param milliSeconds delay in milliseconds
      */
     public void addTimerTask(TimerTask timerTask, long milliSeconds);
 

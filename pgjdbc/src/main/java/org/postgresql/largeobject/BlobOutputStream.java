@@ -122,16 +122,6 @@ public class BlobOutputStream extends OutputStream
         }
     }
 
-    /**
-     * Closes this output stream and releases any system resources
-     * associated with this stream. The general contract of <code>close</code>
-     * is that it closes the output stream. A closed stream cannot perform
-     * output operations and cannot be reopened.
-     * <p>
-     * The <code>close</code> method of <code>OutputStream</code> does nothing.
-     *
-     * @exception  IOException if an I/O error occurs.
-     */
     public void close() throws IOException
     {
         if (lo != null) {

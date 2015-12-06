@@ -37,6 +37,10 @@ public class PGPooledConnection
     /**
      * Creates a new PooledConnection representing the specified physical
      * connection.
+     * 
+     * @param con connection
+     * @param autoCommit whether to autocommit
+     * @param isXA whether connection is a XA connection
      */
     public PGPooledConnection(Connection con, boolean autoCommit, boolean isXA)
     {

@@ -22,7 +22,7 @@ public class MD5Digest
     {
     }
 
-    /*
+    /**
      * Encodes user/password/salt information in the following way:
      *  MD5(MD5(password + user) + salt)
      *

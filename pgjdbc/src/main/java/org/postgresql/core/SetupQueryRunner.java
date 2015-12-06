@@ -17,7 +17,7 @@ import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLException;
 
 /**
- * Poor man's Statement & ResultSet, used for initial queries while we're
+ * Poor man's Statement &amp; ResultSet, used for initial queries while we're
  * still initializing the system.
  */
 public class SetupQueryRunner {

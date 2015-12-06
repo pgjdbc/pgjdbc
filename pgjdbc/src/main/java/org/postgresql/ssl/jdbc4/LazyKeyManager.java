@@ -53,10 +53,10 @@ public class LazyKeyManager implements X509KeyManager {
   /**
    * Constructor. certfile and keyfile can be null, in that case no
    * certificate is presented to the server.
-   * @param certfile
-   * @param keyfile
-   * @param cbh
-   * @param defaultfile
+   * @param certfile certfile
+   * @param keyfile key file
+   * @param cbh callback handler
+   * @param defaultfile default file
    */
   public LazyKeyManager(String certfile, String keyfile, CallbackHandler cbh, boolean defaultfile) {
     this.certfile = certfile;
@@ -67,9 +67,9 @@ public class LazyKeyManager implements X509KeyManager {
   
   /**
    * getCertificateChain and getPrivateKey cannot throw exeptions,
-   * therefore any exception is stored in this.error and can be raised
+   * therefore any exception is stored in {@link #error} and can be raised
    * by this method
-   * @throws PSQLException
+   * @throws PSQLException if any exception is stored in {@link #error} and can be raised
    */
   public void throwKeyManagerException() throws PSQLException
   {

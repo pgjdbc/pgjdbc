@@ -97,102 +97,46 @@ public class PgDatabaseMetaData implements DatabaseMetaData
     }
 
 
-    /*
-     * Can all the procedures returned by getProcedures be called
-     * by the current user?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
-     */
     public boolean allProceduresAreCallable() throws SQLException
     {
         return true;  // For now...
     }
 
-    /*
-     * Can all the tables returned by getTable be SELECTed by
-     * the current user?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
-     */
     public boolean allTablesAreSelectable() throws SQLException
     {
         return true;  // For now...
     }
 
-    /*
-     * What is the URL for this database?
-     *
-     * @return the url or null if it cannott be generated
-     * @exception SQLException if a database access error occurs
-     */
     public String getURL() throws SQLException
     {
         return connection.getURL();
     }
 
-    /*
-     * What is our user name as known to the database?
-     *
-     * @return our database user name
-     * @exception SQLException if a database access error occurs
-     */
     public String getUserName() throws SQLException
     {
         return connection.getUserName();
     }
 
-    /*
-     * Is the database in read-only mode?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
-     */
     public boolean isReadOnly() throws SQLException
     {
         return connection.isReadOnly();
     }
 
-    /*
-     * Are NULL values sorted high?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
-     */
     public boolean nullsAreSortedHigh() throws SQLException
     {
         return connection.haveMinimumServerVersion(ServerVersion.v7_2);
     }
 
-    /*
-     * Are NULL values sorted low?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
-     */
     public boolean nullsAreSortedLow() throws SQLException
     {
         return false;
     }
 
-    /*
-     * Are NULL values sorted at the start regardless of sort order?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
-     */
     public boolean nullsAreSortedAtStart() throws SQLException
     {
         return false;
     }
 
-    /*
-     * Are NULL values sorted at the end regardless of sort order?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
-     */
     public boolean nullsAreSortedAtEnd() throws SQLException
     {
         return !connection.haveMinimumServerVersion(ServerVersion.v7_2);
@@ -210,62 +154,32 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return "PostgreSQL";
     }
 
-    /*
-     * What is the version of this database product.
-     *
-     * @return the database version
-     * @exception SQLException if a database access error occurs
-     */
     public String getDatabaseProductVersion() throws SQLException
     {
         return connection.getDBVersionNumber();
     }
 
-    /*
-     * What is the name of this JDBC driver?  If we don't know this
-     * we are doing something wrong!
-     *
-     * @return the JDBC driver name
-     * @exception SQLException why?
-     */
     public String getDriverName() throws SQLException
     {
         return "PostgreSQL Native Driver";
     }
 
-    /*
-     * What is the version string of this JDBC driver? Again, this is
-     * static.
-     *
-     * @return the JDBC driver name.
-     * @exception SQLException why?
-     */
     public String getDriverVersion() throws SQLException
     {
         return Driver.getVersion();
     }
 
-    /*
-     * What is this JDBC driver's major version number?
-     *
-     * @return the JDBC driver major version
-     */
     public int getDriverMajorVersion()
     {
         return Driver.MAJORVERSION;
     }
 
-    /*
-     * What is this JDBC driver's minor version number?
-     *
-     * @return the JDBC driver minor version
-     */
     public int getDriverMinorVersion()
     {
         return Driver.MINORVERSION;
     }
 
-    /*
+    /**
      * Does the database store tables in a local file? No - it
      * stores them in a file on the server.
      *
@@ -277,7 +191,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return false;
     }
 
-    /*
+    /**
      * Does the database use a file for each table?  Well, not really,
      * since it doesnt use local files.
      *
@@ -289,7 +203,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return false;
     }
 
-    /*
+    /**
      * Does the database treat mixed case unquoted SQL identifiers
      * as case sensitive and as a result store them in mixed case?
      * A JDBC-Compliant driver will always return false.
@@ -302,40 +216,22 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return false;
     }
 
-    /*
-     * Does the database treat mixed case unquoted SQL identifiers as
-     * case insensitive and store them in upper case?
-     *
-     * @return true if so
-     */
     public boolean storesUpperCaseIdentifiers() throws SQLException
     {
         return false;
     }
 
-    /*
-     * Does the database treat mixed case unquoted SQL identifiers as
-     * case insensitive and store them in lower case?
-     *
-     * @return true if so
-     */
     public boolean storesLowerCaseIdentifiers() throws SQLException
     {
         return true;
     }
 
-    /*
-     * Does the database treat mixed case unquoted SQL identifiers as
-     * case insensitive and store them in mixed case?
-     *
-     * @return true if so
-     */
     public boolean storesMixedCaseIdentifiers() throws SQLException
     {
         return false;
     }
 
-    /*
+    /**
      * Does the database treat mixed case quoted SQL identifiers as
      * case sensitive and as a result store them in mixed case?  A
      * JDBC compliant driver will always return true.
@@ -348,40 +244,22 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return true;
     }
 
-    /*
-     * Does the database treat mixed case quoted SQL identifiers as
-     * case insensitive and store them in upper case?
-     *
-     * @return true if so
-     */
     public boolean storesUpperCaseQuotedIdentifiers() throws SQLException
     {
         return false;
     }
 
-    /*
-     * Does the database treat mixed case quoted SQL identifiers as case
-     * insensitive and store them in lower case?
-     *
-     * @return true if so
-     */
     public boolean storesLowerCaseQuotedIdentifiers() throws SQLException
     {
         return false;
     }
 
-    /*
-     * Does the database treat mixed case quoted SQL identifiers as case
-     * insensitive and store them in mixed case?
-     *
-     * @return true if so
-     */
     public boolean storesMixedCaseQuotedIdentifiers() throws SQLException
     {
         return false;
     }
 
-    /*
+    /**
      * What is the string used to quote SQL identifiers?  This returns
      * a space if identifier quoting isn't supported.  A JDBC Compliant
      * driver will always use a double quote character.
@@ -394,9 +272,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return "\"";
     }
 
-    /*
-     * Get a comma separated list of all a database's SQL keywords that
-     * are NOT also SQL92 keywords.
+    /**
+     * {@inheritDoc}
      *
      * <p>Within PostgreSQL, the keywords are found in
      * src/backend/parser/keywords.c
@@ -415,10 +292,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return keywords;
     }
 
-    /**
-     * get supported escaped numeric functions
-     * @return a comma separated list of function names
-     */
     public String getNumericFunctions() throws SQLException
     {
         return EscapedFunctions.ABS+','+EscapedFunctions.ACOS+
@@ -492,13 +365,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return timeDateFuncs;
     }
 
-    /*
-     * This is the string that can be used to escape '_' and '%' in
-     * a search string pattern style catalog search parameters
-     *
-     * @return the string used to escape wildcard characters
-     * @exception SQLException if a database access error occurs
-     */
     public String getSearchStringEscape() throws SQLException
     {
         // This method originally returned "\\\\" assuming that it
@@ -515,9 +381,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return "\\";
     }
 
-    /*
-     * Get all the "extra" characters that can be used in unquoted
-     * identifier names (those beyond a-zA-Z0-9 and _)
+    /**
+     * {@inheritDoc}
      *
      * <p>Postgresql allows any high-bit character to be used
      * in an unquoted identifer, so we can't possibly list them all.
@@ -535,59 +400,29 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return "";
     }
 
-    /*
-     * Is "ALTER TABLE" with an add column supported?
-     * Yes for PostgreSQL 6.1
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
+    /**
+     * {@inheritDoc}
+     * @return true if connected to PostgreSQL 6.1+
      */
     public boolean supportsAlterTableWithAddColumn() throws SQLException
     {
         return true;
     }
 
-    /*
-     * Is "ALTER TABLE" with a drop column supported?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
+    /**
+     * {@inheritDoc}
+     * @return true if connected to PostgreSQL 7.3+
      */
     public boolean supportsAlterTableWithDropColumn() throws SQLException
     {
         return connection.haveMinimumServerVersion(ServerVersion.v7_3);
     }
 
-    /*
-     * Is column aliasing supported?
-     *
-     * <p>If so, the SQL AS clause can be used to provide names for
-     * computed columns or to provide alias names for columns as
-     * required.  A JDBC Compliant driver always returns true.
-     *
-     * <p>e.g.
-     *
-     * <br><pre>
-     * select count(C) as C_COUNT from T group by C;
-     *
-     * </pre><br>
-     * should return a column named as C_COUNT instead of count(C)
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
-     */
     public boolean supportsColumnAliasing() throws SQLException
     {
         return true;
     }
 
-    /*
-     * Are concatenations between NULL and non-NULL values NULL?  A
-     * JDBC Compliant driver always returns true
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
-     */
     public boolean nullPlusNonNullIsNull() throws SQLException
     {
         return true;
@@ -603,71 +438,38 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return false;
     }
 
-    /*
-     * Are table correlation names supported? A JDBC Compliant
-     * driver always returns true.
-     *
-     * @return true if so; false otherwise
-     * @exception SQLException - if a database access error occurs
-     */
     public boolean supportsTableCorrelationNames() throws SQLException
     {
         return true;
     }
 
-    /*
-     * If table correlation names are supported, are they restricted to
-     * be different from the names of the tables?
-     *
-     * @return true if so; false otherwise
-     * @exception SQLException - if a database access error occurs
-     */
     public boolean supportsDifferentTableCorrelationNames() throws SQLException
     {
         return false;
     }
 
-    /*
-     * Are expressions in "ORDER BY" lists supported?
-     *
-     * <br>e.g. select * from t order by a + b;
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
-     */
     public boolean supportsExpressionsInOrderBy() throws SQLException
     {
         return true;
     }
 
-    /*
-     * Can an "ORDER BY" clause use columns not in the SELECT?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
+    /**
+     * {@inheritDoc}
+     * @return true if connected to PostgreSQL 6.4+
      */
     public boolean supportsOrderByUnrelated() throws SQLException
     {
         return connection.haveMinimumServerVersion(ServerVersion.v6_4);
     }
 
-    /*
-     * Is some form of "GROUP BY" clause supported?
-     * I checked it, and yes it is.
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
-     */
     public boolean supportsGroupBy() throws SQLException
     {
         return true;
     }
 
-    /*
-     * Can a "GROUP BY" clause use columns not in the SELECT?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
+    /**
+     * {@inheritDoc}
+     * @return true if connected to PostgreSQL 6.4+
      */
     public boolean supportsGroupByUnrelated() throws SQLException
     {
@@ -675,14 +477,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData
     }
 
     /*
-     * Can a "GROUP BY" clause add columns not in the SELECT provided
-     * it specifies all the columns in the SELECT? Does anyone actually
-     * understand what they mean here?
-     *
-     * (I think this is a subset of the previous function. -- petere)
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
+     * {@inheritDoc}
+     * @return true if connected to PostgreSQL 6.4+
      */
     public boolean supportsGroupByBeyondSelect() throws SQLException
     {
@@ -690,78 +486,51 @@ public class PgDatabaseMetaData implements DatabaseMetaData
     }
 
     /*
-     * Is the escape character in "LIKE" clauses supported?  A
-     * JDBC compliant driver always returns true.
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
+     * {@inheritDoc}
+     * @return true if connected to PostgreSQL 7.1+
      */
     public boolean supportsLikeEscapeClause() throws SQLException
     {
         return connection.haveMinimumServerVersion(ServerVersion.v7_1);
     }
 
-    /*
-     * Are multiple ResultSets from a single execute supported?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
-     */
     public boolean supportsMultipleResultSets() throws SQLException
     {
         return true;
     }
 
-    /*
-     * Can we have multiple transactions open at once (on different
-     * connections?)
-     * I guess we can have, since Im relying on it.
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
-     */
     public boolean supportsMultipleTransactions() throws SQLException
     {
         return true;
     }
 
-    /*
-     * Can columns be defined as non-nullable. A JDBC Compliant driver
-     * always returns true.
-     *
-     * <p>This changed from false to true in v6.2 of the driver, as this
-     * support was added to the backend.
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
-     */
     public boolean supportsNonNullableColumns() throws SQLException
     {
         return true;
     }
 
-    /*
-     * Does this driver support the minimum ODBC SQL grammar.  This
-     * grammar is defined at:
+    /**
+     * {@inheritDoc}
+     * 
+     * This grammar is defined at:
      *
      * <p><a href="http://www.microsoft.com/msdn/sdk/platforms/doc/odbc/src/intropr.htm">http://www.microsoft.com/msdn/sdk/platforms/doc/odbc/src/intropr.htm</a>
      *
      * <p>In Appendix C.  From this description, we seem to support the
      * ODBC minimal (Level 0) grammar.
      *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
+     * @return true
      */
     public boolean supportsMinimumSQLGrammar() throws SQLException
     {
         return true;
     }
 
-    /*
+    /**
      * Does this driver support the Core ODBC SQL grammar. We need
      * SQL-92 conformance for this.
      *
-     * @return true if so
+     * @return false
      * @exception SQLException if a database access error occurs
      */
     public boolean supportsCoreSQLGrammar() throws SQLException
@@ -769,12 +538,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return false;
     }
 
-    /*
+    /**
      * Does this driver support the Extended (Level 2) ODBC SQL
      * grammar.  We don't conform to the Core (Level 1), so we can't
      * conform to the Extended SQL Grammar.
      *
-     * @return true if so
+     * @return false
      * @exception SQLException if a database access error occurs
      */
     public boolean supportsExtendedSQLGrammar() throws SQLException
@@ -782,7 +551,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return false;
     }
 
-    /*
+    /**
      * Does this driver support the ANSI-92 entry level SQL grammar?
      * All JDBC Compliant drivers must return true. We currently
      * report false until 'schema' support is added.  Then this
@@ -791,7 +560,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData
      * And since this is a requirement for all JDBC drivers we
      * need to get to the point where we can return true.
      *
-     * @return true if so
+     * @return true if connected to PostgreSQL 7.3+
      * @exception SQLException if a database access error occurs
      */
     public boolean supportsANSI92EntryLevelSQL() throws SQLException
@@ -799,23 +568,18 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return connection.haveMinimumServerVersion(ServerVersion.v7_3);
     }
 
-    /*
-     * Does this driver support the ANSI-92 intermediate level SQL
-     * grammar?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
+    /**
+     * {@inheritDoc}
+     * @return false
      */
     public boolean supportsANSI92IntermediateSQL() throws SQLException
     {
         return false;
     }
 
-    /*
-     * Does this driver support the ANSI-92 full SQL grammar?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
+    /**
+     * {@inheritDoc}
+     * @return false
      */
     public boolean supportsANSI92FullSQL() throws SQLException
     {
@@ -826,7 +590,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData
      * Is the SQL Integrity Enhancement Facility supported?
      * Our best guess is that this means support for constraints
      *
-     * @return true if so
+     * @return true
      * @exception SQLException if a database access error occurs
      */
     public boolean supportsIntegrityEnhancementFacility() throws SQLException
@@ -834,213 +598,148 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return true;
     }
 
-    /*
-     * Is some form of outer join supported?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
+    /**
+     * {@inheritDoc}
+     * @return true if connected to PostgreSQL 7.1+
      */
     public boolean supportsOuterJoins() throws SQLException
     {
         return connection.haveMinimumServerVersion(ServerVersion.v7_1);
     }
 
-    /*
-     * Are full nexted outer joins supported?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
+    /**
+     * {@inheritDoc}
+     * @return true if connected to PostgreSQL 7.1+
      */
     public boolean supportsFullOuterJoins() throws SQLException
     {
         return connection.haveMinimumServerVersion(ServerVersion.v7_1);
     }
 
-    /*
-     * Is there limited support for outer joins?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
+    /**
+     * {@inheritDoc}
+     * @return true if connected to PostgreSQL 7.1+
      */
     public boolean supportsLimitedOuterJoins() throws SQLException
     {
         return connection.haveMinimumServerVersion(ServerVersion.v7_1);
     }
 
-    /*
-     * What is the database vendor's preferred term for "schema"?
-     * PostgreSQL doesn't have schemas, but when it does, we'll use the
+    /**
+     * {@inheritDoc}
+     * <p>PostgreSQL doesn't have schemas, but when it does, we'll use the
      * term "schema".
      *
-     * @return the vendor term
-     * @exception SQLException if a database access error occurs
+     * @return {@code "schema"}
      */
     public String getSchemaTerm() throws SQLException
     {
         return "schema";
     }
 
-    /*
-     * What is the database vendor's preferred term for "procedure"?
-     * Traditionally, "function" has been used.
-     *
-     * @return the vendor term
-     * @exception SQLException if a database access error occurs
+    /**
+     * {@inheritDoc}
+     * @return {@code "function"}
      */
     public String getProcedureTerm() throws SQLException
     {
         return "function";
     }
 
-    /*
-     * What is the database vendor's preferred term for "catalog"?
-     *
-     * @return the vendor term
-     * @exception SQLException if a database access error occurs
+    /**
+     * {@inheritDoc}
+     * @return {@code "database"}
      */
     public String getCatalogTerm() throws SQLException
     {
         return "database";
     }
 
-    /*
-     * Does a catalog appear at the start of a qualified table name?
-     * (Otherwise it appears at the end).
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
-     */
     public boolean isCatalogAtStart() throws SQLException
     {
         return true;
     }
 
-    /*
-     * What is the Catalog separator.
-     *
-     * @return the catalog separator string
-     * @exception SQLException if a database access error occurs
-     */
     public String getCatalogSeparator() throws SQLException
     {
         return ".";
     }
 
-    /*
-     * Can a schema name be used in a data manipulation statement?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
+    /**
+     * {@inheritDoc}
+     * @return true if connected to PostgreSQL 7.3+
      */
     public boolean supportsSchemasInDataManipulation() throws SQLException
     {
         return connection.haveMinimumServerVersion(ServerVersion.v7_3);
     }
 
-    /*
-     * Can a schema name be used in a procedure call statement?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
+    /**
+     * {@inheritDoc}
+     * @return true if connected to PostgreSQL 7.3+
      */
     public boolean supportsSchemasInProcedureCalls() throws SQLException
     {
         return connection.haveMinimumServerVersion(ServerVersion.v7_3);
     }
 
-    /*
-     * Can a schema be used in a table definition statement?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
+    /**
+     * {@inheritDoc}
+     * @return true if connected to PostgreSQL 7.3+
      */
     public boolean supportsSchemasInTableDefinitions() throws SQLException
     {
         return connection.haveMinimumServerVersion(ServerVersion.v7_3);
     }
 
-    /*
-     * Can a schema name be used in an index definition statement?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
+    /**
+     * {@inheritDoc}
+     * @return true if connected to PostgreSQL 7.3+
      */
     public boolean supportsSchemasInIndexDefinitions() throws SQLException
     {
         return connection.haveMinimumServerVersion(ServerVersion.v7_3);
     }
 
-    /*
-     * Can a schema name be used in a privilege definition statement?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
+    /**
+     * {@inheritDoc}
+     * @return true if connected to PostgreSQL 7.3+
      */
     public boolean supportsSchemasInPrivilegeDefinitions() throws SQLException
     {
         return connection.haveMinimumServerVersion(ServerVersion.v7_3);
     }
 
-    /*
-     * Can a catalog name be used in a data manipulation statement?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
-     */
     public boolean supportsCatalogsInDataManipulation() throws SQLException
     {
         return false;
     }
 
-    /*
-     * Can a catalog name be used in a procedure call statement?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
-     */
     public boolean supportsCatalogsInProcedureCalls() throws SQLException
     {
         return false;
     }
 
-    /*
-     * Can a catalog name be used in a table definition statement?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
-     */
     public boolean supportsCatalogsInTableDefinitions() throws SQLException
     {
         return false;
     }
 
-    /*
-     * Can a catalog name be used in an index definition?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
-     */
     public boolean supportsCatalogsInIndexDefinitions() throws SQLException
     {
         return false;
     }
 
-    /*
-     * Can a catalog name be used in a privilege definition statement?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
-     */
     public boolean supportsCatalogsInPrivilegeDefinitions() throws SQLException
     {
         return false;
     }
 
-    /*
+    /**
      * We support cursors for gets only it seems.  I dont see a method
      * to get a positioned delete.
      *
-     * @return true if so
+     * @return false
      * @exception SQLException if a database access error occurs
      */
     public boolean supportsPositionedDelete() throws SQLException
@@ -1048,256 +747,151 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return false;   // For now...
     }
 
-    /*
-     * Is positioned UPDATE supported?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
-     */
     public boolean supportsPositionedUpdate() throws SQLException
     {
         return false;   // For now...
     }
 
-    /*
-     * Is SELECT for UPDATE supported?
-     *
-     * @return true if so; false otherwise
-     * @exception SQLException - if a database access error occurs
+    /**
+     * {@inheritDoc}
+     * @return true if connected to PostgreSQL 6.5+
      */
     public boolean supportsSelectForUpdate() throws SQLException
     {
         return connection.haveMinimumServerVersion(ServerVersion.v6_5);
     }
 
-    /*
-     * Are stored procedure calls using the stored procedure escape
-     * syntax supported?
-     *
-     * @return true if so; false otherwise
-     * @exception SQLException - if a database access error occurs
-     */
     public boolean supportsStoredProcedures() throws SQLException
     {
         return true;
     }
 
-    /*
-     * Are subqueries in comparison expressions supported? A JDBC
-     * Compliant driver always returns true.
-     *
-     * @return true if so; false otherwise
-     * @exception SQLException - if a database access error occurs
-     */
     public boolean supportsSubqueriesInComparisons() throws SQLException
     {
         return true;
     }
 
-    /*
-     * Are subqueries in 'exists' expressions supported? A JDBC
-     * Compliant driver always returns true.
-     *
-     * @return true if so; false otherwise
-     * @exception SQLException - if a database access error occurs
-     */
     public boolean supportsSubqueriesInExists() throws SQLException
     {
         return true;
     }
 
-    /*
-     * Are subqueries in 'in' statements supported? A JDBC
-     * Compliant driver always returns true.
-     *
-     * @return true if so; false otherwise
-     * @exception SQLException - if a database access error occurs
-     */
     public boolean supportsSubqueriesInIns() throws SQLException
     {
         return true;
     }
 
-    /*
-     * Are subqueries in quantified expressions supported? A JDBC
-     * Compliant driver always returns true.
-     *
-     * (No idea what this is, but we support a good deal of
-     * subquerying.)
-     *
-     * @return true if so; false otherwise
-     * @exception SQLException - if a database access error occurs
-     */
     public boolean supportsSubqueriesInQuantifieds() throws SQLException
     {
         return true;
     }
 
-    /*
-     * Are correlated subqueries supported? A JDBC Compliant driver
-     * always returns true.
-     *
-     * (a.k.a. subselect in from?)
-     *
-     * @return true if so; false otherwise
-     * @exception SQLException - if a database access error occurs
+    /**
+     * {@inheritDoc}
+     * @return true if connected to PostgreSQL 7.1+
      */
     public boolean supportsCorrelatedSubqueries() throws SQLException
     {
         return connection.haveMinimumServerVersion(ServerVersion.v7_1);
     }
 
-    /*
-     * Is SQL UNION supported?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
+    /**
+     * {@inheritDoc}
+     * @return true if connected to PostgreSQL 6.3+
      */
     public boolean supportsUnion() throws SQLException
     {
         return true; // since 6.3
     }
 
-    /*
-     * Is SQL UNION ALL supported?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
+    /**
+     * {@inheritDoc}
+     * @return true if connected to PostgreSQL 7.1+
      */
     public boolean supportsUnionAll() throws SQLException
     {
         return connection.haveMinimumServerVersion(ServerVersion.v7_1);
     }
 
-    /*
+    /**
+     * {@inheritDoc}
      * In PostgreSQL, Cursors are only open within transactions.
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
      */
     public boolean supportsOpenCursorsAcrossCommit() throws SQLException
     {
         return false;
     }
 
-    /*
-     * Do we support open cursors across multiple transactions?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
-     */
     public boolean supportsOpenCursorsAcrossRollback() throws SQLException
     {
         return false;
     }
 
-    /*
-     * Can statements remain open across commits?  They may, but
+    /**
+     * {@inheritDoc}
+     * <p>Can statements remain open across commits?  They may, but
      * this driver cannot guarentee that.  In further reflection.
      * we are talking a Statement object here, so the answer is
      * yes, since the Statement is only a vehicle to ExecSQL()
-     *
-     * @return true if they always remain open; false otherwise
-     * @exception SQLException if a database access error occurs
+     * 
+     * @return true
      */
     public boolean supportsOpenStatementsAcrossCommit() throws SQLException
     {
         return true;
     }
 
-    /*
-     * Can statements remain open across rollbacks?  They may, but
+    /**
+     * {@inheritDoc}
+     * <p>Can statements remain open across rollbacks?  They may, but
      * this driver cannot guarentee that.  In further contemplation,
      * we are talking a Statement object here, so the answer is yes,
      * since the Statement is only a vehicle to ExecSQL() in Connection
      *
-     * @return true if they always remain open; false otherwise
-     * @exception SQLException if a database access error occurs
+     * @return true
      */
     public boolean supportsOpenStatementsAcrossRollback() throws SQLException
     {
         return true;
     }
 
-    /*
-     * How many hex characters can you have in an inline binary literal
-     *
-     * @return the max literal length
-     * @exception SQLException if a database access error occurs
-     */
-    public int getMaxBinaryLiteralLength() throws SQLException
-    {
-        return 0; // no limit
-    }
-
-    /*
-     * What is the maximum length for a character literal
-     * I suppose it is 8190 (8192 - 2 for the quotes)
-     *
-     * @return the max literal length
-     * @exception SQLException if a database access error occurs
-     */
     public int getMaxCharLiteralLength() throws SQLException
     {
         return 0; // no limit
     }
 
-    /*
-     * Whats the limit on column name length.
-     *
-     * @return the maximum column name length
-     * @exception SQLException if a database access error occurs
-     */
+    public int getMaxBinaryLiteralLength() throws SQLException
+    {
+        return 0; // no limit
+    }
+
     public int getMaxColumnNameLength() throws SQLException
     {
         return getMaxNameLength();
     }
 
-    /*
-     * What is the maximum number of columns in a "GROUP BY" clause?
-     *
-     * @return the max number of columns
-     * @exception SQLException if a database access error occurs
-     */
     public int getMaxColumnsInGroupBy() throws SQLException
     {
         return 0; // no limit
     }
 
-    /*
-     * What's the maximum number of columns allowed in an index?
-     *
-     * @return max number of columns
-     * @exception SQLException if a database access error occurs
-     */
     public int getMaxColumnsInIndex() throws SQLException
     {
         return getMaxIndexKeys();
     }
 
-    /*
-     * What's the maximum number of columns in an "ORDER BY clause?
-     *
-     * @return the max columns
-     * @exception SQLException if a database access error occurs
-     */
     public int getMaxColumnsInOrderBy() throws SQLException
     {
         return 0; // no limit
     }
 
-    /*
-     * What is the maximum number of columns in a "SELECT" list?
-     *
-     * @return the max columns
-     * @exception SQLException if a database access error occurs
-     */
     public int getMaxColumnsInSelect() throws SQLException
     {
         return 0; // no limit
     }
 
-    /*
+    /**
+     * {@inheritDoc}
      * What is the maximum number of columns in a table? From the
      * CREATE TABLE reference page...
      *
@@ -1314,7 +908,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return 1600;
     }
 
-    /*
+    /**
+     * {@inheritDoc}
      * How many active connection can we have at a time to this
      * database?  Well, since it depends on postmaster, which just
      * does a listen() followed by an accept() and fork(), its
@@ -1331,26 +926,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return 8192;
     }
 
-    /*
-     * What is the maximum cursor name length
-     *
-     * @return max cursor name length in bytes
-     * @exception SQLException if a database access error occurs
-     */
     public int getMaxCursorNameLength() throws SQLException
     {
         return getMaxNameLength();
     }
 
-    /*
-     * Retrieves the maximum number of bytes for an index, including all
-     * of the parts of the index.
-     *
-     * @return max index length in bytes, which includes the composite
-     * of all the constituent parts of the index; a result of zero means
-     * that there is no limit or the limit is not known
-     * @exception SQLException if a database access error occurs
-     */
     public int getMaxIndexLength() throws SQLException
     {
         return 0; // no limit (larger than an int anyway)
@@ -1361,12 +941,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return getMaxNameLength();
     }
 
-    /*
-     * What is the maximum length of a procedure name
-     *
-     * @return the max name length in bytes
-     * @exception SQLException if a database access error occurs
-     */
     public int getMaxProcedureNameLength() throws SQLException
     {
         return getMaxNameLength();
@@ -1377,12 +951,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return getMaxNameLength();
     }
 
-    /*
-     * What is the maximum length of a single row?
-     *
-     * @return max row size in bytes
-     * @exception SQLException if a database access error occurs
-     */
     public int getMaxRowSize() throws SQLException
     {
         if (connection.haveMinimumServerVersion(ServerVersion.v7_1))
@@ -1391,24 +959,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData
             return 8192;  // XXX could be altered
     }
 
-    /*
-     * Did getMaxRowSize() include LONGVARCHAR and LONGVARBINARY
-     * blobs?  We don't handle blobs yet
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
-     */
     public boolean doesMaxRowSizeIncludeBlobs() throws SQLException
     {
         return false;
     }
 
-    /*
-     * What is the maximum length of a SQL statement?
-     *
-     * @return max length in bytes
-     * @exception SQLException if a database access error occurs
-     */
     public int getMaxStatementLength() throws SQLException
     {
         if (connection.haveMinimumServerVersion(ServerVersion.v7_0))
@@ -1417,88 +972,41 @@ public class PgDatabaseMetaData implements DatabaseMetaData
             return 16384;
     }
 
-    /*
-     * How many active statements can we have open at one time to
-     * this database? We're only limited by Java heap space really.
-     *
-     * @return the maximum
-     * @exception SQLException if a database access error occurs
-     */
     public int getMaxStatements() throws SQLException
     {
         return 0;
     }
 
-    /*
-     * What is the maximum length of a table name
-     *
-     * @return max name length in bytes
-     * @exception SQLException if a database access error occurs
-     */
     public int getMaxTableNameLength() throws SQLException
     {
         return getMaxNameLength();
     }
 
-    /*
-     * What is the maximum number of tables that can be specified
-     * in a SELECT?
-     *
-     * @return the maximum
-     * @exception SQLException if a database access error occurs
-     */
     public int getMaxTablesInSelect() throws SQLException
     {
         return 0; // no limit
     }
 
-    /*
-     * What is the maximum length of a user name
-     *
-     * @return the max name length in bytes
-     * @exception SQLException if a database access error occurs
-     */
     public int getMaxUserNameLength() throws SQLException
     {
         return getMaxNameLength();
     }
 
-
-    /*
-     * What is the database's default transaction isolation level?
-     *
-     * @return the default isolation level
-     * @exception SQLException if a database access error occurs
-     * @see Connection
-     */
     public int getDefaultTransactionIsolation() throws SQLException
     {
         return Connection.TRANSACTION_READ_COMMITTED;
     }
 
-    /*
-     * Are transactions supported? If not, commit and rollback are noops
-     * and the isolation level is TRANSACTION_NONE.  We do support
-     * transactions.
-     *
-     * @return true if transactions are supported
-     * @exception SQLException if a database access error occurs
-     */
     public boolean supportsTransactions() throws SQLException
     {
         return true;
     }
 
-    /*
-     * Does the database support the given transaction isolation level?
-     * We only support TRANSACTION_SERIALIZABLE and TRANSACTION_READ_COMMITTED
+    /**
+     * {@inheritDoc}
+     * <p>We only support TRANSACTION_SERIALIZABLE and TRANSACTION_READ_COMMITTED
      * before 8.0; from 8.0 READ_UNCOMMITTED and REPEATABLE_READ are accepted aliases
      * for READ_COMMITTED.
-     *
-     * @param level the values are defined in java.sql.Connection
-     * @return true if so
-     * @exception SQLException if a database access error occurs
-     * @see Connection
      */
     public boolean supportsTransactionIsolationLevel(int level) throws SQLException
     {
@@ -1511,35 +1019,21 @@ public class PgDatabaseMetaData implements DatabaseMetaData
             return false;
     }
 
-    /*
-     * Are both data definition and data manipulation transactions
-     * supported?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
-     */
     public boolean supportsDataDefinitionAndDataManipulationTransactions() throws SQLException
     {
         return true;
     }
 
-    /*
-     * Are only data manipulation statements withing a transaction
-     * supported?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
-     */
     public boolean supportsDataManipulationTransactionsOnly() throws SQLException
     {
         return false;
     }
 
-    /*
+    /**
      * Does a data definition statement within a transaction force
-     * the transaction to commit?  I think this means something like:
+     * the transaction to commit?  It seems to mean something like:
      *
-     * <p><pre>
+     * <pre>
      * CREATE TABLE T (A INT);
      * INSERT INTO T (A) VALUES (2);
      * BEGIN;
@@ -1547,7 +1041,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData
      * CREATE TABLE X (A INT);
      * SELECT A FROM T INTO X;
      * COMMIT;
-     * </pre><p>
+     * </pre>
      *
      * does the CREATE TABLE call cause a commit?  The answer is no.
      *
@@ -1559,12 +1053,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return false;
     }
 
-    /*
-     * Is a data definition statement within a transaction ignored?
-     *
-     * @return true if so
-     * @exception SQLException if a database access error occurs
-     */
     public boolean dataDefinitionIgnoredInTransactions() throws SQLException
     {
         return false;
@@ -1590,38 +1078,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return sb.toString();
     }
 
-    /*
-     * Get a description of stored procedures available in a catalog
-     *
-     * <p>Only procedure descriptions matching the schema and procedure
-     * name criteria are returned. They are ordered by PROCEDURE_SCHEM
-     * and PROCEDURE_NAME
-     *
-     * <p>Each procedure description has the following columns:
-     * <ol>
-     * <li><b>PROCEDURE_CAT</b> String => procedure catalog (may be null)
-     * <li><b>PROCEDURE_SCHEM</b> String => procedure schema (may be null)
-     * <li><b>PROCEDURE_NAME</b> String => procedure name
-     * <li><b>Field 4</b> reserved (make it null)
-     * <li><b>Field 5</b> reserved (make it null)
-     * <li><b>Field 6</b> reserved (make it null)
-     * <li><b>REMARKS</b> String => explanatory comment on the procedure
-     * <li><b>PROCEDURE_TYPE</b> short => kind of procedure
-     * <ul>
-     *   <li> procedureResultUnknown - May return a result
-     * <li> procedureNoResult - Does not return a result
-     * <li> procedureReturnsResult - Returns a result
-     *   </ul>
-     * </ol>
-     *
-     * @param catalog - a catalog name; "" retrieves those without a
-     * catalog; null means drop catalog name from criteria
-     * @param schemaParrern - a schema name pattern; "" retrieves those
-     * without a schema - we ignore this parameter
-     * @param procedureNamePattern - a procedure name pattern
-     * @return ResultSet - each row is a procedure description
-     * @exception SQLException if a database access error occurs
-     */
     public java.sql.ResultSet getProcedures(String catalog, String schemaPattern, String procedureNamePattern) throws SQLException
     {
         return getProcedures(getJDBCMajorVersion(), catalog, schemaPattern, procedureNamePattern);
@@ -1685,52 +1141,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return createMetaDataStatement().executeQuery(sql);
     }
 
-    /*
-     * Get a description of a catalog's stored procedure parameters
-     * and result columns.
-     *
-     * <p>Only descriptions matching the schema, procedure and parameter
-     * name criteria are returned. They are ordered by PROCEDURE_SCHEM
-     * and PROCEDURE_NAME. Within this, the return value, if any, is
-     * first. Next are the parameter descriptions in call order. The
-     * column descriptions follow in column number order.
-     *
-     * <p>Each row in the ResultSet is a parameter description or column
-     * description with the following fields:
-     * <ol>
-     * <li><b>PROCEDURE_CAT</b> String => procedure catalog (may be null)
-     * <li><b>PROCEDURE_SCHE</b>M String => procedure schema (may be null)
-     * <li><b>PROCEDURE_NAME</b> String => procedure name
-     * <li><b>COLUMN_NAME</b> String => column/parameter name
-     * <li><b>COLUMN_TYPE</b> Short => kind of column/parameter:
-     * <ul><li>procedureColumnUnknown - nobody knows
-     * <li>procedureColumnIn - IN parameter
-     * <li>procedureColumnInOut - INOUT parameter
-     * <li>procedureColumnOut - OUT parameter
-     * <li>procedureColumnReturn - procedure return value
-     * <li>procedureColumnResult - result column in ResultSet
-     * </ul>
-     * <li><b>DATA_TYPE</b> short => SQL type from java.sql.Types
-     * <li><b>TYPE_NAME</b> String => Data source specific type name
-     * <li><b>PRECISION</b> int => precision
-     * <li><b>LENGTH</b> int => length in bytes of data
-     * <li><b>SCALE</b> short => scale
-     * <li><b>RADIX</b> short => radix
-     * <li><b>NULLABLE</b> short => can it contain NULL?
-     * <ul><li>procedureNoNulls - does not allow NULL values
-     * <li>procedureNullable - allows NULL values
-     * <li>procedureNullableUnknown - nullability unknown
-     * <li><b>REMARKS</b> String => comment describing parameter/column
-     * </ol>
-     * @param catalog This is ignored in org.postgresql, advise this is set to null
-     * @param schemaPattern
-     * @param procedureNamePattern a procedure name pattern
-     * @param columnNamePattern a column name pattern, this is currently ignored because postgresql does not name procedure parameters.
-     * @return each row is a stored procedure parameter or column description
-     * @exception SQLException if a database-access error occurs
-     * @see #getSearchStringEscape
-     */ 
-    // Implementation note: This is required for Borland's JBuilder to work
     public java.sql.ResultSet getProcedureColumns(String catalog, String schemaPattern, String procedureNamePattern, String columnNamePattern) throws SQLException
     {
         return getProcedureColumns(getJDBCMajorVersion(), catalog, schemaPattern, procedureNamePattern, columnNamePattern);
@@ -1970,41 +1380,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return (ResultSet)((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, v);
     }
 
-    /*
-     * Get a description of tables available in a catalog.
-     *
-     * <p>Only table descriptions matching the catalog, schema, table
-     * name and type criteria are returned. They are ordered by
-     * TABLE_TYPE, TABLE_SCHEM and TABLE_NAME.
-     *
-     * <p>Each table description has the following columns:
-     *
-     * <ol>
-     * <li><b>TABLE_CAT</b> String => table catalog (may be null)
-     * <li><b>TABLE_SCHEM</b> String => table schema (may be null)
-     * <li><b>TABLE_NAME</b> String => table name
-     * <li><b>TABLE_TYPE</b> String => table type. Typical types are "TABLE",
-     * "VIEW", "SYSTEM TABLE", "GLOBAL TEMPORARY", "LOCAL
-     * TEMPORARY", "ALIAS", "SYNONYM".
-     * <li><b>REMARKS</b> String => explanatory comment on the table
-     * </ol>
-     *
-     * <p>The valid values for the types parameter are:
-     * "TABLE", "INDEX", "SEQUENCE", "VIEW", "TYPE"
-     * "SYSTEM TABLE", "SYSTEM INDEX", "SYSTEM VIEW",
-     * "SYSTEM TOAST TABLE", "SYSTEM TOAST INDEX",
-     * "TEMPORARY TABLE", "TEMPORARY VIEW", "TEMPORARY INDEX",
-     * "TEMPORARY SEQUENCE", "FOREIGN TABLE".
-     *
-     * @param catalog a catalog name; For org.postgresql, this is ignored, and
-     * should be set to null
-     * @param schemaPattern a schema name pattern
-     * @param tableNamePattern a table name pattern. For all tables this should be "%"
-     * @param types a list of table types to include; null returns
-     * all types
-     * @return each row is a table description
-     * @exception SQLException if a database-access error occurs.
-     */
     public java.sql.ResultSet getTables(String catalog, String schemaPattern, String tableNamePattern, String types[]) throws SQLException
     {
         String select;
@@ -2211,18 +1586,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         ht.put("NOSCHEMAS", "c.relkind = 'm'");
     }
 
-    /*
-     * Get the schema names available in this database.  The results
-     * are ordered by schema name.
-     *
-     * <P>The schema column is:
-     * <OL>
-     * <LI><B>TABLE_SCHEM</B> String => schema name
-     * </OL>
-     *
-     * @return ResultSet each row has a single String column that is a
-     * schema name
-     */
     public java.sql.ResultSet getSchemas() throws SQLException
     {
         return getSchemas(getJDBCMajorVersion(), null, null);
@@ -2265,21 +1628,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return createMetaDataStatement().executeQuery(sql);
     }
 
-    /*
-     * Get the catalog names available in this database.  The results
-     * are ordered by catalog name.
-     *
-     * Postgresql does not support multiple catalogs from a single
+    /**
+     * PostgreSQL does not support multiple catalogs from a single
      * connection, so to reduce confusion we only return the current
      * catalog.
-     *
-     * <P>The catalog column is:
-     * <OL>
-     * <LI><B>TABLE_CAT</B> String => catalog name
-     * </OL>
-     *
-     * @return ResultSet each row has a single String column that is a
-     * catalog name
+     * {@inheritDoc}
      */
     public java.sql.ResultSet getCatalogs() throws SQLException
     {
@@ -2293,20 +1646,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, v);
     }
 
-    /*
-     * Get the table types available in this database. The results
-     * are ordered by table type.
-     *
-     * <P>The table type is:
-     * <OL>
-     * <LI><B>TABLE_TYPE</B> String => table type.  Typical types are "TABLE",
-     *   "VIEW", "SYSTEM TABLE", "GLOBAL TEMPORARY",
-     *   "LOCAL TEMPORARY", "ALIAS", "SYNONYM".
-     * </OL>
-     *
-     * @return ResultSet each row has a single String column that is a
-     * table type
-     */
     public java.sql.ResultSet getTableTypes() throws SQLException
     {
         String types[] = new String[tableTypeClauses.size()];
@@ -2558,86 +1897,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, v);
     }
 
-    /*
-     * Get a description of table columns available in a catalog.
-     *
-     * <P>Only column descriptions matching the catalog, schema, table
-     * and column name criteria are returned.  They are ordered by
-     * TABLE_SCHEM, TABLE_NAME and ORDINAL_POSITION.
-     *
-     * <P>Each column description has the following columns:
-     * <OL>
-     * <LI><B>TABLE_CAT</B> String => table catalog (may be null)
-     * <LI><B>TABLE_SCHEM</B> String => table schema (may be null)
-     * <LI><B>TABLE_NAME</B> String => table name
-     * <LI><B>COLUMN_NAME</B> String => column name
-     * <LI><B>DATA_TYPE</B> short => SQL type from java.sql.Types
-     * <LI><B>TYPE_NAME</B> String => Data source dependent type name
-     * <LI><B>COLUMN_SIZE</B> int => column size. For char or date
-     *  types this is the maximum number of characters, for numeric or
-     *  decimal types this is precision.
-     * <LI><B>BUFFER_LENGTH</B> is not used.
-     * <LI><B>DECIMAL_DIGITS</B> int => the number of fractional digits
-     * <LI><B>NUM_PREC_RADIX</B> int => Radix (typically either 10 or 2)
-     * <LI><B>NULLABLE</B> int => is NULL allowed?
-     *  <UL>
-     *  <LI> columnNoNulls - might not allow NULL values
-     *  <LI> columnNullable - definitely allows NULL values
-     *  <LI> columnNullableUnknown - nullability unknown
-     *  </UL>
-     * <LI><B>REMARKS</B> String => comment describing column (may be null)
-     * <LI><B>COLUMN_DEF</B> String => default value (may be null)
-     * <LI><B>SQL_DATA_TYPE</B> int => unused
-     * <LI><B>SQL_DATETIME_SUB</B> int => unused
-     * <LI><B>CHAR_OCTET_LENGTH</B> int => for char types the
-     *   maximum number of bytes in the column
-     * <LI><B>ORDINAL_POSITION</B> int => index of column in table
-     *  (starting at 1)
-     * <LI><B>IS_NULLABLE</B> String => "NO" means column definitely
-     *  does not allow NULL values; "YES" means the column might
-     *  allow NULL values. An empty string means nobody knows.
-     * </OL>
-     *
-     * @param catalog a catalog name; "" retrieves those without a catalog
-     * @param schemaPattern a schema name pattern; "" retrieves those
-     * without a schema
-     * @param tableNamePattern a table name pattern
-     * @param columnNamePattern a column name pattern
-     * @return ResultSet each row is a column description
-     * @see #getSearchStringEscape
-     */
     public java.sql.ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException
     {
         return getColumns(getJDBCMajorVersion(), catalog, schemaPattern, tableNamePattern, columnNamePattern);
     }
 
-    /*
-     * Get a description of the access rights for a table's columns.
-     *
-     * <P>Only privileges matching the column name criteria are
-     * returned.  They are ordered by COLUMN_NAME and PRIVILEGE.
-     *
-     * <P>Each privilige description has the following columns:
-     * <OL>
-     * <LI><B>TABLE_CAT</B> String => table catalog (may be null)
-     * <LI><B>TABLE_SCHEM</B> String => table schema (may be null)
-     * <LI><B>TABLE_NAME</B> String => table name
-     * <LI><B>COLUMN_NAME</B> String => column name
-     * <LI><B>GRANTOR</B> => grantor of access (may be null)
-     * <LI><B>GRANTEE</B> String => grantee of access
-     * <LI><B>PRIVILEGE</B> String => name of access (SELECT,
-     *  INSERT, UPDATE, REFRENCES, ...)
-     * <LI><B>IS_GRANTABLE</B> String => "YES" if grantee is permitted
-     *  to grant to others; "NO" if not; null if unknown
-     * </OL>
-     *
-     * @param catalog a catalog name; "" retrieves those without a catalog
-     * @param schema a schema name; "" retrieves those without a schema
-     * @param table a table name
-     * @param columnNamePattern a column name pattern
-     * @return ResultSet each row is a column privilege description
-     * @see #getSearchStringEscape
-     */
     public java.sql.ResultSet getColumnPrivileges(String catalog, String schema, String table, String columnNamePattern) throws SQLException
     {
         Field f[] = new Field[8];
@@ -2767,36 +2031,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, v);
     }
 
-    /*
-    * Get a description of the access rights for each table available
-    * in a catalog.
-    *
-    * This method is currently unimplemented.
-    *
-    * <P>Only privileges matching the schema and table name
-    * criteria are returned.  They are ordered by TABLE_SCHEM,
-    * TABLE_NAME, and PRIVILEGE.
-    *
-    * <P>Each privilege description has the following columns:
-    * <OL>
-    * <LI><B>TABLE_CAT</B> String => table catalog (may be null)
-    * <LI><B>TABLE_SCHEM</B> String => table schema (may be null)
-    * <LI><B>TABLE_NAME</B> String => table name
-    * <LI><B>GRANTOR</B> => grantor of access (may be null)
-    * <LI><B>GRANTEE</B> String => grantee of access
-    * <LI><B>PRIVILEGE</B> String => name of access (SELECT,
-    *  INSERT, UPDATE, REFRENCES, ...)
-    * <LI><B>IS_GRANTABLE</B> String => "YES" if grantee is permitted
-    *  to grant to others; "NO" if not; null if unknown
-    * </OL>
-    *
-    * @param catalog a catalog name; "" retrieves those without a catalog
-    * @param schemaPattern a schema name pattern; "" retrieves those
-    * without a schema
-    * @param tableNamePattern a table name pattern
-    * @return ResultSet each row is a table privilege description
-    * @see #getSearchStringEscape
-    */
     public java.sql.ResultSet getTablePrivileges(String catalog, String schemaPattern, String tableNamePattern) throws SQLException
     {
         Field f[] = new Field[7];
@@ -3087,41 +2321,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return privileges;
     }
 
-    /*
-     * Get a description of a table's optimal set of columns that
-     * uniquely identifies a row. They are ordered by SCOPE.
-     *
-     * <P>Each column description has the following columns:
-     * <OL>
-     * <LI><B>SCOPE</B> short => actual scope of result
-     *  <UL>
-     *  <LI> bestRowTemporary - very temporary, while using row
-     *  <LI> bestRowTransaction - valid for remainder of current transaction
-     *  <LI> bestRowSession - valid for remainder of current session
-     *  </UL>
-     * <LI><B>COLUMN_NAME</B> String => column name
-     * <LI><B>DATA_TYPE</B> short => SQL data type from java.sql.Types
-     * <LI><B>TYPE_NAME</B> String => Data source dependent type name
-     * <LI><B>COLUMN_SIZE</B> int => precision
-     * <LI><B>BUFFER_LENGTH</B> int => not used
-     * <LI><B>DECIMAL_DIGITS</B> short  => scale
-     * <LI><B>PSEUDO_COLUMN</B> short => is this a pseudo column
-     *  like an Oracle ROWID
-     *  <UL>
-     *  <LI> bestRowUnknown - may or may not be pseudo column
-     *  <LI> bestRowNotPseudo - is NOT a pseudo column
-     *  <LI> bestRowPseudo - is a pseudo column
-     *  </UL>
-     * </OL>
-     *
-     * @param catalog a catalog name; "" retrieves those without a catalog
-     * @param schema a schema name; "" retrieves those without a schema
-     * @param table a table name
-     * @param scope the scope of interest; use same values as SCOPE
-     * @param nullable include columns that are nullable?
-     * @return ResultSet each row is a column description
-     */ 
-    // Implementation note: This is required for Borland's JBuilder to work
     public java.sql.ResultSet getBestRowIdentifier(String catalog, String schema, String table, int scope, boolean nullable) throws SQLException
     {
         Field f[] = new Field[8];
@@ -3214,34 +2413,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, v);
     }
 
-    /*
-     * Get a description of a table's columns that are automatically
-     * updated when any value in a row is updated. They are
-     * unordered.
-     *
-     * <P>Each column description has the following columns:
-     * <OL>
-     * <LI><B>SCOPE</B> short => is not used
-     * <LI><B>COLUMN_NAME</B> String => column name
-     * <LI><B>DATA_TYPE</B> short => SQL data type from java.sql.Types
-     * <LI><B>TYPE_NAME</B> String => Data source dependent type name
-     * <LI><B>COLUMN_SIZE</B> int => precision
-     * <LI><B>BUFFER_LENGTH</B> int => length of column value in bytes
-     * <LI><B>DECIMAL_DIGITS</B> short  => scale
-     * <LI><B>PSEUDO_COLUMN</B> short => is this a pseudo column
-     *  like an Oracle ROWID
-     *  <UL>
-     *  <LI> versionColumnUnknown - may or may not be pseudo column
-     *  <LI> versionColumnNotPseudo - is NOT a pseudo column
-     *  <LI> versionColumnPseudo - is a pseudo column
-     *  </UL>
-     * </OL>
-     *
-     * @param catalog a catalog name; "" retrieves those without a catalog
-     * @param schema a schema name; "" retrieves those without a schema
-     * @param table a table name
-     * @return ResultSet each row is a column description
-     */
     public java.sql.ResultSet getVersionColumns(String catalog, String schema, String table) throws SQLException
     {
         Field f[] = new Field[8];
@@ -3284,26 +2455,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, v);
     }
 
-    /*
-     * Get a description of a table's primary key columns.  They
-     * are ordered by COLUMN_NAME.
-     *
-     * <P>Each column description has the following columns:
-     * <OL>
-     * <LI><B>TABLE_CAT</B> String => table catalog (may be null)
-     * <LI><B>TABLE_SCHEM</B> String => table schema (may be null)
-     * <LI><B>TABLE_NAME</B> String => table name
-     * <LI><B>COLUMN_NAME</B> String => column name
-     * <LI><B>KEY_SEQ</B> short => sequence number within primary key
-     * <LI><B>PK_NAME</B> String => primary key name (may be null)
-     * </OL>
-     *
-     * @param catalog a catalog name; "" retrieves those without a catalog
-     * @param schema a schema name pattern; "" retrieves those
-     * without a schema
-     * @param table a table name
-     * @return ResultSet each row is a primary key column description
-     */
     public java.sql.ResultSet getPrimaryKeys(String catalog, String schema, String table) throws SQLException
     {
         String sql;
@@ -3723,226 +2874,21 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, tuples);
     }
 
-    /*
-     * Get a description of the primary key columns that are
-     * referenced by a table's foreign key columns (the primary keys
-     * imported by a table).  They are ordered by PKTABLE_CAT,
-     * PKTABLE_SCHEM, PKTABLE_NAME, and KEY_SEQ.
-     *
-     * <P>Each primary key column description has the following columns:
-     * <OL>
-     * <LI><B>PKTABLE_CAT</B> String => primary key table catalog
-     *  being imported (may be null)
-     * <LI><B>PKTABLE_SCHEM</B> String => primary key table schema
-     *  being imported (may be null)
-     * <LI><B>PKTABLE_NAME</B> String => primary key table name
-     *  being imported
-     * <LI><B>PKCOLUMN_NAME</B> String => primary key column name
-     *  being imported
-     * <LI><B>FKTABLE_CAT</B> String => foreign key table catalog (may be null)
-     * <LI><B>FKTABLE_SCHEM</B> String => foreign key table schema (may be null)
-     * <LI><B>FKTABLE_NAME</B> String => foreign key table name
-     * <LI><B>FKCOLUMN_NAME</B> String => foreign key column name
-     * <LI><B>KEY_SEQ</B> short => sequence number within foreign key
-     * <LI><B>UPDATE_RULE</B> short => What happens to
-     *   foreign key when primary is updated:
-     *  <UL>
-     *  <LI> importedKeyCascade - change imported key to agree
-     *     with primary key update
-     *  <LI> importedKeyRestrict - do not allow update of primary
-     *     key if it has been imported
-     *  <LI> importedKeySetNull - change imported key to NULL if
-     *     its primary key has been updated
-     *  </UL>
-     * <LI><B>DELETE_RULE</B> short => What happens to
-     *  the foreign key when primary is deleted.
-     *  <UL>
-     *  <LI> importedKeyCascade - delete rows that import a deleted key
-     *  <LI> importedKeyRestrict - do not allow delete of primary
-     *     key if it has been imported
-     *  <LI> importedKeySetNull - change imported key to NULL if
-     *     its primary key has been deleted
-     *  </UL>
-     * <LI><B>FK_NAME</B> String => foreign key name (may be null)
-     * <LI><B>PK_NAME</B> String => primary key name (may be null)
-     * </OL>
-     *
-     * @param catalog a catalog name; "" retrieves those without a catalog
-     * @param schema a schema name pattern; "" retrieves those
-     * without a schema
-     * @param table a table name
-     * @return ResultSet each row is a primary key column description
-     * @see #getExportedKeys
-     */
     public java.sql.ResultSet getImportedKeys(String catalog, String schema, String table) throws SQLException
     {
         return getImportedExportedKeys(null, null, null, catalog, schema, table);
     }
 
-    /*
-     * Get a description of a foreign key columns that reference a
-     * table's primary key columns (the foreign keys exported by a
-     * table). They are ordered by FKTABLE_CAT, FKTABLE_SCHEM,
-     * FKTABLE_NAME, and KEY_SEQ.
-     *
-     * This method is currently unimplemented.
-     *
-     * <P>Each foreign key column description has the following columns:
-     * <OL>
-     * <LI><B>PKTABLE_CAT</B> String => primary key table catalog (may be null)
-     * <LI><B>PKTABLE_SCHEM</B> String => primary key table schema (may be null)
-     * <LI><B>PKTABLE_NAME</B> String => primary key table name
-     * <LI><B>PKCOLUMN_NAME</B> String => primary key column name
-     * <LI><B>FKTABLE_CAT</B> String => foreign key table catalog (may be null)
-     *  being exported (may be null)
-     * <LI><B>FKTABLE_SCHEM</B> String => foreign key table schema (may be null)
-     *  being exported (may be null)
-     * <LI><B>FKTABLE_NAME</B> String => foreign key table name
-     *  being exported
-     * <LI><B>FKCOLUMN_NAME</B> String => foreign key column name
-     *  being exported
-     * <LI><B>KEY_SEQ</B> short => sequence number within foreign key
-     * <LI><B>UPDATE_RULE</B> short => What happens to
-     *   foreign key when primary is updated:
-     *  <UL>
-     *  <LI> importedKeyCascade - change imported key to agree
-     *     with primary key update
-     *  <LI> importedKeyRestrict - do not allow update of primary
-     *     key if it has been imported
-     *  <LI> importedKeySetNull - change imported key to NULL if
-     *     its primary key has been updated
-     *  </UL>
-     * <LI><B>DELETE_RULE</B> short => What happens to
-     *  the foreign key when primary is deleted.
-     *  <UL>
-     *  <LI> importedKeyCascade - delete rows that import a deleted key
-     *  <LI> importedKeyRestrict - do not allow delete of primary
-     *     key if it has been imported
-     *  <LI> importedKeySetNull - change imported key to NULL if
-     *     its primary key has been deleted
-     *  </UL>
-     * <LI><B>FK_NAME</B> String => foreign key identifier (may be null)
-     * <LI><B>PK_NAME</B> String => primary key identifier (may be null)
-     * </OL>
-     *
-     * @param catalog a catalog name; "" retrieves those without a catalog
-     * @param schema a schema name pattern; "" retrieves those
-     * without a schema
-     * @param table a table name
-     * @return ResultSet each row is a foreign key column description
-     * @see #getImportedKeys
-     */
     public java.sql.ResultSet getExportedKeys(String catalog, String schema, String table) throws SQLException
     {
         return getImportedExportedKeys(catalog, schema, table, null, null, null);
     }
 
-    /*
-     * Get a description of the foreign key columns in the foreign key
-     * table that reference the primary key columns of the primary key
-     * table (describe how one table imports another's key.) This
-     * should normally return a single foreign key/primary key pair
-     * (most tables only import a foreign key from a table once.)  They
-     * are ordered by FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, and
-     * KEY_SEQ.
-     *
-     * This method is currently unimplemented.
-     *
-     * <P>Each foreign key column description has the following columns:
-     * <OL>
-     * <LI><B>PKTABLE_CAT</B> String => primary key table catalog (may be null)
-     * <LI><B>PKTABLE_SCHEM</B> String => primary key table schema (may be null)
-     * <LI><B>PKTABLE_NAME</B> String => primary key table name
-     * <LI><B>PKCOLUMN_NAME</B> String => primary key column name
-     * <LI><B>FKTABLE_CAT</B> String => foreign key table catalog (may be null)
-     *  being exported (may be null)
-     * <LI><B>FKTABLE_SCHEM</B> String => foreign key table schema (may be null)
-     *  being exported (may be null)
-     * <LI><B>FKTABLE_NAME</B> String => foreign key table name
-     *  being exported
-     * <LI><B>FKCOLUMN_NAME</B> String => foreign key column name
-     *  being exported
-     * <LI><B>KEY_SEQ</B> short => sequence number within foreign key
-     * <LI><B>UPDATE_RULE</B> short => What happens to
-     *   foreign key when primary is updated:
-     *  <UL>
-     *  <LI> importedKeyCascade - change imported key to agree
-     *     with primary key update
-     *  <LI> importedKeyRestrict - do not allow update of primary
-     *     key if it has been imported
-     *  <LI> importedKeySetNull - change imported key to NULL if
-     *     its primary key has been updated
-     *  </UL>
-     * <LI><B>DELETE_RULE</B> short => What happens to
-     *  the foreign key when primary is deleted.
-     *  <UL>
-     *  <LI> importedKeyCascade - delete rows that import a deleted key
-     *  <LI> importedKeyRestrict - do not allow delete of primary
-     *     key if it has been imported
-     *  <LI> importedKeySetNull - change imported key to NULL if
-     *     its primary key has been deleted
-     *  </UL>
-     * <LI><B>FK_NAME</B> String => foreign key identifier (may be null)
-     * <LI><B>PK_NAME</B> String => primary key identifier (may be null)
-     * </OL>
-     *
-     * @param catalog a catalog name; "" retrieves those without a catalog
-     * @param schema a schema name pattern; "" retrieves those
-     * without a schema
-     * @param table a table name
-     * @return ResultSet each row is a foreign key column description
-     * @see #getImportedKeys
-     */
     public java.sql.ResultSet getCrossReference(String primaryCatalog, String primarySchema, String primaryTable, String foreignCatalog, String foreignSchema, String foreignTable) throws SQLException
     {
         return getImportedExportedKeys(primaryCatalog, primarySchema, primaryTable, foreignCatalog, foreignSchema, foreignTable);
     }
 
-    /*
-     * Get a description of all the standard SQL types supported by
-     * this database. They are ordered by DATA_TYPE and then by how
-     * closely the data type maps to the corresponding JDBC SQL type.
-     *
-     * <P>Each type description has the following columns:
-     * <OL>
-     * <LI><B>TYPE_NAME</B> String => Type name
-     * <LI><B>DATA_TYPE</B> short => SQL data type from java.sql.Types
-     * <LI><B>PRECISION</B> int => maximum precision
-     * <LI><B>LITERAL_PREFIX</B> String => prefix used to quote a literal
-     *  (may be null)
-     * <LI><B>LITERAL_SUFFIX</B> String => suffix used to quote a literal
-     (may be null)
-     * <LI><B>CREATE_PARAMS</B> String => parameters used in creating
-     *  the type (may be null)
-     * <LI><B>NULLABLE</B> short => can you use NULL for this type?
-     *  <UL>
-     *  <LI> typeNoNulls - does not allow NULL values
-     *  <LI> typeNullable - allows NULL values
-     *  <LI> typeNullableUnknown - nullability unknown
-     *  </UL>
-     * <LI><B>CASE_SENSITIVE</B> boolean=> is it case sensitive?
-     * <LI><B>SEARCHABLE</B> short => can you use "WHERE" based on this type:
-     *  <UL>
-     *  <LI> typePredNone - No support
-     *  <LI> typePredChar - Only supported with WHERE .. LIKE
-     *  <LI> typePredBasic - Supported except for WHERE .. LIKE
-     *  <LI> typeSearchable - Supported for all WHERE ..
-     *  </UL>
-     * <LI><B>UNSIGNED_ATTRIBUTE</B> boolean => is it unsigned?
-     * <LI><B>FIXED_PREC_SCALE</B> boolean => can it be a money value?
-     * <LI><B>AUTO_INCREMENT</B> boolean => can it be used for an
-     *  auto-increment value?
-     * <LI><B>LOCAL_TYPE_NAME</B> String => localized version of type name
-     *  (may be null)
-     * <LI><B>MINIMUM_SCALE</B> short => minimum scale supported
-     * <LI><B>MAXIMUM_SCALE</B> short => maximum scale supported
-     * <LI><B>SQL_DATA_TYPE</B> int => unused
-     * <LI><B>SQL_DATETIME_SUB</B> int => unused
-     * <LI><B>NUM_PREC_RADIX</B> int => usually 2 or 10
-     * </OL>
-     *
-     * @return ResultSet each row is a SQL type description
-     */
     public java.sql.ResultSet getTypeInfo() throws SQLException
     {
 
@@ -4049,57 +2995,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return (ResultSet) ((BaseStatement)createMetaDataStatement()).createDriverResultSet(f, v);
     }
 
-    /*
-     * Get a description of a table's indices and statistics. They are
-     * ordered by NON_UNIQUE, TYPE, INDEX_NAME, and ORDINAL_POSITION.
-     *
-     * <P>Each index column description has the following columns:
-     * <OL>
-     * <LI><B>TABLE_CAT</B> String => table catalog (may be null)
-     * <LI><B>TABLE_SCHEM</B> String => table schema (may be null)
-     * <LI><B>TABLE_NAME</B> String => table name
-     * <LI><B>NON_UNIQUE</B> boolean => Can index values be non-unique?
-     *  false when TYPE is tableIndexStatistic
-     * <LI><B>INDEX_QUALIFIER</B> String => index catalog (may be null);
-     *  null when TYPE is tableIndexStatistic
-     * <LI><B>INDEX_NAME</B> String => index name; null when TYPE is
-     *  tableIndexStatistic
-     * <LI><B>TYPE</B> short => index type:
-     *  <UL>
-     *  <LI> tableIndexStatistic - this identifies table statistics that are
-     *    returned in conjuction with a table's index descriptions
-     *  <LI> tableIndexClustered - this is a clustered index
-     *  <LI> tableIndexHashed - this is a hashed index
-     *  <LI> tableIndexOther - this is some other style of index
-     *  </UL>
-     * <LI><B>ORDINAL_POSITION</B> short => column sequence number
-     *  within index; zero when TYPE is tableIndexStatistic
-     * <LI><B>COLUMN_NAME</B> String => column name; null when TYPE is
-     *  tableIndexStatistic
-     * <LI><B>ASC_OR_DESC</B> String => column sort sequence, "A" => ascending
-     *  "D" => descending, may be null if sort sequence is not supported;
-     *  null when TYPE is tableIndexStatistic
-     * <LI><B>CARDINALITY</B> int => When TYPE is tableIndexStatisic then
-     *  this is the number of rows in the table; otherwise it is the
-     *  number of unique values in the index.
-     * <LI><B>PAGES</B> int => When TYPE is  tableIndexStatisic then
-     *  this is the number of pages used for the table, otherwise it
-     *  is the number of pages used for the current index.
-     * <LI><B>FILTER_CONDITION</B> String => Filter condition, if any.
-     *  (may be null)
-     * </OL>
-     *
-     * @param catalog a catalog name; "" retrieves those without a catalog
-     * @param schema a schema name pattern; "" retrieves those without a schema
-     * @param table a table name
-     * @param unique when true, return only indices for unique values;
-     *    when false, return indices regardless of whether unique or not
-     * @param approximate when true, result is allowed to reflect approximate
-     *    or out of data values; when false, results are requested to be
-     *    accurate
-     * @return ResultSet each row is an index column description
-     */ 
-    // Implementation note: This is required for Borland's JBuilder to work
     public java.sql.ResultSet getIndexInfo(String catalog, String schema, String tableName, boolean unique, boolean approximate) throws SQLException
     {
         /* This is a complicated function because we have three possible
@@ -4267,13 +3162,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData
 
     // ** JDBC 2 Extensions **
 
-    /*
-     * Does the database support the given result set type?
-     *
-     * @param type - defined in java.sql.ResultSet
-     * @return true if so; false otherwise
-     * @exception SQLException - if a database access error occurs
-     */
     public boolean supportsResultSetType(int type) throws SQLException
     {
         // The only type we don't support
@@ -4281,15 +3169,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData
     }
 
 
-    /*
-     * Does the database support the concurrency type in combination
-     * with the given result set type?
-     *
-     * @param type - defined in java.sql.ResultSet
-     * @param concurrency - type defined in java.sql.ResultSet
-     * @return true if so; false otherwise
-     * @exception SQLException - if a database access error occurs
-    */
     public boolean supportsResultSetConcurrency(int type, int concurrency) throws SQLException
     {
         // These combinations are not supported!
@@ -4352,23 +3231,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return false;
     }
 
-    /*
-     * Indicates whether the driver supports batch updates.
-     */
     public boolean supportsBatchUpdates() throws SQLException
     {
         return true;
     }
 
-    /**
-     *
-     * @param catalog String
-     * @param schemaPattern String
-     * @param typeNamePattern String
-     * @param types int[]
-     * @throws SQLException
-     * @return ResultSet
-    */
     public java.sql.ResultSet getUDTs(String catalog,
                                       String schemaPattern,
                                       String typeNamePattern,
@@ -4452,11 +3319,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData
     }
 
 
-    /*
-     * Retrieves the connection that produced this metadata object.
-     *
-     * @return the connection that produced this metadata object
-     */
     public java.sql.Connection getConnection() throws SQLException
     {
         return (java.sql.Connection)connection;

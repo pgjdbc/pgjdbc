@@ -26,7 +26,7 @@ import org.postgresql.util.PSQLState;
  * org.postgresql.largeobject.LargeObject is returned, and its methods then allow
  * access to the object.
  *
- * <p>This class can only be created by org.postgresql.Connection
+ * <p>This class can only be created by {@link BaseConnection}
  *
  * <p>To get access to this class, use the following segment of code:
  * <br><pre>
@@ -91,11 +91,14 @@ public class LargeObjectManager
      * Constructs the LargeObject API.
      *
      * <p><b>Important Notice</b>
-     * <br>This method should only be called by org.postgresql.Connection
+     * <br>This method should only be called by {@link BaseConnection}
      *
      * <p>There should only be one LargeObjectManager per Connection. The
-     * org.postgresql.Connection class keeps track of the various extension API's
+     * {@link BaseConnection} class keeps track of the various extension API's
      * and it's advised you use those to gain access, and not going direct.
+     *
+     * @param conn connection
+     * @throws SQLException if something wrong happens
      */
     public LargeObjectManager(BaseConnection conn) throws SQLException
     {
@@ -284,6 +287,7 @@ public class LargeObjectManager
      *
      * <p>It defaults to READWRITE for the new object's attributes.
      *
+     * @throws SQLException if something wrong happens
      * @return oid of new object
      */
     public long createLO() throws SQLException

@@ -20,6 +20,7 @@ public interface TypeInfo
      * Look up the SQL typecode for a given type oid.
      *
      * @param oid the type's OID
+     * @throws SQLException if an error occurs when retrieving sql type
      * @return the SQL type code (a constant from {@link java.sql.Types})
      *         for the type
      */
@@ -29,6 +30,7 @@ public interface TypeInfo
      * Look up the SQL typecode for a given postgresql type name.
      *
      * @param pgTypeName the server type name to look up
+     * @throws SQLException if an error occurs when retrieving sql type
      * @return the SQL type code (a constant from {@link java.sql.Types})
      *         for the type
      */
@@ -39,6 +41,7 @@ public interface TypeInfo
      * the inverse of {@link #getPGType(int)}.
      *
      * @param pgTypeName the server type name to look up
+     * @throws SQLException if an error occurs when retrieving PG type
      * @return the type's OID, or 0 if unknown
      */
     public int getPGType(String pgTypeName) throws SQLException;
@@ -48,6 +51,7 @@ public interface TypeInfo
      * inverse of {@link #getPGType(String)}.
      *
      * @param oid the type's OID
+     * @throws SQLException if an error occurs when retrieving PG type
      * @return the server type name for that OID or null if unknown
      */
     public String getPGType(int oid) throws SQLException;
@@ -56,6 +60,7 @@ public interface TypeInfo
      * Look up the oid of an array's base type given the array's type oid.
      *
      * @param oid the array type's OID
+     * @throws SQLException if an error occurs when retrieving array element
      * @return the base type's OID, or 0 if unknown
      */
     public int getPGArrayElement(int oid) throws SQLException;
@@ -64,6 +69,7 @@ public interface TypeInfo
      * Determine the oid of the given base postgresql type's array type
      *
      * @param elementTypeName the base type's
+     * @throws SQLException if an error occurs when retrieving array type
      * @return the array type's OID, or 0 if unknown
      */
     public int getPGArrayType(String elementTypeName) throws SQLException;
@@ -72,6 +78,7 @@ public interface TypeInfo
      * Determine the delimiter for the elements of the given array type oid.
      *
      * @param oid the array type's OID
+     * @throws SQLException if an error occurs when retrieving array delimiter
      * @return the base type's array type delimiter
      */
     public char getArrayDelimiter(int oid) throws SQLException;

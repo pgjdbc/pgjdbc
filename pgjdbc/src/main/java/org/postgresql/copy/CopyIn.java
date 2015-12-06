@@ -29,6 +29,8 @@ public interface CopyIn extends CopyOperation {
      * pushed over in due time or when endCopy is called.  Some specific
      * modified server versions (Truviso) want this data sooner.
      * If you are unsure if you need to use this method, don't.
+     *
+     * @throws SQLException if the operation fails.
      */
     void flushCopy() throws SQLException;
     

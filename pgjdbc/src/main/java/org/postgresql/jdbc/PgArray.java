@@ -112,6 +112,7 @@ public class PgArray implements java.sql.Array
      * @param connection a database connection
      * @param oid the oid of the array datatype
      * @param fieldString the array data in string form
+     * @throws SQLException if something wrong happens
      */
     public PgArray(BaseConnection connection, int oid, String fieldString) throws SQLException {
         this(connection, oid);
@@ -124,6 +125,7 @@ public class PgArray implements java.sql.Array
      * @param connection a database connection
      * @param oid the oid of the array datatype
      * @param fieldBytes the array data in byte form
+     * @throws SQLException if something wrong happens
      */
     public PgArray(BaseConnection connection, int oid, byte[] fieldBytes) throws SQLException {
         this(connection, oid);

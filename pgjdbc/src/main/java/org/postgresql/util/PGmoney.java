@@ -21,7 +21,7 @@ public class PGmoney extends PGobject implements Serializable, Cloneable
      */
     public double val;
 
-    /*
+    /**
      * @param value of field
      */
     public PGmoney(double value)

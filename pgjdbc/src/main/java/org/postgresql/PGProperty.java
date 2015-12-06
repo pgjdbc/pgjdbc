@@ -221,7 +221,7 @@ public enum PGProperty
     ASSUME_MIN_SERVER_VERSION("assumeMinServerVersion", null, "Assume the server is at least that version"),
     
     /**
-     * The application name (require server version >= 9.0)
+     * The application name (require server version &gt;= 9.0)
      */
     APPLICATION_NAME("ApplicationName", null, "name of the application (backend >= 9.0)"),
     
@@ -243,8 +243,8 @@ public enum PGProperty
     /**
      * Force one of
      * <ul>
-     *   <li><acronym>SSPI</acronym> (Windows transparent single-sign-on)</li>
-     *   <li>GSSAPI</acronym> (Kerberos, via JSSE)
+     *   <li>SSPI (Windows transparent single-sign-on)</li>
+     *   <li>GSSAPI (Kerberos, via JSSE)</li>
      * </ul>
      * to be used when the server requests Kerberos or SSPI authentication.
      */
@@ -415,7 +415,7 @@ public enum PGProperty
      * Return the {@code Integer} value for this connection parameter in the given {@code Properties}
      * @param properties properties to take actual value from
      * @return evaluated value for this connection parameter converted to Integer or null
-     * @throws PSQLException
+     * @throws PSQLException if unable to parse property as integer
      */
     public Integer getInteger(Properties properties) throws PSQLException
     {
@@ -459,6 +459,8 @@ public enum PGProperty
 
     /**
      * Test whether this property is present in the given {@code Properties}
+     *
+     * @param properties set of properties to check current in
      * @return true if the parameter is specified in the given properties
      */
     public boolean isPresent(Properties properties)

@@ -32,6 +32,7 @@ import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.x500.X500Principal;
 
 import org.postgresql.PGProperty;
+import org.postgresql.ssl.MakeSSL;
 import org.postgresql.ssl.NonValidatingFactory.NonValidatingTM;
 import org.postgresql.ssl.WrappedFactory;
 import org.postgresql.util.GT;
@@ -51,9 +52,7 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
      * @param info the connection parameters
      * The following parameters are used:
      * sslmode,sslcert,sslkey,sslrootcert,sslhostnameverifier,sslpasswordcallback,sslpassword
-     * @throws GeneralSecurityException
-     * @throws IOException 
-     * @throws UnsupportedCallbackException 
+     * @throws PSQLException if security error appears when initializing factory
      */
     public LibPQFactory(Properties info) throws PSQLException {
       try
@@ -93,7 +92,7 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
         {
           try
           {
-            cbh = (CallbackHandler)AbstractJdbc4MakeSSL.instantiate(sslpasswordcallback, info, false, null);
+            cbh = (CallbackHandler) MakeSSL.instantiate(sslpasswordcallback, info, false, null);
           }
           catch (Exception e)
           {
@@ -176,8 +175,8 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
     }
 
     /**
-     * Propagates any exception from LazyKeyManager
-     * @throws PSQLException
+     * Propagates any exception from {@link LazyKeyManager}
+     * @throws PSQLException if there is an exception to propagate
      */
     public void throwKeyManagerException() throws PSQLException
     {
@@ -232,7 +231,7 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
      * hostname, the IP address will be matched (without doing any DNS lookups).
      * @param hostname Hostname or IP address of the server.
      * @param session The  SSL session.
-     * @returns true if the certificate belongs to the server, false otherwise.
+     * @return true if the certificate belongs to the server, false otherwise.
      */
     public boolean verify(String hostname, SSLSession session) {
       X509Certificate[] peerCerts;
