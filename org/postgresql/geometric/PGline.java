@@ -19,23 +19,21 @@ import java.sql.SQLException;
 
 /**
  * This implements a line represented by the linear equation Ax + By + C = 0
- *
  **/
-public class PGline extends PGobject implements Serializable, Cloneable
-{
+public class PGline extends PGobject implements Serializable, Cloneable {
 
     /**
-     * Coefficient of x
+     * Coefficient of x.
      */
     public double a;
 
     /**
-     * Coefficient of y
+     * Coefficient of y.
      */
     public double b;
 
     /**
-     * Constant
+     * Constant.
      */
     public double c;
 
@@ -57,8 +55,7 @@ public class PGline extends PGobject implements Serializable, Cloneable
      * @param x2 coordinate for second point on the line
      * @param y2 coordinate for second point on the line
      */
-    public PGline(double x1, double y1, double x2, double y2)
-    {
+    public PGline(double x1, double y1, double x2, double y2) {
         this();
         if (x1 == x2) {
             a = -1;
@@ -74,8 +71,7 @@ public class PGline extends PGobject implements Serializable, Cloneable
      * @param p1 first point on the line
      * @param p2 second point on the line
      */
-    public PGline(PGpoint p1, PGpoint p2)
-    {
+    public PGline(PGpoint p1, PGpoint p2) {
         this(p1.x, p1.y, p2.x, p2.y);
     }
 
@@ -88,39 +84,38 @@ public class PGline extends PGobject implements Serializable, Cloneable
 
     /**
      * @param s definition of the line in PostgreSQL's syntax.
-     * @exception SQLException on conversion failure
+     * @throws SQLException on conversion failure
      */
-    public PGline(String s) throws SQLException
-    {
+    public PGline(String s) throws SQLException {
         this();
         setValue(s);
     }
 
     /**
-     * required by the driver
+     * Required by the driver.
      */
-    public PGline()
-    {
+    public PGline() {
         setType("line");
     }
 
     /**
      * @param s Definition of the line in PostgreSQL's syntax
-     * @exception SQLException on conversion failure
+     * @throws SQLException on conversion failure
      */
-    public void setValue(String s) throws SQLException
-    {
+    public void setValue(String s) throws SQLException {
         if (s.trim().startsWith("{")) {
             PGtokenizer t = new PGtokenizer(PGtokenizer.removeCurlyBrace(s), ',');
-            if (t.getSize() != 3)
-                throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", new Object[]{type,s}), PSQLState.DATA_TYPE_MISMATCH);
+            if (t.getSize() != 3) {
+                throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", new Object[]{type, s}), PSQLState.DATA_TYPE_MISMATCH);
+            }
             a = Double.parseDouble(t.getToken(0));
             b = Double.parseDouble(t.getToken(1));
             c = Double.parseDouble(t.getToken(2));
         } else if (s.trim().startsWith("[")) {
             PGtokenizer t = new PGtokenizer(PGtokenizer.removeBox(s), ',');
-            if (t.getSize() != 2)
-                throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", new Object[]{type,s}), PSQLState.DATA_TYPE_MISMATCH);
+            if (t.getSize() != 2) {
+                throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", new Object[]{type, s}), PSQLState.DATA_TYPE_MISMATCH);
+            }
             PGpoint point1 = new PGpoint(t.getToken(0));
             PGpoint point2 = new PGpoint(t.getToken(1));
             a = point2.x - point1.x;
@@ -134,35 +129,39 @@ public class PGline extends PGobject implements Serializable, Cloneable
      * @return true if the two lines are identical
      */
     public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-        if (!super.equals(obj)) return false;
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        if (!super.equals(obj)) {
+            return false;
+        }
 
-        PGline pGline = (PGline)obj;
+        PGline pGline = (PGline) obj;
 
-        return Double.compare(pGline.a, a) == 0 &&
-                Double.compare(pGline.b, b) == 0 &&
-                Double.compare(pGline.c, c) == 0;
+        return Double.compare(pGline.a, a) == 0
+                && Double.compare(pGline.b, b) == 0
+                && Double.compare(pGline.c, c) == 0;
     }
 
     public int hashCode() {
         int result = super.hashCode();
         long temp;
         temp = Double.doubleToLongBits(a);
-        result = 31 * result + (int)(temp ^ (temp >>> 32));
+        result = 31 * result + (int) (temp ^ (temp >>> 32));
         temp = Double.doubleToLongBits(b);
-        result = 31 * result + (int)(temp ^ (temp >>> 32));
+        result = 31 * result + (int) (temp ^ (temp >>> 32));
         temp = Double.doubleToLongBits(c);
-        result = 31 * result + (int)(temp ^ (temp >>> 32));
+        result = 31 * result + (int) (temp ^ (temp >>> 32));
         return result;
     }
 
     /**
      * @return the PGline in the syntax expected by org.postgresql
      */
-    public String getValue()
-    {
+    public String getValue() {
         return "{" + a + "," + b + "," + c + "}";
     }
-
 }

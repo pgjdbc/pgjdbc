@@ -25,8 +25,7 @@ import java.sql.SQLException;
  * This implements a version of java.awt.Point, except it uses double
  * to represent the coordinates.
  */
-public class PGpoint extends PGobject implements PGBinaryObject, Serializable, Cloneable
-{
+public class PGpoint extends PGobject implements PGBinaryObject, Serializable, Cloneable {
     /**
      * The X coordinate of the point
      */
@@ -41,8 +40,7 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
      * @param x coordinate
      * @param y coordinate
      */
-    public PGpoint(double x, double y)
-    {
+    public PGpoint(double x, double y) {
         this();
         this.x = x;
         this.y = y;
@@ -53,9 +51,9 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
      * point is embedded within their definition.
      *
      * @param value Definition of this point in PostgreSQL's syntax
+     * @throws SQLException
      */
-    public PGpoint(String value) throws SQLException
-    {
+    public PGpoint(String value) throws SQLException {
         this();
         setValue(value);
     }
@@ -63,29 +61,24 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
     /**
      * Required by the driver
      */
-    public PGpoint()
-    {
+    public PGpoint() {
         setType("point");
     }
 
     /**
      * @param s Definition of this point in PostgreSQL's syntax
-     * @exception SQLException on conversion failure
+     * @throws SQLException on conversion failure
      */
-    public void setValue(String s) throws SQLException
-    {
+    public void setValue(String s) throws SQLException {
         PGtokenizer t = new PGtokenizer(PGtokenizer.removePara(s), ',');
-        try
-        {
+        try {
             x = Double.parseDouble(t.getToken(0));
             y = Double.parseDouble(t.getToken(1));
-        }
-        catch (NumberFormatException e)
-        {
-            throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", new Object[]{type,s}), PSQLState.DATA_TYPE_MISMATCH, e);
+        } catch (NumberFormatException e) {
+            throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", new Object[]{type, s}), PSQLState.DATA_TYPE_MISMATCH, e);
         }
     }
-    
+
     /**
      * @param b Definition of this point in PostgreSQL's binary syntax
      */
@@ -98,18 +91,15 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
      * @param obj Object to compare with
      * @return true if the two points are identical
      */
-    public boolean equals(Object obj)
-    {
-        if (obj instanceof PGpoint)
-        {
-            PGpoint p = (PGpoint)obj;
+    public boolean equals(Object obj) {
+        if (obj instanceof PGpoint) {
+            PGpoint p = (PGpoint) obj;
             return x == p.x && y == p.y;
         }
         return false;
     }
 
-    public int hashCode()
-    {
+    public int hashCode() {
         long v1 = Double.doubleToLongBits(x);
         long v2 = Double.doubleToLongBits(y);
         return (int) (v1 ^ v2 ^ (v1 >>> 32) ^ (v2 >>> 32));
@@ -118,8 +108,7 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
     /**
      * @return the PGpoint in the syntax expected by org.postgresql
      */
-    public String getValue()
-    {
+    public String getValue() {
         return "(" + x + "," + y + ")";
     }
 
@@ -138,42 +127,42 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
 
     /**
      * Translate the point by the supplied amount.
+     *
      * @param x integer amount to add on the x axis
      * @param y integer amount to add on the y axis
      */
-    public void translate(int x, int y)
-    {
-        translate((double)x, (double)y);
+    public void translate(int x, int y) {
+        translate((double) x, (double) y);
     }
 
     /**
      * Translate the point by the supplied amount.
+     *
      * @param x double amount to add on the x axis
      * @param y double amount to add on the y axis
      */
-    public void translate(double x, double y)
-    {
+    public void translate(double x, double y) {
         this.x += x;
         this.y += y;
     }
 
     /**
      * Moves the point to the supplied coordinates.
+     *
      * @param x integer coordinate
      * @param y integer coordinate
      */
-    public void move(int x, int y)
-    {
+    public void move(int x, int y) {
         setLocation(x, y);
     }
 
     /**
      * Moves the point to the supplied coordinates.
+     *
      * @param x double coordinate
      * @param y double coordinate
      */
-    public void move(double x, double y)
-    {
+    public void move(double x, double y) {
         this.x = x;
         this.y = y;
     }
@@ -181,23 +170,23 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
     /**
      * Moves the point to the supplied coordinates.
      * refer to java.awt.Point for description of this
+     *
      * @param x integer coordinate
      * @param y integer coordinate
      * @see java.awt.Point
      */
-    public void setLocation(int x, int y)
-    {
-        move((double)x, (double)y);
+    public void setLocation(int x, int y) {
+        move((double) x, (double) y);
     }
 
     /**
      * Moves the point to the supplied java.awt.Point
      * refer to java.awt.Point for description of this
+     *
      * @param p Point to move to
      * @see java.awt.Point
      */
-    public void setLocation(Point p)
-    {
+    public void setLocation(Point p) {
         setLocation(p.x, p.y);
     }
 }
