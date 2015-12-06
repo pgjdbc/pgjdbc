@@ -32,8 +32,6 @@ import org.w3c.dom.NodeList;
 public class PGPropertyTest extends TestCase
 {
 
-    public static final String DOCUMENTATION_FILE = "src/docbkx/pgjdbc.xml";
-
     /**
      * Test that we can get and set all default values and all choices (if any)
      */
@@ -134,64 +132,6 @@ public class PGPropertyTest extends TestCase
                 Object propertyValue = propertyDescriptors.get(property.getName()).getReadMethod().invoke(dataSource);
                 propertyDescriptors.get(property.getName()).getWriteMethod().invoke(dataSource, propertyValue);
             }
-        }
-    }
-
-    /**
-     * Test that all properties in {@link PGProperty} are documented in {@code doc/pgjdbc.xml}
-     */
-    public void testDocumentation()
-      throws Exception
-    {
-        DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
-        DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
-        documentBuilder.setEntityResolver(new CatalogResolver());
-        Document document = documentBuilder.parse(new FileInputStream(DOCUMENTATION_FILE));
-
-        XPathFactory xpathFactory = XPathFactory.newInstance();
-        XPath xpath = xpathFactory.newXPath();
-
-        Node connectionParameters = (Node) xpath.evaluate("//*[@id='connection-parameters']", document, XPathConstants.NODE);
-
-        Assert.assertNotNull("Could not find connection parameters section  of [" + DOCUMENTATION_FILE + "]", connectionParameters);
-
-        for(PGProperty property : PGProperty.values())
-        {
-            if (!property.getName().startsWith("PG"))
-            {
-                NodeList nodeList = (NodeList) xpath.evaluate(".//variablelist/varlistentry/term/varname[text()='"+ property.getName() +"']", connectionParameters, XPathConstants.NODESET);
-                assertNotNull("Connection parameter [" + property.getName() + "] is not documented in [" + DOCUMENTATION_FILE + "]", nodeList);
-                assertFalse("Connection parameter [" + property.getName() + "] is not documented in [" + DOCUMENTATION_FILE + "]", nodeList.getLength() == 0);
-                assertFalse("Connection parameter [" + property.getName() + "] is documented twice in [" + DOCUMENTATION_FILE + "]", nodeList.getLength() > 1);
-            }
-        }
-    }
-
-    /**
-     * Test that all connection parameters referenced in the documentation are in {@link PGProperty}
-     */
-    public void testUselessDocumentation()
-      throws Exception
-    {
-        DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
-        DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
-        documentBuilder.setEntityResolver(new CatalogResolver());
-        Document document = documentBuilder.parse(new FileInputStream(DOCUMENTATION_FILE));
-
-        XPathFactory xpathFactory = XPathFactory.newInstance();
-        XPath xpath = xpathFactory.newXPath();
-
-        Node connectionParameters = (Node) xpath.evaluate("//*[@id='connection-parameters']", document, XPathConstants.NODE);
-
-        Assert.assertNotNull("Could not find connection parameters section of [" + DOCUMENTATION_FILE + "]", connectionParameters);
-
-        NodeList nodeList = (NodeList) xpath.evaluate(".//variablelist/varlistentry/term/varname", connectionParameters, XPathConstants.NODESET);
-        for (int i = 0 ; i < nodeList.getLength() ; i++)
-        {
-            Node node = nodeList.item(i);
-            String propertyName = node.getTextContent();
-            PGProperty enumProperty = PGProperty.forName(propertyName);
-            Assert.assertNotNull("Connection parameter [" + propertyName + "] documented in [" + DOCUMENTATION_FILE + "] does not exist in the code (see PGProperty enum)", enumProperty);
         }
     }
 
