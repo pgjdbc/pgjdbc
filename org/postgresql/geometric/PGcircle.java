@@ -17,18 +17,17 @@ import java.io.Serializable;
 import java.sql.SQLException;
 
 /**
- *     This represents org.postgresql's circle datatype, consisting of a point
- *     and a radius
+ * This represents org.postgresql's circle datatype, consisting of a point
+ * and a radius
  */
-public class PGcircle extends PGobject implements Serializable, Cloneable
-{
+public class PGcircle extends PGobject implements Serializable, Cloneable {
     /**
-     * This is the center point
+     * This is the center point.
      */
     public PGpoint center;
 
     /**
-     * This is the radius
+     * This is the radius.
      */
     public double radius;
 
@@ -37,8 +36,7 @@ public class PGcircle extends PGobject implements Serializable, Cloneable
      * @param y coordinate of center
      * @param r radius of circle
      */
-    public PGcircle(double x, double y, double r)
-    {
+    public PGcircle(double x, double y, double r) {
         this(new PGpoint(x, y), r);
     }
 
@@ -46,8 +44,7 @@ public class PGcircle extends PGobject implements Serializable, Cloneable
      * @param c PGpoint describing the circle's center
      * @param r radius of circle
      */
-    public PGcircle(PGpoint c, double r)
-    {
+    public PGcircle(PGpoint c, double r) {
         this();
         this.center = c;
         this.radius = r;
@@ -55,10 +52,9 @@ public class PGcircle extends PGobject implements Serializable, Cloneable
 
     /**
      * @param s definition of the circle in PostgreSQL's syntax.
-     * @exception SQLException on conversion failure
+     * @throws SQLException on conversion failure
      */
-    public PGcircle(String s) throws SQLException
-    {
+    public PGcircle(String s) throws SQLException {
         this();
         setValue(s);
     }
@@ -66,29 +62,25 @@ public class PGcircle extends PGobject implements Serializable, Cloneable
     /**
      * This constructor is used by the driver.
      */
-    public PGcircle()
-    {
+    public PGcircle() {
         setType("circle");
     }
 
     /**
      * @param s definition of the circle in PostgreSQL's syntax.
-     * @exception SQLException on conversion failure
+     * @throws SQLException on conversion failure
      */
-    public void setValue(String s) throws SQLException
-    {
+    public void setValue(String s) throws SQLException {
         PGtokenizer t = new PGtokenizer(PGtokenizer.removeAngle(s), ',');
-        if (t.getSize() != 2)
-            throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", new Object[]{type,s}), PSQLState.DATA_TYPE_MISMATCH);
+        if (t.getSize() != 2) {
+            throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", new Object[]{type, s}), PSQLState.DATA_TYPE_MISMATCH);
+        }
 
-        try
-        {
+        try {
             center = new PGpoint(t.getToken(0));
             radius = Double.parseDouble(t.getToken(1));
-        }
-        catch (NumberFormatException e)
-        {
-            throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", new Object[]{type,s}), PSQLState.DATA_TYPE_MISMATCH, e);
+        } catch (NumberFormatException e) {
+            throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", new Object[]{type, s}), PSQLState.DATA_TYPE_MISMATCH, e);
         }
     }
 
@@ -96,35 +88,31 @@ public class PGcircle extends PGobject implements Serializable, Cloneable
      * @param obj Object to compare with
      * @return true if the two circles are identical
      */
-    public boolean equals(Object obj)
-    {
-        if (obj instanceof PGcircle)
-        {
-            PGcircle p = (PGcircle)obj;
+    public boolean equals(Object obj) {
+        if (obj instanceof PGcircle) {
+            PGcircle p = (PGcircle) obj;
             return p.center.equals(center) && p.radius == radius;
         }
         return false;
     }
 
-    public int hashCode()
-    {
+    public int hashCode() {
         long v = Double.doubleToLongBits(radius);
         return (int) (center.hashCode() ^ v ^ (v >>> 32));
     }
 
-    public Object clone() throws CloneNotSupportedException
-    {
+    public Object clone() throws CloneNotSupportedException {
         PGcircle newPGcircle = (PGcircle) super.clone();
-        if( newPGcircle.center != null )
+        if (newPGcircle.center != null) {
             newPGcircle.center = (PGpoint) newPGcircle.center.clone();
+        }
         return newPGcircle;
     }
 
     /**
      * @return the PGcircle in the syntax expected by org.postgresql
      */
-    public String getValue()
-    {
+    public String getValue() {
         return "<" + center + "," + radius + ">";
     }
 }
