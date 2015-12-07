@@ -1,8 +1,6 @@
 package org.postgresql.test.util;
 
-import java.io.BufferedOutputStream;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.util.Date;
 import java.util.Random;
 
@@ -17,7 +15,9 @@ public class BufferGenerator {
         random.setSeed(new Date().getTime());
         OutputStream out = null;
         try {
-            out = new BufferedOutputStream(new FileOutputStream("buffer.txt"));
+            File outFile = new File("target", "buffer.txt");
+            outFile.getParentFile().mkdir();
+            out = new BufferedOutputStream(new FileOutputStream(outFile));
             for (long i = 0; i < ROW_COUNT; i++) {
                 StringBuffer line = new StringBuffer();
                 line.append("VERY_LONG_LINE_TO_ASSIST_IN_DETECTION_OF_ISSUE_366_#_").append(i).append('\t');

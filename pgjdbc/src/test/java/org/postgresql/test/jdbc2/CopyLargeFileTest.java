@@ -5,8 +5,9 @@ import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyManager;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.BufferGenerator;
-import org.postgresql.test.util.StrangeFileInputStream;
+import org.postgresql.test.util.StrangeInputStream;
 
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.File;
 import java.sql.CallableStatement;
@@ -33,8 +34,8 @@ public class CopyLargeFileTest  extends TestCase {
 
         TestUtil.createTable(con, "pgjdbc_issue366_test_glossary", "id SERIAL, text_id VARCHAR(1000) NOT NULL UNIQUE, name VARCHAR(10) NOT NULL UNIQUE");
         TestUtil.createTable(con, "pgjdbc_issue366_test_data", "id SERIAL,\n" +
-                "                                       data_text_id VARCHAR(1000) NOT NULL UNIQUE,\n" +
-                "                                       glossary_text_id VARCHAR(1000) NOT NULL REFERENCES pgjdbc_issue366_test_glossary(text_id),\n" +
+                "                                       data_text_id VARCHAR(1000) NOT NULL /*UNIQUE <-- it slows down inserts due to additional index */,\n" +
+                "                                       glossary_text_id VARCHAR(1000) NOT NULL /* REFERENCES pgjdbc_issue366_test_glossary(text_id) */,\n" +
                 "                                       value DOUBLE PRECISION NOT NULL");
 
         feedTable();
@@ -62,7 +63,7 @@ public class CopyLargeFileTest  extends TestCase {
         try {
             TestUtil.dropTable(con, "pgjdbc_issue366_test_data");
             TestUtil.dropTable(con, "pgjdbc_issue366_test_glossary");
-            new File("buffer.txt").delete();
+            new File("target/buffer.txt").delete();
         } finally {
             con.close();
         }
@@ -78,7 +79,7 @@ public class CopyLargeFileTest  extends TestCase {
     private void feedTableAndCheckTableFeedIsOk(Connection conn) throws Exception {
         InputStream in = null;
         try {
-            in = new StrangeFileInputStream("buffer.txt");
+            in = new StrangeInputStream(new FileInputStream("target/buffer.txt"));
             long size = copyAPI.copyIn("COPY pgjdbc_issue366_test_data(data_text_id, glossary_text_id, value) FROM STDIN", in);
             assertEquals(BufferGenerator.ROW_COUNT, size);
         } finally {
