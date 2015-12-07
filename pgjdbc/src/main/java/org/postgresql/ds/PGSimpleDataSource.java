@@ -7,6 +7,15 @@
 */
 package org.postgresql.ds;
 
+import java.io.Serializable;
+import java.io.ObjectOutputStream;
+import java.io.ObjectInputStream;
+import java.io.IOException;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+
+import org.postgresql.ds.common.*;
+
 import javax.sql.DataSource;
 
 /**
@@ -17,8 +26,42 @@ import javax.sql.DataSource;
  *
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  */
-public class PGSimpleDataSource
-    extends ${template.simple.ds.class}
-    implements DataSource
+public class PGSimpleDataSource extends BaseDataSource implements DataSource, Serializable
 {
+    /**
+     * Gets a description of this DataSource.
+     */
+    public String getDescription()
+    {
+        return "Non-Pooling DataSource from " + org.postgresql.Driver.getVersion();
+    }
+
+    private void writeObject(ObjectOutputStream out) throws IOException
+    {
+        writeBaseObject(out);
+    }
+
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException
+    {
+        readBaseObject(in);
+    }
+
+    public boolean isWrapperFor(Class<?> iface) throws SQLException
+    {
+        return iface.isAssignableFrom(getClass());
+    }
+
+    public <T> T unwrap(Class<T> iface) throws SQLException
+    {
+        if (iface.isAssignableFrom(getClass()))
+        {
+            return iface.cast(this);
+        }
+        throw new SQLException("Cannot unwrap to " + iface.getName());
+    }
+
+    public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException
+    {
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "getParentLogger()");
+    }
 }

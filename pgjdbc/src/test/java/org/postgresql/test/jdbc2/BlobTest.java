@@ -134,7 +134,7 @@ public class BlobTest extends TestCase
      */
     public void testUploadBlob_LOOP() throws Exception
     {
-        assertTrue(uploadFile("src/test/resources/test-file.xml", LOOP) > 0);
+        assertTrue(uploadFile("/test-file.xml", LOOP) > 0);
 
         // Now compare the blob & the file. Note this actually tests the
         // InputStream implementation!
@@ -148,7 +148,7 @@ public class BlobTest extends TestCase
      */
     public void testUploadBlob_NATIVE() throws Exception
     {
-        assertTrue(uploadFile("src/test/resources/test-file.xml", NATIVE_STREAM) > 0);
+        assertTrue(uploadFile("/test-file.xml", NATIVE_STREAM) > 0);
 
         // Now compare the blob & the file. Note this actually tests the
         // InputStream implementation!
@@ -157,7 +157,7 @@ public class BlobTest extends TestCase
 
     public void testGetBytesOffset() throws Exception
     {
-        assertTrue(uploadFile("src/test/resources/test-file.xml", NATIVE_STREAM) > 0);
+        assertTrue(uploadFile("/test-file.xml", NATIVE_STREAM) > 0);
 
         Statement stmt = con.createStatement();
         ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");
@@ -174,7 +174,7 @@ public class BlobTest extends TestCase
 
     public void testMultipleStreams() throws Exception
     {
-        assertTrue(uploadFile("src/test/resources/test-file.xml", NATIVE_STREAM) > 0);
+        assertTrue(uploadFile("/test-file.xml", NATIVE_STREAM) > 0);
 
         Statement stmt = con.createStatement();
         ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");
@@ -198,7 +198,7 @@ public class BlobTest extends TestCase
 
     public void testParallelStreams() throws Exception
     {
-        assertTrue(uploadFile("src/test/resources/test-file.xml", NATIVE_STREAM) > 0);
+        assertTrue(uploadFile("/test-file.xml", NATIVE_STREAM) > 0);
 
         Statement stmt = con.createStatement();
         ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");
@@ -247,7 +247,7 @@ public class BlobTest extends TestCase
     {
         LargeObjectManager lom = ((org.postgresql.PGConnection)con).getLargeObjectAPI();
 
-        FileInputStream fis = new FileInputStream(file);
+        InputStream fis = getClass().getResourceAsStream(file);
 
         long oid = lom.createLO(LargeObjectManager.READWRITE);
         LargeObject blob = lom.open(oid);
@@ -314,7 +314,7 @@ public class BlobTest extends TestCase
             String file = rs.getString(1);
             long oid = rs.getLong(2);
 
-            FileInputStream fis = new FileInputStream(file);
+            InputStream fis = getClass().getResourceAsStream(file);
             LargeObject blob = lom.open(oid);
             InputStream bis = blob.getInputStream();
 
@@ -359,7 +359,7 @@ public class BlobTest extends TestCase
             String file = rs.getString(1);
             Blob blob = rs.getBlob(2);
 
-            FileInputStream fis = new FileInputStream(file);
+            InputStream fis = getClass().getResourceAsStream(file);
             InputStream bis = blob.getBinaryStream();
 
             int f = fis.read();
@@ -402,7 +402,7 @@ public class BlobTest extends TestCase
             String file = rs.getString(1);
             Clob clob = rs.getClob(2);
 
-            FileInputStream fis = new FileInputStream(file);
+            InputStream fis = getClass().getResourceAsStream(file);
             InputStream bis = clob.getAsciiStream();
 
             int f = fis.read();

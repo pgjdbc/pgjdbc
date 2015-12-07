@@ -8,7 +8,7 @@
 package org.postgresql.test.jdbc2;
 
 import junit.framework.TestCase;
-import org.postgresql.jdbc2.AbstractJdbc2Statement;
+import org.postgresql.jdbc.PgStatement;
 import org.postgresql.test.TestUtil;
 
 import java.sql.*;
@@ -516,7 +516,7 @@ public class StatementTest extends TestCase
     {
         long deadLine = System.currentTimeMillis() + 10000;
         Statement stmt = con.createStatement();
-        ((AbstractJdbc2Statement) stmt).setQueryTimeoutMs(1);
+        ((PgStatement) stmt).setQueryTimeoutMs(1);
         Statement stmt2 = con.createStatement();
         while(System.currentTimeMillis() < deadLine) {
             try

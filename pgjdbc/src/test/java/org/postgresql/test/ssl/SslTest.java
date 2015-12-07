@@ -1,5 +1,6 @@
 package org.postgresql.test.ssl;
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -84,7 +85,8 @@ public class SslTest extends TestCase {
 
   static TestSuite getSuite(Properties prop, String param)
   {
-    String certdir = prop.getProperty("certdir");
+    File certDirFile = TestUtil.getFile(prop.getProperty("certdir"));
+    String certdir = certDirFile.getAbsolutePath();
     String sconnstr = prop.getProperty(param);
     String sprefix = prop.getProperty(param + "prefix");
     String[] csslmode = {"disable","allow","prefer","require","verify-ca","verify-full"};

@@ -8,7 +8,7 @@
 package org.postgresql.test.jdbc2.optional;
 
 import java.sql.*;
-import org.postgresql.test.TestUtil;
+
 import org.postgresql.jdbc2.optional.PoolingDataSource;
 import org.postgresql.ds.common.BaseDataSource;
 

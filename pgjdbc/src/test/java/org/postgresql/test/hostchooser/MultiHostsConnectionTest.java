@@ -34,7 +34,7 @@ public class MultiHostsConnectionTest extends TestCase {
     static final String user = TestUtil.getUser();
     static final String password = TestUtil.getPassword();
     static final String master1 = TestUtil.getServer() + ":" + TestUtil.getPort();
-    static final String slave1 = MultiHostSuite.getSlaveServer() + ":" + MultiHostSuite.getSlavePort();
+    static final String slave1 = MultiHostTestSuite.getSlaveServer() + ":" + MultiHostTestSuite.getSlavePort();
     static final String fake1 = "127.127.217.217:1";
     static String masterIp;
     static String slaveIp;
@@ -54,7 +54,7 @@ public class MultiHostsConnectionTest extends TestCase {
             masterIp = getRemoteHostSpec();
             closeDB(con);
 
-            con = MultiHostSuite.openSlaveDB();
+            con = MultiHostTestSuite.openSlaveDB();
             slaveIp = getRemoteHostSpec();
             closeDB(con);
 

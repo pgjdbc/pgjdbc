@@ -1,5 +1,6 @@
 package org.postgresql.test.ssl;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.util.Properties;
 
@@ -29,8 +30,7 @@ public class SslTestSuite  extends TestSuite {
   public static TestSuite suite() throws Exception
   {
       TestSuite suite = new TestSuite();
-      prop = new Properties();
-      prop.load(new FileInputStream(System.getProperty("ssltest.properties")));
+      prop = TestUtil.loadPropertyFiles("ssltest.properties");
       add(suite,"ssloff8");
       add(suite,"sslhostnossl8");
       add(suite,"ssloff9");

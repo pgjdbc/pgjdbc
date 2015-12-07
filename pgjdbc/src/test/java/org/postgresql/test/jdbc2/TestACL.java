@@ -1,9 +1,8 @@
 package org.postgresql.test.jdbc2;
 
-import org.postgresql.jdbc2.AbstractJdbc2Connection;
-import org.postgresql.jdbc2.AbstractJdbc2DatabaseMetaData;
-
 import junit.framework.TestCase;
+import org.postgresql.jdbc.PgConnection;
+import org.postgresql.jdbc.PgDatabaseMetaData;
 
 public class TestACL extends TestCase {
 
@@ -20,8 +19,8 @@ public class TestACL extends TestCase {
 	}
 	public void testParseACL()
 	{
-		AbstractJdbc2Connection _a = null;
-     	AbstractJdbc2DatabaseMetaData a = new AbstractJdbc2DatabaseMetaData(_a) {
+		PgConnection _a = null;
+     	PgDatabaseMetaData a = new PgDatabaseMetaData(_a) {
  		};
          a.parseACL("{jurka=arwdRxt/jurka,permuser=rw*/jurka}","jurka");
          a.parseACL("{jurka=a*r*w*d*R*x*t*/jurka,permuser=rw*/jurka}", "jurka");

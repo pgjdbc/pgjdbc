@@ -7,6 +7,7 @@
 */
 package org.postgresql.test.jdbc2;
 
+import org.postgresql.jdbc.PgConnection;
 import org.postgresql.test.TestUtil;
 import junit.framework.TestCase;
 import java.sql.*;
@@ -183,7 +184,7 @@ public class ConnectionTest extends TestCase
         con.clearWarnings();
 
         // Set the test warning
-        ((org.postgresql.jdbc2.AbstractJdbc2Connection)con).addWarning(new SQLWarning(testStr));
+        ((PgConnection)con).addWarning(new SQLWarning(testStr));
 
         // Retrieve it
         SQLWarning warning = con.getWarnings();

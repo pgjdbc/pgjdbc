@@ -7,6 +7,7 @@
 */
 package org.postgresql.test;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.Connection;
@@ -21,7 +22,7 @@ import java.util.Properties;
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.Version;
-import org.postgresql.jdbc2.AbstractJdbc2Connection;
+import org.postgresql.jdbc.PgConnection;
 
 /**
  * Utility class for JDBC tests
@@ -172,20 +173,50 @@ public class TestUtil
 	    return System.getProperty("ssl");
 	}
 	
+    static {
+        try {
+            initDriver();
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to initialize driver", e);
+        }
+    }
+
     private static boolean initialized = false;
+
+    public static Properties loadPropertyFiles(String... names)
+    {
+        Properties p = new Properties();
+        for (String name : names) {
+            for (int i = 0; i < 2; i++) {
+                // load x.properties, then x.local.properties
+                if (i == 1 && name.endsWith(".properties") && !name.endsWith(".local.properties")) {
+                    name = name.replaceAll("\\.properties$", ".local.properties");
+                }
+                File f = getFile(name);
+                if (!f.exists()) {
+                    System.out.println("Configuration file " + f.getAbsolutePath() +
+                            " does not exist. Consider adding it to specify test db host and login");
+                    continue;
+                }
+                try {
+                    p.load(new FileInputStream(f));
+                } catch (IOException ex) {
+                    // ignore
+                }
+            }
+        }
+        return p;
+    }
+
     public static void initDriver() throws Exception
     {
         synchronized (TestUtil.class) {
             if (initialized)
                 return;
 
-            Properties p = new Properties();
-            try {
-              p.load(new FileInputStream("build.properties"));
-              p.load(new FileInputStream("build.local.properties"));
-            } catch (IOException ex) {
-              // ignore
-            }
+            Properties p = loadPropertyFiles("build.properties");
             p.putAll(System.getProperties());
             System.getProperties().putAll(p);
 
@@ -199,12 +230,31 @@ public class TestUtil
             org.postgresql.Driver.setLogLevel(getLogLevel()); // Also loads and registers driver.
             initialized = true;
         }
-    }        
-    /*
+    }
+
+    /**
+     * Resolves file path with account of {@code build.properties.relative.path}.
+     * This is a bit tricky since during maven release, maven does a temporary checkout to
+     * {@code core/target/checkout} folder, so that script should somehow get {@code build.local.properties}
      *
-     * get a connection using a priviliged user mostly for tests that the ability to load C functions now as of 4/14
+     * @param name original name of the file, as if it was in the root pgjdbc folder
+     * @return actual location of the file
      */
-    
+    public static File getFile(String name) {
+        if (name == null) {
+            throw new IllegalArgumentException("null file name is not expected");
+        }
+        if (name.startsWith("/")) {
+            return new File(name);
+        }
+        return new File(System.getProperty("build.properties.relative.path", "../"), name);
+    }
+
+    /**
+     * Get a connection using a priviliged user mostly for tests that the ability to load C functions now as of 4/14
+     *
+     * @return connection using a priviliged user mostly for tests that the ability to load C functions now as of 4/14
+     */
     public static java.sql.Connection openPrivilegedDB() throws Exception
     {
         
@@ -232,8 +282,16 @@ public class TestUtil
     {
         initDriver();
 
-        props.setProperty("user", getUser());
-        props.setProperty("password", getPassword());
+        String user = getUser();
+        if (user == null) {
+            throw new IllegalArgumentException("user name is not specified. Please specify 'username' property via -D or build.properties");
+        }
+        props.setProperty("user", user);
+        String password = getPassword();
+        if (password == null) {
+            password = "";
+        }
+        props.setProperty("password", password);
         if (!props.containsKey(PGProperty.PREPARE_THRESHOLD.getName())) {
             PGProperty.PREPARE_THRESHOLD.set(props, getPrepareThreshold());
         }
@@ -540,18 +598,18 @@ public class TestUtil
 
     public static String escapeString(Connection con, String value) throws SQLException
     {
-        if (con instanceof org.postgresql.jdbc2.AbstractJdbc2Connection)
+        if (con instanceof PgConnection)
         {
-            return ((org.postgresql.jdbc2.AbstractJdbc2Connection)con).escapeString(value);
+            return ((PgConnection)con).escapeString(value);
         }
         return value;
     }
     
     public static boolean getStandardConformingStrings(Connection con)
     {
-        if (con instanceof org.postgresql.jdbc2.AbstractJdbc2Connection)
+        if (con instanceof PgConnection)
         {
-            return ((org.postgresql.jdbc2.AbstractJdbc2Connection)con).getStandardConformingStrings();
+            return ((PgConnection)con).getStandardConformingStrings();
         }
         return false;
     }
@@ -563,25 +621,25 @@ public class TestUtil
      * not an Postgres connection.
      */
     public static boolean haveMinimumServerVersion(Connection con, String version) throws SQLException {
-        if (con instanceof org.postgresql.jdbc2.AbstractJdbc2Connection)
+        if (con instanceof PgConnection)
         {
-            return ((org.postgresql.jdbc2.AbstractJdbc2Connection)con).haveMinimumServerVersion(version);
+            return ((PgConnection)con).haveMinimumServerVersion(version);
         }
         return false;
     }
 
     public static boolean haveMinimumServerVersion(Connection con, int version) throws SQLException {
-        if (con instanceof org.postgresql.jdbc2.AbstractJdbc2Connection)
+        if (con instanceof PgConnection)
         {
-            return ((org.postgresql.jdbc2.AbstractJdbc2Connection)con).haveMinimumServerVersion(version);
+            return ((PgConnection)con).haveMinimumServerVersion(version);
         }
         return false;
     }
 
     public static boolean haveMinimumServerVersion(Connection con, Version version) throws SQLException {
-        if (con instanceof org.postgresql.jdbc2.AbstractJdbc2Connection)
+        if (con instanceof PgConnection)
         {
-            return ((org.postgresql.jdbc2.AbstractJdbc2Connection)con).haveMinimumServerVersion(version);
+            return ((PgConnection)con).haveMinimumServerVersion(version);
         }
         return false;
     }
@@ -593,9 +651,9 @@ public class TestUtil
 
     public static boolean isProtocolVersion( Connection con, int version )
     {
-        if ( con instanceof AbstractJdbc2Connection )
+        if ( con instanceof PgConnection)
         {
-            return (version == ((AbstractJdbc2Connection)con).getProtocolVersion());
+            return (version == ((PgConnection)con).getProtocolVersion());
           
         }
         return false;

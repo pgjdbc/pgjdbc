@@ -16,7 +16,7 @@ import java.util.Calendar;
 import java.util.GregorianCalendar;
 
 import org.postgresql.PGStatement;
-import org.postgresql.jdbc2.TimestampUtils;
+import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.core.BaseConnection;
 
 /*

@@ -10,7 +10,7 @@ package org.postgresql.core;
 import java.util.TimerTask;
 import java.sql.*;
 import org.postgresql.PGConnection;
-import org.postgresql.jdbc2.TimestampUtils;
+import org.postgresql.jdbc.TimestampUtils;
 
 /**
  * Driver-internal connection interface. Application code should not use

@@ -9,8 +9,17 @@ nbproject
 *.iml
 *.ipr
 *.iws
-build.local.properties
+*.local.properties
 *-dist.zip
 target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
 
-**/target/
+# Ignore folders used to build binaries for old Java
+/pgjdbc-jre6
+/pgjdbc-jre7

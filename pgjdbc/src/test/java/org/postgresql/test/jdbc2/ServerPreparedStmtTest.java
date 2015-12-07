@@ -8,7 +8,6 @@
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.PGStatement;
-import org.postgresql.jdbc2.AbstractJdbc2Statement;
 import org.postgresql.test.TestUtil;
 import java.sql.Connection;
 import java.sql.PreparedStatement;

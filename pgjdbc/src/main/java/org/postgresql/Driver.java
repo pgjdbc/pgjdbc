@@ -16,6 +16,7 @@ import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 
+import org.postgresql.jdbc.PgConnection;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLDriverVersion;
@@ -411,7 +412,7 @@ public class Driver implements java.sql.Driver
      * @throws SQLException if the connection could not be made
      */
     private static Connection makeConnection(String url, Properties props) throws SQLException {
-        return new ${template.jdbc.connect.class}(hostSpecs(props),
+        return new PgConnection(hostSpecs(props),
                                       user(props), database(props),
                                       props, url);
     }
@@ -466,7 +467,11 @@ public class Driver implements java.sql.Driver
         return props;
     }
 
-    public static final int MAJORVERSION = ${major.version};
+    public static final int MAJORVERSION =
+            //#if false
+            9
+            //#endif
+            /*$mvn.project.property.parsedversion.majorversion$*/;
     /**
      * Gets the drivers major version number
      *
@@ -477,8 +482,11 @@ public class Driver implements java.sql.Driver
         return MAJORVERSION;
     }
 
-
-    public static final int MINORVERSION = ${minor.version};
+    public static final int MINORVERSION =
+            //#if false
+            4
+            //#endif
+            /*$mvn.project.property.parsedversion.minorversion$*/;
     /**
      * Get the drivers minor version number
      *
@@ -495,7 +503,7 @@ public class Driver implements java.sql.Driver
      */
     public static String getVersion()
     {
-        return "${VERSION} (build " + PSQLDriverVersion.buildNumber + ")";
+        return "PostgreSQL /*$mvn.project.property.parsedversion.osgiversion$*/";
     }
 
     /**
@@ -566,7 +574,7 @@ public class Driver implements java.sql.Driver
                     ports.append(portStr);
                     hosts.append(address.subSequence(0, portIdx));
                 } else {
-                    ports.append("${template.default.pg.port}");
+                    ports.append("/*$mvn.project.property.template.default.pg.port$*/");
                     hosts.append(address);
                 }
                 ports.append(',');
@@ -577,7 +585,7 @@ public class Driver implements java.sql.Driver
             urlProps.setProperty("PGPORT", ports.toString());
             urlProps.setProperty("PGHOST", hosts.toString());
         } else {
-            urlProps.setProperty("PGPORT", "${template.default.pg.port}");
+            urlProps.setProperty("PGPORT", "/*$mvn.project.property.template.default.pg.port$*/");
             urlProps.setProperty("PGHOST", "localhost");        
             urlProps.setProperty("PGDBNAME", l_urlServer);
         }
@@ -665,9 +673,9 @@ public class Driver implements java.sql.Driver
      * @return PSQLException with a localized message giving the complete 
      *  description of the unimplemeted function
      */
-    public static ${template.not.implemented.exception} notImplemented(Class callClass, String functionName)
+    public static SQLFeatureNotSupportedException notImplemented(Class callClass, String functionName)
     {
-        return new ${template.not.implemented.exception}(GT.tr("Method {0} is not yet implemented.", callClass.getName() + "." + functionName),
+        return new SQLFeatureNotSupportedException(GT.tr("Method {0} is not yet implemented.", callClass.getName() + "." + functionName),
                                  PSQLState.NOT_IMPLEMENTED.getState());
     }
 
@@ -694,7 +702,7 @@ public class Driver implements java.sql.Driver
         }
     }
 
-    public java.util.logging.Logger getParentLogger() throws ${template.not.implemented.exception}
+    public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException
     {
         throw notImplemented(this.getClass(), "getParentLogger()");
     }

@@ -15,7 +15,7 @@ import org.postgresql.util.CanEstimateSize;
  */
 public class CachedQuery implements CanEstimateSize {
     /**
-     * Cache key. {@link String} or {@link org.postgresql.jdbc2.CallableQueryKey}.
+     * Cache key. {@link String} or {@link org.postgresql.jdbc.CallableQueryKey}.
      * It is assumed that {@code String.valueOf(key)*2} would give reasonable estimate of the number of retained bytes
      * by given key (see {@link #getSize}).
      */

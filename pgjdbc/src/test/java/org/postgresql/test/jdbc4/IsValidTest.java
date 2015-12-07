@@ -5,14 +5,14 @@ import java.sql.*;
 import junit.framework.TestCase;
 
 import org.junit.Assert;
-import org.postgresql.jdbc2.AbstractJdbc2Connection;
+import org.postgresql.core.BaseConnection;
 import org.postgresql.test.TestUtil;
 
 public class IsValidTest  extends TestCase {
 
     private int getTransactionState(Connection conn)
     {
-        return ((AbstractJdbc2Connection) conn).getTransactionState();
+        return ((BaseConnection) conn).getTransactionState();
     }
 
     public void testIsValid() throws Exception {

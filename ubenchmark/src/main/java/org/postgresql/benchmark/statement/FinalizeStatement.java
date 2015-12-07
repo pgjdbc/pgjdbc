@@ -13,7 +13,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -48,6 +48,10 @@ public class FinalizeStatement
 
     private Connection connection;
 
+    //#if mvn.project.property.current.jdk < "1.7"
+    private Random random = new Random();
+    //#endif
+
     @Setup(Level.Trial)
     public void setUp() throws SQLException
     {
@@ -67,7 +71,13 @@ public class FinalizeStatement
     public Statement createAndLeak() throws SQLException
     {
         Statement statement = connection.createStatement();
-        if (ThreadLocalRandom.current().nextFloat() >= leakPctFloat)
+        Random rnd;
+        //#if mvn.project.property.current.jdk < "1.7"
+        rnd = random;
+        //#else
+        rnd = java.util.concurrent.ThreadLocalRandom.current();
+        //#endif
+        if (rnd.nextFloat() >= leakPctFloat)
             statement.close();
         return statement;
     }
