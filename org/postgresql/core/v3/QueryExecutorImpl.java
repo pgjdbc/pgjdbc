@@ -33,18 +33,19 @@ public class QueryExecutorImpl implements QueryExecutor {
         this.logger = logger;
 
         this.allowEncodingChanges = PGProperty.ALLOW_ENCODING_CHANGES.getBoolean(info);
+        this.enableSimpleQueries = PGProperty.ENABLE_SIMPLE_QUERIES.getBoolean(info);
     }
 
     /**
      * Supplement to synchronization of public methods on current QueryExecutor.
-     * 
+     *
      * Necessary for keeping the connection intact between calls to public methods
      * sharing a state such as COPY subprotocol. waitOnLock() must be called at
      * beginning of each connection access point.
      *
      * Public methods sharing that state must then be synchronized among themselves.
      * Normal method synchronization typically suffices for that.
-     * 
+     *
      * See notes on related methods as well as currentCopy() below.
      */
     private Object lockedFor = null;
@@ -60,7 +61,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         waitOnLock();
         lockedFor = obtainer;
     }
-    
+
     /**
      * Release lock on this connection presumably held by given object.
      * @param holder object that holds the lock. Normally current thread.
@@ -87,7 +88,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             }
         }
     }
-    
+
     /**
      * @param holder object assumed to hold the lock
      * @return whether given object actually holds the lock
@@ -100,8 +101,10 @@ public class QueryExecutorImpl implements QueryExecutor {
     // Query parsing
     //
 
-    public Query createSimpleQuery(String sql) {
-        return parseQuery(sql, false);
+    public Query createSimpleQuery(String sql, boolean textProtocol) {
+        return textProtocol && enableSimpleQueries
+                ? new SimpleQuery(new NativeQuery(sql), protoConnection)
+                : parseQuery(sql, false);
     }
 
     public Query createParameterizedQuery(String sql) {
@@ -194,6 +197,79 @@ public class QueryExecutorImpl implements QueryExecutor {
                 estimatedReceiveBufferBytes = 0;
                 handler.handleError(new PSQLException(GT.tr("Unable to bind parameter values for statement."), PSQLState.INVALID_PARAMETER_VALUE, se.getIOException()));
             }
+        }
+        catch (IOException e)
+        {
+            protoConnection.abort();
+            handler.handleError(new PSQLException(GT.tr("An I/O error occurred while sending to the backend."), PSQLState.CONNECTION_FAILURE, e));
+        }
+
+        handler.handleCompletion();
+    }
+
+    public synchronized void execute(Query query, ResultHandler handler, int flags) throws SQLException
+    {
+        if (!enableSimpleQueries || query instanceof SimpleQuery == false)
+        {
+            execute(query, SimpleQuery.NO_PARAMETERS, handler, 0, 0, flags);
+            return;
+        }
+        waitOnLock();
+        if (logger.logDebug())
+        {
+            logger.debug("simple execute, handler=" + handler);
+        }
+
+        boolean beginTransaction = false;
+        if (protoConnection.getTransactionState() == ProtocolConnection.TRANSACTION_IDLE &&
+                (flags & QueryExecutor.QUERY_SUPPRESS_BEGIN) == 0)
+        {
+
+            beginTransaction = true;
+
+            // Insert a handler that intercepts the BEGIN.
+            final ResultHandler delegateHandler = handler;
+            handler = new ResultHandler() {
+                private boolean sawBegin = false;
+
+                public void handleResultRows(Query fromQuery, Field[] fields, List tuples, ResultCursor cursor) {
+                    if (sawBegin)
+                        delegateHandler.handleResultRows(fromQuery, fields, tuples, cursor);
+                }
+
+                public void handleCommandStatus(String status, int updateCount, long insertOID) {
+                    if (!sawBegin)
+                    {
+                        if (!status.equals("BEGIN"))
+                            handleError(new PSQLException(GT.tr("Expected command status BEGIN, got {0}.", status),
+                                    PSQLState.PROTOCOL_VIOLATION));
+                        sawBegin = true;
+                    }
+                    else
+                    {
+                        delegateHandler.handleCommandStatus(status, updateCount, insertOID);
+                    }
+                }
+
+                public void handleWarning(SQLWarning warning) {
+                    delegateHandler.handleWarning(warning);
+                }
+
+                public void handleError(SQLException error) {
+                    delegateHandler.handleError(error);
+                }
+
+                public void handleCompletion() throws SQLException{
+                    delegateHandler.handleCompletion();
+                }
+            };
+        }
+
+        try
+        {
+            sendSimpleQuery((SimpleQuery)query, beginTransaction);
+            processResults(handler, flags);
+            estimatedReceiveBufferBytes = 0;
         }
         catch (IOException e)
         {
@@ -570,7 +646,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             throw new PSQLException(GT.tr("An I/O error occurred while sending to the backend."), PSQLState.CONNECTION_FAILURE, ioe);
         }
     }
-    
+
     private byte[] receiveFastpathResult() throws IOException, SQLException {
         boolean endQuery = false;
         SQLException error = null;
@@ -721,7 +797,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                                     e = next;
                                 e.setNextException(error);
                             }
-                            error = se; 
+                            error = se;
                         }
                     } while(hasLock(op));
                 }
@@ -836,7 +912,7 @@ public class QueryExecutorImpl implements QueryExecutor {
      * Unlocks at end of sub protocol,
      * so operations on pgStream or QueryExecutor are not allowed in a method after calling this!
      * @param block whether to block waiting for input
-     * @return 
+     * @return
      *  CopyIn when COPY FROM STDIN starts;
      *  CopyOut when COPY TO STDOUT starts;
      *  null when copy ends;
@@ -914,7 +990,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                 break;
 
             case 'G':  // CopyInResponse
-                
+
                 if (logger.logDebug())
                     logger.debug(" <=BE CopyInResponse");
 
@@ -925,9 +1001,9 @@ public class QueryExecutorImpl implements QueryExecutor {
                 initCopy(op);
                 endReceiving = true;
                 break;
-                
+
             case 'H':  // CopyOutResponse
-                
+
                 if (logger.logDebug())
                     logger.debug(" <=BE CopyOutResponse");
 
@@ -961,14 +1037,14 @@ public class QueryExecutorImpl implements QueryExecutor {
 
                 if (logger.logDebug())
                     logger.debug(" <=BE CopyDone");
-                
+
                 len = pgStream.ReceiveInteger4() - 4;
                 if(len > 0)
                     pgStream.Receive(len); // not in specification; should never appear
 
                 if(!(op instanceof CopyOutImpl))
                     error = new PSQLException("Got CopyDone while not copying from server", PSQLState.OBJECT_NOT_IN_STATE);
-                
+
                 // keep receiving since we expect a CommandComplete
                 block = true;
                 break;
@@ -993,7 +1069,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                     error = new PSQLException(GT.tr("The server''s DateStyle parameter was changed to {0}. The JDBC driver requires DateStyle to begin with ISO for correct operation.", value), PSQLState.CONNECTION_FAILURE);
                     endReceiving = true;
                 }
-                
+
                 if (name.equals("standard_conforming_strings"))
                 {
                     if (value.equals("on"))
@@ -1457,6 +1533,36 @@ public class QueryExecutorImpl implements QueryExecutor {
         pendingExecuteQueue.add(new ExecuteRequest(query, portal));
     }
 
+    private static final byte[] BEGIN = "BEGIN;".getBytes();
+
+    private void sendSimpleQuery(SimpleQuery query, boolean startTransaction) throws IOException {
+        //
+        // Send Query.
+        //
+
+        if (logger.logDebug())
+        {
+            logger.debug(" FE=> Query ");
+            logger.debug(startTransaction ? ", startTransaction => " : "");
+            logger.debug(simpleQuery.getNativeSql());
+        }
+
+        byte[] queryUtf8 = Utils.encodeUTF8(query.getNativeSql());
+
+        // Total size = 4 (size field) + 1 + N (source portal) + 4 (max rows)
+        pgStream.SendChar('Q');   // Simple protocol query
+        if (startTransaction) {
+            pgStream.SendInteger4(4 + 7 + queryUtf8.length);  // message size
+            pgStream.Send(BEGIN);
+        } else {
+            pgStream.SendInteger4(4 + 1 + queryUtf8.length);  // message size
+        }
+        pgStream.Send(queryUtf8); // query text
+        pgStream.SendChar(0);      // command terminator
+        pgStream.flush();
+        simpleQuery = query;
+    }
+
     private void sendClosePortal(String portalName) throws IOException {
         //
         // Send Close.
@@ -1591,7 +1697,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 			/*
 			 * don't send describe if we already have cached the row description
 			 * from previous executions
-			 * 
+			 *
 			 * XXX Clearing the fields / unpreparing the query (in sendParse) is
 			 * incorrect, see bug #267. We might clear the cached fields in a
 			 * later execution of this query if the bind parameter types change,
@@ -1601,7 +1707,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 			 * the result of that gets processed after processing the results
 			 * from earlier executions that we didn't describe because we didn't
 			 * think we had to.
-			 * 
+			 *
 			 * To work around this, force a Describe at each execution in
 			 * batches where this can be a problem. It won't cause more round
 			 * trips so the performance impact is low, and it'll ensure that the
@@ -1838,9 +1944,15 @@ public class QueryExecutorImpl implements QueryExecutor {
                 doneAfterRowDescNoData = false;
 
                 {
-                    ExecuteRequest executeData = pendingExecuteQueue.removeFirst();
-                    SimpleQuery currentQuery = executeData.query;
-                    Portal currentPortal = executeData.portal;
+                    Portal currentPortal = null;
+                    SimpleQuery currentQuery = null;
+                    if (simpleQuery != null) {
+                        currentQuery = simpleQuery;
+                    } else {
+                        ExecuteRequest executeData = pendingExecuteQueue.removeFirst();
+                        currentPortal = executeData.portal;
+                        currentQuery = executeData.query;
+                    }
 
                     Field[] fields = currentQuery.getFields();
                     if (fields != null && !noResults && tuples == null)
@@ -1921,12 +2033,16 @@ public class QueryExecutorImpl implements QueryExecutor {
                     logger.debug(" <=BE EmptyQuery");
 
                 {
-                    ExecuteRequest executeData = pendingExecuteQueue.removeFirst();
-                    SimpleQuery currentQuery = executeData.query;
-                    Portal currentPortal = executeData.portal;
-                    handler.handleCommandStatus("EMPTY", 0, 0);
-                    if (currentPortal != null)
-                        currentPortal.close();
+                    if (simpleQuery != null) {
+                        handler.handleCommandStatus("EMPTY", 0, 0);
+                    } else {
+                        ExecuteRequest executeData = pendingExecuteQueue.removeFirst();
+                        SimpleQuery currentQuery = executeData.query;
+                        Portal currentPortal = executeData.portal;
+                        handler.handleCommandStatus("EMPTY", 0, 0);
+                        if (currentPortal != null)
+                            currentPortal.close();
+                    }
                 }
 
                 break;
@@ -1957,7 +2073,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                         handler.handleError(new PSQLException(GT.tr("The server''s DateStyle parameter was changed to {0}. The JDBC driver requires DateStyle to begin with ISO for correct operation.", value), PSQLState.CONNECTION_FAILURE));
                         endQuery = true;
                     }
-                    
+
                     if (name.equals("standard_conforming_strings"))
                     {
                         if (value.equals("on"))
@@ -1978,7 +2094,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                 Field[] fields = receiveFields();
                 tuples = new ArrayList();
 
-                SimpleQuery query = pendingDescribePortalQueue.removeFirst();
+                SimpleQuery query = simpleQuery != null ? simpleQuery : pendingDescribePortalQueue.removeFirst();
                 query.setFields(fields);
 
                 if (doneAfterRowDescNoData) {
@@ -2007,6 +2123,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                 pendingDescribePortalQueue.clear();     // No more RowDescription messages expected.
                 pendingBindQueue.clear();               // No more BindComplete messages expected.
                 pendingExecuteQueue.clear();            // No more query executions expected.
+                simpleQuery = null;
                 break;
 
             case 'G':  // CopyInResponse
@@ -2032,7 +2149,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             case 'H':  // CopyOutResponse
                 if (logger.logDebug())
                     logger.debug(" <=BE CopyOutResponse");
- 
+
                 skipMessage();
                 // In case of CopyOutResponse, we cannot abort data transfer,
                 // so just throw an error and ignore CopyData messages
@@ -2065,11 +2182,11 @@ public class QueryExecutorImpl implements QueryExecutor {
      * over those bytes in the communication stream.
      */
     private void skipMessage() throws IOException {
-        int l_len = pgStream.ReceiveInteger4();        
+        int l_len = pgStream.ReceiveInteger4();
         // skip l_len-4 (length includes the 4 bytes for message length itself
         pgStream.Skip(l_len - 4);
     }
- 
+
     public synchronized void fetch(ResultCursor cursor, ResultHandler handler, int fetchSize)
     throws SQLException {
         waitOnLock();
@@ -2215,13 +2332,13 @@ public class QueryExecutorImpl implements QueryExecutor {
             try
             {
                 long updates = Long.parseLong(status.substring(1 + status.lastIndexOf(' ')));
-                
+
                 // deal with situations where the update modifies more than 2^32 rows
                 if ( updates > Integer.MAX_VALUE )
                     update_count = Statement.SUCCESS_NO_INFO;
                 else
                     update_count = (int)updates;
-                
+
                 if (status.startsWith("INSERT"))
                     insert_oid = Long.parseLong(status.substring(1 + status.indexOf(' '),
                                                 status.lastIndexOf(' ')));
@@ -2266,12 +2383,14 @@ public class QueryExecutorImpl implements QueryExecutor {
     private final Deque<ExecuteRequest> pendingExecuteQueue = new ArrayDeque<ExecuteRequest>();
     private final Deque<DescribeRequest> pendingDescribeStatementQueue = new ArrayDeque<DescribeRequest>();
     private final Deque<SimpleQuery> pendingDescribePortalQueue = new ArrayDeque<SimpleQuery>();
+    private SimpleQuery simpleQuery;
 
     private long nextUniqueID = 1;
     private final ProtocolConnectionImpl protoConnection;
     private final PGStream pgStream;
     private final Logger logger;
     private final boolean allowEncodingChanges;
+    private final boolean enableSimpleQueries;
 
     /**
      * The estimated server response size since we last consumed the input stream

@@ -34,7 +34,7 @@ public class QueryExecutorImpl implements QueryExecutor {
     // Query parsing
     //
 
-    public Query createSimpleQuery(String sql) {
+    public Query createSimpleQuery(String sql, boolean textProtocol) {
         return new V2Query(sql, false, protoConnection);
     }
 
@@ -108,7 +108,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             try
             {
                 // Create and issue a dummy query to use the existing prefix infrastructure
-                V2Query query = (V2Query)createSimpleQuery("");
+                V2Query query = (V2Query)createSimpleQuery("", true);
                 SimpleParameterList params = (SimpleParameterList)query.createParameterList();
                 sendQuery(query, params, "BEGIN");
                 processResults(query, handler, 0, 0);
@@ -256,6 +256,12 @@ public class QueryExecutorImpl implements QueryExecutor {
     throws SQLException
     {
         execute((V2Query) query, (SimpleParameterList) parameters, handler, maxRows, flags);
+    }
+
+    public synchronized void execute(Query query, ResultHandler handler, int flags)
+            throws SQLException
+    {
+        execute((V2Query)query, null, handler, 0, flags);
     }
 
     // Nothing special yet, just run the queries one at a time.
