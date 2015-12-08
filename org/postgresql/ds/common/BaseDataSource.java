@@ -964,6 +964,22 @@ public abstract class BaseDataSource implements Referenceable
     }
 
     /**
+     * @see PGProperty#ENABLE_SIMPLE_QUERIES
+     */
+    public boolean getEnableSimpleQueries()
+    {
+        return PGProperty.ENABLE_SIMPLE_QUERIES.getBoolean(properties);
+    }
+
+    /**
+     * @see PGProperty#ENABLE_SIMPLE_QUERIES
+     */
+    public void setEnableSimpleQueries(boolean enable)
+    {
+        PGProperty.ENABLE_SIMPLE_QUERIES.set(properties, enable);
+    }
+
+    /**
      * Generates a DriverManager URL from the other properties supplied.
      */
     public String getUrl()

@@ -661,6 +661,22 @@ openssl pkcs8 -topk8 -in client.key -out client.pk8 -outform DER -v1 PBE-SHA1-3D
       </varlistentry>
 
       <varlistentry>
+       <term><varname>enableSimpleQueries</varname> = <type>boolean</type></term>
+       <listitem>
+        <para>
+         When using the V3 protocol the driver can send non-prepared statements
+         as either extended queries or simple queries.
+         By default driver will always use extended queries which are sent as
+         PARSE/BIND/EXECUTE commands.
+         To enable use of simple queries set <literal>enableSimpleQueries</literal>
+         to <literal>true</literal>.
+         V2 protocol only supports simple queries, so this parameter doesn't have an
+         effect on it.
+        </para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
        <term><varname>logUnclosedConnections</varname> = <type>boolean</type></term>
        <listitem>
         <para>

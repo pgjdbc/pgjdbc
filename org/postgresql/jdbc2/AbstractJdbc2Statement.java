@@ -477,8 +477,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     {
         checkClosed();
         p_sql = replaceProcessing(p_sql, replaceProcessingEnabled, connection.getStandardConformingStrings());
-        Query simpleQuery = connection.getQueryExecutor().createSimpleQuery(p_sql);
-        execute(simpleQuery, null, QueryExecutor.QUERY_ONESHOT | flags);
+        Query simpleQuery = connection.getQueryExecutor().createSimpleQuery(p_sql, true);
+        execute(simpleQuery, null, QueryExecutor.QUERY_ONESHOT | flags, true);
         this.lastSimpleQuery = simpleQuery;
         return (result != null && result.getResultSet() != null);
     }
@@ -589,6 +589,10 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     }
 
     protected void execute(Query queryToExecute, ParameterList queryParameters, int flags) throws SQLException {
+        execute(queryToExecute, queryParameters, flags, false);
+    }
+
+    private void execute(Query queryToExecute, ParameterList queryParameters, int flags, boolean useSimpleQueries) throws SQLException {
         closeForNextExecution();
 
         // Enable cursor-based resultset if possible.
@@ -642,12 +646,20 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
         try
         {
             startTimer();
-            connection.getQueryExecutor().execute(queryToExecute,
-                                                  queryParameters,
-                                                  handler,
-                                                  maxrows,
-                                                  fetchSize,
-                                                  flags);
+            if (useSimpleQueries) {
+                connection.getQueryExecutor().execute(
+                        queryToExecute,
+                        handler,
+                        flags);
+            } else {
+                connection.getQueryExecutor().execute(
+                        queryToExecute,
+                        queryParameters,
+                        handler,
+                        maxrows,
+                        fetchSize,
+                        flags);
+            }
         }
         finally
         {
@@ -2688,7 +2700,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
         p_sql = replaceProcessing(p_sql, replaceProcessingEnabled, connection.getStandardConformingStrings());
 
-        batchStatements.add(connection.getQueryExecutor().createSimpleQuery(p_sql));
+        batchStatements.add(connection.getQueryExecutor().createSimpleQuery(p_sql, false));
         batchParameters.add(null);
     }
 

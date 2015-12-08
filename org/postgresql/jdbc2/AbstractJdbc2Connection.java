@@ -263,8 +263,8 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
                                             !protoConnection.getIntegerDateTimes());
 
         // Initialize common queries.
-        commitQuery = getQueryExecutor().createSimpleQuery("COMMIT");
-        rollbackQuery = getQueryExecutor().createSimpleQuery("ROLLBACK");
+        commitQuery = getQueryExecutor().createSimpleQuery("COMMIT", false);
+        rollbackQuery = getQueryExecutor().createSimpleQuery("ROLLBACK", false);
 
         int unknownLength = PGProperty.UNKNOWN_LENGTH.getInt(info);
 

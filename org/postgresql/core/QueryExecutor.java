@@ -114,7 +114,7 @@ public interface QueryExecutor {
      * Execute a Query, passing results to a provided ResultHandler.
      *
      * @param query the query to execute; must be a query returned from
-     *  calling {@link #createSimpleQuery(String)} or {@link #createParameterizedQuery(String)}
+     *  calling {@link #createSimpleQuery(String, boolean)} or {@link #createParameterizedQuery(String)}
      *  on this QueryExecutor object.
      * @param parameters the parameters for the query. Must be non-<code>null</code>
      *  if the query takes parameters. Must be a parameter object returned by
@@ -139,7 +139,7 @@ public interface QueryExecutor {
      * Execute several Query, passing results to a provided ResultHandler.
      *
      * @param queries the queries to execute; each must be a query returned from
-     *  calling {@link #createSimpleQuery(String)} or {@link #createParameterizedQuery(String)}
+     *  calling {@link #createSimpleQuery(String, boolean)} or {@link #createParameterizedQuery(String)}
      *  on this QueryExecutor object.
      * @param parameterLists the parameter lists for the queries. The parameter lists
      *  correspond 1:1 to the queries passed in the <code>queries</code> array. Each must be
@@ -163,6 +163,20 @@ public interface QueryExecutor {
     throws SQLException;
 
     /**
+     * Execute a SQL, passing results to a provided ResultHandler. It uses simple protocol for communication.
+     *
+     * @param query the query to execute; must be a query returned from
+     *  calling {@link #createSimpleQuery(String, boolean)}
+     *  on this QueryExecutor object.
+     * @param handler a ResultHandler responsible for handling results generated
+     *  by this query
+     * @param flags a combination of QUERY_* flags indicating how to handle the query.
+     *
+     * @throws SQLException if query execution fails
+     */
+    void execute(Query query, ResultHandler handler, int flags) throws SQLException;
+
+    /**
      * Fetch additional rows from a cursor.
      *
      * @param cursor the cursor to fetch from
@@ -180,9 +194,10 @@ public interface QueryExecutor {
      * always return an empty ParameterList.
      *
      * @param sql the SQL for the query to create
+     * @param textProtocol create query for text based protocol
      * @return a new Query object
      */
-    Query createSimpleQuery(String sql);
+    Query createSimpleQuery(String sql, boolean textProtocol);
 
     /**
      * Create a parameterized Query object suitable for execution by

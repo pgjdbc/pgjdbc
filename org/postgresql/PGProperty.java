@@ -274,6 +274,14 @@ public enum PGProperty
     ALLOW_ENCODING_CHANGES("allowEncodingChanges", "false", "Allow for changes in client_encoding"),
 
     /**
+     * When simple queries are enabled, non-prepared statements on V3 protocol are send as simple queries
+     * instead of as extended queries.
+     * To enable this behavior (on v3) set enableSimpleQueries to true
+     * v2 only supports simple queries, so this parameter doesn't have an effect for it.
+     */
+    ENABLE_SIMPLE_QUERIES("enableSimpleQueries", "false", "Allow simple queries on V3 protocol"),
+
+    /**
      * Specify the schema to be set in the search-path. This schema will be used
      * to resolve unqualified object names used in statements over this connection.
      */
