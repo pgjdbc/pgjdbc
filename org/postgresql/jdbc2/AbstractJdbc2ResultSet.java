@@ -1775,23 +1775,14 @@ public abstract class AbstractJdbc2ResultSet implements BaseResultSet, org.postg
         while ( !tableFound && !tablesChecked && st.hasMoreTokens() )
         {
             name = st.nextToken();
-            if ( !tableFound )
+            if ("from".equalsIgnoreCase(name))
             {
-                if ("from".equalsIgnoreCase(name))
-                {
+                tableName = st.nextToken();
+                if ("only".equalsIgnoreCase(tableName)) {
                     tableName = st.nextToken();
-                    if ("only".equalsIgnoreCase(tableName)) {
-                        tableName = st.nextToken();
-                        onlyTable = "ONLY ";
-                    }
-                    tableFound = true;
+                    onlyTable = "ONLY ";
                 }
-            }
-            else
-            {
-                tablesChecked = true;
-                // if the very next token is , then there are multiple tables
-                singleTable = !name.equalsIgnoreCase(",");
+                tableFound = true;
             }
         }
     }
