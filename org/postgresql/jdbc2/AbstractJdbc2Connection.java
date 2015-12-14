@@ -8,6 +8,7 @@
 package org.postgresql.jdbc2;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.sql.*;
 import java.util.*;
 
@@ -142,6 +143,9 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
             logger.setLogLevel(logLevel);
         }
 
+        if (logLevel > 0)
+            enableDriverManagerLogging();
+
         setDefaultFetchSize(PGProperty.DEFAULT_ROW_FETCH_SIZE.getInt(info));
 
         prepareThreshold = PGProperty.PREPARE_THRESHOLD.getInt(info);
@@ -274,6 +278,7 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
         if (PGProperty.LOG_UNCLOSED_CONNECTIONS.getBoolean(info)) {
             openStackTrace = new Throwable("Connection was created at this point:");
+            enableDriverManagerLogging();
         }
         this.disableColumnSanitiser = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
         statementCache = new LruCache<Object, CachedQuery>(
@@ -1285,6 +1290,16 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         return logger;
     }
 
+    //Because the get/setLogStream methods are deprecated in JDBC2
+    //we use the get/setLogWriter methods here for JDBC2 by overriding
+    //the base version of this method
+    protected void enableDriverManagerLogging()
+    {
+        if (DriverManager.getLogWriter() == null)
+        {
+            DriverManager.setLogWriter(new PrintWriter(System.out, true));
+        }
+    }
 
     public int getProtocolVersion()
     {
