@@ -2866,7 +2866,7 @@ public abstract class AbstractJdbc2DatabaseMetaData
                     for (Object grant : grants) {
                         String[] grantTuple = (String[]) grant;
                         // report the owner as grantor if it's missing
-                        String grantor = grantTuple[0].equals(null) ? owner : grantTuple[0];
+                        String grantor = grantTuple[0] == null ? owner : grantTuple[0];
                         // owner always has grant privileges
                         String grantable = owner.equals(grantee) ? "YES" : grantTuple[1];
                         byte[][] tuple = new byte[7][];
