@@ -340,7 +340,33 @@ public class XADataSourceTest extends TestCase {
         xaRes.end(xid, XAResource.TMSUCCESS);
         xaRes.commit(xid, true);
 
-        assertTrue(!conn.getAutoCommit());
+        assertFalse("XaResource should have restored connection autocommit mode after commit or rollback to the initial state.", conn.getAutoCommit());
+
+        // Test true case
+        conn.setAutoCommit(true);
+
+        xid = new CustomXid(15);
+        xaRes.start(xid, XAResource.TMNOFLAGS);
+        xaRes.end(xid, XAResource.TMSUCCESS);
+        xaRes.commit(xid, true);
+
+        assertTrue("XaResource should have restored connection autocommit mode after commit or rollback to the initial state.", conn.getAutoCommit());
+
+    }
+
+    public void testRestoreOfAutoCommitEndThenJoin() throws Exception {
+        // Test with TMJOIN
+        conn.setAutoCommit(true);
+
+        Xid xid = new CustomXid(16);
+        xaRes.start(xid, XAResource.TMNOFLAGS);
+        xaRes.end(xid, XAResource.TMSUCCESS);
+        xaRes.start(xid, XAResource.TMJOIN);
+        xaRes.end(xid, XAResource.TMSUCCESS);
+        xaRes.commit(xid, true);
+
+        assertTrue("XaResource should have restored connection autocommit mode after start(TMNOFLAGS) end() start(TMJOIN) and then commit or rollback to the initial state.", conn.getAutoCommit());
+
     }
     
     /**
