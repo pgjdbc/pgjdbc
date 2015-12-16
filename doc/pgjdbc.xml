@@ -1045,6 +1045,16 @@ openssl pkcs8 -topk8 -in client.key -out client.pk8 -outform DER -v1 PBE-SHA1-3D
       </varlistentry>
 
       <varlistentry>
+       <term><varname>strictTimestamp</varname> = <type>int</type></term>
+       <listitem>
+        <para>
+          Specifies whether setTimestamp(int, java.sql.Timestamp) method produces TIMESTAMP SQL value strictly according to JDBC specification.
+          It is off by default because of compatibility with huge amount of third party code, wich relies on non standard timestamp with timezone type while working via JDBC.
+        </para>
+       </listitem>
+      </varlistentry>
+
+      <varlistentry>
        <term><varname>loadBalanceHosts</varname> = <type>boolean</type></term>
        <listitem>
         <para>

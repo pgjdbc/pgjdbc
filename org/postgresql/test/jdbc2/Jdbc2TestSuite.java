@@ -62,6 +62,7 @@ public class Jdbc2TestSuite extends TestSuite
         suite.addTestSuite(TimezoneTest.class);
         suite.addTestSuite(PGTimeTest.class);
         suite.addTestSuite(PGTimestampTest.class);
+        suite.addTestSuite(JdbcTimestampTest.class);
 
         // PreparedStatement
         suite.addTestSuite(PreparedStatementTest.class);
