@@ -56,26 +56,26 @@ public class JdbcTimestampTest extends TestCase
     }
 
     public void testParameterIsNull() throws SQLException{
-        long now = System.currentTimeMillis();
+        long moment = 1450276739098L;
         PreparedStatement insertStmt = con.prepareStatement("INSERT INTO " + TEST_TABLE + " VALUES (?, ?)");
-        insertStmt.setTimestamp(1, new java.sql.Timestamp(now++));
-        insertStmt.setTimestamp(2, new java.sql.Timestamp(now++));
+        insertStmt.setTimestamp(1, new java.sql.Timestamp(moment++));
+        insertStmt.setTimestamp(2, new java.sql.Timestamp(moment++));
         assertEquals(1, insertStmt.executeUpdate());
-        insertStmt.setTimestamp(1, new java.sql.Timestamp(now++));
-        insertStmt.setTimestamp(2, new java.sql.Timestamp(now++));
+        insertStmt.setTimestamp(1, new java.sql.Timestamp(moment++));
+        insertStmt.setTimestamp(2, new java.sql.Timestamp(moment++));
         assertEquals(1, insertStmt.executeUpdate());
-        insertStmt.setTimestamp(1, new java.sql.Timestamp(now++));
-        insertStmt.setTimestamp(2, new java.sql.Timestamp(now++));
+        insertStmt.setTimestamp(1, new java.sql.Timestamp(moment++));
+        insertStmt.setTimestamp(2, new java.sql.Timestamp(moment++));
         assertEquals(1, insertStmt.executeUpdate());
         insertStmt.close();
         PreparedStatement selectStmt = con.prepareStatement("Select * from " + TEST_TABLE + " Where ts = ? or ? is null");
-        selectStmt.setTimestamp(1, new java.sql.Timestamp(now++));
-        selectStmt.setTimestamp(2, new java.sql.Timestamp(now++));
+        selectStmt.setTimestamp(1, new java.sql.Timestamp(moment++));
+        selectStmt.setTimestamp(2, new java.sql.Timestamp(moment++));
         ResultSet rs1 = selectStmt.executeQuery();
         assertFalse(rs1.next());
         rs1.close();
         
-        selectStmt.setTimestamp(1, new java.sql.Timestamp(now++));
+        selectStmt.setTimestamp(1, new java.sql.Timestamp(moment++));
         selectStmt.setTimestamp(2, null);
         ResultSet rs2 = selectStmt.executeQuery();
         assertTrue(rs2.next());
@@ -95,15 +95,15 @@ public class JdbcTimestampTest extends TestCase
      */
     public void testTimeInsertAndSelect() throws SQLException
     {
-        final long now = System.currentTimeMillis();
-        verifyInsertAndSelect(new PGTimestamp(now), true);
-        verifyInsertAndSelect(new PGTimestamp(now), false);
+        final long moment = 1450276827047L;
+        verifyInsertAndSelect(new PGTimestamp(moment), true);
+        verifyInsertAndSelect(new PGTimestamp(moment), false);
 
-        verifyInsertAndSelect(new PGTimestamp(now, Calendar.getInstance(TimeZone.getTimeZone("GMT"))), true);
-        verifyInsertAndSelect(new PGTimestamp(now, Calendar.getInstance(TimeZone.getTimeZone("GMT"))), false);
+        verifyInsertAndSelect(new PGTimestamp(moment, Calendar.getInstance(TimeZone.getTimeZone("GMT"))), true);
+        verifyInsertAndSelect(new PGTimestamp(moment, Calendar.getInstance(TimeZone.getTimeZone("GMT"))), false);
 
-        verifyInsertAndSelect(new PGTimestamp(now, Calendar.getInstance(TimeZone.getTimeZone("GMT+01:00"))), true);
-        verifyInsertAndSelect(new PGTimestamp(now, Calendar.getInstance(TimeZone.getTimeZone("GMT+01:00"))), false);
+        verifyInsertAndSelect(new PGTimestamp(moment, Calendar.getInstance(TimeZone.getTimeZone("GMT+01:00"))), true);
+        verifyInsertAndSelect(new PGTimestamp(moment, Calendar.getInstance(TimeZone.getTimeZone("GMT+01:00"))), false);
     }
 
     /**
