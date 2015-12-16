@@ -48,6 +48,9 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
     private final ProtocolConnection protoConnection;
     /* Compatible version as xxyyzz form */
     private final int compatibleInt;
+    
+    /** Weither timestamp are strict JDBC timestamps (timestamp without time zone)*/
+    protected boolean strictTimestamp;
 
     /* Query that runs COMMIT */
     private final Query commitQuery;
@@ -261,6 +264,8 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
         // Initialize timestamp stuff
         timestampUtils = new TimestampUtils(haveMinimumServerVersion(ServerVersion.v7_4), haveMinimumServerVersion(ServerVersion.v8_2),
                                             !protoConnection.getIntegerDateTimes());
+        
+        strictTimestamp = PGProperty.STRICT_TIMESTAMP.getBoolean(info);
 
         // Initialize common queries.
         commitQuery = getQueryExecutor().createSimpleQuery("COMMIT");
@@ -316,6 +321,10 @@ public abstract class AbstractJdbc2Connection implements BaseConnection
 
     private final TimestampUtils timestampUtils;
     public TimestampUtils getTimestampUtils() { return timestampUtils; }
+    
+    public boolean isStrictTimestamp() {
+        return strictTimestamp;
+    }
 
     /*
      * The current type mappings

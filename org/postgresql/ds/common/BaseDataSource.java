@@ -684,6 +684,22 @@ public abstract class BaseDataSource implements Referenceable
     }
 
     /**
+     * @see PGProperty#STRICT_TIMESTAMP
+     */
+    public void setStrictTimestamp(boolean aValue)
+    {
+        PGProperty.STRICT_TIMESTAMP.set(properties, aValue);
+    }
+
+    /**
+     * @see PGProperty#STRICT_TIMESTAMP
+     */
+    public boolean getStrictTimestamp()
+    {
+        return PGProperty.STRICT_TIMESTAMP.getBoolean(properties);
+    }
+
+    /**
      * @see PGProperty#TCP_KEEP_ALIVE
      */
     public void setTcpKeepAlive(boolean enabled)

@@ -82,8 +82,8 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     // only for testing purposes. even single shot statements will use binary transfers
     private boolean forceBinaryTransfers = DEFAULT_FORCE_BINARY_TRANSFERS;
 
-    protected ArrayList<Query> batchStatements = null;
-    protected ArrayList<ParameterList> batchParameters = null;
+    protected List<Query> batchStatements = null;
+    protected List<ParameterList> batchParameters = null;
     protected final int resultsettype;   // the resultset type to return (ResultSet.TYPE_xxx)
     protected final int concurrency;   // is it updateable or not?     (ResultSet.CONCUR_xxx)
     protected int fetchdirection = ResultSet.FETCH_FORWARD;  // fetch direction hint (currently ignored)
@@ -131,7 +131,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
     public boolean wantsGeneratedKeysAlways = false;
 
     // The connection who created us
-    protected final BaseConnection connection;
+    protected final AbstractJdbc2Connection connection;
 
     /** The warnings chain. */
     protected SQLWarning warnings = null;
@@ -146,7 +146,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
 
     /** Timeout (in milliseconds) for a query */
     protected int timeout = 0;
-
+    
     protected boolean replaceProcessingEnabled = true;
 
     /** The current results. */
@@ -1283,7 +1283,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             break;
         case Types.TIME:
         case Types.TIMESTAMP:
-            oid = Oid.UNSPECIFIED;
+            oid = connection.isStrictTimestamp() ? Oid.TIMESTAMP : Oid.UNSPECIFIED;
             break;
         case Types.BIT:
             oid = Oid.BOOL;
@@ -3399,7 +3399,7 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
             return;
         }
 
-        int oid = Oid.UNSPECIFIED;
+        int oid;
 
         // Use UNSPECIFIED as a compromise to get both TIMESTAMP and TIMESTAMPTZ working.
         // This is because you get this in a +1300 timezone:
@@ -3440,11 +3440,13 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                 oid = Oid.TIMESTAMPTZ;
                 cal = pgTimestamp.getCalendar();
             }
+        } else {
+            oid = connection.isStrictTimestamp() ? Oid.TIMESTAMP : Oid.UNSPECIFIED;
         }
 
         bindString(i, connection.getTimestampUtils().toString(cal, t), oid);
     }
-
+    
     // ** JDBC 2 Extensions for CallableStatement**
 
     public java.sql.Array getArray(int i) throws SQLException
