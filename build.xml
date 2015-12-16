@@ -733,6 +733,7 @@ Import-Package: javax.sql, javax.transaction.xa, javax.naming, *;resolution:=opt
       <test name="org.postgresql.test.hostchooser.MultiHostSuite" outfile="${testResultsDir}/hostchooser"/>
       <test name="org.postgresql.test.ssl.SslTestSuite" outfile="${testResultsDir}/ssl"/>
       <test name="org.postgresql.test.ssl.SingleCertValidatingFactoryTest" outfile="${testResultsDir}/scsf-ssl"/>
+      <test name="org.postgresql.test.socketfactory.SocketFactoryTest" outfile="${testResultsDir}/socketfactory"/>
     </junit>
     <fail if="test.fail" message="Some tests are in failure or error"/>
   </target>
