@@ -59,7 +59,6 @@ import org.postgresql.core.ServerVersion;
 import org.postgresql.core.v3.QueryExecutorImpl;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
-import org.postgresql.PGProperty;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.HStoreConverter;
@@ -3442,66 +3441,10 @@ public abstract class AbstractJdbc2Statement implements BaseStatement
                 cal = pgTimestamp.getCalendar();
             }
         } else {
-            if(connection.isStrictTimestamp()){
-                oid = Oid.TIMESTAMP;
-                if (cal != null){
-                    t = convertTimestamp(t, cal);
-                    cal = null;// cal from client code should not be visible by further code.
-                }
-            }else{
-                oid = Oid.UNSPECIFIED;
-            }
+            oid = connection.isStrictTimestamp() ? Oid.TIMESTAMP : Oid.UNSPECIFIED;
         }
 
         bindString(i, connection.getTimestampUtils().toString(cal, t), oid);
-    }
-
-    /**
-     * Convert the timestamp to the specified time zone.
-     * Note. Adopted from h2 jdbc driver.
-     * @param value the timestamp (might be ValueNull)
-     * @param calendar the calendar
-     * @return the timestamp using the correct time zone
-     */
-    public static Timestamp convertTimestamp(Timestamp value, java.util.Calendar calendar) {
-        java.util.Calendar cal = (java.util.Calendar) calendar.clone();
-        cal.clear();
-        cal.setLenient(true);
-        long dateValue = value.getTime();
-        long nanos = value.getNanos();
-        long millis = nanos / 1000000;
-        nanos -= millis * 1000000;
-        long s = millis / 1000;
-        millis -= s * 1000;
-        long m = s / 60;
-        s -= m * 60;
-        long h = m / 60;
-        m -= h * 60;
-        
-       int year = (int)(dateValue >>> 9);
-       int month = (int) ((dateValue >>> 5) & 15);
-       int day = (int) (dateValue & 31);
-       
-       if (year <= 0) {
-            cal.set(java.util.Calendar.ERA, java.util.GregorianCalendar.BC);
-            cal.set(java.util.Calendar.YEAR, 1 - year);
-        } else {
-            cal.set(java.util.Calendar.ERA, java.util.GregorianCalendar.AD);
-            cal.set(java.util.Calendar.YEAR, year);
-        }
-        
-        // january is 0
-        cal.set(java.util.Calendar.MONTH, month - 1);
-        cal.set(java.util.Calendar.DAY_OF_MONTH, day);
-        cal.set(java.util.Calendar.HOUR_OF_DAY, (int)h);
-        cal.set(java.util.Calendar.MINUTE, (int)m);
-        cal.set(java.util.Calendar.SECOND, (int)s);
-        cal.set(java.util.Calendar.MILLISECOND, (int)millis);
-        
-        long ms = cal.getTimeInMillis();
-        Timestamp x = new Timestamp(ms);
-        x.setNanos((int) (nanos + millis * 1000000));
-        return x;
     }
     
     // ** JDBC 2 Extensions for CallableStatement**

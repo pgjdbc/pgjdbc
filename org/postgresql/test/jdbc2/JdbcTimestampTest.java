@@ -58,31 +58,33 @@ public class JdbcTimestampTest extends TestCase
     public void testParameterIsNull() throws SQLException{
         long moment = 1450276739098L;
         PreparedStatement insertStmt = con.prepareStatement("INSERT INTO " + TEST_TABLE + " VALUES (?, ?)");
-        insertStmt.setTimestamp(1, new java.sql.Timestamp(moment++));
-        insertStmt.setTimestamp(2, new java.sql.Timestamp(moment++));
-        assertEquals(1, insertStmt.executeUpdate());
-        insertStmt.setTimestamp(1, new java.sql.Timestamp(moment++));
-        insertStmt.setTimestamp(2, new java.sql.Timestamp(moment++));
-        assertEquals(1, insertStmt.executeUpdate());
-        insertStmt.setTimestamp(1, new java.sql.Timestamp(moment++));
-        insertStmt.setTimestamp(2, new java.sql.Timestamp(moment++));
-        assertEquals(1, insertStmt.executeUpdate());
+        int testRows = 3;
+        for(int i = 0; i < testRows; i++){
+            insertStmt.setTimestamp(1, new java.sql.Timestamp(moment++));
+            insertStmt.setTimestamp(2, new java.sql.Timestamp(moment++));
+            assertEquals("insert in " + TEST_TABLE + " failed", 1, insertStmt.executeUpdate());
+        }
         insertStmt.close();
         PreparedStatement selectStmt = con.prepareStatement("Select * from " + TEST_TABLE + " Where ts = ? or ? is null");
         selectStmt.setTimestamp(1, new java.sql.Timestamp(moment++));
         selectStmt.setTimestamp(2, new java.sql.Timestamp(moment++));
         ResultSet rs1 = selectStmt.executeQuery();
-        assertFalse(rs1.next());
+        int rows1 = 0;
+        while(rs1.next()){
+            ++rows1;
+        }
         rs1.close();
+        assertEquals("Particular moment is found in " + TEST_TABLE, 0, rows1);
         
         selectStmt.setTimestamp(1, new java.sql.Timestamp(moment++));
         selectStmt.setTimestamp(2, null);
         ResultSet rs2 = selectStmt.executeQuery();
-        assertTrue(rs2.next());
-        assertTrue(rs2.next());
-        assertTrue(rs2.next());
-        assertFalse(rs2.next());
+        int rows2 = 0;
+        while(rs2.next()){
+            ++rows2;
+        }
         rs2.close();
+        assertEquals("Not all records are fetched from " + TEST_TABLE, testRows, rows2);
         selectStmt.close();
     }
     
