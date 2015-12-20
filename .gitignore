@@ -7,7 +7,19 @@ jars
 nbproject
 .idea
 *.iml
-build.local.properties
+*.ipr
+*.iws
+*.local.properties
 *-dist.zip
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
 
-ubenchmark/target
+# Ignore folders used to build binaries for old Java
+/pgjdbc-jre6
+/pgjdbc-jre7
