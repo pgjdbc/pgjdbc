@@ -75,10 +75,7 @@ public class DriverTest extends TestCase
         assertEquals(url, ports, p.getProperty("PGPORT"));
     }
 
-    /*
-     * Tests parseURL (internal)
-     */
-    /*
+    /**
      * Tests the connect method by connecting to the test database
      */
     public void testConnect() throws Exception
@@ -96,11 +93,19 @@ public class DriverTest extends TestCase
         con.close();
         
         // Test with failover url
-        String url = "jdbc:postgresql://invalidhost.not.here," + TestUtil.getServer() + ":" + TestUtil.getPort() + "/" + TestUtil.getDatabase();
-        con = DriverManager.getConnection(url, TestUtil.getUser(), TestUtil.getPassword());
+    }
+
+    /**
+     * Tests that pgjdbc performs connection failover if unable to connect to the first host in the URL.
+     *
+     * @throws Exception if something wrong happens
+     */
+    public void testConnectFailover() throws Exception
+    {
+        String url = "jdbc:postgresql://invalidhost.not.here," + TestUtil.getServer() + ":" + TestUtil.getPort() + "/" + TestUtil.getDatabase() + "?connectTimeout=5";
+        Connection con = DriverManager.getConnection(url, TestUtil.getUser(), TestUtil.getPassword());
         assertNotNull(con);
         con.close();
-
     }
 	
     /*
