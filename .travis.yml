@@ -4,12 +4,12 @@ language: java
 before_script:
   - psql -U postgres -c "create user test with password 'test';"
   - psql -c 'create database test owner test;' -U postgres
-  - echo "MAVEN_OPTS='-Xmx1g'" > ~/.mavenrc
+  - echo "MAVEN_OPTS='-Xmx1g -Dgpg.skip=true'" > ~/.mavenrc
 
 env:
   global:
-    - secure: "2Y1byuAHollEQCOKjEfairV2AQoeXXThscmY+q1AtQTDl87ujlTbqAAn4Ou1wIkXR+EwmJceV5j+svH9m0YYrMRDMxPgSoEsIAcCREwK0IJ4lI0a8Rgox4JTDZPQ0bN1jTCNNieyWwz18n7G8NsEBMfrpl1rS5lv7KWTg9ddjq4="
-    - secure: "6qt9AryWWe97s4B5ZbPn64lfKsRrEjCQV/bBbjA35FTwjDSLjZYrcDQ8YmPPHvzdp8AiZlL5BdM1C3V+PC/mcFFiKfJEHm9JcQRgN5s8LZrHy8RX58HHBKWSb1Z3govlniZXiz7vYNxHLT5GC1VouzI0z3PSOpXP22qcMWlSGUc="
+    - secure: "3HRd+UJQzXoxmBAiJ8SLFuYK8NvMVgIs0erfcPdgvtfFGTPkH3XMONfNr2VE2uz6qwUB5GWkVzvS4c9CPbnnft9QhyYeeUINiqQMN5+6AN5re3C2D7VQMm3NSB+T2R6zS/18UZW5tIoTJILgl5oRCQFI7RSpqhvZ8nqPxJ4gptI="
+    - secure: "VrNgbyKQi5HjSMZfkt/zwG+AHk1NW1b+f3Jo1ZH7DCqcgLApwvp4MNsw+XamqHxudjj3Z8+4bYBxG2H6zIOobIyYhBvxUwMq7HTjM4jH8m5phqvQIWZOzZzqguYNNS7JJQUpIMwR7wTuHqucVfMxljoSuXQbs+0BUxo4Eh+FScQ="
 
 script:
   # make sure previous build artifacts are not used for subsequent builds
