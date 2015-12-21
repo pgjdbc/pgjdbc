@@ -98,7 +98,13 @@ Note: all the source code is stored in `pgjdbc.git` repository, so just `pgjdbc.
 After checking out the code you can compile and test the PgJDBC driver by running the following
 on a command line:
 
-    mvn clean package
+    mvn package
+
+Note: if you want to skip test execution, issue `mvn package -DskipTests`.
+
+Note: in certain cases, proper build requires cleaning the results of previous one.
+For instance, if you remove a `.java` file, then clean is required to remove the relevant `.class` file.
+In such cases, use `mvn clean` or `mvn clean package`.
 
 PgJDBC doesn't natively support compilation from IDEs like Eclipse, NetBeans or
 IntelliJ. However you can use the tools Maven support from within the IDE if you wish. 
