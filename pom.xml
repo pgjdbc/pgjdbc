@@ -22,7 +22,7 @@
     <scm>
         <url>https://github.com/pgjdbc/pgjdbc</url>
         <connection>scm:git:https://github.com/pgjdbc/pgjdbc.git</connection>
-        <developerConnection>scm:git:git@github.com/pgjdbc/pgjdbc.git</developerConnection>
+        <developerConnection>scm:git:git@github.com:pgjdbc/pgjdbc.git</developerConnection>
     </scm>
 
 </project>
