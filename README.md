@@ -24,36 +24,36 @@ from the [Postgresql JDBC site](http://jdbc.postgresql.org/) or using your chose
 <dependency>
   <groupId>org.postgresql</groupId>
   <artifactId>postgresql</artifactId>
-  <version>9.4-1206-jdbc42</version> <!-- Java 8 -->
-  <version>9.4-1206-jdbc41</version> <!-- Java 7 -->
-  <version>9.4.1206-jdbc4</version> <!-- Java 6 -->
+  <version>9.4.1207</version> <!-- Java 8 -->
+  <version>9.4.1207.jre7</version> <!-- Java 7 -->
+  <version>9.4.1207.jre6</version> <!-- Java 6 -->
 </dependency>
 ```
 ### Gradle
 Java 8:
 ```
-'org.postgresql:postgresql:9.4-1206-jdbc42'
+'org.postgresql:postgresql:9.4.1207'
 ```
 Java 7:
 ```
-'org.postgresql:postgresql:9.4-1206-jdbc41'
+'org.postgresql:postgresql:9.4.1207.jre7'
 ```
 Java 6:
 ```
-'org.postgresql:postgresql:9.4-1206-jdbc4'
+'org.postgresql:postgresql:9.4.1207.jre6'
 ```
 ### Ivy
 Java 8:
 ```xml
-<dependency org="org.postgresql" name="postgresql" rev="9.4-1206-jdbc4"/>
+<dependency org="org.postgresql" name="postgresql" rev="9.4.1207"/>
 ```
 Java 7:
 ```xml
-<dependency org="org.postgresql" name="postgresql" rev="9.4-1206-jdbc4"/>
+<dependency org="org.postgresql" name="postgresql" rev="9.4.1207.jre7"/>
 ```
 Java 6:
 ```xml
-<dependency org="org.postgresql" name="postgresql" rev="9.4-1206-jdbc4"/>
+<dependency org="org.postgresql" name="postgresql" rev="9.4.1207.jre6"/>
 ```
 
 ### Development snapshots
@@ -63,9 +63,9 @@ Snapshot builds (builds from `master` branch) are deployed to Maven Central, so 
 <dependency>
   <groupId>org.postgresql</groupId>
   <artifactId>postgresql</artifactId>
-  <version>9.4.1207-SNAPSHOT</version> <!-- Java 8 -->
-  <version>9.4.1207-jre7-SNAPSHOT</version> <!-- Java 7 -->
-  <version>9.4.1207-jre6-SNAPSHOT</version> <!-- Java 6 -->
+  <version>9.4.1208-SNAPSHOT</version> <!-- Java 8 -->
+  <version>9.4.1208.jre7-SNAPSHOT</version> <!-- Java 7 -->
+  <version>9.4.1208.jre6-SNAPSHOT</version> <!-- Java 6 -->
 </dependency>
 ```
 
