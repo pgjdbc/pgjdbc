@@ -13,6 +13,7 @@ import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.security.PrivateKey;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -123,7 +124,7 @@ public class LazyKeyManager implements X509KeyManager {
         error = new PSQLException(GT.tr("Could not find a java cryptographic algorithm: X.509 CertificateFactory not available.", null), PSQLState.CONNECTION_FAILURE, ex);
         return null;
       }
-      Collection certs;
+      Collection<? extends Certificate> certs;
       try
       {
         certs = cf.generateCertificates(new FileInputStream(certfile));
@@ -139,7 +140,7 @@ public class LazyKeyManager implements X509KeyManager {
         error = new PSQLException(GT.tr("Loading the SSL certificate {0} into a KeyManager failed.", new Object[]{certfile}), PSQLState.CONNECTION_FAILURE, gsex);
         return null;
       } 
-      cert = (X509Certificate[]) certs.toArray(new X509Certificate[certs.size()]);
+      cert = certs.toArray(new X509Certificate[certs.size()]);
     }    
     return cert;
   }

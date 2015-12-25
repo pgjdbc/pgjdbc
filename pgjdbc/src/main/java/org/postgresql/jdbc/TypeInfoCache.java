@@ -28,25 +28,25 @@ import org.postgresql.util.PSQLState;
 public class TypeInfoCache implements TypeInfo {
 
     // pgname (String) -> java.sql.Types (Integer)
-    private Map _pgNameToSQLType;
+    private Map<String, Integer> _pgNameToSQLType;
 
     // pgname (String) -> java class name (String)
     // ie "text" -> "java.lang.String"
-    private Map _pgNameToJavaClass;
+    private Map<String, String> _pgNameToJavaClass;
 
     // oid (Integer) -> pgname (String)
-    private Map _oidToPgName;
+    private Map<Integer, String> _oidToPgName;
     // pgname (String) -> oid (Integer)
-    private Map _pgNameToOid;
+    private Map<String, Integer> _pgNameToOid;
 
     // pgname (String) -> extension pgobject (Class)
-    private Map _pgNameToPgObject;
+    private Map<String, Class<? extends PGobject>> _pgNameToPgObject;
 
     // type array oid -> base type's oid
-    private Map/*<Integer, Integer>*/ _pgArrayToPgType;
+    private Map<Integer, Integer> _pgArrayToPgType;
 
     // array type oid -> base type array element delimiter
-    private Map/*<Integer, Character>*/ _arrayOidToDelimiter;
+    private Map<Integer, Character> _arrayOidToDelimiter;
 
     private BaseConnection _conn;
     private final int _unknownLength;
@@ -95,9 +95,9 @@ public class TypeInfoCache implements TypeInfo {
      * against pg_catalog, we must use the real type, not an alias, so
      * use this mapping.
      */
-    private final static HashMap typeAliases;
+    private final static HashMap<String, String> typeAliases;
     static {
-        typeAliases = new HashMap();
+        typeAliases = new HashMap<String, String>();
         typeAliases.put("smallint", "int2");
         typeAliases.put("integer", "int4");
         typeAliases.put("int", "int4");
@@ -111,16 +111,16 @@ public class TypeInfoCache implements TypeInfo {
     {
         _conn = conn;
         _unknownLength = unknownLength;
-        _oidToPgName = new HashMap();
-        _pgNameToOid = new HashMap();
-        _pgNameToJavaClass = new HashMap();
-        _pgNameToPgObject = new HashMap();
-        _pgArrayToPgType = new HashMap();
-        _arrayOidToDelimiter = new HashMap();
+        _oidToPgName = new HashMap<Integer, String>();
+        _pgNameToOid = new HashMap<String, Integer>();
+        _pgNameToJavaClass = new HashMap<String, String>();
+        _pgNameToPgObject = new HashMap<String, Class<? extends PGobject>>();
+        _pgArrayToPgType = new HashMap<Integer, Integer>();
+        _arrayOidToDelimiter = new HashMap<Integer, Character>();
 
         // needs to be synchronized because the iterator is returned
         // from getPGTypeNamesWithSQLTypes()
-        _pgNameToSQLType = Collections.synchronizedMap(new HashMap());
+        _pgNameToSQLType = Collections.synchronizedMap(new HashMap<String, Integer>());
 
         for (Object[] type : types) {
             String pgTypeName = (String) type[0];
@@ -161,16 +161,13 @@ public class TypeInfoCache implements TypeInfo {
     }
 
 
-    public synchronized void addDataType(String type, Class klass) throws SQLException
+    public synchronized void addDataType(String type, Class<? extends PGobject> klass) throws SQLException
     {
-        if (!PGobject.class.isAssignableFrom(klass))
-            throw new PSQLException(GT.tr("The class {0} does not implement org.postgresql.util.PGobject.", klass.toString()), PSQLState.INVALID_PARAMETER_TYPE);
-
         _pgNameToPgObject.put(type, klass);
         _pgNameToJavaClass.put(type, klass.getName());
     }
 
-    public Iterator getPGTypeNamesWithSQLTypes()
+    public Iterator<String> getPGTypeNamesWithSQLTypes()
     {
         return _pgNameToSQLType.keySet().iterator();
     }
@@ -184,7 +181,7 @@ public class TypeInfoCache implements TypeInfo {
     {
         if (pgTypeName.endsWith("[]"))
             return Types.ARRAY;
-        Integer i = (Integer)_pgNameToSQLType.get(pgTypeName);
+        Integer i = _pgNameToSQLType.get(pgTypeName);
         if (i != null)
             return i;
 
@@ -354,7 +351,7 @@ public class TypeInfoCache implements TypeInfo {
 
     public synchronized int getPGType(String pgTypeName) throws SQLException
     {
-        Integer oid = (Integer)_pgNameToOid.get(pgTypeName);
+        Integer oid = _pgNameToOid.get(pgTypeName);
         if (oid != null)
             return oid;
 
@@ -381,7 +378,7 @@ public class TypeInfoCache implements TypeInfo {
         if (oid == Oid.UNSPECIFIED)
             return null;
 
-        String pgTypeName = (String)_oidToPgName.get(oid);
+        String pgTypeName = _oidToPgName.get(oid);
         if (pgTypeName != null)
             return pgTypeName;
 
@@ -446,7 +443,7 @@ public class TypeInfoCache implements TypeInfo {
      */
     protected synchronized int convertArrayToBaseOid(int oid)
     {
-        Integer i = (Integer)_pgArrayToPgType.get(oid);
+        Integer i = _pgArrayToPgType.get(oid);
         if (i == null)
             return oid;
         return i;
@@ -457,7 +454,7 @@ public class TypeInfoCache implements TypeInfo {
         if (oid == Oid.UNSPECIFIED)
             return ',';
 
-        Character delim = (Character) _arrayOidToDelimiter.get(oid);
+        Character delim = _arrayOidToDelimiter.get(oid);
         if (delim != null)
             return delim;
 
@@ -496,7 +493,7 @@ public class TypeInfoCache implements TypeInfo {
         if (oid == Oid.UNSPECIFIED)
             return Oid.UNSPECIFIED;
 
-        Integer pgType = (Integer) _pgArrayToPgType.get(oid);
+        Integer pgType = _pgArrayToPgType.get(oid);
 
         if (pgType != null)
             return pgType;
@@ -541,16 +538,16 @@ public class TypeInfoCache implements TypeInfo {
         return pgType;
     }
 
-    public synchronized Class getPGobject(String type)
+    public synchronized Class<? extends PGobject> getPGobject(String type)
     {
-        return (Class)_pgNameToPgObject.get(type);
+        return _pgNameToPgObject.get(type);
     }
 
     public synchronized String getJavaClass(int oid) throws SQLException
     {
         String pgTypeName = getPGType(oid);
 
-        String result = (String)_pgNameToJavaClass.get(pgTypeName);
+        String result = _pgNameToJavaClass.get(pgTypeName);
         if (result != null) {
             return result;
         }
@@ -564,11 +561,11 @@ public class TypeInfoCache implements TypeInfo {
     }
 
     public String getTypeForAlias(String alias) {
-        String type = (String) typeAliases.get(alias);
+        String type = typeAliases.get(alias);
         if (type != null)
             return type;
         if (alias.indexOf('"') == -1) {
-            type = (String) typeAliases.get(alias.toLowerCase());
+            type = typeAliases.get(alias.toLowerCase());
             if (type != null)
                 return type;
         }

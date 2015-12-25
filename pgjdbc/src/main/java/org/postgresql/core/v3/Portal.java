@@ -46,7 +46,7 @@ class Portal implements ResultCursor {
         return query;
     }
 
-    void setCleanupRef(PhantomReference cleanupRef) {
+    void setCleanupRef(PhantomReference<?> cleanupRef) {
         this.cleanupRef = cleanupRef;
     }
 
@@ -63,5 +63,5 @@ class Portal implements ResultCursor {
     private final SimpleQuery query;
     private final String portalName;
     private final byte[] encodedName;
-    private PhantomReference cleanupRef;
+    private PhantomReference<?> cleanupRef;
 }

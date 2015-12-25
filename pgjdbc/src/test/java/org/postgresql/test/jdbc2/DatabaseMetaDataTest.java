@@ -1162,7 +1162,7 @@ public class DatabaseMetaDataTest extends TestCase
     {
         DatabaseMetaData dbmd = con.getMetaData();
         ResultSet rs = dbmd.getTypeInfo();
-        Map types = new HashMap();
+        Map<String, Boolean> types = new HashMap<String, Boolean>();
         
         while (rs.next()) 
         {

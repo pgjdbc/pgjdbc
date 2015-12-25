@@ -11,8 +11,8 @@ import java.util.Map.Entry;
 import org.postgresql.core.Encoding;
 
 public class HStoreConverter {
-   public static Map fromBytes(byte[] b, Encoding encoding) throws SQLException {
-       Map m = new HashMap();
+   public static Map<String, String> fromBytes(byte[] b, Encoding encoding) throws SQLException {
+       Map<String, String> m = new HashMap<String, String>();
        int pos = 0;
        int numElements = ByteConverter.int4(b, pos); pos+=4;
        try {
@@ -36,13 +36,12 @@ public class HStoreConverter {
        return m;
    }
    
-   public static byte[] toBytes(Map m, Encoding encoding) throws SQLException {
+   public static byte[] toBytes(Map<?, ?> m, Encoding encoding) throws SQLException {
        ByteArrayOutputStream baos = new ByteArrayOutputStream(4 + 10 * m.size());
        byte[] lenBuf = new byte[4];
        try {
            ByteConverter.int4(lenBuf, 0, m.size()); baos.write(lenBuf);
-           for (Object o : m.entrySet()) {
-               Entry e = (Entry) o;
+           for (Entry<?, ?> e : m.entrySet()) {
                byte[] key = encoding.encode(e.getKey().toString());
                ByteConverter.int4(lenBuf, 0, key.length);
                baos.write(lenBuf);
@@ -66,13 +65,12 @@ public class HStoreConverter {
        return baos.toByteArray();
    }
 
-   public static String toString(Map map) {
+   public static String toString(Map<?, ?> map) {
        if (map.isEmpty()) {
            return "";
        }
        StringBuilder sb = new StringBuilder(map.size() * 8);
-       for (Object o : map.entrySet()) {
-           Entry e = (Entry) o;
+       for (Entry<?, ?> e : map.entrySet()) {
            appendEscaped(sb, e.getKey());
            sb.append("=>");
            appendEscaped(sb, e.getValue());
@@ -99,8 +97,8 @@ public class HStoreConverter {
       }
    }
 
-   public static Map fromString(String s) {
-       Map m = new HashMap();
+   public static Map<String, String> fromString(String s) {
+       Map<String, String> m = new HashMap<String, String>();
        int pos = 0;
        StringBuilder sb = new StringBuilder();
        while (pos < s.length()) {

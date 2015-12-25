@@ -11,6 +11,7 @@ import java.sql.*;
 import org.postgresql.copy.CopyManager;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.largeobject.LargeObjectManager;
+import org.postgresql.util.PGobject;
 
 /**
  *  This interface defines the public PostgreSQL extensions to
@@ -98,7 +99,7 @@ public interface PGConnection
      *
      * @see org.postgresql.util.PGobject
      */
-    public void addDataType(String type, Class klass)
+    public void addDataType(String type, Class<? extends PGobject> klass)
     throws SQLException;
 
     /**

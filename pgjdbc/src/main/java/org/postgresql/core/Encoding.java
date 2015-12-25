@@ -26,7 +26,7 @@ public class Encoding
     /*
      * Preferred JVM encodings for backend encodings.
      */
-    private static final HashMap encodings = new HashMap();
+    private static final HashMap<String, String[]> encodings = new HashMap<String, String[]>();
 
     static {
         //Note: this list should match the set of supported server
@@ -125,7 +125,7 @@ public class Encoding
         // encoding in the JVM we use that. Otherwise we fall back
         // to the default encoding of the JVM.
 
-        String[] candidates = (String[]) encodings.get(databaseEncoding);
+        String[] candidates = encodings.get(databaseEncoding);
         if (candidates != null)
         {
             for (String candidate : candidates) {

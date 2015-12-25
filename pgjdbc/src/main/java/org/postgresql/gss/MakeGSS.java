@@ -31,7 +31,7 @@ public class MakeGSS
         if (logger.logDebug())
             logger.debug(" <=BE AuthenticationReqGSS");
 
-        Object result = null;
+        Exception result = null;
 
         if (jaasApplicationName == null)
             jaasApplicationName = "pgjdbc";
@@ -54,7 +54,7 @@ public class MakeGSS
                 lc.login();
                 sub = lc.getSubject();
             }
-            PrivilegedAction action = new GssAction(pgStream, gssCredential, host, user, password, kerberosServerName, logger, useSpnego);
+            PrivilegedAction<Exception> action = new GssAction(pgStream, gssCredential, host, user, password, kerberosServerName, logger, useSpnego);
 
             result = Subject.doAs(sub, action);
         } catch (Exception e) {
@@ -66,13 +66,13 @@ public class MakeGSS
         else if (result instanceof SQLException)
             throw (SQLException)result;
         else if (result != null)
-            throw new PSQLException(GT.tr("GSS Authentication failed"), PSQLState.CONNECTION_FAILURE, (Exception)result);
+            throw new PSQLException(GT.tr("GSS Authentication failed"), PSQLState.CONNECTION_FAILURE, result);
 
     }
 
 }
 
-class GssAction implements PrivilegedAction
+class GssAction implements PrivilegedAction<Exception>
 {
     private final PGStream pgStream;
     private final String host;
@@ -110,7 +110,7 @@ class GssAction implements PrivilegedAction
         return false;
     }
 
-    public Object run() {
+    public Exception run() {
 
         try {
 

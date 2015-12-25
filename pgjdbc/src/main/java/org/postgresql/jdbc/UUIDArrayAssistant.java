@@ -7,7 +7,7 @@ import java.util.UUID;
 
 public class UUIDArrayAssistant implements ArrayAssistant {
     @Override
-    public Class baseType() {
+    public Class<?> baseType() {
         return UUID.class;
     }
 

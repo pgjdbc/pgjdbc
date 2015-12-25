@@ -92,17 +92,17 @@ public class SslTest extends TestCase {
     String[] csslmode = {"disable","allow","prefer","require","verify-ca","verify-full"};
     
     TestSuite suite = new TestSuite();
-    Map expected = (Map)expectedmap.get(param);
+    Map<String, Object[]> expected = expectedmap.get(param);
     if (expected == null) {;expected = defaultexpected;}
     int j=0;
     for (int i=0; i<csslmode.length; i++)
     {
-      suite.addTest(new SslTest(param + "-"+csslmode[i]+"GG2",certdir,sconnstr,csslmode[i],2,true, true,sprefix,(Object[])expected.get(csslmode[i]+"GG")));
-      suite.addTest(new SslTest(param + "-"+csslmode[i]+"GG3",certdir,sconnstr,csslmode[i],3,true, true,sprefix,(Object[])expected.get(csslmode[i]+"GG")));
-      suite.addTest(new SslTest(param + "-"+csslmode[i]+"GB2",certdir,sconnstr,csslmode[i],2,true,false,sprefix,(Object[])expected.get(csslmode[i]+"GB")));
-      suite.addTest(new SslTest(param + "-"+csslmode[i]+"GB3",certdir,sconnstr,csslmode[i],3,true,false,sprefix,(Object[])expected.get(csslmode[i]+"GB")));
-      suite.addTest(new SslTest(param + "-"+csslmode[i]+"BG2",certdir,sconnstr,csslmode[i],2,false,true,sprefix,(Object[])expected.get(csslmode[i]+"BG")));
-      suite.addTest(new SslTest(param + "-"+csslmode[i]+"BG3",certdir,sconnstr,csslmode[i],3,false,true,sprefix,(Object[])expected.get(csslmode[i]+"BG")));
+      suite.addTest(new SslTest(param + "-"+csslmode[i]+"GG2",certdir,sconnstr,csslmode[i],2,true, true,sprefix,expected.get(csslmode[i]+"GG")));
+      suite.addTest(new SslTest(param + "-"+csslmode[i]+"GG3",certdir,sconnstr,csslmode[i],3,true, true,sprefix,expected.get(csslmode[i]+"GG")));
+      suite.addTest(new SslTest(param + "-"+csslmode[i]+"GB2",certdir,sconnstr,csslmode[i],2,true,false,sprefix,expected.get(csslmode[i]+"GB")));
+      suite.addTest(new SslTest(param + "-"+csslmode[i]+"GB3",certdir,sconnstr,csslmode[i],3,true,false,sprefix,expected.get(csslmode[i]+"GB")));
+      suite.addTest(new SslTest(param + "-"+csslmode[i]+"BG2",certdir,sconnstr,csslmode[i],2,false,true,sprefix,expected.get(csslmode[i]+"BG")));
+      suite.addTest(new SslTest(param + "-"+csslmode[i]+"BG3",certdir,sconnstr,csslmode[i],3,false,true,sprefix,expected.get(csslmode[i]+"BG")));
     }
     return suite;
   }
@@ -111,8 +111,8 @@ public class SslTest extends TestCase {
     driver(makeConnStr(sslmode, goodclient, goodserver, protocol), expected);
   }
 
-  static Map expectedmap;
-  static TreeMap defaultexpected;
+  static Map<String, Map<String, Object[]>> expectedmap;
+  static TreeMap<String, Object[]> defaultexpected;
   
   //For some strange reason, the v2 driver begins these error messages by "Connection rejected: " but the v3 does not.
   //Also, for v2 there are two spaces after FATAL:, and the message ends with "\n.".
@@ -128,7 +128,7 @@ public class SslTest extends TestCase {
   static String HOSTNAME = "The hostname .* could not be verified.";
   static
   {
-    defaultexpected = new TreeMap();
+    defaultexpected = new TreeMap<String, Object[]>();
     defaultexpected.put("disableGG", new Object[]{null,Boolean.FALSE});
     defaultexpected.put("disableGB", new Object[]{null,Boolean.FALSE});
     defaultexpected.put("disableBG", new Object[]{null,Boolean.FALSE});
@@ -148,8 +148,8 @@ public class SslTest extends TestCase {
     defaultexpected.put("verify-fullGB", new Object[]{ANY,Boolean.TRUE});
     defaultexpected.put("verify-fullBG", new Object[]{null,Boolean.TRUE});
     
-    expectedmap = new TreeMap();
-    TreeMap work;
+    expectedmap = new TreeMap<String, Map<String, Object[]>>();
+    TreeMap<String, Object[]> work;
     
     work=(TreeMap)defaultexpected.clone();
     work.put("disableGG", new Object[]{null,Boolean.FALSE});

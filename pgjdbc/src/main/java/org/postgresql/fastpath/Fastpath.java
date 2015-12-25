@@ -38,7 +38,7 @@ public class Fastpath
 
     // This maps the functions names to their id's (possible unique just
     // to a connection).
-    private final Map func = new HashMap();
+    private final Map<String, Integer> func = new HashMap<String, Integer>();
     private final QueryExecutor executor;
     private final BaseConnection connection;
 
@@ -308,7 +308,7 @@ public class Fastpath
      */
     public int getID(String name) throws SQLException
     {
-        Integer id = (Integer)func.get(name);
+        Integer id = func.get(name);
 
         // may be we could add a lookup to the database here, and store the result
         // in our lookup table, throwing the exception if that fails.

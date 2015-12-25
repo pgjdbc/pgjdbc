@@ -17,12 +17,12 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
         super(connection, sql, true, rsType, rsConcurrency, rsHoldability);
     }
 
-    public Object getObject(int i, Map < String, Class < ? >> map) throws SQLException
+    public Object getObject(int i, Map<String, Class<?>> map) throws SQLException
     {
         return getObjectImpl(i, map);
     }
 
-    public Object getObject(String s, Map < String, Class < ? >> map) throws SQLException
+    public Object getObject(String s, Map<String, Class<?>> map) throws SQLException
     {
         return getObjectImpl(s, map);
     }

@@ -20,7 +20,7 @@ import javax.naming.spi.InitialContextFactory;
  */
 public class MiniJndiContextFactory implements InitialContextFactory
 {
-    public Context getInitialContext(Hashtable environment)
+    public Context getInitialContext(Hashtable<?,?> environment)
     throws NamingException
     {
         return new MiniJndiContext();

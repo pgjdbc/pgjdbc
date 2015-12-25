@@ -21,7 +21,7 @@ import org.postgresql.Driver;
  */
 public class PGBundleActivator implements BundleActivator
 {
-    private ServiceRegistration _registration;
+    private ServiceRegistration<?> _registration;
 
     public void start(BundleContext context) throws Exception
     {

@@ -72,7 +72,7 @@ public class GetXXXTest extends TestCase
         while (rs.next() )
         {
             // make this return a PGobject
-            Object obj = rs.getObject(1, new HashMap());
+            Object obj = rs.getObject(1, new HashMap<String, Class<?>>());
 
             // it should not be an instance of PGInterval
             assertTrue(obj instanceof org.postgresql.util.PGInterval);

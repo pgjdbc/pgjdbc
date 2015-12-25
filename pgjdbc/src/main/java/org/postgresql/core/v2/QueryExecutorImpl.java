@@ -62,7 +62,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                                         private boolean sawBegin = false;
                                         private SQLException sqle = null;
 
-                                        public void handleResultRows(Query fromQuery, Field[] fields, List tuples, ResultCursor cursor) {
+                                        public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples, ResultCursor cursor) {
                                         }
 
                                         public void handleCommandStatus(String status, int updateCount, long insertOID) {
@@ -267,7 +267,7 @@ public class QueryExecutorImpl implements QueryExecutor {
     {
         final ResultHandler delegateHandler = handler;
         handler = new ResultHandler() {
-                      public void handleResultRows(Query fromQuery, Field[] fields, List tuples, ResultCursor cursor) {
+                      public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples, ResultCursor cursor) {
                           delegateHandler.handleResultRows(fromQuery, fields, tuples, cursor);
                       }
 
@@ -325,7 +325,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             handler = new ResultHandler() {
                           private boolean sawBegin = false;
 
-                          public void handleResultRows(Query fromQuery, Field[] fields, List tuples, ResultCursor cursor) {
+                          public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples, ResultCursor cursor) {
                               if (sawBegin)
                                   delegateHandler.handleResultRows(fromQuery, fields, tuples, cursor);
                           }
@@ -413,7 +413,7 @@ public class QueryExecutorImpl implements QueryExecutor {
     protected void processResults(Query originalQuery, ResultHandler handler, int maxRows, int flags) throws IOException {
         boolean bothRowsAndStatus = (flags & QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS) != 0;
         Field[] fields = null;
-        List tuples = null;
+        List<byte[][]> tuples = null;
 
         boolean endQuery = false;
         while (!endQuery)
@@ -434,7 +434,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                     if (logger.logDebug())
                         logger.debug(" <=BE BinaryRow");
 
-                    Object tuple = null;
+                    byte[][] tuple = null;
                     try {
                         tuple = pgStream.ReceiveTupleV2(fields.length, true);
                     } catch(OutOfMemoryError oome) {
@@ -480,7 +480,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                     if (logger.logDebug())
                         logger.debug(" <=BE DataRow");
 
-                    Object tuple = null;
+                    byte[][] tuple = null;
                     try {
                         tuple = pgStream.ReceiveTupleV2(fields.length, false);
                     } catch(OutOfMemoryError oome) {
@@ -518,7 +518,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
             case 'T':  // MetaData Field Description
                 fields = receiveFields();
-                tuples = new ArrayList();
+                tuples = new ArrayList<byte[][]>();
                 break;
 
             case 'Z':

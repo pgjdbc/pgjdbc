@@ -376,7 +376,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
                     // backed refuses to process new queries. Hopefully not a problem
                     // in practise.
                     ResultSet rs = stmt.executeQuery("SELECT gid FROM pg_prepared_xacts where database = current_database()");
-                    LinkedList l = new LinkedList();
+                    LinkedList<Xid> l = new LinkedList<Xid>();
                     while (rs.next())
                     {
                         Xid recoveredXid = RecoveredXid.stringToXid(rs.getString(1));
@@ -385,7 +385,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
                     }
                     rs.close();
 
-                    return (Xid[]) l.toArray(new Xid[l.size()]);
+                    return l.toArray(new Xid[l.size()]);
                 }
                 finally
                 {

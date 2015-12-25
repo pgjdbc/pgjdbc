@@ -29,7 +29,7 @@ import java.io.*;
  */
 public class ConnectionPoolTest extends BaseDataSourceTest
 {
-    private ArrayList connections = new ArrayList();
+    private ArrayList<PooledConnection> connections = new ArrayList<PooledConnection>();
     
     /**
      * Constructor required by JUnit
@@ -53,8 +53,8 @@ public class ConnectionPoolTest extends BaseDataSourceTest
     
     protected void tearDown() throws Exception
     {
-        for (Iterator i = connections.iterator(); i.hasNext(); ) {
-            PooledConnection c = (PooledConnection) i.next();
+        for (Iterator<PooledConnection> i = connections.iterator(); i.hasNext(); ) {
+            PooledConnection c = i.next();
             try {
                 c.close();
             } catch (Exception ex) {

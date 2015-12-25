@@ -43,7 +43,7 @@ public class HStoreTest extends TestCase {
         if (!("\"a\"=>\"1\", \"b\"=>\"2\"".equals(str) || "\"b\"=>\"2\", \"a\"=>\"1\"".equals(str))) {
             fail("Expected " + "\"a\"=>\"1\", \"b\"=>\"2\"" + " but got " + str);
         }
-        Map correct = new HashMap();
+        Map<String, String> correct = new HashMap<String, String>();
         correct.put("a", "1");
         correct.put("b", "2");
         assertEquals(correct, rs.getObject(1));
@@ -55,12 +55,12 @@ public class HStoreTest extends TestCase {
         assertEquals(Map.class.getName(), rs.getMetaData().getColumnClassName(1));
         assertTrue(rs.next());
         assertEquals("\"a\"=>NULL", rs.getString(1));
-        Map correct = Collections.singletonMap("a", null);
+        Map<String, Object> correct = Collections.singletonMap("a", null);
         assertEquals(correct, rs.getObject(1));
     }
 
     public void testHStoreSend() throws SQLException {
-        Map correct = Collections.singletonMap("a", new Integer(1));
+        Map<String, Integer> correct = Collections.singletonMap("a", new Integer(1));
         PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::text");
         pstmt.setObject(1, correct);
         ResultSet rs = pstmt.executeQuery();
@@ -70,7 +70,7 @@ public class HStoreTest extends TestCase {
     }
 
     public void testHStoreSendEscaped() throws SQLException {
-        Map correct = Collections.singletonMap("a", "t'e\ns\"t");
+        Map<String, String> correct = Collections.singletonMap("a", "t'e\ns\"t");
         PreparedStatement pstmt = _conn.prepareStatement("SELECT ?");
         pstmt.setObject(1, correct);
         ResultSet rs = pstmt.executeQuery();

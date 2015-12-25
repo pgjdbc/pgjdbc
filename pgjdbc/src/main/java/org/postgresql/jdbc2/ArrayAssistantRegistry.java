@@ -9,10 +9,10 @@ import java.util.Map;
  * @author Minglei Tu
  */
 public class ArrayAssistantRegistry {
-    private static Map arrayAssistantMap = new HashMap();
+    private static Map<Integer, ArrayAssistant> arrayAssistantMap = new HashMap<Integer, ArrayAssistant>();
 
     public static ArrayAssistant getAssistant(int oid) {
-        return (ArrayAssistant) arrayAssistantMap.get(oid);
+        return arrayAssistantMap.get(oid);
     }
 
     ////
