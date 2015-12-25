@@ -57,7 +57,7 @@ class ProtocolConnectionImpl implements ProtocolConnection {
     public int getServerVersionNum() {
         if (serverVersionNum != 0)
             return serverVersionNum;
-        return Utils.parseServerVersionStr(serverVersion);
+        return serverVersionNum = Utils.parseServerVersionStr(serverVersion);
     }
 
     public synchronized boolean getStandardConformingStrings()
