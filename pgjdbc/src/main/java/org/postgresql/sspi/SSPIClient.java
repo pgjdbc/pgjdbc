@@ -137,7 +137,8 @@ public class SSPIClient {
 	     */
 		final String securityPackage = enableNegotiate ? "negotiate" : "kerberos";
 		
-		logger.debug("Beginning SSPI/Kerberos negotiation with SSPI package: " + securityPackage);
+		if (logger.logDebug())
+		    logger.debug("Beginning SSPI/Kerberos negotiation with SSPI package: " + securityPackage);
 
 		try {
     		/* 

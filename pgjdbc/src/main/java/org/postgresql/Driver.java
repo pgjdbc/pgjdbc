@@ -149,7 +149,8 @@ public class Driver implements java.sql.Driver
             return merged; // Give up on finding defaults.
         }
 
-        logger.debug("Loading driver configuration via classloader " + cl);
+        if (logger.logDebug())
+            logger.debug("Loading driver configuration via classloader " + cl);
 
         // When loading the driver config files we don't want settings found
         // in later files in the classpath to override settings specified in
@@ -164,7 +165,8 @@ public class Driver implements java.sql.Driver
 
         for (int i=urls.size()-1; i>=0; i--) {
             URL url = urls.get(i);
-            logger.debug("Loading driver configuration from: " + url);
+            if (logger.logDebug())
+                logger.debug("Loading driver configuration from: " + url);
             InputStream is = url.openStream();
             merged.load(is);
             is.close();
@@ -267,12 +269,14 @@ public class Driver implements java.sql.Driver
         // parse URL and add more properties
         if ((props = parseURL(url, props)) == null)
         {
-            logger.debug("Error in url: " + url);
+            if (logger.logDebug())
+                logger.debug("Error in url: " + url);
             return null;
         }
         try
         {
-            logger.debug("Connecting with URL: " + url);
+            if (logger.logDebug())
+                logger.debug("Connecting with URL: " + url);
 
             // Enforce login timeout, if specified, by running the connection
             // attempt in a separate thread. If we hit the timeout without the
@@ -660,7 +664,8 @@ public class Driver implements java.sql.Driver
             } catch (NumberFormatException e) {
                 // Log level isn't set yet, so this doesn't actually 
                 // get printed.
-                logger.debug("Couldn't parse loginTimeout value: " + timeout);
+                if (logger.logDebug())
+                    logger.debug("Couldn't parse loginTimeout value: " + timeout);
             }
         }
         return (long) DriverManager.getLoginTimeout() * 1000;
