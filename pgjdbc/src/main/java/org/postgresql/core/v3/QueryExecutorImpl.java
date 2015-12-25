@@ -263,7 +263,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             this.delegateHandler = delegateHandler;
         }
 
-        public void handleResultRows(Query fromQuery, Field[] fields, List tuples, ResultCursor cursor) {
+        public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples, ResultCursor cursor) {
             delegateHandler.handleResultRows(fromQuery, fields, tuples, cursor);
         }
 
@@ -368,7 +368,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         return new ResultHandler() {
                    private boolean sawBegin = false;
 
-                   public void handleResultRows(Query fromQuery, Field[] fields, List tuples, ResultCursor cursor) {
+                   public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples, ResultCursor cursor) {
                        if (sawBegin)
                            delegateHandler.handleResultRows(fromQuery, fields, tuples, cursor);
                    }
@@ -435,7 +435,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                                         private boolean sawBegin = false;
                                         private SQLException sqle = null;
 
-                                        public void handleResultRows(Query fromQuery, Field[] fields, List tuples, ResultCursor cursor) {
+                                        public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples, ResultCursor cursor) {
                                         }
 
                                         public void handleCommandStatus(String status, int updateCount, long insertOID) {
@@ -1641,23 +1641,23 @@ public class QueryExecutorImpl implements QueryExecutor {
     // process. Then we send a message to the backend to deallocate that statement.
     //
 
-    private final HashMap parsedQueryMap = new HashMap();
-    private final ReferenceQueue parsedQueryCleanupQueue = new ReferenceQueue();
+    private final HashMap<PhantomReference<SimpleQuery>, String> parsedQueryMap = new HashMap<PhantomReference<SimpleQuery>, String>();
+    private final ReferenceQueue<SimpleQuery> parsedQueryCleanupQueue = new ReferenceQueue<SimpleQuery>();
 
     private void registerParsedQuery(SimpleQuery query, String statementName) {
         if (statementName == null)
             return ;
 
-        PhantomReference cleanupRef = new PhantomReference(query, parsedQueryCleanupQueue);
+        PhantomReference<SimpleQuery> cleanupRef = new PhantomReference<SimpleQuery>(query, parsedQueryCleanupQueue);
         parsedQueryMap.put(cleanupRef, statementName);
         query.setCleanupRef(cleanupRef);
     }
 
     private void processDeadParsedQueries() throws IOException {
-        PhantomReference deadQuery;
-        while ((deadQuery = (PhantomReference)parsedQueryCleanupQueue.poll()) != null)
+        Reference<? extends SimpleQuery> deadQuery;
+        while ((deadQuery = parsedQueryCleanupQueue.poll()) != null)
         {
-            String statementName = (String)parsedQueryMap.remove(deadQuery);
+            String statementName = parsedQueryMap.remove(deadQuery);
             sendCloseStatement(statementName);
             deadQuery.clear();
         }
@@ -1672,8 +1672,8 @@ public class QueryExecutorImpl implements QueryExecutor {
     // are also closed.
     //
 
-    private final HashMap openPortalMap = new HashMap();
-    private final ReferenceQueue openPortalCleanupQueue = new ReferenceQueue();
+    private final HashMap<PhantomReference<Portal>, String> openPortalMap = new HashMap<PhantomReference<Portal>, String>();
+    private final ReferenceQueue<Portal> openPortalCleanupQueue = new ReferenceQueue<Portal>();
 
     private static final Portal UNNAMED_PORTAL = new Portal(null, "unnamed");
 
@@ -1682,16 +1682,16 @@ public class QueryExecutorImpl implements QueryExecutor {
             return ; // Using the unnamed portal.
 
         String portalName = portal.getPortalName();
-        PhantomReference cleanupRef = new PhantomReference(portal, openPortalCleanupQueue);
+        PhantomReference<Portal> cleanupRef = new PhantomReference<Portal>(portal, openPortalCleanupQueue);
         openPortalMap.put(cleanupRef, portalName);
         portal.setCleanupRef(cleanupRef);
     }
 
     private void processDeadPortals() throws IOException {
-        PhantomReference deadPortal;
-        while ((deadPortal = (PhantomReference)openPortalCleanupQueue.poll()) != null)
+        Reference<? extends Portal> deadPortal;
+        while ((deadPortal = openPortalCleanupQueue.poll()) != null)
         {
-            String portalName = (String)openPortalMap.remove(deadPortal);
+            String portalName = openPortalMap.remove(deadPortal);
             sendClosePortal(portalName);
             deadPortal.clear();
         }
@@ -1701,7 +1701,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         boolean noResults = (flags & QueryExecutor.QUERY_NO_RESULTS) != 0;
         boolean bothRowsAndStatus = (flags & QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS) != 0;
 
-        List tuples = null;
+        List<byte[][]> tuples = null;
 
         int len;
         int c;
@@ -1801,7 +1801,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
                     if (fields != null)
                     { // There was a resultset.
-                        tuples = new ArrayList();
+                        tuples = new ArrayList<byte[][]>();
                         handler.handleResultRows(currentQuery, fields, tuples, null);
                         tuples = null;
                     }
@@ -1823,7 +1823,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
                     Field[] fields = currentQuery.getFields();
                     if (fields != null && !noResults && tuples == null)
-                        tuples = new ArrayList();
+                        tuples = new ArrayList<byte[][]>();
 
                     handler.handleResultRows(currentQuery, fields, tuples, currentPortal);
                 }
@@ -1844,7 +1844,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
                     Field[] fields = currentQuery.getFields();
                     if (fields != null && !noResults && tuples == null)
-                        tuples = new ArrayList();
+                        tuples = new ArrayList<byte[][]>();
 
 					// If we received tuples we must know the structure of the
 					// resultset, otherwise we won't be able to fetch columns
@@ -1887,7 +1887,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                 if (!noResults)
                 {
                     if (tuples == null)
-                        tuples = new ArrayList();
+                        tuples = new ArrayList<byte[][]>();
                     tuples.add(tuple);
                 }
 
@@ -1976,7 +1976,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
             case 'T':  // Row Description (response to Describe)
                 Field[] fields = receiveFields();
-                tuples = new ArrayList();
+                tuples = new ArrayList<byte[][]>();
 
                 SimpleQuery query = pendingDescribePortalQueue.removeFirst();
                 query.setFields(fields);
@@ -2079,12 +2079,12 @@ public class QueryExecutorImpl implements QueryExecutor {
         // (if the fetch returns no rows, we see just a CommandStatus..)
         final ResultHandler delegateHandler = handler;
         handler = new ResultHandler() {
-                      public void handleResultRows(Query fromQuery, Field[] fields, List tuples, ResultCursor cursor) {
+                      public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples, ResultCursor cursor) {
                           delegateHandler.handleResultRows(fromQuery, fields, tuples, cursor);
                       }
 
                       public void handleCommandStatus(String status, int updateCount, long insertOID) {
-                          handleResultRows(portal.getQuery(), null, new ArrayList(), null);
+                          handleResultRows(portal.getQuery(), null, new ArrayList<byte[][]>(), null);
                       }
 
                       public void handleWarning(SQLWarning warning) {

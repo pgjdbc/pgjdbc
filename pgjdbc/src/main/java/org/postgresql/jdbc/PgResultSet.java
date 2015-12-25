@@ -74,9 +74,9 @@ public class PgResultSet
     //needed for updateable result set support
     private boolean updateable = false;
     private boolean doingUpdates = false;
-    private HashMap updateValues = null;
+    private HashMap<String, Object> updateValues = null;
     private boolean usingOID = false; // are we using the OID for the primary key?
-    private List primaryKeys;    // list of primary keys
+    private List<PrimaryKey> primaryKeys;    // list of primary keys
     private boolean singleTable = false;
     private String onlyTable = "";
     private String tableName = null;
@@ -96,7 +96,7 @@ public class PgResultSet
     protected final int maxRows;            // Maximum rows in this resultset (might be 0).
     protected final int maxFieldSize;       // Maximum field size in this resultset (might be 0).
 
-    protected List rows;           // Current page of results.
+    protected List<byte[][]> rows;           // Current page of results.
     protected int current_row = -1;         // Index into 'rows' of our currrent row (0-based)
     protected int row_offset;               // Offset of row 0 in the actual resultset
     protected byte[][] this_row;      // copy of the current result row
@@ -114,7 +114,7 @@ public class PgResultSet
     protected int fetchSize;       // Current fetch size (might be 0).
     protected ResultCursor cursor; // Cursor for fetching additional data.
 
-    private HashMap columnNameIndexMap; // Speed up findColumn by caching lookups
+    private HashMap<String, Integer> columnNameIndexMap; // Speed up findColumn by caching lookups
 
     private ResultSetMetaData rsMetaData;
 
@@ -132,7 +132,7 @@ public class PgResultSet
         return rsMetaData;
     }
 
-    PgResultSet(Query originalQuery, BaseStatement statement, Field[] fields, List tuples,
+    PgResultSet(Query originalQuery, BaseStatement statement, Field[] fields, List<byte[][]> tuples,
                                   ResultCursor cursor, int maxRows, int maxFieldSize,
                                   int rsType, int rsConcurrency, int rsHoldability) throws SQLException
     {
@@ -623,7 +623,7 @@ public class PgResultSet
     }
 
 
-    public Object getObjectImpl(String columnName, java.util.Map map) throws SQLException
+    public Object getObjectImpl(String columnName, Map<String, Class<?>> map) throws SQLException
     {
         return getObjectImpl(findColumn(columnName), map);
     }
@@ -634,7 +634,7 @@ public class PgResultSet
      * an object based on that mapping. The class must implement the SQLData
      * interface.
      */
-    public Object getObjectImpl(int i, java.util.Map map) throws SQLException
+    public Object getObjectImpl(int i, Map<String, Class<?>> map) throws SQLException
     {
         checkClosed();
         if (map == null || map.isEmpty()) {
@@ -917,7 +917,7 @@ public class PgResultSet
 
             for ( int i = 0; i < numKeys; i++ )
             {
-                Utils.escapeIdentifier(deleteSQL, ((PrimaryKey)primaryKeys.get(i)).name);
+                Utils.escapeIdentifier(deleteSQL, primaryKeys.get(i).name);
                 deleteSQL.append(" = ?");
                 if ( i < numKeys - 1 )
                 {
@@ -931,7 +931,7 @@ public class PgResultSet
 
         for ( int i = 0; i < numKeys; i++ )
         {
-            deleteStatement.setObject(i + 1, ((PrimaryKey) primaryKeys.get(i)).getValue());
+            deleteStatement.setObject(i + 1, primaryKeys.get(i).getValue());
         }
 
 
@@ -967,12 +967,12 @@ public class PgResultSet
             StringBuilder insertSQL = new StringBuilder("INSERT INTO ").append(tableName).append(" (");
             StringBuilder paramSQL = new StringBuilder(") values (" );
 
-            Iterator columnNames = updateValues.keySet().iterator();
+            Iterator<String> columnNames = updateValues.keySet().iterator();
             int numColumns = updateValues.size();
 
             for ( int i = 0; columnNames.hasNext(); i++ )
             {
-                String columnName = (String) columnNames.next();
+                String columnName = columnNames.next();
 
                 Utils.escapeIdentifier(insertSQL, columnName);
                 if ( i < numColumns - 1 )
@@ -990,11 +990,11 @@ public class PgResultSet
             insertSQL.append(paramSQL.toString());
             insertStatement = ((java.sql.Connection) connection).prepareStatement(insertSQL.toString());
 
-            Iterator keys = updateValues.keySet().iterator();
+            Iterator<String> keys = updateValues.keySet().iterator();
 
             for ( int i = 1; keys.hasNext(); i++)
             {
-                String key = (String) keys.next();
+                String key = keys.next();
                 Object o = updateValues.get(key);
                 insertStatement.setObject(i, o);
             }
@@ -1347,7 +1347,7 @@ public class PgResultSet
         for ( int i = 0; i < numKeys; i++ )
         {
 
-            PrimaryKey primaryKey = ((PrimaryKey) primaryKeys.get(i));
+            PrimaryKey primaryKey = primaryKeys.get(i);
             selectSQL.append(primaryKey.name).append("= ?");
 
             if ( i < numKeys - 1 )
@@ -1363,7 +1363,7 @@ public class PgResultSet
 
         for ( int j = 0, i = 1; j < numKeys; j++, i++)
         {
-            selectStatement.setObject( i, ((PrimaryKey) primaryKeys.get(j)).getValue() );
+            selectStatement.setObject( i, primaryKeys.get(j).getValue() );
         }
 
         PgResultSet rs = (PgResultSet) selectStatement.executeQuery();
@@ -1408,11 +1408,11 @@ public class PgResultSet
         StringBuilder updateSQL = new StringBuilder("UPDATE " + onlyTable + tableName + " SET  ");
         
         int numColumns = updateValues.size();
-        Iterator columns = updateValues.keySet().iterator();
+        Iterator<String> columns = updateValues.keySet().iterator();
         
         for (int i = 0; columns.hasNext(); i++ )
         {
-            String column = (String) columns.next();
+            String column = columns.next();
             Utils.escapeIdentifier(updateSQL, column);
             updateSQL.append(" = ?");
             
@@ -1426,7 +1426,7 @@ public class PgResultSet
         
         for ( int i = 0; i < numKeys; i++ )
         {                
-            PrimaryKey primaryKey = ((PrimaryKey) primaryKeys.get(i));
+            PrimaryKey primaryKey = primaryKeys.get(i);
             Utils.escapeIdentifier(updateSQL, primaryKey.name);
             updateSQL.append(" = ?");
             
@@ -1439,7 +1439,7 @@ public class PgResultSet
         updateStatement = ((java.sql.Connection) connection).prepareStatement(updateSQL.toString());
         
         int i = 0;
-        Iterator iterator = updateValues.values().iterator();
+        Iterator<Object> iterator = updateValues.values().iterator();
         for (; iterator.hasNext(); i++)
         {
             Object o = iterator.next();
@@ -1448,7 +1448,7 @@ public class PgResultSet
         
         for ( int j = 0; j < numKeys; j++, i++)
         {
-            updateStatement.setObject( i + 1, ((PrimaryKey) primaryKeys.get(j)).getValue() );
+            updateStatement.setObject( i + 1, primaryKeys.get(j).getValue() );
         }
             
         updateStatement.executeUpdate();
@@ -1669,7 +1669,7 @@ public class PgResultSet
         // Contains the primary key?
         //
 
-        primaryKeys = new ArrayList();
+        primaryKeys = new ArrayList<PrimaryKey>();
 
         // this is not stricty jdbc spec, but it will make things much faster if used
         // the user has to select oid, * from table and then we will just use oid
@@ -1817,11 +1817,11 @@ public class PgResultSet
     private void updateRowBuffer() throws SQLException
     {
 
-        Iterator columns = updateValues.keySet().iterator();
+        Iterator<String> columns = updateValues.keySet().iterator();
 
         while ( columns.hasNext() )
         {
-            String columnName = (String) columns.next();
+            String columnName = columns.next();
             int columnIndex = findColumn( columnName ) - 1;
 
             Object valueObject = updateValues.get(columnName);
@@ -1885,7 +1885,7 @@ public class PgResultSet
     public class CursorResultHandler implements ResultHandler {
         private SQLException error;
 
-        public void handleResultRows(Query fromQuery, Field[] fields, List tuples, ResultCursor cursor) {
+        public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples, ResultCursor cursor) {
             PgResultSet.this.rows = tuples;
             PgResultSet.this.cursor = cursor;
         }
@@ -2039,7 +2039,7 @@ public class PgResultSet
               return connection.getTimestampUtils().timeToString((java.util.Date) obj);
             }
             if ("hstore".equals(getPGType(columnIndex))) {
-                return HStoreConverter.toString((Map) obj);
+                return HStoreConverter.toString((Map<?, ?>) obj);
             }
             return trimString(columnIndex, obj.toString());
         }
@@ -2809,7 +2809,7 @@ public class PgResultSet
     {
     	if (columnNameIndexMap == null)
         {
-            columnNameIndexMap = new HashMap(fields.length * 2);
+            columnNameIndexMap = new HashMap<String, Integer>(fields.length * 2);
             // The JDBC spec says when you have duplicate columns names,
             // the first one should be returned.  So load the map in
             // reverse order so the first ones will overwrite later ones.
@@ -2824,20 +2824,20 @@ public class PgResultSet
             }
         }
 
-        Integer index = (Integer)columnNameIndexMap.get(columnName);
+        Integer index = columnNameIndexMap.get(columnName);
         if (index != null)
         {
             return index;
         }
         
-        index = (Integer)columnNameIndexMap.get(columnName.toLowerCase(Locale.US));
+        index = columnNameIndexMap.get(columnName.toLowerCase(Locale.US));
         if (index != null)
         {
             columnNameIndexMap.put(columnName, index);
             return index;
         }
 
-        index = (Integer)columnNameIndexMap.get(columnName.toUpperCase(Locale.US));
+        index = columnNameIndexMap.get(columnName.toUpperCase(Locale.US));
         if (index != null)
         {
             columnNameIndexMap.put(columnName, index);
@@ -2943,7 +2943,7 @@ public class PgResultSet
         if (updateValues == null)
         {
             // allow every column to be updated without a rehash.
-            updateValues = new HashMap((int)(fields.length / 0.75), 0.75f);
+            updateValues = new HashMap<String, Object>((int)(fields.length / 0.75), 0.75f);
         }
     }
 
@@ -3176,7 +3176,7 @@ public class PgResultSet
 
     private void initRowBuffer()
     {
-        this_row = (byte[][]) rows.get(current_row);
+        this_row = rows.get(current_row);
         // We only need a copy of the current row if we're going to
         // modify it via an updatable resultset.
         if (resultsetconcurrency == ResultSet.CONCUR_UPDATABLE) {
@@ -3390,7 +3390,7 @@ public class PgResultSet
      * match the existing rows.  Currently only used for assembling
      * generated keys from batch statement execution.
      */
-    void addRows(List tuples) {
+    void addRows(List<byte[][]> tuples) {
         rows.addAll(tuples);
     }
 

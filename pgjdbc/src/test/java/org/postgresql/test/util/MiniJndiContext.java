@@ -22,7 +22,7 @@ import javax.naming.spi.ObjectFactory;
  */
 public class MiniJndiContext implements Context
 {
-    private Map map = new HashMap();
+    private Map<String, Object> map = new HashMap<String, Object>();
 
     public MiniJndiContext()
     {
@@ -45,7 +45,7 @@ public class MiniJndiContext implements Context
             Reference ref = (Reference) o;
             try
             {
-                Class factoryClass = Class.forName(ref.getFactoryClassName());
+                Class<?> factoryClass = Class.forName(ref.getFactoryClassName());
                 ObjectFactory fac = (ObjectFactory) factoryClass.newInstance();
                 Object result = fac.getObjectInstance(ref, null, this, null);
                 return result;
@@ -59,7 +59,7 @@ public class MiniJndiContext implements Context
         {
             try
             {
-                Object result = ((MarshalledObject) o).get();
+                Object result = ((MarshalledObject<?>) o).get();
                 return result;
             }
             catch (java.io.IOException e)
@@ -103,7 +103,7 @@ public class MiniJndiContext implements Context
         {
             try
             {
-                MarshalledObject mo = new MarshalledObject(obj);
+                MarshalledObject<Object> mo = new MarshalledObject<Object>(obj);
                 map.put(name, mo);
             }
             catch (java.io.IOException e)
@@ -137,22 +137,22 @@ public class MiniJndiContext implements Context
         map.put(newName, map.remove(oldName));
     }
 
-    public NamingEnumeration list(Name name) throws NamingException
+    public NamingEnumeration<NameClassPair> list(Name name) throws NamingException
     {
         return null;
     }
 
-    public NamingEnumeration list(String name) throws NamingException
+    public NamingEnumeration<NameClassPair> list(String name) throws NamingException
     {
         return null;
     }
 
-    public NamingEnumeration listBindings(Name name) throws NamingException
+    public NamingEnumeration<Binding> listBindings(Name name) throws NamingException
     {
         return null;
     }
 
-    public NamingEnumeration listBindings(String name) throws NamingException
+    public NamingEnumeration<Binding> listBindings(String name) throws NamingException
     {
         return null;
     }
@@ -218,7 +218,7 @@ public class MiniJndiContext implements Context
         return null;
     }
 
-    public Hashtable getEnvironment() throws NamingException
+    public Hashtable<?, ?> getEnvironment() throws NamingException
     {
         return null;
     }

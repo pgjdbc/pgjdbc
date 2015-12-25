@@ -311,7 +311,7 @@ public class PgConnection implements BaseConnection
     }
 
     private Set<Integer> getOidSet(String oidList) throws PSQLException {
-        Set oids = new HashSet();
+        Set<Integer> oids = new HashSet<Integer>();
         StringTokenizer tokenizer = new StringTokenizer(oidList, ",");
         while (tokenizer.hasMoreTokens()) {
             String oid = tokenizer.nextToken();
@@ -340,7 +340,7 @@ public class PgConnection implements BaseConnection
     /**
      * The current type mappings
      */
-    protected java.util.Map typemap;
+    protected Map<String, Class<?>> typemap;
 
     public java.sql.Statement createStatement() throws SQLException
     {
@@ -358,7 +358,7 @@ public class PgConnection implements BaseConnection
         return prepareCall(sql, java.sql.ResultSet.TYPE_FORWARD_ONLY, java.sql.ResultSet.CONCUR_READ_ONLY);
     }
 
-    public java.util.Map getTypeMap() throws SQLException
+    public Map<String, Class<?>> getTypeMap() throws SQLException
     {
         checkClosed();
         return typemap;
@@ -516,7 +516,7 @@ public class PgConnection implements BaseConnection
     {
         if (typemap != null)
         {
-            Class c = (Class) typemap.get(type);
+            Class<?> c = typemap.get(type);
             if (c != null)
             {
                 // Handle the type (requires SQLInput & SQLOutput classes to be implemented)
@@ -531,7 +531,7 @@ public class PgConnection implements BaseConnection
 
         try
         {
-            Class klass = _typeCache.getPGobject(type);
+            Class<? extends PGobject> klass = _typeCache.getPGobject(type);
 
             // If className is not null, then try to instantiate it,
             // It must be basetype PGobject
@@ -541,7 +541,7 @@ public class PgConnection implements BaseConnection
 
             if (klass != null)
             {
-                obj = (PGobject) (klass.newInstance());
+                obj = klass.newInstance();
                 obj.setType(type);
                 if (byteValue != null && obj instanceof PGBinaryObject) {
                     PGBinaryObject binObj = (PGBinaryObject) obj;
@@ -586,7 +586,7 @@ public class PgConnection implements BaseConnection
     {
         try
         {
-            addDataType(type, Class.forName(name));
+            addDataType(type, Class.forName(name).asSubclass(PGobject.class));
         }
         catch (Exception e)
         {
@@ -594,7 +594,7 @@ public class PgConnection implements BaseConnection
         }
     }
 
-    public void addDataType(String type, Class klass) throws SQLException
+    public void addDataType(String type, Class<? extends PGobject> klass) throws SQLException
     {
         checkClosed();
         _typeCache.addDataType(type, klass);
@@ -615,14 +615,14 @@ public class PgConnection implements BaseConnection
         addDataType("money", org.postgresql.util.PGmoney.class);
         addDataType("interval", org.postgresql.util.PGInterval.class);
 
-        for (Enumeration e = info.propertyNames(); e.hasMoreElements(); )
+        for (Enumeration<?> e = info.propertyNames(); e.hasMoreElements(); )
         {
             String propertyName = (String)e.nextElement();
             if (propertyName.startsWith("datatype."))
             {
                 String typeName = propertyName.substring(9);
                 String className = info.getProperty(propertyName);
-                Class klass;
+                Class<?> klass;
 
                 try
                 {
@@ -634,7 +634,7 @@ public class PgConnection implements BaseConnection
                                             PSQLState.SYSTEM_ERROR, cnfe);
                 }
 
-                addDataType(typeName, klass);
+                addDataType(typeName, klass.asSubclass(PGobject.class));
             }
         }
     }
@@ -1035,7 +1035,7 @@ public class PgConnection implements BaseConnection
     private class TransactionCommandHandler implements ResultHandler {
         private SQLException error;
 
-        public void handleResultRows(Query fromQuery, Field[] fields, List tuples, ResultCursor cursor) {
+        public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples, ResultCursor cursor) {
         }
         public void handleCommandStatus(String status, int updateCount, long insertOID) {
         }
@@ -1086,7 +1086,7 @@ public class PgConnection implements BaseConnection
     }
 
 
-    public void setTypeMapImpl(java.util.Map map) throws SQLException
+    public void setTypeMapImpl(Map<String, Class<?>> map) throws SQLException
     {
         typemap = map;
     }
@@ -1234,7 +1234,7 @@ public class PgConnection implements BaseConnection
         return metadata;
     }
 
-    public void setTypeMap(java.util.Map<String, java.lang.Class<?>> map) throws SQLException {
+    public void setTypeMap(Map<String, Class<?>> map) throws SQLException {
         setTypeMapImpl(map);
     }
 

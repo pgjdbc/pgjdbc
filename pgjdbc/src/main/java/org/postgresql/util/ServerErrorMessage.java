@@ -32,7 +32,7 @@ public class ServerErrorMessage implements Serializable
     private static final Character DATATYPE = 'd';
     private static final Character CONSTRAINT = 'n';
 
-    private final Map m_mesgParts = new HashMap();
+    private final Map<Character, String> m_mesgParts = new HashMap<Character, String>();
     private final int verbosity;
 
     public ServerErrorMessage(String p_serverError, int verbosity)
@@ -63,27 +63,27 @@ public class ServerErrorMessage implements Serializable
 
     public String getSQLState()
     {
-        return (String)m_mesgParts.get(SQLSTATE);
+        return m_mesgParts.get(SQLSTATE);
     }
 
     public String getMessage()
     {
-        return (String)m_mesgParts.get(MESSAGE);
+        return m_mesgParts.get(MESSAGE);
     }
 
     public String getSeverity()
     {
-        return (String)m_mesgParts.get(SEVERITY);
+        return m_mesgParts.get(SEVERITY);
     }
 
     public String getDetail()
     {
-        return (String)m_mesgParts.get(DETAIL);
+        return m_mesgParts.get(DETAIL);
     }
 
     public String getHint()
     {
-        return (String)m_mesgParts.get(HINT);
+        return m_mesgParts.get(HINT);
     }
 
     public int getPosition()
@@ -93,37 +93,37 @@ public class ServerErrorMessage implements Serializable
 
     public String getWhere()
     {
-        return (String)m_mesgParts.get(WHERE);
+        return m_mesgParts.get(WHERE);
     }
 
     public String getSchema()
     {
-        return (String)m_mesgParts.get(SCHEMA);
+        return m_mesgParts.get(SCHEMA);
     }
 
     public String getTable()
     {
-        return (String)m_mesgParts.get(TABLE);
+        return m_mesgParts.get(TABLE);
     }
 
     public String getColumn()
     {
-        return (String)m_mesgParts.get(COLUMN);
+        return m_mesgParts.get(COLUMN);
     }
 
     public String getDatatype()
     {
-        return (String)m_mesgParts.get(DATATYPE);
+        return m_mesgParts.get(DATATYPE);
     }
 
     public String getConstraint()
     {
-        return (String)m_mesgParts.get(CONSTRAINT);
+        return m_mesgParts.get(CONSTRAINT);
     }
 
     public String getFile()
     {
-        return (String)m_mesgParts.get(FILE);
+        return m_mesgParts.get(FILE);
     }
 
     public int getLine()
@@ -133,12 +133,12 @@ public class ServerErrorMessage implements Serializable
 
     public String getRoutine()
     {
-        return (String)m_mesgParts.get(ROUTINE);
+        return m_mesgParts.get(ROUTINE);
     }
 
     public String getInternalQuery()
     {
-        return (String)m_mesgParts.get(INTERNAL_QUERY);
+        return m_mesgParts.get(INTERNAL_QUERY);
     }
 
     public int getInternalPosition()
@@ -148,7 +148,7 @@ public class ServerErrorMessage implements Serializable
 
     private int getIntegerPart(Character c)
     {
-        String s = (String)m_mesgParts.get(c);
+        String s = m_mesgParts.get(c);
         if (s == null)
             return 0;
         return Integer.parseInt(s);
@@ -174,41 +174,41 @@ public class ServerErrorMessage implements Serializable
         //is included.
 
         StringBuilder l_totalMessage = new StringBuilder();
-        String l_message = (String)m_mesgParts.get(SEVERITY);
+        String l_message = m_mesgParts.get(SEVERITY);
         if (l_message != null)
             l_totalMessage.append(l_message).append(": ");
-        l_message = (String)m_mesgParts.get(MESSAGE);
+        l_message = m_mesgParts.get(MESSAGE);
         if (l_message != null)
             l_totalMessage.append(l_message);
-        l_message = (String)m_mesgParts.get(DETAIL);
+        l_message = m_mesgParts.get(DETAIL);
         if (l_message != null)
             l_totalMessage.append("\n  ").append(GT.tr("Detail: {0}", l_message));
 
-        l_message = (String)m_mesgParts.get(HINT);
+        l_message = m_mesgParts.get(HINT);
         if (l_message != null)
             l_totalMessage.append("\n  ").append(GT.tr("Hint: {0}", l_message));
-        l_message = (String)m_mesgParts.get(POSITION);
+        l_message = m_mesgParts.get(POSITION);
         if (l_message != null)
             l_totalMessage.append("\n  ").append(GT.tr("Position: {0}", l_message));
-        l_message = (String)m_mesgParts.get(WHERE);
+        l_message = m_mesgParts.get(WHERE);
         if (l_message != null)
             l_totalMessage.append("\n  ").append(GT.tr("Where: {0}", l_message));
 
         if (verbosity > 2)
         {
-            String l_internalQuery = (String)m_mesgParts.get(INTERNAL_QUERY);
+            String l_internalQuery = m_mesgParts.get(INTERNAL_QUERY);
             if (l_internalQuery != null)
                 l_totalMessage.append("\n  ").append(GT.tr("Internal Query: {0}", l_internalQuery));
-            String l_internalPosition = (String)m_mesgParts.get(INTERNAL_POSITION);
+            String l_internalPosition = m_mesgParts.get(INTERNAL_POSITION);
             if (l_internalPosition != null)
                 l_totalMessage.append("\n  ").append(GT.tr("Internal Position: {0}", l_internalPosition));
 
-            String l_file = (String)m_mesgParts.get(FILE);
-            String l_line = (String)m_mesgParts.get(LINE);
-            String l_routine = (String)m_mesgParts.get(ROUTINE);
+            String l_file = m_mesgParts.get(FILE);
+            String l_line = m_mesgParts.get(LINE);
+            String l_routine = m_mesgParts.get(ROUTINE);
             if (l_file != null || l_line != null || l_routine != null)
                 l_totalMessage.append("\n  ").append(GT.tr("Location: File: {0}, Routine: {1}, Line: {2}", new Object[] {l_file, l_routine, l_line}));
-            l_message = (String)m_mesgParts.get(SQLSTATE);
+            l_message = m_mesgParts.get(SQLSTATE);
             if (l_message != null)
                 l_totalMessage.append("\n  ").append(GT.tr("Server SQLState: {0}", l_message));
         }

@@ -27,7 +27,7 @@ import java.util.List;
 public class PGtokenizer
 {
     // Our tokens
-    protected List tokens;
+    protected List<String> tokens;
 
     /**
      * Create a tokeniser.
@@ -53,7 +53,7 @@ public class PGtokenizer
      */
     public int tokenize(String string, char delim)
     {
-        tokens = new ArrayList();
+        tokens = new ArrayList<String>();
 
         // nest holds how many levels we are in the current token.
         // if this is > 0 then we don't split a token when delim is matched.
@@ -123,7 +123,7 @@ public class PGtokenizer
      */
     public String getToken(int n)
     {
-        return (String)tokens.get(n);
+        return tokens.get(n);
     }
 
     /**
@@ -169,7 +169,7 @@ public class PGtokenizer
         for (int i = 0;i < tokens.size();i++)
         {
             tokens.set(i, remove
-                                ((String)tokens.get(i), l, t));
+                                (tokens.get(i), l, t));
         }
     }
 

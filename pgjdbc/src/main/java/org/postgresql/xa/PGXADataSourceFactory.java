@@ -25,7 +25,7 @@ public class PGXADataSourceFactory extends PGObjectFactory
      */
 
     public Object getObjectInstance(Object obj, Name name, Context nameCtx,
-                                    Hashtable environment) throws Exception
+                                    Hashtable<?,?> environment) throws Exception
     {
         Reference ref = (Reference)obj;
         String className = ref.getClassName();

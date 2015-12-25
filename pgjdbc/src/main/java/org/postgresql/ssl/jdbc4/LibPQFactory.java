@@ -256,11 +256,11 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
         return false; 
       }
       String CN = null;
-      Iterator it = DN.getRdns().iterator();
+      Iterator<Rdn> it = DN.getRdns().iterator();
       //for(Rdn rdn : DN.getRdns())
       while(it.hasNext())
       {
-        Rdn rdn = (Rdn)it.next();
+        Rdn rdn = it.next();
         if ("CN".equals(rdn.getType())) //Multiple AVAs are not treated
         {
           CN = (String)rdn.getValue();

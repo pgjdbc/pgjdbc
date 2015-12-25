@@ -24,18 +24,18 @@ public class SetupQueryRunner {
 
     private static class SimpleResultHandler implements ResultHandler {
         private SQLException error;
-        private List tuples;
+        private List<byte[][]> tuples;
         private final ProtocolConnection protoConnection;
 
         SimpleResultHandler(ProtocolConnection protoConnection) {
             this.protoConnection = protoConnection;
         }
 
-        List getResults() {
+        List<byte[][]> getResults() {
             return tuples;
         }
 
-        public void handleResultRows(Query fromQuery, Field[] fields, List tuples, ResultCursor cursor) {
+        public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples, ResultCursor cursor) {
             this.tuples = tuples;
         }
 
@@ -81,11 +81,11 @@ public class SetupQueryRunner {
         if (!wantResults)
             return null;
 
-        List tuples = handler.getResults();
+        List<byte[][]> tuples = handler.getResults();
         if (tuples == null || tuples.size() != 1)
             throw new PSQLException(GT.tr("An unexpected result was returned by a query."), PSQLState.CONNECTION_UNABLE_TO_CONNECT);
 
-        return (byte[][]) tuples.get(0);
+        return tuples.get(0);
     }
 
 }

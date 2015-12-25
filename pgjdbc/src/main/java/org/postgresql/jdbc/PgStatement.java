@@ -254,7 +254,7 @@ public class PgStatement implements BaseStatement
         // default
     }
 
-    public ResultSet createResultSet(Query originalQuery, Field[] fields, List tuples, ResultCursor cursor)
+    public ResultSet createResultSet(Query originalQuery, Field[] fields, List<byte[][]> tuples, ResultCursor cursor)
             throws SQLException
     {
         PgResultSet newResult = new PgResultSet(originalQuery,
@@ -311,7 +311,7 @@ public class PgStatement implements BaseStatement
                 results.append(newResult);
         }
 
-        public void handleResultRows(Query fromQuery, Field[] fields, List tuples, ResultCursor cursor) {
+        public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples, ResultCursor cursor) {
             try
             {
                 ResultSet rs = PgStatement.this.createResultSet(fromQuery, fields, tuples, cursor);
@@ -1029,7 +1029,7 @@ public class PgStatement implements BaseStatement
         // parse function arguments
         int len = args.length();
         int i=0;
-        ArrayList parsedArgs = new ArrayList();
+        ArrayList<StringBuilder> parsedArgs = new ArrayList<StringBuilder>();
         while (i<len){
             StringBuilder arg = new StringBuilder();
             int lastPos=i;
@@ -1467,7 +1467,7 @@ public class PgStatement implements BaseStatement
         }
     }
     
-    private void setMap(int parameterIndex, Map x) throws SQLException {
+    private void setMap(int parameterIndex, Map<?, ?> x) throws SQLException {
         int oid = connection.getTypeInfo().getPGType("hstore");
         if (oid == Oid.UNSPECIFIED)
             throw new PSQLException(GT.tr("No hstore extension installed."), PSQLState.INVALID_PARAMETER_TYPE);
@@ -1864,7 +1864,7 @@ public class PgStatement implements BaseStatement
         else if (x instanceof Character)
             setString(parameterIndex, ((Character)x).toString());
         else if (x instanceof Map)
-            setMap(parameterIndex, (Map)x);
+            setMap(parameterIndex, (Map<?, ?>)x);
         else
         {
             // Can't infer a type.
@@ -2297,7 +2297,7 @@ public class PgStatement implements BaseStatement
             this.expectGeneratedKeys = expectGeneratedKeys;
         }
 
-        public void handleResultRows(Query fromQuery, Field[] fields, List tuples, ResultCursor cursor) {
+        public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples, ResultCursor cursor) {
             if (!expectGeneratedKeys) {
                 handleError(new PSQLException(GT.tr("A result was returned when none was expected."),
                                           PSQLState.TOO_MANY_RESULTS));
@@ -2383,7 +2383,7 @@ public class PgStatement implements BaseStatement
             this.updateCounts = updateCounts;
         }
 
-        public void handleResultRows(Query fromQuery, Field[] fields, List tuples, ResultCursor cursor) 
+        public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples, ResultCursor cursor) 
         {
             
         }
@@ -3039,7 +3039,7 @@ public class PgStatement implements BaseStatement
         throw Driver.notImplemented(this.getClass(), "getClob(int)");
     }
 
-    public Object getObjectImpl(int i, java.util.Map map) throws SQLException
+    public Object getObjectImpl(int i, Map<String, Class<?>> map) throws SQLException
     {
         if (map == null || map.isEmpty()) {
             return getObject(i);
@@ -3733,7 +3733,7 @@ public class PgStatement implements BaseStatement
     {
         checkClosed();
         if (generatedKeys == null || generatedKeys.getResultSet() == null)
-            return createDriverResultSet(new Field[0], new ArrayList());
+            return createDriverResultSet(new Field[0], new ArrayList<byte[][]>());
 
         return generatedKeys.getResultSet();
     }
@@ -4053,7 +4053,7 @@ public class PgStatement implements BaseStatement
         throw Driver.notImplemented(this.getClass(), "getBigDecimal(String)");
     }
 
-    public Object getObjectImpl(String parameterName, java.util.Map map) throws SQLException
+    public Object getObjectImpl(String parameterName, Map<String, Class<?>> map) throws SQLException
     {
         throw Driver.notImplemented(this.getClass(), "getObject(String,Map)");
     }
@@ -4123,7 +4123,7 @@ public class PgStatement implements BaseStatement
         registerOutParameter(parameterIndex, sqlType);
     }
 
-    public ResultSet createDriverResultSet(Field[] fields, List tuples)
+    public ResultSet createDriverResultSet(Field[] fields, List<byte[][]> tuples)
             throws SQLException
     {
         return createResultSet(null, fields, tuples, null);

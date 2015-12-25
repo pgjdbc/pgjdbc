@@ -50,7 +50,7 @@ public class PgArray implements java.sql.Array
     /**
      * Array list implementation specific for storing PG array elements.
      */
-    private static class PgArrayList extends ArrayList
+    private static class PgArrayList extends ArrayList<Object>
     {
 
         private static final long serialVersionUID = 2052783752654562677L;
@@ -142,7 +142,7 @@ public class PgArray implements java.sql.Array
         return getArrayImpl(index, count, null);
     }
 
-    public Object getArrayImpl(Map map) throws SQLException
+    public Object getArrayImpl(Map<String, Class<?>> map) throws SQLException
     {
         return getArrayImpl(1, 0, map);
     }
@@ -155,7 +155,7 @@ public class PgArray implements java.sql.Array
         return getArrayImpl(index, count, map);
     }
 
-    public Object getArrayImpl(long index, int count, Map map) throws SQLException
+    public Object getArrayImpl(long index, int count, Map<String, Class<?>> map) throws SQLException
     {
 
         // for now maps aren't supported.
@@ -279,7 +279,7 @@ public class PgArray implements java.sql.Array
         if (count > 0 && dimensions > 0) {
             dims[0] = Math.min(count, dims[0]);
         }
-        List rows = new ArrayList();
+        List<byte[][]> rows = new ArrayList<byte[][]>();
         Field[] fields = new Field[2];
 
         storeValues(rows, fields, elementOid, dims, pos, 0, index);
@@ -288,7 +288,7 @@ public class PgArray implements java.sql.Array
         return stat.createDriverResultSet(fields, rows);
     }
 
-    private int storeValues(List rows, Field[] fields, int elementOid, final int[] dims, int pos, final int thisDimension, int index) throws SQLException
+    private int storeValues(List<byte[][]> rows, Field[] fields, int elementOid, final int[] dims, int pos, final int thisDimension, int index) throws SQLException
     {
         // handle an empty array
         if (dims.length == 0)
@@ -371,7 +371,7 @@ public class PgArray implements java.sql.Array
         return pos;
     }
 
-    private Class elementOidToClass(int oid)
+    private Class<?> elementOidToClass(int oid)
             throws SQLException {
         switch (oid) {
             case Oid.INT2:
@@ -421,7 +421,7 @@ public class PgArray implements java.sql.Array
             boolean insideString = false;
             boolean wasInsideString = false; // needed for checking if NULL
             // value occured
-            List dims = new ArrayList(); // array dimension arrays
+            List<PgArrayList> dims = new ArrayList<PgArrayList>(); // array dimension arrays
             PgArrayList curArray = arrayList; // currently processed array
 
             // Starting with 8.0 non-standard (beginning index
@@ -463,11 +463,11 @@ public class PgArray implements java.sql.Array
                     else
                     {
                         PgArrayList a = new PgArrayList();
-                        PgArrayList p = ((PgArrayList) dims.get(dims.size() - 1));
+                        PgArrayList p = dims.get(dims.size() - 1);
                         p.add(a);
                         dims.add(a);
                     }
-                    curArray = (PgArrayList) dims.get(dims.size() - 1);
+                    curArray = dims.get(dims.size() - 1);
 
                     // number of dimensions
                     {
@@ -525,7 +525,7 @@ public class PgArray implements java.sql.Array
                         // when multi-dimension
                         if (dims.size() > 0)
                         {
-                            curArray = (PgArrayList) dims.get(dims.size() - 1);
+                            curArray = dims.get(dims.size() - 1);
                         }
 
                         buffer = null;
@@ -855,12 +855,12 @@ public class PgArray implements java.sql.Array
         return getResultSetImpl(index, count, map);
     }
 
-    public java.sql.ResultSet getResultSetImpl(Map map) throws SQLException
+    public ResultSet getResultSetImpl(Map<String, Class<?>> map) throws SQLException
     {
         return getResultSetImpl(1, 0, map);
     }
 
-    public ResultSet getResultSetImpl(long index, int count, Map map) throws SQLException
+    public ResultSet getResultSetImpl(long index, int count, Map<String, Class<?>> map) throws SQLException
     {
 
         // for now maps aren't supported.
@@ -892,7 +892,7 @@ public class PgArray implements java.sql.Array
             throw new PSQLException(GT.tr("The array index is out of range: {0}, number of elements: {1}.", new Object[] {index + count, (long) arrayList.size()}), PSQLState.DATA_ERROR);
         }
 
-        List rows = new ArrayList();
+        List<byte[][]> rows = new ArrayList<byte[][]>();
 
         Field[] fields = new Field[2];
 

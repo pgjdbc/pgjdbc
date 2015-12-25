@@ -86,9 +86,9 @@ public class Driver implements java.sql.Driver
         // privileges.
         try
         {
-            defaultProperties = (Properties)
-                AccessController.doPrivileged(new PrivilegedExceptionAction() {
-                        public Object run() throws IOException {
+            defaultProperties =
+                AccessController.doPrivileged(new PrivilegedExceptionAction<Properties>() {
+                        public Properties run() throws IOException {
                             return loadDefaultProperties();
                         }
                     });
@@ -151,15 +151,15 @@ public class Driver implements java.sql.Driver
         // in later files in the classpath to override settings specified in
         // earlier files.  To do this we've got to read the returned
         // Enumeration into temporary storage.
-        ArrayList urls = new ArrayList();
-        Enumeration urlEnum = cl.getResources("org/postgresql/driverconfig.properties");
+        ArrayList<URL> urls = new ArrayList<URL>();
+        Enumeration<URL> urlEnum = cl.getResources("org/postgresql/driverconfig.properties");
         while (urlEnum.hasMoreElements())
         {
             urls.add(urlEnum.nextElement());
         }
 
         for (int i=urls.size()-1; i>=0; i--) {
-            URL url = (URL)urls.get(i);
+            URL url = urls.get(i);
             logger.debug("Loading driver configuration from: " + url);
             InputStream is = url.openStream();
             merged.load(is);
@@ -249,7 +249,7 @@ public class Driver implements java.sql.Driver
         Properties props = new Properties(defaults);
         if (info != null)
         {
-            for (Enumeration e = info.propertyNames(); e.hasMoreElements(); )
+            for (Enumeration<?> e = info.propertyNames(); e.hasMoreElements(); )
             {
                 String propName = (String)e.nextElement();
                 String propValue = info.getProperty(propName);
@@ -675,7 +675,7 @@ public class Driver implements java.sql.Driver
      * @return PSQLException with a localized message giving the complete 
      *  description of the unimplemeted function
      */
-    public static SQLFeatureNotSupportedException notImplemented(Class callClass, String functionName)
+    public static SQLFeatureNotSupportedException notImplemented(Class<?> callClass, String functionName)
     {
         return new SQLFeatureNotSupportedException(GT.tr("Method {0} is not yet implemented.", callClass.getName() + "." + functionName),
                                  PSQLState.NOT_IMPLEMENTED.getState());

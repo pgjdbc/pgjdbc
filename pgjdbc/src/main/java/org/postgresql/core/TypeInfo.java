@@ -10,11 +10,13 @@ package org.postgresql.core;
 import java.sql.SQLException;
 import java.util.Iterator;
 
+import org.postgresql.util.PGobject;
+
 public interface TypeInfo
 {
     public void addCoreType(String pgTypeName, Integer oid, Integer sqlType, String javaClass, Integer arrayOid);
 
-    public void addDataType(String type, Class klass) throws SQLException;
+    public void addDataType(String type, Class<? extends PGobject> klass) throws SQLException;
 
     /**
      * Look up the SQL typecode for a given type oid.
@@ -83,9 +85,9 @@ public interface TypeInfo
      */
     public char getArrayDelimiter(int oid) throws SQLException;
 
-    public Iterator getPGTypeNamesWithSQLTypes();
+    public Iterator<String> getPGTypeNamesWithSQLTypes();
 
-    public Class getPGobject(String type);
+    public Class<? extends PGobject> getPGobject(String type);
 
     public String getJavaClass(int oid) throws SQLException;
 

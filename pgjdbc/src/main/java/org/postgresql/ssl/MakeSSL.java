@@ -50,8 +50,8 @@ public class MakeSSL {
         InstantiationException, IllegalAccessException, InvocationTargetException
     {
       Object[] args = {info};
-      Constructor ctor = null;
-      Class cls;
+      Constructor<?> ctor = null;
+      Class<?> cls;
       cls = Class.forName(classname);
       try
       {         

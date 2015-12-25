@@ -12,7 +12,7 @@ public interface ArrayAssistant {
      *
      * @return array base type
      */
-    Class baseType();
+    Class<?> baseType();
 
     /**
      * build a array element from its binary bytes

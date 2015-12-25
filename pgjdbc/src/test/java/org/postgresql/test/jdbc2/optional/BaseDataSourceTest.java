@@ -216,7 +216,7 @@ public abstract class BaseDataSourceTest extends TestCase
      */
     protected InitialContext getInitialContext()
     {
-        Hashtable env = new Hashtable();
+        Hashtable<String, Object> env = new Hashtable<String, Object>();
         env.put(Context.INITIAL_CONTEXT_FACTORY, MiniJndiContextFactory.class.getName());
         try
         {

@@ -53,11 +53,11 @@ public class PGPoolingDataSource
     extends BaseDataSource
         implements DataSource
 {
-    protected static Map dataSources = new ConcurrentHashMap();
+    protected static Map<String, PGPoolingDataSource> dataSources = new ConcurrentHashMap<String, PGPoolingDataSource>();
 
     public static PGPoolingDataSource getDataSource(String name)
     {
-        return (PGPoolingDataSource)dataSources.get(name);
+        return dataSources.get(name);
     }
 
     // Additional Data Source properties
@@ -66,8 +66,8 @@ public class PGPoolingDataSource
     private int maxConnections = 0;
     // State variables
     private boolean initialized = false;
-    private Stack available = new Stack();
-    private Stack used = new Stack();
+    private Stack<PooledConnection> available = new Stack<PooledConnection>();
+    private Stack<PooledConnection> used = new Stack<PooledConnection>();
     private Object lock = new Object()
                               ;
     private PGConnectionPoolDataSource source;
@@ -375,7 +375,7 @@ public class PGPoolingDataSource
         {
             while (available.size() > 0)
             {
-                PGPooledConnection pci = (PGPooledConnection)available.pop();
+                PooledConnection pci = available.pop();
                 try
                 {
                     pci.close();
@@ -387,7 +387,7 @@ public class PGPoolingDataSource
             available = null;
             while (used.size() > 0)
             {
-                PGPooledConnection pci = (PGPooledConnection)used.pop();
+                PooledConnection pci = used.pop();
                 pci.removeConnectionEventListener(connectionEventListener);
                 try
                 {
@@ -433,7 +433,7 @@ public class PGPoolingDataSource
             {
                 if (available.size() > 0)
                 {
-                    pc = (PooledConnection)available.pop();
+                    pc = available.pop();
                     used.push(pc);
                     break;
                 }
@@ -479,7 +479,7 @@ public class PGPoolingDataSource
                         boolean removed = used.remove(event.getSource());
                         if (removed)
                         {
-                            available.push(event.getSource());
+                            available.push((PooledConnection) event.getSource());
                             // There's now a new connection available
                             lock.notify();
                         }

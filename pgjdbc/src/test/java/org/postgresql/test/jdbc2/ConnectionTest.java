@@ -11,6 +11,8 @@ import org.postgresql.jdbc.PgConnection;
 import org.postgresql.test.TestUtil;
 import junit.framework.TestCase;
 import java.sql.*;
+import java.util.HashMap;
+import java.util.Map;
 
 /*
  * TestCase to test the internal functionality of org.postgresql.jdbc2.Connection
@@ -276,10 +278,10 @@ public class ConnectionTest extends TestCase
         con = TestUtil.openDB();
 
         // preserve the current map
-        java.util.Map oldmap = con.getTypeMap();
+        Map<String, Class<?>> oldmap = con.getTypeMap();
 
         // now change it for an empty one
-        java.util.Map newmap = new java.util.HashMap();
+        Map<String, Class<?>> newmap = new HashMap<String, Class<?>>();
         con.setTypeMap(newmap);
         assertEquals(newmap, con.getTypeMap());
 

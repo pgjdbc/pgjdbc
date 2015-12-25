@@ -66,7 +66,7 @@ class ProtocolConnectionImpl implements ProtocolConnection {
     }
 
     public synchronized PGNotification[] getNotifications() throws SQLException {
-        PGNotification[] array = (PGNotification[])notifications.toArray(new PGNotification[notifications.size()]);
+        PGNotification[] array = notifications.toArray(new PGNotification[notifications.size()]);
         notifications.clear();
         return array;
     }
@@ -246,7 +246,7 @@ class ProtocolConnectionImpl implements ProtocolConnection {
 
     private boolean closed = false;
 
-    private final ArrayList notifications = new ArrayList();
+    private final ArrayList<PGNotification> notifications = new ArrayList<PGNotification>();
 
     private final PGStream pgStream;
     private final String user;

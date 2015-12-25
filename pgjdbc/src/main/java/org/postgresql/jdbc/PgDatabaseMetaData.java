@@ -1153,7 +1153,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData
             columns += 7;
         }
         Field f[] = new Field[columns];
-        List v = new ArrayList();  // The new ResultSet tuple stuff
+        List<byte[][]> v = new ArrayList<byte[][]>();  // The new ResultSet tuple stuff
 
         f[0] = new Field("PROCEDURE_CAT", Oid.VARCHAR);
         f[1] = new Field("PROCEDURE_SCHEM", Oid.VARCHAR);
@@ -1229,7 +1229,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData
 
             String strArgTypes = rs.getString("proargtypes");
             StringTokenizer st = new StringTokenizer(strArgTypes);
-            List argTypes = new ArrayList();
+            List<Long> argTypes = new ArrayList<Long>();
             while (st.hasMoreTokens())
             {
                 argTypes.add(new Long(st.nextToken()));
@@ -1318,7 +1318,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData
                 if (allArgTypes != null)
                     argOid = allArgTypes[i].intValue();
                 else
-                    argOid = ((Long)argTypes.get(i)).intValue();
+                    argOid = argTypes.get(i).intValue();
 
                 tuple[5] = connection.encodeString(Integer.toString(connection.getTypeInfo().getSQLType(argOid)));
                 tuple[6] = connection.encodeString(connection.getTypeInfo().getPGType(argOid));
@@ -1504,9 +1504,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         if (types != null) {
             select += " AND (false ";
             for (String type : types) {
-                Map clauses = (Map) tableTypeClauses.get(type);
+                Map<String, String> clauses = tableTypeClauses.get(type);
                 if (clauses != null) {
-                    String clause = (String) clauses.get(useSchemas);
+                    String clause = clauses.get(useSchemas);
                     select += " OR ( " + clause + " ) ";
                 }
             }
@@ -1517,70 +1517,70 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         return createMetaDataStatement().executeQuery(sql);
     }
 
-    private static final Map tableTypeClauses;
+    private static final Map<String, Map<String, String>> tableTypeClauses;
     static {
-        tableTypeClauses = new HashMap();
-        Map ht = new HashMap();
+        tableTypeClauses = new HashMap<String, Map<String, String>>();
+        Map<String, String> ht = new HashMap<String, String>();
         tableTypeClauses.put("TABLE", ht);
         ht.put("SCHEMAS", "c.relkind = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
         ht.put("NOSCHEMAS", "c.relkind = 'r' AND c.relname !~ '^pg_'");
-        ht = new HashMap();
+        ht = new HashMap<String, String>();
         tableTypeClauses.put("VIEW", ht);
         ht.put("SCHEMAS", "c.relkind = 'v' AND n.nspname <> 'pg_catalog' AND n.nspname <> 'information_schema'");
         ht.put("NOSCHEMAS", "c.relkind = 'v' AND c.relname !~ '^pg_'");
-        ht = new HashMap();
+        ht = new HashMap<String, String>();
         tableTypeClauses.put("INDEX", ht);
         ht.put("SCHEMAS", "c.relkind = 'i' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
         ht.put("NOSCHEMAS", "c.relkind = 'i' AND c.relname !~ '^pg_'");
-        ht = new HashMap();
+        ht = new HashMap<String, String>();
         tableTypeClauses.put("SEQUENCE", ht);
         ht.put("SCHEMAS", "c.relkind = 'S'");
         ht.put("NOSCHEMAS", "c.relkind = 'S'");
-        ht = new HashMap();
+        ht = new HashMap<String, String>();
         tableTypeClauses.put("TYPE", ht);
         ht.put("SCHEMAS", "c.relkind = 'c' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
         ht.put("NOSCHEMAS", "c.relkind = 'c' AND c.relname !~ '^pg_'");
-        ht = new HashMap();
+        ht = new HashMap<String, String>();
         tableTypeClauses.put("SYSTEM TABLE", ht);
         ht.put("SCHEMAS", "c.relkind = 'r' AND (n.nspname = 'pg_catalog' OR n.nspname = 'information_schema')");
         ht.put("NOSCHEMAS", "c.relkind = 'r' AND c.relname ~ '^pg_' AND c.relname !~ '^pg_toast_' AND c.relname !~ '^pg_temp_'");
-        ht = new HashMap();
+        ht = new HashMap<String, String>();
         tableTypeClauses.put("SYSTEM TOAST TABLE", ht);
         ht.put("SCHEMAS", "c.relkind = 'r' AND n.nspname = 'pg_toast'");
         ht.put("NOSCHEMAS", "c.relkind = 'r' AND c.relname ~ '^pg_toast_'");
-        ht = new HashMap();
+        ht = new HashMap<String, String>();
         tableTypeClauses.put("SYSTEM TOAST INDEX", ht);
         ht.put("SCHEMAS", "c.relkind = 'i' AND n.nspname = 'pg_toast'");
         ht.put("NOSCHEMAS", "c.relkind = 'i' AND c.relname ~ '^pg_toast_'");
-        ht = new HashMap();
+        ht = new HashMap<String, String>();
         tableTypeClauses.put("SYSTEM VIEW", ht);
         ht.put("SCHEMAS", "c.relkind = 'v' AND (n.nspname = 'pg_catalog' OR n.nspname = 'information_schema') ");
         ht.put("NOSCHEMAS", "c.relkind = 'v' AND c.relname ~ '^pg_'");
-        ht = new HashMap();
+        ht = new HashMap<String, String>();
         tableTypeClauses.put("SYSTEM INDEX", ht);
         ht.put("SCHEMAS", "c.relkind = 'i' AND (n.nspname = 'pg_catalog' OR n.nspname = 'information_schema') ");
         ht.put("NOSCHEMAS", "c.relkind = 'v' AND c.relname ~ '^pg_' AND c.relname !~ '^pg_toast_' AND c.relname !~ '^pg_temp_'");
-        ht = new HashMap();
+        ht = new HashMap<String, String>();
         tableTypeClauses.put("TEMPORARY TABLE", ht);
         ht.put("SCHEMAS", "c.relkind = 'r' AND n.nspname ~ '^pg_temp_' ");
         ht.put("NOSCHEMAS", "c.relkind = 'r' AND c.relname ~ '^pg_temp_' ");
-        ht = new HashMap();
+        ht = new HashMap<String, String>();
         tableTypeClauses.put("TEMPORARY INDEX", ht);
         ht.put("SCHEMAS", "c.relkind = 'i' AND n.nspname ~ '^pg_temp_' ");
         ht.put("NOSCHEMAS", "c.relkind = 'i' AND c.relname ~ '^pg_temp_' ");
-        ht = new HashMap();
+        ht = new HashMap<String, String>();
         tableTypeClauses.put("TEMPORARY VIEW", ht);
         ht.put("SCHEMAS", "c.relkind = 'v' AND n.nspname ~ '^pg_temp_' ");
         ht.put("NOSCHEMAS", "c.relkind = 'v' AND c.relname ~ '^pg_temp_' ");
-        ht = new HashMap();
+        ht = new HashMap<String, String>();
         tableTypeClauses.put("TEMPORARY SEQUENCE", ht);
         ht.put("SCHEMAS", "c.relkind = 'S' AND n.nspname ~ '^pg_temp_' ");
         ht.put("NOSCHEMAS", "c.relkind = 'S' AND c.relname ~ '^pg_temp_' ");
-        ht = new HashMap();
+        ht = new HashMap<String, String>();
         tableTypeClauses.put("FOREIGN TABLE", ht);
         ht.put("SCHEMAS", "c.relkind = 'f'");
         ht.put("NOSCHEMAS", "c.relkind = 'f'");
-        ht = new HashMap();
+        ht = new HashMap<String, String>();
         tableTypeClauses.put("MATERIALIZED VIEW", ht);
         ht.put("SCHEMAS", "c.relkind = 'm'");
         ht.put("NOSCHEMAS", "c.relkind = 'm'");
@@ -1637,7 +1637,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData
     public java.sql.ResultSet getCatalogs() throws SQLException
     {
         Field f[] = new Field[1];
-        List v = new ArrayList();
+        List<byte[][]> v = new ArrayList<byte[][]>();
         f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
         byte[][] tuple = new byte[1][];
         tuple[0] = connection.encodeString(connection.getCatalog());
@@ -1649,16 +1649,16 @@ public class PgDatabaseMetaData implements DatabaseMetaData
     public java.sql.ResultSet getTableTypes() throws SQLException
     {
         String types[] = new String[tableTypeClauses.size()];
-        Iterator e = tableTypeClauses.keySet().iterator();
+        Iterator<String> e = tableTypeClauses.keySet().iterator();
         int i = 0;
         while (e.hasNext())
         {
-            types[i++] = (String)e.next();
+            types[i++] = e.next();
         }
         sortStringArray(types);
 
         Field f[] = new Field[1];
-        List v = new ArrayList();
+        List<byte[][]> v = new ArrayList<byte[][]>();
         f[0] = new Field("TABLE_TYPE", Oid.VARCHAR);
         for (i = 0; i < types.length; i++)
         {
@@ -1680,7 +1680,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         } else {
             numberOfFields = 18;
         }
-        List v = new ArrayList();  // The new ResultSet tuple stuff
+        List<byte[][]> v = new ArrayList<byte[][]>();  // The new ResultSet tuple stuff
         Field f[] = new Field[numberOfFields];  // The field descriptors for the new ResultSet
 
         f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
@@ -1905,7 +1905,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData
     public java.sql.ResultSet getColumnPrivileges(String catalog, String schema, String table, String columnNamePattern) throws SQLException
     {
         Field f[] = new Field[8];
-        List v = new ArrayList();
+        List<byte[][]> v = new ArrayList<byte[][]>();
 
         if (table == null)
             table = "%";
@@ -1978,38 +1978,37 @@ public class PgDatabaseMetaData implements DatabaseMetaData
             String owner = rs.getString("rolname");
             String relAcl = rs.getString("relacl");
             
-            Map permissions = parseACL(relAcl, owner);
+            Map<String, Map<String, List<String[]>>> permissions = parseACL(relAcl, owner);
             
             if (connection.haveMinimumServerVersion(ServerVersion.v8_4))
             {
                 String acl = rs.getString("attacl");
-                Map relPermissions = parseACL(acl, owner);
+                Map<String, Map<String, List<String[]>>> relPermissions = parseACL(acl, owner);
                 permissions.putAll(relPermissions);
             }
             String permNames[] = new String[permissions.size()];
-            Iterator e = permissions.keySet().iterator();
+            Iterator<String> e = permissions.keySet().iterator();
             int i = 0;
             while (e.hasNext())
             {
-                permNames[i++] = (String)e.next();
+                permNames[i++] = e.next();
             }
             sortStringArray(permNames);
             for (i = 0; i < permNames.length; i++)
             {
                 byte[] privilege = connection.encodeString(permNames[i]);
-                Map grantees = (Map)permissions.get(permNames[i]);
+                Map<String, List<String[]>> grantees = permissions.get(permNames[i]);
                 String granteeUsers[] = new String[grantees.size()];
-                Iterator g = grantees.keySet().iterator();
+                Iterator<String> g = grantees.keySet().iterator();
                 int k = 0;
                 while (g.hasNext()){
-                	granteeUsers[k++] = (String)g.next();
+                	granteeUsers[k++] = g.next();
                 }                
                 for (int j = 0; j < grantees.size(); j++)
                 {
-                	List grantor = (List)grantees.get(granteeUsers[j]);
-                	String grantee = (String)granteeUsers[j];
-                    for (Object element : grantor) {
-                        String[] grants = (String[]) element;
+                	List<String[]> grantor = grantees.get(granteeUsers[j]);
+                	String grantee = granteeUsers[j];
+                    for (String[] grants : grantor) {
                         String grantable = owner.equals(grantee) ? "YES" : grants[1];
                         byte[][] tuple = new byte[8][];
                         tuple[0] = null;
@@ -2034,7 +2033,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData
     public java.sql.ResultSet getTablePrivileges(String catalog, String schemaPattern, String tableNamePattern) throws SQLException
     {
         Field f[] = new Field[7];
-        List v = new ArrayList();
+        List<byte[][]> v = new ArrayList<byte[][]>();
 
         f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
         f[1] = new Field("TABLE_SCHEM", Oid.VARCHAR);
@@ -2079,40 +2078,38 @@ public class PgDatabaseMetaData implements DatabaseMetaData
             byte table[] = rs.getBytes("relname");
             String owner = rs.getString("rolname");
             String acl = rs.getString("relacl");
-            Map permissions = parseACL(acl, owner);
+            Map<String, Map<String, List<String[]>>> permissions = parseACL(acl, owner);
             String permNames[] = new String[permissions.size()];
-            Iterator e = permissions.keySet().iterator();
+            Iterator<String> e = permissions.keySet().iterator();
             int i = 0;
             while (e.hasNext())
             {
-                permNames[i++] = (String)e.next();
+                permNames[i++] = e.next();
             }
             sortStringArray(permNames);
             for (i = 0; i < permNames.length; i++)
             {
                 byte[] privilege = connection.encodeString(permNames[i]);
-                Map grantees = (Map)permissions.get(permNames[i]);
+                Map<String, List<String[]>> grantees = permissions.get(permNames[i]);
                 String granteeUsers[] = new String[grantees.size()];
-                Iterator g = grantees.keySet().iterator();
+                Iterator<String> g = grantees.keySet().iterator();
                 int k = 0;
                 while (g.hasNext()){
-                	granteeUsers[k++] = (String)g.next();
+                	granteeUsers[k++] = g.next();
                 }
                 for (String granteeUser : granteeUsers) {
-                    List grants = (List) grantees.get(granteeUser);
-                    String grantee = (String) granteeUser;
-                    for (Object grant : grants) {
-                        String[] grantTuple = (String[]) grant;
+                    List<String[]> grants = grantees.get(granteeUser);
+                    for (String[] grantTuple : grants) {
                         // report the owner as grantor if it's missing
                         String grantor = grantTuple[0] == null ? owner : grantTuple[0];
                         // owner always has grant privileges
-                        String grantable = owner.equals(grantee) ? "YES" : grantTuple[1];
+                        String grantable = owner.equals(granteeUser) ? "YES" : grantTuple[1];
                         byte[][] tuple = new byte[7][];
                         tuple[0] = null;
                         tuple[1] = schema;
                         tuple[2] = table;
                         tuple[3] = connection.encodeString(grantor);
-                        tuple[4] = connection.encodeString(grantee);
+                        tuple[4] = connection.encodeString(granteeUser);
                         tuple[5] = privilege;
                         tuple[6] = connection.encodeString(grantable);
                         v.add(tuple);
@@ -2145,8 +2142,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData
     /**
      * Parse an String of ACLs into a List of ACLs.
      */
-    private static List parseACLArray(String aclString) {
-        List acls = new ArrayList();
+    private static List<String> parseACLArray(String aclString) {
+        List<String> acls = new ArrayList<String>();
         if (aclString == null || aclString.length() == 0)
         {
             return acls;
@@ -2176,7 +2173,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         // Strip out enclosing quotes, if any.
         for (int i = 0; i < acls.size(); i++)
         {
-            String acl = (String)acls.get(i);
+            String acl = acls.get(i);
             if (acl.startsWith("\"") && acl.endsWith("\""))
             {
                 acl = acl.substring(1, acl.length() - 1);
@@ -2190,7 +2187,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData
      * Add the user described by the given acl to the Lists of users
      * with the privileges described by the acl.
      */
-    private void addACLPrivileges(String acl, Map privileges) {
+    private void addACLPrivileges(String acl, Map<String, Map<String, List<String[]>>> privileges) {
         int equalIndex = acl.lastIndexOf("=");
         int slashIndex = acl.lastIndexOf("/");
         if (equalIndex == -1)
@@ -2265,19 +2262,19 @@ public class PgDatabaseMetaData implements DatabaseMetaData
                 sqlpriv = "UNKNOWN";
             }
 	            
-	            Map usersWithPermission = (Map)privileges.get(sqlpriv);
+	            Map<String, List<String[]>> usersWithPermission = privileges.get(sqlpriv);
 	            String[] grant = {grantor, grantable}; 
 
 	            if (usersWithPermission == null) {	           
-	                usersWithPermission = new HashMap();
-	                List permissionByGrantor = new ArrayList();
+	                usersWithPermission = new HashMap<String, List<String[]>>();
+	                List<String[]> permissionByGrantor = new ArrayList<String[]>();
             		permissionByGrantor.add(grant);
 	                usersWithPermission.put(user, permissionByGrantor);
                 privileges.put(sqlpriv, usersWithPermission);
 	            } else {
-	            	List permissionByGrantor = (List)usersWithPermission.get(user);
+	                List<String[]> permissionByGrantor = usersWithPermission.get(user);
 	            	if (permissionByGrantor == null) {
-	            		permissionByGrantor = new ArrayList();
+	            		permissionByGrantor = new ArrayList<String[]>();
 	            		permissionByGrantor.add(grant);
 	            		usersWithPermission.put(user,permissionByGrantor);
 	            	} else {
@@ -2297,7 +2294,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData
      * @param owner owner
      * @return a Map mapping the SQL permission name
      */
-    public Map parseACL(String aclArray, String owner) {
+    public Map<String, Map<String, List<String[]>>> parseACL(String aclArray, String owner) {
         if (aclArray == null)
         {
             //null acl is a shortcut for owner having full privs
@@ -2312,10 +2309,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData
             aclArray = "{" + owner + "=" + perms + "/" + owner + "}";
         }
 
-        List acls = parseACLArray(aclArray);
-        Map privileges = new HashMap();
-        for (Object element : acls) {
-            String acl = (String) element;
+        List<String> acls = parseACLArray(aclArray);
+        Map<String, Map<String, List<String[]>>> privileges = new HashMap<String, Map<String, List<String[]>>>();
+        for (String acl : acls) {
             addACLPrivileges(acl, privileges);
         }
         return privileges;
@@ -2324,7 +2320,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData
     public java.sql.ResultSet getBestRowIdentifier(String catalog, String schema, String table, int scope, boolean nullable) throws SQLException
     {
         Field f[] = new Field[8];
-        List v = new ArrayList();  // The new ResultSet tuple stuff
+        List<byte[][]> v = new ArrayList<byte[][]>();  // The new ResultSet tuple stuff
 
         f[0] = new Field("SCOPE", Oid.INT2);
         f[1] = new Field("COLUMN_NAME", Oid.VARCHAR);
@@ -2416,7 +2412,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData
     public java.sql.ResultSet getVersionColumns(String catalog, String schema, String table) throws SQLException
     {
         Field f[] = new Field[8];
-        List v = new ArrayList();  // The new ResultSet tuple stuff
+        List<byte[][]> v = new ArrayList<byte[][]>();  // The new ResultSet tuple stuff
 
         f[0] = new Field("SCOPE", Oid.INT2);
         f[1] = new Field("COLUMN_NAME", Oid.VARCHAR);
@@ -2750,7 +2746,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         // | 8  |       9            |    10     |   11
         // | 6  | <unnamed>\000users\000people\000UNSPECIFIED\000people_id\000id\000 | RI_FKey_noaction_upd | RI_FKey_noaction_del
 
-        List tuples = new ArrayList();
+        List<byte[][]> tuples = new ArrayList<byte[][]>();
 
         while ( rs.next() )
         {
@@ -2823,10 +2819,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData
             //<unnamed>\000ww\000vv\000UNSPECIFIED\000m\000a\000n\000b\000
             // we are primarily interested in the column names which are the last items in the string
 
-            List tokens = tokenize(targs, "\\000");
+            List<String> tokens = tokenize(targs, "\\000");
             if (tokens.size() > 0)
             {
-                fkName = (String)tokens.get(0);
+                fkName = tokens.get(0);
             }
 
             if (fkName.startsWith("<unnamed>"))
@@ -2837,13 +2833,13 @@ public class PgDatabaseMetaData implements DatabaseMetaData
             int element = 4 + (keySequence - 1) * 2;
             if (tokens.size() > element)
             {
-                fkeyColumn = (String)tokens.get(element);
+                fkeyColumn = tokens.get(element);
             }
 
             element++;
             if (tokens.size() > element)
             {
-                pkeyColumn = (String)tokens.get(element);
+                pkeyColumn = tokens.get(element);
             }
 
             tuple[3] = connection.encodeString(pkeyColumn); //PKCOLUMN_NAME
@@ -2893,7 +2889,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData
     {
 
         Field f[] = new Field[18];
-        List v = new ArrayList();  // The new ResultSet tuple stuff
+        List<byte[][]> v = new ArrayList<byte[][]>();  // The new ResultSet tuple stuff
 
         f[0] = new Field("TYPE_NAME", Oid.VARCHAR);
         f[1] = new Field("DATA_TYPE", Oid.INT2);
@@ -3136,8 +3132,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData
     /**
      * Tokenize based on words not on single characters.
      */
-    private static List tokenize(String input, String delimiter) {
-        List result = new ArrayList();
+    private static List<String> tokenize(String input, String delimiter) {
+        List<String> result = new ArrayList<String>();
         int start = 0;
         int end = input.length();
         int delimiterSize = delimiter.length();
@@ -3247,8 +3243,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData
                      + "CASE WHEN t.typtype='c' then " + java.sql.Types.STRUCT + " else " + java.sql.Types.DISTINCT + " end as data_type, pg_catalog.obj_description(t.oid, 'pg_type')  "
                      + "as remarks, CASE WHEN t.typtype = 'd' then  (select CASE";
 
-        for (Iterator i = connection.getTypeInfo().getPGTypeNamesWithSQLTypes(); i.hasNext();) {
-            String pgType = (String)i.next();
+        for (Iterator<String> i = connection.getTypeInfo().getPGTypeNamesWithSQLTypes(); i.hasNext();) {
+            String pgType = i.next();
             int sqlType = connection.getTypeInfo().getSQLType(pgType);
             sql += " when typname = " + escapeQuotes(pgType) + " then " + sqlType;
         }
@@ -3372,7 +3368,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData
         f[2] = new Field("DEFAULT_VALUE", Oid.VARCHAR);
         f[3] = new Field("DESCRIPTION", Oid.VARCHAR);
 
-        List v = new ArrayList();
+        List<byte[][]> v = new ArrayList<byte[][]>();
 
         if (connection.haveMinimumServerVersion(ServerVersion.v9_0)) {
             byte[][] tuple = new byte[4][];

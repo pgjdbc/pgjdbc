@@ -41,7 +41,7 @@ public abstract class AbstractBlobClob
      * We create separate LargeObjects for methods that use streams
      * so they won't interfere with each other.
      */
-    private ArrayList subLOs;
+    private ArrayList<LargeObject> subLOs;
     
     private final long oid;
 
@@ -61,7 +61,7 @@ public abstract class AbstractBlobClob
             support64bit = false;
         }
 
-        subLOs = new ArrayList();
+        subLOs = new ArrayList<LargeObject>();
     }
 
     public synchronized void free() throws SQLException
@@ -71,9 +71,9 @@ public abstract class AbstractBlobClob
         	currentLo = null;
         	currentLoIsWriteable = false;
         }
-        Iterator i = subLOs.iterator();
+        Iterator<LargeObject> i = subLOs.iterator();
         while (i.hasNext()) {
-            LargeObject subLO = (LargeObject)i.next();
+            LargeObject subLO = i.next();
             subLO.close();
         }
         subLOs = null;

@@ -216,7 +216,7 @@ class SimpleQuery implements V3Query {
         return getNativeSql().isEmpty();
     }
 
-    void setCleanupRef(PhantomReference cleanupRef) {
+    void setCleanupRef(PhantomReference<?> cleanupRef) {
         if (this.cleanupRef != null) {
             this.cleanupRef.clear();
             this.cleanupRef.enqueue();
@@ -254,7 +254,7 @@ class SimpleQuery implements V3Query {
     private boolean hasBinaryFields;
     private boolean portalDescribed;
     private boolean statementDescribed;
-    private PhantomReference cleanupRef;
+    private PhantomReference<?> cleanupRef;
     private int[] preparedTypes;
 
     private Integer cachedMaxResultRowSize;
