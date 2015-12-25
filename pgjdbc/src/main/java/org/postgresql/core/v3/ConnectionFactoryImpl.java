@@ -559,7 +559,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                                     logger);
                             
                             useSSPI = sspiClient.isSSPISupported();
-                            logger.debug("SSPI support detected: " + useSSPI);
+                            if (logger.logDebug())
+                                logger.debug("SSPI support detected: " + useSSPI);
                         
                             if (!useSSPI) {
                                 /* No need to dispose() if no SSPI used */
@@ -570,7 +571,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                                             PSQLState.CONNECTION_UNABLE_TO_CONNECT);
                             }
                             
-                            logger.debug("Using SSPI: " + useSSPI + ", gsslib="+gsslib+" and SSPI support detected");
+                            if (logger.logDebug())
+                                logger.debug("Using SSPI: " + useSSPI + ", gsslib="+gsslib+" and SSPI support detected");
                         }
 
                         if (useSSPI)
