@@ -7,10 +7,10 @@
 */
 package org.postgresql.core;
 
+import org.postgresql.util.PGobject;
+
 import java.sql.SQLException;
 import java.util.Iterator;
-
-import org.postgresql.util.PGobject;
 
 public interface TypeInfo
 {

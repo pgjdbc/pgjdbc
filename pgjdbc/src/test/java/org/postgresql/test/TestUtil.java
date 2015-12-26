@@ -7,6 +7,11 @@
 */
 package org.postgresql.test;
 
+import org.postgresql.PGProperty;
+import org.postgresql.core.ServerVersion;
+import org.postgresql.core.Version;
+import org.postgresql.jdbc.PgConnection;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -18,11 +23,6 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
-
-import org.postgresql.PGProperty;
-import org.postgresql.core.ServerVersion;
-import org.postgresql.core.Version;
-import org.postgresql.jdbc.PgConnection;
 
 /**
  * Utility class for JDBC tests

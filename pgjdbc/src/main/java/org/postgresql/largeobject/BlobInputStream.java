@@ -7,8 +7,8 @@
 */
 package org.postgresql.largeobject;
 
-import java.io.InputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.sql.SQLException;
 
 /**

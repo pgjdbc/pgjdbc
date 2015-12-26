@@ -8,13 +8,13 @@
 */
 package org.postgresql.core.v3;
 
-import org.postgresql.core.*;
+import org.postgresql.core.ParameterList;
+import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
-import org.postgresql.util.GT;
 
-import java.sql.SQLException;
 import java.io.InputStream;
+import java.sql.SQLException;
 
 /**
  * Parameter list for V3 query strings that contain multiple statements.

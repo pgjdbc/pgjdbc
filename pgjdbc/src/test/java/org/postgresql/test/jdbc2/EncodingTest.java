@@ -8,9 +8,13 @@
 
 package org.postgresql.test.jdbc2;
 
-import junit.framework.*;
 import org.postgresql.core.Encoding;
-import java.io.*;
+
+import junit.framework.TestCase;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.io.Reader;
 import java.util.Locale;
 
 /*

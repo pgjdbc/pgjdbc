@@ -8,15 +8,15 @@
 */
 package org.postgresql.core;
 
-import java.util.Properties;
-import java.io.IOException;
-import java.sql.SQLException;
-
 import org.postgresql.PGProperty;
+import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
-import org.postgresql.util.GT;
 import org.postgresql.util.PSQLState;
+
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.Properties;
 
 /**
  * Handles protocol-specific connection setup.

@@ -7,16 +7,16 @@
  */
 package org.postgresql.test.jdbc2;
 
+import org.postgresql.core.BaseConnection;
+import org.postgresql.test.TestUtil;
+
+import junit.framework.TestCase;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
-
-import junit.framework.TestCase;
-
-import org.postgresql.core.BaseConnection;
-import org.postgresql.test.TestUtil;
 
 /*
  * This test suite will check the behaviour of the findColumnIndex

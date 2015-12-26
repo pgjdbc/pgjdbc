@@ -1,26 +1,27 @@
 package org.postgresql.test.ssl;
 
+import org.postgresql.test.TestUtil;
+
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.Before;
-import org.junit.BeforeClass;
+import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
-import org.junit.runner.RunWith;
 
-import java.io.File;
-import java.io.IOException;
 import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import java.io.File;
 import java.io.FileInputStream;
-import java.util.Properties;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Collection;
-import java.sql.*;
-
-import org.postgresql.test.TestUtil;
-import org.postgresql.util.PSQLException;
+import java.util.Collections;
+import java.util.Properties;
 
 @RunWith(Parameterized.class)
 public class SingleCertValidatingFactoryTestSuite {

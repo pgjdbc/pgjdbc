@@ -6,13 +6,13 @@
 */
 package org.postgresql.test.xa;
 
-import java.sql.Connection;
-import java.sql.Statement;
-import java.sql.ResultSet;
+import org.postgresql.test.TestUtil;
 
 import junit.framework.TestSuite;
 
-import org.postgresql.test.TestUtil;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
 
 public class XATestSuite extends TestSuite {
     public static TestSuite suite() throws Exception {

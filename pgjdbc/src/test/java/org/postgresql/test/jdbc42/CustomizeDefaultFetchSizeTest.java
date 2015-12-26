@@ -1,19 +1,20 @@
 package org.postgresql.test.jdbc42;
 
+import static junit.framework.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+
+import org.postgresql.PGProperty;
+import org.postgresql.test.TestUtil;
+
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Test;
-import org.postgresql.PGProperty;
-import org.postgresql.test.TestUtil;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
-
-import static junit.framework.Assert.fail;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 public class CustomizeDefaultFetchSizeTest
 {

@@ -8,15 +8,16 @@
 package org.postgresql.largeobject;
 
 
-import java.sql.ResultSet;
-import java.sql.Statement;
-import java.sql.SQLException;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.fastpath.FastpathArg;
-import org.postgresql.util.PSQLException;
 import org.postgresql.util.GT;
+import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 /**
  * This class implements the large object interface to org.postgresql.

@@ -8,9 +8,8 @@
 package org.postgresql.ssl;
 
 import java.io.IOException;
-import java.net.Socket;
 import java.net.InetAddress;
-
+import java.net.Socket;
 import javax.net.ssl.SSLSocketFactory;
 
 /**

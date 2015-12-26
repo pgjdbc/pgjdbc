@@ -8,19 +8,27 @@
 
 package org.postgresql.gss;
 
-import org.ietf.jgss.*;
-import javax.security.auth.Subject;
-import javax.security.auth.login.LoginContext;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
+import org.postgresql.core.Logger;
+import org.postgresql.core.PGStream;
+import org.postgresql.util.GT;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+import org.postgresql.util.ServerErrorMessage;
+
+import org.ietf.jgss.GSSContext;
+import org.ietf.jgss.GSSCredential;
+import org.ietf.jgss.GSSException;
+import org.ietf.jgss.GSSManager;
+import org.ietf.jgss.GSSName;
+import org.ietf.jgss.Oid;
 
 import java.io.IOException;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.sql.SQLException;
 import java.util.Set;
-
-import org.postgresql.core.PGStream;
-import org.postgresql.core.Logger;
-import org.postgresql.util.*;
+import javax.security.auth.Subject;
+import javax.security.auth.login.LoginContext;
 
 
 public class MakeGSS

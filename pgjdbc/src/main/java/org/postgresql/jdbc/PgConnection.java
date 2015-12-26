@@ -7,20 +7,70 @@
 */
 package org.postgresql.jdbc;
 
-import java.io.IOException;
-import java.sql.*;
-import java.util.*;
-import java.util.concurrent.Executor;
-
-import org.postgresql.core.*;
 import org.postgresql.Driver;
 import org.postgresql.PGNotification;
 import org.postgresql.PGProperty;
+import org.postgresql.copy.CopyManager;
+import org.postgresql.core.BaseConnection;
+import org.postgresql.core.BaseStatement;
+import org.postgresql.core.CachedQuery;
+import org.postgresql.core.ConnectionFactory;
+import org.postgresql.core.Encoding;
+import org.postgresql.core.Field;
+import org.postgresql.core.Logger;
+import org.postgresql.core.Oid;
+import org.postgresql.core.ProtocolConnection;
+import org.postgresql.core.Query;
+import org.postgresql.core.QueryExecutor;
+import org.postgresql.core.ResultCursor;
+import org.postgresql.core.ResultHandler;
+import org.postgresql.core.ServerVersion;
+import org.postgresql.core.TypeInfo;
+import org.postgresql.core.Utils;
+import org.postgresql.core.Version;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.largeobject.LargeObjectManager;
-import org.postgresql.util.*;
-import org.postgresql.copy.*;
-import org.postgresql.core.Utils;
+import org.postgresql.util.GT;
+import org.postgresql.util.HostSpec;
+import org.postgresql.util.LruCache;
+import org.postgresql.util.PGBinaryObject;
+import org.postgresql.util.PGobject;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+
+import java.io.IOException;
+import java.sql.Array;
+import java.sql.Blob;
+import java.sql.CallableStatement;
+import java.sql.ClientInfoStatus;
+import java.sql.Clob;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.NClob;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLClientInfoException;
+import java.sql.SQLException;
+import java.sql.SQLPermission;
+import java.sql.SQLWarning;
+import java.sql.SQLXML;
+import java.sql.Savepoint;
+import java.sql.Statement;
+import java.sql.Struct;
+import java.sql.Types;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Properties;
+import java.util.Set;
+import java.util.StringTokenizer;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.Executor;
 
 public class PgConnection implements BaseConnection
 {

@@ -7,8 +7,9 @@
 */
 package org.postgresql.core;
 
-import java.io.IOException;
 import org.postgresql.util.GT;
+
+import java.io.IOException;
 
 class UTF8Encoding extends Encoding {
     UTF8Encoding(String jvmEncoding) {

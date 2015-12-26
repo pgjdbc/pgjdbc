@@ -7,10 +7,12 @@
 */
 package org.postgresql.xa;
 
-import org.postgresql.ds.common.*;
+import org.postgresql.ds.common.PGObjectFactory;
 
-import javax.naming.*;
 import java.util.Hashtable;
+import javax.naming.Context;
+import javax.naming.Name;
+import javax.naming.Reference;
 
 /**
  * An ObjectFactory implementation for PGXADataSource-objects. 

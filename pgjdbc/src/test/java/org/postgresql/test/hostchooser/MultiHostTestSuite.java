@@ -7,14 +7,15 @@
 */
 package org.postgresql.test.hostchooser;
 
+import org.postgresql.test.TestUtil;
+import org.postgresql.util.PSQLException;
+
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.util.Properties;
-
-import org.postgresql.test.TestUtil;
-import org.postgresql.util.PSQLException;
 
 /*
  * Executes multi host tests (aka master/slave connectivity selection).

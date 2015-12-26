@@ -7,12 +7,17 @@
 */
 package org.postgresql.test.jdbc4;
 
-import java.sql.*;
-import java.util.UUID;
+import org.postgresql.test.TestUtil;
 
 import junit.framework.TestCase;
 
-import org.postgresql.test.TestUtil;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Types;
+import java.util.UUID;
 
 public class UUIDTest extends TestCase {
 

@@ -1,10 +1,9 @@
 package org.postgresql.util;
 
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.postgresql.core.Logger;
+
+import java.util.Timer;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class SharedTimer {
     // Incremented for each Timer created, this allows each to have a unique Timer name

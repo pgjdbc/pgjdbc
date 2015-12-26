@@ -1,13 +1,13 @@
 package org.postgresql.test.jdbc2;
 
+import org.postgresql.PGProperty;
+import org.postgresql.test.TestUtil;
+
 import junit.framework.TestCase;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
-
-import org.postgresql.PGProperty;
-import org.postgresql.test.TestUtil;
 
 public class BaseTest extends TestCase {
     protected Connection con;

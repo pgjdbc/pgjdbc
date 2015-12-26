@@ -1,15 +1,15 @@
 package org.postgresql.test.jdbc4;
 
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-
 import org.postgresql.PGConnection;
 import org.postgresql.copy.PGCopyInputStream;
 import org.postgresql.test.TestUtil;
 
 import junit.framework.TestCase;
+
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 
 public class PGCopyInputStreamTest extends TestCase {
     private Connection _conn;

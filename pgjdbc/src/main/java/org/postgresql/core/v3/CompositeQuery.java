@@ -8,7 +8,7 @@
 */
 package org.postgresql.core.v3;
 
-import org.postgresql.core.*;
+import org.postgresql.core.ParameterList;
 
 /**
  * V3 Query implementation for queries that involve multiple statements.

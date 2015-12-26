@@ -7,11 +7,16 @@
 */
 package org.postgresql.ds.common;
 
-import javax.naming.*;
-import javax.naming.spi.ObjectFactory;
-import java.util.Hashtable;
+import org.postgresql.ds.PGConnectionPoolDataSource;
+import org.postgresql.ds.PGPoolingDataSource;
+import org.postgresql.ds.PGSimpleDataSource;
 
-import org.postgresql.ds.*;
+import java.util.Hashtable;
+import javax.naming.Context;
+import javax.naming.Name;
+import javax.naming.RefAddr;
+import javax.naming.Reference;
+import javax.naming.spi.ObjectFactory;
 
 /**
  * Returns a DataSource-ish thing based on a JNDI reference.  In the case of a

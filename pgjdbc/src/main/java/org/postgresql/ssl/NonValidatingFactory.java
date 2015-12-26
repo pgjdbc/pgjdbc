@@ -7,11 +7,11 @@
 */
 package org.postgresql.ssl;
 
+import java.security.GeneralSecurityException;
+import java.security.cert.X509Certificate;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import java.security.cert.X509Certificate;
-import java.security.GeneralSecurityException;
 
 /**
  * Provide a SSLSocketFactory that allows SSL connections to be

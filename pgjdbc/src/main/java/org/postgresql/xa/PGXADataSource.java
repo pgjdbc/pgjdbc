@@ -6,19 +6,16 @@
 */
 package org.postgresql.xa;
 
+import org.postgresql.core.BaseConnection;
+import org.postgresql.ds.common.BaseDataSource;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
-
-import javax.naming.Referenceable;
 import javax.naming.Reference;
+import javax.naming.Referenceable;
 import javax.sql.XAConnection;
 import javax.sql.XADataSource;
-
-import org.postgresql.xa.*;
-
-import org.postgresql.core.BaseConnection;
-import org.postgresql.ds.common.BaseDataSource;
 
 /**
  * XA-enabled DataSource implementation.

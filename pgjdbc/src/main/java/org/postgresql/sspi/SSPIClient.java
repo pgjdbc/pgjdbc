@@ -1,8 +1,5 @@
 package org.postgresql.sspi;
 
-import java.io.IOException;
-import java.sql.SQLException;
-
 import org.postgresql.core.Logger;
 import org.postgresql.core.PGStream;
 import org.postgresql.util.HostSpec;
@@ -14,14 +11,12 @@ import com.sun.jna.Platform;
 import com.sun.jna.platform.win32.Sspi;
 import com.sun.jna.platform.win32.Sspi.SecBufferDesc;
 import com.sun.jna.platform.win32.Win32Exception;
-
-import waffle.windows.auth.IWindowsAuthProvider;
 import waffle.windows.auth.IWindowsCredentialsHandle;
-import waffle.windows.auth.IWindowsSecurityContext;
-import waffle.windows.auth.impl.WindowsAccountImpl;
-import waffle.windows.auth.impl.WindowsAuthProviderImpl;
 import waffle.windows.auth.impl.WindowsCredentialsHandleImpl;
 import waffle.windows.auth.impl.WindowsSecurityContextImpl;
+
+import java.io.IOException;
+import java.sql.SQLException;
 
 /**
  * Use Waffle-JNI to support SSPI authentication when PgJDBC is running on a Windows 

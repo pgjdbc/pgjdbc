@@ -7,27 +7,28 @@
 */
 package org.postgresql.test.jdbc2;
 
+import org.postgresql.PGConnection;
+import org.postgresql.copy.CopyIn;
+import org.postgresql.copy.CopyManager;
+import org.postgresql.copy.CopyOut;
+import org.postgresql.copy.PGCopyOutputStream;
+import org.postgresql.test.TestUtil;
+import org.postgresql.util.PSQLState;
+
+import junit.framework.TestCase;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.io.StringReader;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringReader;
-
-import junit.framework.TestCase;
-
-import org.postgresql.PGConnection;
-import org.postgresql.copy.*;
-import org.postgresql.test.TestUtil;
-import org.postgresql.util.PSQLState;
 
 /**
  * @author kato@iki.fi

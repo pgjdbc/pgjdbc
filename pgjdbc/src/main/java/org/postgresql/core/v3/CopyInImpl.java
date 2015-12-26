@@ -7,9 +7,9 @@
 */
 package org.postgresql.core.v3;
 
-import java.sql.SQLException;
-
 import org.postgresql.copy.CopyIn;
+
+import java.sql.SQLException;
 
 /**
  * Anticipated flow of a COPY FROM STDIN operation:

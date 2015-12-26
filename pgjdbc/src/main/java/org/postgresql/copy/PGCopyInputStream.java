@@ -7,14 +7,14 @@
 */
 package org.postgresql.copy;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.sql.SQLException;
-
 import org.postgresql.PGConnection;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.sql.SQLException;
 
 /**
  * InputStream for reading from a PostgreSQL COPY TO STDOUT operation

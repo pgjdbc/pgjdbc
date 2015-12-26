@@ -7,24 +7,28 @@
 */
 package org.postgresql;
 
-import java.io.*;
-import java.sql.*;
-import java.util.*;
-import java.net.URL;
+import org.postgresql.core.Logger;
+import org.postgresql.jdbc.PgConnection;
+import org.postgresql.util.GT;
+import org.postgresql.util.HostSpec;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+import org.postgresql.util.SharedTimer;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
-
-import org.postgresql.jdbc.PgConnection;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
-import org.postgresql.util.PSQLDriverVersion;
-import org.postgresql.util.GT;
-import org.postgresql.util.HostSpec;
-import org.postgresql.util.SharedTimer;
-
-import org.postgresql.core.Logger;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.DriverPropertyInfo;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.Properties;
 
 /**
  * The Java SQL framework allows for multiple database drivers.  Each

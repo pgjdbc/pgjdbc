@@ -1,14 +1,13 @@
 package org.postgresql.util;
 
+import org.postgresql.core.Encoding;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import org.postgresql.core.Encoding;
 
 public class HStoreConverter {
    public static Map<String, String> fromBytes(byte[] b, Encoding encoding) throws SQLException {

@@ -7,21 +7,26 @@
 */
 package org.postgresql.ds.common;
 
-import javax.naming.*;
-
 import org.postgresql.PGProperty;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
-import java.sql.*;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.Properties;
+import javax.naming.NamingException;
+import javax.naming.RefAddr;
+import javax.naming.Reference;
+import javax.naming.Referenceable;
+import javax.naming.StringRefAddr;
 
 /**
  * Base class for data sources and related classes.

@@ -8,8 +8,9 @@
 */
 package org.postgresql.core.v3;
 
-import java.sql.SQLException;
 import org.postgresql.core.ParameterList;
+
+import java.sql.SQLException;
 
 /**
  * Common interface for all V3 parameter list implementations.

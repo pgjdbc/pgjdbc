@@ -1,8 +1,9 @@
 package org.postgresql.test.jdbc2;
 
-import junit.framework.TestCase;
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.jdbc.PgDatabaseMetaData;
+
+import junit.framework.TestCase;
 
 public class TestACL extends TestCase {
 

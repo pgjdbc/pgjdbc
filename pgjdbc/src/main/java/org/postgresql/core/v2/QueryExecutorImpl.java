@@ -8,17 +8,28 @@
 */
 package org.postgresql.core.v2;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.io.IOException;
-import java.io.Writer;
-import java.sql.*;
-
-import org.postgresql.core.*;
+import org.postgresql.copy.CopyOperation;
+import org.postgresql.core.Field;
+import org.postgresql.core.Logger;
+import org.postgresql.core.NativeQuery;
+import org.postgresql.core.PGStream;
+import org.postgresql.core.ParameterList;
+import org.postgresql.core.ProtocolConnection;
+import org.postgresql.core.Query;
+import org.postgresql.core.QueryExecutor;
+import org.postgresql.core.ResultCursor;
+import org.postgresql.core.ResultHandler;
+import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
-import org.postgresql.util.GT;
-import org.postgresql.copy.CopyOperation;
+
+import java.io.IOException;
+import java.io.Writer;
+import java.sql.SQLException;
+import java.sql.SQLWarning;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * QueryExecutor implementation for the V2 protocol.

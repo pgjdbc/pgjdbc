@@ -7,12 +7,12 @@
 */
 package org.postgresql.core.v3;
 
-import java.sql.SQLException;
-
 import org.postgresql.copy.CopyOperation;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+
+import java.sql.SQLException;
 
 public class CopyOperationImpl implements CopyOperation {
     QueryExecutorImpl queryExecutor;

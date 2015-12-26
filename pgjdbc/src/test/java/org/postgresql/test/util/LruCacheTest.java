@@ -7,9 +7,10 @@
 */
 package org.postgresql.test.util;
 
-import junit.framework.TestCase;
 import org.postgresql.util.CanEstimateSize;
 import org.postgresql.util.LruCache;
+
+import junit.framework.TestCase;
 
 import java.sql.SQLException;
 import java.util.ArrayDeque;

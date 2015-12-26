@@ -10,8 +10,12 @@ package org.postgresql.test.jdbc2;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.ServerErrorMessage;
+
 import junit.framework.TestCase;
-import java.sql.*;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 /*
  * Test that enhanced error reports return the correct origin

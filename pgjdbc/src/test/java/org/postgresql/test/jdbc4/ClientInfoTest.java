@@ -7,10 +7,16 @@
 */
 package org.postgresql.test.jdbc4;
 
-import java.sql.*;
-import java.util.Properties;
-import junit.framework.TestCase;
 import org.postgresql.test.TestUtil;
+
+import junit.framework.TestCase;
+
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLClientInfoException;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Properties;
 
 public class ClientInfoTest  extends TestCase
 {

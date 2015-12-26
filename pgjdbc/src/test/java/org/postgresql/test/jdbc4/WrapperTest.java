@@ -7,12 +7,15 @@
 */
 package org.postgresql.test.jdbc4;
 
-import java.sql.*;
-import junit.framework.TestCase;
-
 import org.postgresql.PGConnection;
 import org.postgresql.PGStatement;
 import org.postgresql.test.TestUtil;
+
+import junit.framework.TestCase;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 public class WrapperTest extends TestCase {
 

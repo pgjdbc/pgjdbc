@@ -1,9 +1,6 @@
 package org.postgresql.sspi;
 
-import org.omg.CORBA.WStringValueHelper;
-
 import com.sun.jna.LastErrorException;
-import com.sun.jna.Native;
 import com.sun.jna.WString;
 import com.sun.jna.ptr.IntByReference;
 

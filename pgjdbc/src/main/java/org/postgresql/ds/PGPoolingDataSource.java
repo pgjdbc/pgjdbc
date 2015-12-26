@@ -7,19 +7,24 @@
 */
 package org.postgresql.ds;
 
-import javax.sql.*;
-import javax.naming.*;
-import java.util.*;
+import org.postgresql.ds.common.BaseDataSource;
+import org.postgresql.util.GT;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.util.Map;
+import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
-
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLState;
-import org.postgresql.util.PSQLException;
-import org.postgresql.ds.*;
-import org.postgresql.ds.common.*;
+import javax.naming.NamingException;
+import javax.naming.Reference;
+import javax.naming.StringRefAddr;
+import javax.sql.ConnectionEvent;
+import javax.sql.ConnectionEventListener;
+import javax.sql.DataSource;
+import javax.sql.PooledConnection;
 
 /**
  * DataSource which uses connection pooling.  <span style="color: red;">Don't use this if

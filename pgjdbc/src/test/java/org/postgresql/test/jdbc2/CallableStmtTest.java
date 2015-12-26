@@ -8,9 +8,17 @@
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.test.TestUtil;
-import java.sql.*;
 
 import junit.framework.TestCase;
+
+import java.sql.Array;
+import java.sql.CallableStatement;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLWarning;
+import java.sql.Statement;
+import java.sql.Types;
 
 /*
  * CallableStatement tests.

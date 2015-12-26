@@ -9,17 +9,13 @@
 
 package org.postgresql.core;
 
-import java.sql.SQLException;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.charset.Charset;
-import java.text.NumberFormat;
-import java.text.ParsePosition;
-
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.sql.SQLException;
 
 /**
  * Collection of utilities used by the protocol-level code.

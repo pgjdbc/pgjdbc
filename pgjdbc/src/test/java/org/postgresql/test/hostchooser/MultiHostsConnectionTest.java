@@ -11,6 +11,14 @@ import static org.postgresql.hostchooser.HostStatus.ConnectFail;
 import static org.postgresql.hostchooser.HostStatus.Slave;
 import static org.postgresql.test.TestUtil.closeDB;
 
+import org.postgresql.hostchooser.GlobalHostStatusTracker;
+import org.postgresql.hostchooser.HostRequirement;
+import org.postgresql.test.TestUtil;
+import org.postgresql.util.HostSpec;
+import org.postgresql.util.PSQLException;
+
+import junit.framework.TestCase;
+
 import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -20,14 +28,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-
-import junit.framework.TestCase;
-
-import org.postgresql.hostchooser.GlobalHostStatusTracker;
-import org.postgresql.hostchooser.HostRequirement;
-import org.postgresql.test.TestUtil;
-import org.postgresql.util.HostSpec;
-import org.postgresql.util.PSQLException;
 
 public class MultiHostsConnectionTest extends TestCase {
 

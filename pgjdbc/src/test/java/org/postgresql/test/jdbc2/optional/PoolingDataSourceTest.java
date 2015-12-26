@@ -7,10 +7,13 @@
 */
 package org.postgresql.test.jdbc2.optional;
 
-import java.sql.*;
-
-import org.postgresql.jdbc2.optional.PoolingDataSource;
 import org.postgresql.ds.common.BaseDataSource;
+import org.postgresql.jdbc2.optional.PoolingDataSource;
+
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 /**
  * Minimal tests for pooling DataSource.  Needs many more.

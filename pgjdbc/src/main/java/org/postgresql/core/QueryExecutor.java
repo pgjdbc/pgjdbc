@@ -8,9 +8,9 @@
 */
 package org.postgresql.core;
 
-import java.sql.SQLException;
-
 import org.postgresql.copy.CopyOperation;
+
+import java.sql.SQLException;
 
 /**
  * Abstracts the protocol-specific details of executing a query.

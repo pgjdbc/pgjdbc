@@ -15,7 +15,7 @@ import org.postgresql.util.PGtokenizer;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
-import java.awt.Point;
+import java.awt.*;
 import java.io.Serializable;
 import java.sql.SQLException;
 

@@ -7,9 +7,9 @@
 */
 package org.postgresql.core.v3;
 
-import java.sql.SQLException;
-
 import org.postgresql.copy.CopyOut;
+
+import java.sql.SQLException;
 
 /**
  * Anticipated flow of a COPY TO STDOUT operation:

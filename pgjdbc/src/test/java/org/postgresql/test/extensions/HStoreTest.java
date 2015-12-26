@@ -7,13 +7,17 @@
 */
 package org.postgresql.test.extensions;
 
-import java.sql.*;
+import org.postgresql.test.TestUtil;
+
+import junit.framework.TestCase;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-
-import junit.framework.TestCase;
-import org.postgresql.test.TestUtil;
 
 // SELECT 'hstore'::regtype::oid
 // SELECT 'hstore[]'::regtype::oid

@@ -7,12 +7,12 @@
 */
 package org.postgresql;
 
-import java.sql.DriverPropertyInfo;
-import java.util.Properties;
-
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+
+import java.sql.DriverPropertyInfo;
+import java.util.Properties;
 
 /**
  * All connection parameters that can be either set in JDBC URL, in Driver properties or in datasource setters.

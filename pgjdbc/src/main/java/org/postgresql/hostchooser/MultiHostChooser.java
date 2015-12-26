@@ -13,14 +13,14 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.shuffle;
 import static java.util.Collections.sort;
 
+import org.postgresql.hostchooser.GlobalHostStatusTracker.HostSpecStatus;
+import org.postgresql.util.HostSpec;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
-
-import org.postgresql.hostchooser.GlobalHostStatusTracker.HostSpecStatus;
-import org.postgresql.util.HostSpec;
 
 /**
  * HostChooser that keeps track of known host statuses.
