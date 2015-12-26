@@ -8,9 +8,12 @@
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.test.TestUtil;
-import java.sql.*;
 
 import junit.framework.TestCase;
+
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
 
 /*
  * Some simple tests to check that the required components needed for JBuilder

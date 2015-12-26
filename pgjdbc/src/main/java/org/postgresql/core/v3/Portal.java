@@ -8,8 +8,10 @@
 */
 package org.postgresql.core.v3;
 
+import org.postgresql.core.ResultCursor;
+import org.postgresql.core.Utils;
+
 import java.lang.ref.PhantomReference;
-import org.postgresql.core.*;
 
 /**
  * V3 ResultCursor implementation in terms of backend Portals.

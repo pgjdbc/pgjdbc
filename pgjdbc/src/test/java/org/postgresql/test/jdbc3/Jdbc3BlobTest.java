@@ -7,6 +7,10 @@
 */
 package org.postgresql.test.jdbc3;
 
+import org.postgresql.test.TestUtil;
+
+import junit.framework.TestCase;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -17,10 +21,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
-
-import junit.framework.TestCase;
-
-import org.postgresql.test.TestUtil;
 
 /**
  * @author Michael Barker <mailto:mike@middlesoft.co.uk>

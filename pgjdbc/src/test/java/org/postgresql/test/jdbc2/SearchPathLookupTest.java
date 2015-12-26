@@ -7,12 +7,14 @@
 */
 package org.postgresql.test.jdbc2;
 
-import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.test.TestUtil;
+
 import junit.framework.TestCase;
-import java.sql.*;
+
+import java.sql.ResultSet;
+import java.sql.Statement;
 
 /*
  * TestCase to test the internal functionality of org.postgresql.jdbc2.DatabaseMetaData

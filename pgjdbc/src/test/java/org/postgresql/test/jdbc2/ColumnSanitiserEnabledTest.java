@@ -12,7 +12,10 @@ import org.postgresql.test.TestUtil;
 
 import junit.framework.TestCase;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Properties;
 
 /*

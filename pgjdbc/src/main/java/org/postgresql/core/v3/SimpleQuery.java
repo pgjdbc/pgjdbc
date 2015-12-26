@@ -8,7 +8,11 @@
 */
 package org.postgresql.core.v3;
 
-import org.postgresql.core.*;
+import org.postgresql.core.Field;
+import org.postgresql.core.NativeQuery;
+import org.postgresql.core.Oid;
+import org.postgresql.core.ParameterList;
+import org.postgresql.core.Utils;
 
 import java.lang.ref.PhantomReference;
 

@@ -7,9 +7,9 @@
  */
 package org.postgresql.hostchooser;
 
-import java.util.Iterator;
-
 import org.postgresql.util.HostSpec;
+
+import java.util.Iterator;
 
 /**
  * Lists connections in preferred order.

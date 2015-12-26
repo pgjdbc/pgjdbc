@@ -8,8 +8,6 @@
 package org.postgresql.util;
 
 import java.io.Serializable;
-import java.lang.Object;
-import java.lang.Override;
 import java.sql.SQLException;
 
 /**

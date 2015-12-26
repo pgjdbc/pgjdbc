@@ -7,11 +7,16 @@
 */
 package org.postgresql.test.jdbc3;
 
-import junit.framework.TestCase;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGobject;
 
-import java.sql.*;
+import junit.framework.TestCase;
+
+import java.sql.Array;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class CompositeTest extends TestCase
 {

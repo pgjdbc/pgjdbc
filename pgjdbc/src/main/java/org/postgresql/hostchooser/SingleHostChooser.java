@@ -7,11 +7,11 @@
 */
 package org.postgresql.hostchooser;
 
+import org.postgresql.util.HostSpec;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
-
-import org.postgresql.util.HostSpec;
 
 /**
  * Host chooser that returns the single host.

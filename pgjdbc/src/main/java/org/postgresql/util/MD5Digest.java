@@ -14,7 +14,7 @@ package org.postgresql.util;
  * @author Jeremy Wohl
  */
 
-import java.security.*;
+import java.security.MessageDigest;
 
 public class MD5Digest
 {

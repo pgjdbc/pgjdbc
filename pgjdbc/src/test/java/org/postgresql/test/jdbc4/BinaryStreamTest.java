@@ -1,5 +1,10 @@
 package org.postgresql.test.jdbc4;
 
+import org.postgresql.test.TestUtil;
+
+import junit.framework.TestCase;
+import org.junit.Assert;
+
 import java.io.ByteArrayInputStream;
 import java.nio.ByteBuffer;
 import java.sql.Connection;
@@ -7,11 +12,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Random;
-
-import junit.framework.TestCase;
-
-import org.junit.Assert;
-import org.postgresql.test.TestUtil;
 
 public class BinaryStreamTest extends TestCase
 {

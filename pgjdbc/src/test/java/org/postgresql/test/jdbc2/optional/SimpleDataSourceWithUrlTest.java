@@ -7,8 +7,8 @@
 */
 package org.postgresql.test.jdbc2.optional;
 
-import org.postgresql.test.TestUtil;
 import org.postgresql.jdbc2.optional.SimpleDataSource;
+import org.postgresql.test.TestUtil;
 
 /**
  * Performs the basic tests defined in the superclass. Just adds the

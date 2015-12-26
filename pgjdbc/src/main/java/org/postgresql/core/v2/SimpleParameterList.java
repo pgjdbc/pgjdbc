@@ -8,17 +8,19 @@
 */
 package org.postgresql.core.v2;
 
-import org.postgresql.core.*;
-
-import java.io.InputStream;
-import java.io.Writer;
-import java.io.IOException;
-import java.sql.SQLException;
-import java.util.Arrays;
+import org.postgresql.core.Oid;
+import org.postgresql.core.ParameterList;
+import org.postgresql.core.Utils;
+import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.StreamWrapper;
-import org.postgresql.util.GT;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Writer;
+import java.sql.SQLException;
+import java.util.Arrays;
 
 /**
  * Parameter list for query parameters in the V2 protocol.

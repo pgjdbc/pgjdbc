@@ -7,6 +7,12 @@
 */
 package org.postgresql.test.jdbc2;
 
+import org.postgresql.test.TestUtil;
+import org.postgresql.util.PGInterval;
+import org.postgresql.util.PGTimestamp;
+
+import junit.framework.TestCase;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -16,12 +22,6 @@ import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.TimeZone;
-
-import junit.framework.TestCase;
-
-import org.postgresql.test.TestUtil;
-import org.postgresql.util.PGInterval;
-import org.postgresql.util.PGTimestamp;
 
 /**
  * Tests {@link PGTimestamp} in various scenarios including setTimestamp, setObject for both

@@ -7,26 +7,23 @@
 */
 package org.postgresql.ssl;
 
-import java.io.ByteArrayInputStream;
-import java.io.BufferedInputStream;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.io.IOException;
-import java.util.UUID;
+import org.postgresql.util.GT;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.security.GeneralSecurityException;
-
+import java.util.UUID;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
-
-import org.postgresql.util.GT;
-import org.postgresql.ssl.WrappedFactory;
 
 /**
  * Provides a SSLSocketFactory that authenticates the remote server against

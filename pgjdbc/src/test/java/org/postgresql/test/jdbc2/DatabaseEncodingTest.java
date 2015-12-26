@@ -7,11 +7,16 @@
 */
 package org.postgresql.test.jdbc2;
 
-import org.postgresql.test.TestUtil;
-import junit.framework.TestCase;
-import java.sql.*;
 import org.postgresql.core.Encoding;
+import org.postgresql.test.TestUtil;
+
+import junit.framework.TestCase;
+
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.Arrays;
 
 /*

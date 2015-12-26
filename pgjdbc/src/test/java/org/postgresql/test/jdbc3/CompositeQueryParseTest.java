@@ -1,8 +1,9 @@
 package org.postgresql.test.jdbc3;
 
-import junit.framework.TestCase;
 import org.postgresql.core.NativeQuery;
 import org.postgresql.core.Parser;
+
+import junit.framework.TestCase;
 
 import java.util.List;
 

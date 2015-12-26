@@ -8,9 +8,13 @@
 */
 package org.postgresql.core.v2;
 
-import java.util.ArrayList;
+import org.postgresql.core.NativeQuery;
+import org.postgresql.core.ParameterList;
+import org.postgresql.core.Parser;
+import org.postgresql.core.ProtocolConnection;
+import org.postgresql.core.Query;
+
 import java.util.List;
-import org.postgresql.core.*;
 
 /**
  * Query implementation for all queries via the V2 protocol.

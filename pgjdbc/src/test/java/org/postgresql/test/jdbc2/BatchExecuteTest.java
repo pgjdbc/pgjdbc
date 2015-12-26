@@ -7,14 +7,14 @@
 */
 package org.postgresql.test.jdbc2;
 
+import org.postgresql.test.TestUtil;
+
 import java.sql.BatchUpdateException;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-
-import org.postgresql.test.TestUtil;
 
 /* TODO tests that can be added to this test case
  * - SQLExceptions chained to a BatchUpdateException

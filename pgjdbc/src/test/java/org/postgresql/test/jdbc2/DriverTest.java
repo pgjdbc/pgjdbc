@@ -7,16 +7,16 @@
 */
 package org.postgresql.test.jdbc2;
 
-import org.junit.Assert;
 import org.postgresql.Driver;
 import org.postgresql.test.TestUtil;
 
 import junit.framework.TestCase;
+import org.junit.Assert;
 
 import java.lang.reflect.Method;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Properties;
 

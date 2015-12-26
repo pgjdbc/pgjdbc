@@ -8,11 +8,17 @@
 package org.postgresql.jdbc;
 
 import org.postgresql.PGResultSetMetaData;
-import org.postgresql.core.*;
+import org.postgresql.core.BaseConnection;
+import org.postgresql.core.Field;
+import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
-import java.sql.*;
-import org.postgresql.util.GT;
+
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Types;
 
 public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaData
 {

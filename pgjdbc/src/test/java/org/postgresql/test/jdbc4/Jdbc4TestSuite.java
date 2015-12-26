@@ -7,11 +7,14 @@
 */
 package org.postgresql.test.jdbc4;
 
+import org.postgresql.test.TestUtil;
+
 import junit.framework.TestSuite;
 
-import java.sql.*;
-
-import org.postgresql.test.TestUtil;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 /*
  * Executes all known tests for JDBC4

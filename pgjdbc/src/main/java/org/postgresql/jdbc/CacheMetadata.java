@@ -1,11 +1,11 @@
 package org.postgresql.jdbc;
 
+import org.postgresql.core.Field;
+
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-
-import org.postgresql.core.Field;
 
 public class CacheMetadata {
   // FIXME: unsynchronized hashmap might lead to thread stuck

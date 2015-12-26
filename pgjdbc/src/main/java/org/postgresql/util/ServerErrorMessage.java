@@ -7,9 +7,9 @@
 */
 package org.postgresql.util;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
-import java.io.Serializable;
 
 public class ServerErrorMessage implements Serializable
 {

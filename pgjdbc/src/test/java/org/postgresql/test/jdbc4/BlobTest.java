@@ -1,5 +1,10 @@
 package org.postgresql.test.jdbc4;
 
+import org.postgresql.test.TestUtil;
+
+import junit.framework.TestCase;
+import org.junit.Assert;
+
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.sql.Blob;
@@ -8,11 +13,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-
-import junit.framework.TestCase;
-
-import org.junit.Assert;
-import org.postgresql.test.TestUtil;
 
 /**
  * This test-case is only for JDBC4 blob methods.

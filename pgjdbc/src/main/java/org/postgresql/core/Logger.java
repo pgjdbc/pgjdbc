@@ -7,13 +7,13 @@
 */
 package org.postgresql.core;
 
-import java.text.SimpleDateFormat;
-import java.text.FieldPosition;
-import java.sql.DriverManager;
-import java.io.PrintWriter;
-import java.util.Date;
-
 import org.postgresql.Driver;
+
+import java.io.PrintWriter;
+import java.sql.DriverManager;
+import java.text.FieldPosition;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
  * Poor man's logging infrastructure. This just deals with maintaining a per-

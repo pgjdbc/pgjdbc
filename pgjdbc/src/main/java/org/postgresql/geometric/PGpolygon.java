@@ -9,6 +9,7 @@ package org.postgresql.geometric;
 
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
+
 import java.io.Serializable;
 import java.sql.SQLException;
 

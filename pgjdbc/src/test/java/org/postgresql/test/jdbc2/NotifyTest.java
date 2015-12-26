@@ -7,11 +7,14 @@
 */
 package org.postgresql.test.jdbc2;
 
-import org.postgresql.test.TestUtil;
-import junit.framework.TestCase;
-import java.sql.*;
-
 import org.postgresql.PGNotification;
+import org.postgresql.test.TestUtil;
+
+import junit.framework.TestCase;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 public class NotifyTest extends TestCase
 {

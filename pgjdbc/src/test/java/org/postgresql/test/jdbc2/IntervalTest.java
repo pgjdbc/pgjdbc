@@ -7,15 +7,19 @@
 */
 package org.postgresql.test.jdbc2;
 
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.sql.*;
+import org.postgresql.test.TestUtil;
+import org.postgresql.util.PGInterval;
 
 import junit.framework.TestCase;
 
-import org.postgresql.util.PGInterval;
-import org.postgresql.test.TestUtil;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
 
 public class IntervalTest extends TestCase
 {

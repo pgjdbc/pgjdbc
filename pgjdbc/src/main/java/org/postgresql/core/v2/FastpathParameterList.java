@@ -8,16 +8,17 @@
 */
 package org.postgresql.core.v2;
 
-import org.postgresql.core.*;
-
-import java.io.InputStream;
-import java.io.IOException;
-import java.sql.SQLException;
-import java.util.Arrays;
+import org.postgresql.core.PGStream;
+import org.postgresql.core.ParameterList;
+import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.StreamWrapper;
-import org.postgresql.util.GT;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.sql.SQLException;
+import java.util.Arrays;
 
 /**
  * Implementation of fastpath parameter lists for the V2 protocol.

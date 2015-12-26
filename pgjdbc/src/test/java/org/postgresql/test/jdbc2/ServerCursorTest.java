@@ -7,11 +7,13 @@
 */
 package org.postgresql.test.jdbc2;
 
-import java.sql.*;
+import org.postgresql.test.TestUtil;
 
 import junit.framework.TestCase;
 
-import org.postgresql.test.TestUtil;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 
 /*
  *  Tests for using non-zero setFetchSize().

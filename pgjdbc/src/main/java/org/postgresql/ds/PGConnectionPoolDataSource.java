@@ -7,16 +7,15 @@
 */
 package org.postgresql.ds;
 
-import javax.sql.PooledConnection;
-import javax.sql.ConnectionPoolDataSource;
-import java.sql.SQLException;
-import java.io.Serializable;
-import java.io.ObjectOutputStream;
-import java.io.ObjectInputStream;
-import java.io.IOException;
+import org.postgresql.ds.common.BaseDataSource;
 
-import org.postgresql.ds.common.*;
-import org.postgresql.ds.PGPooledConnection;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+import java.sql.SQLException;
+import javax.sql.ConnectionPoolDataSource;
+import javax.sql.PooledConnection;
 
 /**
  * PostgreSQL implementation of ConnectionPoolDataSource.  The app server or

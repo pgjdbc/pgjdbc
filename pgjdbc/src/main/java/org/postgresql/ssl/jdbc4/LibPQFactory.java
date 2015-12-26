@@ -1,5 +1,13 @@
 package org.postgresql.ssl.jdbc4;
 
+import org.postgresql.PGProperty;
+import org.postgresql.ssl.MakeSSL;
+import org.postgresql.ssl.NonValidatingFactory.NonValidatingTM;
+import org.postgresql.ssl.WrappedFactory;
+import org.postgresql.util.GT;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+
 import java.io.Console;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -14,7 +22,6 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Iterator;
 import java.util.Properties;
-
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
@@ -30,14 +37,6 @@ import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.PasswordCallback;
 import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.x500.X500Principal;
-
-import org.postgresql.PGProperty;
-import org.postgresql.ssl.MakeSSL;
-import org.postgresql.ssl.NonValidatingFactory.NonValidatingTM;
-import org.postgresql.ssl.WrappedFactory;
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 /**
  * Provide an SSLSocketFactory that is compatible with the libpq

@@ -7,9 +7,9 @@
 */
 package org.postgresql;
 
-import java.sql.SQLException;
-
 import org.postgresql.core.Field;
+
+import java.sql.SQLException;
 
 public interface PGResultSetMetaData
 {

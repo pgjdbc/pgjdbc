@@ -7,17 +7,19 @@
 */
 package org.postgresql.test.jdbc4.jdbc41;
 
-import java.sql.*;
+import org.postgresql.test.TestUtil;
+
+import junit.framework.TestCase;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-
-import junit.framework.TestCase;
-
-import org.postgresql.test.TestUtil;
 
 public class AbortTest extends TestCase
 {
