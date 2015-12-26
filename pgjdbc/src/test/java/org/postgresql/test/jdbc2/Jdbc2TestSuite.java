@@ -7,12 +7,12 @@
 */
 package org.postgresql.test.jdbc2;
 
-import java.sql.Connection;
+import org.postgresql.test.CursorFetchBinaryTest;
+import org.postgresql.test.TestUtil;
 
 import junit.framework.TestSuite;
 
-import org.postgresql.test.CursorFetchBinaryTest;
-import org.postgresql.test.TestUtil;
+import java.sql.Connection;
 
 /*
  * Executes all known tests for JDBC2 and includes some utility methods.

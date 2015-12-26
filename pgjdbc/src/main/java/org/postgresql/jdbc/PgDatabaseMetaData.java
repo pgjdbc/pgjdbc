@@ -7,14 +7,29 @@
 */
 package org.postgresql.jdbc;
 
-import java.sql.*;
-import java.util.*;
-
-import org.postgresql.core.*;
+import org.postgresql.Driver;
+import org.postgresql.core.BaseStatement;
+import org.postgresql.core.Field;
+import org.postgresql.core.Oid;
+import org.postgresql.core.ServerVersion;
+import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
-import org.postgresql.Driver;
-import org.postgresql.util.GT;
+
+import java.sql.Array;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.RowIdLifetime;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.StringTokenizer;
 
 public class PgDatabaseMetaData implements DatabaseMetaData
 {

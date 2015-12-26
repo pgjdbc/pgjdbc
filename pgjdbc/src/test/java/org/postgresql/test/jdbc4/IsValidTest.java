@@ -1,12 +1,13 @@
 package org.postgresql.test.jdbc4;
 
-import java.sql.*;
-
-import junit.framework.TestCase;
-
-import org.junit.Assert;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.test.TestUtil;
+
+import junit.framework.TestCase;
+import org.junit.Assert;
+
+import java.sql.Connection;
+import java.sql.Statement;
 
 public class IsValidTest  extends TestCase {
 

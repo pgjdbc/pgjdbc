@@ -7,18 +7,18 @@
 */
 package org.postgresql.fastpath;
 
-import java.sql.SQLException;
-import java.sql.ResultSet;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.postgresql.core.BaseConnection;
-import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ParameterList;
+import org.postgresql.core.QueryExecutor;
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
-import org.postgresql.util.GT;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * This class implements the Fastpath api.

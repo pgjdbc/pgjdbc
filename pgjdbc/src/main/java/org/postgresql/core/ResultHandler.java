@@ -8,7 +8,8 @@
 */
 package org.postgresql.core;
 
-import java.sql.*;
+import java.sql.SQLException;
+import java.sql.SQLWarning;
 import java.util.List;
 
 /**

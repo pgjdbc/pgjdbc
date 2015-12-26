@@ -11,7 +11,8 @@ package org.postgresql.core;
 import org.postgresql.PGNotification;
 import org.postgresql.util.HostSpec;
 
-import java.sql.*;
+import java.sql.SQLException;
+import java.sql.SQLWarning;
 import java.util.Set;
 
 /**

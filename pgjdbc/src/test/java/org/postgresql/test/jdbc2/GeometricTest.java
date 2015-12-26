@@ -7,13 +7,23 @@
 */
 package org.postgresql.test.jdbc2;
 
+import org.postgresql.geometric.PGbox;
+import org.postgresql.geometric.PGcircle;
+import org.postgresql.geometric.PGline;
+import org.postgresql.geometric.PGlseg;
+import org.postgresql.geometric.PGpath;
+import org.postgresql.geometric.PGpoint;
+import org.postgresql.geometric.PGpolygon;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGobject;
-import org.postgresql.geometric.*;
-import junit.framework.TestCase;
 import org.postgresql.util.PSQLException;
 
-import java.sql.*;
+import junit.framework.TestCase;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 

@@ -1,8 +1,8 @@
 package org.postgresql.test;
 
-import java.util.Properties;
-
 import org.postgresql.test.jdbc2.CursorFetchTest;
+
+import java.util.Properties;
 
 public class CursorFetchBinaryTest extends CursorFetchTest {
     public CursorFetchBinaryTest(String name)

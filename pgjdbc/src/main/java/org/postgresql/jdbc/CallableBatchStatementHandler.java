@@ -1,11 +1,10 @@
 package org.postgresql.jdbc;
 
-import org.postgresql.core.*;
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
+import org.postgresql.core.Field;
+import org.postgresql.core.ParameterList;
+import org.postgresql.core.Query;
+import org.postgresql.core.ResultCursor;
 
-import java.sql.*;
 import java.util.List;
 
 class CallableBatchResultHandler extends BatchResultHandler

@@ -9,12 +9,12 @@ package org.postgresql.hostchooser;
 
 import static java.lang.System.currentTimeMillis;
 
+import org.postgresql.util.HostSpec;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.postgresql.util.HostSpec;
 
 /**
  * Keeps track of HostSpec targets in a global map.

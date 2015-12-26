@@ -7,10 +7,14 @@
 */
 package org.postgresql.test.extensions;
 
+import org.postgresql.test.TestUtil;
+
 import junit.framework.TestSuite;
 
-import java.sql.*;
-import org.postgresql.test.TestUtil;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 /*
  * Executes all known tests for PostgreSQL extensions supported by JDBC driver

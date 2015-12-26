@@ -7,6 +7,11 @@
 */
 package org.postgresql.test.jdbc3;
 
+import org.postgresql.test.TestUtil;
+import org.postgresql.util.PSQLState;
+
+import junit.framework.TestCase;
+
 import java.math.BigDecimal;
 import java.sql.CallableStatement;
 import java.sql.Connection;
@@ -15,11 +20,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
-
-import org.postgresql.test.TestUtil;
-import org.postgresql.util.PSQLState;
-
-import junit.framework.TestCase;
 
 /**
  * @author davec

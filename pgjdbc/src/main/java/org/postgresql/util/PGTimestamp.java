@@ -8,10 +8,8 @@
 package org.postgresql.util;
 
 import java.sql.PreparedStatement;
-import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
-import java.util.TimeZone;
 
 /**
  * This class augments the Java built-in Timestamp to allow for explicit setting

@@ -8,13 +8,13 @@
 */
 package org.postgresql.core;
 
-import java.util.List;
-import java.sql.SQLWarning;
-import java.sql.SQLException;
-
 import org.postgresql.util.GT;
-import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+
+import java.sql.SQLException;
+import java.sql.SQLWarning;
+import java.util.List;
 
 /**
  * Poor man's Statement &amp; ResultSet, used for initial queries while we're

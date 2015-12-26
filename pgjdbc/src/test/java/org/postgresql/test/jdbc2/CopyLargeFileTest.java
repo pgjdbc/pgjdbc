@@ -1,15 +1,16 @@
 package org.postgresql.test.jdbc2;
 
-import junit.framework.TestCase;
 import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyManager;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.BufferGenerator;
 import org.postgresql.test.util.StrangeInputStream;
 
+import junit.framework.TestCase;
+
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.io.File;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;

@@ -7,14 +7,27 @@
 */
 package org.postgresql.ds;
 
-import javax.sql.*;
-import java.sql.*;
-import java.util.*;
-import java.lang.reflect.*;
 import org.postgresql.PGConnection;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.sql.CallableStatement;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.Statement;
+import java.util.LinkedList;
+import java.util.List;
+import javax.sql.ConnectionEvent;
+import javax.sql.ConnectionEventListener;
+import javax.sql.PooledConnection;
+import javax.sql.StatementEventListener;
 
 /**
  * PostgreSQL implementation of the PooledConnection interface.  This shouldn't

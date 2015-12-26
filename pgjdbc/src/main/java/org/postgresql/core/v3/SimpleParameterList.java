@@ -8,17 +8,20 @@
 */
 package org.postgresql.core.v3;
 
-import java.io.InputStream;
-import java.io.IOException;
-import java.sql.SQLException;
-import java.util.Arrays;
-
-import org.postgresql.core.*;
+import org.postgresql.core.Oid;
+import org.postgresql.core.PGStream;
+import org.postgresql.core.ParameterList;
+import org.postgresql.core.Utils;
+import org.postgresql.util.ByteConverter;
+import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.StreamWrapper;
-import org.postgresql.util.GT;
-import org.postgresql.util.ByteConverter;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.sql.SQLException;
+import java.util.Arrays;
 
 
 /**

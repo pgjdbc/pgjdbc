@@ -7,10 +7,15 @@
 */
 package org.postgresql.test.jdbc3;
 
-import junit.framework.TestCase;
 import org.postgresql.test.TestUtil;
 
-import java.sql.*;
+import junit.framework.TestCase;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
 import java.util.Properties;
 
 public class StringTypeParameterTest extends TestCase {

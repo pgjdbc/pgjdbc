@@ -7,11 +7,11 @@
 */
 package org.postgresql.core;
 
-import java.lang.reflect.Field;
-
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+
+import java.lang.reflect.Field;
 
 /**
  * Provides constants for well-known backend OIDs for the types we commonly

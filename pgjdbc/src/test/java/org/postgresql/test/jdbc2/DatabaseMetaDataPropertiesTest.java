@@ -8,8 +8,12 @@
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.test.TestUtil;
+
 import junit.framework.TestCase;
-import java.sql.*;
+
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.SQLException;
 
 /*
  * TestCase to test the internal functionality of

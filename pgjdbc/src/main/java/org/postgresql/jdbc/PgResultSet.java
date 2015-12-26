@@ -7,6 +7,29 @@
 */
 package org.postgresql.jdbc;
 
+import org.postgresql.PGResultSetMetaData;
+import org.postgresql.core.BaseConnection;
+import org.postgresql.core.BaseStatement;
+import org.postgresql.core.Encoding;
+import org.postgresql.core.Field;
+import org.postgresql.core.Oid;
+import org.postgresql.core.Query;
+import org.postgresql.core.ResultCursor;
+import org.postgresql.core.ResultHandler;
+import org.postgresql.core.ServerVersion;
+import org.postgresql.core.TypeInfo;
+import org.postgresql.core.Utils;
+import org.postgresql.largeobject.LargeObject;
+import org.postgresql.largeobject.LargeObjectManager;
+import org.postgresql.util.ByteConverter;
+import org.postgresql.util.GT;
+import org.postgresql.util.HStoreConverter;
+import org.postgresql.util.PGbytea;
+import org.postgresql.util.PGobject;
+import org.postgresql.util.PGtokenizer;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+
 import java.io.ByteArrayInputStream;
 import java.io.CharArrayReader;
 import java.io.IOException;
@@ -42,29 +65,6 @@ import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
 import java.util.UUID;
-
-import org.postgresql.PGResultSetMetaData;
-import org.postgresql.core.BaseConnection;
-import org.postgresql.core.BaseStatement;
-import org.postgresql.core.Encoding;
-import org.postgresql.core.Field;
-import org.postgresql.core.Oid;
-import org.postgresql.core.Query;
-import org.postgresql.core.ResultCursor;
-import org.postgresql.core.ResultHandler;
-import org.postgresql.core.ServerVersion;
-import org.postgresql.core.TypeInfo;
-import org.postgresql.core.Utils;
-import org.postgresql.largeobject.LargeObject;
-import org.postgresql.largeobject.LargeObjectManager;
-import org.postgresql.util.ByteConverter;
-import org.postgresql.util.GT;
-import org.postgresql.util.HStoreConverter;
-import org.postgresql.util.PGbytea;
-import org.postgresql.util.PGobject;
-import org.postgresql.util.PGtokenizer;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 
 public class PgResultSet

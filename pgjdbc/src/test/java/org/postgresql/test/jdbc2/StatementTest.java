@@ -7,11 +7,16 @@
 */
 package org.postgresql.test.jdbc2;
 
-import junit.framework.TestCase;
 import org.postgresql.jdbc.PgStatement;
 import org.postgresql.test.TestUtil;
 
-import java.sql.*;
+import junit.framework.TestCase;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;

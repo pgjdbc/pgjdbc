@@ -1,6 +1,10 @@
 package org.postgresql.jdbc;
 
-import org.postgresql.core.*;
+import org.postgresql.core.Field;
+import org.postgresql.core.ParameterList;
+import org.postgresql.core.Query;
+import org.postgresql.core.ResultCursor;
+import org.postgresql.core.ResultHandler;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;

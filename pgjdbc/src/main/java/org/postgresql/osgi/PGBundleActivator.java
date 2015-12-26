@@ -7,14 +7,15 @@
 */
 package org.postgresql.osgi;
 
-import java.util.Dictionary;
-import java.util.Hashtable;
+import org.postgresql.Driver;
 
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.jdbc.DataSourceFactory;
-import org.postgresql.Driver;
+
+import java.util.Dictionary;
+import java.util.Hashtable;
 
 /**
  * This class is an OSGi Bundle Activator and should only be used internally by the OSGi Framework

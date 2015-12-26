@@ -7,15 +7,16 @@
 */
 package org.postgresql.largeobject;
 
-import java.io.InputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.sql.SQLException;
 import org.postgresql.core.BaseConnection;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.fastpath.FastpathArg;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.sql.SQLException;
 
 /**
  * This class provides the basic methods required to run the interface, plus

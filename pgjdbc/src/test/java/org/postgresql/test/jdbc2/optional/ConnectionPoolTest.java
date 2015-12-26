@@ -8,17 +8,25 @@
 package org.postgresql.test.jdbc2.optional;
 
 import org.postgresql.PGConnection;
-import org.postgresql.jdbc2.optional.ConnectionPool;
 import org.postgresql.ds.PGConnectionPoolDataSource;
+import org.postgresql.jdbc2.optional.ConnectionPool;
 import org.postgresql.test.TestUtil;
 
-import javax.sql.*;
-
-import java.net.Socket;
-import java.net.SocketImpl;
-import java.sql.*;
-import java.util.*;
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.sql.CallableStatement;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Iterator;
+import javax.sql.ConnectionEvent;
+import javax.sql.ConnectionEventListener;
+import javax.sql.PooledConnection;
 
 /**
  * Tests for the ConnectionPoolDataSource and PooledConnection

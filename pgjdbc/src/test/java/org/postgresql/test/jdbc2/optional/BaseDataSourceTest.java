@@ -7,15 +7,21 @@
 */
 package org.postgresql.test.jdbc2.optional;
 
-import junit.framework.TestCase;
+import org.postgresql.PGConnection;
+import org.postgresql.ds.common.BaseDataSource;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.MiniJndiContextFactory;
-import org.postgresql.ds.common.BaseDataSource;
-import org.postgresql.PGConnection;
 
-import java.sql.*;
-import java.util.*;
-import javax.naming.*;
+import junit.framework.TestCase;
+
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Hashtable;
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 
 /**
  * Common tests for all the BaseDataSource implementations.  This is

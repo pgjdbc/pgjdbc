@@ -7,17 +7,24 @@
 */
 package org.postgresql.test.jdbc2;
 
+import org.postgresql.PGStatement;
+import org.postgresql.core.BaseConnection;
+import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.test.TestUtil;
+
 import junit.framework.TestCase;
 
-import java.sql.*;
-import java.util.TimeZone;
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
-
-import org.postgresql.PGStatement;
-import org.postgresql.jdbc.TimestampUtils;
-import org.postgresql.core.BaseConnection;
+import java.util.TimeZone;
 
 /*
  * Test get/setTimestamp for both timestamp with time zone and

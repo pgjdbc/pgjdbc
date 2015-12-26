@@ -8,8 +8,13 @@
 package org.postgresql.test.jdbc4;
 
 import org.postgresql.test.TestUtil;
+
 import junit.framework.TestCase;
-import java.sql.*;
+
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class DatabaseMetaDataTest extends TestCase
 {

@@ -8,14 +8,15 @@
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.test.TestUtil;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.Statement;
-import java.sql.SQLException;
-import java.util.Locale;
+import org.postgresql.util.PGobject;
 
 import junit.framework.TestCase;
-import org.postgresql.util.PGobject;
+
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Locale;
 
 /*
  * ResultSet tests.

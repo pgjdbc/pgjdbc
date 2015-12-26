@@ -1,8 +1,9 @@
 package org.postgresql.test.jdbc2;
 
+import org.postgresql.test.TestUtil;
+
 import junit.framework.Assert;
 import junit.framework.TestCase;
-import org.postgresql.test.TestUtil;
 
 import java.net.SocketTimeoutException;
 import java.sql.DriverManager;

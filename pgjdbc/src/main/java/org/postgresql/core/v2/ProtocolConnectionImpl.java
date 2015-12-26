@@ -8,15 +8,20 @@
 */
 package org.postgresql.core.v2;
 
+import org.postgresql.PGNotification;
+import org.postgresql.core.Encoding;
+import org.postgresql.core.Logger;
+import org.postgresql.core.PGStream;
+import org.postgresql.core.ProtocolConnection;
+import org.postgresql.core.QueryExecutor;
+import org.postgresql.core.Utils;
+import org.postgresql.util.HostSpec;
+
+import java.io.IOException;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Set;
-
-import org.postgresql.PGNotification;
-import org.postgresql.core.*;
-import org.postgresql.util.HostSpec;
 
 /**
  * V2 implementation of ProtocolConnection.

@@ -10,10 +10,18 @@ package org.postgresql.test.jdbc2;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.BrokenInputStream;
 
-import java.io.*;
-import java.sql.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Types;
 
 
 public class PreparedStatementTest extends BaseTest

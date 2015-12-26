@@ -10,7 +10,6 @@ package org.postgresql.util;
 import java.sql.PreparedStatement;
 import java.sql.Time;
 import java.util.Calendar;
-import java.util.TimeZone;
 
 /**
  * This class augments the Java built-in Time to allow for explicit setting of

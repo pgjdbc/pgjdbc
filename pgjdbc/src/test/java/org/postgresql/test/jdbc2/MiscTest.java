@@ -8,9 +8,16 @@
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.test.TestUtil;
+
 import junit.framework.TestCase;
-import java.sql.*;
-import java.io.*;
+
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectOutputStream;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLWarning;
+import java.sql.Statement;
 
 /*
  * Some simple tests based on problems reported by users. Hopefully these will

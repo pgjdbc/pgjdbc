@@ -8,7 +8,10 @@
 package org.postgresql.core;
 
 import org.postgresql.PGStatement;
-import java.sql.*;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
 
 /**

@@ -7,11 +7,13 @@
 */
 package org.postgresql;
 
-import java.sql.*;
 import org.postgresql.copy.CopyManager;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.util.PGobject;
+
+import java.sql.SQLException;
+import java.sql.Statement;
 
 /**
  *  This interface defines the public PostgreSQL extensions to

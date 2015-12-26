@@ -6,24 +6,23 @@
 */
 package org.postgresql.test.xa;
 
+import org.postgresql.test.TestUtil;
+import org.postgresql.test.jdbc2.optional.BaseDataSourceTest;
+import org.postgresql.xa.PGXADataSource;
+
+import junit.framework.TestCase;
+
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Random;
-
 import javax.sql.XAConnection;
 import javax.sql.XADataSource;
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
-
-import org.postgresql.test.TestUtil;
-import org.postgresql.test.jdbc2.optional.BaseDataSourceTest;
-import org.postgresql.xa.PGXADataSource;
-
-import junit.framework.TestCase;
 
 public class XADataSourceTest extends TestCase {
 

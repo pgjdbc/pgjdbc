@@ -1,32 +1,21 @@
 package org.postgresql.test.jdbc2;
 
-import java.beans.BeanInfo;
-import java.beans.Introspector;
-import java.beans.PropertyDescriptor;
-import java.io.FileInputStream;
-import java.sql.DriverPropertyInfo;
-import java.util.Map;
-import java.util.Properties;
-import java.util.TreeMap;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathFactory;
-
-import junit.framework.TestCase;
-
-import org.apache.xml.resolver.tools.CatalogResolver;
-import org.junit.Assert;
 import org.postgresql.Driver;
 import org.postgresql.PGProperty;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.postgresql.ds.common.BaseDataSource;
 import org.postgresql.test.TestUtil;
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
+
+import junit.framework.TestCase;
+import org.junit.Assert;
+
+import java.beans.BeanInfo;
+import java.beans.Introspector;
+import java.beans.PropertyDescriptor;
+import java.sql.DriverPropertyInfo;
+import java.util.Map;
+import java.util.Properties;
+import java.util.TreeMap;
 
 
 public class PGPropertyTest extends TestCase

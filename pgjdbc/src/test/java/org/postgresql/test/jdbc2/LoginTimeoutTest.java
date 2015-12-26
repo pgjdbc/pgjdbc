@@ -8,13 +8,15 @@
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.test.TestUtil;
-import junit.framework.TestCase;
-import java.sql.*;
 
-import java.net.Socket;
-import java.net.ServerSocket;
-import java.net.InetAddress;
+import junit.framework.TestCase;
+
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.Properties;
 
 public class LoginTimeoutTest extends TestCase

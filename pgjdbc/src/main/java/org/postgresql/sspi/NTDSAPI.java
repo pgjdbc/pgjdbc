@@ -1,12 +1,9 @@
 package org.postgresql.sspi;
 
 import com.sun.jna.LastErrorException;
-import com.sun.jna.Library;
 import com.sun.jna.Native;
-import com.sun.jna.Platform;
 import com.sun.jna.WString;
 import com.sun.jna.ptr.IntByReference;
-import com.sun.jna.ptr.PointerByReference;
 import com.sun.jna.win32.StdCallLibrary;
 
 interface NTDSAPI extends StdCallLibrary {

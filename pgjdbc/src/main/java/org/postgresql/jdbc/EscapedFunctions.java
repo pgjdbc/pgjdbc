@@ -7,16 +7,16 @@
 */
 package org.postgresql.jdbc;
 
-import java.lang.reflect.Method;
-import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.List;
-import java.util.Map;
-
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+
+import java.lang.reflect.Method;
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 /**
  * This class stores supported escaped function

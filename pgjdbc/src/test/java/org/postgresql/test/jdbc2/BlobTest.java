@@ -7,14 +7,22 @@
 */
 package org.postgresql.test.jdbc2;
 
+import org.postgresql.largeobject.LargeObject;
+import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.test.TestUtil;
 
 import junit.framework.TestCase;
 
-import java.io.*;
-import java.sql.*;
-
-import org.postgresql.largeobject.*;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Types;
 
 /**
  * Some simple tests based on problems reported by users. Hopefully these will

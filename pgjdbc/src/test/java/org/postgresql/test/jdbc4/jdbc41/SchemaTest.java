@@ -7,13 +7,14 @@
 */
 package org.postgresql.test.jdbc4.jdbc41;
 
-import java.sql.*;
-
-import java.util.Properties;
+import org.postgresql.test.TestUtil;
 
 import junit.framework.TestCase;
 
-import org.postgresql.test.TestUtil;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Properties;
 
 public class SchemaTest extends TestCase
 {

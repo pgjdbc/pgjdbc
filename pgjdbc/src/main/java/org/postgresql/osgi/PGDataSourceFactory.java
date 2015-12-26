@@ -7,15 +7,6 @@
 */
 package org.postgresql.osgi;
 
-import java.sql.SQLException;
-import java.util.Map.Entry;
-import java.util.Properties;
-
-import javax.sql.ConnectionPoolDataSource;
-import javax.sql.DataSource;
-import javax.sql.XADataSource;
-
-import org.osgi.service.jdbc.DataSourceFactory;
 import org.postgresql.ds.common.BaseDataSource;
 import org.postgresql.jdbc2.optional.ConnectionPool;
 import org.postgresql.jdbc2.optional.PoolingDataSource;
@@ -24,6 +15,15 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.xa.PGXADataSource;
+
+import org.osgi.service.jdbc.DataSourceFactory;
+
+import java.sql.SQLException;
+import java.util.Map.Entry;
+import java.util.Properties;
+import javax.sql.ConnectionPoolDataSource;
+import javax.sql.DataSource;
+import javax.sql.XADataSource;
 
 /**
  * This factory service is designed to be used in OSGi Enterprise environments 

@@ -7,13 +7,18 @@
 */
 package org.postgresql.jdbc;
 
-import org.postgresql.core.*;
+import org.postgresql.core.BaseConnection;
+import org.postgresql.core.BaseStatement;
+import org.postgresql.core.Encoding;
+import org.postgresql.core.Field;
+import org.postgresql.core.Oid;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc2.ArrayAssistant;
 import org.postgresql.jdbc2.ArrayAssistantRegistry;
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
-import org.postgresql.util.GT;
 
 import java.io.IOException;
 import java.math.BigDecimal;

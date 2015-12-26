@@ -7,10 +7,13 @@
 */
 package org.postgresql.core;
 
-import java.util.TimerTask;
-import java.sql.*;
 import org.postgresql.PGConnection;
 import org.postgresql.jdbc.TimestampUtils;
+
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.TimerTask;
 
 /**
  * Driver-internal connection interface. Application code should not use

@@ -7,7 +7,7 @@
 */
 package org.postgresql;
 
-import java.sql.*;
+import java.sql.SQLException;
 
 /**
  *  This interface defines the public PostgreSQL extensions to

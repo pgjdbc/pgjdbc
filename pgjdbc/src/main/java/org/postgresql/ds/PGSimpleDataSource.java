@@ -7,15 +7,14 @@
 */
 package org.postgresql.ds;
 
-import java.io.Serializable;
-import java.io.ObjectOutputStream;
-import java.io.ObjectInputStream;
+import org.postgresql.ds.common.BaseDataSource;
+
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
-
-import org.postgresql.ds.common.*;
-
 import javax.sql.DataSource;
 
 /**

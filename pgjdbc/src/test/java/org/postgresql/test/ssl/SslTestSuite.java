@@ -1,15 +1,10 @@
 package org.postgresql.test.ssl;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.util.Properties;
+import org.postgresql.test.TestUtil;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestResult;
 import junit.framework.TestSuite;
 
-import org.postgresql.test.TestUtil;
+import java.util.Properties;
 
 public class SslTestSuite  extends TestSuite {
 

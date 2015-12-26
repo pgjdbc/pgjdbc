@@ -7,12 +7,13 @@
 */
 package org.postgresql.jdbc;
 
+import org.postgresql.core.Utils;
+import org.postgresql.util.GT;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+
 import java.sql.SQLException;
 import java.sql.Savepoint;
-import org.postgresql.core.Utils;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLState;
 
 public class PSQLSavepoint implements Savepoint {
 

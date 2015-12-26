@@ -7,12 +7,13 @@
 */
 package org.postgresql.test.jdbc42;
 
-import java.sql.Connection;
+import org.postgresql.test.TestUtil;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.postgresql.test.TestUtil;
+
+import java.sql.Connection;
 
 /**
  * Most basic test to check that the right package is compiled

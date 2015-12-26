@@ -7,13 +7,13 @@
 */
 package org.postgresql.jdbc;
 
-import java.sql.SQLException;
-import java.sql.ParameterMetaData;
-
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLState;
-import org.postgresql.util.PSQLException;
 import org.postgresql.core.BaseConnection;
+import org.postgresql.util.GT;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+
+import java.sql.ParameterMetaData;
+import java.sql.SQLException;
 
 public class PgParameterMetaData implements ParameterMetaData {
 

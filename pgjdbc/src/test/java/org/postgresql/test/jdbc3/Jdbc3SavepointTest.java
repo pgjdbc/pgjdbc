@@ -7,9 +7,16 @@
 */
 package org.postgresql.test.jdbc3;
 
-import java.sql.*;
-import junit.framework.TestCase;
 import org.postgresql.test.TestUtil;
+
+import junit.framework.TestCase;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Savepoint;
+import java.sql.Statement;
 
 public class Jdbc3SavepointTest extends TestCase {
 

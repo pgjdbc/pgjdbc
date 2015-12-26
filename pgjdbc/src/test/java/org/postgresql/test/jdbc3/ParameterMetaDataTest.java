@@ -7,9 +7,17 @@
 */
 package org.postgresql.test.jdbc3;
 
-import java.sql.*;
-import junit.framework.TestCase;
 import org.postgresql.test.TestUtil;
+
+import junit.framework.TestCase;
+
+import java.sql.Connection;
+import java.sql.ParameterMetaData;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.sql.Types;
 
 public class ParameterMetaDataTest extends TestCase {
 

@@ -7,7 +7,7 @@
 */
 package org.postgresql.util;
 
-import java.sql.*;
+import java.sql.SQLException;
 
 /**
  * Converts to and from the postgresql bytea datatype used by the backend.

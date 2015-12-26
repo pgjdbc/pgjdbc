@@ -8,29 +8,34 @@
 */
 package org.postgresql.core.v2;
 
-import java.util.Iterator;
-import java.util.Properties;
-import java.util.StringTokenizer;
-import javax.net.SocketFactory;
-import java.sql.SQLException;
-import java.sql.SQLWarning;
-import java.io.IOException;
-import java.net.ConnectException;
-
 import org.postgresql.PGProperty;
-import org.postgresql.core.*;
+import org.postgresql.core.ConnectionFactory;
+import org.postgresql.core.Encoding;
+import org.postgresql.core.Logger;
+import org.postgresql.core.PGStream;
+import org.postgresql.core.ProtocolConnection;
+import org.postgresql.core.SetupQueryRunner;
+import org.postgresql.core.Utils;
 import org.postgresql.hostchooser.GlobalHostStatusTracker;
 import org.postgresql.hostchooser.HostChooser;
 import org.postgresql.hostchooser.HostChooserFactory;
 import org.postgresql.hostchooser.HostRequirement;
 import org.postgresql.hostchooser.HostStatus;
+import org.postgresql.util.GT;
+import org.postgresql.util.HostSpec;
+import org.postgresql.util.MD5Digest;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.UnixCrypt;
-import org.postgresql.util.MD5Digest;
-import org.postgresql.util.ObjectFactory;
-import org.postgresql.util.GT;
-import org.postgresql.util.HostSpec;
+
+import java.io.IOException;
+import java.net.ConnectException;
+import java.sql.SQLException;
+import java.sql.SQLWarning;
+import java.util.Iterator;
+import java.util.Properties;
+import java.util.StringTokenizer;
+import javax.net.SocketFactory;
 
 /**
  * ConnectionFactory implementation for version 2 (pre-7.4) connections.

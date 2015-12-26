@@ -7,35 +7,35 @@
 */
 package org.postgresql.test.jdbc4;
 
-import java.sql.*;
-
-import junit.framework.TestCase;
-
 import org.postgresql.test.TestUtil;
 
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.io.Reader;
-import java.io.InputStream;
-import java.io.IOException;
-
-import javax.xml.transform.Source;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.sax.SAXSource;
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.transform.stax.StAXSource;
+import junit.framework.TestCase;
 import org.w3c.dom.Node;
 
-import javax.xml.transform.Transformer;
+import java.io.IOException;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLXML;
+import java.sql.Statement;
+import java.sql.Types;
 import javax.xml.transform.ErrorListener;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.TransformerException;
-
 import javax.xml.transform.Result;
+import javax.xml.transform.Source;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMResult;
+import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.sax.SAXResult;
-import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.sax.SAXSource;
 import javax.xml.transform.stax.StAXResult;
+import javax.xml.transform.stax.StAXSource;
+import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.stream.StreamSource;
 
 
 public class XmlTest extends TestCase {

@@ -1,10 +1,14 @@
 package org.postgresql.ssl.jdbc4;
 
+import org.postgresql.util.GT;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+
 import java.io.File;
-import java.io.RandomAccessFile;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.net.Socket;
 import java.security.AlgorithmParameters;
 import java.security.GeneralSecurityException;
@@ -21,7 +25,6 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Collection;
-
 import javax.crypto.Cipher;
 import javax.crypto.EncryptedPrivateKeyInfo;
 import javax.crypto.NoSuchPaddingException;
@@ -33,10 +36,6 @@ import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.PasswordCallback;
 import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.x500.X500Principal;
-
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 /**
  * A Key manager that only loads the keys, if necessary.

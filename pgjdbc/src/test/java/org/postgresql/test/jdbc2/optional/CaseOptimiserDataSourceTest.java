@@ -7,17 +7,17 @@
  */
 package org.postgresql.test.jdbc2.optional;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Statement;
-
-import junit.framework.TestCase;
-
 import org.postgresql.core.BaseConnection;
 import org.postgresql.ds.common.BaseDataSource;
 import org.postgresql.jdbc2.optional.SimpleDataSource;
 import org.postgresql.test.TestUtil;
+
+import junit.framework.TestCase;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Statement;
 /*
  * DataSource test to ensure the BaseConnection is configured with column 
  * sanitiser disabled.

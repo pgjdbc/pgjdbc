@@ -7,10 +7,20 @@
 */
 package org.postgresql.test.util;
 
-import java.util.*;
-import java.rmi.MarshalledObject;
 import java.io.Serializable;
-import javax.naming.*;
+import java.rmi.MarshalledObject;
+import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.Map;
+import javax.naming.Binding;
+import javax.naming.Context;
+import javax.naming.Name;
+import javax.naming.NameClassPair;
+import javax.naming.NameParser;
+import javax.naming.NamingEnumeration;
+import javax.naming.NamingException;
+import javax.naming.Reference;
+import javax.naming.Referenceable;
 import javax.naming.spi.ObjectFactory;
 
 /**

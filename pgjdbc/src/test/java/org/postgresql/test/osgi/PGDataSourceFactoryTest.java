@@ -7,22 +7,22 @@
 */
 package org.postgresql.test.osgi;
 
-import java.sql.Driver;
-import java.util.Properties;
-
-import javax.sql.ConnectionPoolDataSource;
-import javax.sql.DataSource;
-import javax.sql.XADataSource;
-
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.osgi.service.jdbc.DataSourceFactory;
 import org.postgresql.jdbc2.optional.ConnectionPool;
 import org.postgresql.jdbc2.optional.PoolingDataSource;
 import org.postgresql.jdbc2.optional.SimpleDataSource;
 import org.postgresql.osgi.PGDataSourceFactory;
 import org.postgresql.xa.PGXADataSource;
+
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.osgi.service.jdbc.DataSourceFactory;
+
+import java.sql.Driver;
+import java.util.Properties;
+import javax.sql.ConnectionPoolDataSource;
+import javax.sql.DataSource;
+import javax.sql.XADataSource;
 
 public class PGDataSourceFactoryTest
 {

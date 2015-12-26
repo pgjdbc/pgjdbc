@@ -7,21 +7,22 @@
 */
 package org.postgresql.core;
 
+import org.postgresql.util.GT;
+import org.postgresql.util.HostSpec;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+
 import java.io.BufferedOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.EOFException;
 import java.io.FilterOutputStream;
 import java.io.IOException;
-import java.io.EOFException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.Writer;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.sql.SQLException;
 import javax.net.SocketFactory;
-import org.postgresql.util.GT;
-import org.postgresql.util.HostSpec;
-import org.postgresql.util.PSQLState;
-import org.postgresql.util.PSQLException;
 
 /**
  * Wrapper around the raw connection to the server that implements some basic

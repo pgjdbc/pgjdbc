@@ -7,12 +7,12 @@
 */
 package org.postgresql.copy;
 
+import org.postgresql.PGConnection;
+import org.postgresql.util.GT;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.SQLException;
-
-import org.postgresql.PGConnection;
-import org.postgresql.util.GT;
 
 /**
  * OutputStream for buffered input into a PostgreSQL COPY FROM STDIN operation

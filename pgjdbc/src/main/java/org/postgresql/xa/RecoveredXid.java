@@ -6,10 +6,10 @@
 */
 package org.postgresql.xa;
 
+import org.postgresql.util.Base64;
+
 import java.util.Arrays;
 import javax.transaction.xa.Xid;
-
-import org.postgresql.util.Base64;
 
 class RecoveredXid implements Xid {
     int formatId;

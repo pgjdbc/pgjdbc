@@ -8,8 +8,8 @@
 */
 package org.postgresql.core;
 
-import java.sql.SQLException;
 import java.io.InputStream;
+import java.sql.SQLException;
 
 /**
  * Abstraction of a list of parameters to be substituted into a Query.

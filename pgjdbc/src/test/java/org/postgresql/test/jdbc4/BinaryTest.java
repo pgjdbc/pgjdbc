@@ -1,10 +1,5 @@
 package org.postgresql.test.jdbc4;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
 import org.postgresql.PGConnection;
 import org.postgresql.PGResultSetMetaData;
 import org.postgresql.PGStatement;
@@ -12,6 +7,11 @@ import org.postgresql.core.Field;
 import org.postgresql.test.TestUtil;
 
 import junit.framework.TestCase;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 /**
  * We don't want to use the binary protocol for one-off queries as it involves

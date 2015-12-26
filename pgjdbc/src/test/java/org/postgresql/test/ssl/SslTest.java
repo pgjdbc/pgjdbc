@@ -1,5 +1,10 @@
 package org.postgresql.test.ssl;
 
+import org.postgresql.test.TestUtil;
+
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
+
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -8,11 +13,6 @@ import java.sql.SQLException;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
-
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
-
-import org.postgresql.test.TestUtil;
 
 public class SslTest extends TestCase {
 

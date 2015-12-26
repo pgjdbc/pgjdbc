@@ -9,19 +9,40 @@
 package org.postgresql.core.v3;
 
 import org.postgresql.PGProperty;
-import org.postgresql.core.*;
-
-import java.util.*;
-import java.lang.ref.*;
-import java.io.IOException;
-import java.sql.*;
-
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLWarning;
-import org.postgresql.util.PSQLState;
-import org.postgresql.util.ServerErrorMessage;
-import org.postgresql.util.GT;
 import org.postgresql.copy.CopyOperation;
+import org.postgresql.core.Field;
+import org.postgresql.core.Logger;
+import org.postgresql.core.NativeQuery;
+import org.postgresql.core.Oid;
+import org.postgresql.core.PGBindException;
+import org.postgresql.core.PGStream;
+import org.postgresql.core.ParameterList;
+import org.postgresql.core.Parser;
+import org.postgresql.core.ProtocolConnection;
+import org.postgresql.core.Query;
+import org.postgresql.core.QueryExecutor;
+import org.postgresql.core.ResultCursor;
+import org.postgresql.core.ResultHandler;
+import org.postgresql.core.Utils;
+import org.postgresql.util.GT;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+import org.postgresql.util.PSQLWarning;
+import org.postgresql.util.ServerErrorMessage;
+
+import java.io.IOException;
+import java.lang.ref.PhantomReference;
+import java.lang.ref.Reference;
+import java.lang.ref.ReferenceQueue;
+import java.sql.SQLException;
+import java.sql.SQLWarning;
+import java.sql.Statement;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Properties;
 
 /**
  * QueryExecutor implementation for the V3 protocol.
