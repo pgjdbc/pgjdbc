@@ -366,6 +366,15 @@ than you might expect.
 It's possible to debug and test PgJDBC with various IDEs, not just with mvn on
 the command line. Projects aren't supplied, but it's easy to prepare them.
 
+### IntelliJ IDEA
+
+Project code style is located at `pgjdbc/src/main/checkstyle/pgjdbc-intellij-java-google-style.xml`
+In order to import it, copy the file to `$IDEA_CONFIG_LOCATION/codestyles` folder, restart IDEA,
+then choose "GoogleStyle (PgJDBC)" style for the Preferences -> Editor -> CodeStyle setting.
+
+For instance, for Mac OS it would be `~/Library/Preferences/IntelliJIdeaXX/codestyles`.
+More details here: https://intellij-support.jetbrains.com/hc/en-us/articles/206827437-Directories-used-by-the-IDE-to-store-settings-caches-plugins-and-logs
+
 ### Eclipse
 
 On Eclipse Luna, to import PgJDBC as an Eclipse Java project with full
@@ -405,7 +414,12 @@ Please submit build instructions for your preferred IDE.
 
 ### Java
 
-Use 4 spaces for indenting.
+Project uses Google style conventions for java with 100 wide lines.
+Code style is verified via Travis job. In order to do manual verification, issue
+
+    cd pgjdbc && mvn checkstyle:check
+
+Use 4 spaces for indenting, do not use tabs, trim space at end of lines.
 Always put braces, even for single-line `if`.
 Always put `default:` case for `switch` statement.
 
