@@ -18,6 +18,8 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.util.Map;
 import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
 import javax.naming.NamingException;
 import javax.naming.Reference;
 import javax.naming.StringRefAddr;
@@ -50,7 +52,7 @@ import javax.sql.PooledConnection;
  * implementation may provide advanced features, such as using a single pool
  * across all VMs in a cluster.</p>
  *
- * <p>This implementation supports JDK 1.3 and higher.</p>
+ * <p>This implementation supports JDK 1.5 and higher.</p>
  *
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  */
@@ -58,7 +60,7 @@ public class PGPoolingDataSource
     extends BaseDataSource
         implements DataSource
 {
-    protected static Map<String, PGPoolingDataSource> dataSources = new ConcurrentHashMap<String, PGPoolingDataSource>();
+    protected static ConcurrentMap<String, PGPoolingDataSource> dataSources = new ConcurrentHashMap<String, PGPoolingDataSource>();
 
     public static PGPoolingDataSource getDataSource(String name)
     {
@@ -270,19 +272,16 @@ public class PGPoolingDataSource
         {
             return ;
         }
-        synchronized (dataSources)
+        PGPoolingDataSource previous = dataSources.putIfAbsent(dataSourceName, this);
+        if (previous != null)
         {
-            if (getDataSource(dataSourceName) != null)
-            {
-                throw new IllegalArgumentException("DataSource with name '" + dataSourceName + "' already exists!");
-            }
-            if (this.dataSourceName != null)
-            {
-                dataSources.remove(this.dataSourceName);
-            }
-            this.dataSourceName = dataSourceName;
-            addDataSource(dataSourceName);
+            throw new IllegalArgumentException("DataSource with name '" + dataSourceName + "' already exists!");
         }
+        if (this.dataSourceName != null)
+        {
+            dataSources.remove(this.dataSourceName);
+        }
+        this.dataSourceName = dataSourceName;
     }
 
     /**
@@ -408,10 +407,7 @@ public class PGPoolingDataSource
     }
 
     protected void removeStoredDataSource() {
-        synchronized (dataSources)
-        {
-            dataSources.remove(dataSourceName);
-        }
+        dataSources.remove(dataSourceName);
     }
 
     protected void addDataSource(String dataSourceName)
