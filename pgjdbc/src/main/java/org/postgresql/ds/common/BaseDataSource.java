@@ -1079,6 +1079,38 @@ public abstract class BaseDataSource implements Referenceable
     }
 
     /**
+     * @see PGProperty#SOCKET_FACTORY
+     */
+    public String getSocketFactory()
+    {
+        return PGProperty.SOCKET_FACTORY.get(properties);
+    }
+
+    /**
+     * @see PGProperty#SOCKET_FACTORY
+     */
+    public void setSocketFactory(String socketFactoryClassName)
+    {
+        PGProperty.SOCKET_FACTORY.set(properties, socketFactoryClassName);
+    }
+
+    /**
+     * @see PGProperty#SOCKET_FACTORY_ARG
+     */
+    public String getSocketFactoryArg()
+    {
+        return PGProperty.SOCKET_FACTORY_ARG.get(properties);
+    }
+
+    /**
+     * @see PGProperty#SOCKET_FACTORY_ARG
+     */
+    public void setSocketFactoryArg(String socketFactoryArg)
+    {
+        PGProperty.SOCKET_FACTORY_ARG.set(properties, socketFactoryArg);
+    }
+
+    /**
      * Generates a {@link DriverManager} URL from the other properties supplied.
      * @return {@link DriverManager} URL from the other properties supplied
      */

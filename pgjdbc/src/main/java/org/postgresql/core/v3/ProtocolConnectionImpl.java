@@ -96,7 +96,7 @@ class ProtocolConnectionImpl implements ProtocolConnection {
             if (logger.logDebug())
                 logger.debug(" FE=> CancelRequest(pid=" + cancelPid + ",ckey=" + cancelKey + ")");
 
-            cancelStream = new PGStream(pgStream.getHostSpec(), connectTimeout);
+            cancelStream = new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), connectTimeout);
             cancelStream.SendInteger4(16);
             cancelStream.SendInteger2(1234);
             cancelStream.SendInteger2(5678);
