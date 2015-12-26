@@ -39,6 +39,9 @@ matrix:
   fast_finish: true
   include:
     - jdk: oraclejdk8
+      env: RUN_CHECKSTYLE=true
+      script: cd pgjdbc && mvn checkstyle:check
+    - jdk: oraclejdk8
       addons:
         postgresql: "9.4"
       env: PG_VERSION=9.4
