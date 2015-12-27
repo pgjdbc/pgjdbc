@@ -1,6 +1,8 @@
 <img src="http://developer.postgresql.org/~josh/graphics/logos/elephant-64.png" />
 # PostgreSQL JDBC driver
 
+[![Join the chat at https://gitter.im/pgjdbc/pgjdbc](https://badges.gitter.im/pgjdbc/pgjdbc.svg)](https://gitter.im/pgjdbc/pgjdbc?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 [![Build Status](https://travis-ci.org/pgjdbc/pgjdbc.png)](https://travis-ci.org/pgjdbc/pgjdbc)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.postgresql/postgresql/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.postgresql/postgresql)
 
