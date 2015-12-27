@@ -25,6 +25,7 @@ public class Jdbc41TestSuite extends TestSuite {
     suite.addTestSuite(SchemaTest.class);
     suite.addTestSuite(AbortTest.class);
     suite.addTestSuite(CloseOnCompletionTest.class);
+    suite.addTestSuite(GetObjectTest.class);
 
     return suite;
   }

@@ -13,7 +13,7 @@ import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
-@SuiteClasses({SimpleJdbc42Test.class, CustomizeDefaultFetchSizeTest.class})
+@SuiteClasses({SimpleJdbc42Test.class, CustomizeDefaultFetchSizeTest.class, GetObject310Test.class})
 public class Jdbc42TestSuite {
 
 }

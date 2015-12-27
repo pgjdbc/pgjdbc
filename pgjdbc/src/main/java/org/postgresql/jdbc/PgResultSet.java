@@ -40,6 +40,8 @@ import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
@@ -57,7 +59,15 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
+//#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+//#endif
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -3122,7 +3132,204 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "getObject(int, Class<T>)");
+    if (type == null) {
+      throw new SQLException("type is null");
+    }
+    int sqlType = getSQLType(columnIndex);
+    if (type == BigDecimal.class) {
+      if (sqlType == Types.NUMERIC || sqlType == Types.DECIMAL) {
+        return type.cast(getBigDecimal(columnIndex));
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == String.class) {
+      if (sqlType == Types.CHAR || sqlType == Types.VARCHAR) {
+        return type.cast(getString(columnIndex));
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == Boolean.class) {
+      if (sqlType == Types.BOOLEAN || sqlType == Types.BIT) {
+        boolean booleanValue = getBoolean(columnIndex);
+        if (wasNull()) {
+          return null;
+        }
+        return type.cast(booleanValue);
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == Integer.class) {
+      if (sqlType == Types.SMALLINT || sqlType == Types.INTEGER) {
+        int intValue = getInt(columnIndex);
+        if (wasNull()) {
+          return null;
+        }
+        return type.cast(intValue);
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == Long.class) {
+      if (sqlType == Types.BIGINT) {
+        long longValue = getLong(columnIndex);
+        if (wasNull()) {
+          return null;
+        }
+        return type.cast(longValue);
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == Float.class) {
+      if (sqlType == Types.REAL) {
+        float floatValue = getFloat(columnIndex);
+        if (wasNull()) {
+          return null;
+        }
+        return type.cast(floatValue);
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == Double.class) {
+      if (sqlType == Types.FLOAT || sqlType == Types.DOUBLE) {
+        double doubleValue = getDouble(columnIndex);
+        if (wasNull()) {
+          return null;
+        }
+        return type.cast(doubleValue);
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == Date.class) {
+      if (sqlType == Types.DATE) {
+        return type.cast(getDate(columnIndex));
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == Time.class) {
+      if (sqlType == Types.TIME) {
+        return type.cast(getTime(columnIndex));
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == Timestamp.class) {
+      if (sqlType == Types.TIMESTAMP
+              //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+              || sqlType == Types.TIMESTAMP_WITH_TIMEZONE
+      //#endif
+      ) {
+        return type.cast(getTimestamp(columnIndex));
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == Calendar.class) {
+      if (sqlType == Types.TIMESTAMP
+              //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+              || sqlType == Types.TIMESTAMP_WITH_TIMEZONE
+      //#endif
+      ) {
+        Timestamp timestampValue = getTimestamp(columnIndex);
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(timestampValue.getTime());
+        return type.cast(calendar);
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == Blob.class) {
+      if (sqlType == Types.BLOB || sqlType == Types.BINARY || sqlType == Types.BIGINT) {
+        return type.cast(getBlob(columnIndex));
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == Clob.class) {
+      if (sqlType == Types.CLOB || sqlType == Types.BIGINT) {
+        return type.cast(getClob(columnIndex));
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == NClob.class) {
+      if (sqlType == Types.NCLOB) {
+        return type.cast(getNClob(columnIndex));
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == Array.class) {
+      if (sqlType == Types.ARRAY) {
+        return type.cast(getArray(columnIndex));
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == SQLXML.class) {
+      if (sqlType == Types.SQLXML) {
+        return type.cast(getSQLXML(columnIndex));
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == UUID.class) {
+      return type.cast(getObject(columnIndex));
+    } else if (type == InetAddress.class) {
+      Object addressString = getObject(columnIndex);
+      if (addressString == null) {
+        return null;
+      }
+      try {
+        return type.cast(InetAddress.getByName(((PGobject) addressString).getValue()));
+      } catch (UnknownHostException e) {
+        throw new SQLException("could not create inet address from string '" + addressString + "'");
+      }
+      // JSR-310 support
+      //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+    } else if (type == LocalDate.class) {
+      if (sqlType == Types.DATE) {
+        Date dateValue = getDate(columnIndex);
+        if (wasNull()) {
+          return null;
+        }
+        return type.cast(dateValue.toLocalDate());
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == LocalTime.class) {
+      if (sqlType == Types.TIME) {
+        Time timeValue = getTime(columnIndex);
+        if (wasNull()) {
+          return null;
+        }
+        return type.cast(timeValue.toLocalTime());
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == LocalDateTime.class) {
+      if (sqlType == Types.TIMESTAMP) {
+        Timestamp timestampValue = getTimestamp(columnIndex);
+        if (wasNull()) {
+          return null;
+        }
+        return type.cast(timestampValue.toLocalDateTime());
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == OffsetDateTime.class) {
+      if (sqlType == Types.TIMESTAMP_WITH_TIMEZONE || sqlType == Types.TIMESTAMP) {
+        Timestamp timestampValue = getTimestamp(columnIndex);
+        if (wasNull()) {
+          return null;
+        }
+        // Postgres stores everything in UTC and does not keep original time zone
+        OffsetDateTime offsetDateTime = OffsetDateTime.ofInstant(timestampValue.toInstant(), ZoneOffset.UTC);
+        return type.cast(offsetDateTime);
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+      //#endif
+    } else if (PGobject.class.isAssignableFrom(type)) {
+      Object object;
+      if (isBinary(columnIndex)) {
+        object = connection.getObject(getPGType(columnIndex), null, this_row[columnIndex - 1]);
+      } else {
+        object = connection.getObject(getPGType(columnIndex), getString(columnIndex), null);
+      }
+      return type.cast(object);
+    }
+    throw new SQLException("unsupported conversion to " + type);
   }
 
   public <T> T getObject(String columnLabel, Class<T> type) throws SQLException {
