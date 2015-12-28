@@ -191,7 +191,7 @@ public class LargeObject
             // finally close
             FastpathArg args[] = new FastpathArg[1];
             args[0] = new FastpathArg(fd);
-            fp.fastpath("lo_close", args); // true here as we dont care!!
+            fp.fastpath("lo_close", args); // true here as we don't care!!
             closed = true;
 	    if (this.commitOnClose == true)
 	    {

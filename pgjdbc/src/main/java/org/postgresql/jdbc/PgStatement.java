@@ -648,7 +648,7 @@ public class PgStatement implements Statement, BaseStatement
     }
     
     /**
-     * parse the given sql from index i, appending it to the gven buffer
+     * parse the given sql from index i, appending it to the given buffer
      * until we hit an unmatched right parentheses or end of string.  When
      * the stopOnComma flag is set we also stop processing when a comma is
      * found in sql text that isn't inside nested parenthesis.
@@ -678,7 +678,7 @@ public class PgStatement implements Statement, BaseStatement
             case IN_SQLCODE:
                 if (c == '\'')      // start of a string?
                     state = IN_STRING;
-                else if (c == '"')      // start of a identifer?
+                else if (c == '"')      // start of a identifier?
                     state = IN_IDENTIFIER;
                 else if (c=='(') { // begin nested sql
                     nestedParenthesis++;
@@ -795,7 +795,7 @@ public class PgStatement implements Statement, BaseStatement
     /**
      * generate sql for escaped functions
      * @param functionName the escaped function name
-     * @param args the arguments for this functin
+     * @param args the arguments for this function
      * @param stdStrings whether standard_conforming_strings is on
      * @return the right postgreSql sql
      * @throws SQLException if something goes wrong
@@ -814,7 +814,7 @@ public class PgStatement implements Statement, BaseStatement
             }
             i++;
         }
-        // we can now tranlate escape functions
+        // we can now translate escape functions
         try{
             Method escapeMethod = EscapedFunctions.getFunction(functionName);
             return (String) escapeMethod.invoke(null,new Object[] {parsedArgs});
@@ -936,7 +936,7 @@ public class PgStatement implements Statement, BaseStatement
         int flags = 0;
 
         // Force a Describe before any execution? We need to do this if we're going
-        // to send anything dependent on the Desribe results, e.g. binary parameters.
+        // to send anything dependent on the Describe results, e.g. binary parameters.
         boolean preDescribe = false;
 
         if (wantsGeneratedKeysAlways) {

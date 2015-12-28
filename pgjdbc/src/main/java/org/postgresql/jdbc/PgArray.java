@@ -425,7 +425,7 @@ public class PgArray implements java.sql.Array
             StringBuilder buffer = null;
             boolean insideString = false;
             boolean wasInsideString = false; // needed for checking if NULL
-            // value occured
+            // value occurred
             List<PgArrayList> dims = new ArrayList<PgArrayList>(); // array dimension arrays
             PgArrayList curArray = arrayList; // currently processed array
 

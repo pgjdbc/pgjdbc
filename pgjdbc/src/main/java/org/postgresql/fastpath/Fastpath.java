@@ -279,7 +279,7 @@ public class Fastpath
      * <p>Once this has been done, the LargeObject api refers to the functions by
      * name.
      *
-     * <p>Dont think that manually converting them to the oid's will work. Ok,
+     * <p>Don't think that manually converting them to the oid's will work. Ok,
      * they will for now, but they can change during development (there was some
      * discussion about this for V7.0), so this is implemented to prevent any
      * unwarranted headaches in the future.
