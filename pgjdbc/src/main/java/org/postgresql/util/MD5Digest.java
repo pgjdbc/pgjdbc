@@ -15,6 +15,7 @@ package org.postgresql.util;
  */
 
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 public class MD5Digest
 {
@@ -56,9 +57,9 @@ public class MD5Digest
             hex_digest[1] = (byte) 'd';
             hex_digest[2] = (byte) '5';
         }
-        catch (Exception e)
+        catch (NoSuchAlgorithmException e)
         {
-            ; // "MessageDigest failure; " + e
+            throw new RuntimeException("MessageDigest failure; ", e);
         }
 
         return hex_digest;

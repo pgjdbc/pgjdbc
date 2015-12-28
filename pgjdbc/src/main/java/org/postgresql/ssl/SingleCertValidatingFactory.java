@@ -151,11 +151,8 @@ public class SingleCertValidatingFactory extends WrappedFactory {
 
         public SingleCertTrustManager(InputStream in) throws IOException, GeneralSecurityException {
             KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
-            try {
-                // Note: KeyStore requires it be loaded even if you don't load anything into it:
-                ks.load(null);
-            } catch (Exception e) {
-            }
+            // Note: KeyStore requires it be loaded even if you don't load anything into it:
+            ks.load(null);
             CertificateFactory cf = CertificateFactory.getInstance("X509");
             cert = (X509Certificate) cf.generateCertificate(in);
             ks.setCertificateEntry(UUID.randomUUID().toString(), cert);
