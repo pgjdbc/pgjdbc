@@ -412,7 +412,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
         switch (beresp) {
           case 'E':
-            // An error occured, so pass the error message to the
+            // An error occurred, so pass the error message to the
             // user.
             //
             // The most common one to be thrown here is:

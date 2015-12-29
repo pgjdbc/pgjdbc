@@ -70,7 +70,7 @@ public class StreamWrapper {
           /*
            * Usually, closing stream should be done by pgjdbc clients. Here it's an internally
            * managed stream so we need to auto-close it and be sure to delete the temporary file
-           * when doing so. Auto-closing will be done when the first occur: reaching EOF or Garbage
+           * when doing so. Auto-closing will be done when the first occurs: reaching EOF or Garbage
            * Collection
            */
           private boolean _closed = false;

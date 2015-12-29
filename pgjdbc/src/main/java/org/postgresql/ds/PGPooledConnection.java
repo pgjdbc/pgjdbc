@@ -120,7 +120,7 @@ public class PGPooledConnection implements PooledConnection {
       fireConnectionFatalError(sqlException);
       throw sqlException;
     }
-    // If any error occures while opening a new connection, the listeners
+    // If any error occurs while opening a new connection, the listeners
     // have to be notified. This gives a chance to connection pools to
     // eliminate bad pooled connections.
     try {

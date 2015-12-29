@@ -187,7 +187,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   /**
-   * Does the database use a file for each table? Well, not really, since it doesnt use local files.
+   * Does the database use a file for each table? Well, not really, since it doesn't use local files.
    *
    * @return true if so
    * @throws SQLException if a database access error occurs
@@ -350,7 +350,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
    * {@inheritDoc}
    *
    * <p>
-   * Postgresql allows any high-bit character to be used in an unquoted identifer, so we can't
+   * Postgresql allows any high-bit character to be used in an unquoted identifier, so we can't
    * possibly list them all.
    *
    * From the file src/backend/parser/scan.l, an identifier is ident_start [A-Za-z\200-\377_]
@@ -757,7 +757,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   /**
    * {@inheritDoc}
    * <p>
-   * Can statements remain open across commits? They may, but this driver cannot guarentee that. In
+   * Can statements remain open across commits? They may, but this driver cannot guarantee that. In
    * further reflection. we are talking a Statement object here, so the answer is yes, since the
    * Statement is only a vehicle to ExecSQL()
    *
@@ -770,7 +770,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   /**
    * {@inheritDoc}
    * <p>
-   * Can statements remain open across rollbacks? They may, but this driver cannot guarentee that.
+   * Can statements remain open across rollbacks? They may, but this driver cannot guarantee that.
    * In further contemplation, we are talking a Statement object here, so the answer is yes, since
    * the Statement is only a vehicle to ExecSQL() in Connection
    *
@@ -2292,8 +2292,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
      * Postgresql does not have any column types that are automatically updated like some databases'
      * timestamp type. We can't tell what rules or triggers might be doing, so we are left with the
      * system columns that change on an update. An update may change all of the following system
-     * columns: ctid, xmax, xmin, cmax, and cmin. Depending on if we are in a transaction and wether
-     * we roll it back or not the only guaranteed change is to ctid. -KJ
+     * columns: ctid, xmax, xmin, cmax, and cmin. Depending on if we are in a transaction and
+     * whether we roll it back or not the only guaranteed change is to ctid. -KJ
      */
 
     tuple[0] = null;
@@ -2650,7 +2650,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       // Note, I am guessing at most of this, but it should be close
       // if not, please correct
       // the keys are in pairs and start after the first four arguments
-      // the arguments are seperated by \000
+      // the arguments are separated by \000
 
       String targs = rs.getString(11);
 
@@ -2759,7 +2759,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     Statement stmt = connection.createStatement();
     ResultSet rs = stmt.executeQuery(sql);
-    // cache some results, this will keep memory useage down, and speed
+    // cache some results, this will keep memory usage down, and speed
     // things up a little.
     byte bZero[] = connection.encodeString("0");
     byte b10[] = connection.encodeString("10");
@@ -3280,7 +3280,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     /*
      * Currently LOB's aren't updateable at all, so it doesn't matter what we return. We don't throw
      * the notImplemented Exception because the 1.5 JDK's CachedRowSet calls this method regardless
-     * of wether large objects are used.
+     * of whether large objects are used.
      */
     return true;
   }

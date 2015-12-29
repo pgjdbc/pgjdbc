@@ -234,5 +234,11 @@
     <!--<property name="exceptionVariableName" value="expected"/>-->
     <!--</module>-->
     <module name="CommentsIndentation"/>
+
+    <module name="Regexp">
+      <!-- known typos see #472 -->
+      <property name="format" value="(?i)\b(occur[^rs\s\W]|ocur[rs]|unkwon|didnt|doesnt|identifer|guarentee|seperated|wether|useage|gven|identifer|functin|tranlate|desribe)"/>
+      <property name="illegalPattern" value="true"/>
+    </module>
   </module>
 </module>

@@ -411,7 +411,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
           // There's now a new connection available
           lock.notify();
         } else {
-          // a connection error occured
+          // a connection error occurred
         }
       }
     }

@@ -24,7 +24,7 @@ import java.util.TimeZone;
 
 /*
  * Some simple tests based on problems reported by users. Hopefully these will help prevent previous
- * problems from re-occuring ;-)
+ * problems from re-occurring ;-)
  *
  */
 public class TimeTest extends TestCase {

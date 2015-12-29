@@ -840,7 +840,7 @@ public class PgConnection implements BaseConnection {
       }
     }
 
-    // XXX revisit: throw exception instead of silently eating the error in unkwon cases?
+    // XXX revisit: throw exception instead of silently eating the error in unknown cases?
     if (level == null) {
       return Connection.TRANSACTION_READ_COMMITTED; // Best guess.
     }

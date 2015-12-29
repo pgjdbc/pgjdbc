@@ -491,7 +491,7 @@ public class StatementTest extends TestCase {
 
       timer.schedule(new TimerTask() {
         public void run() {
-          fail("Query timeout should have occured and cleaned this up");
+          fail("Query timeout should have occurred and cleaned this up");
         }
       }, 5000);
       stmt.setQueryTimeout(1);
