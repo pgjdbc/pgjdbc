@@ -61,7 +61,7 @@ import java.util.TimeZone;
 import java.util.UUID;
 
 class PgPreparedStatement extends PgStatement implements PreparedStatement {
-  protected final CachedQuery preparedQuery;        // Query fragments for prepared statement.
+  protected final CachedQuery preparedQuery; // Query fragments for prepared statement.
   protected final ParameterList preparedParameters; // Parameter values for prepared statement.
 
   /**
@@ -100,8 +100,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   /*
    * A Prepared SQL query is executed and its ResultSet is returned
    *
-   * @return a ResultSet that contains the data produced by the
-   *   * query - never null
+   * @return a ResultSet that contains the data produced by the * query - never null
+   *
    * @exception SQLException if a database access error occurs
    */
   public java.sql.ResultSet executeQuery() throws SQLException {
@@ -114,7 +114,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
           PSQLState.TOO_MANY_RESULTS);
     }
 
-    return (ResultSet) result.getResultSet();
+    return result.getResultSet();
   }
 
   public int executeUpdate(String p_sql) throws SQLException {
@@ -178,7 +178,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     if (preparedQuery != null) {
       // See #368. We need to prevent closing the same statement twice
       // Otherwise we might "release" a query that someone else is already using
-      // In other words, client does .close() as usual, however cleanup thread might fail to observe isClosed=true
+      // In other words, client does .close() as usual, however cleanup thread might fail to observe
+      // isClosed=true
       synchronized (preparedQuery) {
         if (!isClosed) {
           ((PgConnection) connection).releaseQuery(preparedQuery);
@@ -372,12 +373,12 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
 
     if (connection.haveMinimumCompatibleVersion(ServerVersion.v7_2)) {
-      //Version 7.2 supports the bytea datatype for byte arrays
+      // Version 7.2 supports the bytea datatype for byte arrays
       byte[] copy = new byte[x.length];
       System.arraycopy(x, 0, copy, 0, x.length);
       preparedParameters.setBytea(parameterIndex, copy, 0, x.length);
     } else {
-      //Version 7.1 and earlier support done as LargeObjects
+      // Version 7.1 and earlier support done as LargeObjects
       LargeObjectManager lom = connection.getLargeObjectAPI();
       long oid = lom.createLO();
       LargeObject lob = lom.open(oid);
@@ -412,12 +413,12 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
 
 
-    //Version 7.2 supports AsciiStream for all PG text types (char, varchar, text)
-    //As the spec/javadoc for this method indicate this is to be used for
-    //large String values (i.e. LONGVARCHAR)  PG doesn't have a separate
-    //long varchar datatype, but with toast all text datatypes are capable of
-    //handling very large values.  Thus the implementation ends up calling
-    //setString() since there is no current way to stream the value to the server
+    // Version 7.2 supports AsciiStream for all PG text types (char, varchar, text)
+    // As the spec/javadoc for this method indicate this is to be used for
+    // large String values (i.e. LONGVARCHAR) PG doesn't have a separate
+    // long varchar datatype, but with toast all text datatypes are capable of
+    // handling very large values. Thus the implementation ends up calling
+    // setString() since there is no current way to stream the value to the server
     try {
       InputStreamReader l_inStream = new InputStreamReader(x, encoding);
       char[] l_chars = new char[length];
@@ -450,8 +451,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     if (connection.haveMinimumCompatibleVersion(ServerVersion.v7_2)) {
       setCharacterStreamPost71(parameterIndex, x, length, "ASCII");
     } else {
-      //Version 7.1 supported only LargeObjects by treating everything
-      //as binary data
+      // Version 7.1 supported only LargeObjects by treating everything
+      // as binary data
       setBinaryStream(parameterIndex, x, length);
     }
   }
@@ -461,8 +462,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     if (connection.haveMinimumCompatibleVersion(ServerVersion.v7_2)) {
       setCharacterStreamPost71(parameterIndex, x, length, "UTF-8");
     } else {
-      //Version 7.1 supported only LargeObjects by treating everything
-      //as binary data
+      // Version 7.1 supported only LargeObjects by treating everything
+      // as binary data
       setBinaryStream(parameterIndex, x, length);
     }
   }
@@ -481,17 +482,17 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
 
     if (connection.haveMinimumCompatibleVersion(ServerVersion.v7_2)) {
-      //Version 7.2 supports BinaryStream for for the PG bytea type
-      //As the spec/javadoc for this method indicate this is to be used for
-      //large binary values (i.e. LONGVARBINARY) PG doesn't have a separate
-      //long binary datatype, but with toast the bytea datatype is capable of
-      //handling very large values.
+      // Version 7.2 supports BinaryStream for for the PG bytea type
+      // As the spec/javadoc for this method indicate this is to be used for
+      // large binary values (i.e. LONGVARBINARY) PG doesn't have a separate
+      // long binary datatype, but with toast the bytea datatype is capable of
+      // handling very large values.
 
       preparedParameters.setBytea(parameterIndex, x, length);
     } else {
-      //Version 7.1 only supported streams for LargeObjects
-      //but the jdbc spec indicates that streams should be
-      //available for LONGVARBINARY instead
+      // Version 7.1 only supported streams for LargeObjects
+      // but the jdbc spec indicates that streams should be
+      // available for LONGVARBINARY instead
       LargeObjectManager lom = connection.getLargeObjectAPI();
       long oid = lom.createLO();
       LargeObject lob = lom.open(oid);
@@ -567,8 +568,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       targetSqlType = Types.BIT;
     }
 
-    if (targetSqlType == Types.OTHER && in instanceof UUID && connection.haveMinimumServerVersion(
-        ServerVersion.v8_3)) {
+    if (targetSqlType == Types.OTHER && in instanceof UUID
+        && connection.haveMinimumServerVersion(ServerVersion.v8_3)) {
       setUuid(parameterIndex, (UUID) in);
       return;
     }
@@ -663,8 +664,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
           long oid = createBlob(parameterIndex, (InputStream) in, -1);
           setLong(parameterIndex, oid);
         } else {
-          throw new PSQLException(GT.tr("Cannot cast an instance of {0} to type {1}",
-              new Object[]{in.getClass().getName(), "Types.BLOB"}),
+          throw new PSQLException(
+              GT.tr("Cannot cast an instance of {0} to type {1}",
+                  new Object[]{in.getClass().getName(), "Types.BLOB"}),
               PSQLState.INVALID_PARAMETER_TYPE);
         }
         break;
@@ -672,8 +674,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         if (in instanceof Clob) {
           setClob(parameterIndex, (Clob) in);
         } else {
-          throw new PSQLException(GT.tr("Cannot cast an instance of {0} to type {1}",
-              new Object[]{in.getClass().getName(), "Types.CLOB"}),
+          throw new PSQLException(
+              GT.tr("Cannot cast an instance of {0} to type {1}",
+                  new Object[]{in.getClass().getName(), "Types.CLOB"}),
               PSQLState.INVALID_PARAMETER_TYPE);
         }
         break;
@@ -681,8 +684,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         if (in instanceof Array) {
           setArray(parameterIndex, (Array) in);
         } else {
-          throw new PSQLException(GT.tr("Cannot cast an instance of {0} to type {1}",
-              new Object[]{in.getClass().getName(), "Types.ARRAY"}),
+          throw new PSQLException(
+              GT.tr("Cannot cast an instance of {0} to type {1}",
+                  new Object[]{in.getClass().getName(), "Types.ARRAY"}),
               PSQLState.INVALID_PARAMETER_TYPE);
         }
         break;
@@ -1008,13 +1012,13 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
 
   /**
-   * Note if s is a String it should be escaped by the caller to avoid SQL injection attacks.  It is
+   * Note if s is a String it should be escaped by the caller to avoid SQL injection attacks. It is
    * not done here for efficiency reasons as most calls to this method do not require escaping as
    * the source of the string is known safe (i.e. {@code Integer.toString()})
    *
    * @param paramIndex parameter index
-   * @param s          value (the value should already be escaped)
-   * @param oid        type oid
+   * @param s value (the value should already be escaped)
+   * @param oid type oid
    * @throws SQLException if something goes wrong
    */
   protected void bindLiteral(int paramIndex, String s, int oid) throws SQLException {
@@ -1036,8 +1040,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
    * bindString with no escaping; the per-protocol ParameterList does escaping as needed.
    *
    * @param paramIndex parameter index
-   * @param s          value
-   * @param oid        type oid
+   * @param s value
+   * @param oid type oid
    * @throws SQLException if something goes wrong
    */
   private void bindString(int paramIndex, String s, int oid) throws SQLException {
@@ -1080,14 +1084,14 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     if (rs == null || ((PgResultSet) rs).isResultSetClosed()) {
       // OK, we haven't executed it yet, or it was closed
       // we've got to go to the backend
-      // for more info.  We send the full query, but just don't
+      // for more info. We send the full query, but just don't
       // execute it.
 
       int flags = QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_DESCRIBE_ONLY
           | QueryExecutor.QUERY_SUPPRESS_BEGIN;
       StatementResultHandler handler = new StatementResultHandler();
-      connection.getQueryExecutor()
-          .execute(preparedQuery.query, preparedParameters, handler, 0, 0, flags);
+      connection.getQueryExecutor().execute(preparedQuery.query, preparedParameters, handler, 0, 0,
+          flags);
       ResultWrapper wrapper = handler.getResults();
       if (wrapper != null) {
         rs = wrapper.getResultSet();
@@ -1204,12 +1208,12 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
 
     if (connection.haveMinimumCompatibleVersion(ServerVersion.v7_2)) {
-      //Version 7.2 supports CharacterStream for for the PG text types
-      //As the spec/javadoc for this method indicate this is to be used for
-      //large text values (i.e. LONGVARCHAR) PG doesn't have a separate
-      //long varchar datatype, but with toast all the text datatypes are capable of
-      //handling very large values.  Thus the implementation ends up calling
-      //setString() since there is no current way to stream the value to the server
+      // Version 7.2 supports CharacterStream for for the PG text types
+      // As the spec/javadoc for this method indicate this is to be used for
+      // large text values (i.e. LONGVARCHAR) PG doesn't have a separate
+      // long varchar datatype, but with toast all the text datatypes are capable of
+      // handling very large values. Thus the implementation ends up calling
+      // setString() since there is no current way to stream the value to the server
       char[] l_chars = new char[length];
       int l_charsRead = 0;
       try {
@@ -1231,9 +1235,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       }
       setString(i, new String(l_chars, 0, l_charsRead));
     } else {
-      //Version 7.1 only supported streams for LargeObjects
-      //but the jdbc spec indicates that streams should be
-      //available for LONGVARCHAR instead
+      // Version 7.1 only supported streams for LargeObjects
+      // but the jdbc spec indicates that streams should be
+      // available for LONGVARCHAR instead
       LargeObjectManager lom = connection.getLargeObjectAPI();
       long oid = lom.createLO();
       LargeObject lob = lom.open(oid);
@@ -1328,15 +1332,15 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     // as local midnight in the server's timezone:
 
     // template1=# select '2005-01-01+0100'::timestamptz;
-    //       timestamptz
+    // timestamptz
     // ------------------------
-    //  2005-01-01 02:00:00+03
+    // 2005-01-01 02:00:00+03
     // (1 row)
 
     // template1=# select '2005-01-01+0100'::date::timestamptz;
-    //       timestamptz
+    // timestamptz
     // ------------------------
-    //  2005-01-01 00:00:00+03
+    // 2005-01-01 00:00:00+03
     // (1 row)
 
     bindString(i, connection.getTimestampUtils().toString(cal, d), Oid.UNSPECIFIED);
@@ -1380,21 +1384,21 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     // This is because you get this in a +1300 timezone:
     //
     // template1=# select '2005-01-01 15:00:00 +1000'::timestamptz;
-    //       timestamptz
+    // timestamptz
     // ------------------------
-    //  2005-01-01 18:00:00+13
+    // 2005-01-01 18:00:00+13
     // (1 row)
 
     // template1=# select '2005-01-01 15:00:00 +1000'::timestamp;
-    //       timestamp
+    // timestamp
     // ---------------------
-    //  2005-01-01 15:00:00
+    // 2005-01-01 15:00:00
     // (1 row)
 
     // template1=# select '2005-01-01 15:00:00 +1000'::timestamptz::timestamp;
-    //       timestamp
+    // timestamp
     // ---------------------
-    //  2005-01-01 18:00:00
+    // 2005-01-01 18:00:00
     // (1 row)
 
     // So we want to avoid doing a timestamptz -> timestamp conversion, as that
@@ -1565,8 +1569,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     int flags = QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_DESCRIBE_ONLY
         | QueryExecutor.QUERY_SUPPRESS_BEGIN;
     StatementResultHandler handler = new StatementResultHandler();
-    connection.getQueryExecutor()
-        .execute(preparedQuery.query, preparedParameters, handler, 0, 0, flags);
+    connection.getQueryExecutor().execute(preparedQuery.query, preparedParameters, handler, 0, 0,
+        flags);
 
     int oids[] = preparedParameters.getTypeOIDs();
     if (oids != null) {

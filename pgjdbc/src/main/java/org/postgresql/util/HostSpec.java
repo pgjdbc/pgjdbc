@@ -34,8 +34,8 @@ public class HostSpec {
 
   @Override
   public boolean equals(Object obj) {
-    return obj instanceof HostSpec && port == ((HostSpec) obj).port && host.equals(
-        ((HostSpec) obj).host);
+    return obj instanceof HostSpec && port == ((HostSpec) obj).port
+        && host.equals(((HostSpec) obj).host);
   }
 
   @Override

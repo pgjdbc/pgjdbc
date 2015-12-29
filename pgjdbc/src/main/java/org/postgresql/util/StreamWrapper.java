@@ -67,11 +67,11 @@ public class StreamWrapper {
         this.length = rawData.length + diskLength;
         this.rawData = null;
         this.stream = new FileInputStream(tempFile) {
-          /* Usually, closing stream should be done by pgjdbc clients.
-           * Here it's an internally managed stream so we need to auto-close
-           * it and be sure to delete the temporary file when doing so.
-           * Auto-closing will be done when the first occur: reaching EOF or
-           * Garbage Collection
+          /*
+           * Usually, closing stream should be done by pgjdbc clients. Here it's an internally
+           * managed stream so we need to auto-close it and be sure to delete the temporary file
+           * when doing so. Auto-closing will be done when the first occur: reaching EOF or Garbage
+           * Collection
            */
           private boolean _closed = false;
           private int _position = 0;
@@ -117,7 +117,8 @@ public class StreamWrapper {
           }
 
           protected void finalize() throws IOException {
-            // forcibly close it because super.finalize() may keep the FD open, which may prevent file deletion
+            // forcibly close it because super.finalize() may keep the FD open, which may prevent
+            // file deletion
             close();
             super.finalize();
           }

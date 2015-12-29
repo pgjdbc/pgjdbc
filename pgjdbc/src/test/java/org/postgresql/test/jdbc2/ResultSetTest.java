@@ -50,7 +50,7 @@ public class ResultSetTest extends TestCase {
 
     TestUtil.createTable(con, "testbool", "a boolean");
 
-    //TestUtil.createTable(con, "testbit", "a bit");
+    // TestUtil.createTable(con, "testbit", "a bit");
 
     TestUtil.createTable(con, "testboolstring", "a varchar(30)");
 
@@ -61,8 +61,7 @@ public class ResultSetTest extends TestCase {
     stmt.executeUpdate("INSERT INTO testboolstring VALUES('1.0')");
     stmt.executeUpdate("INSERT INTO testboolstring VALUES('0.0')");
     stmt.executeUpdate("INSERT INTO testboolstring VALUES('TRUE')");
-    stmt.executeUpdate(
-        "INSERT INTO testboolstring VALUES('this is not true')");
+    stmt.executeUpdate("INSERT INTO testboolstring VALUES('this is not true')");
 
     TestUtil.createTable(con, "testnumeric", "a numeric");
     stmt.executeUpdate("INSERT INTO testnumeric VALUES('1.0')");
@@ -106,7 +105,7 @@ public class ResultSetTest extends TestCase {
     TestUtil.dropTable(con, "teststring");
     TestUtil.dropTable(con, "testint");
     TestUtil.dropTable(con, "testbool");
-    //TestUtil.dropTable(con, "testbit");
+    // TestUtil.dropTable(con, "testbit");
     TestUtil.dropTable(con, "testboolstring");
     TestUtil.dropTable(con, "testnumeric");
     TestUtil.dropTable(con, "testpgobject");
@@ -167,15 +166,15 @@ public class ResultSetTest extends TestCase {
 
     ResultSet rs = stmt.executeQuery("select * from testint");
 
-    //max should not apply to the following since per the spec
-    //it should apply only to binary and char/varchar columns
+    // max should not apply to the following since per the spec
+    // it should apply only to binary and char/varchar columns
     rs.next();
     assertEquals("12345", rs.getString(1));
     // getBytes returns 5 bytes for txt transfer, 4 for bin transfer
     assertTrue(rs.getBytes(1).length >= 4);
 
-    //max should apply to the following since the column is
-    //a varchar column
+    // max should apply to the following since the column is
+    // a varchar column
     rs = stmt.executeQuery("select * from teststring");
     rs.next();
     assertEquals("12", rs.getString(1));
@@ -208,31 +207,22 @@ public class ResultSetTest extends TestCase {
       assertEquals(true, rs.getBoolean(1));
     }
 
-        /*
-        pstmt = con.prepareStatement("insert into testbit values (?)");
-
-                      pstmt.setObject(1, new Float(0), java.sql.Types.BIT);
-                      pstmt.executeUpdate();
-
-                      pstmt.setObject(1, new Float(1), java.sql.Types.BIT);
-                      pstmt.executeUpdate();
-
-                      pstmt.setObject(1, "false", java.sql.Types.BIT);
-                      pstmt.executeUpdate();
-
-                      pstmt.setObject(1, "true", java.sql.Types.BIT);
-                      pstmt.executeUpdate();
-
-        rs = con.createStatement().executeQuery("select * from testbit");
-
-                      for (int i = 0;i<2; i++)
-                      {
-                assertTrue(rs.next());
-                       assertEquals(false, rs.getBoolean(1));
-                              assertTrue(rs.next());
-                              assertEquals(true, rs.getBoolean(1));
-                      }
-        */
+    /*
+     * pstmt = con.prepareStatement("insert into testbit values (?)");
+     *
+     * pstmt.setObject(1, new Float(0), java.sql.Types.BIT); pstmt.executeUpdate();
+     *
+     * pstmt.setObject(1, new Float(1), java.sql.Types.BIT); pstmt.executeUpdate();
+     *
+     * pstmt.setObject(1, "false", java.sql.Types.BIT); pstmt.executeUpdate();
+     *
+     * pstmt.setObject(1, "true", java.sql.Types.BIT); pstmt.executeUpdate();
+     *
+     * rs = con.createStatement().executeQuery("select * from testbit");
+     *
+     * for (int i = 0;i<2; i++) { assertTrue(rs.next()); assertEquals(false, rs.getBoolean(1));
+     * assertTrue(rs.next()); assertEquals(true, rs.getBoolean(1)); }
+     */
 
     rs = con.createStatement().executeQuery("select * from testboolstring");
 
@@ -250,8 +240,7 @@ public class ResultSetTest extends TestCase {
   }
 
   public void testgetByte() throws SQLException {
-    ResultSet rs = con.createStatement().executeQuery(
-        "select * from testnumeric");
+    ResultSet rs = con.createStatement().executeQuery("select * from testnumeric");
 
     assertTrue(rs.next());
     assertEquals(1, rs.getByte(1));
@@ -279,8 +268,7 @@ public class ResultSetTest extends TestCase {
   }
 
   public void testgetShort() throws SQLException {
-    ResultSet rs = con.createStatement().executeQuery(
-        "select * from testnumeric");
+    ResultSet rs = con.createStatement().executeQuery("select * from testnumeric");
 
     assertTrue(rs.next());
     assertEquals(1, rs.getShort(1));
@@ -308,8 +296,7 @@ public class ResultSetTest extends TestCase {
   }
 
   public void testgetInt() throws SQLException {
-    ResultSet rs = con.createStatement().executeQuery(
-        "select * from testnumeric");
+    ResultSet rs = con.createStatement().executeQuery("select * from testnumeric");
 
     assertTrue(rs.next());
     assertEquals(1, rs.getInt(1));
@@ -355,8 +342,7 @@ public class ResultSetTest extends TestCase {
   }
 
   public void testgetLong() throws SQLException {
-    ResultSet rs = con.createStatement().executeQuery(
-        "select * from testnumeric");
+    ResultSet rs = con.createStatement().executeQuery("select * from testnumeric");
 
     assertTrue(rs.next());
     assertEquals(1, rs.getLong(1));
@@ -386,10 +372,10 @@ public class ResultSetTest extends TestCase {
     assertEquals(-99999, rs.getLong(1));
 
     assertTrue(rs.next());
-    assertEquals(((long) Integer.MAX_VALUE), rs.getLong(1));
+    assertEquals((Integer.MAX_VALUE), rs.getLong(1));
 
     assertTrue(rs.next());
-    assertEquals(((long) Integer.MIN_VALUE), rs.getLong(1));
+    assertEquals((Integer.MIN_VALUE), rs.getLong(1));
 
     assertTrue(rs.next());
     assertEquals(((long) Integer.MAX_VALUE) + 1, rs.getLong(1));
@@ -617,7 +603,7 @@ public class ResultSetTest extends TestCase {
     ResultSet rs = stmt.executeQuery("SELECT id FROM testrs");
     rs.close();
 
-    rs.close();  // Closing twice is allowed.
+    rs.close(); // Closing twice is allowed.
     try {
       rs.getInt(1);
       fail("Expected SQLException");
@@ -681,8 +667,7 @@ public class ResultSetTest extends TestCase {
   }
 
   /*
-   * The JDBC spec says when you have duplicate column names,
-   * the first one should be returned.
+   * The JDBC spec says when you have duplicate column names, the first one should be returned.
    */
   public void testDuplicateColumnNameOrder() throws SQLException {
     Statement stmt = con.createStatement();
@@ -709,8 +694,8 @@ public class ResultSetTest extends TestCase {
   }
 
   public void testUpdateWithPGobject() throws SQLException {
-    Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
-        ResultSet.CONCUR_UPDATABLE);
+    Statement stmt =
+        con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
 
     ResultSet rs = stmt.executeQuery("select * from testpgobject where id = 1");
     assertTrue(rs.next());

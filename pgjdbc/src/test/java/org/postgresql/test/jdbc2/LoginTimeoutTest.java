@@ -159,5 +159,3 @@ public class LoginTimeoutTest extends TestCase {
   }
 }
 
-
-

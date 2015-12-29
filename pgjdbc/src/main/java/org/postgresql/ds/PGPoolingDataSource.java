@@ -19,6 +19,7 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
 import javax.naming.NamingException;
 import javax.naming.Reference;
 import javax.naming.StringRefAddr;
@@ -28,32 +29,36 @@ import javax.sql.DataSource;
 import javax.sql.PooledConnection;
 
 /**
- * DataSource which uses connection pooling.  <span style="color: red;">Don't use this if your
+ * DataSource which uses connection pooling. <span style="color: red;">Don't use this if your
  * server/middleware vendor provides a connection pooling implementation which interfaces with the
  * PostgreSQL ConnectionPoolDataSource implementation!</span> This class is provided as a
  * convenience, but the JDBC Driver is really not supposed to handle the connection pooling
- * algorithm.  Instead, the server or middleware product is supposed to handle the mechanics of
+ * algorithm. Instead, the server or middleware product is supposed to handle the mechanics of
  * connection pooling, and use the PostgreSQL implementation of ConnectionPoolDataSource to provide
  * the connections to pool.
  *
- * <p>If you're sure you want to use this, then you must set the properties dataSourceName,
+ * <p>
+ * If you're sure you want to use this, then you must set the properties dataSourceName,
  * databaseName, user, and password (if required for the user). The settings for serverName,
- * portNumber, initialConnections, and maxConnections are optional.  Note that <i>only connections
- * for the default user will be pooled!</i>  Connections for other users will be normal non-pooled
- * connections, and will not count against the maximum pool size limit.</p>
+ * portNumber, initialConnections, and maxConnections are optional. Note that <i>only connections
+ * for the default user will be pooled!</i> Connections for other users will be normal non-pooled
+ * connections, and will not count against the maximum pool size limit.
+ * </p>
  *
- * <p>If you put this DataSource in JNDI, and access it from different JVMs (or otherwise load this
+ * <p>
+ * If you put this DataSource in JNDI, and access it from different JVMs (or otherwise load this
  * class from different ClassLoaders), you'll end up with one pool per ClassLoader or VM. This is
  * another area where a server-specific implementation may provide advanced features, such as using
- * a single pool across all VMs in a cluster.</p>
+ * a single pool across all VMs in a cluster.
+ * </p>
  *
- * <p>This implementation supports JDK 1.5 and higher.</p>
+ * <p>
+ * This implementation supports JDK 1.5 and higher.
+ * </p>
  *
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  */
-public class PGPoolingDataSource
-    extends BaseDataSource
-    implements DataSource {
+public class PGPoolingDataSource extends BaseDataSource implements DataSource {
   protected static ConcurrentMap<String, PGPoolingDataSource> dataSources =
       new ConcurrentHashMap<String, PGPoolingDataSource>();
 
@@ -62,7 +67,7 @@ public class PGPoolingDataSource
   }
 
   // Additional Data Source properties
-  protected String dataSourceName;  // Must be protected for subclasses to sync updates to it
+  protected String dataSourceName; // Must be protected for subclasses to sync updates to it
   private int initialConnections = 0;
   private int maxConnections = 0;
   // State variables
@@ -83,7 +88,7 @@ public class PGPoolingDataSource
    * Ensures the DataSource properties are not changed after the DataSource has been used.
    *
    * @throws IllegalStateException The Server Name cannot be changed after the DataSource has been
-   *                               used.
+   *         used.
    */
   public void setServerName(String serverName) {
     if (initialized) {
@@ -97,7 +102,7 @@ public class PGPoolingDataSource
    * Ensures the DataSource properties are not changed after the DataSource has been used.
    *
    * @throws IllegalStateException The Database Name cannot be changed after the DataSource has been
-   *                               used.
+   *         used.
    */
   public void setDatabaseName(String databaseName) {
     if (initialized) {
@@ -124,7 +129,7 @@ public class PGPoolingDataSource
    * Ensures the DataSource properties are not changed after the DataSource has been used.
    *
    * @throws IllegalStateException The Password cannot be changed after the DataSource has been
-   *                               used.
+   *         used.
    */
   public void setPassword(String password) {
     if (initialized) {
@@ -138,7 +143,7 @@ public class PGPoolingDataSource
    * Ensures the DataSource properties are not changed after the DataSource has been used.
    *
    * @throws IllegalStateException The Port Number cannot be changed after the DataSource has been
-   *                               used.
+   *         used.
    */
   public void setPortNumber(int portNumber) {
     if (initialized) {
@@ -166,7 +171,7 @@ public class PGPoolingDataSource
    *
    * @param initialConnections number of initial connections
    * @throws IllegalStateException The Initial Connections cannot be changed after the DataSource
-   *                               has been used.
+   *         has been used.
    */
   public void setInitialConnections(int initialConnections) {
     if (initialized) {
@@ -177,10 +182,10 @@ public class PGPoolingDataSource
   }
 
   /**
-   * Gets the maximum number of connections that the pool will allow.  If a request comes in and
-   * this many connections are in use, the request will block until a connection is available.  Note
-   * that connections for a user other than the default user will not be pooled and don't count
-   * against this limit.
+   * Gets the maximum number of connections that the pool will allow. If a request comes in and this
+   * many connections are in use, the request will block until a connection is available. Note that
+   * connections for a user other than the default user will not be pooled and don't count against
+   * this limit.
    *
    * @return The maximum number of pooled connection allowed, or 0 for no maximum.
    */
@@ -189,14 +194,14 @@ public class PGPoolingDataSource
   }
 
   /**
-   * Sets the maximum number of connections that the pool will allow.  If a request comes in and
-   * this many connections are in use, the request will block until a connection is available.  Note
-   * that connections for a user other than the default user will not be pooled and don't count
-   * against this limit.
+   * Sets the maximum number of connections that the pool will allow. If a request comes in and this
+   * many connections are in use, the request will block until a connection is available. Note that
+   * connections for a user other than the default user will not be pooled and don't count against
+   * this limit.
    *
    * @param maxConnections The maximum number of pooled connection to allow, or 0 for no maximum.
    * @throws IllegalStateException The Maximum Connections cannot be changed after the DataSource
-   *                               has been used.
+   *         has been used.
    */
   public void setMaxConnections(int maxConnections) {
     if (initialized) {
@@ -207,7 +212,7 @@ public class PGPoolingDataSource
   }
 
   /**
-   * Gets the name of this DataSource.  This uniquely identifies the DataSource. You cannot use more
+   * Gets the name of this DataSource. This uniquely identifies the DataSource. You cannot use more
    * than one DataSource in the same VM with the same name.
    *
    * @return name of this DataSource
@@ -217,22 +222,22 @@ public class PGPoolingDataSource
   }
 
   /**
-   * Sets the name of this DataSource.  This is required, and uniquely identifies the DataSource.
-   * You cannot create or use more than one DataSource in the same VM with the same name.
+   * Sets the name of this DataSource. This is required, and uniquely identifies the DataSource. You
+   * cannot create or use more than one DataSource in the same VM with the same name.
    *
    * @param dataSourceName datasource name
-   * @throws IllegalStateException    The Data Source Name cannot be changed after the DataSource
-   *                                  has been used.
+   * @throws IllegalStateException The Data Source Name cannot be changed after the DataSource has
+   *         been used.
    * @throws IllegalArgumentException Another PoolingDataSource with the same dataSourceName already
-   *                                  exists.
+   *         exists.
    */
   public void setDataSourceName(String dataSourceName) {
     if (initialized) {
       throw new IllegalStateException(
           "Cannot set Data Source properties after DataSource has been used");
     }
-    if (this.dataSourceName != null && dataSourceName != null && dataSourceName.equals(
-        this.dataSourceName)) {
+    if (this.dataSourceName != null && dataSourceName != null
+        && dataSourceName.equals(this.dataSourceName)) {
       return;
     }
     PGPoolingDataSource previous = dataSources.putIfAbsent(dataSourceName, this);
@@ -247,13 +252,13 @@ public class PGPoolingDataSource
   }
 
   /**
-   * Initializes this DataSource.  If the initialConnections is greater than zero, that number of
+   * Initializes this DataSource. If the initialConnections is greater than zero, that number of
    * connections will be created. After this method is called, the DataSource properties cannot be
-   * changed.  If you do not call this explicitly, it will be called the first time you get a
+   * changed. If you do not call this explicitly, it will be called the first time you get a
    * connection from the DataSource.
    *
    * @throws SQLException Occurs when the initialConnections is greater than zero, but the
-   *                      DataSource is not able to create enough physical connections.
+   *         DataSource is not able to create enough physical connections.
    */
   public void initialize() throws SQLException {
     synchronized (lock) {
@@ -261,8 +266,8 @@ public class PGPoolingDataSource
       try {
         source.initializeFrom(this);
       } catch (Exception e) {
-        throw new PSQLException(GT.tr("Failed to setup DataSource."),
-            PSQLState.UNEXPECTED_ERROR, e);
+        throw new PSQLException(GT.tr("Failed to setup DataSource."), PSQLState.UNEXPECTED_ERROR,
+            e);
       }
 
       while (available.size() < initialConnections) {
@@ -292,12 +297,11 @@ public class PGPoolingDataSource
    *
    * @return A pooled connection.
    * @throws SQLException Occurs when no pooled connection is available, and a new physical
-   *                      connection cannot be created.
+   *         connection cannot be created.
    */
   public Connection getConnection(String user, String password) throws SQLException {
     // If this is for the default user/password, use a pooled connection
-    if (user == null
-        || (user.equals(getUser()) && ((password == null && getPassword() == null)
+    if (user == null || (user.equals(getUser()) && ((password == null && getPassword() == null)
         || (password != null && password.equals(getPassword()))))) {
       return getConnection();
     }
@@ -313,7 +317,7 @@ public class PGPoolingDataSource
    *
    * @return A pooled connection.
    * @throws SQLException Occurs when no pooled connection is available, and a new physical
-   *                      connection cannot be created.
+   *         connection cannot be created.
    */
   public Connection getConnection() throws SQLException {
     if (!initialized) {
@@ -357,8 +361,8 @@ public class PGPoolingDataSource
   }
 
   /**
-   * Gets a connection from the pool.  Will get an available one if present, or create a new one if
-   * under the max limit.  Will block if all used and a new one would exceed the max.
+   * Gets a connection from the pool. Will get an available one if present, or create a new one if
+   * under the max limit. Will block if all used and a new one would exceed the max.
    */
   private Connection getPooledConnection() throws SQLException {
     PooledConnection pc = null;
@@ -413,8 +417,8 @@ public class PGPoolingDataSource
     }
 
     /**
-     * This is only called for fatal errors, where the physical connection is
-     * useless afterward and should be removed from the pool.
+     * This is only called for fatal errors, where the physical connection is useless afterward and
+     * should be removed from the pool.
      */
     public void connectionErrorOccurred(ConnectionEvent event) {
       ((PooledConnection) event.getSource()).removeConnectionEventListener(this);

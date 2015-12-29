@@ -29,7 +29,9 @@ public class Jdbc3CallableStatementTest extends TestCase {
 
   Connection con;
 
-  /* (non-Javadoc)
+  /*
+   * (non-Javadoc)
+   *
    * @see junit.framework.TestCase#setUp()
    */
   protected void setUp() throws Exception {
@@ -80,12 +82,15 @@ public class Jdbc3CallableStatementTest extends TestCase {
         + "pc := pa + 1;"
         + "end;'"
         + "LANGUAGE plpgsql VOLATILE;"
+
     );
 
 
   }
 
-  /* (non-Javadoc)
+  /*
+   * (non-Javadoc)
+   *
    * @see junit.framework.TestCase#tearDown()
    */
   protected void tearDown() throws Exception {
@@ -848,8 +853,8 @@ public class Jdbc3CallableStatementTest extends TestCase {
       cstmt.registerOutParameter(2, java.sql.Types.BIGINT);
       cstmt.registerOutParameter(3, java.sql.Types.BIGINT);
       cstmt.executeUpdate();
-      assertTrue(cstmt.getLong(1) == 9223372036854775807l);
-      assertTrue(cstmt.getLong(2) == -9223372036854775808l);
+      assertTrue(cstmt.getLong(1) == 9223372036854775807L);
+      assertTrue(cstmt.getLong(2) == -9223372036854775808L);
       cstmt.getLong(3);
       assertTrue(cstmt.wasNull());
     } catch (Exception ex) {

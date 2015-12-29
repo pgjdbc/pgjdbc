@@ -38,8 +38,8 @@ public interface TypeInfo {
   public int getSQLType(String pgTypeName) throws SQLException;
 
   /**
-   * Look up the oid for a given postgresql type name.  This is the inverse of {@link
-   * #getPGType(int)}.
+   * Look up the oid for a given postgresql type name. This is the inverse of
+   * {@link #getPGType(int)}.
    *
    * @param pgTypeName the server type name to look up
    * @return the type's OID, or 0 if unknown
@@ -48,8 +48,8 @@ public interface TypeInfo {
   public int getPGType(String pgTypeName) throws SQLException;
 
   /**
-   * Look up the postgresql type name for a given oid.  This is the inverse of {@link
-   * #getPGType(String)}.
+   * Look up the postgresql type name for a given oid. This is the inverse of
+   * {@link #getPGType(String)}.
    *
    * @param oid the type's OID
    * @return the server type name for that OID or null if unknown

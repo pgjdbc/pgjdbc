@@ -35,8 +35,7 @@ public class BinaryStreamTest extends TestCase {
     TestUtil.closeDB(_conn);
   }
 
-  private void insertStreamKownLength(byte[] data)
-      throws Exception {
+  private void insertStreamKownLength(byte[] data) throws Exception {
     PreparedStatement updatePS = _conn.prepareStatement(TestUtil.insertSQL("images", "img", "?"));
     try {
       updatePS.setBinaryStream(1, new ByteArrayInputStream(data), data.length);
@@ -46,8 +45,7 @@ public class BinaryStreamTest extends TestCase {
     }
   }
 
-  private void insertStreamUnkownLength(byte[] data)
-      throws Exception {
+  private void insertStreamUnkownLength(byte[] data) throws Exception {
     PreparedStatement updatePS = _conn.prepareStatement(TestUtil.insertSQL("images", "img", "?"));
     try {
       updatePS.setBinaryStream(1, new ByteArrayInputStream(data));
@@ -57,8 +55,7 @@ public class BinaryStreamTest extends TestCase {
     }
   }
 
-  private void validateContent(byte[] data)
-      throws Exception {
+  private void validateContent(byte[] data) throws Exception {
     PreparedStatement selectPS = _conn.prepareStatement(TestUtil.selectSQL("images", "img"));
     try {
       ResultSet rs = selectPS.executeQuery();

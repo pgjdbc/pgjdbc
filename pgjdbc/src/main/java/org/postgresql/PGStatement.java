@@ -58,11 +58,15 @@ public interface PGStatement {
   public boolean isUseServerPrepare();
 
   /**
-   * Sets the reuse threshold for using server-prepared statements. <p> If <code>threshold</code> is
-   * a non-zero value N, the Nth and subsequent reuses of a PreparedStatement will use server-side
-   * prepare. <p> If <code>threshold</code> is zero, server-side prepare will not be used. <p> The
-   * reuse threshold is only used by PreparedStatement and CallableStatement objects; it is ignored
-   * for plain Statements.
+   * Sets the reuse threshold for using server-prepared statements.
+   * <p>
+   * If <code>threshold</code> is a non-zero value N, the Nth and subsequent reuses of a
+   * PreparedStatement will use server-side prepare.
+   * <p>
+   * If <code>threshold</code> is zero, server-side prepare will not be used.
+   * <p>
+   * The reuse threshold is only used by PreparedStatement and CallableStatement objects; it is
+   * ignored for plain Statements.
    *
    * @param threshold the new threshold for this statement
    * @throws SQLException if an exception occurs while changing the threshold

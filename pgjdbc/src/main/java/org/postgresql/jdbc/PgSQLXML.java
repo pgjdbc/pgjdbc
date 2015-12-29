@@ -28,6 +28,7 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.sql.SQLException;
 import java.sql.SQLXML;
+
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.stream.XMLInputFactory;
@@ -54,9 +55,9 @@ import javax.xml.transform.stream.StreamSource;
 public class PgSQLXML implements SQLXML {
 
   private final BaseConnection _conn;
-  private String _data;           // The actual data contained.
-  private boolean _initialized;   // Has someone assigned the data for this object?
-  private boolean _active;        // Is anyone in the process of loading data into us?
+  private String _data; // The actual data contained.
+  private boolean _initialized; // Has someone assigned the data for this object?
+  private boolean _active; // Is anyone in the process of loading data into us?
   private boolean _freed;
 
   private ByteArrayOutputStream _byteArrayOutputStream;
@@ -95,7 +96,7 @@ public class PgSQLXML implements SQLXML {
     try {
       return new ByteArrayInputStream(_conn.getEncoding().encode(_data));
     } catch (IOException ioe) {
-      // This should be a can't happen exception.  We just
+      // This should be a can't happen exception. We just
       // decoded this data, so it would be surprising that
       // we couldn't encode it.
       // For this reason don't make it translatable.
@@ -115,7 +116,7 @@ public class PgSQLXML implements SQLXML {
   }
 
   // We must implement this unsafely because that's what the
-  // interface requires.  Because it says we're returning T
+  // interface requires. Because it says we're returning T
   // which is unknown, none of the return values can satisfy it
   // as Java isn't going to understand the if statements that
   // ensure they are the same.
@@ -231,8 +232,9 @@ public class PgSQLXML implements SQLXML {
 
   private void ensureInitialized() throws SQLException {
     if (!_initialized) {
-      throw new PSQLException(GT.tr(
-          "This SQLXML object has not been initialized, so you cannot retrieve data from it."),
+      throw new PSQLException(
+          GT.tr(
+              "This SQLXML object has not been initialized, so you cannot retrieve data from it."),
           PSQLState.OBJECT_NOT_IN_STATE);
     }
 
@@ -283,8 +285,9 @@ public class PgSQLXML implements SQLXML {
 
   private void initialize() throws SQLException {
     if (_initialized) {
-      throw new PSQLException(GT.tr(
-          "This SQLXML object has already been initialized, so you cannot manipulate it further."),
+      throw new PSQLException(
+          GT.tr(
+              "This SQLXML object has already been initialized, so you cannot manipulate it further."),
           PSQLState.OBJECT_NOT_IN_STATE);
     }
     _initialized = true;

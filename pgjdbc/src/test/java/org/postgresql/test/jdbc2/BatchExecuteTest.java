@@ -17,8 +17,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-/* TODO tests that can be added to this test case
- * - SQLExceptions chained to a BatchUpdateException
+/*
+ * TODO tests that can be added to this test case - SQLExceptions chained to a BatchUpdateException
  * - test PreparedStatement as thoroughly as Statement
  */
 
@@ -33,6 +33,7 @@ public class BatchExecuteTest extends BaseTest {
 
   // Set up the fixture for this testcase: a connection to a database with
   // a table for this test.
+  @Override
   protected void setUp() throws Exception {
     super.setUp();
     Statement stmt = con.createStatement();
@@ -52,6 +53,7 @@ public class BatchExecuteTest extends BaseTest {
   }
 
   // Tear down the fixture for this test case.
+  @Override
   protected void tearDown() throws SQLException {
     con.setAutoCommit(true);
 
@@ -75,8 +77,7 @@ public class BatchExecuteTest extends BaseTest {
   private void assertCol1HasValue(int expected) throws Exception {
     Statement getCol1 = con.createStatement();
 
-    ResultSet rs =
-        getCol1.executeQuery("SELECT col1 FROM testbatch WHERE pk = 1");
+    ResultSet rs = getCol1.executeQuery("SELECT col1 FROM testbatch WHERE pk = 1");
     assertTrue(rs.next());
 
     int actual = rs.getInt("col1");
@@ -135,8 +136,7 @@ public class BatchExecuteTest extends BaseTest {
       assertEquals(1, updateCounts.length);
       assertEquals(1, updateCounts[0]);
     } catch (SQLException e) {
-      fail("Should throw a BatchUpdateException instead of "
-          + "a generic SQLException: " + e);
+      fail("Should throw a BatchUpdateException instead of " + "a generic SQLException: " + e);
     }
 
     stmt.close();
@@ -160,8 +160,8 @@ public class BatchExecuteTest extends BaseTest {
   }
 
   public void testPreparedStatement() throws Exception {
-    PreparedStatement pstmt = con.prepareStatement(
-        "UPDATE testbatch SET col1 = col1 + ? WHERE PK = ?");
+    PreparedStatement pstmt =
+        con.prepareStatement("UPDATE testbatch SET col1 = col1 + ? WHERE PK = ?");
 
     // Note that the first parameter changes for every statement in the
     // batch, whereas the second parameter remains constant.
@@ -181,7 +181,7 @@ public class BatchExecuteTest extends BaseTest {
     pstmt.executeBatch();
     assertCol1HasValue(7);
 
-    //now test to see that we can still use the statement after the execute
+    // now test to see that we can still use the statement after the execute
     pstmt.setInt(1, 3);
     pstmt.addBatch();
     assertCol1HasValue(7);
@@ -315,54 +315,47 @@ public class BatchExecuteTest extends BaseTest {
   }
 
   /*
-   * A user reported that a query that uses RETURNING (via getGeneratedKeys)
-   * in a batch, and a 'text' field value in a table is assigned NULL in the first
-   * execution of the batch then non-NULL afterwards using
-   * PreparedStatement.setObject(int, Object) (i.e. no Types param or setString call)
-   * the batch may fail with:
+   * A user reported that a query that uses RETURNING (via getGeneratedKeys) in a batch, and a
+   * 'text' field value in a table is assigned NULL in the first execution of the batch then
+   * non-NULL afterwards using PreparedStatement.setObject(int, Object) (i.e. no Types param or
+   * setString call) the batch may fail with:
    *
    * "Received resultset tuples, but no field structure for them"
    *
    * at org.postgresql.core.v3.QueryExecutorImpl.processResults
    *
-   * Prior to 245b388 it would instead fail with a NullPointerException
-   * in AbstractJdbc2ResultSet.checkColumnIndex
+   * Prior to 245b388 it would instead fail with a NullPointerException in
+   * AbstractJdbc2ResultSet.checkColumnIndex
    *
-   * The cause is complicated. The failure arises because the query gets
-   * re-planned mid-batch. This re-planning clears the cached information
-   * about field types. The field type information for parameters gets
-   * re-acquired later but the information for *returned* values does not.
+   * The cause is complicated. The failure arises because the query gets re-planned mid-batch. This
+   * re-planning clears the cached information about field types. The field type information for
+   * parameters gets re-acquired later but the information for *returned* values does not.
    *
-   * (The reason why the returned value types aren't recalculated is not
-   *  yet known.)
+   * (The reason why the returned value types aren't recalculated is not yet known.)
    *
    * The re-plan's cause is its self complicated.
    *
-   * The first bind of the parameter, which is null, gets the type oid 0
-   * (unknown/unspecified). Unless Types.VARCHAR is specified or setString
-   * is used, in which case the oid is set to 1043 (varchar).
+   * The first bind of the parameter, which is null, gets the type oid 0 (unknown/unspecified).
+   * Unless Types.VARCHAR is specified or setString is used, in which case the oid is set to 1043
+   * (varchar).
    *
-   * The second bind identifies the object class as String so it calls
-   * setString internally. This sets the type to 1043 (varchar).
+   * The second bind identifies the object class as String so it calls setString internally. This
+   * sets the type to 1043 (varchar).
    *
-   * The third and subsequent binds, whether null or non-null, will get type
-   * 1043, becaues there's logic to avoid overwriting a known parameter type
-   * with the unknown type oid. This is why the issue can only occur when
-   * null is the first entry.
+   * The third and subsequent binds, whether null or non-null, will get type 1043, becaues there's
+   * logic to avoid overwriting a known parameter type with the unknown type oid. This is why the
+   * issue can only occur when null is the first entry.
    *
-   * When executed the first time a describe is run. This reports the parameter
-   * oid to be 25 (text), because that's the type of the table column the param
-   * is being assigned to. That's why the cast to ?::varchar works - because it
-   * overrides the type for the parameter to 1043 (varchar).
+   * When executed the first time a describe is run. This reports the parameter oid to be 25 (text),
+   * because that's the type of the table column the param is being assigned to. That's why the cast
+   * to ?::varchar works - because it overrides the type for the parameter to 1043 (varchar).
    *
-   * The second execution sees that the bind parameter type is already known
-   * to PgJDBC as 1043 (varchar). PgJDBC doesn't see that text and varchar are
-   * the same - and, in fact, under some circumstances they aren't exactly the
-   * same. So it discards the planned query and re-plans.
+   * The second execution sees that the bind parameter type is already known to PgJDBC as 1043
+   * (varchar). PgJDBC doesn't see that text and varchar are the same - and, in fact, under some
+   * circumstances they aren't exactly the same. So it discards the planned query and re-plans.
    *
-   * This issue can be reproduced with any pair of implicitly or assignment
-   * castable types; for example, using Integer in JDBC and bigint in the Pg
-   * table will do it.
+   * This issue can be reproduced with any pair of implicitly or assignment castable types; for
+   * example, using Integer in JDBC and bigint in the Pg table will do it.
    */
   public void testBatchReturningMixedNulls() throws SQLException {
     String[] testData = new String[]{null, "test", null, null, null};
@@ -377,20 +370,19 @@ public class BatchExecuteTest extends BaseTest {
 
       // If the parameter is given as ?::varchar then this issue
       // does not arise.
-      PreparedStatement st = con.prepareStatement(
-          "INSERT INTO mixednulltest (value) VALUES (?)",
-          new String[]{"key"});
+      PreparedStatement st =
+          con.prepareStatement("INSERT INTO mixednulltest (value) VALUES (?)", new String[]{"key"});
 
       for (String val : testData) {
         /*
-         * This is the crucial bit. It's set to null first time around,
-				 * so the RETURNING clause's type oid is undefined.
-				 *
-				 * The second time around the value is assigned so Pg reports
-				 * the type oid is TEXT, like the table. But we expected VARCHAR.
-				 *
-				 * This causes PgJDBC to replan the query, and breaks other things.
-				 */
+         * This is the crucial bit. It's set to null first time around, so the RETURNING clause's
+         * type oid is undefined.
+         *
+         * The second time around the value is assigned so Pg reports the type oid is TEXT, like the
+         * table. But we expected VARCHAR.
+         *
+         * This causes PgJDBC to replan the query, and breaks other things.
+         */
         st.setObject(1, val);
         st.addBatch();
       }
@@ -438,19 +430,19 @@ public class BatchExecuteTest extends BaseTest {
     } catch (BatchUpdateException e) {
       throw e.getNextException();
     }
-        /*
-    Key part is (see "before the fix"):
-         23:00:30.354 (1)  <=BE ParseComplete [S_2]
-         23:00:30.356 (1)  <=BE ParseComplete [S_2]
-    The problem is ParseRequest is reusing the same Query object and it updates StatementName in place.
-    This dodges ParseComplete message as previously QueryExecutor just picked statementName from Query object.
-    Eventually this causes closing of "new" statement instead of old S_1
-        23:00:30.356 (1)  FE=> CloseStatement(S_2)
+    /*
+Key part is (see "before the fix"):
+     23:00:30.354 (1)  <=BE ParseComplete [S_2]
+     23:00:30.356 (1)  <=BE ParseComplete [S_2]
+The problem is ParseRequest is reusing the same Query object and it updates StatementName in place.
+This dodges ParseComplete message as previously QueryExecutor just picked statementName from Query object.
+Eventually this causes closing of "new" statement instead of old S_1
+    23:00:30.356 (1)  FE=> CloseStatement(S_2)
 
-    The fix is to make ParseComplete a no-op, so as soon as the driver allocates a statement name, it registers
-     the name for cleanup.
+The fix is to make ParseComplete a no-op, so as soon as the driver allocates a statement name, it registers
+ the name for cleanup.
 
-    Trace before the fix:
+Trace before the fix:
 23:00:30.261 (1) PostgreSQL 9.4 JDBC4.1 (build 1206)
 23:00:30.266 (1) Trying to establish a protocol version 3 connection to localhost:5432
 23:00:30.280 (1) Receive Buffer Size is 408300
@@ -495,8 +487,8 @@ public class BatchExecuteTest extends BaseTest {
 23:00:30.332 (1)  <=BE BindComplete [unnamed]
 23:00:30.332 (1)  <=BE NoData
 23:00:30.334 (1)  <=BE ErrorMessage(ERROR: table "testbatch" does not exist
-  Location: File: tablecmds.c, Routine: DropErrorMsgNonExistent, Line: 727
-  Server SQLState: 42P01)
+Location: File: tablecmds.c, Routine: DropErrorMsgNonExistent, Line: 727
+Server SQLState: 42P01)
 23:00:30.335 (1)  <=BE ReadyForQuery(I)
 23:00:30.335 (1) simple execute, handler=org.postgresql.jdbc2.AbstractJdbc2Statement$StatementResultHandler@4b9af9a9, maxRows=0, fetchSize=0, flags=21
 23:00:30.336 (1)  FE=> Parse(stmt=null,query="CREATE TABLE testbatch (pk INTEGER, col1 INTEGER) ",oids={})
@@ -558,8 +550,8 @@ public class BatchExecuteTest extends BaseTest {
 23:00:30.348 (1)  <=BE BindComplete [unnamed]
 23:00:30.348 (1)  <=BE NoData
 23:00:30.348 (1)  <=BE NoticeResponse(WARNING: there is already a transaction in progress
-  Location: File: xact.c, Routine: BeginTransactionBlock, Line: 3279
-  Server SQLState: 25001)
+Location: File: xact.c, Routine: BeginTransactionBlock, Line: 3279
+Server SQLState: 25001)
 23:00:30.348 (1)  <=BE CommandStatus(BEGIN)
 23:00:30.348 (1)  <=BE ReadyForQuery(T)
 23:00:30.351 (1) batch execute 6 queries, handler=org.postgresql.jdbc2.AbstractJdbc2Statement$BatchResultHandler@5cb0d902, maxRows=0, fetchSize=0, flags=516
@@ -613,8 +605,8 @@ public class BatchExecuteTest extends BaseTest {
 23:00:30.357 (1)  FE=> Sync
 23:00:30.357 (1)  <=BE CloseComplete
 23:00:30.357 (1)  <=BE ErrorMessage(ERROR: prepared statement "S_2" does not exist
-  Location: File: prepare.c, Routine: FetchPreparedStatement, Line: 505
-  Server SQLState: 26000)
+Location: File: prepare.c, Routine: FetchPreparedStatement, Line: 505
+Server SQLState: 26000)
 23:00:30.358 (1)  <=BE ReadyForQuery(E)
 23:00:30.358 (1) simple execute, handler=org.postgresql.jdbc2.AbstractJdbc2Connection$TransactionCommandHandler@5f4da5c3, maxRows=0, fetchSize=0, flags=22
 23:00:30.358 (1)  FE=> Parse(stmt=S_3,query="COMMIT",oids={})
@@ -639,18 +631,18 @@ public class BatchExecuteTest extends BaseTest {
 23:00:30.361 (1)  FE=> Terminate
 
 org.postgresql.util.PSQLException: ERROR: prepared statement "S_2" does not exist
-  Location: File: prepare.c, Routine: FetchPreparedStatement, Line: 505
-  Server SQLState: 26000
+Location: File: prepare.c, Routine: FetchPreparedStatement, Line: 505
+Server SQLState: 26000
 
-	at org.postgresql.core.v3.QueryExecutorImpl.receiveErrorResponse(QueryExecutorImpl.java:2183)
-	at org.postgresql.core.v3.QueryExecutorImpl.processResults(QueryExecutorImpl.java:1912)
-	at org.postgresql.core.v3.QueryExecutorImpl.execute(QueryExecutorImpl.java:338)
-	at org.postgresql.jdbc2.AbstractJdbc2Statement.executeBatch(AbstractJdbc2Statement.java:2959)
-	at org.postgresql.test.jdbc2.BatchExecuteTest.testBatchWithAlternatingTypes(BatchExecuteTest.java:457)
-         */
+at org.postgresql.core.v3.QueryExecutorImpl.receiveErrorResponse(QueryExecutorImpl.java:2183)
+at org.postgresql.core.v3.QueryExecutorImpl.processResults(QueryExecutorImpl.java:1912)
+at org.postgresql.core.v3.QueryExecutorImpl.execute(QueryExecutorImpl.java:338)
+at org.postgresql.jdbc2.AbstractJdbc2Statement.executeBatch(AbstractJdbc2Statement.java:2959)
+at org.postgresql.test.jdbc2.BatchExecuteTest.testBatchWithAlternatingTypes(BatchExecuteTest.java:457)
+     */
 
-        /*
-        Trace after the fix:
+    /*
+    Trace after the fix:
 23:15:33.776 (1) PostgreSQL 9.4 JDBC4.1 (build 1206)
 23:15:33.785 (1) Trying to establish a protocol version 3 connection to localhost:5432
 23:15:33.804 (1) Receive Buffer Size is 408300
@@ -695,8 +687,8 @@ org.postgresql.util.PSQLException: ERROR: prepared statement "S_2" does not exis
 23:15:33.900 (1)  <=BE BindComplete [unnamed]
 23:15:33.900 (1)  <=BE NoData
 23:15:33.905 (1)  <=BE ErrorMessage(ERROR: table "testbatch" does not exist
-  Location: File: tablecmds.c, Routine: DropErrorMsgNonExistent, Line: 727
-  Server SQLState: 42P01)
+Location: File: tablecmds.c, Routine: DropErrorMsgNonExistent, Line: 727
+Server SQLState: 42P01)
 23:15:33.906 (1)  <=BE ReadyForQuery(I)
 23:15:33.906 (1) simple execute, handler=org.postgresql.jdbc2.AbstractJdbc2Statement$StatementResultHandler@4b9af9a9, maxRows=0, fetchSize=0, flags=21
 23:15:33.906 (1)  FE=> Parse(stmt=null,query="CREATE TABLE testbatch (pk INTEGER, col1 INTEGER) ",oids={})
@@ -758,8 +750,8 @@ org.postgresql.util.PSQLException: ERROR: prepared statement "S_2" does not exis
 23:15:33.921 (1)  <=BE BindComplete [unnamed]
 23:15:33.921 (1)  <=BE NoData
 23:15:33.921 (1)  <=BE NoticeResponse(WARNING: there is already a transaction in progress
-  Location: File: xact.c, Routine: BeginTransactionBlock, Line: 3279
-  Server SQLState: 25001)
+Location: File: xact.c, Routine: BeginTransactionBlock, Line: 3279
+Server SQLState: 25001)
 23:15:33.922 (1)  <=BE CommandStatus(BEGIN)
 23:15:33.922 (1)  <=BE ReadyForQuery(T)
 23:15:33.924 (1) batch execute 6 queries, handler=org.postgresql.jdbc2.AbstractJdbc2Statement$BatchResultHandler@5cb0d902, maxRows=0, fetchSize=0, flags=516
@@ -839,6 +831,6 @@ org.postgresql.util.PSQLException: ERROR: prepared statement "S_2" does not exis
 23:15:33.934 (1)  <=BE CommandStatus(DROP TABLE)
 23:15:33.934 (1)  <=BE ReadyForQuery(I)
 23:15:33.934 (1)  FE=> Terminate
-         */
+     */
   }
 }

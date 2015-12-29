@@ -221,7 +221,7 @@ public class ArrayTest extends TestCase {
     pstmt3.setArray(2, _conn.createArrayOf("uuid", new UUID[]{uuid1}));
     pstmt3.executeUpdate();
 
-    //--
+    // --
     pstmt2.setObject(1, _conn.createArrayOf("uuid", new UUID[]{uuid4}), Types.OTHER);
     rs = pstmt2.executeQuery();
     assertTrue(rs.next());
@@ -268,8 +268,8 @@ public class ArrayTest extends TestCase {
   }
 
   public void testGetArrayOfComposites() throws SQLException {
-    PreparedStatement insert_parent_pstmt = _conn.prepareStatement(
-        "INSERT INTO arrcompprnttest (name) "
+    PreparedStatement insert_parent_pstmt =
+        _conn.prepareStatement("INSERT INTO arrcompprnttest (name) "
             + "VALUES ('aParent');");
     insert_parent_pstmt.execute();
 
@@ -279,8 +279,8 @@ public class ArrayTest extends TestCase {
         "4\" by 6\"",
         "5\",3\""};
 
-    PreparedStatement insert_children_pstmt = _conn.prepareStatement(
-        "INSERT INTO arrcompchldttest (name,description,parent) "
+    PreparedStatement insert_children_pstmt =
+        _conn.prepareStatement("INSERT INTO arrcompchldttest (name,description,parent) "
             + "VALUES ('child1',?,1),"
             + "('child2',?,1),"
             + "('child3',?,1),"
@@ -319,11 +319,11 @@ public class ArrayTest extends TestCase {
     while (rsChildren.next()) {
       String comp = rsChildren.getString(2);
       PGtokenizer token = new PGtokenizer(PGtokenizer.removePara(comp), ',');
-      token.remove("\"", "\""); //remove surrounding double quotes
+      token.remove("\"", "\""); // remove surrounding double quotes
       if (2 < token.getSize()) {
         int childID = Integer.parseInt(token.getToken(0));
-        String value = token.getToken(2)
-            .replace("\"\"", "\""); //remove double quotes escaping with double quotes
+        // remove double quotes escaping with double quotes
+        String value = token.getToken(2).replace("\"\"", "\"");
         assertEquals(children[childID - 1], value);
       } else {
         fail("Needs to have 3 tokens");

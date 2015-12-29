@@ -36,7 +36,7 @@ import java.util.Calendar;
 import java.util.Map;
 
 class PgCallableStatement extends PgPreparedStatement implements CallableStatement {
-  //Used by the callablestatement style methods
+  // Used by the callablestatement style methods
   private boolean isFunction;
   // functionReturnType contains the user supplied value to check
   // testReturn contains a modified version to make it easier to
@@ -137,8 +137,8 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
         } else {
           throw new PSQLException(GT.tr(
               "A CallableStatement function was executed and the out parameter {0} was of type {1} however type {2} was registered.",
-              new Object[]{i + 1,
-                  "java.sql.Types=" + columnType, "java.sql.Types=" + functionReturnType[j]}),
+              new Object[]{i + 1, "java.sql.Types=" + columnType,
+                  "java.sql.Types=" + functionReturnType[j]}),
               PSQLState.DATA_TYPE_MISMATCH);
         }
       }
@@ -153,15 +153,15 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
    * Before executing a stored procedure call you must explicitly call registerOutParameter to
    * register the java.sql.Type of each out parameter.
    *
-   * <p>Note: When reading the value of an out parameter, you must use the getXXX method whose Java
+   * <p>
+   * Note: When reading the value of an out parameter, you must use the getXXX method whose Java
    * type XXX corresponds to the parameter's registered SQL type.
    *
    * ONLY 1 RETURN PARAMETER if {?= call ..} syntax is used
    *
    * @param parameterIndex the first parameter is 1, the second is 2,...
-   * @param sqlType        SQL type code defined by java.sql.Types; for parameters of type Numeric
-   *                       or Decimal use the version of registerOutParameter that accepts a scale
-   *                       value
+   * @param sqlType SQL type code defined by java.sql.Types; for parameters of type Numeric or
+   *        Decimal use the version of registerOutParameter that accepts a scale value
    * @throws SQLException if a database-access error occurs.
    */
   public void registerOutParameter(int parameterIndex, int sqlType, boolean setPreparedParameters)
@@ -190,8 +190,9 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
         break;
     }
     if (!isFunction) {
-      throw new PSQLException(GT.tr(
-          "This statement does not declare an OUT parameter.  Use '{' ?= call ... '}' to declare one."),
+      throw new PSQLException(
+          GT.tr(
+              "This statement does not declare an OUT parameter.  Use '{' ?= call ... '}' to declare one."),
           PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
     }
     checkIndex(parameterIndex, false);
@@ -217,18 +218,19 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   /**
    * You must also specify the scale for numeric/decimal types:
    *
-   * <p>Note: When reading the value of an out parameter, you must use the getXXX method whose Java
+   * <p>
+   * Note: When reading the value of an out parameter, you must use the getXXX method whose Java
    * type XXX corresponds to the parameter's registered SQL type.
    *
-   * @param parameterIndex        the first parameter is 1, the second is 2,...
-   * @param sqlType               use either java.sql.Type.NUMERIC or java.sql.Type.DECIMAL
-   * @param scale                 a value greater than or equal to zero representing the desired
-   *                              number of digits to the right of the decimal point
+   * @param parameterIndex the first parameter is 1, the second is 2,...
+   * @param sqlType use either java.sql.Type.NUMERIC or java.sql.Type.DECIMAL
+   * @param scale a value greater than or equal to zero representing the desired number of digits to
+   *        the right of the decimal point
    * @param setPreparedParameters set prepared parameters
    * @throws SQLException if a database-access error occurs.
    */
-  public void registerOutParameter(int parameterIndex, int sqlType,
-      int scale, boolean setPreparedParameters) throws SQLException {
+  public void registerOutParameter(int parameterIndex, int sqlType, int scale,
+      boolean setPreparedParameters) throws SQLException {
     registerOutParameter(parameterIndex, sqlType, setPreparedParameters); // ignore for now..
   }
 
@@ -320,8 +322,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     return (Double) callResult[parameterIndex - 1];
   }
 
-  public BigDecimal getBigDecimal(int parameterIndex, int scale)
-      throws SQLException {
+  public BigDecimal getBigDecimal(int parameterIndex, int scale) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.NUMERIC, "BigDecimal");
     return ((BigDecimal) callResult[parameterIndex - 1]);
@@ -345,15 +346,13 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     return (java.sql.Time) callResult[parameterIndex - 1];
   }
 
-  public java.sql.Timestamp getTimestamp(int parameterIndex)
-      throws SQLException {
+  public java.sql.Timestamp getTimestamp(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.TIMESTAMP, "Timestamp");
     return (java.sql.Timestamp) callResult[parameterIndex - 1];
   }
 
-  public Object getObject(int parameterIndex)
-      throws SQLException {
+  public Object getObject(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex);
     return callResult[parameterIndex - 1];
@@ -364,20 +363,19 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
    * against the return type.
    *
    * @param parameterIndex parameter index (1-based)
-   * @param type1          type 1
-   * @param type2          type 2
-   * @param getName        getter name
+   * @param type1 type 1
+   * @param type2 type 2
+   * @param getName getter name
    * @throws SQLException if something goes wrong
    */
   protected void checkIndex(int parameterIndex, int type1, int type2, String getName)
       throws SQLException {
     checkIndex(parameterIndex);
-    if (type1 != this.testReturn[parameterIndex - 1] && type2 != this.testReturn[parameterIndex
-        - 1]) {
+    if (type1 != this.testReturn[parameterIndex - 1]
+        && type2 != this.testReturn[parameterIndex - 1]) {
       throw new PSQLException(
           GT.tr("Parameter of type {0} was registered, but call to get{1} (sqltype={2}) was made.",
-              new Object[]{"java.sql.Types=" + testReturn[parameterIndex - 1],
-                  getName,
+              new Object[]{"java.sql.Types=" + testReturn[parameterIndex - 1], getName,
                   "java.sql.Types=" + type1}),
           PSQLState.MOST_SPECIFIC_TYPE_DOES_NOT_MATCH);
     }
@@ -387,18 +385,16 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
    * helperfunction for the getXXX calls to check isFunction and index == 1
    *
    * @param parameterIndex parameter index (1-based)
-   * @param type           type
-   * @param getName        getter name
+   * @param type type
+   * @param getName getter name
    * @throws SQLException if given index is not valid
    */
-  protected void checkIndex(int parameterIndex, int type, String getName)
-      throws SQLException {
+  protected void checkIndex(int parameterIndex, int type, String getName) throws SQLException {
     checkIndex(parameterIndex);
     if (type != this.testReturn[parameterIndex - 1]) {
       throw new PSQLException(
           GT.tr("Parameter of type {0} was registered, but call to get{1} (sqltype={2}) was made.",
-              new Object[]{"java.sql.Types=" + testReturn[parameterIndex - 1],
-                  getName,
+              new Object[]{"java.sql.Types=" + testReturn[parameterIndex - 1], getName,
                   "java.sql.Types=" + type}),
           PSQLState.MOST_SPECIFIC_TYPE_DOES_NOT_MATCH);
     }
@@ -412,12 +408,13 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
    * helperfunction for the getXXX calls to check isFunction and index == 1
    *
    * @param parameterIndex index of getXXX (index) check to make sure is a function and index == 1
-   * @param fetchingData   fetching data
+   * @param fetchingData fetching data
    */
   private void checkIndex(int parameterIndex, boolean fetchingData) throws SQLException {
     if (!isFunction) {
-      throw new PSQLException(GT.tr(
-          "A CallableStatement was declared, but no call to registerOutParameter(1, <some type>) was made."),
+      throw new PSQLException(
+          GT.tr(
+              "A CallableStatement was declared, but no call to registerOutParameter(1, <some type>) was made."),
           PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL);
     }
 
@@ -531,8 +528,8 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     throw Driver.notImplemented(this.getClass(), "registerOutParameter");
   }
 
-  public void registerOutParameter(int parameterIndex, java.sql.SQLType sqlType,
-      int scale) throws SQLException {
+  public void registerOutParameter(int parameterIndex, java.sql.SQLType sqlType, int scale)
+      throws SQLException {
     throw Driver.notImplemented(this.getClass(), "registerOutParameter");
   }
 
@@ -700,8 +697,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     throw Driver.notImplemented(this.getClass(), "getObject(String, Class<T>)");
   }
 
-  public void registerOutParameter(String parameterName, int sqlType)
-      throws SQLException {
+  public void registerOutParameter(String parameterName, int sqlType) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "registerOutParameter(String,int)");
   }
 
@@ -767,28 +763,23 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     throw Driver.notImplemented(this.getClass(), "setBytes(String,byte)");
   }
 
-  public void setDate(String parameterName, java.sql.Date x)
-      throws SQLException {
+  public void setDate(String parameterName, java.sql.Date x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setDate(String,Date)");
   }
 
-  public void setTime(String parameterName, Time x)
-      throws SQLException {
+  public void setTime(String parameterName, Time x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setTime(String,Time)");
   }
 
-  public void setTimestamp(String parameterName, Timestamp x)
-      throws SQLException {
+  public void setTimestamp(String parameterName, Timestamp x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setTimestamp(String,Timestamp)");
   }
 
-  public void setAsciiStream(String parameterName, InputStream x, int length)
-      throws SQLException {
+  public void setAsciiStream(String parameterName, InputStream x, int length) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setAsciiStream(String,InputStream,int)");
   }
 
-  public void setBinaryStream(String parameterName, InputStream x,
-      int length) throws SQLException {
+  public void setBinaryStream(String parameterName, InputStream x, int length) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setBinaryStream(String,InputStream,int)");
   }
 
@@ -797,8 +788,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     throw Driver.notImplemented(this.getClass(), "setObject(String,Object,int,int)");
   }
 
-  public void setObject(String parameterName, Object x, int targetSqlType)
-      throws SQLException {
+  public void setObject(String parameterName, Object x, int targetSqlType) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setObject(String,Object,int)");
   }
 
@@ -806,29 +796,24 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     throw Driver.notImplemented(this.getClass(), "setObject(String,Object)");
   }
 
-  public void setCharacterStream(String parameterName,
-      Reader reader,
-      int length) throws SQLException {
+  public void setCharacterStream(String parameterName, Reader reader, int length)
+      throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setCharacterStream(String,Reader,int)");
   }
 
-  public void setDate(String parameterName, java.sql.Date x, Calendar cal)
-      throws SQLException {
+  public void setDate(String parameterName, java.sql.Date x, Calendar cal) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setDate(String,Date,Calendar)");
   }
 
-  public void setTime(String parameterName, Time x, Calendar cal)
-      throws SQLException {
+  public void setTime(String parameterName, Time x, Calendar cal) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setTime(String,Time,Calendar)");
   }
 
-  public void setTimestamp(String parameterName, Timestamp x, Calendar cal)
-      throws SQLException {
+  public void setTimestamp(String parameterName, Timestamp x, Calendar cal) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setTimestamp(String,Timestamp,Calendar)");
   }
 
-  public void setNull(String parameterName, int sqlType, String typeName)
-      throws SQLException {
+  public void setNull(String parameterName, int sqlType, String typeName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setNull(String,int,String)");
   }
 
@@ -908,18 +893,15 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     throw Driver.notImplemented(this.getClass(), "getArray(String)");
   }
 
-  public java.sql.Date getDate(String parameterName, Calendar cal)
-      throws SQLException {
+  public java.sql.Date getDate(String parameterName, Calendar cal) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getDate(String,Calendar)");
   }
 
-  public Time getTime(String parameterName, Calendar cal)
-      throws SQLException {
+  public Time getTime(String parameterName, Calendar cal) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getTime(String,Calendar)");
   }
 
-  public Timestamp getTimestamp(String parameterName, Calendar cal)
-      throws SQLException {
+  public Timestamp getTimestamp(String parameterName, Calendar cal) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getTimestamp(String,Calendar)");
   }
 
@@ -940,8 +922,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     registerOutParameter(parameterIndex, sqlType, !adjustIndex);
   }
 
-  public void registerOutParameter(int parameterIndex, int sqlType,
-      int scale) throws SQLException {
+  public void registerOutParameter(int parameterIndex, int sqlType, int scale) throws SQLException {
     // ignore scale for now
     registerOutParameter(parameterIndex, sqlType);
   }

@@ -19,8 +19,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 /*
- * Test that enhanced error reports return the correct origin
- * for constraint violation errors.
+ * Test that enhanced error reports return the correct origin for constraint violation errors.
  */
 public class ServerErrorTest extends TestCase {
 

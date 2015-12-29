@@ -17,7 +17,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 /**
- * Minimal tests for pooling DataSource.  Needs many more.
+ * Minimal tests for pooling DataSource. Needs many more.
  *
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  */

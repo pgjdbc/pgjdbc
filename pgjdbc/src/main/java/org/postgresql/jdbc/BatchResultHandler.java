@@ -86,10 +86,8 @@ class BatchResultHandler implements ResultHandler {
 
       batchException = new BatchUpdateException(
           GT.tr("Batch entry {0} {1} was aborted.  Call getNextException to see the cause.",
-              new Object[]{resultIndex,
-                  queryString}),
-          newError.getSQLState(),
-          successCounts);
+              new Object[]{resultIndex, queryString}),
+          newError.getSQLState(), successCounts);
     }
 
     batchException.setNextException(newError);

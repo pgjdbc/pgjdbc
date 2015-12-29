@@ -68,15 +68,14 @@ import java.util.TimeZone;
 import java.util.UUID;
 
 
-public class PgResultSet
-    implements ResultSet, org.postgresql.PGRefCursorResultSet {
+public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultSet {
 
-  //needed for updateable result set support
+  // needed for updateable result set support
   private boolean updateable = false;
   private boolean doingUpdates = false;
   private HashMap<String, Object> updateValues = null;
   private boolean usingOID = false; // are we using the OID for the primary key?
-  private List<PrimaryKey> primaryKeys;    // list of primary keys
+  private List<PrimaryKey> primaryKeys; // list of primary keys
   private boolean singleTable = false;
   private String onlyTable = "";
   private String tableName = null;
@@ -87,20 +86,20 @@ public class PgResultSet
   private final int resultsettype;
   private final int resultsetconcurrency;
   private int fetchdirection = ResultSet.FETCH_UNKNOWN;
-  protected final BaseConnection connection;  // the connection we belong to
-  protected final BaseStatement statement;    // the statement we belong to
+  protected final BaseConnection connection; // the connection we belong to
+  protected final BaseStatement statement; // the statement we belong to
   private Statement realStatement;
   // the real statement we belong to (when using forced binary prepared statement test hack)
-  protected final Field fields[];          // Field metadata for this resultset.
-  protected final Query originalQuery;        // Query we originated from
+  protected final Field fields[]; // Field metadata for this resultset.
+  protected final Query originalQuery; // Query we originated from
 
-  protected final int maxRows;            // Maximum rows in this resultset (might be 0).
-  protected final int maxFieldSize;       // Maximum field size in this resultset (might be 0).
+  protected final int maxRows; // Maximum rows in this resultset (might be 0).
+  protected final int maxFieldSize; // Maximum field size in this resultset (might be 0).
 
-  protected List<byte[][]> rows;           // Current page of results.
-  protected int current_row = -1;         // Index into 'rows' of our currrent row (0-based)
-  protected int row_offset;               // Offset of row 0 in the actual resultset
-  protected byte[][] this_row;      // copy of the current result row
+  protected List<byte[][]> rows; // Current page of results.
+  protected int current_row = -1; // Index into 'rows' of our currrent row (0-based)
+  protected int row_offset; // Offset of row 0 in the actual resultset
+  protected byte[][] this_row; // copy of the current result row
   protected SQLWarning warnings = null; // The warning chain
   /**
    * True if the last obtained column value was SQL NULL as specified by {@link #wasNull}. The value
@@ -110,9 +109,9 @@ public class PgResultSet
   protected boolean onInsertRow = false;
   // are we on the insert row (for JDBC2 updatable resultsets)?
 
-  private byte[][] rowBuffer = null;       // updateable rowbuffer
+  private byte[][] rowBuffer = null; // updateable rowbuffer
 
-  protected int fetchSize;       // Current fetch size (might be 0).
+  protected int fetchSize; // Current fetch size (might be 0).
   protected ResultCursor cursor; // Cursor for fetching additional data.
 
   private HashMap<String, Integer> columnNameIndexMap; // Speed up findColumn by caching lookups
@@ -132,8 +131,8 @@ public class PgResultSet
   }
 
   PgResultSet(Query originalQuery, BaseStatement statement, Field[] fields, List<byte[][]> tuples,
-      ResultCursor cursor, int maxRows, int maxFieldSize,
-      int rsType, int rsConcurrency, int rsHoldability) throws SQLException {
+      ResultCursor cursor, int maxRows, int maxFieldSize, int rsType, int rsConcurrency,
+      int rsHoldability) throws SQLException {
     // Fail-fast on invalid null inputs
     if (tuples == null) {
       throw new NullPointerException("tuples must be non-null");
@@ -246,7 +245,8 @@ public class PgResultSet
               connection.execSQLQuery(sb.toString(), resultsettype, ResultSet.CONCUR_READ_ONLY);
           //
           // In long running transactions these backend cursors take up memory space
-          // we could close in rs.close(), but if the transaction is closed before the result set, then
+          // we could close in rs.close(), but if the transaction is closed before the result set,
+          // then
           // the cursor no longer exists
 
           sb.setLength(0);
@@ -290,8 +290,8 @@ public class PgResultSet
 
     final int rows_size = rows.size();
 
-    //if index<0, count from the end of the result set, but check
-    //to be sure that it is not beyond the first index
+    // if index<0, count from the end of the result set, but check
+    // to be sure that it is not beyond the first index
     if (index < 0) {
       if (index >= -rows_size) {
         internalIndex = rows_size + index;
@@ -300,9 +300,9 @@ public class PgResultSet
         return false;
       }
     } else {
-      //must be the case that index>0,
-      //find the correct place, assuming that
-      //the index is not too large
+      // must be the case that index>0,
+      // find the correct place, assuming that
+      // the index is not too large
       if (index <= rows_size) {
         internalIndex = index - 1;
       } else {
@@ -427,12 +427,12 @@ public class PgResultSet
     }
 
     if (connection.haveMinimumCompatibleVersion(ServerVersion.v7_2)) {
-      //Version 7.2 supports AsciiStream for all the PG text types
-      //As the spec/javadoc for this method indicate this is to be used for
-      //large text values (i.e. LONGVARCHAR) PG doesn't have a separate
-      //long string datatype, but with toast the text datatype is capable of
-      //handling very large values.  Thus the implementation ends up calling
-      //getString() since there is no current way to stream the value from the server
+      // Version 7.2 supports AsciiStream for all the PG text types
+      // As the spec/javadoc for this method indicate this is to be used for
+      // large text values (i.e. LONGVARCHAR) PG doesn't have a separate
+      // long string datatype, but with toast the text datatype is capable of
+      // handling very large values. Thus the implementation ends up calling
+      // getString() since there is no current way to stream the value from the server
       return new CharArrayReader(getString(i).toCharArray());
     } else {
       // In 7.1 Handle as BLOBS so return the LargeObject input stream
@@ -604,10 +604,9 @@ public class PgResultSet
 
 
   /*
-     * This checks against map for the type of column i, and if found returns
-     * an object based on that mapping. The class must implement the SQLData
-     * interface.
-     */
+   * This checks against map for the type of column i, and if found returns an object based on that
+   * mapping. The class must implement the SQLData interface.
+   */
   public Object getObjectImpl(int i, Map<String, Class<?>> map) throws SQLException {
     checkClosed();
     if (map == null || map.isEmpty()) {
@@ -624,7 +623,7 @@ public class PgResultSet
 
   public Ref getRef(int i) throws SQLException {
     checkClosed();
-    //The backend doesn't yet have SQL3 REF types
+    // The backend doesn't yet have SQL3 REF types
     throw org.postgresql.Driver.notImplemented(this.getClass(), "getRef(int)");
   }
 
@@ -649,7 +648,7 @@ public class PgResultSet
   // This one needs some thought, as not all ResultSets come from a statement
   public Statement getStatement() throws SQLException {
     checkClosed();
-    return (Statement) statement;
+    return statement;
   }
 
 
@@ -740,8 +739,7 @@ public class PgResultSet
     // Work out how many rows maxRows will let us fetch.
     int fetchRows = fetchSize;
     if (maxRows != 0) {
-      if (fetchRows == 0
-          || row_offset + fetchRows > maxRows) {
+      if (fetchRows == 0 || row_offset + fetchRows > maxRows) {
         // Fetch would exceed maxRows, limit it.
         fetchRows = maxRows - row_offset;
       }
@@ -803,7 +801,7 @@ public class PgResultSet
           PSQLState.INVALID_CURSOR_STATE);
     }
 
-    //have to add 1 since absolute expects a 1-based index
+    // have to add 1 since absolute expects a 1-based index
     return absolute(current_row + 1 + rows);
   }
 
@@ -826,8 +824,7 @@ public class PgResultSet
   }
 
 
-  public synchronized void cancelRowUpdates()
-      throws SQLException {
+  public synchronized void cancelRowUpdates() throws SQLException {
     checkClosed();
     if (onInsertRow) {
       throw new PSQLException(GT.tr("Cannot call cancelRowUpdates() when on the insert row."),
@@ -842,8 +839,7 @@ public class PgResultSet
   }
 
 
-  public synchronized void deleteRow()
-      throws SQLException {
+  public synchronized void deleteRow() throws SQLException {
     checkUpdateable();
 
     if (onInsertRow) {
@@ -852,13 +848,15 @@ public class PgResultSet
     }
 
     if (isBeforeFirst()) {
-      throw new PSQLException(GT.tr(
-          "Currently positioned before the start of the ResultSet.  You cannot call deleteRow() here."),
+      throw new PSQLException(
+          GT.tr(
+              "Currently positioned before the start of the ResultSet.  You cannot call deleteRow() here."),
           PSQLState.INVALID_CURSOR_STATE);
     }
     if (isAfterLast()) {
-      throw new PSQLException(GT.tr(
-          "Currently positioned after the end of the ResultSet.  You cannot call deleteRow() here."),
+      throw new PSQLException(
+          GT.tr(
+              "Currently positioned after the end of the ResultSet.  You cannot call deleteRow() here."),
           PSQLState.INVALID_CURSOR_STATE);
     }
     if (rows.size() == 0) {
@@ -899,8 +897,7 @@ public class PgResultSet
   }
 
 
-  public synchronized void insertRow()
-      throws SQLException {
+  public synchronized void insertRow() throws SQLException {
     checkUpdateable();
 
     if (!onInsertRow) {
@@ -972,8 +969,7 @@ public class PgResultSet
   }
 
 
-  public synchronized void moveToCurrentRow()
-      throws SQLException {
+  public synchronized void moveToCurrentRow() throws SQLException {
     checkUpdateable();
 
     if (current_row < 0 || current_row >= rows.size()) {
@@ -988,8 +984,7 @@ public class PgResultSet
   }
 
 
-  public synchronized void moveToInsertRow()
-      throws SQLException {
+  public synchronized void moveToInsertRow() throws SQLException {
     checkUpdateable();
 
     if (insertStatement != null) {
@@ -1006,8 +1001,7 @@ public class PgResultSet
   }
 
 
-  private synchronized void clearRowBuffer(boolean copyCurrentRow)
-      throws SQLException {
+  private synchronized void clearRowBuffer(boolean copyCurrentRow) throws SQLException {
     // rowBuffer is the temporary storage for the row
     rowBuffer = new byte[fields.length][];
 
@@ -1040,10 +1034,7 @@ public class PgResultSet
   }
 
 
-  public synchronized void updateAsciiStream(int columnIndex,
-      java.io.InputStream x,
-      int length
-  )
+  public synchronized void updateAsciiStream(int columnIndex, java.io.InputStream x, int length)
       throws SQLException {
     if (x == null) {
       updateNull(columnIndex);
@@ -1076,17 +1067,13 @@ public class PgResultSet
   }
 
 
-  public synchronized void updateBigDecimal(int columnIndex,
-      java.math.BigDecimal x)
+  public synchronized void updateBigDecimal(int columnIndex, java.math.BigDecimal x)
       throws SQLException {
     updateValue(columnIndex, x);
   }
 
 
-  public synchronized void updateBinaryStream(int columnIndex,
-      java.io.InputStream x,
-      int length
-  )
+  public synchronized void updateBinaryStream(int columnIndex, java.io.InputStream x, int length)
       throws SQLException {
     if (x == null) {
       updateNull(columnIndex);
@@ -1124,28 +1111,22 @@ public class PgResultSet
   }
 
 
-  public synchronized void updateBoolean(int columnIndex, boolean x)
-      throws SQLException {
+  public synchronized void updateBoolean(int columnIndex, boolean x) throws SQLException {
     updateValue(columnIndex, x);
   }
 
 
-  public synchronized void updateByte(int columnIndex, byte x)
-      throws SQLException {
+  public synchronized void updateByte(int columnIndex, byte x) throws SQLException {
     updateValue(columnIndex, String.valueOf(x));
   }
 
 
-  public synchronized void updateBytes(int columnIndex, byte[] x)
-      throws SQLException {
+  public synchronized void updateBytes(int columnIndex, byte[] x) throws SQLException {
     updateValue(columnIndex, x);
   }
 
 
-  public synchronized void updateCharacterStream(int columnIndex,
-      java.io.Reader x,
-      int length
-  )
+  public synchronized void updateCharacterStream(int columnIndex, java.io.Reader x, int length)
       throws SQLException {
     if (x == null) {
       updateNull(columnIndex);
@@ -1174,52 +1155,44 @@ public class PgResultSet
   }
 
 
-  public synchronized void updateDate(int columnIndex, java.sql.Date x)
-      throws SQLException {
+  public synchronized void updateDate(int columnIndex, java.sql.Date x) throws SQLException {
     updateValue(columnIndex, x);
   }
 
 
-  public synchronized void updateDouble(int columnIndex, double x)
-      throws SQLException {
+  public synchronized void updateDouble(int columnIndex, double x) throws SQLException {
     updateValue(columnIndex, x);
   }
 
 
-  public synchronized void updateFloat(int columnIndex, float x)
-      throws SQLException {
+  public synchronized void updateFloat(int columnIndex, float x) throws SQLException {
     updateValue(columnIndex, x);
   }
 
 
-  public synchronized void updateInt(int columnIndex, int x)
-      throws SQLException {
+  public synchronized void updateInt(int columnIndex, int x) throws SQLException {
     updateValue(columnIndex, x);
   }
 
 
-  public synchronized void updateLong(int columnIndex, long x)
-      throws SQLException {
+  public synchronized void updateLong(int columnIndex, long x) throws SQLException {
     updateValue(columnIndex, x);
   }
 
 
-  public synchronized void updateNull(int columnIndex)
-      throws SQLException {
+  public synchronized void updateNull(int columnIndex) throws SQLException {
     checkColumnIndex(columnIndex);
     String columnTypeName = getPGType(columnIndex);
     updateValue(columnIndex, new NullObject(columnTypeName));
   }
 
 
-  public synchronized void updateObject(int columnIndex, Object x)
-      throws SQLException {
+  public synchronized void updateObject(int columnIndex, Object x) throws SQLException {
     updateValue(columnIndex, x);
   }
 
 
-  public synchronized void updateObject(int columnIndex, Object x, int scale)
-      throws SQLException {
+  public synchronized void updateObject(int columnIndex, Object x, int scale) throws SQLException {
     this.updateObject(columnIndex, x);
 
   }
@@ -1262,7 +1235,8 @@ public class PgResultSet
     if (connection.getLogger().logDebug()) {
       connection.getLogger().debug("selecting " + selectSQL.toString());
     }
-    // because updateable result sets do not yet support binary transfers we must request refresh with updateable result set to get field data in correct format
+    // because updateable result sets do not yet support binary transfers we must request refresh
+    // with updateable result set to get field data in correct format
     selectStatement = ((java.sql.Connection) connection).prepareStatement(selectSQL.toString(),
         ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
 
@@ -1289,8 +1263,7 @@ public class PgResultSet
   }
 
 
-  public synchronized void updateRow()
-      throws SQLException {
+  public synchronized void updateRow() throws SQLException {
     checkUpdateable();
 
     if (onInsertRow) {
@@ -1299,8 +1272,9 @@ public class PgResultSet
     }
 
     if (isBeforeFirst() || isAfterLast() || rows.size() == 0) {
-      throw new PSQLException(GT.tr(
-          "Cannot update the ResultSet because it is either before the start or after the end of the results."),
+      throw new PSQLException(
+          GT.tr(
+              "Cannot update the ResultSet because it is either before the start or after the end of the results."),
           PSQLState.INVALID_CURSOR_STATE);
     }
 
@@ -1369,105 +1343,88 @@ public class PgResultSet
   }
 
 
-  public synchronized void updateShort(int columnIndex, short x)
-      throws SQLException {
+  public synchronized void updateShort(int columnIndex, short x) throws SQLException {
     updateValue(columnIndex, x);
   }
 
 
-  public synchronized void updateString(int columnIndex, String x)
-      throws SQLException {
+  public synchronized void updateString(int columnIndex, String x) throws SQLException {
     updateValue(columnIndex, x);
   }
 
 
-  public synchronized void updateTime(int columnIndex, Time x)
-      throws SQLException {
+  public synchronized void updateTime(int columnIndex, Time x) throws SQLException {
     updateValue(columnIndex, x);
   }
 
 
-  public synchronized void updateTimestamp(int columnIndex, Timestamp x)
-      throws SQLException {
+  public synchronized void updateTimestamp(int columnIndex, Timestamp x) throws SQLException {
     updateValue(columnIndex, x);
 
   }
 
 
-  public synchronized void updateNull(String columnName)
-      throws SQLException {
+  public synchronized void updateNull(String columnName) throws SQLException {
     updateNull(findColumn(columnName));
   }
 
 
-  public synchronized void updateBoolean(String columnName, boolean x)
-      throws SQLException {
+  public synchronized void updateBoolean(String columnName, boolean x) throws SQLException {
     updateBoolean(findColumn(columnName), x);
   }
 
 
-  public synchronized void updateByte(String columnName, byte x)
-      throws SQLException {
+  public synchronized void updateByte(String columnName, byte x) throws SQLException {
     updateByte(findColumn(columnName), x);
   }
 
 
-  public synchronized void updateShort(String columnName, short x)
-      throws SQLException {
+  public synchronized void updateShort(String columnName, short x) throws SQLException {
     updateShort(findColumn(columnName), x);
   }
 
 
-  public synchronized void updateInt(String columnName, int x)
-      throws SQLException {
+  public synchronized void updateInt(String columnName, int x) throws SQLException {
     updateInt(findColumn(columnName), x);
   }
 
 
-  public synchronized void updateLong(String columnName, long x)
-      throws SQLException {
+  public synchronized void updateLong(String columnName, long x) throws SQLException {
     updateLong(findColumn(columnName), x);
   }
 
 
-  public synchronized void updateFloat(String columnName, float x)
-      throws SQLException {
+  public synchronized void updateFloat(String columnName, float x) throws SQLException {
     updateFloat(findColumn(columnName), x);
   }
 
 
-  public synchronized void updateDouble(String columnName, double x)
-      throws SQLException {
+  public synchronized void updateDouble(String columnName, double x) throws SQLException {
     updateDouble(findColumn(columnName), x);
   }
 
 
-  public synchronized void updateBigDecimal(String columnName, BigDecimal x)
-      throws SQLException {
+  public synchronized void updateBigDecimal(String columnName, BigDecimal x) throws SQLException {
     updateBigDecimal(findColumn(columnName), x);
   }
 
 
-  public synchronized void updateString(String columnName, String x)
-      throws SQLException {
+  public synchronized void updateString(String columnName, String x) throws SQLException {
     updateString(findColumn(columnName), x);
   }
 
 
-  public synchronized void updateBytes(String columnName, byte x[])
-      throws SQLException {
+  public synchronized void updateBytes(String columnName, byte x[]) throws SQLException {
     updateBytes(findColumn(columnName), x);
   }
 
 
-  public synchronized void updateDate(String columnName, java.sql.Date x)
-      throws SQLException {
+  public synchronized void updateDate(String columnName, java.sql.Date x) throws SQLException {
     updateDate(findColumn(columnName), x);
   }
 
 
-  public synchronized void updateTime(String columnName, java.sql.Time x)
-      throws SQLException {
+  public synchronized void updateTime(String columnName, java.sql.Time x) throws SQLException {
     updateTime(findColumn(columnName), x);
   }
 
@@ -1478,29 +1435,20 @@ public class PgResultSet
   }
 
 
-  public synchronized void updateAsciiStream(
-      String columnName,
-      java.io.InputStream x,
-      int length)
+  public synchronized void updateAsciiStream(String columnName, java.io.InputStream x, int length)
       throws SQLException {
     updateAsciiStream(findColumn(columnName), x, length);
   }
 
 
-  public synchronized void updateBinaryStream(
-      String columnName,
-      java.io.InputStream x,
-      int length)
+  public synchronized void updateBinaryStream(String columnName, java.io.InputStream x, int length)
       throws SQLException {
     updateBinaryStream(findColumn(columnName), x, length);
   }
 
 
-  public synchronized void updateCharacterStream(
-      String columnName,
-      java.io.Reader reader,
-      int length)
-      throws SQLException {
+  public synchronized void updateCharacterStream(String columnName, java.io.Reader reader,
+      int length) throws SQLException {
     updateCharacterStream(findColumn(columnName), reader, length);
   }
 
@@ -1511,8 +1459,7 @@ public class PgResultSet
   }
 
 
-  public synchronized void updateObject(String columnName, Object x)
-      throws SQLException {
+  public synchronized void updateObject(String columnName, Object x) throws SQLException {
     updateObject(findColumn(columnName), x);
   }
 
@@ -1563,7 +1510,7 @@ public class PgResultSet
 
     // if we find the oid then just use it
 
-    //oidIndex will be >0 if the oid was in the select list
+    // oidIndex will be >0 if the oid was in the select list
     if (oidIndex > 0) {
       i++;
       numPKcolumns++;
@@ -1574,8 +1521,8 @@ public class PgResultSet
       String[] s = quotelessTableName(tableName);
       String quotelessTableName = s[0];
       String quotelessSchemaName = s[1];
-      java.sql.ResultSet rs = ((java.sql.Connection) connection).getMetaData()
-          .getPrimaryKeys("", quotelessSchemaName, quotelessTableName);
+      java.sql.ResultSet rs = ((java.sql.Connection) connection).getMetaData().getPrimaryKeys("",
+          quotelessSchemaName, quotelessTableName);
       while (rs.next()) {
         numPKcolumns++;
         String columnName = rs.getString(4); // get the columnName
@@ -1611,7 +1558,9 @@ public class PgResultSet
   /**
    * Cracks out the table name and schema (if it exists) from a fully qualified table name.
    *
-   * @param fullname string that we are trying to crack. Test cases:<pre>
+   * @param fullname string that we are trying to crack. Test cases:
+   *
+   *        <pre>
    *
    *                 Table: table
    *                                 ()
@@ -1631,9 +1580,10 @@ public class PgResultSet
    *                                 Schema."Dot.Table": Dot.Table
    *                                                 (schema)
    *
-   *                 </pre>
+   *        </pre>
+   *
    * @return String array with element zero always being the tablename and element 1 the schema name
-   * which may be a zero length string.
+   *         which may be a zero length string.
    */
   public static String[] quotelessTableName(String fullname) {
 
@@ -1653,9 +1603,9 @@ public class PgResultSet
           }
           break;
         case '.':
-          if (betweenQuotes) {   // Keep it
+          if (betweenQuotes) { // Keep it
             acc.append(c);
-          } else {    // Have schema name
+          } else { // Have schema name
             parts[1] = acc.toString();
             acc = new StringBuilder();
           }
@@ -1714,21 +1664,18 @@ public class PgResultSet
           //
 
           case Types.DATE:
-            rowBuffer[columnIndex] =
-                connection.encodeString(
-                    connection.getTimestampUtils().toString(null, (Date) valueObject));
+            rowBuffer[columnIndex] = connection
+                .encodeString(connection.getTimestampUtils().toString(null, (Date) valueObject));
             break;
 
           case Types.TIME:
-            rowBuffer[columnIndex] =
-                connection.encodeString(
-                    connection.getTimestampUtils().toString(null, (Time) valueObject));
+            rowBuffer[columnIndex] = connection
+                .encodeString(connection.getTimestampUtils().toString(null, (Time) valueObject));
             break;
 
           case Types.TIMESTAMP:
-            rowBuffer[columnIndex] =
-                connection.encodeString(
-                    connection.getTimestampUtils().toString(null, (Timestamp) valueObject));
+            rowBuffer[columnIndex] = connection.encodeString(
+                connection.getTimestampUtils().toString(null, (Timestamp) valueObject));
             break;
 
           case Types.NULL:
@@ -1846,7 +1793,7 @@ public class PgResultSet
         current_row = rows.size();
         this_row = null;
         rowBuffer = null;
-        return false;  // End of the resultset.
+        return false; // End of the resultset.
       }
 
       // Ask for some more data.
@@ -1854,8 +1801,7 @@ public class PgResultSet
 
       int fetchRows = fetchSize;
       if (maxRows != 0) {
-        if (fetchRows == 0
-            || row_offset + fetchRows > maxRows) {
+        if (fetchRows == 0 || row_offset + fetchRows > maxRows) {
           // Fetch would exceed maxRows, limit it.
           fetchRows = maxRows - row_offset;
         }
@@ -1882,7 +1828,7 @@ public class PgResultSet
 
   public void close() throws SQLException {
     try {
-      //release resources held (memory for tuples)
+      // release resources held (memory for tuples)
       rows = null;
       if (cursor != null) {
         cursor.close();
@@ -1924,8 +1870,9 @@ public class PgResultSet
     try {
       return trimString(columnIndex, encoding.decode(this_row[columnIndex - 1]));
     } catch (IOException ioe) {
-      throw new PSQLException(GT.tr(
-          "Invalid character data was found.  This is most likely caused by stored data containing characters that are invalid for the character set the database was created in.  The most common example of this is storing 8bit data in a SQL_ASCII database."),
+      throw new PSQLException(
+          GT.tr(
+              "Invalid character data was found.  This is most likely caused by stored data containing characters that are invalid for the character set the database was created in.  The most common example of this is storing 8bit data in a SQL_ASCII database."),
           PSQLState.DATA_ERROR, ioe);
     }
   }
@@ -1938,8 +1885,7 @@ public class PgResultSet
 
     if (isBinary(columnIndex)) {
       int col = columnIndex - 1;
-      return readDoubleValue(this_row[col], fields[col].getOID(),
-          "boolean") == 1;
+      return readDoubleValue(this_row[col], fields[col].getOID(), "boolean") == 1;
     }
 
     return toBoolean(getString(columnIndex));
@@ -1958,9 +1904,8 @@ public class PgResultSet
       int col = columnIndex - 1;
       // there is no Oid for byte so must always do conversion from
       // some other numeric type
-      return (byte)
-          readLongValue(this_row[col], fields[col].getOID(), Byte.MIN_VALUE,
-              Byte.MAX_VALUE, "byte");
+      return (byte) readLongValue(this_row[col], fields[col].getOID(), Byte.MIN_VALUE,
+          Byte.MAX_VALUE, "byte");
     }
 
     String s = getString(columnIndex);
@@ -2011,8 +1956,7 @@ public class PgResultSet
       if (oid == Oid.INT2) {
         return ByteConverter.int2(this_row[col], 0);
       }
-      return (short) readLongValue(this_row[col], oid, Short.MIN_VALUE,
-          Short.MAX_VALUE, "short");
+      return (short) readLongValue(this_row[col], oid, Short.MIN_VALUE, Short.MAX_VALUE, "short");
     }
 
     String s = getFixedString(columnIndex);
@@ -2055,8 +1999,7 @@ public class PgResultSet
       if (oid == Oid.INT4) {
         return ByteConverter.int4(this_row[col], 0);
       }
-      return (int) readLongValue(this_row[col], oid, Integer.MIN_VALUE,
-          Integer.MAX_VALUE, "int");
+      return (int) readLongValue(this_row[col], oid, Integer.MIN_VALUE, Integer.MAX_VALUE, "int");
     }
 
     Encoding encoding = connection.getEncoding();
@@ -2081,8 +2024,7 @@ public class PgResultSet
       if (oid == Oid.INT8) {
         return ByteConverter.int8(this_row[col], 0);
       }
-      return readLongValue(this_row[col], oid, Long.MIN_VALUE,
-          Long.MAX_VALUE, "long");
+      return readLongValue(this_row[col], oid, Long.MIN_VALUE, Long.MAX_VALUE, "long");
     }
 
     Encoding encoding = connection.getEncoding();
@@ -2100,31 +2042,30 @@ public class PgResultSet
    * The exact stack trace does not matter because the exception is always caught and is not visible
    * to users.
    */
-  private static final NumberFormatException FAST_NUMBER_FAILED =
-      new NumberFormatException() {
+  private static final NumberFormatException FAST_NUMBER_FAILED = new NumberFormatException() {
 
-        // Override fillInStackTrace to prevent memory leak via Throwable.backtrace hidden field
-        // The field is not observable via reflection, however when throwable contains stacktrace, it does
-        // hold strong references to user objects (e.g. classes -> classloaders), thus it might lead to
-        // OutOfMemory conditions.
-        @Override
-        public synchronized Throwable fillInStackTrace() {
-          return this;
-        }
-      };
+    // Override fillInStackTrace to prevent memory leak via Throwable.backtrace hidden field
+    // The field is not observable via reflection, however when throwable contains stacktrace, it
+    // does
+    // hold strong references to user objects (e.g. classes -> classloaders), thus it might lead to
+    // OutOfMemory conditions.
+    @Override
+    public synchronized Throwable fillInStackTrace() {
+      return this;
+    }
+  };
 
   /**
-   * Optimised byte[] to number parser.  This code does not handle null values, so the caller must
-   * do checkResultSet and handle null values prior to calling this function.
+   * Optimised byte[] to number parser. This code does not handle null values, so the caller must do
+   * checkResultSet and handle null values prior to calling this function.
    *
    * @param columnIndex The column to parse.
    * @return The parsed number.
-   * @throws SQLException          If an error occurs while fetching column.
+   * @throws SQLException If an error occurs while fetching column.
    * @throws NumberFormatException If the number is invalid or the out of range for fast parsing.
-   *                               The value must then be parsed by {@link #toLong(String)}.
+   *         The value must then be parsed by {@link #toLong(String)}.
    */
-  private long getFastLong(int columnIndex) throws SQLException,
-      NumberFormatException {
+  private long getFastLong(int columnIndex) throws SQLException, NumberFormatException {
 
     byte[] bytes = this_row[columnIndex - 1];
 
@@ -2167,17 +2108,16 @@ public class PgResultSet
   }
 
   /**
-   * Optimised byte[] to number parser.  This code does not handle null values, so the caller must
-   * do checkResultSet and handle null values prior to calling this function.
+   * Optimised byte[] to number parser. This code does not handle null values, so the caller must do
+   * checkResultSet and handle null values prior to calling this function.
    *
    * @param columnIndex The column to parse.
    * @return The parsed number.
-   * @throws SQLException          If an error occurs while fetching column.
+   * @throws SQLException If an error occurs while fetching column.
    * @throws NumberFormatException If the number is invalid or the out of range for fast parsing.
-   *                               The value must then be parsed by {@link #toInt(String)}.
+   *         The value must then be parsed by {@link #toInt(String)}.
    */
-  private int getFastInt(int columnIndex) throws SQLException,
-      NumberFormatException {
+  private int getFastInt(int columnIndex) throws SQLException, NumberFormatException {
 
     byte[] bytes = this_row[columnIndex - 1];
 
@@ -2220,18 +2160,16 @@ public class PgResultSet
   }
 
   /**
-   * Optimised byte[] to number parser.  This code does not handle null values, so the caller must
-   * do checkResultSet and handle null values prior to calling this function.
+   * Optimised byte[] to number parser. This code does not handle null values, so the caller must do
+   * checkResultSet and handle null values prior to calling this function.
    *
    * @param columnIndex The column to parse.
    * @return The parsed number.
-   * @throws SQLException          If an error occurs while fetching column.
+   * @throws SQLException If an error occurs while fetching column.
    * @throws NumberFormatException If the number is invalid or the out of range for fast parsing.
-   *                               The value must then be parsed by {@link #toBigDecimal(String,
-   *                               int)}.
+   *         The value must then be parsed by {@link #toBigDecimal(String, int)}.
    */
-  private BigDecimal getFastBigDecimal(int columnIndex) throws SQLException,
-      NumberFormatException {
+  private BigDecimal getFastBigDecimal(int columnIndex) throws SQLException, NumberFormatException {
 
     byte[] bytes = this_row[columnIndex - 1];
 
@@ -2359,11 +2297,13 @@ public class PgResultSet
   /**
    * {@inheritDoc}
    *
-   * <p>In normal use, the bytes represent the raw values returned by the backend. However, if the
+   * <p>
+   * In normal use, the bytes represent the raw values returned by the backend. However, if the
    * column is an OID, then it is assumed to refer to a Large Object, and that object is returned as
    * a byte array.
    *
-   * <p><b>Be warned</b> If the large object is huge, then you may run out of memory.
+   * <p>
+   * <b>Be warned</b> If the large object is huge, then you may run out of memory.
    */
   public byte[] getBytes(int columnIndex) throws SQLException {
     checkResultSet(columnIndex);
@@ -2372,17 +2312,17 @@ public class PgResultSet
     }
 
     if (isBinary(columnIndex)) {
-      //If the data is already binary then just return it
+      // If the data is already binary then just return it
       return this_row[columnIndex - 1];
     } else if (connection.haveMinimumCompatibleVersion(ServerVersion.v7_2)) {
-      //Version 7.2 supports the bytea datatype for byte arrays
+      // Version 7.2 supports the bytea datatype for byte arrays
       if (fields[columnIndex - 1].getOID() == Oid.BYTEA) {
         return trimBytes(columnIndex, PGbytea.toBytes(this_row[columnIndex - 1]));
       } else {
         return trimBytes(columnIndex, this_row[columnIndex - 1]);
       }
     } else {
-      //Version 7.1 and earlier supports LargeObjects for byte arrays
+      // Version 7.1 and earlier supports LargeObjects for byte arrays
       // Handle OID's as BLOBS
       if (fields[columnIndex - 1].getOID() == Oid.OID) {
         LargeObjectManager lom = connection.getLargeObjectAPI();
@@ -2415,12 +2355,12 @@ public class PgResultSet
     }
 
     if (connection.haveMinimumCompatibleVersion(ServerVersion.v7_2)) {
-      //Version 7.2 supports AsciiStream for all the PG text types
-      //As the spec/javadoc for this method indicate this is to be used for
-      //large text values (i.e. LONGVARCHAR) PG doesn't have a separate
-      //long string datatype, but with toast the text datatype is capable of
-      //handling very large values.  Thus the implementation ends up calling
-      //getString() since there is no current way to stream the value from the server
+      // Version 7.2 supports AsciiStream for all the PG text types
+      // As the spec/javadoc for this method indicate this is to be used for
+      // large text values (i.e. LONGVARCHAR) PG doesn't have a separate
+      // long string datatype, but with toast the text datatype is capable of
+      // handling very large values. Thus the implementation ends up calling
+      // getString() since there is no current way to stream the value from the server
       try {
         return new ByteArrayInputStream(getString(columnIndex).getBytes("ASCII"));
       } catch (UnsupportedEncodingException l_uee) {
@@ -2440,12 +2380,12 @@ public class PgResultSet
     }
 
     if (connection.haveMinimumCompatibleVersion(ServerVersion.v7_2)) {
-      //Version 7.2 supports AsciiStream for all the PG text types
-      //As the spec/javadoc for this method indicate this is to be used for
-      //large text values (i.e. LONGVARCHAR) PG doesn't have a separate
-      //long string datatype, but with toast the text datatype is capable of
-      //handling very large values.  Thus the implementation ends up calling
-      //getString() since there is no current way to stream the value from the server
+      // Version 7.2 supports AsciiStream for all the PG text types
+      // As the spec/javadoc for this method indicate this is to be used for
+      // large text values (i.e. LONGVARCHAR) PG doesn't have a separate
+      // long string datatype, but with toast the text datatype is capable of
+      // handling very large values. Thus the implementation ends up calling
+      // getString() since there is no current way to stream the value from the server
       try {
         return new ByteArrayInputStream(getString(columnIndex).getBytes("UTF-8"));
       } catch (UnsupportedEncodingException l_uee) {
@@ -2465,12 +2405,12 @@ public class PgResultSet
     }
 
     if (connection.haveMinimumCompatibleVersion(ServerVersion.v7_2)) {
-      //Version 7.2 supports BinaryStream for all PG bytea type
-      //As the spec/javadoc for this method indicate this is to be used for
-      //large binary values (i.e. LONGVARBINARY) PG doesn't have a separate
-      //long binary datatype, but with toast the bytea datatype is capable of
-      //handling very large values.  Thus the implementation ends up calling
-      //getBytes() since there is no current way to stream the value from the server
+      // Version 7.2 supports BinaryStream for all PG bytea type
+      // As the spec/javadoc for this method indicate this is to be used for
+      // large binary values (i.e. LONGVARBINARY) PG doesn't have a separate
+      // long binary datatype, but with toast the bytea datatype is capable of
+      // handling very large values. Thus the implementation ends up calling
+      // getBytes() since there is no current way to stream the value from the server
       byte b[] = getBytes(columnIndex);
       if (b != null) {
         return new ByteArrayInputStream(b);
@@ -2621,7 +2561,7 @@ public class PgResultSet
     if (columnNameIndexMap == null) {
       columnNameIndexMap = new HashMap<String, Integer>(fields.length * 2);
       // The JDBC spec says when you have duplicate columns names,
-      // the first one should be returned.  So load the map in
+      // the first one should be returned. So load the map in
       // reverse order so the first ones will overwrite later ones.
       boolean isSanitiserDisabled = connection.isColumnSanitiserDisabled();
       for (int i = fields.length - 1; i >= 0; i--) {
@@ -2734,8 +2674,9 @@ public class PgResultSet
     checkClosed();
 
     if (!isUpdateable()) {
-      throw new PSQLException(GT.tr(
-          "ResultSet is not updateable.  The query that generated this result set must select only one table, and must select all primary keys from that table. See the JDBC 2.1 API Specification, section 5.6 for more details."),
+      throw new PSQLException(
+          GT.tr(
+              "ResultSet is not updateable.  The query that generated this result set must select only one table, and must select all primary keys from that table. See the JDBC 2.1 API Specification, section 5.6 for more details."),
           PSQLState.INVALID_CURSOR_STATE);
     }
 
@@ -2752,8 +2693,8 @@ public class PgResultSet
   }
 
   /*
-     * for jdbc3 to call internally
-     */
+   * for jdbc3 to call internally
+   */
   protected boolean isResultSetClosed() {
     return rows == null;
   }
@@ -2762,7 +2703,8 @@ public class PgResultSet
     if (column < 1 || column > fields.length) {
       throw new PSQLException(
           GT.tr("The column index is out of range: {0}, number of columns: {1}.",
-              new Object[]{column, fields.length}), PSQLState.INVALID_PARAMETER_VALUE);
+              new Object[]{column, fields.length}),
+          PSQLState.INVALID_PARAMETER_VALUE);
     }
   }
 
@@ -2794,7 +2736,7 @@ public class PgResultSet
     return fields[column - 1].getFormat() == Field.BINARY_FORMAT;
   }
 
-  //----------------- Formatting Methods -------------------
+  // ----------------- Formatting Methods -------------------
 
   public static boolean toBoolean(String s) {
     if (s != null) {
@@ -2815,7 +2757,7 @@ public class PgResultSet
       } catch (NumberFormatException e) {
       }
     }
-    return false;  // SQL NULL
+    return false; // SQL NULL
   }
 
   private static final BigInteger INTMAX = new BigInteger(Integer.toString(Integer.MAX_VALUE));
@@ -2846,7 +2788,7 @@ public class PgResultSet
         }
       }
     }
-    return 0;  // SQL NULL
+    return 0; // SQL NULL
   }
 
   private final static BigInteger LONGMAX = new BigInteger(Long.toString(Long.MAX_VALUE));
@@ -2875,7 +2817,7 @@ public class PgResultSet
         }
       }
     }
-    return 0;  // SQL NULL
+    return 0; // SQL NULL
   }
 
   public static BigDecimal toBigDecimal(String s) throws SQLException {
@@ -2922,7 +2864,7 @@ public class PgResultSet
             PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
       }
     }
-    return 0;  // SQL NULL
+    return 0; // SQL NULL
   }
 
   public static double toDouble(String s) throws SQLException {
@@ -2935,7 +2877,7 @@ public class PgResultSet
             PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
       }
     }
-    return 0;  // SQL NULL
+    return 0; // SQL NULL
   }
 
   private void initRowBuffer() {
@@ -2964,8 +2906,8 @@ public class PgResultSet
   }
 
   private byte[] trimBytes(int p_columnIndex, byte[] p_bytes) throws SQLException {
-    //we need to trim if maxsize is set and the length is greater than maxsize and the
-    //type of this column is a candidate for trimming
+    // we need to trim if maxsize is set and the length is greater than maxsize and the
+    // type of this column is a candidate for trimming
     if (maxFieldSize > 0 && p_bytes.length > maxFieldSize && isColumnTrimmable(p_columnIndex)) {
       byte[] l_bytes = new byte[maxFieldSize];
       System.arraycopy(p_bytes, 0, l_bytes, 0, maxFieldSize);
@@ -2976,8 +2918,8 @@ public class PgResultSet
   }
 
   private String trimString(int p_columnIndex, String p_string) throws SQLException {
-    //we need to trim if maxsize is set and the length is greater than maxsize and the
-    //type of this column is a candidate for trimming
+    // we need to trim if maxsize is set and the length is greater than maxsize and the
+    // type of this column is a candidate for trimming
     if (maxFieldSize > 0 && p_string.length() > maxFieldSize && isColumnTrimmable(p_columnIndex)) {
       return p_string.substring(0, maxFieldSize);
     } else {
@@ -2988,14 +2930,13 @@ public class PgResultSet
   /**
    * Converts any numeric binary field to double value. This method does no overflow checking.
    *
-   * @param bytes      The bytes of the numeric field.
-   * @param oid        The oid of the field.
+   * @param bytes The bytes of the numeric field.
+   * @param oid The oid of the field.
    * @param targetType The target type. Used for error reporting.
    * @return The value as double.
    * @throws PSQLException If the field type is not supported numeric type.
    */
-  private double readDoubleValue(byte[] bytes, int oid,
-      String targetType) throws PSQLException {
+  private double readDoubleValue(byte[] bytes, int oid, String targetType) throws PSQLException {
     // currently implemented binary encoded fields
     switch (oid) {
       case Oid.INT2:
@@ -3011,27 +2952,28 @@ public class PgResultSet
         return ByteConverter.float8(bytes, 0);
     }
     throw new PSQLException(GT.tr("Cannot convert the column of type {0} to requested type {1}.",
-        new Object[]{Oid.toString(oid), targetType}),
-        PSQLState.DATA_TYPE_MISMATCH);
+        new Object[]{Oid.toString(oid), targetType}), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   /**
-   * Converts any numeric binary field to long value. <p> This method is used by
-   * getByte,getShort,getInt and getLong. It must support a subset of the following java types that
-   * use Binary encoding. (fields that use text encoding use a different code path). <p>
+   * Converts any numeric binary field to long value.
+   * <p>
+   * This method is used by getByte,getShort,getInt and getLong. It must support a subset of the
+   * following java types that use Binary encoding. (fields that use text encoding use a different
+   * code path).
+   * <p>
    * <code>byte,short,int,long,float,double,BigDecimal,boolean,string</code>.
    *
-   * @param bytes      The bytes of the numeric field.
-   * @param oid        The oid of the field.
-   * @param minVal     the minimum value allowed.
-   * @param minVal     the maximum value allowed.
+   * @param bytes The bytes of the numeric field.
+   * @param oid The oid of the field.
+   * @param minVal the minimum value allowed.
+   * @param minVal the maximum value allowed.
    * @param targetType The target type. Used for error reporting.
    * @return The value as long.
    * @throws PSQLException If the field type is not supported numeric type or if the value is out of
-   *                       range.
+   *         range.
    */
-  private long readLongValue(byte[] bytes, int oid, long minVal, long maxVal,
-      String targetType)
+  private long readLongValue(byte[] bytes, int oid, long minVal, long maxVal, String targetType)
       throws PSQLException {
     long val;
     // currently implemented binary encoded fields
@@ -3068,8 +3010,9 @@ public class PgResultSet
     checkUpdateable();
 
     if (!onInsertRow && (isBeforeFirst() || isAfterLast() || rows.size() == 0)) {
-      throw new PSQLException(GT.tr(
-          "Cannot update the ResultSet because it is either before the start or after the end of the results."),
+      throw new PSQLException(
+          GT.tr(
+              "Cannot update the ResultSet because it is either before the start or after the end of the results."),
           PSQLState.INVALID_CURSOR_STATE);
     }
 
@@ -3100,8 +3043,8 @@ public class PgResultSet
   }
 
   private class PrimaryKey {
-    int index;    // where in the result set is this primaryKey
-    String name;   // what is the columnName of this primary Key
+    int index; // where in the result set is this primaryKey
+    String name; // what is the columnName of this primary Key
 
     PrimaryKey(int index, String name) {
       this.index = index;

@@ -23,8 +23,8 @@ import java.util.Calendar;
 import java.util.TimeZone;
 
 /*
- * Some simple tests based on problems reported by users. Hopefully these will
- * help prevent previous problems from re-occuring ;-)
+ * Some simple tests based on problems reported by users. Hopefully these will help prevent previous
+ * problems from re-occuring ;-)
  *
  */
 public class TimeTest extends TestCase {
@@ -51,9 +51,9 @@ public class TimeTest extends TestCase {
   }
 
   /*
-  *
-  * Test use of calendar
-  */
+   *
+   * Test use of calendar
+   */
   public void testGetTimeZone() throws Exception {
     final Time midnight = new Time(0, 0, 0);
     Statement stmt = con.createStatement();
@@ -281,8 +281,7 @@ public class TimeTest extends TestCase {
   }
 
   private java.sql.Time makeTime(int h, int m, int s) {
-    return java.sql.Time.valueOf(TestUtil.fix(h, 2) + ":"
-        + TestUtil.fix(m, 2) + ":"
-        + TestUtil.fix(s, 2));
+    return java.sql.Time
+        .valueOf(TestUtil.fix(h, 2) + ":" + TestUtil.fix(m, 2) + ":" + TestUtil.fix(s, 2));
   }
 }

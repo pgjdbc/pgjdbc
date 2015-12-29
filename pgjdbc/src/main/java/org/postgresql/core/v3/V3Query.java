@@ -22,7 +22,7 @@ interface V3Query extends Query {
    * SimpleQuery, returns null (avoids an extra array construction in the common case).
    *
    * @return an array of single-statement queries, or <code>null</code> if this object is already a
-   * single-statement query.
+   *         single-statement query.
    */
   SimpleQuery[] getSubqueries();
 }

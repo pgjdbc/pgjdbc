@@ -21,6 +21,7 @@ import org.osgi.service.jdbc.DataSourceFactory;
 
 import java.sql.Driver;
 import java.util.Properties;
+
 import javax.sql.ConnectionPoolDataSource;
 import javax.sql.DataSource;
 import javax.sql.XADataSource;
@@ -35,22 +36,19 @@ public class PGDataSourceFactoryTest {
   }
 
   @Test
-  public void testCreateDriverDefault()
-      throws Exception {
+  public void testCreateDriverDefault() throws Exception {
     Driver driver = _dataSourceFactory.createDriver(null);
     Assert.assertTrue(driver instanceof org.postgresql.Driver);
   }
 
   @Test
-  public void testCreateDataSourceDefault()
-      throws Exception {
+  public void testCreateDataSourceDefault() throws Exception {
     DataSource dataSource = _dataSourceFactory.createDataSource(null);
     Assert.assertNotNull(dataSource);
   }
 
   @Test
-  public void testCreateDataSourceSimple()
-      throws Exception {
+  public void testCreateDataSourceSimple() throws Exception {
     Properties properties = new Properties();
     properties.put(DataSourceFactory.JDBC_DATABASE_NAME, "db");
     properties.put("currentSchema", "schema");
@@ -63,8 +61,7 @@ public class PGDataSourceFactoryTest {
   }
 
   @Test
-  public void testCreateDataSourcePooling()
-      throws Exception {
+  public void testCreateDataSourcePooling() throws Exception {
     Properties properties = new Properties();
     properties.put(DataSourceFactory.JDBC_DATABASE_NAME, "db");
     properties.put(DataSourceFactory.JDBC_INITIAL_POOL_SIZE, "5");
@@ -79,15 +76,13 @@ public class PGDataSourceFactoryTest {
   }
 
   @Test
-  public void testCreateConnectionPoolDataSourceDefault()
-      throws Exception {
+  public void testCreateConnectionPoolDataSourceDefault() throws Exception {
     ConnectionPoolDataSource dataSource = _dataSourceFactory.createConnectionPoolDataSource(null);
     Assert.assertNotNull(dataSource);
   }
 
   @Test
-  public void testCreateConnectionPoolDataSourceConfigured()
-      throws Exception {
+  public void testCreateConnectionPoolDataSourceConfigured() throws Exception {
     Properties properties = new Properties();
     properties.put(DataSourceFactory.JDBC_DATABASE_NAME, "db");
     ConnectionPoolDataSource dataSource =
@@ -99,15 +94,13 @@ public class PGDataSourceFactoryTest {
   }
 
   @Test
-  public void testCreateXADataSourceDefault()
-      throws Exception {
+  public void testCreateXADataSourceDefault() throws Exception {
     XADataSource dataSource = _dataSourceFactory.createXADataSource(null);
     Assert.assertNotNull(dataSource);
   }
 
   @Test
-  public void testCreateXADataSourceConfigured()
-      throws Exception {
+  public void testCreateXADataSourceConfigured() throws Exception {
     Properties properties = new Properties();
     properties.put(DataSourceFactory.JDBC_DATABASE_NAME, "db");
     XADataSource dataSource = _dataSourceFactory.createXADataSource(properties);

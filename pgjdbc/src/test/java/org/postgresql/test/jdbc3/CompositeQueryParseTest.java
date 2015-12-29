@@ -68,14 +68,13 @@ public class CompositeQueryParseTest extends TestCase {
   }
 
   public void testMultipleEmptyQueries() {
-    assertEquals("select 1;/*cut*/\n"
-        + "select 2", reparse("select 1; ;\t;select 2", true, false, true));
+    assertEquals("select 1;/*cut*/\n" + "select 2",
+        reparse("select 1; ;\t;select 2", true, false, true));
   }
 
   public void testCompositeWithComments() {
-    assertEquals("select 1;/*cut*/\n"
-        + "/* noop */;/*cut*/\n"
-        + "select 2", reparse("select 1;/* noop */;select 2", true, false, true));
+    assertEquals("select 1;/*cut*/\n" + "/* noop */;/*cut*/\n" + "select 2",
+        reparse("select 1;/* noop */;select 2", true, false, true));
   }
 
   private String reparse(String query, boolean standardConformingStrings, boolean withParameters,

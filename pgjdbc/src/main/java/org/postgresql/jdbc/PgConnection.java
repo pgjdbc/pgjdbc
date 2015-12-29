@@ -148,8 +148,10 @@ public class PgConnection implements BaseConnection {
   private volatile Timer cancelTimer = null;
 
   // In general, it is not expected that connection would be used in multiple threads concurrently
-  // However, if client performs cleanup of statements via finalizers/phantomreferences, then it might
-  // result in AbstractJdbc2Statement.close to be called concurrently with active operation on connection
+  // However, if client performs cleanup of statements via finalizers/phantomreferences, then it
+  // might
+  // result in AbstractJdbc2Statement.close to be called concurrently with active operation on
+  // connection
   // Thus we synchronize access to avoid java.util.ConcurrentModificationException
   private final LruCache<Object, CachedQuery> statementCache;
 
@@ -204,7 +206,7 @@ public class PgConnection implements BaseConnection {
 
     boolean binaryTransfer = PGProperty.BINARY_TRANSFER.getBoolean(info);
 
-    //Print out the driver version number
+    // Print out the driver version number
     if (logger.logInfo()) {
       logger.info(Driver.getVersion());
     }
@@ -279,9 +281,8 @@ public class PgConnection implements BaseConnection {
     useBinaryReceiveForOids.addAll(binaryOids);
 
     /*
-     * Does not pass unit tests because unit tests expect setDate to have
-     * millisecond accuracy whereas the binary transfer only supports
-     * date accuracy.
+     * Does not pass unit tests because unit tests expect setDate to have millisecond accuracy
+     * whereas the binary transfer only supports date accuracy.
      */
     useBinarySendForOids.remove(Oid.DATE);
 
@@ -317,8 +318,7 @@ public class PgConnection implements BaseConnection {
 
     // Initialize timestamp stuff
     timestampUtils = new TimestampUtils(haveMinimumServerVersion(ServerVersion.v7_4),
-        haveMinimumServerVersion(ServerVersion.v8_2),
-        !protoConnection.getIntegerDateTimes());
+        haveMinimumServerVersion(ServerVersion.v8_2), !protoConnection.getIntegerDateTimes());
 
     // Initialize common queries.
     commitQuery = getQueryExecutor().createSimpleQuery("COMMIT");
@@ -343,8 +343,7 @@ public class PgConnection implements BaseConnection {
           public void evict(CachedQuery cachedQuery) throws SQLException {
             cachedQuery.query.close();
           }
-        }
-    );
+        });
 
     TypeInfo types1 = getTypeInfo();
     if (haveMinimumServerVersion(ServerVersion.v8_3)) {
@@ -487,9 +486,11 @@ public class PgConnection implements BaseConnection {
   }
 
   /**
-   * In SQL, a result table can be retrieved through a cursor that is named.  The current row of a
+   * In SQL, a result table can be retrieved through a cursor that is named. The current row of a
    * result can be updated or deleted using a positioned update/delete statement that references the
-   * cursor name. <p> We do not support positioned update/delete, so this is a no-op.
+   * cursor name.
+   * <p>
+   * We do not support positioned update/delete, so this is a no-op.
    *
    * @param cursor the cursor name
    * @throws SQLException if a database access error occurs
@@ -512,7 +513,9 @@ public class PgConnection implements BaseConnection {
 
   /**
    * We are required to bring back certain information by the DatabaseMetaData class. These
-   * functions do that. <p> Method getURL() brings back the URL (good job we saved it)
+   * functions do that.
+   * <p>
+   * Method getURL() brings back the URL (good job we saved it)
    *
    * @return the url
    * @throws SQLException just in case...
@@ -554,17 +557,17 @@ public class PgConnection implements BaseConnection {
   private LargeObjectManager largeobject = null;
 
   /*
-   * This method is used internally to return an object based around
-   * org.postgresql's more unique data types.
+   * This method is used internally to return an object based around org.postgresql's more unique
+   * data types.
    *
-   * <p>It uses an internal HashMap to get the handling class. If the
-   * type is not supported, then an instance of org.postgresql.util.PGobject
-   * is returned.
+   * <p>It uses an internal HashMap to get the handling class. If the type is not supported, then an
+   * instance of org.postgresql.util.PGobject is returned.
    *
-   * You can use the getValue() or setValue() methods to handle the returned
-   * object. Custom objects can have their own methods.
+   * You can use the getValue() or setValue() methods to handle the returned object. Custom objects
+   * can have their own methods.
    *
    * @return PGobject for this type, and set to value
+   *
    * @exception SQLException if value is not correct for this type
    */
   public Object getObject(String type, String value, byte[] byteValue) throws SQLException {
@@ -654,7 +657,8 @@ public class PgConnection implements BaseConnection {
     addDataType("money", org.postgresql.util.PGmoney.class);
     addDataType("interval", org.postgresql.util.PGInterval.class);
 
-    for (Enumeration<?> e = info.propertyNames(); e.hasMoreElements(); ) {
+    Enumeration<?> e = info.propertyNames();
+    while (e.hasMoreElements()) {
       String propertyName = (String) e.nextElement();
       if (propertyName.startsWith("datatype.")) {
         String typeName = propertyName.substring(9);
@@ -694,8 +698,7 @@ public class PgConnection implements BaseConnection {
     return buf.toString();
   }
 
-  public synchronized SQLWarning getWarnings()
-      throws SQLException {
+  public synchronized SQLWarning getWarnings() throws SQLException {
     checkClosed();
     SQLWarning newWarnings = protoConnection.getWarnings(); // NB: also clears them.
     if (firstWarning == null) {
@@ -707,8 +710,7 @@ public class PgConnection implements BaseConnection {
     return firstWarning;
   }
 
-  public synchronized void clearWarnings()
-      throws SQLException {
+  public synchronized void clearWarnings() throws SQLException {
     checkClosed();
     protoConnection.getWarnings(); // Clear and discard.
     firstWarning = null;
@@ -763,8 +765,7 @@ public class PgConnection implements BaseConnection {
       flags |= QueryExecutor.QUERY_ONESHOT;
     }
 
-    getQueryExecutor().execute(query, null, new TransactionCommandHandler(),
-        0, 0, flags);
+    getQueryExecutor().execute(query, null, new TransactionCommandHandler(), 0, 0, flags);
   }
 
   public void commit() throws SQLException {
@@ -899,7 +900,7 @@ public class PgConnection implements BaseConnection {
 
   public void setCatalog(String catalog) throws SQLException {
     checkClosed();
-    //no-op
+    // no-op
   }
 
   public String getCatalog() throws SQLException {
@@ -908,10 +909,11 @@ public class PgConnection implements BaseConnection {
   }
 
   /**
-   * Overrides finalize(). If called, it closes the connection. <p> This was done at the request of
-   * <a href="mailto:rachel@enlarion.demon.co.uk">Rachel Greenham</a> who hit a problem where
-   * multiple clients didn't close the connection, and once a fortnight enough clients were open to
-   * kill the postgres server.
+   * Overrides finalize(). If called, it closes the connection.
+   * <p>
+   * This was done at the request of <a href="mailto:rachel@enlarion.demon.co.uk">Rachel
+   * Greenham</a> who hit a problem where multiple clients didn't close the connection, and once a
+   * fortnight enough clients were open to kill the postgres server.
    */
   protected void finalize() throws Throwable {
     try {
@@ -941,8 +943,7 @@ public class PgConnection implements BaseConnection {
    */
   public int getServerMajorVersion() {
     try {
-      StringTokenizer versionTokens =
-          new StringTokenizer(protoConnection.getServerVersion(), ".");  // aaXbb.ccYdd
+      StringTokenizer versionTokens = new StringTokenizer(protoConnection.getServerVersion(), "."); // aaXbb.ccYdd
       return integerPart(versionTokens.nextToken()); // return X
     } catch (NoSuchElementException e) {
       return 0;
@@ -956,8 +957,7 @@ public class PgConnection implements BaseConnection {
    */
   public int getServerMinorVersion() {
     try {
-      StringTokenizer versionTokens =
-          new StringTokenizer(protoConnection.getServerVersion(), ".");  // aaXbb.ccYdd
+      StringTokenizer versionTokens = new StringTokenizer(protoConnection.getServerVersion(), "."); // aaXbb.ccYdd
       versionTokens.nextToken(); // Skip aaXbb
       return integerPart(versionTokens.nextToken()); // return Y
     } catch (NoSuchElementException e) {
@@ -969,8 +969,7 @@ public class PgConnection implements BaseConnection {
     int requiredver = Utils.parseServerVersionStr(ver);
     if (requiredver == 0) {
       /*
-       * Failed to parse input version. Fall back on legacy
-       * behaviour for BC.
+       * Failed to parse input version. Fall back on legacy behaviour for BC.
        */
       return (protoConnection.getServerVersion().compareTo(ver) >= 0);
     } else {
@@ -1013,8 +1012,8 @@ public class PgConnection implements BaseConnection {
   }
 
   public String escapeString(String str) throws SQLException {
-    return Utils.escapeLiteral(null, str,
-        protoConnection.getStandardConformingStrings()).toString();
+    return Utils.escapeLiteral(null, str, protoConnection.getStandardConformingStrings())
+        .toString();
   }
 
   public boolean getStandardConformingStrings() {
@@ -1212,13 +1211,13 @@ public class PgConnection implements BaseConnection {
     int start;
     int end;
 
-    for (start = 0; start < dirtyString.length() && !Character.isDigit(dirtyString.charAt(start));
-         ++start) {
+    for (start = 0; start < dirtyString.length()
+        && !Character.isDigit(dirtyString.charAt(start)); ++start) {
       ;
     }
 
-    for (end = start; end < dirtyString.length() && Character.isDigit(dirtyString.charAt(end));
-         ++end) {
+    for (end = start; end < dirtyString.length()
+        && Character.isDigit(dirtyString.charAt(end)); ++end) {
       ;
     }
 
@@ -1356,9 +1355,7 @@ public class PgConnection implements BaseConnection {
     } catch (final SQLException cause) {
       Map<String, ClientInfoStatus> failures = new HashMap<String, ClientInfoStatus>();
       failures.put(name, ClientInfoStatus.REASON_UNKNOWN);
-      throw new SQLClientInfoException(GT.tr("This connection has been closed."),
-          failures,
-          cause);
+      throw new SQLClientInfoException(GT.tr("This connection has been closed."), failures, cause);
     }
 
     if (haveMinimumServerVersion(ServerVersion.v9_0) && "ApplicationName".equals(name)) {
@@ -1395,9 +1392,7 @@ public class PgConnection implements BaseConnection {
       for (Map.Entry<Object, Object> e : properties.entrySet()) {
         failures.put((String) e.getKey(), ClientInfoStatus.REASON_UNKNOWN);
       }
-      throw new SQLClientInfoException(GT.tr("This connection has been closed."),
-          failures,
-          cause);
+      throw new SQLClientInfoException(GT.tr("This connection has been closed."), failures, cause);
     }
 
     Map<String, ClientInfoStatus> failures = new HashMap<String, ClientInfoStatus>();
@@ -1610,14 +1605,13 @@ public class PgConnection implements BaseConnection {
     return prepareStatement(sql, resultSetType, resultSetConcurrency, getHoldability());
   }
 
-  public CallableStatement prepareCall(String sql, int resultSetType,
-      int resultSetConcurrency) throws SQLException {
+  public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency)
+      throws SQLException {
     checkClosed();
     return prepareCall(sql, resultSetType, resultSetConcurrency, getHoldability());
   }
 
-  public PreparedStatement prepareStatement(String sql, int autoGeneratedKeys)
-      throws SQLException {
+  public PreparedStatement prepareStatement(String sql, int autoGeneratedKeys) throws SQLException {
     checkClosed();
     if (autoGeneratedKeys != Statement.NO_GENERATED_KEYS) {
       sql = PgStatement.addReturning(this, sql, new String[]{"*"}, false);
@@ -1632,8 +1626,7 @@ public class PgConnection implements BaseConnection {
     return ps;
   }
 
-  public PreparedStatement prepareStatement(String sql, int columnIndexes[])
-      throws SQLException {
+  public PreparedStatement prepareStatement(String sql, int columnIndexes[]) throws SQLException {
     if (columnIndexes == null || columnIndexes.length == 0) {
       return prepareStatement(sql);
     }
@@ -1643,8 +1636,7 @@ public class PgConnection implements BaseConnection {
         PSQLState.NOT_IMPLEMENTED);
   }
 
-  public PreparedStatement prepareStatement(String sql, String columnNames[])
-      throws SQLException {
+  public PreparedStatement prepareStatement(String sql, String columnNames[]) throws SQLException {
     if (columnNames != null && columnNames.length != 0) {
       sql = PgStatement.addReturning(this, sql, columnNames, true);
     }

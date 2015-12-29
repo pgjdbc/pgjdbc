@@ -66,7 +66,7 @@ class SimpleQuery implements V3Query {
    * Results are cached until/unless the query is re-described.
    *
    * @return Max size of result data in bytes according to returned fields, 0 if no results, -1 if
-   * result is unbounded.
+   *         result is unbounded.
    * @throws IllegalStateException if the query is not described
    */
   public int getMaxResultRowSize() {
@@ -83,9 +83,8 @@ class SimpleQuery implements V3Query {
         final int fieldLength = f.getLength();
         if (fieldLength < 1 || fieldLength >= 65535) {
           /*
-           * Field length unknown or large; we can't make any safe
-           * estimates about the result size, so we have to fall back to
-           * sending queries individually.
+           * Field length unknown or large; we can't make any safe estimates about the result size,
+           * so we have to fall back to sending queries individually.
            */
           maxResultRowSize = -1;
           break;
@@ -180,8 +179,8 @@ class SimpleQuery implements V3Query {
   /**
    * Returns true if current query needs field formats be adjusted as per connection configuration.
    * Subsequent invocations would return {@code false}. The idea is to perform adjustments only
-   * once, not for each {@link QueryExecutorImpl#sendBind(SimpleQuery, SimpleParameterList, Portal,
-   * boolean)}.
+   * once, not for each
+   * {@link QueryExecutorImpl#sendBind(SimpleQuery, SimpleParameterList, Portal, boolean)}.
    *
    * @return true if current query needs field formats be adjusted as per connection configuration
    */
@@ -271,5 +270,4 @@ class SimpleQuery implements V3Query {
 
   final static SimpleParameterList NO_PARAMETERS = new SimpleParameterList(0, null);
 }
-
 

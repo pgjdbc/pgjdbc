@@ -18,7 +18,7 @@ public class BaseTest extends TestCase {
     try {
       new org.postgresql.Driver();
     } catch (Exception ex) {
-            /* ignore */
+      /* ignore */
     }
   }
 

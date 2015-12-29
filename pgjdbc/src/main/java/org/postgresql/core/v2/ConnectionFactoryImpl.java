@@ -36,6 +36,7 @@ import java.sql.SQLWarning;
 import java.util.Iterator;
 import java.util.Properties;
 import java.util.StringTokenizer;
+
 import javax.net.SocketFactory;
 
 /**
@@ -55,17 +56,17 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   public ProtocolConnection openConnectionImpl(HostSpec[] hostSpecs, String user, String database,
       Properties info, Logger logger) throws SQLException {
     // Extract interesting values from the info properties:
-    //  - the SSL setting
+    // - the SSL setting
     boolean requireSSL;
     boolean trySSL;
     String sslmode = PGProperty.SSL_MODE.get(info);
-    if (sslmode == null) { //Fall back to the ssl property
+    if (sslmode == null) { // Fall back to the ssl property
       requireSSL = trySSL = PGProperty.SSL.isPresent(info);
     } else {
       if ("disable".equals(sslmode)) {
         requireSSL = trySSL = false;
-      } else if ("require".equals(sslmode) || "verify-ca".equals(sslmode) || "verify-full".equals(
-          sslmode)) {
+      } else if ("require".equals(sslmode) || "verify-ca".equals(sslmode)
+          || "verify-full".equals(sslmode)) {
         requireSSL = trySSL = true;
       } else {
         throw new PSQLException(GT.tr("Invalid sslmode value: {0}", sslmode),
@@ -73,10 +74,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       }
     }
 
-    //  - the TCP keep alive setting
+    // - the TCP keep alive setting
     boolean requireTCPKeepAlive = PGProperty.TCP_KEEP_ALIVE.getBoolean(info);
 
-    //  - the targetServerType setting
+    // - the targetServerType setting
     HostRequirement targetServerType;
     try {
       targetServerType =
@@ -92,7 +93,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     HostChooser hostChooser =
         HostChooserFactory.createHostChooser(hostSpecs, targetServerType, info);
-    for (Iterator<HostSpec> hostIter = hostChooser.iterator(); hostIter.hasNext(); ) {
+    Iterator<HostSpec> hostIter = hostChooser.iterator();
+    while (hostIter.hasNext()) {
       HostSpec hostSpec = hostIter.next();
 
       if (logger.logDebug()) {
@@ -146,9 +148,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // still more addresses to try
             continue;
           }
-          throw new PSQLException(
-              GT.tr("Could not find a server with specified targetServerType: {0}",
-                  targetServerType), PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+          throw new PSQLException(GT
+              .tr("Could not find a server with specified targetServerType: {0}", targetServerType),
+              PSQLState.CONNECTION_UNABLE_TO_CONNECT);
         }
 
         // Run some initial queries
@@ -165,8 +167,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
           // still more addresses to try
           continue;
         }
-        throw new PSQLException(GT.tr(
-            "Connection refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections."),
+        throw new PSQLException(
+            GT.tr(
+                "Connection refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections."),
             PSQLState.CONNECTION_UNABLE_TO_CONNECT, cex);
       } catch (IOException ioe) {
         closeStream(newStream);
@@ -250,9 +253,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
   private void sendStartupPacket(PGStream pgStream, String user, String database, Logger logger)
       throws IOException {
-    //  4: total size including self
-    //  2: protocol major
-    //  2: protocol minor
+    // 4: total size including self
+    // 2: protocol major
+    // 2: protocol minor
     // 64: database name
     // 32: user name
     // 64: options
@@ -268,9 +271,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     pgStream.SendInteger2(0); // protocol minor
     pgStream.Send(database.getBytes("UTF-8"), 64);
     pgStream.Send(user.getBytes("UTF-8"), 32);
-    pgStream.Send(new byte[64]);  // options
-    pgStream.Send(new byte[64]);  // unused
-    pgStream.Send(new byte[64]);  // tty
+    pgStream.Send(new byte[64]); // options
+    pgStream.Send(new byte[64]); // unused
+    pgStream.Send(new byte[64]); // tty
     pgStream.flush();
   }
 
@@ -313,16 +316,17 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               }
 
               if (password == null) {
-                throw new PSQLException(GT.tr(
-                    "The server requested password-based authentication, but no password was provided."),
+                throw new PSQLException(
+                    GT.tr(
+                        "The server requested password-based authentication, but no password was provided."),
                     PSQLState.CONNECTION_REJECTED);
               }
 
               byte[] encodedResult = UnixCrypt.crypt(salt, password.getBytes("UTF-8"));
 
               if (logger.logDebug()) {
-                logger.debug(
-                    " FE=> Password(crypt='" + new String(encodedResult, "US-ASCII") + "')");
+                logger
+                    .debug(" FE=> Password(crypt='" + new String(encodedResult, "US-ASCII") + "')");
               }
 
               pgStream.SendInteger4(4 + encodedResult.length + 1);
@@ -340,8 +344,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               }
 
               if (password == null) {
-                throw new PSQLException(GT.tr(
-                    "The server requested password-based authentication, but no password was provided."),
+                throw new PSQLException(
+                    GT.tr(
+                        "The server requested password-based authentication, but no password was provided."),
                     PSQLState.CONNECTION_REJECTED);
               }
 
@@ -365,8 +370,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               }
 
               if (password == null) {
-                throw new PSQLException(GT.tr(
-                    "The server requested password-based authentication, but no password was provided."),
+                throw new PSQLException(
+                    GT.tr(
+                        "The server requested password-based authentication, but no password was provided."),
                     PSQLState.CONNECTION_REJECTED);
               }
 
@@ -392,7 +398,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
             default:
               if (logger.logDebug()) {
-                logger.debug(" <=BE AuthenticationReq (unsupported type " + ((int) areq) + ")");
+                logger.debug(" <=BE AuthenticationReq (unsupported type " + (areq) + ")");
               }
 
               throw new PSQLException(GT.tr(
@@ -414,13 +420,13 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     while (true) {
       int beresp = pgStream.ReceiveChar();
       switch (beresp) {
-        case 'Z':  // ReadyForQuery
+        case 'Z': // ReadyForQuery
           if (logger.logDebug()) {
             logger.debug(" <=BE ReadyForQuery");
           }
           return;
 
-        case 'K':  // BackendKeyData
+        case 'K': // BackendKeyData
           int pid = pgStream.ReceiveInteger4();
           int ckey = pgStream.ReceiveInteger4();
           if (logger.logDebug()) {
@@ -429,7 +435,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
           protoConnection.setBackendKeyData(pid, ckey);
           break;
 
-        case 'E':  // ErrorResponse
+        case 'E': // ErrorResponse
           String errorMsg = pgStream.ReceiveString();
           if (logger.logDebug()) {
             logger.debug(" <=BE ErrorResponse(" + errorMsg + ")");
@@ -437,7 +443,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
           throw new PSQLException(GT.tr("Backend start-up failed: {0}.", errorMsg),
               PSQLState.CONNECTION_UNABLE_TO_CONNECT);
 
-        case 'N':  // NoticeResponse
+        case 'N': // NoticeResponse
           String warnMsg = pgStream.ReceiveString();
           if (logger.logDebug()) {
             logger.debug(" <=BE NoticeResponse(" + warnMsg + ")");

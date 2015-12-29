@@ -80,8 +80,8 @@ public class PGTimestampTest extends TestCase {
   /**
    * Executes a test with the given timestamp and interval.
    *
-   * @param timestamp    the timestamp under test.
-   * @param interval     the interval.
+   * @param timestamp the timestamp under test.
+   * @param interval the interval.
    * @param useSetObject indicates if setObject should be used instead of setTimestamp.
    * @throws SQLException if a JDBC or database problem occurs.
    */
@@ -152,9 +152,9 @@ public class PGTimestampTest extends TestCase {
    * Verifies that inserting the given <code>PGTimestamp</code> as a timestamp string and an object
    * produces the same results.
    *
-   * @param timestamp    the timestamp to test.
+   * @param timestamp the timestamp to test.
    * @param useSetObject <code>true</code> if the setObject method should be used instead of
-   *                     setTimestamp.
+   *        setTimestamp.
    * @throws SQLException if a JDBC or database problem occurs.
    */
   private void verifyInsertAndSelect(PGTimestamp timestamp, boolean useSetObject)

@@ -32,7 +32,7 @@ public class OID74Test extends TestCase {
   }
 
   public void setUp() throws Exception {
-    //set up conection here
+    // set up conection here
     Properties props = new Properties();
     props.setProperty("compatible", "7.1");
     conn = TestUtil.openDB(props);

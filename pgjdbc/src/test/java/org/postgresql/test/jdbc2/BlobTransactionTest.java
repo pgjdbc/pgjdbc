@@ -22,6 +22,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.Arrays;
+
 import javax.sql.rowset.serial.SerialBlob;
 
 /**
@@ -48,10 +49,10 @@ public class BlobTransactionTest extends TestCase {
     String sql;
 
     Statement st;
-/*
- * this would have to be executed using the postgres user in order to get access to a C function
- *
- */
+    /*
+     * this would have to be executed using the postgres user in order to get access to a C function
+     *
+     */
     Connection privilegedCon = TestUtil.openPrivilegedDB();
     st = privilegedCon.createStatement();
     try {
@@ -118,10 +119,10 @@ public class BlobTransactionTest extends TestCase {
   }
 
   public void testConcurrentReplace() throws SQLException, IOException {
-//        Statement stmt = con.createStatement();
-//        stmt.execute("INSERT INTO testblob(id,lo) VALUES ('1', lo_creat(-1))");
-//        ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");
-//        assertTrue(rs.next());
+    // Statement stmt = con.createStatement();
+    // stmt.execute("INSERT INTO testblob(id,lo) VALUES ('1', lo_creat(-1))");
+    // ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");
+    // assertTrue(rs.next());
 
     PreparedStatement pstmt = con.prepareStatement("INSERT INTO testblob(id, lo) VALUES(?,?)");
 

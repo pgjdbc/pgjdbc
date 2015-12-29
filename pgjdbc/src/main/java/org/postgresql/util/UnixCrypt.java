@@ -9,9 +9,11 @@
 package org.postgresql.util;
 
 /**
- * Contains static methods to encrypt and compare passwords with Unix encrypted passwords. <P>See <A
- * HREF="http://www.zeh.com/local/jfd/crypt.html"> John Dumas's Java Crypt page</A> for the original
- * source.</P>
+ * Contains static methods to encrypt and compare passwords with Unix encrypted passwords.
+ * <P>
+ * See <A HREF="http://www.zeh.com/local/jfd/crypt.html"> John Dumas's Java Crypt page</A> for the
+ * original source.
+ * </P>
  *
  * @author jdumas@zgs.com (John Dumas)
  */
@@ -340,7 +342,7 @@ public class UnixCrypt extends Object {
   };
 
   private static final int byteToUnsigned(byte b) {
-    int value = (int) b;
+    int value = b;
 
     return (value >= 0 ? value : value + 256);
   }
@@ -410,8 +412,10 @@ public class UnixCrypt extends Object {
     d = results[0];
     c = results[1];
 
-    d = (((d & 0x000000ff) << 16) | (d & 0x0000ff00)
-        | ((d & 0x00ff0000) >>> 16) | ((c & 0xf0000000) >>> 4));
+    d = ((d & 0x000000ff) << 16)
+        | (d & 0x0000ff00)
+        | ((d & 0x00ff0000) >>> 16)
+        | ((c & 0xf0000000) >>> 4);
     c &= 0x0fffffff;
 
     int s;
@@ -527,11 +531,13 @@ public class UnixCrypt extends Object {
   }
 
   /**
-   * <P>Encrypt a password given the cleartext password and a "salt".</P>
+   * <P>
+   * Encrypt a password given the cleartext password and a "salt".
+   * </P>
    *
-   * @param salt     A two-character string representing the salt used to iterate the encryption
-   *                 engine in lots of different ways. If you are generating a new encryption then
-   *                 this value should be randomised.
+   * @param salt A two-character string representing the salt used to iterate the encryption engine
+   *        in lots of different ways. If you are generating a new encryption then this value should
+   *        be randomised.
    * @param original The password to be encrypted.
    * @return A string consisting of the 2-character salt followed by the encrypted password.
    */
@@ -554,7 +560,7 @@ public class UnixCrypt extends Object {
     }
 
     for (int i = 0; i < key.length && i < original.length; i++) {
-      int iChar = (int) original[i];
+      int iChar = original[i];
 
       key[i] = (byte) (iChar << 1);
     }
@@ -572,7 +578,7 @@ public class UnixCrypt extends Object {
       for (int j = 0, c = 0; j < 6; j++) {
         c <<= 1;
 
-        if (((int) b[y] & u) != 0) {
+        if ((b[y] & u) != 0) {
           c |= 1;
         }
 

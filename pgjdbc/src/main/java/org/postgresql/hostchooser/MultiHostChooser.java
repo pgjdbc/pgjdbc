@@ -43,7 +43,8 @@ public class MultiHostChooser implements HostChooser {
   public Iterator<HostSpec> iterator() {
     List<HostSpecStatus> candidates =
         GlobalHostStatusTracker.getCandidateHosts(hostSpecs, targetServerType, hostRecheckTime);
-    // if no candidates are suitable (all wrong type or unavailable) then we try original list in order
+    // if no candidates are suitable (all wrong type or unavailable) then we try original list in
+    // order
     if (candidates.isEmpty()) {
       return asList(hostSpecs).iterator();
     }
@@ -69,8 +70,8 @@ public class MultiHostChooser implements HostChooser {
     int count;
     for (count = 1; count < candidates.size(); count++) {
       HostSpecStatus hostSpecStatus = candidates.get(count);
-      if (hostSpecStatus.status != null && !targetServerType.allowConnectingTo(
-          hostSpecStatus.status)) {
+      if (hostSpecStatus.status != null
+          && !targetServerType.allowConnectingTo(hostSpecStatus.status)) {
         break;
       }
     }

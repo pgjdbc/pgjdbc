@@ -28,8 +28,7 @@ import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
 /*
- * Test get/setTimestamp for both timestamp with time zone and
- * timestamp without time zone datatypes
+ * Test get/setTimestamp for both timestamp with time zone and timestamp without time zone datatypes
  *
  */
 public class TimestampTest extends TestCase {
@@ -150,15 +149,14 @@ public class TimestampTest extends TestCase {
   }
 
   /*
-   * Tests the timestamp methods in ResultSet on timestamp with time zone
-    * we insert a known string value (don't use setTimestamp) then see that
-    * we get back the same value from getTimestamp
+   * Tests the timestamp methods in ResultSet on timestamp with time zone we insert a known string
+   * value (don't use setTimestamp) then see that we get back the same value from getTimestamp
    */
   public void testGetTimestampWTZ() throws SQLException {
     Statement stmt = con.createStatement();
     TimestampUtils tsu = ((BaseConnection) con).getTimestampUtils();
 
-    //Insert the three timestamp values in raw pg format
+    // Insert the three timestamp values in raw pg format
     assertEquals(1,
         stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + TS1WTZ_PGFORMAT + "'")));
     assertEquals(1,
@@ -210,10 +208,9 @@ public class TimestampTest extends TestCase {
   }
 
   /*
-   * Tests the timestamp methods in PreparedStatement on timestamp with time zone
-    * we insert a value using setTimestamp then see that
-    * we get back the same value from getTimestamp (which we know works as it was tested
-    * independently of setTimestamp
+   * Tests the timestamp methods in PreparedStatement on timestamp with time zone we insert a value
+   * using setTimestamp then see that we get back the same value from getTimestamp (which we know
+   * works as it was tested independently of setTimestamp
    */
   public void testSetTimestampWTZ() throws SQLException {
     Statement stmt = con.createStatement();
@@ -280,15 +277,15 @@ public class TimestampTest extends TestCase {
   }
 
   /*
-   * Tests the timestamp methods in ResultSet on timestamp without time zone
-    * we insert a known string value (don't use setTimestamp) then see that
-    * we get back the same value from getTimestamp
+   * Tests the timestamp methods in ResultSet on timestamp without time zone we insert a known
+   * string value (don't use setTimestamp) then see that we get back the same value from
+   * getTimestamp
    */
   public void testGetTimestampWOTZ() throws SQLException {
     Statement stmt = con.createStatement();
     TimestampUtils tsu = ((BaseConnection) con).getTimestampUtils();
 
-    //Insert the three timestamp values in raw pg format
+    // Insert the three timestamp values in raw pg format
     assertEquals(1,
         stmt.executeUpdate(TestUtil.insertSQL(TSWOTZ_TABLE, "'" + TS1WOTZ_PGFORMAT + "'")));
     assertEquals(1,
@@ -359,10 +356,9 @@ public class TimestampTest extends TestCase {
   }
 
   /*
-   * Tests the timestamp methods in PreparedStatement on timestamp without time zone
-    * we insert a value using setTimestamp then see that
-    * we get back the same value from getTimestamp (which we know works as it was tested
-    * independently of setTimestamp
+   * Tests the timestamp methods in PreparedStatement on timestamp without time zone we insert a
+   * value using setTimestamp then see that we get back the same value from getTimestamp (which we
+   * know works as it was tested independently of setTimestamp
    */
   public void testSetTimestampWOTZ() throws SQLException {
     Statement stmt = con.createStatement();
@@ -458,7 +454,7 @@ public class TimestampTest extends TestCase {
     ResultSet rs;
     java.sql.Timestamp t;
 
-    rs = stmt.executeQuery("select ts from " + TSWTZ_TABLE); //removed the order by ts
+    rs = stmt.executeQuery("select ts from " + TSWTZ_TABLE); // removed the order by ts
     assertNotNull(rs);
 
     for (int i = 0; i < 3; i++) {
@@ -539,7 +535,7 @@ public class TimestampTest extends TestCase {
     ResultSet rs;
     java.sql.Timestamp t;
 
-    rs = stmt.executeQuery("select ts from " + TSWOTZ_TABLE); //removed the order by ts
+    rs = stmt.executeQuery("select ts from " + TSWOTZ_TABLE); // removed the order by ts
     assertNotNull(rs);
 
     for (int i = 0; i < 3; i++) {

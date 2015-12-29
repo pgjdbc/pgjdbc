@@ -13,6 +13,7 @@ import java.rmi.MarshalledObject;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
+
 import javax.naming.Binding;
 import javax.naming.Context;
 import javax.naming.Name;
@@ -25,8 +26,8 @@ import javax.naming.Referenceable;
 import javax.naming.spi.ObjectFactory;
 
 /**
- * The Context for a trivial JNDI implementation.  This is not meant to be very useful, beyond
- * testing JNDI features of the connection pools.  It is not a complete JNDI implementations.
+ * The Context for a trivial JNDI implementation. This is not meant to be very useful, beyond
+ * testing JNDI features of the connection pools. It is not a complete JNDI implementations.
  *
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  */
@@ -164,18 +165,15 @@ public class MiniJndiContext implements Context {
     return null;
   }
 
-  public String composeName(String name, String prefix)
-      throws NamingException {
+  public String composeName(String name, String prefix) throws NamingException {
     return null;
   }
 
-  public Object addToEnvironment(String propName, Object propVal)
-      throws NamingException {
+  public Object addToEnvironment(String propName, Object propVal) throws NamingException {
     return null;
   }
 
-  public Object removeFromEnvironment(String propName)
-      throws NamingException {
+  public Object removeFromEnvironment(String propName) throws NamingException {
     return null;
   }
 

@@ -75,7 +75,7 @@ public abstract class AbstractBlobClob {
   }
 
   /**
-   * For Blobs this should be in bytes while for Clobs it should be in characters.  Since we really
+   * For Blobs this should be in bytes while for Clobs it should be in characters. Since we really
    * haven't figured out how to handle character sets for Clobs the current implementation uses
    * bytes for both Blobs and Clobs.
    *
@@ -142,7 +142,7 @@ public abstract class AbstractBlobClob {
    * Iterate over the buffer looking for the specified pattern
    *
    * @param pattern A pattern of bytes to search the blob for
-   * @param start   The position to start reading from
+   * @param start The position to start reading from
    * @return position of the specified pattern
    * @throws SQLException if something wrong happens
    */
@@ -174,8 +174,7 @@ public abstract class AbstractBlobClob {
   }
 
   /**
-   * Iterates over a large object returning byte values.  Will buffer the data from the large
-   * object.
+   * Iterates over a large object returning byte values. Will buffer the data from the large object.
    */
   private class LOIterator {
     private static final int BUFFER_SIZE = 8096;
@@ -209,7 +208,7 @@ public abstract class AbstractBlobClob {
    * This is simply passing the byte value of the pattern Blob
    *
    * @param pattern search pattern
-   * @param start   start position
+   * @param start start position
    * @return position of given pattern
    * @throws SQLException if something goes wrong
    */

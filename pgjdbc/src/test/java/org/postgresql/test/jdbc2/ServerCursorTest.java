@@ -17,7 +17,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
 /*
- *  Tests for using non-zero setFetchSize().
+ * Tests for using non-zero setFetchSize().
  */
 public class ServerCursorTest extends TestCase {
   private Connection con;
@@ -49,7 +49,7 @@ public class ServerCursorTest extends TestCase {
     con.commit();
   }
 
-  //Test regular cursor fetching
+  // Test regular cursor fetching
   public void testBasicFetch() throws Exception {
     createRows(1);
 
@@ -60,7 +60,7 @@ public class ServerCursorTest extends TestCase {
     stmt = con.prepareStatement("fetch forward from test_cursor");
     ResultSet rs = stmt.executeQuery();
     while (rs.next()) {
-      //there should only be one row returned
+      // there should only be one row returned
       assertEquals("query value error", 1, rs.getInt(1));
       byte[] dataBytes = rs.getBytes(2);
       assertEquals("binary data got munged", DATA_STRING, new String(dataBytes, "UTF8"));
@@ -68,7 +68,7 @@ public class ServerCursorTest extends TestCase {
 
   }
 
-  //Test binary cursor fetching
+  // Test binary cursor fetching
   public void testBinaryFetch() throws Exception {
     createRows(1);
 
@@ -79,18 +79,20 @@ public class ServerCursorTest extends TestCase {
     stmt = con.prepareStatement("fetch forward from test_cursor");
     ResultSet rs = stmt.executeQuery();
     while (rs.next()) {
-      //there should only be one row returned
+      // there should only be one row returned
       byte[] dataBytes = rs.getBytes(2);
       assertEquals("binary data got munged", DATA_STRING, new String(dataBytes, "UTF8"));
     }
 
   }
 
-  //This string contains a variety different data:
-  //  three japanese characters representing "japanese" in japanese
-  //  the four characters "\000"
-  //  a null character
-  //  the seven ascii characters "english"
+  //CHECKSTYLE: OFF
+  // This string contains a variety different data:
+  // three japanese characters representing "japanese" in japanese
+  // the four characters "\000"
+  // a null character
+  // the seven ascii characters "english"
   private static final String DATA_STRING = "\u65E5\u672C\u8A9E\\000\u0000english";
+  //CHECKSTYLE: ON
 
 }

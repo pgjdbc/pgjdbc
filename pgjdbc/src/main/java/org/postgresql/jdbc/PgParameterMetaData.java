@@ -36,7 +36,7 @@ public class PgParameterMetaData implements ParameterMetaData {
   }
 
   /**
-   * {@inheritDoc} For now report all parameters as inputs.  CallableStatements may have one output,
+   * {@inheritDoc} For now report all parameters as inputs. CallableStatements may have one output,
    * but ignore that for now.
    */
   public int getParameterMode(int param) throws SQLException {
@@ -84,7 +84,8 @@ public class PgParameterMetaData implements ParameterMetaData {
     if (param < 1 || param > _oids.length) {
       throw new PSQLException(
           GT.tr("The parameter index is out of range: {0}, number of parameters: {1}.",
-              new Object[]{param, _oids.length}), PSQLState.INVALID_PARAMETER_VALUE);
+              new Object[]{param, _oids.length}),
+          PSQLState.INVALID_PARAMETER_VALUE);
     }
   }
 

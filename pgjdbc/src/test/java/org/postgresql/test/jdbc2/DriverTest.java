@@ -32,8 +32,7 @@ public class DriverTest extends TestCase {
   }
 
   /*
-   * This tests the acceptsURL() method with a couple of well and poorly
-   * formed jdbc urls.
+   * This tests the acceptsURL() method with a couple of well and poorly formed jdbc urls.
    */
   public void testAcceptsURL() throws Exception {
     TestUtil.initDriver(); // Set up log levels, etc.
@@ -106,9 +105,8 @@ public class DriverTest extends TestCase {
    * @throws Exception if something wrong happens
    */
   public void testConnectFailover() throws Exception {
-    String url =
-        "jdbc:postgresql://invalidhost.not.here," + TestUtil.getServer() + ":" + TestUtil.getPort()
-            + "/" + TestUtil.getDatabase() + "?connectTimeout=5";
+    String url = "jdbc:postgresql://invalidhost.not.here," + TestUtil.getServer() + ":"
+        + TestUtil.getPort() + "/" + TestUtil.getDatabase() + "?connectTimeout=5";
     Connection con = DriverManager.getConnection(url, TestUtil.getUser(), TestUtil.getPassword());
     assertNotNull(con);
     con.close();
@@ -120,9 +118,8 @@ public class DriverTest extends TestCase {
   public void testReadOnly() throws Exception {
     TestUtil.initDriver(); // Set up log levels, etc.
 
-    Connection con =
-        DriverManager.getConnection(TestUtil.getURL() + "&readOnly=true", TestUtil.getUser(),
-            TestUtil.getPassword());
+    Connection con = DriverManager.getConnection(TestUtil.getURL() + "&readOnly=true",
+        TestUtil.getUser(), TestUtil.getPassword());
     assertNotNull(con);
     assertTrue(con.isReadOnly());
     con.close();
@@ -148,8 +145,7 @@ public class DriverTest extends TestCase {
     Assert.assertTrue(org.postgresql.Driver.isRegistered());
 
     drivers = Collections.list(DriverManager.getDrivers());
-    searchInstanceOf:
-    {
+    searchInstanceOf: {
 
       for (java.sql.Driver driver : drivers) {
         if (driver instanceof org.postgresql.Driver) {
@@ -166,8 +162,8 @@ public class DriverTest extends TestCase {
     drivers = Collections.list(DriverManager.getDrivers());
     for (java.sql.Driver driver : drivers) {
       if (driver instanceof org.postgresql.Driver) {
-        Assert.fail(
-            "Driver should be deregistered but it is still present in DriverManager's list");
+        Assert
+            .fail("Driver should be deregistered but it is still present in DriverManager's list");
       }
     }
 

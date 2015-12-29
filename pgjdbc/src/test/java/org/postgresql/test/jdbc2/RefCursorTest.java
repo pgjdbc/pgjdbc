@@ -21,8 +21,7 @@ import java.sql.Statement;
 import java.sql.Types;
 
 /*
- * RefCursor ResultSet tests.
- * This test case is basically the same as the ResultSet test case.
+ * RefCursor ResultSet tests. This test case is basically the same as the ResultSet test case.
  *
  * @author Nic Ferrier <nferrier@tapsellferrier.co.uk>
  */
@@ -130,9 +129,8 @@ public class RefCursorTest extends TestCase {
   }
 
   public void testResultType() throws SQLException {
-    CallableStatement call =
-        con.prepareCall("{ ? = call testspg__getRefcursor () }", ResultSet.TYPE_SCROLL_INSENSITIVE,
-            ResultSet.CONCUR_READ_ONLY);
+    CallableStatement call = con.prepareCall("{ ? = call testspg__getRefcursor () }",
+        ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     call.registerOutParameter(1, Types.OTHER);
     call.execute();
     ResultSet rs = (ResultSet) call.getObject(1);

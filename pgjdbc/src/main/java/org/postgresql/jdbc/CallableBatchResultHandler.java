@@ -14,6 +14,6 @@ class CallableBatchResultHandler extends BatchResultHandler {
   }
 
   public void handleResultRows(Query fromQuery, Field[] fields, List tuples, ResultCursor cursor) {
-        /* ignore */
+    /* ignore */
   }
 }

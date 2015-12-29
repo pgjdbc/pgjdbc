@@ -95,7 +95,7 @@ public class TypeInfoCache implements TypeInfo {
   };
 
   /**
-   * PG maps several alias to real type names.  When we do queries against pg_catalog, we must use
+   * PG maps several alias to real type names. When we do queries against pg_catalog, we must use
    * the real type, not an alias, so use this mapping.
    */
   private final static HashMap<String, String> typeAliases;
@@ -147,7 +147,7 @@ public class TypeInfoCache implements TypeInfo {
     _pgNameToSQLType.put(pgTypeName, sqlType);
 
     // Currently we hardcode all core types array delimiter
-    // to a comma.  In a stock install the only exception is
+    // to a comma. In a stock install the only exception is
     // the box datatype and it's not a JDBC core type.
     //
     Character delim = ',';
@@ -194,17 +194,19 @@ public class TypeInfoCache implements TypeInfo {
       //
       String sql;
       if (_conn.haveMinimumServerVersion(ServerVersion.v8_0)) {
-        // in case of multiple records (in different schemas) choose the one from the current schema,
+        // in case of multiple records (in different schemas) choose the one from the current
+        // schema,
         // otherwise take the last version of a type that is at least more deterministic then before
-        // (keeping old behaviour of finding types, that should not be found without correct search path)
+        // (keeping old behaviour of finding types, that should not be found without correct search
+        // path)
         sql = "SELECT typinput='array_in'::regproc, typtype "
             + "  FROM pg_catalog.pg_type "
             + "  LEFT "
             + "  JOIN (select ns.oid as nspoid, ns.nspname, r.r "
             + "          from pg_namespace as ns "
+            // -- go with older way of unnesting array to be compatible with 8.0
             + "          join ( select s.r, (current_schemas(false))[s.r] as nspname "
-            +  //                  -- go with older way of unnesting array to be compatible with 8.0
-            "                   from generate_series(1, array_upper(current_schemas(false), 1)) as s(r) ) as r "
+            + "                   from generate_series(1, array_upper(current_schemas(false), 1)) as s(r) ) as r "
             + "         using ( nspname ) "
             + "       ) as sp "
             + "    ON sp.nspoid = typnamespace "
@@ -223,8 +225,8 @@ public class TypeInfoCache implements TypeInfo {
     _getTypeInfoStatement.setString(1, pgTypeName);
 
     // Go through BaseStatement to avoid transaction start.
-    if (!((BaseStatement) _getTypeInfoStatement).executeWithFlags(
-        QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+    if (!((BaseStatement) _getTypeInfoStatement)
+        .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
 
@@ -266,15 +268,14 @@ public class TypeInfoCache implements TypeInfo {
         String sql;
         if (_conn.haveMinimumServerVersion(ServerVersion.v8_0)) {
           // see comments in @getSQLType()
+          // -- go with older way of unnesting array to be compatible with 8.0
           sql = "SELECT pg_type.oid "
               + "  FROM pg_catalog.pg_type "
               + "  LEFT "
               + "  JOIN (select ns.oid as nspoid, ns.nspname, r.r "
               + "          from pg_namespace as ns "
               + "          join ( select s.r, (current_schemas(false))[s.r] as nspname "
-              +
-              //                  -- go with older way of unnesting array to be compatible with 8.0
-              "                   from generate_series(1, array_upper(current_schemas(false), 1)) as s(r) ) as r "
+              + "                   from generate_series(1, array_upper(current_schemas(false), 1)) as s(r) ) as r "
               + "         using ( nspname ) "
               + "       ) as sp "
               + "    ON sp.nspoid = typnamespace "
@@ -289,7 +290,8 @@ public class TypeInfoCache implements TypeInfo {
       }
       // coerce to lower case to handle upper case type names
       String lcName = pgTypeName.toLowerCase();
-      //default arrays are represented with _ as prefix ... this dont even work for public schema fully
+      // default arrays are represented with _ as prefix ... this dont even work for public schema
+      // fully
       _getOidStatementSimple.setString(1,
           isArray ? "_" + lcName.substring(0, lcName.length() - 2) : lcName);
       return _getOidStatementSimple;
@@ -319,7 +321,7 @@ public class TypeInfoCache implements TypeInfo {
     String fullName = isArray ? pgTypeName.substring(0, pgTypeName.length() - 2) : pgTypeName;
     String schema;
     String name;
-    //simple use case
+    // simple use case
     if (dotIndex == -1) {
       schema = null;
       name = fullName;
@@ -419,10 +421,10 @@ public class TypeInfoCache implements TypeInfo {
         pgTypeName = name;
         _pgNameToOid.put(schema + "." + name, oid);
       } else {
-        //TODO: escaping !?
+        // TODO: escaping !?
         pgTypeName = "\"" + schema + "\".\"" + name + "\"";
-        //if all is lowercase add special type info
-        //TODO: should probably check for all special chars
+        // if all is lowercase add special type info
+        // TODO: should probably check for all special chars
         if (schema.equals(schema.toLowerCase()) && schema.indexOf('.') == -1
             && name.equals(name.toLowerCase()) && name.indexOf('.') == -1) {
           _pgNameToOid.put(schema + "." + name, oid);
@@ -444,7 +446,7 @@ public class TypeInfoCache implements TypeInfo {
   /**
    * Return the oid of the array's base element if it's an array, if not return the provided oid.
    * This doesn't do any database lookups, so it's only useful for the originally provided type
-   * mappings.  This is fine for it's intended uses where we only have intimate knowledge of types
+   * mappings. This is fine for it's intended uses where we only have intimate knowledge of types
    * that are already known to the driver.
    *
    * @param oid input oid
@@ -482,8 +484,8 @@ public class TypeInfoCache implements TypeInfo {
     _getArrayDelimiterStatement.setInt(1, oid);
 
     // Go through BaseStatement to avoid transaction start.
-    if (!((BaseStatement) _getArrayDelimiterStatement).executeWithFlags(
-        QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+    if (!((BaseStatement) _getArrayDelimiterStatement)
+        .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
 
@@ -528,8 +530,8 @@ public class TypeInfoCache implements TypeInfo {
     _getArrayElementOidStatement.setInt(1, oid);
 
     // Go through BaseStatement to avoid transaction start.
-    if (!((BaseStatement) _getArrayElementOidStatement).executeWithFlags(
-        QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+    if (!((BaseStatement) _getArrayElementOidStatement)
+        .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
 
@@ -749,7 +751,7 @@ public class TypeInfoCache implements TypeInfo {
       case Oid.BOOL:
         return 1;
       case Oid.DATE:
-        return 13; // "4713-01-01 BC" to  "01/01/4713 BC" - "31/12/32767"
+        return 13; // "4713-01-01 BC" to "01/01/4713 BC" - "31/12/32767"
       case Oid.TIME:
       case Oid.TIMETZ:
       case Oid.TIMESTAMP:
@@ -789,7 +791,8 @@ public class TypeInfoCache implements TypeInfo {
             return 13 + 1 + 8 + secondSize + 6;
         }
       case Oid.INTERVAL:
-        return 49; // SELECT LENGTH('-123456789 years 11 months 33 days 23 hours 10.123456 seconds'::interval);
+        // SELECT LENGTH('-123456789 years 11 months 33 days 23 hours 10.123456 seconds'::interval);
+        return 49;
       case Oid.VARCHAR:
       case Oid.BPCHAR:
         if (typmod == -1) {
@@ -827,7 +830,7 @@ public class TypeInfoCache implements TypeInfo {
       case Oid.TIME:
       case Oid.TIMETZ:
         // Technically this depends on the --enable-integer-datetimes
-        // configure setting.  It is 6 with integer and 10 with float.
+        // configure setting. It is 6 with integer and 10 with float.
         return 6;
       case Oid.TIMESTAMP:
       case Oid.TIMESTAMPTZ:

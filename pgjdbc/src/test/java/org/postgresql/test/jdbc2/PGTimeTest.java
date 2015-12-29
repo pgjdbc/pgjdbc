@@ -82,10 +82,10 @@ public class PGTimeTest extends TestCase {
    * Verifies that adding the given <code>PGInterval</code> object to a <code>PGTime</code> produces
    * the correct results when performed as a casted string and object.
    *
-   * @param time         the time to test.
-   * @param interval     the time interval.
+   * @param time the time to test.
+   * @param interval the time interval.
    * @param useSetObject <code>true</code> if the setObject method should be used instead of
-   *                     setTime.
+   *        setTime.
    * @throws SQLException if a JDBC or database problem occurs.
    */
   private void verifyTimeWithInterval(PGTime time, PGInterval interval, boolean useSetObject)
@@ -109,7 +109,7 @@ public class PGTimeTest extends TestCase {
     assertTrue(rs.next());
 
     Time result1 = rs.getTime(1);
-    //System.out.println(stmt + " = " + sdf.format(result1));
+    // System.out.println(stmt + " = " + sdf.format(result1));
     stmt.close();
 
     // Execute a query using with PGTime + PGInterval.
@@ -125,7 +125,7 @@ public class PGTimeTest extends TestCase {
     assertTrue(rs.next());
 
     Time result2 = rs.getTime(1);
-    //System.out.println(stmt + " = " + sdf.format(result2));
+    // System.out.println(stmt + " = " + sdf.format(result2));
     assertEquals(result1, result2);
     stmt.close();
   }
@@ -158,9 +158,9 @@ public class PGTimeTest extends TestCase {
    * Verifies that inserting the given <code>PGTime</code> as a time string and an object produces
    * the same results.
    *
-   * @param time         the time to test.
+   * @param time the time to test.
    * @param useSetObject <code>true</code> if the setObject method should be used instead of
-   *                     setTime.
+   *        setTime.
    * @throws SQLException if a JDBC or database problem occurs.
    */
   private void verifyInsertAndSelect(PGTime time, boolean useSetObject) throws SQLException {
@@ -206,7 +206,7 @@ public class PGTimeTest extends TestCase {
     Time tm1 = rs.getTime(1);
     Time tz1 = rs.getTime(2);
 
-    //System.out.println(pstmt1 + " -> " + tm1 + ", " + sdf.format(tz1));
+    // System.out.println(pstmt1 + " -> " + tm1 + ", " + sdf.format(tz1));
 
     // Read the PGTime values.
     assertTrue(rs.next());
@@ -214,7 +214,7 @@ public class PGTimeTest extends TestCase {
     Time tm2 = rs.getTime(1);
     Time tz2 = rs.getTime(2);
 
-    //System.out.println(pstmt2 + " -> " + tm2 + ", " + sdf.format(tz2));
+    // System.out.println(pstmt2 + " -> " + tm2 + ", " + sdf.format(tz2));
 
     // Verify that the first and second versions match.
     assertEquals(tm1, tm2);

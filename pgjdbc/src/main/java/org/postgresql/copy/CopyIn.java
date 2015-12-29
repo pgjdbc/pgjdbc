@@ -26,8 +26,8 @@ public interface CopyIn extends CopyOperation {
   void writeToCopy(byte[] buf, int off, int siz) throws SQLException;
 
   /**
-   * Force any buffered output to be sent over the network to the backend.  In general this is a
-   * useless operation as it will get pushed over in due time or when endCopy is called.  Some
+   * Force any buffered output to be sent over the network to the backend. In general this is a
+   * useless operation as it will get pushed over in due time or when endCopy is called. Some
    * specific modified server versions (Truviso) want this data sooner. If you are unsure if you
    * need to use this method, don't.
    *

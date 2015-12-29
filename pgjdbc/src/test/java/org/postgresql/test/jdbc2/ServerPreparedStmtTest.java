@@ -19,7 +19,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 
 /*
- *  Tests for using server side prepared statements
+ * Tests for using server side prepared statements
  */
 public class ServerPreparedStmtTest extends TestCase {
   private Connection con;
@@ -75,19 +75,19 @@ public class ServerPreparedStmtTest extends TestCase {
     ((PGStatement) pstmt).setUseServerPrepare(true);
     assertTrue(((PGStatement) pstmt).isUseServerPrepare());
 
-    //Test that basic functionality works
+    // Test that basic functionality works
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
     assertEquals(2, rs.getInt(1));
     rs.close();
 
-    //Verify that subsequent calls still work
+    // Verify that subsequent calls still work
     rs = pstmt.executeQuery();
     assertTrue(rs.next());
     assertEquals(2, rs.getInt(1));
     rs.close();
 
-    //Verify that using the statement still works after turning off prepares
+    // Verify that using the statement still works after turning off prepares
 
 
     if (Boolean.getBoolean("org.postgresql.forceBinary")) {
@@ -109,20 +109,20 @@ public class ServerPreparedStmtTest extends TestCase {
     ((PGStatement) pstmt).setUseServerPrepare(true);
     assertTrue(((PGStatement) pstmt).isUseServerPrepare());
 
-    //Test that basic functionality works
+    // Test that basic functionality works
     pstmt.setInt(1, 2);
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
     assertEquals(2, rs.getInt(1));
     rs.close();
 
-    //Verify that subsequent calls still work
+    // Verify that subsequent calls still work
     rs = pstmt.executeQuery();
     assertTrue(rs.next());
     assertEquals(2, rs.getInt(1));
     rs.close();
 
-    //Verify that using the statement still works after turning off prepares
+    // Verify that using the statement still works after turning off prepares
     if (Boolean.getBoolean("org.postgresql.forceBinary")) {
       return;
     }
@@ -183,8 +183,8 @@ public class ServerPreparedStmtTest extends TestCase {
     ((PGStatement) pstmt).setUseServerPrepare(true);
     assertTrue(((PGStatement) pstmt).isUseServerPrepare());
 
-    //Test that basic functionality works
-    //bind different datatypes
+    // Test that basic functionality works
+    // bind different datatypes
     pstmt.setInt(1, 2);
     pstmt.setLong(2, 2);
     ResultSet rs = pstmt.executeQuery();
@@ -192,7 +192,7 @@ public class ServerPreparedStmtTest extends TestCase {
     assertEquals(2, rs.getInt(1));
     rs.close();
 
-    //Verify that subsequent calls still work
+    // Verify that subsequent calls still work
     rs = pstmt.executeQuery();
     assertTrue(rs.next());
     assertEquals(2, rs.getInt(1));
@@ -234,7 +234,7 @@ public class ServerPreparedStmtTest extends TestCase {
 
   public void testMultistatement() throws Exception {
     // Shouldn't try to PREPARE this one, if we do we get:
-    //   PREPARE x(int,int) AS INSERT .... $1 ; INSERT ... $2    -- syntax error
+    // PREPARE x(int,int) AS INSERT .... $1 ; INSERT ... $2 -- syntax error
     try {
       TestUtil.createTable(con, "testsps_multiple", "data int");
       PreparedStatement pstmt = con.prepareStatement(

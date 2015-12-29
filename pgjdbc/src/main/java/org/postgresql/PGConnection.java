@@ -62,21 +62,23 @@ public interface PGConnection {
    * This allows client code to add a handler for one of org.postgresql's more unique data types. It
    * is approximately equivalent to <code>addDataType(type, Class.forName(name))</code>.
    *
-   * @param type      JDBC type name
+   * @param type JDBC type name
    * @param className class name
    * @throws RuntimeException if the type cannot be registered (class not found, etc).
    * @deprecated As of 8.0, replaced by {@link #addDataType(String, Class)}. This deprecated method
-   * does not work correctly for registering classes that cannot be directly loaded by the JDBC
-   * driver's classloader.
+   *             does not work correctly for registering classes that cannot be directly loaded by
+   *             the JDBC driver's classloader.
    */
   public void addDataType(String type, String className);
 
   /**
    * This allows client code to add a handler for one of org.postgresql's more unique data types.
    *
-   * <p><b>NOTE:</b> This is not part of JDBC, but an extension.
+   * <p>
+   * <b>NOTE:</b> This is not part of JDBC, but an extension.
    *
-   * <p>The best way to use this is as follows:
+   * <p>
+   * The best way to use this is as follows:
    *
    * <pre>
    * ...
@@ -84,23 +86,25 @@ public interface PGConnection {
    * ...
    * </pre>
    *
-   * <p>where myconn is an open Connection to org.postgresql.
+   * <p>
+   * where myconn is an open Connection to org.postgresql.
    *
-   * <p>The handling class must extend org.postgresql.util.PGobject
+   * <p>
+   * The handling class must extend org.postgresql.util.PGobject
    *
-   * @param type  the PostgreSQL type to register
+   * @param type the PostgreSQL type to register
    * @param klass the class implementing the Java representation of the type; this class must
-   *              implement {@link org.postgresql.util.PGobject}).
-   * @throws SQLException if <code>klass</code> does not implement {@link org.postgresql.util.PGobject}).
+   *        implement {@link org.postgresql.util.PGobject}).
+   * @throws SQLException if <code>klass</code> does not implement
+   *         {@link org.postgresql.util.PGobject}).
    * @see org.postgresql.util.PGobject
    * @since 8.0
    */
-  public void addDataType(String type, Class<? extends PGobject> klass)
-      throws SQLException;
+  public void addDataType(String type, Class<? extends PGobject> klass) throws SQLException;
 
   /**
-   * Set the default statement reuse threshold before enabling server-side prepare. See {@link
-   * org.postgresql.PGStatement#setPrepareThreshold(int)} for details.
+   * Set the default statement reuse threshold before enabling server-side prepare. See
+   * {@link org.postgresql.PGStatement#setPrepareThreshold(int)} for details.
    *
    * @param threshold the new threshold
    * @since build 302

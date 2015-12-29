@@ -37,9 +37,7 @@ public class LruCacheTest extends TestCase {
 
     @Override
     public String toString() {
-      return "Entry{"
-          + "id=" + id
-          + '}';
+      return "Entry{" + "id=" + id + '}';
     }
   }
 
@@ -66,7 +64,10 @@ public class LruCacheTest extends TestCase {
   }
 
   public void testEvictsByNumberOfEntries() throws SQLException {
-    Entry a, b, c, d;
+    Entry a;
+    Entry b;
+    Entry c;
+    Entry d;
 
     a = use(1, dummy);
     b = use(2, dummy);
@@ -75,7 +76,10 @@ public class LruCacheTest extends TestCase {
   }
 
   public void testEvictsBySize() throws SQLException {
-    Entry a, b, c, d;
+    Entry a;
+    Entry b;
+    Entry c;
+    Entry d;
 
     a = use(3, dummy);
     b = use(5, dummy);
@@ -86,7 +90,10 @@ public class LruCacheTest extends TestCase {
   }
 
   public void testEvictsLeastRecentlyUsed() throws SQLException {
-    Entry a, b, c, d;
+    Entry a;
+    Entry b;
+    Entry c;
+    Entry d;
 
     a = use(1, dummy);
     b = use(2, dummy);
@@ -96,7 +103,10 @@ public class LruCacheTest extends TestCase {
   }
 
   public void testCyclicReplacement() throws SQLException {
-    Entry a, b, c, d;
+    Entry a;
+    Entry b;
+    Entry c;
+    Entry d;
 
     a = use(1, dummy);
     b = use(2, dummy);
@@ -112,7 +122,10 @@ public class LruCacheTest extends TestCase {
   }
 
   public void testCaching() throws SQLException {
-    Entry a, b, c, d;
+    Entry a;
+    Entry b;
+    Entry c;
+    Entry d;
 
     a = use(1, dummy);
     b = use(2, dummy);

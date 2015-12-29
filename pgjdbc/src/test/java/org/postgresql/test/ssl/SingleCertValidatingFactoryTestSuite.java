@@ -198,8 +198,7 @@ public class SingleCertValidatingFactoryTestSuite {
    * certificate does not match.
    */
   @Test
-  public void connectSSLWithValidationWrongCert() throws SQLException,
-      IOException {
+  public void connectSSLWithValidationWrongCert() throws SQLException, IOException {
     Properties info = new Properties();
     info.setProperty("ssl", "true");
     info.setProperty("sslfactory", "org.postgresql.ssl.SingleCertValidatingFactory");
@@ -208,8 +207,7 @@ public class SingleCertValidatingFactoryTestSuite {
   }
 
   @Test
-  public void fileCertInvalid() throws SQLException,
-      IOException {
+  public void fileCertInvalid() throws SQLException, IOException {
     Properties info = new Properties();
     info.setProperty("ssl", "true");
     info.setProperty("sslfactory", "org.postgresql.ssl.SingleCertValidatingFactory");
@@ -218,8 +216,7 @@ public class SingleCertValidatingFactoryTestSuite {
   }
 
   @Test
-  public void stringCertInvalid() throws SQLException,
-      IOException {
+  public void stringCertInvalid() throws SQLException, IOException {
     Properties info = new Properties();
     info.setProperty("ssl", "true");
     info.setProperty("sslfactory", "org.postgresql.ssl.SingleCertValidatingFactory");
@@ -233,8 +230,7 @@ public class SingleCertValidatingFactoryTestSuite {
    * certificate from a local file.
    */
   @Test
-  public void connectSSLWithValidationProperCertFile() throws SQLException,
-      IOException {
+  public void connectSSLWithValidationProperCertFile() throws SQLException, IOException {
     Properties info = new Properties();
     info.setProperty("ssl", "true");
     info.setProperty("sslfactory", "org.postgresql.ssl.SingleCertValidatingFactory");
@@ -248,8 +244,7 @@ public class SingleCertValidatingFactoryTestSuite {
    * ----- ... etc").
    */
   @Test
-  public void connectSSLWithValidationProperCertString() throws SQLException,
-      IOException {
+  public void connectSSLWithValidationProperCertString() throws SQLException, IOException {
     Properties info = new Properties();
     info.setProperty("ssl", "true");
     info.setProperty("sslfactory", "org.postgresql.ssl.SingleCertValidatingFactory");
@@ -262,8 +257,7 @@ public class SingleCertValidatingFactoryTestSuite {
    * shared certificate. The certificate is specified as a system property.
    */
   @Test
-  public void connectSSLWithValidationProperCertSysProp() throws SQLException,
-      IOException {
+  public void connectSSLWithValidationProperCertSysProp() throws SQLException, IOException {
     // System property name we're using for the SSL cert. This can be anything.
     String sysPropName = "org.postgresql.jdbc.test.sslcert";
 
@@ -291,8 +285,7 @@ public class SingleCertValidatingFactoryTestSuite {
    * Here's one way to do it: $ DATASOURCE_SSL_CERT=$(cat certdir/goodroot.crt) ant clean test
    */
   @Test
-  public void connectSSLWithValidationProperCertEnvVar() throws SQLException,
-      IOException {
+  public void connectSSLWithValidationProperCertEnvVar() throws SQLException, IOException {
     String envVarName = "DATASOURCE_SSL_CERT";
     if (System.getenv(envVarName) == null) {
       System.out.println(
@@ -312,8 +305,7 @@ public class SingleCertValidatingFactoryTestSuite {
    * having it set. This tests whether the proper exception is thrown.
    */
   @Test
-  public void connectSSLWithValidationMissingSysProp() throws SQLException,
-      IOException {
+  public void connectSSLWithValidationMissingSysProp() throws SQLException, IOException {
     // System property name we're using for the SSL cert. This can be anything.
     String sysPropName = "org.postgresql.jdbc.test.sslcert";
 
@@ -336,13 +328,12 @@ public class SingleCertValidatingFactoryTestSuite {
    * having it set. This tests whether the proper exception is thrown.
    */
   @Test
-  public void connectSSLWithValidationMissingEnvVar() throws SQLException,
-      IOException {
+  public void connectSSLWithValidationMissingEnvVar() throws SQLException, IOException {
     // Use an environment variable that does *not* exist:
     String envVarName = "MISSING_DATASOURCE_SSL_CERT";
     if (System.getenv(envVarName) != null) {
-      System.out.println(
-          "Skipping test connectSSLWithValidationMissingEnvVar (env variable is defined)");
+      System.out
+          .println("Skipping test connectSSLWithValidationMissingEnvVar (env variable is defined)");
       return;
     }
 

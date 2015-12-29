@@ -57,7 +57,7 @@ public class PSQLState implements java.io.Serializable {
   public final static PSQLState CONNECTION_DOES_NOT_EXIST = new PSQLState("08003");
 
   /**
-   * The server rejected our connection attempt.  Usually an authentication failure, but could be a
+   * The server rejected our connection attempt. Usually an authentication failure, but could be a
    * configuration error like asking for a SSL connection with a server that wasn't built with SSL
    * support.
    */

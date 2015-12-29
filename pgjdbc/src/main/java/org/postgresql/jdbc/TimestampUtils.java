@@ -123,21 +123,21 @@ public class TimestampUtils {
 
     // We try to parse these fields in order; all are optional
     // (but some combinations don't make sense, e.g. if you have
-    //  both date and time then they must be whitespace-separated).
+    // both date and time then they must be whitespace-separated).
     // At least one of date and time must be present.
 
-    //   leading whitespace
-    //   yyyy-mm-dd
-    //   whitespace
-    //   hh:mm:ss
-    //   whitespace
-    //   timezone in one of the formats:  +hh, -hh, +hh:mm, -hh:mm
-    //   whitespace
-    //   if date is present, an era specifier: AD or BC
-    //   trailing whitespace
+    // leading whitespace
+    // yyyy-mm-dd
+    // whitespace
+    // hh:mm:ss
+    // whitespace
+    // timezone in one of the formats: +hh, -hh, +hh:mm, -hh:mm
+    // whitespace
+    // if date is present, an era specifier: AD or BC
+    // trailing whitespace
 
     try {
-      int start = skipWhitespace(s, 0);   // Skip leading whitespace
+      int start = skipWhitespace(s, 0); // Skip leading whitespace
       int end = firstNonDigit(s, start);
       int num;
       char sep;
@@ -233,13 +233,13 @@ public class TimestampUtils {
         int tzmin;
         int tzsec;
 
-        end = firstNonDigit(s, start + 1);    // Skip +/-
+        end = firstNonDigit(s, start + 1); // Skip +/-
         tzhr = number(s, start + 1, end);
         start = end;
 
         sep = charAt(s, start);
         if (sep == ':') {
-          end = firstNonDigit(s, start + 1);  // Skip ':'
+          end = firstNonDigit(s, start + 1); // Skip ':'
           tzmin = number(s, start + 1, end);
           start = end;
         } else {
@@ -250,7 +250,7 @@ public class TimestampUtils {
         if (min82) {
           sep = charAt(s, start);
           if (sep == ':') {
-            end = firstNonDigit(s, start + 1);  // Skip ':'
+            end = firstNonDigit(s, start + 1); // Skip ':'
             tzsec = number(s, start + 1, end);
             start = end;
           }
@@ -261,7 +261,7 @@ public class TimestampUtils {
         // instead
         result.tz = getCalendar(tzsign, tzhr, tzmin, tzsec);
 
-        start = skipWhitespace(s, start);  // Skip trailing whitespace
+        start = skipWhitespace(s, start); // Skip trailing whitespace
       }
 
       if (result.hasDate && start < slen) {
@@ -297,7 +297,7 @@ public class TimestampUtils {
    * Parse a string and return a timestamp representing its value.
    *
    * @param cal calendar to be used to parse the input string
-   * @param s   The ISO formated date string to parse.
+   * @param s The ISO formated date string to parse.
    * @return null if s is null or a timestamp of the parsed string s.
    * @throws SQLException if there is a problem parsing s.
    */
@@ -364,7 +364,7 @@ public class TimestampUtils {
       return null;
     }
 
-    //    Note: infinite dates are handled in convertToDate
+    // Note: infinite dates are handled in convertToDate
     // 2) Truncate date part so in given time zone the date would be formatted as 00:00
     return convertToDate(timestamp.getTime(), cal == null ? null : cal.getTimeZone());
   }
@@ -546,15 +546,15 @@ public class TimestampUtils {
   /**
    * Returns the SQL Date object matching the given bytes with {@link Oid#DATE}.
    *
-   * @param tz    The timezone used.
+   * @param tz The timezone used.
    * @param bytes The binary encoded date value.
    * @return The parsed date object.
    * @throws PSQLException If binary format could not be parsed.
    */
   public Date toDateBin(TimeZone tz, byte[] bytes) throws PSQLException {
     if (bytes.length != 4) {
-      throw new PSQLException(GT.tr("Unsupported binary encoding of {0}.",
-          "date"), PSQLState.BAD_DATETIME_FORMAT);
+      throw new PSQLException(GT.tr("Unsupported binary encoding of {0}.", "date"),
+          PSQLState.BAD_DATETIME_FORMAT);
     }
     int days = ByteConverter.int4(bytes, 0);
     if (tz == null) {
@@ -578,19 +578,19 @@ public class TimestampUtils {
   }
 
   /**
-   * Returns the SQL Time object matching the given bytes with {@link Oid#TIME} or {@link
-   * Oid#TIMETZ}.
+   * Returns the SQL Time object matching the given bytes with {@link Oid#TIME} or
+   * {@link Oid#TIMETZ}.
    *
-   * @param tz    The timezone used when received data is {@link Oid#TIME}, ignored if data already
-   *              contains {@link Oid#TIMETZ}.
+   * @param tz The timezone used when received data is {@link Oid#TIME}, ignored if data already
+   *        contains {@link Oid#TIMETZ}.
    * @param bytes The binary encoded time value.
    * @return The parsed time object.
    * @throws PSQLException If binary format could not be parsed.
    */
   public Time toTimeBin(TimeZone tz, byte[] bytes) throws PSQLException {
     if ((bytes.length != 8 && bytes.length != 12)) {
-      throw new PSQLException(GT.tr("Unsupported binary encoding of {0}.",
-          "time"), PSQLState.BAD_DATETIME_FORMAT);
+      throw new PSQLException(GT.tr("Unsupported binary encoding of {0}.", "time"),
+          PSQLState.BAD_DATETIME_FORMAT);
     }
 
     long millis;
@@ -622,12 +622,12 @@ public class TimestampUtils {
   }
 
   /**
-   * Returns the SQL Timestamp object matching the given bytes with {@link Oid#TIMESTAMP} or {@link
-   * Oid#TIMESTAMPTZ}.
+   * Returns the SQL Timestamp object matching the given bytes with {@link Oid#TIMESTAMP} or
+   * {@link Oid#TIMESTAMPTZ}.
    *
-   * @param tz          The timezone used when received data is {@link Oid#TIMESTAMP}, ignored if
-   *                    data already contains {@link Oid#TIMESTAMPTZ}.
-   * @param bytes       The binary encoded timestamp value.
+   * @param tz The timezone used when received data is {@link Oid#TIMESTAMP}, ignored if data
+   *        already contains {@link Oid#TIMESTAMPTZ}.
+   * @param bytes The binary encoded timestamp value.
    * @param timestamptz True if the binary is in GMT.
    * @return The parsed timestamp object.
    * @throws PSQLException If binary format could not be parsed.
@@ -636,8 +636,8 @@ public class TimestampUtils {
       throws PSQLException {
 
     if (bytes.length != 8) {
-      throw new PSQLException(GT.tr("Unsupported binary encoding of {0}.",
-          "timestamp"), PSQLState.BAD_DATETIME_FORMAT);
+      throw new PSQLException(GT.tr("Unsupported binary encoding of {0}.", "timestamp"),
+          PSQLState.BAD_DATETIME_FORMAT);
     }
 
     long secs;
@@ -677,7 +677,8 @@ public class TimestampUtils {
     secs = toJavaSecs(secs);
     long millis = secs * 1000L;
     if (!timestamptz) {
-      // Here be dragons: backend did not provide us the timezone, so we guess the actual point in time
+      // Here be dragons: backend did not provide us the timezone, so we guess the actual point in
+      // time
       millis = guessTimestamp(millis, tz);
     }
 
@@ -695,7 +696,7 @@ public class TimestampUtils {
    * {@link Calendar} to figure out the proper timestamp.
    *
    * @param millis source timestamp
-   * @param tz     desired time zone
+   * @param tz desired time zone
    * @return timestamp that would be rendered in {@code tz} like {@code millis} in UTC
    */
   private long guessTimestamp(long millis, TimeZone tz) {
@@ -704,8 +705,9 @@ public class TimestampUtils {
       tz = getDefaultTz();
     }
     // The story here:
-    //   Backend provided us with something like '2015-10-04 13:40' and it did NOT provide us with a time zone.
-    //   On top of that, user asked us to treat the timestamp as if it were in GMT+02:00.
+    // Backend provided us with something like '2015-10-04 13:40' and it did NOT provide us with a
+    // time zone.
+    // On top of that, user asked us to treat the timestamp as if it were in GMT+02:00.
     //
     // The code below creates such a timestamp that is rendered as '2015-10-04 13:40 GMT+02:00'
     // In other words, its UTC value should be 11:40 UTC == 13:40 GMT+02:00.
@@ -716,16 +718,20 @@ public class TimestampUtils {
     // If you subtract offset from the timestamp, the time will be "a hour behind" since
     // "just a couple of hours ago the OFFSET was different"
     //
-    // To make a long story short: we have UTC timestamp that looks like "2000-03-26 02:00:01" when rendered in UTC tz.
-    // We want to know another timestamp that will look like "2000-03-26 02:00:01" in Europe/Moscow time zone.
+    // To make a long story short: we have UTC timestamp that looks like "2000-03-26 02:00:01" when
+    // rendered in UTC tz.
+    // We want to know another timestamp that will look like "2000-03-26 02:00:01" in Europe/Moscow
+    // time zone.
 
     if (isSimpleTimeZone(tz.getID())) {
       // For well-known non-DST time zones, just subtract offset
       return millis - tz.getRawOffset();
     }
     // For all the other time zones, enjoy debugging Calendar API
-    // Here we do a straight-forward implementation that splits original timestamp into pieces and composes it back.
-    // Note: cal.setTimeZone alone is not sufficient as it would alter hour (it will try to keep the same time instant value)
+    // Here we do a straight-forward implementation that splits original timestamp into pieces and
+    // composes it back.
+    // Note: cal.setTimeZone alone is not sufficient as it would alter hour (it will try to keep the
+    // same time instant value)
     Calendar cal = calendarWithUserTz;
     cal.setTimeZone(utcTz);
     cal.setTimeInMillis(millis);
@@ -757,7 +763,7 @@ public class TimestampUtils {
    * Extracts the date part from a timestamp.
    *
    * @param millis The timestamp from which to extract the date.
-   * @param tz     The time zone of the date.
+   * @param tz The time zone of the date.
    * @return The extracted date.
    */
   public Date convertToDate(long millis, TimeZone tz) {
@@ -777,9 +783,11 @@ public class TimestampUtils {
       // 1) Make sure millis becomes 15:40 in UTC, so add offset
       int offset = tz.getRawOffset();
       millis += offset;
-      // 2) Truncate hours, minutes, etc. Day is always 86400 seconds, no matter what leap seconds are
+      // 2) Truncate hours, minutes, etc. Day is always 86400 seconds, no matter what leap seconds
+      // are
       millis = millis / ONEDAY * ONEDAY;
-      // 2) Now millis is 7 Jan 00:00 UTC, however we need that in GMT+02:00, so subtract some offset
+      // 2) Now millis is 7 Jan 00:00 UTC, however we need that in GMT+02:00, so subtract some
+      // offset
       millis -= offset;
       // Now we have brand-new 7 Jan 00:00 GMT+02:00
       return new Date(millis);
@@ -799,7 +807,7 @@ public class TimestampUtils {
    * looks like 1970-01-01 in given timezone.
    *
    * @param millis The timestamp from which to extract the time.
-   * @param tz     timezone to use.
+   * @param tz timezone to use.
    * @return The extracted time.
    */
   public Time convertToTime(long millis, TimeZone tz) {
@@ -815,7 +823,8 @@ public class TimestampUtils {
       millis += offset;
       // 2) Truncate year, month, day. Day is always 86400 seconds, no matter what leap seconds are
       millis = millis % ONEDAY;
-      // 2) Now millis is 1970 1 Jan 15:40 UTC, however we need that in GMT+02:00, so subtract some offset
+      // 2) Now millis is 1970 1 Jan 15:40 UTC, however we need that in GMT+02:00, so subtract some
+      // offset
       millis -= offset;
       // Now we have brand-new 1970 1 Jan 15:40 GMT+02:00
       return new Time(millis);
@@ -902,7 +911,7 @@ public class TimestampUtils {
   /**
    * Converts the SQL Date to binary representation for {@link Oid#DATE}.
    *
-   * @param tz    The timezone used.
+   * @param tz The timezone used.
    * @param bytes The binary encoded date value.
    * @param value value
    * @throws PSQLException If binary format could not be parsed.
@@ -914,8 +923,10 @@ public class TimestampUtils {
       tz = getDefaultTz();
     }
     // It "getOffset" is UNTESTED
-    // See org.postgresql.jdbc.AbstractJdbc2Statement.setDate(int, java.sql.Date, java.util.Calendar)
-    // The problem is we typically do not know for sure what is the exact required date/timestamp type
+    // See org.postgresql.jdbc.AbstractJdbc2Statement.setDate(int, java.sql.Date,
+    // java.util.Calendar)
+    // The problem is we typically do not know for sure what is the exact required date/timestamp
+    // type
     // Thus pgjdbc sticks to text transfer.
     millis += tz.getOffset(millis);
 

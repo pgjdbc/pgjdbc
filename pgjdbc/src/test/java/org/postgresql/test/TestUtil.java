@@ -238,7 +238,7 @@ public class TestUtil {
    * now as of 4/14
    *
    * @return connection using a priviliged user mostly for tests that the ability to load C
-   * functions now as of 4/14
+   *         functions now as of 4/14
    */
   public static java.sql.Connection openPrivilegedDB() throws Exception {
 
@@ -260,8 +260,8 @@ public class TestUtil {
   }
 
   /*
-   * Helper - opens a connection with the allowance for passing
-   * additional parameters, like "compatible".
+   * Helper - opens a connection with the allowance for passing additional parameters, like
+   * "compatible".
    */
   public static java.sql.Connection openDB(Properties props) throws Exception {
     initDriver();
@@ -296,8 +296,7 @@ public class TestUtil {
   /*
    * Helper - creates a test schema for use by a test
    */
-  public static void createSchema(Connection con,
-      String schema) throws SQLException {
+  public static void createSchema(Connection con, String schema) throws SQLException {
     Statement st = con.createStatement();
     try {
       // Drop the schema
@@ -337,9 +336,7 @@ public class TestUtil {
   /*
    * Helper - creates a test table for use by a test
    */
-  public static void createTable(Connection con,
-      String table,
-      String columns) throws SQLException {
+  public static void createTable(Connection con, String table, String columns) throws SQLException {
     // by default we don't request oids.
     createTable(con, table, columns, false);
   }
@@ -347,10 +344,8 @@ public class TestUtil {
   /*
    * Helper - creates a test table for use by a test
    */
-  public static void createTable(Connection con,
-      String table,
-      String columns,
-      boolean withOids) throws SQLException {
+  public static void createTable(Connection con, String table, String columns, boolean withOids)
+      throws SQLException {
     Statement st = con.createStatement();
     try {
       // Drop the table
@@ -373,14 +368,13 @@ public class TestUtil {
   /**
    * Helper creates a temporary table
    *
-   * @param con     Connection
-   * @param table   String
+   * @param con Connection
+   * @param table String
    * @param columns String
    */
 
-  public static void createTempTable(Connection con,
-      String table,
-      String columns) throws SQLException {
+  public static void createTempTable(Connection con, String table, String columns)
+      throws SQLException {
     Statement st = con.createStatement();
     try {
       // Drop the table
@@ -396,14 +390,13 @@ public class TestUtil {
   /**
    * Helper creates an enum type
    *
-   * @param con    Connection
-   * @param name   String
+   * @param con Connection
+   * @param name String
    * @param values String
    */
 
-  public static void createEnumType(Connection con,
-      String name,
-      String values) throws SQLException {
+  public static void createEnumType(Connection con, String name, String values)
+      throws SQLException {
     Statement st = con.createStatement();
     try {
       dropType(con, name);
@@ -419,14 +412,13 @@ public class TestUtil {
   /**
    * Helper creates an composite type
    *
-   * @param con    Connection
-   * @param name   String
+   * @param con Connection
+   * @param name String
    * @param values String
    */
 
-  public static void createCompositeType(Connection con,
-      String name,
-      String values) throws SQLException {
+  public static void createCompositeType(Connection con, String name, String values)
+      throws SQLException {
     Statement st = con.createStatement();
     try {
       dropType(con, name);
@@ -440,8 +432,7 @@ public class TestUtil {
   }
 
   /*
-   * drop a sequence because older versions don't have dependency
-   * information for serials
+   * drop a sequence because older versions don't have dependency information for serials
    */
   public static void dropSequence(Connection con, String sequence) throws SQLException {
     Statement stmt = con.createStatement();
@@ -535,7 +526,9 @@ public class TestUtil {
 
   /*
    * Helper to prefix a number with leading zeros - ugly but it works...
+   *
    * @param v value to prefix
+   *
    * @param l number of digits (0-10)
    */
   public static String fix(int v, int l) {
@@ -622,11 +615,9 @@ public class TestUtil {
   }
 
   /*
-   * Find the column for the given label. Only SQLExceptions
-   * for system or set-up problems are thrown.
-   * The PSQLState.UNDEFINED_COLUMN type exception is
-   * consumed to allow cleanup. Relying on the caller
-   * to detect if the column lookup was successful.
+   * Find the column for the given label. Only SQLExceptions for system or set-up problems are
+   * thrown. The PSQLState.UNDEFINED_COLUMN type exception is consumed to allow cleanup. Relying on
+   * the caller to detect if the column lookup was successful.
    */
   public static int findColumn(PreparedStatement query, String label) throws SQLException {
     int returnValue = 0;
@@ -635,7 +626,7 @@ public class TestUtil {
       try {
         returnValue = rs.findColumn(label);
       } catch (SQLException sqle) {
-      } //consume exception to allow  cleanup of resource.
+      } // consume exception to allow cleanup of resource.
     }
     rs.close();
     return returnValue;

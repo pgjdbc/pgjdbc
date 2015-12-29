@@ -23,8 +23,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /*
- * TestCase to test the internal functionality of org.postgresql.jdbc2.Connection
- * and it's superclass.
+ * TestCase to test the internal functionality of org.postgresql.jdbc2.Connection and it's
+ * superclass.
  *
  */
 
@@ -217,8 +217,7 @@ public class ConnectionTest extends TestCase {
     assertEquals(defaultLevel, con.getTransactionIsolation());
 
     con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
-    assertEquals(Connection.TRANSACTION_SERIALIZABLE,
-        con.getTransactionIsolation());
+    assertEquals(Connection.TRANSACTION_SERIALIZABLE, con.getTransactionIsolation());
 
     con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
     assertEquals(Connection.TRANSACTION_READ_COMMITTED, con.getTransactionIsolation());
@@ -226,31 +225,28 @@ public class ConnectionTest extends TestCase {
     // Test if a change of isolation level before beginning the
     // transaction affects the isolation level inside the transaction.
     con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
-    assertEquals(Connection.TRANSACTION_SERIALIZABLE,
-        con.getTransactionIsolation());
+    assertEquals(Connection.TRANSACTION_SERIALIZABLE, con.getTransactionIsolation());
     con.setAutoCommit(false);
-    assertEquals(Connection.TRANSACTION_SERIALIZABLE,
-        con.getTransactionIsolation());
+    assertEquals(Connection.TRANSACTION_SERIALIZABLE, con.getTransactionIsolation());
     con.setAutoCommit(true);
-    assertEquals(Connection.TRANSACTION_SERIALIZABLE,
-        con.getTransactionIsolation());
+    assertEquals(Connection.TRANSACTION_SERIALIZABLE, con.getTransactionIsolation());
     con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
-    assertEquals(Connection.TRANSACTION_READ_COMMITTED,
-        con.getTransactionIsolation());
+    assertEquals(Connection.TRANSACTION_READ_COMMITTED, con.getTransactionIsolation());
     con.setAutoCommit(false);
-    assertEquals(Connection.TRANSACTION_READ_COMMITTED,
-        con.getTransactionIsolation());
+    assertEquals(Connection.TRANSACTION_READ_COMMITTED, con.getTransactionIsolation());
     con.commit();
 
     // Test that getTransactionIsolation() does not actually start a new txn.
-    con.getTransactionIsolation(); // Shouldn't start a new transaction.
-    con.setTransactionIsolation(
-        Connection.TRANSACTION_SERIALIZABLE); // Should be ok -- we're not in a transaction.
-    con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED); // Should still be ok.
+    // Shouldn't start a new transaction.
+    con.getTransactionIsolation();
+    // Should be ok -- we're not in a transaction.
+    con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+    // Should still be ok.
+    con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
 
     // Test that we can't change isolation mid-transaction
     Statement stmt = con.createStatement();
-    stmt.executeQuery("SELECT 1");          // Start transaction.
+    stmt.executeQuery("SELECT 1"); // Start transaction.
     stmt.close();
 
     try {

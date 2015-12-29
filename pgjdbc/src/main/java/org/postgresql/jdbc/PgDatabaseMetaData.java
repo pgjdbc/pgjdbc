@@ -73,8 +73,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       ResultSet rs = stmt.executeQuery(sql);
       if (!rs.next()) {
         stmt.close();
-        throw new PSQLException(GT.tr(
-            "Unable to determine a value for MaxIndexKeys due to missing system catalog data."),
+        throw new PSQLException(
+            GT.tr(
+                "Unable to determine a value for MaxIndexKeys due to missing system catalog data."),
             PSQLState.UNEXPECTED_ERROR);
       }
       INDEX_MAX_KEYS = rs.getInt(1);
@@ -108,11 +109,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
 
   public boolean allProceduresAreCallable() throws SQLException {
-    return true;  // For now...
+    return true; // For now...
   }
 
   public boolean allTablesAreSelectable() throws SQLException {
-    return true;  // For now...
+    return true; // For now...
   }
 
   public String getURL() throws SQLException {
@@ -143,13 +144,14 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return !connection.haveMinimumServerVersion(ServerVersion.v7_2);
   }
 
-  /*
-     * What is the name of this database product - we hope that it is
-     * PostgreSQL, so we return that explicitly.
-     *
-     * @return the database product name
-     * @exception SQLException if a database access error occurs
-     */
+  /**
+   * What is the name of this database product - we hope that it is PostgreSQL, so we return that
+   * explicitly.
+   *
+   * @return the database product name
+   *
+   * @exception SQLException if a database access error occurs
+   */
   public String getDatabaseProductName() throws SQLException {
     return "PostgreSQL";
   }
@@ -185,8 +187,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   /**
-   * Does the database use a file for each table?  Well, not really, since it doesnt use local
-   * files.
+   * Does the database use a file for each table? Well, not really, since it doesnt use local files.
    *
    * @return true if so
    * @throws SQLException if a database access error occurs
@@ -220,7 +221,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   /**
    * Does the database treat mixed case quoted SQL identifiers as case sensitive and as a result
-   * store them in mixed case?  A JDBC compliant driver will always return true.
+   * store them in mixed case? A JDBC compliant driver will always return true.
    *
    * @return true if so
    * @throws SQLException if a database access error occurs
@@ -242,8 +243,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   /**
-   * What is the string used to quote SQL identifiers?  This returns a space if identifier quoting
-   * isn't supported.  A JDBC Compliant driver will always use a double quote character.
+   * What is the string used to quote SQL identifiers? This returns a space if identifier quoting
+   * isn't supported. A JDBC Compliant driver will always use a double quote character.
    *
    * @return the quoting string
    * @throws SQLException if a database access error occurs
@@ -255,11 +256,14 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   /**
    * {@inheritDoc}
    *
-   * <p>Within PostgreSQL, the keywords are found in src/backend/parser/keywords.c
+   * <p>
+   * Within PostgreSQL, the keywords are found in src/backend/parser/keywords.c
    *
-   * <p>For SQL Keywords, I took the list provided at <a href="http://web.dementia.org/~shadow/sql/sql3bnf.sep93.txt">
-   * http://web.dementia.org/~shadow/sql/sql3bnf.sep93.txt</a> which is for SQL3, not SQL-92, but it
-   * is close enough for this purpose.
+   * <p>
+   * For SQL Keywords, I took the list provided at
+   * <a href="http://web.dementia.org/~shadow/sql/sql3bnf.sep93.txt"> http://web.dementia.org/~
+   * shadow/sql/sql3bnf.sep93.txt</a> which is for SQL3, not SQL-92, but it is close enough for this
+   * purpose.
    *
    * @return a comma separated list of keywords we use
    * @throws SQLException if a database access error occurs
@@ -269,37 +273,30 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   public String getNumericFunctions() throws SQLException {
-    return EscapedFunctions.ABS + ',' + EscapedFunctions.ACOS
-        + ',' + EscapedFunctions.ASIN + ',' + EscapedFunctions.ATAN
-        + ',' + EscapedFunctions.ATAN2 + ',' + EscapedFunctions.CEILING
-        + ',' + EscapedFunctions.COS + ',' + EscapedFunctions.COT
-        + ',' + EscapedFunctions.DEGREES + ',' + EscapedFunctions.EXP
-        + ',' + EscapedFunctions.FLOOR + ',' + EscapedFunctions.LOG
-        + ',' + EscapedFunctions.LOG10 + ',' + EscapedFunctions.MOD
-        + ',' + EscapedFunctions.PI + ',' + EscapedFunctions.POWER
-        + ',' + EscapedFunctions.RADIANS
-        + ',' + EscapedFunctions.ROUND + ',' + EscapedFunctions.SIGN
-        + ',' + EscapedFunctions.SIN + ',' + EscapedFunctions.SQRT
-        + ',' + EscapedFunctions.TAN + ',' + EscapedFunctions.TRUNCATE;
+    return EscapedFunctions.ABS + ',' + EscapedFunctions.ACOS + ',' + EscapedFunctions.ASIN + ','
+        + EscapedFunctions.ATAN + ',' + EscapedFunctions.ATAN2 + ',' + EscapedFunctions.CEILING
+        + ',' + EscapedFunctions.COS + ',' + EscapedFunctions.COT + ',' + EscapedFunctions.DEGREES
+        + ',' + EscapedFunctions.EXP + ',' + EscapedFunctions.FLOOR + ',' + EscapedFunctions.LOG
+        + ',' + EscapedFunctions.LOG10 + ',' + EscapedFunctions.MOD + ',' + EscapedFunctions.PI
+        + ',' + EscapedFunctions.POWER + ',' + EscapedFunctions.RADIANS + ','
+        + EscapedFunctions.ROUND + ',' + EscapedFunctions.SIGN + ',' + EscapedFunctions.SIN + ','
+        + EscapedFunctions.SQRT + ',' + EscapedFunctions.TAN + ',' + EscapedFunctions.TRUNCATE;
 
   }
 
   public String getStringFunctions() throws SQLException {
-    String funcs = EscapedFunctions.ASCII + ',' + EscapedFunctions.CHAR
-        + ',' + EscapedFunctions.CONCAT
-        + ',' + EscapedFunctions.LCASE + ',' + EscapedFunctions.LEFT
-        + ',' + EscapedFunctions.LENGTH
-        + ',' + EscapedFunctions.LTRIM + ',' + EscapedFunctions.REPEAT
-        + ',' + EscapedFunctions.RTRIM
-        + ',' + EscapedFunctions.SPACE + ',' + EscapedFunctions.SUBSTRING
-        + ',' + EscapedFunctions.UCASE;
+    String funcs = EscapedFunctions.ASCII + ',' + EscapedFunctions.CHAR + ','
+        + EscapedFunctions.CONCAT + ',' + EscapedFunctions.LCASE + ',' + EscapedFunctions.LEFT + ','
+        + EscapedFunctions.LENGTH + ',' + EscapedFunctions.LTRIM + ',' + EscapedFunctions.REPEAT
+        + ',' + EscapedFunctions.RTRIM + ',' + EscapedFunctions.SPACE + ','
+        + EscapedFunctions.SUBSTRING + ',' + EscapedFunctions.UCASE;
 
     // Currently these don't work correctly with parameterized
-    // arguments, so leave them out.  They reorder the arguments
+    // arguments, so leave them out. They reorder the arguments
     // when rewriting the query, but no translation layer is provided,
     // so a setObject(N, obj) will not go to the correct parameter.
-    //','+EscapedFunctions.INSERT+','+EscapedFunctions.LOCATE+
-    //','+EscapedFunctions.RIGHT+
+    // ','+EscapedFunctions.INSERT+','+EscapedFunctions.LOCATE+
+    // ','+EscapedFunctions.RIGHT+
 
     if (connection.haveMinimumServerVersion(ServerVersion.v7_3)) {
       funcs += ',' + EscapedFunctions.REPLACE;
@@ -310,29 +307,26 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   public String getSystemFunctions() throws SQLException {
     if (connection.haveMinimumServerVersion(ServerVersion.v7_3)) {
-      return EscapedFunctions.DATABASE + ',' + EscapedFunctions.IFNULL
-          + ',' + EscapedFunctions.USER;
+      return EscapedFunctions.DATABASE + ',' + EscapedFunctions.IFNULL + ','
+          + EscapedFunctions.USER;
     } else {
-      return EscapedFunctions.IFNULL
-          + ',' + EscapedFunctions.USER;
+      return EscapedFunctions.IFNULL + ',' + EscapedFunctions.USER;
     }
   }
 
   public String getTimeDateFunctions() throws SQLException {
-    String timeDateFuncs = EscapedFunctions.CURDATE + ',' + EscapedFunctions.CURTIME
-        + ',' + EscapedFunctions.DAYNAME + ',' + EscapedFunctions.DAYOFMONTH
-        + ',' + EscapedFunctions.DAYOFWEEK + ',' + EscapedFunctions.DAYOFYEAR
-        + ',' + EscapedFunctions.HOUR + ',' + EscapedFunctions.MINUTE
-        + ',' + EscapedFunctions.MONTH
-        + ',' + EscapedFunctions.MONTHNAME + ',' + EscapedFunctions.NOW
-        + ',' + EscapedFunctions.QUARTER + ',' + EscapedFunctions.SECOND
-        + ',' + EscapedFunctions.WEEK + ',' + EscapedFunctions.YEAR;
+    String timeDateFuncs = EscapedFunctions.CURDATE + ',' + EscapedFunctions.CURTIME + ','
+        + EscapedFunctions.DAYNAME + ',' + EscapedFunctions.DAYOFMONTH + ','
+        + EscapedFunctions.DAYOFWEEK + ',' + EscapedFunctions.DAYOFYEAR + ','
+        + EscapedFunctions.HOUR + ',' + EscapedFunctions.MINUTE + ',' + EscapedFunctions.MONTH + ','
+        + EscapedFunctions.MONTHNAME + ',' + EscapedFunctions.NOW + ',' + EscapedFunctions.QUARTER
+        + ',' + EscapedFunctions.SECOND + ',' + EscapedFunctions.WEEK + ',' + EscapedFunctions.YEAR;
 
     if (connection.haveMinimumServerVersion(ServerVersion.v8_0)) {
       timeDateFuncs += ',' + EscapedFunctions.TIMESTAMPADD;
     }
 
-    //+','+EscapedFunctions.TIMESTAMPDIFF;
+    // +','+EscapedFunctions.TIMESTAMPDIFF;
 
     return timeDateFuncs;
   }
@@ -340,10 +334,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public String getSearchStringEscape() throws SQLException {
     // This method originally returned "\\\\" assuming that it
     // would be fed directly into pg's input parser so it would
-    // need two backslashes.  This isn't how it's supposed to be
-    // used though.  If passed as a PreparedStatement parameter
+    // need two backslashes. This isn't how it's supposed to be
+    // used though. If passed as a PreparedStatement parameter
     // or fed to a DatabaseMetaData method then double backslashes
-    // are incorrect.  If you're feeding something directly into
+    // are incorrect. If you're feeding something directly into
     // a query you are responsible for correctly escaping it.
     // With 8.2+ this escaping is a little trickier because you
     // must know the setting of standard_conforming_strings, but
@@ -355,11 +349,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   /**
    * {@inheritDoc}
    *
-   * <p>Postgresql allows any high-bit character to be used in an unquoted identifer, so we can't
+   * <p>
+   * Postgresql allows any high-bit character to be used in an unquoted identifer, so we can't
    * possibly list them all.
    *
    * From the file src/backend/parser/scan.l, an identifier is ident_start [A-Za-z\200-\377_]
-   * ident_cont  [A-Za-z\200-\377_0-9\$] identifier  {ident_start}{ident_cont}*
+   * ident_cont [A-Za-z\200-\377_0-9\$] identifier {ident_start}{ident_cont}*
    *
    * @return a string containing the extra characters
    * @throws SQLException if a database access error occurs
@@ -437,17 +432,19 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   /*
-     * {@inheritDoc}
-     * @return true if connected to PostgreSQL 6.4+
-     */
+   * {@inheritDoc}
+   *
+   * @return true if connected to PostgreSQL 6.4+
+   */
   public boolean supportsGroupByBeyondSelect() throws SQLException {
     return connection.haveMinimumServerVersion(ServerVersion.v6_4);
   }
 
   /*
-     * {@inheritDoc}
-     * @return true if connected to PostgreSQL 7.1+
-     */
+   * {@inheritDoc}
+   *
+   * @return true if connected to PostgreSQL 7.1+
+   */
   public boolean supportsLikeEscapeClause() throws SQLException {
     return connection.haveMinimumServerVersion(ServerVersion.v7_1);
   }
@@ -469,10 +466,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
    *
    * This grammar is defined at:
    *
-   * <p><a href="http://www.microsoft.com/msdn/sdk/platforms/doc/odbc/src/intropr.htm">http://www.microsoft.com/msdn/sdk/platforms/doc/odbc/src/intropr.htm</a>
+   * <p>
+   * <a href="http://www.microsoft.com/msdn/sdk/platforms/doc/odbc/src/intropr.htm">http://www.
+   * microsoft.com/msdn/sdk/platforms/doc/odbc/src/intropr.htm</a>
    *
-   * <p>In Appendix C.  From this description, we seem to support the ODBC minimal (Level 0)
-   * grammar.
+   * <p>
+   * In Appendix C. From this description, we seem to support the ODBC minimal (Level 0) grammar.
    *
    * @return true
    */
@@ -491,7 +490,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   /**
-   * Does this driver support the Extended (Level 2) ODBC SQL grammar.  We don't conform to the Core
+   * Does this driver support the Extended (Level 2) ODBC SQL grammar. We don't conform to the Core
    * (Level 1), so we can't conform to the Extended SQL Grammar.
    *
    * @return false
@@ -503,7 +502,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   /**
    * Does this driver support the ANSI-92 entry level SQL grammar? All JDBC Compliant drivers must
-   * return true. We currently report false until 'schema' support is added.  Then this should be
+   * return true. We currently report false until 'schema' support is added. Then this should be
    * changed to return true, since we will be mostly compliant (probably more compliant than many
    * other databases) And since this is a requirement for all JDBC drivers we need to get to the
    * point where we can return true.
@@ -534,12 +533,13 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   /*
-     * Is the SQL Integrity Enhancement Facility supported?
-     * Our best guess is that this means support for constraints
-     *
-     * @return true
-     * @exception SQLException if a database access error occurs
-     */
+   * Is the SQL Integrity Enhancement Facility supported? Our best guess is that this means support
+   * for constraints
+   *
+   * @return true
+   *
+   * @exception SQLException if a database access error occurs
+   */
   public boolean supportsIntegrityEnhancementFacility() throws SQLException {
     return true;
   }
@@ -572,8 +572,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   /**
-   * {@inheritDoc} <p>PostgreSQL doesn't have schemas, but when it does, we'll use the term
-   * "schema".
+   * {@inheritDoc}
+   * <p>
+   * PostgreSQL doesn't have schemas, but when it does, we'll use the term "schema".
    *
    * @return {@code "schema"}
    */
@@ -673,17 +674,17 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   /**
-   * We support cursors for gets only it seems.  I dont see a method to get a positioned delete.
+   * We support cursors for gets only it seems. I dont see a method to get a positioned delete.
    *
    * @return false
    * @throws SQLException if a database access error occurs
    */
   public boolean supportsPositionedDelete() throws SQLException {
-    return false;   // For now...
+    return false; // For now...
   }
 
   public boolean supportsPositionedUpdate() throws SQLException {
-    return false;   // For now...
+    return false; // For now...
   }
 
   /**
@@ -754,9 +755,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   /**
-   * {@inheritDoc} <p>Can statements remain open across commits?  They may, but this driver cannot
-   * guarentee that.  In further reflection. we are talking a Statement object here, so the answer
-   * is yes, since the Statement is only a vehicle to ExecSQL()
+   * {@inheritDoc}
+   * <p>
+   * Can statements remain open across commits? They may, but this driver cannot guarentee that. In
+   * further reflection. we are talking a Statement object here, so the answer is yes, since the
+   * Statement is only a vehicle to ExecSQL()
    *
    * @return true
    */
@@ -765,9 +768,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   /**
-   * {@inheritDoc} <p>Can statements remain open across rollbacks?  They may, but this driver cannot
-   * guarentee that.  In further contemplation, we are talking a Statement object here, so the
-   * answer is yes, since the Statement is only a vehicle to ExecSQL() in Connection
+   * {@inheritDoc}
+   * <p>
+   * Can statements remain open across rollbacks? They may, but this driver cannot guarentee that.
+   * In further contemplation, we are talking a Statement object here, so the answer is yes, since
+   * the Statement is only a vehicle to ExecSQL() in Connection
    *
    * @return true
    */
@@ -807,9 +812,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
    * {@inheritDoc} What is the maximum number of columns in a table? From the CREATE TABLE reference
    * page...
    *
-   * <p>"The new class is created as a heap with no initial data.  A class can have no more than
-   * 1600 attributes (realistically, this is limited by the fact that tuple sizes must be less than
-   * 8192 bytes)..."
+   * <p>
+   * "The new class is created as a heap with no initial data. A class can have no more than 1600
+   * attributes (realistically, this is limited by the fact that tuple sizes must be less than 8192
+   * bytes)..."
    *
    * @return the max columns
    * @throws SQLException if a database access error occurs
@@ -819,9 +825,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   /**
-   * {@inheritDoc} How many active connection can we have at a time to this database?  Well, since
-   * it depends on postmaster, which just does a listen() followed by an accept() and fork(), its
-   * basically very high.  Unless the system runs out of processes, it can be 65535 (the number of
+   * {@inheritDoc} How many active connection can we have at a time to this database? Well, since it
+   * depends on postmaster, which just does a listen() followed by an accept() and fork(), its
+   * basically very high. Unless the system runs out of processes, it can be 65535 (the number of
    * aux. ports on a TCP/IP system). I will return 8192 since that is what even the largest system
    * can realistically handle,
    *
@@ -856,7 +862,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     if (connection.haveMinimumServerVersion(ServerVersion.v7_1)) {
       return 1073741824; // 1 GB
     } else {
-      return 8192;  // XXX could be altered
+      return 8192; // XXX could be altered
     }
   }
 
@@ -866,7 +872,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   public int getMaxStatementLength() throws SQLException {
     if (connection.haveMinimumServerVersion(ServerVersion.v7_0)) {
-      return 0;  // actually whatever fits in size_t
+      return 0; // actually whatever fits in size_t
     } else {
       return 16384;
     }
@@ -897,15 +903,17 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   /**
-   * {@inheritDoc} <p>We only support TRANSACTION_SERIALIZABLE and TRANSACTION_READ_COMMITTED before
-   * 8.0; from 8.0 READ_UNCOMMITTED and REPEATABLE_READ are accepted aliases for READ_COMMITTED.
+   * {@inheritDoc}
+   * <p>
+   * We only support TRANSACTION_SERIALIZABLE and TRANSACTION_READ_COMMITTED before 8.0; from 8.0
+   * READ_UNCOMMITTED and REPEATABLE_READ are accepted aliases for READ_COMMITTED.
    */
   public boolean supportsTransactionIsolationLevel(int level) throws SQLException {
     if (level == Connection.TRANSACTION_SERIALIZABLE
         || level == Connection.TRANSACTION_READ_COMMITTED) {
       return true;
-    } else if (connection.haveMinimumServerVersion(ServerVersion.v8_0) && (
-        level == Connection.TRANSACTION_READ_UNCOMMITTED
+    } else if (connection.haveMinimumServerVersion(ServerVersion.v8_0)
+        && (level == Connection.TRANSACTION_READ_UNCOMMITTED
             || level == Connection.TRANSACTION_REPEATABLE_READ)) {
       return true;
     } else {
@@ -922,8 +930,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   /**
-   * Does a data definition statement within a transaction force the transaction to commit?  It
-   * seems to mean something like:
+   * Does a data definition statement within a transaction force the transaction to commit? It seems
+   * to mean something like:
    *
    * <pre>
    * CREATE TABLE T (A INT);
@@ -935,7 +943,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
    * COMMIT;
    * </pre>
    *
-   * does the CREATE TABLE call cause a commit?  The answer is no.
+   * does the CREATE TABLE call cause a commit? The answer is no.
    *
    * @return true if so
    * @throws SQLException if a database access error occurs
@@ -949,7 +957,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   /**
-   * Turn the provided value into a valid string literal for direct inclusion into a query.  This
+   * Turn the provided value into a valid string literal for direct inclusion into a query. This
    * includes the single quotes needed around it.
    *
    * @param s input value
@@ -958,8 +966,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
    */
   protected String escapeQuotes(String s) throws SQLException {
     StringBuilder sb = new StringBuilder();
-    if (!connection.getStandardConformingStrings() && connection.haveMinimumServerVersion(
-        ServerVersion.v8_1)) {
+    if (!connection.getStandardConformingStrings()
+        && connection.haveMinimumServerVersion(ServerVersion.v8_1)) {
       sb.append("E");
     }
     sb.append("'");
@@ -1035,13 +1043,13 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   protected java.sql.ResultSet getProcedureColumns(int jdbcVersion, String catalog,
       String schemaPattern, String procedureNamePattern, String columnNamePattern)
-      throws SQLException {
+          throws SQLException {
     int columns = 13;
     if (jdbcVersion >= 4) {
       columns += 7;
     }
     Field f[] = new Field[columns];
-    List<byte[][]> v = new ArrayList<byte[][]>();  // The new ResultSet tuple stuff
+    List<byte[][]> v = new ArrayList<byte[][]>(); // The new ResultSet tuple stuff
 
     f[0] = new Field("PROCEDURE_CAT", Oid.VARCHAR);
     f[1] = new Field("PROCEDURE_SCHEM", Oid.VARCHAR);
@@ -1159,17 +1167,17 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         tuple[1] = schema;
         tuple[2] = procedureName;
         tuple[3] = connection.encodeString("returnValue");
-        tuple[4] = connection.encodeString(
-            Integer.toString(java.sql.DatabaseMetaData.procedureColumnReturn));
-        tuple[5] = connection.encodeString(
-            Integer.toString(connection.getTypeInfo().getSQLType(returnType)));
+        tuple[4] = connection
+            .encodeString(Integer.toString(java.sql.DatabaseMetaData.procedureColumnReturn));
+        tuple[5] = connection
+            .encodeString(Integer.toString(connection.getTypeInfo().getSQLType(returnType)));
         tuple[6] = connection.encodeString(connection.getTypeInfo().getPGType(returnType));
         tuple[7] = null;
         tuple[8] = null;
         tuple[9] = null;
         tuple[10] = null;
-        tuple[11] = connection.encodeString(
-            Integer.toString(java.sql.DatabaseMetaData.procedureNullableUnknown));
+        tuple[11] = connection
+            .encodeString(Integer.toString(java.sql.DatabaseMetaData.procedureNullableUnknown));
         tuple[12] = null;
         if (jdbcVersion >= 4) {
           tuple[17] = connection.encodeString(Integer.toString(0));
@@ -1245,17 +1253,17 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           tuple[1] = schema;
           tuple[2] = procedureName;
           tuple[3] = columnrs.getBytes("attname");
-          tuple[4] = connection.encodeString(
-              Integer.toString(java.sql.DatabaseMetaData.procedureColumnResult));
-          tuple[5] = connection.encodeString(
-              Integer.toString(connection.getTypeInfo().getSQLType(columnTypeOid)));
+          tuple[4] = connection
+              .encodeString(Integer.toString(java.sql.DatabaseMetaData.procedureColumnResult));
+          tuple[5] = connection
+              .encodeString(Integer.toString(connection.getTypeInfo().getSQLType(columnTypeOid)));
           tuple[6] = connection.encodeString(connection.getTypeInfo().getPGType(columnTypeOid));
           tuple[7] = null;
           tuple[8] = null;
           tuple[9] = null;
           tuple[10] = null;
-          tuple[11] = connection.encodeString(
-              Integer.toString(java.sql.DatabaseMetaData.procedureNullableUnknown));
+          tuple[11] = connection
+              .encodeString(Integer.toString(java.sql.DatabaseMetaData.procedureNullableUnknown));
           tuple[12] = null;
           if (jdbcVersion >= 4) {
             tuple[17] = connection.encodeString(Integer.toString(0));
@@ -1271,7 +1279,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     rs.close();
     stmt.close();
 
-    return (ResultSet) ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
   public java.sql.ResultSet getTables(String catalog, String schemaPattern, String tableNamePattern,
@@ -1540,7 +1548,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     tuple[0] = connection.encodeString(connection.getCatalog());
     v.add(tuple);
 
-    return (ResultSet) ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
   public java.sql.ResultSet getTableTypes() throws SQLException {
@@ -1561,7 +1569,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       v.add(tuple);
     }
 
-    return (ResultSet) ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
   protected java.sql.ResultSet getColumns(int jdbcVersion, String catalog, String schemaPattern,
@@ -1574,8 +1582,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     } else {
       numberOfFields = 18;
     }
-    List<byte[][]> v = new ArrayList<byte[][]>();  // The new ResultSet tuple stuff
-    Field f[] = new Field[numberOfFields];  // The field descriptors for the new ResultSet
+    List<byte[][]> v = new ArrayList<byte[][]>(); // The new ResultSet tuple stuff
+    Field f[] = new Field[numberOfFields]; // The field descriptors for the new ResultSet
 
     f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
     f[1] = new Field("TABLE_SCHEM", Oid.VARCHAR);
@@ -1698,7 +1706,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       int typeOid = (int) rs.getLong("atttypid");
       int typeMod = rs.getInt("atttypmod");
 
-      tuple[0] = null;     // Catalog name, not supported
+      tuple[0] = null; // Catalog name, not supported
       tuple[1] = rs.getBytes("nspname"); // Schema
       tuple[2] = rs.getBytes("relname"); // Table name
       tuple[3] = rs.getBytes("attname"); // Column name
@@ -1718,7 +1726,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       tuple[4] = connection.encodeString(Integer.toString(sqlType));
       String pgType = connection.getTypeInfo().getPGType(typeOid);
       tuple[5] = connection.encodeString(pgType); // Type name
-      tuple[7] = null;      // Buffer length
+      tuple[7] = null; // Buffer length
 
 
       String defval = rs.getString("adsrc");
@@ -1751,17 +1759,16 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         tuple[9] = connection.encodeString("2");
       }
 
-      tuple[10] = connection.encodeString(Integer.toString(
-          rs.getBoolean("attnotnull") ? java.sql.DatabaseMetaData.columnNoNulls
-              : java.sql.DatabaseMetaData.columnNullable)); // Nullable
-      tuple[11] = rs.getBytes("description");    // Description (if any)
-      tuple[12] = rs.getBytes("adsrc");    // Column default
-      tuple[13] = null;      // sql data type (unused)
-      tuple[14] = null;      // sql datetime sub (unused)
-      tuple[15] = tuple[6];     // char octet length
+      tuple[10] = connection.encodeString(Integer.toString(rs.getBoolean("attnotnull")
+          ? java.sql.DatabaseMetaData.columnNoNulls : java.sql.DatabaseMetaData.columnNullable)); // Nullable
+      tuple[11] = rs.getBytes("description"); // Description (if any)
+      tuple[12] = rs.getBytes("adsrc"); // Column default
+      tuple[13] = null; // sql data type (unused)
+      tuple[14] = null; // sql datetime sub (unused)
+      tuple[15] = tuple[6]; // char octet length
       tuple[16] = connection.encodeString(String.valueOf(rs.getInt("attnum"))); // ordinal position
-      tuple[17] =
-          connection.encodeString(rs.getBoolean("attnotnull") ? "NO" : "YES"); // Is nullable
+      // Is nullable
+      tuple[17] = connection.encodeString(rs.getBoolean("attnotnull") ? "NO" : "YES");
 
       if (jdbcVersion >= 3) {
         int baseTypeOid = (int) rs.getLong("typbasetype");
@@ -1769,8 +1776,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         tuple[18] = null; // SCOPE_CATLOG
         tuple[19] = null; // SCOPE_SCHEMA
         tuple[20] = null; // SCOPE_TABLE
-        tuple[21] = baseTypeOid == 0 ? null : connection.encodeString(
-            Integer.toString(connection.getTypeInfo().getSQLType(baseTypeOid))); // SOURCE_DATA_TYPE
+        tuple[21] = baseTypeOid == 0 ? null
+            : connection
+                .encodeString(Integer.toString(connection.getTypeInfo().getSQLType(baseTypeOid))); // SOURCE_DATA_TYPE
       }
 
       if (jdbcVersion >= 4) {
@@ -1786,7 +1794,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     rs.close();
     stmt.close();
 
-    return (ResultSet) ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
   public java.sql.ResultSet getColumns(String catalog, String schemaPattern,
@@ -1909,7 +1917,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     rs.close();
     stmt.close();
 
-    return (ResultSet) ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
   public java.sql.ResultSet getTablePrivileges(String catalog, String schemaPattern,
@@ -1995,7 +2003,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     rs.close();
     stmt.close();
 
-    return (ResultSet) ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
   private static void sortStringArray(String s[]) {
@@ -2152,12 +2160,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
    * name to a List of usernames who have that permission.
    *
    * @param aclArray ACL array
-   * @param owner    owner
+   * @param owner owner
    * @return a Map mapping the SQL permission name
    */
   public Map<String, Map<String, List<String[]>>> parseACL(String aclArray, String owner) {
     if (aclArray == null) {
-      //null acl is a shortcut for owner having full privs
+      // null acl is a shortcut for owner having full privs
       String perms = "arwdRxt";
       if (connection.haveMinimumServerVersion(ServerVersion.v8_2)) {
         // 8.2 Removed the separate RULE permission
@@ -2181,7 +2189,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public java.sql.ResultSet getBestRowIdentifier(String catalog, String schema, String table,
       int scope, boolean nullable) throws SQLException {
     Field f[] = new Field[8];
-    List<byte[][]> v = new ArrayList<byte[][]>();  // The new ResultSet tuple stuff
+    List<byte[][]> v = new ArrayList<byte[][]>(); // The new ResultSet tuple stuff
 
     f[0] = new Field("SCOPE", Oid.INT2);
     f[1] = new Field("COLUMN_NAME", Oid.VARCHAR);
@@ -2192,9 +2200,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[6] = new Field("DECIMAL_DIGITS", Oid.INT2);
     f[7] = new Field("PSEUDO_COLUMN", Oid.INT2);
 
-    /* At the moment this simply returns a table's primary key,
-     * if there is one.  I believe other unique indexes, ctid,
-     * and oid should also be considered. -KJ
+    /*
+     * At the moment this simply returns a table's primary key, if there is one. I believe other
+     * unique indexes, ctid, and oid should also be considered. -KJ
      */
 
     String sql;
@@ -2261,13 +2269,13 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     rs.close();
     stmt.close();
 
-    return (ResultSet) ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
   public java.sql.ResultSet getVersionColumns(String catalog, String schema, String table)
       throws SQLException {
     Field f[] = new Field[8];
-    List<byte[][]> v = new ArrayList<byte[][]>();  // The new ResultSet tuple stuff
+    List<byte[][]> v = new ArrayList<byte[][]>(); // The new ResultSet tuple stuff
 
     f[0] = new Field("SCOPE", Oid.INT2);
     f[1] = new Field("COLUMN_NAME", Oid.VARCHAR);
@@ -2280,14 +2288,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     byte tuple[][] = new byte[8][];
 
-    /* Postgresql does not have any column types that are
-     * automatically updated like some databases' timestamp type.
-     * We can't tell what rules or triggers might be doing, so we
-     * are left with the system columns that change on an update.
-     * An update may change all of the following system columns:
-     * ctid, xmax, xmin, cmax, and cmin.  Depending on if we are
-     * in a transaction and wether we roll it back or not the
-     * only guaranteed change is to ctid. -KJ
+    /*
+     * Postgresql does not have any column types that are automatically updated like some databases'
+     * timestamp type. We can't tell what rules or triggers might be doing, so we are left with the
+     * system columns that change on an update. An update may change all of the following system
+     * columns: ctid, xmax, xmin, cmax, and cmin. Depending on if we are in a transaction and wether
+     * we roll it back or not the only guaranteed change is to ctid. -KJ
      */
 
     tuple[0] = null;
@@ -2302,10 +2308,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.versionColumnPseudo));
     v.add(tuple);
 
-    /* Perhaps we should check that the given
-     * catalog.schema.table actually exists. -KJ
+    /*
+     * Perhaps we should check that the given catalog.schema.table actually exists. -KJ
      */
-    return (ResultSet) ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
   public java.sql.ResultSet getPrimaryKeys(String catalog, String schema, String table)
@@ -2368,17 +2374,17 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   /**
    * @param primaryCatalog primary catalog
-   * @param primarySchema  primary schema
-   * @param primaryTable   if provided will get the keys exported by this table
+   * @param primarySchema primary schema
+   * @param primaryTable if provided will get the keys exported by this table
    * @param foreignCatalog foreign catalog
-   * @param foreignSchema  foreign schema
-   * @param foreignTable   if provided will get the keys imported by this table
+   * @param foreignSchema foreign schema
+   * @param foreignTable if provided will get the keys imported by this table
    * @return ResultSet
    * @throws SQLException if something wrong happens
    */
   protected java.sql.ResultSet getImportedExportedKeys(String primaryCatalog, String primarySchema,
       String primaryTable, String foreignCatalog, String foreignSchema, String foreignTable)
-      throws SQLException {
+          throws SQLException {
     Field f[] = new Field[14];
 
     f[0] = new Field("PKTABLE_CAT", Oid.VARCHAR);
@@ -2402,14 +2408,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     String where = "";
 
     /*
-     * The addition of the pg_constraint in 7.3 table should have really
-     * helped us out here, but it comes up just a bit short.
-     * - The conkey, confkey columns aren't really useful without
-     *   contrib/array unless we want to issues separate queries.
-     * - Unique indexes that can support foreign keys are not necessarily
-     *   added to pg_constraint.  Also multiple unique indexes covering
-     *   the same keys can be created which make it difficult to determine
-     *   the PK_NAME field.
+     * The addition of the pg_constraint in 7.3 table should have really helped us out here, but it
+     * comes up just a bit short. - The conkey, confkey columns aren't really useful without
+     * contrib/array unless we want to issues separate queries. - Unique indexes that can support
+     * foreign keys are not necessarily added to pg_constraint. Also multiple unique indexes
+     * covering the same keys can be created which make it difficult to determine the PK_NAME field.
      */
 
     if (connection.haveMinimumServerVersion(ServerVersion.v7_4)) {
@@ -2568,31 +2571,34 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     // create table people ( id int primary key);
     // create table policy ( id int primary key);
-    // create table users  ( id int primary key, people_id int references people(id), policy_id int references policy(id))
+    // create table users ( id int primary key, people_id int references people(id), policy_id int
+    // references policy(id))
 
-    // prelname | frelname | tgconstrname | keyseq | fkeyName  | tgdeferrable | tginitdeferred
-    //   1  |  2    |   3    |    4   |  5   |   6  |  7
+    // prelname | frelname | tgconstrname | keyseq | fkeyName | tgdeferrable | tginitdeferred
+    // 1 | 2 | 3 | 4 | 5 | 6 | 7
 
-    // people | users    | <unnamed>   |    1   | people_pkey |   f  |  f
+    // people | users | <unnamed> | 1 | people_pkey | f | f
 
-    // | tgnargs |        tgargs           | updaterule    | deleterule
-    // | 8  |       9            |    10     |   11
-    // | 6  | <unnamed>\000users\000people\000UNSPECIFIED\000people_id\000id\000 | RI_FKey_noaction_upd | RI_FKey_noaction_del
+    // | tgnargs | tgargs | updaterule | deleterule
+    // | 8 | 9 | 10 | 11
+    // | 6 | <unnamed>\000users\000people\000UNSPECIFIED\000people_id\000id\000 |
+    // RI_FKey_noaction_upd | RI_FKey_noaction_del
 
     List<byte[][]> tuples = new ArrayList<byte[][]>();
 
     while (rs.next()) {
       byte tuple[][] = new byte[14][];
 
-      tuple[1] = rs.getBytes(1); //PKTABLE_SCHEM
-      tuple[5] = rs.getBytes(2); //FKTABLE_SCHEM
-      tuple[2] = rs.getBytes(3); //PKTABLE_NAME
-      tuple[6] = rs.getBytes(4); //FKTABLE_NAME
+      tuple[1] = rs.getBytes(1); // PKTABLE_SCHEM
+      tuple[5] = rs.getBytes(2); // FKTABLE_SCHEM
+      tuple[2] = rs.getBytes(3); // PKTABLE_NAME
+      tuple[6] = rs.getBytes(4); // FKTABLE_NAME
       String fKeyName = rs.getString(5);
       String updateRule = rs.getString(12);
 
       if (updateRule != null) {
-        // Rules look like this RI_FKey_noaction_del so we want to pull out the part between the 'Key_' and the last '_' s
+        // Rules look like this RI_FKey_noaction_del so we want to pull out the part between the
+        // 'Key_' and the last '_' s
 
         String rule = updateRule.substring(8, updateRule.length() - 4);
 
@@ -2635,7 +2641,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       }
 
 
-      int keySequence = rs.getInt(6); //KEY_SEQ
+      int keySequence = rs.getInt(6); // KEY_SEQ
 
       // Parse the tgargs data
       String fkeyColumn = "";
@@ -2649,7 +2655,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       String targs = rs.getString(11);
 
       // args look like this
-      //<unnamed>\000ww\000vv\000UNSPECIFIED\000m\000a\000n\000b\000
+      // <unnamed>\000ww\000vv\000UNSPECIFIED\000m\000a\000n\000b\000
       // we are primarily interested in the column names which are the last items in the string
 
       List<String> tokens = tokenize(targs, "\\000");
@@ -2671,13 +2677,13 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         pkeyColumn = tokens.get(element);
       }
 
-      tuple[3] = connection.encodeString(pkeyColumn); //PKCOLUMN_NAME
-      tuple[7] = connection.encodeString(fkeyColumn); //FKCOLUMN_NAME
+      tuple[3] = connection.encodeString(pkeyColumn); // PKCOLUMN_NAME
+      tuple[7] = connection.encodeString(fkeyColumn); // FKCOLUMN_NAME
 
-      tuple[8] = rs.getBytes(6); //KEY_SEQ
-      tuple[11] = connection.encodeString(
-          fkName); //FK_NAME this will give us a unique name for the foreign key
-      tuple[12] = rs.getBytes(7); //PK_NAME
+      tuple[8] = rs.getBytes(6); // KEY_SEQ
+      // FK_NAME this will give us a unique name for the foreign key
+      tuple[11] = connection.encodeString(fkName);
+      tuple[12] = rs.getBytes(7); // PK_NAME
 
       // DEFERRABILITY
       int deferrability = java.sql.DatabaseMetaData.importedKeyNotDeferrable;
@@ -2697,7 +2703,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     rs.close();
     stmt.close();
 
-    return (ResultSet) ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, tuples);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, tuples);
   }
 
   public java.sql.ResultSet getImportedKeys(String catalog, String schema, String table)
@@ -2712,7 +2718,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   public java.sql.ResultSet getCrossReference(String primaryCatalog, String primarySchema,
       String primaryTable, String foreignCatalog, String foreignSchema, String foreignTable)
-      throws SQLException {
+          throws SQLException {
     return getImportedExportedKeys(primaryCatalog, primarySchema, primaryTable, foreignCatalog,
         foreignSchema, foreignTable);
   }
@@ -2720,7 +2726,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public java.sql.ResultSet getTypeInfo() throws SQLException {
 
     Field f[] = new Field[18];
-    List<byte[][]> v = new ArrayList<byte[][]>();  // The new ResultSet tuple stuff
+    List<byte[][]> v = new ArrayList<byte[][]>(); // The new ResultSet tuple stuff
 
     f[0] = new Field("TYPE_NAME", Oid.VARCHAR);
     f[1] = new Field("DATA_TYPE", Oid.INT2);
@@ -2773,8 +2779,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       tuple[0] = connection.encodeString(typname);
       tuple[1] =
           connection.encodeString(Integer.toString(connection.getTypeInfo().getSQLType(typname)));
-      tuple[2] = connection.encodeString(
-          Integer.toString(connection.getTypeInfo().getMaximumPrecision(typeOid)));
+      tuple[2] = connection
+          .encodeString(Integer.toString(connection.getTypeInfo().getMaximumPrecision(typeOid)));
 
       if (connection.getTypeInfo().requiresQuoting(typeOid)) {
         tuple[3] = bliteral;
@@ -2798,13 +2804,13 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
       // add pseudo-type serial, bigserial
       if (typname.equals("int4")) {
-        byte[][] tuple1 = (byte[][]) tuple.clone();
+        byte[][] tuple1 = tuple.clone();
 
         tuple1[0] = connection.encodeString("serial");
         tuple1[11] = bt;
         v.add(tuple1);
       } else if (typname.equals("int8")) {
-        byte[][] tuple1 = (byte[][]) tuple.clone();
+        byte[][] tuple1 = tuple.clone();
 
         tuple1[0] = connection.encodeString("bigserial");
         tuple1[11] = bt;
@@ -2815,23 +2821,19 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     rs.close();
     stmt.close();
 
-    return (ResultSet) ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
   public java.sql.ResultSet getIndexInfo(String catalog, String schema, String tableName,
       boolean unique, boolean approximate) throws SQLException {
-    /* This is a complicated function because we have three possible
-     * situations:
-     * <= 7.2 no schemas, single column functional index
-     * 7.3 schemas, single column functional index
-     * >= 7.4 schemas, multi-column expressional index
-     * >= 8.3 supports ASC/DESC column info
-     * >= 9.0 no longer renames index columns on a table column rename,
-     *        so we must look at the table attribute names
+    /*
+     * This is a complicated function because we have three possible situations: <= 7.2 no schemas,
+     * single column functional index 7.3 schemas, single column functional index >= 7.4 schemas,
+     * multi-column expressional index >= 8.3 supports ASC/DESC column info >= 9.0 no longer renames
+     * index columns on a table column rename, so we must look at the table attribute names
      *
-     * with the single column functional index we need an extra
-     * join to the table's pg_attribute data to get the column
-     * the function operates on.
+     * with the single column functional index we need an extra join to the table's pg_attribute
+     * data to get the column the function operates on.
      */
     String sql;
     if (connection.haveMinimumServerVersion(ServerVersion.v8_3)) {
@@ -3035,11 +3037,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return true;
   }
 
-  public java.sql.ResultSet getUDTs(String catalog,
-      String schemaPattern,
-      String typeNamePattern,
-      int[] types
-  ) throws SQLException {
+  public java.sql.ResultSet getUDTs(String catalog, String schemaPattern, String typeNamePattern,
+      int[] types) throws SQLException {
     String sql = "select "
         + "null as type_cat, n.nspname as type_schem, t.typname as type_name,  null as class_name, "
         + "CASE WHEN t.typtype='c' then " + java.sql.Types.STRUCT + " else "
@@ -3047,8 +3046,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         + " end as data_type, pg_catalog.obj_description(t.oid, 'pg_type')  "
         + "as remarks, CASE WHEN t.typtype = 'd' then  (select CASE";
 
-    for (Iterator<String> i = connection.getTypeInfo().getPGTypeNamesWithSQLTypes();
-         i.hasNext(); ) {
+    for (Iterator<String> i = connection.getTypeInfo().getPGTypeNamesWithSQLTypes(); i.hasNext(); ) {
       String pgType = i.next();
       int sqlType = connection.getTypeInfo().getSQLType(pgType);
       sql += " when typname = " + escapeQuotes(pgType) + " then " + sqlType;
@@ -3112,7 +3110,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
 
   public java.sql.Connection getConnection() throws SQLException {
-    return (java.sql.Connection) connection;
+    return connection;
   }
 
   /* I don't find these in the spec!?! */
@@ -3168,12 +3166,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       tuple[0] = connection.encodeString("ApplicationName");
       tuple[1] = connection.encodeString(Integer.toString(getMaxNameLength()));
       tuple[2] = connection.encodeString("");
-      tuple[3] = connection.encodeString(
-          "The name of the application currently utilizing the connection.");
+      tuple[3] = connection
+          .encodeString("The name of the application currently utilizing the connection.");
       v.add(tuple);
     }
 
-    return (ResultSet) ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
   public boolean providesQueryObjectGenerator() throws SQLException {
@@ -3236,21 +3234,20 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return connection.haveMinimumServerVersion(ServerVersion.v8_2);
   }
 
-  public ResultSet getSuperTypes(String catalog, String schemaPattern,
-      String typeNamePattern) throws SQLException {
+  public ResultSet getSuperTypes(String catalog, String schemaPattern, String typeNamePattern)
+      throws SQLException {
     throw org.postgresql.Driver.notImplemented(this.getClass(),
         "getSuperTypes(String,String,String)");
   }
 
-  public ResultSet getSuperTables(String catalog, String schemaPattern,
-      String tableNamePattern) throws SQLException {
+  public ResultSet getSuperTables(String catalog, String schemaPattern, String tableNamePattern)
+      throws SQLException {
     throw org.postgresql.Driver.notImplemented(this.getClass(),
         "getSuperTables(String,String,String,String)");
   }
 
-  public ResultSet getAttributes(String catalog, String schemaPattern,
-      String typeNamePattern, String attributeNamePattern)
-      throws SQLException {
+  public ResultSet getAttributes(String catalog, String schemaPattern, String typeNamePattern,
+      String attributeNamePattern) throws SQLException {
     throw org.postgresql.Driver.notImplemented(this.getClass(),
         "getAttributes(String,String,String,String)");
   }
@@ -3281,10 +3278,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   public boolean locatorsUpdateCopy() throws SQLException {
     /*
-     * Currently LOB's aren't updateable at all, so it doesn't
-     * matter what we return.  We don't throw the notImplemented
-     * Exception because the 1.5 JDK's CachedRowSet calls this
-     * method regardless of wether large objects are used.
+     * Currently LOB's aren't updateable at all, so it doesn't matter what we return. We don't throw
+     * the notImplemented Exception because the 1.5 JDK's CachedRowSet calls this method regardless
+     * of wether large objects are used.
      */
     return true;
   }

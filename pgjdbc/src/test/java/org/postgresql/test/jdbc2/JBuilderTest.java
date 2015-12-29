@@ -17,8 +17,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 
 /*
- * Some simple tests to check that the required components needed for JBuilder
- * stay working
+ * Some simple tests to check that the required components needed for JBuilder stay working
  *
  */
 public class JBuilderTest extends TestCase {
@@ -31,8 +30,7 @@ public class JBuilderTest extends TestCase {
   protected void setUp() throws Exception {
     Connection con = TestUtil.openDB();
 
-    TestUtil.createTable(con, "test_c",
-        "source text,cost money,imageid int4");
+    TestUtil.createTable(con, "test_c", "source text,cost money,imageid int4");
 
     TestUtil.closeDB(con);
   }

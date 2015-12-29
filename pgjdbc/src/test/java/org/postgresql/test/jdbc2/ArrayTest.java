@@ -193,7 +193,7 @@ public class ArrayTest extends TestCase {
 
   /**
    * Starting with 8.0 non-standard (beginning index isn't 1) bounds the dimensions are returned in
-   * the data.  The following should return "[0:3]={0,1,2,3,4}" when queried.  Older versions simply
+   * the data. The following should return "[0:3]={0,1,2,3,4}" when queried. Older versions simply
    * do not return the bounds.
    */
   public void testNonStandardBounds() throws SQLException {
@@ -326,7 +326,7 @@ public class ArrayTest extends TestCase {
     if (TestUtil.haveMinimumServerVersion(conn, "8.1")) {
       sql += 'E';
     }
-    // Uggg.  Three levels of escaping: Java, string literal, array.
+    // Uggg. Three levels of escaping: Java, string literal, array.
     sql += "'{{c\\\\\"d, ''}, {\"\\\\\\\\\",\"''\"}}'::text[]";
 
     ResultSet rs = stmt.executeQuery(sql);
@@ -386,9 +386,8 @@ public class ArrayTest extends TestCase {
   }
 
   /*
-   * The box data type uses a semicolon as the array element
-   * delimiter instead of a comma which pretty much everything
-   * else uses.
+   * The box data type uses a semicolon as the array element delimiter instead of a comma which
+   * pretty much everything else uses.
    */
   public void testNonStandardDelimiter() throws SQLException {
     Statement stmt = conn.createStatement();

@@ -52,8 +52,8 @@ public class DatabaseMetaDataTest extends TestCase {
     TestUtil.createTable(con, "arraytable", "a numeric(5,2)[], b varchar(100)[]");
 
     Statement stmt = con.createStatement();
-    //we add the following comments to ensure the joins to the comments
-    //are done correctly. This ensures we correctly test that case.
+    // we add the following comments to ensure the joins to the comments
+    // are done correctly. This ensures we correctly test that case.
     stmt.execute("comment on table metadatatest is 'this is a table comment'");
     stmt.execute("comment on column metadatatest.id is 'this is a column comment'");
 
@@ -118,7 +118,7 @@ public class DatabaseMetaDataTest extends TestCase {
     assertEquals("metadatatest", tableName);
     String tableType = rs.getString("TABLE_TYPE");
     assertEquals("TABLE", tableType);
-    //There should only be one row returned
+    // There should only be one row returned
     assertTrue("getTables() returned too many rows", rs.next() == false);
     rs.close();
 
@@ -275,19 +275,19 @@ public class DatabaseMetaDataTest extends TestCase {
   public void testSameTableForeignKeys() throws Exception {
     Connection con1 = TestUtil.openDB();
 
-    TestUtil.createTable(con1, "person", "FIRST_NAME character varying(100) NOT NULL," +
-        "LAST_NAME character varying(100) NOT NULL," +
-        "FIRST_NAME_PARENT_1 character varying(100)," +
-        "LAST_NAME_PARENT_1 character varying(100)," +
-        "FIRST_NAME_PARENT_2 character varying(100)," +
-        "LAST_NAME_PARENT_2 character varying(100)," +
-        "CONSTRAINT PERSON_pkey PRIMARY KEY (FIRST_NAME , LAST_NAME )," +
-        "CONSTRAINT PARENT_1_fkey FOREIGN KEY (FIRST_NAME_PARENT_1, LAST_NAME_PARENT_1)" +
-        "REFERENCES PERSON (FIRST_NAME, LAST_NAME) MATCH SIMPLE " +
-        "ON UPDATE CASCADE ON DELETE CASCADE," +
-        "CONSTRAINT PARENT_2_fkey FOREIGN KEY (FIRST_NAME_PARENT_2, LAST_NAME_PARENT_2)" +
-        "REFERENCES PERSON (FIRST_NAME, LAST_NAME) MATCH SIMPLE " +
-        "ON UPDATE CASCADE ON DELETE CASCADE");
+    TestUtil.createTable(con1, "person",
+        "FIRST_NAME character varying(100) NOT NULL," + "LAST_NAME character varying(100) NOT NULL,"
+            + "FIRST_NAME_PARENT_1 character varying(100),"
+            + "LAST_NAME_PARENT_1 character varying(100),"
+            + "FIRST_NAME_PARENT_2 character varying(100),"
+            + "LAST_NAME_PARENT_2 character varying(100),"
+            + "CONSTRAINT PERSON_pkey PRIMARY KEY (FIRST_NAME , LAST_NAME ),"
+            + "CONSTRAINT PARENT_1_fkey FOREIGN KEY (FIRST_NAME_PARENT_1, LAST_NAME_PARENT_1)"
+            + "REFERENCES PERSON (FIRST_NAME, LAST_NAME) MATCH SIMPLE "
+            + "ON UPDATE CASCADE ON DELETE CASCADE,"
+            + "CONSTRAINT PARENT_2_fkey FOREIGN KEY (FIRST_NAME_PARENT_2, LAST_NAME_PARENT_2)"
+            + "REFERENCES PERSON (FIRST_NAME, LAST_NAME) MATCH SIMPLE "
+            + "ON UPDATE CASCADE ON DELETE CASCADE");
 
 
     DatabaseMetaData dbmd = con.getMetaData();
@@ -342,9 +342,10 @@ public class DatabaseMetaDataTest extends TestCase {
     TestUtil.createTable(con1, "people", "id int4 primary key, name text");
     TestUtil.createTable(con1, "policy", "id int4 primary key, name text");
 
-    TestUtil.createTable(con1, "users", "id int4 primary key, people_id int4, policy_id int4,"
-        + "CONSTRAINT people FOREIGN KEY (people_id) references people(id),"
-        + "constraint policy FOREIGN KEY (policy_id) references policy(id)");
+    TestUtil.createTable(con1, "users",
+        "id int4 primary key, people_id int4, policy_id int4,"
+            + "CONSTRAINT people FOREIGN KEY (people_id) references people(id),"
+            + "constraint policy FOREIGN KEY (policy_id) references policy(id)");
 
 
     DatabaseMetaData dbmd = con.getMetaData();
@@ -479,7 +480,7 @@ public class DatabaseMetaDataTest extends TestCase {
       }
     }
     rs.close();
-    //Test that the table owner has select priv
+    // Test that the table owner has select priv
     assertTrue("Couldn't find SELECT priv on table metadatatest for " + TestUtil.getUser(),
         l_foundSelect);
   }
@@ -849,7 +850,11 @@ public class DatabaseMetaDataTest extends TestCase {
       DatabaseMetaData dbmd = con.getMetaData();
       ResultSet rs = dbmd.getUDTs(null, null, "jdbc.testint8", null);
       assertTrue(rs.next());
-      String cat, schema, typeName, remarks, className;
+      String cat;
+      String schema;
+      String typeName;
+      String remarks;
+      String className;
       int dataType;
       int baseType;
 
@@ -901,7 +906,11 @@ public class DatabaseMetaDataTest extends TestCase {
       DatabaseMetaData dbmd = con.getMetaData();
       ResultSet rs = dbmd.getUDTs(null, null, "testint8", null);
       assertTrue(rs.next());
-      String cat, schema, typeName, remarks, className;
+      String cat;
+      String schema;
+      String typeName;
+      String remarks;
+      String className;
       int dataType;
       int baseType;
 
@@ -938,10 +947,13 @@ public class DatabaseMetaDataTest extends TestCase {
       stmt.execute("create domain testint8 as int8");
       stmt.execute("comment on domain testint8 is 'jdbc123'");
       DatabaseMetaData dbmd = con.getMetaData();
-      ResultSet rs = dbmd.getUDTs(null, null, "testint8", new int[]
-          {Types.DISTINCT, Types.STRUCT});
+      ResultSet rs = dbmd.getUDTs(null, null, "testint8", new int[]{Types.DISTINCT, Types.STRUCT});
       assertTrue(rs.next());
-      String cat, schema, typeName, remarks, className;
+      String cat;
+      String schema;
+      String typeName;
+      String remarks;
+      String className;
       int dataType;
       int baseType;
 
@@ -977,10 +989,13 @@ public class DatabaseMetaDataTest extends TestCase {
       stmt.execute("create domain testint8 as int8");
       stmt.execute("comment on domain testint8 is 'jdbc123'");
       DatabaseMetaData dbmd = con.getMetaData();
-      ResultSet rs = dbmd.getUDTs(null, null, "testint8", new int[]
-          {Types.DISTINCT});
+      ResultSet rs = dbmd.getUDTs(null, null, "testint8", new int[]{Types.DISTINCT});
       assertTrue(rs.next());
-      String cat, schema, typeName, remarks, className;
+      String cat;
+      String schema;
+      String typeName;
+      String remarks;
+      String className;
       int dataType;
       int baseType;
 
@@ -1017,7 +1032,11 @@ public class DatabaseMetaDataTest extends TestCase {
       DatabaseMetaData dbmd = con.getMetaData();
       ResultSet rs = dbmd.getUDTs(null, null, "testint8", null);
       assertTrue(rs.next());
-      String cat, schema, typeName, remarks, className;
+      String cat;
+      String schema;
+      String typeName;
+      String remarks;
+      String className;
       int dataType;
       int baseType;
 

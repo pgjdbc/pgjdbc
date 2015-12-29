@@ -72,9 +72,8 @@ public class IntervalTest extends TestCase {
     stmt.executeUpdate(TestUtil.insertSQL("testdate", "'2010-01-05'"));
     stmt.close();
 
-    PreparedStatement pstmt = _conn
-        .prepareStatement(
-            "SELECT v FROM testdate WHERE v < (?::timestamp with time zone + ? * ?::interval) ORDER BY v");
+    PreparedStatement pstmt = _conn.prepareStatement(
+        "SELECT v FROM testdate WHERE v < (?::timestamp with time zone + ? * ?::interval) ORDER BY v");
     pstmt.setObject(1, makeDate(2010, 1, 1));
     pstmt.setObject(2, Integer.valueOf(2));
     pstmt.setObject(3, "1 day");
@@ -137,8 +136,7 @@ public class IntervalTest extends TestCase {
     assertEquals(origTime, cal.getTime().getTime());
   }
 
-  public void testOfflineTests()
-      throws Exception {
+  public void testOfflineTests() throws Exception {
     PGInterval pgi = new PGInterval(2004, 4, 20, 15, 57, 12.1);
 
     assertEquals(2004, pgi.getYears());
@@ -190,8 +188,7 @@ public class IntervalTest extends TestCase {
     return cal;
   }
 
-  public void testCalendar()
-      throws Exception {
+  public void testCalendar() throws Exception {
     Calendar cal = getStartCalendar();
 
     PGInterval pgi = new PGInterval("@ 1 year 1 mon 1 day 1 hour 1 minute 1 secs");
@@ -241,8 +238,7 @@ public class IntervalTest extends TestCase {
     assertEquals(100, cal.get(Calendar.MILLISECOND));
   }
 
-  public void testDate()
-      throws Exception {
+  public void testDate() throws Exception {
     Date date = getStartCalendar().getTime();
     Date date2 = getStartCalendar().getTime();
 
@@ -256,8 +252,7 @@ public class IntervalTest extends TestCase {
     assertEquals(date2, date);
   }
 
-  public void testISODate()
-      throws Exception {
+  public void testISODate() throws Exception {
     Date date = getStartCalendar().getTime();
     Date date2 = getStartCalendar().getTime();
 

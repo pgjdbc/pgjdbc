@@ -22,6 +22,7 @@ import org.osgi.service.jdbc.DataSourceFactory;
 import java.sql.SQLException;
 import java.util.Map.Entry;
 import java.util.Properties;
+
 import javax.sql.ConnectionPoolDataSource;
 import javax.sql.DataSource;
 import javax.sql.XADataSource;
@@ -54,8 +55,7 @@ public class PGDataSourceFactory implements DataSourceFactory {
     }
   }
 
-  private void configureBaseDataSource(BaseDataSource ds, Properties props)
-      throws SQLException {
+  private void configureBaseDataSource(BaseDataSource ds, Properties props) throws SQLException {
     if (props.containsKey(JDBC_URL)) {
       ds.setUrl(props.getProperty(JDBC_URL));
     }
@@ -136,8 +136,7 @@ public class PGDataSourceFactory implements DataSourceFactory {
     return dataSource;
   }
 
-  public XADataSource createXADataSource(Properties props)
-      throws SQLException {
+  public XADataSource createXADataSource(Properties props) throws SQLException {
     props = new SingleUseProperties(props);
     PGXADataSource dataSource = new PGXADataSource();
     configureBaseDataSource(dataSource, props);

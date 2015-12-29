@@ -13,17 +13,17 @@ import java.sql.ResultSetMetaData;
 /*
  */
 public class Field {
-  //The V3 protocol defines two constants for the format of data
+  // The V3 protocol defines two constants for the format of data
   public static final int TEXT_FORMAT = 0;
   public static final int BINARY_FORMAT = 1;
 
-  private final int length;    // Internal Length of this field
-  private final int oid;        // OID of the type
-  private final int mod;        // type modifier of this field
+  private final int length; // Internal Length of this field
+  private final int oid; // OID of the type
+  private final int mod; // type modifier of this field
   private final String columnLabel; // Column label
-  private String columnName;        // Column name
+  private String columnName; // Column name
 
-  private int format = TEXT_FORMAT;   // In the V3 protocol each field has a format
+  private int format = TEXT_FORMAT; // In the V3 protocol each field has a format
   // 0 = text, 1 = binary
   // In the V2 protocol all fields in a
   // binary cursor are binary and all
@@ -47,10 +47,10 @@ public class Field {
   /**
    * Construct a field based on the information fed to it.
    *
-   * @param name   the name (column name and label) of the field
-   * @param oid    the OID of the field
+   * @param name the name (column name and label) of the field
+   * @param oid the OID of the field
    * @param length the length of the field
-   * @param mod    modifier
+   * @param mod modifier
    */
   public Field(String name, int oid, int length, int mod) {
     this(name, name, oid, length, mod, 0, 0);
@@ -60,7 +60,7 @@ public class Field {
    * Constructor without mod parameter.
    *
    * @param name the name (column name and label) of the field
-   * @param oid  the OID of the field
+   * @param oid the OID of the field
    */
   public Field(String name, int oid) {
     this(name, oid, 0, -1);
@@ -69,14 +69,14 @@ public class Field {
   /**
    * Construct a field based on the information fed to it.
    *
-   * @param columnLabel     the column label of the field
-   * @param columnName      the column label the name of the field
-   * @param oid             the OID of the field
-   * @param length          the length of the field
-   * @param mod             modifier
-   * @param tableOid        the OID of the columns' table
+   * @param columnLabel the column label of the field
+   * @param columnName the column label the name of the field
+   * @param oid the OID of the field
+   * @param length the length of the field
+   * @param mod modifier
+   * @param tableOid the OID of the columns' table
    * @param positionInTable the position of column in the table (first column is 1, second column is
-   *                        2, etc...)
+   *        2, etc...)
    */
   public Field(String columnLabel, String columnName, int oid, int length, int mod, int tableOid,
       int positionInTable) {
@@ -183,9 +183,11 @@ public class Field {
   }
 
   public String toString() {
-    return "Field(" + (columnName != null ? columnName : "") + ","
-        + Oid.toString(oid) + "," + length + ","
-        + (format == TEXT_FORMAT ? 'T' : 'B') + ")";
+    return "Field(" + (columnName != null ? columnName : "")
+        + "," + Oid.toString(oid)
+        + "," + length
+        + "," + (format == TEXT_FORMAT ? 'T' : 'B')
+        + ")";
   }
 
   public void setSQLType(int sqlType) {

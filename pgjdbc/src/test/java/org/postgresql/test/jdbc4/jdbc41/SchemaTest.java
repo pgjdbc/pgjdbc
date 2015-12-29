@@ -34,7 +34,7 @@ public class SchemaTest extends TestCase {
       stmt.execute("CREATE SCHEMA " + TestUtil.getUser());
       dropUserSchema = true;
     } catch (SQLException e) {
-            /* assume schema existed */
+      /* assume schema existed */
     }
     stmt.execute("CREATE SCHEMA schema1");
     stmt.execute("CREATE SCHEMA schema2");

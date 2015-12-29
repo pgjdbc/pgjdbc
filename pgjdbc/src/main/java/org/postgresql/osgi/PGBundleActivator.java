@@ -30,8 +30,7 @@ public class PGBundleActivator implements BundleActivator {
     properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_NAME, "PostgreSQL JDBC Driver");
     properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_VERSION, Driver.getVersion());
     _registration = context.registerService(DataSourceFactory.class.getName(),
-        new PGDataSourceFactory(),
-        properties);
+        new PGDataSourceFactory(), properties);
   }
 
   public void stop(BundleContext context) throws Exception {

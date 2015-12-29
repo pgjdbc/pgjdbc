@@ -21,6 +21,7 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.sql.SQLException;
 import java.util.Set;
+
 import javax.security.auth.Subject;
 import javax.security.auth.login.LoginContext;
 
@@ -29,7 +30,7 @@ public class MakeGSS {
 
   public static void authenticate(PGStream pgStream, String host, String user, String password,
       String jaasApplicationName, String kerberosServerName, Logger logger, boolean useSpnego)
-      throws IOException, SQLException {
+          throws IOException, SQLException {
     if (logger.logDebug()) {
       logger.debug(" <=BE AuthenticationReqGSS");
     }
@@ -60,9 +61,8 @@ public class MakeGSS {
         lc.login();
         sub = lc.getSubject();
       }
-      PrivilegedAction<Exception> action =
-          new GssAction(pgStream, gssCredential, host, user, password, kerberosServerName, logger,
-              useSpnego);
+      PrivilegedAction<Exception> action = new GssAction(pgStream, gssCredential, host, user,
+          password, kerberosServerName, logger, useSpnego);
 
       result = Subject.doAs(sub, action);
     } catch (Exception e) {

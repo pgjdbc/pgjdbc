@@ -7,6 +7,7 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import java.util.Properties;
+
 import javax.net.SocketFactory;
 
 /**
@@ -33,7 +34,8 @@ public class SocketFactoryFactory {
     } catch (Exception e) {
       throw new PSQLException(
           GT.tr("The SocketFactory class provided {0} could not be instantiated.",
-              socketFactoryClassName), PSQLState.CONNECTION_FAILURE, e);
+              socketFactoryClassName),
+          PSQLState.CONNECTION_FAILURE, e);
     }
   }
 

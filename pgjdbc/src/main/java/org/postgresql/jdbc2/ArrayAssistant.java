@@ -18,8 +18,8 @@ public interface ArrayAssistant {
    * build a array element from its binary bytes
    *
    * @param bytes input bytes
-   * @param pos   position in input array
-   * @param len   length of the element
+   * @param pos position in input array
+   * @param len length of the element
    * @return array element from its binary bytes
    */
   Object buildElement(byte[] bytes, int pos, int len);

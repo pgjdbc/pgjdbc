@@ -224,22 +224,22 @@ public enum PGProperty {
 
   /**
    * The timeout value used for socket connect operations. If connecting to the server takes longer
-   * than this value, the connection is broken. <p> The timeout is specified in seconds and a value
-   * of zero means that it is disabled.
+   * than this value, the connection is broken.
+   * <p>
+   * The timeout is specified in seconds and a value of zero means that it is disabled.
    */
   CONNECT_TIMEOUT("connectTimeout", "0", "The timeout value used for socket connect operations."),
 
   /**
-   * The timeout value used for socket read operations.  If reading from the server takes longer
-   * than this value, the connection is closed.  This can be used as both a brute force global query
-   * timeout and a method of detecting network problems.  The timeout is specified in seconds and a
+   * The timeout value used for socket read operations. If reading from the server takes longer than
+   * this value, the connection is closed. This can be used as both a brute force global query
+   * timeout and a method of detecting network problems. The timeout is specified in seconds and a
    * value of zero means that it is disabled.
    */
   SOCKET_TIMEOUT("socketTimeout", "0", "The timeout value used for socket read operations."),
 
   /**
-   * Socket factory used to create socket. A null value, which is the default, means system
-   * default.
+   * Socket factory used to create socket. A null value, which is the default, means system default.
    */
   SOCKET_FACTORY("socketFactory", null, "Specify a socket factory for socket creation"),
 
@@ -279,8 +279,8 @@ public enum PGProperty {
       "Specifies the name of the JAAS system or application login configuration."),
 
   /**
-   * The Kerberos service name to use when authenticating with GSSAPI.  This is equivalent to
-   * libpq's PGKRBSRVNAME environment variable.
+   * The Kerberos service name to use when authenticating with GSSAPI. This is equivalent to libpq's
+   * PGKRBSRVNAME environment variable.
    */
   KERBEROS_SERVER_NAME("kerberosServerName", null,
       "The Kerberos service name to use when authenticating with GSSAPI."),
@@ -291,8 +291,12 @@ public enum PGProperty {
   USE_SPNEGO("useSpnego", "false", "Use SPNEGO in SSPI authentication requests"),
 
   /**
-   * Force one of <ul> <li>SSPI (Windows transparent single-sign-on)</li> <li>GSSAPI (Kerberos, via
-   * JSSE)</li> </ul> to be used when the server requests Kerberos or SSPI authentication.
+   * Force one of
+   * <ul>
+   * <li>SSPI (Windows transparent single-sign-on)</li>
+   * <li>GSSAPI (Kerberos, via JSSE)</li>
+   * </ul>
+   * to be used when the server requests Kerberos or SSPI authentication.
    */
   GSS_LIB("gsslib", "auto", "Force SSSPI or GSSAPI", false, "auto", "sspi", "gssapi"),
 
@@ -303,7 +307,7 @@ public enum PGProperty {
   SSPI_SERVICE_CLASS("sspiServiceClass", "POSTGRES", "The Windows SSPI service class for SPN"),
 
   /**
-   * The character set to use for data sent to the database or received from the database.  This
+   * The character set to use for data sent to the database or received from the database. This
    * property is only relevant for server versions less than or equal to 7.2.
    */
   CHARSET("charSet", null,
@@ -311,8 +315,8 @@ public enum PGProperty {
 
   /**
    * When using the V3 protocol the driver monitors changes in certain server configuration
-   * parameters that should not be touched by end users.  The {@code client_encoding} setting is set
-   * by the driver and should not be altered.  If the driver detects a change it will abort the
+   * parameters that should not be touched by end users. The {@code client_encoding} setting is set
+   * by the driver and should not be altered. If the driver detects a change it will abort the
    * connection.
    */
   ALLOW_ENCODING_CHANGES("allowEncodingChanges", "false", "Allow for changes in client_encoding"),
@@ -398,7 +402,7 @@ public enum PGProperty {
    * Set the value for this connection parameter in the given {@code Properties}
    *
    * @param properties properties in which the value should be set
-   * @param value      value for this connection parameter
+   * @param value value for this connection parameter
    */
   public void set(Properties properties, String value) {
     if (value == null) {
@@ -443,11 +447,8 @@ public enum PGProperty {
     try {
       return Integer.parseInt(value);
     } catch (NumberFormatException nfe) {
-      throw new PSQLException(
-          GT.tr("{0} parameter value must be an integer but was: {1}",
-              new Object[]{getName(), value}),
-          PSQLState.INVALID_PARAMETER_VALUE,
-          nfe);
+      throw new PSQLException(GT.tr("{0} parameter value must be an integer but was: {1}",
+          new Object[]{getName(), value}), PSQLState.INVALID_PARAMETER_VALUE, nfe);
     }
   }
 
@@ -466,11 +467,8 @@ public enum PGProperty {
     try {
       return Integer.parseInt(value);
     } catch (NumberFormatException nfe) {
-      throw new PSQLException(
-          GT.tr("{0} parameter value must be an integer but was: {1}",
-              new Object[]{getName(), value}),
-          PSQLState.INVALID_PARAMETER_VALUE,
-          nfe);
+      throw new PSQLException(GT.tr("{0} parameter value must be an integer but was: {1}",
+          new Object[]{getName(), value}), PSQLState.INVALID_PARAMETER_VALUE, nfe);
     }
   }
 
@@ -478,7 +476,7 @@ public enum PGProperty {
    * Set the boolean value for this connection parameter in the given {@code Properties}
    *
    * @param properties properties in which the value should be set
-   * @param value      boolean value for this connection parameter
+   * @param value boolean value for this connection parameter
    */
   public void set(Properties properties, boolean value) {
     properties.setProperty(_name, Boolean.toString(value));
@@ -488,7 +486,7 @@ public enum PGProperty {
    * Set the int value for this connection parameter in the given {@code Properties}
    *
    * @param properties properties in which the value should be set
-   * @param value      int value for this connection parameter
+   * @param value int value for this connection parameter
    */
   public void set(Properties properties, int value) {
     properties.setProperty(_name, Integer.toString(value));

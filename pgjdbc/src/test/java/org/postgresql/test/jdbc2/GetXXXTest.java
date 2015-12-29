@@ -37,8 +37,7 @@ public class GetXXXTest extends TestCase {
     con = TestUtil.openDB();
     TestUtil.createTempTable(con, "test_interval",
         "initial timestamp with time zone, final timestamp with time zone");
-    PreparedStatement pstmt = con.prepareStatement(
-        "insert into test_interval values (?,?)");
+    PreparedStatement pstmt = con.prepareStatement("insert into test_interval values (?,?)");
     Calendar cal = Calendar.getInstance();
     cal.add(Calendar.DAY_OF_YEAR, -1);
 
@@ -56,8 +55,7 @@ public class GetXXXTest extends TestCase {
 
   public void testGetObject() throws SQLException {
     Statement stmt = con.createStatement();
-    ResultSet rs = stmt.executeQuery(
-        "select (final-initial) as diff from test_interval");
+    ResultSet rs = stmt.executeQuery("select (final-initial) as diff from test_interval");
     while (rs.next()) {
       String str = (String) rs.getString(1);
 

@@ -30,11 +30,12 @@ public class PGtokenizer {
   /**
    * Create a tokeniser.
    *
-   * <p>We could have used StringTokenizer to do this, however, we needed to handle nesting of '('
-   * ')' '[' ']' '&lt;' and '&gt;' as these are used by the geometric data types.
+   * <p>
+   * We could have used StringTokenizer to do this, however, we needed to handle nesting of '(' ')'
+   * '[' ']' '&lt;' and '&gt;' as these are used by the geometric data types.
    *
    * @param string containing tokens
-   * @param delim  single character to split the tokens
+   * @param delim single character to split the tokens
    */
   public PGtokenizer(String string, char delim) {
     tokenize(string, delim);
@@ -44,7 +45,7 @@ public class PGtokenizer {
    * This resets this tokenizer with a new string and/or delimiter.
    *
    * @param string containing tokens
-   * @param delim  single character to split the tokens
+   * @param delim single character to split the tokens
    * @return number of tokens
    */
   public int tokenize(String string, char delim) {
@@ -126,7 +127,7 @@ public class PGtokenizer {
    *
    * The geometric datatypes use this to process nested tokens (usually PGpoint).
    *
-   * @param n     Token number ( 0 ... getSize()-1 )
+   * @param n Token number ( 0 ... getSize()-1 )
    * @param delim The delimiter to use
    * @return A new instance of PGtokenizer based on the token
    */

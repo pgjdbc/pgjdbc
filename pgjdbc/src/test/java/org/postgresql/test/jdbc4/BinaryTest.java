@@ -15,9 +15,9 @@ import java.sql.SQLException;
 
 /**
  * We don't want to use the binary protocol for one-off queries as it involves another round-trip to
- * the server to 'describe' the query. If we use the query enough times (see {@link
- * PGConnection#setPrepareThreshold(int)} then we'll change to using the binary protocol to save
- * bandwidth and reduce decoding time.
+ * the server to 'describe' the query. If we use the query enough times (see
+ * {@link PGConnection#setPrepareThreshold(int)} then we'll change to using the binary protocol to
+ * save bandwidth and reduce decoding time.
  */
 public class BinaryTest extends TestCase {
   private Connection connection;

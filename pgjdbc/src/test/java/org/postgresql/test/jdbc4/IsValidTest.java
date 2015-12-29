@@ -34,8 +34,7 @@ public class IsValidTest extends TestCase {
       int transactionState;
       transactionState = getTransactionState(conn);
       conn.isValid(0);
-      Assert.assertEquals("Transaction state has been changed",
-          transactionState,
+      Assert.assertEquals("Transaction state has been changed", transactionState,
           getTransactionState(conn));
 
       conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
@@ -43,16 +42,14 @@ public class IsValidTest extends TestCase {
       try {
         transactionState = getTransactionState(conn);
         conn.isValid(0);
-        Assert.assertEquals("Transaction state has been changed",
-            transactionState,
+        Assert.assertEquals("Transaction state has been changed", transactionState,
             getTransactionState(conn));
 
         Statement stmt = conn.createStatement();
         stmt.execute("SELECT 1");
         transactionState = getTransactionState(conn);
         conn.isValid(0);
-        Assert.assertEquals("Transaction state has been changed",
-            transactionState,
+        Assert.assertEquals("Transaction state has been changed", transactionState,
             getTransactionState(conn));
       } finally {
         try {

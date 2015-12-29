@@ -16,12 +16,13 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+
 import javax.sql.DataSource;
 
 /**
- * Simple DataSource which does not perform connection pooling.  In order to use the DataSource, you
+ * Simple DataSource which does not perform connection pooling. In order to use the DataSource, you
  * must set the property databaseName. The settings for serverName, portNumber, user, and password
- * are optional.  Note: these properties are declared in the superclass.
+ * are optional. Note: these properties are declared in the superclass.
  *
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  */

@@ -48,14 +48,12 @@ public class SSPIClient {
    * It is safe to instantiate SSPIClient even if Waffle and JNA are missing or on non-Windows
    * platforms, however you may not call any methods other than isSSPISupported().
    *
-   * @param pgStream        PostgreSQL connection stream
+   * @param pgStream PostgreSQL connection stream
    * @param spnServiceClass SSPI SPN service class, defaults to POSTGRES if null
    * @param enableNegotiate enable negotiate
-   * @param logger          logger
+   * @param logger logger
    */
-  public SSPIClient(PGStream pgStream,
-      String spnServiceClass,
-      boolean enableNegotiate,
+  public SSPIClient(PGStream pgStream, String spnServiceClass, boolean enableNegotiate,
       Logger logger) {
     this.logger = logger;
     this.pgStream = pgStream;
@@ -83,9 +81,8 @@ public class SSPIClient {
   public boolean isSSPISupported() {
     try {
       /*
-       * SSPI is windows-only. Attempt to use JNA to identify the platform.
-       * If Waffle is missing we won't have JNA and this will throw a
-       * NoClassDefFoundError.
+       * SSPI is windows-only. Attempt to use JNA to identify the platform. If Waffle is missing we
+       * won't have JNA and this will throw a NoClassDefFoundError.
        */
       if (!Platform.isWindows()) {
         logger.debug("SSPI not supported: non-Windows host");
@@ -111,9 +108,8 @@ public class SSPIClient {
     final HostSpec hs = pgStream.getHostSpec();
 
     try {
-      return NTDSAPIWrapper.instance.DsMakeSpn(
-          spnServiceClass, hs.getHost(),
-          null, (short) hs.getPort(), null);
+      return NTDSAPIWrapper.instance.DsMakeSpn(spnServiceClass, hs.getHost(), null,
+          (short) hs.getPort(), null);
     } catch (LastErrorException ex) {
       throw new PSQLException("SSPI setup failed to determine SPN",
           PSQLState.CONNECTION_UNABLE_TO_CONNECT, ex);
@@ -122,17 +118,16 @@ public class SSPIClient {
 
 
   /**
-   * Respond to an authentication request from the back-end for SSPI authentication
-   * (AUTH_REQ_SSPI).
+   * Respond to an authentication request from the back-end for SSPI authentication (AUTH_REQ_SSPI).
    *
    * @throws SQLException on SSPI authentication handshake failure
-   * @throws IOException  on network I/O issues
+   * @throws IOException on network I/O issues
    */
   public void startSSPI() throws SQLException, IOException {
 
     /*
-     * We usually use SSPI negotiation (spnego), but it's disabled if the client
-     * asked for GSSPI and usespngo isn't explicitly turned on.
+     * We usually use SSPI negotiation (spnego), but it's disabled if the client asked for GSSPI and
+     * usespngo isn't explicitly turned on.
      */
     final String securityPackage = enableNegotiate ? "negotiate" : "kerberos";
 
@@ -144,7 +139,8 @@ public class SSPIClient {
       /*
        * Acquire a handle for the local Windows login credentials for the current user
        *
-       * See AcquireCredentialsHandle (http://msdn.microsoft.com/en-us/library/windows/desktop/aa374712%28v=vs.85%29.aspx)
+       * See AcquireCredentialsHandle
+       * (http://msdn.microsoft.com/en-us/library/windows/desktop/aa374712%28v=vs.85%29.aspx)
        *
        * This corresponds to pg_SSPI_startup in libpq/fe-auth.c .
        */
@@ -152,10 +148,8 @@ public class SSPIClient {
         clientCredentials = WindowsCredentialsHandleImpl.getCurrent(securityPackage);
         clientCredentials.initialize();
       } catch (Win32Exception ex) {
-        throw new PSQLException(
-            "Could not obtain local Windows credentials for SSPI",
-            PSQLState.CONNECTION_UNABLE_TO_CONNECT /* TODO: Should be authentication error */,
-            ex);
+        throw new PSQLException("Could not obtain local Windows credentials for SSPI",
+            PSQLState.CONNECTION_UNABLE_TO_CONNECT /* TODO: Should be authentication error */, ex);
       }
 
       try {
@@ -171,10 +165,8 @@ public class SSPIClient {
         sspiContext.setSecurityPackage(securityPackage);
         sspiContext.initialize(null, null, targetName);
       } catch (Win32Exception ex) {
-        throw new PSQLException(
-            "Could not initialize SSPI security context",
-            PSQLState.CONNECTION_UNABLE_TO_CONNECT /* TODO: Should be auth error */,
-            ex);
+        throw new PSQLException("Could not initialize SSPI security context",
+            PSQLState.CONNECTION_UNABLE_TO_CONNECT /* TODO: Should be auth error */, ex);
       }
 
       sendSSPIResponse(sspiContext.getToken());
@@ -192,13 +184,12 @@ public class SSPIClient {
    *
    * @param msgLength Length of message to read, excluding length word and message type word
    * @throws SQLException if something wrong happens
-   * @throws IOException  if something wrong happens
+   * @throws IOException if something wrong happens
    */
   public void continueSSPI(int msgLength) throws SQLException, IOException {
 
     if (sspiContext == null) {
-      throw new IllegalStateException(
-          "Cannot continue SSPI authentication that we didn't begin");
+      throw new IllegalStateException("Cannot continue SSPI authentication that we didn't begin");
     }
 
     logger.debug("Continuing SSPI negotiation");
@@ -211,10 +202,9 @@ public class SSPIClient {
     sspiContext.initialize(sspiContext.getHandle(), continueToken, targetName);
 
     /*
-     * Now send the response  token. If negotiation is complete
-     * there may be zero bytes to send, in which case we shouldn't
-     * send a reply as the server is not expecting one; see fe-auth.c
-     * in libpq for details.
+     * Now send the response token. If negotiation is complete there may be zero bytes to send, in
+     * which case we shouldn't send a reply as the server is not expecting one; see fe-auth.c in
+     * libpq for details.
      */
     byte[] responseToken = sspiContext.getToken();
     if (responseToken.length > 0) {
@@ -227,10 +217,9 @@ public class SSPIClient {
 
   private void sendSSPIResponse(byte[] outToken) throws IOException {
     /*
-     * The sspiContext now contains a token we can send to the server to
-     * start the handshake. Send a 'password' message containing the
-     * required data; the server knows we're doing SSPI negotiation
-     * and will deal with it appropriately.
+     * The sspiContext now contains a token we can send to the server to start the handshake. Send a
+     * 'password' message containing the required data; the server knows we're doing SSPI
+     * negotiation and will deal with it appropriately.
      */
     pgStream.SendChar('p');
     pgStream.SendInteger4(4 + outToken.length);

@@ -68,7 +68,7 @@ public class EscapedFunctions {
   public final static String SUBSTRING = "substring";
   public final static String UCASE = "ucase";
   // soundex is implemented on the server side by
-  // the contrib/fuzzystrmatch module.  We provide a translation
+  // the contrib/fuzzystrmatch module. We provide a translation
   // for this in the driver, but since we don't want to bother with run
   // time detection of this module's installation we don't report this
   // method as supported in DatabaseMetaData.
@@ -717,14 +717,12 @@ public class EscapedFunctions {
           PSQLState.SYNTAX_ERROR);
     }
     // See http://archives.postgresql.org/pgsql-jdbc/2006-03/msg00096.php
-    /*else if (SQL_TSI_MONTH.equalsIgnoreCase(shortType))
-        return "month";
-    else if (SQL_TSI_QUARTER.equalsIgnoreCase(shortType))
-        return "quarter";
-    else if (SQL_TSI_WEEK.equalsIgnoreCase(shortType))
-        return "week";
-    else if (SQL_TSI_YEAR.equalsIgnoreCase(shortType))
-        return "year";*/
+    /*
+     * else if (SQL_TSI_MONTH.equalsIgnoreCase(shortType)) return "month"; else if
+     * (SQL_TSI_QUARTER.equalsIgnoreCase(shortType)) return "quarter"; else if
+     * (SQL_TSI_WEEK.equalsIgnoreCase(shortType)) return "week"; else if
+     * (SQL_TSI_YEAR.equalsIgnoreCase(shortType)) return "year";
+     */
   }
 
   /**

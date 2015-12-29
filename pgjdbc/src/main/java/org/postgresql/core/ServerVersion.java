@@ -45,8 +45,8 @@ public enum ServerVersion implements Version {
   }
 
   /**
-   * Attempt to parse the server version string into an XXYYZZ form version number into a {@link
-   * Version}.
+   * Attempt to parse the server version string into an XXYYZZ form version number into a
+   * {@link Version}.
    *
    * If the specified version cannot be parsed, the {@link Version#getVersionNum()} will return 0.
    *
@@ -98,8 +98,7 @@ public enum ServerVersion implements Version {
    * @param serverVersion server vertion in a XXYYZZ form
    * @return server version in number form
    */
-  static int parseServerVersionStr(String serverVersion)
-      throws NumberFormatException {
+  static int parseServerVersionStr(String serverVersion) throws NumberFormatException {
     int vers;
     NumberFormat numformat = NumberFormat.getIntegerInstance();
     numformat.setGroupingUsed(false);
@@ -117,9 +116,9 @@ public enum ServerVersion implements Version {
     }
     if (parsed.intValue() >= 10000) {
       /*
-       * PostgreSQL version 1000? I don't think so. We're seeing a version like
-       * 90401; return it verbatim, but only if there's nothing else in the version.
-       * If there is, treat it as a parse error.
+       * PostgreSQL version 1000? I don't think so. We're seeing a version like 90401; return it
+       * verbatim, but only if there's nothing else in the version. If there is, treat it as a parse
+       * error.
        */
       if (parsepos.getIndex() == serverVersion.length()) {
         return parsed.intValue();
@@ -140,21 +139,20 @@ public enum ServerVersion implements Version {
     /* Skip the . */
     if (serverVersion.charAt(parsepos.getIndex()) == '.') {
       parsepos.setIndex(parsepos.getIndex() + 1);
-    } else
-      /* Unexpected version format */ {
+    } else {
+      /* Unexpected version format */
       return 0;
     }
 
     /*
-     * Get second major version part. If this isn't purely an integer,
-     * accept the integer part and return with a minor version of zero,
-     * so we cope with 8.1devel, etc.
+     * Get second major version part. If this isn't purely an integer, accept the integer part and
+     * return with a minor version of zero, so we cope with 8.1devel, etc.
      */
     parsed = (Long) numformat.parseObject(serverVersion, parsepos);
     if (parsed == null) {
       /*
-       * Failed to parse second part of minor version at all. Half
-       * a major version is useless, return 0.
+       * Failed to parse second part of minor version at all. Half a major version is useless,
+       * return 0.
        */
       return 0;
     }
@@ -173,8 +171,8 @@ public enum ServerVersion implements Version {
     /* Skip the . */
     if (serverVersion.charAt(parsepos.getIndex()) == '.') {
       parsepos.setIndex(parsepos.getIndex() + 1);
-    } else
-      /* Doesn't look like an x.y.z version, return what we have */ {
+    } else {
+      /* Doesn't look like an x.y.z version, return what we have */
       return vers;
     }
 

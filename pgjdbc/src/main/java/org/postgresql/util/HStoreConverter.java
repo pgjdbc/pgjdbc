@@ -33,8 +33,9 @@ public class HStoreConverter {
         m.put(key, val);
       }
     } catch (IOException ioe) {
-      throw new PSQLException(GT.tr(
-          "Invalid character data was found.  This is most likely caused by stored data containing characters that are invalid for the character set the database was created in.  The most common example of this is storing 8bit data in a SQL_ASCII database."),
+      throw new PSQLException(
+          GT.tr(
+              "Invalid character data was found.  This is most likely caused by stored data containing characters that are invalid for the character set the database was created in.  The most common example of this is storing 8bit data in a SQL_ASCII database."),
           PSQLState.DATA_ERROR, ioe);
     }
     return m;
@@ -63,8 +64,9 @@ public class HStoreConverter {
         }
       }
     } catch (IOException ioe) {
-      throw new PSQLException(GT.tr(
-          "Invalid character data was found.  This is most likely caused by stored data containing characters that are invalid for the character set the database was created in.  The most common example of this is storing 8bit data in a SQL_ASCII database."),
+      throw new PSQLException(
+          GT.tr(
+              "Invalid character data was found.  This is most likely caused by stored data containing characters that are invalid for the character set the database was created in.  The most common example of this is storing 8bit data in a SQL_ASCII database."),
           PSQLState.DATA_ERROR, ioe);
     }
     return baos.toByteArray();

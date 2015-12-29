@@ -10,13 +10,14 @@ package org.postgresql.ssl;
 
 import java.security.GeneralSecurityException;
 import java.security.cert.X509Certificate;
+
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
 /**
  * Provide a SSLSocketFactory that allows SSL connections to be made without validating the server's
- * certificate.  This is more convenient for some applications, but is less secure as it allows "man
+ * certificate. This is more convenient for some applications, but is less secure as it allows "man
  * in the middle" attacks.
  */
 public class NonValidatingFactory extends WrappedFactory {
@@ -32,9 +33,7 @@ public class NonValidatingFactory extends WrappedFactory {
   public NonValidatingFactory(String arg) throws GeneralSecurityException {
     SSLContext ctx = SSLContext.getInstance("TLS"); // or "SSL" ?
 
-    ctx.init(null,
-        new TrustManager[]{new NonValidatingTM()},
-        null);
+    ctx.init(null, new TrustManager[]{new NonValidatingTM()}, null);
 
     _factory = ctx.getSocketFactory();
   }

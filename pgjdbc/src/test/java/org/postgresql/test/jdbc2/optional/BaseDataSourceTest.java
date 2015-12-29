@@ -20,12 +20,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Hashtable;
+
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 
 /**
- * Common tests for all the BaseDataSource implementations.  This is a small variety to make sure
+ * Common tests for all the BaseDataSource implementations. This is a small variety to make sure
  * that a connection can be opened and some basic queries run. The different BaseDataSource
  * subclasses have different subclasses of this which add additional custom tests.
  *
@@ -76,7 +77,7 @@ public abstract class BaseDataSourceTest extends TestCase {
   }
 
   /**
-   * Creates an instance of the current BaseDataSource for testing.  Must be customized by each
+   * Creates an instance of the current BaseDataSource for testing. Must be customized by each
    * subclass.
    */
   protected abstract void initializeDataSource();
@@ -175,9 +176,8 @@ public abstract class BaseDataSourceTest extends TestCase {
       ((PGConnection) con).getNotifications();
       con.close();
     } catch (Exception e) {
-      fail(
-          "Unable to call PGConnection method on pooled connection due to " + e.getClass().getName()
-              + " (" + e.getMessage() + ")");
+      fail("Unable to call PGConnection method on pooled connection due to "
+          + e.getClass().getName() + " (" + e.getMessage() + ")");
     }
   }
 
@@ -197,7 +197,7 @@ public abstract class BaseDataSourceTest extends TestCase {
 
   /**
    * Eventually, we must test stuffing the DataSource in JNDI and then getting it back out and make
-   * sure it's still usable.  This should ideally test both Serializable and Referenceable
+   * sure it's still usable. This should ideally test both Serializable and Referenceable
    * mechanisms. Will probably be multiple tests when implemented.
    */
   public void testJndi() {
