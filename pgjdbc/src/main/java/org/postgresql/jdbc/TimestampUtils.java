@@ -19,6 +19,15 @@ import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
+//#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.chrono.IsoEra;
+import java.time.temporal.ChronoField;
+//#endif
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.SimpleTimeZone;
@@ -504,6 +513,151 @@ public class TimestampUtils {
       sb.append(" BC");
     }
   }
+
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+  public synchronized String toString(LocalDate localDate) {
+    if (LocalDate.MAX.equals(localDate)) {
+      sbuf.append("infinity");
+    } else if (LocalDate.MIN.equals(localDate)) {
+      sbuf.append("-infinity");
+    }
+
+    sbuf.setLength(0);
+
+    appendDate(sbuf, localDate);
+    appendEra(sbuf, localDate);
+
+    return sbuf.toString();
+  }
+
+  public synchronized String toString(LocalTime localTime) {
+    if (LocalTime.MAX.equals(localTime)) {
+      sbuf.append("infinity");
+    } else if (LocalTime.MIN.equals(localTime)) {
+      sbuf.append("-infinity");
+    }
+
+    sbuf.setLength(0);
+
+    appendTime(sbuf, localTime);
+
+    return sbuf.toString();
+  }
+
+
+  public synchronized String toString(OffsetDateTime offsetDateTime) {
+    if (OffsetDateTime.MAX.equals(offsetDateTime)) {
+      return "infinity";
+    } else if (OffsetDateTime.MIN.equals(offsetDateTime)) {
+      return "-infinity";
+    }
+
+    sbuf.setLength(0);
+
+    LocalDateTime localDateTime = offsetDateTime.toLocalDateTime();
+    LocalDate localDate = localDateTime.toLocalDate();
+    appendDate(sbuf, localDate);
+    sbuf.append(' ');
+    appendTime(sbuf, localDateTime.toLocalTime());
+    appendTimeZone(sbuf, offsetDateTime.getOffset());
+    appendEra(sbuf, localDate);
+
+    return sbuf.toString();
+  }
+
+  public synchronized String toString(LocalDateTime localDateTime) {
+    if (LocalDateTime.MAX.equals(localDateTime)) {
+      return "infinity";
+    } else if (LocalDateTime.MIN.equals(localDateTime)) {
+      return "-infinity";
+    }
+
+    sbuf.setLength(0);
+
+    LocalDate localDate = localDateTime.toLocalDate();
+    appendDate(sbuf, localDate);
+    sbuf.append(' ');
+    appendTime(sbuf, localDateTime.toLocalTime());
+    appendEra(sbuf, localDate);
+
+    return sbuf.toString();
+  }
+
+  private static void appendDate(StringBuilder sb, LocalDate localDate) {
+    int l_year = localDate.getYear();
+    // always use at least four digits for the year so very
+    // early years, like 2, don't get misinterpreted
+    //
+    int prevLength = sb.length();
+    sb.append(Math.abs(l_year));
+    int leadingZerosForYear = 4 - (sb.length() - prevLength);
+    if (leadingZerosForYear > 0) {
+      sb.insert(prevLength, ZEROS, 0, leadingZerosForYear);
+    }
+
+    sb.append('-');
+    int l_month = localDate.getMonthValue();
+    sb.append(NUMBERS[l_month]);
+    sb.append('-');
+    int l_day = localDate.getDayOfMonth();
+    sb.append(NUMBERS[l_day]);
+  }
+
+  private static void appendTime(StringBuilder sb, LocalTime localTime) {
+    int hours = localTime.getHour();
+    sb.append(NUMBERS[hours]);
+
+    sb.append(':');
+    int minutes = localTime.getMinute();
+    sb.append(NUMBERS[minutes]);
+
+    sb.append(':');
+    int seconds = localTime.getSecond();
+    sb.append(NUMBERS[seconds]);
+
+    // Add nanoseconds.
+    // This won't work for server versions < 7.2 which only want
+    // a two digit fractional second, but we don't need to support 7.1
+    // anymore and getting the version number here is difficult.
+    //
+    sb.append('.');
+    int len = sb.length();
+    int nanos = localTime.getNano();
+    sb.append(nanos / 1000); // append microseconds
+    int needZeros = 6 - (sb.length() - len);
+    if (needZeros > 0) {
+      sb.insert(len, ZEROS, 0, needZeros);
+    }
+  }
+
+  private void appendTimeZone(StringBuilder sb, ZoneOffset offset) {
+    int offsetSeconds = offset.getTotalSeconds();
+
+    int absoff = Math.abs(offsetSeconds);
+    int hours = absoff / 60 / 60;
+    int mins = (absoff - hours * 60 * 60) / 60;
+    int secs = absoff - hours * 60 * 60 - mins * 60;
+
+    sb.append((offsetSeconds >= 0) ? " +" : " -");
+
+    sb.append(NUMBERS[hours]);
+
+    sb.append(':');
+
+    sb.append(NUMBERS[mins]);
+
+    if (min82) {
+      sb.append(':');
+      sb.append(NUMBERS[secs]);
+    }
+  }
+
+  private static void appendEra(StringBuilder sb, LocalDate localDate) {
+    if (localDate.get(ChronoField.ERA) == IsoEra.BCE.getValue()) {
+      sb.append(" BC");
+    }
+  }
+  //#endif
 
   private static int skipWhitespace(char[] s, int start) {
     int slen = s.length;
