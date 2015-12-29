@@ -5,6 +5,7 @@
 *
 *-------------------------------------------------------------------------
 */
+
 package org.postgresql.benchmark.time;
 
 import org.openjdk.jmh.annotations.Benchmark;
@@ -35,50 +36,50 @@ import java.util.concurrent.TimeUnit;
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 public class AddPaddingZeros {
 
-    @Param({"1000", "1000000", "100000000"})
-    int nanos;
+  @Param({"1000", "1000000", "100000000"})
+  int nanos;
 
-    static final char[] ZEROS = "0000000000".toCharArray();
+  static final char[] ZEROS = "0000000000".toCharArray();
 
-    Timestamp ts = new Timestamp(System.currentTimeMillis());
+  Timestamp ts = new Timestamp(System.currentTimeMillis());
 
-    StringBuffer sb = new StringBuffer();
+  StringBuffer sb = new StringBuffer();
 
-    @Setup
-    public void init() {
-        ts.setNanos(nanos);
+  @Setup
+  public void init() {
+    ts.setNanos(nanos);
+  }
+
+  @Benchmark
+  public void charArray() {
+    sb.setLength(0);
+    int nanos = ts.getNanos();
+    char[] decimalStr = {'0', '0', '0', '0', '0', '0', '0', '0', '0'};
+    char[] nanoStr = Integer.toString(nanos).toCharArray();
+    System.arraycopy(nanoStr, 0, decimalStr, decimalStr.length - nanoStr.length, nanoStr.length);
+    sb.append(decimalStr, 0, 6);
+  }
+
+  @Benchmark
+  public void insert() {
+    sb.setLength(0);
+    int len = sb.length();
+    int nanos = ts.getNanos();
+    sb.append(nanos / 1000);
+    int needZeros = 6 - (sb.length() - len);
+    if (needZeros > 0) {
+      sb.insert(len, ZEROS, 0, needZeros);
     }
+  }
 
-    @Benchmark
-    public void charArray() {
-        sb.setLength(0);
-        int nanos = ts.getNanos();
-        char[] decimalStr = {'0', '0', '0', '0', '0', '0', '0', '0', '0'};
-        char[] nanoStr = Integer.toString(nanos).toCharArray();
-        System.arraycopy(nanoStr, 0, decimalStr, decimalStr.length - nanoStr.length, nanoStr.length);
-        sb.append(decimalStr, 0, 6);
-    }
+  public static void main(String[] args) throws RunnerException {
+    Options opt = new OptionsBuilder()
+        .include(AddPaddingZeros.class.getSimpleName())
+        .addProfiler(GCProfiler.class)
+        //.addProfiler(FlightRecorderProfiler.class)
+        .detectJvmArgs()
+        .build();
 
-    @Benchmark
-    public void insert() {
-        sb.setLength(0);
-        int len = sb.length();
-        int nanos = ts.getNanos();
-        sb.append(nanos / 1000);
-        int needZeros = 6 - (sb.length() - len);
-        if (needZeros > 0) {
-            sb.insert(len, ZEROS, 0, needZeros);
-        }
-    }
-
-    public static void main(String[] args) throws RunnerException {
-        Options opt = new OptionsBuilder()
-                .include(AddPaddingZeros.class.getSimpleName())
-                .addProfiler(GCProfiler.class)
-//                .addProfiler(FlightRecorderProfiler.class)
-                .detectJvmArgs()
-                .build();
-
-        new Runner(opt).run();
-    }
+    new Runner(opt).run();
+  }
 }

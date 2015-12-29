@@ -39,5 +39,5 @@
       <unpack>false</unpack>
       <scope>runtime</scope>
     </dependencySet>
-</dependencySets>
+  </dependencySets>
 </assembly>

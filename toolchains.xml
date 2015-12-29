@@ -1,42 +1,42 @@
 <?xml version="1.0" encoding="UTF8"?>
 <toolchains>
-    <!--
-      JDK toolchains to be used to build PgJDBC for JRE6 or JDR7.
-      Note: in order to release PgJDBC, you need all three JDK to be set via toolchains.
-      The file should be placed to ~/.m2/toolchains.xml
+  <!--
+    JDK toolchains to be used to build PgJDBC for JRE6 or JDR7.
+    Note: in order to release PgJDBC, you need all three JDK to be set via toolchains.
+    The file should be placed to ~/.m2/toolchains.xml
 
-      Default locations are:
-       Mac OS: /Library/Java/JavaVirtualMachines/jdk1.7.0_XY.jdk/Contents/Home
-       Ubuntu: /usr/lib/jvm/java-7-openjdk-amd64
-    -->
-    <toolchain>
-        <type>jdk</type>
-        <provides>
-            <version>1.6</version>
-            <vendor>oracle</vendor>
-        </provides>
-        <configuration>
-            <jdkHome>${JDK6_HOME}</jdkHome>
-        </configuration>
-    </toolchain>
-    <toolchain>
-        <type>jdk</type>
-        <provides>
-            <version>1.7</version>
-            <vendor>oracle</vendor>
-        </provides>
-        <configuration>
-            <jdkHome>${JDK7_HOME}</jdkHome>
-        </configuration>
-    </toolchain>
-    <toolchain>
-        <type>jdk</type>
-        <provides>
-            <version>1.8</version>
-            <vendor>oracle</vendor>
-        </provides>
-        <configuration>
-            <jdkHome>${JDK8_HOME}</jdkHome>
-        </configuration>
-    </toolchain>
+    Default locations are:
+     Mac OS: /Library/Java/JavaVirtualMachines/jdk1.7.0_XY.jdk/Contents/Home
+     Ubuntu: /usr/lib/jvm/java-7-openjdk-amd64
+  -->
+  <toolchain>
+    <type>jdk</type>
+    <provides>
+      <version>1.6</version>
+      <vendor>oracle</vendor>
+    </provides>
+    <configuration>
+      <jdkHome>${JDK6_HOME}</jdkHome>
+    </configuration>
+  </toolchain>
+  <toolchain>
+    <type>jdk</type>
+    <provides>
+      <version>1.7</version>
+      <vendor>oracle</vendor>
+    </provides>
+    <configuration>
+      <jdkHome>${JDK7_HOME}</jdkHome>
+    </configuration>
+  </toolchain>
+  <toolchain>
+    <type>jdk</type>
+    <provides>
+      <version>1.8</version>
+      <vendor>oracle</vendor>
+    </provides>
+    <configuration>
+      <jdkHome>${JDK8_HOME}</jdkHome>
+    </configuration>
+  </toolchain>
 </toolchains>

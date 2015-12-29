@@ -1,76 +1,78 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-    <parent>
-        <groupId>org.postgresql</groupId>
-        <artifactId>pgjdbc-core-parent</artifactId>
-        <version>1.0.2</version>
-        <relativePath />
-    </parent>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.postgresql</groupId>
+    <artifactId>pgjdbc-core-parent</artifactId>
+    <version>1.0.2</version>
+    <relativePath/>
+  </parent>
 
-    <artifactId>postgresql</artifactId>
-    <packaging>bundle</packaging>
-    <name>PostgreSQL JDBC Driver - JDBC 4.2</name>
-    <version>9.4.1208-SNAPSHOT</version>
-    <description>Java JDBC 4.2 (JRE 8+) driver for PostgreSQL database</description>
-    <url>https://github.com/pgjdbc/pgjdbc</url>
+  <artifactId>postgresql</artifactId>
+  <packaging>bundle</packaging>
+  <name>PostgreSQL JDBC Driver - JDBC 4.2</name>
+  <version>9.4.1208-SNAPSHOT</version>
+  <description>Java JDBC 4.2 (JRE 8+) driver for PostgreSQL database</description>
+  <url>https://github.com/pgjdbc/pgjdbc</url>
 
-    <licenses>
-        <license>
-            <name>The PostgreSQL License</name>
-            <url>http://www.postgresql.org/about/licence/</url>
-        </license>
-    </licenses>
+  <licenses>
+    <license>
+      <name>The PostgreSQL License</name>
+      <url>http://www.postgresql.org/about/licence/</url>
+    </license>
+  </licenses>
 
-    <organization>
-        <name>PostgreSQL Global Development Group</name>
-        <url>http://jdbc.postgresql.org/</url>
-    </organization>
+  <organization>
+    <name>PostgreSQL Global Development Group</name>
+    <url>http://jdbc.postgresql.org/</url>
+  </organization>
 
-    <properties>
-        <!-- Require JDK 1.8 or later -->
-        <javac.target>1.8</javac.target>
-        <postgresql.enforce.jdk.version>1.8</postgresql.enforce.jdk.version>
-        <jdbc.specification.version>4.2</jdbc.specification.version>
-        <jdbc.specification.version.nodot>42</jdbc.specification.version.nodot>
-        <skip.assembly>false</skip.assembly>
-    </properties>
+  <properties>
+    <!-- Require JDK 1.8 or later -->
+    <javac.target>1.8</javac.target>
+    <postgresql.enforce.jdk.version>1.8</postgresql.enforce.jdk.version>
+    <jdbc.specification.version>4.2</jdbc.specification.version>
+    <jdbc.specification.version.nodot>42</jdbc.specification.version.nodot>
+    <skip.assembly>false</skip.assembly>
+  </properties>
 
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-site-plugin</artifactId>
-                <configuration>
-                    <chmod>true</chmod>
-                    <inputEncoding>UTF-8</inputEncoding>
-                    <outputEncoding>UTF-8</outputEncoding>
-                </configuration>
-            </plugin>
-        </plugins>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-site-plugin</artifactId>
+        <configuration>
+          <chmod>true</chmod>
+          <inputEncoding>UTF-8</inputEncoding>
+          <outputEncoding>UTF-8</outputEncoding>
+        </configuration>
+      </plugin>
+    </plugins>
 
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-checkstyle-plugin</artifactId>
-                    <version>2.17</version>
-                    <dependencies>
-                        <dependency>
-                            <groupId>com.puppycrawl.tools</groupId>
-                            <artifactId>checkstyle</artifactId>
-                            <version>6.13</version>
-                        </dependency>
-                    </dependencies>
-                    <configuration>
-                        <configLocation>src/main/checkstyle/checks.xml</configLocation>
-                        <violationSeverity>error</violationSeverity>
-                        <failOnViolation>true</failOnViolation>
-                        <failsOnError>true</failsOnError>
-                        <consoleOutput>true</consoleOutput>
-                        <includeTestSourceDirectory>true</includeTestSourceDirectory>
-                    </configuration>
-                </plugin>
-            </plugins>
-        </pluginManagement>
-    </build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-checkstyle-plugin</artifactId>
+          <version>2.17</version>
+          <dependencies>
+            <dependency>
+              <groupId>com.puppycrawl.tools</groupId>
+              <artifactId>checkstyle</artifactId>
+              <version>6.13</version>
+            </dependency>
+          </dependencies>
+          <configuration>
+            <configLocation>src/main/checkstyle/checks.xml</configLocation>
+            <violationSeverity>error</violationSeverity>
+            <failOnViolation>true</failOnViolation>
+            <failsOnError>true</failsOnError>
+            <consoleOutput>true</consoleOutput>
+            <includeTestSourceDirectory>true</includeTestSourceDirectory>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
 </project>

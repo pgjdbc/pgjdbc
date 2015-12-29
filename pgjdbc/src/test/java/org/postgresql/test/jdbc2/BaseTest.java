@@ -10,39 +10,32 @@ import java.sql.SQLException;
 import java.util.Properties;
 
 public class BaseTest extends TestCase {
-    protected Connection con;
+  protected Connection con;
 
-    public BaseTest(String name)
-    {
-        super(name);
+  public BaseTest(String name) {
+    super(name);
 
-        try
-        {
-            new org.postgresql.Driver();
-        }
-        catch (Exception ex)
-        {
+    try {
+      new org.postgresql.Driver();
+    } catch (Exception ex) {
             /* ignore */
-        }
     }
+  }
 
-    protected void updateProperties(Properties props) {
-    }
+  protected void updateProperties(Properties props) {
+  }
 
-    protected void forceBinary(Properties props)
-    {
-        PGProperty.PREPARE_THRESHOLD.set(props, -1);
-    }
+  protected void forceBinary(Properties props) {
+    PGProperty.PREPARE_THRESHOLD.set(props, -1);
+  }
 
-    protected void setUp() throws Exception
-    {
-        Properties props = new Properties();
-        updateProperties(props);
-        con = TestUtil.openDB(props);
-    }
+  protected void setUp() throws Exception {
+    Properties props = new Properties();
+    updateProperties(props);
+    con = TestUtil.openDB(props);
+  }
 
-    protected void tearDown() throws SQLException
-    {
-        TestUtil.closeDB(con);
-    }
+  protected void tearDown() throws SQLException {
+    TestUtil.closeDB(con);
+  }
 }

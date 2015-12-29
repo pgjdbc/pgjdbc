@@ -6,6 +6,7 @@
 *
 *-------------------------------------------------------------------------
 */
+
 package org.postgresql.core.v2;
 
 import org.postgresql.core.NativeQuery;
@@ -20,48 +21,49 @@ import java.util.List;
  * Query implementation for all queries via the V2 protocol.
  */
 class V2Query implements Query {
-    V2Query(String query, boolean withParameters, ProtocolConnection pconn) {
+  V2Query(String query, boolean withParameters, ProtocolConnection pconn) {
 
-        useEStringSyntax = pconn.getServerVersionNum() >= 80100;
-        boolean stdStrings = pconn.getStandardConformingStrings();
+    useEStringSyntax = pconn.getServerVersionNum() >= 80100;
+    boolean stdStrings = pconn.getStandardConformingStrings();
 
-        List<NativeQuery> queries = Parser.parseJdbcSql(query, stdStrings, withParameters, false);
-        assert queries.size() <= 1 : "Exactly one query expected in V2. " + queries.size() + " queries given.";
+    List<NativeQuery> queries = Parser.parseJdbcSql(query, stdStrings, withParameters, false);
+    assert queries.size() <= 1 : "Exactly one query expected in V2. " + queries.size()
+        + " queries given.";
 
-        nativeQuery = queries.isEmpty() ? new NativeQuery("") : queries.get(0);
+    nativeQuery = queries.isEmpty() ? new NativeQuery("") : queries.get(0);
+  }
+
+  public ParameterList createParameterList() {
+    if (nativeQuery.bindPositions.length == 0) {
+      return NO_PARAMETERS;
     }
 
-    public ParameterList createParameterList() {
-        if (nativeQuery.bindPositions.length == 0)
-            return NO_PARAMETERS;
+    return new SimpleParameterList(nativeQuery.bindPositions.length, useEStringSyntax);
+  }
 
-        return new SimpleParameterList(nativeQuery.bindPositions.length, useEStringSyntax);
-    }
+  public String toString(ParameterList parameters) {
+    return nativeQuery.toString(parameters);
+  }
 
-    public String toString(ParameterList parameters) {
-        return nativeQuery.toString(parameters);
-    }
+  public void close() {
+  }
 
-    public void close() {
-    }
+  NativeQuery getNativeQuery() {
+    return nativeQuery;
+  }
 
-    NativeQuery getNativeQuery() {
-        return nativeQuery;
-    }
+  public boolean isStatementDescribed() {
+    return false;
+  }
 
-    public boolean isStatementDescribed() {
-        return false;
-    }
+  public boolean isEmpty() {
+    return nativeQuery.nativeSql.isEmpty();
+  }
 
-    public boolean isEmpty()
-    {
-        return nativeQuery.nativeSql.isEmpty();
-    }
+  private static final ParameterList NO_PARAMETERS = new SimpleParameterList(0, false);
 
-    private static final ParameterList NO_PARAMETERS = new SimpleParameterList(0, false);
+  private final NativeQuery nativeQuery;
 
-    private final NativeQuery nativeQuery;
-    
-    private final boolean useEStringSyntax; // whether escaped string syntax should be used
+  private final boolean useEStringSyntax; // whether escaped string syntax should be used
 }
 

@@ -5,6 +5,7 @@
 *
 *-------------------------------------------------------------------------
 */
+
 package org.postgresql.benchmark.statement;
 
 import org.postgresql.benchmark.profilers.FlightRecorderProfiler;
@@ -46,45 +47,45 @@ import java.util.concurrent.TimeUnit;
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 public class BindTimestamp {
-    private Connection connection;
-    private PreparedStatement ps;
-    private Timestamp ts = new Timestamp(System.currentTimeMillis());
-    private Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+  private Connection connection;
+  private PreparedStatement ps;
+  private Timestamp ts = new Timestamp(System.currentTimeMillis());
+  private Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 
-    @Setup(Level.Trial)
-    public void setUp() throws SQLException {
-        Properties props = ConnectionUtil.getProperties();
+  @Setup(Level.Trial)
+  public void setUp() throws SQLException {
+    Properties props = ConnectionUtil.getProperties();
 
-        connection = DriverManager.getConnection(ConnectionUtil.getURL(), props);
-        ps = connection.prepareStatement("select ?");
-    }
+    connection = DriverManager.getConnection(ConnectionUtil.getURL(), props);
+    ps = connection.prepareStatement("select ?");
+  }
 
-    @TearDown(Level.Trial)
-    public void tearDown() throws SQLException {
-        ps.close();
-        connection.close();
-    }
+  @TearDown(Level.Trial)
+  public void tearDown() throws SQLException {
+    ps.close();
+    connection.close();
+  }
 
-    @Benchmark
-    public Statement timestampLocal() throws SQLException {
-        ps.setTimestamp(1, ts);
-        return ps;
-    }
+  @Benchmark
+  public Statement timestampLocal() throws SQLException {
+    ps.setTimestamp(1, ts);
+    return ps;
+  }
 
-    @Benchmark
-    public Statement timestampCal() throws SQLException {
-        ps.setTimestamp(1, ts, cal);
-        return ps;
-    }
+  @Benchmark
+  public Statement timestampCal() throws SQLException {
+    ps.setTimestamp(1, ts, cal);
+    return ps;
+  }
 
-    public static void main(String[] args) throws RunnerException {
-        Options opt = new OptionsBuilder()
-                .include(BindTimestamp.class.getSimpleName())
-                .addProfiler(GCProfiler.class)
-                .addProfiler(FlightRecorderProfiler.class)
-                .detectJvmArgs()
-                .build();
+  public static void main(String[] args) throws RunnerException {
+    Options opt = new OptionsBuilder()
+        .include(BindTimestamp.class.getSimpleName())
+        .addProfiler(GCProfiler.class)
+        .addProfiler(FlightRecorderProfiler.class)
+        .detectJvmArgs()
+        .build();
 
-        new Runner(opt).run();
-    }
+    new Runner(opt).run();
+  }
 }

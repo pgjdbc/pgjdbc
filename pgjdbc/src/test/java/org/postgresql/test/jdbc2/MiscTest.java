@@ -5,6 +5,7 @@
 *
 *-------------------------------------------------------------------------
 */
+
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.test.TestUtil;
@@ -24,118 +25,107 @@ import java.sql.Statement;
  * help prevent previous problems from re-occuring ;-)
  *
  */
-public class MiscTest extends TestCase
-{
+public class MiscTest extends TestCase {
 
-    public MiscTest(String name)
-    {
-        super(name);
+  public MiscTest(String name) {
+    super(name);
+  }
+
+  /*
+   * Some versions of the driver would return rs as a null?
+   *
+   * Sasha <ber0806@iperbole.bologna.it> was having this problem.
+   *
+   * Added Feb 13 2001
+   */
+  public void testDatabaseSelectNullBug() throws Exception {
+    Connection con = TestUtil.openDB();
+
+    Statement st = con.createStatement();
+    ResultSet rs = st.executeQuery("select datname from pg_database");
+    assertNotNull(rs);
+
+    while (rs.next()) {
+      rs.getString(1);
     }
 
-    /*
-     * Some versions of the driver would return rs as a null?
-     *
-     * Sasha <ber0806@iperbole.bologna.it> was having this problem.
-     *
-     * Added Feb 13 2001
-     */
-    public void testDatabaseSelectNullBug() throws Exception
-    {
-        Connection con = TestUtil.openDB();
+    rs.close();
+    st.close();
 
-        Statement st = con.createStatement();
-        ResultSet rs = st.executeQuery("select datname from pg_database");
-        assertNotNull(rs);
+    TestUtil.closeDB(con);
+  }
 
-        while (rs.next())
-        {
-            rs.getString(1);
-        }
+  /**
+   * Ensure the cancel call does not return before it has completed. Previously it did which
+   * cancelled future queries.
+   */
+  public void testSingleThreadCancel() throws Exception {
+    Connection con = TestUtil.openDB();
+    Statement stmt = con.createStatement();
+    for (int i = 0; i < 100; i++) {
+      ResultSet rs = stmt.executeQuery("SELECT 1");
+      rs.close();
+      stmt.cancel();
+    }
+    TestUtil.closeDB(con);
+  }
 
-        rs.close();
-        st.close();
+  public void testError() throws Exception {
+    Connection con = TestUtil.openDB();
+    try {
 
-        TestUtil.closeDB(con);
+      // transaction mode
+      con.setAutoCommit(false);
+      Statement stmt = con.createStatement();
+      stmt.execute("select 1/0");
+      fail("Should not execute this, as a SQLException s/b thrown");
+      con.commit();
+    } catch (SQLException ex) {
+      // Verify that the SQLException is serializable.
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      ObjectOutputStream oos = new ObjectOutputStream(baos);
+      oos.writeObject(ex);
+      oos.close();
     }
 
-    /**
-     * Ensure the cancel call does not return before it has completed.
-     * Previously it did which cancelled future queries.
-     */
-    public void testSingleThreadCancel() throws Exception
-    {
-        Connection con = TestUtil.openDB();
-        Statement stmt = con.createStatement();
-        for (int i=0; i<100; i++) {
-            ResultSet rs = stmt.executeQuery("SELECT 1");
-            rs.close();
-            stmt.cancel();
-        }
-        TestUtil.closeDB(con);
+    con.commit();
+    con.close();
+  }
+
+  public void testWarning() throws Exception {
+    Connection con = TestUtil.openDB();
+    Statement stmt = con.createStatement();
+    stmt.execute("CREATE TEMP TABLE t(a int primary key)");
+    SQLWarning warning = stmt.getWarnings();
+    // We should get a warning about primary key index creation
+    // it's possible we won't depending on the server's
+    // client_min_messages setting.
+    while (warning != null) {
+      // Verify that the SQLWarning is serializable.
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      ObjectOutputStream oos = new ObjectOutputStream(baos);
+      oos.writeObject(warning);
+      oos.close();
+      warning = warning.getNextWarning();
     }
 
-    public void testError() throws Exception
-    {
-        Connection con = TestUtil.openDB();
-        try
-        {
+    stmt.close();
+    con.close();
+  }
 
-            // transaction mode
-            con.setAutoCommit(false);
-            Statement stmt = con.createStatement();
-            stmt.execute("select 1/0");
-            fail( "Should not execute this, as a SQLException s/b thrown" );
-            con.commit();
-        }
-        catch ( SQLException ex )
-        {
-            // Verify that the SQLException is serializable.
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ObjectOutputStream oos = new ObjectOutputStream(baos);
-            oos.writeObject(ex);
-            oos.close();
-        }
+  public void xtestLocking() throws Exception {
+    Connection con = TestUtil.openDB();
+    Connection con2 = TestUtil.openDB();
 
-        con.commit();
-        con.close();
-    }
-
-    public void testWarning() throws Exception
-    {
-        Connection con = TestUtil.openDB();
-        Statement stmt = con.createStatement();
-        stmt.execute("CREATE TEMP TABLE t(a int primary key)");
-        SQLWarning warning = stmt.getWarnings();
-        // We should get a warning about primary key index creation
-        // it's possible we won't depending on the server's
-        // client_min_messages setting.
-        while (warning != null) {
-            // Verify that the SQLWarning is serializable.
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ObjectOutputStream oos = new ObjectOutputStream(baos);
-            oos.writeObject(warning);
-            oos.close();
-            warning = warning.getNextWarning();
-        }
-
-        stmt.close();
-        con.close();
-    }
-
-    public void xtestLocking() throws Exception
-    {
-        Connection con = TestUtil.openDB();
-        Connection con2 = TestUtil.openDB();
-
-        TestUtil.createTable(con, "test_lock", "name text");
-        Statement st = con.createStatement();
-        Statement st2 = con2.createStatement();
-        con.setAutoCommit(false);
-        st.execute("lock table test_lock");
-        st2.executeUpdate( "insert into test_lock ( name ) values ('hello')" );
-        con.commit();
-        TestUtil.dropTable(con, "test_lock");
-        con.close();
-        con2.close();
-    }
+    TestUtil.createTable(con, "test_lock", "name text");
+    Statement st = con.createStatement();
+    Statement st2 = con2.createStatement();
+    con.setAutoCommit(false);
+    st.execute("lock table test_lock");
+    st2.executeUpdate("insert into test_lock ( name ) values ('hello')");
+    con.commit();
+    TestUtil.dropTable(con, "test_lock");
+    con.close();
+    con2.close();
+  }
 }

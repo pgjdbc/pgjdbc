@@ -5,6 +5,7 @@
  *
  *-------------------------------------------------------------------------
  */
+
 package org.postgresql.hostchooser;
 
 import org.postgresql.util.HostSpec;
@@ -16,10 +17,11 @@ import java.util.Properties;
  */
 public class HostChooserFactory {
 
-    public static HostChooser createHostChooser(HostSpec[] hostSpecs, HostRequirement targetServerType, Properties info) {
-        if (hostSpecs.length == 1) {
-            return new SingleHostChooser(hostSpecs[0]);
-        }
-        return new MultiHostChooser(hostSpecs, targetServerType, info);
+  public static HostChooser createHostChooser(HostSpec[] hostSpecs,
+      HostRequirement targetServerType, Properties info) {
+    if (hostSpecs.length == 1) {
+      return new SingleHostChooser(hostSpecs[0]);
     }
+    return new MultiHostChooser(hostSpecs, targetServerType, info);
+  }
 }

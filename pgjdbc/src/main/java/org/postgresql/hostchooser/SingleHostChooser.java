@@ -5,6 +5,7 @@
 *
 *-------------------------------------------------------------------------
 */
+
 package org.postgresql.hostchooser;
 
 import org.postgresql.util.HostSpec;
@@ -17,13 +18,13 @@ import java.util.Iterator;
  * Host chooser that returns the single host.
  */
 public class SingleHostChooser implements HostChooser {
-    private final Collection<HostSpec> hostSpec;
+  private final Collection<HostSpec> hostSpec;
 
-    public SingleHostChooser(HostSpec hostSpec) {
-        this.hostSpec = Collections.singletonList(hostSpec);
-    }
+  public SingleHostChooser(HostSpec hostSpec) {
+    this.hostSpec = Collections.singletonList(hostSpec);
+  }
 
-    public Iterator<HostSpec> iterator() {
-        return hostSpec.iterator();
-    }
+  public Iterator<HostSpec> iterator() {
+    return hostSpec.iterator();
+  }
 }

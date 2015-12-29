@@ -39,7 +39,6 @@ import javax.security.auth.x500.X500Principal;
 
 /**
  * A Key manager that only loads the keys, if necessary.
- *
  */
 public class LazyKeyManager implements X509KeyManager {
   private X509Certificate[] cert = null;
@@ -49,13 +48,14 @@ public class LazyKeyManager implements X509KeyManager {
   private CallbackHandler cbh;
   private boolean defaultfile;
   private PSQLException error = null;
-  
+
   /**
-   * Constructor. certfile and keyfile can be null, in that case no
-   * certificate is presented to the server.
-   * @param certfile certfile
-   * @param keyfile key file
-   * @param cbh callback handler
+   * Constructor. certfile and keyfile can be null, in that case no certificate is presented to the
+   * server.
+   *
+   * @param certfile    certfile
+   * @param keyfile     key file
+   * @param cbh         callback handler
    * @param defaultfile default file
    */
   public LazyKeyManager(String certfile, String keyfile, CallbackHandler cbh, boolean defaultfile) {
@@ -64,36 +64,35 @@ public class LazyKeyManager implements X509KeyManager {
     this.cbh = cbh;
     this.defaultfile = defaultfile;
   }
-  
+
   /**
-   * getCertificateChain and getPrivateKey cannot throw exeptions,
-   * therefore any exception is stored in {@link #error} and can be raised
-   * by this method
+   * getCertificateChain and getPrivateKey cannot throw exeptions, therefore any exception is stored
+   * in {@link #error} and can be raised by this method
+   *
    * @throws PSQLException if any exception is stored in {@link #error} and can be raised
    */
-  public void throwKeyManagerException() throws PSQLException
-  {
-    if (error!=null) throw error;
+  public void throwKeyManagerException() throws PSQLException {
+    if (error != null) {
+      throw error;
+    }
   }
-  
+
   public String chooseClientAlias(String[] keyType, Principal[] issuers,
       Socket socket) {
-    if (certfile==null)
-    {
+    if (certfile == null) {
       return null;
     } else {
-      if (issuers==null || issuers.length==0)
-      { //Postgres 8.4 and earlier do not send the list of accepted certificate authorities
+      if (issuers == null || issuers.length
+          == 0) { //Postgres 8.4 and earlier do not send the list of accepted certificate authorities
         //to the client. See BUG #5468. We only hope, that our certificate will be accepted.
         return "user";
       } else { //Sending a wrong certificate makes the connection rejected, even, if clientcert=0 in pg_hba.conf.
         //therefore we only send our certificate, if the issuer is listed in issuers
         X509Certificate[] certchain = getCertificateChain("user");
-        if (certchain==null)
-        {
+        if (certchain == null) {
           return null;
         } else {
-          X500Principal ourissuer = certchain[certchain.length-1].getIssuerX500Principal();
+          X500Principal ourissuer = certchain[certchain.length - 1].getIssuerX500Principal();
           boolean found = false;
           for (Principal issuer : issuers) {
             if (ourissuer.equals(issuer)) {
@@ -112,105 +111,100 @@ public class LazyKeyManager implements X509KeyManager {
   }
 
   public X509Certificate[] getCertificateChain(String alias) {
-    if (cert==null && certfile!=null) //If certfile is null, we do not load the certificate
-    { //The certificate must be loaded
+    if (cert == null && certfile != null) {
+      // If certfile is null, we do not load the certificate
+      // The certificate must be loaded
       CertificateFactory cf;
-      try
-      {
+      try {
         cf = CertificateFactory.getInstance("X.509");
-      } catch (CertificateException ex)
-      { //For some strange reason it throws CertificateException instead of NoSuchAlgorithmException...
-        error = new PSQLException(GT.tr("Could not find a java cryptographic algorithm: X.509 CertificateFactory not available.", null), PSQLState.CONNECTION_FAILURE, ex);
+      } catch (CertificateException ex) { //For some strange reason it throws CertificateException instead of NoSuchAlgorithmException...
+        error = new PSQLException(GT.tr(
+            "Could not find a java cryptographic algorithm: X.509 CertificateFactory not available.",
+            null), PSQLState.CONNECTION_FAILURE, ex);
         return null;
       }
       Collection<? extends Certificate> certs;
-      try
-      {
+      try {
         certs = cf.generateCertificates(new FileInputStream(certfile));
-      } catch (FileNotFoundException ioex)
-      {
-        if (!defaultfile)
-        { //It is not an error if there is no file at the default location
-          error = new PSQLException(GT.tr("Could not open SSL certificate file {0}.", new Object[]{certfile}), PSQLState.CONNECTION_FAILURE, ioex);
+      } catch (FileNotFoundException ioex) {
+        if (!defaultfile) { //It is not an error if there is no file at the default location
+          error = new PSQLException(
+              GT.tr("Could not open SSL certificate file {0}.", new Object[]{certfile}),
+              PSQLState.CONNECTION_FAILURE, ioex);
         }
         return null;
-      }catch (CertificateException gsex)
-      {
-        error = new PSQLException(GT.tr("Loading the SSL certificate {0} into a KeyManager failed.", new Object[]{certfile}), PSQLState.CONNECTION_FAILURE, gsex);
+      } catch (CertificateException gsex) {
+        error = new PSQLException(GT.tr("Loading the SSL certificate {0} into a KeyManager failed.",
+            new Object[]{certfile}), PSQLState.CONNECTION_FAILURE, gsex);
         return null;
-      } 
+      }
       cert = certs.toArray(new X509Certificate[certs.size()]);
-    }    
+    }
     return cert;
   }
 
   public String[] getClientAliases(String keyType, Principal[] issuers) {
-    String alias = chooseClientAlias(new String[]{keyType}, issuers, (Socket)null);
-    return (alias==null ? new String[]{} : new String[]{alias});
+    String alias = chooseClientAlias(new String[]{keyType}, issuers, (Socket) null);
+    return (alias == null ? new String[]{} : new String[]{alias});
   }
 
   public PrivateKey getPrivateKey(String alias) {
     RandomAccessFile raf = null;
-    try
-    {
-      if (key==null && keyfile!=null) //If keyfile is null, we do not load the key
-      { //The private key must be loaded
-        if (cert==null)
-        { //We need the certificate for the algorithm
-          if(getCertificateChain("user")==null)
+    try {
+      if (key == null && keyfile != null) {
+        // If keyfile is null, we do not load the key
+        // The private key must be loaded
+        if (cert == null) { //We need the certificate for the algorithm
+          if (getCertificateChain("user") == null) {
             return null; //getCertificateChain failed...
+          }
         }
 
-        try
-        {
+        try {
           raf = new RandomAccessFile(new File(keyfile), "r");
-        }
-        catch (FileNotFoundException ex)
-        {
-          if (!defaultfile)
-          { //It is not an error if there is no file at the default location
+        } catch (FileNotFoundException ex) {
+          if (!defaultfile) {
+            //It is not an error if there is no file at the default location
             throw ex;
           }
-          return null;      
+          return null;
         }
-        byte[] keydata = new byte[(int)raf.length()];
+        byte[] keydata = new byte[(int) raf.length()];
         raf.readFully(keydata);
         raf.close();
         raf = null;
 
         KeyFactory kf = KeyFactory.getInstance(cert[0].getPublicKey().getAlgorithm());
         try {
-          KeySpec pkcs8KeySpec = new PKCS8EncodedKeySpec (keydata);
-          key = kf.generatePrivate (pkcs8KeySpec);
-        }
-        catch (InvalidKeySpecException ex) //The key might be password protected
-        {
+          KeySpec pkcs8KeySpec = new PKCS8EncodedKeySpec(keydata);
+          key = kf.generatePrivate(pkcs8KeySpec);
+        } catch (InvalidKeySpecException ex) {
+          // The key might be password protected
           EncryptedPrivateKeyInfo ePKInfo = new EncryptedPrivateKeyInfo(keydata);
           Cipher cipher;
-          try
-          {
+          try {
             cipher = Cipher.getInstance(ePKInfo.getAlgName());
-          } catch (NoSuchPaddingException npex)
-          { //Why is it not a subclass of NoSuchAlgorithmException?
-            throw new NoSuchAlgorithmException(npex.getMessage(),npex);
+          } catch (NoSuchPaddingException npex) { //Why is it not a subclass of NoSuchAlgorithmException?
+            throw new NoSuchAlgorithmException(npex.getMessage(), npex);
           }
           //We call back for the password
           PasswordCallback pwdcb = new PasswordCallback(GT.tr("Enter SSL password: "), false);
-          try
-          {
+          try {
             cbh.handle(new Callback[]{pwdcb});
-          } catch (UnsupportedCallbackException ucex)
-          {
-            if ((cbh instanceof LibPQFactory.ConsoleCallbackHandler) && ("Console is not available".equals(ucex.getMessage())))
-            {
-              error = new PSQLException(GT.tr("Could not read password for SSL key file, console is not available.", null), PSQLState.CONNECTION_FAILURE, ucex);
+          } catch (UnsupportedCallbackException ucex) {
+            if ((cbh instanceof LibPQFactory.ConsoleCallbackHandler)
+                && ("Console is not available".equals(ucex.getMessage()))) {
+              error = new PSQLException(
+                  GT.tr("Could not read password for SSL key file, console is not available.",
+                      null), PSQLState.CONNECTION_FAILURE, ucex);
             } else {
-              error = new PSQLException(GT.tr("Could not read password for SSL key file by callbackhandler {0}.", new Object[]{cbh.getClass().getName()}), PSQLState.CONNECTION_FAILURE, ucex); 
+              error = new PSQLException(
+                  GT.tr("Could not read password for SSL key file by callbackhandler {0}.",
+                      new Object[]{cbh.getClass().getName()}), PSQLState.CONNECTION_FAILURE, ucex);
             }
             return null;
           }
-          try
-          {
+          try {
             PBEKeySpec pbeKeySpec = new PBEKeySpec(pwdcb.getPassword());
             // Now create the Key from the PBEKeySpec
             SecretKeyFactory skFac = SecretKeyFactory.getInstance(ePKInfo.getAlgName());
@@ -220,28 +214,30 @@ public class LazyKeyManager implements X509KeyManager {
             cipher.init(Cipher.DECRYPT_MODE, pbeKey, algParams);
             // Decrypt the encryped private key into a PKCS8EncodedKeySpec
             KeySpec pkcs8KeySpec = ePKInfo.getKeySpec(cipher);
-            key = kf.generatePrivate (pkcs8KeySpec);
+            key = kf.generatePrivate(pkcs8KeySpec);
+          } catch (GeneralSecurityException ikex) {
+            error = new PSQLException(
+                GT.tr("Could not decrypt SSL key file {0}.", new Object[]{keyfile}),
+                PSQLState.CONNECTION_FAILURE, ikex);
+            return null;
           }
-          catch (GeneralSecurityException ikex)
-          {
-            error = new PSQLException(GT.tr("Could not decrypt SSL key file {0}.", new Object[]{keyfile}), PSQLState.CONNECTION_FAILURE, ikex);
-            return null;      
-          }         
         }
       }
-    }
-    catch (IOException ioex)
-    {
+    } catch (IOException ioex) {
       if (raf != null) {
-	  try { raf.close(); } catch (IOException ex) { };
+        try {
+          raf.close();
+        } catch (IOException ex) {
+        }
+        ;
       }
 
-      error = new PSQLException(GT.tr("Could not read SSL key file {0}.", new Object[]{keyfile}), PSQLState.CONNECTION_FAILURE, ioex);
-    }
-    catch(NoSuchAlgorithmException ex)
-    {
-      error = new PSQLException(GT.tr("Could not find a java cryptographic algorithm: {0}.", new Object[]{ex.getMessage()}), PSQLState.CONNECTION_FAILURE, ex);
-      return null;      
+      error = new PSQLException(GT.tr("Could not read SSL key file {0}.", new Object[]{keyfile}),
+          PSQLState.CONNECTION_FAILURE, ioex);
+    } catch (NoSuchAlgorithmException ex) {
+      error = new PSQLException(GT.tr("Could not find a java cryptographic algorithm: {0}.",
+          new Object[]{ex.getMessage()}), PSQLState.CONNECTION_FAILURE, ex);
+      return null;
     }
 
     return key;

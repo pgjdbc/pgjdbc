@@ -9,14 +9,15 @@ import java.util.Map;
  * @author Minglei Tu
  */
 public class ArrayAssistantRegistry {
-    private static Map<Integer, ArrayAssistant> arrayAssistantMap = new HashMap<Integer, ArrayAssistant>();
+  private static Map<Integer, ArrayAssistant> arrayAssistantMap =
+      new HashMap<Integer, ArrayAssistant>();
 
-    public static ArrayAssistant getAssistant(int oid) {
-        return arrayAssistantMap.get(oid);
-    }
+  public static ArrayAssistant getAssistant(int oid) {
+    return arrayAssistantMap.get(oid);
+  }
 
-    ////
-    public static void register(int oid, ArrayAssistant assistant) {
-        arrayAssistantMap.put(oid, assistant);
-    }
+  ////
+  public static void register(int oid, ArrayAssistant assistant) {
+    arrayAssistantMap.put(oid, assistant);
+  }
 }

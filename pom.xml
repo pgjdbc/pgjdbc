@@ -1,29 +1,31 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-    <parent>
-        <groupId>org.postgresql</groupId>
-        <artifactId>pgjdbc-versions</artifactId>
-        <version>1.0.2</version>
-    </parent>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.postgresql</groupId>
+    <artifactId>pgjdbc-versions</artifactId>
+    <version>1.0.2</version>
+  </parent>
 
-    <artifactId>pgjdbc-aggregate</artifactId>
-    <packaging>pom</packaging>
-    <name>PostgreSQL JDBC Driver aggregate</name>
-    <version>9.4.1208-SNAPSHOT</version>
-    <description>PgJDBC aggregate project</description>
+  <artifactId>pgjdbc-aggregate</artifactId>
+  <packaging>pom</packaging>
+  <name>PostgreSQL JDBC Driver aggregate</name>
+  <version>9.4.1208-SNAPSHOT</version>
+  <description>PgJDBC aggregate project</description>
+  <url>https://github.com/pgjdbc/pgjdbc</url>
+
+  <modules>
+    <module>pgjdbc</module>
+    <module>ubenchmark</module>
+  </modules>
+
+  <!-- If inherited from parent pom, maven tries to add artifactId to URLs -->
+  <scm>
     <url>https://github.com/pgjdbc/pgjdbc</url>
-
-    <modules>
-        <module>pgjdbc</module>
-        <module>ubenchmark</module>
-    </modules>
-
-    <!-- If inherited from parent pom, maven tries to add artifactId to URLs -->
-    <scm>
-        <url>https://github.com/pgjdbc/pgjdbc</url>
-        <connection>scm:git:https://github.com/pgjdbc/pgjdbc.git</connection>
-        <developerConnection>scm:git:git@github.com:pgjdbc/pgjdbc.git</developerConnection>
-      <tag>HEAD</tag>
+    <connection>scm:git:https://github.com/pgjdbc/pgjdbc.git</connection>
+    <developerConnection>scm:git:git@github.com:pgjdbc/pgjdbc.git</developerConnection>
+    <tag>HEAD</tag>
   </scm>
 
 </project>

@@ -5,6 +5,7 @@
 *
 *-------------------------------------------------------------------------
 */
+
 package org.postgresql.benchmark.statement;
 
 import org.postgresql.util.ConnectionUtil;
@@ -44,71 +45,72 @@ import java.util.concurrent.TimeUnit;
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 public class InsertBatch {
-    private Connection connection;
-    private PreparedStatement ps;
-    String[] strings;
+  private Connection connection;
+  private PreparedStatement ps;
+  String[] strings;
 
-    @Param({"100"})
-    int nrows;
+  @Param({"100"})
+  int nrows;
 
-    @Setup(Level.Trial)
-    public void setUp() throws SQLException {
-        Properties props = ConnectionUtil.getProperties();
+  @Setup(Level.Trial)
+  public void setUp() throws SQLException {
+    Properties props = ConnectionUtil.getProperties();
 
-        connection = DriverManager.getConnection(ConnectionUtil.getURL(), props);
-        Statement s = connection.createStatement();;
-        try {
-            s.execute("drop table batch_perf_test");
-        } catch(SQLException e) {
+    connection = DriverManager.getConnection(ConnectionUtil.getURL(), props);
+    Statement s = connection.createStatement();
+    ;
+    try {
+      s.execute("drop table batch_perf_test");
+    } catch (SQLException e) {
             /* ignore */
-        }
-        s.execute("create table batch_perf_test(a int4, b varchar(100), c int4)");
-        s.close();
-        ps = connection.prepareStatement("insert into batch_perf_test(a, b, c) values(?, ?, ?)");
-        strings = new String[nrows];
-        for (int i = 0; i < nrows; i++) {
-            strings[i] = "s" + i;
-        }
     }
-
-    @TearDown(Level.Trial)
-    public void tearDown() throws SQLException {
-        ps.close();
-        Statement s = connection.createStatement();
-        s.execute("drop table batch_perf_test");
-        s.close();
-        connection.close();
+    s.execute("create table batch_perf_test(a int4, b varchar(100), c int4)");
+    s.close();
+    ps = connection.prepareStatement("insert into batch_perf_test(a, b, c) values(?, ?, ?)");
+    strings = new String[nrows];
+    for (int i = 0; i < nrows; i++) {
+      strings[i] = "s" + i;
     }
+  }
 
-    @Benchmark
-    public int[] insertBatch() throws SQLException {
-        for (int i = 0; i < nrows; i++) {
-            ps.setInt(1, i);
-            ps.setString(2, strings[i]);
-            ps.setInt(3, i);
-            ps.addBatch();
-        }
-        return ps.executeBatch();
+  @TearDown(Level.Trial)
+  public void tearDown() throws SQLException {
+    ps.close();
+    Statement s = connection.createStatement();
+    s.execute("drop table batch_perf_test");
+    s.close();
+    connection.close();
+  }
+
+  @Benchmark
+  public int[] insertBatch() throws SQLException {
+    for (int i = 0; i < nrows; i++) {
+      ps.setInt(1, i);
+      ps.setString(2, strings[i]);
+      ps.setInt(3, i);
+      ps.addBatch();
     }
+    return ps.executeBatch();
+  }
 
-    @Benchmark
-    public void insertExecute(Blackhole b) throws SQLException {
-        for (int i = 0; i < nrows; i++) {
-            ps.setInt(1, i);
-            ps.setString(2, strings[i]);
-            ps.setInt(3, i);
-            b.consume(ps.execute());
-        }
+  @Benchmark
+  public void insertExecute(Blackhole b) throws SQLException {
+    for (int i = 0; i < nrows; i++) {
+      ps.setInt(1, i);
+      ps.setString(2, strings[i]);
+      ps.setInt(3, i);
+      b.consume(ps.execute());
     }
+  }
 
-    public static void main(String[] args) throws RunnerException {
-        Options opt = new OptionsBuilder()
-                .include(InsertBatch.class.getSimpleName())
-                .addProfiler(GCProfiler.class)
-//                .addProfiler(FlightRecorderProfiler.class)
-                .detectJvmArgs()
-                .build();
+  public static void main(String[] args) throws RunnerException {
+    Options opt = new OptionsBuilder()
+        .include(InsertBatch.class.getSimpleName())
+        .addProfiler(GCProfiler.class)
+        //.addProfiler(FlightRecorderProfiler.class)
+        .detectJvmArgs()
+        .build();
 
-        new Runner(opt).run();
-    }
+    new Runner(opt).run();
+  }
 }

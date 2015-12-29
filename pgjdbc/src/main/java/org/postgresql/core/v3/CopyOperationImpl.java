@@ -5,6 +5,7 @@
 *
 *-------------------------------------------------------------------------
 */
+
 package org.postgresql.core.v3;
 
 import org.postgresql.copy.CopyOperation;
@@ -15,49 +16,50 @@ import org.postgresql.util.PSQLState;
 import java.sql.SQLException;
 
 public class CopyOperationImpl implements CopyOperation {
-    QueryExecutorImpl queryExecutor;
-    int rowFormat;
-    int[] fieldFormats;
-    long handledRowCount = -1;
-    
-    void init(QueryExecutorImpl q, int fmt, int[] fmts) {
-        queryExecutor = q;
-        rowFormat = fmt;
-        fieldFormats = fmts;
-    }
+  QueryExecutorImpl queryExecutor;
+  int rowFormat;
+  int[] fieldFormats;
+  long handledRowCount = -1;
 
-    public void cancelCopy() throws SQLException {
-        queryExecutor.cancelCopy(this);
-    }
+  void init(QueryExecutorImpl q, int fmt, int[] fmts) {
+    queryExecutor = q;
+    rowFormat = fmt;
+    fieldFormats = fmts;
+  }
 
-    public int getFieldCount() {
-        return fieldFormats.length;
-    }
+  public void cancelCopy() throws SQLException {
+    queryExecutor.cancelCopy(this);
+  }
 
-    public int getFieldFormat(int field) {
-        return fieldFormats[field];
-    }
+  public int getFieldCount() {
+    return fieldFormats.length;
+  }
 
-    public int getFormat() {
-        return rowFormat;
-    }
+  public int getFieldFormat(int field) {
+    return fieldFormats[field];
+  }
 
-    public boolean isActive() {
-        synchronized(queryExecutor) {
-            return queryExecutor.hasLock(this);
-        }
-    }
-    
-    public void handleCommandStatus(String status) throws PSQLException {
-        if(status.startsWith("COPY")) {
-            int i = status.lastIndexOf(' ');
-            handledRowCount = i > 3 ? Long.parseLong(status.substring( i + 1 )) : -1;
-        } else {
-            throw new PSQLException(GT.tr("CommandComplete expected COPY but got: " + status), PSQLState.COMMUNICATION_ERROR);
-        }
-    }
+  public int getFormat() {
+    return rowFormat;
+  }
 
-    public long getHandledRowCount() {
-        return handledRowCount;
+  public boolean isActive() {
+    synchronized (queryExecutor) {
+      return queryExecutor.hasLock(this);
     }
+  }
+
+  public void handleCommandStatus(String status) throws PSQLException {
+    if (status.startsWith("COPY")) {
+      int i = status.lastIndexOf(' ');
+      handledRowCount = i > 3 ? Long.parseLong(status.substring(i + 1)) : -1;
+    } else {
+      throw new PSQLException(GT.tr("CommandComplete expected COPY but got: " + status),
+          PSQLState.COMMUNICATION_ERROR);
+    }
+  }
+
+  public long getHandledRowCount() {
+    return handledRowCount;
+  }
 }

@@ -32,7 +32,8 @@ import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Tests the performance of preparing, executing and performing a fetch out of a simple "SELECT ?, ?, ... ?" statement.
+ * Tests the performance of preparing, executing and performing a fetch out of a simple "SELECT ?,
+ * ?, ... ?" statement.
  */
 @Fork(value = 1, jvmArgsPrepend = "-Xmx128m")
 @Measurement(iterations = 10, time = 1, timeUnit = TimeUnit.SECONDS)
@@ -41,63 +42,67 @@ import java.util.concurrent.TimeUnit;
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 public class ParseStatement {
-    @Param({"0", "1", "10", "20"})
-    private int bindCount;
+  @Param({"0", "1", "10", "20"})
+  private int bindCount;
 
-    @Param({"false"})
-    public boolean unique;
+  @Param({"false"})
+  public boolean unique;
 
-    private Connection connection;
+  private Connection connection;
 
-    private String sql;
+  private String sql;
 
-    private int cntr;
+  private int cntr;
 
-    @Setup(Level.Trial)
-    public void setUp() throws SQLException {
-        Properties props = ConnectionUtil.getProperties();
+  @Setup(Level.Trial)
+  public void setUp() throws SQLException {
+    Properties props = ConnectionUtil.getProperties();
 
-        connection = DriverManager.getConnection(ConnectionUtil.getURL(), props);
-        StringBuilder sb = new StringBuilder();
-        sb.append("SELECT ");
-        for (int i = 0; i < bindCount; i++) {
-            if (i > 0) sb.append(',');
-            sb.append('?');
-        }
-        sql = sb.toString();
+    connection = DriverManager.getConnection(ConnectionUtil.getURL(), props);
+    StringBuilder sb = new StringBuilder();
+    sb.append("SELECT ");
+    for (int i = 0; i < bindCount; i++) {
+      if (i > 0) {
+        sb.append(',');
+      }
+      sb.append('?');
     }
+    sql = sb.toString();
+  }
 
-    @TearDown(Level.Trial)
-    public void tearDown() throws SQLException {
-        connection.close();
+  @TearDown(Level.Trial)
+  public void tearDown() throws SQLException {
+    connection.close();
+  }
+
+  @Benchmark
+  public Statement bindExecuteFetch(Blackhole b) throws SQLException {
+    String sql = this.sql;
+    if (unique) {
+      sql += " -- " + cntr++;
     }
-
-    @Benchmark
-    public Statement bindExecuteFetch(Blackhole b) throws SQLException {
-        String sql = this.sql;
-        if (unique) sql += " -- " + cntr++;
-        PreparedStatement ps = connection.prepareStatement(sql);
-        for (int i = 1; i <= bindCount; i++) {
-            ps.setInt(i, i);
-        }
-        ResultSet rs = ps.executeQuery();
-        while (rs.next()) {
-            for (int i = 1; i <= bindCount; i++) {
-                b.consume(rs.getInt(i));
-            }
-        }
-        rs.close();
-        ps.close();
-        return ps;
+    PreparedStatement ps = connection.prepareStatement(sql);
+    for (int i = 1; i <= bindCount; i++) {
+      ps.setInt(i, i);
     }
-
-    public static void main(String[] args) throws RunnerException {
-        Options opt = new OptionsBuilder()
-                .include(ParseStatement.class.getSimpleName())
-                .addProfiler(GCProfiler.class)
-                .detectJvmArgs()
-                .build();
-
-        new Runner(opt).run();
+    ResultSet rs = ps.executeQuery();
+    while (rs.next()) {
+      for (int i = 1; i <= bindCount; i++) {
+        b.consume(rs.getInt(i));
+      }
     }
+    rs.close();
+    ps.close();
+    return ps;
+  }
+
+  public static void main(String[] args) throws RunnerException {
+    Options opt = new OptionsBuilder()
+        .include(ParseStatement.class.getSimpleName())
+        .addProfiler(GCProfiler.class)
+        .detectJvmArgs()
+        .build();
+
+    new Runner(opt).run();
+  }
 }

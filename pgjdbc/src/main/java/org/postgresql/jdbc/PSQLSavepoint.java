@@ -5,6 +5,7 @@
 *
 *-------------------------------------------------------------------------
 */
+
 package org.postgresql.jdbc;
 
 import org.postgresql.core.Utils;
@@ -17,64 +18,68 @@ import java.sql.Savepoint;
 
 public class PSQLSavepoint implements Savepoint {
 
-    private boolean _isValid;
-    private boolean _isNamed;
-    private int _id;
-    private String _name;
+  private boolean _isValid;
+  private boolean _isNamed;
+  private int _id;
+  private String _name;
 
-    public PSQLSavepoint(int id) {
-        _isValid = true;
-        _isNamed = false;
-        _id = id;
+  public PSQLSavepoint(int id) {
+    _isValid = true;
+    _isNamed = false;
+    _id = id;
+  }
+
+  public PSQLSavepoint(String name) {
+    _isValid = true;
+    _isNamed = true;
+    _name = name;
+  }
+
+  public int getSavepointId() throws SQLException {
+    if (!_isValid) {
+      throw new PSQLException(GT.tr("Cannot reference a savepoint after it has been released."),
+          PSQLState.INVALID_SAVEPOINT_SPECIFICATION);
     }
 
-    public PSQLSavepoint(String name) {
-        _isValid = true;
-        _isNamed = true;
-        _name = name;
+    if (_isNamed) {
+      throw new PSQLException(GT.tr("Cannot retrieve the id of a named savepoint."),
+          PSQLState.WRONG_OBJECT_TYPE);
     }
 
-    public int getSavepointId() throws SQLException {
-        if (!_isValid)
-            throw new PSQLException(GT.tr("Cannot reference a savepoint after it has been released."),
-                                    PSQLState.INVALID_SAVEPOINT_SPECIFICATION);
+    return _id;
+  }
 
-        if (_isNamed)
-            throw new PSQLException(GT.tr("Cannot retrieve the id of a named savepoint."),
-                                    PSQLState.WRONG_OBJECT_TYPE);
-
-        return _id;
+  public String getSavepointName() throws SQLException {
+    if (!_isValid) {
+      throw new PSQLException(GT.tr("Cannot reference a savepoint after it has been released."),
+          PSQLState.INVALID_SAVEPOINT_SPECIFICATION);
     }
 
-    public String getSavepointName() throws SQLException {
-        if (!_isValid)
-            throw new PSQLException(GT.tr("Cannot reference a savepoint after it has been released."),
-                                    PSQLState.INVALID_SAVEPOINT_SPECIFICATION);
-
-        if (!_isNamed)
-            throw new PSQLException(GT.tr("Cannot retrieve the name of an unnamed savepoint."),
-                                    PSQLState.WRONG_OBJECT_TYPE);
-
-        return _name;
+    if (!_isNamed) {
+      throw new PSQLException(GT.tr("Cannot retrieve the name of an unnamed savepoint."),
+          PSQLState.WRONG_OBJECT_TYPE);
     }
 
-    public void invalidate() {
-        _isValid = false;
+    return _name;
+  }
+
+  public void invalidate() {
+    _isValid = false;
+  }
+
+  public String getPGName() throws SQLException {
+    if (!_isValid) {
+      throw new PSQLException(GT.tr("Cannot reference a savepoint after it has been released."),
+          PSQLState.INVALID_SAVEPOINT_SPECIFICATION);
     }
 
-    public String getPGName() throws SQLException {
-        if (!_isValid)
-            throw new PSQLException(GT.tr("Cannot reference a savepoint after it has been released."),
-                                    PSQLState.INVALID_SAVEPOINT_SPECIFICATION);
-
-        if (_isNamed)
-        {
-            // We need to quote and escape the name in case it
-            // contains spaces/quotes/etc.
-            //
-            return Utils.escapeIdentifier(null, _name).toString();
-        }
-
-        return "JDBC_SAVEPOINT_" + _id;
+    if (_isNamed) {
+      // We need to quote and escape the name in case it
+      // contains spaces/quotes/etc.
+      //
+      return Utils.escapeIdentifier(null, _name).toString();
     }
+
+    return "JDBC_SAVEPOINT_" + _id;
+  }
 }
