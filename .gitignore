@@ -25,3 +25,9 @@ buildNumber.properties
 # Ignore folders used to build binaries for old Java
 /pgjdbc-jre6
 /pgjdbc-jre7
+
+# Ignore msgmerge residue
+pgjdbc/src/main/java/org/postgresql/translation/*.po.~*~
+pgjdbc/src/main/resources/org/postgresql/translation/messages*$1.class
+pgjdbc/src/main/resources/org/postgresql/translation/messages.properties
+pgjdbc/src/main/resources/org/postgresql/translation/messages_en.properties
