@@ -19,6 +19,15 @@ import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
+//#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.chrono.IsoEra;
+import java.time.temporal.ChronoField;
+//#endif
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.SimpleTimeZone;
@@ -398,9 +407,9 @@ public class TimestampUtils {
 
   public synchronized String toString(Calendar cal, Date x) {
     if (x.getTime() == PGStatement.DATE_POSITIVE_INFINITY) {
-      sbuf.append("infinity");
+      return "infinity";
     } else if (x.getTime() == PGStatement.DATE_NEGATIVE_INFINITY) {
-      sbuf.append("-infinity");
+      return "-infinity";
     }
 
     cal = setupCalendar(cal);
@@ -433,34 +442,42 @@ public class TimestampUtils {
 
   private static void appendDate(StringBuilder sb, Calendar cal) {
     int l_year = cal.get(Calendar.YEAR);
+    int l_month = cal.get(Calendar.MONTH) + 1;
+    int l_day = cal.get(Calendar.DAY_OF_MONTH);
+    appendDate(sb, l_year, l_month, l_day);
+  }
+
+  private static void appendDate(StringBuilder sb, int year, int month, int day) {
     // always use at least four digits for the year so very
     // early years, like 2, don't get misinterpreted
     //
     int prevLength = sb.length();
-    sb.append(l_year);
+    sb.append(year);
     int leadingZerosForYear = 4 - (sb.length() - prevLength);
     if (leadingZerosForYear > 0) {
       sb.insert(prevLength, ZEROS, 0, leadingZerosForYear);
     }
 
     sb.append('-');
-    int l_month = cal.get(Calendar.MONTH) + 1;
-    sb.append(NUMBERS[l_month]);
+    sb.append(NUMBERS[month]);
     sb.append('-');
-    int l_day = cal.get(Calendar.DAY_OF_MONTH);
-    sb.append(NUMBERS[l_day]);
+    sb.append(NUMBERS[day]);
   }
 
   private static void appendTime(StringBuilder sb, Calendar cal, int nanos) {
     int hours = cal.get(Calendar.HOUR_OF_DAY);
+    int minutes = cal.get(Calendar.MINUTE);
+    int seconds = cal.get(Calendar.SECOND);
+    appendTime(sb, hours, minutes, seconds, nanos);
+  }
+
+  private static void appendTime(StringBuilder sb, int hours, int minutes, int seconds, int nanos) {
     sb.append(NUMBERS[hours]);
 
     sb.append(':');
-    int minutes = cal.get(Calendar.MINUTE);
     sb.append(NUMBERS[minutes]);
 
     sb.append(':');
-    int seconds = cal.get(Calendar.SECOND);
     sb.append(NUMBERS[seconds]);
 
     // Add nanoseconds.
@@ -480,6 +497,10 @@ public class TimestampUtils {
   private void appendTimeZone(StringBuilder sb, java.util.Calendar cal) {
     int offset = (cal.get(Calendar.ZONE_OFFSET) + cal.get(Calendar.DST_OFFSET)) / 1000;
 
+    appendTimeZone(sb, offset);
+  }
+
+  private void appendTimeZone(StringBuilder sb, int offset) {
     int absoff = Math.abs(offset);
     int hours = absoff / 60 / 60;
     int mins = (absoff - hours * 60 * 60) / 60;
@@ -504,6 +525,103 @@ public class TimestampUtils {
       sb.append(" BC");
     }
   }
+
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+  public synchronized String toString(LocalDate localDate) {
+    if (LocalDate.MAX.equals(localDate)) {
+      return "infinity";
+    } else if (LocalDate.MIN.equals(localDate)) {
+      return "-infinity";
+    }
+
+    sbuf.setLength(0);
+
+    appendDate(sbuf, localDate);
+    appendEra(sbuf, localDate);
+
+    return sbuf.toString();
+  }
+
+  public synchronized String toString(LocalTime localTime) {
+    if (LocalTime.MAX.equals(localTime)) {
+      return "infinity";
+    } else if (LocalTime.MIN.equals(localTime)) {
+      return "-infinity";
+    }
+
+    sbuf.setLength(0);
+
+    appendTime(sbuf, localTime);
+
+    return sbuf.toString();
+  }
+
+
+  public synchronized String toString(OffsetDateTime offsetDateTime) {
+    if (OffsetDateTime.MAX.equals(offsetDateTime)) {
+      return "infinity";
+    } else if (OffsetDateTime.MIN.equals(offsetDateTime)) {
+      return "-infinity";
+    }
+
+    sbuf.setLength(0);
+
+    LocalDateTime localDateTime = offsetDateTime.toLocalDateTime();
+    LocalDate localDate = localDateTime.toLocalDate();
+    appendDate(sbuf, localDate);
+    sbuf.append(' ');
+    appendTime(sbuf, localDateTime.toLocalTime());
+    appendTimeZone(sbuf, offsetDateTime.getOffset());
+    appendEra(sbuf, localDate);
+
+    return sbuf.toString();
+  }
+
+  public synchronized String toString(LocalDateTime localDateTime) {
+    if (LocalDateTime.MAX.equals(localDateTime)) {
+      return "infinity";
+    } else if (LocalDateTime.MIN.equals(localDateTime)) {
+      return "-infinity";
+    }
+
+    sbuf.setLength(0);
+
+    LocalDate localDate = localDateTime.toLocalDate();
+    appendDate(sbuf, localDate);
+    sbuf.append(' ');
+    appendTime(sbuf, localDateTime.toLocalTime());
+    appendEra(sbuf, localDate);
+
+    return sbuf.toString();
+  }
+
+  private static void appendDate(StringBuilder sb, LocalDate localDate) {
+    int year = Math.abs(localDate.getYear()); // year is negative for BC dates
+    int month = localDate.getMonthValue();
+    int day = localDate.getDayOfMonth();
+    appendDate(sb, year, month, day);
+  }
+
+  private static void appendTime(StringBuilder sb, LocalTime localTime) {
+    int hours = localTime.getHour();
+    int minutes = localTime.getMinute();
+    int seconds = localTime.getSecond();
+    int nanos = localTime.getNano();
+    appendTime(sb, hours, minutes, seconds, nanos);
+  }
+
+  private void appendTimeZone(StringBuilder sb, ZoneOffset offset) {
+    int offsetSeconds = offset.getTotalSeconds();
+
+    appendTimeZone(sb, offsetSeconds);
+  }
+
+  private static void appendEra(StringBuilder sb, LocalDate localDate) {
+    if (localDate.get(ChronoField.ERA) == IsoEra.BCE.getValue()) {
+      sb.append(" BC");
+    }
+  }
+  //#endif
 
   private static int skipWhitespace(char[] s, int start) {
     int slen = s.length;

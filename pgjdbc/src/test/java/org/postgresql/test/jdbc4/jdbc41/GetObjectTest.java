@@ -600,8 +600,10 @@ public class GetObjectTest extends TestCase {
 
   /**
    * Test the behavior getObject for money columns.
+   *
+   * The test is ignored as it is locale-dependent.
    */
-  public void testGetMoney() throws SQLException {
+  public void _testGetMoney() throws SQLException {
     Statement stmt = _conn.createStatement();
     String expected = "12.34";
     stmt.executeUpdate(TestUtil.insertSQL("table1","money_column","'12.34'::float8::numeric::money"));
