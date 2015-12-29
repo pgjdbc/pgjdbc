@@ -1,5 +1,7 @@
 .classpath
+.settings
 .project
+.DS_Store
 .externalToolBuilders
 build
 jars

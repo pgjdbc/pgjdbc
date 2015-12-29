@@ -107,8 +107,10 @@ Note: in certain cases, proper build requires cleaning the results of previous o
 For instance, if you remove a `.java` file, then clean is required to remove the relevant `.class` file.
 In such cases, use `mvn clean` or `mvn clean package`.
 
-PgJDBC doesn't natively support compilation from IDEs like Eclipse, NetBeans or
-IntelliJ. However you can use the tools Maven support from within the IDE if you wish. 
+PgJDBC doesn't natively support building from IDEs like Eclipse, NetBeans or
+IntelliJ. However you can use the tools Maven support from within the IDE if you wish.
+You can use regular IDE tools to develop, execute tests, etc, however if you want to build final
+artifacts you should use `mvn`.
   
 After running the build , and build a .jar file (Java ARchive)
 depending on the version of java and which release you have the jar will be named
@@ -369,6 +371,10 @@ the command line. Projects aren't supplied, but it's easy to prepare them.
 
 ### IntelliJ IDEA
 
+IDEA imports PgJDBC project just fine. So clone the project whatever way you like and import it (e.g. File -> Open -> `pom.xml`) 
+
+* Configure code style:
+
 Project code style is located at `pgjdbc/src/main/checkstyle/pgjdbc-intellij-java-google-style.xml`
 In order to import it, copy the file to `$IDEA_CONFIG_LOCATION/codestyles` folder, restart IDEA,
 then choose "GoogleStyle (PgJDBC)" style for the Preferences -> Editor -> CodeStyle setting.
@@ -378,31 +384,28 @@ More details here: https://intellij-support.jetbrains.com/hc/en-us/articles/2068
 
 ### Eclipse
 
-On Eclipse Luna, to import PgJDBC as an Eclipse Java project with full
-support for on-demand compile, debugging, etc, you must:
+On Eclipse Mars, to import PgJDBC as an Eclipse Java project with full
+support for on-demand compile, debugging, etc, you can use the following approach:
 
-* Perform a git clone of PgJDBC on the command line
-* Use Maven to fetch the dependency JARs:
+* File -> New -> Project
+* Maven -> Check out Maven Project from SCM
+* Pick `git`, select `https://github.com/pgjdbc/pgjdbc.git` URL.
+Note: if `git` SCM is missing, just click `m2e Marketplace` link and search for `egit` there. Note the letter `e`.
+* Click finish
+* Eclipse might complain with "Plugin execution not covered by lifecycle configuration: com.igormaznitsa:jcp:6.0.1:preprocess (execution: preprocessSources, phase: generate-sources)", however this error seems to be not that important
 
-          mvn clean compile
+Configure format configuration:
+* Import "import order" configuration: Eclipse -> Preferences -> Java -> Java Code Style -> Organize Imports -> Import... -> `.../workspace-pgjdbc/pgjdbc-aggregate/pgjdbc/src/main/checkstyle/pgjdbc_eclipse.importorder`
+* Import "formatter" configuration: Eclipse -> Preferences -> Java -> Java Code Style -> Formatter -> Import... -> `.../workspace-pgjdbc/pgjdbc-aggregate/pgjdbc/src/main/checkstyle/pgjdbc-eclipse-java-google-style.xml`
+* Configure "trim trailing whitespace": Eclipse -> Preferences -> Java -> Editor -> Save Actions -> "Perform Selected actions on save":
+  * Check "Format source code", "Format edited lines"
+  * Keep "Optimize Imports" selected
+  * Check "Additional actions", click "Configure"
+  * Click "Remove trailing whitespace", all lines
+  * On "Code Style" tab, check "Use blocks in if/while/... statements", "Always"
+  * On "Missing Code" tab, uncheck "Add missing @Override annotation"
+  * On "Unnecessary Code" tab, check "Remove unused imports"
 
-* In Eclipse, File -> New -> Java Project
-* Uncheck "Use default location" and find your git clone of PgJDBC then
-  press Next
-* Under Source, open "configure inclusion and exclusion filters"
-* Add the exclusion filters:
-    `org/postgresql/jdbc3/Jdbc3*.java`
-    `org/postgresql/jdbc3g/Jdbc3g*.java`
-  ... and accept the dialog.
-
-* Under Libraries, choose Add JARs and add everything under `lib`
-* Click finish to create the project
-
-Note that unlike a JDBC4 JAR an Eclipse project will not be
-auto-detected using service discovery, so you'll have to use an
-explicit load:
-
-    Class.forName("org.postgresql.Driver")
 
 Eclipse will interoperate fine with Maven, so you can test and debug
 with Eclipse then do dist builds with Maven.
@@ -420,9 +423,11 @@ Code style is verified via Travis job. In order to do manual verification, issue
 
     cd pgjdbc && mvn checkstyle:check
 
-Use 4 spaces for indenting, do not use tabs, trim space at end of lines.
+Use 2 spaces for indenting, do not use tabs, trim space at end of lines.
 Always put braces, even for single-line `if`.
 Always put `default:` case for `switch` statement.
+
+Note: there are formatter configurations in `pgjdbc/src/main/checkstyle` folder.
 
 ### Test
 

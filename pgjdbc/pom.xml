@@ -67,6 +67,7 @@
                         <failOnViolation>true</failOnViolation>
                         <failsOnError>true</failsOnError>
                         <consoleOutput>true</consoleOutput>
+                        <includeTestSourceDirectory>true</includeTestSourceDirectory>
                     </configuration>
                 </plugin>
             </plugins>
