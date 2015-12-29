@@ -287,7 +287,7 @@ public class TypeInfoCache implements TypeInfo {
             }
             // coerce to lower case to handle upper case type names
             String lcName = pgTypeName.toLowerCase();
-            //default arrays are represented with _ as prefix ... this dont even work for public schema fully
+            //default arrays are represented with _ as prefix ... this don't even work for public schema fully
             _getOidStatementSimple.setString(1, isArray ? "_" + lcName.substring(0, lcName.length() - 2) : lcName);
             return _getOidStatementSimple;
         }

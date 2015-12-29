@@ -484,7 +484,7 @@ public class PGPoolingDataSource
                         }
                         else
                         {
-                            // a connection error occured
+                            // a connection error occurred
                         }
                     }
                 }

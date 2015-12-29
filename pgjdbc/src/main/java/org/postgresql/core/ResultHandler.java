@@ -58,7 +58,7 @@ public interface ResultHandler {
     /**
      * Called when a warning is emitted.
      *
-     * @param warning the warning that occured.
+     * @param warning the warning that occurred.
      */
     void handleWarning(SQLWarning warning);
 
