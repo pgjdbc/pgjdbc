@@ -24,10 +24,11 @@ import java.util.Map;
 /**
  * This class implements the Fastpath api.
  *
- * <p>This is a means of executing functions embedded in the backend from within a java
- * application.
+ * <p>
+ * This is a means of executing functions embedded in the backend from within a java application.
  *
- * <p>It is based around the file src/interfaces/libpq/fe-exec.c
+ * <p>
+ * It is based around the file src/interfaces/libpq/fe-exec.c
  */
 public class Fastpath {
   // Java passes oids around as longs, but in the backend
@@ -54,11 +55,11 @@ public class Fastpath {
   /**
    * Send a function call to the PostgreSQL backend
    *
-   * @param fnId       Function id
+   * @param fnId Function id
    * @param resultType True if the result is a numeric (Integer or Long)
-   * @param args       FastpathArguments to pass to fastpath
+   * @param args FastpathArguments to pass to fastpath
    * @return null if no data, Integer if an integer result, Long if a long result, or byte[]
-   * otherwise
+   *         otherwise
    * @throws SQLException if a database-access error occurs.
    * @deprecated please use {@link #fastpath(int, FastpathArg[])}
    */
@@ -105,17 +106,17 @@ public class Fastpath {
   }
 
   /**
-   * @param name       Function name
+   * @param name Function name
    * @param resulttype True if the result is a numeric (Integer or Long)
-   * @param args       FastpathArguments to pass to fastpath
+   * @param args FastpathArguments to pass to fastpath
    * @return null if no data, Integer if an integer result, Long if a long result, or byte[]
-   * otherwise
+   *         otherwise
    * @throws SQLException if something goes wrong
    * @see #fastpath(int, FastpathArg[])
    * @see #fastpath(String, FastpathArg[])
    * @deprecated Use {@link #getData(String, FastpathArg[])} if you expect a binary result, or one
-   * of {@link #getInteger(String, FastpathArg[])} or {@link #getLong(String, FastpathArg[])} if you
-   * expect a numeric one
+   *             of {@link #getInteger(String, FastpathArg[])} or
+   *             {@link #getLong(String, FastpathArg[])} if you expect a numeric one
    */
   @Deprecated
   public Object fastpath(String name, boolean resulttype, FastpathArg[] args) throws SQLException {
@@ -171,8 +172,7 @@ public class Fastpath {
     } else {
       throw new PSQLException(GT.tr(
           "Fastpath call {0} - No result was returned or wrong size while expecting an integer.",
-          name),
-          PSQLState.NO_DATA);
+          name), PSQLState.NO_DATA);
     }
   }
 
@@ -234,7 +234,8 @@ public class Fastpath {
   /**
    * This adds a function to our lookup table.
    *
-   * <p>User code should use the addFunctions method, which is based upon a query, rather than hard
+   * <p>
+   * User code should use the addFunctions method, which is based upon a query, rather than hard
    * coding the oid. The oid for a function is not guaranteed to remain static, even on different
    * servers of the same version.
    *
@@ -249,23 +250,30 @@ public class Fastpath {
    * This takes a ResultSet containing two columns. Column 1 contains the function name, Column 2
    * the oid.
    *
-   * <p>It reads the entire ResultSet, loading the values into the function table.
+   * <p>
+   * It reads the entire ResultSet, loading the values into the function table.
    *
-   * <p><b>REMEMBER</b> to close() the resultset after calling this!!
+   * <p>
+   * <b>REMEMBER</b> to close() the resultset after calling this!!
    *
-   * <p><b><em>Implementation note about function name lookups:</em></b>
+   * <p>
+   * <b><em>Implementation note about function name lookups:</em></b>
    *
-   * <p>PostgreSQL stores the function id's and their corresponding names in the pg_proc table. To
+   * <p>
+   * PostgreSQL stores the function id's and their corresponding names in the pg_proc table. To
    * speed things up locally, instead of querying each function from that table when required, a
    * HashMap is used. Also, only the function's required are entered into this table, keeping
    * connection times as fast as possible.
    *
-   * <p>The org.postgresql.largeobject.LargeObject class performs a query upon it's startup, and
-   * passes the returned ResultSet to the addFunctions() method here.
+   * <p>
+   * The org.postgresql.largeobject.LargeObject class performs a query upon it's startup, and passes
+   * the returned ResultSet to the addFunctions() method here.
    *
-   * <p>Once this has been done, the LargeObject api refers to the functions by name.
+   * <p>
+   * Once this has been done, the LargeObject api refers to the functions by name.
    *
-   * <p>Dont think that manually converting them to the oid's will work. Ok, they will for now, but
+   * <p>
+   * Dont think that manually converting them to the oid's will work. Ok, they will for now, but
    * they can change during development (there was some discussion about this for V7.0), so this is
    * implemented to prevent any unwarranted headaches in the future.
    *
@@ -282,8 +290,9 @@ public class Fastpath {
   /**
    * This returns the function id associated by its name.
    *
-   * <p>If addFunction() or addFunctions() have not been called for this name, then an SQLException
-   * is thrown.
+   * <p>
+   * If addFunction() or addFunctions() have not been called for this name, then an SQLException is
+   * thrown.
    *
    * @param name Function name to lookup
    * @return Function ID for fastpath call

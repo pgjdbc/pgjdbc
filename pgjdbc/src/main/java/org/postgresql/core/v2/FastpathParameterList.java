@@ -61,7 +61,8 @@ class FastpathParameterList implements ParameterList {
     if (index < 1 || index > paramValues.length) {
       throw new PSQLException(
           GT.tr("The column index is out of range: {0}, number of columns: {1}.",
-              new Object[]{index, paramValues.length}), PSQLState.INVALID_PARAMETER_VALUE);
+              new Object[]{index, paramValues.length}),
+          PSQLState.INVALID_PARAMETER_VALUE);
     }
 
     byte[] data = new byte[4];
@@ -86,7 +87,8 @@ class FastpathParameterList implements ParameterList {
     if (index < 1 || index > paramValues.length) {
       throw new PSQLException(
           GT.tr("The column index is out of range: {0}, number of columns: {1}.",
-              new Object[]{index, paramValues.length}), PSQLState.INVALID_PARAMETER_VALUE);
+              new Object[]{index, paramValues.length}),
+          PSQLState.INVALID_PARAMETER_VALUE);
     }
 
     paramValues[index - 1] = new StreamWrapper(data, offset, length);
@@ -96,7 +98,8 @@ class FastpathParameterList implements ParameterList {
     if (index < 1 || index > paramValues.length) {
       throw new PSQLException(
           GT.tr("The column index is out of range: {0}, number of columns: {1}.",
-              new Object[]{index, paramValues.length}), PSQLState.INVALID_PARAMETER_VALUE);
+              new Object[]{index, paramValues.length}),
+          PSQLState.INVALID_PARAMETER_VALUE);
     }
 
     paramValues[index - 1] = new StreamWrapper(stream, length);
@@ -106,7 +109,8 @@ class FastpathParameterList implements ParameterList {
     if (index < 1 || index > paramValues.length) {
       throw new PSQLException(
           GT.tr("The column index is out of range: {0}, number of columns: {1}.",
-              new Object[]{index, paramValues.length}), PSQLState.INVALID_PARAMETER_VALUE);
+              new Object[]{index, paramValues.length}),
+          PSQLState.INVALID_PARAMETER_VALUE);
     }
 
     paramValues[index - 1] = new StreamWrapper(stream);

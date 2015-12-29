@@ -32,16 +32,19 @@ import java.util.Enumeration;
 import java.util.Properties;
 
 /**
- * The Java SQL framework allows for multiple database drivers.  Each driver should supply a class
+ * The Java SQL framework allows for multiple database drivers. Each driver should supply a class
  * that implements the Driver interface
  *
- * <p>The DriverManager will try to load as many drivers as it can find and then for any given
+ * <p>
+ * The DriverManager will try to load as many drivers as it can find and then for any given
  * connection request, it will ask each driver in turn to try to connect to the target URL.
  *
- * <p>It is strongly recommended that each Driver class should be small and standalone so that the
+ * <p>
+ * It is strongly recommended that each Driver class should be small and standalone so that the
  * Driver class can be loaded and queried without bringing in vast quantities of supporting code.
  *
- * <p>When a Driver class is loaded, it should create an instance of itself and register it with the
+ * <p>
+ * When a Driver class is loaded, it should create an instance of itself and register it with the
  * DriverManager. This means that a user can load and register a driver by doing
  * Class.forName("foo.bah.Driver")
  *
@@ -149,7 +152,7 @@ public class Driver implements java.sql.Driver {
 
     // When loading the driver config files we don't want settings found
     // in later files in the classpath to override settings specified in
-    // earlier files.  To do this we've got to read the returned
+    // earlier files. To do this we've got to read the returned
     // Enumeration into temporary storage.
     ArrayList<URL> urls = new ArrayList<URL>();
     Enumeration<URL> urlEnum = cl.getResources("org/postgresql/driverconfig.properties");
@@ -176,36 +179,43 @@ public class Driver implements java.sql.Driver {
    * when the JDBC driverManager is asked to connect to a given URL, it passes the URL to each
    * loaded driver in turn.
    *
-   * <p>The driver should raise an SQLException if it is the right driver to connect to the given
-   * URL, but has trouble connecting to the database.
+   * <p>
+   * The driver should raise an SQLException if it is the right driver to connect to the given URL,
+   * but has trouble connecting to the database.
    *
-   * <p>The java.util.Properties argument can be used to pass arbitrary string tag/value pairs as
+   * <p>
+   * The java.util.Properties argument can be used to pass arbitrary string tag/value pairs as
    * connection arguments.
    *
    * user - (required) The user to connect as password - (optional) The password for the user ssl -
    * (optional) Use SSL when connecting to the server readOnly - (optional) Set connection to
    * read-only by default charSet - (optional) The character set to be used for converting to/from
-   * the database to unicode.  If multibyte is enabled on the server then the character set of the
+   * the database to unicode. If multibyte is enabled on the server then the character set of the
    * database is used as the default, otherwise the jvm character encoding is used as the default.
    * This value is only used when connecting to a 7.2 or older server. loglevel - (optional) Enable
    * logging of messages from the driver. The value is an integer from 0 to 2 where: OFF = 0, INFO =
    * 1, DEBUG = 2 The output is sent to DriverManager.getPrintWriter() if set, otherwise it is sent
    * to System.out. compatible - (optional) This is used to toggle between different functionality
-   * as it changes across different releases of the jdbc driver code.  The values here are versions
-   * of the jdbc client and not server versions.  For example in 7.1 get/setBytes worked on
-   * LargeObject values, in 7.2 these methods were changed to work on bytea values.  This change in
+   * as it changes across different releases of the jdbc driver code. The values here are versions
+   * of the jdbc client and not server versions. For example in 7.1 get/setBytes worked on
+   * LargeObject values, in 7.2 these methods were changed to work on bytea values. This change in
    * functionality could be disabled by setting the compatible level to be "7.1", in which case the
    * driver will revert to the 7.1 functionality.
    *
-   * <p>Normally, at least "user" and "password" properties should be included in the properties.
-   * For a list of supported character encoding , see http://java.sun.com/products/jdk/1.2/docs/guide/internat/encoding.doc.html
-   * Note that you will probably want to have set up the Postgres database itself to use the same
-   * encoding, with the {@code -E <encoding>} argument to createdb.
+   * <p>
+   * Normally, at least "user" and "password" properties should be included in the properties. For a
+   * list of supported character encoding , see
+   * http://java.sun.com/products/jdk/1.2/docs/guide/internat/encoding.doc.html Note that you will
+   * probably want to have set up the Postgres database itself to use the same encoding, with the
+   * {@code -E <encoding>} argument to createdb.
    *
-   * Our protocol takes the forms: <PRE> jdbc:postgresql://host:port/database?param1=val1&amp;...
+   * Our protocol takes the forms:
+   *
+   * <PRE>
+   *  jdbc:postgresql://host:port/database?param1=val1&amp;...
    * </PRE>
    *
-   * @param url  the URL of the database to connect to
+   * @param url the URL of the database to connect to
    * @param info a list of arbitrary tag/value pairs as connection arguments
    * @return a connection to the URL or null if it isnt us
    * @throws SQLException if a database access error occurs
@@ -228,7 +238,8 @@ public class Driver implements java.sql.Driver {
     // override defaults with provided properties
     Properties props = new Properties(defaults);
     if (info != null) {
-      for (Enumeration<?> e = info.propertyNames(); e.hasMoreElements(); ) {
+      Enumeration<?> e = info.propertyNames();
+      while (e.hasMoreElements()) {
         String propName = (String) e.nextElement();
         String propValue = info.getProperty(propName);
         if (propValue == null) {
@@ -274,13 +285,15 @@ public class Driver implements java.sql.Driver {
       // org.postgresql.unusual error will be returned instead.
       throw ex1;
     } catch (java.security.AccessControlException ace) {
-      throw new PSQLException(GT.tr(
-          "Your security policy has prevented the connection from being attempted.  You probably need to grant the connect java.net.SocketPermission to the database server host and port that you wish to connect to."),
+      throw new PSQLException(
+          GT.tr(
+              "Your security policy has prevented the connection from being attempted.  You probably need to grant the connect java.net.SocketPermission to the database server host and port that you wish to connect to."),
           PSQLState.UNEXPECTED_ERROR, ace);
     } catch (Exception ex2) {
       logger.debug("Unexpected connection error:", ex2);
-      throw new PSQLException(GT.tr(
-          "Something unusual has occurred to cause the driver to fail. Please report this exception."),
+      throw new PSQLException(
+          GT.tr(
+              "Something unusual has occurred to cause the driver to fail. Please report this exception."),
           PSQLState.UNEXPECTED_ERROR, ex2);
     }
   }
@@ -344,8 +357,9 @@ public class Driver implements java.sql.Driver {
               resultException.fillInStackTrace();
               throw (SQLException) resultException;
             } else {
-              throw new PSQLException(GT.tr(
-                  "Something unusual has occurred to cause the driver to fail. Please report this exception."),
+              throw new PSQLException(
+                  GT.tr(
+                      "Something unusual has occurred to cause the driver to fail. Please report this exception."),
                   PSQLState.UNEXPECTED_ERROR, resultException);
             }
           }
@@ -383,21 +397,19 @@ public class Driver implements java.sql.Driver {
    * Create a connection from URL and properties. Always does the connection work in the current
    * thread without enforcing a timeout, regardless of any timeout specified in the properties.
    *
-   * @param url   the original URL
+   * @param url the original URL
    * @param props the parsed/defaulted connection properties
    * @return a new connection
    * @throws SQLException if the connection could not be made
    */
   private static Connection makeConnection(String url, Properties props) throws SQLException {
-    return new PgConnection(hostSpecs(props),
-        user(props), database(props),
-        props, url);
+    return new PgConnection(hostSpecs(props), user(props), database(props), props, url);
   }
 
   /**
-   * Returns true if the driver thinks it can open a connection to the given URL.  Typically,
-   * drivers will return true if they understand the subprotocol specified in the URL and false if
-   * they don't.  Our protocols start with jdbc:postgresql:
+   * Returns true if the driver thinks it can open a connection to the given URL. Typically, drivers
+   * will return true if they understand the subprotocol specified in the URL and false if they
+   * don't. Our protocols start with jdbc:postgresql:
    *
    * @param url the URL of the driver
    * @return true if this driver accepts the given URL
@@ -414,13 +426,14 @@ public class Driver implements java.sql.Driver {
    * The getPropertyInfo method is intended to allow a generic GUI tool to discover what properties
    * it should prompt a human for in order to get enough information to connect to a database.
    *
-   * <p>Note that depending on the values the human has supplied so far, additional values may
-   * become necessary, so it may be necessary to iterate through several calls to getPropertyInfo
+   * <p>
+   * Note that depending on the values the human has supplied so far, additional values may become
+   * necessary, so it may be necessary to iterate through several calls to getPropertyInfo
    *
-   * @param url  the Url of the database to connect to
+   * @param url the Url of the database to connect to
    * @param info a proposed list of tag/value pairs that will be sent on connect open.
-   * @return An array of DriverPropertyInfo objects describing possible properties.  This array may
-   * be an empty array if no properties are required
+   * @return An array of DriverPropertyInfo objects describing possible properties. This array may
+   *         be an empty array if no properties are required
    * @see java.sql.Driver#getPropertyInfo
    */
   public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) {
@@ -440,10 +453,7 @@ public class Driver implements java.sql.Driver {
   }
 
   public static final int MAJORVERSION =
-      //#if false
-      9
-            //#endif
-            /*$mvn.project.property.parsedversion.majorversion$*/;
+      /*$mvn.project.property.parsedversion.majorversion+";"$*//*-*/9;
 
   /**
    * Gets the drivers major version number
@@ -455,10 +465,7 @@ public class Driver implements java.sql.Driver {
   }
 
   public static final int MINORVERSION =
-      //#if false
-      4
-            //#endif
-            /*$mvn.project.property.parsedversion.minorversion$*/;
+      /*$mvn.project.property.parsedversion.minorversion+";"$*//*-*/4;
 
   /**
    * Get the drivers minor version number
@@ -479,11 +486,12 @@ public class Driver implements java.sql.Driver {
   }
 
   /**
-   * Report whether the driver is a genuine JDBC compliant driver.  A driver may only report "true"
-   * here if it passes the JDBC compliance tests, otherwise it is required to return false.  JDBC
+   * Report whether the driver is a genuine JDBC compliant driver. A driver may only report "true"
+   * here if it passes the JDBC compliance tests, otherwise it is required to return false. JDBC
    * compliance requires full support for the JDBC API and full support for SQL 92 Entry Level.
    *
-   * <p>For PostgreSQL, this is not yet possible, as we are not SQL92 compliant (yet).
+   * <p>
+   * For PostgreSQL, this is not yet possible, as we are not SQL92 compliant (yet).
    */
   public boolean jdbcCompliant() {
     return false;
@@ -494,7 +502,7 @@ public class Driver implements java.sql.Driver {
   /**
    * Constructs a new DriverURL, splitting the specified URL into its component parts
    *
-   * @param url      JDBC URL to parse
+   * @param url JDBC URL to parse
    * @param defaults Default properties
    * @return Properties with elements added from the url
    */
@@ -556,7 +564,7 @@ public class Driver implements java.sql.Driver {
       urlProps.setProperty("PGDBNAME", l_urlServer);
     }
 
-    //parse the args part of the url
+    // parse the args part of the url
     String[] args = l_urlArgs.split("&");
     for (int i = 0; i < args.length; ++i) {
       String token = args[i];
@@ -626,10 +634,10 @@ public class Driver implements java.sql.Driver {
    * keep the overall driver size down. It now requires the call Class and the function name to help
    * when the driver is used with closed software that don't report the stack strace
    *
-   * @param callClass    the call Class
+   * @param callClass the call Class
    * @param functionName the name of the unimplemented function with the type of its arguments
    * @return PSQLException with a localized message giving the complete description of the
-   * unimplemeted function
+   *         unimplemeted function
    */
   public static SQLFeatureNotSupportedException notImplemented(Class<?> callClass,
       String functionName) {
@@ -643,7 +651,7 @@ public class Driver implements java.sql.Driver {
    * ie org.postgresql.Driver.setLogLevel()
    *
    * @param logLevel sets the level which logging will respond to OFF turn off logging INFO being
-   *                 almost no messages DEBUG most verbose
+   *        almost no messages DEBUG most verbose
    */
   public static void setLogLevel(int logLevel) {
     synchronized (Driver.class) {
@@ -672,7 +680,7 @@ public class Driver implements java.sql.Driver {
    * method.
    *
    * @throws IllegalStateException if the driver is already registered
-   * @throws SQLException          if registering the driver fails
+   * @throws SQLException if registering the driver fails
    */
   public static void register() throws SQLException {
     if (isRegistered()) {
@@ -690,7 +698,7 @@ public class Driver implements java.sql.Driver {
    * class can be gc'ed if necessary.
    *
    * @throws IllegalStateException if the driver is not registered
-   * @throws SQLException          if deregistering the driver fails
+   * @throws SQLException if deregistering the driver fails
    */
   public static void deregister() throws SQLException {
     if (!isRegistered()) {

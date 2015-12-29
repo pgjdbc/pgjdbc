@@ -33,10 +33,12 @@ import java.util.Map;
 /**
  * Array is used collect one column of query result data.
  *
- * <p> Read a field of type Array into either a natively-typed Java array object or a ResultSet.
+ * <p>
+ * Read a field of type Array into either a natively-typed Java array object or a ResultSet.
  * Accessor methods provide the ability to capture array slices.
  *
- * <p> Other than the constructor all methods are direct implementations of those specified for
+ * <p>
+ * Other than the constructor all methods are direct implementations of those specified for
  * java.sql.Array. Please refer to the javadoc for java.sql.Array for detailed descriptions of the
  * functionality and parameters of the methods of this class.
  *
@@ -80,19 +82,20 @@ public class PgArray implements java.sql.Array {
 
   /**
    * Whether Object[] should be used instead primitive arrays. Object[] can contain null elements.
-   * It should be set to <Code>true</Code> if {@link BaseConnection#haveMinimumCompatibleVersion(String)}
-   * returns <Code>true</Code> for argument "8.3".
+   * It should be set to <Code>true</Code> if
+   * {@link BaseConnection#haveMinimumCompatibleVersion(String)} returns <Code>true</Code> for
+   * argument "8.3".
    */
   private final boolean useObjects;
 
   /**
-   * Are we connected to an 8.2 or higher server?  Only 8.2 or higher supports null array elements.
+   * Are we connected to an 8.2 or higher server? Only 8.2 or higher supports null array elements.
    */
   private final boolean haveMinServer82;
 
   /**
-   * Value of field as {@link PgArrayList}. Will be initialized only once within {@link
-   * #buildArrayList()}.
+   * Value of field as {@link PgArrayList}. Will be initialized only once within
+   * {@link #buildArrayList()}.
    */
   protected PgArrayList arrayList;
 
@@ -108,8 +111,8 @@ public class PgArray implements java.sql.Array {
   /**
    * Create a new Array.
    *
-   * @param connection  a database connection
-   * @param oid         the oid of the array datatype
+   * @param connection a database connection
+   * @param oid the oid of the array datatype
    * @param fieldString the array data in string form
    * @throws SQLException if something wrong happens
    */
@@ -122,7 +125,7 @@ public class PgArray implements java.sql.Array {
    * Create a new Array.
    *
    * @param connection a database connection
-   * @param oid        the oid of the array datatype
+   * @param oid the oid of the array datatype
    * @param fieldBytes the array data in byte form
    * @throws SQLException if something wrong happens
    */
@@ -178,7 +181,8 @@ public class PgArray implements java.sql.Array {
     if ((--index) + count > arrayList.size()) {
       throw new PSQLException(
           GT.tr("The array index is out of range: {0}, number of elements: {1}.",
-              new Object[]{index + count, (long) arrayList.size()}), PSQLState.DATA_ERROR);
+              new Object[]{index + count, (long) arrayList.size()}),
+          PSQLState.DATA_ERROR);
     }
 
     return buildArray(arrayList, (int) index, count);
@@ -186,14 +190,14 @@ public class PgArray implements java.sql.Array {
 
   private Object readBinaryArray(int index, int count) throws SQLException {
     int dimensions = ByteConverter.int4(fieldBytes, 0);
-    //int flags = ByteConverter.int4(fieldBytes, 4); // bit 0: 0=no-nulls, 1=has-nulls
+    // int flags = ByteConverter.int4(fieldBytes, 4); // bit 0: 0=no-nulls, 1=has-nulls
     int elementOid = ByteConverter.int4(fieldBytes, 8);
     int pos = 12;
     int[] dims = new int[dimensions];
     for (int d = 0; d < dimensions; ++d) {
       dims[d] = ByteConverter.int4(fieldBytes, pos);
       pos += 4;
-      /*int lbound = ByteConverter.int4(fieldBytes, pos);*/
+      /* int lbound = ByteConverter.int4(fieldBytes, pos); */
       pos += 4;
     }
     if (dimensions == 0) {
@@ -206,8 +210,9 @@ public class PgArray implements java.sql.Array {
     try {
       storeValues((Object[]) arr, elementOid, dims, pos, 0, index);
     } catch (IOException ioe) {
-      throw new PSQLException(GT.tr(
-          "Invalid character data was found.  This is most likely caused by stored data containing characters that are invalid for the character set the database was created in.  The most common example of this is storing 8bit data in a SQL_ASCII database."),
+      throw new PSQLException(
+          GT.tr(
+              "Invalid character data was found.  This is most likely caused by stored data containing characters that are invalid for the character set the database was created in.  The most common example of this is storing 8bit data in a SQL_ASCII database."),
           PSQLState.DATA_ERROR, ioe);
     }
     return arr;
@@ -269,14 +274,14 @@ public class PgArray implements java.sql.Array {
 
   private ResultSet readBinaryResultSet(int index, int count) throws SQLException {
     int dimensions = ByteConverter.int4(fieldBytes, 0);
-    //int flags = ByteConverter.int4(fieldBytes, 4); // bit 0: 0=no-nulls, 1=has-nulls
+    // int flags = ByteConverter.int4(fieldBytes, 4); // bit 0: 0=no-nulls, 1=has-nulls
     int elementOid = ByteConverter.int4(fieldBytes, 8);
     int pos = 12;
     int[] dims = new int[dimensions];
     for (int d = 0; d < dimensions; ++d) {
       dims[d] = ByteConverter.int4(fieldBytes, pos);
       pos += 4;
-      /*int lbound = ByteConverter.int4(fieldBytes, pos); */
+      /* int lbound = ByteConverter.int4(fieldBytes, pos); */
       pos += 4;
     }
     if (count > 0 && dimensions > 0) {
@@ -287,9 +292,8 @@ public class PgArray implements java.sql.Array {
 
     storeValues(rows, fields, elementOid, dims, pos, 0, index);
 
-    BaseStatement stat =
-        (BaseStatement) connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
-            ResultSet.CONCUR_READ_ONLY);
+    BaseStatement stat = (BaseStatement) connection
+        .createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     return stat.createDriverResultSet(fields, rows);
   }
 
@@ -378,8 +382,7 @@ public class PgArray implements java.sql.Array {
     return pos;
   }
 
-  private Class<?> elementOidToClass(int oid)
-      throws SQLException {
+  private Class<?> elementOidToClass(int oid) throws SQLException {
     switch (oid) {
       case Oid.INT2:
         return Short.class;
@@ -400,15 +403,14 @@ public class PgArray implements java.sql.Array {
           return arrElemBuilder.baseType();
         }
 
-        throw org.postgresql.Driver.notImplemented(this.getClass(),
-            "readBinaryArray(data,oid)");
+        throw org.postgresql.Driver.notImplemented(this.getClass(), "readBinaryArray(data,oid)");
     }
   }
 
   /**
-   * Build {@link ArrayList} from field's string input. As a result of this method {@link
-   * #arrayList} is build. Method can be called many times in order to make sure that array list is
-   * ready to use, however {@link #arrayList} will be set only once during first call.
+   * Build {@link ArrayList} from field's string input. As a result of this method
+   * {@link #arrayList} is build. Method can be called many times in order to make sure that array
+   * list is ready to use, however {@link #arrayList} will be set only once during first call.
    */
   private synchronized void buildArrayList() throws SQLException {
     if (arrayList != null) {
@@ -546,7 +548,8 @@ public class PgArray implements java.sql.Array {
     // how many dimensions
     int dims = input.dimensionsCount;
 
-    // dimensions length array (to be used with java.lang.reflect.Array.newInstance(Class<?>, int[]))
+    // dimensions length array (to be used with java.lang.reflect.Array.newInstance(Class<?>,
+    // int[]))
     int[] dimsLength = dims > 1 ? new int[dims] : null;
     if (dims > 1) {
       for (int i = 0; i < dims; i++) {
@@ -566,8 +569,10 @@ public class PgArray implements java.sql.Array {
       Object[] oa = null; // objects array
 
       if (dims > 1 || useObjects) {
-        ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(
-            useObjects ? Boolean.class : boolean.class, dimsLength) : new Boolean[count]);
+        ret = oa = (dims > 1
+            ? (Object[]) java.lang.reflect.Array
+                .newInstance(useObjects ? Boolean.class : boolean.class, dimsLength)
+            : new Boolean[count]);
       } else {
         ret = pa = new boolean[count];
       }
@@ -588,8 +593,11 @@ public class PgArray implements java.sql.Array {
       Object[] oa = null;
 
       if (dims > 1 || useObjects) {
-        ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(
-            useObjects ? Integer.class : int.class, dimsLength) : new Integer[count]);
+        ret =
+            oa = (dims > 1
+                ? (Object[]) java.lang.reflect.Array
+                    .newInstance(useObjects ? Integer.class : int.class, dimsLength)
+                : new Integer[count]);
       } else {
         ret = pa = new int[count];
       }
@@ -609,8 +617,11 @@ public class PgArray implements java.sql.Array {
       Object[] oa = null;
 
       if (dims > 1 || useObjects) {
-        ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(
-            useObjects ? Long.class : long.class, dimsLength) : new Long[count]);
+        ret =
+            oa = (dims > 1
+                ? (Object[]) java.lang.reflect.Array
+                    .newInstance(useObjects ? Long.class : long.class, dimsLength)
+                : new Long[count]);
       } else {
         ret = pa = new long[count];
       }
@@ -641,8 +652,11 @@ public class PgArray implements java.sql.Array {
       Object[] oa = null;
 
       if (dims > 1 || useObjects) {
-        ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(
-            useObjects ? Float.class : float.class, dimsLength) : new Float[count]);
+        ret =
+            oa = (dims > 1
+                ? (Object[]) java.lang.reflect.Array
+                    .newInstance(useObjects ? Float.class : float.class, dimsLength)
+                : new Float[count]);
       } else {
         ret = pa = new float[count];
       }
@@ -662,8 +676,10 @@ public class PgArray implements java.sql.Array {
       Object[] oa = null;
 
       if (dims > 1 || useObjects) {
-        ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(
-            useObjects ? Double.class : double.class, dimsLength) : new Double[count]);
+        ret = oa = (dims > 1
+            ? (Object[]) java.lang.reflect.Array
+                .newInstance(useObjects ? Double.class : double.class, dimsLength)
+            : new Double[count]);
       } else {
         ret = pa = new double[count];
       }
@@ -680,8 +696,8 @@ public class PgArray implements java.sql.Array {
       }
     } else if (type == Types.CHAR || type == Types.VARCHAR || oid == Oid.JSONB_ARRAY) {
       Object[] oa = null;
-      ret = oa =
-          (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(String.class, dimsLength)
+      ret =
+          oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(String.class, dimsLength)
               : new String[count]);
 
       for (; count > 0; count--) {
@@ -690,8 +706,9 @@ public class PgArray implements java.sql.Array {
       }
     } else if (type == Types.DATE) {
       Object[] oa = null;
-      ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(java.sql.Date.class,
-          dimsLength) : new java.sql.Date[count]);
+      ret = oa = (dims > 1
+          ? (Object[]) java.lang.reflect.Array.newInstance(java.sql.Date.class, dimsLength)
+          : new java.sql.Date[count]);
 
       for (; count > 0; count--) {
         Object v = input.get(index++);
@@ -700,8 +717,9 @@ public class PgArray implements java.sql.Array {
       }
     } else if (type == Types.TIME) {
       Object[] oa = null;
-      ret = oa = (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(java.sql.Time.class,
-          dimsLength) : new java.sql.Time[count]);
+      ret = oa = (dims > 1
+          ? (Object[]) java.lang.reflect.Array.newInstance(java.sql.Time.class, dimsLength)
+          : new java.sql.Time[count]);
 
       for (; count > 0; count--) {
         Object v = input.get(index++);
@@ -710,9 +728,9 @@ public class PgArray implements java.sql.Array {
       }
     } else if (type == Types.TIMESTAMP) {
       Object[] oa = null;
-      ret = oa =
-          (dims > 1 ? (Object[]) java.lang.reflect.Array.newInstance(java.sql.Timestamp.class,
-              dimsLength) : new java.sql.Timestamp[count]);
+      ret = oa = (dims > 1
+          ? (Object[]) java.lang.reflect.Array.newInstance(java.sql.Timestamp.class, dimsLength)
+          : new java.sql.Timestamp[count]);
 
       for (; count > 0; count--) {
         Object v = input.get(index++);
@@ -723,10 +741,9 @@ public class PgArray implements java.sql.Array {
       ArrayAssistant arrAssistant = ArrayAssistantRegistry.getAssistant(oid);
 
       Object[] oa = null;
-      ret = oa =
-          (dims > 1) ? (Object[]) java.lang.reflect.Array.newInstance(arrAssistant.baseType(),
-              dimsLength)
-              : (Object[]) java.lang.reflect.Array.newInstance(arrAssistant.baseType(), count);
+      ret = oa = (dims > 1)
+          ? (Object[]) java.lang.reflect.Array.newInstance(arrAssistant.baseType(), dimsLength)
+          : (Object[]) java.lang.reflect.Array.newInstance(arrAssistant.baseType(), count);
 
       for (; count > 0; count--) {
         Object v = input.get(index++);
@@ -820,7 +837,8 @@ public class PgArray implements java.sql.Array {
     if ((--index) + count > arrayList.size()) {
       throw new PSQLException(
           GT.tr("The array index is out of range: {0}, number of elements: {1}.",
-              new Object[]{index + count, (long) arrayList.size()}), PSQLState.DATA_ERROR);
+              new Object[]{index + count, (long) arrayList.size()}),
+          PSQLState.DATA_ERROR);
     }
 
     List<byte[][]> rows = new ArrayList<byte[][]>();
@@ -857,9 +875,8 @@ public class PgArray implements java.sql.Array {
       }
     }
 
-    BaseStatement stat =
-        (BaseStatement) connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
-            ResultSet.CONCUR_READ_ONLY);
+    BaseStatement stat = (BaseStatement) connection
+        .createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     return (ResultSet) stat.createDriverResultSet(fields, rows);
   }
 

@@ -12,8 +12,8 @@ import org.postgresql.Driver;
 
 /**
  * This class holds the current build number and a utility program to print it and the file it came
- * from.  The primary purpose of this is to keep from filling the cvs history of Driver.java with
- * commits simply changing the build number.  The utility program can also be helpful for people to
+ * from. The primary purpose of this is to keep from filling the cvs history of Driver.java with
+ * commits simply changing the build number. The utility program can also be helpful for people to
  * determine what version they really have and resolve problems with old and unknown versions
  * located somewhere in the classpath.
  */

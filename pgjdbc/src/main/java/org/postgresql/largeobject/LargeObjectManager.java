@@ -23,14 +23,18 @@ import java.sql.Statement;
 /**
  * This class implements the large object interface to org.postgresql.
  *
- * <p>It provides methods that allow client code to create, open and delete large objects from the
+ * <p>
+ * It provides methods that allow client code to create, open and delete large objects from the
  * database. When opening an object, an instance of org.postgresql.largeobject.LargeObject is
  * returned, and its methods then allow access to the object.
  *
- * <p>This class can only be created by {@link BaseConnection}
+ * <p>
+ * This class can only be created by {@link BaseConnection}
  *
- * <p>To get access to this class, use the following segment of code:
- * <br><pre>
+ * <p>
+ * To get access to this class, use the following segment of code: <br>
+ *
+ * <pre>
  * import org.postgresql.largeobject.*;
  *
  * Connection  conn;
@@ -41,14 +45,17 @@ import java.sql.Statement;
  * lobj = ((org.postgresql.PGConnection)myconn).getLargeObjectAPI();
  * </pre>
  *
- * <p>Normally, client code would use the getAsciiStream, getBinaryStream, or getUnicodeStream
- * methods in ResultSet, or setAsciiStream, setBinaryStream, or setUnicodeStream methods in
+ * <p>
+ * Normally, client code would use the getAsciiStream, getBinaryStream, or getUnicodeStream methods
+ * in ResultSet, or setAsciiStream, setBinaryStream, or setUnicodeStream methods in
  * PreparedStatement to access Large Objects.
  *
- * <p>However, sometimes lower level access to Large Objects are required, that are not supported by
+ * <p>
+ * However, sometimes lower level access to Large Objects are required, that are not supported by
  * the JDBC specification.
  *
- * <p>Refer to org.postgresql.largeobject.LargeObject on how to manipulate the contents of a Large
+ * <p>
+ * Refer to org.postgresql.largeobject.LargeObject on how to manipulate the contents of a Large
  * Object.
  *
  * @see java.sql.ResultSet#getAsciiStream
@@ -87,9 +94,12 @@ public class LargeObjectManager {
   /**
    * Constructs the LargeObject API.
    *
-   * <p><b>Important Notice</b> <br>This method should only be called by {@link BaseConnection}
+   * <p>
+   * <b>Important Notice</b> <br>
+   * This method should only be called by {@link BaseConnection}
    *
-   * <p>There should only be one LargeObjectManager per Connection. The {@link BaseConnection} class
+   * <p>
+   * There should only be one LargeObjectManager per Connection. The {@link BaseConnection} class
    * keeps track of the various extension API's and it's advised you use those to gain access, and
    * not going direct.
    *
@@ -154,6 +164,7 @@ public class LargeObjectManager {
    * @throws SQLException on error
    * @deprecated As of 8.3, replaced by {@link #open(long)}
    */
+  @Deprecated
   public LargeObject open(int oid) throws SQLException {
     return open((long) oid, false);
   }
@@ -163,7 +174,7 @@ public class LargeObjectManager {
    * close if asked. This is useful when the LOB is returned to a caller which won't take care of
    * transactions by itself.
    *
-   * @param oid           of large object
+   * @param oid of large object
    * @param commitOnClose commit the transaction when this LOB will be closed
    * @return LargeObject instance providing access to the object
    * @throws SQLException on error
@@ -189,25 +200,26 @@ public class LargeObjectManager {
    * This opens an existing large object, same as previous method, but commits the transaction on
    * close if asked
    *
-   * @param oid           of large object
+   * @param oid of large object
    * @param commitOnClose commit the transaction when this LOB will be closed
    * @return LargeObject instance providing access to the object
    * @throws SQLException on error
    */
 
   public LargeObject open(long oid, boolean commitOnClose) throws SQLException {
-    return open((long) oid, READWRITE, commitOnClose);
+    return open(oid, READWRITE, commitOnClose);
   }
 
   /**
    * This opens an existing large object, based on its OID
    *
-   * @param oid  of large object
+   * @param oid of large object
    * @param mode mode of open
    * @return LargeObject instance providing access to the object
    * @throws SQLException on error
    * @deprecated As of 8.3, replaced by {@link #open(long, int)}
    */
+  @Deprecated
   public LargeObject open(int oid, int mode) throws SQLException {
     return open((long) oid, mode, false);
   }
@@ -216,8 +228,8 @@ public class LargeObjectManager {
    * This opens an existing large object, same as previous method, but commits the transaction on
    * close if asked
    *
-   * @param oid           of large object
-   * @param mode          mode of open
+   * @param oid of large object
+   * @param mode mode of open
    * @param commitOnClose commit the transaction when this LOB will be closed
    * @return LargeObject instance providing access to the object
    * @throws SQLException on error
@@ -230,20 +242,20 @@ public class LargeObjectManager {
   /**
    * This opens an existing large object, based on its OID
    *
-   * @param oid  of large object
+   * @param oid of large object
    * @param mode mode of open
    * @return LargeObject instance providing access to the object
    * @throws SQLException on error
    */
   public LargeObject open(long oid, int mode) throws SQLException {
-    return open((long) oid, mode, false);
+    return open(oid, mode, false);
   }
 
   /**
    * This opens an existing large object, based on its OID
    *
-   * @param oid           of large object
-   * @param mode          mode of open
+   * @param oid of large object
+   * @param mode mode of open
    * @param commitOnClose commit the transaction when this LOB will be closed
    * @return LargeObject instance providing access to the object
    * @throws SQLException on error
@@ -259,12 +271,14 @@ public class LargeObjectManager {
   /**
    * This creates a large object, returning its OID.
    *
-   * <p>It defaults to READWRITE for the new object's attributes.
+   * <p>
+   * It defaults to READWRITE for the new object's attributes.
    *
    * @return oid of new object
    * @throws SQLException on error
    * @deprecated As of 8.3, replaced by {@link #createLO()}
    */
+  @Deprecated
   public int create() throws SQLException {
     return create(READWRITE);
   }
@@ -272,7 +286,8 @@ public class LargeObjectManager {
   /**
    * This creates a large object, returning its OID.
    *
-   * <p>It defaults to READWRITE for the new object's attributes.
+   * <p>
+   * It defaults to READWRITE for the new object's attributes.
    *
    * @return oid of new object
    * @throws SQLException if something wrong happens
@@ -306,6 +321,7 @@ public class LargeObjectManager {
    * @throws SQLException on error
    * @deprecated As of 8.3, replaced by {@link #createLO(int)}
    */
+  @Deprecated
   public int create(int mode) throws SQLException {
     long oid = createLO(mode);
     return (int) oid;
@@ -326,12 +342,14 @@ public class LargeObjectManager {
   /**
    * This deletes a large object.
    *
-   * <p>It is identical to the delete method, and is supplied as the C API uses unlink.
+   * <p>
+   * It is identical to the delete method, and is supplied as the C API uses unlink.
    *
    * @param oid describing object to delete
    * @throws SQLException on error
    * @deprecated As of 8.3, replaced by {@link #unlink(long)}
    */
+  @Deprecated
   public void unlink(int oid) throws SQLException {
     delete((long) oid);
   }
@@ -339,7 +357,8 @@ public class LargeObjectManager {
   /**
    * This deletes a large object.
    *
-   * <p>It is identical to the delete method, and is supplied as the C API uses unlink.
+   * <p>
+   * It is identical to the delete method, and is supplied as the C API uses unlink.
    *
    * @param oid describing object to delete
    * @throws SQLException on error
@@ -355,6 +374,7 @@ public class LargeObjectManager {
    * @throws SQLException on error
    * @deprecated As of 8.3, replaced by {@link #delete(long)}
    */
+  @Deprecated
   public void delete(int oid) throws SQLException {
     delete((long) oid);
   }

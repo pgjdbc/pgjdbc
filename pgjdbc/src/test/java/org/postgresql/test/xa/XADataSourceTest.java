@@ -19,6 +19,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Random;
+
 import javax.sql.XAConnection;
 import javax.sql.XADataSource;
 import javax.transaction.xa.XAException;
@@ -141,8 +142,8 @@ public class XADataSourceTest extends TestCase {
   }
 
   /*
-   * Check that the equals method works for the connection wrapper returned
-   * by PGXAConnection.getConnection().
+   * Check that the equals method works for the connection wrapper returned by
+   * PGXAConnection.getConnection().
    */
   public void testWrapperEquals() throws Exception {
     assertTrue("Wrappers should be equal", conn.equals(conn));
@@ -287,10 +288,10 @@ public class XADataSourceTest extends TestCase {
 
     java.sql.Timestamp ts2 = getTransactionTimestamp(conn);
 
-        /* Check that we're still in the same transaction.
-         * close+getConnection() should not rollback the XA-transaction
-         * implicitly.
-         */
+    /*
+     * Check that we're still in the same transaction. close+getConnection() should not rollback the
+     * XA-transaction implicitly.
+     */
     assertEquals(ts1, ts2);
 
     xaRes.end(xid, XAResource.TMSUCCESS);
@@ -369,7 +370,7 @@ public class XADataSourceTest extends TestCase {
 
   /**
    * Test how the driver responds to rolling back a transaction that has already been rolled back.
-   * Check the driver reports the xid does not exist. The db knows the fact. ERROR:  prepared
+   * Check the driver reports the xid does not exist. The db knows the fact. ERROR: prepared
    * transaction with identifier "blah" does not exist
    */
   public void testRepeatedRolledBack() throws Exception {
@@ -377,57 +378,46 @@ public class XADataSourceTest extends TestCase {
     xaRes.start(xid, XAResource.TMNOFLAGS);
     xaRes.end(xid, XAResource.TMSUCCESS);
     xaRes.prepare(xid);
-    //tm crash
+    // tm crash
     xaRes.recover(XAResource.TMSTARTRSCAN);
     xaRes.rollback(xid);
     try {
       xaRes.rollback(xid);
       fail("Rollback was successful");
     } catch (XAException xae) {
-      assertEquals("Checking the errorCode is XAER_NOTA indicating the "
-          + "xid does not exist.", XAException.XAER_NOTA, xae.errorCode);
+      assertEquals("Checking the errorCode is XAER_NOTA indicating the " + "xid does not exist.",
+          XAException.XAER_NOTA, xae.errorCode);
     }
   }
 
-    /* We don't support transaction interleaving.
-    public void testInterleaving1() throws Exception {
-     Xid xid1 = new CustomXid(1);
-     Xid xid2 = new CustomXid(2);
-
-     xaRes.start(xid1, XAResource.TMNOFLAGS);
-     conn.createStatement().executeUpdate("UPDATE testxa1 SET foo = 'ccc'");
-     xaRes.end(xid1, XAResource.TMSUCCESS);
-
-     xaRes.start(xid2, XAResource.TMNOFLAGS);
-     conn.createStatement().executeUpdate("UPDATE testxa2 SET foo = 'bbb'");
-
-     xaRes.commit(xid1, true);
-
-     xaRes.end(xid2, XAResource.TMSUCCESS);
-
-     xaRes.commit(xid2, true);
-
-    }
-    public void testInterleaving2() throws Exception {
-     Xid xid1 = new CustomXid(1);
-     Xid xid2 = new CustomXid(2);
-     Xid xid3 = new CustomXid(3);
-
-     xaRes.start(xid1, XAResource.TMNOFLAGS);
-     conn.createStatement().executeUpdate("UPDATE testxa1 SET foo = 'aa'");
-     xaRes.end(xid1, XAResource.TMSUCCESS);
-
-     xaRes.start(xid2, XAResource.TMNOFLAGS);
-     conn.createStatement().executeUpdate("UPDATE testxa2 SET foo = 'bb'");
-     xaRes.end(xid2, XAResource.TMSUCCESS);
-
-     xaRes.start(xid3, XAResource.TMNOFLAGS);
-     conn.createStatement().executeUpdate("UPDATE testxa3 SET foo = 'cc'");
-     xaRes.end(xid3, XAResource.TMSUCCESS);
-
-     xaRes.commit(xid1, true);
-     xaRes.commit(xid2, true);
-     xaRes.commit(xid3, true);
-    }
-    */
+  /*
+   * We don't support transaction interleaving. public void testInterleaving1() throws Exception {
+   * Xid xid1 = new CustomXid(1); Xid xid2 = new CustomXid(2);
+   *
+   * xaRes.start(xid1, XAResource.TMNOFLAGS); conn.createStatement().executeUpdate(
+   * "UPDATE testxa1 SET foo = 'ccc'"); xaRes.end(xid1, XAResource.TMSUCCESS);
+   *
+   * xaRes.start(xid2, XAResource.TMNOFLAGS); conn.createStatement().executeUpdate(
+   * "UPDATE testxa2 SET foo = 'bbb'");
+   *
+   * xaRes.commit(xid1, true);
+   *
+   * xaRes.end(xid2, XAResource.TMSUCCESS);
+   *
+   * xaRes.commit(xid2, true);
+   *
+   * } public void testInterleaving2() throws Exception { Xid xid1 = new CustomXid(1); Xid xid2 =
+   * new CustomXid(2); Xid xid3 = new CustomXid(3);
+   *
+   * xaRes.start(xid1, XAResource.TMNOFLAGS); conn.createStatement().executeUpdate(
+   * "UPDATE testxa1 SET foo = 'aa'"); xaRes.end(xid1, XAResource.TMSUCCESS);
+   *
+   * xaRes.start(xid2, XAResource.TMNOFLAGS); conn.createStatement().executeUpdate(
+   * "UPDATE testxa2 SET foo = 'bb'"); xaRes.end(xid2, XAResource.TMSUCCESS);
+   *
+   * xaRes.start(xid3, XAResource.TMNOFLAGS); conn.createStatement().executeUpdate(
+   * "UPDATE testxa3 SET foo = 'cc'"); xaRes.end(xid3, XAResource.TMSUCCESS);
+   *
+   * xaRes.commit(xid1, true); xaRes.commit(xid2, true); xaRes.commit(xid3, true); }
+   */
 }

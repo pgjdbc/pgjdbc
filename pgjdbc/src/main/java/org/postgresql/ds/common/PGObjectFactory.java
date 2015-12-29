@@ -13,6 +13,7 @@ import org.postgresql.ds.PGPoolingDataSource;
 import org.postgresql.ds.PGSimpleDataSource;
 
 import java.util.Hashtable;
+
 import javax.naming.Context;
 import javax.naming.Name;
 import javax.naming.RefAddr;
@@ -20,7 +21,7 @@ import javax.naming.Reference;
 import javax.naming.spi.ObjectFactory;
 
 /**
- * Returns a DataSource-ish thing based on a JNDI reference.  In the case of a SimpleDataSource or
+ * Returns a DataSource-ish thing based on a JNDI reference. In the case of a SimpleDataSource or
  * ConnectionPool, a new instance is created each time, as there is no connection state to maintain.
  * In the case of a PoolingDataSource, the same DataSource will be returned for every invocation
  * within the same VM/ClassLoader, so that the state of the connections in the pool will be
@@ -30,7 +31,7 @@ import javax.naming.spi.ObjectFactory;
  */
 public class PGObjectFactory implements ObjectFactory {
   /**
-   * Dereferences a PostgreSQL DataSource.  Other types of references are ignored.
+   * Dereferences a PostgreSQL DataSource. Other types of references are ignored.
    */
   public Object getObjectInstance(Object obj, Name name, Context nameCtx,
       Hashtable<?, ?> environment) throws Exception {

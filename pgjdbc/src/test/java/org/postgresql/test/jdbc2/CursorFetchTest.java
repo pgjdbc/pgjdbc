@@ -16,7 +16,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 /*
- *  Tests for using non-zero setFetchSize().
+ * Tests for using non-zero setFetchSize().
  */
 public class CursorFetchTest extends BaseTest {
   public CursorFetchTest(String name) {
@@ -76,8 +76,7 @@ public class CursorFetchTest extends BaseTest {
     createRows(100);
 
     PreparedStatement stmt = con.prepareStatement("select * from test_fetch order by value",
-        ResultSet.TYPE_SCROLL_INSENSITIVE,
-        ResultSet.CONCUR_READ_ONLY);
+        ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
     int[] testSizes = {0, 1, 49, 50, 51, 99, 100, 101};
     for (int i = 0; i < testSizes.length; ++i) {
@@ -102,8 +101,10 @@ public class CursorFetchTest extends BaseTest {
                 + " at position " + position + " with fetch size " + testSizes[i], rs.next());
           } else {
             --position;
-            assertTrue("ran out of rows doing a reverse fetch on iteration " + j + "/" + k
-                + " at position " + position + " with fetch size " + testSizes[i], rs.previous());
+            assertTrue(
+                "ran out of rows doing a reverse fetch on iteration " + j + "/" + k
+                    + " at position " + position + " with fetch size " + testSizes[i],
+                rs.previous());
           }
 
           assertEquals(
@@ -118,8 +119,7 @@ public class CursorFetchTest extends BaseTest {
     createRows(100);
 
     PreparedStatement stmt = con.prepareStatement("select * from test_fetch order by value",
-        ResultSet.TYPE_SCROLL_INSENSITIVE,
-        ResultSet.CONCUR_READ_ONLY);
+        ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
     int[] testSizes = {0, 1, 49, 50, 51, 99, 100, 101};
     for (int i = 0; i < testSizes.length; ++i) {
@@ -153,10 +153,10 @@ public class CursorFetchTest extends BaseTest {
   //
 
   // test one:
-  //   set fetchsize = 0
-  //   run query (all rows should be fetched)
-  //   set fetchsize = 50 (should have no effect)
-  //   process results
+  // -set fetchsize = 0
+  // -run query (all rows should be fetched)
+  // -set fetchsize = 50 (should have no effect)
+  // -process results
   public void testResultSetFetchSizeOne() throws Exception {
     createRows(100);
 
@@ -175,13 +175,13 @@ public class CursorFetchTest extends BaseTest {
   }
 
   // test two:
-  //   set fetchsize = 25
-  //   run query (25 rows fetched)
-  //   set fetchsize = 0
-  //   process results:
-  //     process 25 rows
-  //     should do a FETCH ALL to get more data
-  //     process 75 rows
+  // -set fetchsize = 25
+  // -run query (25 rows fetched)
+  // -set fetchsize = 0
+  // -process results:
+  // --process 25 rows
+  // --should do a FETCH ALL to get more data
+  // --process 75 rows
   public void testResultSetFetchSizeTwo() throws Exception {
     createRows(100);
 
@@ -200,15 +200,15 @@ public class CursorFetchTest extends BaseTest {
   }
 
   // test three:
-  //   set fetchsize = 25
-  //   run query (25 rows fetched)
-  //   set fetchsize = 50
-  //   process results:
-  //     process 25 rows. should NOT hit end-of-results here.
-  //     do a FETCH FORWARD 50
-  //     process 50 rows
-  //     do a FETCH FORWARD 50
-  //     process 25 rows. end of results.
+  // -set fetchsize = 25
+  // -run query (25 rows fetched)
+  // -set fetchsize = 50
+  // -process results:
+  // --process 25 rows. should NOT hit end-of-results here.
+  // --do a FETCH FORWARD 50
+  // --process 50 rows
+  // --do a FETCH FORWARD 50
+  // --process 25 rows. end of results.
   public void testResultSetFetchSizeThree() throws Exception {
     createRows(100);
 
@@ -227,15 +227,15 @@ public class CursorFetchTest extends BaseTest {
   }
 
   // test four:
-  //   set fetchsize = 50
-  //   run query (50 rows fetched)
-  //   set fetchsize = 25
-  //   process results:
-  //     process 50 rows.
-  //     do a FETCH FORWARD 25
-  //     process 25 rows
-  //     do a FETCH FORWARD 25
-  //     process 25 rows. end of results.
+  // -set fetchsize = 50
+  // -run query (50 rows fetched)
+  // -set fetchsize = 25
+  // -process results:
+  // --process 50 rows.
+  // --do a FETCH FORWARD 25
+  // --process 25 rows
+  // --do a FETCH FORWARD 25
+  // --process 25 rows. end of results.
   public void testResultSetFetchSizeFour() throws Exception {
     createRows(100);
 
@@ -359,7 +359,7 @@ public class CursorFetchTest extends BaseTest {
         "insert into test_fetch(value) values(100); select * from test_fetch order by value");
     stmt.setFetchSize(10);
 
-    assertTrue(!stmt.execute());       // INSERT
+    assertTrue(!stmt.execute()); // INSERT
     assertTrue(stmt.getMoreResults()); // SELECT
     ResultSet rs = stmt.getResultSet();
     int count = 0;

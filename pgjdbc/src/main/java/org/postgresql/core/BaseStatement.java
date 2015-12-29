@@ -33,11 +33,11 @@ public interface BaseStatement extends PGStatement, Statement {
    * Create a resultset from data retrieved from the server.
    *
    * @param originalQuery the query that generated this resultset; used when dealing with updateable
-   *                      resultsets
-   * @param fields        the column metadata for the resultset
-   * @param tuples        the resultset data
-   * @param cursor        the cursor to use to retrieve more data from the server; if null, no
-   *                      additional data is present.
+   *        resultsets
+   * @param fields the column metadata for the resultset
+   * @param tuples the resultset data
+   * @param cursor the cursor to use to retrieve more data from the server; if null, no additional
+   *        data is present.
    * @return the new ResultSet
    * @throws SQLException if something goes wrong
    */
@@ -49,7 +49,7 @@ public interface BaseStatement extends PGStatement, Statement {
    *
    * @param p_sql the query to execute
    * @param flags additional {@link QueryExecutor} flags for execution; these are bitwise-ORed into
-   *              the default flags.
+   *        the default flags.
    * @return true if there is a result set
    * @throws SQLException if something goes wrong.
    */
@@ -59,7 +59,7 @@ public interface BaseStatement extends PGStatement, Statement {
    * Execute a prepared query, passing additional query flags.
    *
    * @param flags additional {@link QueryExecutor} flags for execution; these are bitwise-ORed into
-   *              the default flags.
+   *        the default flags.
    * @return true if there is a result set
    * @throws SQLException if something goes wrong.
    */

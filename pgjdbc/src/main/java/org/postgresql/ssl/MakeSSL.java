@@ -19,6 +19,7 @@ import org.postgresql.util.PSQLState;
 
 import java.io.IOException;
 import java.util.Properties;
+
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
@@ -36,7 +37,7 @@ public class MakeSSL extends ObjectFactory {
     // unless sslmode is set
     String classname = PGProperty.SSL_FACTORY.get(info);
     if (classname == null) {
-      //If sslmode is set, use the libp compatible factory
+      // If sslmode is set, use the libp compatible factory
       if (sslmode != null) {
         factory = new LibPQFactory(info);
       } else {
@@ -55,12 +56,12 @@ public class MakeSSL extends ObjectFactory {
 
     SSLSocket newConnection;
     try {
-      newConnection =
-          (SSLSocket) factory.createSocket(stream.getSocket(), stream.getHostSpec().getHost(),
-              stream.getHostSpec().getPort(), true);
-      newConnection.startHandshake(); //We must invoke manually, otherwise the exceptions are hidden
+      newConnection = (SSLSocket) factory.createSocket(stream.getSocket(),
+          stream.getHostSpec().getHost(), stream.getHostSpec().getPort(), true);
+      // We must invoke manually, otherwise the exceptions are hidden
+      newConnection.startHandshake();
     } catch (IOException ex) {
-      if (factory instanceof LibPQFactory) { //throw any KeyManager exception
+      if (factory instanceof LibPQFactory) { // throw any KeyManager exception
         ((LibPQFactory) factory).throwKeyManagerException();
       }
       throw new PSQLException(GT.tr("SSL error: {0}", ex.getMessage()),
@@ -75,7 +76,8 @@ public class MakeSSL extends ObjectFactory {
       } catch (Exception e) {
         throw new PSQLException(
             GT.tr("The HostnameVerifier class provided {0} could not be instantiated.",
-                sslhostnameverifier), PSQLState.CONNECTION_FAILURE, e);
+                sslhostnameverifier),
+            PSQLState.CONNECTION_FAILURE, e);
       }
       if (!hvn.verify(stream.getHostSpec().getHost(), newConnection.getSession())) {
         throw new PSQLException(

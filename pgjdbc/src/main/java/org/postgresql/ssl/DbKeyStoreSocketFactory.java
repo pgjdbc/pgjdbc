@@ -2,18 +2,18 @@ package org.postgresql.ssl;
 
 import java.io.InputStream;
 import java.security.KeyStore;
+
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
 abstract public class DbKeyStoreSocketFactory extends org.postgresql.ssl.WrappedFactory {
   /*
-   * Populate the WrappedFactory member _factory with an SSL Socket Factory
-   * that uses the JKS keystore provided by getKeyStorePassword() and
-   * getKeyStoreStream().  A subclass only needs to implement these two
-   * methods.  The key store will be used both for selecting a private key
-   * certificate to send to the server, as well as checking the server's
-   * certificate against a set of trusted CAs.
+   * Populate the WrappedFactory member _factory with an SSL Socket Factory that uses the JKS
+   * keystore provided by getKeyStorePassword() and getKeyStoreStream(). A subclass only needs to
+   * implement these two methods. The key store will be used both for selecting a private key
+   * certificate to send to the server, as well as checking the server's certificate against a set
+   * of trusted CAs.
    */
   public DbKeyStoreSocketFactory() throws DbKeyStoreSocketException {
     KeyStore keys;
@@ -30,19 +30,16 @@ abstract public class DbKeyStoreSocketFactory extends org.postgresql.ssl.Wrapped
       throw new DbKeyStoreSocketException("Failed to read keystore file: " + ioe.getMessage());
     }
     try {
-      KeyManagerFactory keyfact = KeyManagerFactory.getInstance(
-          KeyManagerFactory.getDefaultAlgorithm());
+      KeyManagerFactory keyfact =
+          KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
       keyfact.init(keys, password);
 
-      TrustManagerFactory trustfact = TrustManagerFactory.getInstance(
-          TrustManagerFactory.getDefaultAlgorithm());
+      TrustManagerFactory trustfact =
+          TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
       trustfact.init(keys);
 
       SSLContext ctx = SSLContext.getInstance("SSL");
-      ctx.init(
-          keyfact.getKeyManagers(),
-          trustfact.getTrustManagers(),
-          null);
+      ctx.init(keyfact.getKeyManagers(), trustfact.getTrustManagers(), null);
       _factory = ctx.getSocketFactory();
     } catch (java.security.GeneralSecurityException gse) {
       throw new DbKeyStoreSocketException(

@@ -38,8 +38,9 @@ public class CopyTest extends TestCase {
 
   private Connection con;
   private CopyManager copyAPI;
+  // 0's required to match DB output for numeric(5,2)
   private String[] origData =
-      {"First Row\t1\t1.10\n", // 0's required to match DB output for numeric(5,2)
+      {"First Row\t1\t1.10\n",
           "Second Row\t2\t-22.20\n",
           "\\N\t\\N\t\\N\n",
           "\t4\t444.40\n"};
@@ -180,8 +181,8 @@ public class CopyTest extends TestCase {
         rowCount = getCount();
       }
     } catch (Exception e) {
-      if (!(skipChar == '\t')) // error expected when field separator consumed
-      {
+      if (!(skipChar == '\t')) {
+        // error expected when field separator consumed
         fail("testSkipping at " + at + " round " + skip + ": " + e.toString());
       }
     }
@@ -333,9 +334,9 @@ public class CopyTest extends TestCase {
   public void testLockReleaseOnCancelFailure() throws SQLException, InterruptedException {
     // This is a fairly complex test because it is testing a
     // deadlock that only occurs when the connection to postgres
-    // is broken during a copy operation.  We'll start a copy
+    // is broken during a copy operation. We'll start a copy
     // operation, use pg_terminate_backend to rudely break it,
-    // and then cancel.  The test passes if a subsequent operation
+    // and then cancel. The test passes if a subsequent operation
     // on the Connection object fails to deadlock.
     con.setAutoCommit(false);
 

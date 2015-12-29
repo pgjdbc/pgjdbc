@@ -35,10 +35,11 @@ public class CopyLargeFileTest extends TestCase {
 
     TestUtil.createTable(con, "pgjdbc_issue366_test_glossary",
         "id SERIAL, text_id VARCHAR(1000) NOT NULL UNIQUE, name VARCHAR(10) NOT NULL UNIQUE");
-    TestUtil.createTable(con, "pgjdbc_issue366_test_data", "id SERIAL,\n"
-        + "                                       data_text_id VARCHAR(1000) NOT NULL /*UNIQUE <-- it slows down inserts due to additional index */,\n"
-        + "                                       glossary_text_id VARCHAR(1000) NOT NULL /* REFERENCES pgjdbc_issue366_test_glossary(text_id) */,\n"
-        + "                                       value DOUBLE PRECISION NOT NULL");
+    TestUtil.createTable(con, "pgjdbc_issue366_test_data",
+        "id SERIAL,\n"
+            + "data_text_id VARCHAR(1000) NOT NULL /*UNIQUE <-- it slows down inserts due to additional index */,\n"
+            + "glossary_text_id VARCHAR(1000) NOT NULL /* REFERENCES pgjdbc_issue366_test_glossary(text_id) */,\n"
+            + "value DOUBLE PRECISION NOT NULL");
 
     feedTable();
     BufferGenerator.main(new String[]{});
@@ -50,7 +51,7 @@ public class CopyLargeFileTest extends TestCase {
         TestUtil.insertSQL("pgjdbc_issue366_test_glossary", "text_id, name", "?, ?"));
     char ch = ' ';
     for (int i = 0; i < 26; i++) {
-      ch = (char) ((int) 'A' + i); //black magic
+      ch = (char) ('A' + i); // black magic
       insertData(stmt, "VERY_LONG_STRING_TO_REPRODUCE_ISSUE_366_" + ch + ch + ch,
           "" + ch + ch + ch);
     }

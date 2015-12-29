@@ -11,10 +11,11 @@ package org.postgresql.ssl;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
+
 import javax.net.ssl.SSLSocketFactory;
 
 /**
- * Provide a wrapper to a real SSLSocketFactory delegating all calls to the contained instance.  A
+ * Provide a wrapper to a real SSLSocketFactory delegating all calls to the contained instance. A
  * subclass needs only provide a constructor for the wrapped SSLSocketFactory.
  */
 public abstract class WrappedFactory extends SSLSocketFactory {

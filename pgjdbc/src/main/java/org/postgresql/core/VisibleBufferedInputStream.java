@@ -55,7 +55,7 @@ public class VisibleBufferedInputStream extends InputStream {
   /**
    * Creates a new buffer around the given stream.
    *
-   * @param in         The stream to buffer.
+   * @param in The stream to buffer.
    * @param bufferSize The initial size of the buffer.
    */
   public VisibleBufferedInputStream(InputStream in, int bufferSize) {
@@ -92,7 +92,7 @@ public class VisibleBufferedInputStream extends InputStream {
    *
    * @return The next byte from the buffer.
    * @throws ArrayIndexOutOfBoundsException If ensureBytes was not called to make sure the buffer
-   *                                        contains the byte.
+   *         contains the byte.
    */
   public byte readRaw() {
     return buffer[index++];
@@ -279,12 +279,12 @@ public class VisibleBufferedInputStream extends InputStream {
    * Scans the length of the next null terminated string (C-style string) from the stream.
    *
    * @return The length of the next null terminated string.
-   * @throws IOException  If reading of stream fails.
+   * @throws IOException If reading of stream fails.
    * @throws EOFException If the stream did not contain any null terminators.
    */
   public int scanCStringLength() throws IOException {
     int pos = index;
-    for (; ; ) {
+    while (true) {
       while (pos < endIndex) {
         if (buffer[pos++] == '\0') {
           return pos - index;

@@ -17,8 +17,8 @@ public class PGbytea {
   private static final int MAX_3_BUFF_SIZE = 2 * 1024 * 1024;
 
   /*
-   * Converts a PG bytea raw value (i.e. the raw binary representation
-   * of the bytea data type) into a java byte[]
+   * Converts a PG bytea raw value (i.e. the raw binary representation of the bytea data type) into
+   * a java byte[]
    */
   public static byte[] toBytes(byte[] s) throws SQLException {
     if (s == null) {
@@ -26,7 +26,7 @@ public class PGbytea {
     }
 
     // Starting with PG 9.0, a new hex format is supported
-    // that starts with "\x".  Figure out which format we're
+    // that starts with "\x". Figure out which format we're
     // dealing with here.
     //
     if (s.length < 2 || s[0] != '\\' || s[1] != 'x') {
@@ -92,7 +92,7 @@ public class PGbytea {
       if (nextbyte == (byte) '\\') {
         secondbyte = s[++i];
         if (secondbyte == (byte) '\\') {
-          //escaped \
+          // escaped \
           buf[bufpos++] = (byte) '\\';
         } else {
           thebyte = (secondbyte - 48) * 64 + (s[++i] - 48) * 8 + (s[++i] - 48);
@@ -114,8 +114,8 @@ public class PGbytea {
   }
 
   /*
-   * Converts a java byte[] into a PG bytea string (i.e. the text
-   * representation of the bytea data type)
+   * Converts a java byte[] into a PG bytea string (i.e. the text representation of the bytea data
+   * type)
    */
   public static String toPGString(byte[] p_buf) throws SQLException {
     if (p_buf == null) {
@@ -127,23 +127,23 @@ public class PGbytea {
       if (l_int < 0) {
         l_int = 256 + l_int;
       }
-      //we escape the same non-printable characters as the backend
-      //we must escape all 8bit characters otherwise when convering
-      //from java unicode to the db character set we may end up with
-      //question marks if the character set is SQL_ASCII
+      // we escape the same non-printable characters as the backend
+      // we must escape all 8bit characters otherwise when convering
+      // from java unicode to the db character set we may end up with
+      // question marks if the character set is SQL_ASCII
       if (l_int < 040 || l_int > 0176) {
-        //escape charcter with the form \000, but need two \\ because of
-        //the Java parser
+        // escape charcter with the form \000, but need two \\ because of
+        // the Java parser
         l_strbuf.append("\\");
         l_strbuf.append((char) (((l_int >> 6) & 0x3) + 48));
         l_strbuf.append((char) (((l_int >> 3) & 0x7) + 48));
         l_strbuf.append((char) ((l_int & 0x07) + 48));
       } else if (element == (byte) '\\') {
-        //escape the backslash character as \\, but need four \\\\ because
-        //of the Java parser
+        // escape the backslash character as \\, but need four \\\\ because
+        // of the Java parser
         l_strbuf.append("\\\\");
       } else {
-        //other characters are left alone
+        // other characters are left alone
         l_strbuf.append((char) element);
       }
     }

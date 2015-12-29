@@ -23,9 +23,8 @@ import java.util.Arrays;
 /*
  * Test case for various encoding problems.
  *
- * Ensure that we can do a round-trip of all server-supported unicode
- * values without trashing them, and that bad encodings are
- * detected.
+ * Ensure that we can do a round-trip of all server-supported unicode values without trashing them,
+ * and that bad encodings are detected.
  */
 public class DatabaseEncodingTest extends TestCase {
   private Connection con;
@@ -40,8 +39,7 @@ public class DatabaseEncodingTest extends TestCase {
   // a table for this test.
   protected void setUp() throws Exception {
     con = TestUtil.openDB();
-    TestUtil.createTable(con,
-        "testdbencoding",
+    TestUtil.createTable(con, "testdbencoding",
         "unicode_ordinal integer primary key not null, unicode_string varchar(" + STEP + ")");
     // disabling auto commit makes the test run faster
     // by not committing each insert individually.
@@ -133,7 +131,7 @@ public class DatabaseEncodingTest extends TestCase {
         insert.setInt(1, i);
         insert.setString(2, testString);
 
-        //System.err.println("Inserting: " + dumpString(testString));
+        // System.err.println("Inserting: " + dumpString(testString));
 
         assertEquals(1, insert.executeUpdate());
       }
@@ -209,8 +207,7 @@ public class DatabaseEncodingTest extends TestCase {
 
       String testString;
       if (ch >= 0x10000) {
-        testString = new String(new char[]{
-            (char) (0xd800 + ((ch - 0x10000) >> 10)),
+        testString = new String(new char[]{(char) (0xd800 + ((ch - 0x10000) >> 10)),
             (char) (0xdc00 + ((ch - 0x10000) & 0x3ff))});
       } else {
         testString = new String(new char[]{(char) ch});
@@ -235,20 +232,20 @@ public class DatabaseEncodingTest extends TestCase {
         {(byte) 0x80}, // First byte may not be 10xxxxxx
 
         // Two-byte illegal sequences
-        {(byte) 0xc0, (byte) 0x00},  // Second byte must be 10xxxxxx
-        {(byte) 0xc0, (byte) 0x80},  // Can't represent a value < 0x80
+        {(byte) 0xc0, (byte) 0x00}, // Second byte must be 10xxxxxx
+        {(byte) 0xc0, (byte) 0x80}, // Can't represent a value < 0x80
 
         // Three-byte illegal sequences
-        {(byte) 0xe0, (byte) 0x00},  // Second byte must be 10xxxxxx
-        {(byte) 0xe0, (byte) 0x80, (byte) 0x00},  // Third byte must be 10xxxxxx
-        {(byte) 0xe0, (byte) 0x80, (byte) 0x80},  // Can't represent a value < 0x800
-        {(byte) 0xed, (byte) 0xa0, (byte) 0x80},  // Not allowed to encode the range d800..dfff
+        {(byte) 0xe0, (byte) 0x00}, // Second byte must be 10xxxxxx
+        {(byte) 0xe0, (byte) 0x80, (byte) 0x00}, // Third byte must be 10xxxxxx
+        {(byte) 0xe0, (byte) 0x80, (byte) 0x80}, // Can't represent a value < 0x800
+        {(byte) 0xed, (byte) 0xa0, (byte) 0x80}, // Not allowed to encode the range d800..dfff
 
         // Four-byte illegal sequences
-        {(byte) 0xf0, (byte) 0x00},  // Second byte must be 10xxxxxx
-        {(byte) 0xf0, (byte) 0x80, (byte) 0x00},  // Third byte must be 10xxxxxx
-        {(byte) 0xf0, (byte) 0x80, (byte) 0x80, (byte) 0x00},  // Fourth byte must be 10xxxxxx
-        {(byte) 0xf0, (byte) 0x80, (byte) 0x80, (byte) 0x80},  // Can't represent a value < 0x10000
+        {(byte) 0xf0, (byte) 0x00}, // Second byte must be 10xxxxxx
+        {(byte) 0xf0, (byte) 0x80, (byte) 0x00}, // Third byte must be 10xxxxxx
+        {(byte) 0xf0, (byte) 0x80, (byte) 0x80, (byte) 0x00}, // Fourth byte must be 10xxxxxx
+        {(byte) 0xf0, (byte) 0x80, (byte) 0x80, (byte) 0x80}, // Can't represent a value < 0x10000
 
         // Five-byte illegal sequences
         {(byte) 0xf8}, // Can't have a five-byte sequence.
@@ -290,15 +287,14 @@ public class DatabaseEncodingTest extends TestCase {
   public void testTruncatedUTF8Decode() throws Exception {
     Encoding utf8Encoding = Encoding.getJVMEncoding("UTF-8");
 
-    byte[][] shortSequences = new byte[][]{
-        {(byte) 0xc0},              // Second byte must be present
+    byte[][] shortSequences = new byte[][]{{(byte) 0xc0}, // Second byte must be present
 
-        {(byte) 0xe0},              // Second byte must be present
-        {(byte) 0xe0, (byte) 0x80},  // Third byte must be present
+        {(byte) 0xe0}, // Second byte must be present
+        {(byte) 0xe0, (byte) 0x80}, // Third byte must be present
 
-        {(byte) 0xf0},              // Second byte must be present
-        {(byte) 0xf0, (byte) 0x80},  // Third byte must be present
-        {(byte) 0xf0, (byte) 0x80, (byte) 0x80},  // Fourth byte must be present
+        {(byte) 0xf0}, // Second byte must be present
+        {(byte) 0xf0, (byte) 0x80}, // Third byte must be present
+        {(byte) 0xf0, (byte) 0x80, (byte) 0x80}, // Fourth byte must be present
     };
 
     byte[] paddedSequence = new byte[32];

@@ -23,6 +23,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
+
 import javax.naming.NamingException;
 import javax.naming.RefAddr;
 import javax.naming.Reference;
@@ -36,7 +37,7 @@ import javax.naming.StringRefAddr;
  */
 public abstract class BaseDataSource implements Referenceable {
   // Load the normal driver, since we'll use it to actually connect to the
-  // database.  That way we don't have to maintain the connecting code in
+  // database. That way we don't have to maintain the connecting code in
   // multiple places.
   static {
     try {
@@ -60,7 +61,7 @@ public abstract class BaseDataSource implements Referenceable {
   private Properties properties = new Properties();
 
   /**
-   * Gets a connection to the PostgreSQL database.  The database is identified by the DataSource
+   * Gets a connection to the PostgreSQL database. The database is identified by the DataSource
    * properties serverName, databaseName, and portNumber. The user to connect as is identified by
    * the DataSource properties user and password.
    *
@@ -72,11 +73,11 @@ public abstract class BaseDataSource implements Referenceable {
   }
 
   /**
-   * Gets a connection to the PostgreSQL database.  The database is identified by the DataSource
+   * Gets a connection to the PostgreSQL database. The database is identified by the DataSource
    * properties serverName, databaseName, and portNumber. The user to connect as is identified by
    * the arguments user and password, which override the DataSource properties by the same name.
    *
-   * @param user     user
+   * @param user user
    * @param password password
    * @return A valid database connection.
    * @throws SQLException Occurs when the database connection cannot be established.
@@ -125,8 +126,8 @@ public abstract class BaseDataSource implements Referenceable {
   }
 
   /**
-   * Sets the name of the host the PostgreSQL database is running on.  If this is changed, it will
-   * only affect future calls to getConnection.  The default value is <tt>localhost</tt>.
+   * Sets the name of the host the PostgreSQL database is running on. If this is changed, it will
+   * only affect future calls to getConnection. The default value is <tt>localhost</tt>.
    *
    * @param serverName name of the host the PostgreSQL database is running on
    */
@@ -159,7 +160,7 @@ public abstract class BaseDataSource implements Referenceable {
   }
 
   /**
-   * Gets a description of this DataSource-ish thing.  Must be customized by subclasses.
+   * Gets a description of this DataSource-ish thing. Must be customized by subclasses.
    *
    * @return description of this DataSource-ish thing
    */
@@ -187,9 +188,8 @@ public abstract class BaseDataSource implements Referenceable {
   }
 
   /**
-   * Gets the password to connect with by default.  If this is not specified but a password is
-   * needed to log in, you must use the getConnection method which takes a user and password as
-   * parameters.
+   * Gets the password to connect with by default. If this is not specified but a password is needed
+   * to log in, you must use the getConnection method which takes a user and password as parameters.
    *
    * @return password to connect with by default
    */
@@ -198,9 +198,9 @@ public abstract class BaseDataSource implements Referenceable {
   }
 
   /**
-   * Sets the password to connect with by default.  If this is not specified but a password is
-   * needed to log in, you must use the getConnection method which takes a user and password as
-   * parameters.  If this is changed, it will only affect future calls to getConnection.
+   * Sets the password to connect with by default. If this is not specified but a password is needed
+   * to log in, you must use the getConnection method which takes a user and password as parameters.
+   * If this is changed, it will only affect future calls to getConnection.
    *
    * @param password password to connect with by default
    */
@@ -218,7 +218,7 @@ public abstract class BaseDataSource implements Referenceable {
   }
 
   /**
-   * Gets the port which the PostgreSQL server is listening on for TCP/IP connections.  Be sure the
+   * Gets the port which the PostgreSQL server is listening on for TCP/IP connections. Be sure the
    * -i flag is passed to postmaster when PostgreSQL is started. If this is not set, or set to 0,
    * the default port will be used.
    *
@@ -1029,8 +1029,7 @@ public abstract class BaseDataSource implements Referenceable {
     }
   }
 
-  public String getProperty(String name)
-      throws SQLException {
+  public String getProperty(String name) throws SQLException {
     PGProperty pgProperty = PGProperty.forName(name);
     if (pgProperty != null) {
       return getProperty(pgProperty);
@@ -1040,8 +1039,7 @@ public abstract class BaseDataSource implements Referenceable {
     }
   }
 
-  public void setProperty(String name, String value)
-      throws SQLException {
+  public void setProperty(String name, String value) throws SQLException {
     PGProperty pgProperty = PGProperty.forName(name);
     if (pgProperty != null) {
       setProperty(pgProperty, value);
@@ -1090,10 +1088,7 @@ public abstract class BaseDataSource implements Referenceable {
    * @return reference using the appropriate object factory
    */
   protected Reference createReference() {
-    return new Reference(
-        getClass().getName(),
-        PGObjectFactory.class.getName(),
-        null);
+    return new Reference(getClass().getName(), PGObjectFactory.class.getName(), null);
   }
 
   public Reference getReference() throws NamingException {

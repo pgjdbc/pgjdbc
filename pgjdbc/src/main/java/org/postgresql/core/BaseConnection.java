@@ -59,12 +59,13 @@ public interface BaseConnection extends PGConnection, Connection {
   /**
    * Construct and return an appropriate object for the given type and value. This only considers
    * the types registered via {@link org.postgresql.PGConnection#addDataType(String, Class)} and
-   * {@link org.postgresql.PGConnection#addDataType(String, String)}. <p> If no class is registered
-   * as handling the given type, then a generic {@link org.postgresql.util.PGobject} instance is
-   * returned.
+   * {@link org.postgresql.PGConnection#addDataType(String, String)}.
+   * <p>
+   * If no class is registered as handling the given type, then a generic
+   * {@link org.postgresql.util.PGobject} instance is returned.
    *
-   * @param type      the backend typename
-   * @param value     the type-specific string representation of the value
+   * @param type the backend typename
+   * @param value the type-specific string representation of the value
    * @param byteValue the type-specific binary representation of the value
    * @return an appropriate object; never null.
    * @throws SQLException if something goes wrong
@@ -99,8 +100,8 @@ public interface BaseConnection extends PGConnection, Connection {
    * The version is of the form xxyyzz, e.g. 90401 for PgJDBC 9.4.1.
    *
    * This is used to toggle between different functionality as it changes across different releases
-   * of the jdbc driver code.  The values here are versions of the jdbc client and not server
-   * versions.  For example in 7.1 get/setBytes worked on LargeObject values, in 7.2 these methods
+   * of the jdbc driver code. The values here are versions of the jdbc client and not server
+   * versions. For example in 7.1 get/setBytes worked on LargeObject values, in 7.2 these methods
    * were changed to work on bytea values. This change in functionality could be disabled by setting
    * the "compatible" level to be 7.1, in which case the driver will revert to the 7.1
    * functionality.
@@ -221,7 +222,7 @@ public interface BaseConnection extends PGConnection, Connection {
    * Schedule a TimerTask for later execution. The task will be scheduled with the shared Timer for
    * this connection.
    *
-   * @param timerTask    timer task to schedule
+   * @param timerTask timer task to schedule
    * @param milliSeconds delay in milliseconds
    */
   public void addTimerTask(TimerTask timerTask, long milliSeconds);

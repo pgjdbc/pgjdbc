@@ -30,7 +30,7 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
    * Uses given connection for specified COPY TO STDOUT operation
    *
    * @param connection database connection to use for copying (protocol version 3 required)
-   * @param sql        COPY TO STDOUT statement
+   * @param sql COPY TO STDOUT statement
    * @throws SQLException if initializing the operation fails
    */
   public PGCopyInputStream(PGConnection connection, String sql) throws SQLException {

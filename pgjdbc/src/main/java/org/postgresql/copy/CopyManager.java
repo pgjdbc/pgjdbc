@@ -75,10 +75,10 @@ public class CopyManager {
    * Pass results of a COPY TO STDOUT query from database into a Writer.
    *
    * @param sql COPY TO STDOUT statement
-   * @param to  the stream to write the results to (row by row)
+   * @param to the stream to write the results to (row by row)
    * @return number of rows updated for server 8.2 or newer; -1 for older
    * @throws SQLException on database usage errors
-   * @throws IOException  upon writer or database connection failure
+   * @throws IOException upon writer or database connection failure
    */
   public long copyOut(final String sql, Writer to) throws SQLException, IOException {
     byte[] buf;
@@ -93,7 +93,7 @@ public class CopyManager {
       if (cp.isActive()) {
         cp.cancelCopy();
       }
-      try {  // read until excausted or operation cancelled SQLException
+      try { // read until excausted or operation cancelled SQLException
         while ((buf = cp.readFromCopy()) != null) {
         }
       } catch (SQLException sqlEx) {
@@ -110,10 +110,10 @@ public class CopyManager {
    * Pass results of a COPY TO STDOUT query from database into an OutputStream.
    *
    * @param sql COPY TO STDOUT statement
-   * @param to  the stream to write the results to (row by row)
+   * @param to the stream to write the results to (row by row)
    * @return number of rows updated for server 8.2 or newer; -1 for older
    * @throws SQLException on database usage errors
-   * @throws IOException  upon output stream or database connection failure
+   * @throws IOException upon output stream or database connection failure
    */
   public long copyOut(final String sql, OutputStream to) throws SQLException, IOException {
     byte[] buf;
@@ -128,7 +128,7 @@ public class CopyManager {
       if (cp.isActive()) {
         cp.cancelCopy();
       }
-      try {  // read until excausted or operation cancelled SQLException
+      try { // read until excausted or operation cancelled SQLException
         while ((buf = cp.readFromCopy()) != null) {
         }
       } catch (SQLException sqlEx) {
@@ -144,11 +144,11 @@ public class CopyManager {
   /**
    * Use COPY FROM STDIN for very fast copying from a Reader into a database table.
    *
-   * @param sql  COPY FROM STDIN statement
+   * @param sql COPY FROM STDIN statement
    * @param from a CSV file or such
    * @return number of rows updated for server 8.2 or newer; -1 for older
    * @throws SQLException on database usage issues
-   * @throws IOException  upon reader or database connection failure
+   * @throws IOException upon reader or database connection failure
    */
   public long copyIn(final String sql, Reader from) throws SQLException, IOException {
     return copyIn(sql, from, DEFAULT_BUFFER_SIZE);
@@ -157,12 +157,12 @@ public class CopyManager {
   /**
    * Use COPY FROM STDIN for very fast copying from a Reader into a database table.
    *
-   * @param sql        COPY FROM STDIN statement
-   * @param from       a CSV file or such
+   * @param sql COPY FROM STDIN statement
+   * @param from a CSV file or such
    * @param bufferSize number of characters to buffer and push over network to server at once
    * @return number of rows updated for server 8.2 or newer; -1 for older
    * @throws SQLException on database usage issues
-   * @throws IOException  upon reader or database connection failure
+   * @throws IOException upon reader or database connection failure
    */
   public long copyIn(final String sql, Reader from, int bufferSize)
       throws SQLException, IOException {
@@ -187,11 +187,11 @@ public class CopyManager {
   /**
    * Use COPY FROM STDIN for very fast copying from an InputStream into a database table.
    *
-   * @param sql  COPY FROM STDIN statement
+   * @param sql COPY FROM STDIN statement
    * @param from a CSV file or such
    * @return number of rows updated for server 8.2 or newer; -1 for older
    * @throws SQLException on database usage issues
-   * @throws IOException  upon input stream or database connection failure
+   * @throws IOException upon input stream or database connection failure
    */
   public long copyIn(final String sql, InputStream from) throws SQLException, IOException {
     return copyIn(sql, from, DEFAULT_BUFFER_SIZE);
@@ -200,12 +200,12 @@ public class CopyManager {
   /**
    * Use COPY FROM STDIN for very fast copying from an InputStream into a database table.
    *
-   * @param sql        COPY FROM STDIN statement
-   * @param from       a CSV file or such
+   * @param sql COPY FROM STDIN statement
+   * @param from a CSV file or such
    * @param bufferSize number of bytes to buffer and push over network to server at once
    * @return number of rows updated for server 8.2 or newer; -1 for older
    * @throws SQLException on database usage issues
-   * @throws IOException  upon input stream or database connection failure
+   * @throws IOException upon input stream or database connection failure
    */
   public long copyIn(final String sql, InputStream from, int bufferSize)
       throws SQLException, IOException {

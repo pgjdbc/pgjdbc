@@ -12,21 +12,17 @@ public class NTDSAPIWrapper {
    * Convenience wrappre for NTDSAPI DsMakeSpn with Java friendly string and exception handling.
    *
    * @param serviceClass See MSDN
-   * @param serviceName  See MSDN
+   * @param serviceName See MSDN
    * @param instanceName See MSDN
    * @param instancePort See MSDN
-   * @param referrer     See MSDN
+   * @param referrer See MSDN
    * @return SPN generated
    * @throws LastErrorException If buffer too small or parameter incorrect
-   * @see <a href="http://msdn.microsoft.com/en-us/library/ms676007(v=vs.85).aspx">http://msdn.microsoft.com/en-us/library/ms676007</a>
+   * @see <a href="http://msdn.microsoft.com/en-us/library/ms676007(v=vs.85).aspx">http://msdn.
+   *      microsoft.com/en-us/library/ms676007</a>
    */
-  public String DsMakeSpn(
-      String serviceClass,
-      String serviceName,
-      String instanceName,
-      short instancePort,
-      String referrer)
-      throws LastErrorException {
+  public String DsMakeSpn(String serviceClass, String serviceName, String instanceName,
+      short instancePort, String referrer) throws LastErrorException {
     IntByReference spnLength = new IntByReference(2048);
     char[] spn = new char[spnLength.getValue()];
 
@@ -37,7 +33,8 @@ public class NTDSAPIWrapper {
             instanceName == null ? null : new WString(instanceName),
             instancePort,
             referrer == null ? null : new WString(referrer),
-            spnLength, spn);
+            spnLength,
+            spn);
 
     if (ret != NTDSAPI.ERROR_SUCCESS) {
       /* Should've thrown LastErrorException, but just in case */

@@ -229,9 +229,8 @@ public class BlobTest extends TestCase {
   }
 
   /*
-   * Helper - uploads a file into a blob using old style methods. We use this
-   * because it always works, and we can use it as a base to test the new
-   * methods.
+   * Helper - uploads a file into a blob using old style methods. We use this because it always
+   * works, and we can use it as a base to test the new methods.
    */
   private long uploadFile(String file, int method) throws Exception {
     LargeObjectManager lom = ((org.postgresql.PGConnection) con).getLargeObjectAPI();
@@ -241,7 +240,8 @@ public class BlobTest extends TestCase {
     long oid = lom.createLO(LargeObjectManager.READWRITE);
     LargeObject blob = lom.open(oid);
 
-    int s, t;
+    int s;
+    int t;
     byte buf[];
     OutputStream os;
 
@@ -282,8 +282,8 @@ public class BlobTest extends TestCase {
   }
 
   /*
-   * Helper - compares the blobs in a table with a local file. Note this uses
-   * the postgresql specific Large Object API
+   * Helper - compares the blobs in a table with a local file. Note this uses the postgresql
+   * specific Large Object API
    */
   private boolean compareBlobsLOAPI() throws Exception {
     boolean result = true;
@@ -327,8 +327,7 @@ public class BlobTest extends TestCase {
   }
 
   /*
-   * Helper - compares the blobs in a table with a local file. This uses the
-   * jdbc java.sql.Blob api
+   * Helper - compares the blobs in a table with a local file. This uses the jdbc java.sql.Blob api
    */
   private boolean compareBlobs() throws Exception {
     boolean result = true;

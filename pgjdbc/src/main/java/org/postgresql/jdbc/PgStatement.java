@@ -50,8 +50,8 @@ public class PgStatement implements Statement, BaseStatement {
 
   protected ArrayList<Query> batchStatements = null;
   protected ArrayList<ParameterList> batchParameters = null;
-  protected final int resultsettype;   // the resultset type to return (ResultSet.TYPE_xxx)
-  protected final int concurrency;   // is it updateable or not?     (ResultSet.CONCUR_xxx)
+  protected final int resultsettype; // the resultset type to return (ResultSet.TYPE_xxx)
+  protected final int concurrency; // is it updateable or not? (ResultSet.CONCUR_xxx)
   private final int rsHoldability;
   private boolean poolable;
   private boolean closeOnCompletion = false;
@@ -62,16 +62,16 @@ public class PgStatement implements Statement, BaseStatement {
    * Protects current statement from cancelTask starting, waiting for a bit, and waking up exactly
    * on subsequent query execution. The idea is to atomically compare and swap the reference to the
    * task, so the task can detect that statement executes different query than the one the
-   * cancelTask was created. Note: the field must be set/get/compareAndSet via {@link
-   * #CANCEL_TIMER_UPDATER} as per {@link AtomicReferenceFieldUpdater} javadoc.
+   * cancelTask was created. Note: the field must be set/get/compareAndSet via
+   * {@link #CANCEL_TIMER_UPDATER} as per {@link AtomicReferenceFieldUpdater} javadoc.
    */
   private volatile TimerTask cancelTimerTask = null;
   private static final AtomicReferenceFieldUpdater<PgStatement, TimerTask> CANCEL_TIMER_UPDATER =
       AtomicReferenceFieldUpdater.newUpdater(PgStatement.class, TimerTask.class, "cancelTimerTask");
 
   /**
-   * Protects statement from out-of-order cancels. It protects from both {@link
-   * #setQueryTimeout(int)} and {@link #cancel()} induced ones.
+   * Protects statement from out-of-order cancels. It protects from both
+   * {@link #setQueryTimeout(int)} and {@link #cancel()} induced ones.
    *
    * .execute() and friends change statementState to STATE_IN_QUERY during execute. .cancel()
    * ignores cancel request if state is IDLE. In case .execute() observes non-IN_QUERY state as it
@@ -89,15 +89,14 @@ public class PgStatement implements Statement, BaseStatement {
       AtomicIntegerFieldUpdater.newUpdater(PgStatement.class, "statementState");
 
   /**
-   * Does the caller of execute/executeUpdate want generated keys for this execution?  This is set
-   * by Statement methods that have generated keys arguments and cleared after execution is
-   * complete.
+   * Does the caller of execute/executeUpdate want generated keys for this execution? This is set by
+   * Statement methods that have generated keys arguments and cleared after execution is complete.
    */
   protected boolean wantsGeneratedKeysOnce = false;
 
   /**
-   * Was this PreparedStatement created to return generated keys for every execution?  This is set
-   * at creation time and never cleared by execution.
+   * Was this PreparedStatement created to return generated keys for every execution? This is set at
+   * creation time and never cleared by execution.
    */
   public boolean wantsGeneratedKeysAlways = false;
 
@@ -157,7 +156,7 @@ public class PgStatement implements Statement, BaseStatement {
 
   protected Query lastSimpleQuery;
 
-  protected int m_prepareThreshold;                // Reuse threshold to enable use of PREPARE
+  protected int m_prepareThreshold; // Reuse threshold to enable use of PREPARE
 
   protected int maxfieldSize = 0;
 
@@ -174,17 +173,9 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   public ResultSet createResultSet(Query originalQuery, Field[] fields, List<byte[][]> tuples,
-      ResultCursor cursor)
-      throws SQLException {
-    PgResultSet newResult = new PgResultSet(originalQuery,
-        this,
-        fields,
-        tuples,
-        cursor,
-        getMaxRows(),
-        getMaxFieldSize(),
-        getResultSetType(),
-        getResultSetConcurrency(),
+      ResultCursor cursor) throws SQLException {
+    PgResultSet newResult = new PgResultSet(originalQuery, this, fields, tuples, cursor,
+        getMaxRows(), getMaxFieldSize(), getResultSetType(), getResultSetConcurrency(),
         getResultSetHoldability());
     newResult.setFetchSize(getFetchSize());
     newResult.setFetchDirection(getFetchDirection());
@@ -296,7 +287,7 @@ public class PgStatement implements Statement, BaseStatement {
           PSQLState.TOO_MANY_RESULTS);
     }
 
-    return (ResultSet) result.getResultSet();
+    return result.getResultSet();
   }
 
   public int executeUpdate(String p_sql) throws SQLException {
@@ -415,8 +406,8 @@ public class PgStatement implements Statement, BaseStatement {
     if (!queryToExecute.isStatementDescribed() && forceBinaryTransfers) {
       int flags2 = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
       StatementResultHandler handler2 = new StatementResultHandler();
-      connection.getQueryExecutor()
-          .execute(queryToExecute, queryParameters, handler2, 0, 0, flags2);
+      connection.getQueryExecutor().execute(queryToExecute, queryParameters, handler2, 0, 0,
+          flags2);
       ResultWrapper result2 = handler2.getResults();
       if (result2 != null) {
         result2.getResultSet().close();
@@ -427,12 +418,8 @@ public class PgStatement implements Statement, BaseStatement {
     result = null;
     try {
       startTimer();
-      connection.getQueryExecutor().execute(queryToExecute,
-          queryParameters,
-          handler,
-          maxrows,
-          fetchSize,
-          flags);
+      connection.getQueryExecutor().execute(queryToExecute, queryParameters, handler, maxrows,
+          fetchSize, flags);
     } finally {
       killTimerTask();
     }
@@ -515,7 +502,7 @@ public class PgStatement implements Statement, BaseStatement {
 
   /**
    * The queryTimeout limit is the number of milliseconds the driver will wait for a Statement to
-   * execute.  If the limit is exceeded, a SQLException is thrown.
+   * execute. If the limit is exceeded, a SQLException is thrown.
    *
    * @return the current query timeout limit in milliseconds; 0 = unlimited
    * @throws SQLException if a database access error occurs
@@ -542,8 +529,8 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   /**
-   * This adds a warning to the warning chain.  We track the tail of the warning chain as well to
-   * avoid O(N) behavior for adding a new warning to an existing chain.  Some server functions which
+   * This adds a warning to the warning chain. We track the tail of the warning chain as well to
+   * avoid O(N) behavior for adding a new warning to an existing chain. Some server functions which
    * RAISE NOTICE (or equivalent) produce a ton of warnings.
    *
    * @param warn warning to add
@@ -589,7 +576,7 @@ public class PgStatement implements Statement, BaseStatement {
       return null;
     }
 
-    return (ResultSet) result.getResultSet();
+    return result.getResultSet();
   }
 
   /**
@@ -620,8 +607,8 @@ public class PgStatement implements Statement, BaseStatement {
    * part. So, something like "select * from x where d={d '2001-10-09'}" would return "select * from
    * x where d= '2001-10-09'".
    *
-   * @param p_sql                     the original query text
-   * @param replaceProcessingEnabled  whether replace_processing_enabled is on
+   * @param p_sql the original query text
+   * @param replaceProcessingEnabled whether replace_processing_enabled is on
    * @param standardConformingStrings whether standard_conforming_strings is on
    * @return PostgreSQL-compatible SQL
    */
@@ -653,14 +640,14 @@ public class PgStatement implements Statement, BaseStatement {
 
   /**
    * parse the given sql from index i, appending it to the gven buffer until we hit an unmatched
-   * right parentheses or end of string.  When the stopOnComma flag is set we also stop processing
+   * right parentheses or end of string. When the stopOnComma flag is set we also stop processing
    * when a comma is found in sql text that isn't inside nested parenthesis.
    *
-   * @param p_sql       the original query text
-   * @param i           starting position for replacing
-   * @param newsql      where to write the replaced output
+   * @param p_sql the original query text
+   * @param i starting position for replacing
+   * @param newsql where to write the replaced output
    * @param stopOnComma should we stop after hitting the first comma in sql text?
-   * @param stdStrings  whether standard_conforming_strings is on
+   * @param stdStrings whether standard_conforming_strings is on
    * @return the position we stopped processing at
    * @throws SQLException if given SQL is wrong
    */
@@ -694,7 +681,7 @@ public class PgStatement implements Statement, BaseStatement {
           } else if (stopOnComma && c == ',' && nestedParenthesis == 0) {
             endOfNested = true;
             break;
-          } else if (c == '{') {     // start of an escape code?
+          } else if (c == '{') { // start of an escape code?
             if (i + 1 < len) {
               char next = p_sql.charAt(i + 1);
               char nextnext = (i + 2 < len) ? p_sql.charAt(i + 2) : '\0';
@@ -723,8 +710,8 @@ public class PgStatement implements Statement, BaseStatement {
                 state = ESC_OUTERJOIN;
                 i += (nextnext == 'j' || nextnext == 'J') ? 2 : 1;
                 break;
-              } else if (next == 'e' || next
-                  == 'E') { // we assume that escape is the only escape sequence beginning with e
+              } else if (next == 'e' || next == 'E') {
+                // we assume that escape is the only escape sequence beginning with e
                 state = ESC_ESCAPECHAR;
                 break;
               }
@@ -783,7 +770,7 @@ public class PgStatement implements Statement, BaseStatement {
         case ESC_OUTERJOIN:
         case ESC_ESCAPECHAR:
           if (c == '}') {
-            state = IN_SQLCODE;    // end of escape code.
+            state = IN_SQLCODE; // end of escape code.
           } else {
             newsql.append(c);
           }
@@ -797,8 +784,8 @@ public class PgStatement implements Statement, BaseStatement {
    * generate sql for escaped functions
    *
    * @param functionName the escaped function name
-   * @param args         the arguments for this functin
-   * @param stdStrings   whether standard_conforming_strings is on
+   * @param args the arguments for this functin
+   * @param stdStrings whether standard_conforming_strings is on
    * @return the right postgreSql sql
    * @throws SQLException if something goes wrong
    */
@@ -825,8 +812,7 @@ public class PgStatement implements Statement, BaseStatement {
       if (e.getTargetException() instanceof SQLException) {
         throw (SQLException) e.getTargetException();
       } else {
-        throw new PSQLException(e.getTargetException().getMessage(),
-            PSQLState.SYSTEM_ERROR);
+        throw new PSQLException(e.getTargetException().getMessage(), PSQLState.SYSTEM_ERROR);
       }
     } catch (Exception e) {
       // by default the function name is kept unchanged
@@ -845,8 +831,7 @@ public class PgStatement implements Statement, BaseStatement {
 
   /*
    *
-   * The following methods are postgres extensions and are defined
-   * in the interface BaseStatement
+   * The following methods are postgres extensions and are defined in the interface BaseStatement
    *
    */
 
@@ -945,18 +930,15 @@ public class PgStatement implements Statement, BaseStatement {
 
     if (wantsGeneratedKeysAlways) {
       /*
-       * This batch will return generated keys, tell the executor to
-       * expect result rows. We also force a Describe later so we know
-       * the size of the results to expect.
+       * This batch will return generated keys, tell the executor to expect result rows. We also
+       * force a Describe later so we know the size of the results to expect.
        *
-       * If the parameter type(s) change between batch entries and the
-       * default binary-mode changes we might get mixed binary and text
-       * in a single result set column, which we cannot handle. To prevent
-       * this, disable binary transfer mode in batches that return generated
-       * keys. See GitHub issue #267
+       * If the parameter type(s) change between batch entries and the default binary-mode changes
+       * we might get mixed binary and text in a single result set column, which we cannot handle.
+       * To prevent this, disable binary transfer mode in batches that return generated keys. See
+       * GitHub issue #267
        */
-      flags = QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS
-          | QueryExecutor.QUERY_NO_BINARY_TRANSFER;
+      flags = QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS | QueryExecutor.QUERY_NO_BINARY_TRANSFER;
     } else {
       // If a batch hasn't specified that it wants generated keys, using the appropriate
       // Connection.createStatement(...) interfaces, disallow any result set.
@@ -975,9 +957,8 @@ public class PgStatement implements Statement, BaseStatement {
       // (see v3.QueryExecutorImpl's MAX_BUFFERED_RECV_BYTES)
       preDescribe = wantsGeneratedKeysAlways && !queries[0].isStatementDescribed();
       /*
-       * It's also necessary to force a Describe on the first execution of the
-       * new statement, even though we already described it, to work around
-       * bug #267.
+       * It's also necessary to force a Describe on the first execution of the new statement, even
+       * though we already described it, to work around bug #267.
        */
       flags |= QueryExecutor.QUERY_FORCE_DESCRIBE_PORTAL;
     }
@@ -1006,11 +987,7 @@ public class PgStatement implements Statement, BaseStatement {
 
     try {
       startTimer();
-      connection.getQueryExecutor().execute(queries,
-          parameterLists,
-          handler,
-          maxrows,
-          fetchSize,
+      connection.getQueryExecutor().execute(queries, parameterLists, handler, maxrows, fetchSize,
           flags);
     } finally {
       killTimerTask();
@@ -1042,7 +1019,7 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   public Connection getConnection() throws SQLException {
-    return (Connection) connection;
+    return connection;
   }
 
   public int getFetchDirection() {
@@ -1081,8 +1058,7 @@ public class PgStatement implements Statement, BaseStatement {
 
   private void startTimer() {
     /*
-     * there shouldn't be any previous timer active, but better safe than
-     * sorry.
+     * there shouldn't be any previous timer active, but better safe than sorry.
      */
     cleanupTimer();
 
@@ -1096,7 +1072,9 @@ public class PgStatement implements Statement, BaseStatement {
       public void run() {
         try {
           if (!CANCEL_TIMER_UPDATER.compareAndSet(PgStatement.this, this, null)) {
-            return; // Nothing to do here, statement has already finished and cleared cancelTimerTask reference
+            // Nothing to do here, statement has already finished and cleared
+            // cancelTimerTask reference
+            return;
           }
           PgStatement.this.cancel();
         } catch (SQLException e) {
@@ -1119,7 +1097,8 @@ public class PgStatement implements Statement, BaseStatement {
       return timeout == 0;
     }
     if (!CANCEL_TIMER_UPDATER.compareAndSet(this, timerTask, null)) {
-      // Failed to update reference -> timer has just fired, so we must wait for the query state to become "cancelling".
+      // Failed to update reference -> timer has just fired, so we must wait for the query state to
+      // become "cancelling".
       return false;
     }
     timerTask.cancel();
@@ -1132,18 +1111,21 @@ public class PgStatement implements Statement, BaseStatement {
     boolean timerTaskIsClear = cleanupTimer();
     // The order is important here: in case we need to wait for the cancel task, the state must be
     // kept STATE_IN_QUERY, so cancelTask would be able to cancel the query.
-    // It is believed that this case is very rare, so "additional cancel and wait below" would not harm it.
+    // It is believed that this case is very rare, so "additional cancel and wait below" would not
+    // harm it.
     if (timerTaskIsClear && STATE_UPDATER.compareAndSet(this, STATE_IN_QUERY, STATE_IDLE)) {
       return;
     }
 
-    // Being here means someone managed to call .cancel() and our connection did not receive "timeout error"
+    // Being here means someone managed to call .cancel() and our connection did not receive
+    // "timeout error"
     // We wait till state becomes "cancelled"
     boolean interrupted = false;
     while (!STATE_UPDATER.compareAndSet(this, STATE_CANCELLED, STATE_IDLE)) {
       synchronized (connection) {
         try {
-          // Note: wait timeout here is irrelevant since synchronized(connection) would block until .cancel finishes
+          // Note: wait timeout here is irrelevant since synchronized(connection) would block until
+          // .cancel finishes
           connection.wait(10);
         } catch (InterruptedException e) {
           interrupted = true;

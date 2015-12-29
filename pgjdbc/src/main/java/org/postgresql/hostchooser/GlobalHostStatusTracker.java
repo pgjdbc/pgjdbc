@@ -27,7 +27,7 @@ public class GlobalHostStatusTracker {
   /**
    * Store the actual observed host status.
    *
-   * @param hostSpec   The host whose status is known.
+   * @param hostSpec The host whose status is known.
    * @param hostStatus Latest known status for the host.
    */
   public static void reportHostStatus(HostSpec hostSpec, HostStatus hostStatus) {
@@ -53,8 +53,8 @@ public class GlobalHostStatusTracker {
   /**
    * Returns a list of candidate hosts that have the required targetServerType.
    *
-   * @param hostSpecs         The potential list of hosts.
-   * @param targetServerType  The required target server type.
+   * @param hostSpecs The potential list of hosts.
+   * @param targetServerType The required target server type.
    * @param hostRecheckMillis How stale information is allowed.
    * @return candidate hosts to connect to.
    */

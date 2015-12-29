@@ -19,8 +19,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 /*
- * Some simple tests based on problems reported by users. Hopefully these will
- * help prevent previous problems from re-occuring ;-)
+ * Some simple tests based on problems reported by users. Hopefully these will help prevent previous
+ * problems from re-occuring ;-)
  *
  */
 public class DateTest extends TestCase {
@@ -66,7 +66,7 @@ public class DateTest extends TestCase {
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'3456-01-01'")));
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testdate", "'0101-01-01 BC'")));
 
-        /* dateTest() contains all of the tests */
+    /* dateTest() contains all of the tests */
     dateTest();
 
     assertEquals(18, stmt.executeUpdate("DELETE FROM " + "testdate"));

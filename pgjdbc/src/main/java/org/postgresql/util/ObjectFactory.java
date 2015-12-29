@@ -17,23 +17,22 @@ public class ObjectFactory {
    * is tried.
    *
    * @param classname Nam of the class to instantiate
-   * @param info      parameter to pass as Properties
+   * @param info parameter to pass as Properties
    * @param tryString weather to look for a single String argument constructor
    * @param stringarg parameter to pass as String
    * @return the instantiated class
-   * @throws ClassNotFoundException    if something goes wrong
-   * @throws SecurityException         if something goes wrong
-   * @throws NoSuchMethodException     if something goes wrong
-   * @throws IllegalArgumentException  if something goes wrong
-   * @throws InstantiationException    if something goes wrong
-   * @throws IllegalAccessException    if something goes wrong
+   * @throws ClassNotFoundException if something goes wrong
+   * @throws SecurityException if something goes wrong
+   * @throws NoSuchMethodException if something goes wrong
+   * @throws IllegalArgumentException if something goes wrong
+   * @throws InstantiationException if something goes wrong
+   * @throws IllegalAccessException if something goes wrong
    * @throws InvocationTargetException if something goes wrong
    */
   public static Object instantiate(String classname, Properties info, boolean tryString,
-      String stringarg)
-      throws ClassNotFoundException, SecurityException, NoSuchMethodException,
-      IllegalArgumentException,
-      InstantiationException, IllegalAccessException, InvocationTargetException {
+      String stringarg) throws ClassNotFoundException, SecurityException, NoSuchMethodException,
+          IllegalArgumentException, InstantiationException, IllegalAccessException,
+          InvocationTargetException {
     Object[] args = {info};
     Constructor ctor = null;
     Class cls;

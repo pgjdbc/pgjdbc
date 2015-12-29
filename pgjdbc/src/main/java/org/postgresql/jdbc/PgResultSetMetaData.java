@@ -29,8 +29,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   private CacheMetadata _cache;
 
   /*
-   * Initialise for a result with a tuple set and
-   * a field descriptor set
+   * Initialise for a result with a tuple set and a field descriptor set
    *
    * @param fields the array of field descriptors
    */
@@ -45,6 +44,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
    * Whats the number of columns in the ResultSet?
    *
    * @return the number
+   *
    * @exception SQLException if a database access error occurs
    */
   public int getColumnCount() throws SQLException {
@@ -52,11 +52,13 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   }
 
   /*
-   * Is the column automatically numbered (and thus read-only)
-   * I believe that PostgreSQL does not support this feature.
+   * Is the column automatically numbered (and thus read-only) I believe that PostgreSQL does not
+   * support this feature.
    *
    * @param column the first column is 1, the second is 2...
+   *
    * @return true if so
+   *
    * @exception SQLException if a database access error occurs
    */
   public boolean isAutoIncrement(int column) throws SQLException {
@@ -66,11 +68,13 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   }
 
   /*
-   * Does a column's case matter? ASSUMPTION: Any field that is
-   * not obviously case insensitive is assumed to be case sensitive
+   * Does a column's case matter? ASSUMPTION: Any field that is not obviously case insensitive is
+   * assumed to be case sensitive
    *
    * @param column the first column is 1, the second is 2...
+   *
    * @return true if so
+   *
    * @exception SQLException if a database access error occurs
    */
   public boolean isCaseSensitive(int column) throws SQLException {
@@ -79,15 +83,15 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   }
 
   /*
-   * Can the column be used in a WHERE clause?  Basically for
-   * this, I split the functions into two types: recognised
-   * types (which are always useable), and OTHER types (which
-   * may or may not be useable). The OTHER types, for now, I
-   * will assume they are useable.  We should really query the
+   * Can the column be used in a WHERE clause? Basically for this, I split the functions into two
+   * types: recognised types (which are always useable), and OTHER types (which may or may not be
+   * useable). The OTHER types, for now, I will assume they are useable. We should really query the
    * catalog to see if they are useable.
    *
    * @param column the first column is 1, the second is 2...
+   *
    * @return true if they can be used in a WHERE clause
+   *
    * @exception SQLException if a database access error occurs
    */
   public boolean isSearchable(int column) throws SQLException {
@@ -95,12 +99,13 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   }
 
   /*
-   * Is the column a cash value? 6.1 introduced the cash/money
-   * type, which haven't been incorporated as of 970414, so I
-   * just check the type name for both 'cash' and 'money'
+   * Is the column a cash value? 6.1 introduced the cash/money type, which haven't been incorporated
+   * as of 970414, so I just check the type name for both 'cash' and 'money'
    *
    * @param column the first column is 1, the second is 2...
+   *
    * @return true if its a cash column
+   *
    * @exception SQLException if a database access error occurs
    */
   public boolean isCurrency(int column) throws SQLException {
@@ -113,7 +118,9 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
    * Indicates the nullability of values in the designated column.
    *
    * @param column the first column is 1, the second is 2...
+   *
    * @return one of the columnNullable values
+   *
    * @exception SQLException if a database access error occurs
    */
   public int isNullable(int column) throws SQLException {
@@ -123,12 +130,13 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   }
 
   /*
-   * Is the column a signed number? In PostgreSQL, all numbers
-   * are signed, so this is trivial. However, strings are not
-   * signed (duh!)
+   * Is the column a signed number? In PostgreSQL, all numbers are signed, so this is trivial.
+   * However, strings are not signed (duh!)
    *
    * @param column the first column is 1, the second is 2...
+   *
    * @return true if so
+   *
    * @exception SQLException if a database access error occurs
    */
   public boolean isSigned(int column) throws SQLException {
@@ -140,7 +148,9 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
    * What is the column's normal maximum width in characters?
    *
    * @param column the first column is 1, the second is 2, etc.
+   *
    * @return the maximum width
+   *
    * @exception SQLException if a database access error occurs
    */
   public int getColumnDisplaySize(int column) throws SQLException {
@@ -150,7 +160,9 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
 
   /*
    * @param column the first column is 1, the second is 2, etc.
+   *
    * @return the column label
+   *
    * @exception SQLException if a database access error occurs
    */
   public String getColumnLabel(int column) throws SQLException {
@@ -162,7 +174,9 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
    * What's a column's name?
    *
    * @param column the first column is 1, the second is 2, etc.
+   *
    * @return the column name
+   *
    * @exception SQLException if a database access error occurs
    */
   public String getColumnName(int column) throws SQLException {
@@ -177,7 +191,9 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
 
   /*
    * @param column the first column is 1, the second is 2...
+   *
    * @return the Schema Name
+   *
    * @exception SQLException if a database access error occurs
    */
   public String getSchemaName(int column) throws SQLException {
@@ -282,7 +298,9 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
    * What is a column's number of decimal digits.
    *
    * @param column the first column is 1, the second is 2...
+   *
    * @return the precision
+   *
    * @exception SQLException if a database access error occurs
    */
   public int getPrecision(int column) throws SQLException {
@@ -291,11 +309,12 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   }
 
   /*
-   * What is a column's number of digits to the right of the
-   * decimal point?
+   * What is a column's number of digits to the right of the decimal point?
    *
    * @param column the first column is 1, the second is 2...
+   *
    * @return the scale
+   *
    * @exception SQLException if a database access error occurs
    */
   public int getScale(int column) throws SQLException {
@@ -305,8 +324,11 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
 
   /*
    * @param column the first column is 1, the second is 2...
+   *
    * @return column name, or "" if not applicable
+   *
    * @exception SQLException if a database access error occurs
+   *
    * @see #getBaseTableName
    */
   public String getTableName(int column) throws SQLException {
@@ -320,12 +342,13 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   }
 
   /*
-   * What's a column's table's catalog name?  As with getSchemaName(),
-   * we can say that if getTableName() returns n/a, then we can too -
-   * otherwise, we need to work on it.
+   * What's a column's table's catalog name? As with getSchemaName(), we can say that if
+   * getTableName() returns n/a, then we can too - otherwise, we need to work on it.
    *
    * @param column the first column is 1, the second is 2...
+   *
    * @return catalog name, or "" if not applicable
+   *
    * @exception SQLException if a database access error occurs
    */
   public String getCatalogName(int column) throws SQLException {
@@ -336,9 +359,13 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
    * What is a column's SQL Type? (java.sql.Type int)
    *
    * @param column the first column is 1, the second is 2, etc.
+   *
    * @return the java.sql.Type value
+   *
    * @exception SQLException if a database access error occurs
+   *
    * @see org.postgresql.Field#getSQLType
+   *
    * @see java.sql.Types
    */
   public int getColumnType(int column) throws SQLException {
@@ -349,7 +376,9 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
    * Is a column Text or Binary?
    *
    * @param column the first column is 1, the second is 2...
+   *
    * @return column name, or "" if not applicable
+   *
    * @exception SQLException if a database access error occurs
    */
   public int getFormat(int column) throws SQLException {
@@ -360,7 +389,9 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
    * Whats is the column's data source specific type name?
    *
    * @param column the first column is 1, the second is 2, etc.
+   *
    * @return the type name
+   *
    * @exception SQLException if a database access error occurs
    */
   public String getColumnTypeName(int column) throws SQLException {
@@ -377,13 +408,14 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   }
 
   /*
-   * Is the column definitely not writable?  In reality, we would
-   * have to check the GRANT/REVOKE stuff for this to be effective,
-   * and I haven't really looked into that yet, so this will get
+   * Is the column definitely not writable? In reality, we would have to check the GRANT/REVOKE
+   * stuff for this to be effective, and I haven't really looked into that yet, so this will get
    * re-visited.
    *
    * @param column the first column is 1, the second is 2, etc.
+   *
    * @return true if so
+   *
    * @exception SQLException if a database access error occurs
    */
   public boolean isReadOnly(int column) throws SQLException {
@@ -391,13 +423,14 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   }
 
   /*
-   * Is it possible for a write on the column to succeed?  Again, we
-   * would in reality have to check the GRANT/REVOKE stuff, which
-   * I haven't worked with as yet.  However, if it isn't ReadOnly, then
+   * Is it possible for a write on the column to succeed? Again, we would in reality have to check
+   * the GRANT/REVOKE stuff, which I haven't worked with as yet. However, if it isn't ReadOnly, then
    * it is obviously writable.
    *
    * @param column the first column is 1, the second is 2, etc.
+   *
    * @return true if so
+   *
    * @exception SQLException if a database access error occurs
    */
   public boolean isWritable(int column) throws SQLException {
@@ -405,13 +438,14 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   }
 
   /*
-   * Will a write on this column definately succeed? Hmmm...this
-   * is a bad one, since the two preceding functions have not been
-   * really defined. I cannot tell is the short answer. I thus
+   * Will a write on this column definately succeed? Hmmm...this is a bad one, since the two
+   * preceding functions have not been really defined. I cannot tell is the short answer. I thus
    * return isWritable() just to give us an idea.
    *
    * @param column the first column is 1, the second is 2, etc..
+   *
    * @return true if so
+   *
    * @exception SQLException if a database access error occurs
    */
   public boolean isDefinitelyWritable(int column) throws SQLException {
@@ -423,19 +457,21 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   // ********************************************************
 
   /*
-   * For several routines in this package, we need to convert
-   * a columnIndex into a Field[] descriptor.  Rather than do
-   * the same code several times, here it is.
+   * For several routines in this package, we need to convert a columnIndex into a Field[]
+   * descriptor. Rather than do the same code several times, here it is.
    *
    * @param columnIndex the first column is 1, the second is 2...
+   *
    * @return the Field description
+   *
    * @exception SQLException if a database access error occurs
    */
   protected Field getField(int columnIndex) throws SQLException {
     if (columnIndex < 1 || columnIndex > fields.length) {
       throw new PSQLException(
           GT.tr("The column index is out of range: {0}, number of columns: {1}.",
-              new Object[]{columnIndex, fields.length}), PSQLState.INVALID_PARAMETER_VALUE);
+              new Object[]{columnIndex, fields.length}),
+          PSQLState.INVALID_PARAMETER_VALUE);
     }
     return fields[columnIndex - 1];
   }
@@ -461,8 +497,8 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
    *
    * @param column the first column is 1, the second is 2, ...
    * @return the fully-qualified name of the class in the Java programming language that would be
-   * used by the method <code>ResultSet.getObject</code> to retrieve the value in the specified
-   * column. This is the class name used for custom mapping.
+   *         used by the method <code>ResultSet.getObject</code> to retrieve the value in the
+   *         specified column. This is the class name used for custom mapping.
    * @throws SQLException if a database access error occurs
    */
   public String getColumnClassName(int column) throws SQLException {

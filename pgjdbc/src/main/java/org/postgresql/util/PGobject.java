@@ -28,7 +28,8 @@ public class PGobject implements Serializable, Cloneable {
   /**
    * This method sets the type of this object.
    *
-   * <p>It should not be extended by subclasses, hence its final
+   * <p>
+   * It should not be extended by subclasses, hence its final
    *
    * @param type a string describing the type of the object
    */

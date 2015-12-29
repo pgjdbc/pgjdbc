@@ -45,8 +45,8 @@ public class MultiHostTestSuite extends TestSuite {
    * Returns the Test port
    */
   public static int getSlavePort() {
-    return Integer.parseInt(
-        System.getProperty("slavePort", String.valueOf(TestUtil.getPort() + 1)));
+    return Integer
+        .parseInt(System.getProperty("slavePort", String.valueOf(TestUtil.getPort() + 1)));
   }
 
   /*

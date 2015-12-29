@@ -19,10 +19,10 @@ public class SslTest extends TestCase {
   /**
    * Tries to connect to the database.
    *
-   * @param connstr  Connection string for the database
+   * @param connstr Connection string for the database
    * @param expected Expected values. the first element is a String holding the expected message of
-   *                 PSQLException or null, if no exception is expected, the second indicates
-   *                 weather ssl is to be used (Boolean)
+   *        PSQLException or null, if no exception is expected, the second indicates weather ssl is
+   *        to be used (Boolean)
    */
   protected void driver(String connstr, Object[] expected) throws SQLException {
     Connection conn = null;
@@ -41,7 +41,7 @@ public class SslTest extends TestCase {
       if (conn != null) {
         conn.close();
       }
-      if (exmsg == null) { //no exception is excepted
+      if (exmsg == null) { // no exception is excepted
         fail("Exception thrown: " + ex.getMessage());
       } else {
         assertTrue("expected: " + exmsg + " actual: " + ex.getMessage(),
@@ -61,11 +61,12 @@ public class SslTest extends TestCase {
   protected Object[] expected;
 
   private String makeConnStr(String sslmode, boolean goodclient, boolean goodserver, int protocol) {
-    return connstr + "&protocolVersion=" + protocol + "&sslmode=" + sslmode +
-        "&sslcert=" + certdir + "/" + prefix + (goodclient ? "goodclient.crt" : "badclient.crt") +
-        "&sslkey=" + certdir + "/" + prefix + (goodclient ? "goodclient.pk8" : "badclient.pk8") +
-        "&sslrootcert=" + certdir + "/" + prefix + (goodserver ? "goodroot.crt" : "badroot.crt") +
-        "&loglevel=" + TestUtil.getLogLevel();
+    return connstr + "&protocolVersion=" + protocol
+        + "&sslmode=" + sslmode
+        + "&sslcert=" + certdir + "/" + prefix + (goodclient ? "goodclient.crt" : "badclient.crt")
+        + "&sslkey=" + certdir + "/" + prefix + (goodclient ? "goodclient.pk8" : "badclient.pk8")
+        + "&sslrootcert=" + certdir + "/" + prefix + (goodserver ? "goodroot.crt" : "badroot.crt")
+        + "&loglevel=" + TestUtil.getLogLevel();
   }
 
   public SslTest(String name, String certdir, String connstr, String sslmode, int protocol,
@@ -96,24 +97,18 @@ public class SslTest extends TestCase {
     }
     int j = 0;
     for (int i = 0; i < csslmode.length; i++) {
-      suite.addTest(
-          new SslTest(param + "-" + csslmode[i] + "GG2", certdir, sconnstr, csslmode[i], 2, true,
-              true, sprefix, expected.get(csslmode[i] + "GG")));
-      suite.addTest(
-          new SslTest(param + "-" + csslmode[i] + "GG3", certdir, sconnstr, csslmode[i], 3, true,
-              true, sprefix, expected.get(csslmode[i] + "GG")));
-      suite.addTest(
-          new SslTest(param + "-" + csslmode[i] + "GB2", certdir, sconnstr, csslmode[i], 2, true,
-              false, sprefix, expected.get(csslmode[i] + "GB")));
-      suite.addTest(
-          new SslTest(param + "-" + csslmode[i] + "GB3", certdir, sconnstr, csslmode[i], 3, true,
-              false, sprefix, expected.get(csslmode[i] + "GB")));
-      suite.addTest(
-          new SslTest(param + "-" + csslmode[i] + "BG2", certdir, sconnstr, csslmode[i], 2, false,
-              true, sprefix, expected.get(csslmode[i] + "BG")));
-      suite.addTest(
-          new SslTest(param + "-" + csslmode[i] + "BG3", certdir, sconnstr, csslmode[i], 3, false,
-              true, sprefix, expected.get(csslmode[i] + "BG")));
+      suite.addTest(new SslTest(param + "-" + csslmode[i] + "GG2", certdir, sconnstr, csslmode[i],
+          2, true, true, sprefix, expected.get(csslmode[i] + "GG")));
+      suite.addTest(new SslTest(param + "-" + csslmode[i] + "GG3", certdir, sconnstr, csslmode[i],
+          3, true, true, sprefix, expected.get(csslmode[i] + "GG")));
+      suite.addTest(new SslTest(param + "-" + csslmode[i] + "GB2", certdir, sconnstr, csslmode[i],
+          2, true, false, sprefix, expected.get(csslmode[i] + "GB")));
+      suite.addTest(new SslTest(param + "-" + csslmode[i] + "GB3", certdir, sconnstr, csslmode[i],
+          3, true, false, sprefix, expected.get(csslmode[i] + "GB")));
+      suite.addTest(new SslTest(param + "-" + csslmode[i] + "BG2", certdir, sconnstr, csslmode[i],
+          2, false, true, sprefix, expected.get(csslmode[i] + "BG")));
+      suite.addTest(new SslTest(param + "-" + csslmode[i] + "BG3", certdir, sconnstr, csslmode[i],
+          3, false, true, sprefix, expected.get(csslmode[i] + "BG")));
     }
     return suite;
   }
@@ -125,8 +120,9 @@ public class SslTest extends TestCase {
   static Map<String, Map<String, Object[]>> expectedmap;
   static TreeMap<String, Object[]> defaultexpected;
 
-  //For some strange reason, the v2 driver begins these error messages by "Connection rejected: " but the v3 does not.
-  //Also, for v2 there are two spaces after FATAL:, and the message ends with "\n.".
+  // For some strange reason, the v2 driver begins these error messages by "Connection rejected: "
+  // but the v3 does not.
+  // Also, for v2 there are two spaces after FATAL:, and the message ends with "\n.".
   static String PG_HBA_ON =
       "(Connection rejected: )?FATAL:  ?no pg_hba.conf entry for host .*, user .*, database .*, SSL on(?s-d:.*)";
   static String PG_HBA_OFF =
@@ -135,8 +131,8 @@ public class SslTest extends TestCase {
   static String BROKEN =
       "SSL error: (Broken pipe|Received fatal alert: unknown_ca|Connection reset)";
   static String SSLMODE = "Invalid sslmode value: (allow|prefer)";
-  //static String UNKNOWN = "SSL error: Broken pipe";
-  //static String UNKNOWN = "SSL error: Received fatal alert: unknown_ca";
+  // static String UNKNOWN = "SSL error: Broken pipe";
+  // static String UNKNOWN = "SSL error: Received fatal alert: unknown_ca";
   static String ANY = ".*";
   static String VALIDATOR =
       "SSL error: sun.security.validator.ValidatorException: PKIX path (building|validation) failed:.*";

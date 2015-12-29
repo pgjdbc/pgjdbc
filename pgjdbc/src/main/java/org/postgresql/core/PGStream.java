@@ -23,13 +23,15 @@ import java.io.Writer;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.sql.SQLException;
+
 import javax.net.SocketFactory;
 
 /**
  * Wrapper around the raw connection to the server that implements some basic primitives
- * (reading/writing formatted data, doing string encoding, etc). <p> In general, instances of
- * PGStream are not threadsafe; the caller must ensure that only one thread at a time is accessing a
- * particular PGStream instance.
+ * (reading/writing formatted data, doing string encoding, etc).
+ * <p>
+ * In general, instances of PGStream are not threadsafe; the caller must ensure that only one thread
+ * at a time is accessing a particular PGStream instance.
  */
 public class PGStream {
   private final SocketFactory socketFactory;
@@ -47,11 +49,11 @@ public class PGStream {
   private Writer encodingWriter;
 
   /**
-   * Constructor:  Connect to the PostgreSQL back end and return a stream connection.
+   * Constructor: Connect to the PostgreSQL back end and return a stream connection.
    *
    * @param socketFactory socket factory to use when creating sockets
-   * @param hostSpec      the host and port to connect to
-   * @param timeout       timeout in milliseconds, or 0 if no timeout set
+   * @param hostSpec the host and port to connect to
+   * @param timeout timeout in milliseconds, or 0 if no timeout set
    * @throws IOException if an IOException occurs below it.
    */
   public PGStream(SocketFactory socketFactory, HostSpec hostSpec, int timeout) throws IOException {
@@ -68,7 +70,7 @@ public class PGStream {
   }
 
   /**
-   * Constructor:  Connect to the PostgreSQL back end and return a stream connection.
+   * Constructor: Connect to the PostgreSQL back end and return a stream connection.
    *
    * @param hostSpec the host and port to connect to
    * @throws IOException if an IOException occurs below it.
@@ -159,11 +161,12 @@ public class PGStream {
   }
 
   /**
-   * Get a Writer instance that encodes directly onto the underlying stream. <p> The returned Writer
-   * should not be closed, as it's a shared object. Writer.flush needs to be called when switching
-   * between use of the Writer and use of the PGStream write methods, but it won't actually flush
-   * output all the way out -- call {@link #flush} to actually ensure all output has been pushed to
-   * the server.
+   * Get a Writer instance that encodes directly onto the underlying stream.
+   * <p>
+   * The returned Writer should not be closed, as it's a shared object. Writer.flush needs to be
+   * called when switching between use of the Writer and use of the PGStream write methods, but it
+   * won't actually flush output all the way out -- call {@link #flush} to actually ensure all
+   * output has been pushed to the server.
    *
    * @return the shared Writer instance
    * @throws IOException if something goes wrong.
@@ -324,8 +327,7 @@ public class PGStream {
       throw new EOFException();
     }
 
-    String res = encoding.decode(pg_input.getBuffer(), pg_input.getIndex(),
-        len);
+    String res = encoding.decode(pg_input.getBuffer(), pg_input.getIndex(), len);
     pg_input.skip(len);
     return res;
   }
@@ -339,8 +341,7 @@ public class PGStream {
    */
   public String ReceiveString() throws IOException {
     int len = pg_input.scanCStringLength();
-    String res = encoding.decode(pg_input.getBuffer(), pg_input.getIndex(),
-        len - 1);
+    String res = encoding.decode(pg_input.getBuffer(), pg_input.getIndex(), len - 1);
     pg_input.skip(len);
     return res;
   }
@@ -353,7 +354,7 @@ public class PGStream {
    * @throws IOException if a data I/O error occurs
    */
   public byte[][] ReceiveTupleV3() throws IOException, OutOfMemoryError {
-    //TODO: use l_msgSize
+    // TODO: use l_msgSize
     int l_msgSize = ReceiveInteger4();
     int i;
     int l_nf = ReceiveInteger2();
@@ -384,7 +385,7 @@ public class PGStream {
    * Read a tuple from the back end. A tuple is a two dimensional array of bytes. This variant reads
    * the V2 protocol's tuple representation.
    *
-   * @param nf  the number of fields expected
+   * @param nf the number of fields expected
    * @param bin true if the tuple is a binary tuple
    * @return null if the current response has no more tuples, otherwise an array of bytearrays
    * @throws IOException if a data I/O error occurs
@@ -475,7 +476,7 @@ public class PGStream {
   /**
    * Copy data from an input stream to the connection.
    *
-   * @param inStream  the stream to read data from
+   * @param inStream the stream to read data from
    * @param remaining the number of bytes to copy
    * @throws IOException if a data I/O error occurs
    */
@@ -526,7 +527,7 @@ public class PGStream {
   /**
    * Consume an expected EOF from the backend
    *
-   * @throws IOException  if an I/O error occurs
+   * @throws IOException if an I/O error occurs
    * @throws SQLException if we get something other than an EOF
    */
   public void ReceiveEOF() throws SQLException, IOException {

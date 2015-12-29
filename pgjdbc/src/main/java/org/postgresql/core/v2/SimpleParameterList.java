@@ -68,7 +68,8 @@ class SimpleParameterList implements ParameterList {
     if (index < 1 || index > paramValues.length) {
       throw new PSQLException(
           GT.tr("The column index is out of range: {0}, number of columns: {1}.",
-              new Object[]{index, paramValues.length}), PSQLState.INVALID_PARAMETER_VALUE);
+              new Object[]{index, paramValues.length}),
+          PSQLState.INVALID_PARAMETER_VALUE);
     }
 
     paramValues[index - 1] = value;
@@ -91,7 +92,8 @@ class SimpleParameterList implements ParameterList {
     if (index < 1 || index > paramValues.length) {
       throw new PSQLException(
           GT.tr("The column index is out of range: {0}, number of columns: {1}.",
-              new Object[]{index, paramValues.length}), PSQLState.INVALID_PARAMETER_VALUE);
+              new Object[]{index, paramValues.length}),
+          PSQLState.INVALID_PARAMETER_VALUE);
     }
 
     paramValues[index - 1] = new StreamWrapper(data, offset, length);
@@ -101,7 +103,8 @@ class SimpleParameterList implements ParameterList {
     if (index < 1 || index > paramValues.length) {
       throw new PSQLException(
           GT.tr("The column index is out of range: {0}, number of columns: {1}.",
-              new Object[]{index, paramValues.length}), PSQLState.INVALID_PARAMETER_VALUE);
+              new Object[]{index, paramValues.length}),
+          PSQLState.INVALID_PARAMETER_VALUE);
     }
 
     paramValues[index - 1] = new StreamWrapper(stream, length);
@@ -111,7 +114,8 @@ class SimpleParameterList implements ParameterList {
     if (index < 1 || index > paramValues.length) {
       throw new PSQLException(
           GT.tr("The column index is out of range: {0}, number of columns: {1}.",
-              new Object[]{index, paramValues.length}), PSQLState.INVALID_PARAMETER_VALUE);
+              new Object[]{index, paramValues.length}),
+          PSQLState.INVALID_PARAMETER_VALUE);
     }
 
     paramValues[index - 1] = new StreamWrapper(stream);
@@ -121,7 +125,8 @@ class SimpleParameterList implements ParameterList {
     if (index < 1 || index > paramValues.length) {
       throw new PSQLException(
           GT.tr("The column index is out of range: {0}, number of columns: {1}.",
-              new Object[]{index, paramValues.length}), PSQLState.INVALID_PARAMETER_VALUE);
+              new Object[]{index, paramValues.length}),
+          PSQLState.INVALID_PARAMETER_VALUE);
     }
 
     paramValues[index - 1] = NULL_OBJECT;
@@ -207,9 +212,10 @@ class SimpleParameterList implements ParameterList {
 
   private final boolean useEStringSyntax;
 
-  /* Object representing NULL; conveniently, String streams exactly as we want it to. *
-   * nb: we explicitly say "new String" to avoid interning giving us an object that
-   * might be the same (by identity) as a String elsewhere.
+  /*
+   * Object representing NULL; conveniently, String streams exactly as we want it to. * nb: we
+   * explicitly say "new String" to avoid interning giving us an object that might be the same (by
+   * identity) as a String elsewhere.
    */
   private final static String NULL_OBJECT = new String("NULL");
 }

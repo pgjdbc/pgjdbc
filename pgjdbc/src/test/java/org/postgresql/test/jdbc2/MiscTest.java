@@ -21,8 +21,8 @@ import java.sql.SQLWarning;
 import java.sql.Statement;
 
 /*
- * Some simple tests based on problems reported by users. Hopefully these will
- * help prevent previous problems from re-occuring ;-)
+ * Some simple tests based on problems reported by users. Hopefully these will help prevent previous
+ * problems from re-occuring ;-)
  *
  */
 public class MiscTest extends TestCase {

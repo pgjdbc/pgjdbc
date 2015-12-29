@@ -22,6 +22,7 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Iterator;
 import java.util.Properties;
+
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
@@ -48,7 +49,7 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
 
   /**
    * @param info the connection parameters The following parameters are used:
-   *             sslmode,sslcert,sslkey,sslrootcert,sslhostnameverifier,sslpasswordcallback,sslpassword
+   *        sslmode,sslcert,sslkey,sslrootcert,sslhostnameverifier,sslpasswordcallback,sslpassword
    * @throws PSQLException if security error appears when initializing factory
    */
   public LibPQFactory(Properties info) throws PSQLException {
@@ -56,29 +57,29 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
       sslmode = PGProperty.SSL_MODE.get(info);
       SSLContext ctx = SSLContext.getInstance("TLS"); // or "SSL" ?
 
-      //Determinig the default file location
+      // Determinig the default file location
       String pathsep = System.getProperty("file.separator");
       String defaultdir;
       boolean defaultfile = false;
-      if (System.getProperty("os.name").toLowerCase().contains("windows")) { //It is Windows
+      if (System.getProperty("os.name").toLowerCase().contains("windows")) { // It is Windows
         defaultdir = System.getenv("APPDATA") + pathsep + "postgresql" + pathsep;
       } else {
         defaultdir = System.getProperty("user.home") + pathsep + ".postgresql" + pathsep;
       }
 
-      //Load the client's certificate and key
+      // Load the client's certificate and key
       String sslcertfile = PGProperty.SSL_CERT.get(info);
-      if (sslcertfile == null) { //Fall back to default
+      if (sslcertfile == null) { // Fall back to default
         defaultfile = true;
         sslcertfile = defaultdir + "postgresql.crt";
       }
       String sslkeyfile = PGProperty.SSL_KEY.get(info);
-      if (sslkeyfile == null) { //Fall back to default
+      if (sslkeyfile == null) { // Fall back to default
         defaultfile = true;
         sslkeyfile = defaultdir + "postgresql.pk8";
       }
 
-      //Determine the callback handler
+      // Determine the callback handler
       CallbackHandler cbh;
       String sslpasswordcallback = PGProperty.SSL_PASSWORD_CALLBACK.get(info);
       if (sslpasswordcallback != null) {
@@ -87,30 +88,31 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
         } catch (Exception e) {
           throw new PSQLException(
               GT.tr("The password callback class provided {0} could not be instantiated.",
-                  sslpasswordcallback), PSQLState.CONNECTION_FAILURE, e);
+                  sslpasswordcallback),
+              PSQLState.CONNECTION_FAILURE, e);
         }
       } else {
         cbh = new ConsoleCallbackHandler(PGProperty.SSL_PASSWORD.get(info));
       }
 
-      //If the properties are empty, give null to prevent client key selection
+      // If the properties are empty, give null to prevent client key selection
       km = new LazyKeyManager(("".equals(sslcertfile) ? null : sslcertfile),
           ("".equals(sslkeyfile) ? null : sslkeyfile), cbh, defaultfile);
 
       TrustManager[] tm;
       if ("verify-ca".equals(sslmode) || "verify-full".equals(sslmode)) {
-        //Load the server certificate
+        // Load the server certificate
 
         TrustManagerFactory tmf = TrustManagerFactory.getInstance("PKIX");
         KeyStore ks;
         try {
           ks = KeyStore.getInstance("jks");
         } catch (KeyStoreException e) {
-          throw new NoSuchAlgorithmException(
-              "jks KeyStore not available"); //this should never happen
+          // this should never happen
+          throw new NoSuchAlgorithmException("jks KeyStore not available");
         }
         String sslrootcertfile = PGProperty.SSL_ROOT_CERT.get(info);
-        if (sslrootcertfile == null) { //Fall back to default
+        if (sslrootcertfile == null) { // Fall back to default
           sslrootcertfile = defaultdir + "root.crt";
         }
         FileInputStream fis;
@@ -123,7 +125,8 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
         }
         try {
           CertificateFactory cf = CertificateFactory.getInstance("X.509");
-          //Certificate[] certs = cf.generateCertificates(fis).toArray(new Certificate[]{}); //Does not work in java 1.4
+          // Certificate[] certs = cf.generateCertificates(fis).toArray(new Certificate[]{}); //Does
+          // not work in java 1.4
           Object[] certs = cf.generateCertificates(fis).toArray(new Certificate[]{});
           fis.close();
           ks.load(null, null);
@@ -138,14 +141,15 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
         } catch (GeneralSecurityException gsex) {
           throw new PSQLException(
               GT.tr("Loading the SSL root certificate {0} into a TrustManager failed.",
-                  new Object[]{sslrootcertfile}), PSQLState.CONNECTION_FAILURE, gsex);
+                  new Object[]{sslrootcertfile}),
+              PSQLState.CONNECTION_FAILURE, gsex);
         }
         tm = tmf.getTrustManagers();
-      } else { //server validation is not required
+      } else { // server validation is not required
         tm = new TrustManager[]{new NonValidatingTM()};
       }
 
-      //finally we can initialize the context
+      // finally we can initialize the context
       try {
         ctx.init(new KeyManager[]{km}, tm, null);
       } catch (KeyManagementException ex) {
@@ -190,10 +194,9 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
      *
      * @param callbacks The callbacks to handle
      * @throws UnsupportedCallbackException If the console is not available or other than
-     *                                      PasswordCallback is supplied
+     *         PasswordCallback is supplied
      */
-    public void handle(Callback[] callbacks) throws IOException,
-        UnsupportedCallbackException {
+    public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
       Console cons = System.console();
       if (cons == null && password == null) {
         throw new UnsupportedCallbackException(callbacks[0], "Console is not available");
@@ -201,7 +204,8 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
       for (Callback callback : callbacks) {
         if (callback instanceof PasswordCallback) {
           if (password == null) {
-            //It is used instead of cons.readPassword(prompt), because the prompt may contain '%' characters
+            // It is used instead of cons.readPassword(prompt), because the prompt may contain '%'
+            // characters
             ((PasswordCallback) callback).setPassword(
                 cons.readPassword("%s", new Object[]{((PasswordCallback) callback).getPrompt()}));
           } else {
@@ -217,13 +221,13 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
 
   /**
    * Verifies the server certificate according to the libpq rules. The cn attribute of the
-   * certificate is matched against the hostname. If the cn  attribute starts with an asterisk (*),
+   * certificate is matched against the hostname. If the cn attribute starts with an asterisk (*),
    * it will be treated as a wildcard, and will match all characters except a dot (.). This means
    * the certificate will not match subdomains. If the connection is made using an IP address
    * instead of a hostname, the IP address will be matched (without doing any DNS lookups).
    *
    * @param hostname Hostname or IP address of the server.
-   * @param session  The  SSL session.
+   * @param session The SSL session.
    * @return true if the certificate belongs to the server, false otherwise.
    */
   public boolean verify(String hostname, SSLSession session) {
@@ -236,7 +240,7 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
     if (peerCerts == null || peerCerts.length == 0) {
       return false;
     }
-    //Extract the common name
+    // Extract the common name
     X509Certificate serverCert = peerCerts[0];
     LdapName DN;
     try {
@@ -246,7 +250,7 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
     }
     String CN = null;
     Iterator<Rdn> it = DN.getRdns().iterator();
-    //for(Rdn rdn : DN.getRdns())
+    // for(Rdn rdn : DN.getRdns())
     while (it.hasNext()) {
       Rdn rdn = it.next();
       if ("CN".equals(rdn.getType())) {
@@ -257,9 +261,9 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
     }
     if (CN == null) {
       return false;
-    } else if (CN.startsWith("*")) { //We have a wildcard
-      if (hostname.endsWith(CN.substring(
-          1))) { //Avoid IndexOutOfBoundsException because hostname already ends with CN
+    } else if (CN.startsWith("*")) { // We have a wildcard
+      if (hostname.endsWith(CN.substring(1))) {
+        // Avoid IndexOutOfBoundsException because hostname already ends with CN
         return !(hostname.substring(0, hostname.length() - CN.length() + 1).contains("."));
       } else {
         return false;

@@ -23,15 +23,18 @@ import java.sql.SQLException;
  * This class provides the basic methods required to run the interface, plus a pair of methods that
  * provide InputStream and OutputStream classes for this object.
  *
- * <p>Normally, client code would use the getAsciiStream, getBinaryStream, or getUnicodeStream
- * methods in ResultSet, or setAsciiStream, setBinaryStream, or setUnicodeStream methods in
+ * <p>
+ * Normally, client code would use the getAsciiStream, getBinaryStream, or getUnicodeStream methods
+ * in ResultSet, or setAsciiStream, setBinaryStream, or setUnicodeStream methods in
  * PreparedStatement to access Large Objects.
  *
- * <p>However, sometimes lower level access to Large Objects are required, that are not supported by
+ * <p>
+ * However, sometimes lower level access to Large Objects are required, that are not supported by
  * the JDBC specification.
  *
- * <p>Refer to org.postgresql.largeobject.LargeObjectManager on how to gain access to a Large
- * Object, or how to create one.
+ * <p>
+ * Refer to org.postgresql.largeobject.LargeObjectManager on how to gain access to a Large Object,
+ * or how to create one.
  *
  * @see org.postgresql.largeobject.LargeObjectManager
  * @see java.sql.ResultSet#getAsciiStream
@@ -62,7 +65,7 @@ public class LargeObject {
   private final int mode; // read/write mode of this object
   private final int fd; // the descriptor of the open large object
 
-  private BlobOutputStream os;  // The current output stream
+  private BlobOutputStream os; // The current output stream
 
   private boolean closed = false; // true when we are closed
 
@@ -72,14 +75,15 @@ public class LargeObject {
   /**
    * This opens a large object.
    *
-   * <p>If the object does not exist, then an SQLException is thrown.
+   * <p>
+   * If the object does not exist, then an SQLException is thrown.
    *
-   * @param fp            FastPath API for the connection to use
-   * @param oid           of the Large Object to open
-   * @param mode          Mode of opening the large object
-   * @param conn          the connection to the database used to access this LOB
+   * @param fp FastPath API for the connection to use
+   * @param oid of the Large Object to open
+   * @param mode Mode of opening the large object
+   * @param conn the connection to the database used to access this LOB
    * @param commitOnClose commit the transaction when this LOB will be closed (defined in
-   *                      LargeObjectManager)
+   *        LargeObjectManager)
    * @throws SQLException if a database-access error occurs.
    * @see org.postgresql.largeobject.LargeObjectManager
    */
@@ -104,10 +108,11 @@ public class LargeObject {
   /**
    * This opens a large object.
    *
-   * <p>If the object does not exist, then an SQLException is thrown.
+   * <p>
+   * If the object does not exist, then an SQLException is thrown.
    *
-   * @param fp   FastPath API for the connection to use
-   * @param oid  of the Large Object to open
+   * @param fp FastPath API for the connection to use
+   * @param oid of the Large Object to open
    * @param mode Mode of opening the large object (defined in LargeObjectManager)
    * @throws SQLException if a database-access error occurs.
    * @see org.postgresql.largeobject.LargeObjectManager
@@ -120,18 +125,15 @@ public class LargeObject {
     return new LargeObject(fp, oid, mode);
   }
 
-  /* Release large object resources during garbage cleanup.
+  /*
+   * Release large object resources during garbage cleanup.
    *
-   * This code used to call close() however that was problematic
-   * because the scope of the fd is a transaction, thus if commit
-   * or rollback was called before garbage collection ran then
-   * the call to close would error out with an invalid large object
-   * handle.  So this method now does nothing and lets the server
-   * handle cleanup when it ends the transaction.
+   * This code used to call close() however that was problematic because the scope of the fd is a
+   * transaction, thus if commit or rollback was called before garbage collection ran then the call
+   * to close would error out with an invalid large object handle. So this method now does nothing
+   * and lets the server handle cleanup when it ends the transaction.
    *
-   * protected void finalize() throws SQLException
-   * {
-   * }
+   * protected void finalize() throws SQLException { }
    */
 
   /**
@@ -162,8 +164,7 @@ public class LargeObject {
           // we can't call os.close() otherwise we go into an infinite loop!
           os.flush();
         } catch (IOException ioe) {
-          throw new PSQLException("Exception flushing output stream",
-              PSQLState.DATA_ERROR, ioe);
+          throw new PSQLException("Exception flushing output stream", PSQLState.DATA_ERROR, ioe);
         } finally {
           os = null;
         }
@@ -245,7 +246,8 @@ public class LargeObject {
   /**
    * Sets the current position within the object.
    *
-   * <p>This is similar to the fseek() call in the standard C library. It allows you to have random
+   * <p>
+   * This is similar to the fseek() call in the standard C library. It allows you to have random
    * access to the large object.
    *
    * @param pos position within object
@@ -278,7 +280,8 @@ public class LargeObject {
   /**
    * Sets the current position within the object.
    *
-   * <p>This is similar to the fseek() call in the standard C library. It allows you to have random
+   * <p>
+   * This is similar to the fseek() call in the standard C library. It allows you to have random
    * access to the large object.
    *
    * @param pos position within object from begining
@@ -312,7 +315,8 @@ public class LargeObject {
    * This method is inefficient, as the only way to find out the size of the object is to seek to
    * the end, record the current position, then return to the original position.
    *
-   * <p>A better method will be found in the future.
+   * <p>
+   * A better method will be found in the future.
    *
    * @return the size of the large object
    * @throws SQLException if a database-access error occurs.
@@ -341,7 +345,7 @@ public class LargeObject {
 
   /**
    * Truncates the large object to the given length in bytes. If the number of bytes is larger than
-   * the current large object length, the large object will be filled with zero bytes.  This method
+   * the current large object length, the large object will be filled with zero bytes. This method
    * does not modify the current file offset.
    *
    * @param len given length in bytes
@@ -356,7 +360,7 @@ public class LargeObject {
 
   /**
    * Truncates the large object to the given length in bytes. If the number of bytes is larger than
-   * the current large object length, the large object will be filled with zero bytes.  This method
+   * the current large object length, the large object will be filled with zero bytes. This method
    * does not modify the current file offset.
    *
    * @param len given length in bytes
@@ -372,7 +376,8 @@ public class LargeObject {
   /**
    * Returns an {@link InputStream} from this object.
    *
-   * <p>This {@link InputStream} can then be used in any method that requires an InputStream.
+   * <p>
+   * This {@link InputStream} can then be used in any method that requires an InputStream.
    *
    * @return {@link InputStream} from this object
    * @throws SQLException if a database-access error occurs.
@@ -396,7 +401,8 @@ public class LargeObject {
   /**
    * Returns an {@link OutputStream} to this object.
    *
-   * <p>This OutputStream can then be used in any method that requires an OutputStream.
+   * <p>
+   * This OutputStream can then be used in any method that requires an OutputStream.
    *
    * @return {@link OutputStream} from this object
    * @throws SQLException if a database-access error occurs.

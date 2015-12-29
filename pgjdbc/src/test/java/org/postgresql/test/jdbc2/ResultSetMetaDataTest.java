@@ -158,7 +158,8 @@ public class ResultSetMetaDataTest extends TestCase {
     ResultSetMetaData rsmd = rs.getMetaData();
 
     // For reference:
-    // TestUtil.createTable(conn, "timetest", "tm time(3), tmtz timetz, ts timestamp without time zone, tstz timestamp(6) with time zone");
+    // TestUtil.createTable(conn, "timetest", "tm time(3), tmtz timetz, ts timestamp without time
+    // zone, tstz timestamp(6) with time zone");
 
     assertEquals(3, rsmd.getScale(1));
     assertEquals(6, rsmd.getScale(2));

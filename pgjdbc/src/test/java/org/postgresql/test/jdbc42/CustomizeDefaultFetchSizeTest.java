@@ -43,8 +43,7 @@ public class CustomizeDefaultFetchSizeTest {
     assertThat(
         "PGProperty.DEFAULT_ROW_FETCH_SIZE should be propagate to Statement that was create from connection "
             + "on that define it parameter",
-        resultFetchSize, CoreMatchers.equalTo(waitFetchSize)
-    );
+        resultFetchSize, CoreMatchers.equalTo(waitFetchSize));
   }
 
 
@@ -63,8 +62,7 @@ public class CustomizeDefaultFetchSizeTest {
     assertThat(
         "PGProperty.DEFAULT_ROW_FETCH_SIZE should be propagate to CallableStatement that was create from connection "
             + "on that define it parameter",
-        resultFetchSize, CoreMatchers.equalTo(waitFetchSize)
-    );
+        resultFetchSize, CoreMatchers.equalTo(waitFetchSize));
   }
 
   @Test(expected = SQLException.class)
@@ -76,7 +74,6 @@ public class CustomizeDefaultFetchSizeTest {
 
     fail(
         "On step initialize connection we know about not valid parameter PGProperty.DEFAULT_ROW_FETCH_SIZE they can't be negative, "
-            + "so we should throw correspond exception about it rather than fall with exception in runtime for example during create statement"
-    );
+            + "so we should throw correspond exception about it rather than fall with exception in runtime for example during create statement");
   }
 }

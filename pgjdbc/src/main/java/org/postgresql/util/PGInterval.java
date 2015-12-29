@@ -51,8 +51,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @throws SQLException Is thrown if the string representation has an unknown format
    * @see #setValue(String)
    */
-  public PGInterval(String value)
-      throws SQLException {
+  public PGInterval(String value) throws SQLException {
     this();
     setValue(value);
   }
@@ -60,10 +59,10 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   /**
    * Initializes all values of this interval to the specified values
    *
-   * @param years   years
-   * @param months  months
-   * @param days    days
-   * @param hours   hours
+   * @param years years
+   * @param months months
+   * @param days days
+   * @param hours hours
    * @param minutes minutes
    * @param seconds seconds
    * @see #setValue(int, int, int, int, int, double)
@@ -80,8 +79,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @param value String representated interval (e.g. '3 years 2 mons')
    * @throws SQLException Is thrown if the string representation has an unknown format
    */
-  public void setValue(String value)
-      throws SQLException {
+  public void setValue(String value) throws SQLException {
     final boolean ISOFormat = !value.startsWith("@");
 
     // Just a simple '0'
@@ -169,10 +167,10 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   /**
    * Set all values of this interval to the specified values
    *
-   * @param years   years
-   * @param months  months
-   * @param days    days
-   * @param hours   hours
+   * @param years years
+   * @param months months
+   * @param days days
+   * @param hours hours
    * @param minutes minutes
    * @param seconds seconds
    */
@@ -354,10 +352,10 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Scale this interval by an integer factor.  The server can scale by arbitrary factors, but that
+   * Scale this interval by an integer factor. The server can scale by arbitrary factors, but that
    * would require adjusting the call signatures for all the existing methods like getDays() or
-   * providing our own justification of fractional intervals.  Neither of these seem like a good
-   * idea without a strong use case.
+   * providing our own justification of fractional intervals. Neither of these seem like a good idea
+   * without a strong use case.
    *
    * @param factor scale factor
    */
@@ -377,8 +375,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @return integer parsed from string value
    * @throws NumberFormatException if the string contains invalid chars
    */
-  private int nullSafeIntGet(String value)
-      throws NumberFormatException {
+  private int nullSafeIntGet(String value) throws NumberFormatException {
     return (value == null) ? 0 : Integer.parseInt(value);
   }
 
@@ -389,8 +386,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @return double parsed from string value
    * @throws NumberFormatException if the string contains invalid chars
    */
-  private double nullSafeDoubleGet(String value)
-      throws NumberFormatException {
+  private double nullSafeDoubleGet(String value) throws NumberFormatException {
     return (value == null) ? 0 : Double.parseDouble(value);
   }
 
@@ -415,13 +411,12 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
 
     final PGInterval pgi = (PGInterval) obj;
 
-    return
-        pgi.years == years
-            && pgi.months == months
-            && pgi.days == days
-            && pgi.hours == hours
-            && pgi.minutes == minutes
-            && Double.doubleToLongBits(pgi.seconds) == Double.doubleToLongBits(seconds);
+    return pgi.years == years
+        && pgi.months == months
+        && pgi.days == days
+        && pgi.hours == hours
+        && pgi.minutes == minutes
+        && Double.doubleToLongBits(pgi.seconds) == Double.doubleToLongBits(seconds);
   }
 
   /**
@@ -430,12 +425,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @return hashCode
    */
   public int hashCode() {
-    return ((((((7 * 31
-        + (int) Double.doubleToLongBits(seconds)) * 31
-        + minutes) * 31
-        + hours) * 31
-        + days) * 31
-        + months) * 31
-        + years) * 31;
+    return ((((((7 * 31 + (int) Double.doubleToLongBits(seconds)) * 31 + minutes) * 31 + hours) * 31
+        + days) * 31 + months) * 31 + years) * 31;
   }
 }

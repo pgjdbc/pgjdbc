@@ -10,6 +10,7 @@ package org.postgresql.xa;
 import org.postgresql.util.Base64;
 
 import java.util.Arrays;
+
 import javax.transaction.xa.Xid;
 
 class RecoveredXid implements Xid {
@@ -60,7 +61,7 @@ class RecoveredXid implements Xid {
     return xidToString(this);
   }
 
-  //--- Routines for converting xid to string and back.
+  // --- Routines for converting xid to string and back.
 
   static String xidToString(Xid xid) {
     return xid.getFormatId() + "_"

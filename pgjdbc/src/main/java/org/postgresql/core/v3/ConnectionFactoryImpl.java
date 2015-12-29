@@ -42,6 +42,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 import java.util.TimeZone;
+
 import javax.net.SocketFactory;
 
 /**
@@ -70,17 +71,17 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   public ProtocolConnection openConnectionImpl(HostSpec[] hostSpecs, String user, String database,
       Properties info, Logger logger) throws SQLException {
     // Extract interesting values from the info properties:
-    //  - the SSL setting
+    // - the SSL setting
     boolean requireSSL;
     boolean trySSL;
     String sslmode = PGProperty.SSL_MODE.get(info);
-    if (sslmode == null) { //Fall back to the ssl property
+    if (sslmode == null) { // Fall back to the ssl property
       requireSSL = trySSL = PGProperty.SSL.isPresent(info);
     } else {
       if ("disable".equals(sslmode)) {
         requireSSL = trySSL = false;
-      } else if ("require".equals(sslmode) || "verify-ca".equals(sslmode) || "verify-full".equals(
-          sslmode)) {
+      } else if ("require".equals(sslmode) || "verify-ca".equals(sslmode)
+          || "verify-full".equals(sslmode)) {
         requireSSL = trySSL = true;
       } else {
         throw new PSQLException(GT.tr("Invalid sslmode value: {0}", sslmode),
@@ -88,11 +89,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       }
     }
 
-    //  - the TCP keep alive setting
+    // - the TCP keep alive setting
     boolean requireTCPKeepAlive = PGProperty.TCP_KEEP_ALIVE.getBoolean(info);
 
     // NOTE: To simplify this code, it is assumed that if we are
-    // using the V3 protocol, then the database is at least 7.4.  That
+    // using the V3 protocol, then the database is at least 7.4. That
     // eliminates the need to check database versions and maintain
     // backward-compatible code here.
     //
@@ -100,7 +101,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     int connectTimeout = PGProperty.CONNECT_TIMEOUT.getInt(info) * 1000;
 
-    //  - the targetServerType setting
+    // - the targetServerType setting
     HostRequirement targetServerType;
     try {
       targetServerType =
@@ -115,7 +116,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     HostChooser hostChooser =
         HostChooserFactory.createHostChooser(hostSpecs, targetServerType, info);
-    for (Iterator<HostSpec> hostIter = hostChooser.iterator(); hostIter.hasNext(); ) {
+    Iterator<HostSpec> hostIter = hostChooser.iterator();
+    while (hostIter.hasNext()) {
       HostSpec hostSpec = hostIter.next();
 
       if (logger.logDebug()) {
@@ -222,9 +224,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // still more addresses to try
             continue;
           }
-          throw new PSQLException(
-              GT.tr("Could not find a server with specified targetServerType: {0}",
-                  targetServerType), PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+          throw new PSQLException(GT
+              .tr("Could not find a server with specified targetServerType: {0}", targetServerType),
+              PSQLState.CONNECTION_UNABLE_TO_CONNECT);
         }
 
         runInitialQueries(protoConnection, info, logger);
@@ -405,8 +407,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     SSPIClient sspiClient = null;
 
     try {
-      authloop:
-      while (true) {
+      authloop: while (true) {
         int beresp = pgStream.ReceiveChar();
 
         switch (beresp) {
@@ -450,8 +451,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 }
 
                 if (password == null) {
-                  throw new PSQLException(GT.tr(
-                      "The server requested password-based authentication, but no password was provided."),
+                  throw new PSQLException(
+                      GT.tr(
+                          "The server requested password-based authentication, but no password was provided."),
                       PSQLState.CONNECTION_REJECTED);
                 }
 
@@ -474,13 +476,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               case AUTH_REQ_MD5: {
                 byte[] md5Salt = pgStream.Receive(4);
                 if (logger.logDebug()) {
-                  logger.debug(
-                      " <=BE AuthenticationReqMD5(salt=" + Utils.toHexString(md5Salt) + ")");
+                  logger
+                      .debug(" <=BE AuthenticationReqMD5(salt=" + Utils.toHexString(md5Salt) + ")");
                 }
 
                 if (password == null) {
-                  throw new PSQLException(GT.tr(
-                      "The server requested password-based authentication, but no password was provided."),
+                  throw new PSQLException(
+                      GT.tr(
+                          "The server requested password-based authentication, but no password was provided."),
                       PSQLState.CONNECTION_REJECTED);
                 }
 
@@ -507,8 +510,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 }
 
                 if (password == null) {
-                  throw new PSQLException(GT.tr(
-                      "The server requested password-based authentication, but no password was provided."),
+                  throw new PSQLException(
+                      GT.tr(
+                          "The server requested password-based authentication, but no password was provided."),
                       PSQLState.CONNECTION_REJECTED);
                 }
 
@@ -528,21 +532,19 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 /*
                  * Use GSSAPI if requested on all platforms, via JSSE.
                  *
-                 * For SSPI auth requests, if we're on Windows attempt native SSPI
-                 * authentication if available, and if not disabled by setting a
-                 * kerberosServerName. On other platforms, attempt JSSE GSSAPI
-                 * negotiation with the SSPI server.
+                 * For SSPI auth requests, if we're on Windows attempt native SSPI authentication if
+                 * available, and if not disabled by setting a kerberosServerName. On other
+                 * platforms, attempt JSSE GSSAPI negotiation with the SSPI server.
                  *
-                 * Note that this is slightly different to libpq, which uses SSPI
-                 * for GSSAPI where supported. We prefer to use the existing Java
-                 * JSSE Kerberos support rather than going to native (via JNA) calls
-                 * where possible, so that JSSE system properties etc continue
-                 * to work normally.
+                 * Note that this is slightly different to libpq, which uses SSPI for GSSAPI where
+                 * supported. We prefer to use the existing Java JSSE Kerberos support rather than
+                 * going to native (via JNA) calls where possible, so that JSSE system properties
+                 * etc continue to work normally.
                  *
-                 * Note that while SSPI is often Kerberos-based there's no guarantee
-                 * it will be; it may be NTLM or anything else. If the client responds
-                 * to an SSPI request via GSSAPI and the other end isn't using Kerberos
-                 * for SSPI then authentication will fail.
+                 * Note that while SSPI is often Kerberos-based there's no guarantee it will be; it
+                 * may be NTLM or anything else. If the client responds to an SSPI request via
+                 * GSSAPI and the other end isn't using Kerberos for SSPI then authentication will
+                 * fail.
                  */
                 final String gsslib = PGProperty.GSS_LIB.get(info);
                 final boolean usespnego = PGProperty.USE_SPNEGO.getBoolean(info);
@@ -550,9 +552,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 boolean useSSPI = false;
 
                 /*
-                 * Use SSPI if we're in auto mode on windows and have a
-                 * request for SSPI auth, or if it's forced. Otherwise
-                 * use gssapi. If the user has specified a Kerberos server
+                 * Use SSPI if we're in auto mode on windows and have a request for SSPI auth, or if
+                 * it's forced. Otherwise use gssapi. If the user has specified a Kerberos server
                  * name we'll always use JSSE GSSAPI.
                  */
                 if (gsslib.equals("gssapi")) {
@@ -562,11 +563,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                       "Using JSSE GSSAPI, gssapi requested by server and gsslib=sspi not forced");
                 } else {
                   /* Determine if SSPI is supported by the client */
-                  sspiClient = new SSPIClient(pgStream,
-                      PGProperty.SSPI_SERVICE_CLASS.get(info),
+                  sspiClient = new SSPIClient(pgStream, PGProperty.SSPI_SERVICE_CLASS.get(info),
                       /* Use negotiation for SSPI, or if explicitly requested for GSS */
-                      areq == AUTH_REQ_SSPI || (areq == AUTH_REQ_GSS && usespnego),
-                      logger);
+                      areq == AUTH_REQ_SSPI || (areq == AUTH_REQ_GSS && usespnego), logger);
 
                   useSSPI = sspiClient.isSSPISupported();
                   if (logger.logDebug()) {
@@ -595,20 +594,16 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                   sspiClient.startSSPI();
                 } else {
                   /* Use JGSS's GSSAPI for this request */
-                  org.postgresql.gss.MakeGSS.authenticate(pgStream, host,
-                      user, password,
+                  org.postgresql.gss.MakeGSS.authenticate(pgStream, host, user, password,
                       PGProperty.JAAS_APPLICATION_NAME.get(info),
-                      PGProperty.KERBEROS_SERVER_NAME.get(info),
-                      logger,
-                      usespnego);
+                      PGProperty.KERBEROS_SERVER_NAME.get(info), logger, usespnego);
                 }
 
                 break;
 
               case AUTH_REQ_GSS_CONTINUE:
                 /*
-                 * Only called for SSPI, as GSS is handled by an inner loop
-                 * in MakeGSS.
+                 * Only called for SSPI, as GSS is handled by an inner loop in MakeGSS.
                  */
                 sspiClient.continueSSPI(l_msgLen - 8);
                 break;
@@ -623,7 +618,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
               default:
                 if (logger.logDebug()) {
-                  logger.debug(" <=BE AuthenticationReq (unsupported type " + ((int) areq) + ")");
+                  logger.debug(" <=BE AuthenticationReq (unsupported type " + (areq) + ")");
                 }
 
                 throw new PSQLException(GT.tr(

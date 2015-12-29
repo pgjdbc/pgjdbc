@@ -51,7 +51,8 @@ class SimpleParameterList implements V3ParameterList {
     if (index < 1 || index > paramValues.length) {
       throw new PSQLException(
           GT.tr("The column index is out of range: {0}, number of columns: {1}.",
-              new Object[]{index, paramValues.length}), PSQLState.INVALID_PARAMETER_VALUE);
+              new Object[]{index, paramValues.length}),
+          PSQLState.INVALID_PARAMETER_VALUE);
     }
 
     flags[index - 1] |= OUT;
@@ -61,7 +62,8 @@ class SimpleParameterList implements V3ParameterList {
     if (index < 1 || index > paramValues.length) {
       throw new PSQLException(
           GT.tr("The column index is out of range: {0}, number of columns: {1}.",
-              new Object[]{index, paramValues.length}), PSQLState.INVALID_PARAMETER_VALUE);
+              new Object[]{index, paramValues.length}),
+          PSQLState.INVALID_PARAMETER_VALUE);
     }
 
     --index;
@@ -71,7 +73,7 @@ class SimpleParameterList implements V3ParameterList {
     flags[index] = (byte) (direction(index) | IN | binary);
 
     // If we are setting something to an UNSPECIFIED NULL, don't overwrite
-    // our existing type for it.  We don't need the correct type info to
+    // our existing type for it. We don't need the correct type info to
     // send this value, and we don't want to overwrite and require a
     // reparse.
     if (oid == Oid.UNSPECIFIED && paramTypes[index] != Oid.UNSPECIFIED && value == NULL_OBJECT) {
@@ -87,7 +89,7 @@ class SimpleParameterList implements V3ParameterList {
 
   public int getOutParameterCount() {
     int count = 0;
-    for (int i = paramTypes.length; --i >= 0; ) {
+    for (int i = 0; i < paramTypes.length; i++) {
       if ((direction(i) & OUT) == OUT) {
         count++;
       }
@@ -275,9 +277,8 @@ class SimpleParameterList implements V3ParameterList {
     if (paramTypes[index - 1] == Oid.UNSPECIFIED) {
       paramTypes[index - 1] = oid;
     } else if (paramTypes[index - 1] != oid) {
-      throw new IllegalArgumentException(
-          "Can't change resolved type for param: " + index + " from " + paramTypes[index - 1]
-              + " to " + oid);
+      throw new IllegalArgumentException("Can't change resolved type for param: " + index + " from "
+          + paramTypes[index - 1] + " to " + oid);
     }
   }
 

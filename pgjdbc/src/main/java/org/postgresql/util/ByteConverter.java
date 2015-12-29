@@ -23,7 +23,7 @@ public class ByteConverter {
    * Parses a long value from the byte array.
    *
    * @param bytes The byte array to parse.
-   * @param idx   The starting index of the parse in the byte array.
+   * @param idx The starting index of the parse in the byte array.
    * @return parsed long value.
    */
   public static long int8(byte[] bytes, int idx) {
@@ -42,7 +42,7 @@ public class ByteConverter {
    * Parses an int value from the byte array.
    *
    * @param bytes The byte array to parse.
-   * @param idx   The starting index of the parse in the byte array.
+   * @param idx The starting index of the parse in the byte array.
    * @return parsed int value.
    */
   public static int int4(byte[] bytes, int idx) {
@@ -57,20 +57,18 @@ public class ByteConverter {
    * Parses a short value from the byte array.
    *
    * @param bytes The byte array to parse.
-   * @param idx   The starting index of the parse in the byte array.
+   * @param idx The starting index of the parse in the byte array.
    * @return parsed short value.
    */
   public static short int2(byte[] bytes, int idx) {
-    return (short)
-        (((bytes[idx] & 255) << 8)
-            + ((bytes[idx + 1] & 255)));
+    return (short) (((bytes[idx] & 255) << 8) + ((bytes[idx + 1] & 255)));
   }
 
   /**
    * Parses a float value from the byte array.
    *
    * @param bytes The byte array to parse.
-   * @param idx   The starting index of the parse in the byte array.
+   * @param idx The starting index of the parse in the byte array.
    * @return parsed float value.
    */
   public static float float4(byte[] bytes, int idx) {
@@ -81,7 +79,7 @@ public class ByteConverter {
    * Parses a double value from the byte array.
    *
    * @param bytes The byte array to parse.
-   * @param idx   The starting index of the parse in the byte array.
+   * @param idx The starting index of the parse in the byte array.
    * @return parsed double value.
    */
   public static double float8(byte[] bytes, int idx) {
@@ -92,8 +90,8 @@ public class ByteConverter {
    * Encodes a long value to the byte array.
    *
    * @param target The byte array to encode to.
-   * @param idx    The starting index in the byte array.
-   * @param value  The value to encode.
+   * @param idx The starting index in the byte array.
+   * @param value The value to encode.
    */
   public static void int8(byte[] target, int idx, long value) {
     target[idx + 0] = (byte) (value >>> 56);
@@ -110,8 +108,8 @@ public class ByteConverter {
    * Encodes a int value to the byte array.
    *
    * @param target The byte array to encode to.
-   * @param idx    The starting index in the byte array.
-   * @param value  The value to encode.
+   * @param idx The starting index in the byte array.
+   * @param value The value to encode.
    */
   public static void int4(byte[] target, int idx, int value) {
     target[idx + 0] = (byte) (value >>> 24);
@@ -124,8 +122,8 @@ public class ByteConverter {
    * Encodes a int value to the byte array.
    *
    * @param target The byte array to encode to.
-   * @param idx    The starting index in the byte array.
-   * @param value  The value to encode.
+   * @param idx The starting index in the byte array.
+   * @param value The value to encode.
    */
   public static void int2(byte[] target, int idx, int value) {
     target[idx + 0] = (byte) (value >>> 8);
@@ -136,8 +134,8 @@ public class ByteConverter {
    * Encodes a int value to the byte array.
    *
    * @param target The byte array to encode to.
-   * @param idx    The starting index in the byte array.
-   * @param value  The value to encode.
+   * @param idx The starting index in the byte array.
+   * @param value The value to encode.
    */
   public static void float4(byte[] target, int idx, float value) {
     int4(target, idx, Float.floatToRawIntBits(value));
@@ -147,8 +145,8 @@ public class ByteConverter {
    * Encodes a int value to the byte array.
    *
    * @param target The byte array to encode to.
-   * @param idx    The starting index in the byte array.
-   * @param value  The value to encode.
+   * @param idx The starting index in the byte array.
+   * @param value The value to encode.
    */
   public static void float8(byte[] target, int idx, double value) {
     int8(target, idx, Double.doubleToRawLongBits(value));

@@ -168,12 +168,12 @@ public class QueryExecutorImpl implements QueryExecutor {
       while (pgStream.hasMessagePending()) {
         int c = pgStream.ReceiveChar();
         switch (c) {
-          case 'A':  // Asynchronous Notify
+          case 'A': // Asynchronous Notify
             receiveAsyncNotify();
             break;
-          case 'E':  // Error Message
+          case 'E': // Error Message
             throw receiveErrorMessage();
-          case 'N':  // Error Notification
+          case 'N': // Error Notification
             protoConnection.addWarning(receiveNotification());
             break;
           default:
@@ -196,11 +196,11 @@ public class QueryExecutorImpl implements QueryExecutor {
       int c = pgStream.ReceiveChar();
 
       switch (c) {
-        case 'A':  // Asynchronous Notify
+        case 'A': // Asynchronous Notify
           receiveAsyncNotify();
           break;
 
-        case 'E':  // Error Message
+        case 'E': // Error Message
           SQLException newError = receiveErrorMessage();
           if (error == null) {
             error = newError;
@@ -210,11 +210,11 @@ public class QueryExecutorImpl implements QueryExecutor {
           // keep processing
           break;
 
-        case 'N':  // Error Notification
+        case 'N': // Error Notification
           protoConnection.addWarning(receiveNotification());
           break;
 
-        case 'V':    // Fastpath result
+        case 'V': // Fastpath result
           c = pgStream.ReceiveChar();
           if (c == 'G') {
             if (logger.logDebug()) {
@@ -264,20 +264,14 @@ public class QueryExecutorImpl implements QueryExecutor {
   // Query execution
   //
 
-  public synchronized void execute(Query query,
-      ParameterList parameters,
-      ResultHandler handler,
-      int maxRows, int fetchSize, int flags)
-      throws SQLException {
+  public synchronized void execute(Query query, ParameterList parameters, ResultHandler handler,
+      int maxRows, int fetchSize, int flags) throws SQLException {
     execute((V2Query) query, (SimpleParameterList) parameters, handler, maxRows, flags);
   }
 
   // Nothing special yet, just run the queries one at a time.
-  public synchronized void execute(Query[] queries,
-      ParameterList[] parameters,
-      ResultHandler handler,
-      int maxRows, int fetchSize, int flags)
-      throws SQLException {
+  public synchronized void execute(Query[] queries, ParameterList[] parameters,
+      ResultHandler handler, int maxRows, int fetchSize, int flags) throws SQLException {
     final ResultHandler delegateHandler = handler;
     handler = new ResultHandler() {
       public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples,
@@ -313,9 +307,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         "fetch(ResultCursor,ResultHandler,int)");
   }
 
-  private void execute(V2Query query,
-      SimpleParameterList parameters,
-      ResultHandler handler,
+  private void execute(V2Query query, SimpleParameterList parameters, ResultHandler handler,
       int maxRows, int flags) throws SQLException {
 
     // The V2 protocol has no support for retrieving metadata
@@ -394,9 +386,8 @@ public class QueryExecutorImpl implements QueryExecutor {
   protected void sendQuery(V2Query query, SimpleParameterList params, String queryPrefix)
       throws IOException {
     if (logger.logDebug()) {
-      logger.debug(
-          " FE=> Query(\"" + (queryPrefix == null ? "" : queryPrefix) + query.toString(params)
-              + "\")");
+      logger.debug(" FE=> Query(\"" + (queryPrefix == null ? "" : queryPrefix)
+          + query.toString(params) + "\")");
     }
 
     pgStream.SendChar('Q');
@@ -439,11 +430,11 @@ public class QueryExecutorImpl implements QueryExecutor {
       int c = pgStream.ReceiveChar();
 
       switch (c) {
-        case 'A':  // Asynchronous Notify
+        case 'A': // Asynchronous Notify
           receiveAsyncNotify();
           break;
 
-        case 'B':  // Binary Data Transfer
+        case 'B': // Binary Data Transfer
         {
           if (fields == null) {
             throw new IOException("Data transfer before field metadata");
@@ -465,7 +456,7 @@ public class QueryExecutorImpl implements QueryExecutor {
           }
 
           for (Field field : fields) {
-            field.setFormat(Field.BINARY_FORMAT); //Set the field to binary format
+            field.setFormat(Field.BINARY_FORMAT); // Set the field to binary format
           }
           if (maxRows == 0 || tuples.size() < maxRows) {
             tuples.add(tuple);
@@ -473,7 +464,7 @@ public class QueryExecutorImpl implements QueryExecutor {
           break;
         }
 
-        case 'C':  // Command Status
+        case 'C': // Command Status
           String status = pgStream.ReceiveString();
 
           if (logger.logDebug()) {
@@ -493,7 +484,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
           break;
 
-        case 'D':  // Text Data Transfer
+        case 'D': // Text Data Transfer
         {
           if (fields == null) {
             throw new IOException("Data transfer before field metadata");
@@ -519,12 +510,12 @@ public class QueryExecutorImpl implements QueryExecutor {
           break;
         }
 
-        case 'E':  // Error Message
+        case 'E': // Error Message
           handler.handleError(receiveErrorMessage());
           // keep processing
           break;
 
-        case 'I':  // Empty Query
+        case 'I': // Empty Query
           if (logger.logDebug()) {
             logger.debug(" <=BE EmptyQuery");
           }
@@ -534,18 +525,18 @@ public class QueryExecutorImpl implements QueryExecutor {
           }
           break;
 
-        case 'N':  // Error Notification
+        case 'N': // Error Notification
           handler.handleWarning(receiveNotification());
           break;
 
-        case 'P':  // Portal Name
+        case 'P': // Portal Name
           String portalName = pgStream.ReceiveString();
           if (logger.logDebug()) {
             logger.debug(" <=BE PortalName(" + portalName + ")");
           }
           break;
 
-        case 'T':  // MetaData Field Description
+        case 'T': // MetaData Field Description
           fields = receiveFields();
           tuples = new ArrayList<byte[][]>();
           break;
@@ -609,7 +600,7 @@ public class QueryExecutorImpl implements QueryExecutor {
     String warnMsg = pgStream.ReceiveString();
 
     // Strip out the severity field so we have consistency with
-    // the V3 protocol.  SQLWarning.getMessage should return just
+    // the V3 protocol. SQLWarning.getMessage should return just
     // the actual message.
     //
     int severityMark = warnMsg.indexOf(":");
@@ -628,8 +619,8 @@ public class QueryExecutorImpl implements QueryExecutor {
       protoConnection.setTransactionState(ProtocolConnection.TRANSACTION_OPEN);
     } else if (status.equals("COMMIT") || status.equals("ROLLBACK")) {
       protoConnection.setTransactionState(ProtocolConnection.TRANSACTION_IDLE);
-    } else if (status.startsWith("INSERT") || status.startsWith("UPDATE") || status.startsWith(
-        "DELETE") || status.startsWith("MOVE")) {
+    } else if (status.startsWith("INSERT") || status.startsWith("UPDATE")
+        || status.startsWith("DELETE") || status.startsWith("MOVE")) {
       try {
         long updates = Long.parseLong(status.substring(1 + status.lastIndexOf(' ')));
 
@@ -641,8 +632,8 @@ public class QueryExecutorImpl implements QueryExecutor {
         }
 
         if (status.startsWith("INSERT")) {
-          insert_oid = Long.parseLong(status.substring(1 + status.indexOf(' '),
-              status.lastIndexOf(' ')));
+          insert_oid =
+              Long.parseLong(status.substring(1 + status.indexOf(' '), status.lastIndexOf(' ')));
         }
       } catch (NumberFormatException nfe) {
         handler.handleError(new PSQLException(

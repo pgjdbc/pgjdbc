@@ -62,16 +62,15 @@ public class Utils {
    * <tt>standardConformingStrings</tt> defines whether the backend expects standard-conforming
    * string literals or allows backslash escape sequences.
    *
-   * @param sbuf                      the string buffer to append to; or <tt>null</tt>
-   * @param value                     the string value
+   * @param sbuf the string buffer to append to; or <tt>null</tt>
+   * @param value the string value
    * @param standardConformingStrings if standard conforming strings should be used
    * @return the sbuf argument; or a new string buffer for sbuf == null
    * @throws SQLException if the string contains a <tt>\0</tt> character
    * @deprecated use {@link #escapeLiteral(StringBuilder, String, boolean)} instead
    */
   public static StringBuffer appendEscapedLiteral(StringBuffer sbuf, String value,
-      boolean standardConformingStrings)
-      throws SQLException {
+      boolean standardConformingStrings) throws SQLException {
     if (sbuf == null) {
       sbuf = new StringBuffer(value.length() * 11 / 10); // Add 10% for escaping.
     }
@@ -85,15 +84,14 @@ public class Utils {
    * <tt>standardConformingStrings</tt> defines whether the backend expects standard-conforming
    * string literals or allows backslash escape sequences.
    *
-   * @param sbuf                      the string builder to append to; or <tt>null</tt>
-   * @param value                     the string value
+   * @param sbuf the string builder to append to; or <tt>null</tt>
+   * @param value the string value
    * @param standardConformingStrings if standard conforming strings should be used
    * @return the sbuf argument; or a new string builder for sbuf == null
    * @throws SQLException if the string contains a <tt>\0</tt> character
    */
   public static StringBuilder escapeLiteral(StringBuilder sbuf, String value,
-      boolean standardConformingStrings)
-      throws SQLException {
+      boolean standardConformingStrings) throws SQLException {
     if (sbuf == null) {
       sbuf = new StringBuilder(value.length() * 11 / 10); // Add 10% for escaping.
     }
@@ -102,17 +100,16 @@ public class Utils {
   }
 
   /**
-   * Common part for {@link #appendEscapedLiteral(StringBuffer, String, boolean)} and {@link
-   * #escapeLiteral(StringBuilder, String, boolean)}
+   * Common part for {@link #appendEscapedLiteral(StringBuffer, String, boolean)} and
+   * {@link #escapeLiteral(StringBuilder, String, boolean)}
    *
-   * @param sbuf                      Either StringBuffer or StringBuilder as we do not expect any
-   *                                  IOException to be thrown
-   * @param value                     value to append
+   * @param sbuf Either StringBuffer or StringBuilder as we do not expect any IOException to be
+   *        thrown
+   * @param value value to append
    * @param standardConformingStrings if standard conforming strings should be used
    */
   private static void doAppendEscapedLiteral(Appendable sbuf, String value,
-      boolean standardConformingStrings)
-      throws SQLException {
+      boolean standardConformingStrings) throws SQLException {
     try {
       if (standardConformingStrings) {
         // With standard_conforming_strings on, escape only single-quotes.
@@ -153,11 +150,11 @@ public class Utils {
 
   /**
    * Escape the given identifier <tt>value</tt> and append it to the string buffer <tt>sbuf</tt>. If
-   * <tt>sbuf</tt> is <tt>null</tt>, a new StringBuffer will be returned.  This method is different
+   * <tt>sbuf</tt> is <tt>null</tt>, a new StringBuffer will be returned. This method is different
    * from appendEscapedLiteral in that it includes the quoting required for the identifier while
    * appendEscapedLiteral does not.
    *
-   * @param sbuf  the string buffer to append to; or <tt>null</tt>
+   * @param sbuf the string buffer to append to; or <tt>null</tt>
    * @param value the string value
    * @return the sbuf argument; or a new string buffer for sbuf == null
    * @throws SQLException if the string contains a <tt>\0</tt> character
@@ -174,11 +171,11 @@ public class Utils {
 
   /**
    * Escape the given identifier <tt>value</tt> and append it to the string builder <tt>sbuf</tt>.
-   * If <tt>sbuf</tt> is <tt>null</tt>, a new StringBuilder will be returned.  This method is
+   * If <tt>sbuf</tt> is <tt>null</tt>, a new StringBuilder will be returned. This method is
    * different from appendEscapedLiteral in that it includes the quoting required for the identifier
    * while {@link #escapeLiteral(StringBuilder, String, boolean)} does not.
    *
-   * @param sbuf  the string builder to append to; or <tt>null</tt>
+   * @param sbuf the string builder to append to; or <tt>null</tt>
    * @param value the string value
    * @return the sbuf argument; or a new string builder for sbuf == null
    * @throws SQLException if the string contains a <tt>\0</tt> character
@@ -195,12 +192,11 @@ public class Utils {
   /**
    * Common part for appendEscapedIdentifier
    *
-   * @param sbuf  Either StringBuffer or StringBuilder as we do not expect any IOException to be
-   *              thrown.
+   * @param sbuf Either StringBuffer or StringBuilder as we do not expect any IOException to be
+   *        thrown.
    * @param value value to append
    */
-  private static void doAppendEscapedIdentifier(Appendable sbuf, String value)
-      throws SQLException {
+  private static void doAppendEscapedIdentifier(Appendable sbuf, String value) throws SQLException {
     try {
       sbuf.append('"');
 
@@ -242,8 +238,7 @@ public class Utils {
    * @deprecated use specific {@link Version} instance
    */
   @Deprecated
-  public static int parseServerVersionStr(String serverVersion)
-      throws NumberFormatException {
+  public static int parseServerVersionStr(String serverVersion) throws NumberFormatException {
     return ServerVersion.parseServerVersionStr(serverVersion);
   }
 }

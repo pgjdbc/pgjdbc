@@ -21,8 +21,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 /*
- * DataSource test to ensure the BaseConnection is configured with column
- * sanitiser disabled.
+ * DataSource test to ensure the BaseConnection is configured with column sanitiser disabled.
  */
 public class CaseOptimiserDataSourceTest extends TestCase {
   private BaseDataSource bds;
@@ -40,14 +39,12 @@ public class CaseOptimiserDataSourceTest extends TestCase {
     Connection conn = getDataSourceConnection();
     assertTrue(conn instanceof BaseConnection);
     BaseConnection bc = (BaseConnection) conn;
-    assertTrue(
-        "Expected state [TRUE] of base connection configuration failed test."
-        , bc.isColumnSanitiserDisabled());
+    assertTrue("Expected state [TRUE] of base connection configuration failed test.",
+        bc.isColumnSanitiserDisabled());
     Statement insert = conn.createStatement();
     TestUtil.createTable(conn, "allmixedup",
         "id int primary key, \"DESCRIPTION\" varchar(40), \"fOo\" varchar(3)");
-    insert.execute(TestUtil.insertSQL("allmixedup",
-        "1,'mixed case test', 'bar'"));
+    insert.execute(TestUtil.insertSQL("allmixedup", "1,'mixed case test', 'bar'"));
     insert.close();
     conn.close();
   }
@@ -63,19 +60,16 @@ public class CaseOptimiserDataSourceTest extends TestCase {
   }
 
   /*
-   * Test to ensure a datasource can be configured with the column sanitiser
-   * optimisation. This test checks for a side effect of the sanitiser being
-   * disabled. The column is not expected to be found.
+   * Test to ensure a datasource can be configured with the column sanitiser optimisation. This test
+   * checks for a side effect of the sanitiser being disabled. The column is not expected to be
+   * found.
    */
-  public void testDataSourceDisabledSanitiserPropertySucceeds()
-      throws SQLException {
+  public void testDataSourceDisabledSanitiserPropertySucceeds() throws SQLException {
     String label = "FOO";
-    PreparedStatement query = getDataSourceConnection().prepareStatement(
-        "select * from allmixedup");
+    PreparedStatement query =
+        getDataSourceConnection().prepareStatement("select * from allmixedup");
     if (0 < TestUtil.findColumn(query, label)) {
-      fail(String.format(
-          "Did not expect to find the column with the label [%1$s].",
-          label));
+      fail(String.format("Did not expect to find the column with the label [%1$s].", label));
     }
     query.close();
   }

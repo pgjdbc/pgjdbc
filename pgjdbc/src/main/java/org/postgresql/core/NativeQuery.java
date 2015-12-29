@@ -41,8 +41,7 @@ public class NativeQuery {
    * parameter placeholders.
    *
    * @param parameters a ParameterList returned by this Query's {@link Query#createParameterList}
-   *                   method, or <code>null</code> to leave the parameter placeholders
-   *                   unsubstituted.
+   *        method, or <code>null</code> to leave the parameter placeholders unsubstituted.
    * @return a human-readable representation of this query
    */
   public String toString(ParameterList parameters) {

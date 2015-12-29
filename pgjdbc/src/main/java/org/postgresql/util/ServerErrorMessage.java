@@ -134,22 +134,22 @@ public class ServerErrorMessage implements Serializable {
   }
 
   public String toString() {
-    //Now construct the message from what the server sent
-    //The general format is:
-    //SEVERITY: Message \n
-    //  Detail: \n
-    //  Hint: \n
-    //  Position: \n
-    //  Where: \n
-    //  Internal Query: \n
-    //  Internal Position: \n
-    //  Location: File:Line:Routine \n
-    //  SQLState: \n
+    // Now construct the message from what the server sent
+    // The general format is:
+    // SEVERITY: Message \n
+    // Detail: \n
+    // Hint: \n
+    // Position: \n
+    // Where: \n
+    // Internal Query: \n
+    // Internal Position: \n
+    // Location: File:Line:Routine \n
+    // SQLState: \n
     //
-    //Normally only the message and detail is included.
-    //If INFO level logging is enabled then detail, hint, position and where are
-    //included.  If DEBUG level logging is enabled then all information
-    //is included.
+    // Normally only the message and detail is included.
+    // If INFO level logging is enabled then detail, hint, position and where are
+    // included. If DEBUG level logging is enabled then all information
+    // is included.
 
     StringBuilder l_totalMessage = new StringBuilder();
     String l_message = m_mesgParts.get(SEVERITY);
@@ -192,9 +192,8 @@ public class ServerErrorMessage implements Serializable {
       String l_line = m_mesgParts.get(LINE);
       String l_routine = m_mesgParts.get(ROUTINE);
       if (l_file != null || l_line != null || l_routine != null) {
-        l_totalMessage.append("\n  ")
-            .append(GT.tr("Location: File: {0}, Routine: {1}, Line: {2}",
-                new Object[]{l_file, l_routine, l_line}));
+        l_totalMessage.append("\n  ").append(GT.tr("Location: File: {0}, Routine: {1}, Line: {2}",
+            new Object[]{l_file, l_routine, l_line}));
       }
       l_message = m_mesgParts.get(SQLSTATE);
       if (l_message != null) {

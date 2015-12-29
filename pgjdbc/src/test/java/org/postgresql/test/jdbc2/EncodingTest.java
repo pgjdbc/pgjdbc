@@ -36,8 +36,7 @@ public class EncodingTest extends TestCase {
     encoding = Encoding.getDatabaseEncoding("SQL_ASCII");
     assertTrue(encoding.name().toUpperCase(Locale.US).indexOf("ASCII") != -1);
     assertEquals("When encoding is unknown the default encoding should be used",
-        Encoding.defaultEncoding(),
-        Encoding.getDatabaseEncoding("UNKNOWN"));
+        Encoding.defaultEncoding(), Encoding.getDatabaseEncoding("UNKNOWN"));
   }
 
   public void testTransformations() throws Exception {
@@ -50,8 +49,7 @@ public class EncodingTest extends TestCase {
 
     encoding = Encoding.defaultEncoding();
     assertEquals("a".getBytes()[0], encoding.encode("a")[0]);
-    assertEquals(new String(new byte[]{97}),
-        encoding.decode(new byte[]{97}));
+    assertEquals(new String(new byte[]{97}), encoding.decode(new byte[]{97}));
   }
 
   public void testReader() throws Exception {

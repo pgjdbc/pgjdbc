@@ -18,7 +18,7 @@ public interface PGBinaryObject {
   /**
    * This method is called to set the value of this object.
    *
-   * @param value  data containing the binary representation of the value of the object
+   * @param value data containing the binary representation of the value of the object
    * @param offset the offset in the byte array where object data starts
    * @throws SQLException thrown if value is invalid for this type
    */
@@ -36,8 +36,8 @@ public interface PGBinaryObject {
    * This method is called the to store the value of the object, in the binary form required by
    * org.postgresql.
    *
-   * @param bytes  the array to store the value, it is guaranteed to be at lest {@link
-   *               #lengthInBytes} in size.
+   * @param bytes the array to store the value, it is guaranteed to be at lest
+   *        {@link #lengthInBytes} in size.
    * @param offset the offset in the byte array where object must be stored
    */
   public void toBytes(byte[] bytes, int offset);

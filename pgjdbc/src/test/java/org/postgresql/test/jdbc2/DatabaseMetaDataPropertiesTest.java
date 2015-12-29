@@ -17,11 +17,9 @@ import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 
 /*
- * TestCase to test the internal functionality of
- * org.postgresql.jdbc2.DatabaseMetaData's various properties.
- * Methods which return a ResultSet are tested elsewhere.
- * This avoids a complicated setUp/tearDown for something like
- * assertTrue(dbmd.nullPlusNonNullIsNull());
+ * TestCase to test the internal functionality of org.postgresql.jdbc2.DatabaseMetaData's various
+ * properties. Methods which return a ResultSet are tested elsewhere. This avoids a complicated
+ * setUp/tearDown for something like assertTrue(dbmd.nullPlusNonNullIsNull());
  */
 
 public class DatabaseMetaDataPropertiesTest extends TestCase {
@@ -142,8 +140,8 @@ public class DatabaseMetaDataPropertiesTest extends TestCase {
     assertTrue(!dbmd.supportsMixedCaseIdentifiers()); // always false
     assertTrue(dbmd.supportsMixedCaseQuotedIdentifiers()); // always true
 
-    assertTrue(!dbmd.storesUpperCaseIdentifiers());   // always false
-    assertTrue(dbmd.storesLowerCaseIdentifiers());   // always true
+    assertTrue(!dbmd.storesUpperCaseIdentifiers()); // always false
+    assertTrue(dbmd.storesLowerCaseIdentifiers()); // always true
     assertTrue(!dbmd.storesUpperCaseQuotedIdentifiers()); // always false
     assertTrue(!dbmd.storesLowerCaseQuotedIdentifiers()); // always false
     assertTrue(!dbmd.storesMixedCaseQuotedIdentifiers()); // always false

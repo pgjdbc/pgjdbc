@@ -38,8 +38,7 @@ public class StatementTest extends TestCase {
     super.setUp();
 
     con = TestUtil.openDB();
-    TestUtil.createTempTable(con, "test_statement",
-        "i int");
+    TestUtil.createTempTable(con, "test_statement", "i int");
     TestUtil.createTempTable(con, "escapetest",
         "ts timestamp, d date, t time, \")\" varchar(5), \"\"\"){a}'\" text ");
     TestUtil.createTempTable(con, "comparisontest", "str1 varchar(5), str2 varchar(15)");
@@ -165,12 +164,12 @@ public class StatementTest extends TestCase {
     rs = stmt.executeQuery("select * from {oj test_statement a left outer join b on (a.i=b.i)} ");
     assertTrue(!rs.next());
     // test escape escape character
-    rs =
-        stmt.executeQuery("select str2 from comparisontest where str1 like '|_abcd' {escape '|'} ");
+    rs = stmt
+        .executeQuery("select str2 from comparisontest where str1 like '|_abcd' {escape '|'} ");
     assertTrue(rs.next());
     assertEquals("_found", rs.getString(1));
-    rs =
-        stmt.executeQuery("select str2 from comparisontest where str1 like '|%abcd' {escape '|'} ");
+    rs = stmt
+        .executeQuery("select str2 from comparisontest where str1 like '|%abcd' {escape '|'} ");
     assertTrue(rs.next());
     assertEquals("%found", rs.getString(1));
   }
@@ -264,17 +263,19 @@ public class StatementTest extends TestCase {
     assertEquals(0, rs.getInt(8));
 
     if (TestUtil.haveMinimumServerVersion(con, "7.3")) {
-      rs = stmt.executeQuery("SELECT {fn insert('abcdef',3,2,'xxxx')}"
-          + ",{fn replace('abcdbc','bc','x')}");
+      rs = stmt.executeQuery(
+          "SELECT {fn insert('abcdef',3,2,'xxxx')}"
+              + ",{fn replace('abcdbc','bc','x')}");
       assertTrue(rs.next());
       assertEquals("abxxxxef", rs.getString(1));
       assertEquals("axdx", rs.getString(2));
     }
 
-    rs = stmt.executeQuery("select {fn ltrim(' ab')},{fn repeat('ab',2)}"
-        + ",{fn right('abcde',2)},{fn rtrim('ab ')}"
-        + ",{fn space(3)},{fn substring('abcd',2,2)}"
-        + ",{fn ucase('aBcD')}");
+    rs = stmt.executeQuery(
+        "select {fn ltrim(' ab')},{fn repeat('ab',2)}"
+            + ",{fn right('abcde',2)},{fn rtrim('ab ')}"
+            + ",{fn space(3)},{fn substring('abcd',2,2)}"
+            + ",{fn ucase('aBcD')}");
     assertTrue(rs.next());
     assertEquals("ab", rs.getString(1));
     assertEquals("abab", rs.getString(2));
@@ -328,43 +329,48 @@ public class StatementTest extends TestCase {
         "select {fn timestampdiff(SQL_TSI_SECOND,{fn now()},{fn timestampadd(SQL_TSI_SECOND,3,{fn now()})})} ");
     assertTrue(rs.next());
     assertEquals(3, rs.getInt(1));
-    //      MINUTE
+    // MINUTE
     rs = stmt.executeQuery(
         "select {fn timestampdiff(SQL_TSI_MINUTE,{fn now()},{fn timestampadd(SQL_TSI_MINUTE,3,{fn now()})})} ");
     assertTrue(rs.next());
     assertEquals(3, rs.getInt(1));
-    //      HOUR
+    // HOUR
     rs = stmt.executeQuery(
         "select {fn timestampdiff(SQL_TSI_HOUR,{fn now()},{fn timestampadd(SQL_TSI_HOUR,3,{fn now()})})} ");
     assertTrue(rs.next());
     assertEquals(3, rs.getInt(1));
-    //      day
+    // day
     rs = stmt.executeQuery(
         "select {fn timestampdiff(SQL_TSI_DAY,{fn now()},{fn timestampadd(SQL_TSI_DAY,-3,{fn now()})})} ");
     assertTrue(rs.next());
     assertEquals(-3, rs.getInt(1));
-    //      WEEK => extract week from interval is not supported by backend
-    //rs = stmt.executeQuery("select {fn timestampdiff(SQL_TSI_WEEK,{fn now()},{fn timestampadd(SQL_TSI_WEEK,3,{fn now()})})} ");
-    //assertTrue(rs.next());
-    //assertEquals(3,rs.getInt(1));
-    //      MONTH => backend assume there are 0 month in an interval of 92 days...
-    //rs = stmt.executeQuery("select {fn timestampdiff(SQL_TSI_MONTH,{fn now()},{fn timestampadd(SQL_TSI_MONTH,3,{fn now()})})} ");
-    //assertTrue(rs.next());
-    //assertEquals(3,rs.getInt(1));
-    //      QUARTER => backend assume there are 1 quater even in 270 days...
-    //rs = stmt.executeQuery("select {fn timestampdiff(SQL_TSI_QUARTER,{fn now()},{fn timestampadd(SQL_TSI_QUARTER,3,{fn now()})})} ");
-    //assertTrue(rs.next());
-    //assertEquals(3,rs.getInt(1));
-    //      YEAR
-    //rs = stmt.executeQuery("select {fn timestampdiff(SQL_TSI_YEAR,{fn now()},{fn timestampadd(SQL_TSI_YEAR,3,{fn now()})})} ");
-    //assertTrue(rs.next());
-    //assertEquals(3,rs.getInt(1));
+    // WEEK => extract week from interval is not supported by backend
+    // rs = stmt.executeQuery("select {fn timestampdiff(SQL_TSI_WEEK,{fn now()},{fn
+    // timestampadd(SQL_TSI_WEEK,3,{fn now()})})} ");
+    // assertTrue(rs.next());
+    // assertEquals(3,rs.getInt(1));
+    // MONTH => backend assume there are 0 month in an interval of 92 days...
+    // rs = stmt.executeQuery("select {fn timestampdiff(SQL_TSI_MONTH,{fn now()},{fn
+    // timestampadd(SQL_TSI_MONTH,3,{fn now()})})} ");
+    // assertTrue(rs.next());
+    // assertEquals(3,rs.getInt(1));
+    // QUARTER => backend assume there are 1 quater even in 270 days...
+    // rs = stmt.executeQuery("select {fn timestampdiff(SQL_TSI_QUARTER,{fn now()},{fn
+    // timestampadd(SQL_TSI_QUARTER,3,{fn now()})})} ");
+    // assertTrue(rs.next());
+    // assertEquals(3,rs.getInt(1));
+    // YEAR
+    // rs = stmt.executeQuery("select {fn timestampdiff(SQL_TSI_YEAR,{fn now()},{fn
+    // timestampadd(SQL_TSI_YEAR,3,{fn now()})})} ");
+    // assertTrue(rs.next());
+    // assertEquals(3,rs.getInt(1));
   }
 
   public void testSystemFunctions() throws SQLException {
     Statement stmt = con.createStatement();
-    ResultSet rs = stmt.executeQuery("select {fn ifnull(null,'2')}"
-        + ",{fn user()} ");
+    ResultSet rs = stmt.executeQuery(
+        "select {fn ifnull(null,'2')}"
+            + ",{fn user()} ");
     assertTrue(rs.next());
     assertEquals("2", rs.getString(1));
     assertEquals(TestUtil.getUser(), rs.getString(2));
@@ -388,8 +394,8 @@ public class StatementTest extends TestCase {
 
   /**
    * The parser tries to break multiple statements into individual queries as required by the V3
-   * extended query protocol.  It can be a little overzealous sometimes and this test ensures we
-   * keep multiple rule actions together in one statement.
+   * extended query protocol. It can be a little overzealous sometimes and this test ensures we keep
+   * multiple rule actions together in one statement.
    */
   public void testParsingSemiColons() throws SQLException {
     Statement stmt = con.createStatement();

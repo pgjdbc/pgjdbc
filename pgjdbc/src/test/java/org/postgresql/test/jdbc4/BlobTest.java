@@ -15,8 +15,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 /**
- * This test-case is only for JDBC4 blob methods. Take a look at {@link
- * org.postgresql.test.jdbc2.BlobTest} for base tests concerning blobs
+ * This test-case is only for JDBC4 blob methods. Take a look at
+ * {@link org.postgresql.test.jdbc2.BlobTest} for base tests concerning blobs
  */
 public class BlobTest extends TestCase {
 
@@ -49,7 +49,7 @@ public class BlobTest extends TestCase {
   public void testSetBlobWithStream() throws Exception {
     byte[] data = new String(
         "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque bibendum dapibus varius.")
-        .getBytes("UTF-8");
+            .getBytes("UTF-8");
     PreparedStatement insertPS = _conn.prepareStatement(TestUtil.insertSQL("testblob", "lo", "?"));
     try {
       insertPS.setBlob(1, new ByteArrayInputStream(data));
@@ -75,7 +75,7 @@ public class BlobTest extends TestCase {
   public void testSetBlobWithStreamAndLength() throws Exception {
     byte[] fullData = new String(
         "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse placerat tristique tellus, id tempus lectus.")
-        .getBytes("UTF-8");
+            .getBytes("UTF-8");
     byte[] data =
         new String("Lorem ipsum dolor sit amet, consectetur adipiscing elit.").getBytes("UTF-8");
     PreparedStatement insertPS = _conn.prepareStatement(TestUtil.insertSQL("testblob", "lo", "?"));

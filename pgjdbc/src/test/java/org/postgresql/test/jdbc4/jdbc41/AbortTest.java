@@ -80,7 +80,8 @@ public class AbortTest extends TestCase {
     if (workerException == null) {
       fail("Statement execution should have been aborted, thus throwing an exception");
     }
-    // suppose that if it took at least 95% of sleep time, aborting has failed and we've waited the full time
+    // suppose that if it took at least 95% of sleep time, aborting has failed and we've waited the
+    // full time
     assertTrue(endTime - startTime < SLEEP_MILLISECONDS * 95 / 100);
     assertTrue(_conn.isClosed());
   }

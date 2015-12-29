@@ -49,7 +49,8 @@ public class LruCache<Key, Value extends CanEstimateSize> {
         return false;
       }
 
-      for (Iterator<Map.Entry<Key, Value>> it = entrySet().iterator(); it.hasNext(); ) {
+      Iterator<Map.Entry<Key, Value>> it = entrySet().iterator();
+      while (it.hasNext()) {
         if (size() <= maxSizeEntries && currentSize <= maxSizeBytes) {
           return false;
         }
@@ -71,7 +72,7 @@ public class LruCache<Key, Value extends CanEstimateSize> {
     try {
       onEvict.evict(value);
     } catch (SQLException e) {
-            /* ignore */
+      /* ignore */
     }
   }
 
@@ -102,13 +103,14 @@ public class LruCache<Key, Value extends CanEstimateSize> {
   /**
    * Returns given value to the cache
    *
-   * @param key   key
+   * @param key key
    * @param value value
    */
   public void put(Key key, Value value) {
     long valueSize = value.getSize();
     if (maxSizeBytes == 0 || maxSizeEntries == 0 || valueSize * 2 > maxSizeBytes) {
-      // Just destroy the value if cache is disabled or if entry would consume more than a half of the cache
+      // Just destroy the value if cache is disabled or if entry would consume more than a half of
+      // the cache
       evictValue(value);
       return;
     }

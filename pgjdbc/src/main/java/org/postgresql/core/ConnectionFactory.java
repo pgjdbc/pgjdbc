@@ -35,18 +35,20 @@ public abstract class ConnectionFactory {
   };
 
   /**
-   * Establishes and initializes a new connection. <p> If the "protocolVersion" property is
-   * specified, only that protocol version is tried. Otherwise, all protocols are tried in order,
-   * falling back to older protocols as necessary. <p> Currently, protocol versions 3 (7.4+) and 2
-   * (pre-7.4) are supported.
+   * Establishes and initializes a new connection.
+   * <p>
+   * If the "protocolVersion" property is specified, only that protocol version is tried. Otherwise,
+   * all protocols are tried in order, falling back to older protocols as necessary.
+   * <p>
+   * Currently, protocol versions 3 (7.4+) and 2 (pre-7.4) are supported.
    *
    * @param hostSpecs at least one host and port to connect to; multiple elements for round-robin
-   *                  failover
-   * @param user      the username to authenticate with; may not be null.
-   * @param database  the database on the server to connect to; may not be null.
-   * @param info      extra properties controlling the connection; notably, "password" if present
-   *                  supplies the password to authenticate with.
-   * @param logger    the logger to use for this connection
+   *        failover
+   * @param user the username to authenticate with; may not be null.
+   * @param database the database on the server to connect to; may not be null.
+   * @param info extra properties controlling the connection; notably, "password" if present
+   *        supplies the password to authenticate with.
+   * @param logger the logger to use for this connection
    * @return the new, initialized, connection
    * @throws SQLException if the connection could not be established.
    */
@@ -78,16 +80,16 @@ public abstract class ConnectionFactory {
    * subclasses of {@link ConnectionFactory}.
    *
    * @param hostSpecs at least one host and port to connect to; multiple elements for round-robin
-   *                  failover
-   * @param user      the username to authenticate with; may not be null.
-   * @param database  the database on the server to connect to; may not be null.
-   * @param info      extra properties controlling the connection; notably, "password" if present
-   *                  supplies the password to authenticate with.
-   * @param logger    the logger to use for this connection
+   *        failover
+   * @param user the username to authenticate with; may not be null.
+   * @param database the database on the server to connect to; may not be null.
+   * @param info extra properties controlling the connection; notably, "password" if present
+   *        supplies the password to authenticate with.
+   * @param logger the logger to use for this connection
    * @return the new, initialized, connection, or <code>null</code> if this protocol version is not
-   * supported by the server.
+   *         supported by the server.
    * @throws SQLException if the connection could not be established for a reason other than
-   *                      protocol version incompatibility.
+   *         protocol version incompatibility.
    */
   public abstract ProtocolConnection openConnectionImpl(HostSpec[] hostSpecs, String user,
       String database, Properties info, Logger logger) throws SQLException;

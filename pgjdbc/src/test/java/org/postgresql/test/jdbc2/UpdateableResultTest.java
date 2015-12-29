@@ -396,8 +396,7 @@ public class UpdateableResultTest extends TestCase {
   public void testUpdateablePreparedStatement() throws Exception {
     // No args.
     PreparedStatement st = con.prepareStatement("select * from updateable",
-        ResultSet.TYPE_SCROLL_INSENSITIVE,
-        ResultSet.CONCUR_UPDATABLE);
+        ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
     ResultSet rs = st.executeQuery();
     rs.moveToInsertRow();
     rs.close();
@@ -405,8 +404,7 @@ public class UpdateableResultTest extends TestCase {
 
     // With args.
     st = con.prepareStatement("select * from updateable where id = ?",
-        ResultSet.TYPE_SCROLL_INSENSITIVE,
-        ResultSet.CONCUR_UPDATABLE);
+        ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
     st.setInt(1, 1);
     rs = st.executeQuery();
     rs.moveToInsertRow();
@@ -415,8 +413,8 @@ public class UpdateableResultTest extends TestCase {
   }
 
   public void testUpdateSelectOnly() throws Exception {
-    Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
-        ResultSet.CONCUR_UPDATABLE);
+    Statement st =
+        con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
 
     ResultSet rs = st.executeQuery("select * from only second");
     assertTrue(rs.next());
@@ -425,8 +423,8 @@ public class UpdateableResultTest extends TestCase {
   }
 
   public void testUpdateReadOnlyResultSet() throws Exception {
-    Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
-        ResultSet.CONCUR_READ_ONLY);
+    Statement st =
+        con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     ResultSet rs = st.executeQuery("select * from updateable");
     try {
       rs.moveToInsertRow();
@@ -436,8 +434,8 @@ public class UpdateableResultTest extends TestCase {
   }
 
   public void testBadColumnIndexes() throws Exception {
-    Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
-        ResultSet.CONCUR_UPDATABLE);
+    Statement st =
+        con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
     ResultSet rs = st.executeQuery("select * from updateable");
     rs.moveToInsertRow();
     try {
@@ -490,8 +488,8 @@ public class UpdateableResultTest extends TestCase {
   }
 
   public void testMultiColumnUpdateWithoutAllColumns() throws Exception {
-    Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
-        ResultSet.CONCUR_UPDATABLE);
+    Statement st =
+        con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
     ResultSet rs = st.executeQuery("select id1,val from multicol");
     try {
       rs.moveToInsertRow();
@@ -502,8 +500,8 @@ public class UpdateableResultTest extends TestCase {
   }
 
   public void testMultiColumnUpdate() throws Exception {
-    Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
-        ResultSet.CONCUR_UPDATABLE);
+    Statement st =
+        con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
     st.executeUpdate("INSERT INTO multicol (id1,id2,val) VALUES (1,2,'val')");
 
     ResultSet rs = st.executeQuery("SELECT id1, id2, val FROM multicol");

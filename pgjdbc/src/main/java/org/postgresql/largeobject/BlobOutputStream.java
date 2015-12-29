@@ -48,7 +48,7 @@ public class BlobOutputStream extends OutputStream {
   /**
    * Create an OutputStream to a large object
    *
-   * @param lo    LargeObject
+   * @param lo LargeObject
    * @param bsize The size of the buffer used to improve performance
    */
   public BlobOutputStream(LargeObject lo, int bsize) {

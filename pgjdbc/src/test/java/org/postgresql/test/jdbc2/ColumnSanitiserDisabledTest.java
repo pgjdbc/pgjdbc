@@ -20,8 +20,8 @@ import java.sql.Statement;
 import java.util.Properties;
 
 /*
- * This test suite will check the behaviour of the findColumnIndex
- * method. This is testing the behaviour when sanitiser is disabled.
+ * This test suite will check the behaviour of the findColumnIndex method. This is testing the
+ * behaviour when sanitiser is disabled.
  */
 public class ColumnSanitiserDisabledTest extends TestCase {
   private Connection conn;
@@ -36,16 +36,16 @@ public class ColumnSanitiserDisabledTest extends TestCase {
     conn = TestUtil.openDB(props);
     assertTrue(conn instanceof BaseConnection);
     BaseConnection bc = (BaseConnection) conn;
-    assertTrue(
-        "Expected state [TRUE] of base connection configuration failed test."
-        , bc.isColumnSanitiserDisabled());
-        /* Quoted columns will be stored with case preserved. Driver will
-         * receive column names as defined in db server. */
+    assertTrue("Expected state [TRUE] of base connection configuration failed test.",
+        bc.isColumnSanitiserDisabled());
+    /*
+     * Quoted columns will be stored with case preserved. Driver will receive column names as
+     * defined in db server.
+     */
     TestUtil.createTable(conn, "allmixedup",
         "id int primary key, \"DESCRIPTION\" varchar(40), \"fOo\" varchar(3)");
     Statement data = conn.createStatement();
-    data.execute(TestUtil.insertSQL("allmixedup",
-        "1,'mixed case test', 'bar'"));
+    data.execute(TestUtil.insertSQL("allmixedup", "1,'mixed case test', 'bar'"));
     data.close();
   }
 
@@ -55,64 +55,51 @@ public class ColumnSanitiserDisabledTest extends TestCase {
     System.setProperty("disableColumnSanitiser", "false");
   }
 
-    /*
-     * Test cases checking different combinations of columns origination from
-     * database against application supplied column names.
-     */
+  /*
+   * Test cases checking different combinations of columns origination from database against
+   * application supplied column names.
+   */
 
-  public void testTableColumnLowerNowFindFindLowerCaseColumn()
-      throws SQLException {
+  public void testTableColumnLowerNowFindFindLowerCaseColumn() throws SQLException {
     findColumn("id", true);
   }
 
-  public void testTableColumnLowerNowFindFindUpperCaseColumn()
-      throws SQLException {
+  public void testTableColumnLowerNowFindFindUpperCaseColumn() throws SQLException {
     findColumn("ID", true);
   }
 
-  public void testTableColumnLowerNowFindFindMixedCaseColumn()
-      throws SQLException {
+  public void testTableColumnLowerNowFindFindMixedCaseColumn() throws SQLException {
     findColumn("Id", false);
   }
 
-  public void testTableColumnUpperNowFindFindLowerCaseColumn()
-      throws SQLException {
+  public void testTableColumnUpperNowFindFindLowerCaseColumn() throws SQLException {
     findColumn("description", true);
   }
 
-  public void testTableColumnUpperNowFindFindUpperCaseColumn()
-      throws SQLException {
+  public void testTableColumnUpperNowFindFindUpperCaseColumn() throws SQLException {
     findColumn("DESCRIPTION", true);
   }
 
-  public void testTableColumnUpperNowFindFindMixedCaseColumn()
-      throws SQLException {
+  public void testTableColumnUpperNowFindFindMixedCaseColumn() throws SQLException {
     findColumn("Description", false);
   }
 
-  public void testTableColumnMixedNowFindLowerCaseColumn()
-      throws SQLException {
+  public void testTableColumnMixedNowFindLowerCaseColumn() throws SQLException {
     findColumn("foo", false);
   }
 
-  public void testTableColumnMixedNowFindFindUpperCaseColumn()
-      throws SQLException {
+  public void testTableColumnMixedNowFindFindUpperCaseColumn() throws SQLException {
     findColumn("FOO", false);
   }
 
-  public void testTableColumnMixedNowFindFindMixedCaseColumn()
-      throws SQLException {
+  public void testTableColumnMixedNowFindFindMixedCaseColumn() throws SQLException {
     findColumn("fOo", true);
   }
 
-  private void findColumn(String label, boolean failOnNotFound)
-      throws SQLException {
-    PreparedStatement query = conn
-        .prepareStatement("select * from allmixedup");
+  private void findColumn(String label, boolean failOnNotFound) throws SQLException {
+    PreparedStatement query = conn.prepareStatement("select * from allmixedup");
     if (0 == TestUtil.findColumn(query, label) && failOnNotFound) {
-      fail(String
-          .format("Expected to find the column with the label [%1$s].",
-              label));
+      fail(String.format("Expected to find the column with the label [%1$s].", label));
     }
     query.close();
   }

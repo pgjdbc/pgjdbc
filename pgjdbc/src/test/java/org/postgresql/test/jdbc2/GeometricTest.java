@@ -43,8 +43,7 @@ public class GeometricTest extends TestCase {
   // a table for this test.
   protected void setUp() throws Exception {
     con = TestUtil.openDB();
-    TestUtil.createTable(con,
-        "testgeometric",
+    TestUtil.createTable(con, "testgeometric",
         "boxval box, circleval circle, lsegval lseg, pathval path, polygonval polygon, pointval point, lineval line");
   }
 
@@ -94,28 +93,18 @@ public class GeometricTest extends TestCase {
   }
 
   public void testPGpath() throws Exception {
-    PGpoint[] points = new PGpoint[]{
-        new PGpoint(0.0, 0.0),
-        new PGpoint(0.0, 5.0),
-        new PGpoint(5.0, 5.0),
-        new PGpoint(5.0, -5.0),
-        new PGpoint(-5.0, -5.0),
-        new PGpoint(-5.0, 5.0),
-    };
+    PGpoint[] points =
+        new PGpoint[]{new PGpoint(0.0, 0.0), new PGpoint(0.0, 5.0), new PGpoint(5.0, 5.0),
+            new PGpoint(5.0, -5.0), new PGpoint(-5.0, -5.0), new PGpoint(-5.0, 5.0),};
 
     checkReadWrite(new PGpath(points, true), "pathval");
     checkReadWrite(new PGpath(points, false), "pathval");
   }
 
   public void testPGpolygon() throws Exception {
-    PGpoint[] points = new PGpoint[]{
-        new PGpoint(0.0, 0.0),
-        new PGpoint(0.0, 5.0),
-        new PGpoint(5.0, 5.0),
-        new PGpoint(5.0, -5.0),
-        new PGpoint(-5.0, -5.0),
-        new PGpoint(-5.0, 5.0),
-    };
+    PGpoint[] points =
+        new PGpoint[]{new PGpoint(0.0, 0.0), new PGpoint(0.0, 5.0), new PGpoint(5.0, 5.0),
+            new PGpoint(5.0, -5.0), new PGpoint(-5.0, -5.0), new PGpoint(-5.0, 5.0),};
 
     checkReadWrite(new PGpolygon(points), "polygonval");
   }
@@ -124,13 +113,15 @@ public class GeometricTest extends TestCase {
     final String columnName = "lineval";
 
     // PostgreSQL versions older than 9.4 support creating columns with the LINE datatype, but
-    // not actually writing to those columns.  Only try to write if the version if at least 9.4
+    // not actually writing to those columns. Only try to write if the version if at least 9.4
     final boolean roundTripToDatabase = TestUtil.haveMinimumServerVersion(con, "9.4");
 
     if (TestUtil.haveMinimumServerVersion(con, "9.4")) {
 
-      // Apparently the driver requires public no-args constructor, and postgresql doesn't accept lines with A and B
-      // coefficients both being zero... so assert a no-arg instantiated instance throws an exception.
+      // Apparently the driver requires public no-args constructor, and postgresql doesn't accept
+      // lines with A and B
+      // coefficients both being zero... so assert a no-arg instantiated instance throws an
+      // exception.
       if (roundTripToDatabase) {
         try {
           checkReadWrite(new PGline(), columnName);
@@ -151,15 +142,15 @@ public class GeometricTest extends TestCase {
         linesToTest.add(new PGline(i, (0 - i), i, (1 / i / i))); // tests vertical line
         // Test 2-arg constructor (2 PGpoints on the line);
         linesToTest.add(new PGline(new PGpoint(i, (0 - i)), new PGpoint((1 / i), (1 / i / i))));
-        linesToTest.add(new PGline(new PGpoint(i, (0 - i)),
-            new PGpoint(i, (1 / i / i)))); // tests vertical line
+        // tests vertical line
+        linesToTest.add(new PGline(new PGpoint(i, (0 - i)), new PGpoint(i, (1 / i / i))));
         // Test 1-arg constructor (PGlseg on the line);
         linesToTest.add(new PGline(new PGlseg(i, (0 - i), (1 / i), (1 / i / i))));
         linesToTest.add(new PGline(new PGlseg(i, (0 - i), i, (1 / i / i))));
         linesToTest.add(
             new PGline(new PGlseg(new PGpoint(i, (0 - i)), new PGpoint((1 / i), (1 / i / i)))));
-        linesToTest.add(
-            new PGline(new PGlseg(new PGpoint(i, (0 - i)), new PGpoint(i, (1 / i / i)))));
+        linesToTest
+            .add(new PGline(new PGlseg(new PGpoint(i, (0 - i)), new PGpoint(i, (1 / i / i)))));
       }
 
       // Include persistence an querying if the postgresql version supports it.

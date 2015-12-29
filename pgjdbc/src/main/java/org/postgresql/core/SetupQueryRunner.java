@@ -45,7 +45,7 @@ public class SetupQueryRunner {
     }
 
     public void handleWarning(SQLWarning warning) {
-      // We ignore warnings.  We assume we know what we're
+      // We ignore warnings. We assume we know what we're
       // doing in the setup queries.
     }
 

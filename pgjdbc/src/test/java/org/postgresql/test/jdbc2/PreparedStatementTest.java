@@ -107,7 +107,7 @@ public class PreparedStatementTest extends BaseTest {
 
   public void testBinaryStreamErrorsRestartable() throws SQLException {
     // The V2 protocol does not have the ability to recover when
-    // streaming data to the server.  We could potentially try
+    // streaming data to the server. We could potentially try
     // introducing a syntax error to force the query to fail, but
     // that seems dangerous.
     //
@@ -524,9 +524,11 @@ public class PreparedStatementTest extends BaseTest {
     pstmt.executeUpdate();
     pstmt.close();
 
-    Integer maxInteger = new Integer(2147483647), minInteger = new Integer(-2147483648);
+    Integer maxInteger = new Integer(2147483647);
+    Integer minInteger = new Integer(-2147483648);
 
-    Double maxFloat = new Double(2147483647), minFloat = new Double(-2147483648);
+    Double maxFloat = new Double(2147483647);
+    Double minFloat = new Double(-2147483648);
 
     pstmt = con.prepareStatement("insert into float_tab values (?,?,?)");
     pstmt.setObject(1, maxInteger, Types.FLOAT);
@@ -556,8 +558,10 @@ public class PreparedStatementTest extends BaseTest {
     pstmt.executeUpdate();
     pstmt.close();
 
-    String maxStringFloat = new String("1.0E37"), minStringFloat = new String("1.0E-37");
-    Double maxFloat = new Double(1.0E37), minFloat = new Double(1.0E-37);
+    String maxStringFloat = new String("1.0E37");
+    String minStringFloat = new String("1.0E-37");
+    Double maxFloat = new Double(1.0E37);
+    Double minFloat = new Double(1.0E-37);
 
     pstmt = con.prepareStatement("insert into float_tab values (?,?,?)");
     pstmt.setObject(1, maxStringFloat, Types.FLOAT);
@@ -587,9 +591,10 @@ public class PreparedStatementTest extends BaseTest {
     pstmt.executeUpdate();
     pstmt.close();
 
-    BigDecimal maxBigDecimalFloat = new BigDecimal("1.0E37"), minBigDecimalFloat =
-        new BigDecimal("1.0E-37");
-    Double maxFloat = new Double(1.0E37), minFloat = new Double(1.0E-37);
+    BigDecimal maxBigDecimalFloat = new BigDecimal("1.0E37");
+    BigDecimal minBigDecimalFloat = new BigDecimal("1.0E-37");
+    Double maxFloat = new Double(1.0E37);
+    Double minFloat = new Double(1.0E-37);
 
     pstmt = con.prepareStatement("insert into float_tab values (?,?,?)");
     pstmt.setObject(1, maxBigDecimalFloat, Types.FLOAT);
@@ -614,13 +619,15 @@ public class PreparedStatementTest extends BaseTest {
   }
 
   public void testSetTinyIntFloat() throws SQLException {
-    PreparedStatement pstmt = con.prepareStatement(
-        "CREATE temp TABLE tiny_int (max_val int4, min_val int4, null_val int4)");
+    PreparedStatement pstmt = con
+        .prepareStatement("CREATE temp TABLE tiny_int (max_val int4, min_val int4, null_val int4)");
     pstmt.executeUpdate();
     pstmt.close();
 
-    Integer maxInt = new Integer(127), minInt = new Integer(-127);
-    Float maxIntFloat = new Float(127), minIntFloat = new Float(-127);
+    Integer maxInt = new Integer(127);
+    Integer minInt = new Integer(-127);
+    Float maxIntFloat = new Float(127);
+    Float minIntFloat = new Float(-127);
 
     pstmt = con.prepareStatement("insert into tiny_int values (?,?,?)");
     pstmt.setObject(1, maxIntFloat, Types.TINYINT);
@@ -672,8 +679,10 @@ public class PreparedStatementTest extends BaseTest {
     pstmt.executeUpdate();
     pstmt.close();
 
-    Integer maxInt = new Integer(32767), minInt = new Integer(-32768);
-    Float maxIntFloat = new Float(32767), minIntFloat = new Float(-32768);
+    Integer maxInt = new Integer(32767);
+    Integer minInt = new Integer(-32768);
+    Float maxIntFloat = new Float(32767);
+    Float minIntFloat = new Float(-32768);
 
     pstmt = con.prepareStatement("insert into small_int values (?,?,?)");
     pstmt.setObject(1, maxIntFloat, Types.SMALLINT);
@@ -698,13 +707,15 @@ public class PreparedStatementTest extends BaseTest {
   }
 
   public void testSetIntFloat() throws SQLException {
-    PreparedStatement pstmt = con.prepareStatement(
-        "CREATE temp TABLE int_TAB (max_val int4, min_val int4, null_val int4)");
+    PreparedStatement pstmt = con
+        .prepareStatement("CREATE temp TABLE int_TAB (max_val int4, min_val int4, null_val int4)");
     pstmt.executeUpdate();
     pstmt.close();
 
-    Integer maxInt = new Integer(1000), minInt = new Integer(-1000);
-    Float maxIntFloat = new Float(1000), minIntFloat = new Float(-1000);
+    Integer maxInt = new Integer(1000);
+    Integer minInt = new Integer(-1000);
+    Float maxIntFloat = new Float(1000);
+    Float minIntFloat = new Float(-1000);
 
     pstmt = con.prepareStatement("insert into int_tab values (?,?,?)");
     pstmt.setObject(1, maxIntFloat, Types.INTEGER);
@@ -734,8 +745,10 @@ public class PreparedStatementTest extends BaseTest {
     pstmt.executeUpdate();
     pstmt.close();
 
-    Boolean trueVal = Boolean.TRUE, falseVal = Boolean.FALSE;
-    Double dBooleanTrue = new Double(1), dBooleanFalse = new Double(0);
+    Boolean trueVal = Boolean.TRUE;
+    Boolean falseVal = Boolean.FALSE;
+    Double dBooleanTrue = new Double(1);
+    Double dBooleanFalse = new Double(0);
 
     pstmt = con.prepareStatement("insert into double_tab values (?,?,?)");
     pstmt.setObject(1, trueVal, Types.DOUBLE);
@@ -765,8 +778,10 @@ public class PreparedStatementTest extends BaseTest {
     pstmt.executeUpdate();
     pstmt.close();
 
-    Boolean trueVal = Boolean.TRUE, falseVal = Boolean.FALSE;
-    BigDecimal dBooleanTrue = new BigDecimal(1), dBooleanFalse = new BigDecimal(0);
+    Boolean trueVal = Boolean.TRUE;
+    Boolean falseVal = Boolean.FALSE;
+    BigDecimal dBooleanTrue = new BigDecimal(1);
+    BigDecimal dBooleanFalse = new BigDecimal(0);
 
     pstmt = con.prepareStatement("insert into numeric_tab values (?,?,?)");
     pstmt.setObject(1, trueVal, Types.NUMERIC, 2);
@@ -796,8 +811,10 @@ public class PreparedStatementTest extends BaseTest {
     pstmt.executeUpdate();
     pstmt.close();
 
-    Boolean trueVal = Boolean.TRUE, falseVal = Boolean.FALSE;
-    BigDecimal dBooleanTrue = new BigDecimal(1), dBooleanFalse = new BigDecimal(0);
+    Boolean trueVal = Boolean.TRUE;
+    Boolean falseVal = Boolean.FALSE;
+    BigDecimal dBooleanTrue = new BigDecimal(1);
+    BigDecimal dBooleanFalse = new BigDecimal(0);
 
     pstmt = con.prepareStatement("insert into DECIMAL_TAB values (?,?,?)");
     pstmt.setObject(1, trueVal, Types.DECIMAL, 2);
@@ -847,9 +864,9 @@ public class PreparedStatementTest extends BaseTest {
         v.compareTo(rs.getBigDecimal(1)) == 0);
     assertTrue("expected numeric set via String" + vs + " stored as " + rs.getBigDecimal(2),
         v.compareTo(rs.getBigDecimal(2)) == 0);
+    // float is really bad...
     assertTrue("expected numeric set via Float" + vf + " stored as " + rs.getBigDecimal(3),
-        v.compareTo(rs.getBigDecimal(3).setScale(6, RoundingMode.HALF_UP))
-            == 0); // float is really bad...
+        v.compareTo(rs.getBigDecimal(3).setScale(6, RoundingMode.HALF_UP)) == 0);
     assertTrue("expected numeric set via Double" + vd + " stored as " + rs.getBigDecimal(4),
         v.compareTo(rs.getBigDecimal(4)) == 0);
 
@@ -930,7 +947,7 @@ public class PreparedStatementTest extends BaseTest {
 
   /**
    * When we have parameters of unknown type and it's not using the unnamed statement, we issue a
-   * protocol level statment describe message for the V3 protocol.  This test just makes sure that
+   * protocol level statment describe message for the V3 protocol. This test just makes sure that
    * works.
    */
   public void testStatementDescribe() throws SQLException {

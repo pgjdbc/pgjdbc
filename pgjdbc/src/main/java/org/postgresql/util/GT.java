@@ -14,8 +14,8 @@ import java.util.ResourceBundle;
 
 /**
  * This class provides a wrapper around a gettext message catalog that can provide a localized
- * version of error messages.  The caller provides a message String in the standard
- * java.text.MessageFormat syntax and any arguments it may need.  The returned String is the
+ * version of error messages. The caller provides a message String in the standard
+ * java.text.MessageFormat syntax and any arguments it may need. The returned String is the
  * localized version if available or the original if not.
  */
 

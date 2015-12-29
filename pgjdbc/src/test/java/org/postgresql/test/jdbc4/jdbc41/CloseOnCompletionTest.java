@@ -57,8 +57,7 @@ public class CloseOnCompletionTest extends TestCase {
     Statement stmt = _conn.createStatement();
     stmt.closeOnCompletion();
 
-    stmt.execute(TestUtil.selectSQL("table1", "*") + ";" +
-        TestUtil.selectSQL("table1", "*") + ";");
+    stmt.execute(TestUtil.selectSQL("table1", "*") + ";" + TestUtil.selectSQL("table1", "*") + ";");
     ResultSet rs = stmt.getResultSet();
     rs.close();
     assertFalse(stmt.isClosed());

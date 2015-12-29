@@ -60,7 +60,7 @@ public interface ProtocolConnection {
    *
    * Note that there's no requirement for this to be numeric or of the form x.y.z. PostgreSQL
    * development releases usually have the format x.ydevel e.g. 9.4devel; betas usually x.ybetan
-   * e.g.  9.4beta1. The --with-extra-version configure option may add an arbitrary string to this.
+   * e.g. 9.4beta1. The --with-extra-version configure option may add an arbitrary string to this.
    *
    * Don't use this string for logic, only use it when displaying the server version to the user.
    * Prefer getServerVersionNum() for all logic purposes.
@@ -115,7 +115,7 @@ public interface ProtocolConnection {
    * Retrieve and clear the chain of warnings accumulated on this connection.
    *
    * @return the first SQLWarning in the chain; subsequent warnings can be found via
-   * SQLWarning.getNextWarning().
+   *         SQLWarning.getNextWarning().
    */
   SQLWarning getWarnings();
 

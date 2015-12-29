@@ -48,9 +48,8 @@ public class PGPropertyTest extends TestCase {
     for (PGProperty property : PGProperty.values()) {
       String enumName = property.name().replaceAll("_", "");
       Assert.assertEquals("Naming of the enum constant [" + property.name()
-              + "] should follow the naming of its underlying property [" + property.getName()
-              + "] in PGProperty",
-          property.getName().toLowerCase(), enumName.toLowerCase());
+          + "] should follow the naming of its underlying property [" + property.getName()
+          + "] in PGProperty", property.getName().toLowerCase(), enumName.toLowerCase());
     }
   }
 
@@ -74,8 +73,7 @@ public class PGPropertyTest extends TestCase {
   /**
    * Test if the datasource has getter and setter for all properties
    */
-  public void testDataSourceProperties()
-      throws Exception {
+  public void testDataSourceProperties() throws Exception {
     PGSimpleDataSource dataSource = new PGSimpleDataSource();
     BeanInfo info = Introspector.getBeanInfo(dataSource.getClass());
 
@@ -86,21 +84,19 @@ public class PGPropertyTest extends TestCase {
       propertyDescriptors.put(propertyDescriptor.getName(), propertyDescriptor);
     }
 
-    // test for the existence of all read methods (getXXX/isXXX) and write methods (setXXX) for all known properties
+    // test for the existence of all read methods (getXXX/isXXX) and write methods (setXXX) for all
+    // known properties
     for (PGProperty property : PGProperty.values()) {
       if (!property.getName().startsWith("PG")) {
         Assert.assertTrue("Missing getter/setter for property [" + property.getName() + "] in ["
-                + BaseDataSource.class + "]",
-            propertyDescriptors.containsKey(property.getName()));
+            + BaseDataSource.class + "]", propertyDescriptors.containsKey(property.getName()));
 
-        Assert.assertNotNull(
-            "Not getter for property [" + property.getName() + "] in [" + BaseDataSource.class
-                + "]",
+        Assert.assertNotNull("Not getter for property [" + property.getName() + "] in ["
+            + BaseDataSource.class + "]",
             propertyDescriptors.get(property.getName()).getReadMethod());
 
-        Assert.assertNotNull(
-            "Not setter for property [" + property.getName() + "] in [" + BaseDataSource.class
-                + "]",
+        Assert.assertNotNull("Not setter for property [" + property.getName() + "] in ["
+            + BaseDataSource.class + "]",
             propertyDescriptors.get(property.getName()).getWriteMethod());
       }
     }
@@ -110,9 +106,8 @@ public class PGPropertyTest extends TestCase {
       if (!property.getName().startsWith("PG")) {
         Object propertyValue =
             propertyDescriptors.get(property.getName()).getReadMethod().invoke(dataSource);
-        propertyDescriptors.get(property.getName())
-            .getWriteMethod()
-            .invoke(dataSource, propertyValue);
+        propertyDescriptors.get(property.getName()).getWriteMethod().invoke(dataSource,
+            propertyValue);
       }
     }
   }

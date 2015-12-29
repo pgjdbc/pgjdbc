@@ -30,7 +30,7 @@ public class PGTime extends Time {
    * Constructs a <code>PGTime</code> without a time zone.
    *
    * @param time milliseconds since January 1, 1970, 00:00:00 GMT; a negative number is milliseconds
-   *             before January 1, 1970, 00:00:00 GMT.
+   *        before January 1, 1970, 00:00:00 GMT.
    * @see Time#Time(long)
    */
   public PGTime(long time) {
@@ -44,8 +44,8 @@ public class PGTime extends Time {
    * <code>TimeZone</code> in the calendar object. Furthermore, this calendar will be used instead
    * of the calendar object passed to {@link PreparedStatement#setTime(int, Time, Calendar)}.
    *
-   * @param time     milliseconds since January 1, 1970, 00:00:00 GMT; a negative number is
-   *                 milliseconds before January 1, 1970, 00:00:00 GMT.
+   * @param time milliseconds since January 1, 1970, 00:00:00 GMT; a negative number is milliseconds
+   *        before January 1, 1970, 00:00:00 GMT.
    * @param calendar the calendar object containing the time zone or <code>null</code>.
    * @see Time#Time(long)
    */
@@ -76,8 +76,7 @@ public class PGTime extends Time {
   public int hashCode() {
     final int prime = 31;
     int result = super.hashCode();
-    result = prime * result
-        + ((calendar == null) ? 0 : calendar.hashCode());
+    result = prime * result + ((calendar == null) ? 0 : calendar.hashCode());
     return result;
   }
 

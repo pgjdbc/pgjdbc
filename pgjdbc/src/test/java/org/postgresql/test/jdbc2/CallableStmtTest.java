@@ -23,6 +23,7 @@ import java.sql.Types;
 
 /*
  * CallableStatement tests.
+ *
  * @author Paul Bethe
  */
 public class CallableStmtTest extends TestCase {
@@ -94,7 +95,7 @@ public class CallableStmtTest extends TestCase {
 
   public void testGetUpdateCount() throws SQLException {
     CallableStatement call = con.prepareCall(func + pkgName + "getDouble (?) }");
-    call.setDouble(2, (double) 3.04);
+    call.setDouble(2, 3.04);
     call.registerOutParameter(1, Types.DOUBLE);
     call.execute();
     assertEquals(-1, call.getUpdateCount());
@@ -104,7 +105,7 @@ public class CallableStmtTest extends TestCase {
 
     // test without an out parameter
     call = con.prepareCall("{ call " + pkgName + "getDouble(?) }");
-    call.setDouble(1, (double) 3.04);
+    call.setDouble(1, 3.04);
     call.execute();
     assertEquals(-1, call.getUpdateCount());
     ResultSet rs = call.getResultSet();
@@ -121,19 +122,19 @@ public class CallableStmtTest extends TestCase {
 
   public void testGetDouble() throws Throwable {
     CallableStatement call = con.prepareCall(func + pkgName + "getDouble (?) }");
-    call.setDouble(2, (double) 3.04);
+    call.setDouble(2, 3.04);
     call.registerOutParameter(1, Types.DOUBLE);
     call.execute();
     assertEquals(42.42, call.getDouble(1), 0.00001);
 
     // test without an out parameter
     call = con.prepareCall("{ call " + pkgName + "getDouble(?) }");
-    call.setDouble(1, (double) 3.04);
+    call.setDouble(1, 3.04);
     call.execute();
 
     if (TestUtil.haveMinimumServerVersion(con, "7.3")) {
       call = con.prepareCall("{ call " + pkgName + "getVoid(?) }");
-      call.setDouble(1, (double) 3.04);
+      call.setDouble(1, 3.04);
       call.execute();
     }
   }

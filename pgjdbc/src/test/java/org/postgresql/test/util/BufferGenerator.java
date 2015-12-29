@@ -24,8 +24,8 @@ public class BufferGenerator {
       for (long i = 0; i < ROW_COUNT; i++) {
         StringBuffer line = new StringBuffer();
         line.append("VERY_LONG_LINE_TO_ASSIST_IN_DETECTION_OF_ISSUE_366_#_").append(i).append('\t');
-        int letter = random.nextInt(26); //don't really care about uniformity for a test
-        char character = (char) ((int) 'A' + letter); //black magic
+        int letter = random.nextInt(26); // don't really care about uniformity for a test
+        char character = (char) ((int) 'A' + letter); // black magic
         line.append("VERY_LONG_STRING_TO_REPRODUCE_ISSUE_366_").append(character).append(character);
         line.append(character).append('\t').append(random.nextDouble()).append('\n');
         out.write(line.toString().getBytes("UTF-8"));

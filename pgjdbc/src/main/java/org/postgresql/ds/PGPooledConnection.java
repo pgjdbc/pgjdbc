@@ -25,21 +25,21 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 import java.util.LinkedList;
 import java.util.List;
+
 import javax.sql.ConnectionEvent;
 import javax.sql.ConnectionEventListener;
 import javax.sql.PooledConnection;
 import javax.sql.StatementEventListener;
 
 /**
- * PostgreSQL implementation of the PooledConnection interface.  This shouldn't be used directly, as
+ * PostgreSQL implementation of the PooledConnection interface. This shouldn't be used directly, as
  * the pooling client should just interact with the ConnectionPool instead.
  *
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  * @author Csaba Nagy (ncsaba@yahoo.com)
  * @see org.postgresql.ds.PGConnectionPoolDataSource
  */
-public class PGPooledConnection
-    implements PooledConnection {
+public class PGPooledConnection implements PooledConnection {
   private final List<ConnectionEventListener> listeners = new LinkedList<ConnectionEventListener>();
   private Connection con;
   private ConnectionHandler last;
@@ -49,9 +49,9 @@ public class PGPooledConnection
   /**
    * Creates a new PooledConnection representing the specified physical connection.
    *
-   * @param con        connection
+   * @param con connection
    * @param autoCommit whether to autocommit
-   * @param isXA       whether connection is a XA connection
+   * @param isXA whether connection is a XA connection
    */
   public PGPooledConnection(Connection con, boolean autoCommit, boolean isXA) {
     this.con = con;
@@ -78,8 +78,8 @@ public class PGPooledConnection
   }
 
   /**
-   * Closes the physical database connection represented by this PooledConnection.  If any client
-   * has a connection based on this PooledConnection, it is forcibly closed as well.
+   * Closes the physical database connection represented by this PooledConnection. If any client has
+   * a connection based on this PooledConnection, it is forcibly closed as well.
    */
   public void close() throws SQLException {
     if (last != null) {
@@ -101,13 +101,15 @@ public class PGPooledConnection
   }
 
   /**
-   * Gets a handle for a client to use.  This is a wrapper around the physical connection, so the
+   * Gets a handle for a client to use. This is a wrapper around the physical connection, so the
    * client can call close and it will just return the connection to the pool without really closing
    * the pgysical connection.
    *
-   * <p>According to the JDBC 2.0 Optional Package spec (6.2.3), only one client may have an active
+   * <p>
+   * According to the JDBC 2.0 Optional Package spec (6.2.3), only one client may have an active
    * handle to the connection at a time, so if there is a previous handle active when this is
-   * called, the previous one is forcibly closed and its work rolled back.</p>
+   * called, the previous one is forcibly closed and its work rolled back.
+   * </p>
    */
   public Connection getConnection() throws SQLException {
     if (con == null) {
@@ -122,7 +124,8 @@ public class PGPooledConnection
     // have to be notified. This gives a chance to connection pools to
     // eliminate bad pooled connections.
     try {
-      // Only one connection can be open at a time from this PooledConnection.  See JDBC 2.0 Optional Package spec section 6.2.3
+      // Only one connection can be open at a time from this PooledConnection. See JDBC 2.0 Optional
+      // Package spec section 6.2.3
       if (last != null) {
         last.close();
         if (!con.getAutoCommit()) {
@@ -134,9 +137,8 @@ public class PGPooledConnection
         con.clearWarnings();
       }
       /*
-       * In XA-mode, autocommit is handled in PGXAConnection,
-       * because it depends on whether an XA-transaction is open
-       * or not
+       * In XA-mode, autocommit is handled in PGXAConnection, because it depends on whether an
+       * XA-transaction is open or not
        */
       if (!isXA) {
         con.setAutoCommit(autoCommit);
@@ -192,19 +194,19 @@ public class PGPooledConnection
 
   // Classes we consider fatal.
   private static String[] fatalClasses = {
-      "08",  // connection error
-      "53",  // insufficient resources
+      "08", // connection error
+      "53", // insufficient resources
 
       // nb: not just "57" as that includes query cancel which is nonfatal
-      "57P01",  // admin shutdown
-      "57P02",  // crash shutdown
-      "57P03",  // cannot connect now
+      "57P01", // admin shutdown
+      "57P02", // crash shutdown
+      "57P03", // cannot connect now
 
-      "58",  // system error (backend)
-      "60",  // system error (driver)
-      "99",  // unexpected error
-      "F0",  // configuration file error (backend)
-      "XX",  // internal error (backend)
+      "58", // system error (backend)
+      "60", // system error (driver)
+      "99", // unexpected error
+      "F0", // configuration file error (backend)
+      "XX", // internal error (backend)
   };
 
   private static boolean isFatalState(String state) {
@@ -254,8 +256,7 @@ public class PGPooledConnection
       this.con = con;
     }
 
-    public Object invoke(Object proxy, Method method, Object[] args)
-        throws Throwable {
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
       final String methodName = method.getName();
       // From Object
       if (method.getDeclaringClass().getName().equals("java.lang.Object")) {
@@ -307,10 +308,10 @@ public class PGPooledConnection
         return null;
       }
       if (con == null || con.isClosed()) {
-        throw new PSQLException(automatic ? GT.tr(
-            "Connection has been closed automatically because a new connection was opened for the same PooledConnection or the PooledConnection has been closed.")
-            : GT.tr("Connection has been closed."),
-            PSQLState.CONNECTION_DOES_NOT_EXIST);
+        throw new PSQLException(automatic
+            ? GT.tr(
+                "Connection has been closed automatically because a new connection was opened for the same PooledConnection or the PooledConnection has been closed.")
+            : GT.tr("Connection has been closed."), PSQLState.CONNECTION_DOES_NOT_EXIST);
       }
 
       // From here on in, we invoke via reflection, catch exceptions,
@@ -383,8 +384,7 @@ public class PGPooledConnection
       this.st = st;
     }
 
-    public Object invoke(Object proxy, Method method, Object[] args)
-        throws Throwable {
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
       final String methodName = method.getName();
       // From Object
       if (method.getDeclaringClass().getName().equals("java.lang.Object")) {
@@ -415,8 +415,7 @@ public class PGPooledConnection
         return null;
       }
       if (st == null || st.isClosed()) {
-        throw new PSQLException(GT.tr("Statement has been closed."),
-            PSQLState.OBJECT_NOT_IN_STATE);
+        throw new PSQLException(GT.tr("Statement has been closed."), PSQLState.OBJECT_NOT_IN_STATE);
       }
       if (methodName.equals("getConnection")) {
         return con.getProxy(); // the proxied connection, not a physical connection

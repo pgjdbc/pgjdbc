@@ -116,8 +116,8 @@ public class SearchPathLookupTest extends TestCase {
       TestUtil.createTable(con, "second_schema.x", "second_schema_field text");
       TypeInfo typeInfo = con.getTypeInfo();
       int OID = typeInfo.getPGType("x");
-      ResultSet rs = stmt.executeQuery(
-          "SELECT oid FROM pg_type WHERE typname = 'x' ORDER BY oid DESC LIMIT 1");
+      ResultSet rs = stmt
+          .executeQuery("SELECT oid FROM pg_type WHERE typname = 'x' ORDER BY oid DESC LIMIT 1");
       assertTrue(rs.next());
       assertEquals(OID, rs.getInt(1));
       assertTrue(!rs.next());

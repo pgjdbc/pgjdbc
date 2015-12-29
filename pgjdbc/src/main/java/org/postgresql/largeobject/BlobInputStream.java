@@ -59,7 +59,7 @@ public class BlobInputStream extends InputStream {
   }
 
   /**
-   * @param lo    LargeObject to read from
+   * @param lo LargeObject to read from
    * @param bsize buffer size
    */
 
@@ -68,7 +68,7 @@ public class BlobInputStream extends InputStream {
   }
 
   /**
-   * @param lo    LargeObject to read from
+   * @param lo LargeObject to read from
    * @param bsize buffer size
    * @param limit max number of bytes to read
    */
@@ -118,7 +118,8 @@ public class BlobInputStream extends InputStream {
   /**
    * Closes this input stream and releases any system resources associated with the stream.
    *
-   * <p> The <code>close</code> method of <code>InputStream</code> does nothing.
+   * <p>
+   * The <code>close</code> method of <code>InputStream</code> does nothing.
    *
    * @throws IOException if an I/O error occurs.
    */
@@ -138,20 +139,23 @@ public class BlobInputStream extends InputStream {
    * method repositions this stream at the last marked position so that subsequent reads re-read the
    * same bytes.
    *
-   * <p> The <code>readlimit</code> arguments tells this input stream to allow that many bytes to be
+   * <p>
+   * The <code>readlimit</code> arguments tells this input stream to allow that many bytes to be
    * read before the mark position gets invalidated.
    *
-   * <p> The general contract of <code>mark</code> is that, if the method <code>markSupported</code>
+   * <p>
+   * The general contract of <code>mark</code> is that, if the method <code>markSupported</code>
    * returns <code>true</code>, the stream somehow remembers all the bytes read after the call to
    * <code>mark</code> and stands ready to supply those same bytes again if and whenever the method
-   * <code>reset</code> is called.  However, the stream is not required to remember any data at all
+   * <code>reset</code> is called. However, the stream is not required to remember any data at all
    * if more than <code>readlimit</code> bytes are read from the stream before <code>reset</code> is
    * called.
    *
-   * <p> Marking a closed stream should not have any effect on the stream.
+   * <p>
+   * Marking a closed stream should not have any effect on the stream.
    *
    * @param readlimit the maximum limit of bytes that can be read before the mark position becomes
-   *                  invalid.
+   *        invalid.
    * @see java.io.InputStream#reset()
    */
   public synchronized void mark(int readlimit) {
@@ -170,8 +174,7 @@ public class BlobInputStream extends InputStream {
    * @see java.io.InputStream#mark(int)
    * @see java.io.IOException
    */
-  public synchronized void reset()
-      throws IOException {
+  public synchronized void reset() throws IOException {
     checkClosed();
     try {
       lo.seek(mpos);
@@ -185,7 +188,7 @@ public class BlobInputStream extends InputStream {
    * <code>markSupported</code> method of <code>InputStream</code> returns <code>false</code>.
    *
    * @return <code>true</code> if this true type supports the mark and reset method;
-   * <code>false</code> otherwise.
+   *         <code>false</code> otherwise.
    * @see java.io.InputStream#mark(int)
    * @see java.io.InputStream#reset()
    */

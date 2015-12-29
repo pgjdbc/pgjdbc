@@ -16,8 +16,7 @@ public class ANTTest extends TestCase {
   }
 
   /*
-   * This tests the acceptsURL() method with a couple of good and badly formed
-   * jdbc urls
+   * This tests the acceptsURL() method with a couple of good and badly formed jdbc urls
    */
   public void testANT() {
     String url = System.getProperty("database");

@@ -33,7 +33,7 @@ public class PGpath extends PGobject implements Serializable, Cloneable {
 
   /**
    * @param points the PGpoints that define the path
-   * @param open   True if the path is open, false if closed
+   * @param open True if the path is open, false if closed
    */
   public PGpath(PGpoint[] points, boolean open) {
     this();

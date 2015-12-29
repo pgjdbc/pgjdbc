@@ -23,9 +23,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 
-/**
- * @author Michael Barker <mailto:mike@middlesoft.co.uk>
- */
 public class Jdbc3BlobTest extends TestCase {
   Connection _conn;
   private final static String TABLE = "blobtest";
@@ -141,8 +138,8 @@ public class Jdbc3BlobTest extends TestCase {
 
   /**
    *
-   * @param data
-   * @throws SQLException
+   * @param data data to write
+   * @throws SQLException if something goes wrong
    */
   public void readWrite(byte[] data) throws SQLException {
     readWrite(1, data);
@@ -150,9 +147,9 @@ public class Jdbc3BlobTest extends TestCase {
 
   /**
    *
-   * @param offset
-   * @param data
-   * @throws SQLException
+   * @param offset data offset
+   * @param data data to write
+   * @throws SQLException if something goes wrong
    */
   public void readWrite(int offset, byte[] data) throws SQLException {
 

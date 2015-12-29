@@ -76,7 +76,7 @@ class UTF8Encoding extends Encoding {
    * representations add about 10-15% overhead, but they seem worth it given the number of SQL_ASCII
    * databases out there.
    *
-   * @param data   the array containing UTF8-encoded data
+   * @param data the array containing UTF8-encoded data
    * @param offset the offset of the first byte in <code>data</code> to decode from
    * @param length the number of bytes to decode
    * @return a decoded string
@@ -133,25 +133,24 @@ class UTF8Encoding extends Encoding {
         }
 
         if (ch > MAX_CODE_POINT) {
-          throw new IOException(GT.tr("Illegal UTF-8 sequence: final value is out of range: {0}",
-              ch));
+          throw new IOException(
+              GT.tr("Illegal UTF-8 sequence: final value is out of range: {0}", ch));
         }
 
         // Convert 21-bit codepoint to Java chars:
-        //   0..ffff are represented directly as a single char
-        //   10000..10ffff are represented as a "surrogate pair" of two chars
+        // 0..ffff are represented directly as a single char
+        // 10000..10ffff are represented as a "surrogate pair" of two chars
         // See: http://java.sun.com/developer/technicalArticles/Intl/Supplementary/
 
         if (ch > 0xffff) {
           // Use a surrogate pair to represent it.
-          ch -= 0x10000;  // ch is now 0..fffff (20 bits)
-          cdata[out++] = (char) (0xd800 + (ch >> 10));   // top 10 bits
+          ch -= 0x10000; // ch is now 0..fffff (20 bits)
+          cdata[out++] = (char) (0xd800 + (ch >> 10)); // top 10 bits
           cdata[out++] = (char) (0xdc00 + (ch & 0x3ff)); // bottom 10 bits
         } else if (ch >= 0xd800 && ch < 0xe000) {
           // Not allowed to encode the surrogate range directly.
           throw new IOException(
-              GT.tr("Illegal UTF-8 sequence: final value is a surrogate value: {0}",
-                  ch));
+              GT.tr("Illegal UTF-8 sequence: final value is a surrogate value: {0}", ch));
         } else {
           // Normal case.
           cdata[out++] = (char) ch;

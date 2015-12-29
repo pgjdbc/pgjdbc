@@ -1,15 +1,15 @@
 package org.postgresql.test.socketfactory;
 
-import java.sql.Connection;
-import java.util.Properties;
+import org.postgresql.PGProperty;
+import org.postgresql.test.TestUtil;
 
 import junit.framework.TestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.postgresql.PGProperty;
-import org.postgresql.test.TestUtil;
+import java.sql.Connection;
+import java.util.Properties;
 
 public class SocketFactoryTestSuite extends TestCase {
 

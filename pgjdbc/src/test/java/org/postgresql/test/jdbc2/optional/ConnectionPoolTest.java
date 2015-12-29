@@ -25,12 +25,13 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Iterator;
+
 import javax.sql.ConnectionEvent;
 import javax.sql.ConnectionEventListener;
 import javax.sql.PooledConnection;
 
 /**
- * Tests for the ConnectionPoolDataSource and PooledConnection implementations.  They are tested
+ * Tests for the ConnectionPoolDataSource and PooledConnection implementations. They are tested
  * together because the only client interface to the PooledConnection is through the CPDS.
  *
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
@@ -56,7 +57,8 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
   }
 
   protected void tearDown() throws Exception {
-    for (Iterator<PooledConnection> i = connections.iterator(); i.hasNext(); ) {
+    Iterator<PooledConnection> i = connections.iterator();
+    while (i.hasNext()) {
       PooledConnection c = i.next();
       try {
         c.close();
@@ -84,33 +86,33 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
 
   /**
    * Instead of just fetching a Connection from the ConnectionPool, get a PooledConnection, add a
-   * listener to close it when the Connection is closed, and then get the Connection.  Without the
+   * listener to close it when the Connection is closed, and then get the Connection. Without the
    * listener the PooledConnection (and thus the physical connection) would never by closed.
    * Probably not a disaster during testing, but you never know.
    */
   protected Connection getDataSourceConnection() throws SQLException {
     initializeDataSource();
     final PooledConnection pc = getPooledConnection();
-    // Since the pooled connection won't be reused in these basic tests, close it when the connection is closed
+    // Since the pooled connection won't be reused in these basic tests, close it when the
+    // connection is closed
     pc.addConnectionEventListener(new ConnectionEventListener() {
-                                    public void connectionClosed(ConnectionEvent event) {
-                                      try {
-                                        pc.close();
-                                      } catch (SQLException e) {
-                                        fail("Unable to close PooledConnection: " + e);
-                                      }
-                                    }
+      public void connectionClosed(ConnectionEvent event) {
+        try {
+          pc.close();
+        } catch (SQLException e) {
+          fail("Unable to close PooledConnection: " + e);
+        }
+      }
 
-                                    public void connectionErrorOccurred(ConnectionEvent event) {
-                                    }
-                                  }
-    );
+      public void connectionErrorOccurred(ConnectionEvent event) {
+      }
+    });
     return pc.getConnection();
   }
 
   /**
    * Makes sure that if you get a connection from a PooledConnection, close it, and then get another
-   * one, you're really using the same physical connection.  Depends on the implementation of
+   * one, you're really using the same physical connection. Depends on the implementation of
    * toString for the connection handle.
    */
   public void testPoolReuse() {
@@ -132,8 +134,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
 
   /**
    * Makes sure that when you request a connection from the PooledConnection, and previous
-   * connection it might have given out is closed.  See JDBC 2.0 Optional Package spec section
-   * 6.2.3
+   * connection it might have given out is closed. See JDBC 2.0 Optional Package spec section 6.2.3
    */
   public void testPoolCloseOldWrapper() {
     try {
@@ -155,7 +156,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
 
   /**
    * Makes sure that if you get two connection wrappers from the same PooledConnection, they are
-   * different, even though the represent the same physical connection.  See JDBC 2.0 Optional
+   * different, even though the represent the same physical connection. See JDBC 2.0 Optional
    * Pacakge spec section 6.2.2
    */
   public void testPoolNewWrapper() {
@@ -271,7 +272,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
       con = pc.getConnection();
       assertTrue(cc.getCount() == 1);
       assertTrue(cc.getErrorCount() == 0);
-      // Open a 2nd connection, causing the first to be closed.  No even should be generated.
+      // Open a 2nd connection, causing the first to be closed. No even should be generated.
       Connection con2 = pc.getConnection();
       assertTrue("Connection handle was not closed when new handle was opened", con.isClosed());
       assertTrue(cc.getCount() == 1);
@@ -286,9 +287,8 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
   }
 
   /**
-   * Makes sure the isClosed method on a connection wrapper does what you'd expect.  Checks the
-   * usual case, as well as automatic closure when a new handle is opened on the same physical
-   * connection.
+   * Makes sure the isClosed method on a connection wrapper does what you'd expect. Checks the usual
+   * case, as well as automatic closure when a new handle is opened on the same physical connection.
    */
   public void testIsClosed() {
     try {
@@ -377,8 +377,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
     } catch (SQLException e) {
       ; // This is the expected and correct path
     } catch (Exception e) {
-      fail("bad exception; was expecting SQLException, not"
-          + e.getClass().getName());
+      fail("bad exception; was expecting SQLException, not" + e.getClass().getName());
     }
   }
 
@@ -459,7 +458,8 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
    * sees.
    */
   private class CountClose implements ConnectionEventListener {
-    private int count = 0, errorCount = 0;
+    private int count = 0;
+    private int errorCount = 0;
 
     public void connectionClosed(ConnectionEvent event) {
       count++;
