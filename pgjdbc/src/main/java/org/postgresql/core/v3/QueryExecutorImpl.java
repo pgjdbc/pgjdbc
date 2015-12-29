@@ -190,9 +190,17 @@ public class QueryExecutorImpl implements QueryExecutor {
       ((V3ParameterList) parameters).checkAllParametersSet();
     }
 
+    boolean autosave = false;
     try {
       try {
         handler = sendQueryPreamble(handler, flags);
+        if (((flags & QueryExecutor.QUERY_SUPPRESS_BEGIN) == 0
+            || protoConnection.getTransactionState() == ProtocolConnection.TRANSACTION_OPEN)
+            && query != restoreToAutoSave) {
+          sendOneQuery(autoSaveQuery, SimpleQuery.NO_PARAMETERS, 1, 0,
+              QueryExecutor.QUERY_NO_RESULTS);
+          autosave = true;
+        }
         ErrorTrackingResultHandler trackingHandler = new ErrorTrackingResultHandler(handler);
         sendQuery((V3Query) query, (V3ParameterList) parameters, maxRows, fetchSize, flags,
             trackingHandler, null);
@@ -228,7 +236,45 @@ public class QueryExecutorImpl implements QueryExecutor {
               PSQLState.CONNECTION_FAILURE, e));
     }
 
-    handler.handleCompletion();
+    try {
+      handler.handleCompletion();
+    } catch (SQLException e) {
+      if (autosave
+          && protoConnection.getTransactionState() == ProtocolConnection.TRANSACTION_FAILED) {
+        try {
+          execute(restoreToAutoSave, SimpleQuery.NO_PARAMETERS, new ResultHandler() {
+            @Override
+            public void handleResultRows(Query fromQuery, Field[] fields, List tuples,
+                ResultCursor cursor) {
+
+            }
+
+            @Override
+            public void handleCommandStatus(String status, int updateCount, long insertOID) {
+
+            }
+
+            @Override
+            public void handleWarning(SQLWarning warning) {
+
+            }
+
+            @Override
+            public void handleError(SQLException error) {
+
+            }
+
+            @Override
+            public void handleCompletion() throws SQLException {
+
+            }
+          }, 1, 0, QueryExecutor.QUERY_NO_RESULTS | QueryExecutor.QUERY_SUPPRESS_BEGIN);
+        } catch (SQLException e2) {
+          e2.printStackTrace(); // :(
+        }
+      }
+      throw e;
+    }
   }
 
   // Deadlock avoidance:
@@ -1929,6 +1975,11 @@ public class QueryExecutorImpl implements QueryExecutor {
           SimpleQuery currentQuery = executeData.query;
           Portal currentPortal = executeData.portal;
 
+          if (currentQuery == autoSaveQuery) {
+            // ignore "SAVEPOINT" status from autosave query
+            break;
+          }
+
           Field[] fields = currentQuery.getFields();
           if (fields != null && !noResults && tuples == null) {
             tuples = new ArrayList<byte[][]>();
@@ -2396,4 +2447,8 @@ public class QueryExecutorImpl implements QueryExecutor {
       new SimpleQuery(new NativeQuery("BEGIN", new int[0]), null);
 
   private final SimpleQuery EMPTY_QUERY = new SimpleQuery(new NativeQuery("", new int[0]), null);
+
+  private final SimpleQuery autoSaveQuery = new SimpleQuery(new NativeQuery("SAVEPOINT JDBC_AUTOSAVE", new int[0]), null);
+
+  private final SimpleQuery restoreToAutoSave = new SimpleQuery(new NativeQuery("ROLLBACK TO SAVEPOINT JDBC_AUTOSAVE", new int[0]), null);
 }
