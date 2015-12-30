@@ -101,6 +101,30 @@
           <outputEncoding>UTF-8</outputEncoding>
         </configuration>
       </plugin>
+      <plugin>
+        <artifactId>maven-clean-plugin</artifactId>
+        <version>3.0.0</version>
+        <configuration>
+          <filesets>
+            <fileset>
+              <directory>src/main/resources/org/postgresql/translation</directory>
+              <includes>
+                <include>**$*.class</include>
+                <include>messages.properties</include>
+                <include>messages_en.properties</include>
+              </includes>
+              <followSymlinks>false</followSymlinks>
+            </fileset>
+            <fileset>
+              <directory>src/main/java/org/postgresql/translation</directory>
+              <includes>
+                <include>*.po.~*~</include>
+              </includes>
+              <followSymlinks>false</followSymlinks>
+            </fileset>
+          </filesets>
+        </configuration>
+      </plugin>
     </plugins>
 
     <pluginManagement>
