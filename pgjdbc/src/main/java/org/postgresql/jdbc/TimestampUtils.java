@@ -120,6 +120,17 @@ public class TimestampUtils {
     Calendar tz = null;
   }
 
+  private static class ParsedBinaryTimestamp {
+    Infinity infinity = null;
+    long millis = 0;
+    int nanos = 0;
+  }
+
+  enum Infinity {
+    POSITIVE,
+    NEGATIVE;
+  }
+
   /**
    * Load date/time information into the provided calendar returning the fractional seconds.
    */
@@ -341,6 +352,43 @@ public class TimestampUtils {
     result.setNanos(ts.nanos);
     return result;
   }
+
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+  /**
+   * Parse a string and return a LocalDateTime representing its value.
+   *
+   * @param s The ISO formated date string to parse.
+   * @return null if s is null or a LocalDateTime of the parsed string s.
+   * @throws SQLException if there is a problem parsing s.
+   */
+  public LocalDateTime toLocalDateTime(String s) throws SQLException {
+    if (s == null) {
+      return null;
+    }
+
+    int slen = s.length();
+
+    // convert postgres's infinity values to internal infinity magic value
+    if (slen == 8 && s.equals("infinity")) {
+      return LocalDateTime.MAX;
+    }
+
+    if (slen == 9 && s.equals("-infinity")) {
+      return LocalDateTime.MIN;
+    }
+
+    ParsedTimestamp ts = parseBackendTimestamp(s);
+
+    // intentionally ignore time zone
+    // 2004-10-19 10:23:54+03:00 is 2004-10-19 10:23:54 locally
+    LocalDateTime result = LocalDateTime.of(ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second, ts.nanos);
+    if (ts.era == GregorianCalendar.BC) {
+      return result.with(ChronoField.ERA, IsoEra.BCE.getValue());
+    } else {
+      return result;
+    }
+  }
+  //#endif
 
   public synchronized Time toTime(Calendar cal, String s) throws SQLException {
     // 1) Parse backend string
@@ -757,9 +805,24 @@ public class TimestampUtils {
   public Timestamp toTimestampBin(TimeZone tz, byte[] bytes, boolean timestamptz)
       throws PSQLException {
 
+    ParsedBinaryTimestamp parsedTimestamp = this.toParsedTimestampBin(tz, bytes, timestamptz);
+    if (parsedTimestamp.infinity == Infinity.POSITIVE) {
+      return new Timestamp(PGStatement.DATE_POSITIVE_INFINITY);
+    } else if (parsedTimestamp.infinity == Infinity.NEGATIVE) {
+      return new Timestamp(PGStatement.DATE_NEGATIVE_INFINITY);
+    }
+
+    Timestamp ts = new Timestamp(parsedTimestamp.millis);
+    ts.setNanos(parsedTimestamp.nanos);
+    return ts;
+  }
+
+  private ParsedBinaryTimestamp toParsedTimestampBin(TimeZone tz, byte[] bytes, boolean timestamptz)
+          throws PSQLException {
+
     if (bytes.length != 8) {
       throw new PSQLException(GT.tr("Unsupported binary encoding of {0}.", "timestamp"),
-          PSQLState.BAD_DATETIME_FORMAT);
+              PSQLState.BAD_DATETIME_FORMAT);
     }
 
     long secs;
@@ -768,9 +831,13 @@ public class TimestampUtils {
     if (usesDouble) {
       double time = ByteConverter.float8(bytes, 0);
       if (time == Double.POSITIVE_INFINITY) {
-        return new Timestamp(PGStatement.DATE_POSITIVE_INFINITY);
+        ParsedBinaryTimestamp ts = new ParsedBinaryTimestamp();
+        ts.infinity = Infinity.POSITIVE;
+        return ts;
       } else if (time == Double.NEGATIVE_INFINITY) {
-        return new Timestamp(PGStatement.DATE_NEGATIVE_INFINITY);
+        ParsedBinaryTimestamp ts = new ParsedBinaryTimestamp();
+        ts.infinity = Infinity.NEGATIVE;
+        return ts;
       }
 
       secs = (long) time;
@@ -782,9 +849,13 @@ public class TimestampUtils {
       // and can actually be confusing because there are timestamps
       // that are larger than infinite
       if (time == Long.MAX_VALUE) {
-        return new Timestamp(PGStatement.DATE_POSITIVE_INFINITY);
+        ParsedBinaryTimestamp ts = new ParsedBinaryTimestamp();
+        ts.infinity = Infinity.POSITIVE;
+        return ts;
       } else if (time == Long.MIN_VALUE) {
-        return new Timestamp(PGStatement.DATE_NEGATIVE_INFINITY);
+        ParsedBinaryTimestamp ts = new ParsedBinaryTimestamp();
+        ts.infinity = Infinity.NEGATIVE;
+        return ts;
       }
 
       secs = time / 1000000;
@@ -804,10 +875,33 @@ public class TimestampUtils {
       millis = guessTimestamp(millis, tz);
     }
 
-    Timestamp ts = new Timestamp(millis);
-    ts.setNanos(nanos);
+    ParsedBinaryTimestamp ts = new ParsedBinaryTimestamp();
+    ts.millis = millis;
+    ts.nanos = nanos;
     return ts;
   }
+
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+  /**
+   * Returns the local date time object matching the given bytes with {@link Oid#TIMESTAMP} or
+   * {@link Oid#TIMESTAMPTZ}.
+   *
+   * @param bytes The binary encoded local date time value.
+   * @return The parsed local date time object.
+   * @throws PSQLException If binary format could not be parsed.
+   */
+  public LocalDateTime toLocalDateTimeBin(byte[] bytes)  throws PSQLException {
+
+    ParsedBinaryTimestamp parsedTimestamp = this.toParsedTimestampBin(null, bytes, true);
+    if (parsedTimestamp.infinity == Infinity.POSITIVE) {
+      return LocalDateTime.MAX;
+    } else if (parsedTimestamp.infinity == Infinity.NEGATIVE) {
+      return LocalDateTime.MAX;
+    }
+
+    return LocalDateTime.ofEpochSecond(parsedTimestamp.millis / 1000L, parsedTimestamp.nanos, ZoneOffset.UTC);
+  }
+  //#endif
 
   /**
    * Given a UTC timestamp {@code millis} finds another point in time that is rendered in given time
