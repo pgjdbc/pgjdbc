@@ -915,7 +915,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       if (in instanceof Clob) {
         return asString((Clob) in);
       }
-      //this behaviour is possibly atypical but the driver has done this historically
+      // convert any unknown objects to string.
       return in.toString();
 
     } catch (final Exception e) {
