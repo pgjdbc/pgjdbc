@@ -912,17 +912,15 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       if (in instanceof String) {
         return (String) in;
       }
-      if (in instanceof Number || in instanceof Boolean || in instanceof Character
-          || in instanceof java.util.Date) {
-        return in.toString();
-      }
       if (in instanceof Clob) {
         return asString((Clob) in);
       }
+      //this behaviour is possibly atypical but the driver has done this historically
+      return in.toString();
+
     } catch (final Exception e) {
       throw cannotCastException(in.getClass().getName(), "String", e);
     }
-    throw cannotCastException(in.getClass().getName(), "String");
   }
 
   private static PSQLException cannotCastException(final String fromType, final String toType) {
