@@ -37,6 +37,59 @@
     <skip.assembly>false</skip.assembly>
   </properties>
 
+  <profiles>
+    <profile>
+      <id>translate</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>com.googlecode.gettext-commons</groupId>
+            <artifactId>gettext-maven-plugin</artifactId>
+            <version>1.2.4</version>
+            <executions>
+              <execution>
+                <id>generate_pot_and_po_files</id>
+                <phase>compile</phase>
+                <goals>
+                  <goal>merge</goal>
+                </goals>
+              </execution>
+              <execution>
+                <id>create_src_class_files</id>
+                <phase>compile</phase>
+                <goals>
+                  <goal>dist</goal>
+                </goals>
+              </execution>
+              <execution>
+                <id>create_destination_class_files</id>
+                <phase>compile</phase>
+                <goals>
+                  <goal>dist</goal>
+                </goals>
+                <configuration>
+                  <outputDirectory>${project.build.directory}/classes</outputDirectory>
+                </configuration>
+              </execution>
+            </executions>
+            <configuration>
+              <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
+              <outputDirectory>src/main/resources</outputDirectory>
+              <keysFile>messages.pot</keysFile>
+              <poDirectory>src/main/java/org/postgresql/translation</poDirectory>
+              <targetBundle>org.postgresql.translation.messages</targetBundle>
+              <keywords>-kGT.tr</keywords>
+              <msgmergeCmd>msgmerge</msgmergeCmd>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
   <build>
     <plugins>
       <plugin>
@@ -46,6 +99,30 @@
           <chmod>true</chmod>
           <inputEncoding>UTF-8</inputEncoding>
           <outputEncoding>UTF-8</outputEncoding>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-clean-plugin</artifactId>
+        <version>3.0.0</version>
+        <configuration>
+          <filesets>
+            <fileset>
+              <directory>src/main/resources/org/postgresql/translation</directory>
+              <includes>
+                <include>**$*.class</include>
+                <include>messages.properties</include>
+                <include>messages_en.properties</include>
+              </includes>
+              <followSymlinks>false</followSymlinks>
+            </fileset>
+            <fileset>
+              <directory>src/main/java/org/postgresql/translation</directory>
+              <includes>
+                <include>*.po.~*~</include>
+              </includes>
+              <followSymlinks>false</followSymlinks>
+            </fileset>
+          </filesets>
         </configuration>
       </plugin>
     </plugins>

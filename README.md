@@ -79,6 +79,10 @@ In order to build the source code for PgJDBC you will need the following tools:
 - A JDK for the JDBC version you'd like to build (JDK6 for JDBC 4, JDK7 for JDBC 4.1 or JDK8 for JDBC 4.2)
 - A running PostgreSQL instance
 
+Additionally, in order to update translations (not typical), you will need the following additional tools:
+
+-  the gettext package, which contains the commands "msgfmt", "msgmerge", and "xgettext"
+
 ## Checking out the source code
 
 The PgJDBC project uses git for version control. You can check out the current code by running:
@@ -161,6 +165,19 @@ Here's sample configuration for Mac OS:
   </toolchain>
 </toolchains>
 ```
+
+## Updating translations
+
+From time to time, the translation packages will need to be updated as part of the build process.
+However, this is atypical, and is generally only done when needed such as by a project committer before a major release.
+This process adds additional compile time and generally should not be executed for every build.
+
+Updating translations can be accomplished with the following command:
+
+    mvn -Ptranslate compile && git add pgjdbc && git commit -m "Translations updated"
+
+Note that the maven profile "translate" can safely be called with other profiles, such as -P release-artifacts.
+Invocation of this command will generate new .po files, a new messages.pot file, and newly translated class files.
 
 ## Releasing a snapshot version
 
