@@ -112,6 +112,12 @@ public class Jdbc2TestSuite extends TestSuite {
     if (TestUtil.haveMinimumServerVersion(conn, "9.3")) {
       suite.addTestSuite(ServerErrorTest.class);
     }
+
+    if (TestUtil.haveMinimumServerVersion(conn, "9.5")) {
+      suite.addTestSuite(UpsertTest.class);
+      suite.addTestSuite(UpsertBinaryTest.class);
+    }
+
     conn.close();
 
     // That's all folks
