@@ -680,15 +680,17 @@ public class TimestampUtils {
     }
     long secs = toJavaSecs(days * 86400L);
     long millis = secs * 1000L;
-    int offset = tz.getOffset(millis);
+
+    // Here be dragons: backend did not provide us the timezone, so we guess the actual point in
+    // time
+    millis = guessTimestamp(millis, tz);
+
     if (millis <= PGStatement.DATE_NEGATIVE_SMALLER_INFINITY) {
       millis = PGStatement.DATE_NEGATIVE_INFINITY;
-      offset = 0;
     } else if (millis >= PGStatement.DATE_POSITIVE_SMALLER_INFINITY) {
       millis = PGStatement.DATE_POSITIVE_INFINITY;
-      offset = 0;
     }
-    return new Date(millis - offset);
+    return new Date(millis);
   }
 
   private static TimeZone getDefaultTz() {
@@ -727,15 +729,17 @@ public class TimestampUtils {
     if (bytes.length == 12) {
       timeOffset = ByteConverter.int4(bytes, 8);
       timeOffset *= -1000;
+      millis -= timeOffset;
     } else {
       if (tz == null) {
         tz = getDefaultTz();
       }
 
-      timeOffset = tz.getOffset(millis);
+      // Here be dragons: backend did not provide us the timezone, so we guess the actual point in
+      // time
+      millis = guessTimestamp(millis, tz);
     }
 
-    millis -= timeOffset;
     return convertToTime(millis, tz); // Ensure date part is 1970-01-01
   }
 

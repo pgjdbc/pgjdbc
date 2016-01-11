@@ -818,7 +818,13 @@ public class TimezoneTest extends TestCase {
     localTimestamps("America/Adak"); // It is something like GMT-10..GMT-9
   }
 
+  private String setTimeTo00_00_00(String timestamp) {
+    return timestamp.substring(0, 11) + "00:00:00";
+  }
+
   public void localTimestamps(String timeZone) throws Exception {
+    TimeZone.setDefault(TimeZone.getTimeZone(timeZone));
+
     final String testDateFormat = "yyyy-MM-dd HH:mm:ss";
     final List<String> datesToTest = Arrays.asList("2015-09-03 12:00:00", "2015-06-30 23:59:58",
         "1997-06-30 23:59:59", "1997-07-01 00:00:00", "2012-06-30 23:59:59", "2012-07-01 00:00:00",
@@ -841,12 +847,15 @@ public class TimezoneTest extends TestCase {
 
     for (int i = 0; i < datesToTest.size(); i++) {
       stmt.execute(
-          "insert into testtimezone (ts, seq) values ('" + datesToTest.get(i) + "', " + i + ")");
+          "insert into testtimezone (ts, d, seq) values ("
+              + "'" + datesToTest.get(i) + "'"
+              + ", '" + setTimeTo00_00_00(datesToTest.get(i)) + "'"
+              + ", " + i + ")");
     }
 
     // Different timezone test should have different sql text, so we test both text and binary modes
     PreparedStatement pstmt =
-        con.prepareStatement("SELECT ts FROM testtimezone order by seq /*" + timeZone + "*/");
+        con.prepareStatement("SELECT ts, d FROM testtimezone order by seq /*" + timeZone + "*/");
 
     Calendar expectedTimestamp = Calendar.getInstance();
 
@@ -857,6 +866,7 @@ public class TimezoneTest extends TestCase {
       for (int j = 0; rs.next(); j++) {
         String testDate = datesToTest.get(j);
         Date getDate = rs.getDate(1);
+        Date getDateFromDateColumn = rs.getDate(2);
         Timestamp getTimestamp = rs.getTimestamp(1);
         String getString = rs.getString(1);
         Time getTime = rs.getTime(1);
@@ -877,9 +887,23 @@ public class TimezoneTest extends TestCase {
         expectedTimestamp.set(Calendar.SECOND, 0);
 
         assertEquals(
-            "getDate: " + testDate + ", transfer format: " + (i == 0 ? "text" : "binary")
+            "TIMESTAMP -> getDate: " + testDate + ", transfer format: " + (i == 0 ? "text" : "binary")
                 + ", timeZone: " + timeZone,
             sdf.format(expectedTimestamp.getTimeInMillis()), sdf.format(getDate));
+
+        String expectedDateFromDateColumn = setTimeTo00_00_00(testDate);
+        if ("Atlantic/Azores".equals(timeZone) && testDate.startsWith("2000-03-26")) {
+          // Atlantic/Azores does not have 2000-03-26 00:00:00
+          // They go right to 2000-03-26 01:00:00 due to DST.
+          // Vladimir Sitnikov: I have no idea how do they represent 2000-03-26 00:00:00 :(
+          // So the assumption is 2000-03-26 01:00:00 is the expected for that time zone
+          expectedDateFromDateColumn = "2000-03-26 01:00:00";
+        }
+
+        assertEquals(
+            "DATE -> getDate: " + expectedDateFromDateColumn + ", transfer format: " + (i == 0 ? "text" : "binary")
+                + ", timeZone: " + timeZone,
+            expectedDateFromDateColumn, sdf.format(getDateFromDateColumn));
 
         expectedTimestamp.setTime(sdf.parse(testDate));
         expectedTimestamp.set(Calendar.YEAR, 1970);
