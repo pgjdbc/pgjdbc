@@ -64,7 +64,7 @@ POSSIBILITY OF SUCH DAMAGE.
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
       <version>${project.version}</version>
-      <scope>provided</scope>
+      <!--<scope>provided</scope>-->
     </dependency>
   </dependencies>
 

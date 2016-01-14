@@ -49,8 +49,11 @@ public class InsertBatch {
   private PreparedStatement ps;
   String[] strings;
 
-  @Param({"100"})
-  int nrows;
+  @Param({"16", "128", "1024"})
+  int p1nrows;
+
+  @Param({"1", "2", "4", "8", "16"})
+  int p2multi;
 
   @Setup(Level.Trial)
   public void setUp() throws SQLException {
@@ -66,9 +69,13 @@ public class InsertBatch {
     }
     s.execute("create table batch_perf_test(a int4, b varchar(100), c int4)");
     s.close();
-    ps = connection.prepareStatement("insert into batch_perf_test(a, b, c) values(?, ?, ?)");
-    strings = new String[nrows];
-    for (int i = 0; i < nrows; i++) {
+    String sql = "insert into batch_perf_test(a, b, c) values(?, ?, ?)";
+    for (int i = 1; i < p2multi; i++) {
+      sql += ",(?,?,?)";
+    }
+    ps = connection.prepareStatement(sql);
+    strings = new String[p1nrows];
+    for (int i = 0; i < p1nrows; i++) {
       strings[i] = "s" + i;
     }
   }
@@ -84,18 +91,31 @@ public class InsertBatch {
 
   @Benchmark
   public int[] insertBatch() throws SQLException {
-    for (int i = 0; i < nrows; i++) {
-      ps.setInt(1, i);
-      ps.setString(2, strings[i]);
-      ps.setInt(3, i);
-      ps.addBatch();
+    if (p2multi > 1) {
+      // Multi values(),(),() case
+      for (int i = 0; i < p1nrows; ) {
+        for (int k = 0, pos = 1; k < p2multi; k++, i++) {
+          ps.setInt(pos, i); pos++;
+          ps.setString(pos, strings[i]); pos++;
+          ps.setInt(pos, i); pos++;
+        }
+        ps.addBatch();
+      }
+    } else {
+      // Regular insert() values(); case
+      for (int i = 0; i < p1nrows; i++) {
+        ps.setInt(1, i);
+        ps.setString(2, strings[i]);
+        ps.setInt(3, i);
+        ps.addBatch();
+      }
     }
     return ps.executeBatch();
   }
 
   @Benchmark
   public void insertExecute(Blackhole b) throws SQLException {
-    for (int i = 0; i < nrows; i++) {
+    for (int i = 0; i < p1nrows; i++) {
       ps.setInt(1, i);
       ps.setString(2, strings[i]);
       ps.setInt(3, i);
@@ -104,6 +124,8 @@ public class InsertBatch {
   }
 
   public static void main(String[] args) throws RunnerException {
+    //DriverManager.setLogWriter(new PrintWriter(System.out));
+    //Driver.setLogLevel(2);
     Options opt = new OptionsBuilder()
         .include(InsertBatch.class.getSimpleName())
         .addProfiler(GCProfiler.class)
