@@ -44,7 +44,9 @@ matrix:
     - jdk: oraclejdk8
       addons:
         postgresql: "9.4"
-      env: PG_VERSION=9.4
+      env:
+        - PG_VERSION=9.4
+        - COVERAGE=Y
     - jdk: openjdk7
       addons:
         postgresql: "9.4"
@@ -60,7 +62,9 @@ matrix:
     - jdk: openjdk7
       addons:
         postgresql: "9.3"
-      env: PG_VERSION=9.3
+      env:
+        - PG_VERSION=9.3
+        - COVERAGE=Y
     - jdk: openjdk6
       addons:
         postgresql: "9.3"
@@ -76,11 +80,15 @@ matrix:
     - jdk: openjdk6
       addons:
         postgresql: "9.2"
-      env: PG_VERSION=9.2
+      env:
+        - PG_VERSION=9.2
+        - COVERAGE=Y
     - jdk: oraclejdk8
       addons:
         postgresql: "9.1"
-      env: PG_VERSION=9.1
+      env:
+        - PG_VERSION=9.1
+        - COVERAGE=Y
     - jdk: openjdk7
       addons:
         postgresql: "9.1"
