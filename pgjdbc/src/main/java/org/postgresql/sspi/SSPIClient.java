@@ -26,7 +26,7 @@ import java.sql.SQLException;
  *
  * @author craig
  */
-public class SSPIClient {
+public class SSPIClient extends ISSPIClient {
 
   public static String SSPI_DEFAULT_SPN_SERVICE_CLASS = "POSTGRES";
 
