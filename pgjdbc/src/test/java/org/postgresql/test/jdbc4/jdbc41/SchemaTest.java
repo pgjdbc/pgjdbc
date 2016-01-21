@@ -13,8 +13,12 @@ import org.postgresql.test.TestUtil;
 import junit.framework.TestCase;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.util.Properties;
 
 public class SchemaTest extends TestCase {
@@ -46,6 +50,8 @@ public class SchemaTest extends TestCase {
     TestUtil.createTable(_conn, "schema1.table1", "id integer");
     TestUtil.createTable(_conn, "schema2.table2", "id integer");
     TestUtil.createTable(_conn, "\"UpperCase\".table3", "id integer");
+    TestUtil.createTable(_conn, "schema1.sptest", "id integer");
+    TestUtil.createTable(_conn, "schema2.sptest", "id varchar");
   }
 
   protected void tearDown() throws SQLException {
@@ -177,6 +183,31 @@ public class SchemaTest extends TestCase {
       } catch (SQLException e) {
       }
     }
+  }
+
+  public void testSearchPath() throws SQLException {
+    execute("set search_path to schema1,public");
+    PreparedStatement ps = _conn.prepareStatement("select * from sptest");
+    for (int i = 0; i < 10; i++) {
+      ps.execute();
+    }
+    assertColType(ps, "sptest should point to schema1.sptest, thus column type should be INT",
+        Types.INTEGER);
+    ps.close();
+    execute("set search_path to schema2,public");
+    ps = _conn.prepareStatement("select * from sptest");
+    assertColType(ps, "sptest should point to schema2.sptest, thus column type should be VARCHAR",
+        Types.VARCHAR);
+    ps.close();
+  }
+
+  private void assertColType(PreparedStatement ps, String message, int expected) throws SQLException {
+    ResultSet rs = ps.executeQuery();
+    ResultSetMetaData md = rs.getMetaData();
+    int columnType = md.getColumnType(1);
+    assertEquals(message,
+        expected, columnType);
+    rs.close();
   }
 
 }
