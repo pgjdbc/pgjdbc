@@ -76,7 +76,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     boolean trySSL;
     String sslmode = PGProperty.SSL_MODE.get(info);
     if (sslmode == null) { // Fall back to the ssl property
-      requireSSL = trySSL = PGProperty.SSL.isPresent(info);
+      requireSSL = trySSL = PGProperty.SSL.getBoolean(info);
     } else {
       if ("disable".equals(sslmode)) {
         requireSSL = trySSL = false;
