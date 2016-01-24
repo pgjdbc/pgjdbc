@@ -586,6 +586,30 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return connection.getTimestampUtils().toTimestamp(cal, string);
   }
 
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+  public LocalDateTime getLocalDateTime(int i) throws SQLException {
+    checkResultSet(i);
+    if (wasNullFlag) {
+      return null;
+    }
+
+    int col = i - 1;
+    int oid = fields[col].getOID();
+    if (oid != Oid.TIMESTAMP) {
+      throw new PSQLException(
+              GT.tr("Cannot convert the column of type {0} to requested type {1}.",
+                      new Object[]{Oid.toString(oid), "timestamp"}),
+              PSQLState.DATA_TYPE_MISMATCH);
+    }
+    if (isBinary(i)) {
+      return connection.getTimestampUtils().toLocalDateTimeBin(this_row[col]);
+    }
+
+    String string = getString(i);
+    return connection.getTimestampUtils().toLocalDateTime(string);
+  }
+  //#endif
+
 
   public java.sql.Date getDate(String c, java.util.Calendar cal) throws SQLException {
     return getDate(findColumn(c), cal);
@@ -3299,11 +3323,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       }
     } else if (type == LocalDateTime.class) {
       if (sqlType == Types.TIMESTAMP) {
-        Timestamp timestampValue = getTimestamp(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        return type.cast(timestampValue.toLocalDateTime());
+        return type.cast(getLocalDateTime(columnIndex));
       } else {
         throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
       }
