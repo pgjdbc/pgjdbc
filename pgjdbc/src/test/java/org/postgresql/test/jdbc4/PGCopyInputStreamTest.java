@@ -2,6 +2,7 @@ package org.postgresql.test.jdbc4;
 
 import org.postgresql.PGConnection;
 import org.postgresql.copy.PGCopyInputStream;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
 import junit.framework.TestCase;
@@ -14,6 +15,7 @@ import java.sql.SQLException;
 public class PGCopyInputStreamTest extends TestCase {
   private Connection _conn;
   private PGCopyInputStream sut;
+  private String copyParams;
 
   public PGCopyInputStreamTest(String name) {
     super(name);
@@ -22,6 +24,11 @@ public class PGCopyInputStreamTest extends TestCase {
   protected void setUp() throws Exception {
     _conn = TestUtil.openDB();
     TestUtil.createTable(_conn, "cpinstreamtest", "i int");
+    if (TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v9_0)) {
+      copyParams = "(FORMAT CSV, HEADER false)";
+    } else {
+      copyParams = "CSV";
+    }
   }
 
   protected void tearDown() throws SQLException {
@@ -34,7 +41,7 @@ public class PGCopyInputStreamTest extends TestCase {
     insertSomeData();
 
     sut = new PGCopyInputStream((PGConnection) _conn,
-        "COPY cpinstreamtest (i) TO STDOUT WITH (FORMAT CSV, HEADER false)");
+        "COPY cpinstreamtest (i) TO STDOUT WITH " + copyParams);
 
     byte[] buf = new byte[100]; // large enough to read everything on the next step
     assertTrue(sut.read(buf) > 0);
@@ -46,7 +53,7 @@ public class PGCopyInputStreamTest extends TestCase {
     insertSomeData();
 
     sut = new PGCopyInputStream((PGConnection) _conn,
-        "COPY (select i from cpinstreamtest order by i asc) TO STDOUT WITH (FORMAT CSV, HEADER false)");
+        "COPY (select i from cpinstreamtest order by i asc) TO STDOUT WITH " + copyParams);
 
     byte[] buf = new byte[2]; // small enough to read in multiple chunks
     StringBuilder result = new StringBuilder(100);
@@ -64,7 +71,7 @@ public class PGCopyInputStreamTest extends TestCase {
     insertSomeData();
 
     sut = new PGCopyInputStream((PGConnection) _conn,
-        "COPY (select i from cpinstreamtest order by i asc) TO STDOUT WITH (FORMAT CSV, HEADER false)");
+        "COPY (select i from cpinstreamtest order by i asc) TO STDOUT WITH " + copyParams);
 
     byte[] buff = new byte[100];
     while (sut.read(buff) > 0) {

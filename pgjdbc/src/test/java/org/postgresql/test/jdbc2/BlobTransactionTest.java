@@ -71,6 +71,7 @@ public class BlobTransactionTest extends TestCase {
     } finally {
       st.close();
     }
+    TestUtil.closeDB(privilegedCon);
 
     con.setAutoCommit(false);
     con2.setAutoCommit(false);

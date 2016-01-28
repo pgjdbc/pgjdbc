@@ -2,9 +2,12 @@ sudo: false
 language: java
 
 before_script:
+  - test "x$XA" == 'x' || ./travis_install_dependencies.sh
   - psql -U postgres -c "create user test with password 'test';"
   - psql -c 'create database test owner test;' -U postgres
   - echo "MAVEN_OPTS='-Xmx1g -Dgpg.skip=true'" > ~/.mavenrc
+  - test "x$PG_VERSION" == 'x' || test $PG_VERSION == '8.4' || test $PG_VERSION == '9.0' || psql test -c 'CREATE EXTENSION hstore;' -U postgres
+  - test "x$PG_VERSION" == 'x' || test $PG_VERSION != '8.4' || createlang -U postgres plpgsql test
 
 env:
   global:
@@ -38,6 +41,20 @@ cache:
 matrix:
   fast_finish: true
   include:
+    - jdk: oraclejdk8
+      sudo: required
+      dist: trusty
+      env:
+        - PG_VERSION=9.5
+        - XA=true
+        - COVERAGE=Y
+    - jdk: oraclejdk8
+      sudo: required
+      dist: trusty
+      env:
+        - PG_VERSION=8.4
+        - XA=true
+        - COVERAGE=Y
     - jdk: oraclejdk8
       env: RUN_CHECKSTYLE=true
       script: cd pgjdbc && mvn checkstyle:check
