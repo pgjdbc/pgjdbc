@@ -13,6 +13,7 @@ import org.postgresql.copy.CopyIn;
 import org.postgresql.copy.CopyManager;
 import org.postgresql.copy.CopyOut;
 import org.postgresql.copy.PGCopyOutputStream;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLState;
 
@@ -38,6 +39,7 @@ public class CopyTest extends TestCase {
 
   private Connection con;
   private CopyManager copyAPI;
+  private String copyParams;
   // 0's required to match DB output for numeric(5,2)
   private String[] origData =
       {"First Row\t1\t1.10\n",
@@ -67,6 +69,11 @@ public class CopyTest extends TestCase {
     TestUtil.createTable(con, "copytest", "stringvalue text, intvalue int, numvalue numeric(5,2)");
 
     copyAPI = ((PGConnection) con).getCopyAPI();
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0)) {
+      copyParams = "(FORMAT CSV, HEADER false)";
+    } else {
+      copyParams = "CSV";
+    }
   }
 
   protected void tearDown() throws Exception {
@@ -312,7 +319,7 @@ public class CopyTest extends TestCase {
 
 
       // I expect an SQLException
-      String sql = "COPY copytest FROM STDIN with xxx (format 'csv')";
+      String sql = "COPY copytest FROM STDIN with xxx " + copyParams;
       CopyIn cp = manager.copyIn(sql);
       for (int i = 0; i < origData.length; i++) {
         byte[] buf = origData[i].getBytes();
@@ -348,7 +355,7 @@ public class CopyTest extends TestCase {
     stmt.close();
 
     CopyManager manager = con.unwrap(PGConnection.class).getCopyAPI();
-    CopyIn copyIn = manager.copyIn("COPY copytest FROM STDIN with (format 'csv')");
+    CopyIn copyIn = manager.copyIn("COPY copytest FROM STDIN with " + copyParams);
     try {
       killConnection(pid);
       byte[] bunchOfNulls = ",,\n".getBytes();

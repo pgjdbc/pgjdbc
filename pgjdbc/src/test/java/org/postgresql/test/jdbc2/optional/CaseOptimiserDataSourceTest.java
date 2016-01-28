@@ -66,12 +66,14 @@ public class CaseOptimiserDataSourceTest extends TestCase {
    */
   public void testDataSourceDisabledSanitiserPropertySucceeds() throws SQLException {
     String label = "FOO";
+    Connection conn = getDataSourceConnection();
     PreparedStatement query =
-        getDataSourceConnection().prepareStatement("select * from allmixedup");
+        conn.prepareStatement("select * from allmixedup");
     if (0 < TestUtil.findColumn(query, label)) {
       fail(String.format("Did not expect to find the column with the label [%1$s].", label));
     }
     query.close();
+    conn.close();
   }
 
   /**
