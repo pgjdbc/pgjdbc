@@ -12,7 +12,8 @@ import java.util.Properties;
 
 public class ConnectTimeoutTest extends TestCase {
   private static final String UNREACHABLE_HOST = "1.0.0.0";
-  private static final String UNREACHABLE_URL = "jdbc:postgresql://" + UNREACHABLE_HOST + "/test";
+  private static final String UNREACHABLE_URL =
+      TestUtil.getPrefix() + "//" + UNREACHABLE_HOST + "/test";
   private static final int CONNECT_TIMEOUT = 10;
 
   @Override

@@ -115,6 +115,40 @@
         </plugins>
       </build>
     </profile>
+
+    <profile>
+      <!-- This profile is to check how pgjdbc-ng performs against pgjdbc's test suite -->
+      <id>pgjdbc-ng</id>
+      <properties>
+        <argLine>-Xmx2g</argLine>
+      </properties>
+      <dependencies>
+        <dependency>
+          <groupId>com.impossibl.pgjdbc-ng</groupId>
+          <artifactId>pgjdbc-ng</artifactId>
+          <version>0.6</version><!-- no snapshot in Central yet -->
+        </dependency>
+      </dependencies>
+      <build>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <artifactId>maven-surefire-plugin</artifactId>
+              <executions>
+                <execution>
+                  <id>default-test</id>
+                  <configuration combine.children="append">
+                    <systemPropertyVariables combine.children="append">
+                      <pgjdbc-ng>true</pgjdbc-ng>
+                    </systemPropertyVariables>
+                  </configuration>
+                </execution>
+              </executions>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+      </build>
+    </profile>
   </profiles>
 
   <build>

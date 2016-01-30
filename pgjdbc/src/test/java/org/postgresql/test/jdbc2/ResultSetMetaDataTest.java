@@ -217,7 +217,7 @@ public class ResultSetMetaDataTest extends TestCase {
     ResultSetMetaData rsmd = rs.getMetaData();
     assertTrue(rs.next());
     for (int i = 0; i < rsmd.getColumnCount(); i++) {
-      assertEquals(rs.getObject(i + 1).getClass().getName(), rsmd.getColumnClassName(i + 1));
+      assertEquals("Class name for column" + rsmd.getColumnName(i + 1) + " (" + (i + 1) + ")", rsmd.getColumnClassName(i + 1), rs.getObject(i + 1).getClass().getName());
     }
   }
 

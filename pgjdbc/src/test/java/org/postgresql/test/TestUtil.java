@@ -29,6 +29,16 @@ import java.util.Properties;
  * Utility class for JDBC tests
  */
 public class TestUtil {
+  public static boolean IS_PGJDBC_NG = Boolean.getBoolean("pgjdbc-ng");
+
+  static {
+    System.out.println("Will use " + getPrefix() + " test jdbc URL");
+  }
+
+  public static String getPrefix() {
+    return IS_PGJDBC_NG ? "jdbc:pgsql:" : "jdbc:postgresql:";
+  }
+
   /*
    * Returns the Test database JDBC URL
    */
@@ -62,7 +72,7 @@ public class TestUtil {
       ssl = "&ssl=" + getSSL();
     }
 
-    return "jdbc:postgresql://"
+    return getPrefix() + "//"
         + server + ":"
         + port + "/"
         + getDatabase()

@@ -12,6 +12,7 @@ import org.postgresql.jdbc.PgConnection;
 import org.postgresql.test.TestUtil;
 
 import junit.framework.TestCase;
+import org.junit.Assume;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -109,7 +110,7 @@ public class ConnectionTest extends TestCase {
   public void testNativeSQL() throws Exception {
     // test a simple escape
     con = TestUtil.openDB();
-    assertEquals("DATE  '2005-01-24'", con.nativeSQL("{d '2005-01-24'}"));
+    assertEquals("DATE '2005-01-24'", con.nativeSQL("{d '2005-01-24'}").replaceAll(" +", " "));
   }
 
   /*

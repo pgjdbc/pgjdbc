@@ -57,6 +57,8 @@ public class GetObjectTest extends TestCase {
 
   protected void setUp() throws Exception {
     _conn = TestUtil.openDB();
+    boolean is92plus = TestUtil.IS_PGJDBC_NG
+        || ((BaseConnection) _conn).haveMinimumServerVersion(ServerVersion.v9_2);
     TestUtil.createTable(_conn, "table1", "varchar_column varchar(16), "
             + "char_column char(10), "
             + "boolean_column boolean,"
@@ -66,7 +68,7 @@ public class GetObjectTest extends TestCase {
             + "decimal_column decimal,"
             + "numeric_column numeric,"
             // smallserial requires 9.2 or later
-            + (((BaseConnection) _conn).haveMinimumServerVersion(ServerVersion.v9_2) ? "smallserial_column smallserial," : "")
+            + (is92plus ? "smallserial_column smallserial," : "")
             + "serial_column serial,"
             + "bigserial_column bigserial,"
             + "real_column real,"
