@@ -954,6 +954,7 @@ public abstract class BaseDataSource implements Referenceable {
   }
 
   /**
+   * @return socket factory class name
    * @see PGProperty#SOCKET_FACTORY
    */
   public String getSocketFactory() {
@@ -961,6 +962,7 @@ public abstract class BaseDataSource implements Referenceable {
   }
 
   /**
+   * @param socketFactoryClassName socket factory class name
    * @see PGProperty#SOCKET_FACTORY
    */
   public void setSocketFactory(String socketFactoryClassName) {
@@ -968,6 +970,7 @@ public abstract class BaseDataSource implements Referenceable {
   }
 
   /**
+   * @return socket factory argument
    * @see PGProperty#SOCKET_FACTORY_ARG
    */
   public String getSocketFactoryArg() {
@@ -975,6 +978,7 @@ public abstract class BaseDataSource implements Referenceable {
   }
 
   /**
+   * @param socketFactoryArg socket factory argument
    * @see PGProperty#SOCKET_FACTORY_ARG
    */
   public void setSocketFactoryArg(String socketFactoryArg) {

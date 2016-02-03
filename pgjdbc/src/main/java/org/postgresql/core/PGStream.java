@@ -72,6 +72,7 @@ public class PGStream {
   /**
    * Constructor: Connect to the PostgreSQL back end and return a stream connection.
    *
+   * @param socketFactory socket factory
    * @param hostSpec the host and port to connect to
    * @throws IOException if an IOException occurs below it.
    * @deprecated use {@link #PGStream(SocketFactory, org.postgresql.util.HostSpec, int)}

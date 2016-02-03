@@ -16,6 +16,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
 
 /*
  * TODO tests that can be added to this test case - SQLExceptions chained to a BatchUpdateException
@@ -43,9 +44,13 @@ public class BatchExecuteTest extends BaseTest {
     TestUtil.createTable(con, "testbatch", "pk INTEGER, col1 INTEGER");
 
     stmt.executeUpdate("INSERT INTO testbatch VALUES (1, 0)");
-    stmt.close();
 
     TestUtil.createTable(con, "prep", "a integer, b integer");
+
+    TestUtil.createTable(con, "batchUpdCnt", "id varchar(512) primary key, data varchar(512)");
+    stmt.executeUpdate("INSERT INTO batchUpdCnt(id) VALUES ('key-2')");
+
+    stmt.close();
 
     // Generally recommended with batch updates. By default we run all
     // tests in this test case with autoCommit disabled.
@@ -121,25 +126,75 @@ public class BatchExecuteTest extends BaseTest {
     stmt.close();
   }
 
-  public void testSelectThrowsException() throws Exception {
+  public void testSelectInBatch() throws Exception {
     Statement stmt = con.createStatement();
 
     stmt.addBatch("UPDATE testbatch SET col1 = col1 + 1 WHERE pk = 1");
     stmt.addBatch("SELECT col1 FROM testbatch WHERE pk = 1");
     stmt.addBatch("UPDATE testbatch SET col1 = col1 + 2 WHERE pk = 1");
 
-    try {
-      stmt.executeBatch();
-      fail("Should raise a BatchUpdateException because of the SELECT");
-    } catch (BatchUpdateException e) {
-      int[] updateCounts = e.getUpdateCounts();
-      assertEquals(1, updateCounts.length);
-      assertEquals(1, updateCounts[0]);
-    } catch (SQLException e) {
-      fail("Should throw a BatchUpdateException instead of " + "a generic SQLException: " + e);
-    }
+    // There's no reason to fail
+    int[] updateCounts = stmt.executeBatch();
+
+    assertTrue("First update should succeed, thus updateCount should be 1 or SUCCESS_NO_INFO"
+            + ", actual value: " + updateCounts[0],
+        updateCounts[0] == 1 || updateCounts[0] == Statement.SUCCESS_NO_INFO);
+    assertTrue("For SELECT, number of modified rows should be either 0 or SUCCESS_NO_INFO"
+            + ", actual value: " + updateCounts[1],
+        updateCounts[1] == 0 || updateCounts[1] == Statement.SUCCESS_NO_INFO);
+    assertTrue("Second update should succeed, thus updateCount should be 1 or SUCCESS_NO_INFO"
+            + ", actual value: " + updateCounts[2],
+        updateCounts[2] == 1 || updateCounts[2] == Statement.SUCCESS_NO_INFO);
 
     stmt.close();
+  }
+
+  public void testSelectInBatchThrowsAutoCommit() throws Exception {
+    con.setAutoCommit(true);
+    testSelectInBatchThrows();
+  }
+
+  public void testSelectInBatchThrows() throws Exception {
+    Statement stmt = con.createStatement();
+
+    int oldValue = getCol1Value();
+    stmt.addBatch("UPDATE testbatch SET col1 = col1 + 1 WHERE pk = 1");
+    stmt.addBatch("SELECT 0/0 FROM testbatch WHERE pk = 1");
+    stmt.addBatch("UPDATE testbatch SET col1 = col1 + 2 WHERE pk = 1");
+
+    int[] updateCounts;
+    try {
+      updateCounts = stmt.executeBatch();
+      fail("0/0 should throw BatchUpdateException");
+    } catch (BatchUpdateException be) {
+      updateCounts = be.getUpdateCounts();
+    }
+
+    if (!con.getAutoCommit()) {
+      con.commit();
+    }
+
+    int newValue = getCol1Value();
+    assertEquals("testbatch.col1 should not be updated since error happened in batch",
+        oldValue, newValue);
+
+    assertEquals("All rows should be marked as EXECUTE_FAILED",
+        Arrays.toString(new int[]{Statement.EXECUTE_FAILED, Statement.EXECUTE_FAILED,
+            Statement.EXECUTE_FAILED}),
+        Arrays.toString(updateCounts));
+
+    stmt.close();
+  }
+
+  private int getCol1Value() throws SQLException {
+    Statement stmt = con.createStatement();
+    try {
+      ResultSet rs = stmt.executeQuery("select col1 from testbatch where pk=1");
+      rs.next();
+      return rs.getInt(1);
+    } finally {
+      stmt.close();
+    }
   }
 
   public void testStringAddBatchOnPreparedStatement() throws Exception {
@@ -832,5 +887,50 @@ Server SQLState: 25001)
 23:15:33.934 (1)  <=BE ReadyForQuery(I)
 23:15:33.934 (1)  FE=> Terminate
      */
+  }
+
+  public void testSmallBatchUpdateFailureSimple() throws SQLException {
+    con.setAutoCommit(true);
+
+    // update as batch
+    PreparedStatement batchSt = con.prepareStatement("INSERT INTO batchUpdCnt(id) VALUES (?)");
+    batchSt.setString(1, "key-1");
+    batchSt.addBatch();
+
+    batchSt.setString(1, "key-2");
+    batchSt.addBatch();
+
+    int[] batchResult;
+    try {
+      batchResult = batchSt.executeBatch();
+      fail("Expecting BatchUpdateException as key-2 is duplicated in batchUpdCnt.id. "
+          + " executeBatch returned " + Arrays.toString(batchResult));
+    } catch (BatchUpdateException ex) {
+      batchResult = ex.getUpdateCounts();
+    } finally {
+      batchSt.close();
+    }
+
+    int newCount = getBatchUpdCount();
+    if (newCount == 2) {
+      // key-1 did succeed
+      assertTrue("batchResult[0] should be 1 or SUCCESS_NO_INFO since 'key-1' was inserted,"
+          + " actual result is " + Arrays.toString(batchResult),
+          batchResult[0] == 1 || batchResult[0] == Statement.SUCCESS_NO_INFO);
+    } else {
+      assertTrue("batchResult[0] should be 0 or EXECUTE_FAILED since 'key-1' was NOT inserted,"
+              + " actual result is " + Arrays.toString(batchResult),
+          batchResult[0] == 0 || batchResult[0] == Statement.EXECUTE_FAILED);
+    }
+
+    assertEquals("'key-2' insertion should have failed",
+        batchResult[1], Statement.EXECUTE_FAILED);
+  }
+
+  private int getBatchUpdCount() throws SQLException {
+    PreparedStatement ps = con.prepareStatement("select count(*) from batchUpdCnt");
+    ResultSet rs = ps.executeQuery();
+    assertTrue("count(*) must return 1 row", rs.next());
+    return rs.getInt(1);
   }
 }

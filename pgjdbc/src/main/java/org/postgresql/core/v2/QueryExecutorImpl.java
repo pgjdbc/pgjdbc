@@ -20,6 +20,7 @@ import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandler;
+import org.postgresql.jdbc.BatchResultHandler;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -271,9 +272,9 @@ public class QueryExecutorImpl implements QueryExecutor {
 
   // Nothing special yet, just run the queries one at a time.
   public synchronized void execute(Query[] queries, ParameterList[] parameters,
-      ResultHandler handler, int maxRows, int fetchSize, int flags) throws SQLException {
-    final ResultHandler delegateHandler = handler;
-    handler = new ResultHandler() {
+      BatchResultHandler batchHandler, int maxRows, int fetchSize, int flags) throws SQLException {
+    final ResultHandler delegateHandler = batchHandler;
+    ResultHandler handler = new ResultHandler() {
       public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples,
           ResultCursor cursor) {
         delegateHandler.handleResultRows(fromQuery, fields, tuples, cursor);
@@ -297,6 +298,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
     for (int i = 0; i < queries.length; ++i) {
       execute((V2Query) queries[i], (SimpleParameterList) parameters[i], handler, maxRows, flags);
+      batchHandler.secureProgress();
     }
 
     delegateHandler.handleCompletion();

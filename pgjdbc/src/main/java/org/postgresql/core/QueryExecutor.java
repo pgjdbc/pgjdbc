@@ -10,6 +10,7 @@
 package org.postgresql.core;
 
 import org.postgresql.copy.CopyOperation;
+import org.postgresql.jdbc.BatchResultHandler;
 
 import java.sql.SQLException;
 
@@ -24,7 +25,7 @@ import java.sql.SQLException;
  * {@link #createParameterizedQuery})
  * <li>execution methods for created Query objects (
  * {@link #execute(Query, ParameterList, ResultHandler, int, int, int)} for single queries and
- * {@link #execute(Query[], ParameterList[], ResultHandler, int, int, int)} for batches of queries)
+ * {@link #execute(Query[], ParameterList[], BatchResultHandler, int, int, int)} for batches of queries)
  * <li>a fastpath call interface ({@link #createFastpathParameters} and {@link #fastpathCall}).
  * </ul>
  *
@@ -142,7 +143,7 @@ public interface QueryExecutor {
    * @param flags a combination of QUERY_* flags indicating how to handle the query.
    * @throws SQLException if query execution fails
    */
-  void execute(Query[] queries, ParameterList[] parameterLists, ResultHandler handler, int maxRows,
+  void execute(Query[] queries, ParameterList[] parameterLists, BatchResultHandler handler, int maxRows,
       int fetchSize, int flags) throws SQLException;
 
   /**

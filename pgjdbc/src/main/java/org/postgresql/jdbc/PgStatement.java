@@ -897,7 +897,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
-  protected ResultHandler createBatchHandler(int[] updateCounts, Query[] queries,
+  protected BatchResultHandler createBatchHandler(int[] updateCounts, Query[] queries,
       ParameterList[] parameterLists) {
     return new BatchResultHandler(this, queries, parameterLists, updateCounts,
         wantsGeneratedKeysAlways);
@@ -967,13 +967,23 @@ public class PgStatement implements Statement, BaseStatement {
       flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
     }
 
+    BatchResultHandler handler;
+    handler = createBatchHandler(updateCounts, queries, parameterLists);
+
     if (preDescribe || forceBinaryTransfers) {
       // Do a client-server round trip, parsing and describing the query so we
       // can determine its result types for use in binary parameters, batch sizing,
       // etc.
       int flags2 = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
       StatementResultHandler handler2 = new StatementResultHandler();
-      connection.getQueryExecutor().execute(queries[0], parameterLists[0], handler2, 0, 0, flags2);
+      try {
+        connection.getQueryExecutor().execute(queries[0], parameterLists[0], handler2, 0, 0, flags2);
+      } catch (SQLException e) {
+        // Unable to parse the first statement -> throw BatchUpdateException
+        handler.handleError(e);
+        handler.handleCompletion();
+        // Will not reach here (see above)
+      }
       ResultWrapper result2 = handler2.getResults();
       if (result2 != null) {
         result2.getResultSet().close();
@@ -982,19 +992,16 @@ public class PgStatement implements Statement, BaseStatement {
 
     result = null;
 
-    ResultHandler handler;
-    handler = createBatchHandler(updateCounts, queries, parameterLists);
-
     try {
       startTimer();
       connection.getQueryExecutor().execute(queries, parameterLists, handler, maxrows, fetchSize,
           flags);
     } finally {
       killTimerTask();
-    }
-
-    if (wantsGeneratedKeysAlways) {
-      generatedKeys = new ResultWrapper(((BatchResultHandler) handler).getGeneratedKeys());
+      // There might be some rows generated even in case of failures
+      if (wantsGeneratedKeysAlways) {
+        generatedKeys = new ResultWrapper(handler.getGeneratedKeys());
+      }
     }
 
     return updateCounts;

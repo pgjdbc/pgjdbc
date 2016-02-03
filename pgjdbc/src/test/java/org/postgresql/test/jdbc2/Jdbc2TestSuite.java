@@ -11,6 +11,7 @@ package org.postgresql.test.jdbc2;
 import org.postgresql.test.CursorFetchBinaryTest;
 import org.postgresql.test.TestUtil;
 
+import junit.framework.JUnit4TestAdapter;
 import junit.framework.TestSuite;
 
 import java.sql.Connection;
@@ -73,6 +74,7 @@ public class Jdbc2TestSuite extends TestSuite {
     // BatchExecute
     suite.addTestSuite(BatchExecuteTest.class);
     suite.addTestSuite(BatchExecuteBinaryTest.class);
+    suite.addTest(new JUnit4TestAdapter(BatchFailureTest.class));
 
 
     // Other misc tests, based on previous problems users have had or specific

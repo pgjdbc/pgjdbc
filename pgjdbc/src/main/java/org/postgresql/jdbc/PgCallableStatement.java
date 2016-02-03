@@ -11,7 +11,6 @@ package org.postgresql.jdbc;
 import org.postgresql.Driver;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
-import org.postgresql.core.ResultHandler;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -435,7 +434,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   }
 
   @Override
-  protected ResultHandler createBatchHandler(int[] updateCounts, Query[] queries,
+  protected BatchResultHandler createBatchHandler(int[] updateCounts, Query[] queries,
       ParameterList[] parameterLists) {
     return new CallableBatchResultHandler(this, queries, parameterLists, updateCounts);
   }

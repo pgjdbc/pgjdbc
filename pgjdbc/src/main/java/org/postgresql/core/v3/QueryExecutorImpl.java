@@ -25,6 +25,7 @@ import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandler;
 import org.postgresql.core.Utils;
+import org.postgresql.jdbc.BatchResultHandler;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -194,7 +195,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         handler = sendQueryPreamble(handler, flags);
         ErrorTrackingResultHandler trackingHandler = new ErrorTrackingResultHandler(handler);
         sendQuery((V3Query) query, (V3ParameterList) parameters, maxRows, fetchSize, flags,
-            trackingHandler);
+            trackingHandler, null);
         sendSync();
         processResults(handler, flags);
         estimatedReceiveBufferBytes = 0;
@@ -317,10 +318,10 @@ public class QueryExecutorImpl implements QueryExecutor {
   }
 
   public synchronized void execute(Query[] queries, ParameterList[] parameterLists,
-      ResultHandler handler, int maxRows, int fetchSize, int flags) throws SQLException {
+      BatchResultHandler batchHandler, int maxRows, int fetchSize, int flags) throws SQLException {
     waitOnLock();
     if (logger.logDebug()) {
-      logger.debug("batch execute " + queries.length + " queries, handler=" + handler + ", maxRows="
+      logger.debug("batch execute " + queries.length + " queries, handler=" + batchHandler + ", maxRows="
           + maxRows + ", fetchSize=" + fetchSize + ", flags=" + flags);
     }
 
@@ -334,8 +335,9 @@ public class QueryExecutorImpl implements QueryExecutor {
       }
     }
 
+    ResultHandler handler = batchHandler;
     try {
-      handler = sendQueryPreamble(handler, flags);
+      handler = sendQueryPreamble(batchHandler, flags);
       ErrorTrackingResultHandler trackingHandler = new ErrorTrackingResultHandler(handler);
       estimatedReceiveBufferBytes = 0;
 
@@ -346,7 +348,7 @@ public class QueryExecutorImpl implements QueryExecutor {
           parameters = SimpleQuery.NO_PARAMETERS;
         }
 
-        sendQuery(query, parameters, maxRows, fetchSize, flags, trackingHandler);
+        sendQuery(query, parameters, maxRows, fetchSize, flags, trackingHandler, batchHandler);
 
         if (trackingHandler.hasErrors()) {
           break;
@@ -1146,7 +1148,9 @@ public class QueryExecutorImpl implements QueryExecutor {
    * See the comments above MAX_BUFFERED_RECV_BYTES's declaration for details.
    */
   private void flushIfDeadlockRisk(Query query, boolean disallowBatching,
-      ErrorTrackingResultHandler trackingHandler, final int flags) throws IOException {
+      ErrorTrackingResultHandler trackingHandler,
+      BatchResultHandler batchHandler,
+      final int flags) throws IOException {
     // Assume all statements need at least this much reply buffer space,
     // plus params
     estimatedReceiveBufferBytes += NODATA_QUERY_RESPONSE_SIZE_BYTES;
@@ -1182,6 +1186,9 @@ public class QueryExecutorImpl implements QueryExecutor {
       sendSync();
       processResults(trackingHandler, flags);
       estimatedReceiveBufferBytes = 0;
+      if (batchHandler != null) {
+        batchHandler.secureProgress();
+      }
     }
 
   }
@@ -1190,7 +1197,8 @@ public class QueryExecutorImpl implements QueryExecutor {
    * Send a query to the backend.
    */
   private void sendQuery(V3Query query, V3ParameterList parameters, int maxRows, int fetchSize,
-      int flags, ErrorTrackingResultHandler trackingHandler) throws IOException, SQLException {
+      int flags, ErrorTrackingResultHandler trackingHandler,
+      BatchResultHandler batchHandler) throws IOException, SQLException {
     // Now the query itself.
     SimpleQuery[] subqueries = query.getSubqueries();
     SimpleParameterList[] subparams = parameters.getSubparams();
@@ -1201,7 +1209,7 @@ public class QueryExecutorImpl implements QueryExecutor {
     boolean disallowBatching = (flags & QueryExecutor.QUERY_DISALLOW_BATCHING) != 0;
 
     if (subqueries == null) {
-      flushIfDeadlockRisk(query, disallowBatching, trackingHandler, flags);
+      flushIfDeadlockRisk(query, disallowBatching, trackingHandler, batchHandler, flags);
 
       // If we saw errors, don't send anything more.
       if (!trackingHandler.hasErrors()) {
@@ -1211,7 +1219,7 @@ public class QueryExecutorImpl implements QueryExecutor {
     } else {
       for (int i = 0; i < subqueries.length; ++i) {
         final SimpleQuery subquery = subqueries[i];
-        flushIfDeadlockRisk(subquery, disallowBatching, trackingHandler, flags);
+        flushIfDeadlockRisk(subquery, disallowBatching, trackingHandler, batchHandler, flags);
 
         // If we saw errors, don't send anything more.
         if (trackingHandler.hasErrors()) {
