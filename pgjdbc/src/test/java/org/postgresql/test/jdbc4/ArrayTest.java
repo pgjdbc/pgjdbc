@@ -412,7 +412,7 @@ public class ArrayTest extends TestCase {
       pstmt.setArray(1, arr);
       pstmt.execute();
 
-    }finally {
+    } finally {
 
       pstmt.close();
 
@@ -423,14 +423,14 @@ public class ArrayTest extends TestCase {
     {
       rs = _conn.createStatement().executeQuery("select floatarr from arrtest");
 
-      while(rs.next()){
+      while (rs.next()) {
         Array floats = rs.getArray(1);
         float floats1[][] = (float[][])floats.getArray();
         assertEquals("Strings should be equal", "[[3.5, -4.5], [3.3333333, 77.0]]",floats.toString());
       }
 
-    }finally {
-      
+    } finally {
+
       if (rs != null)
         rs.close();
     }
