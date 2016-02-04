@@ -889,10 +889,10 @@ public class PgArray implements java.sql.Array {
         Object array = readBinaryArray(1,0);
         fieldString = Arrays.toString((Object[])array);
       } catch (SQLException e) {
-        fieldString="null"; //punt
+        fieldString = "null"; //punt
       }
     }
-      return fieldString;
+    return fieldString;
   }
 
   /**
