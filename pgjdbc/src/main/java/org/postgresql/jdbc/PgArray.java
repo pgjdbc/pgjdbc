@@ -23,7 +23,6 @@ import org.postgresql.util.PSQLState;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
