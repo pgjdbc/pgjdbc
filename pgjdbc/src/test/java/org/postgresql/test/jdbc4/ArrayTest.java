@@ -9,6 +9,7 @@
 package org.postgresql.test.jdbc4;
 
 import org.postgresql.geometric.PGbox;
+import org.postgresql.jdbc.PgConnection;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
@@ -16,12 +17,7 @@ import org.postgresql.util.PGtokenizer;
 import junit.framework.TestCase;
 import org.junit.Assert;
 
-import java.sql.Array;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Types;
+import java.sql.*;
 import java.util.UUID;
 
 public class ArrayTest extends TestCase {
@@ -35,7 +31,7 @@ public class ArrayTest extends TestCase {
   protected void setUp() throws Exception {
     _conn = TestUtil.openDB();
     TestUtil.createTable(_conn, "arrtest",
-        "intarr int[], decarr decimal(2,1)[], strarr text[], uuidarr uuid[], floatarr float8[][]");
+        "intarr int[], decarr decimal(2,1)[], strarr text[], uuidarr uuid[], floatarr float8[]");
     TestUtil.createTable(_conn, "arrcompprnttest", "id serial, name character(10)");
     TestUtil.createTable(_conn, "arrcompchldttest",
         "id serial, name character(10), description character varying, parent integer");
@@ -396,12 +392,12 @@ public class ArrayTest extends TestCase {
   }
   public void testToString() throws SQLException {
 
-    double [][]d  = new double[2][2];
+    Double []d  = new Double[4];
 
-    d[0][0] = 3.5;
-    d[0][1] = -4.5;
-    d[1][0] = 10.0 / 3;
-    d[1][1] = 77;
+    d[0] = 3.5;
+    d[1] = -4.5;
+    d[2] = 10.0 / 3;
+    d[3] = 77.0;
 
     Array arr = _conn.createArrayOf("float8", d);
     PreparedStatement pstmt = _conn.prepareStatement("INSERT INTO arrtest(floatarr) VALUES (?)");
@@ -421,12 +417,17 @@ public class ArrayTest extends TestCase {
 
     try
     {
-      rs = _conn.createStatement().executeQuery("select floatarr from arrtest");
+      Statement stmt = _conn.createStatement();
+      ((PgConnection)_conn).setForceBinary(true);
+
+      rs = stmt.executeQuery("select floatarr from arrtest");
 
       while (rs.next()) {
-        Array floats = rs.getArray(1);
-        float floats1[][] = (float[][])floats.getArray();
-        assertEquals("Strings should be equal", "[[3.5, -4.5], [3.3333333, 77.0]]",floats.toString());
+
+        Array doubles = rs.getArray(1);
+        System.out.println(doubles.toString());
+        Double doubles1[] = (Double[])doubles.getArray();
+        assertEquals("Strings should be equal", "[3.5,-4.5,3.3333333,77.0]",doubles.toString());
       }
 
     } finally {
