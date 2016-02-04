@@ -20,6 +20,7 @@ public interface ChainedCommonStreamBuilder<T extends ChainedCommonStreamBuilder
    * rows which could cause a recovery conflict even when the standby is disconnected.
    *
    * @param slotName not null replication slot already exists on server.
+   * @return this instance as a fluent interface
    */
   T withSlotName(String slotName);
 

@@ -3027,7 +3027,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
    * @param bytes The bytes of the numeric field.
    * @param oid The oid of the field.
    * @param minVal the minimum value allowed.
-   * @param minVal the maximum value allowed.
+   * @param maxVal the maximum value allowed.
    * @param targetType The target type. Used for error reporting.
    * @return The value as long.
    * @throws PSQLException If the field type is not supported numeric type or if the value is out of

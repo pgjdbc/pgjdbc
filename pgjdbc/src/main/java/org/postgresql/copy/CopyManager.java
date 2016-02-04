@@ -3,10 +3,6 @@
  * See the LICENSE file in the project root for more information.
  */
 
-/**
- * Bulk data copy for PostgreSQL
- */
-
 package org.postgresql.copy;
 
 import org.postgresql.core.BaseConnection;
