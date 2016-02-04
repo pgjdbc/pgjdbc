@@ -10,6 +10,7 @@ package org.postgresql.test.jdbc2;
 
 import org.postgresql.test.CursorFetchBinaryTest;
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.jdbc4.ArrayBinaryTest;
 
 import junit.framework.TestSuite;
 
@@ -52,6 +53,7 @@ public class Jdbc2TestSuite extends TestSuite {
     suite.addTestSuite(ResultSetTest.class);
     suite.addTestSuite(ResultSetMetaDataTest.class);
     suite.addTestSuite(ArrayTest.class);
+    suite.addTestSuite(ArrayBinaryTest.class);
     suite.addTestSuite(RefCursorTest.class);
 
     // Time, Date, Timestamp, PGTime, PGTimestamp

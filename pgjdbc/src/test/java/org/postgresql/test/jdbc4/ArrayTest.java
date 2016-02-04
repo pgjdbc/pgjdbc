@@ -10,11 +10,14 @@ package org.postgresql.test.jdbc4;
 
 import org.postgresql.geometric.PGbox;
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.jdbc2.BaseTest;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
 
 import junit.framework.TestCase;
 import org.junit.Assert;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.sql.Array;
 import java.sql.Connection;
@@ -22,9 +25,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.Arrays;
 import java.util.UUID;
 
-public class ArrayTest extends TestCase {
+public class ArrayTest extends BaseTest {
 
   private Connection _conn;
 
@@ -33,7 +37,8 @@ public class ArrayTest extends TestCase {
   }
 
   protected void setUp() throws Exception {
-    _conn = TestUtil.openDB();
+    super.setUp();
+    _conn = con;
     TestUtil.createTable(_conn, "arrtest",
         "intarr int[], decarr decimal(2,1)[], strarr text[], uuidarr uuid[], floatarr float8[][]");
     TestUtil.createTable(_conn, "arrcompprnttest", "id serial, name character(10)");
@@ -48,7 +53,7 @@ public class ArrayTest extends TestCase {
     TestUtil.dropTable(_conn, "arrcompprnttest");
     TestUtil.dropTable(_conn, "arrcompchldttest");
     TestUtil.dropTable(_conn, "\"CorrectCasing\"");
-    TestUtil.closeDB(_conn);
+    super.tearDown();
   }
 
   public void testCreateArrayOfInt() throws SQLException {
@@ -425,7 +430,7 @@ public class ArrayTest extends TestCase {
 
       while (rs.next()) {
         Array floats = rs.getArray(1);
-        float floats1[][] = (float[][])floats.getArray();
+        Double floats1[][] = (Double[][])floats.getArray();
         assertEquals("Strings should be equal", "[[3.5, -4.5], [3.3333333, 77.0]]",floats.toString());
       }
 
