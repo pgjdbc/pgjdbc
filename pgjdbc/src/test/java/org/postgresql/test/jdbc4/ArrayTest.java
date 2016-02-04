@@ -35,7 +35,7 @@ public class ArrayTest extends TestCase {
   protected void setUp() throws Exception {
     _conn = TestUtil.openDB();
     TestUtil.createTable(_conn, "arrtest",
-        "intarr int[], decarr decimal(2,1)[], strarr text[], uuidarr uuid[]");
+        "intarr int[], decarr decimal(2,1)[], strarr text[], uuidarr uuid[], floatarr float8[][]");
     TestUtil.createTable(_conn, "arrcompprnttest", "id serial, name character(10)");
     TestUtil.createTable(_conn, "arrcompchldttest",
         "id serial, name character(10), description character varying, parent integer");
@@ -393,5 +393,47 @@ public class ArrayTest extends TestCase {
     assertTrue(resArr[0] instanceof PGobject);
     PGobject resObj = (PGobject) resArr[0];
     assertEquals("(1)", resObj.getValue());
+  }
+  public void testToString() throws SQLException {
+
+    double [][]d  = new double[2][2];
+
+    d[0][0] = 3.5;
+    d[0][1] = -4.5;
+    d[1][0] = 10.0 / 3;
+    d[1][1] = 77;
+
+    Array arr = _conn.createArrayOf("float8", d);
+    PreparedStatement pstmt = _conn.prepareStatement("INSERT INTO arrtest(floatarr) VALUES (?)");
+    ResultSet rs=null;
+
+    try
+    {
+      pstmt.setArray(1, arr);
+      pstmt.execute();
+    }
+    finally
+    {
+      pstmt.close();
+
+    }
+
+
+    try
+    {
+      rs = _conn.createStatement().executeQuery("select * from floatarry");
+
+      while(rs.next())
+      {
+        Array floats = rs.getArray(2);
+        float floats1[][] = (float[][])floats.getArray();
+        assertEquals("Strings should be equal", "[[3.5, -4.5], [3.3333333, 77.0]]",floats.toString());
+      }
+    }
+    finally {
+      if (rs != null)
+        rs.close();
+    }
+
   }
 }
