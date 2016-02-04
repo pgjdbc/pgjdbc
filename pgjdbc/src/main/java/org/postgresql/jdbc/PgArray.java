@@ -23,10 +23,12 @@ import org.postgresql.util.PSQLState;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -881,7 +883,17 @@ public class PgArray implements java.sql.Array {
   }
 
   public String toString() {
-    return fieldString;
+
+    if ( fieldString == null) {
+
+      try {
+        Object array = readBinaryArray(1,0);
+        fieldString = Arrays.toString((Object[])array);
+      } catch (SQLException e) {
+        fieldString="null"; //punt
+      }
+    }
+      return fieldString;
   }
 
   /**
