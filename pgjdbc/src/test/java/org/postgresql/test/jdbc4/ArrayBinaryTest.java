@@ -4,11 +4,11 @@ package org.postgresql.test.jdbc4;
 import org.postgresql.jdbc.PgConnection;
 
 
-import java.sql.Statement;
-import java.sql.PreparedStatement;
 import java.sql.Array;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Properties;
 
 public class ArrayBinaryTest extends ArrayTest {
@@ -47,8 +47,7 @@ public class ArrayBinaryTest extends ArrayTest {
     }
 
 
-    try
-    {
+    try {
       Statement stmt = con.createStatement();
       ((PgConnection)con).setForceBinary(true);
 
@@ -63,8 +62,10 @@ public class ArrayBinaryTest extends ArrayTest {
 
     } finally {
 
-      if (rs != null)
+      if ( rs != null ) {
         rs.close();
+      }
+
     }
 
   }

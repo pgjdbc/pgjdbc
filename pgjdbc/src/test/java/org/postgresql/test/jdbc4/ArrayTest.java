@@ -16,7 +16,12 @@ import org.postgresql.util.PGtokenizer;
 
 import org.junit.Assert;
 
-import java.sql.*;
+import java.sql.Array;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
 import java.util.UUID;
 
 public class ArrayTest extends BaseTest {
