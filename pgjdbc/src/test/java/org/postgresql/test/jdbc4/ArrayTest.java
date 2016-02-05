@@ -11,16 +11,18 @@ package org.postgresql.test.jdbc4;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.jdbc2.BaseTest;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
 
-import junit.framework.TestCase;
 import org.junit.Assert;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.sql.*;
 import java.util.UUID;
 
-public class ArrayTest extends TestCase {
+public class ArrayTest extends BaseTest {
 
   private Connection _conn;
 
@@ -29,7 +31,9 @@ public class ArrayTest extends TestCase {
   }
 
   protected void setUp() throws Exception {
-    _conn = TestUtil.openDB();
+    super.setUp();
+    _conn=con;
+
     TestUtil.createTable(_conn, "arrtest",
         "intarr int[], decarr decimal(2,1)[], strarr text[], uuidarr uuid[], floatarr float8[]");
     TestUtil.createTable(_conn, "arrcompprnttest", "id serial, name character(10)");
@@ -44,7 +48,7 @@ public class ArrayTest extends TestCase {
     TestUtil.dropTable(_conn, "arrcompprnttest");
     TestUtil.dropTable(_conn, "arrcompchldttest");
     TestUtil.dropTable(_conn, "\"CorrectCasing\"");
-    TestUtil.closeDB(_conn);
+    super.tearDown();
   }
 
   public void testCreateArrayOfInt() throws SQLException {
@@ -390,51 +394,5 @@ public class ArrayTest extends TestCase {
     PGobject resObj = (PGobject) resArr[0];
     assertEquals("(1)", resObj.getValue());
   }
-  public void testToString() throws SQLException {
 
-    Double []d  = new Double[4];
-
-    d[0] = 3.5;
-    d[1] = -4.5;
-    d[2] = 10.0 / 3;
-    d[3] = 77.0;
-
-    Array arr = _conn.createArrayOf("float8", d);
-    PreparedStatement pstmt = _conn.prepareStatement("INSERT INTO arrtest(floatarr) VALUES (?)");
-    ResultSet rs = null;
-
-    try {
-
-      pstmt.setArray(1, arr);
-      pstmt.execute();
-
-    } finally {
-
-      pstmt.close();
-
-    }
-
-
-    try
-    {
-      Statement stmt = _conn.createStatement();
-      ((PgConnection)_conn).setForceBinary(true);
-
-      rs = stmt.executeQuery("select floatarr from arrtest");
-
-      while (rs.next()) {
-
-        Array doubles = rs.getArray(1);
-        System.out.println(doubles.toString());
-        Double doubles1[] = (Double[])doubles.getArray();
-        assertEquals("Strings should be equal", "[3.5,-4.5,3.3333333,77.0]",doubles.toString());
-      }
-
-    } finally {
-
-      if (rs != null)
-        rs.close();
-    }
-
-  }
 }
