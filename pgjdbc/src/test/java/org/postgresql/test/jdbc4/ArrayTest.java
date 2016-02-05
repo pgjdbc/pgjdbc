@@ -9,15 +9,12 @@
 package org.postgresql.test.jdbc4;
 
 import org.postgresql.geometric.PGbox;
-import org.postgresql.jdbc.PgConnection;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
 
 import org.junit.Assert;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 import java.sql.*;
 import java.util.UUID;
@@ -32,7 +29,7 @@ public class ArrayTest extends BaseTest {
 
   protected void setUp() throws Exception {
     super.setUp();
-    _conn=con;
+    _conn = con;
 
     TestUtil.createTable(_conn, "arrtest",
         "intarr int[], decarr decimal(2,1)[], strarr text[], uuidarr uuid[], floatarr float8[]");

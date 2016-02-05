@@ -4,6 +4,7 @@ package org.postgresql.test.jdbc4;
 import org.postgresql.jdbc.PgConnection;
 
 import java.sql.*;
+
 import java.util.Properties;
 
 public class ArrayBinaryTest extends ArrayTest {
@@ -16,6 +17,7 @@ public class ArrayBinaryTest extends ArrayTest {
     super.updateProperties(props);
     forceBinary(props);
   }
+
   public void testToString() throws SQLException {
 
     Double []d  = new Double[4];
