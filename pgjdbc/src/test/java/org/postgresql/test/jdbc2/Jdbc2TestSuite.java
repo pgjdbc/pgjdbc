@@ -52,7 +52,7 @@ public class Jdbc2TestSuite extends TestSuite {
     // ResultSet
     suite.addTestSuite(ResultSetTest.class);
     suite.addTestSuite(ResultSetMetaDataTest.class);
-    suite.addTestSuite(ArrayTest.class);
+    suite.addTest(new JUnit4TestAdapter(ArrayTest.class));
     suite.addTestSuite(RefCursorTest.class);
 
     // Time, Date, Timestamp, PGTime, PGTimestamp

@@ -881,6 +881,15 @@ public class PgArray implements java.sql.Array {
   }
 
   public String toString() {
+    if (fieldString == null) {
+      try {
+        Object array = readBinaryArray(1,0);
+        java.sql.Array tmpArray = connection.createArrayOf(getBaseTypeName(), (Object[]) array);
+        fieldString = tmpArray.toString();
+      } catch (SQLException e) {
+        fieldString = "NULL"; //punt
+      }
+    }
     return fieldString;
   }
 
@@ -888,6 +897,10 @@ public class PgArray implements java.sql.Array {
    * Convert array list to PG String representation (e.g. {0,1,2}).
    */
   private String toString(PgArrayList list) throws SQLException {
+    if (list == null) {
+      return "NULL";
+    }
+
     StringBuilder b = new StringBuilder().append('{');
 
     char delim = connection.getTypeInfo().getArrayDelimiter(oid);

@@ -29,14 +29,6 @@ public class BatchFailureTest extends BaseTest4 {
   private final FailPosition failPosition;
   private final BinaryMode binaryMode;
 
-  enum BinaryMode {
-    REGULAR, FORCE;
-  }
-
-  enum AutoCommit {
-    YES, NO;
-  }
-
   enum BatchType {
     SIMPLE {
       @Override

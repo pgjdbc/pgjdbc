@@ -10,6 +10,7 @@ package org.postgresql.test.jdbc4;
 
 import org.postgresql.test.TestUtil;
 
+import junit.framework.JUnit4TestAdapter;
 import junit.framework.TestSuite;
 
 import java.sql.Connection;
@@ -30,7 +31,7 @@ public class Jdbc4TestSuite extends TestSuite {
     TestSuite suite = new TestSuite();
 
     suite.addTestSuite(DatabaseMetaDataTest.class);
-    suite.addTestSuite(ArrayTest.class);
+    suite.addTest(new JUnit4TestAdapter(ArrayTest.class));
     suite.addTestSuite(WrapperTest.class);
     suite.addTestSuite(BinaryTest.class);
     suite.addTestSuite(IsValidTest.class);
