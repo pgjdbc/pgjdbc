@@ -323,6 +323,8 @@ For more information see the [the PgJDBC driver documentation](http://jdbc.postg
 
 PgJDBC development is carried out on the [PgJDBC mailing list](https://jdbc.postgresql.org/community/mailinglist.html) and on [GitHub](https://github.com/pgjdbc/pgjdbc).
 
+Set of "backend protocol missing features" is collected in [backend_protocol_v4_wanted_features.md](backend_protocol_v4_wanted_features.md)
+
 ### Bug reports
 
 For bug reports please post on pgsql-jdbc or add a GitHub issue. If you include
