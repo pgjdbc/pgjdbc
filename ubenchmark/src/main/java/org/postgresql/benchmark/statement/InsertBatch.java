@@ -8,6 +8,9 @@
 
 package org.postgresql.benchmark.statement;
 
+import org.postgresql.PGConnection;
+import org.postgresql.copy.CopyIn;
+import org.postgresql.copy.CopyManager;
 import org.postgresql.util.ConnectionUtil;
 
 import org.openjdk.jmh.annotations.Benchmark;
@@ -23,6 +26,7 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
+import org.openjdk.jmh.infra.BenchmarkParams;
 import org.openjdk.jmh.infra.Blackhole;
 import org.openjdk.jmh.profile.GCProfiler;
 import org.openjdk.jmh.runner.Runner;
@@ -30,6 +34,9 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
+import java.io.CharArrayReader;
+import java.io.CharArrayWriter;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -47,16 +54,29 @@ import java.util.concurrent.TimeUnit;
 public class InsertBatch {
   private Connection connection;
   private PreparedStatement ps;
+  private PreparedStatement structInsert;
   String[] strings;
 
   @Param({"16", "128", "1024"})
   int p1nrows;
 
-  @Param({"1", "2", "4", "8", "16"})
+  @Param({"1", "4", "8", "16", "128"})
   int p2multi;
 
   @Setup(Level.Trial)
-  public void setUp() throws SQLException {
+  public void setUp(BenchmarkParams bp) throws SQLException {
+    // Test only
+    //   1) p1nrows in (16, 128, 1024) && p2multi == 128
+    //   2) p1nrows in (1024) && p2multi in (1, 2, 4, 4, 16)
+    if (bp.getBenchmark().contains("insertExecute")) {
+      if (p2multi != 1) {
+        System.exit(-1);
+      }
+    } else if (!(p2multi == 128 || p1nrows == 1024)) {
+      System.exit(-1);
+    }
+    p2multi = Math.min(p2multi, p1nrows);
+
     Properties props = ConnectionUtil.getProperties();
 
     connection = DriverManager.getConnection(ConnectionUtil.getURL(), props);
@@ -74,6 +94,9 @@ public class InsertBatch {
       sql += ",(?,?,?)";
     }
     ps = connection.prepareStatement(sql);
+    structInsert = connection.prepareStatement(
+        "insert into batch_perf_test select * from unnest(?::batch_perf_test[])");
+
     strings = new String[p1nrows];
     for (int i = 0; i < p1nrows; i++) {
       strings[i] = "s" + i;
@@ -123,13 +146,82 @@ public class InsertBatch {
     }
   }
 
+  @Benchmark
+  public int[] insertStruct() throws SQLException, IOException {
+    CharArrayWriter wr = new CharArrayWriter();
+
+    for (int i = 0; i < p1nrows; ) {
+      wr.reset();
+      wr.append('{');
+      for (int k = 0; k < p2multi; k++, i++) {
+        if (k != 0) {
+          wr.append(',');
+        }
+        wr.append("\"(");
+        wr.append(Integer.toString(i));
+        wr.append(',');
+        String str = strings[i];
+        if (str != null) {
+          boolean hasQuotes = str.indexOf('"') != -1;
+          if (hasQuotes) {
+            wr.append("\"");
+            wr.append(str.replace("\"", "\\\""));
+            wr.append("\"");
+          } else {
+            wr.append(str);
+          }
+        }
+        wr.append(',');
+        wr.append(Integer.toString(i));
+        wr.append(")\"");
+      }
+      wr.append('}');
+      structInsert.setString(1, wr.toString());
+      structInsert.addBatch();
+    }
+
+    return structInsert.executeBatch();
+  }
+
+  @Benchmark
+  public void insertCopy(Blackhole b) throws SQLException, IOException {
+    CopyManager copyAPI = ((PGConnection) connection).getCopyAPI();
+    CharArrayWriter wr = new CharArrayWriter();
+    for (int i = 0; i < p1nrows;) {
+      CopyIn copyIn = copyAPI.copyIn("COPY batch_perf_test FROM STDIN");
+      wr.reset();
+      for (int k = 0; k < p2multi; k++, i++) {
+        wr.append(Integer.toString(i));
+        wr.append('\t');
+        String str = strings[i];
+        if (str != null) {
+          boolean hasTabs = str.indexOf('\t') != -1;
+          if (hasTabs) {
+            wr.append("\"");
+            wr.append(str.replace("\"", "\"\""));
+            wr.append("\"");
+          } else {
+            wr.append(str);
+          }
+        }
+        wr.append('\t');
+        wr.append(Integer.toString(i));
+        wr.append('\n');
+      }
+      byte[] bytes = wr.toString().getBytes("UTF-8");
+      copyIn.writeToCopy(bytes, 0, bytes.length);
+      b.consume(copyIn.endCopy());
+    }
+  }
+
+
   public static void main(String[] args) throws RunnerException {
     //DriverManager.setLogWriter(new PrintWriter(System.out));
     //Driver.setLogLevel(2);
     Options opt = new OptionsBuilder()
         .include(InsertBatch.class.getSimpleName())
-        .addProfiler(GCProfiler.class)
-        //.addProfiler(FlightRecorderProfiler.class)
+//        .addProfiler(GCProfiler.class)
+//        .addProfiler(FlightRecorderProfiler.class)
         .detectJvmArgs()
         .build();
 
