@@ -29,8 +29,20 @@ public class PGBundleActivator implements BundleActivator {
     properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_CLASS, Driver.class.getName());
     properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_NAME, "PostgreSQL JDBC Driver");
     properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_VERSION, Driver.getVersion());
-    _registration = context.registerService(DataSourceFactory.class.getName(),
-        new PGDataSourceFactory(), properties);
+    try {
+      _registration = context.registerService(DataSourceFactory.class.getName(),
+          new PGDataSourceFactory(), properties);
+    } catch (NoClassDefFoundError e) {
+      String msg = e.getMessage();
+      if (msg != null && msg.contains("org/osgi/service/jdbc/DataSourceFactory")) {
+        new IllegalArgumentException("Unable to load DataSourceFactory. "
+            + "Will ignore DataSourceFactory registration. If you need one, "
+            + "ensure org.osgi.enterprise is on the classpath", e).printStackTrace();
+        // just ignore. Assume OSGi-enterprise is not loaded
+        return;
+      }
+      throw e;
+    }
   }
 
   public void stop(BundleContext context) throws Exception {
