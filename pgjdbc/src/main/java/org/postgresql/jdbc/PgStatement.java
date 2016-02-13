@@ -14,6 +14,7 @@ import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Field;
 import org.postgresql.core.ParameterList;
+import org.postgresql.core.Parser;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ResultCursor;
@@ -145,14 +146,16 @@ public class PgStatement implements Statement, BaseStatement {
   protected ResultWrapper generatedKeys = null;
 
   // Static variables for parsing SQL when replaceProcessing is true.
-  private static final short IN_SQLCODE = 0;
-  private static final short IN_STRING = 1;
-  private static final short IN_IDENTIFIER = 6;
-  private static final short BACKSLASH = 2;
-  private static final short ESC_TIMEDATE = 3;
-  private static final short ESC_FUNCTION = 4;
-  private static final short ESC_OUTERJOIN = 5;
-  private static final short ESC_ESCAPECHAR = 7;
+  private enum SqlParseState {
+    IN_SQLCODE,
+    IN_STRING,
+    IN_IDENTIFIER,
+    BACKSLASH,
+    ESC_TIMEDATE,
+    ESC_FUNCTION,
+    ESC_OUTERJOIN,
+    ESC_ESCAPECHAR;
+  }
 
   protected Query lastSimpleQuery;
 
@@ -653,7 +656,7 @@ public class PgStatement implements Statement, BaseStatement {
    */
   protected static int parseSql(String p_sql, int i, StringBuilder newsql, boolean stopOnComma,
       boolean stdStrings) throws SQLException {
-    short state = IN_SQLCODE;
+    SqlParseState state = SqlParseState.IN_SQLCODE;
     int len = p_sql.length();
     int nestedParenthesis = 0;
     boolean endOfNested = false;
@@ -664,12 +667,31 @@ public class PgStatement implements Statement, BaseStatement {
       char c = p_sql.charAt(i);
       switch (state) {
         case IN_SQLCODE:
-          if (c == '\'') {
+          if (c == '$' && (i == 0 || !Parser.isIdentifierContChar(p_sql.charAt(i - 1)))) {
+            // start of a dollar-quoted string
+            int tagEnd = -1;
+            if (i + 1 < len) {
+              tagEnd = p_sql.indexOf('$', i + 1);
+            }
+            if (tagEnd != -1) {
+              String dollarQuoteTag = p_sql.substring(i, tagEnd + 1);
+              int nextPos = p_sql.indexOf(dollarQuoteTag, i + dollarQuoteTag.length());
+              if (nextPos > 0) {
+                tagEnd = nextPos + dollarQuoteTag.length();
+              }
+            }
+            if (tagEnd == -1) {
+              tagEnd = len;
+            }
+            newsql.append(p_sql, i, tagEnd); // tagEnd is excluding
+            i = tagEnd - 1;
+            break;
+          } else if (c == '\'') {
             // start of a string?
-            state = IN_STRING;
+            state = SqlParseState.IN_STRING;
           } else if (c == '"') {
             // start of a identifier?
-            state = IN_IDENTIFIER;
+            state = SqlParseState.IN_IDENTIFIER;
           } else if (c == '(') { // begin nested sql
             nestedParenthesis++;
           } else if (c == ')') { // end of nested sql
@@ -686,12 +708,12 @@ public class PgStatement implements Statement, BaseStatement {
               char next = p_sql.charAt(i + 1);
               char nextnext = (i + 2 < len) ? p_sql.charAt(i + 2) : '\0';
               if (next == 'd' || next == 'D') {
-                state = ESC_TIMEDATE;
+                state = SqlParseState.ESC_TIMEDATE;
                 i++;
                 newsql.append("DATE ");
                 break;
               } else if (next == 't' || next == 'T') {
-                state = ESC_TIMEDATE;
+                state = SqlParseState.ESC_TIMEDATE;
                 if (nextnext == 's' || nextnext == 'S') {
                   // timestamp constant
                   i += 2;
@@ -703,16 +725,16 @@ public class PgStatement implements Statement, BaseStatement {
                 }
                 break;
               } else if (next == 'f' || next == 'F') {
-                state = ESC_FUNCTION;
+                state = SqlParseState.ESC_FUNCTION;
                 i += (nextnext == 'n' || nextnext == 'N') ? 2 : 1;
                 break;
               } else if (next == 'o' || next == 'O') {
-                state = ESC_OUTERJOIN;
+                state = SqlParseState.ESC_OUTERJOIN;
                 i += (nextnext == 'j' || nextnext == 'J') ? 2 : 1;
                 break;
               } else if (next == 'e' || next == 'E') {
                 // we assume that escape is the only escape sequence beginning with e
-                state = ESC_ESCAPECHAR;
+                state = SqlParseState.ESC_ESCAPECHAR;
                 break;
               }
             }
@@ -723,10 +745,10 @@ public class PgStatement implements Statement, BaseStatement {
         case IN_STRING:
           if (c == '\'') {
             // end of string?
-            state = IN_SQLCODE;
+            state = SqlParseState.IN_SQLCODE;
           } else if (c == '\\' && !stdStrings) {
             // a backslash?
-            state = BACKSLASH;
+            state = SqlParseState.BACKSLASH;
           }
 
           newsql.append(c);
@@ -735,13 +757,13 @@ public class PgStatement implements Statement, BaseStatement {
         case IN_IDENTIFIER:
           if (c == '"') {
             // end of identifier
-            state = IN_SQLCODE;
+            state = SqlParseState.IN_SQLCODE;
           }
           newsql.append(c);
           break;
 
         case BACKSLASH:
-          state = IN_STRING;
+          state = SqlParseState.IN_STRING;
 
           newsql.append(c);
           break;
@@ -764,13 +786,13 @@ public class PgStatement implements Statement, BaseStatement {
           while (i < len && p_sql.charAt(i) != '}') {
             newsql.append(p_sql.charAt(i++));
           }
-          state = IN_SQLCODE; // end of escaped function (or query)
+          state = SqlParseState.IN_SQLCODE; // end of escaped function (or query)
           break;
         case ESC_TIMEDATE:
         case ESC_OUTERJOIN:
         case ESC_ESCAPECHAR:
           if (c == '}') {
-            state = IN_SQLCODE; // end of escape code.
+            state = SqlParseState.IN_SQLCODE; // end of escape code.
           } else {
             newsql.append(c);
           }

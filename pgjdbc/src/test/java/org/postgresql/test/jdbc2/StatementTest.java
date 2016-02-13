@@ -652,4 +652,30 @@ public class StatementTest extends TestCase {
       throw new IllegalStateException("Detected failure in cleanup thread", cleanupFailure.get());
     }
   }
+
+  /**
+   * Test that $JAVASCRIPT$ protects curly braces from JDBC {fn now()} kind of syntax.
+   * @throws SQLException if something goes wrong
+   */
+  public void testJavascriptFunction() throws SQLException {
+    String str = "  var _modules = {};\n"
+        + "  var _current_stack = [];\n"
+        + "\n"
+        + "  // modules start\n"
+        + "  _modules[\"/root/aidbox/fhirbase/src/core\"] = {\n"
+        + "  init:  function(){\n"
+        + "    var exports = {};\n"
+        + "    _current_stack.push({file: \"core\", dir: \"/root/aidbox/fhirbase/src\"})\n"
+        + "    var module = {exports: exports};";
+
+    PreparedStatement ps = null;
+    try {
+      ps = con.prepareStatement("select $JAVASCRIPT$" + str + "$JAVASCRIPT$");
+      ResultSet rs = ps.executeQuery();
+      rs.next();
+      assertEquals("Javascript code has been protected with $JAVASCRIPT$", str, rs.getString(1));
+    } finally {
+      TestUtil.closeQuietly(ps);
+    }
+  }
 }
