@@ -85,8 +85,7 @@ public class PGDataSourceFactory implements DataSourceFactory {
       throw new PSQLException(GT.tr("Unsupported properties: {0}", props.stringPropertyNames()),
           PSQLState.INVALID_PARAMETER_VALUE);
     }
-    org.postgresql.Driver driver = new org.postgresql.Driver();
-    return driver;
+    return new org.postgresql.Driver();
   }
 
   private DataSource createPoolingDataSource(Properties props) throws SQLException {
