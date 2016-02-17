@@ -375,7 +375,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @return integer parsed from string value
    * @throws NumberFormatException if the string contains invalid chars
    */
-  private int nullSafeIntGet(String value) throws NumberFormatException {
+  private static int nullSafeIntGet(String value) throws NumberFormatException {
     return (value == null) ? 0 : Integer.parseInt(value);
   }
 
@@ -386,7 +386,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @return double parsed from string value
    * @throws NumberFormatException if the string contains invalid chars
    */
-  private double nullSafeDoubleGet(String value) throws NumberFormatException {
+  private static double nullSafeDoubleGet(String value) throws NumberFormatException {
     return (value == null) ? 0 : Double.parseDouble(value);
   }
 

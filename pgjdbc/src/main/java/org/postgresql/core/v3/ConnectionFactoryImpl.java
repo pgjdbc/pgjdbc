@@ -280,7 +280,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
    *
    * @return The current JVM time zone in postgresql format.
    */
-  private String createPostgresTimeZone() {
+  private static String createPostgresTimeZone() {
     String tz = TimeZone.getDefault().getID();
     if (tz.length() <= 3 || !tz.startsWith("GMT")) {
       return tz;
