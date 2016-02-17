@@ -3103,9 +3103,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     }
     sql += toAdd;
     sql += " order by data_type, type_schem, type_name";
-    java.sql.ResultSet rs = createMetaDataStatement().executeQuery(sql);
-
-    return rs;
+    return createMetaDataStatement().executeQuery(sql);
   }
 
 

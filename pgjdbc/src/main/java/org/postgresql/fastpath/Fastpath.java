@@ -100,9 +100,7 @@ public class Fastpath {
     }
 
     // Run it.
-    byte[] returnValue = executor.fastpathCall(fnId, params, connection.getAutoCommit());
-
-    return returnValue;
+    return executor.fastpathCall(fnId, params, connection.getAutoCommit());
   }
 
   /**
@@ -167,8 +165,7 @@ public class Fastpath {
     }
 
     if (returnValue.length == 4) {
-      int i = ByteConverter.int4(returnValue, 0);
-      return i;
+      return ByteConverter.int4(returnValue, 0);
     } else {
       throw new PSQLException(GT.tr(
           "Fastpath call {0} - No result was returned or wrong size while expecting an integer.",
@@ -192,8 +189,7 @@ public class Fastpath {
           PSQLState.NO_DATA);
     }
     if (returnValue.length == 8) {
-      long l = ByteConverter.int8(returnValue, 0);
-      return l;
+      return ByteConverter.int8(returnValue, 0);
 
     } else {
       throw new PSQLException(
