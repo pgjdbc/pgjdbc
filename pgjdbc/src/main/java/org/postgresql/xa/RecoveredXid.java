@@ -30,6 +30,16 @@ class RecoveredXid implements Xid {
     return branchQualifier;
   }
 
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + Arrays.hashCode(branchQualifier);
+    result = prime * result + formatId;
+    result = prime * result + Arrays.hashCode(globalTransactionId);
+    return result;
+  }
+
   public boolean equals(Object o) {
     if (o == this) {
       // optimization for the common case.

@@ -67,6 +67,16 @@ public class PGmoney extends PGobject implements Serializable, Cloneable {
     }
   }
 
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = super.hashCode();
+    long temp;
+    temp = Double.doubleToLongBits(val);
+    result = prime * result + (int) (temp ^ (temp >>> 32));
+    return result;
+  }
+
   public boolean equals(Object obj) {
     if (obj instanceof PGmoney) {
       PGmoney p = (PGmoney) obj;

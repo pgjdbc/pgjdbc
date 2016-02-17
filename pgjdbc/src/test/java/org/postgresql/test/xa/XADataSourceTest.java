@@ -126,6 +126,10 @@ public class XADataSourceTest extends TestCase {
     }
 
     public boolean equals(Object o) {
+      if (!(o instanceof Xid)) {
+        return false;
+      }
+
       Xid other = (Xid) o;
       if (other.getFormatId() != this.getFormatId()) {
         return false;
@@ -138,6 +142,16 @@ public class XADataSourceTest extends TestCase {
       }
 
       return true;
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + Arrays.hashCode(getBranchQualifier());
+      result = prime * result + getFormatId();
+      result = prime * result + Arrays.hashCode(getGlobalTransactionId());
+      return result;
     }
   }
 
