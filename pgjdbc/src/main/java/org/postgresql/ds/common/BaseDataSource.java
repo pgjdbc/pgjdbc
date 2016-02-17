@@ -1133,7 +1133,7 @@ public abstract class BaseDataSource implements Referenceable {
     }
   }
 
-  private String getReferenceProperty(Reference ref, String propertyName) {
+  private static String getReferenceProperty(Reference ref, String propertyName) {
     RefAddr addr = ref.get(propertyName);
     if (addr == null) {
       return null;

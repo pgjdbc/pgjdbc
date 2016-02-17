@@ -2059,7 +2059,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
    * Add the user described by the given acl to the Lists of users with the privileges described by
    * the acl.
    */
-  private void addACLPrivileges(String acl, Map<String, Map<String, List<String[]>>> privileges) {
+  private static void addACLPrivileges(String acl, Map<String, Map<String, List<String[]>>> privileges) {
     int equalIndex = acl.lastIndexOf("=");
     int slashIndex = acl.lastIndexOf("/");
     if (equalIndex == -1) {

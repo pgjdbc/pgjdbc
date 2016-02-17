@@ -159,7 +159,7 @@ public class StreamWrapper {
     return "<stream of " + length + " bytes>";
   }
 
-  private int copyStream(InputStream inputStream, OutputStream outputStream, int limit)
+  private static int copyStream(InputStream inputStream, OutputStream outputStream, int limit)
       throws IOException {
     int totalLength = 0;
     byte[] buffer = new byte[2048];
