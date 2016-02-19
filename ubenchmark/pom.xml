@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
   <parent>
     <groupId>org.postgresql</groupId>
     <artifactId>pgjdbc-versions</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.4</version>
     <relativePath/>
   </parent>
 
