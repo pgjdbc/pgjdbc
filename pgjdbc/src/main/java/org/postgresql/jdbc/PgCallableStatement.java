@@ -459,7 +459,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     throw Driver.notImplemented(this.getClass(), "getClob(int)");
   }
 
-  public Object getObjectImpl(int i, java.util.Map map) throws SQLException {
+  public Object getObjectImpl(int i, Map<String, Class<?>> map) throws SQLException {
     if (map == null || map.isEmpty()) {
       return getObject(i);
     }
@@ -872,7 +872,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     throw Driver.notImplemented(this.getClass(), "getBigDecimal(String)");
   }
 
-  public Object getObjectImpl(String parameterName, java.util.Map map) throws SQLException {
+  public Object getObjectImpl(String parameterName, Map<String, Class<?>> map) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getObject(String,Map)");
   }
 

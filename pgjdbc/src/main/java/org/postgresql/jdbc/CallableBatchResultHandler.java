@@ -13,7 +13,7 @@ class CallableBatchResultHandler extends BatchResultHandler {
     super(statement, queries, parameterLists, updateCounts, false);
   }
 
-  public void handleResultRows(Query fromQuery, Field[] fields, List tuples, ResultCursor cursor) {
+  public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples, ResultCursor cursor) {
     /* ignore */
   }
 }
