@@ -23,9 +23,6 @@ public class UnixCrypt extends Object {
   private UnixCrypt() {
   }
 
-  private static final char[] saltChars =
-      ("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789./".toCharArray());
-
   private static final int ITERATIONS = 16;
 
   private static final int con_salt[] = {

@@ -98,8 +98,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   private int fetchdirection = ResultSet.FETCH_UNKNOWN;
   protected final BaseConnection connection; // the connection we belong to
   protected final BaseStatement statement; // the statement we belong to
-  private Statement realStatement;
-  // the real statement we belong to (when using forced binary prepared statement test hack)
   protected final Field fields[]; // Field metadata for this resultset.
   protected final Query originalQuery; // Query we originated from
 
@@ -3116,11 +3114,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
    */
   void addRows(List<byte[][]> tuples) {
     rows.addAll(tuples);
-  }
-
-
-  public void registerRealStatement(Statement realStatement) {
-    this.realStatement = realStatement;
   }
 
   public void updateRef(int columnIndex, Ref x) throws SQLException {

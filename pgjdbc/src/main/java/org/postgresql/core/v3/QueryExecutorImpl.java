@@ -1784,7 +1784,6 @@ public class QueryExecutorImpl implements QueryExecutor {
 
     List<byte[][]> tuples = null;
 
-    int len;
     int c;
     boolean endQuery = false;
 
@@ -2015,7 +2014,6 @@ public class QueryExecutorImpl implements QueryExecutor {
 
         {
           ExecuteRequest executeData = pendingExecuteQueue.removeFirst();
-          SimpleQuery currentQuery = executeData.query;
           Portal currentPortal = executeData.portal;
           handler.handleCommandStatus("EMPTY", 0, 0);
           if (currentPortal != null) {

@@ -62,7 +62,7 @@ public class MakeGSS {
         sub = lc.getSubject();
       }
       PrivilegedAction<Exception> action = new GssAction(pgStream, gssCredential, host, user,
-          password, kerberosServerName, logger, useSpnego);
+          kerberosServerName, logger, useSpnego);
 
       result = Subject.doAs(sub, action);
     } catch (Exception e) {

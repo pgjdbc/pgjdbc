@@ -275,7 +275,6 @@ public class PgStatement implements Statement, BaseStatement {
       ps.setFetchSize(getFetchSize());
       ps.setFetchDirection(getFetchDirection());
       PgResultSet rs = (PgResultSet) ps.executeQuery();
-      rs.registerRealStatement(this);
 
       result = firstUnclosedResult = new ResultWrapper(rs);
       return rs;
