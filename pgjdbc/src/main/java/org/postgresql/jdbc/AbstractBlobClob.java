@@ -32,7 +32,6 @@ public abstract class AbstractBlobClob {
   protected BaseConnection conn;
 
   private LargeObject currentLo;
-  private long loPos;
   private boolean currentLoIsWriteable;
   private boolean support64bit;
 

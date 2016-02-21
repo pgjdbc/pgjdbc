@@ -59,7 +59,6 @@ public class SSPIClient {
     this.pgStream = pgStream;
 
     /* If blank or unspecified, SPN service class should be POSTGRES */
-    String realServiceClass = spnServiceClass;
     if (spnServiceClass != null && spnServiceClass.isEmpty()) {
       spnServiceClass = null;
     }

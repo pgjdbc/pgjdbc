@@ -497,8 +497,6 @@ public class Driver implements java.sql.Driver {
     return false;
   }
 
-  static private String[] protocols = {"jdbc", "postgresql"};
-
   /**
    * Constructs a new DriverURL, splitting the specified URL into its component parts
    *

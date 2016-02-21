@@ -26,10 +26,8 @@ public class SetupQueryRunner {
   private static class SimpleResultHandler implements ResultHandler {
     private SQLException error;
     private List<byte[][]> tuples;
-    private final ProtocolConnection protoConnection;
 
-    SimpleResultHandler(ProtocolConnection protoConnection) {
-      this.protoConnection = protoConnection;
+    SimpleResultHandler() {
     }
 
     List<byte[][]> getResults() {
@@ -68,7 +66,7 @@ public class SetupQueryRunner {
       boolean wantResults) throws SQLException {
     QueryExecutor executor = protoConnection.getQueryExecutor();
     Query query = executor.createSimpleQuery(queryString);
-    SimpleResultHandler handler = new SimpleResultHandler(protoConnection);
+    SimpleResultHandler handler = new SimpleResultHandler();
 
     int flags = QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_SUPPRESS_BEGIN;
     if (!wantResults) {

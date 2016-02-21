@@ -21,7 +21,6 @@ class GssAction implements PrivilegedAction<Exception> {
   private final PGStream pgStream;
   private final String host;
   private final String user;
-  private final String password;
   private final String kerberosServerName;
   private final Logger logger;
   private final boolean useSpnego;
@@ -29,12 +28,11 @@ class GssAction implements PrivilegedAction<Exception> {
 
 
   public GssAction(PGStream pgStream, GSSCredential clientCredentials, String host, String user,
-      String password, String kerberosServerName, Logger logger, boolean useSpnego) {
+      String kerberosServerName, Logger logger, boolean useSpnego) {
     this.pgStream = pgStream;
     this.clientCredentials = clientCredentials;
     this.host = host;
     this.user = user;
-    this.password = password;
     this.kerberosServerName = kerberosServerName;
     this.logger = logger;
     this.useSpnego = useSpnego;
