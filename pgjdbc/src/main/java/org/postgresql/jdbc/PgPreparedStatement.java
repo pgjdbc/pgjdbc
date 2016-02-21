@@ -547,7 +547,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
-  private void setMap(int parameterIndex, Map x) throws SQLException {
+  private void setMap(int parameterIndex, Map<?, ?> x) throws SQLException {
     int oid = connection.getTypeInfo().getPGType("hstore");
     if (oid == Oid.UNSPECIFIED) {
       throw new PSQLException(GT.tr("No hstore extension installed."),
@@ -1033,7 +1033,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       setTimestamp(parameterIndex, (OffsetDateTime) x);
       //#endif
     } else if (x instanceof Map) {
-      setMap(parameterIndex, (Map) x);
+      setMap(parameterIndex, (Map<?, ?>) x);
     } else {
       // Can't infer a type.
       throw new PSQLException(GT.tr(
