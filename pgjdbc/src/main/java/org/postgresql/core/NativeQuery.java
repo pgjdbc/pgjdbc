@@ -31,11 +31,11 @@ public class NativeQuery {
     this(nativeSql, NO_BINDS, false);
   }
 
-  public NativeQuery(String nativeSql, int[] bindPositions, boolean compatible) {
+  public NativeQuery(String nativeSql, int[] bindPositions, boolean insertReWriteCompatible) {
     this.nativeSql = nativeSql;
     this.bindPositions =
         bindPositions == null || bindPositions.length == 0 ? NO_BINDS : bindPositions;
-    this.isBatchedReWriteCompatible = compatible;
+    this.isBatchedReWriteCompatible = insertReWriteCompatible;
   }
 
   /**
@@ -79,7 +79,7 @@ public class NativeQuery {
     return index < BIND_NAMES.length ? BIND_NAMES[index] : "$" + index;
   }
 
-  public static int bindsCount() {
+  public static int bindCount() {
     return BIND_NAMES.length;
   }
 }

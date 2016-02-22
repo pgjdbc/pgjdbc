@@ -134,24 +134,24 @@ public class QueryExecutorImpl implements QueryExecutor {
   // Query parsing
   //
 
-  public Query createSimpleQuery(String sql) {
-    return parseQuery(sql, false);
+  public Query createSimpleQuery(String sql, boolean autocommit) {
+    return parseQuery(sql, false, autocommit);
   }
 
-  public Query createParameterizedQuery(String sql) {
-    return parseQuery(sql, true);
+  public Query createParameterizedQuery(String sql, boolean autocommit) {
+    return parseQuery(sql, true, autocommit);
   }
 
-  private Query parseQuery(String query, boolean withParameters) {
+  private Query parseQuery(String query, boolean withParameters, boolean autocommit) {
 
     List<NativeQuery> queries = Parser.parseJdbcSql(query,
-        protoConnection.getStandardConformingStrings(), withParameters, true);
+        protoConnection.getStandardConformingStrings(), withParameters, true, autocommit);
     if (queries.isEmpty()) {
       // Empty query
       return EMPTY_QUERY;
     }
     if (queries.size() == 1) {
-      if (allowReWriteBatchedInserts && queries.get(0).isBatchedReWriteCompatible ) {
+      if (allowReWriteBatchedInserts && queries.get(0).isBatchedReWriteCompatible) {
         return new BatchedQueryDecorator(queries.get(0), protoConnection);
       } else {
         return new SimpleQuery(queries.get(0), protoConnection);

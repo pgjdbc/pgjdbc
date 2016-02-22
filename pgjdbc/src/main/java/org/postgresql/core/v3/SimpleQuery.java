@@ -255,19 +255,16 @@ class SimpleQuery implements V3Query {
     cachedMaxResultRowSize = null;
   }
 
-  @Override
   public boolean isStatementReWritableInsert() {
     return nativeQuery.isBatchedReWriteCompatible;
   }
 
-  @Override
   public int getBatchSize() {
     return batchedCount;
   }
 
-  @Override
   public void incrementBatchSize() {
-    batchedCount += 1;
+    batchedCount++;
   }
 
   public void resetBatchedCount() {

@@ -321,7 +321,7 @@ public class PgStatement implements Statement, BaseStatement {
     checkClosed();
     p_sql = replaceProcessing(p_sql, replaceProcessingEnabled,
         connection.getStandardConformingStrings());
-    Query simpleQuery = connection.getQueryExecutor().createSimpleQuery(p_sql);
+    Query simpleQuery = connection.getQueryExecutor().createSimpleQuery(p_sql, connection.getAutoCommit());
     execute(simpleQuery, null, QueryExecutor.QUERY_ONESHOT | flags);
     this.lastSimpleQuery = simpleQuery;
     return (result != null && result.getResultSet() != null);
@@ -912,7 +912,7 @@ public class PgStatement implements Statement, BaseStatement {
     p_sql = replaceProcessing(p_sql, replaceProcessingEnabled,
         connection.getStandardConformingStrings());
 
-    batchStatements.add(connection.getQueryExecutor().createSimpleQuery(p_sql));
+    batchStatements.add(connection.getQueryExecutor().createSimpleQuery(p_sql, connection.getAutoCommit()));
     batchParameters.add(null);
   }
 
@@ -943,8 +943,7 @@ public class PgStatement implements Statement, BaseStatement {
 
     // Construct query/parameter arrays.
     Query[] queries = batchStatements.toArray(new Query[batchStatements.size()]);
-    ParameterList[] parameterLists =
-        batchParameters.toArray(new ParameterList[batchParameters.size()]);
+    ParameterList[] parameterLists = transformParameters();
     batchStatements.clear();
     batchParameters.clear();
 
@@ -1041,7 +1040,7 @@ public class PgStatement implements Statement, BaseStatement {
            * indicate successful completion for each row the driver client added
            * to the batch.
            */
-          for (int i = 0; i < batchSize; i += 1 ) {
+          for (int i = 0; i < batchSize; i++ ) {
             updateCounts[i] = Statement.SUCCESS_NO_INFO;
           }
           bqd.reset();
@@ -1430,7 +1429,11 @@ public class PgStatement implements Statement, BaseStatement {
     return createResultSet(null, fields, tuples, null);
   }
 
-  private void setReWriteBatchedInserts(boolean enabled) {
+  protected void setReWriteBatchedInserts(boolean enabled) {
     reWriteBatchedInserts = enabled;
+  }
+
+  protected ParameterList[] transformParameters() throws SQLException {
+    return batchParameters.toArray(new ParameterList[batchParameters.size()]);
   }
 }

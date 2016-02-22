@@ -55,6 +55,8 @@ public interface Query {
   /**
    * Convenience to check if the Query has an insert statement
    * that can be re-written.
+   * @return boolean value indication if the Query is an INSERT statement and
+   * compatible for re-write.
    */
   boolean isStatementReWritableInsert();
 

@@ -80,7 +80,7 @@ public class CompositeQueryParseTest extends TestCase {
   private String reparse(String query, boolean standardConformingStrings, boolean withParameters,
       boolean splitStatements) {
     return toString(
-        Parser.parseJdbcSql(query, standardConformingStrings, withParameters, splitStatements));
+        Parser.parseJdbcSql(query, standardConformingStrings, withParameters, splitStatements, true));
   }
 
   private String toString(List<NativeQuery> queries) {

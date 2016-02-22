@@ -8,10 +8,11 @@
 
 package org.postgresql.test.jdbc2;
 
+import org.postgresql.core.v2.V2ParameterListTests;
+import org.postgresql.core.v3.V3ParameterListTests;
+import org.postgresql.jdbc.DeepBatchedInsertStatementTest;
 import org.postgresql.test.CursorFetchBinaryTest;
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.core.v2.V2ParameterListTests;
-import org.postgresql.test.core.v3.V3ParameterListTests;
 
 import junit.framework.JUnit4TestAdapter;
 import junit.framework.TestSuite;
