@@ -81,6 +81,7 @@ class SimpleParameterList implements V3ParameterList {
     }
 
     paramTypes[index] = oid;
+    pos = index + 1;
   }
 
   public int getParameterCount() {
@@ -362,57 +363,63 @@ class SimpleParameterList implements V3ParameterList {
     Arrays.fill(paramTypes, 0);
     Arrays.fill(encoded, null);
     Arrays.fill(flags, (byte) 0);
+    pos = 0;
   }
 
   public SimpleParameterList[] getSubparams() {
     return null;
   }
 
-  @Override
   public Object[] getValues() {
     return paramValues;
   }
 
-  @Override
   public int[] getParamTypes() {
     return paramTypes;
   }
 
-  @Override
   public byte[] getFlags() {
     return flags;
   }
 
-  @Override
   public byte[][] getEncoding() {
     return encoded;
   }
 
-  @Override
-  public void addAll(ParameterList list) {
+  public void appendAll(ParameterList list) throws SQLException {
     if (list instanceof org.postgresql.core.v3.SimpleParameterList ) {
       /* only v3.SimpleParameterList is compatible with this type
       we need to create copies of our parameters, otherwise the values can be changed */
-      SimpleParameterList spl = (SimpleParameterList) list.copy();
-      System.arraycopy(spl.getValues(), 0, this.paramValues, 0, spl.getInParameterCount());
-      System.arraycopy(spl.getParamTypes(), 0, this.paramTypes, 0, spl.getInParameterCount());
-      System.arraycopy(spl.getFlags(), 0, this.flags, 0, spl.getInParameterCount());
-      System.arraycopy(spl.getEncoding(), 0, this.encoded, 0, spl.getInParameterCount());
+      SimpleParameterList spl = (SimpleParameterList) list;
+      if ((pos + spl.getInParameterCount()) > paramValues.length) {
+        throw new PSQLException(
+          GT.tr("Added parameters index out of range: {0}, number of columns: {1}.",
+            new Object[]{(pos + spl.getInParameterCount()), paramValues.length}),
+              PSQLState.INVALID_PARAMETER_VALUE);
+      }
+      System.arraycopy(spl.getValues(), 0, this.paramValues, pos, spl.getInParameterCount());
+      System.arraycopy(spl.getParamTypes(), 0, this.paramTypes, pos, spl.getInParameterCount());
+      System.arraycopy(spl.getFlags(), 0, this.flags, pos, spl.getInParameterCount());
+      System.arraycopy(spl.getEncoding(), 0, this.encoded, pos, spl.getInParameterCount());
+      pos += spl.getInParameterCount();
     }
   }
 
   @Override
-  public void appendAll(ParameterList list) {
-    if (list instanceof org.postgresql.core.v3.SimpleParameterList ) {
-      /* only v3.SimpleParameterList is compatible with this type
-      we need to create copies of our parameters, otherwise the values can be changed */
-      SimpleParameterList spl = (SimpleParameterList) list.copy();
-      int start = this.paramValues.length - spl.getInParameterCount();
-      System.arraycopy(spl.getValues(), 0, this.paramValues, start, spl.getInParameterCount());
-      System.arraycopy(spl.getParamTypes(), 0, this.paramTypes, start, spl.getInParameterCount());
-      System.arraycopy(spl.getFlags(), 0, this.flags, start, spl.getInParameterCount());
-      System.arraycopy(spl.getEncoding(), 0, this.encoded, start, spl.getInParameterCount());
+  /**
+   * Useful implementation of toString.
+   * @return String representation of the list values
+   */
+  public String toString() {
+    StringBuilder ts = new StringBuilder("<[");
+    if (paramValues.length > 0) {
+      ts.append(toString(1));
+      for (int c = 2; c <= paramValues.length; c++) {
+        ts.append(" ,").append(toString(c));
+      }
     }
+    ts.append("]>");
+    return ts.toString();
   }
 
   private final Object[] paramValues;
@@ -426,5 +433,7 @@ class SimpleParameterList implements V3ParameterList {
    * to null".
    */
   private final static Object NULL_OBJECT = new Object();
+
+  private int pos = 0;
 }
 

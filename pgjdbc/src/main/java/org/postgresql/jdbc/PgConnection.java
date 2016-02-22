@@ -323,8 +323,8 @@ public class PgConnection implements BaseConnection {
         haveMinimumServerVersion(ServerVersion.v8_2), !protoConnection.getIntegerDateTimes());
 
     // Initialize common queries.
-    commitQuery = getQueryExecutor().createSimpleQuery("COMMIT");
-    rollbackQuery = getQueryExecutor().createSimpleQuery("ROLLBACK");
+    commitQuery = getQueryExecutor().createSimpleQuery("COMMIT", getAutoCommit());
+    rollbackQuery = getQueryExecutor().createSimpleQuery("ROLLBACK", getAutoCommit());
 
     int unknownLength = PGProperty.UNKNOWN_LENGTH.getInt(info);
 

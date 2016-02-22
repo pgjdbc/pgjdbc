@@ -208,32 +208,14 @@ class SimpleParameterList implements ParameterList {
     throw new UnsupportedOperationException();
   }
 
-  @Override
   public Object[] getValues() {
     return paramValues;
   }
 
-  @Override
-  /**
-   * Replace all parameters with new values in provided list.
-   */
-  public void addAll(ParameterList list) {
-    if (list instanceof SimpleParameterList ) {
-      /* only v2.SimpleParameterList is compatible with this type. The list
-      of parameters is expected to already be cloned from the values
-      passed by application. */
-      SimpleParameterList spl = (SimpleParameterList) list;
-      Arrays.fill(paramValues, null);
-      System.arraycopy(spl.getValues(), 0, paramValues, 0,
-          spl.getInParameterCount());
-    }
-  }
-
-  @Override
   /**
    * Append parameters to the list.
    */
-  public void appendAll(ParameterList list) {
+  public void appendAll(ParameterList list) throws SQLException {
     if (list instanceof SimpleParameterList ) {
       /* only v2.SimpleParameterList is compatible with this type. The list
       of parameters is expected to already be cloned from the values
@@ -244,6 +226,22 @@ class SimpleParameterList implements ParameterList {
           getInParameterCount() - count,
           count);
     }
+  }
+
+  /**
+   * Provide a useful implementation to aid debugging/testing.
+   * @return String representation of the values in the list
+   */
+  public String toString() {
+    StringBuilder ts = new StringBuilder("<[");
+    if (paramValues.length > 0) {
+      ts.append(toString(1));
+      for (int c = 2; c <= paramValues.length; c++) {
+        ts.append(" ,").append(toString(c));
+      }
+    }
+    ts.append("]>");
+    return ts.toString();
   }
 
   private final Object[] paramValues;

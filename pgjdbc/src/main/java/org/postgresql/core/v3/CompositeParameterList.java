@@ -150,7 +150,6 @@ class CompositeParameterList implements V3ParameterList {
     }
   }
 
-  @Override
   public byte[][] getEncoding() {
     return null; // unsupported
   }
@@ -159,23 +158,15 @@ class CompositeParameterList implements V3ParameterList {
     return null; // unsupported
   }
 
-  @Override
   public int[] getParamTypes() {
     return null; // unsupported
   }
 
-  @Override
   public Object[] getValues() {
     return null; // unsupported
   }
 
-  @Override
-  public void addAll(ParameterList list) {
-    // no-op, unsupported
-  }
-
-  @Override
-  public void appendAll(ParameterList list) {
+  public void appendAll(ParameterList list) throws SQLException {
     // no-op, unsupported
   }
 

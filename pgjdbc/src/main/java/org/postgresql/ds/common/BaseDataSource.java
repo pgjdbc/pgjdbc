@@ -1181,6 +1181,7 @@ public abstract class BaseDataSource implements Referenceable {
 
   /**
    * @see PGProperty#REWRITE_BATCHED_INSERTS
+   * @return boolean indicating property is enabled or not.
    */
   public boolean getReWriteBatchedInserts() {
     return PGProperty.REWRITE_BATCHED_INSERTS.getBoolean(properties);
@@ -1188,6 +1189,7 @@ public abstract class BaseDataSource implements Referenceable {
 
   /**
    * @see PGProperty#REWRITE_BATCHED_INSERTS
+   * @param reWrite boolean value to set the property in the properties collection
    */
   public void setReWriteBatchedInserts(boolean reWrite) {
     PGProperty.REWRITE_BATCHED_INSERTS.set(properties, reWrite);
