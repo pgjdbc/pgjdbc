@@ -84,8 +84,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
    */
   protected boolean outParmBeforeFunc = false;
 
-  protected boolean reWriteBatchedInserts = false;
-
   PgPreparedStatement(PgConnection connection, String sql, int rsType, int rsConcurrency,
       int rsHoldability) throws SQLException {
     this(connection, sql, false, rsType, rsConcurrency, rsHoldability);
@@ -97,7 +95,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
     this.preparedQuery = connection.borrowQuery(sql, isCallable);
     this.preparedParameters = this.preparedQuery.query.createParameterList();
-    this.reWriteBatchedInserts = connection.isReWriteBatchedInsertsEnabled();
 
     setPoolable(true); // As per JDBC spec: prepared and callable statements are poolable by
   }
@@ -1122,12 +1119,12 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       batchParameters = new ArrayList<ParameterList>();
     }
     if (reWriteBatchedInserts && preparedQuery.query.isStatementReWritableInsert()) {
+      // we need to create copies of our parameters, otherwise the values can be changed
+      batchParameters.add(preparedParameters.copy());
       if (batchStatements.size() == 0) {
         batchStatements.add(preparedQuery.query);
-        // we need to create copies of our parameters, otherwise the values can be changed
-        batchParameters.add(preparedParameters.copy());
       } else {
-        reWrite(batchStatements, batchParameters, preparedParameters);
+        increment(batchStatements, preparedParameters);
       }
     } else {
       // we need to create copies of our parameters, otherwise the values can be changed
@@ -1669,27 +1666,31 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
    * @param batchParameters all the parameters
    * @param preparedParameters all the prepared parameters
    */
-  private void reWrite(List<Query> batchStatements,
-      List<ParameterList> batchParameters, ParameterList preparedParameters) {
+  private void increment(List<Query> batchStatements, ParameterList preparedParameters) {
     Query prior = batchStatements.get(batchStatements.size() - 1);
     BatchedQueryDecorator decoratedQuery = (BatchedQueryDecorator)prior;
     decoratedQuery.incrementBatchSize();
 
-    // create a new paramlist that is sized correctly
-    ParameterList replacement = decoratedQuery.createParameterList();
-    ParameterList old = (ParameterList)batchParameters.remove(batchParameters.size() - 1);
-    replacement.addAll(old);
-    replacement.appendAll(preparedParameters);
-    batchParameters.add(replacement);
-
     // resize and populate .fields and .preparedTypes meta data
-    int singleBatchparamCount = replacement.getParameterCount() / decoratedQuery.getBatchSize();
-
     int[] userTypeInformation = preparedParameters.getTypeOIDs();
     if (userTypeInformation != null && userTypeInformation.length > 0
-        && userTypeInformation.length == singleBatchparamCount) {
+        && userTypeInformation.length == decoratedQuery.getNativeQuery().bindPositions.length) {
       decoratedQuery.setStatementTypes(userTypeInformation);
     }
   }
 
+  @Override
+  protected ParameterList[] transformParameters() throws SQLException {
+    if (reWriteBatchedInserts && preparedQuery.query.isStatementReWritableInsert() && batchParameters.size() > 1) {
+      int s = batchParameters.size() * batchParameters.get(0).getInParameterCount();
+      ParameterList[] pla = new ParameterList[1];
+      pla[0] = ((BatchedQueryDecorator)batchStatements.get(0)).createParameterList();
+      for (ParameterList pl : batchParameters) {
+        pla[0].appendAll(pl);
+      }
+      return pla;
+    } else {
+      return super.transformParameters();
+    }
+  }
 }

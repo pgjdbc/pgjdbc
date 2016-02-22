@@ -11,51 +11,38 @@ package org.postgresql.test.jdbc2;
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
 import java.util.Properties;
 
-
-public class BatchedInsertReWriteEnabledTest extends TestCase {
-
-  private Connection con;
+public class BatchedInsertReWriteEnabledTest extends BaseTest {
 
   /**
    * Check batching using two individual statements that are both the same type.
-   * Test to check the re-write optimization behaviour.
+   * Test to check the re-write optimisation behaviour.
    */
   public void testBatchWithReWrittenRepeatedInsertStatementOptimizationEnabled()
       throws SQLException {
     PreparedStatement pstmt = null;
     try {
-      /*
-       * The connection is configured so the batch rewrite optimization is
-       * enabled. See setUp()
-       */
-
       pstmt = con.prepareStatement("INSERT INTO testbatch VALUES (?,?)");
       pstmt.setInt(1, 1);
       pstmt.setInt(2, 2);
-      pstmt.addBatch(); // statement one
+      pstmt.addBatch();
       pstmt.setInt(1, 3);
       pstmt.setInt(2, 4);
-      pstmt.addBatch();/* statement two, this should be collapsed into prior
-          statement */
+      pstmt.addBatch();
       pstmt.setInt(1, 5);
       pstmt.setInt(2, 6);
-      pstmt.addBatch();/* statement three, this should be collapsed into prior
-          statement */
-      int[] outcome = pstmt.executeBatch();
-
-      assertNotNull(outcome);
-      assertEquals(3, outcome.length);
-      assertEquals(Statement.SUCCESS_NO_INFO, outcome[0]);
-      assertEquals(Statement.SUCCESS_NO_INFO, outcome[1]);
-      assertEquals(Statement.SUCCESS_NO_INFO, outcome[2]);
+      pstmt.addBatch();
+      assertTrue(
+          "Expected outcome not returned by batch execution.",
+          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
+              Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO },
+              pstmt.executeBatch()));
 
       /*
        * Now check the ps can be reused. The batched statement should be reset
@@ -76,14 +63,12 @@ public class BatchedInsertReWriteEnabledTest extends TestCase {
       pstmt.setInt(1, 7);
       pstmt.setInt(2, 8);
       pstmt.addBatch();
-      outcome = pstmt.executeBatch();
-
-      assertNotNull(outcome);
-      assertEquals(4, outcome.length);
-      assertEquals(Statement.SUCCESS_NO_INFO, outcome[0]);
-      assertEquals(Statement.SUCCESS_NO_INFO, outcome[1]);
-      assertEquals(Statement.SUCCESS_NO_INFO, outcome[2]);
-      assertEquals(Statement.SUCCESS_NO_INFO, outcome[3]);
+      assertTrue(
+          "Expected outcome not returned by batch execution.",
+          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
+              Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO,
+              Statement.SUCCESS_NO_INFO },
+              pstmt.executeBatch()));
 
       pstmt.setInt(1, 1);
       pstmt.setInt(2, 2);
@@ -97,22 +82,13 @@ public class BatchedInsertReWriteEnabledTest extends TestCase {
       pstmt.setInt(1, 7);
       pstmt.setInt(2, 8);
       pstmt.addBatch();
-      outcome = pstmt.executeBatch();
+      assertTrue(
+          "Expected outcome not returned by batch execution.",
+          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
+              Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO,
+              Statement.SUCCESS_NO_INFO },
+              pstmt.executeBatch()));
 
-      assertNotNull(outcome);
-      assertEquals(4, outcome.length);
-      assertEquals(Statement.SUCCESS_NO_INFO, outcome[0]);
-      assertEquals(Statement.SUCCESS_NO_INFO, outcome[1]);
-      assertEquals(Statement.SUCCESS_NO_INFO, outcome[2]);
-      assertEquals(Statement.SUCCESS_NO_INFO, outcome[3]);
-    } catch (SQLException sqle) {
-      StringBuilder m = new StringBuilder();
-      m.append(sqle.getMessage());
-      if (sqle.getCause() != null) {
-        m.append(sqle.getCause().getMessage());
-      }
-      fail("Failed to execute four statements added to a re used Prepared Statement. Reason:"
-          + m.toString());
     } finally {
       if (null != pstmt) {
         pstmt.close();
@@ -127,32 +103,21 @@ public class BatchedInsertReWriteEnabledTest extends TestCase {
       throws SQLException {
     PreparedStatement pstmt = null;
     try {
-      /*
-       * The connection is configured so the batch rewrite optimization is
-       * enabled. See setUp()
-       */
       pstmt = con.prepareStatement("INSERT INTO testbatch VALUES (?,?);");
       pstmt.setInt(1, 1);
       pstmt.setInt(2, 2);
-      pstmt.addBatch(); // statement one
+      pstmt.addBatch();
       pstmt.setInt(1, 3);
       pstmt.setInt(2, 4);
-      pstmt.addBatch();/* statement two, this should be collapsed into prior
-          statement */
+      pstmt.addBatch();
       pstmt.setInt(1, 5);
       pstmt.setInt(2, 6);
-      pstmt.addBatch();/* statement three, this should be collapsed into prior
-          statement */
-      int[] outcome = pstmt.executeBatch();
-
-      assertNotNull(outcome);
-      assertEquals(3, outcome.length);
-      assertEquals(Statement.SUCCESS_NO_INFO, outcome[0]);
-      assertEquals(Statement.SUCCESS_NO_INFO, outcome[1]);
-      assertEquals(Statement.SUCCESS_NO_INFO, outcome[2]);
-    } catch (SQLException sqle) {
-      fail("Failed to execute three statements added to a batch. Reason:"
-          + sqle.getMessage());
+      pstmt.addBatch();
+      assertTrue(
+          "Expected outcome not returned by batch execution.",
+          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
+              Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO },
+              pstmt.executeBatch()));
     } finally {
       if (null != pstmt) {
         pstmt.close();
@@ -163,7 +128,8 @@ public class BatchedInsertReWriteEnabledTest extends TestCase {
 
   /**
    * Test case to check the outcome for a batch with a single row/batch is
-   * consistent across calls to executeBatch.
+   * consistent across calls to executeBatch. Especially after a batch
+   * has been re-written.
    */
   public void testConsistentOutcome() throws SQLException {
     PreparedStatement pstmt = null;
@@ -172,35 +138,27 @@ public class BatchedInsertReWriteEnabledTest extends TestCase {
       pstmt.setInt(1, 1);
       pstmt.setInt(2, 2);
       pstmt.addBatch();
-      int[] outcome = pstmt.executeBatch();
-      assertNotNull(outcome);
-      assertEquals(1, outcome.length);
-      assertEquals(1, outcome[0]);
+      assertTrue(
+          "Expected outcome not returned by batch execution.",
+          Arrays.equals(new int[] { 1 }, pstmt.executeBatch()));
+
       pstmt.setInt(1, 1);
       pstmt.setInt(2, 2);
       pstmt.addBatch();
       pstmt.setInt(1, 3);
       pstmt.setInt(2, 4);
       pstmt.addBatch();
-      outcome = pstmt.executeBatch();
-      assertNotNull(outcome);
-      assertEquals(2, outcome.length);
-      assertEquals(Statement.SUCCESS_NO_INFO, outcome[0]);
-      assertEquals(Statement.SUCCESS_NO_INFO, outcome[1]);
+      assertTrue(
+          "Expected outcome not returned by batch execution.",
+          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
+              Statement.SUCCESS_NO_INFO }, pstmt.executeBatch()));
+
       pstmt.setInt(1, 1);
       pstmt.setInt(2, 2);
       pstmt.addBatch();
-      outcome = pstmt.executeBatch();
-      assertNotNull(outcome);
-      assertEquals(1, outcome.length);
-      assertEquals(1, outcome[0]);
-    } catch (SQLException sqle) {
-      StringBuilder m = new StringBuilder();
-      m.append(sqle.getMessage());
-      if (sqle.getCause() != null) {
-        m.append(sqle.getCause().getMessage());
-      }
-      fail("Consistent batch outcome test failed. Reason:" + m.toString());
+      assertTrue(
+          "Expected outcome not returned by batch execution.",
+          Arrays.equals(new int[] { 1 }, pstmt.executeBatch()));
     } finally {
       if (null != pstmt) {
         pstmt.close();
@@ -210,9 +168,9 @@ public class BatchedInsertReWriteEnabledTest extends TestCase {
   }
 
   /**
-   * Test to check
+   * Test to check statement with named columns still work as expected.
    */
-  public void testINSERTwithColumnsNotBroken() throws SQLException {
+  public void testINSERTwithNamedColumnsNotBroken() throws SQLException {
     PreparedStatement pstmt = null;
     try {
       pstmt = con
@@ -220,22 +178,67 @@ public class BatchedInsertReWriteEnabledTest extends TestCase {
       pstmt.setInt(1, 1);
       pstmt.setInt(2, 2);
       pstmt.addBatch();
-      int[] outcome = pstmt.executeBatch();
-      assertNotNull(outcome);
-      assertEquals(1, outcome.length);
-      assertEquals(1, outcome[0]);
-    } catch (SQLException sqle) {
-      StringBuilder m = new StringBuilder();
-      m.append(sqle.getMessage());
-      if (sqle.getCause() != null) {
-        m.append(sqle.getCause().getMessage());
-      }
-      fail("Consistent batch outcome test failed. Reason:" + m.toString());
+      assertTrue(
+          "Expected outcome not returned by batch execution.",
+          Arrays.equals(new int[] { 1 }, pstmt.executeBatch()));
     } finally {
       if (null != pstmt) {
         pstmt.close();
       }
       con.rollback();
+    }
+  }
+
+  public void testMixedCaseInSeRtStatement() throws SQLException {
+    PreparedStatement pstmt = null;
+    try {
+      pstmt = con
+          .prepareStatement("InSeRt INTO testbatch VALUES (?,?);");
+      pstmt.setInt(1, 1);
+      pstmt.setInt(2, 2);
+      pstmt.addBatch();
+      pstmt.setInt(1, 3);
+      pstmt.setInt(2, 4);
+      pstmt.addBatch();
+      assertTrue(
+          "Expected outcome not returned by batch execution. Meaning the driver"
+          + "did not detect the INSERT statement with mixed case keyword.",
+          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
+              Statement.SUCCESS_NO_INFO }, pstmt.executeBatch()));
+    } finally {
+      if (null != pstmt) {
+        pstmt.close();
+      }
+      con.rollback();
+    }
+  }
+
+  public void testReWriteDisabledForAutoCommitConnections() throws Exception {
+    PreparedStatement pstmt = null;
+    Connection autocommit = null;
+    try {
+      autocommit = TestUtil.openDB(new Properties());
+      autocommit.setAutoCommit(true);
+      pstmt = autocommit
+          .prepareStatement("INSERT INTO testbatch VALUES (?,?);");
+      pstmt.setInt(1, 100);
+      pstmt.setInt(2, 200);
+      pstmt.addBatch();
+      pstmt.setInt(1, 300);
+      pstmt.setInt(2, 400);
+      pstmt.addBatch();
+      assertTrue(
+          "Expected outcome not returned by batch execution. The driver"
+          + " allowed re-write in combination with a connection configured"
+          + " to autocommit.",
+          Arrays.equals(new int[] { 1, 1 }, pstmt.executeBatch()));
+    } finally {
+      if (null != pstmt) {
+        pstmt.close();
+      }
+      if (null != autocommit) {
+        autocommit.close();
+      }
     }
   }
 
@@ -250,21 +253,12 @@ public class BatchedInsertReWriteEnabledTest extends TestCase {
   /* Set up the fixture for this testcase: a connection to a database with
   a table for this test. */
   protected void setUp() throws Exception {
-    Properties props = new Properties();
-    props.setProperty(PGProperty.REWRITE_BATCHED_INSERTS.getName(),
-        Boolean.TRUE.toString());
-
-    con = TestUtil.openDB(props);
+    super.setUp();
     Statement stmt = con.createStatement();
 
-    /* Drop the test table if it already exists for some reason. It is
-    not an error if it doesn't exist. */
     TestUtil.createTable(con, "testbatch", "pk INTEGER, col1 INTEGER");
 
-    stmt.executeUpdate("INSERT INTO testbatch VALUES (1, 0)");
     stmt.close();
-
-    TestUtil.createTable(con, "prep", "a integer, b integer");
 
     /* Generally recommended with batch updates. By default we run all
     tests in this test case with autoCommit disabled. */
@@ -272,12 +266,16 @@ public class BatchedInsertReWriteEnabledTest extends TestCase {
   }
 
   // Tear down the fixture for this test case.
-  protected void tearDown() throws Exception {
-    con.setAutoCommit(true);
-
+  protected void tearDown() throws SQLException {
     TestUtil.dropTable(con, "testbatch");
-    TestUtil.closeDB(con);
     System.setProperty(PGProperty.REWRITE_BATCHED_INSERTS.getName(),
         PGProperty.REWRITE_BATCHED_INSERTS.getDefaultValue());
+    super.tearDown();
+  }
+
+  @Override
+  protected void updateProperties(Properties props) {
+    props.setProperty(PGProperty.REWRITE_BATCHED_INSERTS.getName(),
+        Boolean.TRUE.toString());
   }
 }

@@ -26,7 +26,7 @@ class V2Query implements Query {
     useEStringSyntax = pconn.getServerVersionNum() >= 80100;
     boolean stdStrings = pconn.getStandardConformingStrings();
 
-    List<NativeQuery> queries = Parser.parseJdbcSql(query, stdStrings, withParameters, false);
+    List<NativeQuery> queries = Parser.parseJdbcSql(query, stdStrings, withParameters, false, true);
     assert queries.size() <= 1 : "Exactly one query expected in V2. " + queries.size()
         + " queries given.";
 
@@ -60,7 +60,6 @@ class V2Query implements Query {
     return nativeQuery.nativeSql.isEmpty();
   }
 
-  @Override
   public boolean isStatementReWritableInsert() {
     return statementReWritableInsert;
   }
@@ -69,12 +68,10 @@ class V2Query implements Query {
     statementReWritableInsert = canReWrite;
   }
 
-  @Override
   public void incrementBatchSize() {
-    batchSize += 1;
+    batchSize++;
   }
 
-  @Override
   public int getBatchSize() {
     return batchSize;
   }

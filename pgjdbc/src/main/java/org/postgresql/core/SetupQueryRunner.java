@@ -65,7 +65,7 @@ public class SetupQueryRunner {
   public static byte[][] run(ProtocolConnection protoConnection, String queryString,
       boolean wantResults) throws SQLException {
     QueryExecutor executor = protoConnection.getQueryExecutor();
-    Query query = executor.createSimpleQuery(queryString);
+    Query query = executor.createSimpleQuery(queryString, false);
     SimpleResultHandler handler = new SimpleResultHandler();
 
     int flags = QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_SUPPRESS_BEGIN;

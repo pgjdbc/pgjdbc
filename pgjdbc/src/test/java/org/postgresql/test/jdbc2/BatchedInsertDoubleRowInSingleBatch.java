@@ -11,18 +11,16 @@ package org.postgresql.test.jdbc2;
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
-
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
 import java.util.Properties;
 
-public class BatchedInsertDoubleRowInSingleBatch extends TestCase {
+public class BatchedInsertDoubleRowInSingleBatch extends BaseTest {
 
   /**
-   * This is a test for a corner case. A corner case that is valid however.
+   * This is a test for a certain use case. A check to make sure it is not broken.
    * INSERT INTO testbatch (a,b) VALUES (?,?),(?,?)
    */
   public void testDoubleRowInsert() throws SQLException {
@@ -34,18 +32,10 @@ public class BatchedInsertDoubleRowInSingleBatch extends TestCase {
       pstmt.setInt(3, 3);
       pstmt.setInt(4, 4);
       pstmt.addBatch();
-      int[] outcome = pstmt.executeBatch();
-      assertNotNull(outcome);
-      assertEquals(1, outcome.length);
-      assertEquals(2, outcome[0]);
-    } catch (SQLException sqle) {
-      StringBuilder m = new StringBuilder();
-      m.append(sqle.getMessage());
-      if (sqle.getCause() != null) {
-        m.append(sqle.getCause().getMessage());
-      }
-      fail("Failed to execute four statements added to a re used Prepared Statement. Reason:"
-          + m.toString());
+      assertTrue(
+          "Expected outcome not returned by batch execution.",
+          Arrays.equals(new int[] { 2 },
+              pstmt.executeBatch()));
     } finally {
       if (null != pstmt) {
         pstmt.close();
@@ -65,22 +55,14 @@ public class BatchedInsertDoubleRowInSingleBatch extends TestCase {
   /* Set up the fixture for this testcase: a connection to a database with
   a table for this test. */
   protected void setUp() throws Exception {
-    Properties props = new Properties();
-    props.setProperty(PGProperty.REWRITE_BATCHED_INSERTS.getName(),
-        Boolean.TRUE.toString());
-    props.setProperty(PGProperty.PREPARE_THRESHOLD.getName(), "1");
-
-    con = TestUtil.openDB(props);
+    super.setUp();
     Statement stmt = con.createStatement();
 
     /* Drop the test table if it already exists for some reason. It is
     not an error if it doesn't exist. */
     TestUtil.createTable(con, "testbatch", "pk INTEGER, col1 INTEGER");
 
-    stmt.executeUpdate("INSERT INTO testbatch VALUES (1, 0)");
     stmt.close();
-
-    TestUtil.createTable(con, "prep", "a integer, b integer");
 
     /* Generally recommended with batch updates. By default we run all
     tests in this test case with autoCommit disabled. */
@@ -88,14 +70,19 @@ public class BatchedInsertDoubleRowInSingleBatch extends TestCase {
   }
 
   // Tear down the fixture for this test case.
-  protected void tearDown() throws Exception {
+  protected void tearDown() throws SQLException {
     con.setAutoCommit(true);
 
     TestUtil.dropTable(con, "testbatch");
-    TestUtil.closeDB(con);
     System.setProperty(PGProperty.REWRITE_BATCHED_INSERTS.getName(),
         PGProperty.REWRITE_BATCHED_INSERTS.getDefaultValue());
+    super.tearDown();
   }
 
-  private Connection con;
+  @Override
+  protected void updateProperties(Properties props) {
+    props.setProperty(PGProperty.REWRITE_BATCHED_INSERTS.getName(),
+        Boolean.TRUE.toString());
+    props.setProperty(PGProperty.PREPARE_THRESHOLD.getName(), "1");
+  }
 }
