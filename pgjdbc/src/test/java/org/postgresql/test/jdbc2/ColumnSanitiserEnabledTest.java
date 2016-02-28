@@ -34,10 +34,12 @@ public class ColumnSanitiserEnabledTest extends TestCase {
     Properties props = new Properties();
     props.setProperty("disableColumnSanitiser", Boolean.FALSE.toString());
     conn = TestUtil.openDB(props);
-    assertTrue(conn instanceof BaseConnection);
-    BaseConnection bc = (BaseConnection) conn;
-    assertFalse("Expected state [FALSE] of base connection configuration failed test.",
-        bc.isColumnSanitiserDisabled());
+    if (!TestUtil.IS_PGJDBC_NG) {
+      assertTrue(conn instanceof BaseConnection);
+      BaseConnection bc = (BaseConnection) conn;
+      assertFalse("Expected state [FALSE] of base connection configuration failed test.",
+          bc.isColumnSanitiserDisabled());
+    }
     TestUtil.createTable(conn, "allmixedup",
         "id int primary key, \"DESCRIPTION\" varchar(40), \"fOo\" varchar(3)");
     Statement data = conn.createStatement();

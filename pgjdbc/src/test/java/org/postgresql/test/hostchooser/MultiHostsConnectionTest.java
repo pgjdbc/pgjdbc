@@ -97,7 +97,7 @@ public class MultiHostsConnectionTest extends TestCase {
     }
 
     StringBuilder sb = new StringBuilder();
-    sb.append("jdbc:postgresql://");
+    sb.append(TestUtil.getPrefix() + "//");
     for (String target : targets) {
       sb.append(target).append(',');
     }

@@ -12,7 +12,9 @@ import org.junit.Assert;
 import java.beans.BeanInfo;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
+import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
+import java.sql.SQLException;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
@@ -53,10 +55,10 @@ public class PGPropertyTest extends TestCase {
     }
   }
 
-  public void testDriverGetPropertyInfo() {
-    Driver driver = new Driver();
+  public void testDriverGetPropertyInfo() throws SQLException {
+    java.sql.Driver driver = DriverManager.getDriver(TestUtil.getPrefix());
     DriverPropertyInfo[] infos = driver.getPropertyInfo(
-        "jdbc:postgresql://localhost/test?user=fred&password=secret&ssl=true",
+        TestUtil.getPrefix() + "://localhost/test?user=fred&password=secret&ssl=true",
         // this is the example we give in docs
         new Properties());
     for (DriverPropertyInfo info : infos) {

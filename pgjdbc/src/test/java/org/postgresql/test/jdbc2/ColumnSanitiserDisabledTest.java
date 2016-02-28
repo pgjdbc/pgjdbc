@@ -34,10 +34,12 @@ public class ColumnSanitiserDisabledTest extends TestCase {
     Properties props = new Properties();
     props.setProperty("disableColumnSanitiser", Boolean.TRUE.toString());
     conn = TestUtil.openDB(props);
-    assertTrue(conn instanceof BaseConnection);
-    BaseConnection bc = (BaseConnection) conn;
-    assertTrue("Expected state [TRUE] of base connection configuration failed test.",
-        bc.isColumnSanitiserDisabled());
+    if (!TestUtil.IS_PGJDBC_NG) {
+      assertTrue(conn instanceof BaseConnection);
+      BaseConnection bc = (BaseConnection) conn;
+      assertTrue("Expected state [TRUE] of base connection configuration failed test.",
+          bc.isColumnSanitiserDisabled());
+    }
     /*
      * Quoted columns will be stored with case preserved. Driver will receive column names as
      * defined in db server.

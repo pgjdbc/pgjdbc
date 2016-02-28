@@ -10,7 +10,11 @@ then
     MVN_PROFILES="$MVN_PROFILES,coverage"
 fi
 
-if [[ "${TRAVIS_JDK_VERSION}" == *"jdk6"* ]];
+if [[ "y${PGJDBC_NG}" == *"yY"* ]];
+then
+    cd pgjdbc
+    mvn -B -V -P pgjdbc-ng test
+elif [[ "${TRAVIS_JDK_VERSION}" == *"jdk6"* ]];
 then
     git clone --depth=50 https://github.com/pgjdbc/pgjdbc-jre6.git pgjdbc-jre6
     cd pgjdbc-jre6
