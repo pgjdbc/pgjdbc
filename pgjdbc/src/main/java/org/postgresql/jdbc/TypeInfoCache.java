@@ -252,9 +252,7 @@ public class TypeInfoCache implements TypeInfo {
     }
     rs.close();
 
-    if (pgTypeName != null) {
-      _pgNameToSQLType.put(pgTypeName, type);
-    }
+    _pgNameToSQLType.put(pgTypeName, type);
     return type;
   }
 
