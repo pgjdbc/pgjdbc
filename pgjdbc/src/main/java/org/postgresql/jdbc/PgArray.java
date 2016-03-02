@@ -171,6 +171,10 @@ public class PgArray implements java.sql.Array {
       return readBinaryArray((int) index, count);
     }
 
+    if (fieldString == null) {
+      return null;
+    }
+
     buildArrayList();
 
     if (count == 0) {
@@ -881,7 +885,7 @@ public class PgArray implements java.sql.Array {
   }
 
   public String toString() {
-    if (fieldString == null) {
+    if (fieldString == null && fieldBytes != null) {
       try {
         Object array = readBinaryArray(1,0);
         java.sql.Array tmpArray = connection.createArrayOf(getBaseTypeName(), (Object[]) array);
