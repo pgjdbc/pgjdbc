@@ -265,7 +265,12 @@ public class ArrayTest extends BaseTest4 {
     Assert.assertEquals(1, i[0].intValue());
     Assert.assertNull(i[1]);
     Assert.assertEquals(3, i[2].intValue());
+    rs = stmt.executeQuery("SELECT null::int[]");
+    Assert.assertTrue(rs.next());
+    Assert.assertNull(rs.getArray(1));
   }
+
+
 
   @Test
   public void testUnknownArrayType() throws SQLException {
