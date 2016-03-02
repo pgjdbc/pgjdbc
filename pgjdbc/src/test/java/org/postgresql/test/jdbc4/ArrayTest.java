@@ -470,4 +470,22 @@ public class ArrayTest extends BaseTest4 {
       TestUtil.closeQuietly(stmt);
     }
   }
+
+  @Test
+  public void nullArray() throws SQLException {
+    Array arr = con.createArrayOf("float8", null);
+    PreparedStatement ps = con.prepareStatement("INSERT INTO arrtest(floatarr) VALUES (?)");
+
+    ps.setNull(1, Types.ARRAY, "float8");
+    ps.execute();
+
+    ps.close();
+    ps = con.prepareStatement("select floatarr from arrtest");
+    ResultSet rs = ps.executeQuery();
+    Assert.assertTrue("arrtest should contain a row", rs.next());
+    Array getArray = rs.getArray(1);
+    Assert.assertNull("null array should return null value on getArray", getArray);
+    Object getObject = rs.getObject(1);
+    Assert.assertNull("null array should return null on getObject", getObject);
+  }
 }
