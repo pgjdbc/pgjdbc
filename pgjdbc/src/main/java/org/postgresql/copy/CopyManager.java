@@ -48,26 +48,24 @@ public class CopyManager {
   }
 
   public CopyIn copyIn(String sql) throws SQLException {
-    CopyOperation op = null;
-    try {
-      op = queryExecutor.startCopy(sql, connection.getAutoCommit());
+    CopyOperation op = queryExecutor.startCopy(sql, connection.getAutoCommit());
+    if (op == null || op instanceof CopyIn) {
       return (CopyIn) op;
-    } catch (ClassCastException cce) {
+    } else {
       op.cancelCopy();
       throw new PSQLException(GT.tr("Requested CopyIn but got {0}", op.getClass().getName()),
-          PSQLState.WRONG_OBJECT_TYPE, cce);
+              PSQLState.WRONG_OBJECT_TYPE);
     }
   }
 
   public CopyOut copyOut(String sql) throws SQLException {
-    CopyOperation op = null;
-    try {
-      op = queryExecutor.startCopy(sql, connection.getAutoCommit());
+    CopyOperation op = queryExecutor.startCopy(sql, connection.getAutoCommit());
+    if (op == null || op instanceof CopyOut) {
       return (CopyOut) op;
-    } catch (ClassCastException cce) {
+    } else {
       op.cancelCopy();
       throw new PSQLException(GT.tr("Requested CopyOut but got {0}", op.getClass().getName()),
-          PSQLState.WRONG_OBJECT_TYPE, cce);
+              PSQLState.WRONG_OBJECT_TYPE);
     }
   }
 
