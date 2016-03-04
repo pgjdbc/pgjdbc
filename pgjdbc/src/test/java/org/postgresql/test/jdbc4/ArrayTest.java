@@ -473,7 +473,6 @@ public class ArrayTest extends BaseTest4 {
 
   @Test
   public void nullArray() throws SQLException {
-    Array arr = con.createArrayOf("float8", null);
     PreparedStatement ps = con.prepareStatement("INSERT INTO arrtest(floatarr) VALUES (?)");
 
     ps.setNull(1, Types.ARRAY, "float8");
@@ -487,5 +486,11 @@ public class ArrayTest extends BaseTest4 {
     Assert.assertNull("null array should return null value on getArray", getArray);
     Object getObject = rs.getObject(1);
     Assert.assertNull("null array should return null on getObject", getObject);
+  }
+
+  @Test(expected = NullPointerException.class)
+  public void createNullArray() throws SQLException {
+    Array arr = con.createArrayOf("float8", null);
+    Assert.fail("createArrayOf(float8, null) should fail with NPE");
   }
 }
