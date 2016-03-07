@@ -453,7 +453,7 @@ public abstract class BaseDataSource implements Referenceable {
     if (enabled) {
       PGProperty.SSL.set(properties, true);
     } else {
-      PGProperty.SSL.set(properties, null);
+      PGProperty.SSL.set(properties, false);
     }
   }
 
@@ -462,7 +462,8 @@ public abstract class BaseDataSource implements Referenceable {
    * @see PGProperty#SSL
    */
   public boolean getSsl() {
-    return PGProperty.SSL.isPresent(properties);
+    // "true" if "ssl" is set but empty
+    return PGProperty.SSL.getBoolean(properties) || "".equals(PGProperty.SSL.get(properties));
   }
 
   /**
