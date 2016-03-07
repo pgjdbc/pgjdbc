@@ -49,6 +49,8 @@ public class Jdbc2TestSuite extends TestSuite {
 
     // Connectivity/Protocols
 
+    suite.addTest(new JUnit4TestAdapter(TypeCacheDLLStressTest.class));
+
     // ResultSet
     suite.addTestSuite(ResultSetTest.class);
     suite.addTestSuite(ResultSetMetaDataTest.class);
