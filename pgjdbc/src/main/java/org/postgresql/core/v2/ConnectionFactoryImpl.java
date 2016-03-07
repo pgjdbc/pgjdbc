@@ -63,7 +63,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     if (sslmode == null) { // Fall back to the ssl property
       // assume "true" if the property is set but empty
       requireSSL = trySSL = PGProperty.SSL.getBoolean(info)
-        || PGProperty.SSL.get(info) != null && PGProperty.SSL.get(info).equals("");
+        || PGProperty.SSL.get(info) != null && "".equals(PGProperty.SSL.get(info));
     } else {
       if ("disable".equals(sslmode)) {
         requireSSL = trySSL = false;

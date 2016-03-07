@@ -464,7 +464,7 @@ public abstract class BaseDataSource implements Referenceable {
   public boolean getSsl() {
     // "true" if "ssl" is set but empty
     return PGProperty.SSL.getBoolean(properties)
-      || PGProperty.SSL.get(properties) != null && PGProperty.SSL.get(properties).equals("");
+      || PGProperty.SSL.get(properties) != null && "".equals(PGProperty.SSL.get(properties));
   }
 
   /**
