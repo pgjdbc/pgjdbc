@@ -12,6 +12,7 @@ import org.junit.Assert;
 import java.beans.BeanInfo;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
+import java.net.URLEncoder;
 import java.sql.DriverPropertyInfo;
 import java.util.Map;
 import java.util.Properties;
@@ -156,6 +157,21 @@ public class PGPropertyTest extends TestCase {
     Properties withLogging = new Properties();
     withLogging.setProperty(PGProperty.LOG_LEVEL.getName(), "2");
     assertNotNull(PGProperty.LOG_LEVEL.getSetString(withLogging));
+  }
+
+  public void testEncodedUrlValues() {
+    String databaseName = "d&a%ta+base";
+    String userName = "&u%ser";
+    String password = "p%a&s^s#w!o@r*";
+    String url = "jdbc:postgresql://"
+            + "localhost" + ":" + 5432 + "/"
+            + URLEncoder.encode(databaseName)
+            + "?user=" + URLEncoder.encode(userName)
+            + "&password=" + URLEncoder.encode(password);
+    Properties parsed = Driver.parseURL(url, new Properties());
+    assertEquals("database", databaseName, PGProperty.PG_DBNAME.get(parsed));
+    assertEquals("user", userName, PGProperty.USER.get(parsed));
+    assertEquals("password", password, PGProperty.PASSWORD.get(parsed));
   }
 
   public void setUp() {

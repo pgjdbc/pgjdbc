@@ -19,6 +19,7 @@ import org.postgresql.util.SharedTimer;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
@@ -527,7 +528,7 @@ public class Driver implements java.sql.Driver {
       if (slash == -1) {
         return null;
       }
-      urlProps.setProperty("PGDBNAME", l_urlServer.substring(slash + 1));
+      urlProps.setProperty("PGDBNAME", URLDecoder.decode(l_urlServer.substring(slash + 1)));
 
       String[] addresses = l_urlServer.substring(0, slash).split(",");
       StringBuilder hosts = new StringBuilder();
@@ -559,7 +560,7 @@ public class Driver implements java.sql.Driver {
     } else {
       urlProps.setProperty("PGPORT", "/*$mvn.project.property.template.default.pg.port$*/");
       urlProps.setProperty("PGHOST", "localhost");
-      urlProps.setProperty("PGDBNAME", l_urlServer);
+      urlProps.setProperty("PGDBNAME", URLDecoder.decode(l_urlServer));
     }
 
     // parse the args part of the url
@@ -573,7 +574,7 @@ public class Driver implements java.sql.Driver {
       if (l_pos == -1) {
         urlProps.setProperty(token, "");
       } else {
-        urlProps.setProperty(token.substring(0, l_pos), token.substring(l_pos + 1));
+        urlProps.setProperty(token.substring(0, l_pos), URLDecoder.decode(token.substring(l_pos + 1)));
       }
     }
 
