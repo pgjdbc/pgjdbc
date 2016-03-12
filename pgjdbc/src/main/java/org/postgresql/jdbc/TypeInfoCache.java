@@ -847,6 +847,18 @@ public class TypeInfoCache implements TypeInfo {
 
   public boolean requiresQuoting(int oid) throws SQLException {
     int sqlType = getSQLType(oid);
+    return requiresQuotingSqlType(sqlType);
+  }
+
+  /**
+   * Returns true if particular sqlType requires quoting.
+   * This method is used internally by the driver, so it might disappear without notice.
+   *
+   * @param sqlType sql type as in java.sql.Types
+   * @return true if the type requires quoting
+   * @throws SQLException if something goes wrong
+   */
+  public boolean requiresQuotingSqlType(int sqlType) throws SQLException {
     switch (sqlType) {
       case Types.BIGINT:
       case Types.DOUBLE:

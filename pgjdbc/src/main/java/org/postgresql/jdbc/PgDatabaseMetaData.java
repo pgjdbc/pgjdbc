@@ -2777,12 +2777,16 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       int typeOid = (int) rs.getLong(2);
 
       tuple[0] = connection.encodeString(typname);
+      int sqlType = connection.getTypeInfo().getSQLType(typname);
       tuple[1] =
-          connection.encodeString(Integer.toString(connection.getTypeInfo().getSQLType(typname)));
+          connection.encodeString(Integer.toString(sqlType));
       tuple[2] = connection
           .encodeString(Integer.toString(connection.getTypeInfo().getMaximumPrecision(typeOid)));
 
-      if (connection.getTypeInfo().requiresQuoting(typeOid)) {
+      // Using requiresQuoting(oid) would might trigger select statements that might fail with NPE
+      // if oid in question is being dropped.
+      // requiresQuotingSqlType is not bulletproof, however, it solves the most visible NPE.
+      if (connection.getTypeInfo().requiresQuotingSqlType(sqlType)) {
         tuple[3] = bliteral;
         tuple[4] = bliteral;
       }
