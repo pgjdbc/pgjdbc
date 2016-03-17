@@ -1362,6 +1362,10 @@ public class PgConnection implements BaseConnection {
       if (value == null) {
         value = "";
       }
+      final String oldValue = _clientInfo.getProperty(name, "");
+      if (value.equals(oldValue)) {
+        return;
+      }
 
       try {
         StringBuilder sql = new StringBuilder("SET application_name = '");
