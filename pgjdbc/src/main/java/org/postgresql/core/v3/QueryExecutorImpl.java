@@ -26,6 +26,7 @@ import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandler;
 import org.postgresql.core.Utils;
 import org.postgresql.jdbc.BatchResultHandler;
+import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -2066,6 +2067,10 @@ public class QueryExecutorImpl implements QueryExecutor {
                   value), PSQLState.CONNECTION_FAILURE));
               endQuery = true;
             }
+          }
+
+          if ("TimeZone".equals(name)) {
+            protoConnection.setTimeZone(TimestampUtils.parseBackendTimeZone(value));
           }
           break;
         }

@@ -15,6 +15,7 @@ import org.postgresql.util.HostSpec;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.Set;
+import java.util.TimeZone;
 
 /**
  * Provides access to protocol-level connection operations.
@@ -173,4 +174,16 @@ public interface ProtocolConnection {
    * Abort at network level without sending the Terminate message to the backend.
    */
   public void abort();
+
+  /**
+   * Return TimestampUtils that is aware of connection-specific {@code TimeZone} value.
+   *
+   * @return timestampUtils instance
+   */
+
+  /**
+   * Returns backend timezone in java format.
+   * @return backend timezone in java format.
+   */
+  TimeZone getTimeZone();
 }

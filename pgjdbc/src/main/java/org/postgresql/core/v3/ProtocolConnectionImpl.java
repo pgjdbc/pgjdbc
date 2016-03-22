@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
+import java.util.TimeZone;
 
 
 /**
@@ -235,6 +236,15 @@ class ProtocolConnectionImpl implements ProtocolConnection {
     closed = true;
   }
 
+  public void setTimeZone(TimeZone timeZone) {
+    this.timeZone = timeZone;
+  }
+
+  @Override
+  public TimeZone getTimeZone() {
+    return timeZone;
+  }
+
   /**
    * True if server uses integers for date and time fields. False if server uses double.
    */
@@ -264,4 +274,9 @@ class ProtocolConnectionImpl implements ProtocolConnection {
   private final Logger logger;
 
   private final int connectTimeout;
+
+  /**
+   * TimeZone of the current connection (TimeZone backend parameter)
+   */
+  private TimeZone timeZone;
 }

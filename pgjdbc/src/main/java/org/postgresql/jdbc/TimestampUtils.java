@@ -10,6 +10,7 @@ package org.postgresql.jdbc;
 
 import org.postgresql.PGStatement;
 import org.postgresql.core.Oid;
+import org.postgresql.core.Provider;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -30,6 +31,7 @@ import java.time.temporal.ChronoField;
 //#endif
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.HashMap;
 import java.util.SimpleTimeZone;
 import java.util.TimeZone;
 
@@ -44,12 +46,34 @@ public class TimestampUtils {
   private static final int ONEDAY = 24 * 3600 * 1000;
   private static final char[] ZEROS = {'0', '0', '0', '0', '0', '0', '0', '0', '0'};
   private static final char[][] NUMBERS;
+  private static final HashMap<String, TimeZone> GMT_ZONES = new HashMap<String, TimeZone>();
 
   static {
     // The expected maximum value is 60 (seconds), so 64 is used "just in case"
     NUMBERS = new char[64][];
     for (int i = 0; i < NUMBERS.length; i++) {
-      NUMBERS[i] = Integer.toString(i).toCharArray();
+      NUMBERS[i] = ((i < 10 ? "0" : "") + Integer.toString(i)).toCharArray();
+    }
+
+    // Backend's gmt-3 means GMT+03 in Java. Here a map is created so gmt-3 can be converted to
+    // java TimeZone
+    for (int i = -12; i <= 14; i++) {
+      TimeZone timeZone;
+      String pgZoneName;
+      if (i == 0) {
+        timeZone = TimeZone.getTimeZone("GMT");
+        pgZoneName = "GMT";
+      } else {
+        timeZone = TimeZone.getTimeZone("GMT" + (i <= 0 ? "+" : "-") + Math.abs(i));
+        pgZoneName = "GMT" + (i >= 0 ? "+" : "-");
+      }
+
+      if (i == 0) {
+        GMT_ZONES.put(pgZoneName, timeZone);
+        continue;
+      }
+      GMT_ZONES.put(pgZoneName + Math.abs(i), timeZone);
+      GMT_ZONES.put(pgZoneName + NUMBERS[Math.abs(i)], timeZone);
     }
   }
 
@@ -70,11 +94,14 @@ public class TimestampUtils {
    * True if the backend uses doubles for time values. False if long is used.
    */
   private final boolean usesDouble;
+  private final Provider<TimeZone> timeZoneProvider;
 
-  TimestampUtils(boolean min74, boolean min82, boolean usesDouble) {
+  TimestampUtils(boolean min74, boolean min82, boolean usesDouble,
+      Provider<TimeZone> timeZoneProvider) {
     this.min74 = min74;
     this.min82 = min82;
     this.usesDouble = usesDouble;
+    this.timeZoneProvider = timeZoneProvider;
   }
 
   private Calendar getCalendar(int sign, int hr, int min, int sec) {
@@ -433,6 +460,11 @@ public class TimestampUtils {
   }
 
   public synchronized String toString(Calendar cal, Timestamp x) {
+    return toString(cal, x, true);
+  }
+
+  public synchronized String toString(Calendar cal, Timestamp x,
+      boolean withTimeZone) {
     if (x.getTime() == PGStatement.DATE_POSITIVE_INFINITY) {
       return "infinity";
     } else if (x.getTime() == PGStatement.DATE_NEGATIVE_INFINITY) {
@@ -447,13 +479,20 @@ public class TimestampUtils {
     appendDate(sbuf, cal);
     sbuf.append(' ');
     appendTime(sbuf, cal, x.getNanos());
-    appendTimeZone(sbuf, cal);
+    if (withTimeZone) {
+      appendTimeZone(sbuf, cal);
+    }
     appendEra(sbuf, cal);
 
     return sbuf.toString();
   }
 
   public synchronized String toString(Calendar cal, Date x) {
+    return toString(cal, x, true);
+  }
+
+  public synchronized String toString(Calendar cal, Date x,
+      boolean withTimeZone) {
     if (x.getTime() == PGStatement.DATE_POSITIVE_INFINITY) {
       return "infinity";
     } else if (x.getTime() == PGStatement.DATE_NEGATIVE_INFINITY) {
@@ -467,12 +506,20 @@ public class TimestampUtils {
 
     appendDate(sbuf, cal);
     appendEra(sbuf, cal);
-    appendTimeZone(sbuf, cal);
+    if (withTimeZone) {
+      sbuf.append(' ');
+      appendTimeZone(sbuf, cal);
+    }
 
     return sbuf.toString();
   }
 
   public synchronized String toString(Calendar cal, Time x) {
+    return toString(cal, x, true);
+  }
+
+  public synchronized String toString(Calendar cal, Time x,
+      boolean withTimeZone) {
     cal = setupCalendar(cal);
     cal.setTime(x);
 
@@ -481,7 +528,7 @@ public class TimestampUtils {
     appendTime(sbuf, cal, cal.get(Calendar.MILLISECOND) * 1000000);
 
     // The 'time' parser for <= 7.3 doesn't like timezones.
-    if (min74) {
+    if (min74 && withTimeZone) {
       appendTimeZone(sbuf, cal);
     }
 
@@ -533,6 +580,9 @@ public class TimestampUtils {
     // a two digit fractional second, but we don't need to support 7.1
     // anymore and getting the version number here is difficult.
     //
+    if (nanos == 0) {
+      return;
+    }
     sb.append('.');
     int len = sb.length();
     sb.append(nanos / 1000); // append microseconds
@@ -554,15 +604,18 @@ public class TimestampUtils {
     int mins = (absoff - hours * 60 * 60) / 60;
     int secs = absoff - hours * 60 * 60 - mins * 60;
 
-    sb.append((offset >= 0) ? " +" : " -");
+    sb.append((offset >= 0) ? "+" : "-");
 
     sb.append(NUMBERS[hours]);
 
+    if (mins == 0 && secs == 0) {
+      return;
+    }
     sb.append(':');
 
     sb.append(NUMBERS[mins]);
 
-    if (min82) {
+    if (min82 && secs != 0) {
       sb.append(':');
       sb.append(NUMBERS[secs]);
     }
@@ -1061,17 +1114,22 @@ public class TimestampUtils {
    * in text mode.
    *
    * @param time time value
+   * @param withTimeZone whether timezone should be added
    * @return given time value as String
    */
-  public String timeToString(java.util.Date time) {
-    long millis = time.getTime();
-    if (millis <= PGStatement.DATE_NEGATIVE_INFINITY) {
-      return "-infinity";
+  public String timeToString(java.util.Date time, boolean withTimeZone) {
+    Calendar cal = null;
+    if (withTimeZone) {
+      cal = calendarWithUserTz;
+      cal.setTimeZone(timeZoneProvider.get());
     }
-    if (millis >= PGStatement.DATE_POSITIVE_INFINITY) {
-      return "infinity";
+    if (time instanceof Timestamp) {
+      return toString(cal, (Timestamp) time, withTimeZone);
     }
-    return time.toString();
+    if (time instanceof Time) {
+      return toString(cal, (Time) time, withTimeZone);
+    }
+    return toString(cal, (Date) time, withTimeZone);
   }
 
   /**
@@ -1150,4 +1208,18 @@ public class TimestampUtils {
     ByteConverter.int4(bytes, 0, (int) (secs / 86400));
   }
 
+  /**
+   * Converts backend's TimeZone parameter to java format.
+   * Notable difference: backend's gmt-3 is GMT+03 in Java.
+   * @return java TimeZone
+   */
+  public static TimeZone parseBackendTimeZone(String timeZone) {
+    if (timeZone.startsWith("GMT")) {
+      TimeZone tz = GMT_ZONES.get(timeZone);
+      if (tz != null) {
+        return tz;
+      }
+    }
+    return TimeZone.getTimeZone(timeZone);
+  }
 }

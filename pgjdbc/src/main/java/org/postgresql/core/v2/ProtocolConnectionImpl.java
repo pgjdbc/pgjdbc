@@ -23,6 +23,7 @@ import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.ArrayList;
 import java.util.Set;
+import java.util.TimeZone;
 
 /**
  * V2 implementation of ProtocolConnection.
@@ -226,6 +227,11 @@ class ProtocolConnectionImpl implements ProtocolConnection {
       // ignore
     }
     closed = true;
+  }
+
+  @Override
+  public TimeZone getTimeZone() {
+    return TimeZone.getDefault();
   }
 
   private String serverVersion;

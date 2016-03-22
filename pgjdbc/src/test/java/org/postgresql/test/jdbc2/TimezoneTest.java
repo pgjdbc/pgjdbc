@@ -122,6 +122,7 @@ public class TimezoneTest extends TestCase {
         "INSERT INTO testtimezone(tstz,ts,t,tz,d) VALUES('2005-01-01 15:00:00 +0300', '2005-01-01 15:00:00', '15:00:00', '15:00:00 +0300', '2005-01-01')");
 
     for (int i = 0; i < PREPARE_THRESHOLD; i++) {
+      String format = i == 0 ? ", text" : ", binary";
       PreparedStatement ps = con.prepareStatement("SELECT tstz,ts,t,tz,d from testtimezone");
       ResultSet rs = ps.executeQuery();
 
@@ -131,6 +132,7 @@ public class TimezoneTest extends TestCase {
               "2005-01-01"});
 
       Timestamp ts;
+      String str;
 
       // timestamptz: 2005-01-01 15:00:00+03
       ts = rs.getTimestamp(1); // Represents an instant in time, timezone is irrelevant.
@@ -143,6 +145,8 @@ public class TimezoneTest extends TestCase {
       assertEquals(1104580800000L, ts.getTime()); // 2005-01-01 12:00:00 UTC
       ts = rs.getTimestamp(1, cGMT13); // Represents an instant in time, timezone is irrelevant.
       assertEquals(1104580800000L, ts.getTime()); // 2005-01-01 12:00:00 UTC
+      str = rs.getString(1);
+      assertEquals("tstz -> getString" + format, "2005-01-01 15:00:00+03", str);
 
       // timestamp: 2005-01-01 15:00:00
       ts = rs.getTimestamp(2); // Convert timestamp to +0100
@@ -155,6 +159,8 @@ public class TimezoneTest extends TestCase {
       assertEquals(1104609600000L, ts.getTime()); // 2005-01-01 15:00:00 -0500
       ts = rs.getTimestamp(2, cGMT13); // Convert timestamp to +1300
       assertEquals(1104544800000L, ts.getTime()); // 2005-01-01 15:00:00 +1300
+      str = rs.getString(2);
+      assertEquals("ts -> getString" + format, "2005-01-01 15:00:00", str);
 
       // time: 15:00:00
       ts = rs.getTimestamp(3);
@@ -167,6 +173,8 @@ public class TimezoneTest extends TestCase {
       assertEquals(72000000L, ts.getTime()); // 1970-01-01 15:00:00 -0500
       ts = rs.getTimestamp(3, cGMT13);
       assertEquals(7200000L, ts.getTime()); // 1970-01-01 15:00:00 +1300
+      str = rs.getString(3);
+      assertEquals("time -> getString" + format, "15:00:00", str);
 
       // timetz: 15:00:00+03
       ts = rs.getTimestamp(4);
@@ -184,6 +192,8 @@ public class TimezoneTest extends TestCase {
       ts = rs.getTimestamp(4, cGMT13);
       // 1970-01-01 15:00:00 +0300 -> 1970-01-02 01:00:00 +1300 (CHECK ME)
       assertEquals(-43200000L, ts.getTime());
+      str = rs.getString(3);
+      assertEquals("timetz -> getString" + format, "15:00:00", str);
 
       // date: 2005-01-01
       ts = rs.getTimestamp(5);
@@ -196,6 +206,8 @@ public class TimezoneTest extends TestCase {
       assertEquals(1104555600000L, ts.getTime()); // 2005-01-01 00:00:00 -0500
       ts = rs.getTimestamp(5, cGMT13);
       assertEquals(1104490800000L, ts.getTime()); // 2005-01-01 00:00:00 +1300
+      str = rs.getString(5);
+      assertEquals("date -> getString" + format, "2005-01-01", str);
 
       assertTrue(!rs.next());
       ps.close();

@@ -1884,13 +1884,16 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     // varchar in binary is same as text, other binary fields are converted to their text format
     if (isBinary(columnIndex) && getSQLType(columnIndex) != Types.VARCHAR) {
-      Object obj = internalGetObject(columnIndex, fields[columnIndex - 1]);
+      Field field = fields[columnIndex - 1];
+      Object obj = internalGetObject(columnIndex, field);
       if (obj == null) {
         return null;
       }
       // hack to be compatible with text protocol
       if (obj instanceof java.util.Date) {
-        return connection.getTimestampUtils().timeToString((java.util.Date) obj);
+        int oid = field.getOID();
+        return connection.getTimestampUtils().timeToString((java.util.Date) obj,
+            oid == Oid.TIMESTAMPTZ || oid == Oid.TIMETZ);
       }
       if ("hstore".equals(getPGType(columnIndex))) {
         return HStoreConverter.toString((Map<?, ?>) obj);

@@ -21,6 +21,7 @@ import org.postgresql.core.Field;
 import org.postgresql.core.Logger;
 import org.postgresql.core.Oid;
 import org.postgresql.core.ProtocolConnection;
+import org.postgresql.core.Provider;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ResultCursor;
@@ -69,6 +70,7 @@ import java.util.NoSuchElementException;
 import java.util.Properties;
 import java.util.Set;
 import java.util.StringTokenizer;
+import java.util.TimeZone;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Executor;
@@ -318,7 +320,13 @@ public class PgConnection implements BaseConnection {
 
     // Initialize timestamp stuff
     timestampUtils = new TimestampUtils(haveMinimumServerVersion(ServerVersion.v7_4),
-        haveMinimumServerVersion(ServerVersion.v8_2), !protoConnection.getIntegerDateTimes());
+        haveMinimumServerVersion(ServerVersion.v8_2), !protoConnection.getIntegerDateTimes(),
+        new Provider<TimeZone>() {
+          @Override
+          public TimeZone get() {
+            return protoConnection.getTimeZone();
+          }
+        });
 
     // Initialize common queries.
     commitQuery = getQueryExecutor().createSimpleQuery("COMMIT");
