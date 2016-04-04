@@ -8,12 +8,15 @@
 
 package org.postgresql.test.jdbc2;
 
+import org.postgresql.PGProperty;
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.test.TestUtil;
 
 import junit.framework.TestCase;
 
+import java.net.URLEncoder;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -288,5 +291,67 @@ public class ConnectionTest extends TestCase {
     con = TestUtil.openDB();
     con.close();
     con.close();
+  }
+  
+  /**
+   * Test Connection with URL-encoded database
+   */
+  public void testURLEncDatabase() throws Exception {
+    String protocolVersion = "";
+    if (TestUtil.getProtocolVersion() != 0) {
+      protocolVersion = "&protocolVersion=" + TestUtil.getProtocolVersion();
+    }
+
+    String binaryTransfer = "";
+    if (TestUtil.getBinaryTransfer() != null && !TestUtil.getBinaryTransfer().equals("")) {
+      binaryTransfer = "&binaryTransfer=" + TestUtil.getBinaryTransfer();
+    }
+
+    String receiveBufferSize = "";
+    if (TestUtil.getReceiveBufferSize() != -1) {
+      receiveBufferSize = "&receiveBufferSize=" + TestUtil.getReceiveBufferSize();
+    }
+
+    String sendBufferSize = "";
+    if (TestUtil.getSendBufferSize() != -1) {
+      sendBufferSize = "&sendBufferSize=" + TestUtil.getSendBufferSize();
+    }
+
+    String ssl = "";
+    if (TestUtil.getSSL() != null) {
+      ssl = "&ssl=" + TestUtil.getSSL();
+    }
+
+    String url = "jdbc:postgresql://"
+        + TestUtil.getServer() + ":"
+        + TestUtil.getPort() + "/"
+        + URLEncoder.encode(TestUtil.getDatabase(), "UTF-8")
+        + "?loglevel=" + TestUtil.getLogLevel()
+        + protocolVersion
+        + binaryTransfer
+        + receiveBufferSize
+        + sendBufferSize
+        + ssl;
+    
+    TestUtil.initDriver();
+
+    String user = TestUtil.getUser();
+    Properties props = new Properties();
+    if (user == null) {
+      throw new IllegalArgumentException(
+          "user name is not specified. Please specify 'username' property via -D or build.properties");
+    }
+    props.setProperty("user", user);
+    String password = TestUtil.getPassword();
+    if (password == null) {
+      password = "";
+    }
+    props.setProperty("password", password);
+    if (!props.containsKey(PGProperty.PREPARE_THRESHOLD.getName())) {
+      PGProperty.PREPARE_THRESHOLD.set(props, TestUtil.getPrepareThreshold());
+    }
+
+    java.sql.Connection conn = DriverManager.getConnection(url, props);
+    conn.close();
   }
 }
