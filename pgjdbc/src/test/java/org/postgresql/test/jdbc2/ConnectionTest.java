@@ -1,10 +1,10 @@
 /*-------------------------------------------------------------------------
-*
-* Copyright (c) 2004-2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+ *
+ * Copyright (c) 2004-2014, PostgreSQL Global Development Group
+ *
+ *
+ *-------------------------------------------------------------------------
+ */
 
 package org.postgresql.test.jdbc2;
 
@@ -29,7 +29,6 @@ import java.util.Properties;
 /*
  * TestCase to test the internal functionality of org.postgresql.jdbc2.Connection and it's
  * superclass.
- *
  */
 
 public class ConnectionTest extends TestCase {
@@ -293,7 +292,7 @@ public class ConnectionTest extends TestCase {
     con.close();
     con.close();
   }
-  
+
   /**
    * Test Connection with URL-encoded database
    */
@@ -333,7 +332,7 @@ public class ConnectionTest extends TestCase {
         + receiveBufferSize
         + sendBufferSize
         + ssl;
-    
+
     TestUtil.initDriver();
 
     String user = TestUtil.getUser();
