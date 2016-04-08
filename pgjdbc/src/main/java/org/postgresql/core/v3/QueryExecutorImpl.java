@@ -11,6 +11,8 @@ package org.postgresql.core.v3;
 
 import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyOperation;
+import org.postgresql.core.DMLCommand;
+import org.postgresql.core.DMLCommandType;
 import org.postgresql.core.Field;
 import org.postgresql.core.Logger;
 import org.postgresql.core.NativeQuery;
@@ -144,13 +146,14 @@ public class QueryExecutorImpl implements QueryExecutor {
   private Query parseQuery(String query, boolean withParameters, boolean autocommit) {
 
     List<NativeQuery> queries = Parser.parseJdbcSql(query,
-        protoConnection.getStandardConformingStrings(), withParameters, true, autocommit);
+        protoConnection.getStandardConformingStrings(), withParameters, true,
+        autocommit, allowReWriteBatchedInserts);
     if (queries.isEmpty()) {
       // Empty query
       return EMPTY_QUERY;
     }
     if (queries.size() == 1) {
-      if (allowReWriteBatchedInserts && queries.get(0).isBatchedReWriteCompatible) {
+      if (allowReWriteBatchedInserts && queries.get(0).getCommand().isBatchedReWriteCompatible()) {
         return new BatchedQueryDecorator(queries.get(0), protoConnection);
       } else {
         return new SimpleQuery(queries.get(0), protoConnection);
@@ -2402,7 +2405,7 @@ public class QueryExecutorImpl implements QueryExecutor {
   private int estimatedReceiveBufferBytes = 0;
 
   private final SimpleQuery beginTransactionQuery =
-      new SimpleQuery(new NativeQuery("BEGIN", new int[0], false), null);
+      new SimpleQuery(new NativeQuery("BEGIN", new int[0], DMLCommand.createStatementTypeInfo(DMLCommandType.BLANK)), null);
 
-  private final SimpleQuery EMPTY_QUERY = new SimpleQuery(new NativeQuery("", new int[0], false), null);
+  private final SimpleQuery EMPTY_QUERY = new SimpleQuery(new NativeQuery("", new int[0], DMLCommand.createStatementTypeInfo(DMLCommandType.BLANK)), null);
 }

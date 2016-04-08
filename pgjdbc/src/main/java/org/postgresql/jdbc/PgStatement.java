@@ -165,8 +165,6 @@ public class PgStatement implements Statement, BaseStatement {
 
   protected int maxfieldSize = 0;
 
-  protected boolean reWriteBatchedInserts;
-
   PgStatement(PgConnection c, int rsType, int rsConcurrency, int rsHoldability)
       throws SQLException {
     this.connection = c;
@@ -177,7 +175,6 @@ public class PgStatement implements Statement, BaseStatement {
     setFetchSize(c.getDefaultFetchSize());
     setPrepareThreshold(c.getPrepareThreshold());
     this.rsHoldability = rsHoldability;
-    setReWriteBatchedInserts(c.isReWriteBatchedInsertsEnabled());
   }
 
   public ResultSet createResultSet(Query originalQuery, Field[] fields, List<byte[][]> tuples,
@@ -1029,7 +1026,7 @@ public class PgStatement implements Statement, BaseStatement {
       }
     }
 
-    if (reWriteBatchedInserts && queries[0].isStatementReWritableInsert()) {
+    if (queries[0].isStatementReWritableInsert()) {
       if (queries[0] instanceof BatchedQueryDecorator) {
         BatchedQueryDecorator bqd = (BatchedQueryDecorator)queries[0];
         int batchSize = bqd.getBatchSize();
@@ -1427,10 +1424,6 @@ public class PgStatement implements Statement, BaseStatement {
   public ResultSet createDriverResultSet(Field[] fields, List<byte[][]> tuples)
       throws SQLException {
     return createResultSet(null, fields, tuples, null);
-  }
-
-  protected void setReWriteBatchedInserts(boolean enabled) {
-    reWriteBatchedInserts = enabled;
   }
 
   protected ParameterList[] transformParameters() throws SQLException {

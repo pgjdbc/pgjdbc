@@ -256,7 +256,7 @@ class SimpleQuery implements V3Query {
   }
 
   public boolean isStatementReWritableInsert() {
-    return nativeQuery.isBatchedReWriteCompatible;
+    return nativeQuery.getCommand().isBatchedReWriteCompatible();
   }
 
   public int getBatchSize() {

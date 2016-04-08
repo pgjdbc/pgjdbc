@@ -19,7 +19,7 @@ public class NativeQuery {
 
   public final String nativeSql;
   public final int[] bindPositions;
-  public final boolean isBatchedReWriteCompatible;
+  public final DMLCommand command;
 
   static {
     for (int i = 1; i < BIND_NAMES.length; i++) {
@@ -27,15 +27,15 @@ public class NativeQuery {
     }
   }
 
-  public NativeQuery(String nativeSql) {
-    this(nativeSql, NO_BINDS, false);
+  public NativeQuery(String nativeSql, DMLCommand dml) {
+    this(nativeSql, NO_BINDS, dml);
   }
 
-  public NativeQuery(String nativeSql, int[] bindPositions, boolean insertReWriteCompatible) {
+  public NativeQuery(String nativeSql, int[] bindPositions, DMLCommand dml) {
     this.nativeSql = nativeSql;
     this.bindPositions =
         bindPositions == null || bindPositions.length == 0 ? NO_BINDS : bindPositions;
-    this.isBatchedReWriteCompatible = insertReWriteCompatible;
+    this.command = dml;
   }
 
   /**
@@ -81,5 +81,9 @@ public class NativeQuery {
 
   public static int bindCount() {
     return BIND_NAMES.length;
+  }
+
+  public DMLCommand getCommand() {
+    return command;
   }
 }

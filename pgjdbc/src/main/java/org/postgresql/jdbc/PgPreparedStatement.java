@@ -1118,7 +1118,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       batchStatements = new ArrayList<Query>();
       batchParameters = new ArrayList<ParameterList>();
     }
-    if (reWriteBatchedInserts && preparedQuery.query.isStatementReWritableInsert()) {
+    if (preparedQuery.query.isStatementReWritableInsert()) {
       // we need to create copies of our parameters, otherwise the values can be changed
       batchParameters.add(preparedParameters.copy());
       if (batchStatements.size() == 0) {
@@ -1681,8 +1681,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   @Override
   protected ParameterList[] transformParameters() throws SQLException {
-    if (reWriteBatchedInserts && preparedQuery.query.isStatementReWritableInsert() && batchParameters.size() > 1) {
-      int s = batchParameters.size() * batchParameters.get(0).getInParameterCount();
+    if (preparedQuery.query.isStatementReWritableInsert() && batchParameters.size() > 1) {
       ParameterList[] pla = new ParameterList[1];
       pla[0] = ((BatchedQueryDecorator)batchStatements.get(0)).createParameterList();
       for (ParameterList pl : batchParameters) {
