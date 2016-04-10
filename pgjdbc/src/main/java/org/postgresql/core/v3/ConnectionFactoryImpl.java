@@ -201,9 +201,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
           paramList.add(new String[]{"search_path", currentSchema});
         }
 
-        String[][] params = paramList.toArray(new String[][]{});
-
-        sendStartupPacket(newStream, params, logger);
+        sendStartupPacket(newStream, paramList, logger);
 
         // Do authentication (until AuthenticationOk).
         doAuthentication(newStream, hostSpec.getHost(), user, info, logger);
@@ -358,27 +356,27 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
   }
 
-  private void sendStartupPacket(PGStream pgStream, String[][] params, Logger logger)
+  private void sendStartupPacket(PGStream pgStream, List<String[]> params, Logger logger)
       throws IOException {
     if (logger.logDebug()) {
       StringBuilder details = new StringBuilder();
-      for (int i = 0; i < params.length; ++i) {
+      for (int i = 0; i < params.size(); ++i) {
         if (i != 0) {
           details.append(", ");
         }
-        details.append(params[i][0]);
+        details.append(params.get(i)[0]);
         details.append("=");
-        details.append(params[i][1]);
+        details.append(params.get(i)[1]);
       }
       logger.debug(" FE=> StartupPacket(" + details + ")");
     }
 
     // Precalculate message length and encode params.
     int length = 4 + 4;
-    byte[][] encodedParams = new byte[params.length * 2][];
-    for (int i = 0; i < params.length; ++i) {
-      encodedParams[i * 2] = params[i][0].getBytes("UTF-8");
-      encodedParams[i * 2 + 1] = params[i][1].getBytes("UTF-8");
+    byte[][] encodedParams = new byte[params.size() * 2][];
+    for (int i = 0; i < params.size(); ++i) {
+      encodedParams[i * 2] = params.get(i)[0].getBytes("UTF-8");
+      encodedParams[i * 2 + 1] = params.get(i)[1].getBytes("UTF-8");
       length += encodedParams[i * 2].length + 1 + encodedParams[i * 2 + 1].length + 1;
     }
 
