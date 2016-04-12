@@ -9,6 +9,8 @@
 
 package org.postgresql.core.v2;
 
+import org.postgresql.core.DMLCommand;
+import org.postgresql.core.DMLCommandType;
 import org.postgresql.core.NativeQuery;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Parser;
@@ -26,11 +28,11 @@ class V2Query implements Query {
     useEStringSyntax = pconn.getServerVersionNum() >= 80100;
     boolean stdStrings = pconn.getStandardConformingStrings();
 
-    List<NativeQuery> queries = Parser.parseJdbcSql(query, stdStrings, withParameters, false);
+    List<NativeQuery> queries = Parser.parseJdbcSql(query, stdStrings, withParameters, false, true, false);
     assert queries.size() <= 1 : "Exactly one query expected in V2. " + queries.size()
         + " queries given.";
 
-    nativeQuery = queries.isEmpty() ? new NativeQuery("") : queries.get(0);
+    nativeQuery = queries.isEmpty() ? new NativeQuery("", DMLCommand.createStatementTypeInfo(DMLCommandType.BLANK)) : queries.get(0);
   }
 
   public ParameterList createParameterList() {
@@ -60,10 +62,30 @@ class V2Query implements Query {
     return nativeQuery.nativeSql.isEmpty();
   }
 
+  public boolean isStatementReWritableInsert() {
+    return statementReWritableInsert;
+  }
+
+  public void setStatementReWritableInsert(boolean canReWrite) {
+    statementReWritableInsert = canReWrite;
+  }
+
+  public void incrementBatchSize() {
+    batchSize++;
+  }
+
+  public int getBatchSize() {
+    return batchSize;
+  }
+
   private static final ParameterList NO_PARAMETERS = new SimpleParameterList(0, false);
 
   private final NativeQuery nativeQuery;
 
   private final boolean useEStringSyntax; // whether escaped string syntax should be used
+
+  private boolean statementReWritableInsert;
+
+  private int batchSize = 0;
 }
 

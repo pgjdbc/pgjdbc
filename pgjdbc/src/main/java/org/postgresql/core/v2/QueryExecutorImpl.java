@@ -48,11 +48,11 @@ public class QueryExecutorImpl implements QueryExecutor {
   // Query parsing
   //
 
-  public Query createSimpleQuery(String sql) {
+  public Query createSimpleQuery(String sql, boolean autocommit) {
     return new V2Query(sql, false, protoConnection);
   }
 
-  public Query createParameterizedQuery(String sql) {
+  public Query createParameterizedQuery(String sql, boolean autocommit) {
     return new V2Query(sql, true, protoConnection);
   }
 
@@ -120,7 +120,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
       try {
         // Create and issue a dummy query to use the existing prefix infrastructure
-        V2Query query = (V2Query) createSimpleQuery("");
+        V2Query query = (V2Query) createSimpleQuery("", false);
         SimpleParameterList params = (SimpleParameterList) query.createParameterList();
         sendQuery(query, params, "BEGIN");
         processResults(query, handler, 0, 0);

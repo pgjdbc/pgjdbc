@@ -16,6 +16,7 @@ import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.core.v3.BatchedQueryDecorator;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.util.ByteConverter;
@@ -62,6 +63,7 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 //#endif
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -1116,10 +1118,19 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       batchStatements = new ArrayList<Query>();
       batchParameters = new ArrayList<ParameterList>();
     }
-
-    // we need to create copies of our parameters, otherwise the values can be changed
-    batchStatements.add(preparedQuery.query);
-    batchParameters.add(preparedParameters.copy());
+    if (reWriteBatchedInserts && preparedQuery.query.isStatementReWritableInsert()) {
+      // we need to create copies of our parameters, otherwise the values can be changed
+      batchParameters.add(preparedParameters.copy());
+      if (batchStatements.size() == 0) {
+        batchStatements.add(preparedQuery.query);
+      } else {
+        increment(batchStatements, preparedParameters);
+      }
+    } else {
+      // we need to create copies of our parameters, otherwise the values can be changed
+      batchStatements.add(preparedQuery.query);
+      batchParameters.add(preparedParameters.copy());
+    }
   }
 
   public ResultSetMetaData getMetaData() throws SQLException {
@@ -1646,5 +1657,40 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
     return null;
 
+  }
+
+  /**
+   * Purpose of this method is to rewrite the prior Query with additional
+   * parameterized fields, parameters and type information.
+   * @param batchStatements all the statements
+   * @param batchParameters all the parameters
+   * @param preparedParameters all the prepared parameters
+   */
+  private void increment(List<Query> batchStatements, ParameterList preparedParameters) {
+    Query prior = batchStatements.get(batchStatements.size() - 1);
+    BatchedQueryDecorator decoratedQuery = (BatchedQueryDecorator)prior;
+    decoratedQuery.incrementBatchSize();
+
+    // resize and populate .fields and .preparedTypes meta data
+    int[] userTypeInformation = preparedParameters.getTypeOIDs();
+    if (userTypeInformation != null && userTypeInformation.length > 0
+        && userTypeInformation.length == decoratedQuery.getNativeQuery().bindPositions.length) {
+      decoratedQuery.setStatementTypes(userTypeInformation);
+    }
+  }
+
+  @Override
+  protected ParameterList[] transformParameters() throws SQLException {
+    if (reWriteBatchedInserts && preparedQuery.query.isStatementReWritableInsert() && batchParameters.size() > 1) {
+      int s = batchParameters.size() * batchParameters.get(0).getInParameterCount();
+      ParameterList[] pla = new ParameterList[1];
+      pla[0] = ((BatchedQueryDecorator)batchStatements.get(0)).createParameterList();
+      for (ParameterList pl : batchParameters) {
+        pla[0].appendAll(pl);
+      }
+      return pla;
+    } else {
+      return super.transformParameters();
+    }
   }
 }

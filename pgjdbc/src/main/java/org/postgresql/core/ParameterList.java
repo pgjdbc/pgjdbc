@@ -170,4 +170,17 @@ public interface ParameterList {
    * @return a string representation of the parameter.
    */
   String toString(int index);
+
+  /**
+   * Use this operation to append more parameters to the current list.
+   * @param list of parameters to append with.
+   * @throws SQLException fault raised if driver or back end throw an exception
+   */
+  void appendAll(ParameterList list) throws SQLException ;
+
+  /**
+   * Returns the bound parameter values.
+   * @return Object array containing the parameter values.
+   */
+  Object[] getValues();
 }

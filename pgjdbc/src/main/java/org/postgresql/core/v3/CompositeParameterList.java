@@ -150,6 +150,26 @@ class CompositeParameterList implements V3ParameterList {
     }
   }
 
+  public byte[][] getEncoding() {
+    return null; // unsupported
+  }
+
+  public byte[] getFlags() {
+    return null; // unsupported
+  }
+
+  public int[] getParamTypes() {
+    return null; // unsupported
+  }
+
+  public Object[] getValues() {
+    return null; // unsupported
+  }
+
+  public void appendAll(ParameterList list) throws SQLException {
+    // no-op, unsupported
+  }
+
   public void convertFunctionOutParameters() {
     for (SimpleParameterList subparam : subparams) {
       subparam.convertFunctionOutParameters();

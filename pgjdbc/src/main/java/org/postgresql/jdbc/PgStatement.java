@@ -21,6 +21,8 @@ import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandler;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.Utils;
+import org.postgresql.core.v3.BatchedQueryDecorator;
+
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -163,6 +165,8 @@ public class PgStatement implements Statement, BaseStatement {
 
   protected int maxfieldSize = 0;
 
+  protected boolean reWriteBatchedInserts;
+
   PgStatement(PgConnection c, int rsType, int rsConcurrency, int rsHoldability)
       throws SQLException {
     this.connection = c;
@@ -173,6 +177,7 @@ public class PgStatement implements Statement, BaseStatement {
     setFetchSize(c.getDefaultFetchSize());
     setPrepareThreshold(c.getPrepareThreshold());
     this.rsHoldability = rsHoldability;
+    setReWriteBatchedInserts(c.isReWriteBatchedInsertsEnabled());
   }
 
   public ResultSet createResultSet(Query originalQuery, Field[] fields, List<byte[][]> tuples,
@@ -316,7 +321,7 @@ public class PgStatement implements Statement, BaseStatement {
     checkClosed();
     p_sql = replaceProcessing(p_sql, replaceProcessingEnabled,
         connection.getStandardConformingStrings());
-    Query simpleQuery = connection.getQueryExecutor().createSimpleQuery(p_sql);
+    Query simpleQuery = connection.getQueryExecutor().createSimpleQuery(p_sql, connection.getAutoCommit());
     execute(simpleQuery, null, QueryExecutor.QUERY_ONESHOT | flags);
     this.lastSimpleQuery = simpleQuery;
     return (result != null && result.getResultSet() != null);
@@ -907,7 +912,7 @@ public class PgStatement implements Statement, BaseStatement {
     p_sql = replaceProcessing(p_sql, replaceProcessingEnabled,
         connection.getStandardConformingStrings());
 
-    batchStatements.add(connection.getQueryExecutor().createSimpleQuery(p_sql));
+    batchStatements.add(connection.getQueryExecutor().createSimpleQuery(p_sql, connection.getAutoCommit()));
     batchParameters.add(null);
   }
 
@@ -938,8 +943,7 @@ public class PgStatement implements Statement, BaseStatement {
 
     // Construct query/parameter arrays.
     Query[] queries = batchStatements.toArray(new Query[batchStatements.size()]);
-    ParameterList[] parameterLists =
-        batchParameters.toArray(new ParameterList[batchParameters.size()]);
+    ParameterList[] parameterLists = transformParameters();
     batchStatements.clear();
     batchParameters.clear();
 
@@ -1022,6 +1026,25 @@ public class PgStatement implements Statement, BaseStatement {
       // There might be some rows generated even in case of failures
       if (wantsGeneratedKeysAlways) {
         generatedKeys = new ResultWrapper(handler.getGeneratedKeys());
+      }
+    }
+
+    if (reWriteBatchedInserts && queries[0].isStatementReWritableInsert()) {
+      if (queries[0] instanceof BatchedQueryDecorator) {
+        BatchedQueryDecorator bqd = (BatchedQueryDecorator)queries[0];
+        int batchSize = bqd.getBatchSize();
+        if (batchSize > 1) {
+          updateCounts = new int[batchSize];
+          /* In this situation there is a batch that has been rewritten. Substitute
+           * the running total returned by the database with a status code to
+           * indicate successful completion for each row the driver client added
+           * to the batch.
+           */
+          for (int i = 0; i < batchSize; i++ ) {
+            updateCounts[i] = Statement.SUCCESS_NO_INFO;
+          }
+          bqd.reset();
+        }
       }
     }
 
@@ -1404,5 +1427,13 @@ public class PgStatement implements Statement, BaseStatement {
   public ResultSet createDriverResultSet(Field[] fields, List<byte[][]> tuples)
       throws SQLException {
     return createResultSet(null, fields, tuples, null);
+  }
+
+  protected void setReWriteBatchedInserts(boolean enabled) {
+    reWriteBatchedInserts = enabled;
+  }
+
+  protected ParameterList[] transformParameters() throws SQLException {
+    return batchParameters.toArray(new ParameterList[batchParameters.size()]);
   }
 }

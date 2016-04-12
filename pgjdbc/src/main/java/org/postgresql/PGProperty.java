@@ -334,7 +334,13 @@ public enum PGProperty {
       "If disabled hosts are connected in the given order. If enabled hosts are chosen randomly from the set of suitable candidates"),
 
   HOST_RECHECK_SECONDS("hostRecheckSeconds", "10",
-      "Specifies period (seconds) after host statuses are checked again in case they have changed");
+      "Specifies period (seconds) after host statuses are checked again in case they have changed"),
+
+  /**
+   * Configure optimization to enable batch insert re-writing.
+   */
+  REWRITE_BATCHED_INSERTS ("reWriteBatchedInserts", "false",
+      "Enable optimization to rewrite and collapse compatible INSERT statements that are batched.");
 
   private String _name;
   private String _defaultValue;

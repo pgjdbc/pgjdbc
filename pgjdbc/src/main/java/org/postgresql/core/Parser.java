@@ -34,12 +34,16 @@ public class Parser {
    *                                  in single quote literals
    * @param withParameters            whether to replace ?, ? with $1, $2, etc
    * @param splitStatements           whether to split statements by semicolon
+   * @param isAutoCommit              whether autocommit is enabled
+   * @param isBatchedReWriteConfigured whether re-write optimization is enabled
    * @return list of native queries
    */
   public static List<NativeQuery> parseJdbcSql(String query, boolean standardConformingStrings,
-      boolean withParameters, boolean splitStatements) {
+      boolean withParameters, boolean splitStatements, boolean isAutoCommit,
+      boolean isBatchedReWriteConfigured) {
     if (!withParameters && !splitStatements) {
-      return Collections.singletonList(new NativeQuery(query));
+      return Collections.singletonList(new NativeQuery(query,
+        DMLCommand.createStatementTypeInfo(DMLCommandType.BLANK)));
     }
 
     int fragmentStart = 0;
@@ -50,6 +54,11 @@ public class Parser {
     StringBuilder nativeSql = new StringBuilder(query.length() + 10);
     List<Integer> bindPositions = null; // initialized on demand
     List<NativeQuery> nativeQueries = null;
+    boolean isCurrentReWriteCompatible = false;
+    int afterValuesParens = 0;
+    boolean isInsertPresent = false;
+    boolean isReturningPresent = false;
+    DMLCommandType current = DMLCommandType.BLANK;
 
     boolean whitespaceOnly = true;
     for (int i = 0; i < aChars.length; ++i) {
@@ -79,6 +88,10 @@ public class Parser {
 
         case '(':
           inParen++;
+          afterValuesParens++;
+          if (afterValuesParens > 1) {
+            isCurrentReWriteCompatible = false;
+          }
           break;
 
         case ')':
@@ -117,13 +130,50 @@ public class Parser {
                 nativeQueries = new ArrayList<NativeQuery>();
               }
 
-              nativeQueries.add(new NativeQuery(nativeSql.toString(), toIntArray(bindPositions)));
+              nativeQueries.add(new NativeQuery(nativeSql.toString(),
+                  toIntArray(bindPositions), DMLCommand.createStatementTypeInfo(
+                  current, isBatchedReWriteConfigured, isCurrentReWriteCompatible,
+                  isReturningPresent, isAutoCommit, nativeQueries.size())));
             }
             // Prepare for next query
             if (bindPositions != null) {
               bindPositions.clear();
             }
             nativeSql.setLength(0);
+            current = DMLCommandType.BLANK;
+            isReturningPresent = false;
+          }
+          break;
+
+        case 'i':
+        case 'I':
+          if (Parser.parseInsertKeyword(aChars, i)) {
+            if ( !isInsertPresent && (nativeQueries == null ? true : nativeQueries.size() == 0)) {
+              isCurrentReWriteCompatible = true;
+              isInsertPresent = true;
+              current = DMLCommandType.INSERT;
+            } else {
+              isCurrentReWriteCompatible = false;
+            }
+            i += 5;
+          }
+          break;
+
+        case 'r':
+        case 'R':
+          // exclude re-write of insert statements with RETURNING keyword
+          isReturningPresent = Parser.parseReturningKeyword(aChars, i);
+          if (isReturningPresent) {
+            isCurrentReWriteCompatible &= !isReturningPresent;
+            i += 8;
+          }
+          break;
+
+        case 'v':
+        case 'V':
+          if (Parser.parseValuesKeyword(aChars, i)) {
+            afterValuesParens = 0 ;
+            i += 5;
           }
           break;
 
@@ -140,7 +190,11 @@ public class Parser {
       return nativeQueries != null ? nativeQueries : Collections.<NativeQuery>emptyList();
     }
 
-    NativeQuery lastQuery = new NativeQuery(nativeSql.toString(), toIntArray(bindPositions));
+    NativeQuery lastQuery = new NativeQuery(nativeSql.toString(),
+        toIntArray(bindPositions), DMLCommand.createStatementTypeInfo(current,
+        isBatchedReWriteConfigured, isCurrentReWriteCompatible,
+        isReturningPresent, isAutoCommit, (nativeQueries == null ? 0 :
+        nativeQueries.size())));
 
     if (nativeQueries == null) {
       return Collections.singletonList(lastQuery);
@@ -336,6 +390,66 @@ public class Parser {
       }
     }
     return offset;
+  }
+
+  /**
+   * Parse string to check presence of INSERT keyword regardless of case.
+   * @param query char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+  public static boolean parseInsertKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 7)) {
+      return false;
+    }
+
+    return (query[offset] | 32)     == 'i'
+        && (query[offset + 1] | 32) == 'n'
+        && (query[offset + 2] | 32) == 's'
+        && (query[offset + 3] | 32) == 'e'
+        && (query[offset + 4] | 32) == 'r'
+        && (query[offset + 5] | 32) == 't';
+  }
+
+  /**
+   * Parse string to check presence of RETURNING keyword regardless of case.
+   * @param query char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+  public static boolean parseReturningKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 9)) {
+      return false;
+    }
+
+    return (query[offset] | 32)     == 'r'
+        && (query[offset + 1] | 32) == 'e'
+        && (query[offset + 2] | 32) == 't'
+        && (query[offset + 3] | 32) == 'u'
+        && (query[offset + 4] | 32) == 'r'
+        && (query[offset + 5] | 32) == 'n'
+        && (query[offset + 6] | 32) == 'i'
+        && (query[offset + 7] | 32) == 'n'
+        && (query[offset + 8] | 32) == 'g';
+  }
+
+  /**
+   * Parse string to check presence of VALUES keyword regardless of case.
+   * @param query char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+  public static boolean parseValuesKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 6)) {
+      return false;
+    }
+
+    return (query[offset] | 32)     == 'v'
+        && (query[offset + 1] | 32) == 'a'
+        && (query[offset + 2] | 32) == 'l'
+        && (query[offset + 3] | 32) == 'u'
+        && (query[offset + 4] | 32) == 'e'
+        && (query[offset + 5] | 32) == 's';
   }
 
   /**

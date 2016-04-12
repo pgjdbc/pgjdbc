@@ -11,6 +11,8 @@ package org.postgresql.core.v3;
 
 import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyOperation;
+import org.postgresql.core.DMLCommand;
+import org.postgresql.core.DMLCommandType;
 import org.postgresql.core.Field;
 import org.postgresql.core.Logger;
 import org.postgresql.core.NativeQuery;
@@ -58,6 +60,7 @@ public class QueryExecutorImpl implements QueryExecutor {
     this.logger = logger;
 
     this.allowEncodingChanges = PGProperty.ALLOW_ENCODING_CHANGES.getBoolean(info);
+    this.allowReWriteBatchedInserts = PGProperty.REWRITE_BATCHED_INSERTS.getBoolean(info);
   }
 
   /**
@@ -84,6 +87,7 @@ public class QueryExecutorImpl implements QueryExecutor {
     if (lockedFor == obtainer) {
       throw new PSQLException(GT.tr("Tried to obtain lock while already holding it"),
           PSQLState.OBJECT_NOT_IN_STATE);
+
     }
     waitOnLock();
     lockedFor = obtainer;
@@ -132,24 +136,29 @@ public class QueryExecutorImpl implements QueryExecutor {
   // Query parsing
   //
 
-  public Query createSimpleQuery(String sql) {
-    return parseQuery(sql, false);
+  public Query createSimpleQuery(String sql, boolean autocommit) {
+    return parseQuery(sql, false, autocommit);
   }
 
-  public Query createParameterizedQuery(String sql) {
-    return parseQuery(sql, true);
+  public Query createParameterizedQuery(String sql, boolean autocommit) {
+    return parseQuery(sql, true, autocommit);
   }
 
-  private Query parseQuery(String query, boolean withParameters) {
+  private Query parseQuery(String query, boolean withParameters, boolean autocommit) {
 
     List<NativeQuery> queries = Parser.parseJdbcSql(query,
-        protoConnection.getStandardConformingStrings(), withParameters, true);
+        protoConnection.getStandardConformingStrings(), withParameters, true,
+        autocommit, allowReWriteBatchedInserts);
     if (queries.isEmpty()) {
       // Empty query
       return EMPTY_QUERY;
     }
     if (queries.size() == 1) {
-      return new SimpleQuery(queries.get(0), protoConnection);
+      if (allowReWriteBatchedInserts && queries.get(0).getCommand().isBatchedReWriteCompatible()) {
+        return new BatchedQueryDecorator(queries.get(0), protoConnection);
+      } else {
+        return new SimpleQuery(queries.get(0), protoConnection);
+      }
     }
 
     // Multiple statements.
@@ -1333,6 +1342,9 @@ public class QueryExecutorImpl implements QueryExecutor {
     }
 
     pendingParseQueue.add(query);
+    if (allowReWriteBatchedInserts && query instanceof BatchedQueryDecorator) { // not waiting for async message
+      ((BatchedQueryDecorator) query).registerQueryParsedStatus(true);
+    }
   }
 
   private void sendBind(SimpleQuery query, SimpleParameterList params, Portal portal,
@@ -2384,6 +2396,8 @@ public class QueryExecutorImpl implements QueryExecutor {
   private final PGStream pgStream;
   private final Logger logger;
   private final boolean allowEncodingChanges;
+  private final boolean allowReWriteBatchedInserts;
+
 
   /**
    * The estimated server response size since we last consumed the input stream from the server, in
@@ -2396,7 +2410,7 @@ public class QueryExecutorImpl implements QueryExecutor {
   private int estimatedReceiveBufferBytes = 0;
 
   private final SimpleQuery beginTransactionQuery =
-      new SimpleQuery(new NativeQuery("BEGIN", new int[0]), null);
+      new SimpleQuery(new NativeQuery("BEGIN", new int[0], DMLCommand.createStatementTypeInfo(DMLCommandType.BLANK)), null);
 
-  private final SimpleQuery EMPTY_QUERY = new SimpleQuery(new NativeQuery("", new int[0]), null);
+  private final SimpleQuery EMPTY_QUERY = new SimpleQuery(new NativeQuery("", new int[0], DMLCommand.createStatementTypeInfo(DMLCommandType.BLANK)), null);
 }

@@ -25,3 +25,4 @@ buildNumber.properties
 # Ignore folders used to build binaries for old Java
 /pgjdbc-jre6
 /pgjdbc-jre7
+/eclipsebin/

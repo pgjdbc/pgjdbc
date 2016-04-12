@@ -182,5 +182,22 @@ class FastpathParameterList implements ParameterList {
   }
 
   private final Object[] paramValues;
+
+  public Object[] getValues() {
+    return this.paramValues;
+  }
+
+  /**
+   * Append parameters to the list.
+   */
+  public void appendAll(ParameterList list) throws SQLException {
+    if (list instanceof SimpleParameterList ) {
+      // only v2.SimpleParameterList is compatible with this type
+      SimpleParameterList spl = (SimpleParameterList) list;
+      int count = spl.getInParameterCount();
+      System.arraycopy(spl.getValues(), 0, paramValues,
+          getInParameterCount() - count, count);
+    }
+  }
 }
 
