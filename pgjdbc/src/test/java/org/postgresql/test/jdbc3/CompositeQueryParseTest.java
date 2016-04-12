@@ -103,7 +103,7 @@ public class CompositeQueryParseTest extends TestCase {
     query = queries.get(0);
     assertFalse("This is not insert command", query.command.getType() == DMLCommandType.INSERT);
   }
-  
+
   public void testMultipleEmptyQueries() {
     assertEquals("select 1;/*cut*/\n" + "select 2",
         reparse("select 1; ;\t;select 2", true, false, true));
