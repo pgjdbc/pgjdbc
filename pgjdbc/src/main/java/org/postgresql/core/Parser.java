@@ -446,12 +446,12 @@ public class Parser {
       return false;
     }
 
-    return (query[offset]|32)     == 'i'
-        && (query[offset + 1]|32) == 'n'
-        && (query[offset + 2]|32) == 's'
-        && (query[offset + 3]|32) == 'e'
-        && (query[offset + 4]|32) == 'r'
-        && (query[offset + 5]|32) == 't';
+    return (query[offset] | 32)     == 'i'
+        && (query[offset + 1] | 32) == 'n'
+        && (query[offset + 2] | 32) == 's'
+        && (query[offset + 3] | 32) == 'e'
+        && (query[offset + 4] | 32) == 'r'
+        && (query[offset + 5] | 32) == 't';
   }
 
   /**
@@ -482,15 +482,15 @@ public class Parser {
       return false;
     }
 
-    return (query[offset]|32)     == 'r'
-        && (query[offset + 1]|32) == 'e'
-        && (query[offset + 2]|32) == 't'
-        && (query[offset + 3]|32) == 'u'
-        && (query[offset + 4]|32) == 'r'
-        && (query[offset + 5]|32) == 'n'
-        && (query[offset + 6]|32) == 'i'
-        && (query[offset + 7]|32) == 'n'
-        && (query[offset + 8]|32) == 'g';
+    return (query[offset] | 32)     == 'r'
+        && (query[offset + 1] | 32) == 'e'
+        && (query[offset + 2] | 32) == 't'
+        && (query[offset + 3] | 32) == 'u'
+        && (query[offset + 4] | 32) == 'r'
+        && (query[offset + 5] | 32) == 'n'
+        && (query[offset + 6] | 32) == 'i'
+        && (query[offset + 7] | 32) == 'n'
+        && (query[offset + 8] | 32) == 'g';
   }
 
   /**
@@ -523,12 +523,12 @@ public class Parser {
       return false;
     }
 
-    return (query[offset]|32)     == 'v'
-        && (query[offset + 1]|32) == 'a'
-        && (query[offset + 2]|32) == 'l'
-        && (query[offset + 3]|32) == 'u'
-        && (query[offset + 4]|32) == 'e'
-        && (query[offset + 5]|32) == 's';
+    return (query[offset] | 32)     == 'v'
+        && (query[offset + 1] | 32) == 'a'
+        && (query[offset + 2] | 32) == 'l'
+        && (query[offset + 3] | 32) == 'u'
+        && (query[offset + 4] | 32) == 'e'
+        && (query[offset + 5] | 32) == 's';
   }
 
   /**

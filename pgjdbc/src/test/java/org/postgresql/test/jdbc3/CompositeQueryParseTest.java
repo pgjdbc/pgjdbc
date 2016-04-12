@@ -84,24 +84,26 @@ public class CompositeQueryParseTest extends TestCase {
 
     queries = Parser.parseJdbcSql("select 1 as returning", true, true, false, true, true);
     query = queries.get(0);
-    assertFalse("This is not an insert command", query.command.getType()== DMLCommandType.INSERT);
+    assertFalse("This is not an insert command", query.command.getType() == DMLCommandType.INSERT);
     assertTrue("Returning is OK here as it is not an insert command ", query.command.isReturningKeywordPresent());
 
   }
+
   public void testIsInsert() {
 
     List<NativeQuery> queries = Parser.parseJdbcSql("insert into foo (a,b,c) values (?,?,?) returning a", true, true, false, true, true);
     NativeQuery query = queries.get(0);
-    assertTrue("This is an insert command", query.command.getType()== DMLCommandType.INSERT);
+    assertTrue("This is an insert command", query.command.getType() == DMLCommandType.INSERT);
 
     queries = Parser.parseJdbcSql("update foo set (a=?,b=?,c=?)", true, true, false, true, true);
     query = queries.get(0);
-    assertFalse("This is an insert command", query.command.getType()== DMLCommandType.INSERT);
+    assertFalse("This is an insert command", query.command.getType() == DMLCommandType.INSERT);
 
     queries = Parser.parseJdbcSql("select 1 as insert", true, true, false, true, true);
     query = queries.get(0);
-    assertFalse("This is not insert command", query.command.getType()== DMLCommandType.INSERT);
+    assertFalse("This is not insert command", query.command.getType() == DMLCommandType.INSERT);
   }
+  
   public void testMultipleEmptyQueries() {
     assertEquals("select 1;/*cut*/\n" + "select 2",
         reparse("select 1; ;\t;select 2", true, false, true));
