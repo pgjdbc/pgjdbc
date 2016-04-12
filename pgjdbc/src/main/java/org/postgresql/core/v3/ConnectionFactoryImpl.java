@@ -73,7 +73,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       String spnServiceClass,
       boolean enableNegotiate,
       Logger logger) {
-      // arguments to initialize windows version of class
+    // arguments to initialize windows version of class
     Class[] cArg = new Class[4];
     cArg[0] = PGStream.class;
     cArg[1] = String.class;
@@ -82,10 +82,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     Class c = null;
     try {
-        c = Class.forName("org.postgresql.sspi.SSPIClient");
-        return (ISSPIClient) c.getDeclaredConstructor(cArg).newInstance(pgStream, spnServiceClass, enableNegotiate, logger);
+      c = Class.forName("org.postgresql.sspi.SSPIClient");
+      return (ISSPIClient) c.getDeclaredConstructor(cArg).newInstance(pgStream, spnServiceClass, enableNegotiate, logger);
     } catch (Throwable e) {
-        throw new UnsupportedOperationException("Not supported."); 
+      throw new UnsupportedOperationException("Not supported.");
     }
   }
 
