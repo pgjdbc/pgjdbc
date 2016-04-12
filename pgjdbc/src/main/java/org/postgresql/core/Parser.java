@@ -145,6 +145,7 @@ public class Parser {
           }
           break;
 
+        case 'd':
         case 'D':
           if (Parser.parseDeleteKeyword(aChars, i)) {
             current = DMLCommandType.DELETE;
@@ -152,6 +153,7 @@ public class Parser {
           }
           break;
 
+        case 'i':
         case 'I':
           if (Parser.parseInsertKeyword(aChars, i)) {
             if ( !isInsertPresent && (nativeQueries == null ? true : nativeQueries.size() == 0)) {
@@ -165,6 +167,7 @@ public class Parser {
           }
           break;
 
+        case 'm':
         case 'M':
           if (Parser.parseMoveKeyword(aChars, i)) {
             current = DMLCommandType.MOVE;
@@ -172,6 +175,7 @@ public class Parser {
           }
           break;
 
+        case 'r':
         case 'R':
           // exclude re-write of insert statements with RETURNING keyword
           isReturningPresent = Parser.parseReturningKeyword(aChars, i);
@@ -180,6 +184,7 @@ public class Parser {
           }
           break;
 
+        case 'u':
         case 'U':
           if (Parser.parseUpdateKeyword(aChars, i)) {
             current = DMLCommandType.UPDATE;
@@ -187,6 +192,7 @@ public class Parser {
           }
           break;
 
+        case 'v':
         case 'V':
           if (Parser.parseValuesKeyword(aChars, i)) {
             afterValuesParens = 0 ;
@@ -421,12 +427,12 @@ public class Parser {
       return false;
     }
 
-    return Character.toUpperCase(query[offset + 1]) == 'D'
-      && Character.toUpperCase(query[offset + 1]) == 'E'
-      && Character.toUpperCase(query[offset + 2]) == 'L'
-      && Character.toUpperCase(query[offset + 3]) == 'E'
-      && Character.toUpperCase(query[offset + 4]) == 'T'
-      && Character.toUpperCase(query[offset + 5]) == 'E';
+    return Character.toUpperCase(query[offset + 1]) == 'd'
+      && Character.toUpperCase(query[offset + 1]) == 'e'
+      && Character.toUpperCase(query[offset + 2]) == 'l'
+      && Character.toUpperCase(query[offset + 3]) == 'e'
+      && Character.toUpperCase(query[offset + 4]) == 't'
+      && Character.toUpperCase(query[offset + 5]) == 'e';
   }
 
   /**
@@ -440,12 +446,12 @@ public class Parser {
       return false;
     }
 
-    return Character.toUpperCase(query[offset]) == 'I'
-      && Character.toUpperCase(query[offset + 1]) == 'N'
-      && Character.toUpperCase(query[offset + 2]) == 'S'
-      && Character.toUpperCase(query[offset + 3]) == 'E'
-      && Character.toUpperCase(query[offset + 4]) == 'R'
-      && Character.toUpperCase(query[offset + 5]) == 'T';
+    return (query[offset] | 32)     == 'i'
+        && (query[offset + 1] | 32) == 'n'
+        && (query[offset + 2] | 32) == 's'
+        && (query[offset + 3] | 32) == 'e'
+        && (query[offset + 4] | 32) == 'r'
+        && (query[offset + 5] | 32) == 't';
   }
 
   /**
@@ -459,10 +465,10 @@ public class Parser {
       return false;
     }
 
-    return Character.toUpperCase(query[offset + 1]) == 'M'
-      && Character.toUpperCase(query[offset + 1]) == 'O'
-      && Character.toUpperCase(query[offset + 2]) == 'V'
-      && Character.toUpperCase(query[offset + 3]) == 'E';
+    return Character.toUpperCase(query[offset + 1]) == 'm'
+      && Character.toUpperCase(query[offset + 1]) == 'o'
+      && Character.toUpperCase(query[offset + 2]) == 'v'
+      && Character.toUpperCase(query[offset + 3]) == 'e';
   }
 
   /**
@@ -476,15 +482,15 @@ public class Parser {
       return false;
     }
 
-    return Character.toUpperCase(query[offset]) == 'R'
-      && Character.toUpperCase(query[offset + 1]) == 'E'
-      && Character.toUpperCase(query[offset + 2]) == 'T'
-      && Character.toUpperCase(query[offset + 3]) == 'U'
-      && Character.toUpperCase(query[offset + 4]) == 'R'
-      && Character.toUpperCase(query[offset + 5]) == 'N'
-      && Character.toUpperCase(query[offset + 6]) == 'I'
-      && Character.toUpperCase(query[offset + 7]) == 'N'
-      && Character.toUpperCase(query[offset + 8]) == 'G';
+    return (query[offset] | 32)     == 'r'
+        && (query[offset + 1] | 32) == 'e'
+        && (query[offset + 2] | 32) == 't'
+        && (query[offset + 3] | 32) == 'u'
+        && (query[offset + 4] | 32) == 'r'
+        && (query[offset + 5] | 32) == 'n'
+        && (query[offset + 6] | 32) == 'i'
+        && (query[offset + 7] | 32) == 'n'
+        && (query[offset + 8] | 32) == 'g';
   }
 
   /**
@@ -498,12 +504,12 @@ public class Parser {
       return false;
     }
 
-    return Character.toUpperCase(query[offset + 1]) == 'U'
-      && Character.toUpperCase(query[offset + 1]) == 'P'
-      && Character.toUpperCase(query[offset + 2]) == 'D'
-      && Character.toUpperCase(query[offset + 3]) == 'A'
-      && Character.toUpperCase(query[offset + 4]) == 'T'
-      && Character.toUpperCase(query[offset + 5]) == 'E';
+    return Character.toUpperCase(query[offset + 1]) == 'u'
+      && Character.toUpperCase(query[offset + 1]) == 'p'
+      && Character.toUpperCase(query[offset + 2]) == 'd'
+      && Character.toUpperCase(query[offset + 3]) == 'a'
+      && Character.toUpperCase(query[offset + 4]) == 't'
+      && Character.toUpperCase(query[offset + 5]) == 'e';
   }
 
   /**
@@ -517,12 +523,12 @@ public class Parser {
       return false;
     }
 
-    return Character.toUpperCase(query[offset]) == 'V'
-      && Character.toUpperCase(query[offset + 1]) == 'A'
-      && Character.toUpperCase(query[offset + 2]) == 'L'
-      && Character.toUpperCase(query[offset + 3]) == 'U'
-      && Character.toUpperCase(query[offset + 4]) == 'E'
-      && Character.toUpperCase(query[offset + 5]) == 'S';
+    return (query[offset] | 32)     == 'v'
+        && (query[offset + 1] | 32) == 'a'
+        && (query[offset + 2] | 32) == 'l'
+        && (query[offset + 3] | 32) == 'u'
+        && (query[offset + 4] | 32) == 'e'
+        && (query[offset + 5] | 32) == 's';
   }
 
   /**
