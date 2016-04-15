@@ -427,12 +427,12 @@ public class Parser {
       return false;
     }
 
-    return Character.toUpperCase(query[offset + 1]) == 'd'
-      && Character.toUpperCase(query[offset + 1]) == 'e'
-      && Character.toUpperCase(query[offset + 2]) == 'l'
-      && Character.toUpperCase(query[offset + 3]) == 'e'
-      && Character.toUpperCase(query[offset + 4]) == 't'
-      && Character.toUpperCase(query[offset + 5]) == 'e';
+    return (query[offset ] | 32)    == 'd'
+        && (query[offset + 1] | 32) == 'e'
+        && (query[offset + 2] | 32) == 'l'
+        && (query[offset + 3] | 32) == 'e'
+        && (query[offset + 4] | 32) == 't'
+        && (query[offset + 5] | 32) == 'e';
   }
 
   /**
@@ -465,10 +465,10 @@ public class Parser {
       return false;
     }
 
-    return Character.toUpperCase(query[offset + 1]) == 'm'
-      && Character.toUpperCase(query[offset + 1]) == 'o'
-      && Character.toUpperCase(query[offset + 2]) == 'v'
-      && Character.toUpperCase(query[offset + 3]) == 'e';
+    return (query[offset] | 32)   == 'm'
+      && (query[offset + 1] | 32) == 'o'
+      && (query[offset + 2] | 32) == 'v'
+      && (query[offset + 3] | 32) == 'e';
   }
 
   /**
@@ -504,12 +504,12 @@ public class Parser {
       return false;
     }
 
-    return Character.toUpperCase(query[offset + 1]) == 'u'
-      && Character.toUpperCase(query[offset + 1]) == 'p'
-      && Character.toUpperCase(query[offset + 2]) == 'd'
-      && Character.toUpperCase(query[offset + 3]) == 'a'
-      && Character.toUpperCase(query[offset + 4]) == 't'
-      && Character.toUpperCase(query[offset + 5]) == 'e';
+    return (query[offset] | 32) == 'u'
+      && (query[offset + 1] | 32) == 'p'
+      && (query[offset + 2] | 32) == 'd'
+      && (query[offset + 3] | 32) == 'a'
+      && (query[offset + 4] | 32) == 't'
+      && (query[offset + 5] | 32) == 'e';
   }
 
   /**

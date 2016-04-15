@@ -89,6 +89,17 @@ public class CompositeQueryParseTest extends TestCase {
 
   }
 
+  public void testHasDelete()
+  {
+    List<NativeQuery> queries = Parser.parseJdbcSql("delete from foo where a=1", true, true, false, true, true);
+    NativeQuery query = queries.get(0);
+    assertTrue("This is a delete command", query.command.getType() == DMLCommandType.DELETE);
+
+    queries = Parser.parseJdbcSql("update foo set (a=?,b=?,c=?)", true, true, false, true, true);
+    query = queries.get(0);
+    assertFalse("This is not a delete command", query.command.getType() == DMLCommandType.DELETE);
+
+  }
   public void testIsInsert() {
 
     List<NativeQuery> queries = Parser.parseJdbcSql("insert into foo (a,b,c) values (?,?,?) returning a", true, true, false, true, true);
@@ -97,7 +108,7 @@ public class CompositeQueryParseTest extends TestCase {
 
     queries = Parser.parseJdbcSql("update foo set (a=?,b=?,c=?)", true, true, false, true, true);
     query = queries.get(0);
-    assertFalse("This is an insert command", query.command.getType() == DMLCommandType.INSERT);
+    assertFalse("This is not insert command", query.command.getType() == DMLCommandType.INSERT);
 
     queries = Parser.parseJdbcSql("select 1 as insert", true, true, false, true, true);
     query = queries.get(0);
