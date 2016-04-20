@@ -78,7 +78,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     try {
       c = Class.forName("org.postgresql.sspi.SSPIClient");
       return (ISSPIClient) c.getDeclaredConstructor(cArg).newInstance(pgStream, spnServiceClass, enableNegotiate, logger);
-    } catch (ReflectiveOperationException e) {
+    } catch (Exception e) {
+      // This catched quite a lot exceptions, but until Java 7 there is no ReflectiveOperationException
       throw new UnsupportedOperationException("You are using jar from Linux distribution or class SPPIClient cannot be loaded");
     }
   }
