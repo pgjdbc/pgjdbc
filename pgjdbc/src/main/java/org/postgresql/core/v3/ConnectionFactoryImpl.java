@@ -69,23 +69,17 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   }
 
 
-  private ISSPIClient SSPIfactory(PGStream pgStream,
+  private ISSPIClient createSSPI(PGStream pgStream,
       String spnServiceClass,
       boolean enableNegotiate,
       Logger logger) {
-    // arguments to initialize windows version of class
-    Class[] cArg = new Class[4];
-    cArg[0] = PGStream.class;
-    cArg[1] = String.class;
-    cArg[2] = boolean.class;
-    cArg[3] = Logger.class;
-
+    Class[] cArg = new Class[]{PGStream.class, String.class, boolean.class, Logger.class};
     Class c = null;
     try {
       c = Class.forName("org.postgresql.sspi.SSPIClient");
       return (ISSPIClient) c.getDeclaredConstructor(cArg).newInstance(pgStream, spnServiceClass, enableNegotiate, logger);
-    } catch (Throwable e) {
-      throw new UnsupportedOperationException("Not supported.");
+    } catch (ReflectiveOperationException e) {
+      throw new UnsupportedOperationException("You are using jar from Linux distribution or class SPPIClient cannot be loaded");
     }
   }
 
@@ -585,7 +579,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                       "Using JSSE GSSAPI, gssapi requested by server and gsslib=sspi not forced");
                 } else {
                   /* Determine if SSPI is supported by the client */
-                  sspiClient = SSPIfactory(pgStream, PGProperty.SSPI_SERVICE_CLASS.get(info),
+                  sspiClient = createSSPI(pgStream, PGProperty.SSPI_SERVICE_CLASS.get(info),
                       /* Use negotiation for SSPI, or if explicitly requested for GSS */
                       areq == AUTH_REQ_SSPI || (areq == AUTH_REQ_GSS && usespnego), logger);
 

@@ -13,20 +13,12 @@ import java.sql.SQLException;
  * @author pkajaba
  *
  */
-public class ISSPIClient {
-  public boolean isSSPISupported() {
-    throw new UnsupportedOperationException("Not supported.");
-  }
+public interface ISSPIClient {
+  public boolean isSSPISupported();
 
-  public void startSSPI() throws SQLException, IOException {
-    throw new UnsupportedOperationException("Not supported.");
-  }
+  public void startSSPI() throws SQLException, IOException;
 
-  public void continueSSPI(int msgLength) throws SQLException, IOException {
-    throw new UnsupportedOperationException("Not supported.");
-  }
+  public void continueSSPI(int msgLength) throws SQLException, IOException;
 
-  public void dispose() {
-    throw new UnsupportedOperationException("Not supported.");
-  }
+  public void dispose();
 }
