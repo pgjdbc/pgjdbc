@@ -3,6 +3,7 @@ set -x -e
 
 # Skip tests and checkstype to speed up snapshot deployment
 MVN_ARGS="clean deploy -B -V -DskipTests -Dcheckstyle.skip=true -Dskip.assembly=true --settings settings.xml"
+MVN_ARGS="$MVN_ARGS $MVN_CUSTOM_ARGS"
 
 if [[ "${TRAVIS_JDK_VERSION}" == *"jdk6"* ]];
 then

@@ -2,7 +2,7 @@
 set -x -e
 
 # Build project
-MVN_ARGS="clean package -B -V"
+MVN_ARGS="clean package -B -V $MVN_CUSTOM_ARGS"
 MVN_PROFILES="release"
 
 if [[ "${COVERAGE}" == *"Y"* ]];
