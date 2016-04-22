@@ -120,7 +120,7 @@ matrix:
         postgresql: "9.4"
       env:
         - PG_VERSION=9.4
-        - MVN_CUSTOM_ARGS='-DwaffleEnabled=false -DosgiEnabled=false'
+        - MVN_CUSTOM_ARGS='-DwaffleEnabled=false -DosgiEnabled=false -DexcludePackageNames=org.postgresql.osgi:org.postgresql.sspi'
 
 
 # Deploy snapshots to Maven Central
