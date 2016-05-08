@@ -9,7 +9,7 @@ import java.util.Map;
 
 public class CacheMetadata {
   // FIXME: unsynchronized hashmap might lead to thread stuck
-  private static Map<String, List<CacheMetadataField>> _cache =
+  private Map<String, List<CacheMetadataField>> _cache =
       new HashMap<String, List<CacheMetadataField>>();
 
   protected boolean isCached(String idFields) {
