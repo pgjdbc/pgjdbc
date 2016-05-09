@@ -160,7 +160,7 @@ public class SSPIClient {
 
         sspiContext = new WindowsSecurityContextImpl();
         sspiContext.setPrincipalName(targetName);
-        sspiContext.setCredentialsHandle(clientCredentials.getHandle());
+        sspiContext.setCredentialsHandle(clientCredentials);
         sspiContext.setSecurityPackage(securityPackage);
         sspiContext.initialize(null, null, targetName);
       } catch (Win32Exception ex) {
