@@ -58,7 +58,7 @@ loss of data. We recommend you assign the following names:
 
   database: test
   username: test
-  password: password
+  password: test
 
 These names correspond with the default names set for the test suite
 in $JDBC_SRC/build.xml. If you have chosen other names you need to
