@@ -125,7 +125,7 @@ public class GeometricTest extends TestCase {
       if (roundTripToDatabase) {
         try {
           checkReadWrite(new PGline(), columnName);
-          fail("Expected a PGSQLException to be thrown");
+          fail("Expected a PSQLException to be thrown");
         } catch (PSQLException e) {
           assertEquals("22P02", e.getSQLState());
         }
