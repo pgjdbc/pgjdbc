@@ -127,7 +127,7 @@ public class GeometricTest extends TestCase {
           checkReadWrite(new PGline(), columnName);
           fail("Expected a PGSQLException to be thrown");
         } catch (PSQLException e) {
-          assertTrue(e.getMessage().contains("A and B cannot both be zero"));
+          assertEquals("22P02", e.getSQLState());
         }
       }
 
