@@ -133,6 +133,9 @@
                 <exclude>org/postgresql/sspi/NTDSAPIWrapper.java</exclude>
                 <exclude>org/postgresql/sspi/SSPIClient.java</exclude>
               </excludes>
+              <testExcludes>
+                <exclude>org/postgresql/test/sspi/*.java</exclude>
+              </testExcludes>
             </configuration>
           </plugin>
         </plugins>
