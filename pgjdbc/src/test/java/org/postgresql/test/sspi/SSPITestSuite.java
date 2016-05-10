@@ -1,24 +1,15 @@
 package org.postgresql.test.sspi;
 
-import junit.framework.JUnit4TestAdapter;
-import junit.framework.TestSuite;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
 
 /*
  * Executes all known tests for SSPI.
  */
-public class SSPITestSuite extends TestSuite {
-
-  /*
-   * The main entry point for JUnit
-   */
-  public static TestSuite suite() throws Exception {
-    TestSuite suite = new TestSuite();
-
-    // Add one line per class in our test cases.
-    suite.addTestSuite(SSPITest.class);
-
-    // That's all folks.
-    return suite;
-  }
-
+@RunWith(Suite.class)
+@Suite.SuiteClasses({
+	SSPITest.class
+})
+public class SSPITestSuite {
+	// Empty.
 }
