@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.postgresql</groupId>
     <artifactId>pgjdbc-core-parent</artifactId>
-    <version>1.0.5</version>
+    <version>1.0.6</version>
     <relativePath />
   </parent>
 
@@ -113,6 +113,71 @@
         </plugins>
       </build>
     </profile>
+
+    <profile>
+      <id>excludeWaffleFiles</id>
+      <activation>
+        <property>
+          <name>waffleEnabled</name>
+          <value>false</value>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <configuration>
+              <excludes combine.children="append">
+                <exclude>org/postgresql/sspi/NTDSAPI.java</exclude>
+                <exclude>org/postgresql/sspi/NTDSAPIWrapper.java</exclude>
+                <exclude>org/postgresql/sspi/SSPIClient.java</exclude>
+              </excludes>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <profile>
+      <id>excludeOsgiFiles</id>
+      <activation>
+        <property>
+          <name>osgiEnabled</name>
+          <value>false</value>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <configuration>
+              <excludes combine.children="append">
+                <exclude>org/postgresql/osgi/PGBundleActivator.java</exclude>
+                <exclude>org/postgresql/osgi/PGDataSourceFactory.java</exclude>
+              </excludes>
+              <testExcludes combine.children="append">
+                <exclude>**/PGDataSourceFactoryTest.java</exclude>
+                <exclude>**/OsgiTestSuite.java</exclude>
+              </testExcludes>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <excludes>
+                <exclude>**/OsgiTestSuite.java</exclude>
+                <exclude>**/PGDataSourceFactoryTest.java</exclude>
+              </excludes>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+
   </profiles>
 
   <build>

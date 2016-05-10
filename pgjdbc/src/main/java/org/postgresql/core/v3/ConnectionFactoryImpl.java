@@ -24,7 +24,7 @@ import org.postgresql.hostchooser.HostChooser;
 import org.postgresql.hostchooser.HostChooserFactory;
 import org.postgresql.hostchooser.HostRequirement;
 import org.postgresql.hostchooser.HostStatus;
-import org.postgresql.sspi.SSPIClient;
+import org.postgresql.sspi.ISSPIClient;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.MD5Digest;
@@ -66,6 +66,22 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
    * Marker exception; thrown when we want to fall back to using V2.
    */
   private static class UnsupportedProtocolException extends IOException {
+  }
+
+
+  private ISSPIClient createSSPI(PGStream pgStream,
+      String spnServiceClass,
+      boolean enableNegotiate,
+      Logger logger) {
+    Class[] cArg = new Class[]{PGStream.class, String.class, boolean.class, Logger.class};
+    Class c = null;
+    try {
+      c = Class.forName("org.postgresql.sspi.SSPIClient");
+      return (ISSPIClient) c.getDeclaredConstructor(cArg).newInstance(pgStream, spnServiceClass, enableNegotiate, logger);
+    } catch (Exception e) {
+      // This catched quite a lot exceptions, but until Java 7 there is no ReflectiveOperationException
+      throw new UnsupportedOperationException("You are using jar from Linux distribution or class SPPIClient cannot be loaded");
+    }
   }
 
   public ProtocolConnection openConnectionImpl(HostSpec[] hostSpecs, String user, String database,
@@ -403,7 +419,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     String password = PGProperty.PASSWORD.get(info);
 
     /* SSPI negotiation state, if used */
-    SSPIClient sspiClient = null;
+    ISSPIClient sspiClient = null;
 
     try {
       authloop: while (true) {
@@ -562,7 +578,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                       "Using JSSE GSSAPI, gssapi requested by server and gsslib=sspi not forced");
                 } else {
                   /* Determine if SSPI is supported by the client */
-                  sspiClient = new SSPIClient(pgStream, PGProperty.SSPI_SERVICE_CLASS.get(info),
+                  sspiClient = createSSPI(pgStream, PGProperty.SSPI_SERVICE_CLASS.get(info),
                       /* Use negotiation for SSPI, or if explicitly requested for GSS */
                       areq == AUTH_REQ_SSPI || (areq == AUTH_REQ_GSS && usespnego), logger);
 
