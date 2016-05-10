@@ -122,7 +122,6 @@ matrix:
         - PG_VERSION=9.4
         - MVN_CUSTOM_ARGS='-DwaffleEnabled=false -DosgiEnabled=false -DexcludePackageNames=org.postgresql.osgi:org.postgresql.sspi'
 
-
 # Deploy snapshots to Maven Central
 after_success:
   - "test $TRAVIS_PULL_REQUEST == 'false' && test $TRAVIS_BRANCH == 'master' && test $PG_VERSION == '9.4' && ./travis_deploy.sh"

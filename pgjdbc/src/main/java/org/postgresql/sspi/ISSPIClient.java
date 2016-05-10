@@ -1,3 +1,12 @@
+/*-------------------------------------------------------------------------
+*
+* Copyright (c) 2003-2016, PostgreSQL Global Development Group
+* Copyright (c) 2004, Open Cloud Limited.
+*
+*
+*-------------------------------------------------------------------------
+*/
+
 package org.postgresql.sspi;
 
 import java.io.IOException;
@@ -8,17 +17,13 @@ import java.sql.SQLException;
  * client and talking to a Windows server.
  *
  * SSPI is not supported on a non-Windows client.
- *
- *
- * @author pkajaba
- *
  */
 public interface ISSPIClient {
-  public boolean isSSPISupported();
+  boolean isSSPISupported();
 
-  public void startSSPI() throws SQLException, IOException;
+  void startSSPI() throws SQLException, IOException;
 
-  public void continueSSPI(int msgLength) throws SQLException, IOException;
+  void continueSSPI(int msgLength) throws SQLException, IOException;
 
-  public void dispose();
+  void dispose();
 }

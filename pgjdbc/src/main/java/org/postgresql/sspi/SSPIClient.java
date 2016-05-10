@@ -1,3 +1,12 @@
+/*-------------------------------------------------------------------------
+*
+* Copyright (c) 2003-2016, PostgreSQL Global Development Group
+* Copyright (c) 2004, Open Cloud Limited.
+*
+*
+*-------------------------------------------------------------------------
+*/
+
 package org.postgresql.sspi;
 
 import org.postgresql.core.Logger;

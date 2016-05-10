@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
 *
-* Copyright (c) 2003-2014, PostgreSQL Global Development Group
+* Copyright (c) 2003-2016, PostgreSQL Global Development Group
 * Copyright (c) 2004, Open Cloud Limited.
 *
 *
@@ -68,19 +68,19 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   private static class UnsupportedProtocolException extends IOException {
   }
 
-
   private ISSPIClient createSSPI(PGStream pgStream,
       String spnServiceClass,
       boolean enableNegotiate,
       Logger logger) {
-    Class[] cArg = new Class[]{PGStream.class, String.class, boolean.class, Logger.class};
-    Class c = null;
     try {
-      c = Class.forName("org.postgresql.sspi.SSPIClient");
-      return (ISSPIClient) c.getDeclaredConstructor(cArg).newInstance(pgStream, spnServiceClass, enableNegotiate, logger);
+      Class c = Class.forName("org.postgresql.sspi.SSPIClient");
+      Class[] cArg = new Class[]{PGStream.class, String.class, boolean.class, Logger.class};
+      return (ISSPIClient) c.getDeclaredConstructor(cArg)
+          .newInstance(pgStream, spnServiceClass, enableNegotiate, logger);
     } catch (Exception e) {
       // This catched quite a lot exceptions, but until Java 7 there is no ReflectiveOperationException
-      throw new UnsupportedOperationException("You are using jar from Linux distribution or class SPPIClient cannot be loaded");
+      throw new IllegalStateException("Unable to load org.postgresql.sspi.SSPIClient."
+          + " Please check that SSPIClient is included in your pgjdbc distribution.", e);
     }
   }
 
