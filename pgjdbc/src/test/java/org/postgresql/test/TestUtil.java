@@ -121,6 +121,13 @@ public class TestUtil {
   }
 
   /*
+   * Returns the user for SSPI authentication tests
+   */
+  public static String getSSPIUser() {
+    return System.getProperty("sspiusername");
+  }
+
+  /*
    * postgres like user
    */
   public static String getPrivilegedUser() {
@@ -266,7 +273,11 @@ public class TestUtil {
   public static java.sql.Connection openDB(Properties props) throws Exception {
     initDriver();
 
-    String user = getUser();
+	// Allow properties to override the user name.
+    String user = props.getProperty("username");
+    if (user == null) {
+        user = getUser();
+    }
     if (user == null) {
       throw new IllegalArgumentException(
           "user name is not specified. Please specify 'username' property via -D or build.properties");
