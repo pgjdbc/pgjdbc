@@ -4,10 +4,14 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
+
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeThat;
 
 import java.sql.Connection;
 import java.sql.Statement;
@@ -20,6 +24,16 @@ import java.util.Properties;
  * configuration.
  */
 public class SSPITest {
+
+    /*
+     * SSPI only exists on Windows.
+     */
+    @BeforeClass
+    public static void checkPlatform() {
+        assumeThat("SSPI not supported on this platform",
+                   System.getProperty("os.name").toLowerCase(),
+                   containsString("windows"));
+    }
 
     /*
      * Tests that SSPI login succeeds and a query can be run.
