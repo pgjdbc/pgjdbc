@@ -273,10 +273,10 @@ public class TestUtil {
   public static java.sql.Connection openDB(Properties props) throws Exception {
     initDriver();
 
-	// Allow properties to override the user name.
+    // Allow properties to override the user name.
     String user = props.getProperty("username");
     if (user == null) {
-        user = getUser();
+      user = getUser();
     }
     if (user == null) {
       throw new IllegalArgumentException(

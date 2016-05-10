@@ -7,9 +7,7 @@ import org.junit.runners.Suite;
  * Executes all known tests for SSPI.
  */
 @RunWith(Suite.class)
-@Suite.SuiteClasses({
-	SSPITest.class
-})
+@Suite.SuiteClasses({ SSPITest.class })
 public class SSPITestSuite {
-	// Empty.
+  // Empty.
 }
