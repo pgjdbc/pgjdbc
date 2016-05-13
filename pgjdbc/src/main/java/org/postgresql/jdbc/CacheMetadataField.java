@@ -3,7 +3,7 @@ package org.postgresql.jdbc;
 import org.postgresql.core.Field;
 import org.postgresql.util.CanEstimateSize;
 
-public class CacheMetadataField implements CanEstimateSize{
+public class CacheMetadataField implements CanEstimateSize {
   private String colName;
   private String tabName;
   private String schemaName;
