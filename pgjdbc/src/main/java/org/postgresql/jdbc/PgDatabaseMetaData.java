@@ -69,18 +69,22 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         sql = "SELECT t1.typlen/t2.typlen FROM " + from
             + " t1.typelem=t2.oid AND t1.typname='oidvector'";
       }
-      Statement stmt = connection.createStatement();
-      ResultSet rs = stmt.executeQuery(sql);
-      if (!rs.next()) {
-        stmt.close();
-        throw new PSQLException(
-            GT.tr(
-                "Unable to determine a value for MaxIndexKeys due to missing system catalog data."),
-            PSQLState.UNEXPECTED_ERROR);
+      Statement stmt = null;
+      try {
+        stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery(sql);
+        if (!rs.next()) {
+          throw new PSQLException(
+              GT.tr(
+                  "Unable to determine a value for MaxIndexKeys due to missing system catalog data."),
+              PSQLState.UNEXPECTED_ERROR);
+        }
+        INDEX_MAX_KEYS = rs.getInt(1);
+      } finally {
+        if (stmt != null) {
+          stmt.close();
+        }
       }
-      INDEX_MAX_KEYS = rs.getInt(1);
-      rs.close();
-      stmt.close();
     }
     return INDEX_MAX_KEYS;
   }

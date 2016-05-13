@@ -262,28 +262,34 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
       return;
     }
 
-    Statement stmt = connection.createStatement();
-    ResultSet rs = stmt.executeQuery(sql.toString());
-    while (rs.next()) {
-      int table = (int) rs.getLong(1);
-      int column = (int) rs.getLong(2);
-      String columnName = rs.getString(3);
-      String tableName = rs.getString(4);
-      String schemaName = rs.getString(5);
-      int nullable =
-          rs.getBoolean(6) ? ResultSetMetaData.columnNoNulls : ResultSetMetaData.columnNullable;
-      boolean autoIncrement = rs.getBoolean(7);
-      for (Field field : fields) {
-        if (field.getTableOid() == table && field.getPositionInTable() == column) {
-          field.setColumnName(columnName);
-          field.setTableName(tableName);
-          field.setSchemaName(schemaName);
-          field.setNullable(nullable);
-          field.setAutoIncrement(autoIncrement);
+    Statement stmt = null;
+    try {
+      stmt = connection.createStatement();
+      ResultSet rs = stmt.executeQuery(sql.toString());
+      while (rs.next()) {
+        int table = (int) rs.getLong(1);
+        int column = (int) rs.getLong(2);
+        String columnName = rs.getString(3);
+        String tableName = rs.getString(4);
+        String schemaName = rs.getString(5);
+        int nullable =
+            rs.getBoolean(6) ? ResultSetMetaData.columnNoNulls : ResultSetMetaData.columnNullable;
+        boolean autoIncrement = rs.getBoolean(7);
+        for (Field field : fields) {
+          if (field.getTableOid() == table && field.getPositionInTable() == column) {
+            field.setColumnName(columnName);
+            field.setTableName(tableName);
+            field.setSchemaName(schemaName);
+            field.setNullable(nullable);
+            field.setAutoIncrement(autoIncrement);
+          }
         }
       }
+    } finally {
+      if (stmt != null) {
+        stmt.close();
+      }
     }
-    stmt.close();
     // put in cache
     _cache.setCache(idFields, fields);
   }
