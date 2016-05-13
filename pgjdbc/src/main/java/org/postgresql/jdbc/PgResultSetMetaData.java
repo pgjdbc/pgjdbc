@@ -20,8 +20,6 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
-import java.util.LinkedList;
-import java.util.List;
 
 public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaData {
   protected final BaseConnection connection;
@@ -38,12 +36,6 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
     this.connection = connection;
     this.fields = fields;
     fieldInfoFetched = false;
-
-    try {
-      connection.getClientInfo();
-    } catch (SQLException e) {
-      throw new RuntimeException(e);
-    }
   }
 
   /*
@@ -211,20 +203,21 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
       return;
     }
 
-    // see if cached
-    final String idFields = createCacheKey(fields);
-    final DatabaseMetadataCache existingMetadata = connection.getMetadataCache().get(idFields);
-    if (existingMetadata != null) {
-      // get metadata from cache
-        int no = 0;
-        for (CacheMetadataField c : existingMetadata.getList()) {
-          c.get(fields[no++]);
-        }
+    boolean cacheMiss = false;
+    for (Field field : fields) {
+      final CacheMetadataField cachedField = connection.getMetadataCache().get(createCacheKey(field));
+      if (cachedField == null) {
+        cacheMiss = true;
+      } else {
+        cachedField.get(field);
+      }
+    }
+
+    if(!cacheMiss)
+    {
       fieldInfoFetched = true;
       return;
     }
-
-    fieldInfoFetched = true;
 
     StringBuilder sql = new StringBuilder();
     sql.append("SELECT c.oid, a.attnum, a.attname, c.relname, n.nspname, ");
@@ -295,15 +288,12 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
     }
     stmt.close();
 
-    // put in cache
-    final List<CacheMetadataField> list = new LinkedList<CacheMetadataField>();
-
     for (Field field : fields) {
       CacheMetadataField c = new CacheMetadataField(field);
-      list.add(c);
-    }
+      c.get(field);
 
-    connection.getMetadataCache().put(idFields, new DatabaseMetadataCache(list));
+      connection.getMetadataCache().put(createCacheKey(field), c);
+    }
   }
 
   public String getBaseSchemaName(int column) throws SQLException {

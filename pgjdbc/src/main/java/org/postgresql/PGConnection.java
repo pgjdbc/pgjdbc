@@ -10,7 +10,7 @@ package org.postgresql;
 
 import org.postgresql.copy.CopyManager;
 import org.postgresql.fastpath.Fastpath;
-import org.postgresql.jdbc.DatabaseMetadataCache;
+import org.postgresql.jdbc.CacheMetadataField;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.util.LruCache;
 import org.postgresql.util.PGobject;
@@ -175,5 +175,5 @@ public interface PGConnection {
    *
    * @return metadata cache
    */
-  LruCache<String, DatabaseMetadataCache> getMetadataCache();
+  LruCache<String, CacheMetadataField> getMetadataCache();
 }

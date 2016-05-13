@@ -150,7 +150,7 @@ public class PgConnection implements BaseConnection {
   private volatile Timer cancelTimer = null;
 
   private final LruCache<Object, CachedQuery> statementCache;
-  private final LruCache<String, DatabaseMetadataCache> metadataCache;
+  private final LruCache<String, CacheMetadataField> metadataCache;
 
   private boolean reWriteBatchedInserts = false;
 
@@ -368,7 +368,7 @@ public class PgConnection implements BaseConnection {
 
     reWriteBatchedInserts = PGProperty.REWRITE_BATCHED_INSERTS.getBoolean(info);
 
-    metadataCache = new LruCache<String, DatabaseMetadataCache>(
+    metadataCache = new LruCache<String, CacheMetadataField>(
             Math.max(0, PGProperty.DATABASE_METADATA_CACHE_FIELDS.getInt(info)),
             Math.max(0, PGProperty.DATABASE_METADATA_CACHE_FIELDS.getInt(info) * 1024),
             LruCache.NOOP_CREATE_ACTION,
@@ -1203,7 +1203,7 @@ public class PgConnection implements BaseConnection {
   }
 
   @Override
-  public LruCache<String, DatabaseMetadataCache> getMetadataCache() {
+  public LruCache<String, CacheMetadataField> getMetadataCache() {
     return metadataCache;
   }
 
