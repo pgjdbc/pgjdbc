@@ -213,8 +213,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
       }
     }
 
-    if(!cacheMiss)
-    {
+    if (!cacheMiss) {
       fieldInfoFetched = true;
       return;
     }
