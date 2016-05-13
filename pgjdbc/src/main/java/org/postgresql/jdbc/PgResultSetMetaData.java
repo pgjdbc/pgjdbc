@@ -288,10 +288,10 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
     stmt.close();
 
     for (Field field : fields) {
-      CacheMetadataField c = new CacheMetadataField(field);
-      c.get(field);
+      CacheMetadataField cachedField = new CacheMetadataField(field);
+      cachedField.get(field);
 
-      connection.getMetadataCache().put(createCacheKey(field), c);
+      connection.getMetadataCache().put(createCacheKey(field), cachedField);
     }
   }
 
