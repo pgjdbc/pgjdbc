@@ -27,8 +27,8 @@ public class CacheMetadataField implements CanEstimateSize{
   }
 
   public long getSize() {
-    return colName.length() +
-            +tabName.length()
+    return colName.length()
+            + tabName.length()
             + schemaName.length()
             + 4
             + 1;
