@@ -10,7 +10,9 @@ package org.postgresql;
 
 import org.postgresql.copy.CopyManager;
 import org.postgresql.fastpath.Fastpath;
+import org.postgresql.jdbc.CacheMetadataField;
 import org.postgresql.largeobject.LargeObjectManager;
+import org.postgresql.util.LruCache;
 import org.postgresql.util.PGobject;
 
 import java.sql.SQLException;
@@ -167,4 +169,11 @@ public interface PGConnection {
    * @throws SQLException if something goes wrong
    */
   public String escapeLiteral(String literal) throws SQLException;
+
+  /**
+   * Return metadata cache for given connection
+   *
+   * @return metadata cache
+   */
+  LruCache<String, CacheMetadataField> getMetadataCache();
 }

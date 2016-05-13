@@ -26,7 +26,6 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   protected final Field[] fields;
 
   private boolean fieldInfoFetched;
-  private CacheMetadata _cache;
 
   /*
    * Initialise for a result with a tuple set and a field descriptor set
@@ -37,7 +36,6 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
     this.connection = connection;
     this.fields = fields;
     fieldInfoFetched = false;
-    _cache = new CacheMetadata();
   }
 
   /*
@@ -205,16 +203,20 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
       return;
     }
 
-    // see if cached
-    String idFields = _cache.getIdFields(fields);
-    if (_cache.isCached(idFields)) {
-      // get metadata from cache
-      _cache.getCache(idFields, fields);
+    boolean cacheMiss = false;
+    for (Field field : fields) {
+      final CacheMetadataField cachedField = connection.getMetadataCache().get(createCacheKey(field));
+      if (cachedField == null) {
+        cacheMiss = true;
+      } else {
+        cachedField.get(field);
+      }
+    }
+
+    if (!cacheMiss) {
       fieldInfoFetched = true;
       return;
     }
-
-    fieldInfoFetched = true;
 
     StringBuilder sql = new StringBuilder();
     sql.append("SELECT c.oid, a.attnum, a.attname, c.relname, n.nspname, ");
@@ -284,8 +286,13 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
       }
     }
     stmt.close();
-    // put in cache
-    _cache.setCache(idFields, fields);
+
+    for (Field field : fields) {
+      CacheMetadataField cachedField = new CacheMetadataField(field);
+      cachedField.get(field);
+
+      connection.getMetadataCache().put(createCacheKey(field), cachedField);
+    }
   }
 
   public String getBaseSchemaName(int column) throws SQLException {
@@ -531,5 +538,9 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
       return iface.cast(this);
     }
     throw new SQLException("Cannot unwrap to " + iface.getName());
+  }
+
+  private String createCacheKey(Field f) {
+    return f.getTableOid() + "." + f.getPositionInTable();
   }
 }

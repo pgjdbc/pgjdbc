@@ -85,13 +85,24 @@ public class LruCache<Key, Value extends CanEstimateSize> {
   }
 
   /**
+   * Returns an entry from the cache.
+   *
+   * @param key cache key
+   * @return entry from cache or newly created entry if cache does not contain given key.
+   * @throws SQLException if entry creation fails
+   */
+  public synchronized Value get(Key key) throws SQLException {
+    return cache.get(key);
+  }
+
+  /**
    * Borrows an entry from the cache.
    *
    * @param key cache key
    * @return entry from cache or newly created entry if cache does not contain given key.
    * @throws SQLException if entry creation fails
    */
-  public Value borrow(Key key) throws SQLException {
+  public synchronized Value borrow(Key key) throws SQLException {
     Value value = cache.remove(key);
     if (value == null) {
       return createAction.create(key);
@@ -106,7 +117,7 @@ public class LruCache<Key, Value extends CanEstimateSize> {
    * @param key key
    * @param value value
    */
-  public void put(Key key, Value value) {
+  public synchronized void put(Key key, Value value) {
     long valueSize = value.getSize();
     if (maxSizeBytes == 0 || maxSizeEntries == 0 || valueSize * 2 > maxSizeBytes) {
       // Just destroy the value if cache is disabled or if entry would consume more than a half of
@@ -117,4 +128,18 @@ public class LruCache<Key, Value extends CanEstimateSize> {
     currentSize += valueSize;
     cache.put(key, value);
   }
+
+  public final static CreateAction NOOP_CREATE_ACTION = new CreateAction() {
+    @Override
+    public Object create(Object o) throws SQLException {
+      return null;
+    }
+  };
+
+  public final static EvictAction NOOP_EVICT_ACTION = new EvictAction() {
+    @Override
+    public void evict(Object o) throws SQLException {
+      return;
+    }
+  };
 }
