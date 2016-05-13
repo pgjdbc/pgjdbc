@@ -149,36 +149,28 @@ public class PgConnection implements BaseConnection {
   // Only instantiated if a task is actually scheduled.
   private volatile Timer cancelTimer = null;
 
-  // In general, it is not expected that connection would be used in multiple threads concurrently
-  // However, if client performs cleanup of statements via finalizers/phantomreferences, then it
-  // might
-  // result in AbstractJdbc2Statement.close to be called concurrently with active operation on
-  // connection
-  // Thus we synchronize access to avoid java.util.ConcurrentModificationException
   private final LruCache<Object, CachedQuery> statementCache;
+  private final LruCache<String, DatabaseMetadataCache> metadataCache;
 
   private boolean reWriteBatchedInserts = false;
 
   CachedQuery borrowQuery(String sql, boolean isCallable) throws SQLException {
     Object key = isCallable ? new CallableQueryKey(sql) : sql;
-    // Synchronized to fix #368
-    synchronized (statementCache) {
-      return statementCache.borrow(key);
-    }
+    return statementCache.borrow(key);
   }
 
   void releaseQuery(CachedQuery cachedQuery) {
-    // Synchronized to fix #368
-    synchronized (statementCache) {
-      statementCache.put(cachedQuery.key, cachedQuery);
-    }
+    statementCache.put(cachedQuery.key, cachedQuery);
   }
 
   //
   // Ctor.
   //
-  public PgConnection(HostSpec[] hostSpecs, String user, String database, Properties info,
-      String url) throws SQLException {
+  public PgConnection(HostSpec[] hostSpecs,
+                      String user,
+                      String database,
+                      Properties info,
+                      String url) throws SQLException {
     this.creatingURL = url;
 
     // Read loglevel arg and set the loglevel based on this value
@@ -375,6 +367,12 @@ public class PgConnection implements BaseConnection {
     }
 
     reWriteBatchedInserts = PGProperty.REWRITE_BATCHED_INSERTS.getBoolean(info);
+
+    metadataCache = new LruCache<String, DatabaseMetadataCache>(
+            Math.max(0, PGProperty.DATABASE_METADATA_CACHE_FIELDS.getInt(info)),
+            Math.max(0, PGProperty.DATABASE_METADATA_CACHE_FIELDS.getInt(info) * 1024),
+            LruCache.NOOP_CREATE_ACTION,
+            LruCache.NOOP_EVICT_ACTION);
   }
 
   private Set<Integer> getOidSet(String oidList) throws PSQLException {
@@ -1202,6 +1200,11 @@ public class PgConnection implements BaseConnection {
   public String escapeLiteral(String literal) throws SQLException {
     return Utils.escapeLiteral(null, literal, protoConnection.getStandardConformingStrings())
         .toString();
+  }
+
+  @Override
+  public LruCache<String, DatabaseMetadataCache> getMetadataCache() {
+    return metadataCache;
   }
 
   private static void appendArray(StringBuilder sb, Object elements, char delim) {

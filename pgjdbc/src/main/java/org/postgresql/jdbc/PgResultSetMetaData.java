@@ -20,13 +20,14 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
+import java.util.LinkedList;
+import java.util.List;
 
 public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaData {
   protected final BaseConnection connection;
   protected final Field[] fields;
 
   private boolean fieldInfoFetched;
-  private CacheMetadata _cache;
 
   /*
    * Initialise for a result with a tuple set and a field descriptor set
@@ -37,7 +38,12 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
     this.connection = connection;
     this.fields = fields;
     fieldInfoFetched = false;
-    _cache = new CacheMetadata();
+
+    try {
+      connection.getClientInfo();
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /*
@@ -206,10 +212,14 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
     }
 
     // see if cached
-    String idFields = _cache.getIdFields(fields);
-    if (_cache.isCached(idFields)) {
+    final String idFields = createCacheKey(fields);
+    final DatabaseMetadataCache existingMetadata = connection.getMetadataCache().get(idFields);
+    if (existingMetadata != null) {
       // get metadata from cache
-      _cache.getCache(idFields, fields);
+        int no = 0;
+        for (CacheMetadataField c : existingMetadata.getList()) {
+          c.get(fields[no++]);
+        }
       fieldInfoFetched = true;
       return;
     }
@@ -284,8 +294,16 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
       }
     }
     stmt.close();
+
     // put in cache
-    _cache.setCache(idFields, fields);
+    final List<CacheMetadataField> list = new LinkedList<CacheMetadataField>();
+
+    for (Field field : fields) {
+      CacheMetadataField c = new CacheMetadataField(field);
+      list.add(c);
+    }
+
+    connection.getMetadataCache().put(idFields, new DatabaseMetadataCache(list));
   }
 
   public String getBaseSchemaName(int column) throws SQLException {
@@ -531,5 +549,19 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
       return iface.cast(this);
     }
     throw new SQLException("Cannot unwrap to " + iface.getName());
+  }
+
+  protected String createCacheKey(Field[] fields) {
+    StringBuilder sb = new StringBuilder();
+
+    for (Field field : fields) {
+      sb.append(createCacheKey(field)).append('/');
+    }
+
+    return sb.toString();
+  }
+
+  private String createCacheKey(Field f) {
+    return f.getTableOid() + "." + f.getPositionInTable();
   }
 }
