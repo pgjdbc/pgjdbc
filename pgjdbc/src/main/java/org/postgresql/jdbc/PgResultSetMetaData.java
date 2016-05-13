@@ -540,16 +540,6 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
     throw new SQLException("Cannot unwrap to " + iface.getName());
   }
 
-  protected String createCacheKey(Field[] fields) {
-    StringBuilder sb = new StringBuilder();
-
-    for (Field field : fields) {
-      sb.append(createCacheKey(field)).append('/');
-    }
-
-    return sb.toString();
-  }
-
   private String createCacheKey(Field f) {
     return f.getTableOid() + "." + f.getPositionInTable();
   }
