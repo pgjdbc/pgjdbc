@@ -73,6 +73,31 @@ POSSIBILITY OF SUCH DAMAGE.
   </properties>
 
   <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-checkstyle-plugin</artifactId>
+          <version>2.17</version>
+          <dependencies>
+            <dependency>
+              <groupId>com.puppycrawl.tools</groupId>
+              <artifactId>checkstyle</artifactId>
+              <version>6.13</version>
+            </dependency>
+          </dependencies>
+          <configuration>
+            <configLocation>../pgjdbc/src/main/checkstyle/checks.xml</configLocation>
+            <violationSeverity>error</violationSeverity>
+            <failOnViolation>true</failOnViolation>
+            <failsOnError>true</failsOnError>
+            <consoleOutput>true</consoleOutput>
+            <includeTestSourceDirectory>true</includeTestSourceDirectory>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+
     <plugins>
       <plugin>
         <groupId>com.igormaznitsa</groupId>

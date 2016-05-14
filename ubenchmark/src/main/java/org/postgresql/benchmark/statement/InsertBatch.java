@@ -28,13 +28,11 @@ import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.BenchmarkParams;
 import org.openjdk.jmh.infra.Blackhole;
-import org.openjdk.jmh.profile.GCProfiler;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
-import java.io.CharArrayReader;
 import java.io.CharArrayWriter;
 import java.io.IOException;
 import java.sql.Connection;
@@ -118,9 +116,12 @@ public class InsertBatch {
       // Multi values(),(),() case
       for (int i = 0; i < p1nrows; ) {
         for (int k = 0, pos = 1; k < p2multi; k++, i++) {
-          ps.setInt(pos, i); pos++;
-          ps.setString(pos, strings[i]); pos++;
-          ps.setInt(pos, i); pos++;
+          ps.setInt(pos, i);
+          pos++;
+          ps.setString(pos, strings[i]);
+          pos++;
+          ps.setInt(pos, i);
+          pos++;
         }
         ps.addBatch();
       }
@@ -220,8 +221,8 @@ public class InsertBatch {
     //Driver.setLogLevel(2);
     Options opt = new OptionsBuilder()
         .include(InsertBatch.class.getSimpleName())
-//        .addProfiler(GCProfiler.class)
-//        .addProfiler(FlightRecorderProfiler.class)
+        //.addProfiler(org.openjdk.jmh.profile.GCProfiler.class)
+        //.addProfiler(org.postgresql.benchmark.profilers.FlightRecorderProfiler.class)
         .detectJvmArgs()
         .build();
 
