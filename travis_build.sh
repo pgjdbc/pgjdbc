@@ -5,6 +5,11 @@ set -x -e
 MVN_ARGS="clean package -B -V $MVN_CUSTOM_ARGS"
 MVN_PROFILES="release"
 
+if [[ "${NO_WAFFLE_NO_OSGI}" == *"Y"* ]];
+then
+    MVN_ARGS="$MVN_ARGS -DwaffleEnabled=false -DosgiEnabled=false -DexcludePackageNames=org.postgresql.osgi:org.postgresql.sspi"
+fi
+
 if [[ "${COVERAGE}" == *"Y"* ]];
 then
     MVN_PROFILES="$MVN_PROFILES,coverage"

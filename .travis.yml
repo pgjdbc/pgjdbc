@@ -71,14 +71,19 @@ matrix:
       env:
         - PG_VERSION=9.4
         - COVERAGE=Y
+        - MCENTRAL=Y
     - jdk: openjdk7
       addons:
         postgresql: "9.4"
-      env: PG_VERSION=9.4
+      env:
+        - PG_VERSION=9.4
+        - MCENTRAL=Y
     - jdk: openjdk6
       addons:
         postgresql: "9.4"
-      env: PG_VERSION=9.4
+      env:
+        - PG_VERSION=9.4
+        - MCENTRAL=Y
     - jdk: oraclejdk8
       addons:
         postgresql: "9.3"
@@ -131,4 +136,4 @@ matrix:
 
 # Deploy snapshots to Maven Central
 after_success:
-  - "test $TRAVIS_PULL_REQUEST == 'false' && test $TRAVIS_BRANCH == 'master' && test $PG_VERSION == '9.4' && ./travis_deploy.sh"
+  - "test $MCENTRAL == 'Y' && ./travis_deploy.sh"
