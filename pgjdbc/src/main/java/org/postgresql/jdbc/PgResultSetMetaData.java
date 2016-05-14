@@ -12,6 +12,7 @@ import org.postgresql.PGResultSetMetaData;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Field;
 import org.postgresql.util.GT;
+import org.postgresql.util.LruCache;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -26,7 +27,6 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   protected final Field[] fields;
 
   private boolean fieldInfoFetched;
-  private CacheMetadata _cache;
 
   /*
    * Initialise for a result with a tuple set and a field descriptor set
@@ -37,7 +37,6 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
     this.connection = connection;
     this.fields = fields;
     fieldInfoFetched = false;
-    _cache = new CacheMetadata();
   }
 
   /*
@@ -64,7 +63,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   public boolean isAutoIncrement(int column) throws SQLException {
     fetchFieldMetaData();
     Field field = getField(column);
-    return field.getAutoIncrement();
+    return field.getMetadata().autoIncrement;
   }
 
   /*
@@ -126,7 +125,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   public int isNullable(int column) throws SQLException {
     fetchFieldMetaData();
     Field field = getField(column);
-    return field.getNullable();
+    return field.getMetadata().nullable;
   }
 
   /*
@@ -184,9 +183,12 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   }
 
   public String getBaseColumnName(int column) throws SQLException {
-    fetchFieldMetaData();
     Field field = getField(column);
-    return field.getColumnName();
+    if (field.getTableOid() == 0) {
+      return "";
+    }
+    fetchFieldMetaData();
+    return field.getMetadata().columnName;
   }
 
   /*
@@ -200,40 +202,53 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
     return "";
   }
 
+  private boolean populateFieldsWithCachedMetadata() {
+    boolean allOk = true;
+    LruCache<FieldMetadata.Key, FieldMetadata> metadata = connection.getFieldMetadataCache();
+    for (Field field : fields) {
+      if (field.getMetadata() != null) {
+        // No need to update metadata
+        continue;
+      }
+
+      final FieldMetadata fieldMetadata =
+          metadata.get(new FieldMetadata.Key(field.getTableOid(), field.getPositionInTable()));
+      if (fieldMetadata == null) {
+        allOk = false;
+      } else {
+        field.setMetadata(fieldMetadata);
+      }
+    }
+    return allOk;
+  }
+
   private void fetchFieldMetaData() throws SQLException {
     if (fieldInfoFetched) {
       return;
     }
 
-    // see if cached
-    String idFields = _cache.getIdFields(fields);
-    if (_cache.isCached(idFields)) {
-      // get metadata from cache
-      _cache.getCache(idFields, fields);
+    if (populateFieldsWithCachedMetadata()) {
       fieldInfoFetched = true;
       return;
     }
 
-    fieldInfoFetched = true;
-
-    StringBuilder sql = new StringBuilder();
-    sql.append("SELECT c.oid, a.attnum, a.attname, c.relname, n.nspname, ");
-    sql.append("a.attnotnull OR (t.typtype = 'd' AND t.typnotnull), ");
-    sql.append("pg_catalog.pg_get_expr(d.adbin, d.adrelid) LIKE '%nextval(%' ");
-    sql.append("FROM pg_catalog.pg_class c ");
-    sql.append("JOIN pg_catalog.pg_namespace n ON (c.relnamespace = n.oid) ");
-    sql.append("JOIN pg_catalog.pg_attribute a ON (c.oid = a.attrelid) ");
-    sql.append("JOIN pg_catalog.pg_type t ON (a.atttypid = t.oid) ");
-    sql.append(
-        "LEFT JOIN pg_catalog.pg_attrdef d ON (d.adrelid = a.attrelid AND d.adnum = a.attnum) ");
-    sql.append("JOIN (");
+    StringBuilder sql = new StringBuilder(
+        "SELECT c.oid, a.attnum, a.attname, c.relname, n.nspname, "
+            + "a.attnotnull OR (t.typtype = 'd' AND t.typnotnull), "
+            + "pg_catalog.pg_get_expr(d.adbin, d.adrelid) LIKE '%nextval(%' "
+            + "FROM pg_catalog.pg_class c "
+            + "JOIN pg_catalog.pg_namespace n ON (c.relnamespace = n.oid) "
+            + "JOIN pg_catalog.pg_attribute a ON (c.oid = a.attrelid) "
+            + "JOIN pg_catalog.pg_type t ON (a.atttypid = t.oid) "
+            + "LEFT JOIN pg_catalog.pg_attrdef d ON (d.adrelid = a.attrelid AND d.adnum = a.attnum) "
+            + "JOIN (");
 
     // 7.4 servers don't support row IN operations (a,b) IN ((c,d),(e,f))
     // so we've got to fake that with a JOIN here.
     //
     boolean hasSourceInfo = false;
     for (Field field : fields) {
-      if (field.getTableOid() == 0) {
+      if (field.getMetadata() != null) {
         continue;
       }
 
@@ -259,39 +274,42 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
     sql.append(") vals ON (c.oid = vals.oid AND a.attnum = vals.attnum) ");
 
     if (!hasSourceInfo) {
+      fieldInfoFetched = true;
       return;
     }
 
     Statement stmt = connection.createStatement();
-    ResultSet rs = stmt.executeQuery(sql.toString());
-    while (rs.next()) {
-      int table = (int) rs.getLong(1);
-      int column = (int) rs.getLong(2);
-      String columnName = rs.getString(3);
-      String tableName = rs.getString(4);
-      String schemaName = rs.getString(5);
-      int nullable =
-          rs.getBoolean(6) ? ResultSetMetaData.columnNoNulls : ResultSetMetaData.columnNullable;
-      boolean autoIncrement = rs.getBoolean(7);
-      for (Field field : fields) {
-        if (field.getTableOid() == table && field.getPositionInTable() == column) {
-          field.setColumnName(columnName);
-          field.setTableName(tableName);
-          field.setSchemaName(schemaName);
-          field.setNullable(nullable);
-          field.setAutoIncrement(autoIncrement);
-        }
+    try {
+      LruCache<FieldMetadata.Key, FieldMetadata> metadataCache = connection.getFieldMetadataCache();
+      ResultSet rs = stmt.executeQuery(sql.toString());
+      while (rs.next()) {
+        int table = (int) rs.getLong(1);
+        int column = (int) rs.getLong(2);
+        String columnName = rs.getString(3);
+        String tableName = rs.getString(4);
+        String schemaName = rs.getString(5);
+        int nullable =
+            rs.getBoolean(6) ? ResultSetMetaData.columnNoNulls : ResultSetMetaData.columnNullable;
+        boolean autoIncrement = rs.getBoolean(7);
+        FieldMetadata fieldMetadata =
+            new FieldMetadata(columnName, tableName, schemaName, nullable, autoIncrement);
+        FieldMetadata.Key key = new FieldMetadata.Key(table, column);
+        metadataCache.put(key, fieldMetadata);
+      }
+    } finally {
+      try {
+        stmt.close();
+      } catch (SQLException e) {
+        /* ignore */
       }
     }
-    stmt.close();
-    // put in cache
-    _cache.setCache(idFields, fields);
+    populateFieldsWithCachedMetadata();
   }
 
   public String getBaseSchemaName(int column) throws SQLException {
     fetchFieldMetaData();
     Field field = getField(column);
-    return field.getSchemaName();
+    return field.getMetadata().schemaName;
   }
 
   /*
@@ -338,7 +356,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   public String getBaseTableName(int column) throws SQLException {
     fetchFieldMetaData();
     Field field = getField(column);
-    return field.getTableName();
+    return field.getMetadata().tableName;
   }
 
   /*

@@ -48,7 +48,7 @@ public class LruCacheTest extends TestCase {
 
   @Override
   protected void setUp() throws Exception {
-    cache = new LruCache<Integer, Entry>(3, 1000, new LruCache.CreateAction<Integer, Entry>() {
+    cache = new LruCache<Integer, Entry>(3, 1000, false, new LruCache.CreateAction<Integer, Entry>() {
       @Override
       public Entry create(Integer key) throws SQLException {
         assertEquals("Unexpected create", expectCreate[0], key);

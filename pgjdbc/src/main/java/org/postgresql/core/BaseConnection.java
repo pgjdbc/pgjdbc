@@ -9,7 +9,9 @@
 package org.postgresql.core;
 
 import org.postgresql.PGConnection;
+import org.postgresql.jdbc.FieldMetadata;
 import org.postgresql.jdbc.TimestampUtils;
+import org.postgresql.util.LruCache;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -237,4 +239,11 @@ public interface BaseConnection extends PGConnection, Connection {
    * @return true if re-write feature is enabled
    */
   public boolean isReWriteBatchedInsertsEnabled();
+
+  /**
+   * Return metadata cache for given connection
+   *
+   * @return metadata cache
+   */
+  LruCache<FieldMetadata.Key, FieldMetadata> getFieldMetadataCache();
 }

@@ -8,7 +8,7 @@
 
 package org.postgresql.core;
 
-import java.sql.ResultSetMetaData;
+import org.postgresql.jdbc.FieldMetadata;
 
 /*
  */
@@ -21,7 +21,6 @@ public class Field {
   private final int oid; // OID of the type
   private final int mod; // type modifier of this field
   private final String columnLabel; // Column label
-  private String columnName; // Column name
 
   private int format = TEXT_FORMAT; // In the V3 protocol each field has a format
   // 0 = text, 1 = binary
@@ -34,10 +33,8 @@ public class Field {
 
   // Cache fields filled in by AbstractJdbc2ResultSetMetaData.fetchFieldMetaData.
   // Don't use unless that has been called.
-  private String tableName = "";
-  private String schemaName = "";
-  private int nullable = ResultSetMetaData.columnNullableUnknown;
-  private boolean autoIncrement = false;
+  private FieldMetadata metadata;
+
   private int sqlType;
   private String pgType = NOT_YET_LOADED;
 
@@ -53,7 +50,7 @@ public class Field {
    * @param mod modifier
    */
   public Field(String name, int oid, int length, int mod) {
-    this(name, name, oid, length, mod, 0, 0);
+    this(name, oid, length, mod, 0, 0);
   }
 
   /**
@@ -68,25 +65,22 @@ public class Field {
 
   /**
    * Construct a field based on the information fed to it.
-   *
    * @param columnLabel the column label of the field
-   * @param columnName the column label the name of the field
    * @param oid the OID of the field
    * @param length the length of the field
    * @param mod modifier
    * @param tableOid the OID of the columns' table
-   * @param positionInTable the position of column in the table (first column is 1, second column is
-   *        2, etc...)
+   * @param positionInTable the position of column in the table (first column is 1, second column is 2, etc...)
    */
-  public Field(String columnLabel, String columnName, int oid, int length, int mod, int tableOid,
+  public Field(String columnLabel, int oid, int length, int mod, int tableOid,
       int positionInTable) {
     this.columnLabel = columnLabel;
-    this.columnName = columnName;
     this.oid = oid;
     this.length = length;
     this.mod = mod;
     this.tableOid = tableOid;
     this.positionInTable = positionInTable;
+    this.metadata = tableOid == 0 ? new FieldMetadata(columnLabel) : null;
   }
 
   /**
@@ -142,48 +136,16 @@ public class Field {
     return positionInTable;
   }
 
-  public void setNullable(int nullable) {
-    this.nullable = nullable;
+  public FieldMetadata getMetadata() {
+    return metadata;
   }
 
-  public int getNullable() {
-    return nullable;
-  }
-
-  public void setAutoIncrement(boolean autoIncrement) {
-    this.autoIncrement = autoIncrement;
-  }
-
-  public boolean getAutoIncrement() {
-    return autoIncrement;
-  }
-
-  public void setColumnName(String columnName) {
-    this.columnName = columnName;
-  }
-
-  public String getColumnName() {
-    return columnName;
-  }
-
-  public void setTableName(String tableName) {
-    this.tableName = tableName;
-  }
-
-  public String getTableName() {
-    return tableName;
-  }
-
-  public void setSchemaName(String schemaName) {
-    this.schemaName = schemaName;
-  }
-
-  public String getSchemaName() {
-    return schemaName;
+  public void setMetadata(FieldMetadata metadata) {
+    this.metadata = metadata;
   }
 
   public String toString() {
-    return "Field(" + (columnName != null ? columnName : "")
+    return "Field(" + (columnLabel != null ? columnLabel : "")
         + "," + Oid.toString(oid)
         + "," + length
         + "," + (format == TEXT_FORMAT ? 'T' : 'B')

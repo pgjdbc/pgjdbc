@@ -573,7 +573,7 @@ public class QueryExecutorImpl implements QueryExecutor {
       int typeOid = pgStream.ReceiveInteger4();
       int typeLength = pgStream.ReceiveInteger2();
       int typeModifier = pgStream.ReceiveInteger4();
-      fields[i] = new Field(columnLabel, columnLabel, typeOid, typeLength, typeModifier, 0, 0);
+      fields[i] = new Field(columnLabel, typeOid, typeLength, typeModifier, 0, 0);
     }
 
     return fields;

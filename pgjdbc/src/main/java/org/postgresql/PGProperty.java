@@ -84,6 +84,18 @@ public enum PGProperty {
       "Specifies the maximum size (in megabytes) of a per-connection prepared statement cache. A value of {@code 0} disables the cache."),
 
   /**
+   * Specifies the maximum number of fields to be cached per connection. A value of {@code 0} disables the cache.
+   */
+  DATABASE_METADATA_CACHE_FIELDS("databaseMetadataCacheFields", "65536",
+          "Specifies the maximum number of fields to be cached per connection. A value of {@code 0} disables the cache."),
+
+  /**
+   * Specifies the maximum number of fields to be cached per connection. A value of {@code 0} disables the cache.
+   */
+  DATABASE_METADATA_CACHE_FIELDS_MIB("databaseMetadataCacheFieldsMiB", "5",
+          "Specifies the maximum size (in megabytes) of fields to be cached per connection. A value of {@code 0} disables the cache."),
+
+  /**
    * Default parameter for {@link java.sql.Statement#getFetchSize()}. A value of {@code 0} means
    * that need fetch all rows at once
    */

@@ -397,6 +397,38 @@ public abstract class BaseDataSource implements Referenceable {
   }
 
   /**
+   * @return database metadata cache fields size (number of fields cached per connection)
+   * @see PGProperty#DATABASE_METADATA_CACHE_FIELDS
+   */
+  public int getDatabaseMetadataCacheFields() {
+    return PGProperty.DATABASE_METADATA_CACHE_FIELDS.getIntNoCheck(properties);
+  }
+
+  /**
+   * @param cacheSize database metadata cache fields size (number of fields cached per connection)
+   * @see PGProperty#DATABASE_METADATA_CACHE_FIELDS
+   */
+  public void setDatabaseMetadataCacheFields(int cacheSize) {
+    PGProperty.DATABASE_METADATA_CACHE_FIELDS.set(properties, cacheSize);
+  }
+
+  /**
+   * @return database metadata cache fields size (number of megabytes per connection)
+   * @see PGProperty#DATABASE_METADATA_CACHE_FIELDS_MIB
+   */
+  public int getDatabaseMetadataCacheFieldsMiB() {
+    return PGProperty.DATABASE_METADATA_CACHE_FIELDS_MIB.getIntNoCheck(properties);
+  }
+
+  /**
+   * @param cacheSize database metadata cache fields size (number of megabytes per connection)
+   * @see PGProperty#DATABASE_METADATA_CACHE_FIELDS_MIB
+   */
+  public void setDatabaseMetadataCacheFieldsMiB(int cacheSize) {
+    PGProperty.DATABASE_METADATA_CACHE_FIELDS_MIB.set(properties, cacheSize);
+  }
+
+  /**
    * @param fetchSize default fetch size
    * @see PGProperty#DEFAULT_ROW_FETCH_SIZE
    */

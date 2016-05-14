@@ -2258,7 +2258,7 @@ public class QueryExecutorImpl implements QueryExecutor {
       int typeLength = pgStream.ReceiveInteger2();
       int typeModifier = pgStream.ReceiveInteger4();
       int formatType = pgStream.ReceiveInteger2();
-      fields[i] = new Field(columnLabel, "", /* name not yet determined */
+      fields[i] = new Field(columnLabel,
           typeOid, typeLength, typeModifier, tableOid, positionInTable);
       fields[i].setFormat(formatType);
 
