@@ -46,7 +46,8 @@ class CachedQueryCreateAction implements LruCache.CreateAction<Object, CachedQue
       isFunction = false;
       outParmBeforeFunc = false;
     }
-    Query query = connection.getQueryExecutor().createParameterizedQuery(parsedSql, connection.getAutoCommit());
+    Query query = connection.getQueryExecutor().createParameterizedQuery(parsedSql, connection.getAutoCommit(),
+        connection.isReWriteBatchedInsertsEnabled());
     return new CachedQuery(key, query, isFunction, outParmBeforeFunc);
   }
 }

@@ -8,6 +8,7 @@
 
 package org.postgresql.test.jdbc2;
 
+import org.postgresql.core.ParserTest;
 import org.postgresql.core.v2.V2ParameterListTests;
 import org.postgresql.core.v3.V3ParameterListTests;
 import org.postgresql.jdbc.DeepBatchedInsertStatementTest;
@@ -118,6 +119,8 @@ public class Jdbc2TestSuite extends TestSuite {
 
     suite.addTestSuite(V2ParameterListTests.class);
     suite.addTestSuite(V3ParameterListTests.class);
+
+    suite.addTestSuite(ParserTest.class);
 
     Connection conn = TestUtil.openDB();
     if (TestUtil.isProtocolVersion(conn, 3)) {

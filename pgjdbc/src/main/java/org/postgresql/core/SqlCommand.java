@@ -8,21 +8,19 @@
 
 package org.postgresql.core;
 
-import static org.postgresql.core.DMLCommandType.INSERT;
-
 /**
  * Data Modification Language inspection support.
  *
  * @author Jeremy Whiting jwhiting@redhat.com
  *
  */
-public class DMLCommand {
+public class SqlCommand {
 
   public boolean isBatchedReWriteCompatible() {
     return batchedReWriteCompatible;
   }
 
-  public DMLCommandType getType() {
+  public SqlCommandType getType() {
     return commandType;
   }
 
@@ -30,35 +28,35 @@ public class DMLCommand {
     return parsedSQLhasRETURNINGKeyword;
   }
 
-  public static DMLCommand createStatementTypeInfo(DMLCommandType type,
+  public static SqlCommand createStatementTypeInfo(SqlCommandType type,
       boolean isBatchedReWritePropertyConfigured,
       boolean isBatchedReWriteCompatible, boolean isRETURNINGkeywordPresent,
       boolean autocommit, int priorQueryCount) {
-    return new DMLCommand(type, isBatchedReWritePropertyConfigured,
+    return new SqlCommand(type, isBatchedReWritePropertyConfigured,
         isBatchedReWriteCompatible, isRETURNINGkeywordPresent, autocommit,
         priorQueryCount);
   }
 
-  public static DMLCommand createStatementTypeInfo(DMLCommandType type) {
-    return new DMLCommand(type, false, false, false, false,0);
+  public static SqlCommand createStatementTypeInfo(SqlCommandType type) {
+    return new SqlCommand(type, false, false, false, false,0);
   }
 
-  public static DMLCommand createStatementTypeInfo(DMLCommandType type,
+  public static SqlCommand createStatementTypeInfo(SqlCommandType type,
       boolean isRETURNINGkeywordPresent) {
-    return new DMLCommand(type, false, false, isRETURNINGkeywordPresent, false,0);
+    return new SqlCommand(type, false, false, isRETURNINGkeywordPresent, false,0);
   }
 
-  private DMLCommand(DMLCommandType type, boolean isBatchedReWriteConfigured,
+  private SqlCommand(SqlCommandType type, boolean isBatchedReWriteConfigured,
       boolean isCompatible, boolean isPresent, boolean isautocommitConfigured,
       int priorQueryCount) {
     commandType = type;
     parsedSQLhasRETURNINGKeyword = isPresent;
-    batchedReWriteCompatible = (type == INSERT) && isBatchedReWriteConfigured
+    batchedReWriteCompatible = type.canSupportBatchedReWrite() && isBatchedReWriteConfigured
         && isCompatible && !isautocommitConfigured
         && !isPresent && priorQueryCount == 0;
   }
 
-  private final DMLCommandType commandType;
+  private final SqlCommandType commandType;
   private final boolean parsedSQLhasRETURNINGKeyword;
   private final boolean batchedReWriteCompatible;
 }

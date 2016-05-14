@@ -318,7 +318,8 @@ public class PgStatement implements Statement, BaseStatement {
     checkClosed();
     p_sql = replaceProcessing(p_sql, replaceProcessingEnabled,
         connection.getStandardConformingStrings());
-    Query simpleQuery = connection.getQueryExecutor().createSimpleQuery(p_sql, connection.getAutoCommit());
+    Query simpleQuery = connection.getQueryExecutor().createSimpleQuery(p_sql, connection.getAutoCommit(),
+        connection.isReWriteBatchedInsertsEnabled());
     execute(simpleQuery, null, QueryExecutor.QUERY_ONESHOT | flags);
     this.lastSimpleQuery = simpleQuery;
     return (result != null && result.getResultSet() != null);
@@ -909,7 +910,8 @@ public class PgStatement implements Statement, BaseStatement {
     p_sql = replaceProcessing(p_sql, replaceProcessingEnabled,
         connection.getStandardConformingStrings());
 
-    batchStatements.add(connection.getQueryExecutor().createSimpleQuery(p_sql, connection.getAutoCommit()));
+    batchStatements.add(connection.getQueryExecutor().createSimpleQuery(p_sql, connection.getAutoCommit(),
+        connection.isReWriteBatchedInsertsEnabled()));
     batchParameters.add(null);
   }
 

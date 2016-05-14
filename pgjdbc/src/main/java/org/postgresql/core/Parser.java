@@ -43,7 +43,7 @@ public class Parser {
       boolean isBatchedReWriteConfigured) {
     if (!withParameters && !splitStatements) {
       return Collections.singletonList(new NativeQuery(query,
-        DMLCommand.createStatementTypeInfo(DMLCommandType.BLANK)));
+        SqlCommand.createStatementTypeInfo(SqlCommandType.BLANK)));
     }
 
     int fragmentStart = 0;
@@ -58,7 +58,7 @@ public class Parser {
     int afterValuesParens = 0;
     boolean isInsertPresent = false;
     boolean isReturningPresent = false;
-    DMLCommandType current = DMLCommandType.BLANK;
+    SqlCommandType current = SqlCommandType.BLANK;
 
     boolean whitespaceOnly = true;
     for (int i = 0; i < aChars.length; ++i) {
@@ -131,7 +131,7 @@ public class Parser {
               }
 
               nativeQueries.add(new NativeQuery(nativeSql.toString(),
-                  toIntArray(bindPositions), DMLCommand.createStatementTypeInfo(
+                  toIntArray(bindPositions), SqlCommand.createStatementTypeInfo(
                   current, isBatchedReWriteConfigured, isCurrentReWriteCompatible,
                   isReturningPresent, isAutoCommit, nativeQueries.size())));
             }
@@ -140,7 +140,7 @@ public class Parser {
               bindPositions.clear();
             }
             nativeSql.setLength(0);
-            current = DMLCommandType.BLANK;
+            current = SqlCommandType.BLANK;
             isReturningPresent = false;
           }
           break;
@@ -148,7 +148,7 @@ public class Parser {
         case 'd':
         case 'D':
           if (Parser.parseDeleteKeyword(aChars, i)) {
-            current = DMLCommandType.DELETE;
+            current = SqlCommandType.DELETE;
             i += 5;
           }
           break;
@@ -159,7 +159,7 @@ public class Parser {
             if ( !isInsertPresent && (nativeQueries == null ? true : nativeQueries.size() == 0)) {
               isCurrentReWriteCompatible = true;
               isInsertPresent = true;
-              current = DMLCommandType.INSERT;
+              current = SqlCommandType.INSERT;
             } else {
               isCurrentReWriteCompatible = false;
             }
@@ -170,7 +170,7 @@ public class Parser {
         case 'm':
         case 'M':
           if (Parser.parseMoveKeyword(aChars, i)) {
-            current = DMLCommandType.MOVE;
+            current = SqlCommandType.MOVE;
             i += 3;
           }
           break;
@@ -187,7 +187,7 @@ public class Parser {
         case 'u':
         case 'U':
           if (Parser.parseUpdateKeyword(aChars, i)) {
-            current = DMLCommandType.UPDATE;
+            current = SqlCommandType.UPDATE;
             i += 5;
           }
           break;
@@ -214,7 +214,7 @@ public class Parser {
     }
 
     NativeQuery lastQuery = new NativeQuery(nativeSql.toString(),
-        toIntArray(bindPositions), DMLCommand.createStatementTypeInfo(current,
+        toIntArray(bindPositions), SqlCommand.createStatementTypeInfo(current,
         isBatchedReWriteConfigured, isCurrentReWriteCompatible,
         isReturningPresent, isAutoCommit, (nativeQueries == null ? 0 :
         nativeQueries.size())));

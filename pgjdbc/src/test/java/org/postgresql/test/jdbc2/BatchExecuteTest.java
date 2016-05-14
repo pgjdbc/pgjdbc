@@ -8,6 +8,7 @@
 
 package org.postgresql.test.jdbc2;
 
+import org.postgresql.jdbc.PgConnection;
 import org.postgresql.test.TestUtil;
 
 import java.sql.BatchUpdateException;
@@ -995,6 +996,40 @@ Server SQLState: 25001)
         pstmt.close();
       }
       con.rollback();
+    }
+  }
+
+  /**
+   * Test to check the Connection can be set to enable batched insert rewrite
+   * optimization.
+   */
+  public void testOptimizationControlOnConnectionObject() throws SQLException {
+    PreparedStatement pstmt = null;
+    ((PgConnection) con).setReWriteBatchedInserts(true);
+    try {
+      pstmt = con.prepareStatement("INSERT INTO testbatch VALUES (?,?)");
+      pstmt.setInt(1, 3);
+      pstmt.setInt(2, 4);
+      pstmt.addBatch();
+      pstmt.setInt(1, 5);
+      pstmt.setInt(2, 6);
+      pstmt.addBatch();
+      assertTrue(
+          "Expected outcome not returned when optimization enabled.",
+          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
+              Statement.SUCCESS_NO_INFO},
+              pstmt.executeBatch()));
+    } catch (SQLException sqle) {
+      fail("Failed to execute two statements added to a batch. Reason:" + sqle.getMessage());
+    } finally {
+      if (null != pstmt) {
+        pstmt.close();
+      }
+    }
+    try {
+      con.rollback();
+    } finally {
+      ((PgConnection) con).setReWriteBatchedInserts(false);
     }
   }
 }
