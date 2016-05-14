@@ -6,7 +6,7 @@ sudo service postgresql stop
 sudo cp /etc/postgresql/9.1/main/pg_hba.conf ./
 sudo apt-get remove postgresql libpq-dev libpq5 postgresql-client-common postgresql-common -qq --purge
 source /etc/lsb-release
-echo "deb http://apt.postgresql.org/pub/repos/apt/ $DISTRIB_CODENAME-pgdg main" > pgdg.list
+echo "deb http://apt.postgresql.org/pub/repos/apt/ $DISTRIB_CODENAME-pgdg main ${PG_VERSION}" > pgdg.list
 sudo mv pgdg.list /etc/apt/sources.list.d/
 wget --quiet -O - https://apt.postgresql.org/pub/repos/apt/ACCC4CF8.asc | sudo apt-key add -
 sudo apt-get update
