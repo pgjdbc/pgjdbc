@@ -45,6 +45,13 @@ matrix:
       sudo: required
       dist: trusty
       env:
+        - PG_VERSION=9.6
+        - XA=true
+        - COVERAGE=Y
+    - jdk: oraclejdk8
+      sudo: required
+      dist: trusty
+      env:
         - PG_VERSION=9.5
         - XA=true
         - COVERAGE=Y
@@ -120,7 +127,7 @@ matrix:
         postgresql: "9.4"
       env:
         - PG_VERSION=9.4
-        - MVN_CUSTOM_ARGS='-DwaffleEnabled=false -DosgiEnabled=false -DexcludePackageNames=org.postgresql.osgi:org.postgresql.sspi'
+        - NO_WAFFLE_NO_OSGI=Y
 
 # Deploy snapshots to Maven Central
 after_success:

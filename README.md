@@ -20,6 +20,10 @@ For problems with this driver, refer to driver's [home page](http://jdbc.postgre
 Most people do not need to compile PgJDBC. You can download prebuilt versions of the driver 
 from the [Postgresql JDBC site](http://jdbc.postgresql.org/) or using your chosen dependency management tool:
 
+## Supported PostgreSQL versions
+
+Pgjdbc regression tests are run against PostgreSQL 8.4, 9.1, 9.2, 9.3, 9.4, 9.5, 9.6.
+
 ### Maven
 ```xml
 <dependency>
