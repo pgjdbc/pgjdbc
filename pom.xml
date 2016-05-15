@@ -26,4 +26,18 @@
     <tag>HEAD</tag>
   </scm>
 
+  <profiles>
+    <profile>
+      <id>test-osgi</id>
+      <activation>
+        <property>
+          <name>!pgjdbc-osgi-test</name>
+        </property>
+      </activation>
+      <modules>
+        <module>pgjdbc-osgi-test</module>
+      </modules>
+    </profile>
+  </profiles>
+
 </project>

@@ -2,12 +2,21 @@
 set -x -e
 
 # Build project
-MVN_ARGS="clean package -B -V $MVN_CUSTOM_ARGS"
+MVN_ARGS="clean package -B -V"
 MVN_PROFILES="release"
 
 if [[ "${NO_WAFFLE_NO_OSGI}" == *"Y"* ]];
 then
     MVN_ARGS="$MVN_ARGS -DwaffleEnabled=false -DosgiEnabled=false -DexcludePackageNames=org.postgresql.osgi:org.postgresql.sspi"
+fi
+
+if [[ "${OSGI}" == *"Y"* ]];
+then
+    # OSGi logs a lot to commons logging, thus we turn it off
+    MVN_ARGS="$MVN_ARGS -Dorg.apache.commons.logging.Log=no_commmons_logging_please"
+else
+    # Exclude OSGi test module
+    MVN_ARGS="$MVN_ARGS -Dpgjdbc-osgi-test=skip"
 fi
 
 if [[ "${COVERAGE}" == *"Y"* ]];
@@ -25,6 +34,13 @@ then
     git clone --depth=50 https://github.com/pgjdbc/pgjdbc-jre7.git pgjdbc-jre7
     cd pgjdbc-jre7
     mvn ${MVN_ARGS} -P ${MVN_PROFILES},skip-unzip-jdk
+
+    if [[ "${OSGI}" == *"Y"* ]];
+    then
+      PGJDBC_VERSION=$(mvn -q -Dexec.executable='echo' -Dexec.args='${project.version}' --non-recursive exec:exec)
+      cd ../pgjdbc-osgi-test
+      mvn ${MVN_ARGS} -P ${MVN_PROFILES} -Dpgjdbc.version=$PGJDBC_VERSION
+    fi
 elif [ "${PG_VERSION}" == "9.4" ];
 then
 # Build javadocs for Java 8 and PG 9.4 only
