@@ -31,7 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
   <parent>
     <groupId>org.postgresql</groupId>
     <artifactId>pgjdbc-versions</artifactId>
-    <version>1.0.7</version>
+    <version>1.0.8</version>
     <relativePath />
   </parent>
 
@@ -70,6 +70,7 @@ POSSIBILITY OF SUCH DAMAGE.
     <jmh.version>1.11.2</jmh.version>
     <uberjar.name>benchmarks</uberjar.name>
     <current.jdk>1.8</current.jdk>
+    <javac.target>${current.jdk}</javac.target>
   </properties>
 
   <build>
