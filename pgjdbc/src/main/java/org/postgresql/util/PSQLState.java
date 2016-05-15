@@ -91,6 +91,7 @@ public class PSQLState implements java.io.Serializable {
   public final static PSQLState TRANSACTION_STATE_INVALID = new PSQLState("25000");
   public final static PSQLState ACTIVE_SQL_TRANSACTION = new PSQLState("25001");
   public final static PSQLState NO_ACTIVE_SQL_TRANSACTION = new PSQLState("25P01");
+  public final static PSQLState INVALID_AUTHORIZATION_SPECIFICATION = new PSQLState("28000");
 
   public final static PSQLState STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL = new PSQLState("2F003");
 
