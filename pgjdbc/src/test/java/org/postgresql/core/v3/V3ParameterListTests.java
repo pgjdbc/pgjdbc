@@ -8,9 +8,10 @@
 
 package org.postgresql.core.v3;
 
+import org.postgresql.core.DefaultSocketAddressFactory;
 import org.postgresql.core.Logger;
 import org.postgresql.core.PGStream;
-import org.postgresql.core.v2.SocketFactoryFactory;
+import org.postgresql.core.SocketFactoryFactory;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest;
 import org.postgresql.util.HostSpec;
@@ -68,7 +69,7 @@ public class V3ParameterListTests extends BaseTest {
     SocketFactory socketFactory = SocketFactoryFactory.getSocketFactory(System
         .getProperties());
     HostSpec hostSpec = new HostSpec(TestUtil.getServer(), 5432);
-    pci = new ProtocolConnectionImpl(new PGStream(socketFactory, hostSpec), "",
+    pci = new ProtocolConnectionImpl(new PGStream(socketFactory, new DefaultSocketAddressFactory(), hostSpec, 0), "",
         "", new Properties(), new Logger(), 5000);
   }
 }

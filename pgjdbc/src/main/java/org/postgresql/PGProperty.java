@@ -262,6 +262,18 @@ public enum PGProperty {
       "Argument forwarded to constructor of SocketFactory class."),
 
   /**
+   * Socket address factory used to create socket address.
+   * A null value, which is the default, means system default.
+   */
+  SOCKET_ADDRESS_FACTORY("socketAddressFactory", null, "Specify a socket address factory for socket address creation"),
+
+  /**
+   * The String argument to give to the constructor of the Socket Factory
+   */
+  SOCKET_ADDRESS_FACTORY_ARG("socketAddressFactoryArg", null,
+      "Argument forwarded to constructor of SocketAddressFactory class."),
+
+  /**
    * Socket read buffer size (SO_RECVBUF). A value of {@code -1}, which is the default, means system
    * default.
    */
