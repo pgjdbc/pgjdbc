@@ -8,7 +8,6 @@
 
 package org.postgresql.test.jdbc2;
 
-import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
 import junit.framework.TestCase;
