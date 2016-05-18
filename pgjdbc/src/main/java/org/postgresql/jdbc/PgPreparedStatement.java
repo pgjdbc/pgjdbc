@@ -241,6 +241,10 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         oid = Oid.DATE;
         break;
       case Types.TIME:
+      //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+      case Types.TIME_WITH_TIMEZONE:
+      case Types.TIMESTAMP_WITH_TIMEZONE:
+      //#endif
       case Types.TIMESTAMP:
         oid = Oid.UNSPECIFIED;
         break;
