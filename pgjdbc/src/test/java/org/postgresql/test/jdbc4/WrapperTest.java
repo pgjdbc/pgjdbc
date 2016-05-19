@@ -10,6 +10,7 @@ package org.postgresql.test.jdbc4;
 
 import org.postgresql.PGConnection;
 import org.postgresql.PGStatement;
+import org.postgresql.ds.PGSimpleDataSource;
 import org.postgresql.test.TestUtil;
 
 import junit.framework.TestCase;
@@ -73,6 +74,19 @@ public class WrapperTest extends TestCase {
     Object v = _conn.unwrap(PGConnection.class);
     assertNotNull(v);
     assertTrue(v instanceof PGConnection);
+  }
+
+  public void testConnectionUnwrapPGDataSource() throws SQLException {
+    PGSimpleDataSource dataSource = new PGSimpleDataSource();
+    dataSource.setDatabaseName(TestUtil.getDatabase());
+    dataSource.setServerName(TestUtil.getServer());
+    dataSource.setPortNumber(TestUtil.getPort());
+    Connection connection = dataSource.getConnection(TestUtil.getUser(), TestUtil.getPassword());
+    assertNotNull("Unable to obtain a connection from PGSimpleDataSource", connection);
+    Object v = connection.unwrap(PGConnection.class);
+    assertTrue("connection.unwrap(PGConnection.class) should return PGConnection instance"
+            + ", actual instance is " + v,
+        v instanceof PGConnection);
   }
 
   public void testStatementIsWrapperForPrivate() throws SQLException {
