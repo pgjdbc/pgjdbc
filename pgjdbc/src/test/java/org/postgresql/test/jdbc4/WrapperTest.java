@@ -8,7 +8,6 @@
 
 package org.postgresql.test.jdbc4;
 
-import junit.framework.Test;
 import org.postgresql.PGConnection;
 import org.postgresql.PGStatement;
 import org.postgresql.ds.PGSimpleDataSource;
