@@ -8,7 +8,6 @@
 
 package org.postgresql.test.jdbc2;
 
-import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
 import junit.framework.TestCase;
@@ -589,22 +588,13 @@ public class DatabaseMetaDataTest extends TestCase {
     assertTrue(rs.next());
     assertEquals("idx_a_d", rs.getString("INDEX_NAME"));
     assertEquals("id", rs.getString("COLUMN_NAME"));
-    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_6)) {
-      assertNull("ASC_OR_DESC for index is not yet supported for PostgreSQL 9.6",
-          rs.getString("ASC_OR_DESC"));
-    } else {
-      assertEquals("A", rs.getString("ASC_OR_DESC"));
-    }
+    assertEquals("A", rs.getString("ASC_OR_DESC"));
+
 
     assertTrue(rs.next());
     assertEquals("idx_a_d", rs.getString("INDEX_NAME"));
     assertEquals("quest", rs.getString("COLUMN_NAME"));
-    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_6)) {
-      assertNull("ASC_OR_DESC for index is not yet supported for PostgreSQL 9.6",
-          rs.getString("ASC_OR_DESC"));
-    } else {
-      assertEquals("D", rs.getString("ASC_OR_DESC"));
-    }
+    assertEquals("D", rs.getString("ASC_OR_DESC"));
   }
 
   public void testPartialIndexInfo() throws SQLException {
