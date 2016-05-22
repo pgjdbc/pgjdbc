@@ -76,20 +76,18 @@ public class PgStatement implements Statement, BaseStatement {
    * Protects statement from out-of-order cancels. It protects from both
    * {@link #setQueryTimeout(int)} and {@link #cancel()} induced ones.
    *
-   * .execute() and friends change statementState to STATE_IN_QUERY during execute. .cancel()
-   * ignores cancel request if state is IDLE. In case .execute() observes non-IN_QUERY state as it
-   * completes the query, it waits till STATE_CANCELLED. Note: the field must be
+   * {@link #execute(String)} and friends change the field to
+   * {@link StatementCancelState#IN_QUERY} during execute. {@link #cancel()}
+   * ignores cancel request if state is {@link StatementCancelState#IDLE}.
+   * In case {@link #execute(String)} observes non-{@link StatementCancelState#IDLE} state as it
+   * completes the query, it waits till {@link StatementCancelState#CANCELLED}. Note: the field must be
    * set/get/compareAndSet via {@link #STATE_UPDATER} as per {@link AtomicIntegerFieldUpdater}
    * javadoc.
    */
-  private volatile int statementState = STATE_IDLE;
-  private final static int STATE_IDLE = 0;
-  private final static int STATE_IN_QUERY = 1;
-  private final static int STATE_CANCELLING = 2;
-  private final static int STATE_CANCELLED = 3;
+  private volatile StatementCancelState statementState = StatementCancelState.IDLE;
 
-  private static final AtomicIntegerFieldUpdater<PgStatement> STATE_UPDATER =
-      AtomicIntegerFieldUpdater.newUpdater(PgStatement.class, "statementState");
+  private static final AtomicReferenceFieldUpdater<PgStatement, StatementCancelState> STATE_UPDATER =
+      AtomicReferenceFieldUpdater.newUpdater(PgStatement.class, StatementCancelState.class, "statementState");
 
   /**
    * Does the caller of execute/executeUpdate want generated keys for this execution? This is set by
@@ -1049,7 +1047,7 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   public void cancel() throws SQLException {
-    if (!STATE_UPDATER.compareAndSet(this, STATE_IN_QUERY, STATE_CANCELLING)) {
+    if (!STATE_UPDATER.compareAndSet(this, StatementCancelState.IN_QUERY, StatementCancelState.CANCELING)) {
       // Not in query, there's nothing to cancel
       return;
     }
@@ -1059,7 +1057,7 @@ public class PgStatement implements Statement, BaseStatement {
         connection.cancelQuery();
       }
     } finally {
-      STATE_UPDATER.set(this, STATE_CANCELLED);
+      STATE_UPDATER.set(this, StatementCancelState.CANCELLED);
       synchronized (connection) {
         connection.notifyAll(); // wake-up killTimerTask
       }
@@ -1110,7 +1108,7 @@ public class PgStatement implements Statement, BaseStatement {
      */
     cleanupTimer();
 
-    STATE_UPDATER.set(this, STATE_IN_QUERY);
+    STATE_UPDATER.set(this, StatementCancelState.IN_QUERY);
 
     if (timeout == 0) {
       return;
@@ -1158,10 +1156,10 @@ public class PgStatement implements Statement, BaseStatement {
   private void killTimerTask() {
     boolean timerTaskIsClear = cleanupTimer();
     // The order is important here: in case we need to wait for the cancel task, the state must be
-    // kept STATE_IN_QUERY, so cancelTask would be able to cancel the query.
+    // kept StatementCancelState.IN_QUERY, so cancelTask would be able to cancel the query.
     // It is believed that this case is very rare, so "additional cancel and wait below" would not
     // harm it.
-    if (timerTaskIsClear && STATE_UPDATER.compareAndSet(this, STATE_IN_QUERY, STATE_IDLE)) {
+    if (timerTaskIsClear && STATE_UPDATER.compareAndSet(this, StatementCancelState.IN_QUERY, StatementCancelState.IDLE)) {
       return;
     }
 
@@ -1169,7 +1167,7 @@ public class PgStatement implements Statement, BaseStatement {
     // "timeout error"
     // We wait till state becomes "cancelled"
     boolean interrupted = false;
-    while (!STATE_UPDATER.compareAndSet(this, STATE_CANCELLED, STATE_IDLE)) {
+    while (!STATE_UPDATER.compareAndSet(this, StatementCancelState.CANCELLED, StatementCancelState.IDLE)) {
       synchronized (connection) {
         try {
           // Note: wait timeout here is irrelevant since synchronized(connection) would block until
