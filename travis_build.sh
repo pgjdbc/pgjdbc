@@ -15,7 +15,17 @@ then
     MVN_PROFILES="$MVN_PROFILES,coverage"
 fi
 
-if [[ "${TRAVIS_JDK_VERSION}" == *"jdk6"* ]];
+if [[ "${JDK}" == *"9"* ]];
+then
+    export MAVEN_SKIP_RC=true
+    MVN_ARGS="$MVN_ARGS -Dcurrent.jdk=1.9 -Djavac.target=1.9"
+fi
+
+if [[ "$JDOC" == *"Y"* ]];
+then
+    # Build javadocs for Java 8 only
+    mvn ${MVN_ARGS} -P ${MVN_PROFILES},release-artifacts
+elif [[ "${TRAVIS_JDK_VERSION}" == *"jdk6"* ]];
 then
     git clone --depth=50 https://github.com/pgjdbc/pgjdbc-jre6.git pgjdbc-jre6
     cd pgjdbc-jre6
@@ -25,10 +35,6 @@ then
     git clone --depth=50 https://github.com/pgjdbc/pgjdbc-jre7.git pgjdbc-jre7
     cd pgjdbc-jre7
     mvn ${MVN_ARGS} -P ${MVN_PROFILES},skip-unzip-jdk
-elif [ "${PG_VERSION}" == "9.4" ];
-then
-# Build javadocs for Java 8 and PG 9.4 only
-    mvn ${MVN_ARGS} -P ${MVN_PROFILES},release-artifacts
 else
     mvn ${MVN_ARGS} -P ${MVN_PROFILES}
 fi
