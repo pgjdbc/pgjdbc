@@ -102,7 +102,7 @@ class ProtocolConnectionImpl implements ProtocolConnection {
       }
 
       cancelStream =
-          new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), connectTimeout);
+          new PGStream(pgStream.getSocketFactory(), pgStream.getSocketAddressFactory(), pgStream.getHostSpec(), connectTimeout);
       cancelStream.SendInteger4(16);
       cancelStream.SendInteger2(1234);
       cancelStream.SendInteger2(5678);

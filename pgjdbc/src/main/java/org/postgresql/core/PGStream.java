@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Writer;
-import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.sql.SQLException;
 
@@ -35,6 +34,7 @@ import javax.net.SocketFactory;
  */
 public class PGStream {
   private final SocketFactory socketFactory;
+  private final SocketAddressFactory socketAddressFactory;
   private final HostSpec hostSpec;
 
   private final byte[] _int4buf;
@@ -52,33 +52,23 @@ public class PGStream {
    * Constructor: Connect to the PostgreSQL back end and return a stream connection.
    *
    * @param socketFactory socket factory to use when creating sockets
+   * @param socketAddressFactory socket address factory to use when creating socket addresses
    * @param hostSpec the host and port to connect to
    * @param timeout timeout in milliseconds, or 0 if no timeout set
    * @throws IOException if an IOException occurs below it.
    */
-  public PGStream(SocketFactory socketFactory, HostSpec hostSpec, int timeout) throws IOException {
+  public PGStream(SocketFactory socketFactory, SocketAddressFactory socketAddressFactory, HostSpec hostSpec, int timeout) throws IOException {
     this.socketFactory = socketFactory;
+    this.socketAddressFactory = socketAddressFactory;
     this.hostSpec = hostSpec;
 
     Socket socket = socketFactory.createSocket();
-    socket.connect(new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort()), timeout);
+    socket.connect(socketAddressFactory.create(hostSpec), timeout);
     changeSocket(socket);
     setEncoding(Encoding.getJVMEncoding("UTF-8"));
 
     _int2buf = new byte[2];
     _int4buf = new byte[4];
-  }
-
-  /**
-   * Constructor: Connect to the PostgreSQL back end and return a stream connection.
-   *
-   * @param socketFactory socket factory
-   * @param hostSpec the host and port to connect to
-   * @throws IOException if an IOException occurs below it.
-   * @deprecated use {@link #PGStream(SocketFactory, org.postgresql.util.HostSpec, int)}
-   */
-  public PGStream(SocketFactory socketFactory, HostSpec hostSpec) throws IOException {
-    this(socketFactory, hostSpec, 0);
   }
 
   public HostSpec getHostSpec() {
@@ -91,6 +81,10 @@ public class PGStream {
 
   public SocketFactory getSocketFactory() {
     return socketFactory;
+  }
+
+  public SocketAddressFactory getSocketAddressFactory() {
+    return socketAddressFactory;
   }
 
   /**

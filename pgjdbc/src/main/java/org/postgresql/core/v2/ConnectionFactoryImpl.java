@@ -16,6 +16,9 @@ import org.postgresql.core.Logger;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.ProtocolConnection;
 import org.postgresql.core.SetupQueryRunner;
+import org.postgresql.core.SocketAddressFactory;
+import org.postgresql.core.SocketAddressFactoryFactory;
+import org.postgresql.core.SocketFactoryFactory;
 import org.postgresql.core.Utils;
 import org.postgresql.hostchooser.GlobalHostStatusTracker;
 import org.postgresql.hostchooser.HostChooser;
@@ -91,6 +94,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     // Socket factory
     SocketFactory socketFactory = SocketFactoryFactory.getSocketFactory(info);
+    SocketAddressFactory socketAddressFactory = SocketAddressFactoryFactory.getSocketAddressFactory(info);
 
     HostChooser hostChooser =
         HostChooserFactory.createHostChooser(hostSpecs, targetServerType, info);
@@ -109,7 +113,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
       PGStream newStream = null;
       try {
-        newStream = new PGStream(socketFactory, hostSpec, connectTimeout);
+        newStream = new PGStream(socketFactory, socketAddressFactory, hostSpec, connectTimeout);
 
         // Construct and send an ssl startup packet if requested.
         if (trySSL) {
@@ -222,7 +226,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
         // We have to reconnect to continue.
         pgStream.close();
-        return new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), connectTimeout);
+        return new PGStream(pgStream.getSocketFactory(), pgStream.getSocketAddressFactory(), pgStream.getHostSpec(), connectTimeout);
 
       case 'N':
         if (logger.logDebug()) {
