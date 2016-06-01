@@ -14,6 +14,7 @@ env:
   global:
     - secure: "3HRd+UJQzXoxmBAiJ8SLFuYK8NvMVgIs0erfcPdgvtfFGTPkH3XMONfNr2VE2uz6qwUB5GWkVzvS4c9CPbnnft9QhyYeeUINiqQMN5+6AN5re3C2D7VQMm3NSB+T2R6zS/18UZW5tIoTJILgl5oRCQFI7RSpqhvZ8nqPxJ4gptI="
     - secure: "VrNgbyKQi5HjSMZfkt/zwG+AHk1NW1b+f3Jo1ZH7DCqcgLApwvp4MNsw+XamqHxudjj3Z8+4bYBxG2H6zIOobIyYhBvxUwMq7HTjM4jH8m5phqvQIWZOzZzqguYNNS7JJQUpIMwR7wTuHqucVfMxljoSuXQbs+0BUxo4Eh+FScQ="
+    - secure: "NI+aqwRLLVt2feJdk/2ZEZnsaPyu+vOx8MahVxjz0UUVvRHVqxM5O1M0R53NJfEeIjflOzgZJwRLqgyl6dkdfjytRhaHWGptQdehV4cwNb+4epnn8WlpRzMac65zTQqnbGVtw9jissDQv6/Zl/+D+DMcU65BbFZkix40whILXG0="
 
 script:
   # make sure previous build artifacts are not used for subsequent builds
@@ -44,6 +45,10 @@ cache:
 matrix:
   fast_finish: true
   include:
+    - env:
+        - FEDORA_CI=Y
+      services:
+        - docker
     - jdk: oraclejdk8
       sudo: required
       dist: trusty

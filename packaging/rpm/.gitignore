@@ -1,0 +1,5 @@
+*.tar.gz
+*.src.rpm
+*.spec
+copr-token
+copr_build_id

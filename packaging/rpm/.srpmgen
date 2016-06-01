@@ -1,0 +1,9 @@
+git:
+  address: 'https://github.com/pgjdbc/pgjdbc.git'
+  rpmsources: packaging/rpm
+
+spec: postgresql-jdbc.spec
+
+source0:
+  git_archive:
+    prefix: postgresql-jdbc-9.5.git

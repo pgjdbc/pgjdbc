@@ -1,0 +1,63 @@
+#! /bin/perl
+
+use YAML;
+use File::Basename;
+
+open (my $config_file, "<", ".srpmgen") or die "Couldn't open file: $!"; 
+
+my ($config) = Load( join('', <$config_file>));
+
+sub info
+{
+    print (" * @_\n");
+}
+
+my @sources = `spectool $config->{spec} -S`;
+if ($? >> 8) {
+    die ("can't successfully run 'spectool'");
+}
+
+sub obtain_source
+{
+    my ($id, $config) = @_;
+
+    if (defined ($config->{git_archive})) {
+        $config = $config->{git_archive};
+        my $topleveldir = `git rev-parse --show-toplevel`;
+        if ($? >> 8) {
+            die ("can't get git top level directory");
+        }
+        chomp ($topleveldir);
+
+        my $pfx = $config->{prefix};
+        system ("git archive --remote $topleveldir --prefix $pfx/ HEAD | gzip > $pfx.tar.gz");
+        if ($? >> 8) {
+            die ("can't generate tarball $pfx.tar.gz");
+        }
+        return;
+    }
+
+    die ("no method specified to obtain sources for '$id'\n");
+}
+
+# Go through all 'SourceN' statements in spec file.
+for my $source_line (@sources)
+{
+    chomp $source_line;
+    my ($id, $source) = split (/ /, $source_line, 2);
+    $id =~ s/:$//;
+    $id = lc ($id);
+
+    if (defined ($config->{$id})) {
+        obtain_source ($id, $config->{$id});
+    }
+
+    my $src_basename = basename ($source);
+    if (! -f "$src_basename") {
+        info ("getting sources $source");
+        system ("wget", "$source");
+        if ($? >> 8) {
+            die ("can't wget $source");
+        }
+    }
+}

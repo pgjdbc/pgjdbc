@@ -1,0 +1,43 @@
+#!/bin/bash
+
+test -z "$RPMBUILD" && RPMBUILD=rpmbuild
+
+ARR=( )
+
+for i in "$@"; do
+    case "$i" in
+        --copr)
+            ARR+=( --define "_source_filedigest_algorithm md5" )
+            ARR+=( --define "_binary_filedigest_algorithm md5" )
+            ARR+=( --define "dist %nil" )
+            ;;
+
+        *)
+            ARR+=( "$i" )
+            ;;
+    esac
+done
+
+run_rpmbuild()
+{
+    set -x
+    echo "$@"
+
+    $RPMBUILD \
+        --define "_sourcedir $PWD"      \
+        --define "_rpmdir $PWD"         \
+        --define "_specdir $PWD"        \
+        --define "_builddir $PWD"       \
+        --define "_srcrpmdir $PWD"      \
+        --buildroot "$PWD/buildroot"    \
+        "$@"
+}
+
+case "$0" in
+    *build_local_nocheck)
+        ARR+=( --define "runselftest 0" )
+        ARR+=( --without=check )
+        ;;
+esac
+
+run_rpmbuild "${ARR[@]}"
