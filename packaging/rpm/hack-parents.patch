@@ -1,0 +1,25 @@
+diff --git a/pgjdbc/pom.xml b/pgjdbc/pom.xml
+index dab5308..25b11f7 100644
+--- a/pgjdbc/pom.xml
++++ b/pgjdbc/pom.xml
+@@ -4,7 +4,7 @@
+     <groupId>org.postgresql</groupId>
+     <artifactId>pgjdbc-core-parent</artifactId>
+     <version>1.0.8</version>
+-    <relativePath />
++    <relativePath>../pgjdbc-parent-poms-REL1.0.8/pgjdbc-core-parent/pom.xml</relativePath>
+   </parent>
+ 
+   <artifactId>postgresql</artifactId>
+diff --git a/pom.xml b/pom.xml
+index 77d5ad6..a3defef 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -4,6 +4,7 @@
+     <groupId>org.postgresql</groupId>
+     <artifactId>pgjdbc-versions</artifactId>
+     <version>1.0.8</version>
++    <relativePath>pgjdbc-parent-poms-REL1.0.8/pgjdbc-versions/pom.xml</relativePath>
+   </parent>
+ 
+   <artifactId>pgjdbc-aggregate</artifactId>

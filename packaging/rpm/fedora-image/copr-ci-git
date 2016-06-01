@@ -1,0 +1,7 @@
+#! /bin/sh -ex
+
+cd "$1"
+srpmgen
+dist=$(date +%Y%m%d_%H%M%S)
+TZ=UTC build_local -bs "$2".spec --define "dist .$dist"
+copr-cli --config "$1"/copr-token build @pgjdbc/pgjdbc-travis "$2-$3-1.$dist.src.rpm"
