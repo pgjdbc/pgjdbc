@@ -7,6 +7,7 @@
 package org.postgresql.core;
 
 import org.postgresql.PGNotification;
+import org.postgresql.PGNotificationListener;
 import org.postgresql.copy.CopyOperation;
 import org.postgresql.core.v3.TypeTransferModeRegistry;
 import org.postgresql.jdbc.AutoSave;
@@ -229,6 +230,19 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    */
   void processNotifies(int timeoutMillis) throws SQLException;
 
+  /**
+   * Add a notification listener. This will be called on NOTIFY
+   *
+   * @param listener is called upon notivy
+   */
+  public void addNotificationListener(PGNotificationListener listener);
+
+  /**
+   * Removes the listener
+   *
+   * @param listener listener to be removed
+   */
+  public void removeNotificationListener(PGNotificationListener listener);
   //
   // Fastpath interface.
   //

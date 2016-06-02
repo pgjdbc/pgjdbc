@@ -6,6 +6,7 @@
 package org.postgresql.core;
 
 import org.postgresql.PGNotification;
+import org.postgresql.PGNotificationListener;
 import org.postgresql.PGProperty;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.PreferQueryMode;
@@ -19,6 +20,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -48,6 +50,8 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
   private SQLWarning warnings;
   private final ArrayList<PGNotification> notifications = new ArrayList<PGNotification>();
+
+  private final ArrayList<PGNotificationListener> notificationListeners = new ArrayList<PGNotificationListener>();
 
   private final LruCache<Object, CachedQuery> statementCache;
   private final CachedQueryCreateAction cachedQueryCreateAction;
@@ -195,8 +199,24 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     }
   }
 
-  public synchronized void addNotification(PGNotification notification) {
+  synchronized void addNotification(PGNotification notification) {
     notifications.add(notification);
+
+    if ( !notificationListeners.isEmpty() ) {
+      Iterator<PGNotificationListener> iter = notificationListeners.iterator();
+
+      while ( iter.hasNext() ) {
+        iter.next().notification(notification);
+      }
+    }
+  }
+
+  public synchronized void addNotificationListener(PGNotificationListener listener) {
+    notificationListeners.add(listener);
+  }
+
+  public synchronized void removeNotificationListener(PGNotificationListener listener) {
+    notificationListeners.remove(listener);
   }
 
   @Override

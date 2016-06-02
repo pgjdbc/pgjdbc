@@ -66,6 +66,14 @@ public interface PGConnection {
   PGNotification[] getNotifications(int timeoutMillis) throws SQLException;
 
   /**
+   * Add a notification listener
+   *
+   * @param pgNotificationListener will be fired upon notification
+   * @since 9.4.1209
+   */
+  public void addNotificationListener(PGNotificationListener pgNotificationListener);
+
+  /**
    * This returns the COPY API for the current connection.
    *
    * @return COPY API for the current connection

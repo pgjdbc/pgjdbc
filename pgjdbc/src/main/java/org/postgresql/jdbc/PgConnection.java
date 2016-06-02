@@ -7,6 +7,7 @@ package org.postgresql.jdbc;
 
 import org.postgresql.Driver;
 import org.postgresql.PGNotification;
+import org.postgresql.PGNotificationListener;
 import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyManager;
 import org.postgresql.core.BaseConnection;
@@ -1001,6 +1002,15 @@ public class PgConnection implements BaseConnection {
     // Backwards-compatibility hand-holding.
     PGNotification[] notifications = queryExecutor.getNotifications();
     return (notifications.length == 0 ? null : notifications);
+  }
+
+  @Override
+  public void addNotificationListener(PGNotificationListener listener) {
+    queryExecutor.addNotificationListener(listener);
+  }
+
+  public void removeNotificationListener(PGNotificationListener listener) {
+    queryExecutor.removeNotificationListener(listener);
   }
 
   /**

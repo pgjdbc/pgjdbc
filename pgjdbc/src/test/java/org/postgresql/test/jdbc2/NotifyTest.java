@@ -8,10 +8,12 @@ package org.postgresql.test.jdbc2;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import org.postgresql.PGConnection;
 import org.postgresql.PGNotification;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.PGNotificationListener;
 import org.postgresql.test.TestUtil;
 
 import org.junit.After;
@@ -22,6 +24,7 @@ import org.junit.Test;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class NotifyTest {
   private Connection conn;
@@ -38,11 +41,19 @@ public class NotifyTest {
 
   @Test(timeout = 60000)
   public void testNotify() throws SQLException {
+    AtomicBoolean flag = new AtomicBoolean(false);
     Statement stmt = conn.createStatement();
+    ((PGConnection)conn).addNotificationListener(new PGNotificationListener() {
+      @Override
+      public void notification(PGNotification notification) {
+        flag.set(true);
+      }
+    });
     stmt.executeUpdate("LISTEN mynotification");
     stmt.executeUpdate("NOTIFY mynotification");
 
     PGNotification[] notifications = conn.unwrap(PGConnection.class).getNotifications();
+    assertTrue(flag.get());
     assertNotNull(notifications);
     assertEquals(1, notifications.length);
     assertEquals("mynotification", notifications[0].getName());
@@ -114,7 +125,7 @@ public class NotifyTest {
     long endMillis = System.currentTimeMillis();
     long runtime = endMillis - startMillis;
     assertNull("There have been notifications, although none have been expected.",notifications);
-    Assert.assertTrue("We didn't wait long enough! runtime=" + runtime, runtime > 450);
+    assertTrue("We didn't wait long enough! runtime=" + runtime, runtime > 450);
 
     stmt.close();
   }
