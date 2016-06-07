@@ -97,6 +97,33 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest {
   }
 
   /**
+   * Check batching using a statement with fixed parameter.
+   */
+  public void testBatchWithReWrittenBatchStatementWithFixedParameter()
+      throws SQLException {
+    PreparedStatement pstmt = null;
+    try {
+      pstmt = con.prepareStatement("INSERT INTO testbatch VALUES (?,1)");
+      pstmt.setInt(1, 1);
+      pstmt.addBatch();
+      pstmt.setInt(1, 3);
+      pstmt.addBatch();
+      pstmt.setInt(1, 5);
+      pstmt.addBatch();
+      assertTrue(
+          "Expected outcome not returned by batch execution.",
+          Arrays.equals(new int[]{Statement.SUCCESS_NO_INFO,
+              Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO},
+              pstmt.executeBatch()));
+
+    } finally {
+      if (null != pstmt) {
+        pstmt.close();
+      }
+    }
+  }
+
+  /**
    * Test to make sure a statement with a semicolon is not broken
    */
   public void testBatchWithReWrittenBatchStatementWithSemiColon()
