@@ -186,7 +186,7 @@ public class Parser {
           } else {
             isCurrentReWriteCompatible = false;
           }
-        } else if ("RETURING".equalsIgnoreCase(word)) {
+        } else if ("RETURNING".equalsIgnoreCase(word)) {
           isReturningPresent = true;
         } else if ("VALUES".equalsIgnoreCase(word)) {
           isValuesFound = true;
