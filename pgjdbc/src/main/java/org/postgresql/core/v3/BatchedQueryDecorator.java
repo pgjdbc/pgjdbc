@@ -240,17 +240,30 @@ public class BatchedQueryDecorator extends SimpleQuery {
     int bs = getBatchSize();
     calculateLength(super.getNativeSql().length(), c, bs - 1 );
     StringBuilder s = new StringBuilder(length).append(super.getNativeSql());
-    /* the sql provided is expected to already have an individual batch
-     * of parameters. Skip generating sql text for the initial batch by setting
-     * i to 2.*/
-    for (int i = 2; i <= bs; i++) {
-      int pos = ((i - 1) * c) + 1;
-      s.append(",($").append(pos);
-      int ceiling = pos + c;
-      for ( pos++ ; pos < ceiling; pos++) {
-        s.append(",$").append(pos);
+    if (bs >= 2) {
+      // Find the portion of text consisting of the parameters.
+      int endIndex = s.lastIndexOf(")") + 1;
+      int startIndex = s.lastIndexOf("(", endIndex);
+      for (int i = 2; i <= bs; i++) {
+        int pos = ((i - 1) * c) + 1;
+        s.append(",");
+        // Rewrite the parameters.
+        for (int j = startIndex; j < endIndex; j++) {
+          char ch = s.charAt(j);
+          switch (ch) {
+            case '$':
+              // A dynamic parameter is found, write the next index.
+              s.append("$" + pos++);
+              while (Character.isDigit(s.charAt(j + 1))) {
+                j++;
+              }
+              break;
+            default:
+              s.append(ch);
+              break;
+          }
+        }
       }
-      s.append(")");
     }
     return s.toString();
   }
