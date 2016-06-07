@@ -17,27 +17,32 @@ import java.util.Arrays;
 
 
 /**
- * Purpose of this object is to support batched query re write behaviour.
- * Responsibility for tracking the batch size and implement the clean up of the
- * query fragments after the batch execute is complete. Intended to be used to
- * wrap a Query that is present in the batchStatements collection.
+ * Purpose of this object is to support batched query re write behaviour. Responsibility for
+ * tracking the batch size and implement the clean up of the query fragments after the batch execute
+ * is complete. Intended to be used to wrap a Query that is present in the batchStatements
+ * collection.
  *
  * @author Jeremy Whiting jwhiting@redhat.com
+ * @author Christopher Deckers (chrriis@gmail.com)
  *
  */
 public class BatchedQueryDecorator extends SimpleQuery {
 
   private final int[] originalPreparedTypes;
+  private int valuesBraceOpenPosition;
+  private int valuesBraceClosePosition;
   private boolean isPreparedTypesSet;
   private Integer isParsed = 0;
 
   private byte[] batchedEncodedName;
 
-  public BatchedQueryDecorator(NativeQuery query,
+  public BatchedQueryDecorator(NativeQuery query, int valuesBraceOpenPosition,
+      int valuesBraceClosePosition,
       ProtocolConnectionImpl protoConnection) {
     super(query, protoConnection);
     int paramCount = getBindPositions();
-
+    this.valuesBraceOpenPosition = valuesBraceOpenPosition;
+    this.valuesBraceClosePosition = valuesBraceClosePosition;
     originalPreparedTypes = new int[paramCount];
     if (getStatementTypes() != null && getStatementTypes().length > 0) {
       System.arraycopy(getStatementTypes(), 0, originalPreparedTypes, 0,
@@ -233,38 +238,50 @@ public class BatchedQueryDecorator extends SimpleQuery {
   @Override
   String getNativeSql() {
     // dynamically build sql with parameters for batches
-    if (super.getNativeSql() == null) {
+    String nativeSql = super.getNativeSql();
+    if (nativeSql == null) {
       return "";
     }
     int c = super.getNativeQuery().bindPositions.length;
     int bs = getBatchSize();
-    calculateLength(super.getNativeSql().length(), c, bs - 1 );
-    StringBuilder s = new StringBuilder(length).append(super.getNativeSql());
-    if (bs >= 2) {
-      // Find the portion of text consisting of the parameters.
-      int endIndex = s.lastIndexOf(")") + 1;
-      int startIndex = s.lastIndexOf("(", endIndex);
-      for (int i = 2; i <= bs; i++) {
-        int pos = ((i - 1) * c) + 1;
-        s.append(",");
-        // Rewrite the parameters.
-        for (int j = startIndex; j < endIndex; j++) {
-          char ch = s.charAt(j);
-          switch (ch) {
-            case '$':
-              // A dynamic parameter is found, write the next index.
-              s.append("$" + pos++);
-              while (Character.isDigit(s.charAt(j + 1))) {
-                j++;
-              }
-              break;
-            default:
-              s.append(ch);
-              break;
-          }
+    if (bs < 2) {
+      return nativeSql;
+    }
+    int[] bindPositions = getNativeQuery().bindPositions;
+    int valuesBlockCharCount = 1; // Comma
+    // Split the values section around every dynamic parameter.
+    String[] chunks = new String[1 + bindPositions.length];
+    chunks[0] = nativeSql.substring(valuesBraceOpenPosition, bindPositions[0]);
+    valuesBlockCharCount += chunks[0].length();
+    for (int i = 0; i < bindPositions.length; i++) {
+      int startIndex = bindPositions[i] + 2;
+      int endIndex =
+          i < bindPositions.length - 1 ? bindPositions[i + 1] : valuesBraceClosePosition + 1;
+      for (; startIndex < endIndex; startIndex++) {
+        if (!Character.isDigit(nativeSql.charAt(startIndex))) {
+          break;
         }
       }
+      chunks[i + 1] = nativeSql.substring(startIndex, endIndex);
+      valuesBlockCharCount += chunks[i + 1].length();
     }
+    calculateLength(nativeSql.length(), c, bs - 1, valuesBlockCharCount);
+    StringBuilder s = new StringBuilder(length);
+    // Add query until end of values parameter block.
+    s.append(nativeSql.substring(0, valuesBraceClosePosition + 1));
+    for (int i = 2; i <= bs; i++) {
+      int pos = ((i - 1) * c) + 1;
+      s.append(",");
+      s.append(chunks[0]);
+      for (int j = 1; j < chunks.length; j++) {
+        s.append("$");
+        s.append(pos++);
+        s.append(chunks[j]);
+      }
+    }
+    // Add trailing content: final query is like original with multi values.
+    // This could contain "--" comments, so it is important to add them at end.
+    s.append(nativeSql.substring(valuesBraceClosePosition + 1));
     return s.toString();
   }
 
@@ -284,9 +301,9 @@ public class BatchedQueryDecorator extends SimpleQuery {
    * @param remaining int Remaining batches to process
    * @return int Size of generated sql
    */
-  int calculateLength(int init, int p, int remaining) {
-    int count = (p * remaining); // dollar, commar, remaining parameters
-    length = init + (2 * remaining) + count + count; // initial, brackets, dollar, comma
+  int calculateLength(int init, int p, int remaining, int valuesBlockCharCount) {
+    int count = (p * remaining); // remaining parameters
+    length = init + remaining * (valuesBlockCharCount + p); // initial, empty blocks, dollar
     remainingParams = count;
     calculate(999999999, 10, p);
     calculate(99999999, 9, p);

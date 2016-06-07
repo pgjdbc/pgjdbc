@@ -101,24 +101,34 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest {
    */
   public void testBatchWithReWrittenBatchStatementWithFixedParameter()
       throws SQLException {
-    PreparedStatement pstmt = null;
-    try {
-      pstmt = con.prepareStatement("INSERT INTO testbatch VALUES (?,1)");
-      pstmt.setInt(1, 1);
-      pstmt.addBatch();
-      pstmt.setInt(1, 3);
-      pstmt.addBatch();
-      pstmt.setInt(1, 5);
-      pstmt.addBatch();
-      assertTrue(
-          "Expected outcome not returned by batch execution.",
-          Arrays.equals(new int[]{Statement.SUCCESS_NO_INFO,
-              Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO},
-              pstmt.executeBatch()));
+    String[] odd = new String[]{
+        "INSERT INTO testbatch VALUES (?, '1, (, $1234, a''n?d )' /*xxxx)*/, ?) -- xxx",
+        "INSERT /*xxx*/INTO testbatch VALUES (?, '1, (, $1234, a''n?d )' /*xxxx)*/, ?) -- xxx",
+    };
+    for (int i = 0; i < odd.length; i++) {
+      String s = odd[i];
+      PreparedStatement pstmt = null;
+      try {
+        pstmt = con.prepareStatement(s);
+        pstmt.setInt(1, 1);
+        pstmt.setInt(2, 2);
+        pstmt.addBatch();
+        pstmt.setInt(1, 3);
+        pstmt.setInt(2, 4);
+        pstmt.addBatch();
+        pstmt.setInt(1, 5);
+        pstmt.setInt(2, 6);
+        pstmt.addBatch();
+        assertTrue(
+            "Expected outcome not returned by batch execution.",
+            Arrays.equals(new int[]{Statement.SUCCESS_NO_INFO,
+                Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO},
+                pstmt.executeBatch()));
 
-    } finally {
-      if (null != pstmt) {
-        pstmt.close();
+      } finally {
+        if (null != pstmt) {
+          pstmt.close();
+        }
       }
     }
   }
@@ -130,15 +140,18 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest {
       throws SQLException {
     PreparedStatement pstmt = null;
     try {
-      pstmt = con.prepareStatement("INSERT INTO testbatch VALUES (?,?);");
+      pstmt = con.prepareStatement("INSERT INTO testbatch VALUES (?,?,?);");
       pstmt.setInt(1, 1);
-      pstmt.setInt(2, 2);
+      pstmt.setString(2, "a");
+      pstmt.setInt(3, 2);
       pstmt.addBatch();
       pstmt.setInt(1, 3);
-      pstmt.setInt(2, 4);
+      pstmt.setString(2, "b");
+      pstmt.setInt(3, 4);
       pstmt.addBatch();
       pstmt.setInt(1, 5);
-      pstmt.setInt(2, 6);
+      pstmt.setString(2, "c");
+      pstmt.setInt(3, 6);
       pstmt.addBatch();
       assertTrue(
           "Expected outcome not returned by batch execution.",
@@ -161,19 +174,22 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest {
   public void testConsistentOutcome() throws SQLException {
     PreparedStatement pstmt = null;
     try {
-      pstmt = con.prepareStatement("INSERT INTO testbatch VALUES (?,?);");
+      pstmt = con.prepareStatement("INSERT INTO testbatch VALUES (?,?,?);");
       pstmt.setInt(1, 1);
-      pstmt.setInt(2, 2);
+      pstmt.setString(2, "a");
+      pstmt.setInt(3, 2);
       pstmt.addBatch();
       assertTrue(
           "Expected outcome not returned by batch execution.",
           Arrays.equals(new int[] { 1 }, pstmt.executeBatch()));
 
       pstmt.setInt(1, 1);
-      pstmt.setInt(2, 2);
+      pstmt.setString(2, "b");
+      pstmt.setInt(3, 2);
       pstmt.addBatch();
       pstmt.setInt(1, 3);
-      pstmt.setInt(2, 4);
+      pstmt.setString(2, "c");
+      pstmt.setInt(3, 4);
       pstmt.addBatch();
       assertTrue(
           "Expected outcome not returned by batch execution.",
@@ -181,7 +197,8 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest {
               Statement.SUCCESS_NO_INFO }, pstmt.executeBatch()));
 
       pstmt.setInt(1, 1);
-      pstmt.setInt(2, 2);
+      pstmt.setString(2, "d");
+      pstmt.setInt(3, 2);
       pstmt.addBatch();
       assertTrue(
           "Expected outcome not returned by batch execution.",
@@ -201,9 +218,10 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest {
     PreparedStatement pstmt = null;
     try {
       pstmt = con
-          .prepareStatement("INSERT INTO testbatch (pk, col1) VALUES (?,?);");
+          .prepareStatement("INSERT INTO testbatch (pk, col1, col2) VALUES (?,?,?);");
       pstmt.setInt(1, 1);
-      pstmt.setInt(2, 2);
+      pstmt.setString(2, "a");
+      pstmt.setInt(3, 2);
       pstmt.addBatch();
       assertTrue(
           "Expected outcome not returned by batch execution.",
@@ -220,12 +238,14 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest {
     PreparedStatement pstmt = null;
     try {
       pstmt = con
-          .prepareStatement("InSeRt INTO testbatch VALUES (?,?);");
+          .prepareStatement("InSeRt INTO testbatch VALUES (?,?,?);");
       pstmt.setInt(1, 1);
-      pstmt.setInt(2, 2);
+      pstmt.setString(2, "a");
+      pstmt.setInt(3, 2);
       pstmt.addBatch();
       pstmt.setInt(1, 3);
-      pstmt.setInt(2, 4);
+      pstmt.setString(2, "b");
+      pstmt.setInt(3, 4);
       pstmt.addBatch();
       assertTrue(
           "Expected outcome not returned by batch execution. Meaning the driver"
@@ -247,12 +267,14 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest {
       autocommit = TestUtil.openDB(new Properties());
       autocommit.setAutoCommit(true);
       pstmt = autocommit
-          .prepareStatement("INSERT INTO testbatch VALUES (?,?);");
+          .prepareStatement("INSERT INTO testbatch VALUES (?,?,?);");
       pstmt.setInt(1, 100);
-      pstmt.setInt(2, 200);
+      pstmt.setString(2, "a");
+      pstmt.setInt(3, 200);
       pstmt.addBatch();
       pstmt.setInt(1, 300);
-      pstmt.setInt(2, 400);
+      pstmt.setString(2, "b");
+      pstmt.setInt(3, 400);
       pstmt.addBatch();
       assertTrue(
           "Expected outcome not returned by batch execution. The driver"
@@ -283,7 +305,7 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest {
     super.setUp();
     Statement stmt = con.createStatement();
 
-    TestUtil.createTable(con, "testbatch", "pk INTEGER, col1 INTEGER");
+    TestUtil.createTable(con, "testbatch", "pk INTEGER, col1 VARCHAR, col2 INTEGER");
 
     stmt.close();
 
