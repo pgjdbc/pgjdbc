@@ -67,7 +67,7 @@ public class V3ParameterListTests extends BaseTest {
   protected void setUp() throws Exception {
     SocketFactory socketFactory = SocketFactoryFactory.getSocketFactory(System
         .getProperties());
-    HostSpec hostSpec = new HostSpec(TestUtil.getServer(), 5432);
+    HostSpec hostSpec = new HostSpec(TestUtil.getServer(), TestUtil.getPort());
     pci = new ProtocolConnectionImpl(new PGStream(socketFactory, hostSpec), "",
         "", new Properties(), new Logger(), 5000);
   }
