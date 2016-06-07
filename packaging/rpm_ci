@@ -15,5 +15,13 @@ if test -x /bin/chcon ; then
     chcon -R -t svirt_sandbox_file_t ..
 fi
 
+# Set up a repeating loop to send some output to Travis.
+export PING_SLEEP=120s
+bash -c "while true; do echo \$(date) - building ...; sleep $PING_SLEEP; done" &
+PING_LOOP_PID=$!
+
 docker run -e HOME=/git -u `id -u` -ti --rm -v `pwd`/..:/git praiskup/copr-and-jdbc-ci \
     copr-ci-git /git/packaging/rpm postgresql-jdbc 9.5.git
+
+# nicely terminate the ping output loop
+kill $PING_LOOP_PID
