@@ -170,15 +170,14 @@ public class Parser {
           break;
       }
       if (keywordStart >= 0 && (i == aChars.length - 1 || !isKeyWordChar)) {
-        String word = query.substring(keywordStart, isKeyWordChar ? i + 1 : i);
-        keywordStart = -1;
-        if ("UPDATE".equalsIgnoreCase(word)) {
+        int wordLength = (isKeyWordChar ? i + 1 : i) - keywordStart;
+        if (wordLength == 6 && parseUpdateKeyword(aChars, keywordStart)) {
           current = DMLCommandType.UPDATE;
-        } else if ("DELETE".equalsIgnoreCase(word)) {
+        } else if (wordLength == 6 && parseDeleteKeyword(aChars, keywordStart)) {
           current = DMLCommandType.DELETE;
-        } else if ("MOVE".equalsIgnoreCase(word)) {
+        } else if (wordLength == 4 && parseMoveKeyword(aChars, keywordStart)) {
           current = DMLCommandType.MOVE;
-        } else if ("INSERT".equalsIgnoreCase(word)) {
+        } else if (wordLength == 6 && parseInsertKeyword(aChars, keywordStart)) {
           if (!isInsertPresent && (nativeQueries == null || nativeQueries.isEmpty())) {
             isCurrentReWriteCompatible = true;
             isInsertPresent = true;
@@ -186,12 +185,13 @@ public class Parser {
           } else {
             isCurrentReWriteCompatible = false;
           }
-        } else if ("RETURNING".equalsIgnoreCase(word)) {
+        } else if (wordLength == 9 && parseReturningKeyword(aChars, keywordStart)) {
           isReturningPresent = true;
-        } else if ("VALUES".equalsIgnoreCase(word)) {
+        } else if (wordLength == 6 && parseValuesKeyword(aChars, keywordStart)) {
           isValuesFound = true;
           afterValuesParens = 0;
         }
+        keywordStart = -1;
       }
     }
     if (!isValuesFound) {
@@ -409,6 +409,128 @@ public class Parser {
       }
     }
     return offset;
+  }
+
+  /**
+   * Parse string to check presence of DELETE keyword regardless of case. The initial character is
+   * assumed to have been matched.
+   *
+   * @param query char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+  public static boolean parseDeleteKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 6)) {
+      return false;
+    }
+
+    return (query[offset] | 32) == 'd'
+        && (query[offset + 1] | 32) == 'e'
+        && (query[offset + 2] | 32) == 'l'
+        && (query[offset + 3] | 32) == 'e'
+        && (query[offset + 4] | 32) == 't'
+        && (query[offset + 5] | 32) == 'e';
+  }
+
+  /**
+   * Parse string to check presence of INSERT keyword regardless of case.
+   *
+   * @param query char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+  public static boolean parseInsertKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 7)) {
+      return false;
+    }
+
+    return (query[offset] | 32) == 'i'
+        && (query[offset + 1] | 32) == 'n'
+        && (query[offset + 2] | 32) == 's'
+        && (query[offset + 3] | 32) == 'e'
+        && (query[offset + 4] | 32) == 'r'
+        && (query[offset + 5] | 32) == 't';
+  }
+
+  /**
+   * Parse string to check presence of MOVE keyword regardless of case.
+   *
+   * @param query char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+  public static boolean parseMoveKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 4)) {
+      return false;
+    }
+
+    return (query[offset] | 32) == 'm'
+        && (query[offset + 1] | 32) == 'o'
+        && (query[offset + 2] | 32) == 'v'
+        && (query[offset + 3] | 32) == 'e';
+  }
+
+  /**
+   * Parse string to check presence of RETURNING keyword regardless of case.
+   *
+   * @param query char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+  public static boolean parseReturningKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 9)) {
+      return false;
+    }
+
+    return (query[offset] | 32) == 'r'
+        && (query[offset + 1] | 32) == 'e'
+        && (query[offset + 2] | 32) == 't'
+        && (query[offset + 3] | 32) == 'u'
+        && (query[offset + 4] | 32) == 'r'
+        && (query[offset + 5] | 32) == 'n'
+        && (query[offset + 6] | 32) == 'i'
+        && (query[offset + 7] | 32) == 'n'
+        && (query[offset + 8] | 32) == 'g';
+  }
+
+  /**
+   * Parse string to check presence of UPDATE keyword regardless of case.
+   *
+   * @param query char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+  public static boolean parseUpdateKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 6)) {
+      return false;
+    }
+
+    return (query[offset] | 32) == 'u'
+        && (query[offset + 1] | 32) == 'p'
+        && (query[offset + 2] | 32) == 'd'
+        && (query[offset + 3] | 32) == 'a'
+        && (query[offset + 4] | 32) == 't'
+        && (query[offset + 5] | 32) == 'e';
+  }
+
+  /**
+   * Parse string to check presence of VALUES keyword regardless of case.
+   *
+   * @param query char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+  public static boolean parseValuesKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 6)) {
+      return false;
+    }
+
+    return (query[offset] | 32) == 'v'
+        && (query[offset + 1] | 32) == 'a'
+        && (query[offset + 2] | 32) == 'l'
+        && (query[offset + 3] | 32) == 'u'
+        && (query[offset + 4] | 32) == 'e'
+        && (query[offset + 5] | 32) == 's';
   }
 
   /**
