@@ -194,7 +194,7 @@ public class Parser {
         keywordStart = -1;
       }
     }
-    if (!isValuesFound) {
+    if (!isValuesFound || bindPositions == null) {
       isCurrentReWriteCompatible = false;
     }
     if (!isCurrentReWriteCompatible) {

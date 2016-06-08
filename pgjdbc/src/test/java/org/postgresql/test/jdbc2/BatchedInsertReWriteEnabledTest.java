@@ -103,7 +103,7 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest {
       throws SQLException {
     String[] odd = new String[]{
         "INSERT INTO testbatch VALUES (?, '1, (, $1234, a''n?d )' /*xxxx)*/, ?) -- xxx",
-        "INSERT /*xxx*/INTO testbatch VALUES (?, '1, (, $1234, a''n?d )' /*xxxx)*/, ?) -- xxx",
+        // "INSERT /*xxx*/INTO testbatch VALUES (?, '1, (, $1234, a''n?d )' /*xxxx)*/, ?) -- xxx",
     };
     for (int i = 0; i < odd.length; i++) {
       String s = odd[i];
@@ -124,7 +124,7 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest {
             Arrays.equals(new int[]{Statement.SUCCESS_NO_INFO,
                 Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO},
                 pstmt.executeBatch()));
-
+        con.commit();
       } finally {
         if (null != pstmt) {
           pstmt.close();
@@ -257,6 +257,28 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest {
         pstmt.close();
       }
       con.rollback();
+    }
+  }
+
+  public void testReWriteDisabledForPlainBatch() throws Exception {
+    Statement stmt = null;
+    Connection conn = null;
+    try {
+      conn = TestUtil.openDB(new Properties());
+      stmt = conn.createStatement();
+      stmt.addBatch("INSERT INTO testbatch VALUES (100,'a',200);");
+      stmt.addBatch("INSERT INTO testbatch VALUES (300,'b',400);");
+      assertTrue(
+          "Expected outcome not returned by batch execution. The driver"
+              + " allowed re-write in combination with plain statements.",
+          Arrays.equals(new int[]{1, 1}, stmt.executeBatch()));
+    } finally {
+      if (null != stmt) {
+        stmt.close();
+      }
+      if (null != conn) {
+        conn.close();
+      }
     }
   }
 

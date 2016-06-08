@@ -22,7 +22,6 @@ import org.postgresql.core.ResultHandler;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.Utils;
 import org.postgresql.core.v3.BatchedQueryDecorator;
-
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -1026,19 +1025,28 @@ public class PgStatement implements Statement, BaseStatement {
 
     if (queries[0].isStatementReWritableInsert()) {
       if (queries[0] instanceof BatchedQueryDecorator) {
-        BatchedQueryDecorator bqd = (BatchedQueryDecorator)queries[0];
-        int batchSize = bqd.getBatchSize();
-        if (batchSize > 1) {
-          updateCounts = new int[batchSize];
+        int totalBatches = 0;
+        for (int i = 0; i < queries.length; i++) {
+          BatchedQueryDecorator bqd = (BatchedQueryDecorator) queries[i];
+          int batchSize = bqd.getBatchSize();
+          totalBatches += batchSize;
+        }
+        if (totalBatches > 1) {
           /* In this situation there is a batch that has been rewritten. Substitute
            * the running total returned by the database with a status code to
            * indicate successful completion for each row the driver client added
            * to the batch.
            */
-          for (int i = 0; i < batchSize; i++ ) {
-            updateCounts[i] = Statement.SUCCESS_NO_INFO;
+          updateCounts = new int[totalBatches];
+          int offset = 0;
+          for (int i = 0; i < queries.length; i++) {
+            BatchedQueryDecorator bqd = (BatchedQueryDecorator) queries[i];
+            int batchSize = bqd.getBatchSize();
+            for (int j = 0; j < batchSize; j++) {
+              updateCounts[offset++] = Statement.SUCCESS_NO_INFO;
+            }
+            bqd.reset();
           }
-          bqd.reset();
         }
       }
     }

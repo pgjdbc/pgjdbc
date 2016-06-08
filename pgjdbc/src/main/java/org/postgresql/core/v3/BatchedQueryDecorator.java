@@ -51,7 +51,22 @@ public class BatchedQueryDecorator extends SimpleQuery {
       Arrays.fill(originalPreparedTypes, UNSPECIFIED);
     }
 
+  }
+
+  private BatchedQueryDecorator(NativeQuery query, int valuesBraceOpenPosition,
+      int valuesBraceClosePosition,
+      ProtocolConnectionImpl protoConnection, int[] originalPreparedTypes) {
+    super(query, protoConnection);
+    this.valuesBraceOpenPosition = valuesBraceOpenPosition;
+    this.valuesBraceClosePosition = valuesBraceClosePosition;
+    this.originalPreparedTypes = originalPreparedTypes;
     setStatementName(null);
+  }
+
+
+  public BatchedQueryDecorator deriveForNewBatches() {
+    return new BatchedQueryDecorator(getNativeQuery(), valuesBraceOpenPosition,
+        valuesBraceClosePosition, getProtoConnection(), originalPreparedTypes);
   }
 
   /**
@@ -229,6 +244,10 @@ public class BatchedQueryDecorator extends SimpleQuery {
    */
   public void registerQueryParsedStatus(boolean prepared) {
     isParsed = getBindPositions();
+  }
+
+  public int computeMaxBatchSize() {
+    return Math.min((2000 - 1) / originalPreparedTypes.length, 100);
   }
 
   /**

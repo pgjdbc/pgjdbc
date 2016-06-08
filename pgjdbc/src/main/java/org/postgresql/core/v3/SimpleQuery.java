@@ -275,6 +275,10 @@ class SimpleQuery implements V3Query {
     return nativeQuery;
   }
 
+  protected ProtocolConnectionImpl getProtoConnection() {
+    return protoConnection;
+  }
+
   public int getBindPositions() {
     return nativeQuery.bindPositions.length * getBatchSize();
   }

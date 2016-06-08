@@ -1128,7 +1128,13 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       if (batchStatements.size() == 0) {
         batchStatements.add(preparedQuery.query);
       } else {
-        increment(batchStatements, preparedParameters);
+        int batchSize = batchStatements.get(batchStatements.size() - 1).getBatchSize();
+        BatchedQueryDecorator batchedQueryDecorator = (BatchedQueryDecorator) preparedQuery.query;
+        if (batchSize == batchedQueryDecorator.computeMaxBatchSize()) {
+          batchStatements.add(batchedQueryDecorator.deriveForNewBatches());
+        } else {
+          increment(batchStatements, preparedParameters);
+        }
       }
     } else {
       // we need to create copies of our parameters, otherwise the values can be changed
@@ -1686,10 +1692,18 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   @Override
   protected ParameterList[] transformParameters() throws SQLException {
     if (preparedQuery.query.isStatementReWritableInsert() && batchParameters.size() > 1) {
-      ParameterList[] pla = new ParameterList[1];
-      pla[0] = ((BatchedQueryDecorator)batchStatements.get(0)).createParameterList();
-      for (ParameterList pl : batchParameters) {
-        pla[0].appendAll(pl);
+      ParameterList[] pla = new ParameterList[batchStatements.size()];
+      int offset = 0;
+      for (int i = 0; i < pla.length; i++) {
+        BatchedQueryDecorator batchedQueryDecorator =
+            (BatchedQueryDecorator) batchStatements.get(i);
+        int batchSize = batchedQueryDecorator.getBatchSize();
+        pla[i] = batchedQueryDecorator.createParameterList();
+        for (int j = 0; j < batchSize; j++) {
+          ParameterList pl = batchParameters.get(j + offset);
+          pla[i].appendAll(pl);
+        }
+        offset += batchSize;
       }
       return pla;
     } else {
