@@ -394,10 +394,15 @@ public class DeepBatchedInsertStatementTest extends BaseTest {
    */
   private int getLength(BatchedQueryDecorator bqd, int nativeSize, int paramCount,
       int batchSize) throws Exception {
+    // valuesBlockCharCount is the number of chars of the values block without the parameters.
+    int valuesBlockCharCount = 0;
+    valuesBlockCharCount++; // "("
+    valuesBlockCharCount += paramCount; // ","
+    valuesBlockCharCount++; // ")"
     Method mgetSize = bqd.getClass().getDeclaredMethod("calculateLength",
-        Integer.TYPE, Integer.TYPE, Integer.TYPE);
+        Integer.TYPE, Integer.TYPE, Integer.TYPE, Integer.TYPE);
     mgetSize.setAccessible(true);
-    return (Integer) mgetSize.invoke(bqd, nativeSize, paramCount, batchSize);
+    return (Integer) mgetSize.invoke(bqd, nativeSize, paramCount, batchSize, valuesBlockCharCount);
   }
 
   public DeepBatchedInsertStatementTest(String name) {
