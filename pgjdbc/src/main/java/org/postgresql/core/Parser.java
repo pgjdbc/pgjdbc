@@ -65,6 +65,7 @@ public class Parser {
     DMLCommandType current = DMLCommandType.BLANK;
 
     boolean whitespaceOnly = true;
+    int keyWordCount = 0;
     int keywordStart = -1;
     for (int i = 0; i < aChars.length; ++i) {
       char aChar = aChars[i];
@@ -179,7 +180,9 @@ public class Parser {
           current = DMLCommandType.MOVE;
         } else if (wordLength == 6 && parseInsertKeyword(aChars, keywordStart)) {
           if (!isInsertPresent && (nativeQueries == null || nativeQueries.isEmpty())) {
-            isCurrentReWriteCompatible = true;
+            // Only allow rewrite for insert command starting with the insert keyword.
+            // Else, too many risks of wrong interpretation.
+            isCurrentReWriteCompatible = keyWordCount == 0;
             isInsertPresent = true;
             current = DMLCommandType.INSERT;
           } else {
@@ -192,6 +195,7 @@ public class Parser {
           afterValuesParens = 0;
         }
         keywordStart = -1;
+        keyWordCount++;
       }
     }
     if (!isValuesFound || bindPositions == null) {
