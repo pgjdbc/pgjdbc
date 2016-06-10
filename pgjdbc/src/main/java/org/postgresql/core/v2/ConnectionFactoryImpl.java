@@ -482,7 +482,16 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         logger.debug("Switching to UTF8 client_encoding");
       }
 
-      String sql = "begin; set autocommit = on; set client_encoding = 'UTF8'; ";
+      String sql = "begin; ";
+	  
+	  // server configuration parameter autocommit was deprecated 
+	  // and non-operational on version 9.5
+	  if (dbVersion.compareTo("9.5") < 0) {
+        sql += "set autocommit = on; ";
+      }
+
+	  sql += "set client_encoding = 'UTF8'; ";
+	  
       if (dbVersion.compareTo("9.0") >= 0) {
         sql += "SET extra_float_digits=3; ";
       } else if (dbVersion.compareTo("7.4") >= 0) {
