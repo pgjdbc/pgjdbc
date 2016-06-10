@@ -484,7 +484,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
       String sql = "begin; ";
 
-      // server configuration parameter autocommit was deprecated 
+      // server configuration parameter autocommit was deprecated
       // and non-operational on version 9.5
       if (dbVersion.compareTo("9.5") < 0) {
         sql += "set autocommit = on; ";
