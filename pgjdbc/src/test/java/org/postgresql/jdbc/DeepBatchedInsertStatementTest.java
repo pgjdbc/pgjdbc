@@ -389,7 +389,7 @@ public class DeepBatchedInsertStatementTest extends BaseTest {
    * @param bqd BatchedQueryDecorator decorator object
    * @param nativeSize int length of sql statement string
    * @param paramCount int number of parameters in a single batch
-   * @param batchsize int remaining number of batches to calculate
+   * @param batchSize int remaining number of batches to calculate
    * @return int size estimated by BQD of the sql string
    */
   private int getLength(BatchedQueryDecorator bqd, int nativeSize, int paramCount,
@@ -442,15 +442,12 @@ public class DeepBatchedInsertStatementTest extends BaseTest {
   protected void tearDown() throws SQLException {
     TestUtil.dropTable(con, "testbatch");
     TestUtil.dropTable(con, "testunspecified");
-    System.setProperty(PGProperty.REWRITE_BATCHED_INSERTS.getName(),
-        PGProperty.REWRITE_BATCHED_INSERTS.getDefaultValue());
     super.tearDown();
   }
 
   @Override
   protected void updateProperties(Properties props) {
-    props.setProperty(PGProperty.REWRITE_BATCHED_INSERTS.getName(),
-        Boolean.TRUE.toString());
-    props.setProperty(PGProperty.PREPARE_THRESHOLD.getName(), "1");
+    PGProperty.REWRITE_BATCHED_INSERTS.set(props, true);
+    forceBinary(props);
   }
 }

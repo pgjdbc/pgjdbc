@@ -42,30 +42,28 @@ public class DMLCommand {
   public static DMLCommand createStatementTypeInfo(DMLCommandType type,
       boolean isBatchedReWritePropertyConfigured,
       int valuesBraceOpenPosition, int valuesBraceClosePosition, boolean isRETURNINGkeywordPresent,
-      boolean autocommit, int priorQueryCount) {
+      int priorQueryCount) {
     return new DMLCommand(type, isBatchedReWritePropertyConfigured,
-        valuesBraceOpenPosition, valuesBraceClosePosition, isRETURNINGkeywordPresent, autocommit,
+        valuesBraceOpenPosition, valuesBraceClosePosition, isRETURNINGkeywordPresent,
         priorQueryCount);
   }
 
   public static DMLCommand createStatementTypeInfo(DMLCommandType type) {
-    return new DMLCommand(type, false, -1, -1, false, false, 0);
+    return new DMLCommand(type, false, -1, -1, false, 0);
   }
 
   public static DMLCommand createStatementTypeInfo(DMLCommandType type,
       boolean isRETURNINGkeywordPresent) {
-    return new DMLCommand(type, false, -1, -1, isRETURNINGkeywordPresent, false, 0);
+    return new DMLCommand(type, false, -1, -1, isRETURNINGkeywordPresent, 0);
   }
 
   private DMLCommand(DMLCommandType type, boolean isBatchedReWriteConfigured,
       int valuesBraceOpenPosition, int valuesBraceClosePosition, boolean isPresent,
-      boolean isautocommitConfigured,
       int priorQueryCount) {
     commandType = type;
     parsedSQLhasRETURNINGKeyword = isPresent;
     boolean batchedReWriteCompatible = (type == INSERT) && isBatchedReWriteConfigured
         && valuesBraceOpenPosition >= 0 && valuesBraceClosePosition > valuesBraceOpenPosition
-        && !isautocommitConfigured
         && !isPresent && priorQueryCount == 0;
     this.valuesBraceOpenPosition = batchedReWriteCompatible ? valuesBraceOpenPosition : -1;
     this.valuesBraceClosePosition = batchedReWriteCompatible ? valuesBraceClosePosition : -1;

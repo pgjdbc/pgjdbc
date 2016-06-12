@@ -21,7 +21,6 @@ import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandler;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.Utils;
-import org.postgresql.core.v3.BatchedQueryDecorator;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -917,9 +916,9 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
-  protected BatchResultHandler createBatchHandler(int[] updateCounts, Query[] queries,
+  protected BatchResultHandler createBatchHandler(Query[] queries,
       ParameterList[] parameterLists) {
-    return new BatchResultHandler(this, queries, parameterLists, updateCounts,
+    return new BatchResultHandler(this, queries, parameterLists,
         wantsGeneratedKeysAlways);
   }
 
@@ -931,9 +930,6 @@ public class PgStatement implements Statement, BaseStatement {
     if (batchStatements == null || batchStatements.isEmpty()) {
       return new int[0];
     }
-
-    int size = batchStatements.size();
-    int[] updateCounts = new int[size];
 
     // Construct query/parameter arrays.
     Query[] queries = batchStatements.toArray(new Query[batchStatements.size()]);
@@ -987,7 +983,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
 
     BatchResultHandler handler;
-    handler = createBatchHandler(updateCounts, queries, parameterLists);
+    handler = createBatchHandler(queries, parameterLists);
 
     if (preDescribe || forceBinaryTransfers) {
       // Do a client-server round trip, parsing and describing the query so we
@@ -1023,35 +1019,7 @@ public class PgStatement implements Statement, BaseStatement {
       }
     }
 
-    if (queries[0].isStatementReWritableInsert()) {
-      if (queries[0] instanceof BatchedQueryDecorator) {
-        int totalBatches = 0;
-        for (int i = 0; i < queries.length; i++) {
-          BatchedQueryDecorator bqd = (BatchedQueryDecorator) queries[i];
-          int batchSize = bqd.getBatchSize();
-          totalBatches += batchSize;
-        }
-        if (totalBatches > 1) {
-          /* In this situation there is a batch that has been rewritten. Substitute
-           * the running total returned by the database with a status code to
-           * indicate successful completion for each row the driver client added
-           * to the batch.
-           */
-          updateCounts = new int[totalBatches];
-          int offset = 0;
-          for (int i = 0; i < queries.length; i++) {
-            BatchedQueryDecorator bqd = (BatchedQueryDecorator) queries[i];
-            int batchSize = bqd.getBatchSize();
-            for (int j = 0; j < batchSize; j++) {
-              updateCounts[offset++] = Statement.SUCCESS_NO_INFO;
-            }
-            bqd.reset();
-          }
-        }
-      }
-    }
-
-    return updateCounts;
+    return handler.getUpdateCount();
   }
 
   public void cancel() throws SQLException {

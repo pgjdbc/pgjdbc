@@ -246,8 +246,16 @@ public class BatchedQueryDecorator extends SimpleQuery {
     isParsed = getBindPositions();
   }
 
+  /**
+   * Single query cannot have more than {@link Short#MAX_VALUE} binds, thus
+   * the number of multi-values should be capped.
+   * Typically, it does not make much sense to batch more than 100 rows: performance
+   * does not improve much after updating 100 statements with 1 multi-valued one, thus
+   * we cap maximum batch size and split there.
+   * @return maximum number of multi-value "values" clauses
+   */
   public int computeMaxBatchSize() {
-    return Math.min((2000 - 1) / originalPreparedTypes.length, 100);
+    return Math.min(Math.max(1, (Short.MAX_VALUE - 1) / originalPreparedTypes.length), 100);
   }
 
   /**

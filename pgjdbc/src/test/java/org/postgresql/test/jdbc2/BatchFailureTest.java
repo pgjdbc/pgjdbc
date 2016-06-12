@@ -1,5 +1,6 @@
 package org.postgresql.test.jdbc2;
 
+import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 
 import org.junit.Assert;
@@ -28,6 +29,7 @@ public class BatchFailureTest extends BaseTest4 {
   private final FailMode failMode;
   private final FailPosition failPosition;
   private final BinaryMode binaryMode;
+  private final boolean insertRewrite;
 
   enum BatchType {
     SIMPLE {
@@ -106,17 +108,20 @@ public class BatchFailureTest extends BaseTest4 {
   }
 
   public BatchFailureTest(BatchType batchType, AutoCommit autoCommit,
-      FailMode failMode, FailPosition failPosition, BinaryMode binaryMode) {
+      FailMode failMode, FailPosition failPosition, BinaryMode binaryMode,
+      boolean insertRewrite) {
     this.batchType = batchType;
     this.autoCommit = autoCommit;
     this.failMode = failMode;
     this.failPosition = failPosition;
     this.binaryMode = binaryMode;
+    this.insertRewrite = insertRewrite;
   }
 
-  @Parameterized.Parameters(name = "{index}: batchTest(mode={2}, position={3}, autoCommit={1}, batchType={0}, generateKeys={1}, binary={4})")
+  @Parameterized.Parameters(name = "{index}: batchTest(mode={2}, position={3}, autoCommit={1}, batchType={0}, generateKeys={1}, binary={4}, insertRewrite={5})")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<Object[]>();
+    boolean[] booleans = new boolean[] {true, false};
     for (BatchType batchType : BatchType.values()) {
       for (FailMode failMode : FailMode.values()) {
         if (!failMode.supports(batchType)) {
@@ -128,7 +133,9 @@ public class BatchFailureTest extends BaseTest4 {
           }
           for (AutoCommit autoCommit : AutoCommit.values()) {
             for (BinaryMode binaryMode : BinaryMode.values()) {
-              ids.add(new Object[]{batchType, autoCommit, failMode, failPosition, binaryMode});
+              for (boolean insertRewrite : booleans) {
+                ids.add(new Object[]{batchType, autoCommit, failMode, failPosition, binaryMode, insertRewrite});
+              }
             }
           }
         }
@@ -142,6 +149,7 @@ public class BatchFailureTest extends BaseTest4 {
     if (binaryMode == BinaryMode.FORCE) {
       forceBinary(props);
     }
+    PGProperty.REWRITE_BATCHED_INSERTS.set(props, insertRewrite);
   }
 
   @Override
@@ -234,7 +242,7 @@ public class BatchFailureTest extends BaseTest4 {
 
     int finalCount = getBatchUpdCount();
     Assert.assertEquals(
-        "Number of new rows in batchUpdCnt should match number of non-error betchResult items"
+        "Number of new rows in batchUpdCnt should match number of non-error batchResult items"
             + Arrays.toString(batchResult),
         expectedRows - 1, finalCount - 1);
 
