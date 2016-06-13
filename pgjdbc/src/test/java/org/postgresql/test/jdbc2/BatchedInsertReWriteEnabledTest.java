@@ -224,7 +224,7 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
   }
 
   /**
-   * Test to make sure a statement with a semicolon is not broken
+   * Test VALUES word with mixed case.
    */
   @Test
   public void testBatchWithReWrittenMixedCaseValues()
