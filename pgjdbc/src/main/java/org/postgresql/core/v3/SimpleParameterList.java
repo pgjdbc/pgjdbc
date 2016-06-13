@@ -391,17 +391,18 @@ class SimpleParameterList implements V3ParameterList {
       /* only v3.SimpleParameterList is compatible with this type
       we need to create copies of our parameters, otherwise the values can be changed */
       SimpleParameterList spl = (SimpleParameterList) list;
-      if ((pos + spl.getInParameterCount()) > paramValues.length) {
+      int inParamCount = spl.getInParameterCount();
+      if ((pos + inParamCount) > paramValues.length) {
         throw new PSQLException(
           GT.tr("Added parameters index out of range: {0}, number of columns: {1}.",
-            new Object[]{(pos + spl.getInParameterCount()), paramValues.length}),
+            new Object[]{(pos + inParamCount), paramValues.length}),
               PSQLState.INVALID_PARAMETER_VALUE);
       }
-      System.arraycopy(spl.getValues(), 0, this.paramValues, pos, spl.getInParameterCount());
-      System.arraycopy(spl.getParamTypes(), 0, this.paramTypes, pos, spl.getInParameterCount());
-      System.arraycopy(spl.getFlags(), 0, this.flags, pos, spl.getInParameterCount());
-      System.arraycopy(spl.getEncoding(), 0, this.encoded, pos, spl.getInParameterCount());
-      pos += spl.getInParameterCount();
+      System.arraycopy(spl.getValues(), 0, this.paramValues, pos, inParamCount);
+      System.arraycopy(spl.getParamTypes(), 0, this.paramTypes, pos, inParamCount);
+      System.arraycopy(spl.getFlags(), 0, this.flags, pos, inParamCount);
+      System.arraycopy(spl.getEncoding(), 0, this.encoded, pos, inParamCount);
+      pos += inParamCount;
     }
   }
 

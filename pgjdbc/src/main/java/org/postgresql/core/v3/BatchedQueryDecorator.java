@@ -269,17 +269,19 @@ public class BatchedQueryDecorator extends SimpleQuery {
     if (nativeSql == null) {
       return "";
     }
-    int c = super.getNativeQuery().bindPositions.length;
     int bs = getBatchSize();
     if (bs < 2) {
       return nativeSql;
     }
-    int[] bindPositions = getNativeQuery().bindPositions;
     int valuesBlockCharCount = 1; // Comma
     // Split the values section around every dynamic parameter.
-    String[] chunks = new String[1 + bindPositions.length];
-    chunks[0] = nativeSql.substring(valuesBraceOpenPosition, bindPositions[0]);
-    valuesBlockCharCount += chunks[0].length();
+    int[] bindPositions = getNativeQuery().bindPositions;
+    int[] chunkStart = new int[1 + bindPositions.length];
+    int[] chunkEnd = new int[1 + bindPositions.length];
+    chunkStart[0] = valuesBraceOpenPosition;
+    chunkEnd[0] = bindPositions[0];
+    // valuesBlockCharCount += chunks[0].length;
+    valuesBlockCharCount += chunkEnd[0] - chunkStart[0];
     for (int i = 0; i < bindPositions.length; i++) {
       int startIndex = bindPositions[i] + 2;
       int endIndex =
@@ -289,26 +291,28 @@ public class BatchedQueryDecorator extends SimpleQuery {
           break;
         }
       }
-      chunks[i + 1] = nativeSql.substring(startIndex, endIndex);
-      valuesBlockCharCount += chunks[i + 1].length();
+      chunkStart[i + 1] = startIndex;
+      chunkEnd[i + 1] = endIndex;
+      // valuesBlockCharCount += chunks[i + 1].length;
+      valuesBlockCharCount += chunkEnd[i + 1] - chunkStart[i + 1];
     }
-    calculateLength(nativeSql.length(), c, bs - 1, valuesBlockCharCount);
+    calculateLength(nativeSql.length(), bindPositions.length, bs - 1, valuesBlockCharCount);
     StringBuilder s = new StringBuilder(length);
     // Add query until end of values parameter block.
-    s.append(nativeSql.substring(0, valuesBraceClosePosition + 1));
+    s.append(nativeSql, 0, valuesBraceClosePosition + 1);
+    int pos = bindPositions.length + 1;
     for (int i = 2; i <= bs; i++) {
-      int pos = ((i - 1) * c) + 1;
-      s.append(",");
-      s.append(chunks[0]);
-      for (int j = 1; j < chunks.length; j++) {
-        s.append("$");
+      s.append(',');
+      s.append(nativeSql, chunkStart[0], chunkEnd[0]);
+      for (int j = 1; j < chunkStart.length; j++) {
+        s.append('$');
         s.append(pos++);
-        s.append(chunks[j]);
+        s.append(nativeSql, chunkStart[j], chunkEnd[j]);
       }
     }
     // Add trailing content: final query is like original with multi values.
     // This could contain "--" comments, so it is important to add them at end.
-    s.append(nativeSql.substring(valuesBraceClosePosition + 1));
+    s.append(nativeSql, valuesBraceClosePosition + 1, nativeSql.length());
     return s.toString();
   }
 
