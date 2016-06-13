@@ -1,6 +1,8 @@
 #! /bin/bash -ex
 
-copr_fe_url=https://copr.fedorainfracloud.org/coprs/g/pgjdbc/pgjdbc-travis/build/
+export TZ=UTC
+
+copr_fe_url=https://copr.fedorainfracloud.org/coprs/g/pgjdbc/pgjdbc-travis/build
 copr_be_link=https://copr-be.cloud.fedoraproject.org/results/@pgjdbc/pgjdbc-travis/fedora-rawhide-x86_64/
 status_file=copr_build_id
 
@@ -23,14 +25,15 @@ set -o pipefail
 cd "$1"
 srpmgen
 dist=$(date +%Y%m%d_%H%M%S)
-TZ=UTC build_local -bs "$2".spec --define "dist .$dist"
+build_local -bs "$2".spec --define "dist .$dist"
 
 copr_wrapper --config "$1"/copr-token build --nowait @pgjdbc/pgjdbc-travis "$2-$3-1.$dist.src.rpm"
 copr_build_id=$(cat "$status_file")
 
 concrete_copr_be_link=$copr_be_link$(printf "%08d" "$copr_build_id")-postgresql-jdbc/
 
-: "For build status, logs, etc. have a look at
+set +x
+echo "For build status, logs, etc. have a look at
 $copr_fe_url/$copr_build_id/
 
 Note that there might be multiple builds submitted, particularly if there copr
@@ -51,13 +54,13 @@ do
             break
             ;;
         *)
-            : "build $copr_build_id is in \"$status_output\" state"
+            echo " * build $copr_build_id is in \"$status_output\" state [$(date)]"
             ;;
     esac
     sleep 30
 done
 
-: getting the build log for rawhide chroot
+echo " * getting the build log for rawhide chroot"
 curl $concrete_copr_be_link/build.log.gz | gunzip || :
 
 $exit_cmd
