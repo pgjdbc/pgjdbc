@@ -180,6 +180,60 @@
       </build>
     </profile>
 
+    <profile>
+      <id>jdk9-workarounds</id>
+      <!-- see https://github.com/pgjdbc/pgjdbc/pull/565 -->
+      <activation>
+        <property>
+          <name>javac.target</name>
+          <value>1.9</value>
+        </property>
+      </activation>
+      <build>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-source-plugin</artifactId>
+              <dependencies>
+                <dependency>
+                  <groupId>org.codehaus.plexus</groupId>
+                  <artifactId>plexus-archiver</artifactId>
+                  <version>2.4.4</version>
+                  <!-- newer versions fail as described in http://stackoverflow.com/a/36605759/1261287
+                       Caused by: java.lang.ArrayIndexOutOfBoundsException: 1
+                        at org.codehaus.plexus.archiver.zip.AbstractZipArchiver.<clinit>(AbstractZipArchiver.java:116)
+                  -->
+                </dependency>
+              </dependencies>
+            </plugin>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-jar-plugin</artifactId>
+              <dependencies>
+                <dependency>
+                  <groupId>org.codehaus.plexus</groupId>
+                  <artifactId>plexus-archiver</artifactId>
+                  <version>2.4.4</version>
+                </dependency>
+              </dependencies>
+            </plugin>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-assembly-plugin</artifactId>
+              <version>2.4.1</version> <!-- override version to older one -->
+              <dependencies>
+                <dependency>
+                  <groupId>org.codehaus.plexus</groupId>
+                  <artifactId>plexus-archiver</artifactId>
+                  <version>2.4.4</version>
+                </dependency>
+              </dependencies>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+      </build>
+    </profile>
 
   </profiles>
 

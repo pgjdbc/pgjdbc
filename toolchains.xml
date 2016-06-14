@@ -39,4 +39,14 @@
       <jdkHome>${JDK8_HOME}</jdkHome>
     </configuration>
   </toolchain>
+  <toolchain>
+    <type>jdk</type>
+    <provides>
+      <version>1.9</version>
+      <vendor>oracle</vendor>
+    </provides>
+    <configuration>
+      <jdkHome>${JDK9_HOME}</jdkHome>
+    </configuration>
+  </toolchain>
 </toolchains>

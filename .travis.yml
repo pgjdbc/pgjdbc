@@ -8,6 +8,7 @@ before_script:
   - echo "MAVEN_OPTS='-Xmx1g -Dgpg.skip=true'" > ~/.mavenrc
   - test "x$PG_VERSION" == 'x' || test $PG_VERSION == '8.4' || test $PG_VERSION == '9.0' || psql test -c 'CREATE EXTENSION hstore;' -U postgres
   - test "x$PG_VERSION" == 'x' || test $PG_VERSION != '8.4' || createlang -U postgres plpgsql test
+  - if [[ "x$JDK" == *'x9'* ]]; then remove_dir_from_path $JAVA_HOME/bin; export JAVA_HOME=/usr/lib/jvm/java-9-oracle; export PATH=$JAVA_HOME/bin:$PATH; java -Xmx32m -version; fi
 
 env:
   global:
@@ -20,6 +21,8 @@ script:
   - export JDK6_HOME=$(jdk_switcher home openjdk6)
   - export JDK7_HOME=$(jdk_switcher home openjdk7)
   - export JDK8_HOME=$(jdk_switcher home oraclejdk8)
+  - export JDK9_HOME=/usr/lib/jvm/java-9-oracle
+  - test -d "${JDK9_HOME}" || export JDK9_HOME=$(jdk_switcher home oraclejdk8)
   - envsubst < toolchains.xml > ~/.m2/toolchains.xml
   - ./travis_build.sh
   # To avoid useless S3 cache updates (https://github.com/travis-ci/travis-ci/issues/1441#issuecomment-67607074)
@@ -72,6 +75,7 @@ matrix:
         - PG_VERSION=9.4
         - COVERAGE=Y
         - MCENTRAL=Y
+        - JDOC=Y
     - jdk: openjdk7
       addons:
         postgresql: "9.4"
@@ -84,6 +88,21 @@ matrix:
       env:
         - PG_VERSION=9.4
         - MCENTRAL=Y
+    - jdk: oraclejdk8 # this will be overwritten by before_install above
+      addons:
+        apt:
+          packages:
+            - oracle-java9-installer
+      env:
+        - PG_VERSION=9.5
+        - JDK=9
+    - jdk: oraclejdk8
+      addons:
+        postgresql: "9.4"
+      env:
+        - PG_VERSION=9.4
+        - NO_WAFFLE_NO_OSGI=Y
+        - JDOC=Y
     - jdk: openjdk7
       addons:
         postgresql: "9.3"
@@ -102,12 +121,6 @@ matrix:
       env:
         - PG_VERSION=9.1
         - COVERAGE=Y
-    - jdk: oraclejdk8
-      addons:
-        postgresql: "9.4"
-      env:
-        - PG_VERSION=9.4
-        - NO_WAFFLE_NO_OSGI=Y
 
 # Deploy snapshots to Maven Central
 after_success:
