@@ -1117,7 +1117,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   public void addBatch() throws SQLException {
     checkClosed();
-
     if (batchStatements == null) {
       batchStatements = new ArrayList<Query>();
       batchParameters = new ArrayList<ParameterList>();
@@ -1125,13 +1124,26 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     if (preparedQuery.query.isStatementReWritableInsert()) {
       // we need to create copies of our parameters, otherwise the values can be changed
       batchParameters.add(preparedParameters.copy());
-      if (batchStatements.size() == 0) {
+      int size = batchStatements.size();
+      if (size == 0) {
         batchStatements.add(preparedQuery.query);
       } else {
-        int batchSize = batchStatements.get(batchStatements.size() - 1).getBatchSize();
+        BatchedQueryDecorator lastBatchedQueryDecorator =
+            (BatchedQueryDecorator) batchStatements.get(size - 1);
+        int batchSize = lastBatchedQueryDecorator.getBatchSize();
+        // This is the original decorator.
         BatchedQueryDecorator batchedQueryDecorator = (BatchedQueryDecorator) preparedQuery.query;
+        // The last decorator reached maximum number of batches.
         if (batchSize == batchedQueryDecorator.computeMaxBatchSize()) {
-          batchStatements.add(batchedQueryDecorator.deriveForNewBatches());
+          if (size == 1) {
+            // Fork original decorator to get a new empty one.
+            batchStatements.add(batchedQueryDecorator.forkForNewBatches());
+          } else {
+            // Batches handled by last decorator reached max, so we can replace it with original one
+            // which is full too. Then we reset and reuse last decorator for next batch.
+            batchStatements.add(size - 1, batchedQueryDecorator);
+            lastBatchedQueryDecorator.resetBatchedCount();
+          }
         } else {
           increment(batchStatements, preparedParameters);
         }
@@ -1700,10 +1712,10 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         int batchSize = batchedQueryDecorator.getBatchSize();
         pla[i] = batchedQueryDecorator.createParameterList();
         for (int j = 0; j < batchSize; j++) {
-          ParameterList pl = batchParameters.get(j + offset);
+          ParameterList pl = batchParameters.get(offset);
           pla[i].appendAll(pl);
+          offset++;
         }
-        offset += batchSize;
       }
       return pla;
     } else {

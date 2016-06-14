@@ -64,7 +64,7 @@ public class BatchedQueryDecorator extends SimpleQuery {
   }
 
 
-  public BatchedQueryDecorator deriveForNewBatches() {
+  public BatchedQueryDecorator forkForNewBatches() {
     return new BatchedQueryDecorator(getNativeQuery(), valuesBraceOpenPosition,
         valuesBraceClosePosition, getProtoConnection(), originalPreparedTypes);
   }
