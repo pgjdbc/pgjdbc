@@ -353,9 +353,10 @@ public class DeepBatchedInsertStatementTest extends BaseTest {
    */
   private byte[] getEncodedStatementName(BatchedQueryDecorator bqd)
       throws Exception {
-    Field fEBSN = bqd.getClass().getDeclaredField("batchedEncodedName");
-    fEBSN.setAccessible(true);
-    return (byte[]) fEBSN.get(bqd);
+    Class<?> clazz = Class.forName("org.postgresql.core.v3.SimpleQuery");
+    Method mESN = clazz.getDeclaredMethod("getEncodedStatementName");
+    mESN.setAccessible(true);
+    return (byte[]) mESN.invoke(bqd);
   }
 
   /**
