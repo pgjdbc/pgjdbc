@@ -189,7 +189,10 @@ public class BatchResultHandler implements ResultHandler {
       }
       Arrays.fill(newUpdateCounts, offset, offset + batchSize, superBatchResult);
       offset += batchSize;
-      bqd.reset();
+      // The same instance can be used several times in a row, so we reset only if next is not same.
+      if (i == queries.length - 1 || queries[i + 1] != bqd) {
+        bqd.reset();
+      }
     }
     return newUpdateCounts;
   }
