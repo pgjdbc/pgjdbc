@@ -11,7 +11,6 @@ package org.postgresql.core.v3;
 import static org.postgresql.core.Oid.UNSPECIFIED;
 
 import org.postgresql.core.NativeQuery;
-import org.postgresql.core.Utils;
 
 import java.util.Arrays;
 
@@ -33,8 +32,6 @@ public class BatchedQueryDecorator extends SimpleQuery {
   private int valuesBraceClosePosition;
   private boolean isPreparedTypesSet;
   private Integer isParsed = 0;
-
-  private byte[] batchedEncodedName;
 
   public BatchedQueryDecorator(NativeQuery query, int valuesBraceOpenPosition,
       int valuesBraceClosePosition,
@@ -149,28 +146,6 @@ public class BatchedQueryDecorator extends SimpleQuery {
   boolean isPreparedFor(int[] paramTypes) {
     resizeTypes();
     return isStatementParsed() && super.isPreparedFor(paramTypes);
-  }
-
-  @Override
-  byte[] getEncodedStatementName() {
-    if (batchedEncodedName == null) {
-      String n = super.getStatementName();
-      if (n != null) {
-        batchedEncodedName = Utils.encodeUTF8(n);
-      }
-    }
-    return batchedEncodedName;
-  }
-
-  @Override
-  void setStatementName(String statementName) {
-    if (statementName == null) {
-      batchedEncodedName = null;
-      super.setStatementName(null);
-    } else {
-      super.setStatementName(statementName);
-      batchedEncodedName = Utils.encodeUTF8(statementName);
-    }
   }
 
   /**
