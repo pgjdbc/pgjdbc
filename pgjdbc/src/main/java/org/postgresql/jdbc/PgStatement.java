@@ -932,8 +932,10 @@ public class PgStatement implements Statement, BaseStatement {
     }
 
     // Construct query/parameter arrays.
+    transformQueriesAndParameters();
     Query[] queries = batchStatements.toArray(new Query[batchStatements.size()]);
-    ParameterList[] parameterLists = transformParameters();
+    ParameterList[] parameterLists =
+        batchParameters.toArray(new ParameterList[batchParameters.size()]);
     batchStatements.clear();
     batchParameters.clear();
 
@@ -1400,7 +1402,7 @@ public class PgStatement implements Statement, BaseStatement {
     return createResultSet(null, fields, tuples, null);
   }
 
-  protected ParameterList[] transformParameters() throws SQLException {
-    return batchParameters.toArray(new ParameterList[batchParameters.size()]);
+  protected void transformQueriesAndParameters() throws SQLException {
   }
+
 }

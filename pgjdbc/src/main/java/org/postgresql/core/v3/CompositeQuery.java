@@ -85,10 +85,6 @@ class CompositeQuery implements V3Query {
     return 0; // no-op, unsupported
   }
 
-  public void incrementBatchSize() {
-    // no-op, unsupported
-  }
-
   private final SimpleQuery[] subqueries;
   private final int[] offsets;
 }

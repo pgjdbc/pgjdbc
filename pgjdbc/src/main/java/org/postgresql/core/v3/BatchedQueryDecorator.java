@@ -41,8 +41,9 @@ public class BatchedQueryDecorator extends SimpleQuery {
     this.valuesBraceOpenPosition = valuesBraceOpenPosition;
     this.valuesBraceClosePosition = valuesBraceClosePosition;
     originalPreparedTypes = new int[paramCount];
-    if (getStatementTypes() != null && getStatementTypes().length > 0) {
-      System.arraycopy(getStatementTypes(), 0, originalPreparedTypes, 0,
+    int[] statementTypes = getStatementTypes();
+    if (statementTypes != null && statementTypes.length > 0) {
+      System.arraycopy(statementTypes, 0, originalPreparedTypes, 0,
           paramCount);
     } else {
       Arrays.fill(originalPreparedTypes, UNSPECIFIED);
@@ -60,7 +61,6 @@ public class BatchedQueryDecorator extends SimpleQuery {
     setStatementName(null);
   }
 
-
   public BatchedQueryDecorator forkForNewBatches() {
     return new BatchedQueryDecorator(getNativeQuery(), valuesBraceOpenPosition,
         valuesBraceClosePosition, getProtoConnection(), originalPreparedTypes);
@@ -71,7 +71,7 @@ public class BatchedQueryDecorator extends SimpleQuery {
    */
   public void reset() {
     super.setStatementTypes(originalPreparedTypes);
-    resetBatchedCount();
+    resetBatchedSize();
     length = 0;
   }
 
@@ -219,18 +219,6 @@ public class BatchedQueryDecorator extends SimpleQuery {
    */
   public void registerQueryParsedStatus(boolean prepared) {
     isParsed = getBindPositions();
-  }
-
-  /**
-   * Single query cannot have more than {@link Short#MAX_VALUE} binds, thus
-   * the number of multi-values should be capped.
-   * Typically, it does not make much sense to batch more than 100 rows: performance
-   * does not improve much after updating 100 statements with 1 multi-valued one, thus
-   * we cap maximum batch size and split there.
-   * @return maximum number of multi-value "values" clauses
-   */
-  public int computeMaxBatchSize() {
-    return Math.min(Math.max(1, (Short.MAX_VALUE - 1) / originalPreparedTypes.length), 100);
   }
 
   /**

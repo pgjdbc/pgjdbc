@@ -355,6 +355,7 @@ class SimpleParameterList implements V3ParameterList {
     System.arraycopy(paramValues, 0, newCopy.paramValues, 0, paramValues.length);
     System.arraycopy(paramTypes, 0, newCopy.paramTypes, 0, paramTypes.length);
     System.arraycopy(flags, 0, newCopy.flags, 0, flags.length);
+    newCopy.pos = pos;
     return newCopy;
   }
 

@@ -70,10 +70,6 @@ class V2Query implements Query {
     statementReWritableInsert = canReWrite;
   }
 
-  public void incrementBatchSize() {
-    batchSize++;
-  }
-
   public int getBatchSize() {
     return batchSize;
   }

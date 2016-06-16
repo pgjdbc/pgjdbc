@@ -11,6 +11,8 @@ package org.postgresql.jdbc;
 import org.postgresql.PGProperty;
 import org.postgresql.core.CachedQuery;
 import org.postgresql.core.Oid;
+import org.postgresql.core.ParameterList;
+import org.postgresql.core.Query;
 import org.postgresql.core.v3.BatchedQueryDecorator;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest;
@@ -20,6 +22,7 @@ import java.lang.reflect.Method;
 import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Properties;
 
@@ -45,12 +48,14 @@ public class DeepBatchedInsertStatementTest extends BaseTest {
       pstmt.addBatch();// preparedQuery should be wrapped
 
       BatchedQueryDecorator bqd = getBatchedQueryDecorator(pstmt);
+      transformBatchedQueryDecorator(bqd, pstmt);
       assertEquals(2, bqd.getBatchSize());
 
       pstmt.setInt(1, 5);
       pstmt.setInt(2, 6);
       pstmt.addBatch();
 
+      transformBatchedQueryDecorator(bqd, pstmt);
       assertEquals(3, bqd.getBatchSize());
       assertTrue(
           "Expected type information for each parameter not found.",
@@ -75,17 +80,20 @@ public class DeepBatchedInsertStatementTest extends BaseTest {
       pstmt.setInt(2, 2);
       pstmt.addBatch();
 
+      transformBatchedQueryDecorator(bqd, pstmt);
       assertEquals(1, bqd.getBatchSize());
 
       pstmt.setInt(1, 3);
       pstmt.setInt(2, 4);
       pstmt.addBatch();
+      transformBatchedQueryDecorator(bqd, pstmt);
       assertEquals(2, bqd.getBatchSize());
       assertEquals(4, bqd.getStatementTypes().length);
 
       pstmt.setInt(1, 5);
       pstmt.setInt(2, 6);
       pstmt.addBatch();
+      transformBatchedQueryDecorator(bqd, pstmt);
       assertEquals(3, bqd.getBatchSize());
       assertEquals(6, bqd.getStatementTypes().length);
 
@@ -102,22 +110,26 @@ public class DeepBatchedInsertStatementTest extends BaseTest {
       pstmt.setInt(1, 1);
       pstmt.setInt(2, 2);
       pstmt.addBatch();
+      transformBatchedQueryDecorator(bqd, pstmt);
       assertEquals(1, bqd.getBatchSize());
       pstmt.setInt(1, 3);
       pstmt.setInt(2, 4);
       pstmt.addBatch();
+      transformBatchedQueryDecorator(bqd, pstmt);
       assertEquals(2, bqd.getBatchSize());
       assertEquals(4, bqd.getStatementTypes().length);
 
       pstmt.setInt(1, 5);
       pstmt.setInt(2, 6);
       pstmt.addBatch();
+      transformBatchedQueryDecorator(bqd, pstmt);
       assertEquals(3, bqd.getBatchSize());
       assertEquals(6, bqd.getStatementTypes().length);
 
       pstmt.setInt(1, 7);
       pstmt.setInt(2, 8);
       pstmt.addBatch();
+      transformBatchedQueryDecorator(bqd, pstmt);
       assertEquals(4, bqd.getBatchSize());
       assertEquals(8, bqd.getStatementTypes().length);
 
@@ -130,16 +142,19 @@ public class DeepBatchedInsertStatementTest extends BaseTest {
       pstmt.setInt(1, 1);
       pstmt.setInt(2, 2);
       pstmt.addBatch();
+      transformBatchedQueryDecorator(bqd, pstmt);
       assertEquals(1, bqd.getBatchSize());
       pstmt.setInt(1, 3);
       pstmt.setInt(2, 4);
       pstmt.addBatch();
+      transformBatchedQueryDecorator(bqd, pstmt);
       assertEquals(2, bqd.getBatchSize());
       assertEquals(4, bqd.getStatementTypes().length);
 
       pstmt.setInt(1, 5);
       pstmt.setInt(2, 6);
       pstmt.addBatch();
+      transformBatchedQueryDecorator(bqd, pstmt);
       assertEquals(3, bqd.getBatchSize());
       assertEquals(6, bqd.getStatementTypes().length);
 
@@ -152,16 +167,19 @@ public class DeepBatchedInsertStatementTest extends BaseTest {
       pstmt.setInt(1, 1);
       pstmt.setInt(2, 2);
       pstmt.addBatch();
+      transformBatchedQueryDecorator(bqd, pstmt);
       assertEquals(1, bqd.getBatchSize());
       pstmt.setInt(1, 3);
       pstmt.setInt(2, 4);
       pstmt.addBatch();
+      transformBatchedQueryDecorator(bqd, pstmt);
       assertEquals(2, bqd.getBatchSize());
       assertEquals(4, bqd.getStatementTypes().length);
 
       pstmt.setInt(1, 5);
       pstmt.setInt(2, 6);
       pstmt.addBatch();
+      transformBatchedQueryDecorator(bqd, pstmt);
       assertEquals(3, bqd.getBatchSize());
       assertEquals(6, bqd.getStatementTypes().length);
 
@@ -174,10 +192,12 @@ public class DeepBatchedInsertStatementTest extends BaseTest {
       pstmt.setInt(1, 1);
       pstmt.setInt(2, 2);
       pstmt.addBatch();
+      transformBatchedQueryDecorator(bqd, pstmt);
       assertEquals(1, bqd.getBatchSize());
       pstmt.setInt(1, 3);
       pstmt.setInt(2, 4);
       pstmt.addBatch();
+      transformBatchedQueryDecorator(bqd, pstmt);
       assertEquals(2, bqd.getBatchSize());
       assertEquals(4, bqd.getStatementTypes().length);
 
@@ -211,6 +231,7 @@ public class DeepBatchedInsertStatementTest extends BaseTest {
       pstmt.addBatch();
 
       BatchedQueryDecorator bqd = getBatchedQueryDecorator(pstmt);
+      transformBatchedQueryDecorator(bqd, pstmt);
       assertTrue(
           "Expected type information for each parameter not found.",
           Arrays.equals(new int[] { Oid.INT4, Oid.UNSPECIFIED, Oid.INT4,
@@ -228,6 +249,7 @@ public class DeepBatchedInsertStatementTest extends BaseTest {
       pstmt.setDate(2, new Date(1971, 01, 01));
       pstmt.addBatch();
 
+      transformBatchedQueryDecorator(bqd, pstmt);
       assertFalse(
           "Expected type information for each Date parameter was not updated by backend.",
           Arrays.equals(new int[] { Oid.INT4, Oid.UNSPECIFIED, Oid.INT4,
@@ -341,6 +363,24 @@ public class DeepBatchedInsertStatementTest extends BaseTest {
     fQuery.setAccessible(true);
     Object bqd = fQuery.get(cq);
     return (BatchedQueryDecorator) bqd;
+  }
+
+  /**
+   * This method triggers the transformation of single batches to multi batches.
+   *
+   * @param qd BatchedQueryDecorator query decorator to transform
+   * @param ps PgPreparedStatement statement that will contain the field
+   * @throws Exception fault raised when the field cannot be accessed
+   */
+  private void transformBatchedQueryDecorator(BatchedQueryDecorator qd, PgPreparedStatement ps)
+      throws Exception {
+    // We store collections that get replace on the statement
+    ArrayList<Query> batchStatements = ps.batchStatements;
+    ArrayList<ParameterList> batchParameters = ps.batchParameters;
+    ps.transformQueriesAndParameters();
+    // Restore collections on the statement.
+    ps.batchStatements = batchStatements;
+    ps.batchParameters = batchParameters;
   }
 
   /**

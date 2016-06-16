@@ -61,11 +61,6 @@ public interface Query {
   boolean isStatementReWritableInsert();
 
   /**
-   * Increment the number of batched rows for this Query.
-   */
-  void incrementBatchSize();
-
-  /**
    * Get the number of times this Query has been batched.
    * @return number of times <code>addBatch()</code> has been called.
    */

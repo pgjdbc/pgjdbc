@@ -63,7 +63,6 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 //#endif
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -1121,38 +1120,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       batchStatements = new ArrayList<Query>();
       batchParameters = new ArrayList<ParameterList>();
     }
-    if (preparedQuery.query.isStatementReWritableInsert()) {
-      // we need to create copies of our parameters, otherwise the values can be changed
-      batchParameters.add(preparedParameters.copy());
-      int size = batchStatements.size();
-      if (size == 0) {
-        batchStatements.add(preparedQuery.query);
-      } else {
-        BatchedQueryDecorator lastBatchedQueryDecorator =
-            (BatchedQueryDecorator) batchStatements.get(size - 1);
-        int batchSize = lastBatchedQueryDecorator.getBatchSize();
-        // This is the original decorator.
-        BatchedQueryDecorator batchedQueryDecorator = (BatchedQueryDecorator) preparedQuery.query;
-        // The last decorator reached maximum number of batches.
-        if (batchSize == batchedQueryDecorator.computeMaxBatchSize()) {
-          if (size == 1) {
-            // Fork original decorator to get a new empty one.
-            batchStatements.add(batchedQueryDecorator.forkForNewBatches());
-          } else {
-            // Batches handled by last decorator reached max, so we can replace it with original one
-            // which is full too. Then we reset and reuse last decorator for next batch.
-            batchStatements.add(size - 1, batchedQueryDecorator);
-            lastBatchedQueryDecorator.resetBatchedCount();
-          }
-        } else {
-          increment(batchStatements, preparedParameters);
-        }
-      }
-    } else {
-      // we need to create copies of our parameters, otherwise the values can be changed
-      batchStatements.add(preparedQuery.query);
-      batchParameters.add(preparedParameters.copy());
-    }
+    // we need to create copies of our parameters, otherwise the values can be changed
+    batchStatements.add(preparedQuery.query);
+    batchParameters.add(preparedParameters.copy());
   }
 
   public ResultSetMetaData getMetaData() throws SQLException {
@@ -1681,45 +1651,52 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   }
 
-  /**
-   * Purpose of this method is to rewrite the prior Query with additional
-   * parameterized fields, parameters and type information.
-   * @param batchStatements all the statements
-   * @param batchParameters all the parameters
-   * @param preparedParameters all the prepared parameters
-   */
-  private void increment(List<Query> batchStatements, ParameterList preparedParameters) {
-    Query prior = batchStatements.get(batchStatements.size() - 1);
-    BatchedQueryDecorator decoratedQuery = (BatchedQueryDecorator)prior;
-    decoratedQuery.incrementBatchSize();
-
-    // resize and populate .fields and .preparedTypes meta data
-    int[] userTypeInformation = preparedParameters.getTypeOIDs();
-    if (userTypeInformation != null && userTypeInformation.length > 0
-        && userTypeInformation.length == decoratedQuery.getNativeQuery().bindPositions.length) {
-      decoratedQuery.setStatementTypes(userTypeInformation);
-    }
-  }
-
   @Override
-  protected ParameterList[] transformParameters() throws SQLException {
-    if (preparedQuery.query.isStatementReWritableInsert() && batchParameters.size() > 1) {
-      ParameterList[] pla = new ParameterList[batchStatements.size()];
-      int offset = 0;
-      for (int i = 0; i < pla.length; i++) {
-        BatchedQueryDecorator batchedQueryDecorator =
-            (BatchedQueryDecorator) batchStatements.get(i);
-        int batchSize = batchedQueryDecorator.getBatchSize();
-        pla[i] = batchedQueryDecorator.createParameterList();
-        for (int j = 0; j < batchSize; j++) {
-          ParameterList pl = batchParameters.get(offset);
-          pla[i].appendAll(pl);
-          offset++;
+  protected void transformQueriesAndParameters() throws SQLException {
+    if (!preparedQuery.query.isStatementReWritableInsert() || batchParameters.size() <= 1) {
+      return;
+    }
+    BatchedQueryDecorator originalQD = (BatchedQueryDecorator) preparedQuery.query;
+    // Single query cannot have more than {@link Short#MAX_VALUE} binds, thus
+    // the number of multi-values blocks should be capped.
+    // Typically, it does not make much sense to batch more than 100 rows: performance
+    // does not improve much after updating 100 statements with 1 multi-valued one, thus
+    // we cap maximum batch size and split there.
+    int paramCount = originalQD.getBindPositions();
+    int maxValueBlocks = Math.min(Math.max(1, (Short.MAX_VALUE - 1) / paramCount), 100);
+    int count = (batchStatements.size() - 1) / maxValueBlocks + 1;
+    ArrayList<Query> newBatchStatements = new ArrayList<Query>(count);
+    ArrayList<ParameterList> newBatchParameters = new ArrayList<ParameterList>(count);
+    int remainingBatches = batchStatements.size();
+    int offset = 0;
+    for (int i = 0; i < count; i++) {
+      int valueBlock = Math.min(remainingBatches, maxValueBlocks);
+      BatchedQueryDecorator qd;
+      if (i == 0 || valueBlock == maxValueBlocks) {
+        // if full, then previous is full too, all the way to first index.
+        qd = originalQD;
+      } else {
+        qd = originalQD.forkForNewBatches();
+      }
+      qd.setBatchedSize(valueBlock);
+      ParameterList newPl = qd.createParameterList();
+      for (int j = 0; j < valueBlock; j++) {
+        ParameterList pl = batchParameters.get(offset++);
+        newPl.appendAll(pl);
+      }
+      if (i == 0 || valueBlock != maxValueBlocks) {
+        // Populate preparedTypes meta data
+        int[] userTypeInformation = preparedParameters.getTypeOIDs();
+        if (userTypeInformation != null && userTypeInformation.length > 0
+            && userTypeInformation.length == qd.getNativeQuery().bindPositions.length) {
+          qd.setStatementTypes(userTypeInformation);
         }
       }
-      return pla;
-    } else {
-      return super.transformParameters();
+      newBatchStatements.add(qd);
+      newBatchParameters.add(newPl);
+      remainingBatches -= valueBlock;
     }
+    batchStatements = newBatchStatements;
+    batchParameters = newBatchParameters;
   }
 }
