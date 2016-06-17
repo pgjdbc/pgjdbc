@@ -382,7 +382,7 @@ public class DeepBatchedInsertStatementTest extends BaseTest {
 
   /**
    * Get the total batch size of multi batches.
-   * 
+   *
    * @param bqds the converted queries
    * @return the total batch size
    */
@@ -396,7 +396,7 @@ public class DeepBatchedInsertStatementTest extends BaseTest {
 
   /**
    * Get the statement types of multi batches.
-   * 
+   *
    * @param bqds the converted queries
    * @return the aggregated statement types
    */
