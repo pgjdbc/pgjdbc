@@ -174,11 +174,14 @@ public class BatchResultHandler implements ResultHandler {
      */
     int[] newUpdateCounts = new int[totalRows];
     int offset = 0;
+    // In case of rewrite, we split into various queries
+    // It would be weird to have "no info" for some and 1 for another.
+    boolean isMultiValueBatchRewrite = ((BatchedQueryDecorator) queries[0]).getBatchSize() > 1;
     for (int i = 0; i < queries.length; i++) {
       BatchedQueryDecorator bqd = (BatchedQueryDecorator) queries[i];
       int batchSize = bqd.getBatchSize();
       int superBatchResult = updateCounts[i];
-      if (batchSize == 1) {
+      if (!isMultiValueBatchRewrite) {
         newUpdateCounts[offset++] = superBatchResult;
         continue;
       }

@@ -263,10 +263,6 @@ class SimpleQuery implements V3Query {
     return batchedCount;
   }
 
-  public void resetBatchedSize() {
-    batchedCount = 1;
-  }
-
   public void setBatchedSize(int batchedCount) {
     this.batchedCount = batchedCount;
   }

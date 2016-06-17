@@ -39,7 +39,6 @@ public class DeepBatchedInsertStatementTest extends BaseTest {
       pstmt = (PgPreparedStatement) con
           .prepareStatement("INSERT INTO testbatch VALUES (?,?)");
 
-      int initParamCount = 2;
       pstmt.setInt(1, 1);
       pstmt.setInt(2, 2);
       pstmt.addBatch(); // initial pass
@@ -48,54 +47,51 @@ public class DeepBatchedInsertStatementTest extends BaseTest {
       pstmt.addBatch();// preparedQuery should be wrapped
 
       BatchedQueryDecorator bqd = getBatchedQueryDecorator(pstmt);
-      transformBatchedQueryDecorator(bqd, pstmt);
-      assertEquals(2, bqd.getBatchSize());
+      BatchedQueryDecorator[] bqds;
+      bqds = transformBQD(pstmt);
+      assertEquals(2, getBatchSize(bqds));
 
       pstmt.setInt(1, 5);
       pstmt.setInt(2, 6);
       pstmt.addBatch();
 
-      transformBatchedQueryDecorator(bqd, pstmt);
-      assertEquals(3, bqd.getBatchSize());
+      bqds = transformBQD(pstmt);
+      assertEquals(3, getBatchSize(bqds));
       assertTrue(
           "Expected type information for each parameter not found.",
           Arrays.equals(new int[] { Oid.INT4, Oid.INT4, Oid.INT4, Oid.INT4,
-              Oid.INT4, Oid.INT4 }, bqd.getStatementTypes()));
+              Oid.INT4, Oid.INT4}, getStatementTypes(bqds)));
 
       assertTrue(
           "Expected outcome not returned by batch execution.",
           Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
               Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO },
               pstmt.executeBatch()));
+      bqds = transformBQD(pstmt);
 
-      /* The statement will have been reset. */
-      int resetParamCount = bqd.getBindPositions();
-
-      assertEquals(1, bqd.getBatchSize());
-      assertEquals(2, bqd.getStatementTypes().length);
-      assertEquals(initParamCount, bqd.getStatementTypes().length);
-      assertEquals(initParamCount, resetParamCount);
+      assertEquals(0, getBatchSize(bqds));
+      assertEquals(0, getStatementTypes(bqds).length);
 
       pstmt.setInt(1, 1);
       pstmt.setInt(2, 2);
       pstmt.addBatch();
 
-      transformBatchedQueryDecorator(bqd, pstmt);
-      assertEquals(1, bqd.getBatchSize());
+      bqds = transformBQD(pstmt);
+      assertEquals(1, getBatchSize(bqds));
 
       pstmt.setInt(1, 3);
       pstmt.setInt(2, 4);
       pstmt.addBatch();
-      transformBatchedQueryDecorator(bqd, pstmt);
-      assertEquals(2, bqd.getBatchSize());
-      assertEquals(4, bqd.getStatementTypes().length);
+      bqds = transformBQD(pstmt);
+      assertEquals(2, getBatchSize(bqds));
+      assertEquals(4, getStatementTypes(bqds).length);
 
       pstmt.setInt(1, 5);
       pstmt.setInt(2, 6);
       pstmt.addBatch();
-      transformBatchedQueryDecorator(bqd, pstmt);
-      assertEquals(3, bqd.getBatchSize());
-      assertEquals(6, bqd.getStatementTypes().length);
+      bqds = transformBQD(pstmt);
+      assertEquals(3, getBatchSize(bqds));
+      assertEquals(6, getStatementTypes(bqds).length);
 
       assertTrue(
           "Expected outcome not returned by batch execution.",
@@ -103,35 +99,33 @@ public class DeepBatchedInsertStatementTest extends BaseTest {
               Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO },
               pstmt.executeBatch()));
       assertTrue("Expected encoded name is not matched.", Arrays.equals( "S_2".getBytes(),
-          getEncodedStatementName(bqd)));
-
-      assertEquals(2, bqd.getStatementTypes().length);
+          getEncodedStatementName(bqds[0])));
 
       pstmt.setInt(1, 1);
       pstmt.setInt(2, 2);
       pstmt.addBatch();
-      transformBatchedQueryDecorator(bqd, pstmt);
-      assertEquals(1, bqd.getBatchSize());
+      bqds = transformBQD(pstmt);
+      assertEquals(1, getBatchSize(bqds));
       pstmt.setInt(1, 3);
       pstmt.setInt(2, 4);
       pstmt.addBatch();
-      transformBatchedQueryDecorator(bqd, pstmt);
-      assertEquals(2, bqd.getBatchSize());
-      assertEquals(4, bqd.getStatementTypes().length);
+      bqds = transformBQD(pstmt);
+      assertEquals(2, getBatchSize(bqds));
+      assertEquals(4, getStatementTypes(bqds).length);
 
       pstmt.setInt(1, 5);
       pstmt.setInt(2, 6);
       pstmt.addBatch();
-      transformBatchedQueryDecorator(bqd, pstmt);
-      assertEquals(3, bqd.getBatchSize());
-      assertEquals(6, bqd.getStatementTypes().length);
+      bqds = transformBQD(pstmt);
+      assertEquals(3, getBatchSize(bqds));
+      assertEquals(6, getStatementTypes(bqds).length);
 
       pstmt.setInt(1, 7);
       pstmt.setInt(2, 8);
       pstmt.addBatch();
-      transformBatchedQueryDecorator(bqd, pstmt);
-      assertEquals(4, bqd.getBatchSize());
-      assertEquals(8, bqd.getStatementTypes().length);
+      bqds = transformBQD(pstmt);
+      assertEquals(4, getBatchSize(bqds));
+      assertEquals(8, getStatementTypes(bqds).length);
 
       assertTrue(
           "Expected outcome not returned by batch execution.",
@@ -142,21 +136,21 @@ public class DeepBatchedInsertStatementTest extends BaseTest {
       pstmt.setInt(1, 1);
       pstmt.setInt(2, 2);
       pstmt.addBatch();
-      transformBatchedQueryDecorator(bqd, pstmt);
-      assertEquals(1, bqd.getBatchSize());
+      bqds = transformBQD(pstmt);
+      assertEquals(1, getBatchSize(bqds));
       pstmt.setInt(1, 3);
       pstmt.setInt(2, 4);
       pstmt.addBatch();
-      transformBatchedQueryDecorator(bqd, pstmt);
-      assertEquals(2, bqd.getBatchSize());
-      assertEquals(4, bqd.getStatementTypes().length);
+      bqds = transformBQD(pstmt);
+      assertEquals(2, getBatchSize(bqds));
+      assertEquals(4, getStatementTypes(bqds).length);
 
       pstmt.setInt(1, 5);
       pstmt.setInt(2, 6);
       pstmt.addBatch();
-      transformBatchedQueryDecorator(bqd, pstmt);
-      assertEquals(3, bqd.getBatchSize());
-      assertEquals(6, bqd.getStatementTypes().length);
+      bqds = transformBQD(pstmt);
+      assertEquals(3, getBatchSize(bqds));
+      assertEquals(6, getStatementTypes(bqds).length);
 
       assertTrue(
           "Expected outcome not returned by batch execution.",
@@ -167,21 +161,21 @@ public class DeepBatchedInsertStatementTest extends BaseTest {
       pstmt.setInt(1, 1);
       pstmt.setInt(2, 2);
       pstmt.addBatch();
-      transformBatchedQueryDecorator(bqd, pstmt);
-      assertEquals(1, bqd.getBatchSize());
+      bqds = transformBQD(pstmt);
+      assertEquals(1, getBatchSize(bqds));
       pstmt.setInt(1, 3);
       pstmt.setInt(2, 4);
       pstmt.addBatch();
-      transformBatchedQueryDecorator(bqd, pstmt);
-      assertEquals(2, bqd.getBatchSize());
-      assertEquals(4, bqd.getStatementTypes().length);
+      bqds = transformBQD(pstmt);
+      assertEquals(2, getBatchSize(bqds));
+      assertEquals(4, getStatementTypes(bqds).length);
 
       pstmt.setInt(1, 5);
       pstmt.setInt(2, 6);
       pstmt.addBatch();
-      transformBatchedQueryDecorator(bqd, pstmt);
-      assertEquals(3, bqd.getBatchSize());
-      assertEquals(6, bqd.getStatementTypes().length);
+      bqds = transformBQD(pstmt);
+      assertEquals(3, getBatchSize(bqds));
+      assertEquals(6, getStatementTypes(bqds).length);
 
       assertTrue(
           "Expected outcome not returned by batch execution.",
@@ -192,14 +186,14 @@ public class DeepBatchedInsertStatementTest extends BaseTest {
       pstmt.setInt(1, 1);
       pstmt.setInt(2, 2);
       pstmt.addBatch();
-      transformBatchedQueryDecorator(bqd, pstmt);
-      assertEquals(1, bqd.getBatchSize());
+      bqds = transformBQD(pstmt);
+      assertEquals(1, getBatchSize(bqds));
       pstmt.setInt(1, 3);
       pstmt.setInt(2, 4);
       pstmt.addBatch();
-      transformBatchedQueryDecorator(bqd, pstmt);
-      assertEquals(2, bqd.getBatchSize());
-      assertEquals(4, bqd.getStatementTypes().length);
+      bqds = transformBQD(pstmt);
+      assertEquals(2, getBatchSize(bqds));
+      assertEquals(4, getStatementTypes(bqds).length);
 
       assertTrue(
           "Expected outcome not returned by batch execution.",
@@ -231,11 +225,12 @@ public class DeepBatchedInsertStatementTest extends BaseTest {
       pstmt.addBatch();
 
       BatchedQueryDecorator bqd = getBatchedQueryDecorator(pstmt);
-      transformBatchedQueryDecorator(bqd, pstmt);
+      BatchedQueryDecorator[] bqds;
+      bqds = transformBQD(pstmt);
       assertTrue(
           "Expected type information for each parameter not found.",
           Arrays.equals(new int[] { Oid.INT4, Oid.UNSPECIFIED, Oid.INT4,
-              Oid.UNSPECIFIED }, bqd.getStatementTypes()));
+              Oid.UNSPECIFIED}, getStatementTypes(bqds)));
 
       assertTrue(
           "Expected outcome not returned by batch execution.",
@@ -249,11 +244,11 @@ public class DeepBatchedInsertStatementTest extends BaseTest {
       pstmt.setDate(2, new Date(1971, 01, 01));
       pstmt.addBatch();
 
-      transformBatchedQueryDecorator(bqd, pstmt);
+      bqds = transformBQD(pstmt);
       assertFalse(
           "Expected type information for each Date parameter was not updated by backend.",
           Arrays.equals(new int[] { Oid.INT4, Oid.UNSPECIFIED, Oid.INT4,
-              Oid.UNSPECIFIED }, bqd.getStatementTypes()));
+              Oid.UNSPECIFIED}, getStatementTypes(bqds)));
       assertTrue(
           "Expected outcome not returned by batch execution.",
           Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
@@ -370,17 +365,55 @@ public class DeepBatchedInsertStatementTest extends BaseTest {
    *
    * @param qd BatchedQueryDecorator query decorator to transform
    * @param ps PgPreparedStatement statement that will contain the field
+   * @return BatchedQueryDecorator[] queries after conversion
    * @throws Exception fault raised when the field cannot be accessed
    */
-  private void transformBatchedQueryDecorator(BatchedQueryDecorator qd, PgPreparedStatement ps)
-      throws Exception {
+  private BatchedQueryDecorator[] transformBQD(PgPreparedStatement ps) throws Exception {
     // We store collections that get replace on the statement
     ArrayList<Query> batchStatements = ps.batchStatements;
     ArrayList<ParameterList> batchParameters = ps.batchParameters;
     ps.transformQueriesAndParameters();
+    BatchedQueryDecorator[] bqds = ps.batchStatements.toArray(new BatchedQueryDecorator[0]);
     // Restore collections on the statement.
     ps.batchStatements = batchStatements;
     ps.batchParameters = batchParameters;
+    return bqds;
+  }
+
+  /**
+   * Get the total batch size of multi batches.
+   * 
+   * @param bqds the converted queries
+   * @return the total batch size
+   */
+  private int getBatchSize(BatchedQueryDecorator[] bqds) {
+    int total = 0;
+    for (int i = 0; i < bqds.length; i++) {
+      total += bqds[i].getBatchSize();
+    }
+    return total;
+  }
+
+  /**
+   * Get the statement types of multi batches.
+   * 
+   * @param bqds the converted queries
+   * @return the aggregated statement types
+   */
+  private int[] getStatementTypes(BatchedQueryDecorator[] bqds) {
+    int count = 0;
+    for (int i = 0; i < bqds.length; i++) {
+      count += bqds[i].getStatementTypes().length;
+    }
+    int[] types = new int[count];
+    int offset = 0;
+    for (int i = 0; i < bqds.length; i++) {
+      int[] statementTypes = bqds[i].getStatementTypes();
+      for (int j = 0; j < statementTypes.length; j++) {
+        types[offset++] = statementTypes[j];
+      }
+    }
+    return types;
   }
 
   /**

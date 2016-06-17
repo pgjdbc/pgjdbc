@@ -1121,8 +1121,10 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       batchParameters = new ArrayList<ParameterList>();
     }
     // we need to create copies of our parameters, otherwise the values can be changed
-    batchStatements.add(preparedQuery.query);
     batchParameters.add(preparedParameters.copy());
+    if (!preparedQuery.query.isStatementReWritableInsert() || batchParameters.size() <= 1) {
+      batchStatements.add(preparedQuery.query);
+    }
   }
 
   public ResultSetMetaData getMetaData() throws SQLException {
@@ -1659,26 +1661,39 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     BatchedQueryDecorator originalQD = (BatchedQueryDecorator) preparedQuery.query;
     // Single query cannot have more than {@link Short#MAX_VALUE} binds, thus
     // the number of multi-values blocks should be capped.
-    // Typically, it does not make much sense to batch more than 100 rows: performance
-    // does not improve much after updating 100 statements with 1 multi-valued one, thus
+    // Typically, it does not make much sense to batch more than 128 rows: performance
+    // does not improve much after updating 128 statements with 1 multi-valued one, thus
     // we cap maximum batch size and split there.
     int paramCount = originalQD.getBindPositions();
-    int maxValueBlocks = Math.min(Math.max(1, (Short.MAX_VALUE - 1) / paramCount), 100);
-    int count = (batchStatements.size() - 1) / maxValueBlocks + 1;
+    int highestBlockCount = 128;
+    int maxValueBlocks =
+        Math.min(Math.max(1, (Short.MAX_VALUE - 1) / paramCount), highestBlockCount);
+    int unprocessedBatchCount = batchParameters.size();
+    int fullValueBlocksCount = unprocessedBatchCount / maxValueBlocks;
+    int partialValueBlocksCount = unprocessedBatchCount % maxValueBlocks;
+    if (partialValueBlocksCount > 0) {
+      // If there are remaining batches, we split them into smaller blocks.
+      // We decided to go for blocks with sizes of power of 2.
+      // Count the number of powers of 2 in remainder.
+      int newPartialValueBlocksCount = 0;
+      while (partialValueBlocksCount > 0) {
+        newPartialValueBlocksCount += partialValueBlocksCount & 0x1;
+        partialValueBlocksCount = partialValueBlocksCount >> 1;
+      }
+      partialValueBlocksCount = newPartialValueBlocksCount;
+    }
+    int count = fullValueBlocksCount + partialValueBlocksCount;
     ArrayList<Query> newBatchStatements = new ArrayList<Query>(count);
     ArrayList<ParameterList> newBatchParameters = new ArrayList<ParameterList>(count);
-    int remainingBatches = batchStatements.size();
     int offset = 0;
     for (int i = 0; i < count; i++) {
-      int valueBlock = Math.min(remainingBatches, maxValueBlocks);
-      BatchedQueryDecorator qd;
-      if (i == 0 || valueBlock == maxValueBlocks) {
-        // if full, then previous is full too, all the way to first index.
-        qd = originalQD;
-      } else {
-        qd = originalQD.forkForNewBatches();
+      int valueBlock = Math.min(unprocessedBatchCount, maxValueBlocks);
+      while ((valueBlock & highestBlockCount) == 0) {
+        highestBlockCount = highestBlockCount >> 1;
       }
-      qd.setBatchedSize(valueBlock);
+      valueBlock = highestBlockCount;
+      // Find appropriate batch for block count.
+      BatchedQueryDecorator qd = originalQD.deriveForMultiBatch(valueBlock);
       ParameterList newPl = qd.createParameterList();
       for (int j = 0; j < valueBlock; j++) {
         ParameterList pl = batchParameters.get(offset++);
@@ -1694,7 +1709,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       }
       newBatchStatements.add(qd);
       newBatchParameters.add(newPl);
-      remainingBatches -= valueBlock;
+      unprocessedBatchCount -= valueBlock;
     }
     batchStatements = newBatchStatements;
     batchParameters = newBatchParameters;

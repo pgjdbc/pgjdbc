@@ -61,9 +61,52 @@ public class BatchedQueryDecorator extends SimpleQuery {
     setStatementName(null);
   }
 
-  public BatchedQueryDecorator forkForNewBatches() {
-    return new BatchedQueryDecorator(getNativeQuery(), valuesBraceOpenPosition,
-        valuesBraceClosePosition, getProtoConnection(), originalPreparedTypes);
+  private BatchedQueryDecorator[] blocks;
+
+  public BatchedQueryDecorator deriveForMultiBatch(int valueBlock) {
+    if (getBatchSize() != 1) {
+      throw new IllegalStateException("Only the original decorator can be derived.");
+    }
+    int index;
+    switch (valueBlock) {
+      case 1:
+        return this;
+      case 2:
+        index = 0;
+        break;
+      case 4:
+        index = 1;
+        break;
+      case 8:
+        index = 2;
+        break;
+      case 16:
+        index = 3;
+        break;
+      case 32:
+        index = 4;
+        break;
+      case 64:
+        index = 5;
+        break;
+      case 128:
+        index = 6;
+        break;
+      default:
+        throw new IllegalArgumentException(
+            "Expected value block should be a power of 2 smaller or equal to 128.");
+    }
+    if (blocks == null) {
+      blocks = new BatchedQueryDecorator[7];
+    }
+    BatchedQueryDecorator qd = blocks[index];
+    if (qd == null) {
+      qd = new BatchedQueryDecorator(getNativeQuery(), valuesBraceOpenPosition,
+          valuesBraceClosePosition, getProtoConnection(), originalPreparedTypes);
+      qd.setBatchedSize(valueBlock);
+      blocks[index] = qd;
+    }
+    return qd;
   }
 
   /**
@@ -71,7 +114,6 @@ public class BatchedQueryDecorator extends SimpleQuery {
    */
   public void reset() {
     super.setStatementTypes(originalPreparedTypes);
-    resetBatchedSize();
     length = 0;
   }
 
@@ -221,20 +263,27 @@ public class BatchedQueryDecorator extends SimpleQuery {
     isParsed = getBindPositions();
   }
 
+  private String sql;
+
   /**
    * Method to return the sql based on number of batches. Skipping the initial
    * batch.
    */
   @Override
   String getNativeSql() {
+    if (sql != null) {
+      return sql;
+    }
     // dynamically build sql with parameters for batches
     String nativeSql = super.getNativeSql();
-    if (nativeSql == null) {
-      return "";
-    }
     int bs = getBatchSize();
     if (bs < 2) {
-      return nativeSql;
+      sql = nativeSql;
+      return sql;
+    }
+    if (nativeSql == null) {
+      sql = "";
+      return sql;
     }
     int valuesBlockCharCount = 1; // Comma
     // Split the values section around every dynamic parameter.
@@ -276,7 +325,8 @@ public class BatchedQueryDecorator extends SimpleQuery {
     // Add trailing content: final query is like original with multi values.
     // This could contain "--" comments, so it is important to add them at end.
     s.append(nativeSql, valuesBraceClosePosition + 1, nativeSql.length());
-    return s.toString();
+    sql = s.toString();
+    return sql;
   }
 
   @Override
