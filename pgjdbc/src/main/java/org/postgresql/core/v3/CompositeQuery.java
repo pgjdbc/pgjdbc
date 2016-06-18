@@ -73,14 +73,6 @@ class CompositeQuery implements V3Query {
     return true;
   }
 
-  /**
-   * This state indicates the final sub-query is an
-   * insert statement that can be re-written.
-   */
-  public boolean isStatementReWritableInsert() {
-    return false; // unsupported
-  }
-
   public int getBatchSize() {
     return 0; // no-op, unsupported
   }

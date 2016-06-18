@@ -14,7 +14,7 @@ package org.postgresql.core;
  * replaced with $1, $2, etc.
  */
 public class NativeQuery {
-  private final static String[] BIND_NAMES = new String[128];
+  private final static String[] BIND_NAMES = new String[128 * 10];
   private final static int[] NO_BINDS = new int[0];
 
   public final String nativeSql;
@@ -79,8 +79,36 @@ public class NativeQuery {
     return index < BIND_NAMES.length ? BIND_NAMES[index] : "$" + index;
   }
 
-  public static int bindCount() {
-    return BIND_NAMES.length;
+  public static StringBuilder appendBindName(StringBuilder sb, int index) {
+    if (index < BIND_NAMES.length) {
+      return sb.append(bindName(index));
+    }
+    sb.append('$');
+    sb.append(index);
+    return sb;
+  }
+
+  /**
+   * Calculate the text length required for the given number of bind variables
+   * including dollars.
+   * Do this to avoid repeated calls to
+   * AbstractStringBuilder.expandCapacity(...) and Arrays.copyOf
+   *
+   * @param bindCount total number of parameters in a query
+   * @return int total character length for $xyz kind of binds
+   */
+  public static int calculateBindLength(int bindCount) {
+    int res = 0;
+    int bindLen = 2; // $1
+    int maxBindsOfLen = 9; // $0 .. $9
+    while (bindCount > 0) {
+      int numBinds = Math.min(maxBindsOfLen, bindCount);
+      bindCount -= numBinds;
+      res += bindLen * numBinds;
+      bindLen++;
+      maxBindsOfLen *= 10; // $0..$9 (9 items) -> $10..$99 (90 items)
+    }
+    return res;
   }
 
   public DMLCommand getCommand() {

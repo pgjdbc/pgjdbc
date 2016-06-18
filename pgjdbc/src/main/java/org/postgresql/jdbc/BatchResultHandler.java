@@ -5,7 +5,7 @@ import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandler;
-import org.postgresql.core.v3.BatchedQueryDecorator;
+import org.postgresql.core.v3.BatchedQuery;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -152,14 +152,13 @@ public class BatchResultHandler implements ResultHandler {
   }
 
   private int[] uncompressUpdateCount() {
-    if (!queries[0].isStatementReWritableInsert()) {
+    if (!(queries[0] instanceof BatchedQuery)) {
       return updateCounts;
     }
     int totalRows = 0;
     boolean hasRewrites = false;
     for (Query query : queries) {
-      BatchedQueryDecorator bqd = (BatchedQueryDecorator) query;
-      int batchSize = bqd.getBatchSize();
+      int batchSize = query.getBatchSize();
       totalRows += batchSize;
       hasRewrites |= batchSize > 1;
     }
@@ -176,10 +175,10 @@ public class BatchResultHandler implements ResultHandler {
     int offset = 0;
     // In case of rewrite, we split into various queries
     // It would be weird to have "no info" for some and 1 for another.
-    boolean isMultiValueBatchRewrite = ((BatchedQueryDecorator) queries[0]).getBatchSize() > 1;
+    boolean isMultiValueBatchRewrite = queries[0].getBatchSize() > 1;
     for (int i = 0; i < queries.length; i++) {
-      BatchedQueryDecorator bqd = (BatchedQueryDecorator) queries[i];
-      int batchSize = bqd.getBatchSize();
+      Query query = queries[i];
+      int batchSize = query.getBatchSize();
       int superBatchResult = updateCounts[i];
       if (!isMultiValueBatchRewrite) {
         newUpdateCounts[offset++] = superBatchResult;
@@ -192,10 +191,6 @@ public class BatchResultHandler implements ResultHandler {
       }
       Arrays.fill(newUpdateCounts, offset, offset + batchSize, superBatchResult);
       offset += batchSize;
-      // The same instance can be used several times in a row, so we reset only if next is not same.
-      if (i == queries.length - 1 || queries[i + 1] != bqd) {
-        bqd.reset();
-      }
     }
     return newUpdateCounts;
   }

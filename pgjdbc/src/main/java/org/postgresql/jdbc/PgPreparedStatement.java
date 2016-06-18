@@ -16,7 +16,7 @@ import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ServerVersion;
-import org.postgresql.core.v3.BatchedQueryDecorator;
+import org.postgresql.core.v3.BatchedQuery;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.util.ByteConverter;
@@ -1122,8 +1122,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
     // we need to create copies of our parameters, otherwise the values can be changed
     batchParameters.add(preparedParameters.copy());
-    if (!preparedQuery.query.isStatementReWritableInsert() || batchParameters.size() <= 1) {
-      batchStatements.add(preparedQuery.query);
+    Query query = preparedQuery.query;
+    if (!(query instanceof BatchedQuery) || batchStatements.isEmpty()) {
+      batchStatements.add(query);
     }
   }
 
@@ -1655,59 +1656,43 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   @Override
   protected void transformQueriesAndParameters() throws SQLException {
-    if (!preparedQuery.query.isStatementReWritableInsert() || batchParameters.size() <= 1) {
+    if (batchParameters.size() <= 1
+        || !(preparedQuery.query instanceof BatchedQuery)) {
       return;
     }
-    BatchedQueryDecorator originalQD = (BatchedQueryDecorator) preparedQuery.query;
+    BatchedQuery originalQuery = (BatchedQuery) preparedQuery.query;
     // Single query cannot have more than {@link Short#MAX_VALUE} binds, thus
     // the number of multi-values blocks should be capped.
     // Typically, it does not make much sense to batch more than 128 rows: performance
     // does not improve much after updating 128 statements with 1 multi-valued one, thus
     // we cap maximum batch size and split there.
-    int paramCount = originalQD.getBindPositions();
-    int highestBlockCount = 128;
-    int maxValueBlocks =
-        Math.min(Math.max(1, (Short.MAX_VALUE - 1) / paramCount), highestBlockCount);
+    final int bindCount = originalQuery.getBindCount();
+    final int highestBlockCount = 128;
+    final int maxValueBlocks =
+        Integer.highestOneBit( // deriveForMultiBatch supports powers of two only
+            Math.min(Math.max(1, (Short.MAX_VALUE - 1) / bindCount), highestBlockCount));
     int unprocessedBatchCount = batchParameters.size();
-    int fullValueBlocksCount = unprocessedBatchCount / maxValueBlocks;
-    int partialValueBlocksCount = unprocessedBatchCount % maxValueBlocks;
-    if (partialValueBlocksCount > 0) {
-      // If there are remaining batches, we split them into smaller blocks.
-      // We decided to go for blocks with sizes of power of 2.
-      // Count the number of powers of 2 in remainder.
-      int newPartialValueBlocksCount = 0;
-      while (partialValueBlocksCount > 0) {
-        newPartialValueBlocksCount += partialValueBlocksCount & 0x1;
-        partialValueBlocksCount = partialValueBlocksCount >> 1;
-      }
-      partialValueBlocksCount = newPartialValueBlocksCount;
-    }
-    int count = fullValueBlocksCount + partialValueBlocksCount;
+    final int fullValueBlocksCount = unprocessedBatchCount / maxValueBlocks;
+    final int partialValueBlocksCount = Integer.bitCount(unprocessedBatchCount % maxValueBlocks);
+    final int count = fullValueBlocksCount + partialValueBlocksCount;
     ArrayList<Query> newBatchStatements = new ArrayList<Query>(count);
     ArrayList<ParameterList> newBatchParameters = new ArrayList<ParameterList>(count);
     int offset = 0;
     for (int i = 0; i < count; i++) {
-      int valueBlock = Math.min(unprocessedBatchCount, maxValueBlocks);
-      while ((valueBlock & highestBlockCount) == 0) {
-        highestBlockCount = highestBlockCount >> 1;
+      int valueBlock;
+      if (unprocessedBatchCount >= maxValueBlocks) {
+        valueBlock = maxValueBlocks;
+      } else {
+        valueBlock = Integer.highestOneBit(unprocessedBatchCount);
       }
-      valueBlock = highestBlockCount;
       // Find appropriate batch for block count.
-      BatchedQueryDecorator qd = originalQD.deriveForMultiBatch(valueBlock);
-      ParameterList newPl = qd.createParameterList();
+      BatchedQuery bq = originalQuery.deriveForMultiBatch(valueBlock);
+      ParameterList newPl = bq.createParameterList();
       for (int j = 0; j < valueBlock; j++) {
         ParameterList pl = batchParameters.get(offset++);
         newPl.appendAll(pl);
       }
-      if (i == 0 || valueBlock != maxValueBlocks) {
-        // Populate preparedTypes meta data
-        int[] userTypeInformation = preparedParameters.getTypeOIDs();
-        if (userTypeInformation != null && userTypeInformation.length > 0
-            && userTypeInformation.length == qd.getNativeQuery().bindPositions.length) {
-          qd.setStatementTypes(userTypeInformation);
-        }
-      }
-      newBatchStatements.add(qd);
+      newBatchStatements.add(bq);
       newBatchParameters.add(newPl);
       unprocessedBatchCount -= valueBlock;
     }

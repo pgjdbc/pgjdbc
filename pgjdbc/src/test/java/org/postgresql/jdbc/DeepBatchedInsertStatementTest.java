@@ -9,15 +9,12 @@
 package org.postgresql.jdbc;
 
 import org.postgresql.PGProperty;
-import org.postgresql.core.CachedQuery;
-import org.postgresql.core.Oid;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
-import org.postgresql.core.v3.BatchedQueryDecorator;
+import org.postgresql.core.v3.BatchedQuery;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.sql.Date;
 import java.sql.SQLException;
@@ -32,459 +29,8 @@ import java.util.Properties;
  * on.
  */
 public class DeepBatchedInsertStatementTest extends BaseTest {
-
-  public void testDeepInternalsBatchedQueryDecorator() throws Exception {
-    PgPreparedStatement pstmt = null;
-    try {
-      pstmt = (PgPreparedStatement) con
-          .prepareStatement("INSERT INTO testbatch VALUES (?,?)");
-
-      pstmt.setInt(1, 1);
-      pstmt.setInt(2, 2);
-      pstmt.addBatch(); // initial pass
-      pstmt.setInt(1, 3);
-      pstmt.setInt(2, 4);
-      pstmt.addBatch();// preparedQuery should be wrapped
-
-      BatchedQueryDecorator bqd = getBatchedQueryDecorator(pstmt);
-      BatchedQueryDecorator[] bqds;
-      bqds = transformBQD(pstmt);
-      assertEquals(2, getBatchSize(bqds));
-
-      pstmt.setInt(1, 5);
-      pstmt.setInt(2, 6);
-      pstmt.addBatch();
-
-      bqds = transformBQD(pstmt);
-      assertEquals(3, getBatchSize(bqds));
-      assertTrue(
-          "Expected type information for each parameter not found.",
-          Arrays.equals(new int[] { Oid.INT4, Oid.INT4, Oid.INT4, Oid.INT4,
-              Oid.INT4, Oid.INT4}, getStatementTypes(bqds)));
-
-      assertTrue(
-          "Expected outcome not returned by batch execution.",
-          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
-              Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO },
-              pstmt.executeBatch()));
-      bqds = transformBQD(pstmt);
-
-      assertEquals(0, getBatchSize(bqds));
-      assertEquals(0, getStatementTypes(bqds).length);
-
-      pstmt.setInt(1, 1);
-      pstmt.setInt(2, 2);
-      pstmt.addBatch();
-
-      bqds = transformBQD(pstmt);
-      assertEquals(1, getBatchSize(bqds));
-
-      pstmt.setInt(1, 3);
-      pstmt.setInt(2, 4);
-      pstmt.addBatch();
-      bqds = transformBQD(pstmt);
-      assertEquals(2, getBatchSize(bqds));
-      assertEquals(4, getStatementTypes(bqds).length);
-
-      pstmt.setInt(1, 5);
-      pstmt.setInt(2, 6);
-      pstmt.addBatch();
-      bqds = transformBQD(pstmt);
-      assertEquals(3, getBatchSize(bqds));
-      assertEquals(6, getStatementTypes(bqds).length);
-
-      assertTrue(
-          "Expected outcome not returned by batch execution.",
-          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
-              Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO },
-              pstmt.executeBatch()));
-      assertTrue("Expected encoded name is not matched.", Arrays.equals( "S_2".getBytes(),
-          getEncodedStatementName(bqds[0])));
-
-      pstmt.setInt(1, 1);
-      pstmt.setInt(2, 2);
-      pstmt.addBatch();
-      bqds = transformBQD(pstmt);
-      assertEquals(1, getBatchSize(bqds));
-      pstmt.setInt(1, 3);
-      pstmt.setInt(2, 4);
-      pstmt.addBatch();
-      bqds = transformBQD(pstmt);
-      assertEquals(2, getBatchSize(bqds));
-      assertEquals(4, getStatementTypes(bqds).length);
-
-      pstmt.setInt(1, 5);
-      pstmt.setInt(2, 6);
-      pstmt.addBatch();
-      bqds = transformBQD(pstmt);
-      assertEquals(3, getBatchSize(bqds));
-      assertEquals(6, getStatementTypes(bqds).length);
-
-      pstmt.setInt(1, 7);
-      pstmt.setInt(2, 8);
-      pstmt.addBatch();
-      bqds = transformBQD(pstmt);
-      assertEquals(4, getBatchSize(bqds));
-      assertEquals(8, getStatementTypes(bqds).length);
-
-      assertTrue(
-          "Expected outcome not returned by batch execution.",
-          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
-              Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO,
-              Statement.SUCCESS_NO_INFO }, pstmt.executeBatch()));
-
-      pstmt.setInt(1, 1);
-      pstmt.setInt(2, 2);
-      pstmt.addBatch();
-      bqds = transformBQD(pstmt);
-      assertEquals(1, getBatchSize(bqds));
-      pstmt.setInt(1, 3);
-      pstmt.setInt(2, 4);
-      pstmt.addBatch();
-      bqds = transformBQD(pstmt);
-      assertEquals(2, getBatchSize(bqds));
-      assertEquals(4, getStatementTypes(bqds).length);
-
-      pstmt.setInt(1, 5);
-      pstmt.setInt(2, 6);
-      pstmt.addBatch();
-      bqds = transformBQD(pstmt);
-      assertEquals(3, getBatchSize(bqds));
-      assertEquals(6, getStatementTypes(bqds).length);
-
-      assertTrue(
-          "Expected outcome not returned by batch execution.",
-          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
-              Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO },
-              pstmt.executeBatch()));
-
-      pstmt.setInt(1, 1);
-      pstmt.setInt(2, 2);
-      pstmt.addBatch();
-      bqds = transformBQD(pstmt);
-      assertEquals(1, getBatchSize(bqds));
-      pstmt.setInt(1, 3);
-      pstmt.setInt(2, 4);
-      pstmt.addBatch();
-      bqds = transformBQD(pstmt);
-      assertEquals(2, getBatchSize(bqds));
-      assertEquals(4, getStatementTypes(bqds).length);
-
-      pstmt.setInt(1, 5);
-      pstmt.setInt(2, 6);
-      pstmt.addBatch();
-      bqds = transformBQD(pstmt);
-      assertEquals(3, getBatchSize(bqds));
-      assertEquals(6, getStatementTypes(bqds).length);
-
-      assertTrue(
-          "Expected outcome not returned by batch execution.",
-          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
-              Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO },
-              pstmt.executeBatch()));
-
-      pstmt.setInt(1, 1);
-      pstmt.setInt(2, 2);
-      pstmt.addBatch();
-      bqds = transformBQD(pstmt);
-      assertEquals(1, getBatchSize(bqds));
-      pstmt.setInt(1, 3);
-      pstmt.setInt(2, 4);
-      pstmt.addBatch();
-      bqds = transformBQD(pstmt);
-      assertEquals(2, getBatchSize(bqds));
-      assertEquals(4, getStatementTypes(bqds).length);
-
-      assertTrue(
-          "Expected outcome not returned by batch execution.",
-          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
-              Statement.SUCCESS_NO_INFO }, pstmt.executeBatch()));
-    } finally {
-      if (null != pstmt) {
-        pstmt.close();
-      }
-      con.rollback();
-    }
-  }
-
-  /**
-   *
-   */
-  public void testUnspecifiedParameterType() throws Exception {
-    PgPreparedStatement pstmt = null;
-    try {
-      pstmt = (PgPreparedStatement) con
-          .prepareStatement("INSERT INTO testunspecified VALUES (?,?)");
-
-      pstmt.setInt(1, 1);
-      pstmt.setDate(2, new Date(1970, 01, 01));
-      pstmt.addBatch();
-
-      pstmt.setInt(1, 2);
-      pstmt.setDate(2, new Date(1971, 01, 01));
-      pstmt.addBatch();
-
-      BatchedQueryDecorator bqd = getBatchedQueryDecorator(pstmt);
-      BatchedQueryDecorator[] bqds;
-      bqds = transformBQD(pstmt);
-      assertTrue(
-          "Expected type information for each parameter not found.",
-          Arrays.equals(new int[] { Oid.INT4, Oid.UNSPECIFIED, Oid.INT4,
-              Oid.UNSPECIFIED}, getStatementTypes(bqds)));
-
-      assertTrue(
-          "Expected outcome not returned by batch execution.",
-          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
-              Statement.SUCCESS_NO_INFO }, pstmt.executeBatch()));
-
-      pstmt.setInt(1, 1);
-      pstmt.setDate(2, new Date(1970, 01, 01));
-      pstmt.addBatch();
-      pstmt.setInt(1, 2);
-      pstmt.setDate(2, new Date(1971, 01, 01));
-      pstmt.addBatch();
-
-      bqds = transformBQD(pstmt);
-      assertFalse(
-          "Expected type information for each Date parameter was not updated by backend.",
-          Arrays.equals(new int[] { Oid.INT4, Oid.UNSPECIFIED, Oid.INT4,
-              Oid.UNSPECIFIED}, getStatementTypes(bqds)));
-      assertTrue(
-          "Expected outcome not returned by batch execution.",
-          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
-              Statement.SUCCESS_NO_INFO }, pstmt.executeBatch()));
-    } finally {
-      if (null != pstmt) {
-        pstmt.close();
-      }
-      con.rollback();
-    }
-  }
-
-  /**
-   * Test to check the statement can provide the necessary number of prepared
-   * type fields. This is after running with a batch size of 1.
-   */
-  public void testVaryingTypeCounts() throws SQLException {
-    PgPreparedStatement pstmt = null;
-    try {
-      pstmt = (PgPreparedStatement)con.prepareStatement("INSERT INTO testunspecified VALUES (?,?)");
-      pstmt.setInt(1, 1);
-      pstmt.setDate(2, new Date(1970, 01, 01));
-      pstmt.addBatch();
-
-      assertTrue(
-          "Expected outcome not returned by batch execution.",
-          Arrays.equals(new int[] { 1 }, pstmt.executeBatch()));
-      pstmt.setInt(1, 1);
-      pstmt.setDate(2, new Date(1970, 01, 01));
-      pstmt.addBatch();
-      pstmt.setInt(1, 2);
-      pstmt.setDate(2, new Date(1971, 01, 01));
-      pstmt.addBatch();
-
-      pstmt.setInt(1, 3);
-      pstmt.setDate(2, new Date(1972, 01, 01));
-      pstmt.addBatch();
-      pstmt.setInt(1, 4);
-      pstmt.setDate(2, new Date(1973, 01, 01));
-      pstmt.addBatch();
-
-      assertTrue(
-          "Expected outcome not returned by batch execution.",
-          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
-              Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO,
-              Statement.SUCCESS_NO_INFO}, pstmt.executeBatch()));
-    } finally {
-      if (null != pstmt) {
-        pstmt.close();
-      }
-      con.rollback();
-    }
-  }
-
-  /**
-   * Test the estimation of sql string length.
-   * @throws SQLException fault raised due to sql
-   */
-  public void testNativeSqlSizeCalculation() throws Exception {
-    PgPreparedStatement pstmt = null;
-    try {
-      pstmt = (PgPreparedStatement) con.prepareStatement("INSERT INTO testbatch VALUES (?,?)");
-
-      pstmt.setInt(1, 1);
-      pstmt.setInt(2, 2);
-      pstmt.addBatch();
-      pstmt.setInt(1, 3);
-      pstmt.setInt(2, 4);
-      pstmt.addBatch(); // query will now be decorated
-      BatchedQueryDecorator bqd = getBatchedQueryDecorator(pstmt);
-      // do size comparison using a sql string built manually versus estimation
-      assertEquals("Expected sql length does not match estimated.", getSqlStringLength(36, 2, 1) , getLength(bqd, 36, 2, 1));
-      assertEquals("Expected sql length does not match estimated.", getSqlStringLength(36, 2, 3) , getLength(bqd, 36, 2, 3));
-      assertEquals("Expected sql length does not match estimated.", getSqlStringLength(36, 2, 7) , getLength(bqd, 36, 2, 7));
-      assertEquals("Expected sql length does not match estimated.", getSqlStringLength(65, 9, 1) , getLength(bqd, 65, 9, 1));
-      assertEquals("Expected sql length does not match estimated.", getSqlStringLength(10, 10, 1) , getLength(bqd, 10, 10, 1));
-      assertEquals("Expected sql length does not match estimated.", getSqlStringLength(10, 19, 1) , getLength(bqd, 10, 19, 1));
-      assertEquals("Expected sql length does not match estimated.", getSqlStringLength(10, 2, 1) , getLength(bqd, 10, 2, 1));
-      assertEquals("Expected sql length does not match estimated.", getSqlStringLength(10, 2, 18) , getLength(bqd, 10, 2, 18));
-      assertEquals("Expected sql length does not match estimated.", getSqlStringLength(10, 2, 999) , getLength(bqd, 10, 2, 999));
-      assertEquals("Expected sql length does not match estimated.", getSqlStringLength(10, 10, 9998) , getLength(bqd, 10, 10, 9998));
-      assertEquals("Expected sql length does not match estimated.", getSqlStringLength(10, 3, 99) , getLength(bqd, 10, 3, 99));
-    } finally {
-      if (null != pstmt) {
-        pstmt.close();
-      }
-      con.rollback();
-    }
-  }
-
-  /**
-   * This method helps to gain access to BQD field.
-   * The reason for using reflection is to preserve encapsulation in the codebase.
-   * @param ps PgPreparedStatement statement that will contain the field
-   * @return BatchedQueryDecorator field that is needed
-   * @throws Exception fault raised when the field cannot be accessed
-   */
-  private BatchedQueryDecorator getBatchedQueryDecorator(PgPreparedStatement ps)
-      throws Exception {
-    Field f = ps.getClass().getDeclaredField("preparedQuery");
-    assertNotNull(f);
-    f.setAccessible(true);
-    Object cq = f.get(ps);
-    assertNotNull(cq);
-    assertTrue(cq instanceof CachedQuery);
-    Field fQuery = CachedQuery.class.getDeclaredField("query");
-    fQuery.setAccessible(true);
-    Object bqd = fQuery.get(cq);
-    return (BatchedQueryDecorator) bqd;
-  }
-
-  /**
-   * This method triggers the transformation of single batches to multi batches.
-   *
-   * @param qd BatchedQueryDecorator query decorator to transform
-   * @param ps PgPreparedStatement statement that will contain the field
-   * @return BatchedQueryDecorator[] queries after conversion
-   * @throws Exception fault raised when the field cannot be accessed
-   */
-  private BatchedQueryDecorator[] transformBQD(PgPreparedStatement ps) throws Exception {
-    // We store collections that get replace on the statement
-    ArrayList<Query> batchStatements = ps.batchStatements;
-    ArrayList<ParameterList> batchParameters = ps.batchParameters;
-    ps.transformQueriesAndParameters();
-    BatchedQueryDecorator[] bqds = ps.batchStatements.toArray(new BatchedQueryDecorator[0]);
-    // Restore collections on the statement.
-    ps.batchStatements = batchStatements;
-    ps.batchParameters = batchParameters;
-    return bqds;
-  }
-
-  /**
-   * Get the total batch size of multi batches.
-   *
-   * @param bqds the converted queries
-   * @return the total batch size
-   */
-  private int getBatchSize(BatchedQueryDecorator[] bqds) {
-    int total = 0;
-    for (int i = 0; i < bqds.length; i++) {
-      total += bqds[i].getBatchSize();
-    }
-    return total;
-  }
-
-  /**
-   * Get the statement types of multi batches.
-   *
-   * @param bqds the converted queries
-   * @return the aggregated statement types
-   */
-  private int[] getStatementTypes(BatchedQueryDecorator[] bqds) {
-    int count = 0;
-    for (int i = 0; i < bqds.length; i++) {
-      count += bqds[i].getStatementTypes().length;
-    }
-    int[] types = new int[count];
-    int offset = 0;
-    for (int i = 0; i < bqds.length; i++) {
-      int[] statementTypes = bqds[i].getStatementTypes();
-      for (int j = 0; j < statementTypes.length; j++) {
-        types[offset++] = statementTypes[j];
-      }
-    }
-    return types;
-  }
-
-  /**
-   * Access the encoded statement name field.
-   * Again using reflection to gain access to a private field member
-   * @param bqd BatchedQueryDecorator object on which field is present
-   * @return byte[] array of bytes that represent the statement name
-   * when encoded
-   * @throws Exception fault raised if access to field not possible
-   */
-  private byte[] getEncodedStatementName(BatchedQueryDecorator bqd)
-      throws Exception {
-    Class<?> clazz = Class.forName("org.postgresql.core.v3.SimpleQuery");
-    Method mESN = clazz.getDeclaredMethod("getEncodedStatementName");
-    mESN.setAccessible(true);
-    return (byte[]) mESN.invoke(bqd);
-  }
-
-  /**
-   * Create the sql string and return the length of the string
-   * @param nativeSize int length of sql statement
-   * @param paramCount int number of parameters in single batch
-   * @param remainingBatches int remaining number of batches to calculate
-   * @return int size of the string
-   */
-  private int getSqlStringLength(int nativeSize, int paramCount, int remainingBatches) {
-    StringBuilder sql = new StringBuilder();
-    int param = paramCount;
-    for (int i = 0 ; i < nativeSize; i++ ) {
-      sql.append("*");
-    }
-    for (int c = 0; c < remainingBatches; c++) {
-      sql.append(",($");
-      sql.append(Integer.toString(++param));
-      for (int p = 1; p < paramCount; p++) {
-        sql.append(",$");
-        sql.append(Integer.toString(++param));
-      }
-      sql.append(")");
-    }
-    return sql.length();
-  }
-
-  /**
-   * Get the calculated size of string using the BQD implementation.
-   * Use reflection to access the method having private access
-   * @param bqd BatchedQueryDecorator decorator object
-   * @param nativeSize int length of sql statement string
-   * @param paramCount int number of parameters in a single batch
-   * @param batchSize int remaining number of batches to calculate
-   * @return int size estimated by BQD of the sql string
-   */
-  private int getLength(BatchedQueryDecorator bqd, int nativeSize, int paramCount,
-      int batchSize) throws Exception {
-    // valuesBlockCharCount is the number of chars of the values block without the parameters.
-    int valuesBlockCharCount = 0;
-    valuesBlockCharCount++; // "("
-    valuesBlockCharCount += paramCount; // ","
-    valuesBlockCharCount++; // ")"
-    Method mgetSize = bqd.getClass().getDeclaredMethod("calculateLength",
-        Integer.TYPE, Integer.TYPE, Integer.TYPE, Integer.TYPE);
-    mgetSize.setAccessible(true);
-    return (Integer) mgetSize.invoke(bqd, nativeSize, paramCount, batchSize, valuesBlockCharCount);
-  }
-
   public DeepBatchedInsertStatementTest(String name) {
     super(name);
-    try {
-      Class.forName("org.postgresql.Driver");
-    } catch (Exception ex) {
-    }
   }
 
   /*
@@ -523,5 +69,286 @@ public class DeepBatchedInsertStatementTest extends BaseTest {
   protected void updateProperties(Properties props) {
     PGProperty.REWRITE_BATCHED_INSERTS.set(props, true);
     forceBinary(props);
+  }
+
+  public void testDeepInternalsBatchedQueryDecorator() throws Exception {
+    PgPreparedStatement pstmt = null;
+    try {
+      pstmt = (PgPreparedStatement) con
+          .prepareStatement("INSERT INTO testbatch VALUES (?,?)");
+
+      pstmt.setInt(1, 1);
+      pstmt.setInt(2, 2);
+      pstmt.addBatch(); // initial pass
+      pstmt.setInt(1, 3);
+      pstmt.setInt(2, 4);
+      pstmt.addBatch();// preparedQuery should be wrapped
+
+      BatchedQuery[] bqds;
+      bqds = transformBQD(pstmt);
+      assertEquals(2, getBatchSize(bqds));
+
+      pstmt.setInt(1, 5);
+      pstmt.setInt(2, 6);
+      pstmt.addBatch();
+
+      bqds = transformBQD(pstmt);
+      assertEquals(3, getBatchSize(bqds));
+
+      assertTrue(
+          "Expected outcome not returned by batch execution.",
+          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
+              Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO },
+              pstmt.executeBatch()));
+      bqds = transformBQD(pstmt);
+
+      assertEquals(0, getBatchSize(bqds));
+
+      pstmt.setInt(1, 1);
+      pstmt.setInt(2, 2);
+      pstmt.addBatch();
+
+      bqds = transformBQD(pstmt);
+      assertEquals(1, getBatchSize(bqds));
+
+      pstmt.setInt(1, 3);
+      pstmt.setInt(2, 4);
+      pstmt.addBatch();
+      bqds = transformBQD(pstmt);
+      assertEquals(2, getBatchSize(bqds));
+
+      pstmt.setInt(1, 5);
+      pstmt.setInt(2, 6);
+      pstmt.addBatch();
+      bqds = transformBQD(pstmt);
+      assertEquals(3, getBatchSize(bqds));
+
+      assertTrue(
+          "Expected outcome not returned by batch execution.",
+          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
+              Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO },
+              pstmt.executeBatch()));
+      assertTrue("Expected encoded name is not matched.", Arrays.equals( "S_2".getBytes(),
+          getEncodedStatementName(bqds[0])));
+
+      pstmt.setInt(1, 1);
+      pstmt.setInt(2, 2);
+      pstmt.addBatch();
+      bqds = transformBQD(pstmt);
+      assertEquals(1, getBatchSize(bqds));
+      pstmt.setInt(1, 3);
+      pstmt.setInt(2, 4);
+      pstmt.addBatch();
+      bqds = transformBQD(pstmt);
+      assertEquals(2, getBatchSize(bqds));
+
+      pstmt.setInt(1, 5);
+      pstmt.setInt(2, 6);
+      pstmt.addBatch();
+      bqds = transformBQD(pstmt);
+      assertEquals(3, getBatchSize(bqds));
+
+      pstmt.setInt(1, 7);
+      pstmt.setInt(2, 8);
+      pstmt.addBatch();
+      bqds = transformBQD(pstmt);
+      assertEquals(4, getBatchSize(bqds));
+
+      assertTrue(
+          "Expected outcome not returned by batch execution.",
+          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
+              Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO,
+              Statement.SUCCESS_NO_INFO }, pstmt.executeBatch()));
+
+      pstmt.setInt(1, 1);
+      pstmt.setInt(2, 2);
+      pstmt.addBatch();
+      bqds = transformBQD(pstmt);
+      assertEquals(1, getBatchSize(bqds));
+      pstmt.setInt(1, 3);
+      pstmt.setInt(2, 4);
+      pstmt.addBatch();
+      bqds = transformBQD(pstmt);
+      assertEquals(2, getBatchSize(bqds));
+
+      pstmt.setInt(1, 5);
+      pstmt.setInt(2, 6);
+      pstmt.addBatch();
+      bqds = transformBQD(pstmt);
+      assertEquals(3, getBatchSize(bqds));
+
+      assertTrue(
+          "Expected outcome not returned by batch execution.",
+          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
+              Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO },
+              pstmt.executeBatch()));
+
+      pstmt.setInt(1, 1);
+      pstmt.setInt(2, 2);
+      pstmt.addBatch();
+      bqds = transformBQD(pstmt);
+      assertEquals(1, getBatchSize(bqds));
+      pstmt.setInt(1, 3);
+      pstmt.setInt(2, 4);
+      pstmt.addBatch();
+      bqds = transformBQD(pstmt);
+      assertEquals(2, getBatchSize(bqds));
+
+      pstmt.setInt(1, 5);
+      pstmt.setInt(2, 6);
+      pstmt.addBatch();
+      bqds = transformBQD(pstmt);
+      assertEquals(3, getBatchSize(bqds));
+
+      assertTrue(
+          "Expected outcome not returned by batch execution.",
+          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
+              Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO },
+              pstmt.executeBatch()));
+
+      pstmt.setInt(1, 1);
+      pstmt.setInt(2, 2);
+      pstmt.addBatch();
+      bqds = transformBQD(pstmt);
+      assertEquals(1, getBatchSize(bqds));
+      pstmt.setInt(1, 3);
+      pstmt.setInt(2, 4);
+      pstmt.addBatch();
+      bqds = transformBQD(pstmt);
+      assertEquals(2, getBatchSize(bqds));
+
+      assertTrue(
+          "Expected outcome not returned by batch execution.",
+          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
+              Statement.SUCCESS_NO_INFO }, pstmt.executeBatch()));
+    } finally {
+      TestUtil.closeQuietly(pstmt);
+    }
+  }
+
+  /**
+   *
+   */
+  public void testUnspecifiedParameterType() throws Exception {
+    PgPreparedStatement pstmt = null;
+    try {
+      pstmt = (PgPreparedStatement) con
+          .prepareStatement("INSERT INTO testunspecified VALUES (?,?)");
+
+      pstmt.setInt(1, 1);
+      pstmt.setDate(2, new Date(1));
+      pstmt.addBatch();
+
+      pstmt.setInt(1, 2);
+      pstmt.setDate(2, new Date(2));
+      pstmt.addBatch();
+
+      assertTrue(
+          "Expected outcome not returned by batch execution.",
+          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
+              Statement.SUCCESS_NO_INFO }, pstmt.executeBatch()));
+
+      pstmt.setInt(1, 1);
+      pstmt.setDate(2, new Date(3));
+      pstmt.addBatch();
+      pstmt.setInt(1, 2);
+      pstmt.setDate(2, new Date(4));
+      pstmt.addBatch();
+
+      assertTrue(
+          "Expected outcome not returned by batch execution.",
+          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
+              Statement.SUCCESS_NO_INFO }, pstmt.executeBatch()));
+    } finally {
+      TestUtil.closeQuietly(pstmt);
+    }
+  }
+
+  /**
+   * Test to check the statement can provide the necessary number of prepared
+   * type fields. This is after running with a batch size of 1.
+   */
+  public void testVaryingTypeCounts() throws SQLException {
+    PgPreparedStatement pstmt = null;
+    try {
+      pstmt = (PgPreparedStatement)con.prepareStatement("INSERT INTO testunspecified VALUES (?,?)");
+      pstmt.setInt(1, 1);
+      pstmt.setDate(2, new Date(1));
+      pstmt.addBatch();
+
+      assertTrue(
+          "Expected outcome not returned by batch execution.",
+          Arrays.equals(new int[] { 1 }, pstmt.executeBatch()));
+      pstmt.setInt(1, 1);
+      pstmt.setDate(2, new Date(2));
+      pstmt.addBatch();
+      pstmt.setInt(1, 2);
+      pstmt.setDate(2, new Date(3));
+      pstmt.addBatch();
+
+      pstmt.setInt(1, 3);
+      pstmt.setDate(2, new Date(4));
+      pstmt.addBatch();
+      pstmt.setInt(1, 4);
+      pstmt.setDate(2, new Date(5));
+      pstmt.addBatch();
+
+      assertTrue(
+          "Expected outcome not returned by batch execution.",
+          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
+              Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO,
+              Statement.SUCCESS_NO_INFO}, pstmt.executeBatch()));
+    } finally {
+      TestUtil.closeQuietly(pstmt);
+    }
+  }
+
+  /**
+   * This method triggers the transformation of single batches to multi batches.
+   *
+   * @param ps PgPreparedStatement statement that will contain the field
+   * @return BatchedQueryDecorator[] queries after conversion
+   * @throws Exception fault raised when the field cannot be accessed
+   */
+  private BatchedQuery[] transformBQD(PgPreparedStatement ps) throws Exception {
+    // We store collections that get replace on the statement
+    ArrayList<Query> batchStatements = ps.batchStatements;
+    ArrayList<ParameterList> batchParameters = ps.batchParameters;
+    ps.transformQueriesAndParameters();
+    BatchedQuery[] bqds = ps.batchStatements.toArray(new BatchedQuery[0]);
+    // Restore collections on the statement.
+    ps.batchStatements = batchStatements;
+    ps.batchParameters = batchParameters;
+    return bqds;
+  }
+
+  /**
+   * Get the total batch size of multi batches.
+   *
+   * @param bqds the converted queries
+   * @return the total batch size
+   */
+  private int getBatchSize(BatchedQuery[] bqds) {
+    int total = 0;
+    for (BatchedQuery bqd : bqds) {
+      total += bqd.getBatchSize();
+    }
+    return total;
+  }
+
+  /**
+   * Access the encoded statement name field.
+   * Again using reflection to gain access to a private field member
+   * @param bqd BatchedQueryDecorator object on which field is present
+   * @return byte[] array of bytes that represent the statement name
+   * when encoded
+   * @throws Exception fault raised if access to field not possible
+   */
+  private byte[] getEncodedStatementName(BatchedQuery bqd)
+      throws Exception {
+    Class<?> clazz = Class.forName("org.postgresql.core.v3.SimpleQuery");
+    Method mESN = clazz.getDeclaredMethod("getEncodedStatementName");
+    mESN.setAccessible(true);
+    return (byte[]) mESN.invoke(bqd);
   }
 }

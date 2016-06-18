@@ -62,16 +62,8 @@ class V2Query implements Query {
     return nativeQuery.nativeSql.isEmpty();
   }
 
-  public boolean isStatementReWritableInsert() {
-    return statementReWritableInsert;
-  }
-
-  public void setStatementReWritableInsert(boolean canReWrite) {
-    statementReWritableInsert = canReWrite;
-  }
-
   public int getBatchSize() {
-    return batchSize;
+    return 1;
   }
 
   private static final ParameterList NO_PARAMETERS = new SimpleParameterList(0, false);
@@ -79,9 +71,5 @@ class V2Query implements Query {
   private final NativeQuery nativeQuery;
 
   private final boolean useEStringSyntax; // whether escaped string syntax should be used
-
-  private boolean statementReWritableInsert;
-
-  private int batchSize = 0;
 }
 

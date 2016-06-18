@@ -160,8 +160,8 @@ public class QueryExecutorImpl implements QueryExecutor {
             firstQuery.getCommand().getBatchRewriteValuesBraceOpenPosition();
         int valuesBraceClosePosition =
             firstQuery.getCommand().getBatchRewriteValuesBraceClosePosition();
-        return new BatchedQueryDecorator(firstQuery, valuesBraceOpenPosition,
-            valuesBraceClosePosition, protoConnection);
+        return new BatchedQuery(firstQuery, protoConnection, valuesBraceOpenPosition,
+            valuesBraceClosePosition);
       } else {
         return new SimpleQuery(firstQuery, protoConnection);
       }
@@ -1348,9 +1348,6 @@ public class QueryExecutorImpl implements QueryExecutor {
     }
 
     pendingParseQueue.add(query);
-    if (allowReWriteBatchedInserts && query instanceof BatchedQueryDecorator) { // not waiting for async message
-      ((BatchedQueryDecorator) query).registerQueryParsedStatus(true);
-    }
   }
 
   private void sendBind(SimpleQuery query, SimpleParameterList params, Portal portal,
