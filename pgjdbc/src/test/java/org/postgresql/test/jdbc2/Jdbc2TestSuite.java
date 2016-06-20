@@ -86,6 +86,7 @@ public class Jdbc2TestSuite extends TestSuite {
     suite.addTestSuite(BatchedInsertStatementPreparingTest.class);
     suite.addTestSuite(DeepBatchedInsertStatementTest.class);
     suite.addTestSuite(BatchedInsertDoubleRowInSingleBatch.class);
+    suite.addTest(new JUnit4TestAdapter(BatchInsertFreeze584.class));
 
     // Other misc tests, based on previous problems users have had or specific
     // features some applications require.
