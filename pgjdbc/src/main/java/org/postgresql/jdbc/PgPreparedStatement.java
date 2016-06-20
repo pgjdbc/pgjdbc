@@ -63,6 +63,8 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 //#endif
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -1418,6 +1420,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       }
     }
 
+    if (cal == null) {
+      cal = getDefaultCalendar();
+    }
     bindString(i, connection.getTimestampUtils().toString(cal, t), oid);
   }
 
@@ -1471,7 +1476,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         cal = pgTimestamp.getCalendar();
       }
     }
-
+    if (cal == null) {
+      cal = getDefaultCalendar();
+    }
     bindString(i, connection.getTimestampUtils().toString(cal, t), oid);
   }
 
@@ -1636,6 +1643,24 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   public void setURL(int parameterIndex, java.net.URL x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setURL(int,URL)");
+  }
+
+  private Calendar defaultCalendar;
+
+  @Override
+  public int[] executeBatch() throws SQLException {
+    try {
+      return super.executeBatch();
+    } finally {
+      defaultCalendar = null;
+    }
+  }
+
+  private Calendar getDefaultCalendar() {
+    if (defaultCalendar == null) {
+      defaultCalendar = new GregorianCalendar();
+    }
+    return defaultCalendar;
   }
 
   public ParameterMetaData getParameterMetaData() throws SQLException {
