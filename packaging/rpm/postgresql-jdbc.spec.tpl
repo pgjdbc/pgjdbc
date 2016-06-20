@@ -38,7 +38,7 @@
 %global upstreamrel	git
 %global source_path	pgjdbc/src/main/java/org/postgresql
 %global parent_ver	1.0.8
-%global parent_poms_builddir	./pgjdbc-parent-poms-REL%parent_ver
+%global parent_poms_builddir	./pgjdbc-parent-poms
 
 %global pgjdbc_mvn_options -DwaffleEnabled=false -DosgiEnabled=false \\\
     -DexcludePackageNames=org.postgresql.osgi:org.postgresql.sspi
@@ -59,8 +59,6 @@ Source1:	postgres-testing.sh
 # one dependant project on it?).  Let's try to not complicate packaging by
 # having separate spec file for it, too.
 Source2:	https://github.com/pgjdbc/pgjdbc-parent-poms/archive/REL%parent_ver.tar.gz
-
-Patch1:		hack-parents.patch
 
 BuildArch:	noarch
 BuildRequires:	java-devel >= 1.8
@@ -107,7 +105,7 @@ This package contains the API Documentation for %{name}.
 %setup -c -q -a 2
 
 mv %name-%version/* .
-pwd
+mv ./pgjdbc-parent-poms-REL%parent_ver %parent_poms_builddir
 
 # remove any binary libs
 find -name "*.jar" -or -name "*.class" | xargs rm -f
@@ -118,7 +116,12 @@ find -name "*.jar" -or -name "*.class" | xargs rm -f
 # Hack #0!  For upstream it is to some extent important to have the parent-poms
 # project separated.  Having it like that on downstream level does not help at
 # all.  Note that we have to revert this patch before we do the installation.
-%patch1 -p1 -b.hack-parent-poms
+sed -i.hack-parent-poms \
+  's!<relativePath />!<relativePath>../pgjdbc-parent-poms/pgjdbc-core-parent/pom.xml</relativePath>!' \
+  pgjdbc/pom.xml
+sed -i.hack-parent-poms \
+  '/<artifactId>pgjdbc-versions/a <relativePath>pgjdbc-parent-poms/pgjdbc-versions/pom.xml</relativePath>' \
+  pom.xml
 
 # Hack #1!  This directory is missing for some reason, it is most probably some
 # misunderstanding between maven, maven-compiler-plugin and
