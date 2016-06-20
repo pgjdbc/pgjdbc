@@ -61,7 +61,9 @@ public class PGStream {
     this.hostSpec = hostSpec;
 
     Socket socket = socketFactory.createSocket();
-    socket.connect(new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort()), timeout);
+    if (!socket.isConnected()) {
+      socket.connect(new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort()), timeout);
+    }
     changeSocket(socket);
     setEncoding(Encoding.getJVMEncoding("UTF-8"));
 
