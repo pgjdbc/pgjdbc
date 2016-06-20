@@ -9,13 +9,13 @@
 
 package org.postgresql.core.v2;
 
-import org.postgresql.core.DMLCommand;
-import org.postgresql.core.DMLCommandType;
 import org.postgresql.core.NativeQuery;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Parser;
 import org.postgresql.core.ProtocolConnection;
 import org.postgresql.core.Query;
+import org.postgresql.core.SqlCommand;
+import org.postgresql.core.SqlCommandType;
 
 import java.util.List;
 
@@ -32,7 +32,7 @@ class V2Query implements Query {
     assert queries.size() <= 1 : "Exactly one query expected in V2. " + queries.size()
         + " queries given.";
 
-    nativeQuery = queries.isEmpty() ? new NativeQuery("", DMLCommand.createStatementTypeInfo(DMLCommandType.BLANK)) : queries.get(0);
+    nativeQuery = queries.isEmpty() ? new NativeQuery("", SqlCommand.createStatementTypeInfo(SqlCommandType.BLANK)) : queries.get(0);
   }
 
   public ParameterList createParameterList() {

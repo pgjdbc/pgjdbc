@@ -14,7 +14,7 @@ package org.postgresql.core;
  *
  */
 
-public enum DMLCommandType {
+public enum SqlCommandType {
 
   INSERT(true),
   /**
@@ -35,7 +35,7 @@ public enum DMLCommandType {
 
   private final boolean canSupportBatchedReWrite;
 
-  private DMLCommandType(boolean reWriteSupport) {
+  private SqlCommandType(boolean reWriteSupport) {
     canSupportBatchedReWrite = reWriteSupport;
   }
 

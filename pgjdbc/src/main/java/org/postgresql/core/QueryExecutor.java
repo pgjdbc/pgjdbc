@@ -110,7 +110,8 @@ public interface QueryExecutor {
    * Execute a Query, passing results to a provided ResultHandler.
    *
    * @param query the query to execute; must be a query returned from calling
-   *        {@link #createSimpleQuery(String, boolean)} or {@link #createParameterizedQuery(String, boolean)} on this
+   *        {@link #createSimpleQuery(String, boolean, boolean)} or
+   *        {@link #createParameterizedQuery(String, boolean, boolean)} on this
    *        QueryExecutor object.
    * @param parameters the parameters for the query. Must be non-<code>null</code> if the query
    *        takes parameters. Must be a parameter object returned by
@@ -129,7 +130,8 @@ public interface QueryExecutor {
    * Execute several Query, passing results to a provided ResultHandler.
    *
    * @param queries the queries to execute; each must be a query returned from calling
-   *        {@link #createSimpleQuery(String, boolean)} or {@link #createParameterizedQuery(String, boolean)}
+   *        {@link #createSimpleQuery(String, boolean, boolean)} or
+   *        {@link #createParameterizedQuery(String, boolean, boolean)}
    *         on this QueryExecutor object.
    * @param parameterLists the parameter lists for the queries. The parameter lists correspond 1:1
    *        to the queries passed in the <code>queries</code> array. Each must be non-
@@ -164,9 +166,10 @@ public interface QueryExecutor {
    *
    * @param sql the SQL for the query to create
    * @param autocommit indicating when connection has autocommit enabled.
+   * @param allowReWriteBatchedInserts indicates the optimization is enabled
    * @return a new Query object
    */
-  Query createSimpleQuery(String sql, boolean autocommit);
+  Query createSimpleQuery(String sql, boolean autocommit, boolean allowReWriteBatchedInserts);
 
   /**
    * Create a parameterized Query object suitable for execution by this QueryExecutor. The provided
@@ -176,9 +179,11 @@ public interface QueryExecutor {
    *
    * @param sql the SQL for the query to create, with '?' placeholders for parameters.
    * @param autocommit indicating when connection has autocommit enabled.
+   * @param allowReWriteBatchedInserts indicates the optimization is enabled
    * @return a new Query object
    */
-  Query createParameterizedQuery(String sql, boolean autocommit); // Parsed for parameter placeholders ('?')
+  Query createParameterizedQuery(String sql, boolean autocommit, boolean allowReWriteBatchedInserts);
+  // Parsed for parameter placeholders ('?')
 
   /**
    * Prior to attempting to retrieve notifications, we need to pull any recently received

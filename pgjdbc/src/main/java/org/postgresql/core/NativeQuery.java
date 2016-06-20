@@ -19,7 +19,7 @@ public class NativeQuery {
 
   public final String nativeSql;
   public final int[] bindPositions;
-  public final DMLCommand command;
+  public final SqlCommand command;
 
   static {
     for (int i = 1; i < BIND_NAMES.length; i++) {
@@ -27,11 +27,11 @@ public class NativeQuery {
     }
   }
 
-  public NativeQuery(String nativeSql, DMLCommand dml) {
+  public NativeQuery(String nativeSql, SqlCommand dml) {
     this(nativeSql, NO_BINDS, dml);
   }
 
-  public NativeQuery(String nativeSql, int[] bindPositions, DMLCommand dml) {
+  public NativeQuery(String nativeSql, int[] bindPositions, SqlCommand dml) {
     this.nativeSql = nativeSql;
     this.bindPositions =
         bindPositions == null || bindPositions.length == 0 ? NO_BINDS : bindPositions;
@@ -83,7 +83,7 @@ public class NativeQuery {
     return BIND_NAMES.length;
   }
 
-  public DMLCommand getCommand() {
+  public SqlCommand getCommand() {
     return command;
   }
 }

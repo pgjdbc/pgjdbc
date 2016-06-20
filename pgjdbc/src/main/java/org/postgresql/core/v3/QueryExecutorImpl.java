@@ -11,8 +11,6 @@ package org.postgresql.core.v3;
 
 import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyOperation;
-import org.postgresql.core.DMLCommand;
-import org.postgresql.core.DMLCommandType;
 import org.postgresql.core.Field;
 import org.postgresql.core.Logger;
 import org.postgresql.core.NativeQuery;
@@ -26,6 +24,8 @@ import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandler;
+import org.postgresql.core.SqlCommand;
+import org.postgresql.core.SqlCommandType;
 import org.postgresql.core.Utils;
 import org.postgresql.jdbc.BatchResultHandler;
 import org.postgresql.jdbc.TimestampUtils;
@@ -60,7 +60,6 @@ public class QueryExecutorImpl implements QueryExecutor {
     this.logger = logger;
 
     this.allowEncodingChanges = PGProperty.ALLOW_ENCODING_CHANGES.getBoolean(info);
-    this.allowReWriteBatchedInserts = PGProperty.REWRITE_BATCHED_INSERTS.getBoolean(info);
   }
 
   /**
@@ -136,15 +135,18 @@ public class QueryExecutorImpl implements QueryExecutor {
   // Query parsing
   //
 
-  public Query createSimpleQuery(String sql, boolean autocommit) {
-    return parseQuery(sql, false, autocommit);
+  public Query createSimpleQuery(String sql, boolean autocommit,
+      boolean allowReWriteBatchedInserts) {
+    return parseQuery(sql, false, autocommit, allowReWriteBatchedInserts);
   }
 
-  public Query createParameterizedQuery(String sql, boolean autocommit) {
-    return parseQuery(sql, true, autocommit);
+  public Query createParameterizedQuery(String sql, boolean autocommit,
+      boolean allowReWriteBatchedInserts) {
+    return parseQuery(sql, true, autocommit, allowReWriteBatchedInserts);
   }
 
-  private Query parseQuery(String query, boolean withParameters, boolean autocommit) {
+  private Query parseQuery(String query, boolean withParameters, boolean autocommit,
+      boolean allowReWriteBatchedInserts) {
 
     List<NativeQuery> queries = Parser.parseJdbcSql(query,
         protoConnection.getStandardConformingStrings(), withParameters, true,
@@ -1342,7 +1344,8 @@ public class QueryExecutorImpl implements QueryExecutor {
     }
 
     pendingParseQueue.add(query);
-    if (allowReWriteBatchedInserts && query instanceof BatchedQueryDecorator) { // not waiting for async message
+    if (query.getNativeQuery().getCommand().isBatchedReWriteCompatible()) {
+      // not waiting for async message
       ((BatchedQueryDecorator) query).registerQueryParsedStatus(true);
     }
   }
@@ -2400,8 +2403,6 @@ public class QueryExecutorImpl implements QueryExecutor {
   private final PGStream pgStream;
   private final Logger logger;
   private final boolean allowEncodingChanges;
-  private final boolean allowReWriteBatchedInserts;
-
 
   /**
    * The estimated server response size since we last consumed the input stream from the server, in
@@ -2414,7 +2415,7 @@ public class QueryExecutorImpl implements QueryExecutor {
   private int estimatedReceiveBufferBytes = 0;
 
   private final SimpleQuery beginTransactionQuery =
-      new SimpleQuery(new NativeQuery("BEGIN", new int[0], DMLCommand.createStatementTypeInfo(DMLCommandType.BLANK)), null);
+      new SimpleQuery(new NativeQuery("BEGIN", new int[0], SqlCommand.createStatementTypeInfo(SqlCommandType.BLANK)), null);
 
-  private final SimpleQuery EMPTY_QUERY = new SimpleQuery(new NativeQuery("", new int[0], DMLCommand.createStatementTypeInfo(DMLCommandType.BLANK)), null);
+  private final SimpleQuery EMPTY_QUERY = new SimpleQuery(new NativeQuery("", new int[0], SqlCommand.createStatementTypeInfo(SqlCommandType.BLANK)), null);
 }
