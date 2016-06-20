@@ -7,27 +7,32 @@ copr_be_link=https://copr-be.cloud.fedoraproject.org/results/@pgjdbc/pgjdbc-trav
 status_file=copr_build_id
 
 copr_wrapper ()
-{
+(
+    set +x
+    echo "running copr-cli wrapper"
     str="Created builds: "
 
     copr-cli "$@" 2>&1 | \
     while read line
     do
+        echo "$line"
         case $line in
         "$str"*)
             echo "${line##$str}" > "$status_file"
             ;;
         esac
     done
-}
+)
 
 set -o pipefail
 cd "$1"
+git_rev=$(git rev-parse --short=7 HEAD)
+date_rev=$(date +%Y%m%d_%H%M%S)
+release=${date_rev}.git$git_rev
+sed "s!^Release:.*\$!Release: 1.$release%{?dist}!" "$2".spec.tpl > "$2".spec
 srpmgen
-dist=$(date +%Y%m%d_%H%M%S)
-build_local -bs "$2".spec --define "dist .$dist"
-
-copr_wrapper --config "$1"/copr-token build --nowait @pgjdbc/pgjdbc-travis "$2-$3-1.$dist.src.rpm"
+build_local -bs "$2".spec --define "dist %nil"
+copr_wrapper --config "$1"/copr-token build --nowait @pgjdbc/pgjdbc-travis "$2-$3-1.$release.src.rpm"
 copr_build_id=$(cat "$status_file")
 
 concrete_copr_be_link=$copr_be_link$(printf "%08d" "$copr_build_id")-postgresql-jdbc/
