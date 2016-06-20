@@ -1,0 +1,19 @@
+#! /bin/sh -xe
+
+# Go to correct directory.
+cd "$(dirname "$0")"
+
+# Decrypt copr token.  For security reasons, the security variable is not
+# exported in case of pull request -> thus this is going to fail.
+(
+    set +x +e # pssst!
+    echo "$copr_token_password" | gpg --batch --passphrase-fd 0 rpm/copr-token.gpg
+) || exit 0
+
+# If we have SELinux box, setup correct docker label
+if test -x /bin/chcon ; then
+    chcon -R -t svirt_sandbox_file_t ..
+fi
+
+docker run -e HOME=/git -u `id -u` -ti --rm -v `pwd`/..:/git praiskup/copr-and-jdbc-ci \
+    copr-ci-git /git/packaging/rpm postgresql-jdbc 9.5.git

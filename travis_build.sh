@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -x -e
 
+test xyes = x"$FEDORA_CI" && exec ./packaging/rpm_ci
+
 # Build project
 MVN_ARGS="clean package -B -V $MVN_CUSTOM_ARGS"
 MVN_PROFILES="release"
