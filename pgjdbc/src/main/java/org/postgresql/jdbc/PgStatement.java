@@ -962,8 +962,13 @@ public class PgStatement implements Statement, BaseStatement {
       flags = QueryExecutor.QUERY_NO_RESULTS;
     }
 
-    // Only use named statements after we hit the threshold
-    if (isOneShotQuery(null)) {
+    boolean sameQueryAhead = queries.length > 1 && queries[0] == queries[1];
+
+    if (isOneShotQuery(null)
+        // If executing the same query twice in a batch, make sure the statement
+        // is server-prepared. In other words, "oneshot" only if the query is one in the batch
+        // or the queries are different
+        && !sameQueryAhead) {
       flags |= QueryExecutor.QUERY_ONESHOT;
     } else {
       // If a batch requests generated keys and isn't already described,
@@ -972,7 +977,9 @@ public class PgStatement implements Statement, BaseStatement {
       // maximum data returned. Without that, we don't know how many queries
       // we'll be able to queue up before we risk a deadlock.
       // (see v3.QueryExecutorImpl's MAX_BUFFERED_RECV_BYTES)
-      preDescribe = wantsGeneratedKeysAlways && !queries[0].isStatementDescribed();
+
+      preDescribe = (wantsGeneratedKeysAlways || sameQueryAhead)
+          && !queries[0].isStatementDescribed();
       /*
        * It's also necessary to force a Describe on the first execution of the new statement, even
        * though we already described it, to work around bug #267.

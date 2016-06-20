@@ -27,8 +27,6 @@ public class BatchedQuery extends SimpleQuery {
   private final int valuesBraceOpenPosition;
   private final int valuesBraceClosePosition;
   private final int batchSize;
-  private int remainingParams = 0;
-  private int length = 0;
   private BatchedQuery[] blocks;
 
   public BatchedQuery(NativeQuery query, ProtocolConnectionImpl protoConnection,
