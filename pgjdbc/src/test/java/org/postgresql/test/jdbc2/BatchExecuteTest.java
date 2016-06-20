@@ -12,10 +12,12 @@ import org.postgresql.test.TestUtil;
 
 import java.sql.BatchUpdateException;
 import java.sql.DatabaseMetaData;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.util.Arrays;
 
 /*
@@ -45,7 +47,7 @@ public class BatchExecuteTest extends BaseTest {
 
     stmt.executeUpdate("INSERT INTO testbatch VALUES (1, 0)");
 
-    TestUtil.createTable(con, "prep", "a integer, b integer");
+    TestUtil.createTable(con, "prep", "a integer, b integer, d date");
 
     TestUtil.createTable(con, "batchUpdCnt", "id varchar(512) primary key, data varchar(512)");
     stmt.executeUpdate("INSERT INTO batchUpdCnt(id) VALUES ('key-2')");
@@ -452,6 +454,176 @@ public class BatchExecuteTest extends BaseTest {
       ex.getNextException().printStackTrace();
       throw ex;
     }
+  }
+
+  public void testBatchWithAlternatingAndUnknownTypes0() throws SQLException {
+    testBatchWithAlternatingAndUnknownTypesN(0);
+  }
+
+  public void testBatchWithAlternatingAndUnknownTypes1() throws SQLException {
+    testBatchWithAlternatingAndUnknownTypesN(1);
+  }
+
+  public void testBatchWithAlternatingAndUnknownTypes2() throws SQLException {
+    testBatchWithAlternatingAndUnknownTypesN(2);
+  }
+
+  public void testBatchWithAlternatingAndUnknownTypes3() throws SQLException {
+    testBatchWithAlternatingAndUnknownTypesN(3);
+  }
+
+  public void testBatchWithAlternatingAndUnknownTypes4() throws SQLException {
+    testBatchWithAlternatingAndUnknownTypesN(4);
+  }
+
+  public void testBatchWithAlternatingAndUnknownTypes5() throws SQLException {
+    testBatchWithAlternatingAndUnknownTypesN(5);
+  }
+
+  public void testBatchWithAlternatingAndUnknownTypes6() throws SQLException {
+    testBatchWithAlternatingAndUnknownTypesN(6);
+  }
+
+  /**
+   * This one is reproduced in regular (non-force binary) mode
+   * As of 9.4.1208 the following tests fail:
+   * BatchExecuteTest.testBatchWithAlternatingAndUnknownTypes3
+   * BatchExecuteTest.testBatchWithAlternatingAndUnknownTypes4
+   * BatchExecuteTest.testBatchWithAlternatingAndUnknownTypes5
+   * BatchExecuteTest.testBatchWithAlternatingAndUnknownTypes6
+   * @throws SQLException in case of failure
+   * @param numPreliminaryInserts number of preliminary inserts to make so the statement gets
+   *                              prepared
+   */
+  public void testBatchWithAlternatingAndUnknownTypesN(int numPreliminaryInserts)
+      throws SQLException {
+    PreparedStatement ps = null;
+    try {
+      con.setAutoCommit(true);
+      // This test requires autoCommit false to reproduce
+      ps = con.prepareStatement("insert into prep(a, d) values(?, ?)");
+      for (int i = 0; i < numPreliminaryInserts; i++) {
+        ps.setNull(1, Types.SMALLINT);
+        ps.setObject(2, new Date(42));
+        ps.addBatch();
+        ps.executeBatch();
+      }
+
+      ps.setObject(1, new Double(43));
+      ps.setObject(2, new Date(43));
+      ps.addBatch();
+      ps.setNull(1, Types.SMALLINT);
+      ps.setObject(2, new Date(44));
+      ps.addBatch();
+      ps.executeBatch();
+
+      ps.setObject(1, new Double(45));
+      ps.setObject(2, new Date(45)); // <-- this causes "oid of bind unknown, send Describe"
+      ps.addBatch();
+      ps.setNull(1, Types.SMALLINT);
+      ps.setNull(2, Types.DATE);     // <-- this uses Oid.DATE, thus no describe message
+      // As the same query object was reused the describe from Date(45) overwrites
+      // parameter types, thus Double(45)'s type (double) comes instead of SMALLINT.
+      // Thus pgjdbc thinks the prepared statement is prepared for (double, date) types
+      // however in reality the statement is prepared for (smallint, date) types.
+
+      ps.addBatch();
+      ps.executeBatch();
+
+      // This execution with (double, unknown) passes isPreparedForTypes check, and causes
+      // the failure
+      ps.setObject(1, new Double(47));
+      ps.setObject(2, new Date(47));
+      ps.addBatch();
+      ps.executeBatch();
+    } catch (BatchUpdateException e) {
+      throw e.getNextException();
+    } finally {
+      TestUtil.closeQuietly(ps);
+    }
+    /*
+Here's the log
+11:33:10.708 (1)  FE=> Parse(stmt=null,query="CREATE TABLE prep (a integer, b integer, d date) ",oids={})
+11:33:10.708 (1)  FE=> Bind(stmt=null,portal=null)
+11:33:10.708 (1)  FE=> Describe(portal=null)
+11:33:10.708 (1)  FE=> Execute(portal=null,limit=1)
+11:33:10.708 (1)  FE=> Sync
+11:33:10.710 (1)  <=BE ParseComplete [null]
+11:33:10.711 (1)  <=BE BindComplete [unnamed]
+11:33:10.711 (1)  <=BE NoData
+11:33:10.711 (1)  <=BE CommandStatus(CREATE TABLE)
+11:33:10.711 (1)  <=BE ReadyForQuery(I)
+11:33:10.716 (1) batch execute 1 queries, handler=org.postgresql.jdbc.PgStatement$BatchResultHandler@4629104a, maxRows=0, fetchSize=0, flags=5
+11:33:10.716 (1)  FE=> Parse(stmt=null,query="BEGIN",oids={})
+11:33:10.717 (1)  FE=> Bind(stmt=null,portal=null)
+11:33:10.717 (1)  FE=> Execute(portal=null,limit=0)
+11:33:10.718 (1)  FE=> Parse(stmt=null,query="insert into prep(a, d) values($1, $2)",oids={21,0})
+11:33:10.718 (1)  FE=> Bind(stmt=null,portal=null,$1=<NULL>:B:21,$2=<'1970-1-1 +3:0:0'>:T:0)
+11:33:10.719 (1)  FE=> Describe(portal=null)
+11:33:10.719 (1)  FE=> Execute(portal=null,limit=1)
+11:33:10.719 (1)  FE=> Sync
+11:33:10.720 (1)  <=BE ParseComplete [null]
+11:33:10.720 (1)  <=BE BindComplete [unnamed]
+11:33:10.720 (1)  <=BE CommandStatus(BEGIN)
+11:33:10.720 (1)  <=BE ParseComplete [null]
+11:33:10.720 (1)  <=BE BindComplete [unnamed]
+11:33:10.720 (1)  <=BE NoData
+11:33:10.720 (1)  <=BE CommandStatus(INSERT 0 1)
+11:33:10.720 (1)  <=BE ReadyForQuery(T)
+11:33:10.721 (1) batch execute 2 queries, handler=org.postgresql.jdbc.PgStatement$BatchResultHandler@27f8302d, maxRows=0, fetchSize=0, flags=5
+11:33:10.721 (1)  FE=> Parse(stmt=null,query="insert into prep(a, d) values($1, $2)",oids={701,0})
+11:33:10.723 (1)  FE=> Bind(stmt=null,portal=null,$1=<43.0>:B:701,$2=<'1970-1-1 +3:0:0'>:T:0)
+11:33:10.723 (1)  FE=> Describe(portal=null)
+11:33:10.723 (1)  FE=> Execute(portal=null,limit=1)
+11:33:10.723 (1)  FE=> Parse(stmt=null,query="insert into prep(a, d) values($1, $2)",oids={21,0})
+11:33:10.723 (1)  FE=> Bind(stmt=null,portal=null,$1=<NULL>:B:21,$2=<'1970-1-1 +3:0:0'>:T:0)
+11:33:10.723 (1)  FE=> Describe(portal=null)
+11:33:10.723 (1)  FE=> Execute(portal=null,limit=1)
+11:33:10.723 (1)  FE=> Sync
+11:33:10.723 (1)  <=BE ParseComplete [null]
+11:33:10.723 (1)  <=BE BindComplete [unnamed]
+11:33:10.725 (1)  <=BE NoData
+11:33:10.726 (1)  <=BE CommandStatus(INSERT 0 1)
+11:33:10.726 (1)  <=BE ParseComplete [null]
+11:33:10.726 (1)  <=BE BindComplete [unnamed]
+11:33:10.726 (1)  <=BE NoData
+11:33:10.726 (1)  <=BE CommandStatus(INSERT 0 1)
+11:33:10.726 (1)  <=BE ReadyForQuery(T)
+11:33:10.726 (1) batch execute 2 queries, handler=org.postgresql.jdbc.PgStatement$BatchResultHandler@4d76f3f8, maxRows=0, fetchSize=0, flags=516
+11:33:10.726 (1)  FE=> Parse(stmt=S_1,query="insert into prep(a, d) values($1, $2)",oids={701,0})
+11:33:10.727 (1)  FE=> Describe(statement=S_1)
+11:33:10.728 (1)  FE=> Bind(stmt=S_1,portal=null,$1=<45.0>:B:701,$2=<'1970-1-1 +3:0:0'>:T:0)
+11:33:10.728 (1)  FE=> Execute(portal=null,limit=1)
+11:33:10.729 (1)  FE=> CloseStatement(S_1)
+11:33:10.729 (1)  FE=> Parse(stmt=S_2,query="insert into prep(a, d) values($1, $2)",oids={21,1082})
+11:33:10.729 (1)  FE=> Bind(stmt=S_2,portal=null,$1=<NULL>:B:21,$2=<NULL>:B:1082)
+11:33:10.729 (1)  FE=> Describe(portal=null)
+11:33:10.729 (1)  FE=> Execute(portal=null,limit=1)
+11:33:10.729 (1)  FE=> Sync
+11:33:10.730 (1)  <=BE ParseComplete [S_2]
+11:33:10.730 (1)  <=BE ParameterDescription
+11:33:10.730 (1)  <=BE NoData
+11:33:10.730 (1)  <=BE BindComplete [unnamed]
+11:33:10.730 (1)  <=BE CommandStatus(INSERT 0 1)
+11:33:10.730 (1)  <=BE CloseComplete
+11:33:10.730 (1)  <=BE ParseComplete [S_2]
+11:33:10.730 (1)  <=BE BindComplete [unnamed]
+11:33:10.730 (1)  <=BE NoData
+11:33:10.731 (1)  <=BE CommandStatus(INSERT 0 1)
+11:33:10.731 (1)  <=BE ReadyForQuery(T)
+11:33:10.731 (1) batch execute 1 queries, handler=org.postgresql.jdbc.PgStatement$BatchResultHandler@4534b60d, maxRows=0, fetchSize=0, flags=516
+11:33:10.731 (1)  FE=> Bind(stmt=S_2,portal=null,$1=<47.0>:B:701,$2=<'1970-1-1 +3:0:0'>:T:1082)
+11:33:10.731 (1)  FE=> Describe(portal=null)
+11:33:10.731 (1)  FE=> Execute(portal=null,limit=1)
+11:33:10.731 (1)  FE=> Sync
+11:33:10.732 (1)  <=BE ErrorMessage(ERROR: incorrect binary data format in bind parameter 1)
+org.postgresql.util.PSQLException: ERROR: incorrect binary data format in bind parameter 1
+  at org.postgresql.core.v3.QueryExecutorImpl.receiveErrorResponse(QueryExecutorImpl.java:2185)
+  at org.postgresql.core.v3.QueryExecutorImpl.processResults(QueryExecutorImpl.java:1914)
+  at org.postgresql.core.v3.QueryExecutorImpl.execute(QueryExecutorImpl.java:338)
+  at org.postgresql.jdbc.PgStatement.executeBatch(PgStatement.java:2534)
+  at org.postgresql.test.jdbc2.BatchExecuteTest.testBatchWithAlternatingTypes2(BatchExecuteTest.java:460)
+    */
   }
 
   /**

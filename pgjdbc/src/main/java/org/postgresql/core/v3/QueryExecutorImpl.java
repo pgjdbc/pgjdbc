@@ -1526,7 +1526,10 @@ public class QueryExecutorImpl implements QueryExecutor {
     }
     pgStream.SendChar(0); // end message
 
-    pendingDescribeStatementQueue.add(new DescribeRequest(query, params, describeOnly));
+    // Note: statement name can change over time for the same query object
+    // Thus we take a snapshot of the query name
+    pendingDescribeStatementQueue.add(
+        new DescribeRequest(query, params, describeOnly, query.getStatementName()));
     pendingDescribePortalQueue.add(query);
     query.setStatementDescribed(true);
     query.setPortalDescribed(true);
@@ -1838,7 +1841,8 @@ public class QueryExecutorImpl implements QueryExecutor {
           SimpleQuery query = describeData.query;
           SimpleParameterList params = describeData.parameterList;
           boolean describeOnly = describeData.describeOnly;
-          String origStatementName = query.getStatementName();
+          // This might differ from query.getStatementName if the query was re-prepared
+          String origStatementName = describeData.statementName;
 
           int numParams = pgStream.ReceiveInteger2();
 
