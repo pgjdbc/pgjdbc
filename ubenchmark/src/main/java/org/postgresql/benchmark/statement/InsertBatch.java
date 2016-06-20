@@ -77,6 +77,11 @@ public class InsertBatch {
 
     Properties props = ConnectionUtil.getProperties();
 
+    if (bp.getBenchmark().contains("insertBatchWithRewrite")) {
+      // PGProperty.REWRITE_BATCHED_INSERTS is not used for easier use with previous pgjdbc versions
+      props.put("reWriteBatchedInserts", "true");
+    }
+
     connection = DriverManager.getConnection(ConnectionUtil.getURL(), props);
     Statement s = connection.createStatement();
     ;
@@ -135,6 +140,11 @@ public class InsertBatch {
       }
     }
     return ps.executeBatch();
+  }
+
+  @Benchmark
+  public int[] insertBatchWithRewrite() throws SQLException {
+    return insertBatch();
   }
 
   @Benchmark

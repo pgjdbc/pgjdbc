@@ -53,19 +53,6 @@ public interface Query {
   boolean isEmpty();
 
   /**
-   * Convenience to check if the Query has an insert statement
-   * that can be re-written.
-   * @return boolean value indication if the Query is an INSERT statement and
-   * compatible for re-write.
-   */
-  boolean isStatementReWritableInsert();
-
-  /**
-   * Increment the number of batched rows for this Query.
-   */
-  void incrementBatchSize();
-
-  /**
    * Get the number of times this Query has been batched.
    * @return number of times <code>addBatch()</code> has been called.
    */

@@ -32,11 +32,11 @@ public class BatchedInsertStatementPreparingTest extends BaseTest {
       pstmt.setInt(1, 3);
       pstmt.setInt(2, 4);
       pstmt.addBatch();
-      assertTrue(
+      assertEquals(
           "Expected outcome not returned by batch execution.",
-          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
-              Statement.SUCCESS_NO_INFO },
-              pstmt.executeBatch()));
+          Arrays.toString(new int[] { Statement.SUCCESS_NO_INFO,
+              Statement.SUCCESS_NO_INFO }),
+          Arrays.toString(pstmt.executeBatch()));
 
       pstmt.setInt(1, 1);
       pstmt.setInt(2, 2);
@@ -44,45 +44,11 @@ public class BatchedInsertStatementPreparingTest extends BaseTest {
       pstmt.setInt(1, 3);
       pstmt.setInt(2, 4);
       pstmt.addBatch();
-      assertTrue(
+      assertEquals(
           "Expected outcome not returned by batch execution.",
-          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
-              Statement.SUCCESS_NO_INFO },
-              pstmt.executeBatch()));
-
-      pstmt.setInt(1, 1);
-      pstmt.setInt(2, 2);
-      pstmt.addBatch();
-      pstmt.setInt(1, 3);
-      pstmt.setInt(2, 4);
-      pstmt.addBatch();
-      pstmt.setInt(1, 5);
-      pstmt.setInt(2, 6);
-      pstmt.addBatch();
-      pstmt.setInt(1, 7);
-      pstmt.setInt(2, 8);
-      pstmt.addBatch();
-      pstmt.setInt(1, 9);
-      pstmt.setInt(2, 10);
-      pstmt.addBatch();
-      assertTrue(
-          "Expected outcome not returned by batch execution.",
-          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
-              Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO,
-              Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO },
-              pstmt.executeBatch()));
-
-      pstmt.setInt(1, 1);
-      pstmt.setInt(2, 2);
-      pstmt.addBatch();
-      pstmt.setInt(1, 3);
-      pstmt.setInt(2, 4);
-      pstmt.addBatch();
-      assertTrue(
-          "Expected outcome not returned by batch execution.",
-          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
-              Statement.SUCCESS_NO_INFO },
-              pstmt.executeBatch()));
+          Arrays.toString(new int[] { Statement.SUCCESS_NO_INFO,
+              Statement.SUCCESS_NO_INFO }),
+          Arrays.toString(pstmt.executeBatch()));
 
       pstmt.setInt(1, 1);
       pstmt.setInt(2, 2);
@@ -99,12 +65,46 @@ public class BatchedInsertStatementPreparingTest extends BaseTest {
       pstmt.setInt(1, 9);
       pstmt.setInt(2, 10);
       pstmt.addBatch();
-      assertTrue(
+      assertEquals(
           "Expected outcome not returned by batch execution.",
-          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
+          Arrays.toString(new int[] { Statement.SUCCESS_NO_INFO,
               Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO,
-              Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO },
-              pstmt.executeBatch()));
+              Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO }),
+          Arrays.toString(pstmt.executeBatch()));
+
+      pstmt.setInt(1, 1);
+      pstmt.setInt(2, 2);
+      pstmt.addBatch();
+      pstmt.setInt(1, 3);
+      pstmt.setInt(2, 4);
+      pstmt.addBatch();
+      assertEquals(
+          "Expected outcome not returned by batch execution.",
+          Arrays.toString(new int[] { Statement.SUCCESS_NO_INFO,
+              Statement.SUCCESS_NO_INFO }),
+          Arrays.toString(pstmt.executeBatch()));
+
+      pstmt.setInt(1, 1);
+      pstmt.setInt(2, 2);
+      pstmt.addBatch();
+      pstmt.setInt(1, 3);
+      pstmt.setInt(2, 4);
+      pstmt.addBatch();
+      pstmt.setInt(1, 5);
+      pstmt.setInt(2, 6);
+      pstmt.addBatch();
+      pstmt.setInt(1, 7);
+      pstmt.setInt(2, 8);
+      pstmt.addBatch();
+      pstmt.setInt(1, 9);
+      pstmt.setInt(2, 10);
+      pstmt.addBatch();
+      assertEquals(
+          "Expected outcome not returned by batch execution.",
+          Arrays.toString(new int[] { Statement.SUCCESS_NO_INFO,
+              Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO,
+              Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO }),
+          Arrays.toString(pstmt.executeBatch()));
       // at this point the x_P_2 and the x_P_6 statements have been prepared
 
       pstmt.setInt(1, 1);
@@ -113,11 +113,11 @@ public class BatchedInsertStatementPreparingTest extends BaseTest {
       pstmt.setInt(1, 3);
       pstmt.setInt(2, 4);
       pstmt.addBatch();
-      assertTrue(
+      assertEquals(
           "Expected outcome not returned by batch execution.",
-          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
-              Statement.SUCCESS_NO_INFO },
-              pstmt.executeBatch()));
+          Arrays.toString(new int[] { Statement.SUCCESS_NO_INFO,
+              Statement.SUCCESS_NO_INFO }),
+          Arrays.toString(pstmt.executeBatch()));
 
       pstmt.setInt(1, 1);
       pstmt.setInt(2, 2);
@@ -134,12 +134,12 @@ public class BatchedInsertStatementPreparingTest extends BaseTest {
       pstmt.setInt(1, 9);
       pstmt.setInt(2, 10);
       pstmt.addBatch();
-      assertTrue(
+      assertEquals(
           "Expected outcome not returned by batch execution.",
-          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
+          Arrays.toString(new int[] { Statement.SUCCESS_NO_INFO,
               Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO,
-              Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO },
-              pstmt.executeBatch()));
+              Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO }),
+          Arrays.toString(pstmt.executeBatch()));
 
       pstmt.setInt(1, 1);
       pstmt.setInt(2, 2);
@@ -147,11 +147,11 @@ public class BatchedInsertStatementPreparingTest extends BaseTest {
       pstmt.setInt(1, 3);
       pstmt.setInt(2, 4);
       pstmt.addBatch();
-      assertTrue(
+      assertEquals(
           "Expected outcome not returned by batch execution.",
-          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
-              Statement.SUCCESS_NO_INFO },
-              pstmt.executeBatch()));
+          Arrays.toString(new int[] { Statement.SUCCESS_NO_INFO,
+              Statement.SUCCESS_NO_INFO }),
+          Arrays.toString(pstmt.executeBatch()));
 
       pstmt.setInt(1, 1);
       pstmt.setInt(2, 2);
@@ -168,39 +168,28 @@ public class BatchedInsertStatementPreparingTest extends BaseTest {
       pstmt.setInt(1, 9);
       pstmt.setInt(2, 10);
       pstmt.addBatch();
-      assertTrue(
+      assertEquals(
           "Expected outcome not returned by batch execution.",
-          Arrays.equals(new int[] { Statement.SUCCESS_NO_INFO,
+          Arrays.toString(new int[] { Statement.SUCCESS_NO_INFO,
               Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO,
-              Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO },
-              pstmt.executeBatch()));
+              Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO }),
+          Arrays.toString(pstmt.executeBatch()));
     } finally {
-      if (null != pstmt) {
-        pstmt.close();
-      }
-      con.rollback();
+      TestUtil.closeQuietly(pstmt);
     }
   }
 
   public BatchedInsertStatementPreparingTest(String name) {
     super(name);
-    try {
-      Class.forName("org.postgresql.Driver");
-    } catch (Exception ex) {
-    }
   }
 
   /* Set up the fixture for this test case: a connection to a database with
   a table for this test. */
   protected void setUp() throws Exception {
     super.setUp();
-    Statement stmt = con.createStatement();
-
     /* Drop the test table if it already exists for some reason. It is
     not an error if it doesn't exist. */
     TestUtil.createTable(con, "testbatch", "pk INTEGER, col1 INTEGER");
-
-    stmt.close();
 
     /* Generally recommended with batch updates. By default we run all
     tests in this test case with autoCommit disabled. */
@@ -209,18 +198,13 @@ public class BatchedInsertStatementPreparingTest extends BaseTest {
 
   // Tear down the fixture for this test case.
   protected void tearDown() throws SQLException {
-    con.setAutoCommit(true);
-
     TestUtil.dropTable(con, "testbatch");
-    System.setProperty(PGProperty.REWRITE_BATCHED_INSERTS.getName(),
-        PGProperty.REWRITE_BATCHED_INSERTS.getDefaultValue());
     super.tearDown();
   }
 
   @Override
   protected void updateProperties(Properties props) {
-    props.setProperty(PGProperty.REWRITE_BATCHED_INSERTS.getName(),
-        Boolean.TRUE.toString());
-    props.setProperty(PGProperty.PREPARE_THRESHOLD.getName(), "1");
+    PGProperty.REWRITE_BATCHED_INSERTS.set(props, true);
+    forceBinary(props);
   }
 }

@@ -13,6 +13,7 @@ import org.postgresql.core.v3.V3ParameterListTests;
 import org.postgresql.jdbc.DeepBatchedInsertStatementTest;
 import org.postgresql.test.CursorFetchBinaryTest;
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.core.NativeQueryBindLengthTest;
 
 import junit.framework.JUnit4TestAdapter;
 import junit.framework.TestSuite;
@@ -78,14 +79,13 @@ public class Jdbc2TestSuite extends TestSuite {
     suite.addTestSuite(ServerPreparedStmtTest.class);
 
     // BatchExecute
-    suite.addTestSuite(BatchExecuteTest.class);
-    suite.addTestSuite(BatchExecuteBinaryTest.class);
+    suite.addTest(new JUnit4TestAdapter(BatchExecuteTest.class));
     suite.addTest(new JUnit4TestAdapter(BatchFailureTest.class));
 
-    suite.addTestSuite(BatchedInsertReWriteEnabledTest.class);
+    suite.addTest(new JUnit4TestAdapter(BatchedInsertReWriteEnabledTest.class));
     suite.addTestSuite(BatchedInsertStatementPreparingTest.class);
+    suite.addTest(new JUnit4TestAdapter(NativeQueryBindLengthTest.class));
     suite.addTestSuite(DeepBatchedInsertStatementTest.class);
-    suite.addTestSuite(BatchedInsertDoubleRowInSingleBatch.class);
 
     // Other misc tests, based on previous problems users have had or specific
     // features some applications require.

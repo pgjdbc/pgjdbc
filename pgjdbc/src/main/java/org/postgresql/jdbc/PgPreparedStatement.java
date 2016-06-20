@@ -16,7 +16,7 @@ import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ServerVersion;
-import org.postgresql.core.v3.BatchedQueryDecorator;
+import org.postgresql.core.v3.BatchedQuery;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.util.ByteConverter;
@@ -63,7 +63,6 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 //#endif
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -1117,23 +1116,15 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   public void addBatch() throws SQLException {
     checkClosed();
-
     if (batchStatements == null) {
       batchStatements = new ArrayList<Query>();
       batchParameters = new ArrayList<ParameterList>();
     }
-    if (preparedQuery.query.isStatementReWritableInsert()) {
-      // we need to create copies of our parameters, otherwise the values can be changed
-      batchParameters.add(preparedParameters.copy());
-      if (batchStatements.size() == 0) {
-        batchStatements.add(preparedQuery.query);
-      } else {
-        increment(batchStatements, preparedParameters);
-      }
-    } else {
-      // we need to create copies of our parameters, otherwise the values can be changed
-      batchStatements.add(preparedQuery.query);
-      batchParameters.add(preparedParameters.copy());
+    // we need to create copies of our parameters, otherwise the values can be changed
+    batchParameters.add(preparedParameters.copy());
+    Query query = preparedQuery.query;
+    if (!(query instanceof BatchedQuery) || batchStatements.isEmpty()) {
+      batchStatements.add(query);
     }
   }
 
@@ -1663,37 +1654,49 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   }
 
-  /**
-   * Purpose of this method is to rewrite the prior Query with additional
-   * parameterized fields, parameters and type information.
-   * @param batchStatements all the statements
-   * @param batchParameters all the parameters
-   * @param preparedParameters all the prepared parameters
-   */
-  private void increment(List<Query> batchStatements, ParameterList preparedParameters) {
-    Query prior = batchStatements.get(batchStatements.size() - 1);
-    BatchedQueryDecorator decoratedQuery = (BatchedQueryDecorator)prior;
-    decoratedQuery.incrementBatchSize();
-
-    // resize and populate .fields and .preparedTypes meta data
-    int[] userTypeInformation = preparedParameters.getTypeOIDs();
-    if (userTypeInformation != null && userTypeInformation.length > 0
-        && userTypeInformation.length == decoratedQuery.getNativeQuery().bindPositions.length) {
-      decoratedQuery.setStatementTypes(userTypeInformation);
-    }
-  }
-
   @Override
-  protected ParameterList[] transformParameters() throws SQLException {
-    if (preparedQuery.query.isStatementReWritableInsert() && batchParameters.size() > 1) {
-      ParameterList[] pla = new ParameterList[1];
-      pla[0] = ((BatchedQueryDecorator)batchStatements.get(0)).createParameterList();
-      for (ParameterList pl : batchParameters) {
-        pla[0].appendAll(pl);
-      }
-      return pla;
-    } else {
-      return super.transformParameters();
+  protected void transformQueriesAndParameters() throws SQLException {
+    if (batchParameters.size() <= 1
+        || !(preparedQuery.query instanceof BatchedQuery)) {
+      return;
     }
+    BatchedQuery originalQuery = (BatchedQuery) preparedQuery.query;
+    // Single query cannot have more than {@link Short#MAX_VALUE} binds, thus
+    // the number of multi-values blocks should be capped.
+    // Typically, it does not make much sense to batch more than 128 rows: performance
+    // does not improve much after updating 128 statements with 1 multi-valued one, thus
+    // we cap maximum batch size and split there.
+    final int bindCount = originalQuery.getBindCount();
+    final int highestBlockCount = 128;
+    final int maxValueBlocks =
+        Integer.highestOneBit( // deriveForMultiBatch supports powers of two only
+            Math.min(Math.max(1, (Short.MAX_VALUE - 1) / bindCount), highestBlockCount));
+    int unprocessedBatchCount = batchParameters.size();
+    final int fullValueBlocksCount = unprocessedBatchCount / maxValueBlocks;
+    final int partialValueBlocksCount = Integer.bitCount(unprocessedBatchCount % maxValueBlocks);
+    final int count = fullValueBlocksCount + partialValueBlocksCount;
+    ArrayList<Query> newBatchStatements = new ArrayList<Query>(count);
+    ArrayList<ParameterList> newBatchParameters = new ArrayList<ParameterList>(count);
+    int offset = 0;
+    for (int i = 0; i < count; i++) {
+      int valueBlock;
+      if (unprocessedBatchCount >= maxValueBlocks) {
+        valueBlock = maxValueBlocks;
+      } else {
+        valueBlock = Integer.highestOneBit(unprocessedBatchCount);
+      }
+      // Find appropriate batch for block count.
+      BatchedQuery bq = originalQuery.deriveForMultiBatch(valueBlock);
+      ParameterList newPl = bq.createParameterList();
+      for (int j = 0; j < valueBlock; j++) {
+        ParameterList pl = batchParameters.get(offset++);
+        newPl.appendAll(pl);
+      }
+      newBatchStatements.add(bq);
+      newBatchParameters.add(newPl);
+      unprocessedBatchCount -= valueBlock;
+    }
+    batchStatements = newBatchStatements;
+    batchParameters = newBatchParameters;
   }
 }
