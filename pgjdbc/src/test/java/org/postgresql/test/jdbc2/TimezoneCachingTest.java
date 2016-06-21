@@ -26,10 +26,9 @@ import java.util.TimeZone;
 public class TimezoneCachingTest extends BaseTest {
 
   /**
-   * Test to check the internal calendar for timezone of a prepared statement is set/cleared as
-   * expected.
+   * Test to check the internal cached timezone of a prepared statement is set/cleared as expected.
    */
-  public void testTimezonePreparedStatementCachedCalendarInstance() throws SQLException {
+  public void testPreparedStatementCachedTimezoneInstance() throws SQLException {
     Timestamp ts = new Timestamp(2016 - 1900, 1 - 1, 31, 0, 0, 0, 0);
     Date date = new Date(2016 - 1900, 1 - 1, 31);
     Time time = new Time(System.currentTimeMillis());
@@ -91,9 +90,9 @@ public class TimezoneCachingTest extends BaseTest {
   }
 
   /**
-   * Test to check the internal calendar for timezone of a prepared statement is used as expected.
+   * Test to check the internal cached timezone of a prepared statement is used as expected.
    */
-  public void testTimezonePreparedStatementCachedCalendarUsage() throws SQLException {
+  public void testPreparedStatementCachedTimezoneUsage() throws SQLException {
     Timestamp ts = new Timestamp(2016 - 1900, 1 - 1, 31, 0, 0, 0, 0);
     Statement stmt = null;
     PreparedStatement pstmt = null;
@@ -143,9 +142,9 @@ public class TimezoneCachingTest extends BaseTest {
   }
 
   /**
-   * Test to check the internal calendar for timezone of a result set is set/cleared as expected.
+   * Test to check the internal cached timezone of a result set is set/cleared as expected.
    */
-  public void testTimezoneResultSetCachedCalendarInstance() throws SQLException {
+  public void testResultSetCachedTimezoneInstance() throws SQLException {
     Timestamp ts = new Timestamp(2016 - 1900, 1 - 1, 31, 0, 0, 0, 0);
     Statement stmt = null;
     PreparedStatement pstmt = null;
@@ -196,9 +195,9 @@ public class TimezoneCachingTest extends BaseTest {
   }
 
   /**
-   * Test to check the internal calendar for timezone of a result set is used as expected.
+   * Test to check the internal cached timezone of a result set is used as expected.
    */
-  public void testTimezoneResultSetCachedCalendarUsage() throws SQLException {
+  public void testResultSetCachedTimezoneUsage() throws SQLException {
     Timestamp ts = new Timestamp(2016 - 1900, 1 - 1, 31, 0, 0, 0, 0);
     Statement stmt = null;
     PreparedStatement pstmt = null;
