@@ -434,9 +434,9 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   }
 
   @Override
-  protected BatchResultHandler createBatchHandler(int[] updateCounts, Query[] queries,
+  protected BatchResultHandler createBatchHandler(Query[] queries,
       ParameterList[] parameterLists) {
-    return new CallableBatchResultHandler(this, queries, parameterLists, updateCounts);
+    return new CallableBatchResultHandler(this, queries, parameterLists);
   }
 
   public java.sql.Array getArray(int i) throws SQLException {

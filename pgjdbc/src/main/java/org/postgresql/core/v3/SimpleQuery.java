@@ -26,6 +26,10 @@ import java.lang.ref.PhantomReference;
  */
 class SimpleQuery implements V3Query {
 
+  SimpleQuery(SimpleQuery src) {
+    this(src.nativeQuery, src.protoConnection);
+  }
+
   SimpleQuery(NativeQuery query, ProtocolConnectionImpl protoConnection) {
     this.nativeQuery = query;
     this.protoConnection = protoConnection;
@@ -36,7 +40,7 @@ class SimpleQuery implements V3Query {
       return NO_PARAMETERS;
     }
 
-    return new SimpleParameterList(getBindPositions(), protoConnection);
+    return new SimpleParameterList(getBindCount(), protoConnection);
   }
 
   public String toString(ParameterList parameters) {
@@ -105,13 +109,9 @@ class SimpleQuery implements V3Query {
   }
 
   void setStatementName(String statementName) {
-    if (statementName == null) {
-      this.statementName = null;
-      this.encodedStatementName = null;
-    } else {
-      this.statementName = statementName;
-      this.encodedStatementName = Utils.encodeUTF8(statementName);
-    }
+    assert statementName != null : "statement name should not be null";
+    this.statementName = statementName;
+    this.encodedStatementName = Utils.encodeUTF8(statementName);
   }
 
   void setStatementTypes(int[] paramTypes) {
@@ -131,7 +131,9 @@ class SimpleQuery implements V3Query {
       return false; // Not prepared.
     }
 
-    assert paramTypes.length == preparedTypes.length : String.format("paramTypes:%1$d preparedTypes:%2$d", paramTypes.length, preparedTypes.length);
+    assert preparedTypes == null || paramTypes.length == preparedTypes.length
+        : String.format("paramTypes:%1$d preparedTypes:%2$d", paramTypes.length,
+        paramTypes == null ? -1 : preparedTypes.length);
     // Check for compatible types.
     for (int i = 0; i < paramTypes.length; ++i) {
       if (paramTypes[i] != Oid.UNSPECIFIED && paramTypes[i] != preparedTypes[i]) {
@@ -255,27 +257,15 @@ class SimpleQuery implements V3Query {
     cachedMaxResultRowSize = null;
   }
 
-  public boolean isStatementReWritableInsert() {
-    return nativeQuery.getCommand().isBatchedReWriteCompatible();
-  }
-
   public int getBatchSize() {
-    return batchedCount;
+    return 1;
   }
 
-  public void incrementBatchSize() {
-    batchedCount++;
-  }
-
-  public void resetBatchedCount() {
-    batchedCount = 1;
-  }
-
-  public NativeQuery getNativeQuery() {
+  NativeQuery getNativeQuery() {
     return nativeQuery;
   }
 
-  public int getBindPositions() {
+  public final int getBindCount() {
     return nativeQuery.bindPositions.length * getBatchSize();
   }
 
@@ -297,8 +287,6 @@ class SimpleQuery implements V3Query {
   private int[] preparedTypes;
 
   private Integer cachedMaxResultRowSize;
-
-  private int batchedCount = 1;
 
   final static SimpleParameterList NO_PARAMETERS = new SimpleParameterList(0, null);
 }

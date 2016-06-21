@@ -21,8 +21,6 @@ import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandler;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.Utils;
-import org.postgresql.core.v3.BatchedQueryDecorator;
-
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -918,9 +916,9 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
-  protected BatchResultHandler createBatchHandler(int[] updateCounts, Query[] queries,
+  protected BatchResultHandler createBatchHandler(Query[] queries,
       ParameterList[] parameterLists) {
-    return new BatchResultHandler(this, queries, parameterLists, updateCounts,
+    return new BatchResultHandler(this, queries, parameterLists,
         wantsGeneratedKeysAlways);
   }
 
@@ -933,12 +931,13 @@ public class PgStatement implements Statement, BaseStatement {
       return new int[0];
     }
 
-    int size = batchStatements.size();
-    int[] updateCounts = new int[size];
-
     // Construct query/parameter arrays.
-    Query[] queries = batchStatements.toArray(new Query[batchStatements.size()]);
-    ParameterList[] parameterLists = transformParameters();
+    transformQueriesAndParameters();
+    // Empty arrays should be passed to toArray
+    // see http://shipilev.net/blog/2016/arrays-wisdom-ancients/
+    Query[] queries = batchStatements.toArray(new Query[0]);
+    ParameterList[] parameterLists =
+        batchParameters.toArray(new ParameterList[0]);
     batchStatements.clear();
     batchParameters.clear();
 
@@ -965,8 +964,13 @@ public class PgStatement implements Statement, BaseStatement {
       flags = QueryExecutor.QUERY_NO_RESULTS;
     }
 
-    // Only use named statements after we hit the threshold
-    if (isOneShotQuery(null)) {
+    boolean sameQueryAhead = queries.length > 1 && queries[0] == queries[1];
+
+    if (isOneShotQuery(null)
+        // If executing the same query twice in a batch, make sure the statement
+        // is server-prepared. In other words, "oneshot" only if the query is one in the batch
+        // or the queries are different
+        && !sameQueryAhead) {
       flags |= QueryExecutor.QUERY_ONESHOT;
     } else {
       // If a batch requests generated keys and isn't already described,
@@ -975,7 +979,12 @@ public class PgStatement implements Statement, BaseStatement {
       // maximum data returned. Without that, we don't know how many queries
       // we'll be able to queue up before we risk a deadlock.
       // (see v3.QueryExecutorImpl's MAX_BUFFERED_RECV_BYTES)
-      preDescribe = wantsGeneratedKeysAlways && !queries[0].isStatementDescribed();
+
+      // SameQueryAhead is just a quick way to issue pre-describe for batch execution
+      // TODO: It should be reworked into "pre-describe if query has unknown parameter
+      // types and same query is ahead".
+      preDescribe = (wantsGeneratedKeysAlways || sameQueryAhead)
+          && !queries[0].isStatementDescribed();
       /*
        * It's also necessary to force a Describe on the first execution of the new statement, even
        * though we already described it, to work around bug #267.
@@ -988,7 +997,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
 
     BatchResultHandler handler;
-    handler = createBatchHandler(updateCounts, queries, parameterLists);
+    handler = createBatchHandler(queries, parameterLists);
 
     if (preDescribe || forceBinaryTransfers) {
       // Do a client-server round trip, parsing and describing the query so we
@@ -1024,26 +1033,7 @@ public class PgStatement implements Statement, BaseStatement {
       }
     }
 
-    if (queries[0].isStatementReWritableInsert()) {
-      if (queries[0] instanceof BatchedQueryDecorator) {
-        BatchedQueryDecorator bqd = (BatchedQueryDecorator)queries[0];
-        int batchSize = bqd.getBatchSize();
-        if (batchSize > 1) {
-          updateCounts = new int[batchSize];
-          /* In this situation there is a batch that has been rewritten. Substitute
-           * the running total returned by the database with a status code to
-           * indicate successful completion for each row the driver client added
-           * to the batch.
-           */
-          for (int i = 0; i < batchSize; i++ ) {
-            updateCounts[i] = Statement.SUCCESS_NO_INFO;
-          }
-          bqd.reset();
-        }
-      }
-    }
-
-    return updateCounts;
+    return handler.getUpdateCount();
   }
 
   public void cancel() throws SQLException {
@@ -1424,7 +1414,7 @@ public class PgStatement implements Statement, BaseStatement {
     return createResultSet(null, fields, tuples, null);
   }
 
-  protected ParameterList[] transformParameters() throws SQLException {
-    return batchParameters.toArray(new ParameterList[batchParameters.size()]);
+  protected void transformQueriesAndParameters() throws SQLException {
   }
+
 }

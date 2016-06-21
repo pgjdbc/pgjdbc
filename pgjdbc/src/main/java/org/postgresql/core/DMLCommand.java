@@ -14,12 +14,21 @@ import static org.postgresql.core.DMLCommandType.INSERT;
  * Data Modification Language inspection support.
  *
  * @author Jeremy Whiting jwhiting@redhat.com
+ * @author Christopher Deckers (chrriis@gmail.com)
  *
  */
 public class DMLCommand {
 
   public boolean isBatchedReWriteCompatible() {
-    return batchedReWriteCompatible;
+    return valuesBraceOpenPosition >= 0;
+  }
+
+  public int getBatchRewriteValuesBraceOpenPosition() {
+    return valuesBraceOpenPosition;
+  }
+
+  public int getBatchRewriteValuesBraceClosePosition() {
+    return valuesBraceClosePosition;
   }
 
   public DMLCommandType getType() {
@@ -32,33 +41,37 @@ public class DMLCommand {
 
   public static DMLCommand createStatementTypeInfo(DMLCommandType type,
       boolean isBatchedReWritePropertyConfigured,
-      boolean isBatchedReWriteCompatible, boolean isRETURNINGkeywordPresent,
-      boolean autocommit, int priorQueryCount) {
+      int valuesBraceOpenPosition, int valuesBraceClosePosition, boolean isRETURNINGkeywordPresent,
+      int priorQueryCount) {
     return new DMLCommand(type, isBatchedReWritePropertyConfigured,
-        isBatchedReWriteCompatible, isRETURNINGkeywordPresent, autocommit,
+        valuesBraceOpenPosition, valuesBraceClosePosition, isRETURNINGkeywordPresent,
         priorQueryCount);
   }
 
   public static DMLCommand createStatementTypeInfo(DMLCommandType type) {
-    return new DMLCommand(type, false, false, false, false,0);
+    return new DMLCommand(type, false, -1, -1, false, 0);
   }
 
   public static DMLCommand createStatementTypeInfo(DMLCommandType type,
       boolean isRETURNINGkeywordPresent) {
-    return new DMLCommand(type, false, false, isRETURNINGkeywordPresent, false,0);
+    return new DMLCommand(type, false, -1, -1, isRETURNINGkeywordPresent, 0);
   }
 
   private DMLCommand(DMLCommandType type, boolean isBatchedReWriteConfigured,
-      boolean isCompatible, boolean isPresent, boolean isautocommitConfigured,
+      int valuesBraceOpenPosition, int valuesBraceClosePosition, boolean isPresent,
       int priorQueryCount) {
     commandType = type;
     parsedSQLhasRETURNINGKeyword = isPresent;
-    batchedReWriteCompatible = (type == INSERT) && isBatchedReWriteConfigured
-        && isCompatible && !isautocommitConfigured
+    boolean batchedReWriteCompatible = (type == INSERT) && isBatchedReWriteConfigured
+        && valuesBraceOpenPosition >= 0 && valuesBraceClosePosition > valuesBraceOpenPosition
         && !isPresent && priorQueryCount == 0;
+    this.valuesBraceOpenPosition = batchedReWriteCompatible ? valuesBraceOpenPosition : -1;
+    this.valuesBraceClosePosition = batchedReWriteCompatible ? valuesBraceClosePosition : -1;
   }
 
   private final DMLCommandType commandType;
   private final boolean parsedSQLhasRETURNINGKeyword;
-  private final boolean batchedReWriteCompatible;
+  private final int valuesBraceOpenPosition;
+  private final int valuesBraceClosePosition;
+
 }

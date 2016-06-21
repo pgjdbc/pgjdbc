@@ -5,6 +5,7 @@ import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandler;
+import org.postgresql.core.v3.BatchedQuery;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -27,8 +28,8 @@ public class BatchResultHandler implements ResultHandler {
   private int resultIndex = 0;
 
   private final Query[] queries;
-  private final ParameterList[] parameterLists;
   private final int[] updateCounts;
+  private final ParameterList[] parameterLists;
   private final boolean expectGeneratedKeys;
   private PgResultSet generatedKeys;
   private int committedRows; // 0 means no rows committed. 1 means row 0 was committed, and so on
@@ -37,11 +38,11 @@ public class BatchResultHandler implements ResultHandler {
   private PgResultSet latestGeneratedKeysRs;
 
   BatchResultHandler(PgStatement pgStatement, Query[] queries, ParameterList[] parameterLists,
-      int[] updateCounts, boolean expectGeneratedKeys) {
+      boolean expectGeneratedKeys) {
     this.pgStatement = pgStatement;
     this.queries = queries;
     this.parameterLists = parameterLists;
-    this.updateCounts = updateCounts;
+    this.updateCounts = new int[queries.length];
     this.expectGeneratedKeys = expectGeneratedKeys;
     this.allGeneratedRows = !expectGeneratedKeys ? null : new ArrayList<List<byte[][]>>();
   }
@@ -83,7 +84,7 @@ public class BatchResultHandler implements ResultHandler {
       latestGeneratedRows = null;
     }
 
-    if (resultIndex >= updateCounts.length) {
+    if (resultIndex >= queries.length) {
       handleError(new PSQLException(GT.tr("Too many update results were returned."),
           PSQLState.TOO_MANY_RESULTS));
       return;
@@ -133,7 +134,7 @@ public class BatchResultHandler implements ResultHandler {
       batchException = new BatchUpdateException(
           GT.tr("Batch entry {0} {1} was aborted.  Call getNextException to see the cause.",
               new Object[]{resultIndex, queryString}),
-          newError.getSQLState(), updateCounts);
+          newError.getSQLState(), uncompressUpdateCount());
     }
 
     batchException.setNextException(newError);
@@ -148,5 +149,50 @@ public class BatchResultHandler implements ResultHandler {
 
   public ResultSet getGeneratedKeys() {
     return generatedKeys;
+  }
+
+  private int[] uncompressUpdateCount() {
+    if (!(queries[0] instanceof BatchedQuery)) {
+      return updateCounts;
+    }
+    int totalRows = 0;
+    boolean hasRewrites = false;
+    for (Query query : queries) {
+      int batchSize = query.getBatchSize();
+      totalRows += batchSize;
+      hasRewrites |= batchSize > 1;
+    }
+    if (!hasRewrites) {
+      return updateCounts;
+    }
+
+    /* In this situation there is a batch that has been rewritten. Substitute
+     * the running total returned by the database with a status code to
+     * indicate successful completion for each row the driver client added
+     * to the batch.
+     */
+    int[] newUpdateCounts = new int[totalRows];
+    int offset = 0;
+    for (int i = 0; i < queries.length; i++) {
+      Query query = queries[i];
+      int batchSize = query.getBatchSize();
+      int superBatchResult = updateCounts[i];
+      if (batchSize == 1) {
+        newUpdateCounts[offset++] = superBatchResult;
+        continue;
+      }
+      if (superBatchResult > 0) {
+        // If some rows inserted, we do not really know how did they spread over individual
+        // statements
+        superBatchResult = Statement.SUCCESS_NO_INFO;
+      }
+      Arrays.fill(newUpdateCounts, offset, offset + batchSize, superBatchResult);
+      offset += batchSize;
+    }
+    return newUpdateCounts;
+  }
+
+  public int[] getUpdateCount() {
+    return uncompressUpdateCount();
   }
 }

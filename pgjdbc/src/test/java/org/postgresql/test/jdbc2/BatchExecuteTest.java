@@ -8,7 +8,13 @@
 
 package org.postgresql.test.jdbc2;
 
+import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
+
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.sql.BatchUpdateException;
 import java.sql.DatabaseMetaData;
@@ -18,7 +24,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Properties;
 
 /*
  * TODO tests that can be added to this test case - SQLExceptions chained to a BatchUpdateException
@@ -28,16 +37,37 @@ import java.util.Arrays;
 /*
  * Test case for Statement.batchExecute()
  */
-public class BatchExecuteTest extends BaseTest {
+@RunWith(Parameterized.class)
+public class BatchExecuteTest extends BaseTest4 {
 
-  public BatchExecuteTest(String name) {
-    super(name);
+  private boolean insertRewrite;
+
+  public BatchExecuteTest(BinaryMode binaryMode, boolean insertRewrite) {
+    this.insertRewrite = insertRewrite;
+    setBinaryMode(binaryMode);
+  }
+
+  @Parameterized.Parameters(name = "binary = {0}, insertRewrite = {1}")
+  public static Iterable<Object[]> data() {
+    Collection<Object[]> ids = new ArrayList<Object[]>();
+    for (BinaryMode binaryMode : BinaryMode.values()) {
+      for (boolean insertRewrite : new boolean[]{false, true}) {
+        ids.add(new Object[]{binaryMode, insertRewrite});
+      }
+    }
+    return ids;
+  }
+
+  @Override
+  protected void updateProperties(Properties props) {
+    super.updateProperties(props);
+    PGProperty.REWRITE_BATCHED_INSERTS.set(props, insertRewrite);
   }
 
   // Set up the fixture for this testcase: a connection to a database with
   // a table for this test.
   @Override
-  protected void setUp() throws Exception {
+  public void setUp() throws Exception {
     super.setUp();
     Statement stmt = con.createStatement();
 
@@ -61,18 +91,20 @@ public class BatchExecuteTest extends BaseTest {
 
   // Tear down the fixture for this test case.
   @Override
-  protected void tearDown() throws SQLException {
+  public void tearDown() throws SQLException {
     con.setAutoCommit(true);
 
     TestUtil.dropTable(con, "testbatch");
     super.tearDown();
   }
 
+  @Test
   public void testSupportsBatchUpdates() throws Exception {
     DatabaseMetaData dbmd = con.getMetaData();
-    assertTrue(dbmd.supportsBatchUpdates());
+    Assert.assertTrue(dbmd.supportsBatchUpdates());
   }
 
+  @Test
   public void testEmptyClearBatch() throws Exception {
     Statement stmt = con.createStatement();
     stmt.clearBatch(); // No-op.
@@ -85,30 +117,32 @@ public class BatchExecuteTest extends BaseTest {
     Statement getCol1 = con.createStatement();
 
     ResultSet rs = getCol1.executeQuery("SELECT col1 FROM testbatch WHERE pk = 1");
-    assertTrue(rs.next());
+    Assert.assertTrue(rs.next());
 
     int actual = rs.getInt("col1");
 
-    assertEquals(expected, actual);
+    Assert.assertEquals(expected, actual);
 
-    assertEquals(false, rs.next());
+    Assert.assertEquals(false, rs.next());
 
     rs.close();
     getCol1.close();
   }
 
+  @Test
   public void testExecuteEmptyBatch() throws Exception {
     Statement stmt = con.createStatement();
     int[] updateCount = stmt.executeBatch();
-    assertEquals(0, updateCount.length);
+    Assert.assertEquals(0, updateCount.length);
 
     stmt.addBatch("UPDATE testbatch SET col1 = col1 + 1 WHERE pk = 1");
     stmt.clearBatch();
     updateCount = stmt.executeBatch();
-    assertEquals(0, updateCount.length);
+    Assert.assertEquals(0, updateCount.length);
     stmt.close();
   }
 
+  @Test
   public void testClearBatch() throws Exception {
     Statement stmt = con.createStatement();
 
@@ -128,6 +162,7 @@ public class BatchExecuteTest extends BaseTest {
     stmt.close();
   }
 
+  @Test
   public void testSelectInBatch() throws Exception {
     Statement stmt = con.createStatement();
 
@@ -135,27 +170,29 @@ public class BatchExecuteTest extends BaseTest {
     stmt.addBatch("SELECT col1 FROM testbatch WHERE pk = 1");
     stmt.addBatch("UPDATE testbatch SET col1 = col1 + 2 WHERE pk = 1");
 
-    // There's no reason to fail
+    // There's no reason to Assert.fail
     int[] updateCounts = stmt.executeBatch();
 
-    assertTrue("First update should succeed, thus updateCount should be 1 or SUCCESS_NO_INFO"
+    Assert.assertTrue("First update should succeed, thus updateCount should be 1 or SUCCESS_NO_INFO"
             + ", actual value: " + updateCounts[0],
         updateCounts[0] == 1 || updateCounts[0] == Statement.SUCCESS_NO_INFO);
-    assertTrue("For SELECT, number of modified rows should be either 0 or SUCCESS_NO_INFO"
+    Assert.assertTrue("For SELECT, number of modified rows should be either 0 or SUCCESS_NO_INFO"
             + ", actual value: " + updateCounts[1],
         updateCounts[1] == 0 || updateCounts[1] == Statement.SUCCESS_NO_INFO);
-    assertTrue("Second update should succeed, thus updateCount should be 1 or SUCCESS_NO_INFO"
+    Assert.assertTrue("Second update should succeed, thus updateCount should be 1 or SUCCESS_NO_INFO"
             + ", actual value: " + updateCounts[2],
         updateCounts[2] == 1 || updateCounts[2] == Statement.SUCCESS_NO_INFO);
 
     stmt.close();
   }
 
+  @Test
   public void testSelectInBatchThrowsAutoCommit() throws Exception {
     con.setAutoCommit(true);
     testSelectInBatchThrows();
   }
 
+  @Test
   public void testSelectInBatchThrows() throws Exception {
     Statement stmt = con.createStatement();
 
@@ -167,7 +204,7 @@ public class BatchExecuteTest extends BaseTest {
     int[] updateCounts;
     try {
       updateCounts = stmt.executeBatch();
-      fail("0/0 should throw BatchUpdateException");
+      Assert.fail("0/0 should throw BatchUpdateException");
     } catch (BatchUpdateException be) {
       updateCounts = be.getUpdateCounts();
     }
@@ -177,10 +214,10 @@ public class BatchExecuteTest extends BaseTest {
     }
 
     int newValue = getCol1Value();
-    assertEquals("testbatch.col1 should not be updated since error happened in batch",
+    Assert.assertEquals("testbatch.col1 should not be updated since error happened in batch",
         oldValue, newValue);
 
-    assertEquals("All rows should be marked as EXECUTE_FAILED",
+    Assert.assertEquals("All rows should be marked as EXECUTE_FAILED",
         Arrays.toString(new int[]{Statement.EXECUTE_FAILED, Statement.EXECUTE_FAILED,
             Statement.EXECUTE_FAILED}),
         Arrays.toString(updateCounts));
@@ -199,6 +236,7 @@ public class BatchExecuteTest extends BaseTest {
     }
   }
 
+  @Test
   public void testStringAddBatchOnPreparedStatement() throws Exception {
     PreparedStatement pstmt =
         con.prepareStatement("UPDATE testbatch SET col1 = col1 + ? WHERE PK = ?");
@@ -208,7 +246,7 @@ public class BatchExecuteTest extends BaseTest {
 
     try {
       pstmt.addBatch("UPDATE testbatch SET col1 = 3");
-      fail(
+      Assert.fail(
           "Should have thrown an exception about using the string addBatch method on a prepared statement.");
     } catch (SQLException sqle) {
     }
@@ -216,6 +254,7 @@ public class BatchExecuteTest extends BaseTest {
     pstmt.close();
   }
 
+  @Test
   public void testPreparedStatement() throws Exception {
     PreparedStatement pstmt =
         con.prepareStatement("UPDATE testbatch SET col1 = col1 + ? WHERE PK = ?");
@@ -255,6 +294,7 @@ public class BatchExecuteTest extends BaseTest {
     pstmt.close();
   }
 
+  @Test
   public void testTransactionalBehaviour() throws Exception {
     Statement stmt = con.createStatement();
 
@@ -272,9 +312,9 @@ public class BatchExecuteTest extends BaseTest {
     assertCol1HasValue(0);
 
     int[] updateCounts = stmt.executeBatch();
-    assertEquals(2, updateCounts.length);
-    assertEquals(1, updateCounts[0]);
-    assertEquals(1, updateCounts[1]);
+    Assert.assertEquals(2, updateCounts.length);
+    Assert.assertEquals(1, updateCounts[0]);
+    Assert.assertEquals(1, updateCounts[1]);
 
     assertCol1HasValue(12);
     con.commit();
@@ -282,19 +322,21 @@ public class BatchExecuteTest extends BaseTest {
     con.rollback();
     assertCol1HasValue(12);
 
-    stmt.close();
+    TestUtil.closeQuietly(stmt);
   }
 
+  @Test
   public void testWarningsAreCleared() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.addBatch("CREATE TEMP TABLE unused (a int primary key)");
     stmt.executeBatch();
     // Execute an empty batch to clear warnings.
     stmt.executeBatch();
-    assertNull(stmt.getWarnings());
-    stmt.close();
+    Assert.assertNull(stmt.getWarnings());
+    TestUtil.closeQuietly(stmt);
   }
 
+  @Test
   public void testBatchEscapeProcessing() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("CREATE TEMP TABLE batchescape (d date)");
@@ -309,15 +351,15 @@ public class BatchExecuteTest extends BaseTest {
     pstmt.close();
 
     ResultSet rs = stmt.executeQuery("SELECT d FROM batchescape");
-    assertTrue(rs.next());
-    assertEquals("2007-11-20", rs.getString(1));
-    assertTrue(rs.next());
-    assertEquals("2007-11-20", rs.getString(1));
-    assertTrue(!rs.next());
-    rs.close();
-    stmt.close();
+    Assert.assertTrue(rs.next());
+    Assert.assertEquals("2007-11-20", rs.getString(1));
+    Assert.assertTrue(rs.next());
+    Assert.assertEquals("2007-11-20", rs.getString(1));
+    Assert.assertTrue(!rs.next());
+    TestUtil.closeQuietly(stmt);
   }
 
+  @Test
   public void testBatchWithEmbeddedNulls() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("CREATE TEMP TABLE batchstring (a text)");
@@ -334,19 +376,19 @@ public class BatchExecuteTest extends BaseTest {
       pstmt.setString(1, "b");
       pstmt.addBatch();
       pstmt.executeBatch();
-      fail("Should have thrown an exception.");
+      Assert.fail("Should have thrown an exception.");
     } catch (SQLException sqle) {
       con.rollback();
     }
     pstmt.close();
 
     ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM batchstring");
-    assertTrue(rs.next());
-    assertEquals(0, rs.getInt(1));
-    rs.close();
-    stmt.close();
+    Assert.assertTrue(rs.next());
+    Assert.assertEquals(0, rs.getInt(1));
+    TestUtil.closeQuietly(stmt);
   }
 
+  @Test
   public void testMixedBatch() throws SQLException {
     try {
       Statement st = con.createStatement();
@@ -360,11 +402,11 @@ public class BatchExecuteTest extends BaseTest {
       st.addBatch("CREATE TEMPORARY TABLE waffles(sauce text)");
       st.addBatch("INSERT INTO waffles(sauce) VALUES ('cream'), ('strawberry jam')");
       int[] batchResult = st.executeBatch();
-      assertEquals(1, batchResult[0]);
-      assertEquals(1, batchResult[1]);
-      assertEquals(1, batchResult[2]);
-      assertEquals(0, batchResult[3]);
-      assertEquals(2, batchResult[4]);
+      Assert.assertEquals(1, batchResult[0]);
+      Assert.assertEquals(1, batchResult[1]);
+      Assert.assertEquals(1, batchResult[2]);
+      Assert.assertEquals(0, batchResult[3]);
+      Assert.assertEquals(2, batchResult[4]);
     } catch (SQLException ex) {
       ex.getNextException().printStackTrace();
       throw ex;
@@ -375,16 +417,16 @@ public class BatchExecuteTest extends BaseTest {
    * A user reported that a query that uses RETURNING (via getGeneratedKeys) in a batch, and a
    * 'text' field value in a table is assigned NULL in the first execution of the batch then
    * non-NULL afterwards using PreparedStatement.setObject(int, Object) (i.e. no Types param or
-   * setString call) the batch may fail with:
+   * setString call) the batch may Assert.fail with:
    *
    * "Received resultset tuples, but no field structure for them"
    *
    * at org.postgresql.core.v3.QueryExecutorImpl.processResults
    *
-   * Prior to 245b388 it would instead fail with a NullPointerException in
+   * Prior to 245b388 it would instead Assert.fail with a NullPointerException in
    * AbstractJdbc2ResultSet.checkColumnIndex
    *
-   * The cause is complicated. The failure arises because the query gets re-planned mid-batch. This
+   * The cause is complicated. The Assert.failure arises because the query gets re-planned mid-batch. This
    * re-planning clears the cached information about field types. The field type information for
    * parameters gets re-acquired later but the information for *returned* values does not.
    *
@@ -414,6 +456,7 @@ public class BatchExecuteTest extends BaseTest {
    * This issue can be reproduced with any pair of implicitly or assignment castable types; for
    * example, using Integer in JDBC and bigint in the Pg table will do it.
    */
+  @Test
   public void testBatchReturningMixedNulls() throws SQLException {
     String[] testData = new String[]{null, "test", null, null, null};
 
@@ -447,39 +490,46 @@ public class BatchExecuteTest extends BaseTest {
       ResultSet rs = st.getGeneratedKeys();
       for (int i = 1; i <= testData.length; i++) {
         rs.next();
-        assertEquals(i, rs.getInt(1));
+        Assert.assertEquals(i, rs.getInt(1));
       }
-      assertTrue(!rs.next());
+      Assert.assertTrue(!rs.next());
     } catch (SQLException ex) {
       ex.getNextException().printStackTrace();
       throw ex;
     }
   }
 
+  @Test
   public void testBatchWithAlternatingAndUnknownTypes0() throws SQLException {
     testBatchWithAlternatingAndUnknownTypesN(0);
   }
 
+  @Test
   public void testBatchWithAlternatingAndUnknownTypes1() throws SQLException {
     testBatchWithAlternatingAndUnknownTypesN(1);
   }
 
+  @Test
   public void testBatchWithAlternatingAndUnknownTypes2() throws SQLException {
     testBatchWithAlternatingAndUnknownTypesN(2);
   }
 
+  @Test
   public void testBatchWithAlternatingAndUnknownTypes3() throws SQLException {
     testBatchWithAlternatingAndUnknownTypesN(3);
   }
 
+  @Test
   public void testBatchWithAlternatingAndUnknownTypes4() throws SQLException {
     testBatchWithAlternatingAndUnknownTypesN(4);
   }
 
+  @Test
   public void testBatchWithAlternatingAndUnknownTypes5() throws SQLException {
     testBatchWithAlternatingAndUnknownTypesN(5);
   }
 
+  @Test
   public void testBatchWithAlternatingAndUnknownTypes6() throws SQLException {
     testBatchWithAlternatingAndUnknownTypesN(6);
   }
@@ -631,6 +681,7 @@ org.postgresql.util.PSQLException: ERROR: incorrect binary data format in bind p
    * another. Change of the datatypes causes re-prepare server-side statement, thus exactly the same
    * query object might have different statement names.
    */
+  @Test
   public void testBatchWithAlternatingTypes() throws SQLException {
     try {
       Statement s = con.createStatement();
@@ -1062,6 +1113,7 @@ Server SQLState: 25001)
      */
   }
 
+  @Test
   public void testSmallBatchUpdateFailureSimple() throws SQLException {
     con.setAutoCommit(true);
 
@@ -1076,34 +1128,34 @@ Server SQLState: 25001)
     int[] batchResult;
     try {
       batchResult = batchSt.executeBatch();
-      fail("Expecting BatchUpdateException as key-2 is duplicated in batchUpdCnt.id. "
+      Assert.fail("Expecting BatchUpdateException as key-2 is duplicated in batchUpdCnt.id. "
           + " executeBatch returned " + Arrays.toString(batchResult));
     } catch (BatchUpdateException ex) {
       batchResult = ex.getUpdateCounts();
     } finally {
-      batchSt.close();
+      TestUtil.closeQuietly(batchSt);
     }
 
     int newCount = getBatchUpdCount();
     if (newCount == 2) {
       // key-1 did succeed
-      assertTrue("batchResult[0] should be 1 or SUCCESS_NO_INFO since 'key-1' was inserted,"
+      Assert.assertTrue("batchResult[0] should be 1 or SUCCESS_NO_INFO since 'key-1' was inserted,"
           + " actual result is " + Arrays.toString(batchResult),
           batchResult[0] == 1 || batchResult[0] == Statement.SUCCESS_NO_INFO);
     } else {
-      assertTrue("batchResult[0] should be 0 or EXECUTE_FAILED since 'key-1' was NOT inserted,"
+      Assert.assertTrue("batchResult[0] should be 0 or EXECUTE_FAILED since 'key-1' was NOT inserted,"
               + " actual result is " + Arrays.toString(batchResult),
           batchResult[0] == 0 || batchResult[0] == Statement.EXECUTE_FAILED);
     }
 
-    assertEquals("'key-2' insertion should have failed",
-        batchResult[1], Statement.EXECUTE_FAILED);
+    Assert.assertEquals("'key-2' insertion should have Assert.failed",
+        Statement.EXECUTE_FAILED, batchResult[1]);
   }
 
   private int getBatchUpdCount() throws SQLException {
     PreparedStatement ps = con.prepareStatement("select count(*) from batchUpdCnt");
     ResultSet rs = ps.executeQuery();
-    assertTrue("count(*) must return 1 row", rs.next());
+    Assert.assertTrue("count(*) must return 1 row", rs.next());
     return rs.getInt(1);
   }
 
@@ -1112,6 +1164,7 @@ Server SQLState: 25001)
    * Test coverage to check default behaviour is not broken.
    * @throws SQLException for issues during test
    */
+  @Test
   public void testBatchWithRepeatedInsertStatement() throws SQLException {
     PreparedStatement pstmt = null;
     /* Optimization to re-write insert statements is disabled by default.
@@ -1127,17 +1180,15 @@ Server SQLState: 25001)
       pstmt.addBatch();//statement two
       int[] outcome = pstmt.executeBatch();
 
-      assertNotNull(outcome);
-      assertEquals(2, outcome.length);
-      assertEquals(1, outcome[0]);
-      assertEquals(1, outcome[1]);
+      Assert.assertNotNull(outcome);
+      Assert.assertEquals(2, outcome.length);
+      int rowsInserted = insertRewrite ? Statement.SUCCESS_NO_INFO : 1;
+      Assert.assertEquals(rowsInserted, outcome[0]);
+      Assert.assertEquals(rowsInserted, outcome[1]);
     } catch (SQLException sqle) {
-      fail("Failed to execute two statements added to a batch. Reason:" + sqle.getMessage());
+      Assert.fail("Failed to execute two statements added to a batch. Reason:" + sqle.getMessage());
     } finally {
-      if (null != pstmt) {
-        pstmt.close();
-      }
-      con.rollback();
+      TestUtil.closeQuietly(pstmt);
     }
   }
 
@@ -1147,6 +1198,7 @@ Server SQLState: 25001)
   * not broken.
   * @throws SQLException for issues during test
   */
+  @Test
   public void testBatchWithMultiInsert() throws SQLException {
     PreparedStatement pstmt = null;
     try {
@@ -1157,16 +1209,72 @@ Server SQLState: 25001)
       pstmt.setInt(4, 2);
       pstmt.addBatch();//statement one
       int[] outcome = pstmt.executeBatch();
-      assertNotNull(outcome);
-      assertEquals(1, outcome.length);
-      assertEquals(2, outcome[0]);
+      Assert.assertNotNull(outcome);
+      Assert.assertEquals(1, outcome.length);
+      Assert.assertEquals(2, outcome[0]);
     } catch (SQLException sqle) {
-      fail("Failed to execute two statements added to a batch. Reason:" + sqle.getMessage());
+      Assert.fail("Failed to execute two statements added to a batch. Reason:" + sqle.getMessage());
     } finally {
-      if (null != pstmt) {
-        pstmt.close();
-      }
-      con.rollback();
+      TestUtil.closeQuietly(pstmt);
     }
+  }
+
+  /**
+  * Test case to make sure the update counter is correct for the
+  * two double-row statements executed. Test coverage to check default behaviour is
+  * not broken.
+  * @throws SQLException for issues during test
+  */
+  @Test
+  public void testBatchWithTwoMultiInsertStatements() throws SQLException {
+    PreparedStatement pstmt = null;
+    try {
+      pstmt = con.prepareStatement("INSERT INTO testbatch VALUES (?,?),(?,?)");
+      pstmt.setInt(1, 1);
+      pstmt.setInt(2, 1);
+      pstmt.setInt(3, 2);
+      pstmt.setInt(4, 2);
+      pstmt.addBatch(); //statement one
+      pstmt.setInt(1, 3);
+      pstmt.setInt(2, 3);
+      pstmt.setInt(3, 4);
+      pstmt.setInt(4, 4);
+      pstmt.addBatch(); //statement two
+      int[] outcome = pstmt.executeBatch();
+      int rowsInserted = insertRewrite ? Statement.SUCCESS_NO_INFO : 2;
+      Assert.assertEquals(
+          "Inserting two multi-valued statements with two rows each. Expecting {2, 2} rows inserted (or SUCCESS_NO_INFO)",
+          Arrays.toString(new int[] { rowsInserted, rowsInserted }),
+          Arrays.toString(outcome));
+    } catch (SQLException sqle) {
+      Assert.fail("Failed to execute two statements added to a batch. Reason:" + sqle.getMessage());
+    } finally {
+      TestUtil.closeQuietly(pstmt);
+    }
+  }
+
+  public static void assertSimpleInsertBatch(int n, int[] actual) {
+    int[] expected = new int[n];
+    Arrays.fill(expected, 1);
+    assertBatchResult(n + " addBatch, 1 row each", expected, actual);
+  }
+
+  public static void assertBatchResult(String message, int[] expected, int[] actual) {
+    int[] clone = expected.clone();
+    boolean hasChanges = false;
+    for (int i = 0; i < actual.length; i++) {
+      int a = actual[i];
+      if (a == Statement.SUCCESS_NO_INFO && expected[i] >= 0) {
+        clone[i] = a;
+        hasChanges = true;
+      }
+    }
+    if (hasChanges) {
+      message += ", original expectation: " + Arrays.toString(expected);
+    }
+    Assert.assertEquals(
+        message,
+        Arrays.toString(clone),
+        Arrays.toString(actual));
   }
 }
