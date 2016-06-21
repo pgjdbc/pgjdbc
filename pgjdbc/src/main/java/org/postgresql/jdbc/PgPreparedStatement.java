@@ -159,11 +159,15 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   }
 
   public boolean executeWithFlags(int flags) throws SQLException {
-    checkClosed();
+    try {
+      checkClosed();
 
-    execute(preparedQuery.query, preparedParameters, flags);
+      execute(preparedQuery.query, preparedParameters, flags);
 
-    return (result != null && result.getResultSet() != null);
+      return (result != null && result.getResultSet() != null);
+    } finally {
+      defaultCalendar = null;
+    }
   }
 
   protected boolean isOneShotQuery(Query query) {
