@@ -20,6 +20,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.Properties;
 import java.util.TimeZone;
 
@@ -82,10 +84,7 @@ public class TimezoneCachingTest extends BaseTest {
       pstmt.executeQuery();
       assertTrue("Cache should NOT be set", getTimeZoneCache(pstmt) == null);
     } finally {
-      if (null != pstmt) {
-        pstmt.close();
-      }
-      con.rollback();
+      TestUtil.closeQuietly(pstmt);
     }
   }
 
@@ -98,6 +97,10 @@ public class TimezoneCachingTest extends BaseTest {
     PreparedStatement pstmt = null;
     TimeZone tz1 = TimeZone.getTimeZone("GMT+8:00");
     TimeZone tz2 = TimeZone.getTimeZone("GMT-2:00");
+    TimeZone tz3 = TimeZone.getTimeZone("UTC+2");
+    TimeZone tz4 = TimeZone.getTimeZone("UTC+3");
+    Calendar c3 = new GregorianCalendar(tz3);
+    Calendar c4 = new GregorianCalendar(tz4);
     try {
       stmt = con.createStatement();
       TimeZone.setDefault(tz1);
@@ -124,20 +127,59 @@ public class TimezoneCachingTest extends BaseTest {
       TimeZone.setDefault(tz1);
       pstmt.setTimestamp(1, ts);
       pstmt.setInt(2, 1);
+      pstmt.addBatch();
       pstmt.executeBatch();
       assertTrue("Timezone mismatch", checkTimestamp(stmt, ts, tz2));
+      pstmt.setTimestamp(1, ts, c3);
+      pstmt.setInt(2, 1);
+      pstmt.addBatch();
+      pstmt.executeBatch();
+      assertTrue("Timezone mismatch", checkTimestamp(stmt, ts, tz3));
+      pstmt.setTimestamp(1, ts, c3);
+      pstmt.setInt(2, 1);
+      pstmt.addBatch();
+      pstmt.setTimestamp(1, ts, c4);
+      pstmt.setInt(2, 1);
+      pstmt.addBatch();
+      pstmt.executeBatch();
+      assertTrue("Timezone mismatch", checkTimestamp(stmt, ts, tz4));
+      pstmt.setTimestamp(1, ts, c3);
+      pstmt.setInt(2, 1);
+      pstmt.addBatch();
+      pstmt.setTimestamp(1, ts);
+      pstmt.setInt(2, 1);
+      pstmt.addBatch();
+      pstmt.setTimestamp(1, ts, c4);
+      pstmt.setInt(2, 1);
+      pstmt.addBatch();
+      pstmt.executeBatch();
+      assertTrue("Timezone mismatch", checkTimestamp(stmt, ts, tz4));
+      pstmt.setTimestamp(1, ts, c3);
+      pstmt.setInt(2, 1);
+      pstmt.addBatch();
+      pstmt.setTimestamp(1, ts);
+      pstmt.setInt(2, 1);
+      pstmt.addBatch();
+      pstmt.executeBatch();
+      assertTrue("Timezone mismatch", checkTimestamp(stmt, ts, tz1));
+      pstmt.setTimestamp(1, ts);
+      pstmt.setInt(2, 1);
+      pstmt.addBatch();
+      pstmt.setTimestamp(1, ts, c4);
+      pstmt.setInt(2, 1);
+      pstmt.addBatch();
+      pstmt.setTimestamp(1, ts);
+      pstmt.setInt(2, 1);
+      pstmt.addBatch();
+      pstmt.executeBatch();
+      assertTrue("Timezone mismatch", checkTimestamp(stmt, ts, tz1));
     } catch (BatchUpdateException ex) {
       SQLException nextException = ex.getNextException();
       nextException.printStackTrace();
     } finally {
       TimeZone.setDefault(null);
-      if (null != pstmt) {
-        pstmt.close();
-      }
-      if (null != stmt) {
-        stmt.close();
-      }
-      con.rollback();
+      TestUtil.closeQuietly(pstmt);
+      TestUtil.closeQuietly(stmt);
     }
   }
 
@@ -181,16 +223,9 @@ public class TimezoneCachingTest extends BaseTest {
       assertTrue("Cache should be set", getTimeZoneCache(rs) != null);
       rs.close();
     } finally {
-      if (null != rs) {
-        rs.close();
-      }
-      if (null != pstmt) {
-        pstmt.close();
-      }
-      if (null != stmt) {
-        stmt.close();
-      }
-      con.rollback();
+      TestUtil.closeQuietly(rs);
+      TestUtil.closeQuietly(pstmt);
+      TestUtil.closeQuietly(stmt);
     }
   }
 
@@ -204,6 +239,7 @@ public class TimezoneCachingTest extends BaseTest {
     ResultSet rs = null;
     TimeZone tz1 = TimeZone.getTimeZone("GMT+8:00");
     TimeZone tz2 = TimeZone.getTimeZone("GMT-2:00");
+    Calendar c1 = new GregorianCalendar(tz1);
     try {
       TimeZone.setDefault(tz1);
       pstmt = con.prepareStatement("INSERT INTO testtz VALUES (?,?)");
@@ -222,21 +258,23 @@ public class TimezoneCachingTest extends BaseTest {
       rs.getInt(1);
       TimeZone.setDefault(tz2);
       assertTrue("Timestamps sould NOT be in same time zone", !rs.getTimestamp(2).equals(ts));
+      assertTrue("Timestamp sould be in calendar time zone", rs.getTimestamp(2, c1).equals(ts));
+      assertTrue("Timestamps sould NOT be in same time zone", !rs.getTimestamp(2).equals(ts));
       TimeZone.setDefault(tz1);
       assertTrue("Timestamps sould NOT be in same time zone", !rs.getTimestamp(2).equals(ts));
       rs.close();
+      rs = stmt.executeQuery("SELECT col1, col2 FROM testtz");
+      rs.next();
+      rs.getInt(1);
+      assertTrue("Timestamp sould be in calendar time zone", rs.getTimestamp(2, c1).equals(ts));
+      assertTrue("Timestamps sould be in same time zone", rs.getTimestamp(2).equals(ts));
+      assertTrue("Timestamp sould be in calendar time zone", rs.getTimestamp(2, c1).equals(ts));
+      rs.close();
     } finally {
       TimeZone.setDefault(null);
-      if (null != rs) {
-        rs.close();
-      }
-      if (null != pstmt) {
-        pstmt.close();
-      }
-      if (null != stmt) {
-        stmt.close();
-      }
-      con.rollback();
+      TestUtil.closeQuietly(rs);
+      TestUtil.closeQuietly(pstmt);
+      TestUtil.closeQuietly(stmt);
     }
   }
 
