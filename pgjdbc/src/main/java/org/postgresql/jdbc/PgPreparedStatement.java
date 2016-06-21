@@ -64,7 +64,6 @@ import java.time.OffsetDateTime;
 //#endif
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.GregorianCalendar;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -166,7 +165,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
       return (result != null && result.getResultSet() != null);
     } finally {
-      defaultCalendar = null;
+      defaultTimeZone = null;
     }
   }
 
@@ -1400,6 +1399,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     // 2005-01-01 00:00:00+03
     // (1 row)
 
+    if (cal == null) {
+      cal = getDefaultCalendar();
+    }
     bindString(i, connection.getTimestampUtils().toString(cal, d), Oid.UNSPECIFIED);
   }
 
@@ -1649,22 +1651,23 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     throw Driver.notImplemented(this.getClass(), "setURL(int,URL)");
   }
 
-  private Calendar defaultCalendar;
-
   @Override
   public int[] executeBatch() throws SQLException {
     try {
       return super.executeBatch();
     } finally {
-      defaultCalendar = null;
+      defaultTimeZone = null;
     }
   }
 
+  private TimeZone defaultTimeZone;
+
   private Calendar getDefaultCalendar() {
-    if (defaultCalendar == null) {
-      defaultCalendar = new GregorianCalendar();
+    Calendar sharedCalendar = connection.getTimestampUtils().getSharedCalendar(defaultTimeZone);
+    if (defaultTimeZone == null) {
+      defaultTimeZone = sharedCalendar.getTimeZone();
     }
-    return defaultCalendar;
+    return sharedCalendar;
   }
 
   public ParameterMetaData getParameterMetaData() throws SQLException {

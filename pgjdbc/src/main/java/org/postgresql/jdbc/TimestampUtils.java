@@ -454,8 +454,21 @@ public class TimestampUtils {
   }
 
   private Calendar setupCalendar(Calendar cal) {
+    TimeZone timeZone = cal == null ? null : cal.getTimeZone();
+    return getSharedCalendar(timeZone);
+  }
+
+  /**
+   * Get a shared calendar, applying the supplied time zone or the default time zone if null.
+   *
+   * @return The shared calendar.
+   */
+  public Calendar getSharedCalendar(TimeZone timeZone) {
+    if (timeZone == null) {
+      timeZone = getDefaultTz();
+    }
     Calendar tmp = calendarWithUserTz;
-    tmp.setTimeZone(cal == null ? getDefaultTz() : cal.getTimeZone());
+    tmp.setTimeZone(timeZone);
     return tmp;
   }
 
@@ -943,7 +956,7 @@ public class TimestampUtils {
    * @return The parsed local date time object.
    * @throws PSQLException If binary format could not be parsed.
    */
-  public LocalDateTime toLocalDateTimeBin(byte[] bytes)  throws PSQLException {
+  public LocalDateTime toLocalDateTimeBin(TimeZone tz, byte[] bytes) throws PSQLException {
 
     ParsedBinaryTimestamp parsedTimestamp = this.toParsedTimestampBin(null, bytes, true);
     if (parsedTimestamp.infinity == Infinity.POSITIVE) {
