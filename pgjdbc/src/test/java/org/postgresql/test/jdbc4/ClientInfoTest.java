@@ -56,6 +56,22 @@ public class ClientInfoTest extends TestCase {
     assertEquals("my app", _conn.getClientInfo().getProperty("ApplicationName"));
   }
 
+  public void testExplicitSetAppNameNotificationIsParsed() throws SQLException {
+    if (!TestUtil.haveMinimumServerVersion(_conn, "9.0")) {
+      return;
+    }
+
+    String appName = "test-42";
+
+    Statement s = _conn.createStatement();
+    s.execute("set application_name='" + appName + "'");
+    s.close();
+    assertEquals("application_name was set to " + appName + ", and it should be visible via "
+        + "con.getClientInfo", appName, _conn.getClientInfo("ApplicationName"));
+    assertEquals("application_name was set to " + appName + ", and it should be visible via "
+        + "con.getClientInfo", appName, _conn.getClientInfo().get("ApplicationName"));
+  }
+
   public void testSetAppNameProps() throws SQLException {
     if (!TestUtil.haveMinimumServerVersion(_conn, "9.0")) {
       return;

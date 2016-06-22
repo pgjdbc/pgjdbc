@@ -245,6 +245,18 @@ class ProtocolConnectionImpl implements ProtocolConnection {
     return timeZone;
   }
 
+  void setApplicationName(String applicationName) {
+    this.applicationName = applicationName;
+  }
+
+  @Override
+  public String getApplicationName() {
+    if (applicationName == null) {
+      return "";
+    }
+    return applicationName;
+  }
+
   /**
    * True if server uses integers for date and time fields. False if server uses double.
    */
@@ -279,4 +291,9 @@ class ProtocolConnectionImpl implements ProtocolConnection {
    * TimeZone of the current connection (TimeZone backend parameter)
    */
   private TimeZone timeZone;
+
+  /**
+   * application_name connection property
+   */
+  private String applicationName;
 }

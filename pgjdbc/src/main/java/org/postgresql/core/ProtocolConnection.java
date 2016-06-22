@@ -186,4 +186,10 @@ public interface ProtocolConnection {
    * @return backend timezone in java format.
    */
   TimeZone getTimeZone();
+
+  /**
+   * Returns application_name connection property.
+   * @return application_name connection property
+   */
+  String getApplicationName();
 }

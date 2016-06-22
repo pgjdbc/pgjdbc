@@ -234,6 +234,11 @@ class ProtocolConnectionImpl implements ProtocolConnection {
     return TimeZone.getDefault();
   }
 
+  @Override
+  public String getApplicationName() {
+    return "";
+  }
+
   private String serverVersion;
   private int serverVersionNum = 0;
   private int cancelPid;

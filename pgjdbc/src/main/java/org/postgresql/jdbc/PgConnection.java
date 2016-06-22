@@ -1385,6 +1385,10 @@ public class PgConnection implements BaseConnection {
       if (value == null) {
         value = "";
       }
+      final String oldValue = protoConnection.getApplicationName();
+      if (value.equals(oldValue)) {
+        return;
+      }
 
       try {
         StringBuilder sql = new StringBuilder("SET application_name = '");
@@ -1435,11 +1439,13 @@ public class PgConnection implements BaseConnection {
 
   public String getClientInfo(String name) throws SQLException {
     checkClosed();
+    _clientInfo.put("ApplicationName", protoConnection.getApplicationName());
     return _clientInfo.getProperty(name);
   }
 
   public Properties getClientInfo() throws SQLException {
     checkClosed();
+    _clientInfo.put("ApplicationName", protoConnection.getApplicationName());
     return _clientInfo;
   }
 

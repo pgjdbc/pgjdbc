@@ -2091,6 +2091,9 @@ public class QueryExecutorImpl implements QueryExecutor {
           if ("TimeZone".equals(name)) {
             protoConnection.setTimeZone(TimestampUtils.parseBackendTimeZone(value));
           }
+          if ("application_name".equals(name)) {
+            protoConnection.setApplicationName(value);
+          }
           break;
         }
 
