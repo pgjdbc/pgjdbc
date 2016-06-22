@@ -14,6 +14,7 @@ import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.util.GT;
+import org.postgresql.util.JdbcBlackHole;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -70,17 +71,21 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + " t1.typelem=t2.oid AND t1.typname='oidvector'";
       }
       Statement stmt = connection.createStatement();
-      ResultSet rs = stmt.executeQuery(sql);
-      if (!rs.next()) {
-        stmt.close();
-        throw new PSQLException(
-            GT.tr(
-                "Unable to determine a value for MaxIndexKeys due to missing system catalog data."),
-            PSQLState.UNEXPECTED_ERROR);
+      ResultSet rs = null;
+      try {
+        rs = stmt.executeQuery(sql);
+        if (!rs.next()) {
+          stmt.close();
+          throw new PSQLException(
+              GT.tr(
+                  "Unable to determine a value for MaxIndexKeys due to missing system catalog data."),
+              PSQLState.UNEXPECTED_ERROR);
+        }
+        INDEX_MAX_KEYS = rs.getInt(1);
+      } finally {
+        JdbcBlackHole.close(rs);
+        JdbcBlackHole.close(stmt);
       }
-      INDEX_MAX_KEYS = rs.getInt(1);
-      rs.close();
-      stmt.close();
     }
     return INDEX_MAX_KEYS;
   }
@@ -95,14 +100,18 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         sql = "SELECT typlen FROM pg_type WHERE typname='name'";
       }
       Statement stmt = connection.createStatement();
-      ResultSet rs = stmt.executeQuery(sql);
-      if (!rs.next()) {
-        throw new PSQLException(GT.tr("Unable to find name datatype in the system catalogs."),
-            PSQLState.UNEXPECTED_ERROR);
+      ResultSet rs = null;
+      try {
+        rs = stmt.executeQuery(sql);
+        if (!rs.next()) {
+          throw new PSQLException(GT.tr("Unable to find name datatype in the system catalogs."),
+              PSQLState.UNEXPECTED_ERROR);
+        }
+        NAMEDATALEN = rs.getInt("typlen");
+      } finally {
+        JdbcBlackHole.close(rs);
+        JdbcBlackHole.close(stmt);
       }
-      NAMEDATALEN = rs.getInt("typlen");
-      rs.close();
-      stmt.close();
     }
     return NAMEDATALEN - 1;
   }
