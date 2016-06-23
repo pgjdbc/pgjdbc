@@ -8,7 +8,6 @@
 
 package org.postgresql.test.jdbc2;
 
-import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 
 import java.lang.reflect.Field;
@@ -22,7 +21,6 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
-import java.util.Properties;
 import java.util.TimeZone;
 
 public class TimezoneCachingTest extends BaseTest {
@@ -371,10 +369,6 @@ public class TimezoneCachingTest extends BaseTest {
 
   public TimezoneCachingTest(String name) {
     super(name);
-    try {
-      Class.forName("org.postgresql.Driver");
-    } catch (Exception ex) {
-    }
   }
 
   /* Set up the fixture for this test case: a connection to a database with
@@ -402,10 +396,4 @@ public class TimezoneCachingTest extends BaseTest {
     super.tearDown();
   }
 
-  @Override
-  protected void updateProperties(Properties props) {
-    props.setProperty(PGProperty.REWRITE_BATCHED_INSERTS.getName(),
-        Boolean.TRUE.toString());
-    props.setProperty(PGProperty.PREPARE_THRESHOLD.getName(), "1");
-  }
 }
