@@ -117,7 +117,7 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
         }
         FileInputStream fis;
         try {
-          fis = new FileInputStream(sslrootcertfile);
+          fis = new FileInputStream(sslrootcertfile); // NOSONAR
         } catch (FileNotFoundException ex) {
           throw new PSQLException(
               GT.tr("Could not open SSL root certificate file {0}.", new Object[]{sslrootcertfile}),
@@ -128,7 +128,6 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
           // Certificate[] certs = cf.generateCertificates(fis).toArray(new Certificate[]{}); //Does
           // not work in java 1.4
           Object[] certs = cf.generateCertificates(fis).toArray(new Certificate[]{});
-          fis.close();
           ks.load(null, null);
           for (int i = 0; i < certs.length; i++) {
             ks.setCertificateEntry("cert" + i, (Certificate) certs[i]);
@@ -143,6 +142,12 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
               GT.tr("Loading the SSL root certificate {0} into a TrustManager failed.",
                   new Object[]{sslrootcertfile}),
               PSQLState.CONNECTION_FAILURE, gsex);
+        } finally {
+          try {
+            fis.close();
+          } catch (IOException e) {
+            /* ignore */
+          }
         }
         tm = tmf.getTrustManagers();
       } else { // server validation is not required

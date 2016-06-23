@@ -428,4 +428,10 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
     return ((((((7 * 31 + (int) Double.doubleToLongBits(seconds)) * 31 + minutes) * 31 + hours) * 31
         + days) * 31 + months) * 31 + years) * 31;
   }
+
+  @Override
+  public Object clone() throws CloneNotSupportedException {
+    // squid:S2157 "Cloneables" should implement "clone
+    return super.clone();
+  }
 }

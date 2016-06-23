@@ -18,8 +18,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -486,22 +484,22 @@ public class StatementTest extends TestCase {
 
   public void testSetQueryTimeout() throws SQLException {
     Statement stmt = con.createStatement();
-    Timer timer = new Timer(true);
+    long start = 0;
+    boolean cancelReceived = false;
     try {
-
-      timer.schedule(new TimerTask() {
-        public void run() {
-          fail("Query timeout should have occurred and cleaned this up");
-        }
-      }, 5000);
       stmt.setQueryTimeout(1);
+      start = System.currentTimeMillis();
       stmt.execute("select pg_sleep(10)");
-
     } catch (SQLException sqle) {
       // state for cancel
-      if (sqle.getSQLState().compareTo("57014") == 0) {
-        timer.cancel();
+      if ("57014".equals(sqle.getSQLState())) {
+        cancelReceived = true;
       }
+    }
+    long duration = System.currentTimeMillis() - start;
+    if (!cancelReceived || duration > 5000) {
+      fail("Query should have been cancelled since the timeout was set to 1 sec."
+          + " Cancel state: " + cancelReceived + ", duration: " + duration);
     }
   }
 

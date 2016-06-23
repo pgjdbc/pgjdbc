@@ -12,6 +12,7 @@ import org.postgresql.PGResultSetMetaData;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Field;
 import org.postgresql.util.GT;
+import org.postgresql.util.JdbcBlackHole;
 import org.postgresql.util.LruCache;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -279,9 +280,10 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
     }
 
     Statement stmt = connection.createStatement();
+    ResultSet rs = null;
     try {
       LruCache<FieldMetadata.Key, FieldMetadata> metadataCache = connection.getFieldMetadataCache();
-      ResultSet rs = stmt.executeQuery(sql.toString());
+      rs = stmt.executeQuery(sql.toString());
       while (rs.next()) {
         int table = (int) rs.getLong(1);
         int column = (int) rs.getLong(2);
@@ -297,11 +299,8 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
         metadataCache.put(key, fieldMetadata);
       }
     } finally {
-      try {
-        stmt.close();
-      } catch (SQLException e) {
-        /* ignore */
-      }
+      JdbcBlackHole.close(rs);
+      JdbcBlackHole.close(stmt);
     }
     populateFieldsWithCachedMetadata();
   }

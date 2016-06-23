@@ -40,7 +40,9 @@ public class PGbytea {
     for (int i = 0; i < output.length; i++) {
       byte b1 = gethex(s[2 + i * 2]);
       byte b2 = gethex(s[2 + i * 2 + 1]);
-      output[i] = (byte) ((b1 << 4) | b2);
+      // squid:S3034
+      // Raw byte values should not be used in bitwise operations in combination with shifts
+      output[i] = (byte) ((b1 << 4) | (b2 & 0xff));
     }
     return output;
   }

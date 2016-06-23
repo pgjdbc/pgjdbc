@@ -72,8 +72,8 @@ public class FieldMetadata implements CanEstimateSize {
     return columnName.length() * 2
         + tableName.length() * 2
         + schemaName.length() * 2
-        + 4
-        + 1;
+        + 4L
+        + 1L;
   }
 
   @Override

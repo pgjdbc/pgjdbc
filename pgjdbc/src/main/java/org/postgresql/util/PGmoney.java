@@ -92,4 +92,10 @@ public class PGmoney extends PGobject implements Serializable, Cloneable {
       return "$" + val;
     }
   }
+
+  @Override
+  public Object clone() throws CloneNotSupportedException {
+    // squid:S2157 "Cloneables" should implement "clone
+    return super.clone();
+  }
 }

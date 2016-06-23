@@ -245,7 +245,7 @@ public class Encoding {
    */
   private static boolean isAvailable(String encodingName) {
     try {
-      "DUMMY".getBytes(encodingName);
+      "DUMMY".getBytes(encodingName); //NOSONAR
       return true;
     } catch (java.io.UnsupportedEncodingException e) {
       return false;

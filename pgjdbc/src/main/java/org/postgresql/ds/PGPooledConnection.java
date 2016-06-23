@@ -259,7 +259,7 @@ public class PGPooledConnection implements PooledConnection {
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
       final String methodName = method.getName();
       // From Object
-      if (method.getDeclaringClass().getName().equals("java.lang.Object")) {
+      if (method.getDeclaringClass() == Object.class) {
         if (methodName.equals("toString")) {
           return "Pooled connection wrapping physical connection " + con;
         }
@@ -387,7 +387,7 @@ public class PGPooledConnection implements PooledConnection {
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
       final String methodName = method.getName();
       // From Object
-      if (method.getDeclaringClass().getName().equals("java.lang.Object")) {
+      if (method.getDeclaringClass() == Object.class) {
         if (methodName.equals("toString")) {
           return "Pooled statement wrapping physical statement " + st;
         }

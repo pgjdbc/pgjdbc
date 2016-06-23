@@ -1163,7 +1163,8 @@ public class PgStatement implements Statement, BaseStatement {
           // Note: wait timeout here is irrelevant since synchronized(connection) would block until
           // .cancel finishes
           connection.wait(10);
-        } catch (InterruptedException e) {
+        } catch (InterruptedException e) { // NOSONAR
+          // Either re-interrupt this method or rethrow the "InterruptedException"
           interrupted = true;
         }
       }

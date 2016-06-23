@@ -143,7 +143,7 @@ public class LargeObjectManager {
     Statement stmt = conn.createStatement();
     ResultSet res = stmt.executeQuery(sql);
 
-    if (res == null) {
+    if (res == null) { // NOSONAR
       throw new PSQLException(GT.tr("Failed to initialize LargeObject API"),
           PSQLState.SYSTEM_ERROR);
     }

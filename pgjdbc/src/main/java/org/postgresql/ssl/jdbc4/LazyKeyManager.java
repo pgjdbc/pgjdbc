@@ -164,7 +164,7 @@ public class LazyKeyManager implements X509KeyManager {
         }
 
         try {
-          raf = new RandomAccessFile(new File(keyfile), "r");
+          raf = new RandomAccessFile(new File(keyfile), "r"); // NOSONAR
         } catch (FileNotFoundException ex) {
           if (!defaultfile) {
             // It is not an error if there is no file at the default location

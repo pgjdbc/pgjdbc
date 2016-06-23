@@ -167,4 +167,9 @@ public class PGline extends PGobject implements Serializable, Cloneable {
     return "{" + a + "," + b + "," + c + "}";
   }
 
+  @Override
+  public Object clone() throws CloneNotSupportedException {
+    // squid:S2157 "Cloneables" should implement "clone
+    return super.clone();
+  }
 }

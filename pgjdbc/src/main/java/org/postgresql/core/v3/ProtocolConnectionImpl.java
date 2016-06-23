@@ -111,8 +111,6 @@ class ProtocolConnectionImpl implements ProtocolConnection {
       cancelStream.SendInteger4(cancelKey);
       cancelStream.flush();
       cancelStream.ReceiveEOF();
-      cancelStream.close();
-      cancelStream = null;
     } catch (IOException e) {
       // Safe to ignore.
       if (logger.logDebug()) {

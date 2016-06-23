@@ -187,4 +187,10 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
   public void setLocation(Point p) {
     setLocation(p.x, p.y);
   }
+
+  @Override
+  public Object clone() throws CloneNotSupportedException {
+    // squid:S2157 "Cloneables" should implement "clone
+    return super.clone();
+  }
 }

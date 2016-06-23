@@ -540,7 +540,9 @@ public class Driver implements java.sql.Driver {
         if (portIdx != -1 && address.lastIndexOf(']') < portIdx) {
           String portStr = address.substring(portIdx + 1);
           try {
-            Integer.parseInt(portStr);
+            // squid:S2201 The return value of "parseInt" must be used.
+            // The side effect is NumberFormatException, thus ignore sonar error here
+            Integer.parseInt(portStr); //NOSONAR
           } catch (NumberFormatException ex) {
             return null;
           }
