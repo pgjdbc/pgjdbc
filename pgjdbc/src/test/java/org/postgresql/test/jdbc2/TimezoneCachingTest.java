@@ -280,12 +280,13 @@ public class TimezoneCachingTest extends BaseTest {
    * Test to check the internal cached timezone of a result set is used as expected.
    */
   public void testResultSetCachedTimezoneUsage() throws SQLException {
-    Timestamp ts = new Timestamp(2016 - 1900, 1 - 1, 31, 0, 0, 0, 0);
     Statement stmt = null;
     PreparedStatement pstmt = null;
     ResultSet rs = null;
     TimeZone tz1 = TimeZone.getTimeZone("GMT+8:00");
-    TimeZone tz2 = TimeZone.getTimeZone("GMT-2:00");
+    TimeZone tz2 = TimeZone.getTimeZone("GMT-2:00"); // 10 hour difference
+    Timestamp ts1 = new Timestamp(2016 - 1900, 1 - 1, 31, 3, 0, 0, 0);
+    Timestamp ts2 = new Timestamp(2016 - 1900, 1 - 1, 31, 13, 0, 0, 0); // 10 hour difference
     Calendar c1 = new GregorianCalendar(tz1);
     Calendar c2 = new GregorianCalendar(tz2);
     try {
@@ -293,50 +294,50 @@ public class TimezoneCachingTest extends BaseTest {
       pstmt = con.prepareStatement("INSERT INTO testtz VALUES (?,?)");
       pstmt.setInt(1, 1);
       // We are in tz1, so timestamp added as tz1.
-      pstmt.setTimestamp(2, ts);
+      pstmt.setTimestamp(2, ts1);
       pstmt.addBatch();
       pstmt.executeBatch();
       stmt = con.createStatement();
       rs = stmt.executeQuery("SELECT col1, col2 FROM testtz");
       rs.next();
       rs.getInt(1);
-      assertTrue(
+      assertEquals(
           "Current TZ is tz1, empty cache to be initialized to tz1 => retrieve in tz1, timestamps must be equal",
-          rs.getTimestamp(2).equals(ts));
+          ts1, rs.getTimestamp(2));
       rs.close();
       rs = stmt.executeQuery("SELECT col1, col2 FROM testtz");
       rs.next();
       rs.getInt(1);
       TimeZone.setDefault(tz2);
-      assertTrue(
+      assertEquals(
           "Current TZ is tz2, empty cache to be initialized to tz2 => retrieve in tz2, timestamps cannot be equal",
-          !rs.getTimestamp(2).equals(ts));
-      assertTrue(
+          ts2, rs.getTimestamp(2));
+      assertEquals(
           "Explicit tz1 calendar, so timestamps must be equal",
-          rs.getTimestamp(2, c1).equals(ts));
-      assertTrue(
+          ts1, rs.getTimestamp(2, c1));
+      assertEquals(
           "Cache was initialized to tz2, so timestamps cannot be equal",
-          !rs.getTimestamp(2).equals(ts));
+          ts2, rs.getTimestamp(2));
       TimeZone.setDefault(tz1);
-      assertTrue(
+      assertEquals(
           "Cache was initialized to tz2, so timestamps cannot be equal",
-          !rs.getTimestamp(2).equals(ts));
+          ts2, rs.getTimestamp(2));
       rs.close();
       rs = stmt.executeQuery("SELECT col1, col2 FROM testtz");
       rs.next();
       rs.getInt(1);
-      assertTrue(
+      assertEquals(
           "Explicit tz2 calendar, so timestamps cannot be equal",
-          !rs.getTimestamp(2, c2).equals(ts));
-      assertTrue(
+          ts2, rs.getTimestamp(2, c2));
+      assertEquals(
           "Current TZ is tz1, empty cache to be initialized to tz1 => retrieve in tz1, timestamps must be equal",
-          rs.getTimestamp(2).equals(ts));
-      assertTrue(
+          ts1, rs.getTimestamp(2));
+      assertEquals(
           "Explicit tz2 calendar, so timestamps cannot be equal",
-          !rs.getTimestamp(2, c2).equals(ts));
-      assertTrue(
+          ts2, rs.getTimestamp(2, c2));
+      assertEquals(
           "Explicit tz2 calendar, so timestamps must be equal",
-          rs.getTimestamp(2, c1).equals(ts));
+          ts1, rs.getTimestamp(2, c1));
       rs.close();
     } finally {
       TimeZone.setDefault(null);
