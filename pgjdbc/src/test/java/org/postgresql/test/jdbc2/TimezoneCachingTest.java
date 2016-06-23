@@ -382,10 +382,6 @@ public class TimezoneCachingTest extends BaseTest {
     TestUtil.createTable(con, "testtz", "col1 INTEGER, col2 TIMESTAMP");
 
     stmt.close();
-
-    /* Generally recommended with batch updates. By default we run all
-    tests in this test case with autoCommit disabled. */
-    con.setAutoCommit(false);
   }
 
   // Tear down the fixture for this test case.
