@@ -40,49 +40,49 @@ public class TimezoneCachingTest extends BaseTest {
       pstmt = con.prepareStatement("INSERT INTO testtz VALUES (?,?)");
       assertEquals(
           "Cache never initialized: must be null",
-          getTimeZoneCache(pstmt), null);
+          null, getTimeZoneCache(pstmt));
       pstmt.setInt(1, 1);
       assertEquals(
           "Cache never initialized: must be null",
-          getTimeZoneCache(pstmt), null);
+          null, getTimeZoneCache(pstmt));
       pstmt.setTimestamp(2, ts);
       assertEquals(
           "Cache initialized by setTimestamp(xx): must not be null",
-          getTimeZoneCache(pstmt), tz);
+          tz, getTimeZoneCache(pstmt));
       pstmt.addBatch();
       assertEquals(
           "Cache was initialized, addBatch does not change that: must not be null",
-          getTimeZoneCache(pstmt), tz);
+          tz, getTimeZoneCache(pstmt));
       pstmt.setInt(1, 2);
       pstmt.setNull(2, java.sql.Types.DATE);
       assertEquals(
           "Cache was initialized, setNull does not change that: must not be null",
-          getTimeZoneCache(pstmt), tz);
+          tz, getTimeZoneCache(pstmt));
       pstmt.addBatch();
       assertEquals(
           "Cache was initialized, addBatch does not change that: must not be null",
-          getTimeZoneCache(pstmt), tz);
+          tz, getTimeZoneCache(pstmt));
       pstmt.executeBatch();
       assertEquals(
           "Cache reset by executeBatch(): must be null",
-          getTimeZoneCache(pstmt), null);
+          null, getTimeZoneCache(pstmt));
       pstmt.setInt(1, 3);
       assertEquals(
           "Cache not initialized: must be null",
-          getTimeZoneCache(pstmt), null);
+          null, getTimeZoneCache(pstmt));
       pstmt.setInt(1, 4);
       pstmt.setNull(2, java.sql.Types.DATE);
       assertEquals(
           "Cache was not initialized, setNull does not change that: must be null",
-          getTimeZoneCache(pstmt), null);
+          null, getTimeZoneCache(pstmt));
       pstmt.setTimestamp(2, ts);
       assertEquals(
           "Cache initialized by setTimestamp(xx): must not be null",
-          getTimeZoneCache(pstmt), tz);
+          tz, getTimeZoneCache(pstmt));
       pstmt.clearParameters();
       assertEquals(
           "Cache was initialized, clearParameters does not change that: must not be null",
-          getTimeZoneCache(pstmt), tz);
+          tz, getTimeZoneCache(pstmt));
       pstmt.setInt(1, 5);
       pstmt.setTimestamp(2, ts);
       pstmt.addBatch();
@@ -91,37 +91,37 @@ public class TimezoneCachingTest extends BaseTest {
       pstmt = con.prepareStatement("UPDATE testtz SET col2 = ? WHERE col1 = 1");
       assertEquals(
           "Cache not initialized: must be null",
-          getTimeZoneCache(pstmt), null);
+          null, getTimeZoneCache(pstmt));
       pstmt.setDate(1, date);
       assertEquals(
           "Cache initialized by setDate(xx): must not be null",
-          getTimeZoneCache(pstmt), tz);
+          tz, getTimeZoneCache(pstmt));
       pstmt.execute();
       assertEquals(
           "Cache reset by execute(): must be null",
-          getTimeZoneCache(pstmt), null);
+          null, getTimeZoneCache(pstmt));
       pstmt.setDate(1, date);
       assertEquals(
           "Cache initialized by setDate(xx): must not be null",
-          getTimeZoneCache(pstmt), tz);
+          tz, getTimeZoneCache(pstmt));
       pstmt.executeUpdate();
       assertEquals(
           "Cache reset by executeUpdate(): must be null",
-          getTimeZoneCache(pstmt), null);
+          null, getTimeZoneCache(pstmt));
       pstmt.setTime(1, time);
       assertEquals(
           "Cache initialized by setTime(xx): must not be null",
-          getTimeZoneCache(pstmt), tz);
+          tz, getTimeZoneCache(pstmt));
       pstmt.close();
       pstmt = con.prepareStatement("SELECT * FROM testtz WHERE col2 = ?");
       pstmt.setDate(1, date);
       assertEquals(
           "Cache initialized by setDate(xx): must not be null",
-          getTimeZoneCache(pstmt), tz);
+          tz, getTimeZoneCache(pstmt));
       pstmt.executeQuery();
       assertEquals(
           "Cache reset by executeQuery(): must be null",
-          getTimeZoneCache(pstmt), null);
+          null, getTimeZoneCache(pstmt));
     } finally {
       TestUtil.closeQuietly(pstmt);
     }
@@ -246,28 +246,28 @@ public class TimezoneCachingTest extends BaseTest {
       stmt = con.createStatement();
       rs = stmt.executeQuery("SELECT col1, col2 FROM testtz");
       rs.next();
-      assertEquals("Cache never initialized: must be null", getTimeZoneCache(rs), null);
+      assertEquals("Cache never initialized: must be null", null, getTimeZoneCache(rs));
       rs.getInt(1);
-      assertEquals("Cache never initialized: must be null", getTimeZoneCache(rs), null);
+      assertEquals("Cache never initialized: must be null", null, getTimeZoneCache(rs));
       rs.getTimestamp(2);
       assertEquals("Cache initialized by getTimestamp(x): must not be null",
-          getTimeZoneCache(rs), tz);
+          tz, getTimeZoneCache(rs));
       rs.close();
       rs = stmt.executeQuery("SELECT col1, col2 FROM testtz");
       rs.next();
       rs.getInt(1);
-      assertEquals("Cache never initialized: must be null", getTimeZoneCache(rs), null);
+      assertEquals("Cache never initialized: must be null", null, getTimeZoneCache(rs));
       rs.getObject(2);
       assertEquals("Cache initialized by getObject(x) on a DATE column: must not be null",
-          getTimeZoneCache(rs), tz);
+          tz, getTimeZoneCache(rs));
       rs.close();
       rs = stmt.executeQuery("SELECT col1, col2 FROM testtz");
       rs.next();
-      assertEquals("Cache should NOT be set", getTimeZoneCache(rs), null);
+      assertEquals("Cache should NOT be set", null, getTimeZoneCache(rs));
       rs.getInt(1);
-      assertEquals("Cache never initialized: must be null", getTimeZoneCache(rs), null);
+      assertEquals("Cache never initialized: must be null", null, getTimeZoneCache(rs));
       rs.getDate(2);
-      assertEquals("Cache initialized by getDate(x): must not be null", getTimeZoneCache(rs), tz);
+      assertEquals("Cache initialized by getDate(x): must not be null", tz, getTimeZoneCache(rs));
       rs.close();
     } finally {
       TestUtil.closeQuietly(rs);
@@ -355,7 +355,7 @@ public class TimezoneCachingTest extends BaseTest {
     Timestamp dbTs = rs.getTimestamp(1);
     rs.close();
     TimeZone.setDefault(prevTz);
-    assertEquals(checkText, dbTs, ts);
+    assertEquals(checkText, ts, dbTs);
   }
 
   private TimeZone getTimeZoneCache(Object stmt) {
