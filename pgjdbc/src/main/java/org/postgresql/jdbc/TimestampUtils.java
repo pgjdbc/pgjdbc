@@ -958,7 +958,7 @@ public class TimestampUtils {
    */
   public LocalDateTime toLocalDateTimeBin(TimeZone tz, byte[] bytes) throws PSQLException {
 
-    ParsedBinaryTimestamp parsedTimestamp = this.toParsedTimestampBin(null, bytes, true);
+    ParsedBinaryTimestamp parsedTimestamp = this.toParsedTimestampBin(tz, bytes, true);
     if (parsedTimestamp.infinity == Infinity.POSITIVE) {
       return LocalDateTime.MAX;
     } else if (parsedTimestamp.infinity == Infinity.NEGATIVE) {
