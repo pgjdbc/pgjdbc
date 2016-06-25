@@ -50,6 +50,9 @@ public class DatabaseMetaDataTest extends TestCase {
     TestUtil.createTable(con, "\"a\\\"", "a int4");
     TestUtil.createTable(con, "\"a'\"", "a int4");
     TestUtil.createTable(con, "arraytable", "a numeric(5,2)[], b varchar(100)[]");
+    TestUtil.createTable(con, "intarraytable", "a int4[]");
+    TestUtil.createCompositeType(con, "comp4ar", "i int, k int");
+    TestUtil.createTable(con, "comparraytable", "a comp4ar[]");
 
     Statement stmt = con.createStatement();
     // we add the following comments to ensure the joins to the comments
@@ -92,6 +95,9 @@ public class DatabaseMetaDataTest extends TestCase {
     TestUtil.dropTable(con, "\"a\\\"");
     TestUtil.dropTable(con, "\"a'\"");
     TestUtil.dropTable(con, "arraytable");
+    TestUtil.dropTable(con, "intarraytable");
+    TestUtil.dropTable(con, "comparraytable");
+    TestUtil.dropType(con, "comp4ar");
 
     stmt.execute("DROP FUNCTION f1(int, varchar)");
     if (TestUtil.haveMinimumServerVersion(con, "8.0")) {
@@ -1130,6 +1136,29 @@ public class DatabaseMetaDataTest extends TestCase {
       assertTrue(types.containsKey(typeName));
     }
 
+  }
+
+  //https://github.com/pgjdbc/pgjdbc/issues/591
+  public void testArrayTypeInfo() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    ResultSet res = dbmd.getColumns(null, null, "intarraytable", null);
+    assertTrue(res.next());
+    assertEquals("_int4", res.getString("TYPE_NAME"));
+    con.createArrayOf("integer", new Integer[] {});
+    res = dbmd.getColumns(null, null, "intarraytable", null);
+    assertTrue(res.next());
+    assertEquals("_int4", res.getString("TYPE_NAME"));
+  }
+
+  public void testCustomArrayTypeInfo() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    ResultSet res = dbmd.getColumns(null, null, "comparraytable", null);
+    assertTrue(res.next());
+    assertEquals("_comp4ar", res.getString("TYPE_NAME"));
+    con.createArrayOf("comp4ar", new Object[] {});
+    res = dbmd.getColumns(null, null, "comparraytable", null);
+    assertTrue(res.next());
+    assertEquals("_comp4ar", res.getString("TYPE_NAME"));
   }
 
   public void testTypeInfoSigned() throws SQLException {
