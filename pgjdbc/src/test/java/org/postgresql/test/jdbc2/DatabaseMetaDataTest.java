@@ -50,6 +50,10 @@ public class DatabaseMetaDataTest extends TestCase {
     TestUtil.createTable(con, "\"a\\\"", "a int4");
     TestUtil.createTable(con, "\"a'\"", "a int4");
     TestUtil.createTable(con, "arraytable", "a numeric(5,2)[], b varchar(100)[]");
+    TestUtil.createTable(con, "intarraytable", "a int4[]");
+    TestUtil.createCompositeType(con, "custom", "i int");
+    TestUtil.createCompositeType(con, "_custom", "f float");
+    TestUtil.createTable(con, "customtable", "c1 custom, c2 _custom, c3 custom[], c4 _custom[]");
 
     Statement stmt = con.createStatement();
     // we add the following comments to ensure the joins to the comments
@@ -92,6 +96,10 @@ public class DatabaseMetaDataTest extends TestCase {
     TestUtil.dropTable(con, "\"a\\\"");
     TestUtil.dropTable(con, "\"a'\"");
     TestUtil.dropTable(con, "arraytable");
+    TestUtil.dropTable(con, "intarraytable");
+    TestUtil.dropTable(con, "customtable");
+    TestUtil.dropType(con, "custom");
+    TestUtil.dropType(con, "_custom");
 
     stmt.execute("DROP FUNCTION f1(int, varchar)");
     if (TestUtil.haveMinimumServerVersion(con, "8.0")) {
@@ -106,6 +114,40 @@ public class DatabaseMetaDataTest extends TestCase {
     }
 
     TestUtil.closeDB(con);
+  }
+
+  public void testArrayTypeInfo() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    ResultSet res = dbmd.getColumns(null, null, "intarraytable", null);
+    assertTrue(res.next());
+    assertEquals("_int4", res.getString("TYPE_NAME"));
+    con.createArrayOf("integer", new Integer[] {});
+    res = dbmd.getColumns(null, null, "intarraytable", null);
+    assertTrue(res.next());
+    assertEquals("_int4", res.getString("TYPE_NAME"));
+  }
+
+  public void testCustomArrayTypeInfo() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    ResultSet res = dbmd.getColumns(null, null, "customtable", null);
+    assertTrue(res.next());
+    assertEquals("custom", res.getString("TYPE_NAME"));
+    assertTrue(res.next());
+    assertEquals("_custom", res.getString("TYPE_NAME"));
+    assertTrue(res.next());
+    assertEquals("__custom", res.getString("TYPE_NAME"));
+    assertTrue(res.next());
+    assertEquals("___custom", res.getString("TYPE_NAME"));
+    con.createArrayOf("custom", new Object[] {});
+    res = dbmd.getColumns(null, null, "customtable", null);
+    assertTrue(res.next());
+    assertEquals("custom", res.getString("TYPE_NAME"));
+    assertTrue(res.next());
+    assertEquals("_custom", res.getString("TYPE_NAME"));
+    assertTrue(res.next());
+    assertEquals("__custom", res.getString("TYPE_NAME"));
+    assertTrue(res.next());
+    assertEquals("___custom", res.getString("TYPE_NAME"));
   }
 
   public void testTables() throws Exception {
