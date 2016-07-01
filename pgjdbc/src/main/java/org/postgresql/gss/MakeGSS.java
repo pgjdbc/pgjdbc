@@ -35,8 +35,6 @@ public class MakeGSS {
       logger.debug(" <=BE AuthenticationReqGSS");
     }
 
-    Exception result = null;
-
     if (jaasApplicationName == null) {
       jaasApplicationName = "pgjdbc";
     }
@@ -44,13 +42,14 @@ public class MakeGSS {
       kerberosServerName = "postgres";
     }
 
+    Exception result = null;
     try {
       boolean performAuthentication = true;
       GSSCredential gssCredential = null;
       Subject sub = Subject.getSubject(AccessController.getContext());
       if (sub != null) {
         Set<GSSCredential> gssCreds = sub.getPrivateCredentials(GSSCredential.class);
-        if (gssCreds != null && gssCreds.size() > 0) {
+        if (gssCreds != null && !gssCreds.isEmpty()) {
           gssCredential = gssCreds.iterator().next();
           performAuthentication = false;
         }

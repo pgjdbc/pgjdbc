@@ -50,5 +50,5 @@ public interface CopyOperation {
    *
    * @return number of handled rows or -1
    */
-  public long getHandledRowCount();
+  long getHandledRowCount();
 }

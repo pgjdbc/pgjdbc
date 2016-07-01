@@ -27,19 +27,19 @@ public interface ProtocolConnection {
    * Constant returned by {@link #getTransactionState} indicating that no transaction is currently
    * open.
    */
-  static final int TRANSACTION_IDLE = 0;
+  int TRANSACTION_IDLE = 0;
 
   /**
    * Constant returned by {@link #getTransactionState} indicating that a transaction is currently
    * open.
    */
-  static final int TRANSACTION_OPEN = 1;
+  int TRANSACTION_OPEN = 1;
 
   /**
    * Constant returned by {@link #getTransactionState} indicating that a transaction is currently
    * open, but it has seen errors and will refuse subsequent queries until a ROLLBACK.
    */
-  static final int TRANSACTION_FAILED = 2;
+  int TRANSACTION_FAILED = 2;
 
   /**
    * @return the host and port this connection is connected to.
@@ -147,33 +147,33 @@ public interface ProtocolConnection {
   /**
    * @return the version of the implementation
    */
-  public int getProtocolVersion();
+  int getProtocolVersion();
 
   /**
    * Sets the oids that should be received using binary encoding.
    *
    * @param useBinaryForOids The oids to request with binary encoding.
    */
-  public void setBinaryReceiveOids(Set<Integer> useBinaryForOids);
+  void setBinaryReceiveOids(Set<Integer> useBinaryForOids);
 
   /**
    * Returns true if server uses integer instead of double for binary date and time encodings.
    *
    * @return the server integer_datetime setting.
    */
-  public boolean getIntegerDateTimes();
+  boolean getIntegerDateTimes();
 
   /**
    * Return the process ID (PID) of the backend server process handling this connection.
    *
    * @return process ID (PID) of the backend server process handling this connection
    */
-  public int getBackendPID();
+  int getBackendPID();
 
   /**
    * Abort at network level without sending the Terminate message to the backend.
    */
-  public void abort();
+  void abort();
 
   /**
    * Return TimestampUtils that is aware of connection-specific {@code TimeZone} value.

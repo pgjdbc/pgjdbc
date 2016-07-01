@@ -48,50 +48,50 @@ public interface QueryExecutor {
   /**
    * Flag for query execution that indicates the given Query object is unlikely to be reused.
    */
-  static int QUERY_ONESHOT = 1;
+  int QUERY_ONESHOT = 1;
 
   /**
    * Flag for query execution that indicates that resultset metadata isn't needed and can be safely
    * omitted.
    */
-  static int QUERY_NO_METADATA = 2;
+  int QUERY_NO_METADATA = 2;
 
   /**
    * Flag for query execution that indicates that a resultset isn't expected and the query executor
    * can safely discard any rows (although the resultset should still appear to be from a
    * resultset-returning query).
    */
-  static int QUERY_NO_RESULTS = 4;
+  int QUERY_NO_RESULTS = 4;
 
   /**
    * Flag for query execution that indicates a forward-fetch-capable cursor should be used if
    * possible.
    */
-  static int QUERY_FORWARD_CURSOR = 8;
+  int QUERY_FORWARD_CURSOR = 8;
 
   /**
    * Flag for query execution that indicates the automatic BEGIN on the first statement when outside
    * a transaction should not be done.
    */
-  static int QUERY_SUPPRESS_BEGIN = 16;
+  int QUERY_SUPPRESS_BEGIN = 16;
 
   /**
    * Flag for query execution when we don't really want to execute, we just want to get the
    * parameter metadata for the statement.
    */
-  static int QUERY_DESCRIBE_ONLY = 32;
+  int QUERY_DESCRIBE_ONLY = 32;
 
   /**
    * Flag for query execution used by generated keys where we want to receive both the ResultSet and
    * associated update count from the command status.
    */
-  static int QUERY_BOTH_ROWS_AND_STATUS = 64;
+  int QUERY_BOTH_ROWS_AND_STATUS = 64;
 
   /**
    * Force this query to be described at each execution. This is done in pipelined batches where we
    * might need to detect mismatched result types.
    */
-  static int QUERY_FORCE_DESCRIBE_PORTAL = 512;
+  int QUERY_FORCE_DESCRIBE_PORTAL = 512;
 
   /**
    * Flag to disable batch execution when we expect results (generated keys) from a statement.
@@ -99,12 +99,12 @@ public interface QueryExecutor {
    * @deprecated in PgJDBC 9.4 as we now auto-size batches.
    */
   @Deprecated
-  static int QUERY_DISALLOW_BATCHING = 128;
+  int QUERY_DISALLOW_BATCHING = 128;
 
   /**
    * Flag for query execution to avoid using binary transfer.
    */
-  static int QUERY_NO_BINARY_TRANSFER = 256;
+  int QUERY_NO_BINARY_TRANSFER = 256;
 
   /**
    * Execute a Query, passing results to a provided ResultHandler.

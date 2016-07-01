@@ -92,7 +92,7 @@ public class LargeObject {
     this.fp = fp;
     this.oid = oid;
     this.mode = mode;
-    if (commitOnClose == true) {
+    if (commitOnClose) {
       this.commitOnClose = true;
       this.conn = conn;
     } else {
@@ -175,7 +175,7 @@ public class LargeObject {
       args[0] = new FastpathArg(fd);
       fp.fastpath("lo_close", args); // true here as we dont care!!
       closed = true;
-      if (this.commitOnClose == true) {
+      if (this.commitOnClose) {
         this.conn.commit();
       }
     }

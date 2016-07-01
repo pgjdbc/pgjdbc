@@ -18,7 +18,7 @@ public interface PGNotification {
    * @return name of this notification
    * @since 7.3
    */
-  public String getName();
+  String getName();
 
   /**
    * Returns the process id of the backend process making this notification
@@ -26,7 +26,7 @@ public interface PGNotification {
    * @return process id of the backend process making this notification
    * @since 7.3
    */
-  public int getPID();
+  int getPID();
 
   /**
    * Returns additional information from the notifying process. This feature has only been
@@ -36,5 +36,5 @@ public interface PGNotification {
    * @return additional information from the notifying process
    * @since 8.0
    */
-  public String getParameter();
+  String getParameter();
 }

@@ -22,7 +22,7 @@ public interface PGResultSetMetaData {
    * @throws SQLException if something wrong happens
    * @since 8.0
    */
-  public String getBaseColumnName(int column) throws SQLException;
+  String getBaseColumnName(int column) throws SQLException;
 
   /**
    * Returns the underlying table name of query result, or "" if it is unable to be determined.
@@ -32,7 +32,7 @@ public interface PGResultSetMetaData {
    * @throws SQLException if something wrong happens
    * @since 8.0
    */
-  public String getBaseTableName(int column) throws SQLException;
+  String getBaseTableName(int column) throws SQLException;
 
   /**
    * Returns the underlying schema name of query result, or "" if it is unable to be determined.
@@ -42,7 +42,7 @@ public interface PGResultSetMetaData {
    * @throws SQLException if something wrong happens
    * @since 8.0
    */
-  public String getBaseSchemaName(int column) throws SQLException;
+  String getBaseSchemaName(int column) throws SQLException;
 
   /**
    * Is a column Text or Binary?
@@ -54,5 +54,5 @@ public interface PGResultSetMetaData {
    * @see Field#TEXT_FORMAT
    * @since 9.4
    */
-  public int getFormat(int column) throws SQLException;
+  int getFormat(int column) throws SQLException;
 }

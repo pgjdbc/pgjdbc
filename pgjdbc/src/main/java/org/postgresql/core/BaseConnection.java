@@ -27,7 +27,7 @@ public interface BaseConnection extends PGConnection, Connection {
    *
    * @throws SQLException if something goes wrong.
    */
-  public void cancelQuery() throws SQLException;
+  void cancelQuery() throws SQLException;
 
   /**
    * Execute a SQL query that returns a single resultset. Never causes a new transaction to be
@@ -37,9 +37,9 @@ public interface BaseConnection extends PGConnection, Connection {
    * @return the (non-null) returned resultset
    * @throws SQLException if something goes wrong.
    */
-  public ResultSet execSQLQuery(String s) throws SQLException;
+  ResultSet execSQLQuery(String s) throws SQLException;
 
-  public ResultSet execSQLQuery(String s, int resultSetType, int resultSetConcurrency)
+  ResultSet execSQLQuery(String s, int resultSetType, int resultSetConcurrency)
       throws SQLException;
 
   /**
@@ -49,14 +49,14 @@ public interface BaseConnection extends PGConnection, Connection {
    * @param s the query to execute
    * @throws SQLException if something goes wrong.
    */
-  public void execSQLUpdate(String s) throws SQLException;
+  void execSQLUpdate(String s) throws SQLException;
 
   /**
    * Get the QueryExecutor implementation for this connection.
    *
    * @return the (non-null) executor
    */
-  public QueryExecutor getQueryExecutor();
+  QueryExecutor getQueryExecutor();
 
   /**
    * Construct and return an appropriate object for the given type and value. This only considers
@@ -72,11 +72,11 @@ public interface BaseConnection extends PGConnection, Connection {
    * @return an appropriate object; never null.
    * @throws SQLException if something goes wrong
    */
-  public Object getObject(String type, String value, byte[] byteValue) throws SQLException;
+  Object getObject(String type, String value, byte[] byteValue) throws SQLException;
 
-  public Encoding getEncoding() throws SQLException;
+  Encoding getEncoding() throws SQLException;
 
-  public TypeInfo getTypeInfo();
+  TypeInfo getTypeInfo();
 
   /**
    * Check if we should use driver behaviour introduced in a particular driver version. This
@@ -91,7 +91,7 @@ public interface BaseConnection extends PGConnection, Connection {
    * @deprecated Avoid using this in new code that can require PgJDBC 9.4.
    */
   @Deprecated
-  public boolean haveMinimumCompatibleVersion(String ver);
+  boolean haveMinimumCompatibleVersion(String ver);
 
   /**
    * Check if we should use driver behaviour introduced in a particular driver version.
@@ -111,7 +111,7 @@ public interface BaseConnection extends PGConnection, Connection {
    * @param ver the driver version to check, eg 90401 for 9.4.1
    * @return true if the driver's behavioural version is at least "ver".
    */
-  public boolean haveMinimumCompatibleVersion(int ver);
+  boolean haveMinimumCompatibleVersion(int ver);
 
   /**
    * Check if we should use driver behaviour introduced in a particular driver version.
@@ -122,7 +122,7 @@ public interface BaseConnection extends PGConnection, Connection {
    * @param ver the driver version to check
    * @return true if the driver's behavioural version is at least "ver".
    */
-  public boolean haveMinimumCompatibleVersion(Version ver);
+  boolean haveMinimumCompatibleVersion(Version ver);
 
   /**
    * Check if we have at least a particular server version.
@@ -132,7 +132,7 @@ public interface BaseConnection extends PGConnection, Connection {
    * @deprecated Use haveMinimumServerVersion(int) instead
    */
   @Deprecated
-  public boolean haveMinimumServerVersion(String ver);
+  boolean haveMinimumServerVersion(String ver);
 
   /**
    * Check if we have at least a particular server version.
@@ -143,7 +143,7 @@ public interface BaseConnection extends PGConnection, Connection {
    * @param ver the server version to check, of the form xxyyzz eg 90401
    * @return true if the server version is at least "ver".
    */
-  public boolean haveMinimumServerVersion(int ver);
+  boolean haveMinimumServerVersion(int ver);
 
   /**
    * Check if we have at least a particular server version.
@@ -154,7 +154,7 @@ public interface BaseConnection extends PGConnection, Connection {
    * @param ver the server version to check
    * @return true if the server version is at least "ver".
    */
-  public boolean haveMinimumServerVersion(Version ver);
+  boolean haveMinimumServerVersion(Version ver);
 
   /**
    * Encode a string using the database's client_encoding (usually UTF8, but can vary on older
@@ -165,7 +165,7 @@ public interface BaseConnection extends PGConnection, Connection {
    * @return an encoded representation of the string
    * @throws SQLException if something goes wrong.
    */
-  public byte[] encodeString(String str) throws SQLException;
+  byte[] encodeString(String str) throws SQLException;
 
   /**
    * Escapes a string for use as string-literal within an SQL command. The method chooses the
@@ -175,7 +175,7 @@ public interface BaseConnection extends PGConnection, Connection {
    * @return the escaped representation of the string
    * @throws SQLException if the string contains a <tt>\0</tt> character
    */
-  public String escapeString(String str) throws SQLException;
+  String escapeString(String str) throws SQLException;
 
   /**
    * Returns whether the server treats string-literals according to the SQL standard or if it uses
@@ -186,23 +186,23 @@ public interface BaseConnection extends PGConnection, Connection {
    * @return true if the server treats string literals according to the SQL standard
    * @see ProtocolConnection#getStandardConformingStrings()
    */
-  public boolean getStandardConformingStrings();
+  boolean getStandardConformingStrings();
 
   // Ew. Quick hack to give access to the connection-specific utils implementation.
-  public TimestampUtils getTimestampUtils();
+  TimestampUtils getTimestampUtils();
 
   // Get the per-connection logger.
-  public Logger getLogger();
+  Logger getLogger();
 
   // Get the bind-string-as-varchar config flag
-  public boolean getStringVarcharFlag();
+  boolean getStringVarcharFlag();
 
   /**
    * Get the current transaction state of this connection.
    *
    * @return a ProtocolConnection.TRANSACTION_* constant.
    */
-  public int getTransactionState();
+  int getTransactionState();
 
   /**
    * Returns true if value for the given oid should be sent using binary transfer. False if value
@@ -211,14 +211,14 @@ public interface BaseConnection extends PGConnection, Connection {
    * @param oid The oid to check.
    * @return True for binary transfer, false for text transfer.
    */
-  public boolean binaryTransferSend(int oid);
+  boolean binaryTransferSend(int oid);
 
   /**
    * Return whether to disable column name sanitation.
    *
    * @return true column sanitizer is disabled
    */
-  public boolean isColumnSanitiserDisabled();
+  boolean isColumnSanitiserDisabled();
 
   /**
    * Schedule a TimerTask for later execution. The task will be scheduled with the shared Timer for
@@ -227,18 +227,18 @@ public interface BaseConnection extends PGConnection, Connection {
    * @param timerTask timer task to schedule
    * @param milliSeconds delay in milliseconds
    */
-  public void addTimerTask(TimerTask timerTask, long milliSeconds);
+  void addTimerTask(TimerTask timerTask, long milliSeconds);
 
   /**
    * Invoke purge() on the underlying shared Timer so that internal resources will be released.
    */
-  public void purgeTimerTasks();
+  void purgeTimerTasks();
 
   /**
    * To be used for checking if the batched insert re-write optimization is enabled.
    * @return true if re-write feature is enabled
    */
-  public boolean isReWriteBatchedInsertsEnabled();
+  boolean isReWriteBatchedInsertsEnabled();
 
   /**
    * Return metadata cache for given connection

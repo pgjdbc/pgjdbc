@@ -224,7 +224,7 @@ public class Fastpath {
    * @throws SQLException if a database-access error occurs or no result
    */
   public byte[] getData(String name, FastpathArg[] args) throws SQLException {
-    return (byte[]) fastpath(name, args);
+    return fastpath(name, args);
   }
 
   /**

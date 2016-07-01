@@ -417,10 +417,7 @@ public class Driver implements java.sql.Driver {
    * @see java.sql.Driver#acceptsURL
    */
   public boolean acceptsURL(String url) {
-    if (parseURL(url, null) == null) {
-      return false;
-    }
-    return true;
+    return parseURL(url, null) != null;
   }
 
   /**
@@ -567,9 +564,8 @@ public class Driver implements java.sql.Driver {
 
     // parse the args part of the url
     String[] args = l_urlArgs.split("&");
-    for (int i = 0; i < args.length; ++i) {
-      String token = args[i];
-      if (token.length() == 0) {
+    for (String token : args) {
+      if (token.isEmpty()) {
         continue;
       }
       int l_pos = token.indexOf('=');

@@ -22,7 +22,7 @@ public interface PGBinaryObject {
    * @param offset the offset in the byte array where object data starts
    * @throws SQLException thrown if value is invalid for this type
    */
-  public void setByteValue(byte[] value, int offset) throws SQLException;
+  void setByteValue(byte[] value, int offset) throws SQLException;
 
   /**
    * This method is called to return the number of bytes needed to store this object in the binary
@@ -30,7 +30,7 @@ public interface PGBinaryObject {
    *
    * @return the number of bytes needed to store this object
    */
-  public int lengthInBytes();
+  int lengthInBytes();
 
   /**
    * This method is called the to store the value of the object, in the binary form required by
@@ -40,5 +40,5 @@ public interface PGBinaryObject {
    *        {@link #lengthInBytes} in size.
    * @param offset the offset in the byte array where object must be stored
    */
-  public void toBytes(byte[] bytes, int offset);
+  void toBytes(byte[] bytes, int offset);
 }

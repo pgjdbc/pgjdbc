@@ -59,13 +59,11 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
-//#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-//#endif
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -76,6 +74,9 @@ import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
 import java.util.UUID;
+
+//#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+//#endif
 
 
 public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultSet {
@@ -344,7 +345,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   public void beforeFirst() throws SQLException {
     checkScrollable();
 
-    if (rows.size() > 0) {
+    if (!rows.isEmpty()) {
       current_row = -1;
     }
 
@@ -710,7 +711,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       return false;
     }
 
-    return ((row_offset + current_row) < 0 && rows.size() > 0);
+    return ((row_offset + current_row) < 0 && !rows.isEmpty());
   }
 
 
@@ -891,7 +892,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
               "Currently positioned after the end of the ResultSet.  You cannot call deleteRow() here."),
           PSQLState.INVALID_CURSOR_STATE);
     }
-    if (rows.size() == 0) {
+    if (rows.isEmpty()) {
       throw new PSQLException(GT.tr("There are no rows in this ResultSet."),
           PSQLState.INVALID_CURSOR_STATE);
     }
@@ -912,7 +913,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         }
       }
 
-      deleteStatement = ((java.sql.Connection) connection).prepareStatement(deleteSQL.toString());
+      deleteStatement = connection.prepareStatement(deleteSQL.toString());
     }
     deleteStatement.clearParameters();
 
@@ -934,7 +935,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     if (!onInsertRow) {
       throw new PSQLException(GT.tr("Not on the insert row."), PSQLState.INVALID_CURSOR_STATE);
-    } else if (updateValues.size() == 0) {
+    } else if (updateValues.isEmpty()) {
       throw new PSQLException(GT.tr("You must specify at least one column value to insert a row."),
           PSQLState.INVALID_PARAMETER_VALUE);
     } else {
@@ -963,7 +964,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       }
 
       insertSQL.append(paramSQL.toString());
-      insertStatement = ((java.sql.Connection) connection).prepareStatement(insertSQL.toString());
+      insertStatement = connection.prepareStatement(insertSQL.toString());
 
       Iterator<String> keys = updateValues.keySet().iterator();
 
@@ -1237,7 +1238,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           PSQLState.INVALID_CURSOR_STATE);
     }
 
-    if (isBeforeFirst() || isAfterLast() || rows.size() == 0) {
+    if (isBeforeFirst() || isAfterLast() || rows.isEmpty()) {
       return;
     }
 
@@ -1269,7 +1270,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
     // because updateable result sets do not yet support binary transfers we must request refresh
     // with updateable result set to get field data in correct format
-    selectStatement = ((java.sql.Connection) connection).prepareStatement(selectSQL.toString(),
+    selectStatement = connection.prepareStatement(selectSQL.toString(),
         ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
 
 
@@ -1303,7 +1304,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           PSQLState.INVALID_CURSOR_STATE);
     }
 
-    if (isBeforeFirst() || isAfterLast() || rows.size() == 0) {
+    if (isBeforeFirst() || isAfterLast() || rows.isEmpty()) {
       throw new PSQLException(
           GT.tr(
               "Cannot update the ResultSet because it is either before the start or after the end of the results."),
@@ -1346,7 +1347,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     if (connection.getLogger().logDebug()) {
       connection.getLogger().debug("updating " + updateSQL.toString());
     }
-    updateStatement = ((java.sql.Connection) connection).prepareStatement(updateSQL.toString());
+    updateStatement = connection.prepareStatement(updateSQL.toString());
 
     int i = 0;
     Iterator<Object> iterator = updateValues.values().iterator();
@@ -1517,7 +1518,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     parseQuery();
 
-    if (singleTable == false) {
+    if (!singleTable) {
       connection.getLogger().debug("not a single table");
       return false;
     }
@@ -1553,7 +1554,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       String[] s = quotelessTableName(tableName);
       String quotelessTableName = s[0];
       String quotelessSchemaName = s[1];
-      java.sql.ResultSet rs = ((java.sql.Connection) connection).getMetaData().getPrimaryKeys("",
+      java.sql.ResultSet rs = connection.getMetaData().getPrimaryKeys("",
           quotelessSchemaName, quotelessTableName);
       while (rs.next()) {
         numPKcolumns++;
@@ -1677,10 +1678,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   private void updateRowBuffer() throws SQLException {
 
-    Iterator<String> columns = updateValues.keySet().iterator();
-
-    while (columns.hasNext()) {
-      String columnName = columns.next();
+    for (String columnName : updateValues.keySet()) {
       int columnIndex = findColumn(columnName) - 1;
 
       Object valueObject = updateValues.get(columnName);
@@ -1845,7 +1843,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       current_row = 0;
 
       // Test the new rows array.
-      if (rows.size() == 0) {
+      if (rows.isEmpty()) {
         this_row = null;
         rowBuffer = null;
         return false;
@@ -1947,7 +1945,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     if (s != null) {
       s = s.trim();
-      if (s.length() == 0) {
+      if (s.isEmpty()) {
         return 0;
       }
       try {
@@ -3044,7 +3042,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   protected void updateValue(int columnIndex, Object value) throws SQLException {
     checkUpdateable();
 
-    if (!onInsertRow && (isBeforeFirst() || isAfterLast() || rows.size() == 0)) {
+    if (!onInsertRow && (isBeforeFirst() || isAfterLast() || rows.isEmpty())) {
       throw new PSQLException(
           GT.tr(
               "Cannot update the ResultSet because it is either before the start or after the end of the results."),
