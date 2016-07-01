@@ -59,11 +59,13 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
+//#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+//#endif
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -74,9 +76,6 @@ import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
 import java.util.UUID;
-
-//#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
-//#endif
 
 
 public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultSet {
