@@ -739,7 +739,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         if (in instanceof PGobject) {
           setPGobject(parameterIndex, (PGobject) in);
         } else if (in instanceof Map) {
-            setMap(parameterIndex, (Map<?, ?>) in);
+          setMap(parameterIndex, (Map<?, ?>) in);
         } else {
           bindString(parameterIndex, in.toString(), Oid.UNSPECIFIED);
         }
