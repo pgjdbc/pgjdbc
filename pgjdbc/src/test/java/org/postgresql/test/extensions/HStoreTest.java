@@ -16,6 +16,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -68,6 +69,16 @@ public class HStoreTest extends TestCase {
     Map<String, Integer> correct = Collections.singletonMap("a", new Integer(1));
     PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::text");
     pstmt.setObject(1, correct);
+    ResultSet rs = pstmt.executeQuery();
+    assertEquals(String.class.getName(), rs.getMetaData().getColumnClassName(1));
+    assertTrue(rs.next());
+    assertEquals("\"a\"=>\"1\"", rs.getString(1));
+  }
+
+  public void testHStoreUsingPSSetObject4() throws SQLException {
+    Map<String, Integer> correct = Collections.singletonMap("a", new Integer(1));
+    PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::text");
+    pstmt.setObject(1, correct, Types.OTHER, -1);
     ResultSet rs = pstmt.executeQuery();
     assertEquals(String.class.getName(), rs.getMetaData().getColumnClassName(1));
     assertTrue(rs.next());
