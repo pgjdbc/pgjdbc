@@ -15,7 +15,7 @@ import java.util.Collection;
 
 @RunWith(Parameterized.class)
 public class QuotationTest extends BaseTest4 {
-  enum QuoteStyle {
+  private enum QuoteStyle {
     SIMPLE("'"), DOLLAR_NOTAG("$$"), DOLLAR_A("$a$"), DOLLAR_DEF("$DEF$");
 
     private final String quote;

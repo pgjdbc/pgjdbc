@@ -69,9 +69,9 @@ public class DriverTest extends TestCase {
       throws Exception {
     assertTrue(url, drv.acceptsURL(url));
     Method parseMethod =
-        drv.getClass().getDeclaredMethod("parseURL", new Class[]{String.class, Properties.class});
+        drv.getClass().getDeclaredMethod("parseURL", String.class, Properties.class);
     parseMethod.setAccessible(true);
-    Properties p = (Properties) parseMethod.invoke(drv, new Object[]{url, null});
+    Properties p = (Properties) parseMethod.invoke(drv, url, null);
     assertEquals(url, dbName, p.getProperty("PGDBNAME"));
     assertEquals(url, hosts, p.getProperty("PGHOST"));
     assertEquals(url, ports, p.getProperty("PGPORT"));

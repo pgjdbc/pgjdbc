@@ -223,7 +223,7 @@ public class PGTimestampTest extends TestCase {
   }
 
   /**
-   * Creates a <code>SimpleDateFormat</code> that is appropriate for the given timestamp.
+   * Creates a {@code SimpleDateFormat} that is appropriate for the given timestamp.
    *
    * @param timestamp the timestamp object.
    * @return the new format instance.

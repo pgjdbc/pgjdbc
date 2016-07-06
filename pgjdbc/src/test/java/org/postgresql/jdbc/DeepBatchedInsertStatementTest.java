@@ -75,8 +75,7 @@ public class DeepBatchedInsertStatementTest extends BaseTest {
   public void testDeepInternalsBatchedQueryDecorator() throws Exception {
     PgPreparedStatement pstmt = null;
     try {
-      pstmt = (PgPreparedStatement) con
-          .prepareStatement("INSERT INTO testbatch VALUES (?,?)");
+      pstmt = (PgPreparedStatement) con.prepareStatement("INSERT INTO testbatch VALUES (?,?)");
 
       pstmt.setInt(1, 1);
       pstmt.setInt(2, 2);

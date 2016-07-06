@@ -1,9 +1,11 @@
 package org.postgresql.test.socketfactory;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -11,7 +13,7 @@ import org.junit.Test;
 import java.sql.Connection;
 import java.util.Properties;
 
-public class SocketFactoryTestSuite extends TestCase {
+public class SocketFactoryTestSuite {
 
   private static final String STRING_ARGUMENT = "name of a socket";
 

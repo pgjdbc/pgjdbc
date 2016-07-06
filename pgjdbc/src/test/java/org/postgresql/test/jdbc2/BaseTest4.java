@@ -13,11 +13,11 @@ import java.util.Properties;
 public class BaseTest4 {
 
   public enum BinaryMode {
-    REGULAR, FORCE;
+    REGULAR, FORCE
   }
 
   public enum AutoCommit {
-    YES, NO;
+    YES, NO
   }
 
   protected Connection con;

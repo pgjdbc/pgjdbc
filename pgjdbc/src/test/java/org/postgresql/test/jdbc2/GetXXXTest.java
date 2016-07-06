@@ -57,7 +57,7 @@ public class GetXXXTest extends TestCase {
     Statement stmt = con.createStatement();
     ResultSet rs = stmt.executeQuery("select (final-initial) as diff from test_interval");
     while (rs.next()) {
-      String str = (String) rs.getString(1);
+      String str = rs.getString(1);
 
       assertNotNull(str);
       Object obj = rs.getObject(1);

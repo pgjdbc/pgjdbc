@@ -7,6 +7,7 @@ import junit.framework.TestSuite;
 import java.util.Properties;
 
 public class SslTestSuite extends TestSuite {
+  private static Properties prop;
 
   private static void add(TestSuite suite, String param) {
     if (prop.getProperty(param, "").equals("")) {
@@ -15,8 +16,6 @@ public class SslTestSuite extends TestSuite {
       suite.addTest(SslTest.getSuite(prop, param));
     }
   }
-
-  static Properties prop;
 
   /*
    * The main entry point for JUnit
@@ -29,13 +28,13 @@ public class SslTestSuite extends TestSuite {
     add(suite, "ssloff9");
     add(suite, "sslhostnossl9");
 
-    String[] hostmode = {"sslhost", "sslhostssl", "sslhostsslcert", "sslcert"};
-    String[] certmode = {"gh", "bh"};
+    String[] hostModes = {"sslhost", "sslhostssl", "sslhostsslcert", "sslcert"};
+    String[] certModes = {"gh", "bh"};
 
-    for (int i = 0; i < hostmode.length; i++) {
-      for (int j = 0; j < certmode.length; j++) {
-        add(suite, hostmode[i] + certmode[j] + "8");
-        add(suite, hostmode[i] + certmode[j] + "9");
+    for (String hostMode : hostModes) {
+      for (String certMode : certModes) {
+        add(suite, hostMode + certMode + "8");
+        add(suite, hostMode + certMode + "9");
       }
     }
 

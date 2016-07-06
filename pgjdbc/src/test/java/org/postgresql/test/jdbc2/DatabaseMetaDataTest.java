@@ -866,8 +866,8 @@ public class DatabaseMetaDataTest extends TestCase {
       dataType = rs.getInt("data_type");
       remarks = rs.getString("remarks");
       baseType = rs.getInt("base_type");
-      this.assertEquals("type name ", "testint8", typeName);
-      this.assertEquals("schema name ", "jdbc", schema);
+      assertEquals("type name ", "testint8", typeName);
+      assertEquals("schema name ", "jdbc", schema);
 
       // now test to see if the fully qualified stuff works as planned
       rs = dbmd.getUDTs("catalog", "public", "catalog.jdbc.testint8", null);
@@ -879,8 +879,8 @@ public class DatabaseMetaDataTest extends TestCase {
       dataType = rs.getInt("data_type");
       remarks = rs.getString("remarks");
       baseType = rs.getInt("base_type");
-      this.assertEquals("type name ", "testint8", typeName);
-      this.assertEquals("schema name ", "jdbc", schema);
+      assertEquals("type name ", "testint8", typeName);
+      assertEquals("schema name ", "jdbc", schema);
     } finally {
       try {
         if (stmt != null) {
@@ -923,10 +923,10 @@ public class DatabaseMetaDataTest extends TestCase {
       remarks = rs.getString("remarks");
 
       baseType = rs.getInt("base_type");
-      this.assertTrue("base type", !rs.wasNull());
-      this.assertEquals("data type", Types.DISTINCT, dataType);
-      this.assertEquals("type name ", "testint8", typeName);
-      this.assertEquals("remarks", "jdbc123", remarks);
+      assertTrue("base type", !rs.wasNull());
+      assertEquals("data type", Types.DISTINCT, dataType);
+      assertEquals("type name ", "testint8", typeName);
+      assertEquals("remarks", "jdbc123", remarks);
 
     } finally {
       try {
@@ -966,10 +966,10 @@ public class DatabaseMetaDataTest extends TestCase {
       remarks = rs.getString("remarks");
 
       baseType = rs.getInt("base_type");
-      this.assertTrue("base type", !rs.wasNull());
-      this.assertEquals("data type", Types.DISTINCT, dataType);
-      this.assertEquals("type name ", "testint8", typeName);
-      this.assertEquals("remarks", "jdbc123", remarks);
+      assertTrue("base type", !rs.wasNull());
+      assertEquals("data type", Types.DISTINCT, dataType);
+      assertEquals("type name ", "testint8", typeName);
+      assertEquals("remarks", "jdbc123", remarks);
 
     } finally {
       try {
@@ -1008,10 +1008,10 @@ public class DatabaseMetaDataTest extends TestCase {
       remarks = rs.getString("remarks");
 
       baseType = rs.getInt("base_type");
-      this.assertTrue("base type", !rs.wasNull());
-      this.assertEquals("data type", Types.DISTINCT, dataType);
-      this.assertEquals("type name ", "testint8", typeName);
-      this.assertEquals("remarks", "jdbc123", remarks);
+      assertTrue("base type", !rs.wasNull());
+      assertEquals("data type", Types.DISTINCT, dataType);
+      assertEquals("type name ", "testint8", typeName);
+      assertEquals("remarks", "jdbc123", remarks);
 
     } finally {
       try {
@@ -1049,9 +1049,9 @@ public class DatabaseMetaDataTest extends TestCase {
       remarks = rs.getString("remarks");
 
       baseType = rs.getInt("base_type");
-      this.assertTrue("base type", rs.wasNull());
-      this.assertEquals("data type", Types.STRUCT, dataType);
-      this.assertEquals("type name ", "testint8", typeName);
+      assertTrue("base type", rs.wasNull());
+      assertEquals("data type", Types.STRUCT, dataType);
+      assertEquals("type name ", "testint8", typeName);
 
     } finally {
       try {

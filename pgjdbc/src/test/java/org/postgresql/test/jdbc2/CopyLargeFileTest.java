@@ -28,7 +28,6 @@ public class CopyLargeFileTest extends TestCase {
 
 
   protected void setUp() throws Exception {
-
     super.setUp();
 
     con = TestUtil.openDB();
@@ -49,9 +48,8 @@ public class CopyLargeFileTest extends TestCase {
   private void feedTable() throws Exception {
     PreparedStatement stmt = con.prepareStatement(
         TestUtil.insertSQL("pgjdbc_issue366_test_glossary", "text_id, name", "?, ?"));
-    char ch = ' ';
     for (int i = 0; i < 26; i++) {
-      ch = (char) ('A' + i); // black magic
+      char ch = (char) ('A' + i); // black magic
       insertData(stmt, "VERY_LONG_STRING_TO_REPRODUCE_ISSUE_366_" + ch + ch + ch,
           "" + ch + ch + ch);
     }

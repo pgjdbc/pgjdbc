@@ -21,7 +21,7 @@ import java.util.concurrent.TimeoutException;
 public class TypeCacheDLLStressTest extends BaseTest4 {
   private final static int DURATION = Integer.getInteger("TypeCacheDLLStressTest.DURATION", 5);
 
-  Connection con2;
+  private Connection con2;
 
   @Override
   protected void updateProperties(Properties props) {

@@ -87,28 +87,26 @@ public class SslTest extends TestCase {
     String certdir = certDirFile.getAbsolutePath();
     String sconnstr = prop.getProperty(param);
     String sprefix = prop.getProperty(param + "prefix");
-    String[] csslmode = {"disable", "allow", "prefer", "require", "verify-ca", "verify-full"};
+    String[] sslModes = {"disable", "allow", "prefer", "require", "verify-ca", "verify-full"};
 
     TestSuite suite = new TestSuite();
     Map<String, Object[]> expected = expectedmap.get(param);
     if (expected == null) {
-      ;
       expected = defaultexpected;
     }
-    int j = 0;
-    for (int i = 0; i < csslmode.length; i++) {
-      suite.addTest(new SslTest(param + "-" + csslmode[i] + "GG2", certdir, sconnstr, csslmode[i],
-          2, true, true, sprefix, expected.get(csslmode[i] + "GG")));
-      suite.addTest(new SslTest(param + "-" + csslmode[i] + "GG3", certdir, sconnstr, csslmode[i],
-          3, true, true, sprefix, expected.get(csslmode[i] + "GG")));
-      suite.addTest(new SslTest(param + "-" + csslmode[i] + "GB2", certdir, sconnstr, csslmode[i],
-          2, true, false, sprefix, expected.get(csslmode[i] + "GB")));
-      suite.addTest(new SslTest(param + "-" + csslmode[i] + "GB3", certdir, sconnstr, csslmode[i],
-          3, true, false, sprefix, expected.get(csslmode[i] + "GB")));
-      suite.addTest(new SslTest(param + "-" + csslmode[i] + "BG2", certdir, sconnstr, csslmode[i],
-          2, false, true, sprefix, expected.get(csslmode[i] + "BG")));
-      suite.addTest(new SslTest(param + "-" + csslmode[i] + "BG3", certdir, sconnstr, csslmode[i],
-          3, false, true, sprefix, expected.get(csslmode[i] + "BG")));
+    for (String sslMode : sslModes) {
+      suite.addTest(new SslTest(param + "-" + sslMode + "GG2", certdir, sconnstr, sslMode,
+          2, true, true, sprefix, expected.get(sslMode + "GG")));
+      suite.addTest(new SslTest(param + "-" + sslMode + "GG3", certdir, sconnstr, sslMode,
+          3, true, true, sprefix, expected.get(sslMode + "GG")));
+      suite.addTest(new SslTest(param + "-" + sslMode + "GB2", certdir, sconnstr, sslMode,
+          2, true, false, sprefix, expected.get(sslMode + "GB")));
+      suite.addTest(new SslTest(param + "-" + sslMode + "GB3", certdir, sconnstr, sslMode,
+          3, true, false, sprefix, expected.get(sslMode + "GB")));
+      suite.addTest(new SslTest(param + "-" + sslMode + "BG2", certdir, sconnstr, sslMode,
+          2, false, true, sprefix, expected.get(sslMode + "BG")));
+      suite.addTest(new SslTest(param + "-" + sslMode + "BG3", certdir, sconnstr, sslMode,
+          3, false, true, sprefix, expected.get(sslMode + "BG")));
     }
     return suite;
   }

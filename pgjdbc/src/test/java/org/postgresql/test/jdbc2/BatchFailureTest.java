@@ -68,7 +68,7 @@ public class BatchFailureTest extends BaseTest4 {
     }
   }
 
-  enum FailMode {
+  private enum FailMode {
     NO_FAIL_JUST_INSERTS, NO_FAIL_SELECT,
     FAIL_VIA_SELECT_PARSE, FAIL_VIA_SELECT_RUNTIME,
     FAIL_VIA_DUP_KEY;
@@ -99,7 +99,7 @@ public class BatchFailureTest extends BaseTest4 {
     }
   }
 
-  enum FailPosition {
+  private enum FailPosition {
     NONE, FIRST_ROW, SECOND_ROW, MIDDLE, ALMOST_LAST_ROW, LAST_ROW;
 
     public boolean supports(FailMode mode) {

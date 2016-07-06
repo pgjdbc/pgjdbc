@@ -59,10 +59,7 @@ public class OID74Test extends TestCase {
   }
 
   public void testBinaryStream() throws Exception {
-
-    PreparedStatement pstmt = null;
-
-    pstmt = conn.prepareStatement("INSERT INTO temp VALUES (?)");
+    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO temp VALUES (?)");
     pstmt.setBinaryStream(1, new ByteArrayInputStream(new byte[]{1, 2, 3, 4, 5}), 5);
     assertTrue((pstmt.executeUpdate() == 1));
     pstmt.close();

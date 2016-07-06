@@ -55,15 +55,13 @@ public class CopyTest extends TestCase {
   private byte[] getData(String[] origData) {
     ByteArrayOutputStream buf = new ByteArrayOutputStream();
     PrintStream ps = new PrintStream(buf);
-    for (int i = 0; i < origData.length; i++) {
-      ps.print(origData[i]);
+    for (String anOrigData : origData) {
+      ps.print(anOrigData);
     }
     return buf.toByteArray();
   }
 
   protected void setUp() throws Exception {
-
-
     con = TestUtil.openDB();
 
     TestUtil.createTable(con, "copytest", "stringvalue text, intvalue int, numvalue numeric(5,2)");
@@ -154,7 +152,7 @@ public class CopyTest extends TestCase {
         }
       }, 3);
     } catch (Exception e) {
-      if (e.toString().indexOf("COPYTEST") == -1) {
+      if (!e.toString().contains("COPYTEST")) {
         fail("should have failed trying to read from our bogus stream.");
       }
     }

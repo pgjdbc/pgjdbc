@@ -322,13 +322,13 @@ public class PreparedStatementTest extends BaseTest {
         "no backslash interpretation here: \\",
     };
 
-    for (int i = 0; i < testStrings.length; ++i) {
+    for (String testString : testStrings) {
       PreparedStatement pstmt =
-          con.prepareStatement("CREATE TABLE \"" + testStrings[i] + "\" (i integer)");
+          con.prepareStatement("CREATE TABLE \"" + testString + "\" (i integer)");
       pstmt.executeUpdate();
       pstmt.close();
 
-      pstmt = con.prepareStatement("DROP TABLE \"" + testStrings[i] + "\"");
+      pstmt = con.prepareStatement("DROP TABLE \"" + testString + "\"");
       pstmt.executeUpdate();
       pstmt.close();
     }
@@ -509,8 +509,8 @@ public class PreparedStatementTest extends BaseTest {
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
 
-    assertTrue("expected true,received " + rs.getBoolean(1), rs.getBoolean(1) == true);
-    assertTrue("expected false,received " + rs.getBoolean(2), rs.getBoolean(2) == false);
+    assertTrue("expected true,received " + rs.getBoolean(1), rs.getBoolean(1));
+    assertFalse("expected false,received " + rs.getBoolean(2), rs.getBoolean(2));
     rs.getFloat(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -542,9 +542,9 @@ public class PreparedStatementTest extends BaseTest {
     assertTrue(rs.next());
 
     assertTrue("expected " + maxFloat + " ,received " + rs.getObject(1),
-        ((Double) rs.getObject(1)).equals(maxFloat));
+        rs.getObject(1).equals(maxFloat));
     assertTrue("expected " + minFloat + " ,received " + rs.getObject(2),
-        ((Double) rs.getObject(2)).equals(minFloat));
+        rs.getObject(2).equals(minFloat));
     rs.getFloat(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -558,8 +558,8 @@ public class PreparedStatementTest extends BaseTest {
     pstmt.executeUpdate();
     pstmt.close();
 
-    String maxStringFloat = new String("1.0E37");
-    String minStringFloat = new String("1.0E-37");
+    String maxStringFloat = "1.0E37";
+    String minStringFloat = "1.0E-37";
     Double maxFloat = new Double(1.0E37);
     Double minFloat = new Double(1.0E-37);
 
@@ -696,14 +696,13 @@ public class PreparedStatementTest extends BaseTest {
     assertTrue(rs.next());
 
     assertTrue("expected " + maxInt + " ,received " + rs.getObject(1),
-        ((Integer) rs.getObject(1)).equals(maxInt));
+        rs.getObject(1).equals(maxInt));
     assertTrue("expected " + minInt + " ,received " + rs.getObject(2),
-        ((Integer) rs.getObject(2)).equals(minInt));
+        rs.getObject(2).equals(minInt));
     rs.getFloat(3);
     assertTrue(rs.wasNull());
     rs.close();
     pstmt.close();
-
   }
 
   public void testSetIntFloat() throws SQLException {
@@ -745,14 +744,12 @@ public class PreparedStatementTest extends BaseTest {
     pstmt.executeUpdate();
     pstmt.close();
 
-    Boolean trueVal = Boolean.TRUE;
-    Boolean falseVal = Boolean.FALSE;
     Double dBooleanTrue = new Double(1);
     Double dBooleanFalse = new Double(0);
 
     pstmt = con.prepareStatement("insert into double_tab values (?,?,?)");
-    pstmt.setObject(1, trueVal, Types.DOUBLE);
-    pstmt.setObject(2, falseVal, Types.DOUBLE);
+    pstmt.setObject(1, Boolean.TRUE, Types.DOUBLE);
+    pstmt.setObject(2, Boolean.FALSE, Types.DOUBLE);
     pstmt.setNull(3, Types.DOUBLE);
     pstmt.executeUpdate();
     pstmt.close();
@@ -762,9 +759,9 @@ public class PreparedStatementTest extends BaseTest {
     assertTrue(rs.next());
 
     assertTrue("expected " + dBooleanTrue + " ,received " + rs.getObject(1),
-        ((Double) rs.getObject(1)).equals(dBooleanTrue));
+        rs.getObject(1).equals(dBooleanTrue));
     assertTrue("expected " + dBooleanFalse + " ,received " + rs.getObject(2),
-        ((Double) rs.getObject(2)).equals(dBooleanFalse));
+        rs.getObject(2).equals(dBooleanFalse));
     rs.getFloat(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -778,14 +775,12 @@ public class PreparedStatementTest extends BaseTest {
     pstmt.executeUpdate();
     pstmt.close();
 
-    Boolean trueVal = Boolean.TRUE;
-    Boolean falseVal = Boolean.FALSE;
     BigDecimal dBooleanTrue = new BigDecimal(1);
     BigDecimal dBooleanFalse = new BigDecimal(0);
 
     pstmt = con.prepareStatement("insert into numeric_tab values (?,?,?)");
-    pstmt.setObject(1, trueVal, Types.NUMERIC, 2);
-    pstmt.setObject(2, falseVal, Types.NUMERIC, 2);
+    pstmt.setObject(1, Boolean.TRUE, Types.NUMERIC, 2);
+    pstmt.setObject(2, Boolean.FALSE, Types.NUMERIC, 2);
     pstmt.setNull(3, Types.DOUBLE);
     pstmt.executeUpdate();
     pstmt.close();
@@ -811,14 +806,12 @@ public class PreparedStatementTest extends BaseTest {
     pstmt.executeUpdate();
     pstmt.close();
 
-    Boolean trueVal = Boolean.TRUE;
-    Boolean falseVal = Boolean.FALSE;
     BigDecimal dBooleanTrue = new BigDecimal(1);
     BigDecimal dBooleanFalse = new BigDecimal(0);
 
     pstmt = con.prepareStatement("insert into DECIMAL_TAB values (?,?,?)");
-    pstmt.setObject(1, trueVal, Types.DECIMAL, 2);
-    pstmt.setObject(2, falseVal, Types.DECIMAL, 2);
+    pstmt.setObject(1, Boolean.TRUE, Types.DECIMAL, 2);
+    pstmt.setObject(2, Boolean.FALSE, Types.DECIMAL, 2);
     pstmt.setNull(3, Types.DOUBLE);
     pstmt.executeUpdate();
     pstmt.close();

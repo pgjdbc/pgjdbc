@@ -2,7 +2,6 @@ package org.postgresql.test.jdbc2;
 
 import org.postgresql.test.TestUtil;
 
-import junit.framework.Assert;
 import junit.framework.TestCase;
 
 import java.net.SocketTimeoutException;
@@ -33,13 +32,13 @@ public class ConnectTimeoutTest extends TestCase {
     try {
       DriverManager.getConnection(UNREACHABLE_URL, props);
     } catch (SQLException e) {
-      Assert.assertTrue("Unexpected " + e.toString(),
+      assertTrue("Unexpected " + e.toString(),
           e.getCause() instanceof SocketTimeoutException);
       final long interval = System.currentTimeMillis() - startTime;
       final long connectTimeoutMillis = CONNECT_TIMEOUT * 1000;
       final long maxDeviation = connectTimeoutMillis / 10;
       // check that it was not a default system timeout, an approximate value is used
-      Assert.assertTrue(Math.abs(interval - connectTimeoutMillis) < maxDeviation);
+      assertTrue(Math.abs(interval - connectTimeoutMillis) < maxDeviation);
       return;
     }
     fail("SQLException expected");

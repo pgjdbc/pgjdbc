@@ -1,7 +1,7 @@
 package org.postgresql.test.jdbc42;
 
-import static junit.framework.Assert.fail;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.fail;
 
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;

@@ -66,7 +66,7 @@ public class HStoreTest extends TestCase {
   }
 
   public void testHStoreSend() throws SQLException {
-    Map<String, Integer> correct = Collections.singletonMap("a", new Integer(1));
+    Map<String, Integer> correct = Collections.singletonMap("a", 1);
     PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::text");
     pstmt.setObject(1, correct);
     ResultSet rs = pstmt.executeQuery();
@@ -76,7 +76,7 @@ public class HStoreTest extends TestCase {
   }
 
   public void testHStoreUsingPSSetObject4() throws SQLException {
-    Map<String, Integer> correct = Collections.singletonMap("a", new Integer(1));
+    Map<String, Integer> correct = Collections.singletonMap("a", 1);
     PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::text");
     pstmt.setObject(1, correct, Types.OTHER, -1);
     ResultSet rs = pstmt.executeQuery();

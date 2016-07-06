@@ -24,7 +24,6 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Iterator;
 
 import javax.sql.ConnectionEvent;
 import javax.sql.ConnectionEventListener;
@@ -57,9 +56,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
   }
 
   protected void tearDown() throws Exception {
-    Iterator<PooledConnection> i = connections.iterator();
-    while (i.hasNext()) {
-      PooledConnection c = i.next();
+    for (PooledConnection c : connections) {
       try {
         c.close();
       } catch (Exception ex) {
@@ -375,7 +372,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
       s.executeQuery("SELECT * FROM THIS_TABLE_SHOULD_NOT_EXIST");
       fail("An SQL exception was not thrown that should have been");
     } catch (SQLException e) {
-      ; // This is the expected and correct path
+      // This is the expected and correct path
     } catch (Exception e) {
       fail("bad exception; was expecting SQLException, not" + e.getClass().getName());
     }

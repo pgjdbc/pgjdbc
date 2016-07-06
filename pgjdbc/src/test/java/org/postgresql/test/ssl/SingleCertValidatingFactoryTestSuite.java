@@ -354,7 +354,7 @@ public class SingleCertValidatingFactoryTestSuite {
     try {
       br = new BufferedReader(new InputStreamReader(new FileInputStream(path)));
       StringBuilder sb = new StringBuilder();
-      String line = null;
+      String line;
       while ((line = br.readLine()) != null) {
         sb.append(line);
         sb.append("\n");
