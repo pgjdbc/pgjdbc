@@ -985,12 +985,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return sb.toString();
   }
 
-  public java.sql.ResultSet getProcedures(String catalog, String schemaPattern,
+  public ResultSet getProcedures(String catalog, String schemaPattern,
       String procedureNamePattern) throws SQLException {
     return getProcedures(getJDBCMajorVersion(), catalog, schemaPattern, procedureNamePattern);
   }
 
-  protected java.sql.ResultSet getProcedures(int jdbcVersion, String catalog, String schemaPattern,
+  protected ResultSet getProcedures(int jdbcVersion, String catalog, String schemaPattern,
       String procedureNamePattern) throws SQLException {
     String sql;
     if (connection.haveMinimumServerVersion(ServerVersion.v7_3)) {
@@ -1044,13 +1044,13 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return createMetaDataStatement().executeQuery(sql);
   }
 
-  public java.sql.ResultSet getProcedureColumns(String catalog, String schemaPattern,
+  public ResultSet getProcedureColumns(String catalog, String schemaPattern,
       String procedureNamePattern, String columnNamePattern) throws SQLException {
     return getProcedureColumns(getJDBCMajorVersion(), catalog, schemaPattern, procedureNamePattern,
         columnNamePattern);
   }
 
-  protected java.sql.ResultSet getProcedureColumns(int jdbcVersion, String catalog,
+  protected ResultSet getProcedureColumns(int jdbcVersion, String catalog,
       String schemaPattern, String procedureNamePattern, String columnNamePattern)
           throws SQLException {
     int columns = 13;
@@ -1291,7 +1291,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
-  public java.sql.ResultSet getTables(String catalog, String schemaPattern, String tableNamePattern,
+  public ResultSet getTables(String catalog, String schemaPattern, String tableNamePattern,
       String types[]) throws SQLException {
     String select;
     String orderby;
@@ -1503,7 +1503,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     ht.put("NOSCHEMAS", "c.relkind = 'm'");
   }
 
-  public java.sql.ResultSet getSchemas() throws SQLException {
+  public ResultSet getSchemas() throws SQLException {
     return getSchemas(getJDBCMajorVersion(), null, null);
   }
 
@@ -1549,7 +1549,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
    * PostgreSQL does not support multiple catalogs from a single connection, so to reduce confusion
    * we only return the current catalog. {@inheritDoc}
    */
-  public java.sql.ResultSet getCatalogs() throws SQLException {
+  public ResultSet getCatalogs() throws SQLException {
     Field f[] = new Field[1];
     List<byte[][]> v = new ArrayList<byte[][]>();
     f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
@@ -1560,7 +1560,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
-  public java.sql.ResultSet getTableTypes() throws SQLException {
+  public ResultSet getTableTypes() throws SQLException {
     String types[] = new String[tableTypeClauses.size()];
     Iterator<String> e = tableTypeClauses.keySet().iterator();
     int i = 0;
@@ -1581,7 +1581,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
-  protected java.sql.ResultSet getColumns(int jdbcVersion, String catalog, String schemaPattern,
+  protected ResultSet getColumns(int jdbcVersion, String catalog, String schemaPattern,
       String tableNamePattern, String columnNamePattern) throws SQLException {
     int numberOfFields;
     if (jdbcVersion >= 4) {
@@ -1806,13 +1806,13 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
-  public java.sql.ResultSet getColumns(String catalog, String schemaPattern,
+  public ResultSet getColumns(String catalog, String schemaPattern,
       String tableNamePattern, String columnNamePattern) throws SQLException {
     return getColumns(getJDBCMajorVersion(), catalog, schemaPattern, tableNamePattern,
         columnNamePattern);
   }
 
-  public java.sql.ResultSet getColumnPrivileges(String catalog, String schema, String table,
+  public ResultSet getColumnPrivileges(String catalog, String schema, String table,
       String columnNamePattern) throws SQLException {
     Field f[] = new Field[8];
     List<byte[][]> v = new ArrayList<byte[][]>();
@@ -1929,7 +1929,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
-  public java.sql.ResultSet getTablePrivileges(String catalog, String schemaPattern,
+  public ResultSet getTablePrivileges(String catalog, String schemaPattern,
       String tableNamePattern) throws SQLException {
     Field f[] = new Field[7];
     List<byte[][]> v = new ArrayList<byte[][]>();
@@ -2032,7 +2032,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
    */
   private static List<String> parseACLArray(String aclString) {
     List<String> acls = new ArrayList<String>();
-    if (aclString == null || aclString.length() == 0) {
+    if (aclString == null || aclString.isEmpty()) {
       return acls;
     }
     boolean inQuotes = false;
@@ -2077,7 +2077,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     String user = acl.substring(0, equalIndex);
     String grantor = null;
-    if (user.length() == 0) {
+    if (user.isEmpty()) {
       user = "PUBLIC";
     }
     String privs;
@@ -2195,7 +2195,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return privileges;
   }
 
-  public java.sql.ResultSet getBestRowIdentifier(String catalog, String schema, String table,
+  public ResultSet getBestRowIdentifier(String catalog, String schema, String table,
       int scope, boolean nullable) throws SQLException {
     Field f[] = new Field[8];
     List<byte[][]> v = new ArrayList<byte[][]>(); // The new ResultSet tuple stuff
@@ -2281,7 +2281,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
-  public java.sql.ResultSet getVersionColumns(String catalog, String schema, String table)
+  public ResultSet getVersionColumns(String catalog, String schema, String table)
       throws SQLException {
     Field f[] = new Field[8];
     List<byte[][]> v = new ArrayList<byte[][]>(); // The new ResultSet tuple stuff
@@ -2323,7 +2323,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
-  public java.sql.ResultSet getPrimaryKeys(String catalog, String schema, String table)
+  public ResultSet getPrimaryKeys(String catalog, String schema, String table)
       throws SQLException {
     String sql;
     if (connection.haveMinimumServerVersion(ServerVersion.v8_1)) {
@@ -2391,7 +2391,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
    * @return ResultSet
    * @throws SQLException if something wrong happens
    */
-  protected java.sql.ResultSet getImportedExportedKeys(String primaryCatalog, String primarySchema,
+  protected ResultSet getImportedExportedKeys(String primaryCatalog, String primarySchema,
       String primaryTable, String foreignCatalog, String foreignSchema, String foreignTable)
           throws SQLException {
     Field f[] = new Field[14];
@@ -2668,7 +2668,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       // we are primarily interested in the column names which are the last items in the string
 
       List<String> tokens = tokenize(targs, "\\000");
-      if (tokens.size() > 0) {
+      if (!tokens.isEmpty()) {
         fkName = tokens.get(0);
       }
 
@@ -2715,24 +2715,24 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, tuples);
   }
 
-  public java.sql.ResultSet getImportedKeys(String catalog, String schema, String table)
+  public ResultSet getImportedKeys(String catalog, String schema, String table)
       throws SQLException {
     return getImportedExportedKeys(null, null, null, catalog, schema, table);
   }
 
-  public java.sql.ResultSet getExportedKeys(String catalog, String schema, String table)
+  public ResultSet getExportedKeys(String catalog, String schema, String table)
       throws SQLException {
     return getImportedExportedKeys(catalog, schema, table, null, null, null);
   }
 
-  public java.sql.ResultSet getCrossReference(String primaryCatalog, String primarySchema,
+  public ResultSet getCrossReference(String primaryCatalog, String primarySchema,
       String primaryTable, String foreignCatalog, String foreignSchema, String foreignTable)
           throws SQLException {
     return getImportedExportedKeys(primaryCatalog, primarySchema, primaryTable, foreignCatalog,
         foreignSchema, foreignTable);
   }
 
-  public java.sql.ResultSet getTypeInfo() throws SQLException {
+  public ResultSet getTypeInfo() throws SQLException {
 
     Field f[] = new Field[18];
     List<byte[][]> v = new ArrayList<byte[][]>(); // The new ResultSet tuple stuff
@@ -2837,7 +2837,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
-  public java.sql.ResultSet getIndexInfo(String catalog, String schema, String tableName,
+  public ResultSet getIndexInfo(String catalog, String schema, String tableName,
       boolean unique, boolean approximate) throws SQLException {
     /*
      * This is a complicated function because we have three possible situations: <= 7.2 no schemas,
@@ -2997,18 +2997,18 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   public boolean supportsResultSetType(int type) throws SQLException {
     // The only type we don't support
-    return type != java.sql.ResultSet.TYPE_SCROLL_SENSITIVE;
+    return type != ResultSet.TYPE_SCROLL_SENSITIVE;
   }
 
 
   public boolean supportsResultSetConcurrency(int type, int concurrency) throws SQLException {
     // These combinations are not supported!
-    if (type == java.sql.ResultSet.TYPE_SCROLL_SENSITIVE) {
+    if (type == ResultSet.TYPE_SCROLL_SENSITIVE) {
       return false;
     }
 
     // We do support Updateable ResultSets
-    if (concurrency == java.sql.ResultSet.CONCUR_UPDATABLE) {
+    if (concurrency == ResultSet.CONCUR_UPDATABLE) {
       return true;
     }
 
@@ -3059,7 +3059,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return true;
   }
 
-  public java.sql.ResultSet getUDTs(String catalog, String schemaPattern, String typeNamePattern,
+  public ResultSet getUDTs(String catalog, String schemaPattern, String typeNamePattern,
       int[] types) throws SQLException {
     String sql = "select "
         + "null as type_cat, n.nspname as type_schem, t.typname as type_name,  null as class_name, "
@@ -3144,8 +3144,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   protected java.sql.Statement createMetaDataStatement() throws SQLException {
-    return connection.createStatement(java.sql.ResultSet.TYPE_SCROLL_INSENSITIVE,
-        java.sql.ResultSet.CONCUR_READ_ONLY);
+    return connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_READ_ONLY);
   }
 
   public long getMaxLogicalLobSize() throws SQLException {

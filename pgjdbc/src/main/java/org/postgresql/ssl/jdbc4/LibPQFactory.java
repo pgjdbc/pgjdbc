@@ -20,7 +20,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.util.Iterator;
 import java.util.Properties;
 
 import javax.naming.InvalidNameException;
@@ -212,7 +211,7 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
             // It is used instead of cons.readPassword(prompt), because the prompt may contain '%'
             // characters
             ((PasswordCallback) callback).setPassword(
-                cons.readPassword("%s", new Object[]{((PasswordCallback) callback).getPrompt()}));
+                cons.readPassword("%s", ((PasswordCallback) callback).getPrompt()));
           } else {
             ((PasswordCallback) callback).setPassword(password);
           }
@@ -254,10 +253,7 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
       return false;
     }
     String CN = null;
-    Iterator<Rdn> it = DN.getRdns().iterator();
-    // for(Rdn rdn : DN.getRdns())
-    while (it.hasNext()) {
-      Rdn rdn = it.next();
+    for (Rdn rdn : DN.getRdns()) {
       if ("CN".equals(rdn.getType())) {
         // Multiple AVAs are not treated
         CN = (String) rdn.getValue();

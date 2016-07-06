@@ -27,7 +27,7 @@ public interface BaseStatement extends PGStatement, Statement {
    * @return the new ResultSet
    * @throws SQLException if something goes wrong
    */
-  public ResultSet createDriverResultSet(Field[] fields, List<byte[][]> tuples) throws SQLException;
+  ResultSet createDriverResultSet(Field[] fields, List<byte[][]> tuples) throws SQLException;
 
   /**
    * Create a resultset from data retrieved from the server.
@@ -41,7 +41,7 @@ public interface BaseStatement extends PGStatement, Statement {
    * @return the new ResultSet
    * @throws SQLException if something goes wrong
    */
-  public ResultSet createResultSet(Query originalQuery, Field[] fields, List<byte[][]> tuples,
+  ResultSet createResultSet(Query originalQuery, Field[] fields, List<byte[][]> tuples,
       ResultCursor cursor) throws SQLException;
 
   /**
@@ -53,7 +53,7 @@ public interface BaseStatement extends PGStatement, Statement {
    * @return true if there is a result set
    * @throws SQLException if something goes wrong.
    */
-  public boolean executeWithFlags(String p_sql, int flags) throws SQLException;
+  boolean executeWithFlags(String p_sql, int flags) throws SQLException;
 
   /**
    * Execute a prepared query, passing additional query flags.
@@ -63,5 +63,5 @@ public interface BaseStatement extends PGStatement, Statement {
    * @return true if there is a result set
    * @throws SQLException if something goes wrong.
    */
-  public boolean executeWithFlags(int flags) throws SQLException;
+  boolean executeWithFlags(int flags) throws SQLException;
 }

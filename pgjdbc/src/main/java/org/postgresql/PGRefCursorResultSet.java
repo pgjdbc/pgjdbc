@@ -22,5 +22,5 @@ public interface PGRefCursorResultSet {
    * @deprecated As of 8.0, replaced with calling getString() on the ResultSet that this ResultSet
    *             was obtained from.
    */
-  public String getRefCursor();
+  String getRefCursor();
 }

@@ -331,7 +331,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
    */
   public void close() {
     synchronized (lock) {
-      while (available.size() > 0) {
+      while (!available.isEmpty()) {
         PooledConnection pci = available.pop();
         try {
           pci.close();
@@ -339,7 +339,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
         }
       }
       available = null;
-      while (used.size() > 0) {
+      while (!used.isEmpty()) {
         PooledConnection pci = used.pop();
         pci.removeConnectionEventListener(connectionEventListener);
         try {
@@ -372,7 +372,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
             PSQLState.CONNECTION_DOES_NOT_EXIST);
       }
       while (true) {
-        if (available.size() > 0) {
+        if (!available.isEmpty()) {
           pc = available.pop();
           used.push(pc);
           break;

@@ -35,14 +35,13 @@ public class ObjectFactory {
           InvocationTargetException {
     Object[] args = {info};
     Constructor<?> ctor = null;
-    Class<?> cls;
-    cls = Class.forName(classname);
+    Class<?> cls = Class.forName(classname);
     try {
-      ctor = cls.getConstructor(new Class[]{Properties.class});
+      ctor = cls.getConstructor(Properties.class);
     } catch (NoSuchMethodException nsme) {
       if (tryString) {
         try {
-          ctor = cls.getConstructor(new Class[]{String.class});
+          ctor = cls.getConstructor(String.class);
           args = new String[]{stringarg};
         } catch (NoSuchMethodException nsme2) {
           tryString = false;

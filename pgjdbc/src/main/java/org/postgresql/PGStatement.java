@@ -21,10 +21,10 @@ public interface PGStatement {
   // The follow values are the nearest MAX/MIN values with hour,
   // minute, second, millisecond set to 0 - this is used for
   // -infinity / infinity representation in Java
-  public static final long DATE_POSITIVE_INFINITY = 9223372036825200000L;
-  public static final long DATE_NEGATIVE_INFINITY = -9223372036832400000L;
-  public static final long DATE_POSITIVE_SMALLER_INFINITY = 185543533774800000L;
-  public static final long DATE_NEGATIVE_SMALLER_INFINITY = -185543533774800000L;
+  long DATE_POSITIVE_INFINITY = 9223372036825200000L;
+  long DATE_NEGATIVE_INFINITY = -9223372036832400000L;
+  long DATE_POSITIVE_SMALLER_INFINITY = 185543533774800000L;
+  long DATE_NEGATIVE_SMALLER_INFINITY = -185543533774800000L;
 
 
   /**
@@ -34,7 +34,7 @@ public interface PGStatement {
    * @throws SQLException if something goes wrong
    * @since 7.3
    */
-  public long getLastOID() throws SQLException;
+  long getLastOID() throws SQLException;
 
   /**
    * Turn on the use of prepared statements in the server (server side prepared statements are
@@ -46,7 +46,7 @@ public interface PGStatement {
    * @since 7.3
    * @deprecated As of build 302, replaced by {@link #setPrepareThreshold(int)}
    */
-  public void setUseServerPrepare(boolean flag) throws SQLException;
+  void setUseServerPrepare(boolean flag) throws SQLException;
 
   /**
    * Checks if this statement will be executed as a server-prepared statement. A return value of
@@ -55,7 +55,7 @@ public interface PGStatement {
    *
    * @return true if the next reuse of this statement will use a server-prepared statement
    */
-  public boolean isUseServerPrepare();
+  boolean isUseServerPrepare();
 
   /**
    * Sets the reuse threshold for using server-prepared statements.
@@ -72,7 +72,7 @@ public interface PGStatement {
    * @throws SQLException if an exception occurs while changing the threshold
    * @since build 302
    */
-  public void setPrepareThreshold(int threshold) throws SQLException;
+  void setPrepareThreshold(int threshold) throws SQLException;
 
   /**
    * Gets the server-side prepare reuse threshold in use for this statement.
@@ -81,5 +81,5 @@ public interface PGStatement {
    * @see #setPrepareThreshold(int)
    * @since build 302
    */
-  public int getPrepareThreshold();
+  int getPrepareThreshold();
 }

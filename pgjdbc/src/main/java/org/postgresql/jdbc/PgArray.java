@@ -462,7 +462,7 @@ public class PgArray implements java.sql.Array {
           i++;
         } else if (!insideString && chars[i] == '{') {
           // subarray start
-          if (dims.size() == 0) {
+          if (dims.isEmpty()) {
             dims.add(arrayList);
           } else {
             PgArrayList a = new PgArrayList();
@@ -506,7 +506,7 @@ public class PgArray implements java.sql.Array {
           String b = buffer == null ? null : buffer.toString();
 
           // add element to current array
-          if (b != null && (b.length() > 0 || wasInsideString)) {
+          if (b != null && (!b.isEmpty() || wasInsideString)) {
             curArray.add(!wasInsideString && haveMinServer82 && b.equals("NULL") ? null : b);
           }
 
@@ -518,7 +518,7 @@ public class PgArray implements java.sql.Array {
             dims.remove(dims.size() - 1);
 
             // when multi-dimension
-            if (dims.size() > 0) {
+            if (!dims.isEmpty()) {
               curArray = dims.get(dims.size() - 1);
             }
 
@@ -881,7 +881,7 @@ public class PgArray implements java.sql.Array {
 
     BaseStatement stat = (BaseStatement) connection
         .createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-    return (ResultSet) stat.createDriverResultSet(fields, rows);
+    return stat.createDriverResultSet(fields, rows);
   }
 
   public String toString() {

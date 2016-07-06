@@ -84,11 +84,7 @@ public class PGtokenizer {
         }
       }
 
-      if (c == '\\') {
-        skipChar = true;
-      } else {
-        skipChar = false;
-      }
+      skipChar = c == '\\';
 
       if (nest == 0 && c == delim) {
         tokens.add(string.substring(s, p));

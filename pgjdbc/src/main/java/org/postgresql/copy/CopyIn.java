@@ -41,5 +41,5 @@ public interface CopyIn extends CopyOperation {
    * @return number of updated rows for server 8.2 or newer (see getHandledRowCount())
    * @throws SQLException if the operation fails.
    */
-  public long endCopy() throws SQLException;
+  long endCopy() throws SQLException;
 }

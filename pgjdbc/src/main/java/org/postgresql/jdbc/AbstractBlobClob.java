@@ -21,7 +21,6 @@ import java.io.OutputStream;
 import java.sql.Blob;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Iterator;
 
 /**
  * This class holds all of the methods common to both Blobs and Clobs.
@@ -50,11 +49,7 @@ public abstract class AbstractBlobClob {
     this.currentLo = null;
     this.currentLoIsWriteable = false;
 
-    if (conn.haveMinimumServerVersion(90300)) {
-      support64bit = true;
-    } else {
-      support64bit = false;
-    }
+    support64bit = conn.haveMinimumServerVersion(90300);
 
     subLOs = new ArrayList<LargeObject>();
   }
@@ -65,9 +60,7 @@ public abstract class AbstractBlobClob {
       currentLo = null;
       currentLoIsWriteable = false;
     }
-    Iterator<LargeObject> i = subLOs.iterator();
-    while (i.hasNext()) {
-      LargeObject subLO = i.next();
+    for (LargeObject subLO : subLOs) {
       subLO.close();
     }
     subLOs = null;
@@ -186,7 +179,7 @@ public abstract class AbstractBlobClob {
     }
 
     public boolean hasNext() throws SQLException {
-      boolean result = false;
+      boolean result;
       if (idx < numBytes) {
         result = true;
       } else {

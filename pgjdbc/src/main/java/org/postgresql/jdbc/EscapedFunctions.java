@@ -415,7 +415,7 @@ public class EscapedFunctions {
    * @throws SQLException if something wrong happens
    */
   public static String sqlcurdate(List<?> parsedArgs) throws SQLException {
-    if (parsedArgs.size() != 0) {
+    if (!parsedArgs.isEmpty()) {
       throw new PSQLException(GT.tr("{0} function doesn''t take any argument.", "curdate"),
           PSQLState.SYNTAX_ERROR);
     }
@@ -430,7 +430,7 @@ public class EscapedFunctions {
    * @throws SQLException if something wrong happens
    */
   public static String sqlcurtime(List<?> parsedArgs) throws SQLException {
-    if (parsedArgs.size() != 0) {
+    if (!parsedArgs.isEmpty()) {
       throw new PSQLException(GT.tr("{0} function doesn''t take any argument.", "curtime"),
           PSQLState.SYNTAX_ERROR);
     }
@@ -695,7 +695,7 @@ public class EscapedFunctions {
     return buf.toString();
   }
 
-  private final static String constantToDatePart(String type) throws SQLException {
+  private static String constantToDatePart(String type) throws SQLException {
     if (!type.startsWith(SQL_TSI_ROOT)) {
       throw new PSQLException(GT.tr("Interval {0} not yet implemented", type),
           PSQLState.SYNTAX_ERROR);
@@ -733,7 +733,7 @@ public class EscapedFunctions {
    * @throws SQLException if something wrong happens
    */
   public static String sqldatabase(List<?> parsedArgs) throws SQLException {
-    if (parsedArgs.size() != 0) {
+    if (!parsedArgs.isEmpty()) {
       throw new PSQLException(GT.tr("{0} function doesn''t take any argument.", "database"),
           PSQLState.SYNTAX_ERROR);
     }
@@ -763,7 +763,7 @@ public class EscapedFunctions {
    * @throws SQLException if something wrong happens
    */
   public static String sqluser(List<?> parsedArgs) throws SQLException {
-    if (parsedArgs.size() != 0) {
+    if (!parsedArgs.isEmpty()) {
       throw new PSQLException(GT.tr("{0} function doesn''t take any argument.", "user"),
           PSQLState.SYNTAX_ERROR);
     }

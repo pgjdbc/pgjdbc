@@ -58,7 +58,7 @@ public interface ParameterList {
    *
    * @return oids of the parameters
    */
-  public int[] getTypeOIDs();
+  int[] getTypeOIDs();
 
   /**
    * Binds an integer value to a parameter. The type of the parameter is implicitly 'int4'.
