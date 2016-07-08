@@ -372,7 +372,6 @@ public class TypeInfoCache implements TypeInfo {
     ResultSet rs = oidStatement.getResultSet();
     if (rs.next()) {
       oid = (int) rs.getLong(1);
-      _oidToPgName.put(oid, pgTypeName);
     }
     _pgNameToOid.put(pgTypeName, oid);
     rs.close();
