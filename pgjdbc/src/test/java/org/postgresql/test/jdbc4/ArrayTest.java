@@ -53,7 +53,8 @@ public class ArrayTest extends BaseTest4 {
     _conn = con;
 
     TestUtil.createTable(_conn, "arrtest",
-        "intarr int[], decarr decimal(2,1)[], strarr text[], uuidarr uuid[], floatarr float8[]");
+        "intarr int[], decarr decimal(2,1)[], strarr text[], uuidarr uuid[], floatarr float8[]"
+        + ", intarr2 int4[][]");
     TestUtil.createTable(_conn, "arrcompprnttest", "id serial, name character(10)");
     TestUtil.createTable(_conn, "arrcompchldttest",
         "id serial, name character(10), description character varying, parent integer");
@@ -492,5 +493,21 @@ public class ArrayTest extends BaseTest4 {
   public void createNullArray() throws SQLException {
     Array arr = con.createArrayOf("float8", null);
     Assert.fail("createArrayOf(float8, null) should fail with NPE");
+  }
+
+  @Test
+  public void multiDimIntArray() throws SQLException {
+    Array arr = con.createArrayOf("int4", new int[][]{{1,2}, {3,4}});
+    PreparedStatement ps = con.prepareStatement("select ?::int4[][]");
+    ps.setArray(1, arr);
+    ResultSet rs = ps.executeQuery();
+    rs.next();
+    Array resArray = rs.getArray(1);
+    String stringValue = resArray.toString();
+    // Both {{"1","2"},{"3","4"}} and {{1,2},{3,4}} are the same array representation
+    stringValue = stringValue.replaceAll("\"", "");
+    Assert.assertEquals("{{1,2},{3,4}}", stringValue);
+    TestUtil.closeQuietly(rs);
+    TestUtil.closeQuietly(ps);
   }
 }

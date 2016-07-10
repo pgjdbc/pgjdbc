@@ -156,10 +156,13 @@ public class TypeInfoCache implements TypeInfo {
     String pgArrayTypeName = pgTypeName + "[]";
     _pgNameToJavaClass.put(pgArrayTypeName, "java.sql.Array");
     _pgNameToSQLType.put(pgArrayTypeName, Types.ARRAY);
+    _pgNameToOid.put(pgArrayTypeName, arrayOid);
     pgArrayTypeName = "_" + pgTypeName;
     if (!_pgNameToJavaClass.containsKey(pgArrayTypeName)) {
       _pgNameToJavaClass.put(pgArrayTypeName, "java.sql.Array");
       _pgNameToSQLType.put(pgArrayTypeName, Types.ARRAY);
+      _pgNameToOid.put(pgArrayTypeName, arrayOid);
+      _oidToPgName.put(arrayOid, pgArrayTypeName);
     }
   }
 
@@ -261,13 +264,13 @@ public class TypeInfoCache implements TypeInfo {
     boolean hasQuote = pgTypeName.contains("\"");
     int dotIndex = pgTypeName.indexOf('.');
 
-    if (dotIndex == -1 && !hasQuote) {
+    if (dotIndex == -1 && !hasQuote && !isArray) {
       if (_getOidStatementSimple == null) {
         String sql;
         if (_conn.haveMinimumServerVersion(ServerVersion.v8_0)) {
           // see comments in @getSQLType()
           // -- go with older way of unnesting array to be compatible with 8.0
-          sql = "SELECT pg_type.oid "
+          sql = "SELECT pg_type.oid, typname "
               + "  FROM pg_catalog.pg_type "
               + "  LEFT "
               + "  JOIN (select ns.oid as nspoid, ns.nspname, r.r "
@@ -280,9 +283,9 @@ public class TypeInfoCache implements TypeInfo {
               + " WHERE typname = ? "
               + " ORDER BY sp.r, pg_type.oid DESC LIMIT 1;";
         } else if (_conn.haveMinimumServerVersion(ServerVersion.v7_3)) {
-          sql = "SELECT oid FROM pg_catalog.pg_type WHERE typname = ? ORDER BY oid DESC LIMIT 1";
+          sql = "SELECT oid, typname FROM pg_catalog.pg_type WHERE typname = ? ORDER BY oid DESC LIMIT 1";
         } else {
-          sql = "SELECT oid FROM pg_type WHERE typname = ? ORDER BY oid DESC LIMIT 1";
+          sql = "SELECT oid, typname FROM pg_type WHERE typname = ? ORDER BY oid DESC LIMIT 1";
         }
         _getOidStatementSimple = _conn.prepareStatement(sql);
       }
@@ -290,28 +293,28 @@ public class TypeInfoCache implements TypeInfo {
       String lcName = pgTypeName.toLowerCase();
       // default arrays are represented with _ as prefix ... this dont even work for public schema
       // fully
-      _getOidStatementSimple.setString(1,
-          isArray ? "_" + lcName.substring(0, lcName.length() - 2) : lcName);
+      _getOidStatementSimple.setString(1, lcName);
       return _getOidStatementSimple;
     }
     PreparedStatement oidStatementComplex;
     if (isArray) {
       if (_getOidStatementComplexArray == null) {
-        String sql = "SELECT t.typarray "
+        String sql = "SELECT t.typarray, arr.typname "
             + "  FROM pg_catalog.pg_type t"
             + "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
-            + " WHERE t.typname = ? AND (n.nspname = ? OR ? IS NULL AND n.nspname = ANY (current_schemas(false)))"
-            + " ORDER BY t.oid DESC LIMIT 1;";
+            + "  JOIN pg_catalog.pg_type arr ON arr.oid = t.typarray"
+            + " WHERE t.typname = ? AND (n.nspname = ? OR ? IS NULL AND n.nspname = ANY (current_schemas(true)))"
+            + " ORDER BY t.oid DESC LIMIT 1";
         _getOidStatementComplexArray = _conn.prepareStatement(sql);
       }
       oidStatementComplex = _getOidStatementComplexArray;
     } else {
       if (_getOidStatementComplexNonArray == null) {
-        String sql = "SELECT t.oid "
+        String sql = "SELECT t.oid, t.typname "
             + "  FROM pg_catalog.pg_type t"
             + "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
-            + " WHERE t.typname = ? AND (n.nspname = ? OR ? IS NULL AND n.nspname = ANY (current_schemas(false)))"
-            + " ORDER BY t.oid DESC LIMIT 1;";
+            + " WHERE t.typname = ? AND (n.nspname = ? OR ? IS NULL AND n.nspname = ANY (current_schemas(true)))"
+            + " ORDER BY t.oid DESC LIMIT 1";
         _getOidStatementComplexNonArray = _conn.prepareStatement(sql);
       }
       oidStatementComplex = _getOidStatementComplexNonArray;
@@ -372,7 +375,9 @@ public class TypeInfoCache implements TypeInfo {
     ResultSet rs = oidStatement.getResultSet();
     if (rs.next()) {
       oid = (int) rs.getLong(1);
-      _oidToPgName.put(oid, pgTypeName);
+      String internalName = rs.getString(2);
+      _oidToPgName.put(oid, internalName);
+      _pgNameToOid.put(internalName, oid);
     }
     _pgNameToOid.put(pgTypeName, oid);
     rs.close();

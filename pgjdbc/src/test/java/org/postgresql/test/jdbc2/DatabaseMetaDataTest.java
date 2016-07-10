@@ -50,6 +50,10 @@ public class DatabaseMetaDataTest extends TestCase {
     TestUtil.createTable(con, "\"a\\\"", "a int4");
     TestUtil.createTable(con, "\"a'\"", "a int4");
     TestUtil.createTable(con, "arraytable", "a numeric(5,2)[], b varchar(100)[]");
+    TestUtil.createTable(con, "intarraytable", "a int4[], b int4[][]");
+    TestUtil.createCompositeType(con, "custom", "i int");
+    TestUtil.createCompositeType(con, "_custom", "f float");
+    TestUtil.createTable(con, "customtable", "c1 custom, c2 _custom, c3 custom[], c4 _custom[]");
 
     Statement stmt = con.createStatement();
     // we add the following comments to ensure the joins to the comments
@@ -73,8 +77,8 @@ public class DatabaseMetaDataTest extends TestCase {
         "CREATE OR REPLACE FUNCTION f5() RETURNS TABLE (i int) LANGUAGE sql AS 'SELECT 1'");
 
     if (TestUtil.haveMinimumServerVersion(con, "7.3")) {
-      stmt.execute("CREATE DOMAIN nndom AS int not null");
-      stmt.execute("CREATE TABLE domaintable (id nndom)");
+      TestUtil.createDomain(con, "nndom", "int not null");
+      TestUtil.createTable(con, "domaintable", "id nndom");
     }
     stmt.close();
   }
@@ -92,6 +96,10 @@ public class DatabaseMetaDataTest extends TestCase {
     TestUtil.dropTable(con, "\"a\\\"");
     TestUtil.dropTable(con, "\"a'\"");
     TestUtil.dropTable(con, "arraytable");
+    TestUtil.dropTable(con, "intarraytable");
+    TestUtil.dropTable(con, "customtable");
+    TestUtil.dropType(con, "custom");
+    TestUtil.dropType(con, "_custom");
 
     stmt.execute("DROP FUNCTION f1(int, varchar)");
     if (TestUtil.haveMinimumServerVersion(con, "8.0")) {
@@ -101,11 +109,58 @@ public class DatabaseMetaDataTest extends TestCase {
       stmt.execute("DROP FUNCTION f3(int, varchar)");
     }
     if (TestUtil.haveMinimumServerVersion(con, "7.3")) {
-      stmt.execute("DROP TABLE domaintable");
-      stmt.execute("DROP DOMAIN nndom");
+      TestUtil.dropType(con, "domaintable");
+      TestUtil.dropDomain(con, "nndom");
     }
 
     TestUtil.closeDB(con);
+  }
+
+  public void testArrayTypeInfo() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    ResultSet rs = dbmd.getColumns(null, null, "intarraytable", "a");
+    assertTrue(rs.next());
+    assertEquals("_int4", rs.getString("TYPE_NAME"));
+    con.createArrayOf("integer", new Integer[] {});
+    TestUtil.closeQuietly(rs);
+    rs = dbmd.getColumns(null, null, "intarraytable", "a");
+    assertTrue(rs.next());
+    assertEquals("_int4", rs.getString("TYPE_NAME"));
+    TestUtil.closeQuietly(rs);
+  }
+
+  public void testArrayInt4DoubleDim() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    ResultSet rs = dbmd.getColumns(null, null, "intarraytable", "b");
+    assertTrue(rs.next());
+    assertEquals("_int4", rs.getString("TYPE_NAME")); // even int4[][] is represented as _int4
+    con.createArrayOf("int4", new int[][]{{1, 2}, {3, 4}});
+    rs = dbmd.getColumns(null, null, "intarraytable", "b");
+    assertTrue(rs.next());
+    assertEquals("_int4", rs.getString("TYPE_NAME")); // even int4[][] is represented as _int4
+  }
+
+  public void testCustomArrayTypeInfo() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    ResultSet res = dbmd.getColumns(null, null, "customtable", null);
+    assertTrue(res.next());
+    assertEquals("custom", res.getString("TYPE_NAME"));
+    assertTrue(res.next());
+    assertEquals("_custom", res.getString("TYPE_NAME"));
+    assertTrue(res.next());
+    assertEquals("__custom", res.getString("TYPE_NAME"));
+    assertTrue(res.next());
+    assertEquals("___custom", res.getString("TYPE_NAME"));
+    con.createArrayOf("custom", new Object[] {});
+    res = dbmd.getColumns(null, null, "customtable", null);
+    assertTrue(res.next());
+    assertEquals("custom", res.getString("TYPE_NAME"));
+    assertTrue(res.next());
+    assertEquals("_custom", res.getString("TYPE_NAME"));
+    assertTrue(res.next());
+    assertEquals("__custom", res.getString("TYPE_NAME"));
+    assertTrue(res.next());
+    assertEquals("___custom", res.getString("TYPE_NAME"));
   }
 
   public void testTables() throws Exception {

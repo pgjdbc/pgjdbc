@@ -318,7 +318,7 @@ public class TestUtil {
 
       st.executeUpdate(sql);
     } finally {
-      st.close();
+      closeQuietly(st);
     }
   }
 
@@ -372,7 +372,7 @@ public class TestUtil {
       }
       st.executeUpdate(sql);
     } finally {
-      st.close();
+      closeQuietly(st);
     }
   }
 
@@ -394,7 +394,7 @@ public class TestUtil {
       // Now create the table
       st.executeUpdate("create temp table " + table + " (" + columns + ")");
     } finally {
-      st.close();
+      closeQuietly(st);
     }
   }
 
@@ -416,7 +416,7 @@ public class TestUtil {
       // Now create the table
       st.executeUpdate("create type " + name + " as enum (" + values + ")");
     } finally {
-      st.close();
+      closeQuietly(st);
     }
   }
 
@@ -438,7 +438,46 @@ public class TestUtil {
       // Now create the table
       st.executeUpdate("create type " + name + " as (" + values + ")");
     } finally {
-      st.close();
+      closeQuietly(st);
+    }
+  }
+
+  /**
+   * Drops a domain
+   *
+   * @param con Connection
+   * @param name String
+   */
+  public static void dropDomain(Connection con, String name)
+      throws SQLException {
+    Statement st = con.createStatement();
+    try {
+      st.executeUpdate("drop domain " + name + " cascade");
+    } catch (SQLException ex) {
+      if (!con.getAutoCommit()) {
+        throw ex;
+      }
+    } finally {
+      closeQuietly(st);
+    }
+  }
+
+  /**
+   * Helper creates a domain
+   *
+   * @param con Connection
+   * @param name String
+   * @param values String
+   */
+  public static void createDomain(Connection con, String name, String values)
+      throws SQLException {
+    Statement st = con.createStatement();
+    try {
+      dropDomain(con, name);
+      // Now create the table
+      st.executeUpdate("create domain " + name + " as " + values);
+    } finally {
+      closeQuietly(st);
     }
   }
 
@@ -485,7 +524,7 @@ public class TestUtil {
   public static void dropType(Connection con, String type) throws SQLException {
     Statement stmt = con.createStatement();
     try {
-      String sql = "DROP TYPE " + type;
+      String sql = "DROP TYPE " + type + " CASCADE";
       stmt.executeUpdate(sql);
     } catch (SQLException ex) {
       if (!con.getAutoCommit()) {
