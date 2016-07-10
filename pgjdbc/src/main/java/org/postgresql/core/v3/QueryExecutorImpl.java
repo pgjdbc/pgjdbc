@@ -11,8 +11,8 @@ package org.postgresql.core.v3;
 
 import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyOperation;
-import org.postgresql.core.DMLCommand;
-import org.postgresql.core.DMLCommandType;
+import org.postgresql.core.SqlCommand;
+import org.postgresql.core.SqlCommandType;
 import org.postgresql.core.Field;
 import org.postgresql.core.Logger;
 import org.postgresql.core.NativeQuery;
@@ -2421,7 +2421,9 @@ public class QueryExecutorImpl implements QueryExecutor {
   private int estimatedReceiveBufferBytes = 0;
 
   private final SimpleQuery beginTransactionQuery =
-      new SimpleQuery(new NativeQuery("BEGIN", new int[0], DMLCommand.createStatementTypeInfo(DMLCommandType.BLANK)), null);
+      new SimpleQuery(new NativeQuery("BEGIN", new int[0], SqlCommand.createStatementTypeInfo(
+          SqlCommandType.BLANK)), null);
 
-  private final SimpleQuery EMPTY_QUERY = new SimpleQuery(new NativeQuery("", new int[0], DMLCommand.createStatementTypeInfo(DMLCommandType.BLANK)), null);
+  private final SimpleQuery EMPTY_QUERY = new SimpleQuery(new NativeQuery("", new int[0], SqlCommand
+      .createStatementTypeInfo(SqlCommandType.BLANK)), null);
 }

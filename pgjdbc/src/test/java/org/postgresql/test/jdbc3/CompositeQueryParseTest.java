@@ -1,6 +1,6 @@
 package org.postgresql.test.jdbc3;
 
-import org.postgresql.core.DMLCommandType;
+import org.postgresql.core.SqlCommandType;
 import org.postgresql.core.NativeQuery;
 import org.postgresql.core.Parser;
 
@@ -84,7 +84,7 @@ public class CompositeQueryParseTest extends TestCase {
 
     queries = Parser.parseJdbcSql("select 1 as returning", true, true, false, true, true);
     query = queries.get(0);
-    assertFalse("This is not an insert command", query.command.getType() == DMLCommandType.INSERT);
+    assertFalse("This is not an insert command", query.command.getType() == SqlCommandType.INSERT);
     assertTrue("Returning is OK here as it is not an insert command ", query.command.isReturningKeywordPresent());
 
   }
@@ -92,11 +92,11 @@ public class CompositeQueryParseTest extends TestCase {
   public void testHasDelete() {
     List<NativeQuery> queries = Parser.parseJdbcSql("DeLeTe from foo where a=1", true, true, false, true, true);
     NativeQuery query = queries.get(0);
-    assertTrue("This is a delete command", query.command.getType() == DMLCommandType.DELETE);
+    assertTrue("This is a delete command", query.command.getType() == SqlCommandType.DELETE);
 
     queries = Parser.parseJdbcSql("update foo set (a=?,b=?,c=?)", true, true, false, true, true);
     query = queries.get(0);
-    assertFalse("This is not a delete command", query.command.getType() == DMLCommandType.DELETE);
+    assertFalse("This is not a delete command", query.command.getType() == SqlCommandType.DELETE);
 
   }
 
@@ -105,11 +105,11 @@ public class CompositeQueryParseTest extends TestCase {
 
     List<NativeQuery> queries = Parser.parseJdbcSql("MoVe NEXT FROM FOO", true, true, false, true, true);
     NativeQuery query = queries.get(0);
-    assertTrue("This is a move command", query.command.getType() == DMLCommandType.MOVE);
+    assertTrue("This is a move command", query.command.getType() == SqlCommandType.MOVE);
 
     queries = Parser.parseJdbcSql("update foo set (a=?,b=?,c=?)", true, true, false, true, true);
     query = queries.get(0);
-    assertFalse("This is not a move command", query.command.getType() == DMLCommandType.MOVE);
+    assertFalse("This is not a move command", query.command.getType() == SqlCommandType.MOVE);
 
   }
 
@@ -117,15 +117,15 @@ public class CompositeQueryParseTest extends TestCase {
 
     List<NativeQuery> queries = Parser.parseJdbcSql("InSeRt into foo (a,b,c) values (?,?,?) returning a", true, true, false, true, true);
     NativeQuery query = queries.get(0);
-    assertTrue("This is an insert command", query.command.getType() == DMLCommandType.INSERT);
+    assertTrue("This is an insert command", query.command.getType() == SqlCommandType.INSERT);
 
     queries = Parser.parseJdbcSql("update foo set (a=?,b=?,c=?)", true, true, false, true, true);
     query = queries.get(0);
-    assertFalse("This is not an insert command", query.command.getType() == DMLCommandType.INSERT);
+    assertFalse("This is not an insert command", query.command.getType() == SqlCommandType.INSERT);
 
     queries = Parser.parseJdbcSql("select 1 as insert", true, true, false, true, true);
     query = queries.get(0);
-    assertFalse("This is not insert command", query.command.getType() == DMLCommandType.INSERT);
+    assertFalse("This is not insert command", query.command.getType() == SqlCommandType.INSERT);
   }
 
   public void testMultipleEmptyQueries() {
