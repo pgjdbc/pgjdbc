@@ -47,9 +47,8 @@ public class BlobTest extends TestCase {
   }
 
   public void testSetBlobWithStream() throws Exception {
-    byte[] data = new String(
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque bibendum dapibus varius.")
-            .getBytes("UTF-8");
+    byte[] data = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque bibendum dapibus varius."
+        .getBytes("UTF-8");
     PreparedStatement insertPS = _conn.prepareStatement(TestUtil.insertSQL("testblob", "lo", "?"));
     try {
       insertPS.setBlob(1, new ByteArrayInputStream(data));
@@ -73,11 +72,10 @@ public class BlobTest extends TestCase {
   }
 
   public void testSetBlobWithStreamAndLength() throws Exception {
-    byte[] fullData = new String(
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse placerat tristique tellus, id tempus lectus.")
+    byte[] fullData = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse placerat tristique tellus, id tempus lectus."
             .getBytes("UTF-8");
     byte[] data =
-        new String("Lorem ipsum dolor sit amet, consectetur adipiscing elit.").getBytes("UTF-8");
+       "Lorem ipsum dolor sit amet, consectetur adipiscing elit.".getBytes("UTF-8");
     PreparedStatement insertPS = _conn.prepareStatement(TestUtil.insertSQL("testblob", "lo", "?"));
     try {
       insertPS.setBlob(1, new ByteArrayInputStream(fullData), data.length);
@@ -102,7 +100,7 @@ public class BlobTest extends TestCase {
 
   public void testGetBinaryStreamWithBoundaries() throws Exception {
     byte[] data =
-        new String("Cras vestibulum tellus eu sapien imperdiet ornare.").getBytes("UTF-8");
+        "Cras vestibulum tellus eu sapien imperdiet ornare.".getBytes("UTF-8");
     PreparedStatement insertPS = _conn.prepareStatement(TestUtil.insertSQL("testblob", "lo", "?"));
     try {
       insertPS.setBlob(1, new ByteArrayInputStream(data), data.length);

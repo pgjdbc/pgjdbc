@@ -23,6 +23,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.sql.Types;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
@@ -229,43 +231,43 @@ public class TimestampTest extends TestCase {
     assertEquals(1, pstmt.executeUpdate());
 
     // With java.sql.Timestamp
-    pstmt.setObject(1, TS1WTZ, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, TS1WTZ, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, TS2WTZ, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, TS2WTZ, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, TS3WTZ, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, TS3WTZ, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, TS4WTZ, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, TS4WTZ, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
 
     // With Strings
-    pstmt.setObject(1, TS1WTZ_PGFORMAT, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, TS1WTZ_PGFORMAT, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, TS2WTZ_PGFORMAT, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, TS2WTZ_PGFORMAT, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, TS3WTZ_PGFORMAT, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, TS3WTZ_PGFORMAT, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, TS4WTZ_PGFORMAT, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, TS4WTZ_PGFORMAT, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
 
     // With java.sql.Date
-    pstmt.setObject(1, tmpDate1, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, tmpDate1, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, tmpDate2, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, tmpDate2, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, tmpDate3, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, tmpDate3, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, tmpDate4, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, tmpDate4, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
 
     // With java.sql.Time
-    pstmt.setObject(1, tmpTime1, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, tmpTime1, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, tmpTime2, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, tmpTime2, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, tmpTime3, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, tmpTime3, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, tmpTime4, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, tmpTime4, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
     // Fall through helper
     timestampTestWTZ();
@@ -383,59 +385,59 @@ public class TimestampTest extends TestCase {
     assertEquals(1, pstmt.executeUpdate());
 
     // With java.sql.Timestamp
-    pstmt.setObject(1, TS1WOTZ, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, TS1WOTZ, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, TS2WOTZ, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, TS2WOTZ, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, TS3WOTZ, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, TS3WOTZ, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, TS4WOTZ, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, TS4WOTZ, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, TS5WOTZ, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, TS5WOTZ, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, TS6WOTZ, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, TS6WOTZ, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
 
     // With Strings
-    pstmt.setObject(1, TS1WOTZ_PGFORMAT, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, TS1WOTZ_PGFORMAT, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, TS2WOTZ_PGFORMAT, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, TS2WOTZ_PGFORMAT, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, TS3WOTZ_PGFORMAT, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, TS3WOTZ_PGFORMAT, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, TS4WOTZ_PGFORMAT, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, TS4WOTZ_PGFORMAT, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, TS5WOTZ_PGFORMAT, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, TS5WOTZ_PGFORMAT, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, TS6WOTZ_PGFORMAT, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, TS6WOTZ_PGFORMAT, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
 
     // With java.sql.Date
-    pstmt.setObject(1, tmpDate1WOTZ, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, tmpDate1WOTZ, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, tmpDate2WOTZ, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, tmpDate2WOTZ, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, tmpDate3WOTZ, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, tmpDate3WOTZ, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, tmpDate4WOTZ, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, tmpDate4WOTZ, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, tmpDate5WOTZ, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, tmpDate5WOTZ, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, tmpDate6WOTZ, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, tmpDate6WOTZ, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
 
     // With java.sql.Time
-    pstmt.setObject(1, tmpTime1WOTZ, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, tmpTime1WOTZ, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, tmpTime2WOTZ, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, tmpTime2WOTZ, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, tmpTime3WOTZ, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, tmpTime3WOTZ, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, tmpTime4WOTZ, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, tmpTime4WOTZ, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, tmpTime5WOTZ, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, tmpTime5WOTZ, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
-    pstmt.setObject(1, tmpTime6WOTZ, java.sql.Types.TIMESTAMP);
+    pstmt.setObject(1, tmpTime6WOTZ, Types.TIMESTAMP);
     assertEquals(1, pstmt.executeUpdate());
     // Fall through helper
     timestampTestWOTZ();
@@ -652,10 +654,10 @@ public class TimestampTest extends TestCase {
           + TestUtil.fix(se, 2) + " ";
 
       if (tz == null) {
-        l_df = new java.text.SimpleDateFormat("y-M-d H:m:s");
+        l_df = new SimpleDateFormat("y-M-d H:m:s");
       } else {
         l_ts = l_ts + tz;
-        l_df = new java.text.SimpleDateFormat("y-M-d H:m:s z");
+        l_df = new SimpleDateFormat("y-M-d H:m:s z");
       }
       java.util.Date l_date = l_df.parse(l_ts);
       l_return = new java.sql.Timestamp(l_date.getTime());

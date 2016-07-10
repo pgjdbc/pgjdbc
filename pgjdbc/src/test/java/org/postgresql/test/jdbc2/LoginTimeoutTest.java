@@ -16,7 +16,9 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 
@@ -35,7 +37,7 @@ public class LoginTimeoutTest extends TestCase {
     props.setProperty("password", TestUtil.getPassword());
     props.setProperty("loginTimeout", "10");
 
-    Connection conn = java.sql.DriverManager.getConnection(TestUtil.getURL(), props);
+    Connection conn = DriverManager.getConnection(TestUtil.getURL(), props);
     conn.close();
   }
 
@@ -45,7 +47,7 @@ public class LoginTimeoutTest extends TestCase {
     props.setProperty("password", TestUtil.getPassword());
     props.setProperty("loginTimeout", "10.0");
 
-    Connection conn = java.sql.DriverManager.getConnection(TestUtil.getURL(), props);
+    Connection conn = DriverManager.getConnection(TestUtil.getURL(), props);
     conn.close();
   }
 
@@ -55,7 +57,7 @@ public class LoginTimeoutTest extends TestCase {
     props.setProperty("password", TestUtil.getPassword());
     props.setProperty("loginTimeout", "0");
 
-    Connection conn = java.sql.DriverManager.getConnection(TestUtil.getURL(), props);
+    Connection conn = DriverManager.getConnection(TestUtil.getURL(), props);
     conn.close();
   }
 
@@ -65,7 +67,7 @@ public class LoginTimeoutTest extends TestCase {
     props.setProperty("password", TestUtil.getPassword());
     props.setProperty("loginTimeout", "-1");
 
-    Connection conn = java.sql.DriverManager.getConnection(TestUtil.getURL(), props);
+    Connection conn = DriverManager.getConnection(TestUtil.getURL(), props);
     conn.close();
   }
 
@@ -75,7 +77,7 @@ public class LoginTimeoutTest extends TestCase {
     props.setProperty("password", TestUtil.getPassword());
     props.setProperty("loginTimeout", "zzzz");
 
-    Connection conn = java.sql.DriverManager.getConnection(TestUtil.getURL(), props);
+    Connection conn = DriverManager.getConnection(TestUtil.getURL(), props);
     conn.close();
   }
 
@@ -84,7 +86,7 @@ public class LoginTimeoutTest extends TestCase {
       InetAddress localAddr;
       try {
         localAddr = InetAddress.getLocalHost();
-      } catch (java.net.UnknownHostException ex) {
+      } catch (UnknownHostException ex) {
         System.err.println("WARNING: Could not resolve local host name, trying 'localhost'. " + ex);
         localAddr = InetAddress.getByName("localhost");
       }
@@ -141,7 +143,7 @@ public class LoginTimeoutTest extends TestCase {
       long startTime = System.currentTimeMillis();
       Connection conn = null;
       try {
-        conn = java.sql.DriverManager.getConnection(url, props);
+        conn = DriverManager.getConnection(url, props);
         fail("connection was unexpectedly successful");
       } catch (SQLException e) {
         // Ignored.

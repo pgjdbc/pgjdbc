@@ -43,8 +43,6 @@ public class WrapperTest extends TestCase {
   private static interface PrivateInterface {
   }
 
-  ;
-
   public void testConnectionIsWrapperForPrivate() throws SQLException {
     assertFalse(_conn.isWrapperFor(PrivateInterface.class));
   }

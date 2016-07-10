@@ -134,8 +134,7 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
         "INSERT INTO testbatch VALUES (?, '1, (, $1234, a''n?d )' /*xxxx)*/, ?) -- xxx",
         // "INSERT /*xxx*/INTO testbatch VALUES (?, '1, (, $1234, a''n?d )' /*xxxx)*/, ?) -- xxx",
     };
-    for (int i = 0; i < odd.length; i++) {
-      String s = odd[i];
+    for (String s : odd) {
       PreparedStatement pstmt = null;
       try {
         pstmt = con.prepareStatement(s);

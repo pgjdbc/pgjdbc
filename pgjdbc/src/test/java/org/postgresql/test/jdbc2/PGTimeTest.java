@@ -228,7 +228,7 @@ public class PGTimeTest extends TestCase {
   }
 
   /**
-   * Creates a <code>SimpleDateFormat</code> that is appropriate for the given time.
+   * Creates a {@code SimpleDateFormat} that is appropriate for the given time.
    *
    * @param time the time object.
    * @return the new format instance.

@@ -30,11 +30,10 @@ public class EncodingTest extends TestCase {
   }
 
   public void testCreation() throws Exception {
-    Encoding encoding;
-    encoding = Encoding.getDatabaseEncoding("UTF8");
+    Encoding encoding = Encoding.getDatabaseEncoding("UTF8");
     assertEquals("UTF", encoding.name().substring(0, 3).toUpperCase(Locale.US));
     encoding = Encoding.getDatabaseEncoding("SQL_ASCII");
-    assertTrue(encoding.name().toUpperCase(Locale.US).indexOf("ASCII") != -1);
+    assertTrue(encoding.name().toUpperCase(Locale.US).contains("ASCII"));
     assertEquals("When encoding is unknown the default encoding should be used",
         Encoding.defaultEncoding(), Encoding.getDatabaseEncoding("UNKNOWN"));
   }

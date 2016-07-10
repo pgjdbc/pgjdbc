@@ -53,20 +53,20 @@ public class CursorFetchTest extends BaseTest {
 
     PreparedStatement stmt = con.prepareStatement("select * from test_fetch order by value");
     int[] testSizes = {0, 1, 49, 50, 51, 99, 100, 101};
-    for (int i = 0; i < testSizes.length; ++i) {
-      stmt.setFetchSize(testSizes[i]);
-      assertEquals(testSizes[i], stmt.getFetchSize());
+    for (int testSize : testSizes) {
+      stmt.setFetchSize(testSize);
+      assertEquals(testSize, stmt.getFetchSize());
 
       ResultSet rs = stmt.executeQuery();
-      assertEquals(testSizes[i], rs.getFetchSize());
+      assertEquals(testSize, rs.getFetchSize());
 
       int count = 0;
       while (rs.next()) {
-        assertEquals("query value error with fetch size " + testSizes[i], count, rs.getInt(1));
+        assertEquals("query value error with fetch size " + testSize, count, rs.getInt(1));
         ++count;
       }
 
-      assertEquals("total query size error with fetch size " + testSizes[i], 100, count);
+      assertEquals("total query size error with fetch size " + testSize, 100, count);
     }
   }
 
@@ -79,17 +79,16 @@ public class CursorFetchTest extends BaseTest {
         ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
     int[] testSizes = {0, 1, 49, 50, 51, 99, 100, 101};
-    for (int i = 0; i < testSizes.length; ++i) {
-      stmt.setFetchSize(testSizes[i]);
-      assertEquals(testSizes[i], stmt.getFetchSize());
+    for (int testSize : testSizes) {
+      stmt.setFetchSize(testSize);
+      assertEquals(testSize, stmt.getFetchSize());
 
       ResultSet rs = stmt.executeQuery();
-      assertEquals(testSizes[i], rs.getFetchSize());
+      assertEquals(testSize, rs.getFetchSize());
 
       for (int j = 0; j <= 50; ++j) {
-        assertTrue("ran out of rows at position " + j + " with fetch size " + testSizes[i],
-            rs.next());
-        assertEquals("query value error with fetch size " + testSizes[i], j, rs.getInt(1));
+        assertTrue("ran out of rows at position " + j + " with fetch size " + testSize, rs.next());
+        assertEquals("query value error with fetch size " + testSize, j, rs.getInt(1));
       }
 
       int position = 50;
@@ -98,17 +97,17 @@ public class CursorFetchTest extends BaseTest {
           if (j % 2 == 0) {
             ++position;
             assertTrue("ran out of rows doing a forward fetch on iteration " + j + "/" + k
-                + " at position " + position + " with fetch size " + testSizes[i], rs.next());
+                + " at position " + position + " with fetch size " + testSize, rs.next());
           } else {
             --position;
             assertTrue(
                 "ran out of rows doing a reverse fetch on iteration " + j + "/" + k
-                    + " at position " + position + " with fetch size " + testSizes[i],
+                    + " at position " + position + " with fetch size " + testSize,
                 rs.previous());
           }
 
           assertEquals(
-              "query value error on iteration " + j + "/" + k + " with fetch size " + testSizes[i],
+              "query value error on iteration " + j + "/" + k + " with fetch size " + testSize,
               position, rs.getInt(1));
         }
       }
@@ -122,17 +121,17 @@ public class CursorFetchTest extends BaseTest {
         ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 
     int[] testSizes = {0, 1, 49, 50, 51, 99, 100, 101};
-    for (int i = 0; i < testSizes.length; ++i) {
-      stmt.setFetchSize(testSizes[i]);
-      assertEquals(testSizes[i], stmt.getFetchSize());
+    for (int testSize : testSizes) {
+      stmt.setFetchSize(testSize);
+      assertEquals(testSize, stmt.getFetchSize());
 
       ResultSet rs = stmt.executeQuery();
-      assertEquals(testSizes[i], rs.getFetchSize());
+      assertEquals(testSize, rs.getFetchSize());
 
       int position = 50;
       assertTrue("ran out of rows doing an absolute fetch at " + position + " with fetch size "
-          + testSizes[i], rs.absolute(position + 1));
-      assertEquals("query value error with fetch size " + testSizes[i], position, rs.getInt(1));
+          + testSize, rs.absolute(position + 1));
+      assertEquals("query value error with fetch size " + testSize, position, rs.getInt(1));
 
       for (int j = 1; j < 100; ++j) {
         if (j % 2 == 0) {
@@ -142,8 +141,8 @@ public class CursorFetchTest extends BaseTest {
         }
 
         assertTrue("ran out of rows doing an absolute fetch at " + position + " on iteration " + j
-            + " with fetchsize" + testSizes[i], rs.absolute(position + 1));
-        assertEquals("query value error with fetch size " + testSizes[i], position, rs.getInt(1));
+            + " with fetchsize" + testSize, rs.absolute(position + 1));
+        assertEquals("query value error with fetch size " + testSize, position, rs.getInt(1));
       }
     }
   }
@@ -258,20 +257,20 @@ public class CursorFetchTest extends BaseTest {
     createRows(1);
 
     int[] sizes = {0, 1, 10};
-    for (int i = 0; i < sizes.length; ++i) {
+    for (int size : sizes) {
       Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-      stmt.setFetchSize(sizes[i]);
+      stmt.setFetchSize(size);
 
       // Create a one row result set.
       ResultSet rs = stmt.executeQuery("select * from test_fetch order by value");
 
-      msg = "before-first row positioning error with fetchsize=" + sizes[i];
+      msg = "before-first row positioning error with fetchsize=" + size;
       assertTrue(msg, rs.isBeforeFirst());
       assertTrue(msg, !rs.isAfterLast());
       assertTrue(msg, !rs.isFirst());
       assertTrue(msg, !rs.isLast());
 
-      msg = "row 1 positioning error with fetchsize=" + sizes[i];
+      msg = "row 1 positioning error with fetchsize=" + size;
       assertTrue(msg, rs.next());
 
       assertTrue(msg, !rs.isBeforeFirst());
@@ -280,7 +279,7 @@ public class CursorFetchTest extends BaseTest {
       assertTrue(msg, rs.isLast());
       assertEquals(msg, 0, rs.getInt(1));
 
-      msg = "after-last row positioning error with fetchsize=" + sizes[i];
+      msg = "after-last row positioning error with fetchsize=" + size;
       assertTrue(msg, !rs.next());
 
       assertTrue(msg, !rs.isBeforeFirst());
@@ -299,19 +298,19 @@ public class CursorFetchTest extends BaseTest {
     createRows(100);
 
     int[] sizes = {0, 1, 10, 100};
-    for (int i = 0; i < sizes.length; ++i) {
+    for (int size : sizes) {
       Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-      stmt.setFetchSize(sizes[i]);
+      stmt.setFetchSize(size);
 
       ResultSet rs = stmt.executeQuery("select * from test_fetch order by value");
-      msg = "before-first row positioning error with fetchsize=" + sizes[i];
+      msg = "before-first row positioning error with fetchsize=" + size;
       assertTrue(msg, rs.isBeforeFirst());
       assertTrue(msg, !rs.isAfterLast());
       assertTrue(msg, !rs.isFirst());
       assertTrue(msg, !rs.isLast());
 
       for (int j = 0; j < 100; ++j) {
-        msg = "row " + j + " positioning error with fetchsize=" + sizes[i];
+        msg = "row " + j + " positioning error with fetchsize=" + size;
         assertTrue(msg, rs.next());
         assertEquals(msg, j, rs.getInt(1));
 
@@ -330,7 +329,7 @@ public class CursorFetchTest extends BaseTest {
         }
       }
 
-      msg = "after-last row positioning error with fetchsize=" + sizes[i];
+      msg = "after-last row positioning error with fetchsize=" + size;
       assertTrue(msg, !rs.next());
 
       assertTrue(msg, !rs.isBeforeFirst());
@@ -411,18 +410,18 @@ public class CursorFetchTest extends BaseTest {
     createRows(rowCount);
 
     int[] sizes = {1, 2, 3, 4, 5};
-    for (int i = 0; i < sizes.length; ++i) {
+    for (int size : sizes) {
       Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-      stmt.setFetchSize(sizes[i]);
+      stmt.setFetchSize(size);
 
       ResultSet rs = stmt.executeQuery("select * from test_fetch order by value");
-      msg = "before-first row positioning error with fetchsize=" + sizes[i];
+      msg = "before-first row positioning error with fetchsize=" + size;
       assertTrue(msg, rs.isBeforeFirst());
       assertTrue(msg, !rs.isAfterLast());
       assertTrue(msg, !rs.isFirst());
 
       for (int j = 0; j < rowCount; ++j) {
-        msg = "row " + j + " positioning error with fetchsize=" + sizes[i];
+        msg = "row " + j + " positioning error with fetchsize=" + size;
         assertTrue(msg, rs.next());
         assertEquals(msg, j, rs.getInt(1));
 
@@ -435,7 +434,7 @@ public class CursorFetchTest extends BaseTest {
         }
       }
 
-      msg = "after-last row positioning error with fetchsize=" + sizes[i];
+      msg = "after-last row positioning error with fetchsize=" + size;
       assertTrue(msg, !rs.next());
 
       assertTrue(msg, !rs.isBeforeFirst());
@@ -454,12 +453,12 @@ public class CursorFetchTest extends BaseTest {
     String msg;
 
     int[] sizes = {0, 1, 50, 100};
-    for (int i = 0; i < sizes.length; ++i) {
+    for (int size : sizes) {
       Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-      stmt.setFetchSize(sizes[i]);
+      stmt.setFetchSize(size);
 
       ResultSet rs = stmt.executeQuery("select * from test_fetch order by value");
-      msg = "no row (empty resultset) positioning error with fetchsize=" + sizes[i];
+      msg = "no row (empty resultset) positioning error with fetchsize=" + size;
       assertTrue(msg, !rs.isBeforeFirst());
       assertTrue(msg, !rs.isAfterLast());
       assertTrue(msg, !rs.isFirst());
@@ -481,13 +480,13 @@ public class CursorFetchTest extends BaseTest {
     String msg;
 
     int[] sizes = {0, 1, 50, 100};
-    for (int i = 0; i < sizes.length; ++i) {
+    for (int size : sizes) {
       Statement stmt =
           con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
-      stmt.setFetchSize(sizes[i]);
+      stmt.setFetchSize(size);
 
       ResultSet rs = stmt.executeQuery("select * from test_fetch order by value");
-      msg = "no row (empty resultset) positioning error with fetchsize=" + sizes[i];
+      msg = "no row (empty resultset) positioning error with fetchsize=" + size;
       assertTrue(msg, !rs.isBeforeFirst());
       assertTrue(msg, !rs.isAfterLast());
       assertTrue(msg, !rs.isFirst());

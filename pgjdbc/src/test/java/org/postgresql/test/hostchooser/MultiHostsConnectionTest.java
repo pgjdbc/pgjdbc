@@ -45,9 +45,8 @@ public class MultiHostsConnectionTest extends TestCase {
   private static Map<HostSpec, Object> hostStatusMap;
 
   static {
-    Field field;
     try {
-      field = GlobalHostStatusTracker.class.getDeclaredField("hostStatusMap");
+      Field field = GlobalHostStatusTracker.class.getDeclaredField("hostStatusMap");
       field.setAccessible(true);
       hostStatusMap = (Map<HostSpec, Object>) field.get(null);
 

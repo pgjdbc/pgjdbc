@@ -79,7 +79,7 @@ public class InsertRewriteWithAlternatingTypesIssue584 extends BaseTest4 {
     Connection conn = con;
     conn.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
     try {
-      Timestamp ts = new Timestamp(2016 - 1900, 1 - 1, 31, 0, 0, 0, 0);
+      Timestamp ts = new Timestamp(2016 - 1900, 0, 31, 0, 0, 0, 0);
       int[] types = new int[]{
           Types.NUMERIC,
           Types.DATE,
@@ -96,8 +96,8 @@ public class InsertRewriteWithAlternatingTypesIssue584 extends BaseTest4 {
       Object[] row3 = new Object[]{1, ts, 0.0, true, null, ts, 0.0, 0.0};
       Object[][] tRows = new Object[][]{row0, row1, row2, row3};
       List<Object[]> rowList = new ArrayList<Object[]>();
-      for (int i = 0; i < ROW_INDEXES.length; i++) {
-        rowList.add(tRows[ROW_INDEXES[i]]);
+      for (int ROW_INDEX : ROW_INDEXES) {
+        rowList.add(tRows[ROW_INDEX]);
       }
 
       StringBuilder sb = new StringBuilder();
@@ -105,12 +105,11 @@ public class InsertRewriteWithAlternatingTypesIssue584 extends BaseTest4 {
           "INSERT INTO BugFreezeTable (Col1,Col2,Col3,Col4,Col5,Col6,Col7,Col8) VALUES (?,?,?,?,?,?,?,?)");
       String insert = sb.toString();
       PgPreparedStatement pst = (PgPreparedStatement) conn.prepareStatement(insert);
-      String statementName = null;
+      String statementName;
       int count = 0;
       do {
         Object[][] rows = rowList.toArray(new Object[0][]);
-        for (int j = 0; j < rows.length; j++) {
-          Object[] row = rows[j];
+        for (Object[] row : rows) {
           for (int k = 0; k < row.length; k++) {
             Object o = row[k];
             int paramIndex = k + 1;
@@ -153,8 +152,7 @@ public class InsertRewriteWithAlternatingTypesIssue584 extends BaseTest4 {
     Field statementNameField =
         Class.forName("org.postgresql.core.v3.SimpleQuery").getDeclaredField("statementName");
     statementNameField.setAccessible(true);
-    String statementName = (String) statementNameField.get(query);
-    return statementName;
+    return (String) statementNameField.get(query);
   }
 
   /**

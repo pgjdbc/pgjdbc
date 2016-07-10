@@ -51,9 +51,10 @@ import java.util.TimeZone;
  */
 public class TimezoneTest extends TestCase {
   private static final int DAY = 24 * 3600 * 1000;
-  private Connection con;
   private static final TimeZone saveTZ = TimeZone.getDefault();
   private static final int PREPARE_THRESHOLD = 2;
+
+  private Connection con;
 
   //
   // We set up everything in different timezones to try to exercise many cases:

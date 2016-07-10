@@ -81,7 +81,6 @@ public class TimeTest extends TestCase {
     Timestamp timestamptz = rs.getTimestamp(2);
     assertNotNull(timestamptz);
 
-    Time timetz = rs.getTime(2);
     assertEquals(midnight, time);
 
     time = rs.getTime(1, cal);
@@ -104,7 +103,7 @@ public class TimeTest extends TestCase {
     }
     assertEquals(100000000, timestamp.getNanos());
 
-    timetz = rs.getTime(2);
+    Time timetz = rs.getTime(2);
     assertNotNull(timetz);
     assertEquals(10, extractMillis(timetz.getTime()));
     timestamptz = rs.getTimestamp(2);
@@ -168,16 +167,16 @@ public class TimeTest extends TestCase {
     ps.setTime(1, makeTime(23, 59, 59));
     assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, java.sql.Time.valueOf("12:00:00"), java.sql.Types.TIME);
+    ps.setObject(1, Time.valueOf("12:00:00"), java.sql.Types.TIME);
     assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, java.sql.Time.valueOf("05:15:21"), java.sql.Types.TIME);
+    ps.setObject(1, Time.valueOf("05:15:21"), java.sql.Types.TIME);
     assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, java.sql.Time.valueOf("16:21:51"), java.sql.Types.TIME);
+    ps.setObject(1, Time.valueOf("16:21:51"), java.sql.Types.TIME);
     assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, java.sql.Time.valueOf("12:15:12"), java.sql.Types.TIME);
+    ps.setObject(1, Time.valueOf("12:15:12"), java.sql.Types.TIME);
     assertEquals(1, ps.executeUpdate());
 
     ps.setObject(1, "22:12:1", java.sql.Types.TIME);
@@ -209,7 +208,7 @@ public class TimeTest extends TestCase {
   private void timeTest() throws SQLException {
     Statement st = con.createStatement();
     ResultSet rs;
-    java.sql.Time t;
+    Time t;
 
     rs = st.executeQuery(TestUtil.selectSQL("testtime", "tm"));
     assertNotNull(rs);
@@ -259,19 +258,19 @@ public class TimeTest extends TestCase {
       assertTrue(rs.next());
       t = rs.getTime(1);
       assertNotNull(t);
-      java.sql.Time tmpTime = java.sql.Time.valueOf("5:1:2");
-      int localoffset = java.util.Calendar.getInstance().getTimeZone().getOffset(tmpTime.getTime());
-      int Timeoffset = 3 * 60 * 60 * 1000;
-      tmpTime.setTime(tmpTime.getTime() + Timeoffset + localoffset);
+      Time tmpTime = Time.valueOf("5:1:2");
+      int localOffset = Calendar.getInstance().getTimeZone().getOffset(tmpTime.getTime());
+      int timeOffset = 3 * 60 * 60 * 1000;
+      tmpTime.setTime(tmpTime.getTime() + timeOffset + localOffset);
       assertEquals(makeTime(tmpTime.getHours(), tmpTime.getMinutes(), tmpTime.getSeconds()), t);
 
       assertTrue(rs.next());
       t = rs.getTime(1);
       assertNotNull(t);
-      tmpTime = java.sql.Time.valueOf("23:59:59");
-      localoffset = java.util.Calendar.getInstance().getTimeZone().getOffset(tmpTime.getTime());
-      Timeoffset = -11 * 60 * 60 * 1000;
-      tmpTime.setTime(tmpTime.getTime() + Timeoffset + localoffset);
+      tmpTime = Time.valueOf("23:59:59");
+      localOffset = Calendar.getInstance().getTimeZone().getOffset(tmpTime.getTime());
+      timeOffset = -11 * 60 * 60 * 1000;
+      tmpTime.setTime(tmpTime.getTime() + timeOffset + localOffset);
       assertEquals(makeTime(tmpTime.getHours(), tmpTime.getMinutes(), tmpTime.getSeconds()), t);
     }
 
@@ -280,8 +279,7 @@ public class TimeTest extends TestCase {
     rs.close();
   }
 
-  private java.sql.Time makeTime(int h, int m, int s) {
-    return java.sql.Time
-        .valueOf(TestUtil.fix(h, 2) + ":" + TestUtil.fix(m, 2) + ":" + TestUtil.fix(s, 2));
+  private Time makeTime(int h, int m, int s) {
+    return Time.valueOf(TestUtil.fix(h, 2) + ":" + TestUtil.fix(m, 2) + ":" + TestUtil.fix(s, 2));
   }
 }

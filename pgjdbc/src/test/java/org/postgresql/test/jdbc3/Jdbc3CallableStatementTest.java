@@ -27,7 +27,7 @@ import java.sql.Types;
  */
 public class Jdbc3CallableStatementTest extends TestCase {
 
-  Connection con;
+  private Connection con;
 
   /*
    * (non-Javadoc)
@@ -304,8 +304,8 @@ public class Jdbc3CallableStatementTest extends TestCase {
       cstmt.registerOutParameter(3, Types.BIT);
       cstmt.executeUpdate();
 
-      assertTrue(cstmt.getBoolean(1) == true);
-      assertTrue(cstmt.getBoolean(2) == false);
+      assertTrue(cstmt.getBoolean(1));
+      assertFalse(cstmt.getBoolean(2));
       cstmt.getBoolean(3);
       assertTrue(cstmt.wasNull());
     } finally {
@@ -349,8 +349,8 @@ public class Jdbc3CallableStatementTest extends TestCase {
       ResultSet rs = con.createStatement().executeQuery("select * from bit_tab");
 
       assertTrue(rs.next());
-      assertTrue(rs.getBoolean(1) == true);
-      assertTrue(rs.getBoolean(2) == false);
+      assertTrue(rs.getBoolean(1));
+      assertFalse(rs.getBoolean(2));
       rs.getBoolean(3);
       assertTrue(rs.wasNull());
     } catch (Exception ex) {
@@ -893,7 +893,7 @@ public class Jdbc3CallableStatementTest extends TestCase {
       cstmt.registerOutParameter(3, java.sql.Types.BIT);
       cstmt.executeUpdate();
       assertTrue(cstmt.getBoolean(1));
-      assertTrue(cstmt.getBoolean(2) == false);
+      assertFalse(cstmt.getBoolean(2));
       cstmt.getBoolean(3);
       assertTrue(cstmt.wasNull());
     } catch (Exception ex) {

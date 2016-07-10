@@ -55,8 +55,7 @@ public class StatementTest extends TestCase {
   }
 
   public void testClose() throws SQLException {
-    Statement stmt = null;
-    stmt = con.createStatement();
+    Statement stmt = con.createStatement();
     stmt.close();
 
     try {
@@ -547,7 +546,7 @@ public class StatementTest extends TestCase {
     for (int i = 1; i <= 3; i++) {
       try {
         ResultSet rs = pstmt.executeQuery();
-        this.fail("statement should have been canceled by query timeout (execution #" + i + ")");
+        fail("statement should have been canceled by query timeout (execution #" + i + ")");
       } catch (SQLException sqle) {
         // state for cancel
         if (sqle.getSQLState().compareTo("57014") != 0) {

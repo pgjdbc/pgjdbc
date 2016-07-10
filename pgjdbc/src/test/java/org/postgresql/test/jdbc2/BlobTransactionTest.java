@@ -48,13 +48,12 @@ public class BlobTransactionTest extends TestCase {
 
     String sql;
 
-    Statement st;
     /*
      * this would have to be executed using the postgres user in order to get access to a C function
      *
      */
     Connection privilegedCon = TestUtil.openPrivilegedDB();
-    st = privilegedCon.createStatement();
+    Statement st = privilegedCon.createStatement();
     try {
       sql =
           "CREATE OR REPLACE FUNCTION lo_manage() RETURNS pg_catalog.trigger AS '$libdir/lo' LANGUAGE C";

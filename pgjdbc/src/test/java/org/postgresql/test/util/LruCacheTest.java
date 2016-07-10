@@ -22,7 +22,7 @@ import java.util.Deque;
  * Tests {@link org.postgresql.util.LruCache}
  */
 public class LruCacheTest extends TestCase {
-  static class Entry implements CanEstimateSize {
+  private static class Entry implements CanEstimateSize {
     private final int id;
 
     Entry(int id) {
@@ -142,11 +142,10 @@ public class LruCacheTest extends TestCase {
   }
 
   private Entry use(int expectCreate, Entry... expectEvict) throws SQLException {
-    Entry a;
     this.expectCreate[0] = expectCreate <= 0 ? -1 : expectCreate;
     this.expectEvict.clear();
     this.expectEvict.addAll(Arrays.asList(expectEvict));
-    a = cache.borrow(Math.abs(expectCreate));
+    Entry a = cache.borrow(Math.abs(expectCreate));
     cache.put(a.id, a); // a
     return a;
   }
