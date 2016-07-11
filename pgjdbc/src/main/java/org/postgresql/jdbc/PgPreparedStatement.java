@@ -63,6 +63,7 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 //#endif
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -82,6 +83,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
    * Used to set adjustIndex above
    */
   protected boolean outParmBeforeFunc = false;
+
+  private TimeZone defaultTimeZone;
 
   PgPreparedStatement(PgConnection connection, String sql, int rsType, int rsConcurrency,
       int rsHoldability) throws SQLException {
@@ -157,11 +160,15 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   }
 
   public boolean executeWithFlags(int flags) throws SQLException {
-    checkClosed();
+    try {
+      checkClosed();
 
-    execute(preparedQuery.query, preparedParameters, flags);
+      execute(preparedQuery.query, preparedParameters, flags);
 
-    return (result != null && result.getResultSet() != null);
+      return (result != null && result.getResultSet() != null);
+    } finally {
+      defaultTimeZone = null;
+    }
   }
 
   protected boolean isOneShotQuery(Query query) {
@@ -634,7 +641,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
             break;
             //#endif
           } else {
-            tmpd = connection.getTimestampUtils().toDate(null, in.toString());
+            tmpd = connection.getTimestampUtils().toDate(getDefaultCalendar(), in.toString());
           }
           setDate(parameterIndex, tmpd);
         }
@@ -652,7 +659,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
             break;
             //#endif
           } else {
-            tmpt = connection.getTimestampUtils().toTime(null, in.toString());
+            tmpt = connection.getTimestampUtils().toTime(getDefaultCalendar(), in.toString());
           }
           setTime(parameterIndex, tmpt);
         }
@@ -672,7 +679,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
             break;
             //#endif
           } else {
-            tmpts = connection.getTimestampUtils().toTimestamp(null, in.toString());
+            tmpts = connection.getTimestampUtils().toTimestamp(getDefaultCalendar(), in.toString());
           }
           setTimestamp(parameterIndex, tmpts);
         }
@@ -1396,6 +1403,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     // 2005-01-01 00:00:00+03
     // (1 row)
 
+    if (cal == null) {
+      cal = getDefaultCalendar();
+    }
     bindString(i, connection.getTimestampUtils().toString(cal, d), Oid.UNSPECIFIED);
   }
 
@@ -1420,6 +1430,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       }
     }
 
+    if (cal == null) {
+      cal = getDefaultCalendar();
+    }
     bindString(i, connection.getTimestampUtils().toString(cal, t), oid);
   }
 
@@ -1473,7 +1486,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         cal = pgTimestamp.getCalendar();
       }
     }
-
+    if (cal == null) {
+      cal = getDefaultCalendar();
+    }
     bindString(i, connection.getTimestampUtils().toString(cal, t), oid);
   }
 
@@ -1638,6 +1653,23 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   public void setURL(int parameterIndex, java.net.URL x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setURL(int,URL)");
+  }
+
+  @Override
+  public int[] executeBatch() throws SQLException {
+    try {
+      return super.executeBatch();
+    } finally {
+      defaultTimeZone = null;
+    }
+  }
+
+  private Calendar getDefaultCalendar() {
+    Calendar sharedCalendar = connection.getTimestampUtils().getSharedCalendar(defaultTimeZone);
+    if (defaultTimeZone == null) {
+      defaultTimeZone = sharedCalendar.getTimeZone();
+    }
+    return sharedCalendar;
   }
 
   public ParameterMetaData getParameterMetaData() throws SQLException {

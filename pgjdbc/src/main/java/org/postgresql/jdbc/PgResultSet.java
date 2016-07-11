@@ -96,6 +96,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   private final int resultsettype;
   private final int resultsetconcurrency;
   private int fetchdirection = ResultSet.FETCH_UNKNOWN;
+  private TimeZone defaultTimeZone;
   protected final BaseConnection connection; // the connection we belong to
   protected final BaseStatement statement; // the statement we belong to
   protected final Field fields[]; // Field metadata for this resultset.
@@ -488,10 +489,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       return null;
     }
 
+    if (cal == null) {
+      cal = getDefaultCalendar();
+    }
     if (isBinary(i)) {
       int col = i - 1;
       int oid = fields[col].getOID();
-      TimeZone tz = cal == null ? null : cal.getTimeZone();
+      TimeZone tz = cal.getTimeZone();
       if (oid == Oid.DATE) {
         return connection.getTimestampUtils().toDateBin(tz, this_row[col]);
       } else if (oid == Oid.TIMESTAMP || oid == Oid.TIMESTAMPTZ) {
@@ -518,10 +522,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       return null;
     }
 
+    if (cal == null) {
+      cal = getDefaultCalendar();
+    }
     if (isBinary(i)) {
       int col = i - 1;
       int oid = fields[col].getOID();
-      TimeZone tz = cal == null ? null : cal.getTimeZone();
+      TimeZone tz = cal.getTimeZone();
       if (oid == Oid.TIME || oid == Oid.TIMETZ) {
         return connection.getTimestampUtils().toTimeBin(tz, this_row[col]);
       } else if (oid == Oid.TIMESTAMP || oid == Oid.TIMESTAMPTZ) {
@@ -549,12 +556,15 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       return null;
     }
 
+    if (cal == null) {
+      cal = getDefaultCalendar();
+    }
     int col = i - 1;
     int oid = fields[col].getOID();
     if (isBinary(i)) {
       if (oid == Oid.TIMESTAMPTZ || oid == Oid.TIMESTAMP) {
         boolean hasTimeZone = oid == Oid.TIMESTAMPTZ;
-        TimeZone tz = cal == null ? null : cal.getTimeZone();
+        TimeZone tz = cal.getTimeZone();
         return connection.getTimestampUtils().toTimestampBin(tz, this_row[col], hasTimeZone);
       } else {
         // JDBC spec says getTimestamp of Time and Date must be supported
@@ -600,7 +610,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
               PSQLState.DATA_TYPE_MISMATCH);
     }
     if (isBinary(i)) {
-      return connection.getTimestampUtils().toLocalDateTimeBin(this_row[col]);
+      TimeZone timeZone = getDefaultCalendar().getTimeZone();
+      return connection.getTimestampUtils().toLocalDateTimeBin(timeZone, this_row[col]);
     }
 
     String string = getString(i);
@@ -1694,17 +1705,22 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
           case Types.DATE:
             rowBuffer[columnIndex] = connection
-                .encodeString(connection.getTimestampUtils().toString(null, (Date) valueObject));
+                .encodeString(
+                    connection.getTimestampUtils().toString(
+                        getDefaultCalendar(), (Date) valueObject));
             break;
 
           case Types.TIME:
             rowBuffer[columnIndex] = connection
-                .encodeString(connection.getTimestampUtils().toString(null, (Time) valueObject));
+                .encodeString(
+                    connection.getTimestampUtils().toString(
+                        getDefaultCalendar(), (Time) valueObject));
             break;
 
           case Types.TIMESTAMP:
             rowBuffer[columnIndex] = connection.encodeString(
-                connection.getTimestampUtils().toString(null, (Timestamp) valueObject));
+                connection.getTimestampUtils().toString(
+                    getDefaultCalendar(), (Timestamp) valueObject));
             break;
 
           case Types.NULL:
@@ -3244,7 +3260,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       //#endif
       ) {
         Timestamp timestampValue = getTimestamp(columnIndex);
-        Calendar calendar = Calendar.getInstance();
+        Calendar calendar = Calendar.getInstance(getDefaultCalendar().getTimeZone());
         calendar.setTimeInMillis(timestampValue.getTime());
         return type.cast(calendar);
       } else {
@@ -3611,5 +3627,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       return iface.cast(this);
     }
     throw new SQLException("Cannot unwrap to " + iface.getName());
+  }
+
+  private Calendar getDefaultCalendar() {
+    Calendar sharedCalendar = connection.getTimestampUtils().getSharedCalendar(defaultTimeZone);
+    if (defaultTimeZone == null) {
+      defaultTimeZone = sharedCalendar.getTimeZone();
+    }
+    return sharedCalendar;
   }
 }
