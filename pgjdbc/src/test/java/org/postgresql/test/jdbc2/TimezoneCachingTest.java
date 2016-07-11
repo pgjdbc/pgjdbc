@@ -8,14 +8,14 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertEquals;
+
 import org.postgresql.core.BaseConnection;
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.test.TestUtil;
 
 import org.junit.Assume;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
 
 import java.lang.reflect.Field;
 import java.sql.BatchUpdateException;
@@ -382,7 +382,9 @@ public class TimezoneCachingTest extends BaseTest4 {
   a table for this test. */
   public void setUp() throws Exception {
     super.setUp();
-
+    TimestampUtils timestampUtils = ((BaseConnection) con).getTimestampUtils();
+    Assume.assumeFalse("If connection has fast access to TimeZone.getDefault,"
+        + " then no cache is needed", timestampUtils.hasFastDefaultTimeZone());
     /* Drop the test table if it already exists for some reason. It is
     not an error if it doesn't exist. */
     TestUtil.createTable(con, "testtz", "col1 INTEGER, col2 TIMESTAMP");

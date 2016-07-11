@@ -1665,7 +1665,11 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   }
 
   private Calendar getDefaultCalendar() {
-    Calendar sharedCalendar = connection.getTimestampUtils().getSharedCalendar(defaultTimeZone);
+    TimestampUtils timestampUtils = connection.getTimestampUtils();
+    if (timestampUtils.hasFastDefaultTimeZone()) {
+      return timestampUtils.getSharedCalendar(null);
+    }
+    Calendar sharedCalendar = timestampUtils.getSharedCalendar(defaultTimeZone);
     if (defaultTimeZone == null) {
       defaultTimeZone = sharedCalendar.getTimeZone();
     }

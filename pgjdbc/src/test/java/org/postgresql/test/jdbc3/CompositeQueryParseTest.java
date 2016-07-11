@@ -1,8 +1,8 @@
 package org.postgresql.test.jdbc3;
 
-import org.postgresql.core.SqlCommandType;
 import org.postgresql.core.NativeQuery;
 import org.postgresql.core.Parser;
+import org.postgresql.core.SqlCommandType;
 
 import junit.framework.TestCase;
 

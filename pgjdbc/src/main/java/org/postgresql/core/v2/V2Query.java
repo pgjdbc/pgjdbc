@@ -9,13 +9,13 @@
 
 package org.postgresql.core.v2;
 
-import org.postgresql.core.SqlCommand;
-import org.postgresql.core.SqlCommandType;
 import org.postgresql.core.NativeQuery;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Parser;
 import org.postgresql.core.ProtocolConnection;
 import org.postgresql.core.Query;
+import org.postgresql.core.SqlCommand;
+import org.postgresql.core.SqlCommandType;
 
 import java.util.List;
 

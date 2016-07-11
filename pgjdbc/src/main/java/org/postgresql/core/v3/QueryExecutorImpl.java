@@ -11,8 +11,6 @@ package org.postgresql.core.v3;
 
 import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyOperation;
-import org.postgresql.core.SqlCommand;
-import org.postgresql.core.SqlCommandType;
 import org.postgresql.core.Field;
 import org.postgresql.core.Logger;
 import org.postgresql.core.NativeQuery;
@@ -26,6 +24,8 @@ import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandler;
+import org.postgresql.core.SqlCommand;
+import org.postgresql.core.SqlCommandType;
 import org.postgresql.core.Utils;
 import org.postgresql.jdbc.BatchResultHandler;
 import org.postgresql.jdbc.TimestampUtils;
