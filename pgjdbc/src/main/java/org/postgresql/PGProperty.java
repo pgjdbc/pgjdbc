@@ -240,7 +240,7 @@ public enum PGProperty {
    * <p>
    * The timeout is specified in seconds and a value of zero means that it is disabled.
    */
-  CONNECT_TIMEOUT("connectTimeout", "0", "The timeout value used for socket connect operations."),
+  CONNECT_TIMEOUT("connectTimeout", "10", "The timeout value used for socket connect operations."),
 
   /**
    * The timeout value used for socket read operations. If reading from the server takes longer than
