@@ -222,9 +222,12 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         // Do authentication (until AuthenticationOk).
         doAuthentication(newStream, hostSpec.getHost(), user, info, logger);
 
+        int cancelSignalTimeout = PGProperty.CANCEL_SIGNAL_TIMEOUT.getInt(info) * 1000;
+
         // Do final startup.
         ProtocolConnectionImpl protoConnection =
-            new ProtocolConnectionImpl(newStream, user, database, info, logger, connectTimeout);
+            new ProtocolConnectionImpl(newStream, user, database, info, logger,
+                cancelSignalTimeout);
         readStartupMessages(newStream, protoConnection, logger);
 
         // Check Master or Slave

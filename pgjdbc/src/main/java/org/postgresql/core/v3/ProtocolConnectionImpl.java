@@ -35,7 +35,7 @@ import java.util.TimeZone;
  */
 class ProtocolConnectionImpl implements ProtocolConnection {
   ProtocolConnectionImpl(PGStream pgStream, String user, String database, Properties info,
-      Logger logger, int connectTimeout) {
+      Logger logger, int cancelSignalTimeout) {
     this.pgStream = pgStream;
     this.user = user;
     this.database = database;
@@ -43,7 +43,7 @@ class ProtocolConnectionImpl implements ProtocolConnection {
     this.executor = new QueryExecutorImpl(this, pgStream, info, logger);
     // default value for server versions that don't report standard_conforming_strings
     this.standardConformingStrings = false;
-    this.connectTimeout = connectTimeout;
+    this.cancelSignalTimeout = cancelSignalTimeout;
   }
 
   public HostSpec getHostSpec() {
@@ -103,7 +103,10 @@ class ProtocolConnectionImpl implements ProtocolConnection {
       }
 
       cancelStream =
-          new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), connectTimeout);
+          new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), cancelSignalTimeout);
+      if (cancelSignalTimeout > 0) {
+        cancelStream.getSocket().setSoTimeout(cancelSignalTimeout);
+      }
       cancelStream.SendInteger4(16);
       cancelStream.SendInteger2(1234);
       cancelStream.SendInteger2(5678);
@@ -282,8 +285,7 @@ class ProtocolConnectionImpl implements ProtocolConnection {
   private final String database;
   private final QueryExecutorImpl executor;
   private final Logger logger;
-
-  private final int connectTimeout;
+  private final int cancelSignalTimeout;
 
   /**
    * TimeZone of the current connection (TimeZone backend parameter)

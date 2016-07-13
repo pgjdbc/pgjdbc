@@ -251,6 +251,14 @@ public enum PGProperty {
   SOCKET_TIMEOUT("socketTimeout", "0", "The timeout value used for socket read operations."),
 
   /**
+   * Cancel command is sent out of band over its own connection, so cancel message can itself get
+   * stuck.
+   * This property controls "connect timeout" and "socket timeout" used for cancel commands.
+   * The timeout is specified in seconds. Default value is 10 seconds.
+   */
+  CANCEL_SIGNAL_TIMEOUT("cancelSignalTimeout", "10", "The timeout that is used for sending cancel command."),
+
+  /**
    * Socket factory used to create socket. A null value, which is the default, means system default.
    */
   SOCKET_FACTORY("socketFactory", null, "Specify a socket factory for socket creation"),

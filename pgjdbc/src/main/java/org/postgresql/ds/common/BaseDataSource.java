@@ -476,6 +476,22 @@ public abstract class BaseDataSource implements Referenceable {
     return PGProperty.SOCKET_TIMEOUT.getIntNoCheck(properties);
   }
 
+  /**
+   * @param seconds timeout that is used for sending cancel command
+   * @see PGProperty#CANCEL_SIGNAL_TIMEOUT
+   */
+  public void setCancelSignalTimeout(int seconds) {
+    PGProperty.CANCEL_SIGNAL_TIMEOUT.set(properties, seconds);
+  }
+
+  /**
+   * @return timeout that is used for sending cancel command in seconds
+   * @see PGProperty#CANCEL_SIGNAL_TIMEOUT
+   */
+  public int getCancelSignalTimeout() {
+    return PGProperty.CANCEL_SIGNAL_TIMEOUT.getIntNoCheck(properties);
+  }
+
 
   /**
    * @param enabled if SSL is enabled
