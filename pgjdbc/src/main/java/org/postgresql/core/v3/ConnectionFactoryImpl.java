@@ -224,7 +224,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
         // Do final startup.
         ProtocolConnectionImpl protoConnection =
-            new ProtocolConnectionImpl(newStream, user, database, info, logger, connectTimeout);
+            new ProtocolConnectionImpl(newStream, user, database, info, logger, connectTimeout, socketTimeout);
         readStartupMessages(newStream, protoConnection, logger);
 
         // Check Master or Slave
