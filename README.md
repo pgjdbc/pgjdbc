@@ -20,6 +20,16 @@ For problems with this driver, refer to driver's [home page](http://jdbc.postgre
 Most people do not need to compile PgJDBC. You can download prebuilt versions of the driver 
 from the [Postgresql JDBC site](http://jdbc.postgresql.org/) or using your chosen dependency management tool:
 
+## Changelog
+
+Notable changes for 9.4.1209:
+* Many improvements to `insert into .. values(?,?)` => `insert .. values(?,?), (?,?)...` rewriter. Give it a try by using `reWriteBatchedInserts=true` connection property. 2-3x improvements for insert batch can be expected
+* Full test suite passes against PostgreSQL 9.6, and OpenJDK 9
+* Performance optimization for timestamps (~`TimeZone.getDefault` optimization)
+* Allow build-from-source on GNU/Linux without maven repositories, and add Fedora Copr test to the regression suite
+
+Full change log can be found here: https://jdbc.postgresql.org/documentation/changelog.html#introduction
+
 ## Supported PostgreSQL versions
 
 Pgjdbc regression tests are run against PostgreSQL 8.4, 9.1, 9.2, 9.3, 9.4, 9.5, 9.6.
@@ -29,36 +39,36 @@ Pgjdbc regression tests are run against PostgreSQL 8.4, 9.1, 9.2, 9.3, 9.4, 9.5,
 <dependency>
   <groupId>org.postgresql</groupId>
   <artifactId>postgresql</artifactId>
-  <version>9.4.1208</version> <!-- Java 8 -->
-  <version>9.4.1208.jre7</version> <!-- Java 7 -->
-  <version>9.4.1208.jre6</version> <!-- Java 6 -->
+  <version>9.4.1209</version> <!-- Java 8 -->
+  <version>9.4.1209.jre7</version> <!-- Java 7 -->
+  <version>9.4.1209.jre6</version> <!-- Java 6 -->
 </dependency>
 ```
 ### Gradle
 Java 8:
 ```
-'org.postgresql:postgresql:9.4.1208'
+'org.postgresql:postgresql:9.4.1209'
 ```
 Java 7:
 ```
-'org.postgresql:postgresql:9.4.1208.jre7'
+'org.postgresql:postgresql:9.4.1209.jre7'
 ```
 Java 6:
 ```
-'org.postgresql:postgresql:9.4.1208.jre6'
+'org.postgresql:postgresql:9.4.1209.jre6'
 ```
 ### Ivy
 Java 8:
 ```xml
-<dependency org="org.postgresql" name="postgresql" rev="9.4.1208"/>
+<dependency org="org.postgresql" name="postgresql" rev="9.4.1209"/>
 ```
 Java 7:
 ```xml
-<dependency org="org.postgresql" name="postgresql" rev="9.4.1208.jre7"/>
+<dependency org="org.postgresql" name="postgresql" rev="9.4.1209.jre7"/>
 ```
 Java 6:
 ```xml
-<dependency org="org.postgresql" name="postgresql" rev="9.4.1208.jre6"/>
+<dependency org="org.postgresql" name="postgresql" rev="9.4.1209.jre6"/>
 ```
 
 ### Development snapshots
@@ -68,9 +78,9 @@ Snapshot builds (builds from `master` branch) are deployed to Maven Central, so 
 <dependency>
   <groupId>org.postgresql</groupId>
   <artifactId>postgresql</artifactId>
-  <version>9.4.1209-SNAPSHOT</version> <!-- Java 8 -->
-  <version>9.4.1209.jre7-SNAPSHOT</version> <!-- Java 7 -->
-  <version>9.4.1209.jre6-SNAPSHOT</version> <!-- Java 6 -->
+  <version>9.4.1210-SNAPSHOT</version> <!-- Java 8 -->
+  <version>9.4.1210.jre7-SNAPSHOT</version> <!-- Java 7 -->
+  <version>9.4.1210.jre6-SNAPSHOT</version> <!-- Java 6 -->
 </dependency>
 ```
 
