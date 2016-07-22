@@ -6,4 +6,5 @@ spec: postgresql-jdbc.spec
 
 source0:
   git_archive:
-    prefix: postgresql-jdbc-9.5.git
+    prefix: pgjdbc-REL9.5.git
+    tarball_base: REL9.5.git

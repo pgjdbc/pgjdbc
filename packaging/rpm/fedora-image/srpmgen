@@ -30,9 +30,14 @@ sub obtain_source
         chomp ($topleveldir);
 
         my $pfx = $config->{prefix};
-        system ("git archive --remote $topleveldir --prefix $pfx/ HEAD | gzip > $pfx.tar.gz");
+        my $tarball_base = $pfx;
+        info ("generating tarball $tarball_base.tar.gz from git repository");
+        if (defined ($config->{tarball_base})) {
+            $tarball_base = $config->{tarball_base};
+        }
+        system ("git archive --remote $topleveldir --prefix $pfx/ HEAD | gzip > $tarball_base.tar.gz");
         if ($? >> 8) {
-            die ("can't generate tarball $pfx.tar.gz");
+            die ("can't generate tarball $tarball_base.tar.gz");
         }
         return;
     }
