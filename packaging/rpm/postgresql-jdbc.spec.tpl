@@ -36,23 +36,22 @@
 
 %global section		devel
 %global upstreamrel	git
+%global upstreammajor	9.5
 %global source_path	pgjdbc/src/main/java/org/postgresql
 %global parent_ver	1.0.8
 %global parent_poms_builddir	./pgjdbc-parent-poms
 
 %global pgjdbc_mvn_options -DwaffleEnabled=false -DosgiEnabled=false \\\
-    -DexcludePackageNames=org.postgresql.osgi:org.postgresql.sspi
+	-DexcludePackageNames=org.postgresql.osgi:org.postgresql.sspi
 
 Summary:	JDBC driver for PostgreSQL
 Name:		postgresql-jdbc
-Version:	9.5.%{upstreamrel}
+Version:	%upstreammajor.%{upstreamrel}
 Release:	1%{?dist}
-# ASL 2.0 applies only to postgresql-jdbc.pom file, the rest is BSD
-License:	BSD and ASL 2.0
-Group:		Applications/Databases
+License:	BSD
 URL:		http://jdbc.postgresql.org/
 
-SOURCE0:	%{name}-%{version}.tar.gz
+Source0:	REL%{version}.tar.gz
 Source1:	postgres-testing.sh
 
 # Upstream moved parent pom.xml into separate project (even though there is only
@@ -62,7 +61,6 @@ Source2:	https://github.com/pgjdbc/pgjdbc-parent-poms/archive/REL%parent_ver.tar
 
 BuildArch:	noarch
 BuildRequires:	java-devel >= 1.8
-BuildRequires:	jpackage-utils
 BuildRequires:	maven-local
 BuildRequires:	java-comment-preprocessor
 BuildRequires:	properties-maven-plugin
@@ -77,8 +75,6 @@ BuildRequires:	postgresql-contrib
 
 # gettext is only needed if we try to update translations
 #BuildRequires:	gettext
-Requires:	jpackage-utils
-Requires:	java-headless >= 1:1.8
 
 %description
 PostgreSQL is an advanced Object-Relational database management
@@ -87,7 +83,7 @@ Java programs to access a PostgreSQL database.
 
 
 %package	parent-poms
-Summary:	Build dependency management for pgjdbc.
+Summary:	Build dependency management for PostgreSQL JDBC driver.
 
 %description parent-poms
 Pom files bringing dependencies required for successful PostgreSQL JDBC driver
@@ -96,33 +92,36 @@ build.
 
 %package javadoc
 Summary:	API docs for %{name}
-Group:		Documentation
 
 %description javadoc
 This package contains the API Documentation for %{name}.
 
 
 %prep
-%setup -c -q -a 2
+%setup -c -q -a 2 -n pgjdbc-REL%version
 
-mv %name-%version/* .
-mv ./pgjdbc-parent-poms-REL%parent_ver %parent_poms_builddir
+mv pgjdbc-REL%version/* .
+mv pgjdbc-parent-poms-REL%parent_ver pgjdbc-parent-poms
 
 # remove any binary libs
 find -name "*.jar" -or -name "*.class" | xargs rm -f
 
-
 %pom_disable_module ubenchmark
 
-# Hack #0!  For upstream it is to some extent important to have the parent-poms
-# project separated.  Having it like that on downstream level does not help at
-# all.  Note that we have to revert this patch before we do the installation.
-sed -i.hack-parent-poms \
-  's!<relativePath />!<relativePath>../pgjdbc-parent-poms/pgjdbc-core-parent/pom.xml</relativePath>!' \
-  pgjdbc/pom.xml
-sed -i.hack-parent-poms \
-  '/<artifactId>pgjdbc-versions/a <relativePath>pgjdbc-parent-poms/pgjdbc-versions/pom.xml</relativePath>' \
-  pom.xml
+# Build parent POMs in the same Maven call.
+%pom_xpath_inject pom:modules "<module>%parent_poms_builddir</module>"
+%pom_xpath_inject pom:parent "<relativePath>pgjdbc-parent-poms/pgjdbc-versions</relativePath>"
+%pom_xpath_set pom:relativePath ../pgjdbc-parent-poms/pgjdbc-core-parent pgjdbc
+
+# compat symlink: requested by dtardon (libreoffice), reverts part of
+# 0af97ce32de877 commit.
+%mvn_file org.postgresql:postgresql %{name}/postgresql %{name}
+
+# Parent POMs should be installed in a separate subpackage.
+%mvn_package ":*{parent,versions,prevjre}*" parent-poms
+
+# For compat reasons, make Maven artifact available under older coordinates.
+%mvn_alias org.postgresql:postgresql postgresql:postgresql
 
 # Hack #1!  This directory is missing for some reason, it is most probably some
 # misunderstanding between maven, maven-compiler-plugin and
@@ -158,61 +157,35 @@ EOF
 
 # Start the local PG cluster.
 pgtests_start
-%endif
-
-# First "build" the parent-poms ..
-cd %parent_poms_builddir
-%mvn_build -- %pgjdbc_mvn_options
-cd ..
-# .. and then build pgjdbc.
-
-%if %runselftest
-%mvn_build -- %pgjdbc_mvn_options
 %else
-%mvn_build -- %pgjdbc_mvn_options -Dmaven.test.skip=true
+# -f is equal to -Dmaven.test.skip=true
+opts="-f"
 %endif
 
-# Hack #0!  Revert the patch above.
-for i in `find -name '*.hack-parent-poms'`
-do
-	mv $i ${i%%%%.hack-parent-poms}
-done
-
+%mvn_build $opts -- %pgjdbc_mvn_options
 
 %install
 %mvn_install
-cd %parent_poms_builddir
-%mvn_install
-
-pushd $RPM_BUILD_ROOT%{_javadir}
-# Also, for backwards compatibility with our old postgresql-jdbc packages,
-# add these symlinks.  (Probably only the jdbc3 symlink really makes sense?)
-ln -s %{name}/postgresql.jar postgresql-jdbc.jar
-ln -s %{name}/postgresql.jar postgresql-jdbc2.jar
-ln -s %{name}/postgresql.jar postgresql-jdbc2ee.jar
-ln -s %{name}/postgresql.jar postgresql-jdbc3.jar
-popd
-
-
-%check
 
 
 %files -f .mfiles
 %license LICENSE
 %doc README.md
-%{_javadir}/%{name}.jar
-%{_javadir}/%{name}2.jar
-%{_javadir}/%{name}2ee.jar
-%{_javadir}/%{name}3.jar
 
-%files parent-poms -f %parent_poms_builddir/.mfiles
 
-%files javadoc
+%files parent-poms -f .mfiles-parent-poms
 %license LICENSE
-%doc %{_javadocdir}/%{name}
+%doc pgjdbc-parent-poms/CHANGELOG.md pgjdbc-parent-poms/README.md
+
+
+%files javadoc -f .mfiles-javadoc
+%license LICENSE
 
 
 %changelog
+* Mon Aug 29 2016 Pavel Raiskup <praiskup@redhat.com> - 9.4.1209-6
+- sync with latest Fedora
+
 * Wed Jun 01 2016 Pavel Raiskup <praiskup@redhat.com> - 9.5.git-1
 - update to work with tarball from git version of jdbc
 

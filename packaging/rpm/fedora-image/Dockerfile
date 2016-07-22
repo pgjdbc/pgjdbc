@@ -1,4 +1,4 @@
-FROM index.docker.io/fedora:23
+FROM index.docker.io/fedora:24
 MAINTAINER pgjdbc team
 
 ENV HOME=/rpm
