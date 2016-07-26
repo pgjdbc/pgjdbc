@@ -387,7 +387,7 @@ You can get old JDK versions from the [Oracle Java Archive](http://www.oracle.co
 Then, to test against old JDK, run `mvn test` in `pgjdbc-jre6` or `pgjdbc-jre7` modules.
 
 For information about the unit tests and how to run them, see
-  [org/postgresql/test/README](pgjdbc/src/test/java/org/postgresql/test/README)
+  [org/postgresql/test/README](pgjdbc/src/test/java/org/postgresql/test/README.md)
 
 ### Ideas
 
