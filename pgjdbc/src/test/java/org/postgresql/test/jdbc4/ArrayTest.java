@@ -114,6 +114,30 @@ public class ArrayTest extends BaseTest4 {
   }
 
   @Test
+  public void testCreateArrayOfMultiJson() throws SQLException {
+    PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::json[]");
+    PGobject p1 = new PGobject();
+    p1.setType("json");
+    p1.setValue("{\"x\": 10}");
+
+    PGobject p2 = new PGobject();
+    p2.setType("json");
+    p2.setValue("{\"x\": 20}");
+    PGobject in[] = new PGobject[] { p1, p2 };
+    pstmt.setArray(1, _conn.createArrayOf("json", in));
+
+    ResultSet rs = pstmt.executeQuery();
+    Assert.assertTrue(rs.next());
+    Array arr = rs.getArray(1);
+    ResultSet arrRs = arr.getResultSet();
+    Assert.assertTrue(arrRs.next());
+    Assert.assertEquals(in[0].getValue(), arrRs.getObject(2));
+
+    Assert.assertTrue(arrRs.next());
+    Assert.assertEquals(in[1].getValue(), arrRs.getObject(2));
+  }
+
+  @Test
   public void testCreateArrayWithNonStandardDelimiter() throws SQLException {
     PGbox in[] = new PGbox[2];
     in[0] = new PGbox(1, 2, 3, 4);
