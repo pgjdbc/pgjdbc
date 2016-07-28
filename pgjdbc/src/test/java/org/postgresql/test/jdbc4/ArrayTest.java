@@ -115,6 +115,9 @@ public class ArrayTest extends BaseTest4 {
 
   @Test
   public void testCreateArrayOfMultiJson() throws SQLException {
+    if (!TestUtil.haveMinimumServerVersion(_conn, "9.2")) {
+      return;
+    }
     PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::json[]");
     PGobject p1 = new PGobject();
     p1.setType("json");
