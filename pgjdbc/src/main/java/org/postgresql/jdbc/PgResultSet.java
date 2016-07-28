@@ -414,6 +414,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       return null;
     }
 
+    switch (getSQLType(i)) {
+      case Types.BINARY:
+      case Types.VARBINARY:
+      case Types.LONGVARBINARY:
+        return new PgByteaBlob(getBytes(i));
+    }
+
     return makeBlob(getLong(i));
   }
 
@@ -452,6 +459,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     checkResultSet(i);
     if (wasNullFlag) {
       return null;
+    }
+
+    switch (getSQLType(i)) {
+      case Types.CHAR:
+      case Types.VARCHAR:
+      case Types.LONGVARCHAR:
+        return new PgStringClob(getString(i));
     }
 
     return makeClob(getLong(i));
