@@ -95,11 +95,12 @@ matrix:
         - MCENTRAL=Y
     - jdk: oraclejdk8 # this will be overwritten by before_install above
       addons:
+        postgresql: "9.4"
         apt:
           packages:
             - oracle-java9-installer
       env:
-        - PG_VERSION=9.5
+        - PG_VERSION=9.4
         - JDK=9
     - jdk: oraclejdk8
       addons:
