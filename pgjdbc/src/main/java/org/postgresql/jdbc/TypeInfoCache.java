@@ -92,7 +92,8 @@ public class TypeInfoCache implements TypeInfo {
       {"timestamp", Oid.TIMESTAMP, Types.TIMESTAMP, "java.sql.Timestamp", Oid.TIMESTAMP_ARRAY},
       {"timestamptz", Oid.TIMESTAMPTZ, Types.TIMESTAMP, "java.sql.Timestamp",
           Oid.TIMESTAMPTZ_ARRAY},
-      {"json", Oid.JSON, Types.VARCHAR, "java.lang.String", Oid.JSON_ARRAY}
+      {"json", Oid.JSON, Types.VARCHAR, "java.lang.String", Oid.JSON_ARRAY},
+      {"point", Oid.POINT, Types.OTHER, "org.postgresql.geometric.PGpoint", Oid.POINT_ARRAY}
   };
 
   /**
