@@ -2,7 +2,8 @@ sudo: false
 language: java
 
 before_script:
-  - test "x$XA" == 'x' || ./travis_install_dependencies.sh
+  - test "x$XA" == 'x' || ./.travis/travis_install_dependencies.sh
+  - test "x$PG_VERSION" != "xHEAD" || ./.travis/travis_install_head_postgres.sh
   - psql -U postgres -c "create user test with password 'test';"
   - psql -c 'create database test owner test;' -U postgres
   - echo "MAVEN_OPTS='-Xmx1g -Dgpg.skip=true'" > ~/.mavenrc
@@ -25,7 +26,7 @@ script:
   - export JDK9_HOME=/usr/lib/jvm/java-9-oracle
   - test -d "${JDK9_HOME}" || export JDK9_HOME=$(jdk_switcher home oraclejdk8)
   - envsubst < toolchains.xml > ~/.m2/toolchains.xml
-  - ./travis_build.sh
+  - ./.travis/travis_build.sh
   # To avoid useless S3 cache updates (https://github.com/travis-ci/travis-ci/issues/1441#issuecomment-67607074)
   #- mkdir /tmp/cache-trick
   #- mv $HOME/.m2/repository/org/postgresql /tmp/cache-trick/
@@ -81,6 +82,9 @@ matrix:
         - COVERAGE=Y
         - MCENTRAL=Y
         - JDOC=Y
+    - jdk: oraclejdk8
+      env:
+        - PG_VERSION=HEAD
     - jdk: openjdk7
       addons:
         postgresql: "9.4"
@@ -130,4 +134,4 @@ matrix:
 
 # Deploy snapshots to Maven Central
 after_success:
-  - "test $MCENTRAL == 'Y' && ./travis_deploy.sh"
+  - "test $MCENTRAL == 'Y' && ./.travis/travis_deploy.sh"
