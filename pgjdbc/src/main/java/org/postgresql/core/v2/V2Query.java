@@ -17,6 +17,7 @@ import org.postgresql.core.Query;
 import org.postgresql.core.SqlCommand;
 import org.postgresql.core.SqlCommandType;
 
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -65,6 +66,11 @@ class V2Query implements Query {
 
   public int getBatchSize() {
     return 1;
+  }
+
+  @Override
+  public HashMap<String, Integer> getResultSetColumnNameIndexMap() {
+    return null; // unsupported
   }
 
   private static final ParameterList NO_PARAMETERS = new SimpleParameterList(0, false);

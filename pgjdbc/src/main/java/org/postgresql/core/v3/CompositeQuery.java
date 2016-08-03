@@ -11,6 +11,8 @@ package org.postgresql.core.v3;
 
 import org.postgresql.core.ParameterList;
 
+import java.util.HashMap;
+
 /**
  * V3 Query implementation for queries that involve multiple statements. We split it up into one
  * SimpleQuery per statement, and wrap the corresponding per-statement SimpleParameterList objects
@@ -75,6 +77,11 @@ class CompositeQuery implements V3Query {
 
   public int getBatchSize() {
     return 0; // no-op, unsupported
+  }
+
+  @Override
+  public HashMap<String, Integer> getResultSetColumnNameIndexMap() {
+    return null; // unsupported
   }
 
   private final SimpleQuery[] subqueries;

@@ -14,8 +14,10 @@ import org.postgresql.core.NativeQuery;
 import org.postgresql.core.Oid;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Utils;
+import org.postgresql.jdbc.PgResultSet;
 
 import java.lang.ref.PhantomReference;
+import java.util.HashMap;
 
 /**
  * V3 Query implementation for a single-statement query. This also holds the state of any associated
@@ -169,6 +171,7 @@ class SimpleQuery implements V3Query {
    */
   void setFields(Field[] fields) {
     this.fields = fields;
+    this.resultSetColumnNameIndexMap = null;
     this.cachedMaxResultRowSize = null;
     this.needUpdateFieldFormats = fields != null;
     this.hasBinaryFields = false; // just in case
@@ -252,6 +255,7 @@ class SimpleQuery implements V3Query {
     statementName = null;
     encodedStatementName = null;
     fields = null;
+    this.resultSetColumnNameIndexMap = null;
     portalDescribed = false;
     statementDescribed = false;
     cachedMaxResultRowSize = null;
@@ -267,6 +271,17 @@ class SimpleQuery implements V3Query {
 
   public final int getBindCount() {
     return nativeQuery.bindPositions.length * getBatchSize();
+  }
+
+  private HashMap<String, Integer> resultSetColumnNameIndexMap;
+
+  @Override
+  public HashMap<String, Integer> getResultSetColumnNameIndexMap() {
+    if (resultSetColumnNameIndexMap == null) {
+      resultSetColumnNameIndexMap =
+          PgResultSet.createColumnNameIndexMap(fields, protoConnection.isSanitiserDisabled());
+    }
+    return resultSetColumnNameIndexMap;
   }
 
   private final NativeQuery nativeQuery;

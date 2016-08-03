@@ -13,10 +13,13 @@ import org.postgresql.util.PGobject;
 
 import junit.framework.TestCase;
 
+import java.lang.reflect.Field;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.HashMap;
 import java.util.Locale;
 
 /*
@@ -714,6 +717,83 @@ public class ResultSetTest extends TestCase {
     rs1.close();
 
     stmt.close();
+  }
+
+  public void testResultSetColumnMappingCache() throws SQLException {
+    // Plain statement
+    Statement stmt = con.createStatement();
+    ResultSet rs = stmt.executeQuery("select * from testrs");
+    HashMap<String, Integer> columnNameIndexMap;
+    columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
+    assertEquals(null, columnNameIndexMap);
+    assertTrue(rs.next());
+    columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
+    assertEquals(null, columnNameIndexMap);
+    rs.getInt("ID");
+    columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
+    assertNotNull(columnNameIndexMap);
+    rs.getInt("id");
+    assertSame(columnNameIndexMap, getResultSetColumnNameIndexMap(rs));
+    rs.close();
+    rs = stmt.executeQuery("select * from testrs");
+    columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
+    assertEquals(null, columnNameIndexMap);
+    assertTrue(rs.next());
+    rs.getInt("Id");
+    columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
+    assertNotNull(columnNameIndexMap);
+    rs.close();
+    stmt.close();
+    // Prepared statement
+    PreparedStatement pstmt = con.prepareStatement("SELECT id FROM testrs");
+    rs = pstmt.executeQuery();
+    columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
+    assertEquals(null, columnNameIndexMap);
+    assertTrue(rs.next());
+    columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
+    assertEquals(null, columnNameIndexMap);
+    rs.getInt("id");
+    columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
+    assertNotNull(columnNameIndexMap);
+    rs.close();
+    rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
+    assertEquals(null, columnNameIndexMap);
+    rs.getInt("id");
+    columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
+    assertNotNull(columnNameIndexMap);
+    rs.close();
+    // make sure the statement is named
+    for (int i = 0; i < 5; i++) {
+      rs = pstmt.executeQuery();
+      rs.close();
+    }
+    rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    rs.getInt("id");
+    columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
+    assertNotNull(columnNameIndexMap);
+    rs.close();
+    rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    rs.getInt("id");
+    assertSame(
+        "Cached mapping should be same between different result sets of same named prepared statement",
+        columnNameIndexMap, getResultSetColumnNameIndexMap(rs));
+    rs.close();
+    pstmt.close();
+  }
+
+  @SuppressWarnings("unchecked")
+  private HashMap<String, Integer> getResultSetColumnNameIndexMap(ResultSet stmt) {
+    try {
+      Field columnNameIndexMapField = stmt.getClass().getDeclaredField("columnNameIndexMap");
+      columnNameIndexMapField.setAccessible(true);
+      return (HashMap<String, Integer>) columnNameIndexMapField.get(stmt);
+    } catch (Exception e) {
+    }
+    return null;
   }
 
 }

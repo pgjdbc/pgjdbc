@@ -9,6 +9,8 @@
 
 package org.postgresql.core;
 
+import java.util.HashMap;
+
 /**
  * Abstraction of a generic Query, hiding the details of any protocol-version-specific data needed
  * to execute the query efficiently.
@@ -57,4 +59,12 @@ public interface Query {
    * @return number of times <code>addBatch()</code> has been called.
    */
   int getBatchSize();
+
+  /**
+   * Get a map that a result set can use to find the index associated to a name.
+   *
+   * @return null if the query implementation does not support this method.
+   */
+  HashMap<String, Integer> getResultSetColumnNameIndexMap();
+
 }

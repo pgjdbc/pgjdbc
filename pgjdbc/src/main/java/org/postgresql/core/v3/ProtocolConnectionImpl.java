@@ -10,6 +10,7 @@
 package org.postgresql.core.v3;
 
 import org.postgresql.PGNotification;
+import org.postgresql.PGProperty;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.Logger;
 import org.postgresql.core.PGStream;
@@ -44,6 +45,7 @@ class ProtocolConnectionImpl implements ProtocolConnection {
     // default value for server versions that don't report standard_conforming_strings
     this.standardConformingStrings = false;
     this.cancelSignalTimeout = cancelSignalTimeout;
+    this.isSanitiserDisabled = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
   }
 
   public HostSpec getHostSpec() {
@@ -246,6 +248,10 @@ class ProtocolConnectionImpl implements ProtocolConnection {
     return timeZone;
   }
 
+  boolean isSanitiserDisabled() {
+    return isSanitiserDisabled;
+  }
+
   void setApplicationName(String applicationName) {
     this.applicationName = applicationName;
   }
@@ -286,6 +292,8 @@ class ProtocolConnectionImpl implements ProtocolConnection {
   private final QueryExecutorImpl executor;
   private final Logger logger;
   private final int cancelSignalTimeout;
+
+  private boolean isSanitiserDisabled;
 
   /**
    * TimeZone of the current connection (TimeZone backend parameter)

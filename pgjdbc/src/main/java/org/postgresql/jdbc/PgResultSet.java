@@ -2605,19 +2605,29 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return col;
   }
 
+  public static HashMap<String, Integer> createColumnNameIndexMap(Field[] fields,
+      boolean isSanitiserDisabled) {
+    HashMap<String, Integer> columnNameIndexMap = new HashMap<String, Integer>(fields.length * 2);
+    // The JDBC spec says when you have duplicate columns names,
+    // the first one should be returned. So load the map in
+    // reverse order so the first ones will overwrite later ones.
+    for (int i = fields.length - 1; i >= 0; i--) {
+      if (isSanitiserDisabled) {
+        columnNameIndexMap.put(fields[i].getColumnLabel(), i + 1);
+      } else {
+        columnNameIndexMap.put(fields[i].getColumnLabel().toLowerCase(Locale.US), i + 1);
+      }
+    }
+    return columnNameIndexMap;
+  }
+
   private int findColumnIndex(String columnName) {
     if (columnNameIndexMap == null) {
-      columnNameIndexMap = new HashMap<String, Integer>(fields.length * 2);
-      // The JDBC spec says when you have duplicate columns names,
-      // the first one should be returned. So load the map in
-      // reverse order so the first ones will overwrite later ones.
-      boolean isSanitiserDisabled = connection.isColumnSanitiserDisabled();
-      for (int i = fields.length - 1; i >= 0; i--) {
-        if (isSanitiserDisabled) {
-          columnNameIndexMap.put(fields[i].getColumnLabel(), i + 1);
-        } else {
-          columnNameIndexMap.put(fields[i].getColumnLabel().toLowerCase(Locale.US), i + 1);
-        }
+      if (originalQuery != null) {
+        columnNameIndexMap = originalQuery.getResultSetColumnNameIndexMap();
+      }
+      if (columnNameIndexMap == null) {
+        columnNameIndexMap = createColumnNameIndexMap(fields, connection.isColumnSanitiserDisabled());
       }
     }
 
