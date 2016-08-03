@@ -123,7 +123,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   protected int fetchSize; // Current fetch size (might be 0).
   protected ResultCursor cursor; // Cursor for fetching additional data.
 
-  private HashMap<String, Integer> columnNameIndexMap; // Speed up findColumn by caching lookups
+  private Map<String, Integer> columnNameIndexMap; // Speed up findColumn by caching lookups
 
   private ResultSetMetaData rsMetaData;
 
@@ -2603,19 +2603,30 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return col;
   }
 
+  public static Map<String, Integer> createColumnNameIndexMap(Field[] fields,
+      boolean isSanitiserDisabled) {
+    Map<String, Integer> columnNameIndexMap = new HashMap<String, Integer>(fields.length * 2);
+    // The JDBC spec says when you have duplicate columns names,
+    // the first one should be returned. So load the map in
+    // reverse order so the first ones will overwrite later ones.
+    for (int i = fields.length - 1; i >= 0; i--) {
+      String columnLabel = fields[i].getColumnLabel();
+      if (isSanitiserDisabled) {
+        columnNameIndexMap.put(columnLabel, i + 1);
+      } else {
+        columnNameIndexMap.put(columnLabel.toLowerCase(Locale.US), i + 1);
+      }
+    }
+    return columnNameIndexMap;
+  }
+
   private int findColumnIndex(String columnName) {
     if (columnNameIndexMap == null) {
-      columnNameIndexMap = new HashMap<String, Integer>(fields.length * 2);
-      // The JDBC spec says when you have duplicate columns names,
-      // the first one should be returned. So load the map in
-      // reverse order so the first ones will overwrite later ones.
-      boolean isSanitiserDisabled = connection.isColumnSanitiserDisabled();
-      for (int i = fields.length - 1; i >= 0; i--) {
-        if (isSanitiserDisabled) {
-          columnNameIndexMap.put(fields[i].getColumnLabel(), i + 1);
-        } else {
-          columnNameIndexMap.put(fields[i].getColumnLabel().toLowerCase(Locale.US), i + 1);
-        }
+      if (originalQuery != null) {
+        columnNameIndexMap = originalQuery.getResultSetColumnNameIndexMap();
+      }
+      if (columnNameIndexMap == null) {
+        columnNameIndexMap = createColumnNameIndexMap(fields, connection.isColumnSanitiserDisabled());
       }
     }
 
