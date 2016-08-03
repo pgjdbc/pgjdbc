@@ -147,10 +147,10 @@ public class QueryExecutorImpl implements QueryExecutor {
       logger.debug(" FE=> FastpathCall(fnid=" + fnid + ",paramCount=" + count + ")");
     }
 
-    pgStream.SendChar('F');
-    pgStream.SendChar(0);
-    pgStream.SendInteger4(fnid);
-    pgStream.SendInteger4(count);
+    pgStream.sendChar('F');
+    pgStream.sendChar(0);
+    pgStream.sendInteger4(fnid);
+    pgStream.sendInteger4(count);
 
     for (int i = 1; i <= count; ++i) {
       params.writeV2FastpathValue(i, pgStream);
@@ -167,7 +167,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
     try {
       while (pgStream.hasMessagePending()) {
-        int c = pgStream.ReceiveChar();
+        int c = pgStream.receiveChar();
         switch (c) {
           case 'A': // Asynchronous Notify
             receiveAsyncNotify();
@@ -194,7 +194,7 @@ public class QueryExecutorImpl implements QueryExecutor {
     byte[] result = null;
 
     while (!endQuery) {
-      int c = pgStream.ReceiveChar();
+      int c = pgStream.receiveChar();
 
       switch (c) {
         case 'A': // Asynchronous Notify
@@ -216,16 +216,16 @@ public class QueryExecutorImpl implements QueryExecutor {
           break;
 
         case 'V': // Fastpath result
-          c = pgStream.ReceiveChar();
+          c = pgStream.receiveChar();
           if (c == 'G') {
             if (logger.logDebug()) {
               logger.debug(" <=BE FastpathResult");
             }
 
             // Result.
-            int len = pgStream.ReceiveInteger4();
-            result = pgStream.Receive(len);
-            c = pgStream.ReceiveChar();
+            int len = pgStream.receiveInteger4();
+            result = pgStream.receive(len);
+            c = pgStream.receiveChar();
           } else {
             if (logger.logDebug()) {
               logger.debug(" <=BE FastpathVoidResult");
@@ -392,7 +392,7 @@ public class QueryExecutorImpl implements QueryExecutor {
           + query.toString(params) + "\")");
     }
 
-    pgStream.SendChar('Q');
+    pgStream.sendChar('Q');
 
     Writer encodingWriter = pgStream.getEncodingWriter();
 
@@ -429,7 +429,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
     boolean endQuery = false;
     while (!endQuery) {
-      int c = pgStream.ReceiveChar();
+      int c = pgStream.receiveChar();
 
       switch (c) {
         case 'A': // Asynchronous Notify
@@ -448,7 +448,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
           byte[][] tuple = null;
           try {
-            tuple = pgStream.ReceiveTupleV2(fields.length, true);
+            tuple = pgStream.receiveTupleV2(fields.length, true);
           } catch (OutOfMemoryError oome) {
             if (maxRows == 0 || tuples.size() < maxRows) {
               handler.handleError(
@@ -467,7 +467,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         }
 
         case 'C': // Command Status
-          String status = pgStream.ReceiveString();
+          String status = pgStream.receiveString();
 
           if (logger.logDebug()) {
             logger.debug(" <=BE CommandStatus(" + status + ")");
@@ -498,7 +498,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
           byte[][] tuple = null;
           try {
-            tuple = pgStream.ReceiveTupleV2(fields.length, false);
+            tuple = pgStream.receiveTupleV2(fields.length, false);
           } catch (OutOfMemoryError oome) {
             if (maxRows == 0 || tuples.size() < maxRows) {
               handler.handleError(
@@ -521,7 +521,7 @@ public class QueryExecutorImpl implements QueryExecutor {
           if (logger.logDebug()) {
             logger.debug(" <=BE EmptyQuery");
           }
-          c = pgStream.ReceiveChar();
+          c = pgStream.receiveChar();
           if (c != 0) {
             throw new IOException("Expected \\0 after EmptyQuery, got: " + c);
           }
@@ -532,7 +532,7 @@ public class QueryExecutorImpl implements QueryExecutor {
           break;
 
         case 'P': // Portal Name
-          String portalName = pgStream.ReceiveString();
+          String portalName = pgStream.receiveString();
           if (logger.logDebug()) {
             logger.debug(" <=BE PortalName(" + portalName + ")");
           }
@@ -561,7 +561,7 @@ public class QueryExecutorImpl implements QueryExecutor {
    * Receive the field descriptions from the back end.
    */
   private Field[] receiveFields() throws IOException {
-    int size = pgStream.ReceiveInteger2();
+    int size = pgStream.receiveInteger2();
     Field[] fields = new Field[size];
 
     if (logger.logDebug()) {
@@ -569,10 +569,10 @@ public class QueryExecutorImpl implements QueryExecutor {
     }
 
     for (int i = 0; i < fields.length; i++) {
-      String columnLabel = pgStream.ReceiveString();
-      int typeOid = pgStream.ReceiveInteger4();
-      int typeLength = pgStream.ReceiveInteger2();
-      int typeModifier = pgStream.ReceiveInteger4();
+      String columnLabel = pgStream.receiveString();
+      int typeOid = pgStream.receiveInteger4();
+      int typeLength = pgStream.receiveInteger2();
+      int typeModifier = pgStream.receiveInteger4();
       fields[i] = new Field(columnLabel, typeOid, typeLength, typeModifier, 0, 0);
     }
 
@@ -580,8 +580,8 @@ public class QueryExecutorImpl implements QueryExecutor {
   }
 
   private void receiveAsyncNotify() throws IOException {
-    int pid = pgStream.ReceiveInteger4();
-    String msg = pgStream.ReceiveString();
+    int pid = pgStream.receiveInteger4();
+    String msg = pgStream.receiveString();
 
     if (logger.logDebug()) {
       logger.debug(" <=BE AsyncNotify(pid=" + pid + ",msg=" + msg + ")");
@@ -591,7 +591,7 @@ public class QueryExecutorImpl implements QueryExecutor {
   }
 
   private SQLException receiveErrorMessage() throws IOException {
-    String errorMsg = pgStream.ReceiveString().trim();
+    String errorMsg = pgStream.receiveString().trim();
     if (logger.logDebug()) {
       logger.debug(" <=BE ErrorResponse(" + errorMsg + ")");
     }
@@ -599,7 +599,7 @@ public class QueryExecutorImpl implements QueryExecutor {
   }
 
   private SQLWarning receiveNotification() throws IOException {
-    String warnMsg = pgStream.ReceiveString();
+    String warnMsg = pgStream.receiveString();
 
     // Strip out the severity field so we have consistency with
     // the V3 protocol. SQLWarning.getMessage should return just

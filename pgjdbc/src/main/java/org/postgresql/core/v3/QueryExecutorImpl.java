@@ -556,23 +556,23 @@ public class QueryExecutorImpl implements QueryExecutor {
     }
 
 
-    pgStream.SendChar('F');
-    pgStream.SendInteger4(4 + 4 + 2 + 2 * paramCount + 2 + encodedSize + 2);
-    pgStream.SendInteger4(fnid);
-    pgStream.SendInteger2(paramCount);
+    pgStream.sendChar('F');
+    pgStream.sendInteger4(4 + 4 + 2 + 2 * paramCount + 2 + encodedSize + 2);
+    pgStream.sendInteger4(fnid);
+    pgStream.sendInteger2(paramCount);
     for (int i = 1; i <= paramCount; ++i) {
-      pgStream.SendInteger2(params.isBinary(i) ? 1 : 0);
+      pgStream.sendInteger2(params.isBinary(i) ? 1 : 0);
     }
-    pgStream.SendInteger2(paramCount);
+    pgStream.sendInteger2(paramCount);
     for (int i = 1; i <= paramCount; i++) {
       if (params.isNull(i)) {
-        pgStream.SendInteger4(-1);
+        pgStream.sendInteger4(-1);
       } else {
-        pgStream.SendInteger4(params.getV3Length(i)); // Parameter size
+        pgStream.sendInteger4(params.getV3Length(i)); // Parameter size
         params.writeV3Value(i, pgStream);
       }
     }
-    pgStream.SendInteger2(1); // Binary result format
+    pgStream.sendInteger2(1); // Binary result format
     pgStream.flush();
   }
 
@@ -585,7 +585,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
     try {
       while (pgStream.hasMessagePending()) {
-        int c = pgStream.ReceiveChar();
+        int c = pgStream.receiveChar();
         switch (c) {
           case 'A': // Asynchronous Notify
             receiveAsyncNotify();
@@ -614,7 +614,7 @@ public class QueryExecutorImpl implements QueryExecutor {
     byte[] returnValue = null;
 
     while (!endQuery) {
-      int c = pgStream.ReceiveChar();
+      int c = pgStream.receiveChar();
       switch (c) {
         case 'A': // Asynchronous Notify
           receiveAsyncNotify();
@@ -642,8 +642,8 @@ public class QueryExecutorImpl implements QueryExecutor {
           break;
 
         case 'V': // FunctionCallResponse
-          int msgLen = pgStream.ReceiveInteger4();
-          int valueLen = pgStream.ReceiveInteger4();
+          int msgLen = pgStream.receiveInteger4();
+          int valueLen = pgStream.receiveInteger4();
 
           if (logger.logDebug()) {
             logger.debug(" <=BE FunctionCallResponse(" + valueLen + " bytes)");
@@ -651,7 +651,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
           if (valueLen != -1) {
             byte buf[] = new byte[valueLen];
-            pgStream.Receive(buf, 0, valueLen);
+            pgStream.receive(buf, 0, valueLen);
             returnValue = buf;
           }
 
@@ -696,10 +696,10 @@ public class QueryExecutorImpl implements QueryExecutor {
         logger.debug(" FE=> Query(CopyStart)");
       }
 
-      pgStream.SendChar('Q');
-      pgStream.SendInteger4(buf.length + 4 + 1);
-      pgStream.Send(buf);
-      pgStream.SendChar(0);
+      pgStream.sendChar('Q');
+      pgStream.sendInteger4(buf.length + 4 + 1);
+      pgStream.send(buf);
+      pgStream.sendChar(0);
       pgStream.flush();
 
       return processCopyResults(null, true);
@@ -719,13 +719,13 @@ public class QueryExecutorImpl implements QueryExecutor {
    * @throws IOException on database connection failure
    */
   private synchronized void initCopy(CopyOperationImpl op) throws SQLException, IOException {
-    pgStream.ReceiveInteger4(); // length not used
-    int rowFormat = pgStream.ReceiveChar();
-    int numFields = pgStream.ReceiveInteger2();
+    pgStream.receiveInteger4(); // length not used
+    int rowFormat = pgStream.receiveChar();
+    int numFields = pgStream.receiveInteger2();
     int[] fieldFormats = new int[numFields];
 
     for (int i = 0; i < numFields; i++) {
-      fieldFormats[i] = pgStream.ReceiveInteger2();
+      fieldFormats[i] = pgStream.receiveInteger2();
     }
 
     lock(op);
@@ -754,10 +754,10 @@ public class QueryExecutorImpl implements QueryExecutor {
             logger.debug("FE => CopyFail");
           }
           final byte[] msg = Utils.encodeUTF8("Copy cancel requested");
-          pgStream.SendChar('f'); // CopyFail
-          pgStream.SendInteger4(5 + msg.length);
-          pgStream.Send(msg);
-          pgStream.SendChar(0);
+          pgStream.sendChar('f'); // CopyFail
+          pgStream.sendInteger4(5 + msg.length);
+          pgStream.send(msg);
+          pgStream.sendChar(0);
           pgStream.flush();
           do {
             try {
@@ -824,8 +824,8 @@ public class QueryExecutorImpl implements QueryExecutor {
         logger.debug(" FE=> CopyDone");
       }
 
-      pgStream.SendChar('c'); // CopyDone
-      pgStream.SendInteger4(4);
+      pgStream.sendChar('c'); // CopyDone
+      pgStream.sendInteger4(4);
       pgStream.flush();
 
       processCopyResults(op, true);
@@ -858,9 +858,9 @@ public class QueryExecutorImpl implements QueryExecutor {
     }
 
     try {
-      pgStream.SendChar('d');
-      pgStream.SendInteger4(siz + 4);
-      pgStream.Send(data, off, siz);
+      pgStream.sendChar('d');
+      pgStream.sendInteger4(siz + 4);
+      pgStream.send(data, off, siz);
 
       processCopyResults(op, false); // collect any pending notifications without blocking
     } catch (IOException ioe) {
@@ -934,7 +934,7 @@ public class QueryExecutorImpl implements QueryExecutor {
       // until we actually are done with the copy.
       //
       if (!block) {
-        int c = pgStream.PeekChar();
+        int c = pgStream.peekChar();
         if (c == 'C') {
           // CommandComplete
           if (logger.logDebug()) {
@@ -944,7 +944,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         }
       }
 
-      int c = pgStream.ReceiveChar();
+      int c = pgStream.receiveChar();
       switch (c) {
 
         case 'A': // Asynchronous Notify
@@ -1030,8 +1030,8 @@ public class QueryExecutorImpl implements QueryExecutor {
             logger.debug(" <=BE CopyData");
           }
 
-          len = pgStream.ReceiveInteger4() - 4;
-          byte[] buf = pgStream.Receive(len);
+          len = pgStream.receiveInteger4() - 4;
+          byte[] buf = pgStream.receive(len);
           if (op == null) {
             error = new PSQLException(GT.tr("Got CopyData without an active copy operation"),
                 PSQLState.OBJECT_NOT_IN_STATE);
@@ -1051,9 +1051,9 @@ public class QueryExecutorImpl implements QueryExecutor {
             logger.debug(" <=BE CopyDone");
           }
 
-          len = pgStream.ReceiveInteger4() - 4;
+          len = pgStream.receiveInteger4() - 4;
           if (len > 0) {
-            pgStream.Receive(len); // not in specification; should never appear
+            pgStream.receive(len); // not in specification; should never appear
           }
 
           if (!(op instanceof CopyOutImpl)) {
@@ -1066,9 +1066,9 @@ public class QueryExecutorImpl implements QueryExecutor {
           break;
         case 'S': // Parameter Status
         {
-          int l_len = pgStream.ReceiveInteger4();
-          String name = pgStream.ReceiveString();
-          String value = pgStream.ReceiveString();
+          int l_len = pgStream.receiveInteger4();
+          String name = pgStream.receiveString();
+          String value = pgStream.receiveString();
           if (logger.logDebug()) {
             logger.debug(" <=BE ParameterStatus(" + name + " = " + value + ")");
           }
@@ -1267,8 +1267,8 @@ public class QueryExecutorImpl implements QueryExecutor {
       logger.debug(" FE=> Sync");
     }
 
-    pgStream.SendChar('S'); // Sync
-    pgStream.SendInteger4(4); // Length
+    pgStream.sendChar('S'); // Sync
+    pgStream.sendInteger4(4); // Length
     pgStream.flush();
   }
 
@@ -1335,17 +1335,17 @@ public class QueryExecutorImpl implements QueryExecutor {
         + queryUtf8.length + 1
         + 2 + 4 * params.getParameterCount();
 
-    pgStream.SendChar('P'); // Parse
-    pgStream.SendInteger4(encodedSize);
+    pgStream.sendChar('P'); // Parse
+    pgStream.sendInteger4(encodedSize);
     if (encodedStatementName != null) {
-      pgStream.Send(encodedStatementName);
+      pgStream.send(encodedStatementName);
     }
-    pgStream.SendChar(0); // End of statement name
-    pgStream.Send(queryUtf8); // Query string
-    pgStream.SendChar(0); // End of query string.
-    pgStream.SendInteger2(params.getParameterCount()); // # of parameter types specified
+    pgStream.sendChar(0); // End of statement name
+    pgStream.send(queryUtf8); // Query string
+    pgStream.sendChar(0); // End of query string.
+    pgStream.sendInteger2(params.getParameterCount()); // # of parameter types specified
     for (int i = 1; i <= params.getParameterCount(); ++i) {
-      pgStream.SendInteger4(params.getTypeOID(i));
+      pgStream.sendInteger4(params.getTypeOID(i));
     }
 
     pendingParseQueue.add(query);
@@ -1419,23 +1419,23 @@ public class QueryExecutorImpl implements QueryExecutor {
           encodedSize)));
     }
 
-    pgStream.SendChar('B'); // Bind
-    pgStream.SendInteger4((int) encodedSize); // Message size
+    pgStream.sendChar('B'); // Bind
+    pgStream.sendInteger4((int) encodedSize); // Message size
     if (encodedPortalName != null) {
-      pgStream.Send(encodedPortalName); // Destination portal name.
+      pgStream.send(encodedPortalName); // Destination portal name.
     }
-    pgStream.SendChar(0); // End of portal name.
+    pgStream.sendChar(0); // End of portal name.
     if (encodedStatementName != null) {
-      pgStream.Send(encodedStatementName); // Source statement name.
+      pgStream.send(encodedStatementName); // Source statement name.
     }
-    pgStream.SendChar(0); // End of statement name.
+    pgStream.sendChar(0); // End of statement name.
 
-    pgStream.SendInteger2(params.getParameterCount()); // # of parameter format codes
+    pgStream.sendInteger2(params.getParameterCount()); // # of parameter format codes
     for (int i = 1; i <= params.getParameterCount(); ++i) {
-      pgStream.SendInteger2(params.isBinary(i) ? 1 : 0); // Parameter format code
+      pgStream.sendInteger2(params.isBinary(i) ? 1 : 0); // Parameter format code
     }
 
-    pgStream.SendInteger2(params.getParameterCount()); // # of parameter values
+    pgStream.sendInteger2(params.getParameterCount()); // # of parameter values
 
     // If an error occurs when reading a stream we have to
     // continue pumping out data to match the length we
@@ -1448,9 +1448,9 @@ public class QueryExecutorImpl implements QueryExecutor {
 
     for (int i = 1; i <= params.getParameterCount(); ++i) {
       if (params.isNull(i)) {
-        pgStream.SendInteger4(-1); // Magic size of -1 means NULL
+        pgStream.sendInteger4(-1); // Magic size of -1 means NULL
       } else {
-        pgStream.SendInteger4(params.getV3Length(i)); // Parameter size
+        pgStream.sendInteger4(params.getV3Length(i)); // Parameter size
         try {
           params.writeV3Value(i, pgStream); // Parameter value
         } catch (PGBindException be) {
@@ -1459,9 +1459,9 @@ public class QueryExecutorImpl implements QueryExecutor {
       }
     }
 
-    pgStream.SendInteger2(numBinaryFields); // # of result format codes
+    pgStream.sendInteger2(numBinaryFields); // # of result format codes
     for (int i = 0; i < numBinaryFields; ++i) {
-      pgStream.SendInteger2(fields[i].getFormat());
+      pgStream.sendInteger2(fields[i].getFormat());
     }
 
     pendingBindQueue.add(portal == null ? UNNAMED_PORTAL : portal);
@@ -1497,13 +1497,13 @@ public class QueryExecutorImpl implements QueryExecutor {
     // Total size = 4 (size field) + 1 (describe type, 'P') + N + 1 (portal name)
     int encodedSize = 4 + 1 + (encodedPortalName == null ? 0 : encodedPortalName.length) + 1;
 
-    pgStream.SendChar('D'); // Describe
-    pgStream.SendInteger4(encodedSize); // message size
-    pgStream.SendChar('P'); // Describe (Portal)
+    pgStream.sendChar('D'); // Describe
+    pgStream.sendInteger4(encodedSize); // message size
+    pgStream.sendChar('P'); // Describe (Portal)
     if (encodedPortalName != null) {
-      pgStream.Send(encodedPortalName); // portal name to close
+      pgStream.send(encodedPortalName); // portal name to close
     }
-    pgStream.SendChar(0); // end of portal name
+    pgStream.sendChar(0); // end of portal name
 
     pendingDescribePortalQueue.add(query);
     query.setPortalDescribed(true);
@@ -1522,13 +1522,13 @@ public class QueryExecutorImpl implements QueryExecutor {
     // Total size = 4 (size field) + 1 (describe type, 'S') + N + 1 (portal name)
     int encodedSize = 4 + 1 + (encodedStatementName == null ? 0 : encodedStatementName.length) + 1;
 
-    pgStream.SendChar('D'); // Describe
-    pgStream.SendInteger4(encodedSize); // Message size
-    pgStream.SendChar('S'); // Describe (Statement);
+    pgStream.sendChar('D'); // Describe
+    pgStream.sendInteger4(encodedSize); // Message size
+    pgStream.sendChar('S'); // Describe (Statement);
     if (encodedStatementName != null) {
-      pgStream.Send(encodedStatementName); // Statement name
+      pgStream.send(encodedStatementName); // Statement name
     }
-    pgStream.SendChar(0); // end message
+    pgStream.sendChar(0); // end message
 
     // Note: statement name can change over time for the same query object
     // Thus we take a snapshot of the query name
@@ -1552,13 +1552,13 @@ public class QueryExecutorImpl implements QueryExecutor {
     int encodedSize = (encodedPortalName == null ? 0 : encodedPortalName.length);
 
     // Total size = 4 (size field) + 1 + N (source portal) + 4 (max rows)
-    pgStream.SendChar('E'); // Execute
-    pgStream.SendInteger4(4 + 1 + encodedSize + 4); // message size
+    pgStream.sendChar('E'); // Execute
+    pgStream.sendInteger4(4 + 1 + encodedSize + 4); // message size
     if (encodedPortalName != null) {
-      pgStream.Send(encodedPortalName); // portal name
+      pgStream.send(encodedPortalName); // portal name
     }
-    pgStream.SendChar(0); // portal name terminator
-    pgStream.SendInteger4(limit); // row limit
+    pgStream.sendChar(0); // portal name terminator
+    pgStream.sendInteger4(limit); // row limit
 
     pendingExecuteQueue.add(new ExecuteRequest(query, portal));
   }
@@ -1576,13 +1576,13 @@ public class QueryExecutorImpl implements QueryExecutor {
     int encodedSize = (encodedPortalName == null ? 0 : encodedPortalName.length);
 
     // Total size = 4 (size field) + 1 (close type, 'P') + 1 + N (portal name)
-    pgStream.SendChar('C'); // Close
-    pgStream.SendInteger4(4 + 1 + 1 + encodedSize); // message size
-    pgStream.SendChar('P'); // Close (Portal)
+    pgStream.sendChar('C'); // Close
+    pgStream.sendInteger4(4 + 1 + 1 + encodedSize); // message size
+    pgStream.sendChar('P'); // Close (Portal)
     if (encodedPortalName != null) {
-      pgStream.Send(encodedPortalName);
+      pgStream.send(encodedPortalName);
     }
-    pgStream.SendChar(0); // unnamed portal
+    pgStream.sendChar(0); // unnamed portal
   }
 
   private void sendCloseStatement(String statementName) throws IOException {
@@ -1597,11 +1597,11 @@ public class QueryExecutorImpl implements QueryExecutor {
     byte[] encodedStatementName = Utils.encodeUTF8(statementName);
 
     // Total size = 4 (size field) + 1 (close type, 'S') + N + 1 (statement name)
-    pgStream.SendChar('C'); // Close
-    pgStream.SendInteger4(4 + 1 + encodedStatementName.length + 1); // message size
-    pgStream.SendChar('S'); // Close (Statement)
-    pgStream.Send(encodedStatementName); // statement to close
-    pgStream.SendChar(0); // statement name terminator
+    pgStream.sendChar('C'); // Close
+    pgStream.sendInteger4(4 + 1 + encodedStatementName.length + 1); // message size
+    pgStream.sendChar('S'); // Close (Statement)
+    pgStream.send(encodedStatementName); // statement to close
+    pgStream.sendChar(0); // statement name terminator
   }
 
   // sendOneQuery sends a single statement via the extended query protocol.
@@ -1815,14 +1815,14 @@ public class QueryExecutorImpl implements QueryExecutor {
     boolean doneAfterRowDescNoData = false;
 
     while (!endQuery) {
-      c = pgStream.ReceiveChar();
+      c = pgStream.receiveChar();
       switch (c) {
         case 'A': // Asynchronous Notify
           receiveAsyncNotify();
           break;
 
         case '1': // Parse Complete (response to Parse)
-          pgStream.ReceiveInteger4(); // len, discarded
+          pgStream.receiveInteger4(); // len, discarded
 
           SimpleQuery parsedQuery = pendingParseQueue.removeFirst();
           String parsedStatementName = parsedQuery.getStatementName();
@@ -1834,7 +1834,7 @@ public class QueryExecutorImpl implements QueryExecutor {
           break;
 
         case 't': // ParameterDescription
-          pgStream.ReceiveInteger4(); // len, discarded
+          pgStream.receiveInteger4(); // len, discarded
 
           if (logger.logDebug()) {
             logger.debug(" <=BE ParameterDescription");
@@ -1848,10 +1848,10 @@ public class QueryExecutorImpl implements QueryExecutor {
           // This might differ from query.getStatementName if the query was re-prepared
           String origStatementName = describeData.statementName;
 
-          int numParams = pgStream.ReceiveInteger2();
+          int numParams = pgStream.receiveInteger2();
 
           for (int i = 1; i <= numParams; i++) {
-            int typeOid = pgStream.ReceiveInteger4();
+            int typeOid = pgStream.receiveInteger4();
             params.setResolvedType(i, typeOid);
           }
 
@@ -1875,7 +1875,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         }
 
         case '2': // Bind Complete (response to Bind)
-          pgStream.ReceiveInteger4(); // len, discarded
+          pgStream.receiveInteger4(); // len, discarded
 
           Portal boundPortal = pendingBindQueue.removeFirst();
           if (logger.logDebug()) {
@@ -1886,14 +1886,14 @@ public class QueryExecutorImpl implements QueryExecutor {
           break;
 
         case '3': // Close Complete (response to Close)
-          pgStream.ReceiveInteger4(); // len, discarded
+          pgStream.receiveInteger4(); // len, discarded
           if (logger.logDebug()) {
             logger.debug(" <=BE CloseComplete");
           }
           break;
 
         case 'n': // No Data (response to Describe)
-          pgStream.ReceiveInteger4(); // len, discarded
+          pgStream.receiveInteger4(); // len, discarded
           if (logger.logDebug()) {
             logger.debug(" <=BE NoData");
           }
@@ -1918,7 +1918,7 @@ public class QueryExecutorImpl implements QueryExecutor {
           // nb: this appears *instead* of CommandStatus.
           // Must be a SELECT if we suspended, so don't worry about it.
 
-          pgStream.ReceiveInteger4(); // len, discarded
+          pgStream.receiveInteger4(); // len, discarded
           if (logger.logDebug()) {
             logger.debug(" <=BE PortalSuspended");
           }
@@ -1983,7 +1983,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         case 'D': // Data Transfer (ongoing Execute response)
           byte[][] tuple = null;
           try {
-            tuple = pgStream.ReceiveTupleV3();
+            tuple = pgStream.receiveTupleV3();
           } catch (OutOfMemoryError oome) {
             if (!noResults) {
               handler.handleError(
@@ -2027,7 +2027,7 @@ public class QueryExecutorImpl implements QueryExecutor {
           break;
 
         case 'I': // Empty Query (end of Execute)
-          pgStream.ReceiveInteger4();
+          pgStream.receiveInteger4();
 
           if (logger.logDebug()) {
             logger.debug(" <=BE EmptyQuery");
@@ -2050,9 +2050,9 @@ public class QueryExecutorImpl implements QueryExecutor {
 
         case 'S': // Parameter Status
         {
-          int l_len = pgStream.ReceiveInteger4();
-          String name = pgStream.ReceiveString();
-          String value = pgStream.ReceiveString();
+          int l_len = pgStream.receiveInteger4();
+          String name = pgStream.receiveString();
+          String value = pgStream.receiveString();
           if (logger.logDebug()) {
             logger.debug(" <=BE ParameterStatus(" + name + " = " + value + ")");
           }
@@ -2144,10 +2144,10 @@ public class QueryExecutorImpl implements QueryExecutor {
 
           byte[] buf =
               Utils.encodeUTF8("The JDBC driver currently does not support COPY operations.");
-          pgStream.SendChar('f');
-          pgStream.SendInteger4(buf.length + 4 + 1);
-          pgStream.Send(buf);
-          pgStream.SendChar(0);
+          pgStream.sendChar('f');
+          pgStream.sendInteger4(buf.length + 4 + 1);
+          pgStream.send(buf);
+          pgStream.sendChar(0);
           pgStream.flush();
           sendSync(); // send sync message
           skipMessage(); // skip the response message
@@ -2192,9 +2192,9 @@ public class QueryExecutorImpl implements QueryExecutor {
    * communication stream.
    */
   private void skipMessage() throws IOException {
-    int l_len = pgStream.ReceiveInteger4();
+    int l_len = pgStream.receiveInteger4();
     // skip l_len-4 (length includes the 4 bytes for message length itself
-    pgStream.Skip(l_len - 4);
+    pgStream.skip(l_len - 4);
   }
 
   public synchronized void fetch(ResultCursor cursor, ResultHandler handler, int fetchSize)
@@ -2253,8 +2253,8 @@ public class QueryExecutorImpl implements QueryExecutor {
    * Receive the field descriptions from the back end.
    */
   private Field[] receiveFields() throws IOException {
-    int l_msgSize = pgStream.ReceiveInteger4();
-    int size = pgStream.ReceiveInteger2();
+    int l_msgSize = pgStream.receiveInteger4();
+    int size = pgStream.receiveInteger2();
     Field[] fields = new Field[size];
 
     if (logger.logDebug()) {
@@ -2262,13 +2262,13 @@ public class QueryExecutorImpl implements QueryExecutor {
     }
 
     for (int i = 0; i < fields.length; i++) {
-      String columnLabel = pgStream.ReceiveString();
-      int tableOid = pgStream.ReceiveInteger4();
-      short positionInTable = (short) pgStream.ReceiveInteger2();
-      int typeOid = pgStream.ReceiveInteger4();
-      int typeLength = pgStream.ReceiveInteger2();
-      int typeModifier = pgStream.ReceiveInteger4();
-      int formatType = pgStream.ReceiveInteger2();
+      String columnLabel = pgStream.receiveString();
+      int tableOid = pgStream.receiveInteger4();
+      short positionInTable = (short) pgStream.receiveInteger2();
+      int typeOid = pgStream.receiveInteger4();
+      int typeLength = pgStream.receiveInteger2();
+      int typeModifier = pgStream.receiveInteger4();
+      int formatType = pgStream.receiveInteger2();
       fields[i] = new Field(columnLabel,
           typeOid, typeLength, typeModifier, tableOid, positionInTable);
       fields[i].setFormat(formatType);
@@ -2282,10 +2282,10 @@ public class QueryExecutorImpl implements QueryExecutor {
   }
 
   private void receiveAsyncNotify() throws IOException {
-    int msglen = pgStream.ReceiveInteger4();
-    int pid = pgStream.ReceiveInteger4();
-    String msg = pgStream.ReceiveString();
-    String param = pgStream.ReceiveString();
+    int msglen = pgStream.receiveInteger4();
+    int pid = pgStream.receiveInteger4();
+    String msg = pgStream.receiveString();
+    String param = pgStream.receiveString();
     protoConnection.addNotification(new org.postgresql.core.Notification(msg, pid, param));
 
     if (logger.logDebug()) {
@@ -2299,8 +2299,8 @@ public class QueryExecutorImpl implements QueryExecutor {
     // so, append messages to a string buffer and keep processing
     // check at the bottom to see if we need to throw an exception
 
-    int elen = pgStream.ReceiveInteger4();
-    String totalMessage = pgStream.ReceiveString(elen - 4);
+    int elen = pgStream.receiveInteger4();
+    String totalMessage = pgStream.receiveString(elen - 4);
     ServerErrorMessage errorMsg = new ServerErrorMessage(totalMessage, logger.getLogLevel());
 
     if (logger.logDebug()) {
@@ -2311,9 +2311,9 @@ public class QueryExecutorImpl implements QueryExecutor {
   }
 
   private SQLWarning receiveNoticeResponse() throws IOException {
-    int nlen = pgStream.ReceiveInteger4();
+    int nlen = pgStream.receiveInteger4();
     ServerErrorMessage warnMsg =
-        new ServerErrorMessage(pgStream.ReceiveString(nlen - 4), logger.getLogLevel());
+        new ServerErrorMessage(pgStream.receiveString(nlen - 4), logger.getLogLevel());
 
     if (logger.logDebug()) {
       logger.debug(" <=BE NoticeResponse(" + warnMsg.toString() + ")");
@@ -2324,11 +2324,11 @@ public class QueryExecutorImpl implements QueryExecutor {
 
   private String receiveCommandStatus() throws IOException {
     // TODO: better handle the msg len
-    int l_len = pgStream.ReceiveInteger4();
+    int l_len = pgStream.receiveInteger4();
     // read l_len -5 bytes (-4 for l_len and -1 for trailing \0)
-    String status = pgStream.ReceiveString(l_len - 5);
+    String status = pgStream.receiveString(l_len - 5);
     // now read and discard the trailing \0
-    pgStream.ReceiveChar(); // Receive(1) would allocate new byte[1], so avoid it
+    pgStream.receiveChar(); // Receive(1) would allocate new byte[1], so avoid it
 
     if (logger.logDebug()) {
       logger.debug(" <=BE CommandStatus(" + status + ")");
@@ -2369,11 +2369,11 @@ public class QueryExecutorImpl implements QueryExecutor {
   }
 
   private void receiveRFQ() throws IOException {
-    if (pgStream.ReceiveInteger4() != 5) {
+    if (pgStream.receiveInteger4() != 5) {
       throw new IOException("unexpected length of ReadyForQuery message");
     }
 
-    char tStatus = (char) pgStream.ReceiveChar();
+    char tStatus = (char) pgStream.receiveChar();
     if (logger.logDebug()) {
       logger.debug(" <=BE ReadyForQuery(" + tStatus + ")");
     }

@@ -245,11 +245,11 @@ class SimpleParameterList implements V3ParameterList {
   private static void streamBytea(PGStream pgStream, StreamWrapper wrapper) throws IOException {
     byte[] rawData = wrapper.getBytes();
     if (rawData != null) {
-      pgStream.Send(rawData, wrapper.getOffset(), wrapper.getLength());
+      pgStream.send(rawData, wrapper.getOffset(), wrapper.getLength());
       return;
     }
 
-    pgStream.SendStream(wrapper.getStream(), wrapper.getLength());
+    pgStream.sendStream(wrapper.getStream(), wrapper.getLength());
   }
 
   public int[] getTypeOIDs() {
@@ -332,7 +332,7 @@ class SimpleParameterList implements V3ParameterList {
 
     // Directly encoded?
     if (paramValues[index] instanceof byte[]) {
-      pgStream.Send((byte[]) paramValues[index]);
+      pgStream.send((byte[]) paramValues[index]);
       return;
     }
 
@@ -346,7 +346,7 @@ class SimpleParameterList implements V3ParameterList {
     if (encoded[index] == null) {
       encoded[index] = Utils.encodeUTF8((String) paramValues[index]);
     }
-    pgStream.Send(encoded[index]);
+    pgStream.send(encoded[index]);
   }
 
 

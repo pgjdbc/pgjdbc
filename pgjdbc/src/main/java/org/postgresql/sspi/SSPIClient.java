@@ -203,7 +203,7 @@ public class SSPIClient implements ISSPIClient {
     logger.debug("Continuing SSPI negotiation");
 
     /* Read the response token from the server */
-    byte[] receivedToken = pgStream.Receive(msgLength);
+    byte[] receivedToken = pgStream.receive(msgLength);
 
     SecBufferDesc continueToken = new SecBufferDesc(Sspi.SECBUFFER_TOKEN, receivedToken);
 
@@ -229,9 +229,9 @@ public class SSPIClient implements ISSPIClient {
      * 'password' message containing the required data; the server knows we're doing SSPI
      * negotiation and will deal with it appropriately.
      */
-    pgStream.SendChar('p');
-    pgStream.SendInteger4(4 + outToken.length);
-    pgStream.Send(outToken);
+    pgStream.sendChar('p');
+    pgStream.sendInteger4(4 + outToken.length);
+    pgStream.send(outToken);
     pgStream.flush();
   }
 

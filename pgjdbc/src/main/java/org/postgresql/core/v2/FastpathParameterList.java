@@ -131,11 +131,11 @@ class FastpathParameterList implements ParameterList {
   private void copyStream(PGStream pgStream, StreamWrapper wrapper) throws IOException {
     byte[] rawData = wrapper.getBytes();
     if (rawData != null) {
-      pgStream.Send(rawData, wrapper.getOffset(), wrapper.getLength());
+      pgStream.send(rawData, wrapper.getOffset(), wrapper.getLength());
       return;
     }
 
-    pgStream.SendStream(wrapper.getStream(), wrapper.getLength());
+    pgStream.sendStream(wrapper.getStream(), wrapper.getLength());
   }
 
   void writeV2FastpathValue(int index, PGStream pgStream) throws IOException {
@@ -143,16 +143,16 @@ class FastpathParameterList implements ParameterList {
 
     if (paramValues[index] instanceof StreamWrapper) {
       StreamWrapper wrapper = (StreamWrapper) paramValues[index];
-      pgStream.SendInteger4(wrapper.getLength());
+      pgStream.sendInteger4(wrapper.getLength());
       copyStream(pgStream, wrapper);
     } else if (paramValues[index] instanceof byte[]) {
       byte[] data = (byte[]) paramValues[index];
-      pgStream.SendInteger4(data.length);
-      pgStream.Send(data);
+      pgStream.sendInteger4(data.length);
+      pgStream.send(data);
     } else if (paramValues[index] instanceof String) {
       byte[] data = pgStream.getEncoding().encode((String) paramValues[index]);
-      pgStream.SendInteger4(data.length);
-      pgStream.Send(data);
+      pgStream.sendInteger4(data.length);
+      pgStream.send(data);
     } else {
       throw new IllegalArgumentException("don't know how to stream parameter " + index);
     }
@@ -195,8 +195,7 @@ class FastpathParameterList implements ParameterList {
       // only v2.SimpleParameterList is compatible with this type
       SimpleParameterList spl = (SimpleParameterList) list;
       int count = spl.getInParameterCount();
-      System.arraycopy(spl.getValues(), 0, paramValues,
-          getInParameterCount() - count, count);
+      System.arraycopy(spl.getValues(), 0, paramValues, getInParameterCount() - count, count);
     }
   }
 }
