@@ -17,8 +17,8 @@ import org.postgresql.core.Query;
 import org.postgresql.core.SqlCommand;
 import org.postgresql.core.SqlCommandType;
 
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Query implementation for all queries via the V2 protocol.
@@ -69,7 +69,7 @@ class V2Query implements Query {
   }
 
   @Override
-  public HashMap<String, Integer> getResultSetColumnNameIndexMap() {
+  public Map<String, Integer> getResultSetColumnNameIndexMap() {
     return null; // unsupported
   }
 

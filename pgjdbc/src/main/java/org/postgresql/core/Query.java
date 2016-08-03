@@ -9,7 +9,7 @@
 
 package org.postgresql.core;
 
-import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Abstraction of a generic Query, hiding the details of any protocol-version-specific data needed
@@ -65,6 +65,6 @@ public interface Query {
    *
    * @return null if the query implementation does not support this method.
    */
-  HashMap<String, Integer> getResultSetColumnNameIndexMap();
+  Map<String, Integer> getResultSetColumnNameIndexMap();
 
 }

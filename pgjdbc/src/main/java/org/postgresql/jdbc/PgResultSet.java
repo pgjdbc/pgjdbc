@@ -123,7 +123,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   protected int fetchSize; // Current fetch size (might be 0).
   protected ResultCursor cursor; // Cursor for fetching additional data.
 
-  private HashMap<String, Integer> columnNameIndexMap; // Speed up findColumn by caching lookups
+  private Map<String, Integer> columnNameIndexMap; // Speed up findColumn by caching lookups
 
   private ResultSetMetaData rsMetaData;
 
@@ -2605,7 +2605,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return col;
   }
 
-  public static HashMap<String, Integer> createColumnNameIndexMap(Field[] fields,
+  public static Map<String, Integer> createColumnNameIndexMap(Field[] fields,
       boolean isSanitiserDisabled) {
     HashMap<String, Integer> columnNameIndexMap = new HashMap<String, Integer>(fields.length * 2);
     // The JDBC spec says when you have duplicate columns names,

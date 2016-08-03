@@ -19,8 +19,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 /*
  * ResultSet tests.
@@ -719,11 +719,13 @@ public class ResultSetTest extends TestCase {
     stmt.close();
   }
 
-  public void testResultSetColumnMappingCache() throws SQLException {
-    // Plain statement
+  /**
+   * Test the behavior of the result set column mapping cache for simple statements.
+   */
+  public void testStatementResultSetColumnMappingCache() throws SQLException {
     Statement stmt = con.createStatement();
     ResultSet rs = stmt.executeQuery("select * from testrs");
-    HashMap<String, Integer> columnNameIndexMap;
+    Map<String, Integer> columnNameIndexMap;
     columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
     assertEquals(null, columnNameIndexMap);
     assertTrue(rs.next());
@@ -744,9 +746,15 @@ public class ResultSetTest extends TestCase {
     assertNotNull(columnNameIndexMap);
     rs.close();
     stmt.close();
-    // Prepared statement
+  }
+
+  /**
+   * Test the behavior of the result set column mapping cache for prepared statements.
+   */
+  public void testPreparedStatementResultSetColumnMappingCache() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement("SELECT id FROM testrs");
-    rs = pstmt.executeQuery();
+    ResultSet rs = pstmt.executeQuery();
+    Map<String, Integer> columnNameIndexMap;
     columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
     assertEquals(null, columnNameIndexMap);
     assertTrue(rs.next());
@@ -764,7 +772,18 @@ public class ResultSetTest extends TestCase {
     columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
     assertNotNull(columnNameIndexMap);
     rs.close();
-    // make sure the statement is named
+    pstmt.close();
+  }
+
+  /**
+   * Test the behavior of the result set column mapping cache for prepared statements once the
+   * statement is named.
+   */
+  public void testNamedPreparedStatementResultSetColumnMappingCache() throws SQLException {
+    PreparedStatement pstmt = con.prepareStatement("SELECT id FROM testrs");
+    ResultSet rs;
+    // Make sure the prepared statement is named.
+    // This ensures column mapping cache is reused across different result sets.
     for (int i = 0; i < 5; i++) {
       rs = pstmt.executeQuery();
       rs.close();
@@ -772,6 +791,7 @@ public class ResultSetTest extends TestCase {
     rs = pstmt.executeQuery();
     assertTrue(rs.next());
     rs.getInt("id");
+    Map<String, Integer> columnNameIndexMap;
     columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
     assertNotNull(columnNameIndexMap);
     rs.close();
@@ -786,11 +806,11 @@ public class ResultSetTest extends TestCase {
   }
 
   @SuppressWarnings("unchecked")
-  private HashMap<String, Integer> getResultSetColumnNameIndexMap(ResultSet stmt) {
+  private Map<String, Integer> getResultSetColumnNameIndexMap(ResultSet stmt) {
     try {
       Field columnNameIndexMapField = stmt.getClass().getDeclaredField("columnNameIndexMap");
       columnNameIndexMapField.setAccessible(true);
-      return (HashMap<String, Integer>) columnNameIndexMapField.get(stmt);
+      return (Map<String, Integer>) columnNameIndexMapField.get(stmt);
     } catch (Exception e) {
     }
     return null;

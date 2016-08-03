@@ -17,7 +17,7 @@ import org.postgresql.core.Utils;
 import org.postgresql.jdbc.PgResultSet;
 
 import java.lang.ref.PhantomReference;
-import java.util.HashMap;
+import java.util.Map;
 
 /**
  * V3 Query implementation for a single-statement query. This also holds the state of any associated
@@ -273,10 +273,10 @@ class SimpleQuery implements V3Query {
     return nativeQuery.bindPositions.length * getBatchSize();
   }
 
-  private HashMap<String, Integer> resultSetColumnNameIndexMap;
+  private Map<String, Integer> resultSetColumnNameIndexMap;
 
   @Override
-  public HashMap<String, Integer> getResultSetColumnNameIndexMap() {
+  public Map<String, Integer> getResultSetColumnNameIndexMap() {
     if (resultSetColumnNameIndexMap == null) {
       resultSetColumnNameIndexMap =
           PgResultSet.createColumnNameIndexMap(fields, protoConnection.isSanitiserDisabled());

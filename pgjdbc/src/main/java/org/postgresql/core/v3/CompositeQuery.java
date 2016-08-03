@@ -11,7 +11,7 @@ package org.postgresql.core.v3;
 
 import org.postgresql.core.ParameterList;
 
-import java.util.HashMap;
+import java.util.Map;
 
 /**
  * V3 Query implementation for queries that involve multiple statements. We split it up into one
@@ -80,7 +80,7 @@ class CompositeQuery implements V3Query {
   }
 
   @Override
-  public HashMap<String, Integer> getResultSetColumnNameIndexMap() {
+  public Map<String, Integer> getResultSetColumnNameIndexMap() {
     return null; // unsupported
   }
 
