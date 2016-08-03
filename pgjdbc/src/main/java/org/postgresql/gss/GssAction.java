@@ -93,19 +93,19 @@ class GssAction implements PrivilegedAction<Exception> {
             logger.debug(" FE=> Password(GSS Authentication Token)");
           }
 
-          pgStream.SendChar('p');
-          pgStream.SendInteger4(4 + outToken.length);
-          pgStream.Send(outToken);
+          pgStream.sendChar('p');
+          pgStream.sendInteger4(4 + outToken.length);
+          pgStream.send(outToken);
           pgStream.flush();
         }
 
         if (!secContext.isEstablished()) {
-          int response = pgStream.ReceiveChar();
+          int response = pgStream.receiveChar();
           // Error
           if (response == 'E') {
-            int l_elen = pgStream.ReceiveInteger4();
+            int l_elen = pgStream.receiveInteger4();
             ServerErrorMessage l_errorMsg =
-                new ServerErrorMessage(pgStream.ReceiveString(l_elen - 4), logger.getLogLevel());
+                new ServerErrorMessage(pgStream.receiveString(l_elen - 4), logger.getLogLevel());
 
             if (logger.logDebug()) {
               logger.debug(" <=BE ErrorMessage(" + l_errorMsg + ")");
@@ -119,10 +119,10 @@ class GssAction implements PrivilegedAction<Exception> {
               logger.debug(" <=BE AuthenticationGSSContinue");
             }
 
-            int len = pgStream.ReceiveInteger4();
-            int type = pgStream.ReceiveInteger4();
+            int len = pgStream.receiveInteger4();
+            int type = pgStream.receiveInteger4();
             // should check type = 8
-            inToken = pgStream.Receive(len - 8);
+            inToken = pgStream.receive(len - 8);
           } else {
             // Unknown/unexpected message type.
             return new PSQLException(GT.tr("Protocol error.  Session setup failed."),

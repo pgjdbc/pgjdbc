@@ -324,13 +324,13 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
 
     // Send SSL request packet
-    pgStream.SendInteger4(8);
-    pgStream.SendInteger2(1234);
-    pgStream.SendInteger2(5679);
+    pgStream.sendInteger4(8);
+    pgStream.sendInteger2(1234);
+    pgStream.sendInteger2(5679);
     pgStream.flush();
 
     // Now get the response from the backend, one of N, E, S.
-    int beresp = pgStream.ReceiveChar();
+    int beresp = pgStream.receiveChar();
     switch (beresp) {
       case 'E':
         if (logger.logDebug()) {
@@ -402,15 +402,15 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     length += 1; // Terminating \0
 
     // Send the startup message.
-    pgStream.SendInteger4(length);
-    pgStream.SendInteger2(3); // protocol major
-    pgStream.SendInteger2(0); // protocol minor
+    pgStream.sendInteger4(length);
+    pgStream.sendInteger2(3); // protocol major
+    pgStream.sendInteger2(0); // protocol minor
     for (byte[] encodedParam : encodedParams) {
-      pgStream.Send(encodedParam);
-      pgStream.SendChar(0);
+      pgStream.send(encodedParam);
+      pgStream.sendChar(0);
     }
 
-    pgStream.SendChar(0);
+    pgStream.sendChar(0);
     pgStream.flush();
   }
 
@@ -426,7 +426,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     try {
       authloop: while (true) {
-        int beresp = pgStream.ReceiveChar();
+        int beresp = pgStream.receiveChar();
 
         switch (beresp) {
           case 'E':
@@ -436,7 +436,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // The most common one to be thrown here is:
             // "User authentication failed"
             //
-            int l_elen = pgStream.ReceiveInteger4();
+            int l_elen = pgStream.receiveInteger4();
             if (l_elen > 30000) {
               // if the error length is > than 30000 we assume this is really a v2 protocol
               // server, so trigger fallback.
@@ -444,7 +444,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             }
 
             ServerErrorMessage errorMsg =
-                new ServerErrorMessage(pgStream.ReceiveString(l_elen - 4), logger.getLogLevel());
+                new ServerErrorMessage(pgStream.receiveString(l_elen - 4), logger.getLogLevel());
             if (logger.logDebug()) {
               logger.debug(" <=BE ErrorMessage(" + errorMsg + ")");
             }
@@ -453,15 +453,15 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
           case 'R':
             // Authentication request.
             // Get the message length
-            int l_msgLen = pgStream.ReceiveInteger4();
+            int l_msgLen = pgStream.receiveInteger4();
 
             // Get the type of request
-            int areq = pgStream.ReceiveInteger4();
+            int areq = pgStream.receiveInteger4();
 
             // Process the request.
             switch (areq) {
               case AUTH_REQ_CRYPT: {
-                byte[] salt = pgStream.Receive(2);
+                byte[] salt = pgStream.receive(2);
 
                 if (logger.logDebug()) {
                   logger.debug(
@@ -482,17 +482,17 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                       " FE=> Password(crypt='" + new String(encodedResult, "US-ASCII") + "')");
                 }
 
-                pgStream.SendChar('p');
-                pgStream.SendInteger4(4 + encodedResult.length + 1);
-                pgStream.Send(encodedResult);
-                pgStream.SendChar(0);
+                pgStream.sendChar('p');
+                pgStream.sendInteger4(4 + encodedResult.length + 1);
+                pgStream.send(encodedResult);
+                pgStream.sendChar(0);
                 pgStream.flush();
 
                 break;
               }
 
               case AUTH_REQ_MD5: {
-                byte[] md5Salt = pgStream.Receive(4);
+                byte[] md5Salt = pgStream.receive(4);
                 if (logger.logDebug()) {
                   logger
                       .debug(" <=BE AuthenticationReqMD5(salt=" + Utils.toHexString(md5Salt) + ")");
@@ -512,10 +512,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                   logger.debug(" FE=> Password(md5digest=" + new String(digest, "US-ASCII") + ")");
                 }
 
-                pgStream.SendChar('p');
-                pgStream.SendInteger4(4 + digest.length + 1);
-                pgStream.Send(digest);
-                pgStream.SendChar(0);
+                pgStream.sendChar('p');
+                pgStream.sendInteger4(4 + digest.length + 1);
+                pgStream.send(digest);
+                pgStream.sendChar(0);
                 pgStream.flush();
 
                 break;
@@ -536,10 +536,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
                 byte[] encodedPassword = password.getBytes("UTF-8");
 
-                pgStream.SendChar('p');
-                pgStream.SendInteger4(4 + encodedPassword.length + 1);
-                pgStream.Send(encodedPassword);
-                pgStream.SendChar(0);
+                pgStream.sendChar('p');
+                pgStream.sendInteger4(4 + encodedPassword.length + 1);
+                pgStream.send(encodedPassword);
+                pgStream.sendChar(0);
                 pgStream.flush();
 
                 break;
@@ -668,15 +668,15 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   private void readStartupMessages(PGStream pgStream, ProtocolConnectionImpl protoConnection,
       Logger logger) throws IOException, SQLException {
     while (true) {
-      int beresp = pgStream.ReceiveChar();
+      int beresp = pgStream.receiveChar();
       switch (beresp) {
         case 'Z':
           // Ready For Query; we're done.
-          if (pgStream.ReceiveInteger4() != 5) {
+          if (pgStream.receiveInteger4() != 5) {
             throw new IOException("unexpected length of ReadyForQuery packet");
           }
 
-          char tStatus = (char) pgStream.ReceiveChar();
+          char tStatus = (char) pgStream.receiveChar();
           if (logger.logDebug()) {
             logger.debug(" <=BE ReadyForQuery(" + tStatus + ")");
           }
@@ -701,14 +701,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
         case 'K':
           // BackendKeyData
-          int l_msgLen = pgStream.ReceiveInteger4();
+          int l_msgLen = pgStream.receiveInteger4();
           if (l_msgLen != 12) {
             throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
                 PSQLState.PROTOCOL_VIOLATION);
           }
 
-          int pid = pgStream.ReceiveInteger4();
-          int ckey = pgStream.ReceiveInteger4();
+          int pid = pgStream.receiveInteger4();
+          int ckey = pgStream.receiveInteger4();
 
           if (logger.logDebug()) {
             logger.debug(" <=BE BackendKeyData(pid=" + pid + ",ckey=" + ckey + ")");
@@ -719,9 +719,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
         case 'E':
           // Error
-          int l_elen = pgStream.ReceiveInteger4();
+          int l_elen = pgStream.receiveInteger4();
           ServerErrorMessage l_errorMsg =
-              new ServerErrorMessage(pgStream.ReceiveString(l_elen - 4), logger.getLogLevel());
+              new ServerErrorMessage(pgStream.receiveString(l_elen - 4), logger.getLogLevel());
 
           if (logger.logDebug()) {
             logger.debug(" <=BE ErrorMessage(" + l_errorMsg + ")");
@@ -731,9 +731,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
         case 'N':
           // Warning
-          int l_nlen = pgStream.ReceiveInteger4();
+          int l_nlen = pgStream.receiveInteger4();
           ServerErrorMessage l_warnMsg =
-              new ServerErrorMessage(pgStream.ReceiveString(l_nlen - 4), logger.getLogLevel());
+              new ServerErrorMessage(pgStream.receiveString(l_nlen - 4), logger.getLogLevel());
 
           if (logger.logDebug()) {
             logger.debug(" <=BE NoticeResponse(" + l_warnMsg + ")");
@@ -744,9 +744,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
         case 'S':
           // ParameterStatus
-          int l_len = pgStream.ReceiveInteger4();
-          String name = pgStream.ReceiveString();
-          String value = pgStream.ReceiveString();
+          int l_len = pgStream.receiveInteger4();
+          String name = pgStream.receiveString();
+          String value = pgStream.receiveString();
 
           if (logger.logDebug()) {
             logger.debug(" <=BE ParameterStatus(" + name + " = " + value + ")");

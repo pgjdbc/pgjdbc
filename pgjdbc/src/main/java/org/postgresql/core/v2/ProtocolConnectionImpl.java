@@ -106,13 +106,13 @@ class ProtocolConnectionImpl implements ProtocolConnection {
       if (cancelSignalTimeout > 0) {
         cancelStream.getSocket().setSoTimeout(cancelSignalTimeout);
       }
-      cancelStream.SendInteger4(16);
-      cancelStream.SendInteger2(1234);
-      cancelStream.SendInteger2(5678);
-      cancelStream.SendInteger4(cancelPid);
-      cancelStream.SendInteger4(cancelKey);
+      cancelStream.sendInteger4(16);
+      cancelStream.sendInteger2(1234);
+      cancelStream.sendInteger2(5678);
+      cancelStream.sendInteger4(cancelPid);
+      cancelStream.sendInteger4(cancelKey);
       cancelStream.flush();
-      cancelStream.ReceiveEOF();
+      cancelStream.receiveEOF();
     } catch (IOException e) {
       // Safe to ignore.
       if (logger.logDebug()) {
@@ -138,7 +138,7 @@ class ProtocolConnectionImpl implements ProtocolConnection {
       if (logger.logDebug()) {
         logger.debug(" FE=> Terminate");
       }
-      pgStream.SendChar('X');
+      pgStream.sendChar('X');
       pgStream.flush();
       pgStream.close();
     } catch (IOException ioe) {

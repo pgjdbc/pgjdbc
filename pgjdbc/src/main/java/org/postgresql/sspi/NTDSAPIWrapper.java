@@ -9,7 +9,7 @@ public class NTDSAPIWrapper {
   static final NTDSAPIWrapper instance = new NTDSAPIWrapper();
 
   /**
-   * Convenience wrappre for NTDSAPI DsMakeSpn with Java friendly string and exception handling.
+   * Convenience wrapper for NTDSAPI DsMakeSpn with Java friendly string and exception handling.
    *
    * @param serviceClass See MSDN
    * @param serviceName See MSDN
