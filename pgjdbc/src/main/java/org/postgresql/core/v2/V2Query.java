@@ -18,6 +18,7 @@ import org.postgresql.core.SqlCommand;
 import org.postgresql.core.SqlCommandType;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Query implementation for all queries via the V2 protocol.
@@ -65,6 +66,11 @@ class V2Query implements Query {
 
   public int getBatchSize() {
     return 1;
+  }
+
+  @Override
+  public Map<String, Integer> getResultSetColumnNameIndexMap() {
+    return null; // unsupported
   }
 
   private static final ParameterList NO_PARAMETERS = new SimpleParameterList(0, false);

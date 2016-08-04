@@ -13,11 +13,14 @@ import org.postgresql.util.PGobject;
 
 import junit.framework.TestCase;
 
+import java.lang.reflect.Field;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Locale;
+import java.util.Map;
 
 /*
  * ResultSet tests.
@@ -714,6 +717,103 @@ public class ResultSetTest extends TestCase {
     rs1.close();
 
     stmt.close();
+  }
+
+  /**
+   * Test the behavior of the result set column mapping cache for simple statements.
+   */
+  public void testStatementResultSetColumnMappingCache() throws SQLException {
+    Statement stmt = con.createStatement();
+    ResultSet rs = stmt.executeQuery("select * from testrs");
+    Map<String, Integer> columnNameIndexMap;
+    columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
+    assertEquals(null, columnNameIndexMap);
+    assertTrue(rs.next());
+    columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
+    assertEquals(null, columnNameIndexMap);
+    rs.getInt("ID");
+    columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
+    assertNotNull(columnNameIndexMap);
+    rs.getInt("id");
+    assertSame(columnNameIndexMap, getResultSetColumnNameIndexMap(rs));
+    rs.close();
+    rs = stmt.executeQuery("select * from testrs");
+    columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
+    assertEquals(null, columnNameIndexMap);
+    assertTrue(rs.next());
+    rs.getInt("Id");
+    columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
+    assertNotNull(columnNameIndexMap);
+    rs.close();
+    stmt.close();
+  }
+
+  /**
+   * Test the behavior of the result set column mapping cache for prepared statements.
+   */
+  public void testPreparedStatementResultSetColumnMappingCache() throws SQLException {
+    PreparedStatement pstmt = con.prepareStatement("SELECT id FROM testrs");
+    ResultSet rs = pstmt.executeQuery();
+    Map<String, Integer> columnNameIndexMap;
+    columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
+    assertEquals(null, columnNameIndexMap);
+    assertTrue(rs.next());
+    columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
+    assertEquals(null, columnNameIndexMap);
+    rs.getInt("id");
+    columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
+    assertNotNull(columnNameIndexMap);
+    rs.close();
+    rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
+    assertEquals(null, columnNameIndexMap);
+    rs.getInt("id");
+    columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
+    assertNotNull(columnNameIndexMap);
+    rs.close();
+    pstmt.close();
+  }
+
+  /**
+   * Test the behavior of the result set column mapping cache for prepared statements once the
+   * statement is named.
+   */
+  public void testNamedPreparedStatementResultSetColumnMappingCache() throws SQLException {
+    PreparedStatement pstmt = con.prepareStatement("SELECT id FROM testrs");
+    ResultSet rs;
+    // Make sure the prepared statement is named.
+    // This ensures column mapping cache is reused across different result sets.
+    for (int i = 0; i < 5; i++) {
+      rs = pstmt.executeQuery();
+      rs.close();
+    }
+    rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    rs.getInt("id");
+    Map<String, Integer> columnNameIndexMap;
+    columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
+    assertNotNull(columnNameIndexMap);
+    rs.close();
+    rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    rs.getInt("id");
+    assertSame(
+        "Cached mapping should be same between different result sets of same named prepared statement",
+        columnNameIndexMap, getResultSetColumnNameIndexMap(rs));
+    rs.close();
+    pstmt.close();
+  }
+
+  @SuppressWarnings("unchecked")
+  private Map<String, Integer> getResultSetColumnNameIndexMap(ResultSet stmt) {
+    try {
+      Field columnNameIndexMapField = stmt.getClass().getDeclaredField("columnNameIndexMap");
+      columnNameIndexMapField.setAccessible(true);
+      return (Map<String, Integer>) columnNameIndexMapField.get(stmt);
+    } catch (Exception e) {
+    }
+    return null;
   }
 
 }
