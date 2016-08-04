@@ -79,7 +79,7 @@ public class TimestampUtils {
         continue;
       }
       GMT_ZONES.put(pgZoneName + Math.abs(i), timeZone);
-      GMT_ZONES.put(pgZoneName + NUMBERS[Math.abs(i)], timeZone);
+      GMT_ZONES.put(pgZoneName + new String(NUMBERS[Math.abs(i)]), timeZone);
     }
     // Fast path to getting the default timezone.
     // Accessing the default timezone over and over creates a clone with regular API.
