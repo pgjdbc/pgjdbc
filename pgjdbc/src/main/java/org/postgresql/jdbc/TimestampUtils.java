@@ -30,7 +30,6 @@ import java.time.ZoneOffset;
 import java.time.chrono.IsoEra;
 import java.time.temporal.ChronoField;
 //#endif
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
