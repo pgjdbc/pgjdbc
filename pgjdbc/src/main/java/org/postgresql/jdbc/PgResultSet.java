@@ -976,12 +976,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       insertSQL.append(paramSQL.toString());
       insertStatement = connection.prepareStatement(insertSQL.toString());
 
-      Iterator<String> keys = updateValues.keySet().iterator();
+      Iterator<Object> values = updateValues.values().iterator();
 
-      for (int i = 1; keys.hasNext(); i++) {
-        String key = keys.next();
-        Object o = updateValues.get(key);
-        insertStatement.setObject(i, o);
+      for (int i = 1; values.hasNext(); i++) {
+        insertStatement.setObject(i, values.next());
       }
 
       insertStatement.executeUpdate();
@@ -1688,10 +1686,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   private void updateRowBuffer() throws SQLException {
 
-    for (String columnName : updateValues.keySet()) {
-      int columnIndex = findColumn(columnName) - 1;
+    for (Map.Entry<String, Object> entry : updateValues.entrySet()) {
+      int columnIndex = findColumn(entry.getKey()) - 1;
 
-      Object valueObject = updateValues.get(columnName);
+      Object valueObject = entry.getValue();
       if (valueObject instanceof PGobject) {
         String value = ((PGobject) valueObject).getValue();
         rowBuffer[columnIndex] = (value == null) ? null : connection.encodeString(value);
