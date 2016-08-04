@@ -323,8 +323,8 @@ public class PgConnection implements BaseConnection {
         });
 
     // Initialize common queries.
-    commitQuery = getQueryExecutor().createSimpleQuery("COMMIT", getAutoCommit());
-    rollbackQuery = getQueryExecutor().createSimpleQuery("ROLLBACK", getAutoCommit());
+    commitQuery = getQueryExecutor().createSimpleQuery("COMMIT");
+    rollbackQuery = getQueryExecutor().createSimpleQuery("ROLLBACK");
 
     int unknownLength = PGProperty.UNKNOWN_LENGTH.getInt(info);
 

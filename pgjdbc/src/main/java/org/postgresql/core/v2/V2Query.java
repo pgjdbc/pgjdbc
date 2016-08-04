@@ -29,7 +29,7 @@ class V2Query implements Query {
     useEStringSyntax = pconn.getServerVersionNum() >= 80100;
     boolean stdStrings = pconn.getStandardConformingStrings();
 
-    List<NativeQuery> queries = Parser.parseJdbcSql(query, stdStrings, withParameters, false, true, false);
+    List<NativeQuery> queries = Parser.parseJdbcSql(query, stdStrings, withParameters, false, false);
     assert queries.size() <= 1 : "Exactly one query expected in V2. " + queries.size()
         + " queries given.";
 

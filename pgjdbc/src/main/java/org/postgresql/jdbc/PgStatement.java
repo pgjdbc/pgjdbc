@@ -905,7 +905,7 @@ public class PgStatement implements Statement, BaseStatement {
     p_sql = replaceProcessing(p_sql, replaceProcessingEnabled,
         connection.getStandardConformingStrings());
 
-    batchStatements.add(connection.getQueryExecutor().createSimpleQuery(p_sql, connection.getAutoCommit()));
+    batchStatements.add(connection.getQueryExecutor().createSimpleQuery(p_sql));
     batchParameters.add(null);
   }
 

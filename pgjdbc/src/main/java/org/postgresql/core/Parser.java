@@ -35,12 +35,11 @@ public class Parser {
    *                                  in single quote literals
    * @param withParameters            whether to replace ?, ? with $1, $2, etc
    * @param splitStatements           whether to split statements by semicolon
-   * @param isAutoCommit              whether autocommit is enabled
    * @param isBatchedReWriteConfigured whether re-write optimization is enabled
    * @return list of native queries
    */
   public static List<NativeQuery> parseJdbcSql(String query, boolean standardConformingStrings,
-      boolean withParameters, boolean splitStatements, boolean isAutoCommit,
+      boolean withParameters, boolean splitStatements,
       boolean isBatchedReWriteConfigured) {
     if (!withParameters && !splitStatements) {
       return Collections.singletonList(new NativeQuery(query,

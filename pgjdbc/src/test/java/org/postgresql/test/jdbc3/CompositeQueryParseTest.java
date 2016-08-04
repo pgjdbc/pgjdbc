@@ -70,19 +70,21 @@ public class CompositeQueryParseTest extends TestCase {
 
   public void testHasReturning() {
 
-    List<NativeQuery> queries = Parser.parseJdbcSql("insert into foo (a,b,c) values (?,?,?) RetuRning a", true, true, false, true, true);
+    List<NativeQuery> queries = Parser.parseJdbcSql("insert into foo (a,b,c) values (?,?,?) RetuRning a", true, true, false,
+        true);
     NativeQuery query = queries.get(0);
     assertTrue("The parser should find the word returning", query.command.isReturningKeywordPresent());
 
-    queries = Parser.parseJdbcSql("insert into foo (a,b,c) values (?,?,?)", true, true, false, true, true);
+    queries = Parser.parseJdbcSql("insert into foo (a,b,c) values (?,?,?)", true, true, false, true);
     query = queries.get(0);
     assertFalse("The parser should not find the word returning", query.command.isReturningKeywordPresent());
 
-    queries = Parser.parseJdbcSql("insert into foo (a,b,c) values ('returning',?,?)", true, true, false, true, true);
+    queries = Parser.parseJdbcSql("insert into foo (a,b,c) values ('returning',?,?)", true, true, false,
+        true);
     query = queries.get(0);
     assertFalse("The parser should not find the word returning as it is in quotes ", query.command.isReturningKeywordPresent());
 
-    queries = Parser.parseJdbcSql("select 1 as returning", true, true, false, true, true);
+    queries = Parser.parseJdbcSql("select 1 as returning", true, true, false, true);
     query = queries.get(0);
     assertFalse("This is not an insert command", query.command.getType() == SqlCommandType.INSERT);
     assertTrue("Returning is OK here as it is not an insert command ", query.command.isReturningKeywordPresent());
@@ -90,11 +92,12 @@ public class CompositeQueryParseTest extends TestCase {
   }
 
   public void testHasDelete() {
-    List<NativeQuery> queries = Parser.parseJdbcSql("DeLeTe from foo where a=1", true, true, false, true, true);
+    List<NativeQuery> queries = Parser.parseJdbcSql("DeLeTe from foo where a=1", true, true, false,
+        true);
     NativeQuery query = queries.get(0);
     assertTrue("This is a delete command", query.command.getType() == SqlCommandType.DELETE);
 
-    queries = Parser.parseJdbcSql("update foo set (a=?,b=?,c=?)", true, true, false, true, true);
+    queries = Parser.parseJdbcSql("update foo set (a=?,b=?,c=?)", true, true, false, true);
     query = queries.get(0);
     assertFalse("This is not a delete command", query.command.getType() == SqlCommandType.DELETE);
 
@@ -103,11 +106,11 @@ public class CompositeQueryParseTest extends TestCase {
 
   public void testisMove() {
 
-    List<NativeQuery> queries = Parser.parseJdbcSql("MoVe NEXT FROM FOO", true, true, false, true, true);
+    List<NativeQuery> queries = Parser.parseJdbcSql("MoVe NEXT FROM FOO", true, true, false, true);
     NativeQuery query = queries.get(0);
     assertTrue("This is a move command", query.command.getType() == SqlCommandType.MOVE);
 
-    queries = Parser.parseJdbcSql("update foo set (a=?,b=?,c=?)", true, true, false, true, true);
+    queries = Parser.parseJdbcSql("update foo set (a=?,b=?,c=?)", true, true, false, true);
     query = queries.get(0);
     assertFalse("This is not a move command", query.command.getType() == SqlCommandType.MOVE);
 
@@ -115,15 +118,16 @@ public class CompositeQueryParseTest extends TestCase {
 
   public void testIsInsert() {
 
-    List<NativeQuery> queries = Parser.parseJdbcSql("InSeRt into foo (a,b,c) values (?,?,?) returning a", true, true, false, true, true);
+    List<NativeQuery> queries = Parser.parseJdbcSql("InSeRt into foo (a,b,c) values (?,?,?) returning a", true, true, false,
+        true);
     NativeQuery query = queries.get(0);
     assertTrue("This is an insert command", query.command.getType() == SqlCommandType.INSERT);
 
-    queries = Parser.parseJdbcSql("update foo set (a=?,b=?,c=?)", true, true, false, true, true);
+    queries = Parser.parseJdbcSql("update foo set (a=?,b=?,c=?)", true, true, false, true);
     query = queries.get(0);
     assertFalse("This is not an insert command", query.command.getType() == SqlCommandType.INSERT);
 
-    queries = Parser.parseJdbcSql("select 1 as insert", true, true, false, true, true);
+    queries = Parser.parseJdbcSql("select 1 as insert", true, true, false, true);
     query = queries.get(0);
     assertFalse("This is not insert command", query.command.getType() == SqlCommandType.INSERT);
   }
@@ -141,7 +145,7 @@ public class CompositeQueryParseTest extends TestCase {
   private String reparse(String query, boolean standardConformingStrings, boolean withParameters,
       boolean splitStatements) {
     return toString(
-        Parser.parseJdbcSql(query, standardConformingStrings, withParameters, splitStatements, true, false));
+        Parser.parseJdbcSql(query, standardConformingStrings, withParameters, splitStatements, false));
   }
 
   private String toString(List<NativeQuery> queries) {

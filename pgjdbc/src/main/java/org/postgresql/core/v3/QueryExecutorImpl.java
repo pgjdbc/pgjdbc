@@ -137,19 +137,19 @@ public class QueryExecutorImpl implements QueryExecutor {
   // Query parsing
   //
 
-  public Query createSimpleQuery(String sql, boolean autocommit) {
-    return parseQuery(sql, false, autocommit);
+  public Query createSimpleQuery(String sql) {
+    return parseQuery(sql, false);
   }
 
-  public Query createParameterizedQuery(String sql, boolean autocommit) {
-    return parseQuery(sql, true, autocommit);
+  public Query createParameterizedQuery(String sql) {
+    return parseQuery(sql, true);
   }
 
-  private Query parseQuery(String query, boolean withParameters, boolean autocommit) {
+  private Query parseQuery(String query, boolean withParameters) {
 
     List<NativeQuery> queries = Parser.parseJdbcSql(query,
         protoConnection.getStandardConformingStrings(), withParameters, true,
-        autocommit, allowReWriteBatchedInserts);
+        allowReWriteBatchedInserts);
     if (queries.isEmpty()) {
       // Empty query
       return EMPTY_QUERY;
