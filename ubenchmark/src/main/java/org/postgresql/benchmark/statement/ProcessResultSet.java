@@ -51,6 +51,11 @@ public class ProcessResultSet {
     TIMESTAMPTZ,
   }
 
+  public enum ColumnIndexType {
+    INDEX,
+    NAME
+  }
+
   public enum GetterType {
     BEST,
     OBJECT
@@ -71,11 +76,16 @@ public class ProcessResultSet {
   @Param({"BEST"})
   public GetterType getter;
 
+  @Param({"NAME"})
+  public ColumnIndexType columnIndexType;
+
   private Connection connection;
 
   private String sql;
 
   private int cntr;
+
+  private String[] columnNames;
 
   @Setup(Level.Trial)
   public void setUp() throws SQLException {
@@ -88,6 +98,7 @@ public class ProcessResultSet {
     connection = DriverManager.getConnection(ConnectionUtil.getURL(), props);
     StringBuilder sb = new StringBuilder();
     sb.append("SELECT ");
+    columnNames = new String[ncols];
     for (int i = 0; i < ncols; i++) {
       if (i > 0) {
         sb.append(", ");
@@ -107,7 +118,9 @@ public class ProcessResultSet {
       } else if (type == FieldType.TIMESTAMPTZ) {
         sb.append("current_timestamp");
       }
-      sb.append(" c").append(i);
+      String columnName = "c" + String.valueOf(System.currentTimeMillis()) + String.valueOf(i);
+      columnNames[i] = columnName;
+      sb.append(' ').append(columnName);
     }
     sb.append(" from generate_series(1, ?) as t(x)");
     sql = sb.toString();
@@ -129,26 +142,52 @@ public class ProcessResultSet {
     ResultSet rs = ps.executeQuery();
     while (rs.next()) {
       for (int i = 1; i <= ncols; i++) {
-        if (getter == GetterType.OBJECT) {
-          b.consume(rs.getObject(i));
-        } else if (type == FieldType.INT) {
-          b.consume(rs.getInt(i));
-        } else if (type == FieldType.BIGINT) {
-          b.consume(rs.getBigDecimal(i));
-        } else if (type == FieldType.BIGDECIMAL) {
-          b.consume(rs.getBigDecimal(i));
-        } else if (type == FieldType.STRING) {
-          b.consume(rs.getString(i));
-        } else if (type == FieldType.TIMESTAMP) {
-          b.consume(rs.getTimestamp(i));
-        } else if (type == FieldType.TIMESTAMPTZ) {
-          b.consume(rs.getTimestamp(i));
+        if (columnIndexType == ColumnIndexType.INDEX) {
+          getByIndex(b, rs, i);
+        } else {
+          getByName(b, rs, columnNames[i - 1]);
         }
       }
     }
     rs.close();
     ps.close();
     return ps;
+  }
+
+  private void getByIndex(Blackhole b, ResultSet rs, int i) throws SQLException {
+    if (getter == GetterType.OBJECT) {
+      b.consume(rs.getObject(i));
+    } else if (type == FieldType.INT) {
+      b.consume(rs.getInt(i));
+    } else if (type == FieldType.BIGINT) {
+      b.consume(rs.getBigDecimal(i));
+    } else if (type == FieldType.BIGDECIMAL) {
+      b.consume(rs.getBigDecimal(i));
+    } else if (type == FieldType.STRING) {
+      b.consume(rs.getString(i));
+    } else if (type == FieldType.TIMESTAMP) {
+      b.consume(rs.getTimestamp(i));
+    } else if (type == FieldType.TIMESTAMPTZ) {
+      b.consume(rs.getTimestamp(i));
+    }
+  }
+
+  private void getByName(Blackhole b, ResultSet rs, String i) throws SQLException {
+    if (getter == GetterType.OBJECT) {
+      b.consume(rs.getObject(i));
+    } else if (type == FieldType.INT) {
+      b.consume(rs.getInt(i));
+    } else if (type == FieldType.BIGINT) {
+      b.consume(rs.getBigDecimal(i));
+    } else if (type == FieldType.BIGDECIMAL) {
+      b.consume(rs.getBigDecimal(i));
+    } else if (type == FieldType.STRING) {
+      b.consume(rs.getString(i));
+    } else if (type == FieldType.TIMESTAMP) {
+      b.consume(rs.getTimestamp(i));
+    } else if (type == FieldType.TIMESTAMPTZ) {
+      b.consume(rs.getTimestamp(i));
+    }
   }
 
   public static void main(String[] args) throws RunnerException {
