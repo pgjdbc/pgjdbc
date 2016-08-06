@@ -10,8 +10,8 @@ package org.postgresql.xa;
 import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Logger;
-import org.postgresql.core.ProtocolConnection;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.core.TransactionState;
 import org.postgresql.ds.PGPooledConnection;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -492,7 +492,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
       // other XA or local transaction, or the COMMIT PREPARED command
       // would mess it up.
       if (state != STATE_IDLE
-          || conn.getTransactionState() != ProtocolConnection.TRANSACTION_IDLE) {
+          || conn.getTransactionState() != TransactionState.IDLE) {
         throw new PGXAException(
             GT.tr("Not implemented: 2nd phase commit must be issued using an idle connection"),
             XAException.XAER_RMERR);

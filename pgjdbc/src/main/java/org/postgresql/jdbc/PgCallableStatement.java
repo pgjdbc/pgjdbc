@@ -49,7 +49,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
 
   PgCallableStatement(PgConnection connection, String sql, int rsType, int rsConcurrency,
       int rsHoldability) throws SQLException {
-    super(connection, sql, true, rsType, rsConcurrency, rsHoldability);
+    super(connection, connection.borrowCallableQuery(sql), rsType, rsConcurrency, rsHoldability);
     this.isFunction = preparedQuery.isFunction;
     this.outParmBeforeFunc = preparedQuery.outParmBeforeFunc;
 

@@ -11,14 +11,13 @@ package org.postgresql.core.v3;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.ConnectionFactory;
-import org.postgresql.core.Encoding;
 import org.postgresql.core.Logger;
 import org.postgresql.core.PGStream;
-import org.postgresql.core.ProtocolConnection;
+import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.SetupQueryRunner;
+import org.postgresql.core.SocketFactoryFactory;
 import org.postgresql.core.Utils;
-import org.postgresql.core.v2.SocketFactoryFactory;
 import org.postgresql.hostchooser.GlobalHostStatusTracker;
 import org.postgresql.hostchooser.HostChooser;
 import org.postgresql.hostchooser.HostChooserFactory;
@@ -30,7 +29,6 @@ import org.postgresql.util.HostSpec;
 import org.postgresql.util.MD5Digest;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
-import org.postgresql.util.PSQLWarning;
 import org.postgresql.util.ServerErrorMessage;
 import org.postgresql.util.UnixCrypt;
 
@@ -42,7 +40,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 import java.util.TimeZone;
-
 import javax.net.SocketFactory;
 
 /**
@@ -84,7 +81,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
   }
 
-  public ProtocolConnection openConnectionImpl(HostSpec[] hostSpecs, String user, String database,
+  public QueryExecutor openConnectionImpl(HostSpec[] hostSpecs, String user, String database,
       Properties info, Logger logger) throws SQLException {
     // Extract interesting values from the info properties:
     // - the SSL setting
@@ -225,19 +222,17 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         int cancelSignalTimeout = PGProperty.CANCEL_SIGNAL_TIMEOUT.getInt(info) * 1000;
 
         // Do final startup.
-        ProtocolConnectionImpl protoConnection =
-            new ProtocolConnectionImpl(newStream, user, database, info, logger,
-                cancelSignalTimeout);
-        readStartupMessages(newStream, protoConnection, logger);
+        QueryExecutor queryExecutor = new QueryExecutorImpl(newStream, user, database,
+            cancelSignalTimeout, info, logger);
 
         // Check Master or Slave
         HostStatus hostStatus = HostStatus.ConnectOK;
         if (targetServerType != HostRequirement.any) {
-          hostStatus = isMaster(protoConnection, logger) ? HostStatus.Master : HostStatus.Slave;
+          hostStatus = isMaster(queryExecutor, logger) ? HostStatus.Master : HostStatus.Slave;
         }
         GlobalHostStatusTracker.reportHostStatus(hostSpec, hostStatus);
         if (!targetServerType.allowConnectingTo(hostStatus)) {
-          protoConnection.close();
+          queryExecutor.close();
           if (hostIter.hasNext()) {
             // still more addresses to try
             continue;
@@ -247,10 +242,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               PSQLState.CONNECTION_UNABLE_TO_CONNECT);
         }
 
-        runInitialQueries(protoConnection, info, logger);
+        runInitialQueries(queryExecutor, info, logger);
 
         // And we're done.
-        return protoConnection;
+        return queryExecutor;
       } catch (UnsupportedProtocolException upe) {
         // Swallow this and return null so ConnectionFactory tries the next protocol.
         if (logger.logDebug()) {
@@ -665,137 +660,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
   }
 
-  private void readStartupMessages(PGStream pgStream, ProtocolConnectionImpl protoConnection,
-      Logger logger) throws IOException, SQLException {
-    while (true) {
-      int beresp = pgStream.receiveChar();
-      switch (beresp) {
-        case 'Z':
-          // Ready For Query; we're done.
-          if (pgStream.receiveInteger4() != 5) {
-            throw new IOException("unexpected length of ReadyForQuery packet");
-          }
-
-          char tStatus = (char) pgStream.receiveChar();
-          if (logger.logDebug()) {
-            logger.debug(" <=BE ReadyForQuery(" + tStatus + ")");
-          }
-
-          // Update connection state.
-          switch (tStatus) {
-            case 'I':
-              protoConnection.setTransactionState(ProtocolConnection.TRANSACTION_IDLE);
-              break;
-            case 'T':
-              protoConnection.setTransactionState(ProtocolConnection.TRANSACTION_OPEN);
-              break;
-            case 'E':
-              protoConnection.setTransactionState(ProtocolConnection.TRANSACTION_FAILED);
-              break;
-            default:
-              // Huh?
-              break;
-          }
-
-          return;
-
-        case 'K':
-          // BackendKeyData
-          int l_msgLen = pgStream.receiveInteger4();
-          if (l_msgLen != 12) {
-            throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
-                PSQLState.PROTOCOL_VIOLATION);
-          }
-
-          int pid = pgStream.receiveInteger4();
-          int ckey = pgStream.receiveInteger4();
-
-          if (logger.logDebug()) {
-            logger.debug(" <=BE BackendKeyData(pid=" + pid + ",ckey=" + ckey + ")");
-          }
-
-          protoConnection.setBackendKeyData(pid, ckey);
-          break;
-
-        case 'E':
-          // Error
-          int l_elen = pgStream.receiveInteger4();
-          ServerErrorMessage l_errorMsg =
-              new ServerErrorMessage(pgStream.receiveString(l_elen - 4), logger.getLogLevel());
-
-          if (logger.logDebug()) {
-            logger.debug(" <=BE ErrorMessage(" + l_errorMsg + ")");
-          }
-
-          throw new PSQLException(l_errorMsg);
-
-        case 'N':
-          // Warning
-          int l_nlen = pgStream.receiveInteger4();
-          ServerErrorMessage l_warnMsg =
-              new ServerErrorMessage(pgStream.receiveString(l_nlen - 4), logger.getLogLevel());
-
-          if (logger.logDebug()) {
-            logger.debug(" <=BE NoticeResponse(" + l_warnMsg + ")");
-          }
-
-          protoConnection.addWarning(new PSQLWarning(l_warnMsg));
-          break;
-
-        case 'S':
-          // ParameterStatus
-          int l_len = pgStream.receiveInteger4();
-          String name = pgStream.receiveString();
-          String value = pgStream.receiveString();
-
-          if (logger.logDebug()) {
-            logger.debug(" <=BE ParameterStatus(" + name + " = " + value + ")");
-          }
-
-          if (name.equals("server_version_num")) {
-            protoConnection.setServerVersionNum(Integer.parseInt(value));
-          }
-          if (name.equals("server_version")) {
-            protoConnection.setServerVersion(value);
-          } else if (name.equals("client_encoding")) {
-            if (!value.equals("UTF8")) {
-              throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
-                  PSQLState.PROTOCOL_VIOLATION);
-            }
-            pgStream.setEncoding(Encoding.getDatabaseEncoding("UTF8"));
-          } else if (name.equals("standard_conforming_strings")) {
-            if (value.equals("on")) {
-              protoConnection.setStandardConformingStrings(true);
-            } else if (value.equals("off")) {
-              protoConnection.setStandardConformingStrings(false);
-            } else {
-              throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
-                  PSQLState.PROTOCOL_VIOLATION);
-            }
-          } else if (name.equals("integer_datetimes")) {
-            if (value.equals("on")) {
-              protoConnection.setIntegerDateTimes(true);
-            } else if (value.equals("off")) {
-              protoConnection.setIntegerDateTimes(false);
-            } else {
-              throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
-                  PSQLState.PROTOCOL_VIOLATION);
-            }
-          }
-
-          break;
-
-        default:
-          if (logger.logDebug()) {
-            logger.debug("invalid message type=" + (char) beresp);
-          }
-          throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
-              PSQLState.PROTOCOL_VIOLATION);
-      }
-    }
-  }
-
-  private void runInitialQueries(ProtocolConnection protoConnection, Properties info, Logger logger)
+  private void runInitialQueries(QueryExecutor queryExecutor, Properties info, Logger logger)
       throws SQLException {
     String assumeMinServerVersion = PGProperty.ASSUME_MIN_SERVER_VERSION.get(info);
     if (Utils.parseServerVersionStr(assumeMinServerVersion) >= ServerVersion.v9_0.getVersionNum()) {
@@ -803,27 +668,27 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       return;
     }
 
-    final int dbVersion = protoConnection.getServerVersionNum();
+    final int dbVersion = queryExecutor.getServerVersionNum();
 
     if (dbVersion >= ServerVersion.v9_0.getVersionNum()) {
-      SetupQueryRunner.run(protoConnection, "SET extra_float_digits = 3", false);
+      SetupQueryRunner.run(queryExecutor, "SET extra_float_digits = 3", false);
     }
 
     String appName = PGProperty.APPLICATION_NAME.get(info);
     if (appName != null && dbVersion >= ServerVersion.v9_0.getVersionNum()) {
       StringBuilder sql = new StringBuilder();
       sql.append("SET application_name = '");
-      Utils.escapeLiteral(sql, appName, protoConnection.getStandardConformingStrings());
+      Utils.escapeLiteral(sql, appName, queryExecutor.getStandardConformingStrings());
       sql.append("'");
-      SetupQueryRunner.run(protoConnection, sql.toString(), false);
+      SetupQueryRunner.run(queryExecutor, sql.toString(), false);
     }
 
   }
 
-  private boolean isMaster(ProtocolConnectionImpl protoConnection, Logger logger)
+  private boolean isMaster(QueryExecutor queryExecutor, Logger logger)
       throws SQLException, IOException {
-    byte[][] results = SetupQueryRunner.run(protoConnection, "show transaction_read_only", true);
-    String value = protoConnection.getEncoding().decode(results[0]);
+    byte[][] results = SetupQueryRunner.run(queryExecutor, "show transaction_read_only", true);
+    String value = queryExecutor.getEncoding().decode(results[0]);
     return value.equalsIgnoreCase("off");
   }
 }

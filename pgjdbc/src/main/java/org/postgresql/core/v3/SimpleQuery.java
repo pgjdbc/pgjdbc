@@ -13,6 +13,8 @@ import org.postgresql.core.Field;
 import org.postgresql.core.NativeQuery;
 import org.postgresql.core.Oid;
 import org.postgresql.core.ParameterList;
+import org.postgresql.core.Query;
+import org.postgresql.core.SqlCommand;
 import org.postgresql.core.Utils;
 import org.postgresql.jdbc.PgResultSet;
 
@@ -26,15 +28,17 @@ import java.util.Map;
  *
  * @author Oliver Jowett (oliver@opencloud.com)
  */
-class SimpleQuery implements V3Query {
+class SimpleQuery implements Query {
 
   SimpleQuery(SimpleQuery src) {
-    this(src.nativeQuery, src.protoConnection);
+    this(src.nativeQuery, src.transferModeRegistry, src.sanitiserDisabled);
   }
 
-  SimpleQuery(NativeQuery query, ProtocolConnectionImpl protoConnection) {
+  SimpleQuery(NativeQuery query, TypeTransferModeRegistry transferModeRegistry,
+      boolean sanitiserDisabled) {
     this.nativeQuery = query;
-    this.protoConnection = protoConnection;
+    this.transferModeRegistry = transferModeRegistry;
+    this.sanitiserDisabled = sanitiserDisabled;
   }
 
   public ParameterList createParameterList() {
@@ -42,7 +46,7 @@ class SimpleQuery implements V3Query {
       return NO_PARAMETERS;
     }
 
-    return new SimpleParameterList(getBindCount(), protoConnection);
+    return new SimpleParameterList(getBindCount(), transferModeRegistry);
   }
 
   public String toString(ParameterList parameters) {
@@ -56,10 +60,6 @@ class SimpleQuery implements V3Query {
   public void close() {
     unprepare();
   }
-
-  //
-  // V3Query
-  //
 
   public SimpleQuery[] getSubqueries() {
     return null;
@@ -106,7 +106,7 @@ class SimpleQuery implements V3Query {
   // Implementation guts
   //
 
-  String getNativeSql() {
+  public String getNativeSql() {
     return nativeQuery.nativeSql;
   }
 
@@ -278,9 +278,9 @@ class SimpleQuery implements V3Query {
   @Override
   public Map<String, Integer> getResultSetColumnNameIndexMap() {
     Map<String, Integer> columnPositions = this.resultSetColumnNameIndexMap;
-    if (columnPositions == null) {
+    if (columnPositions == null && fields != null) {
       columnPositions =
-          PgResultSet.createColumnNameIndexMap(fields, protoConnection.isSanitiserDisabled());
+          PgResultSet.createColumnNameIndexMap(fields, sanitiserDisabled);
       if (statementName != null) {
         // Cache column positions for server-prepared statements only
         this.resultSetColumnNameIndexMap = columnPositions;
@@ -289,9 +289,14 @@ class SimpleQuery implements V3Query {
     return columnPositions;
   }
 
+  @Override
+  public SqlCommand getSqlCommand() {
+    return nativeQuery.getCommand();
+  }
+
   private final NativeQuery nativeQuery;
 
-  private final ProtocolConnectionImpl protoConnection;
+  private final TypeTransferModeRegistry transferModeRegistry;
   private String statementName;
   private byte[] encodedStatementName;
   /**
@@ -303,6 +308,7 @@ class SimpleQuery implements V3Query {
   private boolean hasBinaryFields;
   private boolean portalDescribed;
   private boolean statementDescribed;
+  private final boolean sanitiserDisabled;
   private PhantomReference<?> cleanupRef;
   private int[] preparedTypes;
 

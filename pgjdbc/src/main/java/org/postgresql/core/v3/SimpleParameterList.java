@@ -39,12 +39,12 @@ class SimpleParameterList implements V3ParameterList {
   private final static byte TEXT = 0;
   private final static byte BINARY = 4;
 
-  SimpleParameterList(int paramCount, ProtocolConnectionImpl protoConnection) {
+  SimpleParameterList(int paramCount, TypeTransferModeRegistry transferModeRegistry) {
     this.paramValues = new Object[paramCount];
     this.paramTypes = new int[paramCount];
     this.encoded = new byte[paramCount][];
     this.flags = new byte[paramCount];
-    this.protoConnection = protoConnection;
+    this.transferModeRegistry = transferModeRegistry;
   }
 
   public void registerOutParameter(int index, int sqlType) throws SQLException {
@@ -147,13 +147,13 @@ class SimpleParameterList implements V3ParameterList {
 
     byte binaryTransfer = TEXT;
 
-    if (protoConnection.useBinaryForReceive(oid)) {
+    if (transferModeRegistry.useBinaryForReceive(oid)) {
       binaryTransfer = BINARY;
     }
     bind(index, NULL_OBJECT, oid, binaryTransfer);
   }
 
-  public String toString(int index) {
+  public String toString(int index, boolean standardConformingStrings) {
     --index;
     if (paramValues[index] == null) {
       return "?";
@@ -186,22 +186,12 @@ class SimpleParameterList implements V3ParameterList {
       return "?";
     } else {
       String param = paramValues[index].toString();
-      boolean hasBackslash = param.indexOf('\\') != -1;
 
       // add room for quotes + potential escaping.
       StringBuilder p = new StringBuilder(3 + param.length() * 11 / 10);
 
-      boolean standardConformingStrings = false;
-      boolean supportsEStringSyntax = false;
-      if (protoConnection != null) {
-        standardConformingStrings = protoConnection.getStandardConformingStrings();
-        supportsEStringSyntax = protoConnection.getServerVersionNum() >= 80100;
-      }
-
-      if (hasBackslash && !standardConformingStrings && supportsEStringSyntax) {
-        p.append('E');
-      }
-
+      // No E'..' here since escapeLiteral escapes all things and it does not use \123 kind of
+      // escape codes
       p.append('\'');
       try {
         p = Utils.escapeLiteral(p, param, standardConformingStrings);
@@ -351,7 +341,7 @@ class SimpleParameterList implements V3ParameterList {
 
 
   public ParameterList copy() {
-    SimpleParameterList newCopy = new SimpleParameterList(paramValues.length, protoConnection);
+    SimpleParameterList newCopy = new SimpleParameterList(paramValues.length, transferModeRegistry);
     System.arraycopy(paramValues, 0, newCopy.paramValues, 0, paramValues.length);
     System.arraycopy(paramTypes, 0, newCopy.paramTypes, 0, paramTypes.length);
     System.arraycopy(flags, 0, newCopy.flags, 0, flags.length);
@@ -407,17 +397,17 @@ class SimpleParameterList implements V3ParameterList {
     }
   }
 
-  @Override
   /**
    * Useful implementation of toString.
    * @return String representation of the list values
    */
+  @Override
   public String toString() {
     StringBuilder ts = new StringBuilder("<[");
     if (paramValues.length > 0) {
-      ts.append(toString(1));
+      ts.append(toString(1, true));
       for (int c = 2; c <= paramValues.length; c++) {
-        ts.append(" ,").append(toString(c));
+        ts.append(" ,").append(toString(c, true));
       }
     }
     ts.append("]>");
@@ -428,7 +418,7 @@ class SimpleParameterList implements V3ParameterList {
   private final int[] paramTypes;
   private final byte[] flags;
   private final byte[][] encoded;
-  private final ProtocolConnectionImpl protoConnection;
+  private final TypeTransferModeRegistry transferModeRegistry;
 
   /**
    * Marker object representing NULL; this distinguishes "parameter never set" from "parameter set

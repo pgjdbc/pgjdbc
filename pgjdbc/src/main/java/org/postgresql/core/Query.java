@@ -43,6 +43,18 @@ public interface Query {
   String toString(ParameterList parameters);
 
   /**
+   * Returns SQL in native for database format
+   * @return SQL in native for database format
+   */
+  String getNativeSql();
+
+  /**
+   * Returns properties of the query (sql keyword, and some other parsing info).
+   * @return returns properties of the query (sql keyword, and some other parsing info) or null if not applicable
+   */
+  SqlCommand getSqlCommand();
+
+  /**
    * Close this query and free any server-side resources associated with it. The resources may not
    * be immediately deallocated, but closing a Query may make the deallocation more prompt.
    * <p>
@@ -67,4 +79,12 @@ public interface Query {
    */
   Map<String, Integer> getResultSetColumnNameIndexMap();
 
+  /**
+   * Return a list of the Query objects that make up this query. If this object is already a
+   * SimpleQuery, returns null (avoids an extra array construction in the common case).
+   *
+   * @return an array of single-statement queries, or <code>null</code> if this object is already a
+   *         single-statement query.
+   */
+  Query[] getSubqueries();
 }

@@ -10,6 +10,7 @@
 package org.postgresql.core;
 
 import org.postgresql.PGProperty;
+import org.postgresql.core.v3.ConnectionFactoryImpl;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
@@ -25,15 +26,6 @@ import java.util.Properties;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 public abstract class ConnectionFactory {
-  /**
-   * Protocol version to implementation instance map. If no protocol version is specified, instances
-   * are tried in order until an exception is thrown or a non-null connection is returned.
-   */
-  private static final Object[][] versions = {
-      {"3", new org.postgresql.core.v3.ConnectionFactoryImpl()},
-      {"2", new org.postgresql.core.v2.ConnectionFactoryImpl()},
-  };
-
   /**
    * Establishes and initializes a new connection.
    * <p>
@@ -52,21 +44,17 @@ public abstract class ConnectionFactory {
    * @return the new, initialized, connection
    * @throws SQLException if the connection could not be established.
    */
-  public static ProtocolConnection openConnection(HostSpec[] hostSpecs, String user,
+  public static QueryExecutor openConnection(HostSpec[] hostSpecs, String user,
       String database, Properties info, Logger logger) throws SQLException {
     String protoName = PGProperty.PROTOCOL_VERSION.get(info);
 
-    for (Object[] version : versions) {
-      String versionProtoName = (String) version[0];
-      if (protoName != null && !protoName.equals(versionProtoName)) {
-        continue;
-      }
-
-      ConnectionFactory factory = (ConnectionFactory) version[1];
-      ProtocolConnection connection =
-          factory.openConnectionImpl(hostSpecs, user, database, info, logger);
-      if (connection != null) {
-        return connection;
+    if (protoName == null || "".equals(protoName)
+        || "2".equals(protoName) || "3".equals(protoName)) {
+      ConnectionFactory connectionFactory = new ConnectionFactoryImpl();
+      QueryExecutor queryExecutor =
+          connectionFactory.openConnectionImpl(hostSpecs, user, database, info, logger);
+      if (queryExecutor != null) {
+        return queryExecutor;
       }
     }
 
@@ -91,7 +79,7 @@ public abstract class ConnectionFactory {
    * @throws SQLException if the connection could not be established for a reason other than
    *         protocol version incompatibility.
    */
-  public abstract ProtocolConnection openConnectionImpl(HostSpec[] hostSpecs, String user,
+  public abstract QueryExecutor openConnectionImpl(HostSpec[] hostSpecs, String user,
       String database, Properties info, Logger logger) throws SQLException;
 
   /**

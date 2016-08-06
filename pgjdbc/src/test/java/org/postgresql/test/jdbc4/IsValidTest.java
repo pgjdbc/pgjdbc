@@ -1,6 +1,7 @@
 package org.postgresql.test.jdbc4;
 
 import org.postgresql.core.BaseConnection;
+import org.postgresql.core.TransactionState;
 import org.postgresql.test.TestUtil;
 
 import junit.framework.TestCase;
@@ -11,7 +12,7 @@ import java.sql.Statement;
 
 public class IsValidTest extends TestCase {
 
-  private int getTransactionState(Connection conn) {
+  private TransactionState getTransactionState(Connection conn) {
     return ((BaseConnection) conn).getTransactionState();
   }
 
@@ -31,7 +32,7 @@ public class IsValidTest extends TestCase {
   public void testTransactionState() throws Exception {
     Connection conn = TestUtil.openDB();
     try {
-      int transactionState;
+      TransactionState transactionState;
       transactionState = getTransactionState(conn);
       conn.isValid(0);
       Assert.assertEquals("Transaction state has been changed", transactionState,

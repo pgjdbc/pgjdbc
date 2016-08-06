@@ -20,13 +20,14 @@ import org.postgresql.core.Encoding;
 import org.postgresql.core.Field;
 import org.postgresql.core.Logger;
 import org.postgresql.core.Oid;
-import org.postgresql.core.ProtocolConnection;
 import org.postgresql.core.Provider;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandler;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.core.SqlCommand;
+import org.postgresql.core.TransactionState;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.core.Utils;
 import org.postgresql.core.Version;
@@ -97,7 +98,7 @@ public class PgConnection implements BaseConnection {
   private Throwable openStackTrace;
 
   /* Actual network handler */
-  private final ProtocolConnection protoConnection;
+  private final QueryExecutor queryExecutor;
   /* Compatible version as xxyyzz form */
   private final int compatibleInt;
 
@@ -133,34 +134,36 @@ public class PgConnection implements BaseConnection {
   // Bind String to UNSPECIFIED or VARCHAR?
   private final boolean bindStringAsVarchar;
 
-  // Current warnings; there might be more on protoConnection too.
+  // Current warnings; there might be more on queryExecutor too.
   private SQLWarning firstWarning = null;
-
-  /**
-   * Set of oids that use binary transfer when sending to server.
-   */
-  private Set<Integer> useBinarySendForOids;
-  /**
-   * Set of oids that use binary transfer when receiving from server.
-   */
-  private Set<Integer> useBinaryReceiveForOids;
 
   // Timer for scheduling TimerTasks for this connection.
   // Only instantiated if a task is actually scheduled.
   private volatile Timer cancelTimer = null;
 
-  private final LruCache<Object, CachedQuery> statementCache;
   private final LruCache<FieldMetadata.Key, FieldMetadata> fieldMetadataCache;
 
-  private boolean reWriteBatchedInserts = false;
+  final CachedQuery borrowQuery(String sql) throws SQLException {
+    return queryExecutor.borrowQuery(sql);
+  }
 
-  CachedQuery borrowQuery(String sql, boolean isCallable) throws SQLException {
-    Object key = isCallable ? new CallableQueryKey(sql) : sql;
-    return statementCache.borrow(key);
+  final CachedQuery borrowCallableQuery(String sql) throws SQLException {
+    return queryExecutor.borrowCallableQuery(sql);
+  }
+
+  private CachedQuery borrowReturningQuery(String sql, String[] columnNames) throws SQLException {
+    return queryExecutor.borrowReturningQuery(sql, columnNames);
+  }
+
+  @Override
+  public CachedQuery createQuery(String sql, boolean escapeProcessing, boolean isParameterized,
+      String... columnNames)
+      throws SQLException {
+    return queryExecutor.createQuery(sql, escapeProcessing, isParameterized, columnNames);
   }
 
   void releaseQuery(CachedQuery cachedQuery) {
-    statementCache.put(cachedQuery.key, cachedQuery);
+    queryExecutor.releaseQuery(cachedQuery);
   }
 
   //
@@ -208,7 +211,7 @@ public class PgConnection implements BaseConnection {
     }
 
     // Now make the initial connection and set up local state
-    this.protoConnection =
+    this.queryExecutor =
         ConnectionFactory.openConnection(hostSpecs, user, database, info, logger);
     int compat = Utils.parseServerVersionStr(PGProperty.COMPATIBLE.get(info));
     if (compat == 0) {
@@ -223,7 +226,7 @@ public class PgConnection implements BaseConnection {
 
     // Formats that currently have binary protocol support
     Set<Integer> binaryOids = new HashSet<Integer>();
-    if (binaryTransfer && protoConnection.getProtocolVersion() >= 3) {
+    if (binaryTransfer && queryExecutor.getProtocolVersion() >= 3) {
       binaryOids.add(Oid.BYTEA);
       binaryOids.add(Oid.INT2);
       binaryOids.add(Oid.INT4);
@@ -271,9 +274,10 @@ public class PgConnection implements BaseConnection {
     binaryOids.removeAll(getOidSet(PGProperty.BINARY_TRANSFER_DISABLE.get(info)));
 
     // split for receive and send for better control
-    useBinarySendForOids = new HashSet<Integer>();
+    Set<Integer> useBinarySendForOids = new HashSet<Integer>();
     useBinarySendForOids.addAll(binaryOids);
-    useBinaryReceiveForOids = new HashSet<Integer>();
+
+    Set<Integer> useBinaryReceiveForOids = new HashSet<Integer>();
     useBinaryReceiveForOids.addAll(binaryOids);
 
     /*
@@ -282,7 +286,8 @@ public class PgConnection implements BaseConnection {
      */
     useBinarySendForOids.remove(Oid.DATE);
 
-    protoConnection.setBinaryReceiveOids(useBinaryReceiveForOids);
+    queryExecutor.setBinaryReceiveOids(useBinaryReceiveForOids);
+    queryExecutor.setBinarySendOids(useBinarySendForOids);
 
     if (logger.logDebug()) {
       logger.debug("    compatible = " + compatibleInt);
@@ -290,7 +295,7 @@ public class PgConnection implements BaseConnection {
       logger.debug("    prepare threshold = " + prepareThreshold);
       logger.debug("    types using binary send = " + oidsToString(useBinarySendForOids));
       logger.debug("    types using binary receive = " + oidsToString(useBinaryReceiveForOids));
-      logger.debug("    integer date/time = " + protoConnection.getIntegerDateTimes());
+      logger.debug("    integer date/time = " + queryExecutor.getIntegerDateTimes());
     }
 
     //
@@ -314,17 +319,19 @@ public class PgConnection implements BaseConnection {
 
     // Initialize timestamp stuff
     timestampUtils = new TimestampUtils(haveMinimumServerVersion(ServerVersion.v7_4),
-        haveMinimumServerVersion(ServerVersion.v8_2), !protoConnection.getIntegerDateTimes(),
+        haveMinimumServerVersion(ServerVersion.v8_2), !queryExecutor.getIntegerDateTimes(),
         new Provider<TimeZone>() {
           @Override
           public TimeZone get() {
-            return protoConnection.getTimeZone();
+            return queryExecutor.getTimeZone();
           }
         });
 
     // Initialize common queries.
-    commitQuery = getQueryExecutor().createSimpleQuery("COMMIT");
-    rollbackQuery = getQueryExecutor().createSimpleQuery("ROLLBACK");
+    // isParameterized==true so full parse is performed and the engine knows the query
+    // is not a compound query with ; inside, so it could use parse/bind/exec messages
+    commitQuery = createQuery("COMMIT", false, true).query;
+    rollbackQuery = createQuery("ROLLBACK", false, true).query;
 
     int unknownLength = PGProperty.UNKNOWN_LENGTH.getInt(info);
 
@@ -336,17 +343,6 @@ public class PgConnection implements BaseConnection {
       openStackTrace = new Throwable("Connection was created at this point:");
     }
     this.disableColumnSanitiser = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
-    statementCache = new LruCache<Object, CachedQuery>(
-        Math.max(0, PGProperty.PREPARED_STATEMENT_CACHE_QUERIES.getInt(info)),
-        Math.max(0, PGProperty.PREPARED_STATEMENT_CACHE_SIZE_MIB.getInt(info) * 1024 * 1024),
-        false,
-        new CachedQueryCreateAction(this, protoConnection.getServerVersionNum()),
-        new LruCache.EvictAction<CachedQuery>() {
-          @Override
-          public void evict(CachedQuery cachedQuery) throws SQLException {
-            cachedQuery.query.close();
-          }
-        });
 
     TypeInfo types1 = getTypeInfo();
     if (haveMinimumServerVersion(ServerVersion.v8_3)) {
@@ -366,8 +362,6 @@ public class PgConnection implements BaseConnection {
       }
       this._clientInfo.put("ApplicationName", appName);
     }
-
-    reWriteBatchedInserts = PGProperty.REWRITE_BATCHED_INSERTS.getBoolean(info);
 
     fieldMetadataCache = new LruCache<FieldMetadata.Key, FieldMetadata>(
             Math.max(0, PGProperty.DATABASE_METADATA_CACHE_FIELDS.getInt(info)),
@@ -432,7 +426,7 @@ public class PgConnection implements BaseConnection {
   }
 
   public QueryExecutor getQueryExecutor() {
-    return protoConnection.getQueryExecutor();
+    return queryExecutor;
   }
 
   /**
@@ -541,7 +535,7 @@ public class PgConnection implements BaseConnection {
    * @throws SQLException just in case...
    */
   public String getUserName() throws SQLException {
-    return protoConnection.getUser();
+    return queryExecutor.getUser();
   }
 
   public Fastpath getFastpathAPI() throws SQLException {
@@ -697,20 +691,20 @@ public class PgConnection implements BaseConnection {
    */
   public void close() throws SQLException {
     releaseTimer();
-    protoConnection.close();
+    queryExecutor.close();
     openStackTrace = null;
   }
 
   public String nativeSQL(String sql) throws SQLException {
     checkClosed();
-    StringBuilder buf = new StringBuilder(sql.length());
-    PgStatement.parseSql(sql, 0, buf, false, getStandardConformingStrings());
-    return buf.toString();
+    CachedQuery cachedQuery = queryExecutor.createQuery(sql, false, true);
+
+    return cachedQuery.query.getNativeSql();
   }
 
   public synchronized SQLWarning getWarnings() throws SQLException {
     checkClosed();
-    SQLWarning newWarnings = protoConnection.getWarnings(); // NB: also clears them.
+    SQLWarning newWarnings = queryExecutor.getWarnings(); // NB: also clears them.
     if (firstWarning == null) {
       firstWarning = newWarnings;
     } else {
@@ -722,14 +716,14 @@ public class PgConnection implements BaseConnection {
 
   public synchronized void clearWarnings() throws SQLException {
     checkClosed();
-    protoConnection.getWarnings(); // Clear and discard.
+    queryExecutor.getWarnings(); // Clear and discard.
     firstWarning = null;
   }
 
 
   public void setReadOnly(boolean readOnly) throws SQLException {
     checkClosed();
-    if (protoConnection.getTransactionState() != ProtocolConnection.TRANSACTION_IDLE) {
+    if (queryExecutor.getTransactionState() != TransactionState.IDLE) {
       throw new PSQLException(
           GT.tr("Cannot change transaction read-only property in the middle of a transaction."),
           PSQLState.ACTIVE_SQL_TRANSACTION);
@@ -786,7 +780,7 @@ public class PgConnection implements BaseConnection {
           PSQLState.NO_ACTIVE_SQL_TRANSACTION);
     }
 
-    if (protoConnection.getTransactionState() != ProtocolConnection.TRANSACTION_IDLE) {
+    if (queryExecutor.getTransactionState() != TransactionState.IDLE) {
       executeTransactionCommand(commitQuery);
     }
   }
@@ -807,13 +801,13 @@ public class PgConnection implements BaseConnection {
           PSQLState.NO_ACTIVE_SQL_TRANSACTION);
     }
 
-    if (protoConnection.getTransactionState() != ProtocolConnection.TRANSACTION_IDLE) {
+    if (queryExecutor.getTransactionState() != TransactionState.IDLE) {
       executeTransactionCommand(rollbackQuery);
     }
   }
 
-  public int getTransactionState() {
-    return protoConnection.getTransactionState();
+  public TransactionState getTransactionState() {
+    return queryExecutor.getTransactionState();
   }
 
   public int getTransactionIsolation() throws SQLException {
@@ -875,7 +869,7 @@ public class PgConnection implements BaseConnection {
   public void setTransactionIsolation(int level) throws SQLException {
     checkClosed();
 
-    if (protoConnection.getTransactionState() != ProtocolConnection.TRANSACTION_IDLE) {
+    if (queryExecutor.getTransactionState() != TransactionState.IDLE) {
       throw new PSQLException(
           GT.tr("Cannot change transaction isolation level in the middle of a transaction."),
           PSQLState.ACTIVE_SQL_TRANSACTION);
@@ -915,7 +909,7 @@ public class PgConnection implements BaseConnection {
 
   public String getCatalog() throws SQLException {
     checkClosed();
-    return protoConnection.getDatabase();
+    return queryExecutor.getDatabase();
   }
 
   /**
@@ -943,7 +937,7 @@ public class PgConnection implements BaseConnection {
    * @return server version number
    */
   public String getDBVersionNumber() {
-    return protoConnection.getServerVersion();
+    return queryExecutor.getServerVersion();
   }
 
   /**
@@ -953,7 +947,7 @@ public class PgConnection implements BaseConnection {
    */
   public int getServerMajorVersion() {
     try {
-      StringTokenizer versionTokens = new StringTokenizer(protoConnection.getServerVersion(), "."); // aaXbb.ccYdd
+      StringTokenizer versionTokens = new StringTokenizer(queryExecutor.getServerVersion(), "."); // aaXbb.ccYdd
       return integerPart(versionTokens.nextToken()); // return X
     } catch (NoSuchElementException e) {
       return 0;
@@ -967,7 +961,7 @@ public class PgConnection implements BaseConnection {
    */
   public int getServerMinorVersion() {
     try {
-      StringTokenizer versionTokens = new StringTokenizer(protoConnection.getServerVersion(), "."); // aaXbb.ccYdd
+      StringTokenizer versionTokens = new StringTokenizer(queryExecutor.getServerVersion(), "."); // aaXbb.ccYdd
       versionTokens.nextToken(); // Skip aaXbb
       return integerPart(versionTokens.nextToken()); // return Y
     } catch (NoSuchElementException e) {
@@ -981,14 +975,14 @@ public class PgConnection implements BaseConnection {
       /*
        * Failed to parse input version. Fall back on legacy behaviour for BC.
        */
-      return (protoConnection.getServerVersion().compareTo(ver) >= 0);
+      return (queryExecutor.getServerVersion().compareTo(ver) >= 0);
     } else {
       return haveMinimumServerVersion(requiredver);
     }
   }
 
   public boolean haveMinimumServerVersion(int ver) {
-    return protoConnection.getServerVersionNum() >= ver;
+    return queryExecutor.getServerVersionNum() >= ver;
   }
 
   public boolean haveMinimumServerVersion(Version ver) {
@@ -1009,7 +1003,7 @@ public class PgConnection implements BaseConnection {
 
 
   public Encoding getEncoding() {
-    return protoConnection.getEncoding();
+    return queryExecutor.getEncoding();
   }
 
   public byte[] encodeString(String str) throws SQLException {
@@ -1022,31 +1016,31 @@ public class PgConnection implements BaseConnection {
   }
 
   public String escapeString(String str) throws SQLException {
-    return Utils.escapeLiteral(null, str, protoConnection.getStandardConformingStrings())
+    return Utils.escapeLiteral(null, str, queryExecutor.getStandardConformingStrings())
         .toString();
   }
 
   public boolean getStandardConformingStrings() {
-    return protoConnection.getStandardConformingStrings();
+    return queryExecutor.getStandardConformingStrings();
   }
 
   // This is a cache of the DatabaseMetaData instance for this connection
   protected java.sql.DatabaseMetaData metadata;
 
   public boolean isClosed() throws SQLException {
-    return protoConnection.isClosed();
+    return queryExecutor.isClosed();
   }
 
   public void cancelQuery() throws SQLException {
     checkClosed();
-    protoConnection.sendQueryCancel();
+    queryExecutor.sendQueryCancel();
   }
 
   public PGNotification[] getNotifications() throws SQLException {
     checkClosed();
     getQueryExecutor().processNotifies();
     // Backwards-compatibility hand-holding.
-    PGNotification[] notifications = protoConnection.getNotifications();
+    PGNotification[] notifications = queryExecutor.getNotifications();
     return (notifications.length == 0 ? null : notifications);
   }
 
@@ -1115,22 +1109,12 @@ public class PgConnection implements BaseConnection {
     typemap = map;
   }
 
-  @Override
-  public boolean isReWriteBatchedInsertsEnabled() {
-    return this.reWriteBatchedInserts;
-  }
-
-  public void setReWriteBatchedInserts(boolean reWrite) {
-    this.reWriteBatchedInserts = reWrite;
-  }
-
   public Logger getLogger() {
     return logger;
   }
 
-
   public int getProtocolVersion() {
-    return protoConnection.getProtocolVersion();
+    return queryExecutor.getProtocolVersion();
   }
 
   public boolean getStringVarcharFlag() {
@@ -1148,11 +1132,11 @@ public class PgConnection implements BaseConnection {
   }
 
   public boolean binaryTransferSend(int oid) {
-    return useBinarySendForOids.contains(oid);
+    return queryExecutor.useBinaryForSend(oid);
   }
 
   public int getBackendPID() {
-    return protoConnection.getBackendPID();
+    return queryExecutor.getBackendPID();
   }
 
   public boolean isColumnSanitiserDisabled() {
@@ -1164,7 +1148,7 @@ public class PgConnection implements BaseConnection {
   }
 
   protected void abort() {
-    protoConnection.abort();
+    queryExecutor.abort();
   }
 
   private synchronized Timer getTimer() {
@@ -1198,7 +1182,7 @@ public class PgConnection implements BaseConnection {
   }
 
   public String escapeLiteral(String literal) throws SQLException {
-    return Utils.escapeLiteral(null, literal, protoConnection.getStandardConformingStrings())
+    return Utils.escapeLiteral(null, literal, queryExecutor.getStandardConformingStrings())
         .toString();
   }
 
@@ -1385,7 +1369,7 @@ public class PgConnection implements BaseConnection {
       if (value == null) {
         value = "";
       }
-      final String oldValue = protoConnection.getApplicationName();
+      final String oldValue = queryExecutor.getApplicationName();
       if (value.equals(oldValue)) {
         return;
       }
@@ -1439,13 +1423,13 @@ public class PgConnection implements BaseConnection {
 
   public String getClientInfo(String name) throws SQLException {
     checkClosed();
-    _clientInfo.put("ApplicationName", protoConnection.getApplicationName());
+    _clientInfo.put("ApplicationName", queryExecutor.getApplicationName());
     return _clientInfo.getProperty(name);
   }
 
   public Properties getClientInfo() throws SQLException {
     checkClosed();
-    _clientInfo.put("ApplicationName", protoConnection.getApplicationName());
+    _clientInfo.put("ApplicationName", queryExecutor.getApplicationName());
     return _clientInfo;
   }
 
@@ -1641,22 +1625,15 @@ public class PgConnection implements BaseConnection {
   }
 
   public PreparedStatement prepareStatement(String sql, int autoGeneratedKeys) throws SQLException {
-    checkClosed();
-    if (autoGeneratedKeys != Statement.NO_GENERATED_KEYS) {
-      sql = PgStatement.addReturning(this, sql, new String[]{"*"}, false);
+    if (autoGeneratedKeys != Statement.RETURN_GENERATED_KEYS) {
+      return prepareStatement(sql);
     }
 
-    PreparedStatement ps = prepareStatement(sql);
-
-    if (autoGeneratedKeys != Statement.NO_GENERATED_KEYS) {
-      ((PgStatement) ps).wantsGeneratedKeysAlways = true;
-    }
-
-    return ps;
+    return prepareStatement(sql, (String[]) null);
   }
 
   public PreparedStatement prepareStatement(String sql, int columnIndexes[]) throws SQLException {
-    if (columnIndexes == null || columnIndexes.length == 0) {
+    if (columnIndexes != null && columnIndexes.length == 0) {
       return prepareStatement(sql);
     }
 
@@ -1666,16 +1643,23 @@ public class PgConnection implements BaseConnection {
   }
 
   public PreparedStatement prepareStatement(String sql, String columnNames[]) throws SQLException {
-    if (columnNames != null && columnNames.length != 0) {
-      sql = PgStatement.addReturning(this, sql, columnNames, true);
+    if (columnNames != null && columnNames.length == 0) {
+      return prepareStatement(sql);
     }
 
-    PreparedStatement ps = prepareStatement(sql);
-
-    if (columnNames != null && columnNames.length != 0) {
-      ((PgStatement) ps).wantsGeneratedKeysAlways = true;
+    CachedQuery cachedQuery = borrowReturningQuery(sql, columnNames);
+    PgPreparedStatement ps =
+        new PgPreparedStatement(this, cachedQuery,
+            ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.CONCUR_READ_ONLY,
+            getHoldability());
+    Query query = cachedQuery.query;
+    SqlCommand sqlCommand = query.getSqlCommand();
+    if (sqlCommand != null) {
+      ps.wantsGeneratedKeysAlways = sqlCommand.isReturningKeywordPresent();
+    } else {
+      // If composite query is given, just ignore "generated keys" arguments
     }
-
     return ps;
   }
 }

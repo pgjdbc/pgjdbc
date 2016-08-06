@@ -8,19 +8,11 @@
 
 package org.postgresql.core.v3;
 
-import org.postgresql.core.Logger;
-import org.postgresql.core.PGStream;
-import org.postgresql.core.v2.SocketFactoryFactory;
-import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest;
-import org.postgresql.util.HostSpec;
 
 import org.junit.Before;
 
 import java.sql.SQLException;
-import java.util.Properties;
-
-import javax.net.SocketFactory;
 
 /**
  * Test cases to make sure the parameterlist implementation works as expected.
@@ -38,13 +30,13 @@ public class V3ParameterListTests extends BaseTest {
    *           raised exception if setting parameter fails.
    */
   public void testMergeOfParameterLists() throws SQLException {
-    SimpleParameterList s1SPL = new SimpleParameterList(8, pci);
+    SimpleParameterList s1SPL = new SimpleParameterList(8, transferModeRegistry);
     s1SPL.setIntParameter(1, 1);
     s1SPL.setIntParameter(2, 2);
     s1SPL.setIntParameter(3, 3);
     s1SPL.setIntParameter(4, 4);
 
-    SimpleParameterList s2SPL = new SimpleParameterList(4, pci);
+    SimpleParameterList s2SPL = new SimpleParameterList(4, transferModeRegistry);
     s2SPL.setIntParameter(1, 5);
     s2SPL.setIntParameter(2, 6);
     s2SPL.setIntParameter(3, 7);
@@ -60,14 +52,22 @@ public class V3ParameterListTests extends BaseTest {
     super(test);
   }
 
-  private ProtocolConnectionImpl pci;
+  private TypeTransferModeRegistry transferModeRegistry;
 
   @Override
   @Before
   protected void setUp() throws Exception {
-    SocketFactory socketFactory = SocketFactoryFactory.getSocketFactory(System.getProperties());
-    HostSpec hostSpec = new HostSpec(TestUtil.getServer(), TestUtil.getPort());
-    pci = new ProtocolConnectionImpl(new PGStream(socketFactory, hostSpec), "",
-        "", new Properties(), new Logger(), 5000);
+    transferModeRegistry =
+        new TypeTransferModeRegistry() {
+          @Override
+          public boolean useBinaryForSend(int oid) {
+            return false;
+          }
+
+          @Override
+          public boolean useBinaryForReceive(int oid) {
+            return false;
+          }
+        };
   }
 }

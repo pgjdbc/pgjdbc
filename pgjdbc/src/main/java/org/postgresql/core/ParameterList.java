@@ -167,9 +167,10 @@ public interface ParameterList {
    * parameter is not bound, returns "?".
    *
    * @param index the 1-based parameter index to bind.
+   * @param standardConformingStrings true if \ is not an escape character in strings literals
    * @return a string representation of the parameter.
    */
-  String toString(int index);
+  String toString(int index, boolean standardConformingStrings);
 
   /**
    * Use this operation to append more parameters to the current list.

@@ -88,15 +88,16 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   PgPreparedStatement(PgConnection connection, String sql, int rsType, int rsConcurrency,
       int rsHoldability) throws SQLException {
-    this(connection, sql, false, rsType, rsConcurrency, rsHoldability);
+    this(connection, connection.borrowQuery(sql), rsType, rsConcurrency, rsHoldability);
   }
 
-  PgPreparedStatement(PgConnection connection, String sql, boolean isCallable, int rsType,
+  PgPreparedStatement(PgConnection connection, CachedQuery query, int rsType,
       int rsConcurrency, int rsHoldability) throws SQLException {
     super(connection, rsType, rsConcurrency, rsHoldability);
 
-    this.preparedQuery = connection.borrowQuery(sql, isCallable);
+    this.preparedQuery = query;
     this.preparedParameters = this.preparedQuery.query.createParameterList();
+    // TODO: this.wantsGeneratedKeysAlways = true;
 
     setPoolable(true); // As per JDBC spec: prepared and callable statements are poolable by
   }

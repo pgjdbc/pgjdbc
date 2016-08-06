@@ -8,10 +8,13 @@
 
 package org.postgresql.core;
 
+import org.postgresql.jdbc.EscapedFunctions;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -36,12 +39,15 @@ public class Parser {
    * @param withParameters            whether to replace ?, ? with $1, $2, etc
    * @param splitStatements           whether to split statements by semicolon
    * @param isBatchedReWriteConfigured whether re-write optimization is enabled
+   * @param returningColumnNames      for simple insert, update, delete add returning with given column names
    * @return list of native queries
    */
   public static List<NativeQuery> parseJdbcSql(String query, boolean standardConformingStrings,
       boolean withParameters, boolean splitStatements,
-      boolean isBatchedReWriteConfigured) {
-    if (!withParameters && !splitStatements) {
+      boolean isBatchedReWriteConfigured,
+      String... returningColumnNames) throws SQLException {
+    if (!withParameters && !splitStatements
+        && returningColumnNames != null && returningColumnNames.length == 0) {
       return Collections.singletonList(new NativeQuery(query,
         SqlCommand.createStatementTypeInfo(SqlCommandType.BLANK)));
     }
@@ -134,6 +140,10 @@ public class Parser {
                 nativeQueries = new ArrayList<NativeQuery>();
               }
 
+              if (addReturning(nativeSql, currentCommandType, returningColumnNames, isReturningPresent)) {
+                isReturningPresent = true;
+              }
+
               nativeQueries.add(new NativeQuery(nativeSql.toString(),
                   toIntArray(bindPositions), SqlCommand.createStatementTypeInfo(
                       currentCommandType, isBatchedReWriteConfigured, valuesBraceOpenPosition,
@@ -162,23 +172,30 @@ public class Parser {
       }
       if (keywordStart >= 0 && (i == aChars.length - 1 || !isKeyWordChar)) {
         int wordLength = (isKeyWordChar ? i + 1 : i) - keywordStart;
-        if (wordLength == 6 && parseUpdateKeyword(aChars, keywordStart)) {
-          currentCommandType = SqlCommandType.UPDATE;
-        } else if (wordLength == 6 && parseDeleteKeyword(aChars, keywordStart)) {
-          currentCommandType = SqlCommandType.DELETE;
-        } else if (wordLength == 4 && parseMoveKeyword(aChars, keywordStart)) {
-          currentCommandType = SqlCommandType.MOVE;
-        } else if (wordLength == 6 && parseInsertKeyword(aChars, keywordStart)) {
-          if (!isInsertPresent && (nativeQueries == null || nativeQueries.isEmpty())) {
-            // Only allow rewrite for insert command starting with the insert keyword.
-            // Else, too many risks of wrong interpretation.
-            isCurrentReWriteCompatible = keyWordCount == 0;
-            isInsertPresent = true;
-            currentCommandType = SqlCommandType.INSERT;
-          } else {
-            isCurrentReWriteCompatible = false;
+        if (currentCommandType == SqlCommandType.BLANK) {
+          if (wordLength == 6 && parseUpdateKeyword(aChars, keywordStart)) {
+            currentCommandType = SqlCommandType.UPDATE;
+          } else if (wordLength == 6 && parseDeleteKeyword(aChars, keywordStart)) {
+            currentCommandType = SqlCommandType.DELETE;
+          } else if (wordLength == 4 && parseMoveKeyword(aChars, keywordStart)) {
+            currentCommandType = SqlCommandType.MOVE;
+          } else if (wordLength == 6 && parseSelectKeyword(aChars, keywordStart)) {
+            currentCommandType = SqlCommandType.SELECT;
+          } else if (wordLength == 4 && parseWithKeyword(aChars, keywordStart)) {
+            currentCommandType = SqlCommandType.WITH;
+          } else if (wordLength == 6 && parseInsertKeyword(aChars, keywordStart)) {
+            if (!isInsertPresent && (nativeQueries == null || nativeQueries.isEmpty())) {
+              // Only allow rewrite for insert command starting with the insert keyword.
+              // Else, too many risks of wrong interpretation.
+              isCurrentReWriteCompatible = keyWordCount == 0;
+              isInsertPresent = true;
+              currentCommandType = SqlCommandType.INSERT;
+            } else {
+              isCurrentReWriteCompatible = false;
+            }
           }
-        } else if (wordLength == 9 && parseReturningKeyword(aChars, keywordStart)) {
+        }
+        if (wordLength == 9 && parseReturningKeyword(aChars, keywordStart)) {
           isReturningPresent = true;
         } else if (wordLength == 6 && parseValuesKeyword(aChars, keywordStart)) {
           isValuesFound = true;
@@ -209,6 +226,10 @@ public class Parser {
       return nativeQueries != null ? nativeQueries : Collections.<NativeQuery>emptyList();
     }
 
+    if (addReturning(nativeSql, currentCommandType, returningColumnNames, isReturningPresent)) {
+      isReturningPresent = true;
+    }
+
     NativeQuery lastQuery = new NativeQuery(nativeSql.toString(),
         toIntArray(bindPositions), SqlCommand.createStatementTypeInfo(currentCommandType,
             isBatchedReWriteConfigured, valuesBraceOpenPosition, valuesBraceClosePosition,
@@ -222,6 +243,32 @@ public class Parser {
       nativeQueries.add(lastQuery);
     }
     return nativeQueries;
+  }
+
+  private static boolean addReturning(StringBuilder nativeSql, SqlCommandType currentCommandType,
+      String[] returningColumnNames, boolean isReturningPresent) throws SQLException {
+    if (isReturningPresent || returningColumnNames.length == 0) {
+      return false;
+    }
+    if (currentCommandType != SqlCommandType.INSERT
+        && currentCommandType != SqlCommandType.UPDATE
+        && currentCommandType != SqlCommandType.DELETE) {
+      return false;
+    }
+
+    nativeSql.append("\nRETURNING ");
+    if (returningColumnNames.length == 1 && returningColumnNames[0].charAt(0) == '*') {
+      nativeSql.append('*');
+      return true;
+    }
+    for (int col = 0; col < returningColumnNames.length; col++) {
+      String columnName = returningColumnNames[col];
+      if (col > 0) {
+        nativeSql.append(", ");
+      }
+      Utils.escapeIdentifier(nativeSql, columnName);
+    }
+    return true;
   }
 
   /**
@@ -493,6 +540,26 @@ public class Parser {
   }
 
   /**
+   * Parse string to check presence of SELECT keyword regardless of case.
+   *
+   * @param query char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+  public static boolean parseSelectKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 6)) {
+      return false;
+    }
+
+    return (query[offset] | 32) == 's'
+        && (query[offset + 1] | 32) == 'e'
+        && (query[offset + 2] | 32) == 'l'
+        && (query[offset + 3] | 32) == 'e'
+        && (query[offset + 4] | 32) == 'c'
+        && (query[offset + 5] | 32) == 't';
+  }
+
+  /**
    * Parse string to check presence of UPDATE keyword regardless of case.
    *
    * @param query char[] of the query statement
@@ -530,6 +597,24 @@ public class Parser {
         && (query[offset + 3] | 32) == 'u'
         && (query[offset + 4] | 32) == 'e'
         && (query[offset + 5] | 32) == 's';
+  }
+
+  /**
+   * Parse string to check presence of WITH keyword regardless of case.
+   *
+   * @param query char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+  public static boolean parseWithKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 4)) {
+      return false;
+    }
+
+    return (query[offset] | 32) == 'w'
+        && (query[offset + 1] | 32) == 'i'
+        && (query[offset + 2] | 32) == 't'
+        && (query[offset + 3] | 32) == 'h';
   }
 
   /**
@@ -841,4 +926,265 @@ public class Parser {
     return new JdbcCallParseInfo(sql, isFunction, outParmBeforeFunc);
   }
 
+  /**
+   * Filter the SQL string of Java SQL Escape clauses.
+   *
+   * Currently implemented Escape clauses are those mentioned in 11.3 in the specification.
+   * Basically we look through the sql string for {d xxx}, {t xxx}, {ts xxx}, {oj xxx} or {fn xxx}
+   * in non-string sql code. When we find them, we just strip the escape part leaving only the xxx
+   * part. So, something like "select * from x where d={d '2001-10-09'}" would return "select * from
+   * x where d= '2001-10-09'".
+   *
+   * @param p_sql the original query text
+   * @param replaceProcessingEnabled whether replace_processing_enabled is on
+   * @param standardConformingStrings whether standard_conforming_strings is on
+   * @return PostgreSQL-compatible SQL
+   */
+  static String replaceProcessing(String p_sql, boolean replaceProcessingEnabled,
+      boolean standardConformingStrings) throws SQLException {
+    if (replaceProcessingEnabled) {
+      // Since escape codes can only appear in SQL CODE, we keep track
+      // of if we enter a string or not.
+      int len = p_sql.length();
+      StringBuilder newsql = new StringBuilder(len);
+      int i = 0;
+      while (i < len) {
+        i = parseSql(p_sql, i, newsql, false, standardConformingStrings);
+        // We need to loop here in case we encounter invalid
+        // SQL, consider: SELECT a FROM t WHERE (1 > 0)) ORDER BY a
+        // We can't ending replacing after the extra closing paren
+        // because that changes a syntax error to a valid query
+        // that isn't what the user specified.
+        if (i < len) {
+          newsql.append(p_sql.charAt(i));
+          i++;
+        }
+      }
+      return newsql.toString();
+    } else {
+      return p_sql;
+    }
+  }
+
+  /**
+   * parse the given sql from index i, appending it to the given buffer until we hit an unmatched
+   * right parentheses or end of string. When the stopOnComma flag is set we also stop processing
+   * when a comma is found in sql text that isn't inside nested parenthesis.
+   *
+   * @param p_sql the original query text
+   * @param i starting position for replacing
+   * @param newsql where to write the replaced output
+   * @param stopOnComma should we stop after hitting the first comma in sql text?
+   * @param stdStrings whether standard_conforming_strings is on
+   * @return the position we stopped processing at
+   * @throws SQLException if given SQL is wrong
+   */
+  private static int parseSql(String p_sql, int i, StringBuilder newsql, boolean stopOnComma,
+      boolean stdStrings) throws SQLException {
+    SqlParseState state = SqlParseState.IN_SQLCODE;
+    int len = p_sql.length();
+    int nestedParenthesis = 0;
+    boolean endOfNested = false;
+
+    // because of the ++i loop
+    i--;
+    while (!endOfNested && ++i < len) {
+      char c = p_sql.charAt(i);
+      switch (state) {
+        case IN_SQLCODE:
+          if (c == '$' && (i == 0 || !isIdentifierContChar(p_sql.charAt(i - 1)))) {
+            // start of a dollar-quoted string
+            int tagEnd = -1;
+            if (i + 1 < len) {
+              tagEnd = p_sql.indexOf('$', i + 1);
+            }
+            if (tagEnd != -1) {
+              String dollarQuoteTag = p_sql.substring(i, tagEnd + 1);
+              int nextPos = p_sql.indexOf(dollarQuoteTag, i + dollarQuoteTag.length());
+              if (nextPos > 0) {
+                tagEnd = nextPos + dollarQuoteTag.length();
+              }
+            }
+            if (tagEnd == -1) {
+              tagEnd = len;
+            }
+            newsql.append(p_sql, i, tagEnd); // tagEnd is excluding
+            i = tagEnd - 1;
+            break;
+          } else if (c == '\'') {
+            // start of a string?
+            state = SqlParseState.IN_STRING;
+          } else if (c == '"') {
+            // start of a identifier?
+            state = SqlParseState.IN_IDENTIFIER;
+          } else if (c == '(') { // begin nested sql
+            nestedParenthesis++;
+          } else if (c == ')') { // end of nested sql
+            nestedParenthesis--;
+            if (nestedParenthesis < 0) {
+              endOfNested = true;
+              break;
+            }
+          } else if (stopOnComma && c == ',' && nestedParenthesis == 0) {
+            endOfNested = true;
+            break;
+          } else if (c == '{') { // start of an escape code?
+            if (i + 1 < len) {
+              char next = p_sql.charAt(i + 1);
+              char nextnext = (i + 2 < len) ? p_sql.charAt(i + 2) : '\0';
+              if (next == 'd' || next == 'D') {
+                state = SqlParseState.ESC_TIMEDATE;
+                i++;
+                newsql.append("DATE ");
+                break;
+              } else if (next == 't' || next == 'T') {
+                state = SqlParseState.ESC_TIMEDATE;
+                if (nextnext == 's' || nextnext == 'S') {
+                  // timestamp constant
+                  i += 2;
+                  newsql.append("TIMESTAMP ");
+                } else {
+                  // time constant
+                  i++;
+                  newsql.append("TIME ");
+                }
+                break;
+              } else if (next == 'f' || next == 'F') {
+                state = SqlParseState.ESC_FUNCTION;
+                i += (nextnext == 'n' || nextnext == 'N') ? 2 : 1;
+                break;
+              } else if (next == 'o' || next == 'O') {
+                state = SqlParseState.ESC_OUTERJOIN;
+                i += (nextnext == 'j' || nextnext == 'J') ? 2 : 1;
+                break;
+              } else if (next == 'e' || next == 'E') {
+                // we assume that escape is the only escape sequence beginning with e
+                state = SqlParseState.ESC_ESCAPECHAR;
+                break;
+              }
+            }
+          }
+          newsql.append(c);
+          break;
+
+        case IN_STRING:
+          if (c == '\'') {
+            // end of string?
+            state = SqlParseState.IN_SQLCODE;
+          } else if (c == '\\' && !stdStrings) {
+            // a backslash?
+            state = SqlParseState.BACKSLASH;
+          }
+
+          newsql.append(c);
+          break;
+
+        case IN_IDENTIFIER:
+          if (c == '"') {
+            // end of identifier
+            state = SqlParseState.IN_SQLCODE;
+          }
+          newsql.append(c);
+          break;
+
+        case BACKSLASH:
+          state = SqlParseState.IN_STRING;
+
+          newsql.append(c);
+          break;
+
+        case ESC_FUNCTION:
+          // extract function name
+          String functionName;
+          int posArgs = p_sql.indexOf('(', i);
+          if (posArgs != -1) {
+            functionName = p_sql.substring(i, posArgs).trim();
+            // extract arguments
+            i = posArgs + 1;// we start the scan after the first (
+            StringBuilder args = new StringBuilder();
+            i = parseSql(p_sql, i, args, false, stdStrings);
+            // translate the function and parse arguments
+            newsql.append(escapeFunction(functionName, args.toString(), stdStrings));
+          }
+          // go to the end of the function copying anything found
+          i++;
+          while (i < len && p_sql.charAt(i) != '}') {
+            newsql.append(p_sql.charAt(i++));
+          }
+          state = SqlParseState.IN_SQLCODE; // end of escaped function (or query)
+          break;
+        case ESC_TIMEDATE:
+        case ESC_OUTERJOIN:
+        case ESC_ESCAPECHAR:
+          if (c == '}') {
+            state = SqlParseState.IN_SQLCODE; // end of escape code.
+          } else {
+            newsql.append(c);
+          }
+          break;
+      } // end switch
+    }
+    return i;
+  }
+
+  /**
+   * generate sql for escaped functions
+   *
+   * @param functionName the escaped function name
+   * @param args the arguments for this function
+   * @param stdStrings whether standard_conforming_strings is on
+   * @return the right postgreSql sql
+   * @throws SQLException if something goes wrong
+   */
+  private static String escapeFunction(String functionName, String args, boolean stdStrings)
+      throws SQLException {
+    // parse function arguments
+    int len = args.length();
+    int i = 0;
+    ArrayList<StringBuilder> parsedArgs = new ArrayList<StringBuilder>();
+    while (i < len) {
+      StringBuilder arg = new StringBuilder();
+      int lastPos = i;
+      i = parseSql(args, i, arg, true, stdStrings);
+      if (lastPos != i) {
+        parsedArgs.add(arg);
+      }
+      i++;
+    }
+    // we can now translate escape functions
+    try {
+      Method escapeMethod = EscapedFunctions.getFunction(functionName);
+      return (String) escapeMethod.invoke(null, new Object[]{parsedArgs});
+    } catch (InvocationTargetException e) {
+      if (e.getTargetException() instanceof SQLException) {
+        throw (SQLException) e.getTargetException();
+      } else {
+        throw new PSQLException(e.getTargetException().getMessage(), PSQLState.SYSTEM_ERROR);
+      }
+    } catch (Exception e) {
+      // by default the function name is kept unchanged
+      StringBuilder buf = new StringBuilder();
+      buf.append(functionName).append('(');
+      for (int iArg = 0; iArg < parsedArgs.size(); iArg++) {
+        buf.append(parsedArgs.get(iArg));
+        if (iArg != (parsedArgs.size() - 1)) {
+          buf.append(',');
+        }
+      }
+      buf.append(')');
+      return buf.toString();
+    }
+  }
+
+  // Static variables for parsing SQL when replaceProcessing is true.
+  private enum SqlParseState {
+    IN_SQLCODE,
+    IN_STRING,
+    IN_IDENTIFIER,
+    BACKSLASH,
+    ESC_TIMEDATE,
+    ESC_FUNCTION,
+    ESC_OUTERJOIN,
+    ESC_ESCAPECHAR;
+  }
 }

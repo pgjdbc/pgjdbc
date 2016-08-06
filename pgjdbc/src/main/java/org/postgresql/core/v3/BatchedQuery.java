@@ -29,10 +29,10 @@ public class BatchedQuery extends SimpleQuery {
   private final int batchSize;
   private BatchedQuery[] blocks;
 
-  public BatchedQuery(NativeQuery query, ProtocolConnectionImpl protoConnection,
+  public BatchedQuery(NativeQuery query, TypeTransferModeRegistry transferModeRegistry,
       int valuesBraceOpenPosition,
-      int valuesBraceClosePosition) {
-    super(query, protoConnection);
+      int valuesBraceClosePosition, boolean sanitiserDisabled) {
+    super(query, transferModeRegistry, sanitiserDisabled);
     this.valuesBraceOpenPosition = valuesBraceOpenPosition;
     this.valuesBraceClosePosition = valuesBraceClosePosition;
     this.batchSize = 1;
@@ -79,7 +79,7 @@ public class BatchedQuery extends SimpleQuery {
    * batch.
    */
   @Override
-  String getNativeSql() {
+  public String getNativeSql() {
     if (sql != null) {
       return sql;
     }

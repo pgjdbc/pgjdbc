@@ -116,10 +116,10 @@ class CompositeParameterList implements V3ParameterList {
     subparams[sub].setNull(index - offsets[sub], oid);
   }
 
-  public String toString(int index) {
+  public String toString(int index, boolean standardConformingStrings) {
     try {
       int sub = findSubParam(index);
-      return subparams[sub].toString(index - offsets[sub]);
+      return subparams[sub].toString(index - offsets[sub], standardConformingStrings);
     } catch (SQLException e) {
       throw new IllegalStateException(e.getMessage());
     }

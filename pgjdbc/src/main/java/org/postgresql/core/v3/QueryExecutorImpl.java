@@ -11,6 +11,7 @@ package org.postgresql.core.v3;
 
 import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyOperation;
+import org.postgresql.core.Encoding;
 import org.postgresql.core.Field;
 import org.postgresql.core.Logger;
 import org.postgresql.core.NativeQuery;
@@ -19,13 +20,14 @@ import org.postgresql.core.PGBindException;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Parser;
-import org.postgresql.core.ProtocolConnection;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
+import org.postgresql.core.QueryExecutorBase;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandler;
 import org.postgresql.core.SqlCommand;
 import org.postgresql.core.SqlCommandType;
+import org.postgresql.core.TransactionState;
 import org.postgresql.core.Utils;
 import org.postgresql.jdbc.BatchResultHandler;
 import org.postgresql.jdbc.TimestampUtils;
@@ -46,21 +48,53 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
+import java.util.TimeZone;
 
 /**
  * QueryExecutor implementation for the V3 protocol.
  */
-public class QueryExecutorImpl implements QueryExecutor {
-  public QueryExecutorImpl(ProtocolConnectionImpl protoConnection, PGStream pgStream,
-      Properties info, Logger logger) {
-    this.protoConnection = protoConnection;
-    this.pgStream = pgStream;
-    this.logger = logger;
+public class QueryExecutorImpl extends QueryExecutorBase {
+  /**
+   * TimeZone of the current connection (TimeZone backend parameter)
+   */
+  private TimeZone timeZone;
+
+  /**
+   * application_name connection property
+   */
+  private String applicationName;
+
+  /**
+   * True if server uses integers for date and time fields. False if server uses double.
+   */
+  private boolean integerDateTimes;
+
+  /**
+   * Bit set that has a bit set for each oid which should be received using binary format.
+   */
+  private final Set<Integer> useBinaryReceiveForOids = new HashSet<Integer>();
+
+  /**
+   * Bit set that has a bit set for each oid which should be sent using binary format.
+   */
+  private final Set<Integer> useBinarySendForOids = new HashSet<Integer>();
+
+  public QueryExecutorImpl(PGStream pgStream, String user, String database,
+      int cancelSignalTimeout, Properties info, Logger logger) throws SQLException, IOException {
+    super(logger, pgStream, user, database, cancelSignalTimeout, info);
 
     this.allowEncodingChanges = PGProperty.ALLOW_ENCODING_CHANGES.getBoolean(info);
-    this.allowReWriteBatchedInserts = PGProperty.REWRITE_BATCHED_INSERTS.getBoolean(info);
+
+    readStartupMessages();
+  }
+
+  @Override
+  public int getProtocolVersion() {
+    return 3;
   }
 
   /**
@@ -137,34 +171,31 @@ public class QueryExecutorImpl implements QueryExecutor {
   // Query parsing
   //
 
-  public Query createSimpleQuery(String sql) {
-    return parseQuery(sql, false);
+  public Query createSimpleQuery(String sql) throws SQLException {
+    List<NativeQuery> queries = Parser.parseJdbcSql(sql,
+        getStandardConformingStrings(), false, true,
+        isReWriteBatchedInsertsEnabled());
+    return wrap(queries);
   }
 
-  public Query createParameterizedQuery(String sql) {
-    return parseQuery(sql, true);
-  }
-
-  private Query parseQuery(String query, boolean withParameters) {
-
-    List<NativeQuery> queries = Parser.parseJdbcSql(query,
-        protoConnection.getStandardConformingStrings(), withParameters, true,
-        allowReWriteBatchedInserts);
+  @Override
+  public Query wrap(List<NativeQuery> queries) {
     if (queries.isEmpty()) {
       // Empty query
       return EMPTY_QUERY;
     }
     if (queries.size() == 1) {
       NativeQuery firstQuery = queries.get(0);
-      if (allowReWriteBatchedInserts && firstQuery.getCommand().isBatchedReWriteCompatible()) {
+      if (isReWriteBatchedInsertsEnabled()
+          && firstQuery.getCommand().isBatchedReWriteCompatible()) {
         int valuesBraceOpenPosition =
             firstQuery.getCommand().getBatchRewriteValuesBraceOpenPosition();
         int valuesBraceClosePosition =
             firstQuery.getCommand().getBatchRewriteValuesBraceClosePosition();
-        return new BatchedQuery(firstQuery, protoConnection, valuesBraceOpenPosition,
+        return new BatchedQuery(firstQuery, this, valuesBraceOpenPosition,
             valuesBraceClosePosition);
       } else {
-        return new SimpleQuery(firstQuery, protoConnection);
+        return new SimpleQuery(firstQuery, this);
       }
     }
 
@@ -175,7 +206,7 @@ public class QueryExecutorImpl implements QueryExecutor {
     for (int i = 0; i < queries.size(); ++i) {
       NativeQuery nativeQuery = queries.get(i);
       offsets[i] = offset;
-      subqueries[i] = new SimpleQuery(nativeQuery, protoConnection);
+      subqueries[i] = new SimpleQuery(nativeQuery, this);
       offset += nativeQuery.bindPositions.length;
     }
 
@@ -211,7 +242,7 @@ public class QueryExecutorImpl implements QueryExecutor {
       try {
         handler = sendQueryPreamble(handler, flags);
         ErrorTrackingResultHandler trackingHandler = new ErrorTrackingResultHandler(handler);
-        sendQuery((V3Query) query, (V3ParameterList) parameters, maxRows, fetchSize, flags,
+        sendQuery(query, (V3ParameterList) parameters, maxRows, fetchSize, flags,
             trackingHandler, null);
         sendSync();
         processResults(handler, flags);
@@ -239,7 +270,7 @@ public class QueryExecutorImpl implements QueryExecutor {
                 PSQLState.INVALID_PARAMETER_VALUE, se.getIOException()));
       }
     } catch (IOException e) {
-      protoConnection.abort();
+      abort();
       handler.handleError(
           new PSQLException(GT.tr("An I/O error occurred while sending to the backend."),
               PSQLState.CONNECTION_FAILURE, e));
@@ -359,7 +390,7 @@ public class QueryExecutorImpl implements QueryExecutor {
       estimatedReceiveBufferBytes = 0;
 
       for (int i = 0; i < queries.length; ++i) {
-        V3Query query = (V3Query) queries[i];
+        Query query = queries[i];
         V3ParameterList parameters = (V3ParameterList) parameterLists[i];
         if (parameters == null) {
           parameters = SimpleQuery.NO_PARAMETERS;
@@ -378,7 +409,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         estimatedReceiveBufferBytes = 0;
       }
     } catch (IOException e) {
-      protoConnection.abort();
+      abort();
       handler.handleError(
           new PSQLException(GT.tr("An I/O error occurred while sending to the backend."),
               PSQLState.CONNECTION_FAILURE, e));
@@ -395,7 +426,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
     // Send BEGIN on first statement in transaction.
     if ((flags & QueryExecutor.QUERY_SUPPRESS_BEGIN) != 0
-        || protoConnection.getTransactionState() != ProtocolConnection.TRANSACTION_IDLE) {
+        || getTransactionState() != TransactionState.IDLE) {
       return delegateHandler;
     }
 
@@ -456,14 +487,14 @@ public class QueryExecutorImpl implements QueryExecutor {
       sendFastpathCall(fnid, (SimpleParameterList) parameters);
       return receiveFastpathResult();
     } catch (IOException ioe) {
-      protoConnection.abort();
+      abort();
       throw new PSQLException(GT.tr("An I/O error occurred while sending to the backend."),
           PSQLState.CONNECTION_FAILURE, ioe);
     }
   }
 
   public void doSubprotocolBegin() throws SQLException {
-    if (protoConnection.getTransactionState() == ProtocolConnection.TRANSACTION_IDLE) {
+    if (getTransactionState() == TransactionState.IDLE) {
 
       if (logger.logDebug()) {
         logger.debug("Issuing BEGIN before fastpath or copy call.");
@@ -529,7 +560,7 @@ public class QueryExecutorImpl implements QueryExecutor {
   }
 
   public ParameterList createFastpathParameters(int count) {
-    return new SimpleParameterList(count, protoConnection);
+    return new SimpleParameterList(count, this);
   }
 
   private void sendFastpathCall(int fnid, SimpleParameterList params)
@@ -579,7 +610,7 @@ public class QueryExecutorImpl implements QueryExecutor {
   public synchronized void processNotifies() throws SQLException {
     waitOnLock();
     // Asynchronous notifies only arrive when we are not in a transaction
-    if (protoConnection.getTransactionState() != ProtocolConnection.TRANSACTION_IDLE) {
+    if (getTransactionState() != TransactionState.IDLE) {
       return;
     }
 
@@ -595,7 +626,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             throw receiveErrorResponse();
           case 'N': // Notice Response (warnings / info)
             SQLWarning warning = receiveNoticeResponse();
-            protoConnection.addWarning(warning);
+            addWarning(warning);
             break;
           default:
             throw new PSQLException(GT.tr("Unknown Response Type {0}.", (char) c),
@@ -633,7 +664,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
         case 'N': // Notice Response (warnings / info)
           SQLWarning warning = receiveNoticeResponse();
-          protoConnection.addWarning(warning);
+          addWarning(warning);
           break;
 
         case 'Z': // Ready For Query (eventual response to Sync)
@@ -777,7 +808,7 @@ public class QueryExecutorImpl implements QueryExecutor {
           } while (hasLock(op));
         }
       } else if (op instanceof CopyOutImpl) {
-        protoConnection.sendQueryCancel();
+        sendQueryCancel();
       }
 
     } catch (IOException ioe) {
@@ -962,7 +993,7 @@ public class QueryExecutorImpl implements QueryExecutor {
             logger.debug(" <=BE Notification while copying");
           }
 
-          protoConnection.addWarning(receiveNoticeResponse());
+          addWarning(receiveNoticeResponse());
           break;
 
         case 'C': // Command Complete
@@ -1075,7 +1106,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
           if (name.equals("client_encoding") && !value.equalsIgnoreCase("UTF8")
               && !allowEncodingChanges) {
-            protoConnection.close(); // we're screwed now; we can't trust any subsequent string.
+            close(); // we're screwed now; we can't trust any subsequent string.
             error = new PSQLException(GT.tr(
                 "The server''s client_encoding parameter was changed to {0}. The JDBC driver requires client_encoding to be UTF8 for correct operation.",
                 value), PSQLState.CONNECTION_FAILURE);
@@ -1083,7 +1114,7 @@ public class QueryExecutorImpl implements QueryExecutor {
           }
 
           if (name.equals("DateStyle") && !value.startsWith("ISO,")) {
-            protoConnection.close(); // we're screwed now; we can't trust any subsequent date.
+            close(); // we're screwed now; we can't trust any subsequent date.
             error = new PSQLException(GT.tr(
                 "The server''s DateStyle parameter was changed to {0}. The JDBC driver requires DateStyle to begin with ISO for correct operation.",
                 value), PSQLState.CONNECTION_FAILURE);
@@ -1092,11 +1123,11 @@ public class QueryExecutorImpl implements QueryExecutor {
 
           if (name.equals("standard_conforming_strings")) {
             if (value.equals("on")) {
-              protoConnection.setStandardConformingStrings(true);
+              setStandardConformingStrings(true);
             } else if (value.equals("off")) {
-              protoConnection.setStandardConformingStrings(false);
+              setStandardConformingStrings(false);
             } else {
-              protoConnection.close();
+              close();
               // we're screwed now; we don't know how to escape string literals
               error = new PSQLException(GT.tr(
                   "The server''s standard_conforming_strings parameter was reported as {0}. The JDBC driver expected on or off.",
@@ -1213,11 +1244,11 @@ public class QueryExecutorImpl implements QueryExecutor {
   /*
    * Send a query to the backend.
    */
-  private void sendQuery(V3Query query, V3ParameterList parameters, int maxRows, int fetchSize,
+  private void sendQuery(Query query, V3ParameterList parameters, int maxRows, int fetchSize,
       int flags, ErrorTrackingResultHandler trackingHandler,
       BatchResultHandler batchHandler) throws IOException, SQLException {
     // Now the query itself.
-    SimpleQuery[] subqueries = query.getSubqueries();
+    Query[] subqueries = query.getSubqueries();
     SimpleParameterList[] subparams = parameters.getSubparams();
 
     // We know this is deprecated, but still respect it in case anyone's using it.
@@ -1235,7 +1266,7 @@ public class QueryExecutorImpl implements QueryExecutor {
       }
     } else {
       for (int i = 0; i < subqueries.length; ++i) {
-        final SimpleQuery subquery = subqueries[i];
+        final Query subquery = subqueries[i];
         flushIfDeadlockRisk(subquery, disallowBatching, trackingHandler, batchHandler, flags);
 
         // If we saw errors, don't send anything more.
@@ -1253,7 +1284,7 @@ public class QueryExecutorImpl implements QueryExecutor {
         if (subparams != null) {
           subparam = subparams[i];
         }
-        sendOneQuery(subquery, subparam, maxRows, fetchSize, flags);
+        sendOneQuery((SimpleQuery) subquery, subparam, maxRows, fetchSize, flags);
       }
     }
   }
@@ -1365,7 +1396,9 @@ public class QueryExecutorImpl implements QueryExecutor {
       StringBuilder sbuf =
           new StringBuilder(" FE=> Bind(stmt=" + statementName + ",portal=" + portal);
       for (int i = 1; i <= params.getParameterCount(); ++i) {
-        sbuf.append(",$").append(i).append("=<").append(params.toString(i)).append(">");
+        sbuf.append(",$").append(i).append("=<")
+            .append(params.toString(i,true))
+            .append(">");
       }
       sbuf.append(")");
       logger.debug(sbuf.toString());
@@ -1480,7 +1513,7 @@ public class QueryExecutorImpl implements QueryExecutor {
    */
   private boolean useBinary(Field field) {
     int oid = field.getOID();
-    return protoConnection.useBinaryForReceive(oid);
+    return useBinaryForReceive(oid);
   }
 
   private void sendDescribePortal(SimpleQuery query, Portal portal) throws IOException {
@@ -2059,7 +2092,7 @@ public class QueryExecutorImpl implements QueryExecutor {
 
           if (name.equals("client_encoding") && !value.equalsIgnoreCase("UTF8")
               && !allowEncodingChanges) {
-            protoConnection.close(); // we're screwed now; we can't trust any subsequent string.
+            close(); // we're screwed now; we can't trust any subsequent string.
             handler.handleError(new PSQLException(GT.tr(
                 "The server''s client_encoding parameter was changed to {0}. The JDBC driver requires client_encoding to be UTF8 for correct operation.",
                 value), PSQLState.CONNECTION_FAILURE));
@@ -2067,7 +2100,7 @@ public class QueryExecutorImpl implements QueryExecutor {
           }
 
           if (name.equals("DateStyle") && !value.startsWith("ISO,")) {
-            protoConnection.close(); // we're screwed now; we can't trust any subsequent date.
+            close(); // we're screwed now; we can't trust any subsequent date.
             handler.handleError(new PSQLException(GT.tr(
                 "The server''s DateStyle parameter was changed to {0}. The JDBC driver requires DateStyle to begin with ISO for correct operation.",
                 value), PSQLState.CONNECTION_FAILURE));
@@ -2076,11 +2109,11 @@ public class QueryExecutorImpl implements QueryExecutor {
 
           if (name.equals("standard_conforming_strings")) {
             if (value.equals("on")) {
-              protoConnection.setStandardConformingStrings(true);
+              setStandardConformingStrings(true);
             } else if (value.equals("off")) {
-              protoConnection.setStandardConformingStrings(false);
+              setStandardConformingStrings(false);
             } else {
-              protoConnection.close();
+              close();
               // we're screwed now; we don't know how to escape string literals
               handler.handleError(new PSQLException(GT.tr(
                   "The server''s standard_conforming_strings parameter was reported as {0}. The JDBC driver expected on or off.",
@@ -2090,10 +2123,10 @@ public class QueryExecutorImpl implements QueryExecutor {
           }
 
           if ("TimeZone".equals(name)) {
-            protoConnection.setTimeZone(TimestampUtils.parseBackendTimeZone(value));
+            setTimeZone(TimestampUtils.parseBackendTimeZone(value));
           }
           if ("application_name".equals(name)) {
-            protoConnection.setApplicationName(value);
+            setApplicationName(value);
           }
           break;
         }
@@ -2240,7 +2273,7 @@ public class QueryExecutorImpl implements QueryExecutor {
       processResults(handler, 0);
       estimatedReceiveBufferBytes = 0;
     } catch (IOException e) {
-      protoConnection.abort();
+      abort();
       handler.handleError(
           new PSQLException(GT.tr("An I/O error occurred while sending to the backend."),
               PSQLState.CONNECTION_FAILURE, e));
@@ -2286,7 +2319,7 @@ public class QueryExecutorImpl implements QueryExecutor {
     int pid = pgStream.receiveInteger4();
     String msg = pgStream.receiveString();
     String param = pgStream.receiveString();
-    protoConnection.addNotification(new org.postgresql.core.Notification(msg, pid, param));
+    addNotification(new org.postgresql.core.Notification(msg, pid, param));
 
     if (logger.logDebug()) {
       logger.debug(" <=BE AsyncNotify(" + pid + "," + msg + "," + param + ")");
@@ -2381,18 +2414,165 @@ public class QueryExecutorImpl implements QueryExecutor {
     // Update connection state.
     switch (tStatus) {
       case 'I':
-        protoConnection.setTransactionState(ProtocolConnection.TRANSACTION_IDLE);
+        setTransactionState(TransactionState.IDLE);
         break;
       case 'T':
-        protoConnection.setTransactionState(ProtocolConnection.TRANSACTION_OPEN);
+        setTransactionState(TransactionState.OPEN);
         break;
       case 'E':
-        protoConnection.setTransactionState(ProtocolConnection.TRANSACTION_FAILED);
+        setTransactionState(TransactionState.FAILED);
         break;
       default:
         throw new IOException(
             "unexpected transaction state in ReadyForQuery message: " + (int) tStatus);
     }
+  }
+
+  @Override
+  protected void sendCloseMessage() throws IOException {
+    pgStream.sendChar('X');
+    pgStream.sendInteger4(4);
+  }
+
+  public void readStartupMessages() throws IOException, SQLException {
+    for (int i = 0; i < 1000; i++) {
+      int beresp = pgStream.receiveChar();
+      switch (beresp) {
+        case 'Z':
+          receiveRFQ();
+          // Ready For Query; we're done.
+          return;
+
+        case 'K':
+          // BackendKeyData
+          int l_msgLen = pgStream.receiveInteger4();
+          if (l_msgLen != 12) {
+            throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
+                PSQLState.PROTOCOL_VIOLATION);
+          }
+
+          int pid = pgStream.receiveInteger4();
+          int ckey = pgStream.receiveInteger4();
+
+          if (logger.logDebug()) {
+            logger.debug(" <=BE BackendKeyData(pid=" + pid + ",ckey=" + ckey + ")");
+          }
+
+          setBackendKeyData(pid, ckey);
+          break;
+
+        case 'E':
+          // Error
+          throw receiveErrorResponse();
+
+        case 'N':
+          // Warning
+          addWarning(receiveNoticeResponse());
+          break;
+
+        case 'S':
+          // ParameterStatus
+          int l_len = pgStream.receiveInteger4();
+          String name = pgStream.receiveString();
+          String value = pgStream.receiveString();
+
+          if (logger.logDebug()) {
+            logger.debug(" <=BE ParameterStatus(" + name + " = " + value + ")");
+          }
+
+          if ("server_version_num".equals(name)) {
+            setServerVersionNum(Integer.parseInt(value));
+          } else if ("server_version".equals(name)) {
+            setServerVersion(value);
+          } else if ("client_encoding".equals(name)) {
+            if (!"UTF8".equals(value)) {
+              throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
+                  PSQLState.PROTOCOL_VIOLATION);
+            }
+            pgStream.setEncoding(Encoding.getDatabaseEncoding("UTF8"));
+          } else if ("standard_conforming_strings".equals(name)) {
+            if ("on".equals(value)) {
+              setStandardConformingStrings(true);
+            } else if ("off".equals(value)) {
+              setStandardConformingStrings(false);
+            } else {
+              throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
+                  PSQLState.PROTOCOL_VIOLATION);
+            }
+          } else if ("integer_datetimes".equals(name)) {
+            if ("on".equals(value)) {
+              setIntegerDateTimes(true);
+            } else if ("off".equals(value)) {
+              setIntegerDateTimes(false);
+            } else {
+              throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
+                  PSQLState.PROTOCOL_VIOLATION);
+            }
+          }
+
+          break;
+
+        default:
+          if (logger.logDebug()) {
+            logger.debug("invalid message type=" + (char) beresp);
+          }
+          throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
+              PSQLState.PROTOCOL_VIOLATION);
+      }
+    }
+    throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
+        PSQLState.PROTOCOL_VIOLATION);
+  }
+
+
+
+  public void setTimeZone(TimeZone timeZone) {
+    this.timeZone = timeZone;
+  }
+
+  public TimeZone getTimeZone() {
+    return timeZone;
+  }
+
+  public void setApplicationName(String applicationName) {
+    this.applicationName = applicationName;
+  }
+
+  public String getApplicationName() {
+    if (applicationName == null) {
+      return "";
+    }
+    return applicationName;
+  }
+
+  @Override
+  public boolean useBinaryForReceive(int oid) {
+    return useBinaryReceiveForOids.contains(oid);
+  }
+
+  @Override
+  public void setBinaryReceiveOids(Set<Integer> oids) {
+    useBinaryReceiveForOids.clear();
+    useBinaryReceiveForOids.addAll(oids);
+  }
+
+  @Override
+  public boolean useBinaryForSend(int oid) {
+    return useBinarySendForOids.contains(oid);
+  }
+
+  @Override
+  public void setBinarySendOids(Set<Integer> oids) {
+    useBinarySendForOids.clear();
+    useBinarySendForOids.addAll(oids);
+  }
+
+  private void setIntegerDateTimes(boolean state) {
+    integerDateTimes = state;
+  }
+
+  public boolean getIntegerDateTimes() {
+    return integerDateTimes;
   }
 
   private final Deque<SimpleQuery> pendingParseQueue = new ArrayDeque<SimpleQuery>();
@@ -2403,11 +2583,7 @@ public class QueryExecutorImpl implements QueryExecutor {
   private final Deque<SimpleQuery> pendingDescribePortalQueue = new ArrayDeque<SimpleQuery>();
 
   private long nextUniqueID = 1;
-  private final ProtocolConnectionImpl protoConnection;
-  private final PGStream pgStream;
-  private final Logger logger;
   private final boolean allowEncodingChanges;
-  private final boolean allowReWriteBatchedInserts;
 
 
   /**

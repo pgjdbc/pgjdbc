@@ -47,13 +47,24 @@ public interface BaseStatement extends PGStatement, Statement {
   /**
    * Execute a query, passing additional query flags.
    *
-   * @param p_sql the query to execute
+   * @param p_sql the query to execute (JDBC-style query)
    * @param flags additional {@link QueryExecutor} flags for execution; these are bitwise-ORed into
    *        the default flags.
    * @return true if there is a result set
    * @throws SQLException if something goes wrong.
    */
   boolean executeWithFlags(String p_sql, int flags) throws SQLException;
+
+  /**
+   * Execute a query, passing additional query flags.
+   *
+   * @param query the query to execute (native to PostgreSQL)
+   * @param flags additional {@link QueryExecutor} flags for execution; these are bitwise-ORed into
+   *        the default flags.
+   * @return true if there is a result set
+   * @throws SQLException if something goes wrong.
+   */
+  boolean executeWithFlags(Query query, int flags) throws SQLException;
 
   /**
    * Execute a prepared query, passing additional query flags.

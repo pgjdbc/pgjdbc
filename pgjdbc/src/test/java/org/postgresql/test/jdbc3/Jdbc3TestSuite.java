@@ -10,6 +10,7 @@ package org.postgresql.test.jdbc3;
 
 import org.postgresql.test.TestUtil;
 
+import junit.framework.JUnit4TestAdapter;
 import junit.framework.TestSuite;
 
 /*
@@ -30,7 +31,7 @@ public class Jdbc3TestSuite extends TestSuite {
         suite.addTestSuite(Jdbc3CallableStatementTest.class);
       }
       if (TestUtil.haveMinimumServerVersion(con, "8.2")) {
-        suite.addTestSuite(GeneratedKeysTest.class);
+        suite.addTest(new JUnit4TestAdapter(GeneratedKeysTest.class));
       }
       con.close();
     } catch (Exception ex) {

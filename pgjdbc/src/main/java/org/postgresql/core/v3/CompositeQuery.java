@@ -10,6 +10,8 @@
 package org.postgresql.core.v3;
 
 import org.postgresql.core.ParameterList;
+import org.postgresql.core.Query;
+import org.postgresql.core.SqlCommand;
 
 import java.util.Map;
 
@@ -20,7 +22,7 @@ import java.util.Map;
  *
  * @author Oliver Jowett (oliver@opencloud.com)
  */
-class CompositeQuery implements V3Query {
+class CompositeQuery implements Query {
   CompositeQuery(SimpleQuery[] subqueries, int[] offsets) {
     this.subqueries = subqueries;
     this.offsets = offsets;
@@ -43,6 +45,21 @@ class CompositeQuery implements V3Query {
     return sbuf.toString();
   }
 
+  @Override
+  public String getNativeSql() {
+    StringBuilder sbuf = new StringBuilder(subqueries[0].toString());
+    for (int i = 1; i < subqueries.length; ++i) {
+      sbuf.append(';');
+      sbuf.append(subqueries[i].getNativeSql());
+    }
+    return sbuf.toString();
+  }
+
+  @Override
+  public SqlCommand getSqlCommand() {
+    return null;
+  }
+
   public String toString() {
     return toString(null);
   }
@@ -53,7 +70,7 @@ class CompositeQuery implements V3Query {
     }
   }
 
-  public SimpleQuery[] getSubqueries() {
+  public Query[] getSubqueries() {
     return subqueries;
   }
 

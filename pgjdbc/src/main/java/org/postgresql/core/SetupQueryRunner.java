@@ -62,9 +62,8 @@ public class SetupQueryRunner {
     }
   }
 
-  public static byte[][] run(ProtocolConnection protoConnection, String queryString,
+  public static byte[][] run(QueryExecutor executor, String queryString,
       boolean wantResults) throws SQLException {
-    QueryExecutor executor = protoConnection.getQueryExecutor();
     Query query = executor.createSimpleQuery(queryString);
     SimpleResultHandler handler = new SimpleResultHandler();
 

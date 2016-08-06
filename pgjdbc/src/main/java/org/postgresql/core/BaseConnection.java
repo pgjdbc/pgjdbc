@@ -184,7 +184,7 @@ public interface BaseConnection extends PGConnection, Connection {
    * <tt>standard_conforming_strings</tt> server variable.
    *
    * @return true if the server treats string literals according to the SQL standard
-   * @see ProtocolConnection#getStandardConformingStrings()
+   * @see QueryExecutor#getStandardConformingStrings()
    */
   boolean getStandardConformingStrings();
 
@@ -200,9 +200,9 @@ public interface BaseConnection extends PGConnection, Connection {
   /**
    * Get the current transaction state of this connection.
    *
-   * @return a ProtocolConnection.TRANSACTION_* constant.
+   * @return current transaction state of this connection
    */
-  int getTransactionState();
+  TransactionState getTransactionState();
 
   /**
    * Returns true if value for the given oid should be sent using binary transfer. False if value
@@ -235,15 +235,13 @@ public interface BaseConnection extends PGConnection, Connection {
   void purgeTimerTasks();
 
   /**
-   * To be used for checking if the batched insert re-write optimization is enabled.
-   * @return true if re-write feature is enabled
-   */
-  boolean isReWriteBatchedInsertsEnabled();
-
-  /**
    * Return metadata cache for given connection
    *
    * @return metadata cache
    */
   LruCache<FieldMetadata.Key, FieldMetadata> getFieldMetadataCache();
+
+  CachedQuery createQuery(String sql, boolean escapeProcessing, boolean isParameterized,
+      String... columnNames)
+      throws SQLException;
 }

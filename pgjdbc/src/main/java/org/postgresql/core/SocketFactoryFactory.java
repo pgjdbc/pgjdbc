@@ -1,4 +1,4 @@
-package org.postgresql.core.v2;
+package org.postgresql.core;
 
 import org.postgresql.PGProperty;
 import org.postgresql.util.GT;

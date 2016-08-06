@@ -8,7 +8,6 @@
 
 package org.postgresql.test.jdbc2;
 
-import org.postgresql.core.v2.V2ParameterListTests;
 import org.postgresql.core.v3.V3ParameterListTests;
 import org.postgresql.jdbc.DeepBatchedInsertStatementTest;
 import org.postgresql.test.CursorFetchBinaryTest;
@@ -116,7 +115,6 @@ public class Jdbc2TestSuite extends TestSuite {
 
     suite.addTestSuite(PGPropertyTest.class);
 
-    suite.addTestSuite(V2ParameterListTests.class);
     suite.addTestSuite(V3ParameterListTests.class);
 
     Connection conn = TestUtil.openDB();
