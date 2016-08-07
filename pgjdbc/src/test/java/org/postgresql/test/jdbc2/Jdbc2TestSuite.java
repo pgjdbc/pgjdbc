@@ -8,6 +8,7 @@
 
 package org.postgresql.test.jdbc2;
 
+import org.postgresql.core.ParserTest;
 import org.postgresql.core.v3.V3ParameterListTests;
 import org.postgresql.jdbc.DeepBatchedInsertStatementTest;
 import org.postgresql.test.CursorFetchBinaryTest;
@@ -68,6 +69,7 @@ public class Jdbc2TestSuite extends TestSuite {
     suite.addTest(new JUnit4TestAdapter(PGTimeTest.class));
     suite.addTestSuite(PGTimestampTest.class);
     suite.addTest(new JUnit4TestAdapter(TimezoneCachingTest.class));
+    suite.addTestSuite(ParserTest.class);
 
     // PreparedStatement
     suite.addTest(new JUnit4TestAdapter(PreparedStatementTest.class));
