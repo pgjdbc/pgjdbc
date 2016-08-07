@@ -60,6 +60,10 @@ public class SetupQueryRunner {
         throw error;
       }
     }
+
+    @Override
+    public void secureProgress() {
+    }
   }
 
   public static byte[][] run(QueryExecutor executor, String queryString,
@@ -67,7 +71,8 @@ public class SetupQueryRunner {
     Query query = executor.createSimpleQuery(queryString);
     SimpleResultHandler handler = new SimpleResultHandler();
 
-    int flags = QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_SUPPRESS_BEGIN;
+    int flags = QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_SUPPRESS_BEGIN
+        | QueryExecutor.QUERY_EXECUTE_AS_SIMPLE;
     if (!wantResults) {
       flags |= QueryExecutor.QUERY_NO_RESULTS | QueryExecutor.QUERY_NO_METADATA;
     }

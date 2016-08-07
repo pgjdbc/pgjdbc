@@ -13,6 +13,9 @@ import org.postgresql.core.Oid;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Utils;
+import org.postgresql.geometric.PGbox;
+import org.postgresql.geometric.PGpoint;
+import org.postgresql.jdbc.UUIDArrayAssistant;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -182,6 +185,21 @@ class SimpleParameterList implements V3ParameterList {
         case Oid.FLOAT8:
           double d = ByteConverter.float8((byte[]) paramValues[index], 0);
           return Double.toString(d);
+
+        case Oid.UUID:
+          String uuid =
+              new UUIDArrayAssistant().buildElement((byte[]) paramValues[index], 0, 16).toString();
+          return "'" + uuid + "'::uuid";
+
+        case Oid.POINT:
+          PGpoint pgPoint = new PGpoint();
+          pgPoint.setByteValue((byte[]) paramValues[index], 0);
+          return "'" + pgPoint.toString() + "'::point";
+
+        case Oid.BOX:
+          PGbox pgBox = new PGbox();
+          pgBox.setByteValue((byte[]) paramValues[index], 0);
+          return "'" + pgBox.toString() + "'::box";
       }
       return "?";
     } else {
@@ -206,6 +224,20 @@ class SimpleParameterList implements V3ParameterList {
         p.append(param);
       }
       p.append('\'');
+      int paramType = paramTypes[index];
+      if (paramType == Oid.TIMESTAMP) {
+        p.append("::timestamp");
+      } else if (paramType == Oid.TIMESTAMPTZ) {
+        p.append("::timestamp with time zone");
+      } else if (paramType == Oid.TIME) {
+        p.append("::time");
+      } else if (paramType == Oid.TIMETZ) {
+        p.append("::time with time zone");
+      } else if (paramType == Oid.DATE) {
+        p.append("::date");
+      } else if (paramType == Oid.INTERVAL) {
+        p.append("::interval");
+      }
       return p.toString();
     }
   }

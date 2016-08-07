@@ -55,28 +55,27 @@ public class Jdbc2TestSuite extends TestSuite {
     suite.addTest(new JUnit4TestAdapter(TypeCacheDLLStressTest.class));
 
     // ResultSet
-    suite.addTestSuite(ResultSetTest.class);
-    suite.addTestSuite(ResultSetMetaDataTest.class);
+    suite.addTest(new JUnit4TestAdapter(ResultSetTest.class));
+    suite.addTest(new JUnit4TestAdapter(ResultSetMetaDataTest.class));
     suite.addTest(new JUnit4TestAdapter(ArrayTest.class));
-    suite.addTestSuite(RefCursorTest.class);
+    suite.addTest(new JUnit4TestAdapter(RefCursorTest.class));
 
     // Time, Date, Timestamp, PGTime, PGTimestamp
     suite.addTestSuite(DateTest.class);
     suite.addTestSuite(TimeTest.class);
     suite.addTestSuite(TimestampTest.class);
     suite.addTestSuite(TimezoneTest.class);
-    suite.addTestSuite(PGTimeTest.class);
+    suite.addTest(new JUnit4TestAdapter(PGTimeTest.class));
     suite.addTestSuite(PGTimestampTest.class);
     suite.addTest(new JUnit4TestAdapter(TimezoneCachingTest.class));
 
     // PreparedStatement
-    suite.addTestSuite(PreparedStatementTest.class);
-    suite.addTestSuite(PreparedStatementBinaryTest.class);
+    suite.addTest(new JUnit4TestAdapter(PreparedStatementTest.class));
     suite.addTestSuite(StatementTest.class);
     suite.addTest(new JUnit4TestAdapter(QuotationTest.class));
 
     // ServerSide Prepared Statements
-    suite.addTestSuite(ServerPreparedStmtTest.class);
+    suite.addTest(new JUnit4TestAdapter(ServerPreparedStmtTest.class));
 
     // BatchExecute
     suite.addTest(new JUnit4TestAdapter(BatchExecuteTest.class));
@@ -98,12 +97,12 @@ public class Jdbc2TestSuite extends TestSuite {
     suite.addTestSuite(OID74Test.class);
     suite.addTestSuite(BlobTransactionTest.class);
 
-    suite.addTestSuite(UpdateableResultTest.class);
+    suite.addTest(new JUnit4TestAdapter(UpdateableResultTest.class));
 
-    suite.addTestSuite(CallableStmtTest.class);
+    suite.addTest(new JUnit4TestAdapter(CallableStmtTest.class));
     suite.addTestSuite(CursorFetchTest.class);
     suite.addTestSuite(CursorFetchBinaryTest.class);
-    suite.addTestSuite(ServerCursorTest.class);
+    suite.addTest(new JUnit4TestAdapter(ServerCursorTest.class));
 
     suite.addTestSuite(IntervalTest.class);
     suite.addTestSuite(GeometricTest.class);

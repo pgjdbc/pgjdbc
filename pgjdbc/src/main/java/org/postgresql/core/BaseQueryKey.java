@@ -19,7 +19,11 @@ class BaseQueryKey {
 
   @Override
   public String toString() {
-    return sql;
+    return "BaseQueryKey{"
+        + "sql='" + sql + '\''
+        + ", isParameterized=" + isParameterized
+        + ", escapeProcessing=" + escapeProcessing
+        + '}';
   }
 
   @Override

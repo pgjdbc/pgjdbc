@@ -214,13 +214,16 @@ public class BatchExecuteTest extends BaseTest4 {
     }
 
     int newValue = getCol1Value();
-    Assert.assertEquals("testbatch.col1 should not be updated since error happened in batch",
-        oldValue, newValue);
+    boolean firstOk = updateCounts[0] == 1 || updateCounts[0] == Statement.SUCCESS_NO_INFO;
+    boolean lastOk = updateCounts[2] == 1 || updateCounts[2] == Statement.SUCCESS_NO_INFO;
 
-    Assert.assertEquals("All rows should be marked as EXECUTE_FAILED",
-        Arrays.toString(new int[]{Statement.EXECUTE_FAILED, Statement.EXECUTE_FAILED,
-            Statement.EXECUTE_FAILED}),
-        Arrays.toString(updateCounts));
+    Assert.assertEquals("testbatch.col1 should account +1 and +2 for the relevant successful rows: "
+        + Arrays.toString(updateCounts),
+        oldValue + (firstOk ? 1 : 0) + (lastOk ? 2 : 0), newValue);
+
+    Assert.assertEquals("SELECT 0/0 should be marked as Statement.EXECUTE_FAILED",
+        Statement.EXECUTE_FAILED,
+        updateCounts[1]);
 
     stmt.close();
   }

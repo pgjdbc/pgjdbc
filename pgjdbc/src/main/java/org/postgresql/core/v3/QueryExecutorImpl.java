@@ -25,6 +25,7 @@ import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.QueryExecutorBase;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandler;
+import org.postgresql.core.ResultHandlerDelegate;
 import org.postgresql.core.SqlCommand;
 import org.postgresql.core.SqlCommandType;
 import org.postgresql.core.TransactionState;
@@ -82,6 +83,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * Bit set that has a bit set for each oid which should be sent using binary format.
    */
   private final Set<Integer> useBinarySendForOids = new HashSet<Integer>();
+
+  /**
+   * This is a fake query object so processResults can distinguish "ReadyForQuery" messages
+   * from Sync messages vs from simple execute (aka 'Q')
+   */
+  private final SimpleQuery sync = (SimpleQuery) createQuery("SYNC", false, true).query;
 
   public QueryExecutorImpl(PGStream pgStream, String user, String database,
       int cancelSignalTimeout, Properties info, Logger logger) throws SQLException, IOException {
@@ -193,9 +200,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         int valuesBraceClosePosition =
             firstQuery.getCommand().getBatchRewriteValuesBraceClosePosition();
         return new BatchedQuery(firstQuery, this, valuesBraceOpenPosition,
-            valuesBraceClosePosition);
+            valuesBraceClosePosition, isColumnSanitiserDisabled());
       } else {
-        return new SimpleQuery(firstQuery, this);
+        return new SimpleQuery(firstQuery, this, isColumnSanitiserDisabled());
       }
     }
 
@@ -206,7 +213,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     for (int i = 0; i < queries.size(); ++i) {
       NativeQuery nativeQuery = queries.get(i);
       offsets[i] = offset;
-      subqueries[i] = new SimpleQuery(nativeQuery, this);
+      subqueries[i] = new SimpleQuery(nativeQuery, this, isColumnSanitiserDisabled());
       offset += nativeQuery.bindPositions.length;
     }
 
@@ -216,6 +223,17 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   //
   // Query execution
   //
+
+  private int updateQueryMode(int flags) {
+    switch (getPreferQueryMode()) {
+      case SIMPLE:
+        return flags | QUERY_EXECUTE_AS_SIMPLE;
+      case EXTENDED:
+        return flags & ~QUERY_EXECUTE_AS_SIMPLE;
+      default:
+        return flags;
+    }
+  }
 
   public synchronized void execute(Query query, ParameterList parameters, ResultHandler handler,
       int maxRows, int fetchSize, int flags) throws SQLException {
@@ -228,6 +246,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     if (parameters == null) {
       parameters = SimpleQuery.NO_PARAMETERS;
     }
+
+    flags = updateQueryMode(flags);
 
     boolean describeOnly = (QUERY_DESCRIBE_ONLY & flags) != 0;
 
@@ -244,7 +264,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         ErrorTrackingResultHandler trackingHandler = new ErrorTrackingResultHandler(handler);
         sendQuery(query, (V3ParameterList) parameters, maxRows, fetchSize, flags,
             trackingHandler, null);
-        sendSync();
+        if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0) {
+          // Sync message is not required for 'Q' execution as 'Q' ends with ReadyForQuery message
+          // on its own
+        } else {
+          sendSync();
+        }
         processResults(handler, flags);
         estimatedReceiveBufferBytes = 0;
       } catch (PGBindException se) {
@@ -330,34 +355,16 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private static final int NODATA_QUERY_RESPONSE_SIZE_BYTES = 250;
 
   // Helper handler that tracks error status.
-  private static class ErrorTrackingResultHandler implements ResultHandler {
-    private final ResultHandler delegateHandler;
+  private static class ErrorTrackingResultHandler extends ResultHandlerDelegate {
     private boolean sawError = false;
 
     ErrorTrackingResultHandler(ResultHandler delegateHandler) {
-      this.delegateHandler = delegateHandler;
-    }
-
-    public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples,
-        ResultCursor cursor) {
-      delegateHandler.handleResultRows(fromQuery, fields, tuples, cursor);
-    }
-
-    public void handleCommandStatus(String status, int updateCount, long insertOID) {
-      delegateHandler.handleCommandStatus(status, updateCount, insertOID);
-    }
-
-    public void handleWarning(SQLWarning warning) {
-      delegateHandler.handleWarning(warning);
+      super(delegateHandler);
     }
 
     public void handleError(SQLException error) {
       sawError = true;
-      delegateHandler.handleError(error);
-    }
-
-    public void handleCompletion() throws SQLException {
-      delegateHandler.handleCompletion();
+      super.handleError(error);
     }
 
     boolean hasErrors() {
@@ -372,6 +379,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       logger.debug("batch execute " + queries.length + " queries, handler=" + batchHandler + ", maxRows="
           + maxRows + ", fetchSize=" + fetchSize + ", flags=" + flags);
     }
+
+    flags = updateQueryMode(flags);
 
     boolean describeOnly = (QUERY_DESCRIBE_ONLY & flags) != 0;
     // Check parameters and resolve OIDs.
@@ -404,7 +413,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       }
 
       if (!trackingHandler.hasErrors()) {
-        sendSync();
+        if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0) {
+          // Sync message is not required for 'Q' execution as 'Q' ends with ReadyForQuery message
+          // on its own
+        } else {
+          sendSync();
+        }
         processResults(handler, flags);
         estimatedReceiveBufferBytes = 0;
       }
@@ -434,16 +448,21 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     if ((flags & QueryExecutor.QUERY_ONESHOT) != 0) {
       beginFlags |= QueryExecutor.QUERY_ONESHOT;
     }
+
+    beginFlags |= QueryExecutor.QUERY_EXECUTE_AS_SIMPLE;
+
+    beginFlags = updateQueryMode(beginFlags);
+
     sendOneQuery(beginTransactionQuery, SimpleQuery.NO_PARAMETERS, 0, 0, beginFlags);
 
     // Insert a handler that intercepts the BEGIN.
-    return new ResultHandler() {
+    return new ResultHandlerDelegate(delegateHandler) {
       private boolean sawBegin = false;
 
       public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples,
           ResultCursor cursor) {
         if (sawBegin) {
-          delegateHandler.handleResultRows(fromQuery, fields, tuples, cursor);
+          super.handleResultRows(fromQuery, fields, tuples, cursor);
         }
       }
 
@@ -455,20 +474,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
                 PSQLState.PROTOCOL_VIOLATION));
           }
         } else {
-          delegateHandler.handleCommandStatus(status, updateCount, insertOID);
+          super.handleCommandStatus(status, updateCount, insertOID);
         }
-      }
-
-      public void handleWarning(SQLWarning warning) {
-        delegateHandler.handleWarning(warning);
-      }
-
-      public void handleError(SQLException error) {
-        delegateHandler.handleError(error);
-      }
-
-      public void handleCompletion() throws SQLException {
-        delegateHandler.handleCompletion();
       }
     };
   }
@@ -500,7 +507,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         logger.debug("Issuing BEGIN before fastpath or copy call.");
       }
 
-      ResultHandler handler = new ResultHandler() {
+      ResultHandler handler = new ResultHandlerDelegate(null) {
         private boolean sawBegin = false;
         private SQLException sqle = null;
 
@@ -1301,6 +1308,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     pgStream.sendChar('S'); // Sync
     pgStream.sendInteger4(4); // Length
     pgStream.flush();
+    pendingExecuteQueue.add(new ExecuteRequest(sync, null, true));
+    pendingDescribePortalQueue.add(sync);
   }
 
   private void sendParse(SimpleQuery query, SimpleParameterList params, boolean oneShot)
@@ -1593,7 +1602,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     pgStream.sendChar(0); // portal name terminator
     pgStream.sendInteger4(limit); // row limit
 
-    pendingExecuteQueue.add(new ExecuteRequest(query, portal));
+    pendingExecuteQueue.add(new ExecuteRequest(query, portal, false));
   }
 
   private void sendClosePortal(String portalName) throws IOException {
@@ -1637,6 +1646,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     pgStream.sendChar(0); // statement name terminator
   }
 
+
+
   // sendOneQuery sends a single statement via the extended query protocol.
   // Per the FE/BE docs this is essentially the same as how a simple query runs
   // (except that it generates some extra acknowledgement messages, and we
@@ -1652,6 +1663,19 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   //
   private void sendOneQuery(SimpleQuery query, SimpleParameterList params, int maxRows,
       int fetchSize, int flags) throws IOException {
+    boolean asSimple = (flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0;
+    if (asSimple) {
+      assert (flags & QueryExecutor.QUERY_DESCRIBE_ONLY) == 0
+          : "Simple mode does not support describe requests. sql = " + query.getNativeSql()
+          + ", flags = " + flags;
+      sendSimpleQuery(query, params);
+      return;
+    }
+
+    assert !query.getNativeQuery().multiStatement
+        : "Queries that might contain ; must be executed with QueryExecutor.QUERY_EXECUTE_AS_SIMPLE mode. "
+        + "Given query is " + query.getNativeSql();
+
     // nb: if we decide to use a portal (usePortal == true) we must also use a named statement
     // (oneShot == false) as otherwise the portal will be closed under us unexpectedly when
     // the unnamed statement is next reused.
@@ -1738,12 +1762,30 @@ public class QueryExecutorImpl extends QueryExecutorBase {
        * that the field information available when we decoded the results. This is undeniably a
        * hack, but there aren't many good alternatives.
        */
-      if (query.getFields() == null || forceDescribePortal) {
+      if (!query.isPortalDescribed() || forceDescribePortal) {
         sendDescribePortal(query, portal);
       }
     }
 
     sendExecute(query, portal, rows);
+  }
+
+  private void sendSimpleQuery(SimpleQuery query, SimpleParameterList params) throws IOException {
+    String nativeSql = query.toString(params);
+
+    if (logger.logDebug()) {
+      logger.debug(" FE=> SimpleQuery(query=\"" + nativeSql + "\")");
+    }
+    Encoding encoding = pgStream.getEncoding();
+
+    byte[] encoded = encoding.encode(nativeSql);
+    pgStream.sendChar('Q');
+    pgStream.sendInteger4(encoded.length + 4 + 1);
+    pgStream.send(encoded);
+    pgStream.sendChar(0);
+    pgStream.flush();
+    pendingExecuteQueue.add(new ExecuteRequest(query, null, true));
+    pendingDescribePortalQueue.add(query);
   }
 
   //
@@ -1978,10 +2020,15 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           doneAfterRowDescNoData = false;
 
         {
-          ExecuteRequest executeData = pendingExecuteQueue.removeFirst();
+          ExecuteRequest executeData = pendingExecuteQueue.peekFirst();
           SimpleQuery currentQuery = executeData.query;
           Portal currentPortal = executeData.portal;
 
+          if (!executeData.asSimple) {
+            pendingExecuteQueue.removeFirst();
+          } else {
+            // For simple 'Q' queries, executeQueue is cleared via ReadyForQuery message
+          }
           Field[] fields = currentQuery.getFields();
           if (fields != null && !noResults && tuples == null) {
             tuples = new ArrayList<byte[][]>();
@@ -2005,6 +2052,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             }
           } else {
             interpretCommandStatus(status, handler);
+          }
+
+          if (executeData.asSimple) {
+            // Simple queries might return several resultsets, thus we clear
+            // fields, so queries like "select 1;update; select2" will properly
+            // identify that "update" did not return any results
+            currentQuery.setFields(null);
           }
 
           if (currentPortal != null) {
@@ -2135,7 +2189,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           Field[] fields = receiveFields();
           tuples = new ArrayList<byte[][]>();
 
-          SimpleQuery query = pendingDescribePortalQueue.removeFirst();
+          SimpleQuery query = pendingDescribePortalQueue.peekFirst();
+          if (!pendingExecuteQueue.isEmpty() && !pendingExecuteQueue.peekFirst().asSimple) {
+            pendingDescribePortalQueue.removeFirst();
+          }
           query.setFields(fields);
 
           if (doneAfterRowDescNoData) {
@@ -2150,6 +2207,24 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         case 'Z': // Ready For Query (eventual response to Sync)
           receiveRFQ();
+          if (!pendingExecuteQueue.isEmpty() && pendingExecuteQueue.peekFirst().asSimple) {
+            tuples = null;
+
+            ExecuteRequest executeRequest = pendingExecuteQueue.removeFirst();
+            // Simple queries might return several resultsets, thus we clear
+            // fields, so queries like "select 1;update; select2" will properly
+            // identify that "update" did not return any results
+            executeRequest.query.setFields(null);
+
+            pendingDescribePortalQueue.removeFirst();
+            if (!pendingExecuteQueue.isEmpty()) {
+              if (getTransactionState() == TransactionState.IDLE) {
+                handler.secureProgress();
+              }
+              // process subsequent results (e.g. for cases like batched execution of simple 'Q' queries)
+              break;
+            }
+          }
           endQuery = true;
 
           // Reset the statement name of Parses that failed.
@@ -2238,26 +2313,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // Insert a ResultHandler that turns bare command statuses into empty datasets
     // (if the fetch returns no rows, we see just a CommandStatus..)
     final ResultHandler delegateHandler = handler;
-    handler = new ResultHandler() {
-      public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples,
-          ResultCursor cursor) {
-        delegateHandler.handleResultRows(fromQuery, fields, tuples, cursor);
-      }
-
+    handler = new ResultHandlerDelegate(delegateHandler) {
       public void handleCommandStatus(String status, int updateCount, long insertOID) {
         handleResultRows(portal.getQuery(), null, new ArrayList<byte[][]>(), null);
-      }
-
-      public void handleWarning(SQLWarning warning) {
-        delegateHandler.handleWarning(warning);
-      }
-
-      public void handleError(SQLException error) {
-        delegateHandler.handleError(error);
-      }
-
-      public void handleCompletion() throws SQLException {
-        delegateHandler.handleCompletion();
       }
     };
 
@@ -2597,9 +2655,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private int estimatedReceiveBufferBytes = 0;
 
   private final SimpleQuery beginTransactionQuery =
-      new SimpleQuery(new NativeQuery("BEGIN", new int[0], SqlCommand.createStatementTypeInfo(
-          SqlCommandType.BLANK)), null);
+      new SimpleQuery(
+          new NativeQuery("BEGIN", new int[0], false,
+              SqlCommand.createStatementTypeInfo(SqlCommandType.BLANK)
+          ), null, false);
 
-  private final SimpleQuery EMPTY_QUERY = new SimpleQuery(new NativeQuery("", new int[0], SqlCommand
-      .createStatementTypeInfo(SqlCommandType.BLANK)), null);
+  private final SimpleQuery EMPTY_QUERY =
+      new SimpleQuery(
+          new NativeQuery("", new int[0], false,
+              SqlCommand.createStatementTypeInfo(SqlCommandType.BLANK)
+          ), null, false);
 }

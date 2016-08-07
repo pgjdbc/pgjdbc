@@ -1782,6 +1782,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         throw error;
       }
     }
+
+    @Override
+    public void secureProgress() {
+    }
   }
 
   ;

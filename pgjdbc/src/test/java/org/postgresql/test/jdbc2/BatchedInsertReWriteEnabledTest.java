@@ -83,6 +83,7 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
       pstmt.setInt(2, 6);
       pstmt.addBatch();
       BatchExecuteTest.assertSimpleInsertBatch(3, pstmt.executeBatch());
+      TestUtil.assertNumberOfRows(con, "testbatch", 3, "3 rows inserted");
 
       /*
        * Now check the ps can be reused. The batched statement should be reset
@@ -104,6 +105,7 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
       pstmt.setInt(2, 8);
       pstmt.addBatch();
       BatchExecuteTest.assertSimpleInsertBatch(4, pstmt.executeBatch());
+      TestUtil.assertNumberOfRows(con, "testbatch", 7, "3+4 rows inserted");
 
       pstmt.setInt(1, 1);
       pstmt.setInt(2, 2);
@@ -118,6 +120,7 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
       pstmt.setInt(2, 8);
       pstmt.addBatch();
       BatchExecuteTest.assertSimpleInsertBatch(4, pstmt.executeBatch());
+      TestUtil.assertNumberOfRows(con, "testbatch", 11, "3+4+4 rows inserted");
 
     } finally {
       TestUtil.closeQuietly(pstmt);
@@ -148,6 +151,32 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
         pstmt.setInt(2, 6);
         pstmt.addBatch();
         BatchExecuteTest.assertSimpleInsertBatch(3, pstmt.executeBatch());
+        TestUtil.assertNumberOfRows(con, "testbatch", 3, "3 rows inserted");
+      } finally {
+        TestUtil.closeQuietly(pstmt);
+      }
+    }
+  }
+
+  /**
+   * Check batching using a statement with fixed parameters only.
+   */
+  @Test
+  public void testBatchWithReWrittenBatchStatementWithFixedParametersOnly()
+      throws SQLException {
+    String[] odd = new String[]{
+        "INSERT INTO testbatch VALUES (9, '1, (, $1234, a''n?d )' /*xxxx)*/, 7) -- xxx",
+        // "INSERT /*xxx*/INTO testbatch VALUES (?, '1, (, $1234, a''n?d )' /*xxxx)*/, ?) -- xxx",
+    };
+    for (String s : odd) {
+      PreparedStatement pstmt = null;
+      try {
+        pstmt = con.prepareStatement(s);
+        pstmt.addBatch();
+        pstmt.addBatch();
+        pstmt.addBatch();
+        BatchExecuteTest.assertSimpleInsertBatch(3, pstmt.executeBatch());
+        TestUtil.assertNumberOfRows(con, "testbatch", 3, "3 rows inserted");
       } finally {
         TestUtil.closeQuietly(pstmt);
       }
@@ -161,6 +190,10 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
       throws SQLException {
     PreparedStatement pstmt = null;
     try {
+      PreparedStatement clean = con.prepareStatement("truncate table testbatch");
+      clean.execute();
+      clean.close();
+
       pstmt = con.prepareStatement("INSERT INTO testbatch " +  values + "(?,?,?)" + suffix);
       pstmt.setInt(1, 1);
       pstmt.setString(2, "a");
@@ -175,6 +208,7 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
       pstmt.setInt(3, 6);
       pstmt.addBatch();
       BatchExecuteTest.assertSimpleInsertBatch(3, pstmt.executeBatch());
+      TestUtil.assertNumberOfRows(con, "testbatch", 3, "3 rows inserted");
     } finally {
       TestUtil.closeQuietly(pstmt);
     }

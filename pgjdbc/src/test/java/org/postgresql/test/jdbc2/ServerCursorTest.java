@@ -8,35 +8,34 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertEquals;
+
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 
 /*
  * Tests for using non-zero setFetchSize().
  */
-public class ServerCursorTest extends TestCase {
-  private Connection con;
+public class ServerCursorTest extends BaseTest4 {
 
-  public ServerCursorTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
-    con = TestUtil.openDB();
+  @Override
+  public void setUp() throws Exception {
+    super.setUp();
     TestUtil.createTable(con, "test_fetch", "value integer,data bytea");
     con.setAutoCommit(false);
   }
 
-  protected void tearDown() throws Exception {
+  @Override
+  public void tearDown() throws SQLException {
     con.rollback();
     con.setAutoCommit(true);
     TestUtil.dropTable(con, "test_fetch");
-    TestUtil.closeDB(con);
+    super.tearDown();
   }
 
   protected void createRows(int count) throws Exception {
@@ -50,7 +49,9 @@ public class ServerCursorTest extends TestCase {
   }
 
   // Test regular cursor fetching
+  @Test
   public void testBasicFetch() throws Exception {
+    assumeByteaSupported();
     createRows(1);
 
     PreparedStatement stmt =
@@ -69,7 +70,9 @@ public class ServerCursorTest extends TestCase {
   }
 
   // Test binary cursor fetching
+  @Test
   public void testBinaryFetch() throws Exception {
+    assumeByteaSupported();
     createRows(1);
 
     PreparedStatement stmt =

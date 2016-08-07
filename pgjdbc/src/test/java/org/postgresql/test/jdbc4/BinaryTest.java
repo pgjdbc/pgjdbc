@@ -1,14 +1,17 @@
 package org.postgresql.test.jdbc4;
 
+import static org.junit.Assert.assertEquals;
+
 import org.postgresql.PGConnection;
 import org.postgresql.PGResultSetMetaData;
 import org.postgresql.PGStatement;
 import org.postgresql.core.Field;
-import org.postgresql.test.TestUtil;
+import org.postgresql.jdbc.PreferQueryMode;
+import org.postgresql.test.jdbc2.BaseTest4;
 
-import junit.framework.TestCase;
+import org.junit.Assume;
+import org.junit.Test;
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -19,28 +22,21 @@ import java.sql.SQLException;
  * {@link PGConnection#setPrepareThreshold(int)} then we'll change to using the binary protocol to
  * save bandwidth and reduce decoding time.
  */
-public class BinaryTest extends TestCase {
-  private Connection connection;
+public class BinaryTest extends BaseTest4 {
   private ResultSet results;
   private PreparedStatement statement;
 
-  public BinaryTest(String name) {
-    super(name);
-  }
-
   @Override
-  protected void setUp() throws Exception {
-    connection = TestUtil.openDB();
-    statement = connection.prepareStatement("select 1");
+  public void setUp() throws Exception {
+    super.setUp();
+    Assume.assumeTrue("Server-prepared statements are not supported in 'simple protocol only'",
+        preferQueryMode != PreferQueryMode.SIMPLE);
+    statement = con.prepareStatement("select 1");
 
     ((PGStatement) statement).setPrepareThreshold(5);
   }
 
-  @Override
-  protected void tearDown() throws Exception {
-    TestUtil.closeDB(connection);
-  }
-
+  @Test
   public void testPreparedStatement_3() throws Exception {
     ((PGStatement) statement).setPrepareThreshold(3);
 
@@ -59,6 +55,7 @@ public class BinaryTest extends TestCase {
     ((PGStatement) statement).setPrepareThreshold(5);
   }
 
+  @Test
   public void testPreparedStatement_1() throws Exception {
     ((PGStatement) statement).setPrepareThreshold(1);
 
@@ -77,6 +74,7 @@ public class BinaryTest extends TestCase {
     ((PGStatement) statement).setPrepareThreshold(5);
   }
 
+  @Test
   public void testPreparedStatement_0() throws Exception {
     ((PGStatement) statement).setPrepareThreshold(0);
 
@@ -95,6 +93,7 @@ public class BinaryTest extends TestCase {
     ((PGStatement) statement).setPrepareThreshold(5);
   }
 
+  @Test
   public void testPreparedStatement_negative1() throws Exception {
     ((PGStatement) statement).setPrepareThreshold(-1);
 
@@ -113,8 +112,9 @@ public class BinaryTest extends TestCase {
     ((PGStatement) statement).setPrepareThreshold(5);
   }
 
+  @Test
   public void testReceiveBinary() throws Exception {
-    PreparedStatement ps = connection.prepareStatement("select ?");
+    PreparedStatement ps = con.prepareStatement("select ?");
     for (int i = 0; i < 10; i++) {
       ps.setInt(1, 42 + i);
       ResultSet rs = ps.executeQuery();

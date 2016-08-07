@@ -1,9 +1,12 @@
 package org.postgresql.test.jdbc2;
 
+import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
+import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 
 import java.sql.Connection;
@@ -22,6 +25,7 @@ public class BaseTest4 {
 
   protected Connection con;
   private BinaryMode binaryMode;
+  protected PreferQueryMode preferQueryMode;
 
   protected void updateProperties(Properties props) {
     if (binaryMode == BinaryMode.FORCE) {
@@ -42,10 +46,22 @@ public class BaseTest4 {
     Properties props = new Properties();
     updateProperties(props);
     con = TestUtil.openDB(props);
+    PGConnection pg = con.unwrap(PGConnection.class);
+    preferQueryMode = pg == null ? PreferQueryMode.EXTENDED : pg.getPreferQueryMode();
   }
 
   @After
   public void tearDown() throws SQLException {
     TestUtil.closeDB(con);
+  }
+
+  public void assumeByteaSupported() {
+    Assume.assumeTrue("bytea is not supported in simple protocol execution mode",
+        preferQueryMode.compareTo(PreferQueryMode.EXTENDED) >= 0);
+  }
+
+  public void assumeCallableStatementsSupported() {
+    Assume.assumeTrue("callable statements are not fully supported in simple protocol execution mode",
+        preferQueryMode.compareTo(PreferQueryMode.EXTENDED) >= 0);
   }
 }

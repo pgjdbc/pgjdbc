@@ -113,6 +113,19 @@ matrix:
         postgresql: "9.4"
       env:
         - PG_VERSION=9.4
+        - QUERY_MODE=simple
+        - COVERAGE=Y
+    - jdk: oraclejdk8
+      addons:
+        postgresql: "9.4"
+      env:
+        - PG_VERSION=9.4
+        - QUERY_MODE=extendedForPrepared
+    - jdk: oraclejdk8
+      addons:
+        postgresql: "9.4"
+      env:
+        - PG_VERSION=9.4
         - NO_WAFFLE_NO_OSGI=Y
         - JDOC=Y
     - jdk: openjdk7

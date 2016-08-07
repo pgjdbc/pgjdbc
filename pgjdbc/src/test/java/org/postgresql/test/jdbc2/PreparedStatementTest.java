@@ -8,8 +8,19 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.BrokenInputStream;
+
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -23,29 +34,45 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.Collection;
 
 
-public class PreparedStatementTest extends BaseTest {
+@RunWith(Parameterized.class)
+public class PreparedStatementTest extends BaseTest4 {
 
-  public PreparedStatementTest(String name) {
-    super(name);
+  public PreparedStatementTest(BinaryMode binaryMode) {
+    setBinaryMode(binaryMode);
   }
 
-  protected void setUp() throws Exception {
+  @Parameterized.Parameters(name = "binary = {0}")
+  public static Iterable<Object[]> data() {
+    Collection<Object[]> ids = new ArrayList<Object[]>();
+    for (BinaryMode binaryMode : BinaryMode.values()) {
+      ids.add(new Object[]{binaryMode});
+    }
+    return ids;
+  }
+
+  @Override
+  public void setUp() throws Exception {
     super.setUp();
     TestUtil.createTable(con, "streamtable", "bin bytea, str text");
     TestUtil.createTable(con, "texttable", "ch char(3), te text, vc varchar(3)");
     TestUtil.createTable(con, "intervaltable", "i interval");
   }
 
-  protected void tearDown() throws SQLException {
+  @Override
+  public void tearDown() throws SQLException {
     TestUtil.dropTable(con, "streamtable");
     TestUtil.dropTable(con, "texttable");
     TestUtil.dropTable(con, "intervaltable");
     super.tearDown();
   }
 
+  @Test
   public void testSetBinaryStream() throws SQLException {
+    assumeByteaSupported();
     ByteArrayInputStream bais;
     byte buf[] = new byte[10];
     for (int i = 0; i < buf.length; i++) {
@@ -65,6 +92,7 @@ public class PreparedStatementTest extends BaseTest {
     doSetBinaryStream(bais, 10);
   }
 
+  @Test
   public void testSetAsciiStream() throws Exception {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     PrintWriter pw = new PrintWriter(new OutputStreamWriter(baos, "ASCII"));
@@ -83,6 +111,7 @@ public class PreparedStatementTest extends BaseTest {
     doSetAsciiStream(bais, 100);
   }
 
+  @Test
   public void testExecuteStringOnPreparedStatement() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("SELECT 1");
 
@@ -105,6 +134,7 @@ public class PreparedStatementTest extends BaseTest {
     }
   }
 
+  @Test
   public void testBinaryStreamErrorsRestartable() throws SQLException {
     // The V2 protocol does not have the ability to recover when
     // streaming data to the server. We could potentially try
@@ -177,6 +207,7 @@ public class PreparedStatementTest extends BaseTest {
     pstmt.close();
   }
 
+  @Test
   public void testTrailingSpaces() throws SQLException {
     PreparedStatement pstmt =
         con.prepareStatement("INSERT INTO texttable (ch, te, vc) VALUES (?, ?, ?) ");
@@ -200,6 +231,7 @@ public class PreparedStatementTest extends BaseTest {
     pstmt.close();
   }
 
+  @Test
   public void testSetNull() throws SQLException {
     // valid: fully qualified type to setNull()
     PreparedStatement pstmt = con.prepareStatement("INSERT INTO texttable (te) VALUES (?)");
@@ -232,6 +264,7 @@ public class PreparedStatementTest extends BaseTest {
     pstmt.close();
   }
 
+  @Test
   public void testSingleQuotes() throws SQLException {
     String[] testStrings = new String[]{
         "bare ? question mark",
@@ -313,6 +346,7 @@ public class PreparedStatementTest extends BaseTest {
     }
   }
 
+  @Test
   public void testDoubleQuotes() throws SQLException {
     String[] testStrings = new String[]{
         "bare ? question mark",
@@ -334,6 +368,7 @@ public class PreparedStatementTest extends BaseTest {
     }
   }
 
+  @Test
   public void testDollarQuotes() throws SQLException {
     // dollar-quotes are supported in the backend since version 8.0
     if (!TestUtil.haveMinimumServerVersion(con, "8.0")) {
@@ -379,6 +414,7 @@ public class PreparedStatementTest extends BaseTest {
     st.close();
   }
 
+  @Test
   public void testDollarQuotesAndIdentifiers() throws SQLException {
     // dollar-quotes are supported in the backend since version 8.0
     if (!TestUtil.haveMinimumServerVersion(con, "8.0")) {
@@ -401,6 +437,7 @@ public class PreparedStatementTest extends BaseTest {
     st.close();
   }
 
+  @Test
   public void testComments() throws SQLException {
     PreparedStatement st;
     ResultSet rs;
@@ -421,6 +458,7 @@ public class PreparedStatementTest extends BaseTest {
     st.close();
   }
 
+  @Test
   public void testDoubleQuestionMark() throws SQLException {
     PreparedStatement st;
     ResultSet rs;
@@ -440,6 +478,7 @@ public class PreparedStatementTest extends BaseTest {
     st.close();
   }
 
+  @Test
   public void testDouble() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement(
         "CREATE TEMP TABLE double_tab (max_double float, min_double float, null_value float)");
@@ -466,6 +505,7 @@ public class PreparedStatementTest extends BaseTest {
 
   }
 
+  @Test
   public void testFloat() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement(
         "CREATE TEMP TABLE float_tab (max_float real, min_float real, null_value real)");
@@ -492,6 +532,7 @@ public class PreparedStatementTest extends BaseTest {
 
   }
 
+  @Test
   public void testBoolean() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement(
         "CREATE TEMP TABLE bool_tab (max_val boolean, min_val boolean, null_val boolean)");
@@ -518,6 +559,7 @@ public class PreparedStatementTest extends BaseTest {
 
   }
 
+  @Test
   public void testSetFloatInteger() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement(
         "CREATE temp TABLE float_tab (max_val float8, min_val float, null_val float8)");
@@ -552,6 +594,7 @@ public class PreparedStatementTest extends BaseTest {
 
   }
 
+  @Test
   public void testSetFloatString() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement(
         "CREATE temp TABLE float_tab (max_val float8, min_val float8, null_val float8)");
@@ -585,6 +628,7 @@ public class PreparedStatementTest extends BaseTest {
 
   }
 
+  @Test
   public void testSetFloatBigDecimal() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement(
         "CREATE temp TABLE float_tab (max_val float8, min_val float8, null_val float8)");
@@ -618,6 +662,7 @@ public class PreparedStatementTest extends BaseTest {
 
   }
 
+  @Test
   public void testSetTinyIntFloat() throws SQLException {
     PreparedStatement pstmt = con
         .prepareStatement("CREATE temp TABLE tiny_int (max_val int4, min_val int4, null_val int4)");
@@ -673,6 +718,7 @@ public class PreparedStatementTest extends BaseTest {
 
   }
 
+  @Test
   public void testSetSmallIntFloat() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement(
         "CREATE temp TABLE small_int (max_val int4, min_val int4, null_val int4)");
@@ -705,6 +751,7 @@ public class PreparedStatementTest extends BaseTest {
     pstmt.close();
   }
 
+  @Test
   public void testSetIntFloat() throws SQLException {
     PreparedStatement pstmt = con
         .prepareStatement("CREATE temp TABLE int_TAB (max_val int4, min_val int4, null_val int4)");
@@ -738,6 +785,7 @@ public class PreparedStatementTest extends BaseTest {
 
   }
 
+  @Test
   public void testSetBooleanDouble() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement(
         "CREATE temp TABLE double_tab (max_val float, min_val float, null_val float)");
@@ -769,6 +817,7 @@ public class PreparedStatementTest extends BaseTest {
 
   }
 
+  @Test
   public void testSetBooleanNumeric() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement(
         "CREATE temp TABLE numeric_tab (max_val numeric(30,15), min_val numeric(30,15), null_val numeric(30,15))");
@@ -800,6 +849,7 @@ public class PreparedStatementTest extends BaseTest {
 
   }
 
+  @Test
   public void testSetBooleanDecimal() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement(
         "CREATE temp TABLE DECIMAL_TAB (max_val numeric(30,15), min_val numeric(30,15), null_val numeric(30,15))");
@@ -831,6 +881,7 @@ public class PreparedStatementTest extends BaseTest {
 
   }
 
+  @Test
   public void testSetObjectBigDecimalUnscaled() throws SQLException {
     TestUtil.createTempTable(con, "decimal_scale",
         "n1 numeric, n2 numeric, n3 numeric, n4 numeric");
@@ -867,6 +918,7 @@ public class PreparedStatementTest extends BaseTest {
     pstmt.close();
   }
 
+  @Test
   public void testSetObjectBigDecimalWithScale() throws SQLException {
     TestUtil.createTempTable(con, "decimal_scale",
         "n1 numeric, n2 numeric, n3 numeric, n4 numeric");
@@ -911,6 +963,7 @@ public class PreparedStatementTest extends BaseTest {
     pstruncate.close();
   }
 
+  @Test
   public void testUnknownSetObject() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement("INSERT INTO intervaltable(i) VALUES (?)");
 
@@ -918,8 +971,10 @@ public class PreparedStatementTest extends BaseTest {
       pstmt.setString(1, "1 week");
       try {
         pstmt.executeUpdate();
-        fail("Should have failed with type mismatch.");
+        assertTrue("When using extended protocol, interval vs character varying type mismatch error is expected",
+            preferQueryMode == PreferQueryMode.SIMPLE);
       } catch (SQLException sqle) {
+        // ERROR: column "i" is of type interval but expression is of type character varying
       }
     }
 
@@ -931,6 +986,7 @@ public class PreparedStatementTest extends BaseTest {
   /**
    * With autoboxing this apparently happens more often now.
    */
+  @Test
   public void testSetObjectCharacter() throws SQLException {
     PreparedStatement ps = con.prepareStatement("INSERT INTO texttable(te) VALUES (?)");
     ps.setObject(1, new Character('z'));
@@ -943,6 +999,7 @@ public class PreparedStatementTest extends BaseTest {
    * protocol level statment describe message for the V3 protocol. This test just makes sure that
    * works.
    */
+  @Test
   public void testStatementDescribe() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement("SELECT ?::int");
     pstmt.setObject(1, new Integer(2), Types.OTHER);

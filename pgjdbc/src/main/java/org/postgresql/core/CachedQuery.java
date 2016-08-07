@@ -62,4 +62,14 @@ public class CachedQuery implements CanEstimateSize {
     return queryLength * 2 /* original query and native sql */
         + 100L /* entry in hash map, CachedQuery wrapper, etc */;
   }
+
+  @Override
+  public String toString() {
+    return "CachedQuery{"
+        + "executeCount=" + executeCount
+        + ", query=" + query
+        + ", isFunction=" + isFunction
+        + ", outParmBeforeFunc=" + outParmBeforeFunc
+        + '}';
+  }
 }

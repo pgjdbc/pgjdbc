@@ -26,11 +26,18 @@ class CachedQueryCreateAction implements LruCache.CreateAction<Object, CachedQue
 
   @Override
   public CachedQuery create(Object key) throws SQLException {
-    String parsedSql = key.toString();
     assert key instanceof String || key instanceof BaseQueryKey
         : "Query key should be String or BaseQueryKey. Given " + key.getClass() + ", sql: "
-        + parsedSql;
-    BaseQueryKey queryKey = key instanceof BaseQueryKey ? (BaseQueryKey) key : null;
+        + String.valueOf(key);
+    BaseQueryKey queryKey;
+    String parsedSql;
+    if (key instanceof BaseQueryKey) {
+      queryKey = (BaseQueryKey) key;
+      parsedSql = queryKey.sql;
+    } else {
+      queryKey = null;
+      parsedSql = (String) key;
+    }
     if (key instanceof String || queryKey.escapeProcessing) {
       parsedSql =
           Parser.replaceProcessing(parsedSql, true, queryExecutor.getStandardConformingStrings());

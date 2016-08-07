@@ -17,6 +17,11 @@ then
     MVN_ARGS="$MVN_ARGS -DwaffleEnabled=false -DosgiEnabled=false -DexcludePackageNames=org.postgresql.osgi:org.postgresql.sspi"
 fi
 
+if [[ "x${QUERY_MODE}" == *"x"* ]];
+then
+    MVN_ARGS="$MVN_ARGS -DpreferQueryMode=$QUERY_MODE"
+fi
+
 if [[ "${COVERAGE}" == *"Y"* ]];
 then
     MVN_PROFILES="$MVN_PROFILES,coverage"

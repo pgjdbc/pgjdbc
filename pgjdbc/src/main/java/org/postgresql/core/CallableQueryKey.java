@@ -19,6 +19,15 @@ class CallableQueryKey extends BaseQueryKey {
   }
 
   @Override
+  public String toString() {
+    return "CallableQueryKey{"
+        + "sql='" + sql + '\''
+        + ", isParameterized=" + isParameterized
+        + ", escapeProcessing=" + escapeProcessing
+        + '}';
+  }
+
+  @Override
   public int hashCode() {
     return super.hashCode() * 31;
   }

@@ -41,6 +41,7 @@ public class Parser {
    * @param isBatchedReWriteConfigured whether re-write optimization is enabled
    * @param returningColumnNames      for simple insert, update, delete add returning with given column names
    * @return list of native queries
+   * @throws SQLException if unable to add returning clause (invalid column names)
    */
   public static List<NativeQuery> parseJdbcSql(String query, boolean standardConformingStrings,
       boolean withParameters, boolean splitStatements,
@@ -66,7 +67,10 @@ public class Parser {
     int valuesBraceClosePosition = -1;
     boolean isInsertPresent = false;
     boolean isReturningPresent = false;
+    boolean isReturningPresentPrev = false;
     SqlCommandType currentCommandType = SqlCommandType.BLANK;
+    SqlCommandType prevCommandType = SqlCommandType.BLANK;
+    int numberOfStatements = 0;
 
     boolean whitespaceOnly = true;
     int keyWordCount = 0;
@@ -129,36 +133,44 @@ public class Parser {
           break;
 
         case ';':
-          if (inParen == 0 && splitStatements) {
+          if (inParen == 0) {
             if (!whitespaceOnly) {
+              numberOfStatements++;
               nativeSql.append(aChars, fragmentStart, i - fragmentStart);
               whitespaceOnly = true;
             }
             fragmentStart = i + 1;
             if (nativeSql.length() > 0) {
-              if (nativeQueries == null) {
-                nativeQueries = new ArrayList<NativeQuery>();
-              }
-
               if (addReturning(nativeSql, currentCommandType, returningColumnNames, isReturningPresent)) {
                 isReturningPresent = true;
               }
 
-              nativeQueries.add(new NativeQuery(nativeSql.toString(),
-                  toIntArray(bindPositions), SqlCommand.createStatementTypeInfo(
-                      currentCommandType, isBatchedReWriteConfigured, valuesBraceOpenPosition,
-                      valuesBraceClosePosition,
-                  isReturningPresent, nativeQueries.size())));
+              if (splitStatements) {
+                if (nativeQueries == null) {
+                  nativeQueries = new ArrayList<NativeQuery>();
+                }
+
+                nativeQueries.add(new NativeQuery(nativeSql.toString(),
+                    toIntArray(bindPositions), false,
+                    SqlCommand.createStatementTypeInfo(
+                        currentCommandType, isBatchedReWriteConfigured, valuesBraceOpenPosition,
+                        valuesBraceClosePosition,
+                        isReturningPresent, nativeQueries.size())));
+              }
             }
-            // Prepare for next query
-            if (bindPositions != null) {
-              bindPositions.clear();
-            }
-            nativeSql.setLength(0);
+            prevCommandType = currentCommandType;
+            isReturningPresentPrev = isReturningPresent;
             currentCommandType = SqlCommandType.BLANK;
             isReturningPresent = false;
-            valuesBraceOpenPosition = -1;
-            valuesBraceClosePosition = -1;
+            if (splitStatements) {
+              // Prepare for next query
+              if (bindPositions != null) {
+                bindPositions.clear();
+              }
+              nativeSql.setLength(0);
+              valuesBraceOpenPosition = -1;
+              valuesBraceClosePosition = -1;
+            }
           }
           break;
 
@@ -210,7 +222,7 @@ public class Parser {
         }
       }
     }
-    if (!isValuesFound || bindPositions == null) {
+    if (!isValuesFound) {
       isCurrentReWriteCompatible = false;
     }
     if (!isCurrentReWriteCompatible) {
@@ -220,6 +232,14 @@ public class Parser {
 
     if (fragmentStart < aChars.length && !whitespaceOnly) {
       nativeSql.append(aChars, fragmentStart, aChars.length - fragmentStart);
+    } else {
+      if (numberOfStatements > 1) {
+        isReturningPresent = false;
+        currentCommandType = SqlCommandType.BLANK;
+      } else if (numberOfStatements == 1) {
+        isReturningPresent = isReturningPresentPrev;
+        currentCommandType = prevCommandType;
+      }
     }
 
     if (nativeSql.length() == 0) {
@@ -231,7 +251,8 @@ public class Parser {
     }
 
     NativeQuery lastQuery = new NativeQuery(nativeSql.toString(),
-        toIntArray(bindPositions), SqlCommand.createStatementTypeInfo(currentCommandType,
+        toIntArray(bindPositions), !splitStatements,
+        SqlCommand.createStatementTypeInfo(currentCommandType,
             isBatchedReWriteConfigured, valuesBraceOpenPosition, valuesBraceClosePosition,
             isReturningPresent, (nativeQueries == null ? 0 : nativeQueries.size())));
 

@@ -9,12 +9,14 @@
 package org.postgresql.test.jdbc4;
 
 import org.postgresql.geometric.PGbox;
+import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -167,7 +169,7 @@ public class ArrayTest extends BaseTest4 {
 
     String sql = "SELECT ?";
     // We must provide the type information for V2 protocol
-    if (TestUtil.isProtocolVersion(_conn, 2)) {
+    if (preferQueryMode == PreferQueryMode.SIMPLE) {
       sql = "SELECT ?::int8[]";
     }
 
@@ -244,6 +246,9 @@ public class ArrayTest extends BaseTest4 {
 
   @Test
   public void testUUIDArray() throws SQLException {
+    Assume.assumeTrue("UUID is not supported in PreferQueryMode.SIMPLE",
+        preferQueryMode != PreferQueryMode.SIMPLE);
+
     UUID uuid1 = UUID.randomUUID();
     UUID uuid2 = UUID.randomUUID();
     UUID uuid3 = UUID.randomUUID();

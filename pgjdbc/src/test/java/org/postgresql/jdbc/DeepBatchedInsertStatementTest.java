@@ -21,7 +21,6 @@ import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Properties;
 
 /**
@@ -120,8 +119,6 @@ public class DeepBatchedInsertStatementTest extends BaseTest {
       assertEquals(3, getBatchSize(bqds));
 
       BatchExecuteTest.assertSimpleInsertBatch(3, pstmt.executeBatch());
-      assertTrue("Expected encoded name is not matched.", Arrays.equals( "S_2".getBytes(),
-          getEncodedStatementName(bqds[0])));
 
       pstmt.setInt(1, 1);
       pstmt.setInt(2, 2);

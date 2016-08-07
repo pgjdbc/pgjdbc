@@ -164,7 +164,11 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     try {
       checkClosed();
 
-      execute(preparedQuery.query, preparedParameters, flags);
+      if (connection.getPreferQueryMode() == PreferQueryMode.SIMPLE) {
+        flags |= QueryExecutor.QUERY_EXECUTE_AS_SIMPLE;
+      }
+
+      execute(preparedQuery, preparedParameters, flags);
 
       return (result != null && result.getResultSet() != null);
     } finally {
@@ -172,16 +176,11 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
-  protected boolean isOneShotQuery(Query query) {
-    if (preparedQuery != null && (query == null || preparedQuery.query == query)) {
-      preparedQuery.increaseExecuteCount();
-      if ((m_prepareThreshold == 0 || preparedQuery.getExecuteCount() < m_prepareThreshold)
-          && !getForceBinaryTransfer()) {
-        return true;
-      }
-      return false;
+  protected boolean isOneShotQuery(CachedQuery cachedQuery) {
+    if (cachedQuery == null) {
+      cachedQuery = preparedQuery;
     }
-    return true;
+    return super.isOneShotQuery(cachedQuery);
   }
 
   @Override
@@ -1707,8 +1706,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     // we cap maximum batch size and split there.
     final int bindCount = originalQuery.getBindCount();
     final int highestBlockCount = 128;
-    final int maxValueBlocks =
-        Integer.highestOneBit( // deriveForMultiBatch supports powers of two only
+    final int maxValueBlocks = bindCount == 0 ? 1024 /* if no binds, use 1024 rows */
+        : Integer.highestOneBit( // deriveForMultiBatch supports powers of two only
             Math.min(Math.max(1, (Short.MAX_VALUE - 1) / bindCount), highestBlockCount));
     int unprocessedBatchCount = batchParameters.size();
     final int fullValueBlocksCount = unprocessedBatchCount / maxValueBlocks;

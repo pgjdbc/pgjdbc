@@ -8,13 +8,16 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGInterval;
 import org.postgresql.util.PGTime;
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -28,29 +31,22 @@ import java.util.TimeZone;
  * Tests {@link PGTime} in various scenarios including setTime, setObject for both <code>time with
  * time zone</code> and <code>time without time zone</code> data types.
  */
-public class PGTimeTest extends TestCase {
+public class PGTimeTest extends BaseTest4 {
   /**
    * The name of the test table.
    */
   private static final String TEST_TABLE = "testtime";
 
-  /**
-   * The database connection.
-   */
-  private Connection con;
-
-  public PGTimeTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
-    con = TestUtil.openDB();
+  @Override
+  public void setUp() throws Exception {
+    super.setUp();
     TestUtil.createTempTable(con, TEST_TABLE, "tm time, tz time with time zone");
   }
 
-  protected void tearDown() throws Exception {
+  @Override
+  public void tearDown() throws SQLException {
     TestUtil.dropTable(con, TEST_TABLE);
-    TestUtil.closeDB(con);
+    super.tearDown();
   }
 
   /**
@@ -59,6 +55,7 @@ public class PGTimeTest extends TestCase {
    *
    * @throws SQLException if a JDBC or database problem occurs.
    */
+  @Test
   public void testTimeWithInterval() throws SQLException {
     Calendar cal = Calendar.getInstance();
     cal.set(1970, 0, 1);
@@ -136,6 +133,7 @@ public class PGTimeTest extends TestCase {
    *
    * @throws SQLException if a JDBC or database problem occurs.
    */
+  @Test
   public void testTimeInsertAndSelect() throws SQLException {
     Calendar cal = Calendar.getInstance();
     cal.set(1970, 0, 1);

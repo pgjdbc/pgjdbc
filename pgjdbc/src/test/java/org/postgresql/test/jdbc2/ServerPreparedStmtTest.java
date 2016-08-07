@@ -8,28 +8,34 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import org.postgresql.PGStatement;
+import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.Assume;
+import org.junit.Test;
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 
 /*
  * Tests for using server side prepared statements
  */
-public class ServerPreparedStmtTest extends TestCase {
-  private Connection con;
+public class ServerPreparedStmtTest extends BaseTest4 {
 
-  public ServerPreparedStmtTest(String name) {
-    super(name);
-  }
+  @Override
+  public void setUp() throws Exception {
+    super.setUp();
 
-  protected void setUp() throws Exception {
-    con = TestUtil.openDB();
+    Assume.assumeTrue("Server-prepared statements are not supported in simple protocol, thus ignoring the tests",
+        preferQueryMode != PreferQueryMode.SIMPLE);
+
     Statement stmt = con.createStatement();
 
     TestUtil.createTable(con, "testsps", "id integer, value boolean");
@@ -44,11 +50,13 @@ public class ServerPreparedStmtTest extends TestCase {
     stmt.close();
   }
 
-  protected void tearDown() throws Exception {
+  @Override
+  public void tearDown() throws SQLException {
     TestUtil.dropTable(con, "testsps");
-    TestUtil.closeDB(con);
+    super.tearDown();
   }
 
+  @Test
   public void testEmptyResults() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("SELECT * FROM testsps WHERE id = ?");
     ((PGStatement) pstmt).setUseServerPrepare(true);
@@ -61,6 +69,7 @@ public class ServerPreparedStmtTest extends TestCase {
     pstmt.close();
   }
 
+  @Test
   public void testPreparedExecuteCount() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("UPDATE testsps SET id = id + 44");
     ((PGStatement) pstmt).setUseServerPrepare(true);
@@ -70,6 +79,7 @@ public class ServerPreparedStmtTest extends TestCase {
   }
 
 
+  @Test
   public void testPreparedStatementsNoBinds() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("SELECT * FROM testsps WHERE id = 2");
     ((PGStatement) pstmt).setUseServerPrepare(true);
@@ -104,6 +114,7 @@ public class ServerPreparedStmtTest extends TestCase {
     pstmt.close();
   }
 
+  @Test
   public void testPreparedStatementsWithOneBind() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("SELECT * FROM testsps WHERE id = ?");
     ((PGStatement) pstmt).setUseServerPrepare(true);
@@ -140,6 +151,7 @@ public class ServerPreparedStmtTest extends TestCase {
   }
 
   // Verify we can bind booleans-as-objects ok.
+  @Test
   public void testBooleanObjectBind() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("SELECT * FROM testsps WHERE value = ?");
     ((PGStatement) pstmt).setUseServerPrepare(true);
@@ -153,6 +165,7 @@ public class ServerPreparedStmtTest extends TestCase {
   }
 
   // Verify we can bind booleans-as-integers ok.
+  @Test
   public void testBooleanIntegerBind() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("SELECT * FROM testsps WHERE id = ?");
     ((PGStatement) pstmt).setUseServerPrepare(true);
@@ -166,6 +179,7 @@ public class ServerPreparedStmtTest extends TestCase {
   }
 
   // Verify we can bind booleans-as-native-types ok.
+  @Test
   public void testBooleanBind() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("SELECT * FROM testsps WHERE value = ?");
     ((PGStatement) pstmt).setUseServerPrepare(true);
@@ -178,6 +192,7 @@ public class ServerPreparedStmtTest extends TestCase {
     rs.close();
   }
 
+  @Test
   public void testPreparedStatementsWithBinds() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("SELECT * FROM testsps WHERE id = ? or id = ?");
     ((PGStatement) pstmt).setUseServerPrepare(true);
@@ -201,6 +216,7 @@ public class ServerPreparedStmtTest extends TestCase {
     pstmt.close();
   }
 
+  @Test
   public void testSPSToggle() throws Exception {
     // Verify we can toggle UseServerPrepare safely before a query is executed.
     PreparedStatement pstmt = con.prepareStatement("SELECT * FROM testsps WHERE id = 2");
@@ -208,6 +224,7 @@ public class ServerPreparedStmtTest extends TestCase {
     ((PGStatement) pstmt).setUseServerPrepare(false);
   }
 
+  @Test
   public void testBytea() throws Exception {
     // Verify we can use setBytes() with a server-prepared update.
     try {
@@ -223,6 +240,7 @@ public class ServerPreparedStmtTest extends TestCase {
   }
 
   // Check statements are not transformed when they shouldn't be.
+  @Test
   public void testCreateTable() throws Exception {
     // CREATE TABLE isn't supported by PREPARE; the driver should realize this and
     // still complete without error.
@@ -232,6 +250,7 @@ public class ServerPreparedStmtTest extends TestCase {
     TestUtil.dropTable(con, "testsps_bad");
   }
 
+  @Test
   public void testMultistatement() throws Exception {
     // Shouldn't try to PREPARE this one, if we do we get:
     // PREPARE x(int,int) AS INSERT .... $1 ; INSERT ... $2 -- syntax error
@@ -256,6 +275,7 @@ public class ServerPreparedStmtTest extends TestCase {
     }
   }
 
+  @Test
   public void testTypeChange() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("SELECT CAST (? AS TEXT)");
     ((PGStatement) pstmt).setUseServerPrepare(true);

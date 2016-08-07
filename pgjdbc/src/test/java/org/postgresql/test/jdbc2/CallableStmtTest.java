@@ -8,13 +8,18 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
 import java.sql.Array;
 import java.sql.CallableStatement;
-import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
@@ -26,15 +31,11 @@ import java.sql.Types;
  *
  * @author Paul Bethe
  */
-public class CallableStmtTest extends TestCase {
-  private Connection con;
+public class CallableStmtTest extends BaseTest4 {
 
-  public CallableStmtTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
-    con = TestUtil.openDB();
+  @Override
+  public void setUp() throws Exception {
+    super.setUp();
     TestUtil.createTable(con, "int_table", "id int");
     Statement stmt = con.createStatement();
     stmt.execute("CREATE OR REPLACE FUNCTION testspg__getString (varchar) "
@@ -70,7 +71,8 @@ public class CallableStmtTest extends TestCase {
     stmt.close();
   }
 
-  protected void tearDown() throws Exception {
+  @Override
+  public void tearDown() throws SQLException {
     Statement stmt = con.createStatement();
     TestUtil.dropTable(con, "int_table");
     stmt.execute("drop FUNCTION testspg__getString (varchar);");
@@ -86,14 +88,16 @@ public class CallableStmtTest extends TestCase {
     stmt.execute("DROP FUNCTION testspg__getarray();");
     stmt.execute("DROP FUNCTION testspg__raisenotice();");
     stmt.execute("DROP FUNCTION testspg__insertInt(int);");
-    TestUtil.closeDB(con);
+    super.tearDown();
   }
 
 
   final String func = "{ ? = call ";
   final String pkgName = "testspg__";
 
+  @Test
   public void testGetUpdateCount() throws SQLException {
+    assumeCallableStatementsSupported();
     CallableStatement call = con.prepareCall(func + pkgName + "getDouble (?) }");
     call.setDouble(2, 3.04);
     call.registerOutParameter(1, Types.DOUBLE);
@@ -120,7 +124,9 @@ public class CallableStmtTest extends TestCase {
     call.close();
   }
 
+  @Test
   public void testGetDouble() throws Throwable {
+    assumeCallableStatementsSupported();
     CallableStatement call = con.prepareCall(func + pkgName + "getDouble (?) }");
     call.setDouble(2, 3.04);
     call.registerOutParameter(1, Types.DOUBLE);
@@ -139,7 +145,9 @@ public class CallableStmtTest extends TestCase {
     }
   }
 
+  @Test
   public void testGetInt() throws Throwable {
+    assumeCallableStatementsSupported();
     CallableStatement call = con.prepareCall(func + pkgName + "getInt (?) }");
     call.setInt(2, 4);
     call.registerOutParameter(1, Types.INTEGER);
@@ -147,7 +155,9 @@ public class CallableStmtTest extends TestCase {
     assertEquals(42, call.getInt(1));
   }
 
+  @Test
   public void testGetShort() throws Throwable {
+    assumeCallableStatementsSupported();
     if (TestUtil.isProtocolVersion(con, 3)) {
       CallableStatement call = con.prepareCall(func + pkgName + "getShort (?) }");
       call.setShort(2, (short) 4);
@@ -157,7 +167,9 @@ public class CallableStmtTest extends TestCase {
     }
   }
 
+  @Test
   public void testGetNumeric() throws Throwable {
+    assumeCallableStatementsSupported();
     CallableStatement call = con.prepareCall(func + pkgName + "getNumeric (?) }");
     call.setBigDecimal(2, new java.math.BigDecimal(4));
     call.registerOutParameter(1, Types.NUMERIC);
@@ -165,14 +177,18 @@ public class CallableStmtTest extends TestCase {
     assertEquals(new java.math.BigDecimal(42), call.getBigDecimal(1));
   }
 
+  @Test
   public void testGetNumericWithoutArg() throws Throwable {
+    assumeCallableStatementsSupported();
     CallableStatement call = con.prepareCall(func + pkgName + "getNumericWithoutArg () }");
     call.registerOutParameter(1, Types.NUMERIC);
     call.execute();
     assertEquals(new java.math.BigDecimal(42), call.getBigDecimal(1));
   }
 
+  @Test
   public void testGetString() throws Throwable {
+    assumeCallableStatementsSupported();
     CallableStatement call = con.prepareCall(func + pkgName + "getString (?) }");
     call.setString(2, "foo");
     call.registerOutParameter(1, Types.VARCHAR);
@@ -181,7 +197,9 @@ public class CallableStmtTest extends TestCase {
 
   }
 
+  @Test
   public void testGetArray() throws SQLException {
+    assumeCallableStatementsSupported();
     CallableStatement call = con.prepareCall(func + pkgName + "getarray()}");
     call.registerOutParameter(1, Types.ARRAY);
     call.execute();
@@ -194,7 +212,9 @@ public class CallableStmtTest extends TestCase {
     assertTrue(!rs.next());
   }
 
+  @Test
   public void testRaiseNotice() throws SQLException {
+    assumeCallableStatementsSupported();
     Statement statement = con.createStatement();
     statement.execute("SET SESSION client_min_messages = 'NOTICE'");
     CallableStatement call = con.prepareCall(func + pkgName + "raisenotice()}");
@@ -209,6 +229,7 @@ public class CallableStmtTest extends TestCase {
     assertEquals(1, call.getInt(1));
   }
 
+  @Test
   public void testWasNullBeforeFetch() throws SQLException {
     CallableStatement cs = con.prepareCall("{? = call lower(?)}");
     cs.registerOutParameter(1, Types.VARCHAR);
@@ -221,6 +242,7 @@ public class CallableStmtTest extends TestCase {
     }
   }
 
+  @Test
   public void testFetchBeforeExecute() throws SQLException {
     CallableStatement cs = con.prepareCall("{? = call lower(?)}");
     cs.registerOutParameter(1, Types.VARCHAR);
@@ -233,6 +255,7 @@ public class CallableStmtTest extends TestCase {
     }
   }
 
+  @Test
   public void testFetchWithNoResults() throws SQLException {
     CallableStatement cs = con.prepareCall("{call now()}");
     cs.execute();
@@ -244,6 +267,7 @@ public class CallableStmtTest extends TestCase {
     }
   }
 
+  @Test
   public void testBadStmt() throws Throwable {
     tryOneBadStmt("{ ?= " + pkgName + "getString (?) }");
     tryOneBadStmt("{ ?= call getString (?) ");
@@ -259,6 +283,7 @@ public class CallableStmtTest extends TestCase {
     }
   }
 
+  @Test
   public void testBatchCall() throws SQLException {
     CallableStatement call = con.prepareCall("{ call " + pkgName + "insertInt(?) }");
     call.setInt(1, 1);

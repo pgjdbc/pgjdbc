@@ -8,9 +8,15 @@
 
 package org.postgresql.test.jdbc3;
 
-import org.postgresql.test.TestUtil;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
-import junit.framework.TestCase;
+import org.postgresql.jdbc.PreferQueryMode;
+import org.postgresql.test.jdbc2.BaseTest4;
+
+import org.junit.Test;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;
@@ -20,34 +26,29 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 
-public class TypesTest extends TestCase {
+public class TypesTest extends BaseTest4 {
 
   private Connection _conn;
 
-  public TypesTest(String name) {
-    super(name);
-    try {
-      Class.forName("org.postgresql.Driver");
-    } catch (Exception ex) {
-
-    }
-  }
-
-  protected void setUp() throws Exception {
-    _conn = TestUtil.openDB();
+  @Override
+  public void setUp() throws Exception {
+    super.setUp();
+    _conn = con;
     Statement stmt = _conn.createStatement();
     stmt.execute(
         "CREATE OR REPLACE FUNCTION return_bool(boolean) RETURNS boolean AS 'BEGIN RETURN $1; END;' LANGUAGE plpgsql");
     stmt.close();
   }
 
-  protected void tearDown() throws SQLException {
+  @Override
+  public void tearDown() throws SQLException {
     Statement stmt = _conn.createStatement();
     stmt.execute("DROP FUNCTION return_bool(boolean)");
     stmt.close();
-    TestUtil.closeDB(_conn);
+    super.tearDown();
   }
 
+  @Test
   public void testPreparedBoolean() throws SQLException {
     PreparedStatement pstmt = _conn.prepareStatement("SELECT ?,?,?,?");
     pstmt.setNull(1, Types.BOOLEAN);
@@ -63,11 +64,12 @@ public class TypesTest extends TestCase {
     // Only the V3 protocol return will be strongly typed.
     // The V2 path will return a String because it doesn't know
     // any better.
-    if (TestUtil.isProtocolVersion(_conn, 3)) {
+    if (preferQueryMode != PreferQueryMode.SIMPLE) {
       assertTrue(!((Boolean) rs.getObject(4)).booleanValue());
     }
   }
 
+  @Test
   public void testPreparedByte() throws SQLException {
     PreparedStatement pstmt = _conn.prepareStatement("SELECT ?,?");
     pstmt.setByte(1, (byte) 1);
@@ -82,7 +84,9 @@ public class TypesTest extends TestCase {
     pstmt.close();
   }
 
+  @Test
   public void testCallableBoolean() throws SQLException {
+    assumeCallableStatementsSupported();
     CallableStatement cs = _conn.prepareCall("{? = call return_bool(?)}");
     cs.registerOutParameter(1, Types.BOOLEAN);
     cs.setBoolean(2, true);
@@ -91,6 +95,7 @@ public class TypesTest extends TestCase {
     cs.close();
   }
 
+  @Test
   public void testUnknownType() throws SQLException {
     Statement stmt = _conn.createStatement();
 

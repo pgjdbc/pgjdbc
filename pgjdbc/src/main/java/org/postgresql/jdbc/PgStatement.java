@@ -37,6 +37,8 @@ import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 public class PgStatement implements Statement, BaseStatement {
+  private static final String[] NO_RETURNING_COLUMNS = new String[0];
+
   /**
    * Default state for use or not binary transfers. Can use only for testing purposes
    */
@@ -235,6 +237,10 @@ public class PgStatement implements Statement, BaseStatement {
         throw error;
       }
     }
+
+    @Override
+    public void secureProgress() {
+    }
   }
 
   public java.sql.ResultSet executeQuery(String p_sql) throws SQLException {
@@ -271,17 +277,43 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   public boolean executeWithFlags(String sql, int flags) throws SQLException {
-    Query simpleQuery = connection.createQuery(sql, replaceProcessingEnabled, false).query;
-    if (wantsGeneratedKeysOnce) {
-      SqlCommand sqlCommand = simpleQuery.getSqlCommand();
-      wantsGeneratedKeysOnce = sqlCommand != null && sqlCommand.isReturningKeywordPresent();
-    }
-    return executeWithFlags(simpleQuery, flags);
+    return executeCachedSql(sql, flags, NO_RETURNING_COLUMNS);
   }
 
-  public boolean executeWithFlags(Query simpleQuery, int flags) throws SQLException {
+  private boolean executeCachedSql(String sql, int flags, String[] columnNames) throws SQLException {
+    PreferQueryMode preferQueryMode = connection.getPreferQueryMode();
+    boolean shouldUseParameterized = preferQueryMode.compareTo(PreferQueryMode.EXTENDED) >= 0;
+    QueryExecutor queryExecutor = connection.getQueryExecutor();
+    Object key = queryExecutor
+        .createQueryKey(sql, replaceProcessingEnabled, shouldUseParameterized, columnNames);
+    CachedQuery cachedQuery;
+    boolean shouldCache = preferQueryMode == PreferQueryMode.EXTENDED_CACHE_EVERYTING;
+    if (shouldCache) {
+      cachedQuery = queryExecutor.borrowQueryByKey(key);
+    } else {
+      cachedQuery = queryExecutor.createQueryByKey(key);
+    }
+    if (wantsGeneratedKeysOnce) {
+      SqlCommand sqlCommand = cachedQuery.query.getSqlCommand();
+      wantsGeneratedKeysOnce = sqlCommand != null && sqlCommand.isReturningKeywordPresent();
+    }
+    boolean res;
+    try {
+      res = executeWithFlags(cachedQuery, flags);
+    } finally {
+      if (shouldCache) {
+        queryExecutor.releaseQuery(cachedQuery);
+      }
+    }
+    return res;
+  }
+
+  public boolean executeWithFlags(CachedQuery simpleQuery, int flags) throws SQLException {
     checkClosed();
-    execute(simpleQuery, null, QueryExecutor.QUERY_ONESHOT | flags);
+    if (connection.getPreferQueryMode().compareTo(PreferQueryMode.EXTENDED) < 0) {
+      flags |= QueryExecutor.QUERY_EXECUTE_AS_SIMPLE;
+    }
+    execute(simpleQuery, null, flags);
     return (result != null && result.getResultSet() != null);
   }
 
@@ -316,14 +348,22 @@ public class PgStatement implements Statement, BaseStatement {
   /**
    * Returns true if query is unlikely to be reused
    *
-   * @param query to check (null if current query)
+   * @param cachedQuery to check (null if current query)
    * @return true if query is unlikely to be reused
    */
-  protected boolean isOneShotQuery(Query query) {
-    return true;
+  protected boolean isOneShotQuery(CachedQuery cachedQuery) {
+    if (cachedQuery == null) {
+      return true;
+    }
+    cachedQuery.increaseExecuteCount();
+    if ((m_prepareThreshold == 0 || cachedQuery.getExecuteCount() < m_prepareThreshold)
+        && !getForceBinaryTransfer()) {
+      return true;
+    }
+    return false;
   }
 
-  protected void execute(Query queryToExecute, ParameterList queryParameters, int flags)
+  protected void execute(CachedQuery cachedQuery, ParameterList queryParameters, int flags)
       throws SQLException {
     closeForNextExecution();
 
@@ -344,7 +384,7 @@ public class PgStatement implements Statement, BaseStatement {
       }
     }
 
-    if (isOneShotQuery(queryToExecute)) {
+    if (isOneShotQuery(cachedQuery)) {
       flags |= QueryExecutor.QUERY_ONESHOT;
     }
     // Only use named statements after we hit the threshold. Note that only
@@ -359,11 +399,17 @@ public class PgStatement implements Statement, BaseStatement {
       flags |= QueryExecutor.QUERY_NO_BINARY_TRANSFER;
     }
 
+    Query queryToExecute = cachedQuery.query;
+
     if (queryToExecute.isEmpty()) {
       flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
     }
 
-    if (!queryToExecute.isStatementDescribed() && forceBinaryTransfers) {
+    if (!queryToExecute.isStatementDescribed() && forceBinaryTransfers
+        && (flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) == 0) {
+      // Simple 'Q' execution does not need to know parameter types
+      // When binaryTransfer is forced, then we need to know resulting parameter and column types,
+      // thus sending a describe request.
       int flags2 = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
       StatementResultHandler handler2 = new StatementResultHandler();
       connection.getQueryExecutor().execute(queryToExecute, queryParameters, handler2, 0, 0,
@@ -612,7 +658,8 @@ public class PgStatement implements Statement, BaseStatement {
       batchParameters = new ArrayList<ParameterList>();
     }
 
-    CachedQuery cachedQuery = connection.createQuery(p_sql, replaceProcessingEnabled, false);
+    boolean shouldUseParameterized = connection.getPreferQueryMode().compareTo(PreferQueryMode.EXTENDED) >= 0;
+    CachedQuery cachedQuery = connection.createQuery(p_sql, replaceProcessingEnabled, shouldUseParameterized);
     batchStatements.add(cachedQuery.query);
     batchParameters.add(null);
   }
@@ -672,13 +719,20 @@ public class PgStatement implements Statement, BaseStatement {
       flags = QueryExecutor.QUERY_NO_RESULTS;
     }
 
+    PreferQueryMode preferQueryMode = connection.getPreferQueryMode();
+    if (preferQueryMode == PreferQueryMode.SIMPLE
+        || (preferQueryMode == PreferQueryMode.EXTENDED_FOR_PREPARED
+        && parameterLists[0] == null)) {
+      flags |= QueryExecutor.QUERY_EXECUTE_AS_SIMPLE;
+    }
+
     boolean sameQueryAhead = queries.length > 1 && queries[0] == queries[1];
 
-    if (isOneShotQuery(null)
+    if (!sameQueryAhead
         // If executing the same query twice in a batch, make sure the statement
         // is server-prepared. In other words, "oneshot" only if the query is one in the batch
         // or the queries are different
-        && !sameQueryAhead) {
+        && isOneShotQuery(null)) {
       flags |= QueryExecutor.QUERY_ONESHOT;
     } else {
       // If a batch requests generated keys and isn't already described,
@@ -707,7 +761,8 @@ public class PgStatement implements Statement, BaseStatement {
     BatchResultHandler handler;
     handler = createBatchHandler(queries, parameterLists);
 
-    if (preDescribe || forceBinaryTransfers) {
+    if ((preDescribe || forceBinaryTransfers)
+        && (flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) == 0) {
       // Do a client-server round trip, parsing and describing the query so we
       // can determine its result types for use in binary parameters, batch sizing,
       // etc.
@@ -1041,8 +1096,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
 
     wantsGeneratedKeysOnce = true;
-    CachedQuery query = connection.createQuery(sql, replaceProcessingEnabled, false, columnNames);
-    if (!executeWithFlags(query.query, 0)) {
+    if (!executeCachedSql(sql, 0, columnNames)) {
       // no resultset returned. What's a pity!
     }
     return getUpdateCount();
@@ -1069,10 +1123,8 @@ public class PgStatement implements Statement, BaseStatement {
       return execute(sql);
     }
 
-    CachedQuery query = connection.createQuery(sql, replaceProcessingEnabled, false, columnNames);
     wantsGeneratedKeysOnce = true;
-
-    return executeWithFlags(query.query, 0);
+    return executeCachedSql(sql, 0, columnNames);
   }
 
   public int getResultSetHoldability() throws SQLException {

@@ -2,6 +2,7 @@ package org.postgresql.core;
 
 import org.postgresql.PGNotification;
 import org.postgresql.PGProperty;
+import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.LruCache;
 
@@ -26,6 +27,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   private TransactionState transactionState;
   private final boolean reWriteBatchedInserts;
   private final boolean columnSanitiserDisabled;
+  private final PreferQueryMode preferQueryMode;
 
   // default value for server versions that don't report standard_conforming_strings
   private boolean standardConformingStrings = false;
@@ -45,6 +47,8 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     this.cancelSignalTimeout = cancelSignalTimeout;
     this.reWriteBatchedInserts = PGProperty.REWRITE_BATCHED_INSERTS.getBoolean(info);
     this.columnSanitiserDisabled = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
+    String preferMode = PGProperty.PREFER_QUERY_MODE.get(info);
+    this.preferQueryMode = PreferQueryMode.of(preferMode);
     this.cachedQueryCreateAction = new CachedQueryCreateAction(this);
     statementCache = new LruCache<Object, CachedQuery>(
         Math.max(0, PGProperty.PREPARED_STATEMENT_CACHE_QUERIES.getInt(info)),
@@ -263,30 +267,54 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   }
 
   @Override
+  public CachedQuery borrowQueryByKey(Object key) throws SQLException {
+    return statementCache.borrow(key);
+  }
+
+  @Override
   public void releaseQuery(CachedQuery cachedQuery) {
     statementCache.put(cachedQuery.key, cachedQuery);
+  }
+
+  @Override
+  public final Object createQueryKey(String sql, boolean escapeProcessing,
+      boolean isParameterized, String... columnNames) {
+    Object key;
+    if (columnNames == null || columnNames.length != 0) {
+      // Null means "return whatever sensible columns are" (e.g. primary key, or serial, or something like that)
+      key = new QueryWithReturningColumnsKey(sql, isParameterized, escapeProcessing, columnNames);
+    } else if (isParameterized) {
+      // If no generated columns requested, just use the SQL as a cache key
+      key = sql;
+    } else {
+      key = new BaseQueryKey(sql, false, escapeProcessing);
+    }
+    return key;
+  }
+
+  @Override
+  public CachedQuery createQueryByKey(Object key) throws SQLException {
+    return cachedQueryCreateAction.create(key);
   }
 
   @Override
   public final CachedQuery createQuery(String sql, boolean escapeProcessing,
       boolean isParameterized, String... columnNames)
       throws SQLException {
-    Object key;
-    if (isParameterized) {
-      key = sql;
-    } else if (columnNames != null && columnNames.length == 0) {
-      key = new BaseQueryKey(sql, false, escapeProcessing);
-    } else {
-      key = new QueryWithReturningColumnsKey(sql, false, escapeProcessing, columnNames);
-    }
+    Object key = createQueryKey(sql, escapeProcessing, isParameterized, columnNames);
     // Note: cache is not reused here for two reasons:
     //   1) Simplify initial implementation for simple statements
     //   2) Non-prepared statements are likely to have literals, thus query reuse would not be often
-    return cachedQueryCreateAction.create(key);
+    return createQueryByKey(key);
   }
 
   @Override
   public boolean isColumnSanitiserDisabled() {
     return columnSanitiserDisabled;
+  }
+
+  @Override
+  public PreferQueryMode getPreferQueryMode() {
+    return preferQueryMode;
   }
 }

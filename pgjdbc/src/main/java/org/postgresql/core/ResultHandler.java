@@ -76,4 +76,11 @@ public interface ResultHandler {
    * @throws SQLException if the handler wishes the original method to throw an exception.
    */
   void handleCompletion() throws SQLException;
+
+  /**
+   * Callback for batch statements. In case batch statement is executed in autocommit==true mode,
+   * the executor might commit "as it this it is best", so the result handler should track which
+   * statements are executed successfully and which are not.
+   */
+  void secureProgress();
 }

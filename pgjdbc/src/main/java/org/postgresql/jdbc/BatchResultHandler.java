@@ -25,6 +25,9 @@ import java.util.List;
 public class BatchResultHandler implements ResultHandler {
   private PgStatement pgStatement;
   private BatchUpdateException batchException = null;
+  // Last exception is tracked to avoid O(N) SQLException#setNextException just in case there
+  // will be lots of exceptions (e.g. all batch rows fail with constraint violation or so)
+  private SQLException lastException;
   private int resultIndex = 0;
 
   private final Query[] queries;
@@ -75,7 +78,7 @@ public class BatchResultHandler implements ResultHandler {
       resultIndex--;
       // If exception thrown, no need to collect generated keys
       // Note: some generated keys might be secured in generatedKeys
-      if (updateCount > 0 && batchException == null) {
+      if (updateCount > 0 && (batchException == null || isAutoCommit())) {
         allGeneratedRows.add(latestGeneratedRows);
         if (generatedKeys == null) {
           generatedKeys = latestGeneratedKeysRs;
@@ -94,14 +97,20 @@ public class BatchResultHandler implements ResultHandler {
     updateCounts[resultIndex++] = updateCount;
   }
 
-  public void secureProgress() {
+  private boolean isAutoCommit() {
     try {
-      if (batchException == null && pgStatement.getConnection().getAutoCommit()) {
-        committedRows = resultIndex;
-        updateGeneratedKeys();
-      }
+      return pgStatement.getConnection().getAutoCommit();
     } catch (SQLException e) {
-        /* Should not get here */
+      assert false : "pgStatement.getConnection().getAutoCommit() should not throw";
+      return false;
+    }
+  }
+
+  @Override
+  public void secureProgress() {
+    if (isAutoCommit()) {
+      committedRows = resultIndex;
+      updateGeneratedKeys();
     }
   }
 
@@ -132,19 +141,35 @@ public class BatchResultHandler implements ResultHandler {
       }
 
       batchException = new BatchUpdateException(
-          GT.tr("Batch entry {0} {1} was aborted.  Call getNextException to see the cause.",
-              new Object[]{resultIndex, queryString}),
+          GT.tr("Batch entry {0} {1} was aborted: {2}  Call getNextException to see the cause.",
+              new Object[]{resultIndex, queryString, newError.getMessage()}),
           newError.getSQLState(), uncompressUpdateCount());
+      lastException = batchException;
     }
+    resultIndex++;
 
-    batchException.setNextException(newError);
+    lastException.setNextException(newError);
+    lastException = newError;
   }
 
   public void handleCompletion() throws SQLException {
+    updateGeneratedKeys();
     if (batchException != null) {
+      if (isAutoCommit()) {
+        // Re-create batch exception since rows after exception might indeed succeed.
+        BatchUpdateException newException = new BatchUpdateException(
+            batchException.getMessage(),
+            batchException.getSQLState(),
+            uncompressUpdateCount()
+        );
+        SQLException next = batchException.getNextException();
+        if (next != null) {
+          newException.setNextException(next);
+        }
+        batchException = newException;
+      }
       throw batchException;
     }
-    updateGeneratedKeys();
   }
 
   public ResultSet getGeneratedKeys() {

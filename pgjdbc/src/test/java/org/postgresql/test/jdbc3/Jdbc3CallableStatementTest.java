@@ -8,14 +8,18 @@
 
 package org.postgresql.test.jdbc3;
 
-import org.postgresql.test.TestUtil;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.PSQLState;
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.sql.CallableStatement;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -25,17 +29,15 @@ import java.sql.Types;
 /**
  * @author davec
  */
-public class Jdbc3CallableStatementTest extends TestCase {
-
-  private Connection con;
+public class Jdbc3CallableStatementTest extends BaseTest4 {
 
   /*
    * (non-Javadoc)
    *
    * @see junit.framework.TestCase#setUp()
    */
-  protected void setUp() throws Exception {
-    con = TestUtil.openDB();
+  public void setUp() throws Exception {
+    super.setUp();
     Statement stmt = con.createStatement();
     stmt.execute(
         "create temp table numeric_tab (MAX_VAL NUMERIC(30,15), MIN_VAL NUMERIC(30,15), NULL_VAL NUMERIC(30,15) NULL)");
@@ -93,7 +95,7 @@ public class Jdbc3CallableStatementTest extends TestCase {
    *
    * @see junit.framework.TestCase#tearDown()
    */
-  protected void tearDown() throws Exception {
+  public void tearDown() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("drop function Numeric_Proc(out decimal, out decimal, out decimal)");
     stmt.execute("drop function test_somein_someout(int4)");
@@ -102,10 +104,12 @@ public class Jdbc3CallableStatementTest extends TestCase {
     stmt.execute("drop function myiofunc(a INOUT int, b OUT int) ");
     stmt.execute("drop function myif(a INOUT int, b IN int)");
     stmt.close();
-    TestUtil.closeDB(con);
+    super.tearDown();
   }
 
+  @Test
   public void testSomeInOut() throws Throwable {
+    assumeCallableStatementsSupported();
     CallableStatement call = con.prepareCall("{ call test_somein_someout(?,?,?) }");
 
     call.registerOutParameter(2, Types.VARCHAR);
@@ -115,8 +119,10 @@ public class Jdbc3CallableStatementTest extends TestCase {
 
   }
 
+  @Test
   public void testNotEnoughParameters() throws Throwable {
 
+    assumeCallableStatementsSupported();
     CallableStatement cs = con.prepareCall("{call myiofunc(?,?)}");
     cs.setInt(1, 2);
     cs.registerOutParameter(2, Types.INTEGER);
@@ -129,6 +135,7 @@ public class Jdbc3CallableStatementTest extends TestCase {
 
   }
 
+  @Test
   public void testTooManyParameters() throws Throwable {
 
     CallableStatement cs = con.prepareCall("{call myif(?,?)}");
@@ -145,6 +152,7 @@ public class Jdbc3CallableStatementTest extends TestCase {
 
   }
 
+  @Test
   public void testAllInOut() throws Throwable {
 
     CallableStatement call = con.prepareCall("{ call test_allinout(?,?,?) }");
@@ -162,7 +170,9 @@ public class Jdbc3CallableStatementTest extends TestCase {
 
   }
 
+  @Test
   public void testNumeric() throws Throwable {
+    assumeCallableStatementsSupported();
 
     CallableStatement call = con.prepareCall("{ call Numeric_Proc(?,?,?) }");
 
@@ -189,7 +199,9 @@ public class Jdbc3CallableStatementTest extends TestCase {
 
   }
 
+  @Test
   public void testGetObjectDecimal() throws Throwable {
+    assumeCallableStatementsSupported();
     try {
       Statement stmt = con.createStatement();
       stmt.execute(
@@ -233,6 +245,7 @@ public class Jdbc3CallableStatementTest extends TestCase {
     }
   }
 
+  @Test
   public void testVarcharBool() throws Throwable {
     try {
       Statement stmt = con.createStatement();
@@ -276,6 +289,7 @@ public class Jdbc3CallableStatementTest extends TestCase {
     }
   }
 
+  @Test
   public void testInOut() throws Throwable {
     try {
       Statement stmt = con.createStatement();
@@ -321,6 +335,7 @@ public class Jdbc3CallableStatementTest extends TestCase {
       "create temp table bit_tab ( max_val boolean, min_val boolean, null_val boolean )";
   private final String insertBitTab = "insert into bit_tab values (true,false,null)";
 
+  @Test
   public void testSetObjectBit() throws Throwable {
     try {
       Statement stmt = con.createStatement();
@@ -364,7 +379,9 @@ public class Jdbc3CallableStatementTest extends TestCase {
     }
   }
 
+  @Test
   public void testGetObjectLongVarchar() throws Throwable {
+    assumeCallableStatementsSupported();
     try {
       Statement stmt = con.createStatement();
       stmt.execute("create temp table longvarchar_tab ( t text, null_val text )");
@@ -421,7 +438,9 @@ public class Jdbc3CallableStatementTest extends TestCase {
     }
   }
 
+  @Test
   public void testGetBytes01() throws Throwable {
+    assumeByteaSupported();
     byte[] testdata = "TestData".getBytes();
     try {
       Statement stmt = con.createStatement();
@@ -507,6 +526,7 @@ public class Jdbc3CallableStatementTest extends TestCase {
   private final float[] realValues = {(float) 1.0E37, (float) 1.0E-37};
   private final int[] intValues = {2147483647, -2147483648};
 
+  @Test
   public void testUpdateReal() throws Throwable {
     try {
       Statement stmt = con.createStatement();
@@ -551,6 +571,7 @@ public class Jdbc3CallableStatementTest extends TestCase {
     }
   }
 
+  @Test
   public void testUpdateDecimal() throws Throwable {
     try {
       Statement stmt = con.createStatement();
@@ -590,7 +611,9 @@ public class Jdbc3CallableStatementTest extends TestCase {
     }
   }
 
+  @Test
   public void testGetBytes02() throws Throwable {
+    assumeByteaSupported();
     byte[] testdata = "TestData".getBytes();
     try {
       Statement stmt = con.createStatement();
@@ -638,7 +661,9 @@ public class Jdbc3CallableStatementTest extends TestCase {
   }
 
 
+  @Test
   public void testGetObjectFloat() throws Throwable {
+    assumeCallableStatementsSupported();
     try {
       Statement stmt = con.createStatement();
       stmt.execute(createDecimalTab);
@@ -673,7 +698,9 @@ public class Jdbc3CallableStatementTest extends TestCase {
     }
   }
 
+  @Test
   public void testGetDouble01() throws Throwable {
+    assumeCallableStatementsSupported();
     try {
       Statement stmt = con.createStatement();
       stmt.execute("create temp table d_tab ( max_val float, min_val float, null_val float )");
@@ -712,7 +739,9 @@ public class Jdbc3CallableStatementTest extends TestCase {
     }
   }
 
+  @Test
   public void testGetDoubleAsReal() throws Throwable {
+    assumeCallableStatementsSupported();
     try {
       Statement stmt = con.createStatement();
       stmt.execute("create temp table d_tab ( max_val float, min_val float, null_val float )");
@@ -751,7 +780,9 @@ public class Jdbc3CallableStatementTest extends TestCase {
     }
   }
 
+  @Test
   public void testGetShort01() throws Throwable {
+    assumeCallableStatementsSupported();
     try {
       Statement stmt = con.createStatement();
       stmt.execute("create temp table short_tab ( max_val int2, min_val int2, null_val int2 )");
@@ -790,7 +821,9 @@ public class Jdbc3CallableStatementTest extends TestCase {
     }
   }
 
+  @Test
   public void testGetInt01() throws Throwable {
+    assumeCallableStatementsSupported();
     try {
       Statement stmt = con.createStatement();
       stmt.execute("create temp table i_tab ( max_val int, min_val int, null_val int )");
@@ -829,7 +862,9 @@ public class Jdbc3CallableStatementTest extends TestCase {
     }
   }
 
+  @Test
   public void testGetLong01() throws Throwable {
+    assumeCallableStatementsSupported();
     try {
       Statement stmt = con.createStatement();
       stmt.execute("create temp table l_tab ( max_val int8, min_val int8, null_val int8 )");
@@ -868,7 +903,9 @@ public class Jdbc3CallableStatementTest extends TestCase {
     }
   }
 
+  @Test
   public void testGetBoolean01() throws Throwable {
+    assumeCallableStatementsSupported();
     try {
       Statement stmt = con.createStatement();
       stmt.execute(createBitTab);
@@ -907,7 +944,9 @@ public class Jdbc3CallableStatementTest extends TestCase {
     }
   }
 
+  @Test
   public void testGetByte01() throws Throwable {
+    assumeCallableStatementsSupported();
     try {
       Statement stmt = con.createStatement();
       stmt.execute("create temp table byte_tab ( max_val int2, min_val int2, null_val int2 )");
@@ -946,7 +985,9 @@ public class Jdbc3CallableStatementTest extends TestCase {
     }
   }
 
+  @Test
   public void testMultipleOutExecutions() throws SQLException {
+    assumeCallableStatementsSupported();
     CallableStatement cs = con.prepareCall("{call myiofunc(?, ?)}");
     for (int i = 0; i < 10; i++) {
       cs.registerOutParameter(1, Types.INTEGER);
@@ -959,7 +1000,9 @@ public class Jdbc3CallableStatementTest extends TestCase {
     }
   }
 
+  @Test
   public void testSum() throws SQLException {
+    assumeCallableStatementsSupported();
     CallableStatement cs = con.prepareCall("{?= call mysum(?, ?)}");
     cs.registerOutParameter(1, Types.INTEGER);
     cs.setInt(2, 2);

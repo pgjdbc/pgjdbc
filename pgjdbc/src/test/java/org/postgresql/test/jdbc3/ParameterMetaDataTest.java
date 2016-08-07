@@ -8,11 +8,16 @@
 
 package org.postgresql.test.jdbc3;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
+import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.jdbc2.BaseTest4;
 
-import junit.framework.TestCase;
+import org.junit.Assume;
+import org.junit.Test;
 
-import java.sql.Connection;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -20,32 +25,31 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
 
-public class ParameterMetaDataTest extends TestCase {
+public class ParameterMetaDataTest extends BaseTest4 {
 
-  private Connection _conn;
-
-  public ParameterMetaDataTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
-    _conn = TestUtil.openDB();
-    TestUtil.createTable(_conn, "parametertest",
+  @Override
+  public void setUp() throws Exception {
+    super.setUp();
+    Assume.assumeTrue("simple protocol only does not support describe statement requests",
+        preferQueryMode != PreferQueryMode.SIMPLE);
+    TestUtil.createTable(con, "parametertest",
         "a int4, b float8, c text, d point, e timestamp with time zone");
   }
 
-  protected void tearDown() throws SQLException {
-    TestUtil.dropTable(_conn, "parametertest");
-    TestUtil.closeDB(_conn);
+  @Override
+  public void tearDown() throws SQLException {
+    TestUtil.dropTable(con, "parametertest");
+    super.tearDown();
   }
 
+  @Test
   public void testParameterMD() throws SQLException {
-    if (!TestUtil.isProtocolVersion(_conn, 3)) {
+    if (!TestUtil.isProtocolVersion(con, 3)) {
       return;
     }
 
     PreparedStatement pstmt =
-        _conn.prepareStatement("SELECT a FROM parametertest WHERE b = ? AND c = ? AND d >^ ? ");
+        con.prepareStatement("SELECT a FROM parametertest WHERE b = ? AND c = ? AND d >^ ? ");
     ParameterMetaData pmd = pstmt.getParameterMetaData();
 
     assertEquals(3, pmd.getParameterCount());
@@ -62,13 +66,14 @@ public class ParameterMetaDataTest extends TestCase {
     pstmt.close();
   }
 
+  @Test
   public void testFailsOnBadIndex() throws SQLException {
-    if (!TestUtil.isProtocolVersion(_conn, 3)) {
+    if (!TestUtil.isProtocolVersion(con, 3)) {
       return;
     }
 
     PreparedStatement pstmt =
-        _conn.prepareStatement("SELECT a FROM parametertest WHERE b = ? AND c = ?");
+        con.prepareStatement("SELECT a FROM parametertest WHERE b = ? AND c = ?");
     ParameterMetaData pmd = pstmt.getParameterMetaData();
     try {
       pmd.getParameterType(0);
@@ -83,12 +88,13 @@ public class ParameterMetaDataTest extends TestCase {
   }
 
   // Make sure we work when mashing two queries into a single statement.
+  @Test
   public void testMultiStatement() throws SQLException {
-    if (!TestUtil.isProtocolVersion(_conn, 3)) {
+    if (!TestUtil.isProtocolVersion(con, 3)) {
       return;
     }
 
-    PreparedStatement pstmt = _conn.prepareStatement(
+    PreparedStatement pstmt = con.prepareStatement(
         "SELECT a FROM parametertest WHERE b = ? AND c = ? ; SELECT b FROM parametertest WHERE a = ?");
     ParameterMetaData pmd = pstmt.getParameterMetaData();
 
@@ -108,13 +114,14 @@ public class ParameterMetaDataTest extends TestCase {
   // from text to varchar with the complicating factor that there
   // is also an unknown parameter.
   //
+  @Test
   public void testTypeChangeWithUnknown() throws SQLException {
-    if (!TestUtil.isProtocolVersion(_conn, 3)) {
+    if (!TestUtil.isProtocolVersion(con, 3)) {
       return;
     }
 
     PreparedStatement pstmt =
-        _conn.prepareStatement("SELECT a FROM parametertest WHERE c = ? AND e = ?");
+        con.prepareStatement("SELECT a FROM parametertest WHERE c = ? AND e = ?");
     ParameterMetaData pmd = pstmt.getParameterMetaData();
 
     pstmt.setString(1, "Hi");

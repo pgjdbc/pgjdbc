@@ -33,17 +33,17 @@ public class Jdbc4TestSuite extends TestSuite {
     suite.addTestSuite(DatabaseMetaDataTest.class);
     suite.addTest(new JUnit4TestAdapter(ArrayTest.class));
     suite.addTestSuite(WrapperTest.class);
-    suite.addTestSuite(BinaryTest.class);
+    suite.addTest(new JUnit4TestAdapter(BinaryTest.class));
     suite.addTestSuite(IsValidTest.class);
     suite.addTestSuite(ClientInfoTest.class);
     suite.addTestSuite(PGCopyInputStreamTest.class);
     suite.addTestSuite(BlobTest.class);
-    suite.addTestSuite(BinaryStreamTest.class);
+    suite.addTest(new JUnit4TestAdapter(BinaryStreamTest.class));
 
     Connection connection = TestUtil.openDB();
     try {
       if (TestUtil.haveMinimumServerVersion(connection, "8.3")) {
-        suite.addTestSuite(UUIDTest.class);
+        suite.addTest(new JUnit4TestAdapter(UUIDTest.class));
         if (isXmlEnabled(connection)) {
           suite.addTestSuite(XmlTest.class);
         }

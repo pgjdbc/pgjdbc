@@ -357,6 +357,19 @@ public enum PGProperty {
       "Specifies period (seconds) after host statuses are checked again in case they have changed"),
 
   /**
+   * Specifies which mode is used to execute queries to database: simple means ('Q' execute, no parse, no bind, text mode only),
+   * extended means always use bind/execute messages, extendedForPrepared means extended for prepared statements only,
+   * extendedCacheEveryting means use extended protocol and try cache every statement (including Statement.execute(String sql)) in a query cache.
+   *
+   * This mode is meant for debugging purposes and/or for cases when extended protocol cannot be used (e.g. logical replication protocol)
+   */
+  PREFER_QUERY_MODE("preferQueryMode", "extended",
+      "Specifies which mode is used to execute queries to database: simple means ('Q' execute, no parse, no bind, text mode only), "
+          + "extended means always use bind/execute messages, extendedForPrepared means extended for prepared statements only, "
+          + "extendedCacheEveryting means use extended protocol and try cache every statement (including Statement.execute(String sql)) in a query cache.", false,
+      "extended", "extendedForPrepared", "extendedCacheEveryting", "simple"),
+
+  /**
    * Configure optimization to enable batch insert re-writing.
    */
   REWRITE_BATCHED_INSERTS ("reWriteBatchedInserts", "false",

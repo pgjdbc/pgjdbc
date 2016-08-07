@@ -23,6 +23,16 @@ class QueryWithReturningColumnsKey extends BaseQueryKey {
   }
 
   @Override
+  public String toString() {
+    return "QueryWithReturningColumnsKey{"
+        + "sql='" + sql + '\''
+        + ", isParameterized=" + isParameterized
+        + ", escapeProcessing=" + escapeProcessing
+        + ", columnNames=" + Arrays.toString(columnNames)
+        + '}';
+  }
+
+  @Override
   public boolean equals(Object o) {
     if (this == o) {
       return true;

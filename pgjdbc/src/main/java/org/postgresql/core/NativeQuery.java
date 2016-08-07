@@ -20,6 +20,7 @@ public class NativeQuery {
   public final String nativeSql;
   public final int[] bindPositions;
   public final SqlCommand command;
+  public final boolean multiStatement;
 
   static {
     for (int i = 1; i < BIND_NAMES.length; i++) {
@@ -28,13 +29,14 @@ public class NativeQuery {
   }
 
   public NativeQuery(String nativeSql, SqlCommand dml) {
-    this(nativeSql, NO_BINDS, dml);
+    this(nativeSql, NO_BINDS, true, dml);
   }
 
-  public NativeQuery(String nativeSql, int[] bindPositions, SqlCommand dml) {
+  public NativeQuery(String nativeSql, int[] bindPositions, boolean multiStatement, SqlCommand dml) {
     this.nativeSql = nativeSql;
     this.bindPositions =
         bindPositions == null || bindPositions.length == 0 ? NO_BINDS : bindPositions;
+    this.multiStatement = multiStatement;
     this.command = dml;
   }
 

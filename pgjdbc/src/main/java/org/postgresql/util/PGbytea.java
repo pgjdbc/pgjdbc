@@ -119,7 +119,7 @@ public class PGbytea {
    * Converts a java byte[] into a PG bytea string (i.e. the text representation of the bytea data
    * type)
    */
-  public static String toPGString(byte[] p_buf) throws SQLException {
+  public static String toPGString(byte[] p_buf) {
     if (p_buf == null) {
       return null;
     }

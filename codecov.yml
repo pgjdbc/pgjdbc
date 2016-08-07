@@ -1,6 +1,6 @@
 codecov:
   notify:
-    after_n_builds: 7
+    after_n_builds: 8
     require_ci_to_pass: false
 comment:
   layout: header, changes, diff

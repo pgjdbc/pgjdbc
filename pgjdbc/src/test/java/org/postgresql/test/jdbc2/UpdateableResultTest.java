@@ -8,15 +8,20 @@
 
 package org.postgresql.test.jdbc2;
 
+import static junit.framework.TestCase.assertNull;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.sql.Array;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -26,20 +31,11 @@ import java.sql.Types;
 import java.util.Arrays;
 import java.util.TimeZone;
 
-public class UpdateableResultTest extends TestCase {
-  private Connection con;
+public class UpdateableResultTest extends BaseTest4 {
 
-  public UpdateableResultTest(String name) {
-    super(name);
-    try {
-      Class.forName("org.postgresql.Driver");
-    } catch (Exception ex) {
-    }
-
-  }
-
-  protected void setUp() throws Exception {
-    con = TestUtil.openDB();
+  @Override
+  public void setUp() throws Exception {
+    super.setUp();
     TestUtil.createTable(con, "updateable",
         "id int primary key, name text, notselected text, ts timestamp with time zone, intarr int[]",
         true);
@@ -56,13 +52,15 @@ public class UpdateableResultTest extends TestCase {
 
   }
 
-  protected void tearDown() throws Exception {
+  @Override
+  public void tearDown() throws SQLException {
     TestUtil.dropTable(con, "updateable");
     TestUtil.dropTable(con, "second");
     TestUtil.dropTable(con, "stream");
-    TestUtil.closeDB(con);
+    super.tearDown();
   }
 
+  @Test
   public void testDeleteRows() throws SQLException {
     Statement st = con.createStatement();
     st.executeUpdate("INSERT INTO second values (2,'two')");
@@ -89,6 +87,7 @@ public class UpdateableResultTest extends TestCase {
   }
 
 
+  @Test
   public void testCancelRowUpdates() throws Exception {
     Statement st =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
@@ -155,6 +154,7 @@ public class UpdateableResultTest extends TestCase {
     }
   }
 
+  @Test
   public void testPositioning() throws SQLException {
     Statement stmt =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
@@ -183,6 +183,7 @@ public class UpdateableResultTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testUpdateTimestamp() throws SQLException {
     TimeZone origTZ = TimeZone.getDefault();
     try {
@@ -205,7 +206,9 @@ public class UpdateableResultTest extends TestCase {
     }
   }
 
+  @Test
   public void testUpdateStreams() throws SQLException, UnsupportedEncodingException {
+    assumeByteaSupported();
     String string = "Hello";
     byte[] bytes = new byte[]{0, '\\', (byte) 128, (byte) 255};
 
@@ -264,6 +267,7 @@ public class UpdateableResultTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testZeroRowResult() throws SQLException {
     Statement st =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
@@ -273,6 +277,7 @@ public class UpdateableResultTest extends TestCase {
     rs.moveToCurrentRow();
   }
 
+  @Test
   public void testUpdateable() throws SQLException {
     Statement st =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
@@ -358,6 +363,7 @@ public class UpdateableResultTest extends TestCase {
     st.close();
   }
 
+  @Test
   public void testInsertRowIllegalMethods() throws Exception {
     Statement st =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
@@ -393,6 +399,7 @@ public class UpdateableResultTest extends TestCase {
     st.close();
   }
 
+  @Test
   public void testUpdateablePreparedStatement() throws Exception {
     // No args.
     PreparedStatement st = con.prepareStatement("select * from updateable",
@@ -412,6 +419,7 @@ public class UpdateableResultTest extends TestCase {
     st.close();
   }
 
+  @Test
   public void testUpdateSelectOnly() throws Exception {
     Statement st =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
@@ -422,6 +430,7 @@ public class UpdateableResultTest extends TestCase {
     rs.updateRow();
   }
 
+  @Test
   public void testUpdateReadOnlyResultSet() throws Exception {
     Statement st =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
@@ -433,6 +442,7 @@ public class UpdateableResultTest extends TestCase {
     }
   }
 
+  @Test
   public void testBadColumnIndexes() throws Exception {
     Statement st =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
@@ -455,6 +465,7 @@ public class UpdateableResultTest extends TestCase {
     }
   }
 
+  @Test
   public void testArray() throws SQLException {
     Statement stmt =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
@@ -487,6 +498,7 @@ public class UpdateableResultTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testMultiColumnUpdateWithoutAllColumns() throws Exception {
     Statement st =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
@@ -499,6 +511,7 @@ public class UpdateableResultTest extends TestCase {
     }
   }
 
+  @Test
   public void testMultiColumnUpdate() throws Exception {
     Statement st =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);

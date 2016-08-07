@@ -76,7 +76,7 @@ public class StatementTest extends TestCase {
 
   public void testMultiExecute() throws SQLException {
     Statement stmt = con.createStatement();
-    assertTrue(stmt.execute("SELECT 1; UPDATE test_statement SET i=1; SELECT 2"));
+    assertTrue(stmt.execute("SELECT 1 as a; UPDATE test_statement SET i=1; SELECT 2 as b, 3 as c"));
 
     ResultSet rs = stmt.getResultSet();
     assertTrue(rs.next());

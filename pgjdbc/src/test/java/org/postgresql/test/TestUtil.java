@@ -13,6 +13,8 @@ import org.postgresql.core.ServerVersion;
 import org.postgresql.core.Version;
 import org.postgresql.jdbc.PgConnection;
 
+import org.junit.Assert;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -291,6 +293,12 @@ public class TestUtil {
     if (!props.containsKey(PGProperty.PREPARE_THRESHOLD.getName())) {
       PGProperty.PREPARE_THRESHOLD.set(props, getPrepareThreshold());
     }
+    if (!props.containsKey(PGProperty.PREFER_QUERY_MODE.getName())) {
+      String value = System.getProperty(PGProperty.PREFER_QUERY_MODE.getName());
+      if (value != null) {
+        props.put(PGProperty.PREFER_QUERY_MODE.getName(), value);
+      }
+    }
 
     return DriverManager.getConnection(getURL(), props);
   }
@@ -530,6 +538,21 @@ public class TestUtil {
       if (!con.getAutoCommit()) {
         throw ex;
       }
+    }
+  }
+
+  public static void assertNumberOfRows(Connection con, String tableName, int expectedRows, String message)
+      throws SQLException {
+    PreparedStatement ps = null;
+    ResultSet rs = null;
+    try {
+      ps = con.prepareStatement("select count(*) from " + tableName + " as t");
+      rs = ps.executeQuery();
+      rs.next();
+      Assert.assertEquals(message, expectedRows, rs.getInt(1));
+    } finally {
+      closeQuietly(rs);
+      closeQuietly(ps);
     }
   }
 

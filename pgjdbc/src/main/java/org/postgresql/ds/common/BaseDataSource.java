@@ -9,6 +9,7 @@
 package org.postgresql.ds.common;
 
 import org.postgresql.PGProperty;
+import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -1226,6 +1227,22 @@ public abstract class BaseDataSource implements Referenceable {
 
   public int getLoglevel() {
     return PGProperty.LOG_LEVEL.getIntNoCheck(properties);
+  }
+
+  /**
+   * @see PGProperty#PREFER_QUERY_MODE
+   * @return preferred query execution mode
+   */
+  public PreferQueryMode getPreferQueryMode() {
+    return PreferQueryMode.of(PGProperty.PREFER_QUERY_MODE.get(properties));
+  }
+
+  /**
+   * @see PGProperty#PREFER_QUERY_MODE
+   * @param preferQueryMode extended, simple, extendedForPrepared, or extendedCacheEveryting
+   */
+  public void setPreferQueryMode(PreferQueryMode preferQueryMode) {
+    PGProperty.PREFER_QUERY_MODE.set(properties, preferQueryMode.value());
   }
 
   /**

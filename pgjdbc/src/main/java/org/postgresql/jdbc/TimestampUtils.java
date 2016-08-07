@@ -484,6 +484,7 @@ public class TimestampUtils {
   /**
    * Get a shared calendar, applying the supplied time zone or the default time zone if null.
    *
+   * @param timeZone time zone to be set for the calendar
    * @return The shared calendar.
    */
   public Calendar getSharedCalendar(TimeZone timeZone) {
@@ -993,6 +994,7 @@ public class TimestampUtils {
    * Returns the local date time object matching the given bytes with {@link Oid#TIMESTAMP} or
    * {@link Oid#TIMESTAMPTZ}.
    *
+   * @param tz time zone to use
    * @param bytes The binary encoded local date time value.
    * @return The parsed local date time object.
    * @throws PSQLException If binary format could not be parsed.
@@ -1265,6 +1267,8 @@ public class TimestampUtils {
   /**
    * Converts backend's TimeZone parameter to java format.
    * Notable difference: backend's gmt-3 is GMT+03 in Java.
+   *
+   * @param timeZone time zone to use
    * @return java TimeZone
    */
   public static TimeZone parseBackendTimeZone(String timeZone) {

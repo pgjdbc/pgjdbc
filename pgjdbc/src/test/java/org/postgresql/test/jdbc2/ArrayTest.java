@@ -12,6 +12,7 @@ import org.postgresql.core.BaseConnection;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.jdbc.PgArray;
+import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 
 import org.junit.Assert;
@@ -404,7 +405,7 @@ public class ArrayTest extends BaseTest4 {
     stmt.close();
 
     String sql = "SELECT ?";
-    if (TestUtil.isProtocolVersion(conn, 2)) {
+    if (preferQueryMode == PreferQueryMode.SIMPLE) {
       sql = "SELECT ?::int[]";
     }
     PreparedStatement pstmt = conn.prepareStatement(sql);

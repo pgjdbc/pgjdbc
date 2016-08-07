@@ -13,6 +13,7 @@ import org.postgresql.PGNotification;
 import org.postgresql.copy.CopyOperation;
 import org.postgresql.core.v3.TypeTransferModeRegistry;
 import org.postgresql.jdbc.BatchResultHandler;
+import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.HostSpec;
 
 import java.sql.SQLException;
@@ -28,8 +29,8 @@ import java.util.TimeZone;
  * provides:
  *
  * <ul>
- * <li>factory methods for Query objects ({@link #createSimpleQuery} and
- * {@link #createParameterizedQuery})
+ * <li>factory methods for Query objects ({@link #createSimpleQuery(String)} and
+ * {@link #createQuery(String, boolean, boolean, String...)})
  * <li>execution methods for created Query objects (
  * {@link #execute(Query, ParameterList, ResultHandler, int, int, int)} for single queries and
  * {@link #execute(Query[], ParameterList[], BatchResultHandler, int, int, int)} for batches of queries)
@@ -114,6 +115,13 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   int QUERY_NO_BINARY_TRANSFER = 256;
 
   /**
+   * Execute the query via simple 'Q' command (not parse, bind, exec, but simple execute).
+   * This sends query text on each execution, however it supports sending multiple queries
+   * separated with ';' as a single command.
+   */
+  int QUERY_EXECUTE_AS_SIMPLE = 1024;
+
+  /**
    * Execute a Query, passing results to a provided ResultHandler.
    *
    * @param query the query to execute; must be a query returned from calling
@@ -169,6 +177,7 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    *
    * @param sql the SQL for the query to create
    * @return a new Query object
+   * @throws SQLException if something goes wrong
    */
   Query createSimpleQuery(String sql) throws SQLException;
 
@@ -177,6 +186,13 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   CachedQuery createQuery(String sql, boolean escapeProcessing, boolean isParameterized,
       String... columnNames)
       throws SQLException;
+
+  Object createQueryKey(String sql, boolean escapeProcessing, boolean isParameterized,
+      String... columnNames);
+
+  CachedQuery createQueryByKey(Object key) throws SQLException;
+
+  CachedQuery borrowQueryByKey(Object key) throws SQLException;
 
   CachedQuery borrowQuery(String sql) throws SQLException;
 
@@ -390,4 +406,6 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   String getApplicationName();
 
   boolean isColumnSanitiserDisabled();
+
+  PreferQueryMode getPreferQueryMode();
 }

@@ -28,7 +28,7 @@ public class Jdbc3TestSuite extends TestSuite {
       java.sql.Connection con = TestUtil.openDB();
 
       if (TestUtil.haveMinimumServerVersion(con, "8.1") && TestUtil.isProtocolVersion(con, 3)) {
-        suite.addTestSuite(Jdbc3CallableStatementTest.class);
+        suite.addTest(new JUnit4TestAdapter(Jdbc3CallableStatementTest.class));
       }
       if (TestUtil.haveMinimumServerVersion(con, "8.2")) {
         suite.addTest(new JUnit4TestAdapter(GeneratedKeysTest.class));
@@ -39,9 +39,9 @@ public class Jdbc3TestSuite extends TestSuite {
     }
     suite.addTestSuite(CompositeQueryParseTest.class);
     suite.addTestSuite(Jdbc3SavepointTest.class);
-    suite.addTestSuite(TypesTest.class);
+    suite.addTest(new JUnit4TestAdapter(TypesTest.class));
     suite.addTestSuite(ResultSetTest.class);
-    suite.addTestSuite(ParameterMetaDataTest.class);
+    suite.addTest(new JUnit4TestAdapter(ParameterMetaDataTest.class));
     suite.addTestSuite(Jdbc3BlobTest.class);
     suite.addTestSuite(DatabaseMetaDataTest.class);
     suite.addTestSuite(SendRecvBufferSizeTest.class);

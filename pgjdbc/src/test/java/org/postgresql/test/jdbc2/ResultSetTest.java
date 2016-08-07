@@ -8,13 +8,20 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGobject;
 
-import junit.framework.TestCase;
+import org.junit.Assume;
+import org.junit.Test;
 
 import java.lang.reflect.Field;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -25,15 +32,10 @@ import java.util.Map;
 /*
  * ResultSet tests.
  */
-public class ResultSetTest extends TestCase {
-  private Connection con;
-
-  public ResultSetTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
-    con = TestUtil.openDB();
+public class ResultSetTest extends BaseTest4 {
+  @Override
+  public void setUp() throws Exception {
+    super.setUp();
     Statement stmt = con.createStatement();
 
     TestUtil.createTable(con, "testrs", "id integer");
@@ -99,11 +101,10 @@ public class ResultSetTest extends TestCase {
     stmt.execute("INSERT INTO testpgobject VALUES(1, '2010-11-3')");
 
     stmt.close();
-
-
   }
 
-  protected void tearDown() throws SQLException {
+  @Override
+  public void tearDown() throws SQLException {
     TestUtil.dropTable(con, "testrs");
     TestUtil.dropTable(con, "teststring");
     TestUtil.dropTable(con, "testint");
@@ -112,9 +113,10 @@ public class ResultSetTest extends TestCase {
     TestUtil.dropTable(con, "testboolstring");
     TestUtil.dropTable(con, "testnumeric");
     TestUtil.dropTable(con, "testpgobject");
-    TestUtil.closeDB(con);
+    super.tearDown();
   }
 
+  @Test
   public void testBackward() throws SQLException {
     Statement stmt =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
@@ -125,6 +127,7 @@ public class ResultSetTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testAbsolute() throws SQLException {
     Statement stmt =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
@@ -152,6 +155,7 @@ public class ResultSetTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testEmptyResult() throws SQLException {
     Statement stmt =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
@@ -163,6 +167,7 @@ public class ResultSetTest extends TestCase {
     assertTrue(!rs.next());
   }
 
+  @Test
   public void testMaxFieldSize() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.setMaxFieldSize(2);
@@ -237,11 +242,13 @@ public class ResultSetTest extends TestCase {
     }
   }
 
+  @Test
   public void testBoolean() throws SQLException {
     booleanTests(true);
     booleanTests(false);
   }
 
+  @Test
   public void testgetByte() throws SQLException {
     ResultSet rs = con.createStatement().executeQuery("select * from testnumeric");
 
@@ -270,6 +277,7 @@ public class ResultSetTest extends TestCase {
     rs.close();
   }
 
+  @Test
   public void testgetShort() throws SQLException {
     ResultSet rs = con.createStatement().executeQuery("select * from testnumeric");
 
@@ -298,6 +306,7 @@ public class ResultSetTest extends TestCase {
     rs.close();
   }
 
+  @Test
   public void testgetInt() throws SQLException {
     ResultSet rs = con.createStatement().executeQuery("select * from testnumeric");
 
@@ -344,6 +353,7 @@ public class ResultSetTest extends TestCase {
     rs.close();
   }
 
+  @Test
   public void testgetLong() throws SQLException {
     ResultSet rs = con.createStatement().executeQuery("select * from testnumeric");
 
@@ -402,6 +412,7 @@ public class ResultSetTest extends TestCase {
     rs.close();
   }
 
+  @Test
   public void testParameters() throws SQLException {
     Statement stmt =
         con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
@@ -424,6 +435,7 @@ public class ResultSetTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testZeroRowResultPositioning() throws SQLException {
     Statement stmt =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
@@ -450,6 +462,7 @@ public class ResultSetTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testRowResultPositioning() throws SQLException {
     Statement stmt =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
@@ -507,6 +520,7 @@ public class ResultSetTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testForwardOnlyExceptions() throws SQLException {
     // Test that illegal operations on a TYPE_FORWARD_ONLY resultset
     // correctly result in throwing an exception.
@@ -568,6 +582,7 @@ public class ResultSetTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testCaseInsensitiveFindColumn() throws SQLException {
     Statement stmt = con.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT id, id AS \"ID2\" FROM testrs");
@@ -584,6 +599,7 @@ public class ResultSetTest extends TestCase {
     }
   }
 
+  @Test
   public void testGetOutOfBounds() throws SQLException {
     Statement stmt = con.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT id FROM testrs");
@@ -600,6 +616,7 @@ public class ResultSetTest extends TestCase {
     }
   }
 
+  @Test
   public void testClosedResult() throws SQLException {
     Statement stmt =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
@@ -672,6 +689,7 @@ public class ResultSetTest extends TestCase {
   /*
    * The JDBC spec says when you have duplicate column names, the first one should be returned.
    */
+  @Test
   public void testDuplicateColumnNameOrder() throws SQLException {
     Statement stmt = con.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT 1 AS a, 2 AS a");
@@ -679,6 +697,7 @@ public class ResultSetTest extends TestCase {
     assertEquals(1, rs.getInt("a"));
   }
 
+  @Test
   public void testTurkishLocale() throws SQLException {
     Locale current = Locale.getDefault();
     try {
@@ -696,6 +715,7 @@ public class ResultSetTest extends TestCase {
     }
   }
 
+  @Test
   public void testUpdateWithPGobject() throws SQLException {
     Statement stmt =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
@@ -722,6 +742,7 @@ public class ResultSetTest extends TestCase {
   /**
    * Test the behavior of the result set column mapping cache for simple statements.
    */
+  @Test
   public void testStatementResultSetColumnMappingCache() throws SQLException {
     Statement stmt = con.createStatement();
     ResultSet rs = stmt.executeQuery("select * from testrs");
@@ -751,6 +772,7 @@ public class ResultSetTest extends TestCase {
   /**
    * Test the behavior of the result set column mapping cache for prepared statements.
    */
+  @Test
   public void testPreparedStatementResultSetColumnMappingCache() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement("SELECT id FROM testrs");
     ResultSet rs = pstmt.executeQuery();
@@ -779,7 +801,10 @@ public class ResultSetTest extends TestCase {
    * Test the behavior of the result set column mapping cache for prepared statements once the
    * statement is named.
    */
+  @Test
   public void testNamedPreparedStatementResultSetColumnMappingCache() throws SQLException {
+    Assume.assumeTrue("Simple protocol only mode does not support server-prepared statements",
+        preferQueryMode != PreferQueryMode.SIMPLE);
     PreparedStatement pstmt = con.prepareStatement("SELECT id FROM testrs");
     ResultSet rs;
     // Make sure the prepared statement is named.

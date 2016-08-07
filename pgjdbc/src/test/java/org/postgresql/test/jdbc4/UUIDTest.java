@@ -8,11 +8,13 @@
 
 package org.postgresql.test.jdbc4;
 
-import org.postgresql.test.TestUtil;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
-import junit.framework.TestCase;
+import org.postgresql.test.jdbc2.BaseTest4;
 
-import java.sql.Connection;
+import org.junit.Test;
+
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -20,36 +22,33 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.UUID;
 
-public class UUIDTest extends TestCase {
+public class UUIDTest extends BaseTest4 {
 
-  private Connection _conn;
-
-  public UUIDTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
-    _conn = TestUtil.openDB();
-    Statement stmt = _conn.createStatement();
+  @Override
+  public void setUp() throws Exception {
+    super.setUp();
+    Statement stmt = con.createStatement();
     stmt.execute("CREATE TEMP TABLE uuidtest(id uuid)");
     stmt.close();
   }
 
-  protected void tearDown() throws SQLException {
-    Statement stmt = _conn.createStatement();
+  @Override
+  public void tearDown() throws SQLException {
+    Statement stmt = con.createStatement();
     stmt.execute("DROP TABLE uuidtest");
     stmt.close();
-    TestUtil.closeDB(_conn);
+    super.tearDown();
   }
 
+  @Test
   public void testUUID() throws SQLException {
     UUID uuid = UUID.randomUUID();
-    PreparedStatement ps = _conn.prepareStatement("INSERT INTO uuidtest VALUES (?)");
+    PreparedStatement ps = con.prepareStatement("INSERT INTO uuidtest VALUES (?)");
     ps.setObject(1, uuid, Types.OTHER);
     ps.executeUpdate();
     ps.close();
 
-    Statement stmt = _conn.createStatement();
+    Statement stmt = con.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT id FROM uuidtest");
     assertTrue(rs.next());
 

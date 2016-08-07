@@ -1074,6 +1074,10 @@ public class PgConnection implements BaseConnection {
         throw error;
       }
     }
+
+    @Override
+    public void secureProgress() {
+    }
   }
 
   public int getPrepareThreshold() {
@@ -1145,6 +1149,11 @@ public class PgConnection implements BaseConnection {
 
   public void setDisableColumnSanitiser(boolean disableColumnSanitiser) {
     this.disableColumnSanitiser = disableColumnSanitiser;
+  }
+
+  @Override
+  public PreferQueryMode getPreferQueryMode() {
+    return queryExecutor.getPreferQueryMode();
   }
 
   protected void abort() {

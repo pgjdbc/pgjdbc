@@ -10,6 +10,7 @@ package org.postgresql.test.extensions;
 
 import org.postgresql.test.TestUtil;
 
+import junit.framework.JUnit4TestAdapter;
 import junit.framework.TestSuite;
 
 import java.sql.Connection;
@@ -32,7 +33,7 @@ public class ExtensionsTestSuite extends TestSuite {
     Connection connection = TestUtil.openDB();
     try {
       if (isHStoreEnabled(connection)) {
-        suite.addTestSuite(HStoreTest.class);
+        suite.addTest(new JUnit4TestAdapter(HStoreTest.class));
       }
     } finally {
       connection.close();

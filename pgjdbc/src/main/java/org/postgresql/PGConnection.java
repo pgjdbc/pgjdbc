@@ -10,6 +10,7 @@ package org.postgresql;
 
 import org.postgresql.copy.CopyManager;
 import org.postgresql.fastpath.Fastpath;
+import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.util.PGobject;
 
@@ -167,4 +168,14 @@ public interface PGConnection {
    * @throws SQLException if something goes wrong
    */
   String escapeLiteral(String literal) throws SQLException;
+
+  /**
+   * Returns true if the connection is configured to use "simple 'Q' execute" commands only
+   * When running in simple protocol only, certain features are not available: callable statements,
+   * partial result set fetch, bytea type, etc.
+   * The list of supported features is subject to change.
+   *
+   * @return true if the connection is configured to use "simple 'Q' execute" commands only
+   */
+  PreferQueryMode getPreferQueryMode();
 }

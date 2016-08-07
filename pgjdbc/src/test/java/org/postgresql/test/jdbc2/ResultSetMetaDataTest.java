@@ -8,10 +8,16 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import org.postgresql.PGResultSetMetaData;
+import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.Assume;
+import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -22,16 +28,13 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 
-public class ResultSetMetaDataTest extends TestCase {
+public class ResultSetMetaDataTest extends BaseTest4 {
+  Connection conn;
 
-  private Connection conn;
-
-  public ResultSetMetaDataTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
-    conn = TestUtil.openDB();
+  @Override
+  public void setUp() throws Exception {
+    super.setUp();
+    conn = con;
     TestUtil.createTable(conn, "rsmd1", "a int primary key, b text, c decimal(10,2)", true);
     TestUtil.createTable(conn, "timetest",
         "tm time(3), tmtz timetz, ts timestamp without time zone, tstz timestamp(6) with time zone");
@@ -46,7 +49,8 @@ public class ResultSetMetaDataTest extends TestCase {
     TestUtil.createTable(conn, "compositetest", "col rsmd1");
   }
 
-  protected void tearDown() throws Exception {
+  @Override
+  public void tearDown() throws SQLException {
     TestUtil.dropTable(conn, "compositetest");
     TestUtil.dropTable(conn, "rsmd1");
     TestUtil.dropTable(conn, "timetest");
@@ -55,9 +59,10 @@ public class ResultSetMetaDataTest extends TestCase {
     TestUtil.dropTable(conn, "sizetest");
     TestUtil.dropSequence(conn, "serialtest_a_seq");
     TestUtil.dropSequence(conn, "serialtest_b_seq");
-    TestUtil.closeDB(conn);
+    super.tearDown();
   }
 
+  @Test
   public void testStandardResultSet() throws SQLException {
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT a,b,c,a+c as total,oid,b as d FROM rsmd1");
@@ -66,10 +71,9 @@ public class ResultSetMetaDataTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testPreparedResultSet() throws SQLException {
-    if (!TestUtil.isProtocolVersion(conn, 3)) {
-      return;
-    }
+    assumePreparedStatementMetadataSupported();
 
     PreparedStatement pstmt =
         conn.prepareStatement("SELECT a,b,c,a+c as total,oid,b as d FROM rsmd1 WHERE b = ?");
@@ -126,7 +130,9 @@ public class ResultSetMetaDataTest extends TestCase {
   }
 
   // verify that a prepared update statement returns no metadata and doesn't execute.
+  @Test
   public void testPreparedUpdate() throws SQLException {
+    assumePreparedStatementMetadataSupported();
     PreparedStatement pstmt = conn.prepareStatement("INSERT INTO rsmd1(a,b) VALUES(?,?)");
     pstmt.setInt(1, 1);
     pstmt.setString(2, "hello");
@@ -143,6 +149,7 @@ public class ResultSetMetaDataTest extends TestCase {
   }
 
 
+  @Test
   public void testDatabaseMetaDataNames() throws SQLException {
     DatabaseMetaData databaseMetaData = conn.getMetaData();
     ResultSet resultSet = databaseMetaData.getTableTypes();
@@ -152,13 +159,14 @@ public class ResultSetMetaDataTest extends TestCase {
     resultSet.close();
   }
 
+  @Test
   public void testTimestampInfo() throws SQLException {
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT tm, tmtz, ts, tstz FROM timetest");
     ResultSetMetaData rsmd = rs.getMetaData();
 
     // For reference:
-    // TestUtil.createTable(conn, "timetest", "tm time(3), tmtz timetz, ts timestamp without time
+    // TestUtil.createTable(con, "timetest", "tm time(3), tmtz timetz, ts timestamp without time
     // zone, tstz timestamp(6) with time zone");
 
     assertEquals(3, rsmd.getScale(1));
@@ -175,6 +183,7 @@ public class ResultSetMetaDataTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testColumnDisplaySize() throws SQLException {
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery(
@@ -192,6 +201,7 @@ public class ResultSetMetaDataTest extends TestCase {
     assertEquals(Integer.MAX_VALUE, rsmd.getColumnDisplaySize(9));
   }
 
+  @Test
   public void testIsAutoIncrement() throws SQLException {
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT c,b,a FROM serialtest");
@@ -209,6 +219,7 @@ public class ResultSetMetaDataTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testClassesMatch() throws SQLException {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate(
@@ -221,6 +232,7 @@ public class ResultSetMetaDataTest extends TestCase {
     }
   }
 
+  @Test
   public void testComposite() throws Exception {
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT col FROM compositetest");
@@ -229,7 +241,9 @@ public class ResultSetMetaDataTest extends TestCase {
     assertEquals("rsmd1", rsmd.getColumnTypeName(1));
   }
 
+  @Test
   public void testUnexecutedStatement() throws Exception {
+    assumePreparedStatementMetadataSupported();
     PreparedStatement pstmt = conn.prepareStatement("SELECT col FROM compositetest");
     // we have not executed the statement but we can still get the metadata
     ResultSetMetaData rsmd = pstmt.getMetaData();
@@ -237,7 +251,9 @@ public class ResultSetMetaDataTest extends TestCase {
     assertEquals("rsmd1", rsmd.getColumnTypeName(1));
   }
 
+  @Test
   public void testClosedResultSet() throws Exception {
+    assumePreparedStatementMetadataSupported();
     PreparedStatement pstmt = conn.prepareStatement("SELECT col FROM compositetest");
     ResultSet rs = pstmt.executeQuery();
     rs.close();
@@ -245,6 +261,11 @@ public class ResultSetMetaDataTest extends TestCase {
     ResultSetMetaData rsmd = pstmt.getMetaData();
     assertEquals(Types.STRUCT, rsmd.getColumnType(1));
     assertEquals("rsmd1", rsmd.getColumnTypeName(1));
+  }
+
+  private void assumePreparedStatementMetadataSupported() {
+    Assume.assumeTrue("prepared statement metadata is not supported for simple protocol",
+        preferQueryMode.compareTo(PreferQueryMode.EXTENDED_FOR_PREPARED) >= 0);
   }
 
 }
