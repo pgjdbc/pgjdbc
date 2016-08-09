@@ -439,7 +439,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             }
 
             ServerErrorMessage errorMsg =
-                new ServerErrorMessage(pgStream.receiveString(l_elen - 4), logger.getLogLevel());
+                new ServerErrorMessage(pgStream.receiveErrorString(l_elen - 4), logger.getLogLevel());
             if (logger.logDebug()) {
               logger.debug(" <=BE ErrorMessage(" + errorMsg + ")");
             }

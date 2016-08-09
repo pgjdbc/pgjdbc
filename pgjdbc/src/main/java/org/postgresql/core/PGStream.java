@@ -334,6 +334,36 @@ public class PGStream {
   }
 
   /**
+   * Receives a fixed-size string from the backend, and tries to avoid "UTF-8 decode failed"
+   * errors.
+   *
+   * @param len the length of the string to receive, in bytes.
+   * @return the decoded string
+   * @throws IOException if something wrong happens
+   */
+  public EncodingPredictor.DecodeResult receiveErrorString(int len) throws IOException {
+    if (!pg_input.ensureBytes(len)) {
+      throw new EOFException();
+    }
+
+    EncodingPredictor.DecodeResult res;
+    try {
+      String value = encoding.decode(pg_input.getBuffer(), pg_input.getIndex(), len);
+      // no autodetect warning as the message was converted on its own
+      res = new EncodingPredictor.DecodeResult(value, null);
+    } catch (IOException e) {
+      res = EncodingPredictor.decode(pg_input.getBuffer(), pg_input.getIndex(), len);
+      if (res == null) {
+        Encoding enc = Encoding.defaultEncoding();
+        String value = enc.decode(pg_input.getBuffer(), pg_input.getIndex(), len);
+        res = new EncodingPredictor.DecodeResult(value, enc.name());
+      }
+    }
+    pg_input.skip(len);
+    return res;
+  }
+
+  /**
    * Receives a null-terminated string from the backend. If we don't see a null, then we assume
    * something has gone wrong.
    *

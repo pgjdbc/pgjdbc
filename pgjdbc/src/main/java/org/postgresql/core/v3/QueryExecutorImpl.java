@@ -12,6 +12,7 @@ package org.postgresql.core.v3;
 import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyOperation;
 import org.postgresql.core.Encoding;
+import org.postgresql.core.EncodingPredictor;
 import org.postgresql.core.Field;
 import org.postgresql.core.Logger;
 import org.postgresql.core.NativeQuery;
@@ -2391,7 +2392,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // check at the bottom to see if we need to throw an exception
 
     int elen = pgStream.receiveInteger4();
-    String totalMessage = pgStream.receiveString(elen - 4);
+    EncodingPredictor.DecodeResult totalMessage = pgStream.receiveErrorString(elen - 4);
     ServerErrorMessage errorMsg = new ServerErrorMessage(totalMessage, logger.getLogLevel());
 
     if (logger.logDebug()) {

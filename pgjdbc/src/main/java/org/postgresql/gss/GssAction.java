@@ -105,7 +105,7 @@ class GssAction implements PrivilegedAction<Exception> {
           if (response == 'E') {
             int l_elen = pgStream.receiveInteger4();
             ServerErrorMessage l_errorMsg =
-                new ServerErrorMessage(pgStream.receiveString(l_elen - 4), logger.getLogLevel());
+                new ServerErrorMessage(pgStream.receiveErrorString(l_elen - 4), logger.getLogLevel());
 
             if (logger.logDebug()) {
               logger.debug(" <=BE ErrorMessage(" + l_errorMsg + ")");

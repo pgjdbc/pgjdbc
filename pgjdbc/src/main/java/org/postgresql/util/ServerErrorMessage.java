@@ -8,6 +8,8 @@
 
 package org.postgresql.util;
 
+import org.postgresql.core.EncodingPredictor;
+
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
@@ -34,6 +36,16 @@ public class ServerErrorMessage implements Serializable {
 
   private final Map<Character, String> m_mesgParts = new HashMap<Character, String>();
   private final int verbosity;
+
+  public ServerErrorMessage(EncodingPredictor.DecodeResult serverError, int verbosity) {
+    this(serverError.result, verbosity);
+    if (serverError.encoding != null) {
+      m_mesgParts.put(MESSAGE, m_mesgParts.get(MESSAGE)
+          + GT.tr(" (pgjdbc: autodetected server-encoding to be {0}, if the message is not readable, please check database logs and/or host, port, dbname, user, password, pg_hba.conf)",
+          serverError.encoding)
+      );
+    }
+  }
 
   public ServerErrorMessage(String p_serverError, int verbosity) {
     this.verbosity = verbosity;
