@@ -3,6 +3,10 @@
 set -x -e
 
 sudo service postgresql stop
+if [ ${PG_VERSION} = '9.5' ]
+then
+ true; # Travis has native support for PostgreSQL 9.5
+else
 sudo cp /etc/postgresql/9.1/main/pg_hba.conf ./
 sudo apt-get remove postgresql libpq-dev libpq5 postgresql-client-common postgresql-common -qq --purge
 source /etc/lsb-release
@@ -12,14 +16,15 @@ wget --quiet -O - https://apt.postgresql.org/pub/repos/apt/ACCC4CF8.asc | sudo a
 sudo apt-get update
 sudo apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" install postgresql-${PG_VERSION} postgresql-contrib-${PG_VERSION} -qq
 
+sudo cp ./pg_hba.conf /etc/postgresql/${PG_VERSION}/main
 if [ ${PG_VERSION} = '8.4' ]
 then
   sudo sed -i -e 's/port = 5433/port = 5432/g' /etc/postgresql/8.4/main/postgresql.conf
 fi
 
-sudo sed -i -e 's/#max_prepared_transactions = 0/max_prepared_transactions = 64/g' /etc/postgresql/${PG_VERSION}/main/postgresql.conf
+fi
 
-sudo cp ./pg_hba.conf /etc/postgresql/${PG_VERSION}/main
+sudo sed -i -e 's/#max_prepared_transactions = 0/max_prepared_transactions = 64/g' /etc/postgresql/${PG_VERSION}/main/postgresql.conf
 
 sudo service postgresql restart ${PG_VERSION}
 
