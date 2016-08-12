@@ -1,10 +1,18 @@
+/*-------------------------------------------------------------------------
+*
+* Copyright (c) 2016-2016, PostgreSQL Global Development Group
+*
+*
+*-------------------------------------------------------------------------
+*/
+
 package org.postgresql.jdbc;
 
 import org.postgresql.core.Field;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.ResultCursor;
-import org.postgresql.core.ResultHandler;
+import org.postgresql.core.ResultHandlerBase;
 import org.postgresql.core.v3.BatchedQuery;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -22,12 +30,8 @@ import java.util.List;
 /**
  * Internal class, it is not a part of public API.
  */
-public class BatchResultHandler implements ResultHandler {
+public class BatchResultHandler extends ResultHandlerBase {
   private PgStatement pgStatement;
-  private BatchUpdateException batchException = null;
-  // Last exception is tracked to avoid O(N) SQLException#setNextException just in case there
-  // will be lots of exceptions (e.g. all batch rows fail with constraint violation or so)
-  private SQLException lastException;
   private int resultIndex = 0;
 
   private final Query[] queries;
@@ -78,7 +82,7 @@ public class BatchResultHandler implements ResultHandler {
       resultIndex--;
       // If exception thrown, no need to collect generated keys
       // Note: some generated keys might be secured in generatedKeys
-      if (updateCount > 0 && (batchException == null || isAutoCommit())) {
+      if (updateCount > 0 && (getException() == null || isAutoCommit())) {
         allGeneratedRows.add(latestGeneratedRows);
         if (generatedKeys == null) {
           generatedKeys = latestGeneratedKeysRs;
@@ -129,7 +133,7 @@ public class BatchResultHandler implements ResultHandler {
   }
 
   public void handleError(SQLException newError) {
-    if (batchException == null) {
+    if (getException() == null) {
       Arrays.fill(updateCounts, committedRows, updateCounts.length, Statement.EXECUTE_FAILED);
       if (allGeneratedRows != null) {
         allGeneratedRows.clear();
@@ -140,20 +144,19 @@ public class BatchResultHandler implements ResultHandler {
         queryString = queries[resultIndex].toString(parameterLists[resultIndex]);
       }
 
-      batchException = new BatchUpdateException(
+      super.handleError(new BatchUpdateException(
           GT.tr("Batch entry {0} {1} was aborted: {2}  Call getNextException to see the cause.",
               new Object[]{resultIndex, queryString, newError.getMessage()}),
-          newError.getSQLState(), uncompressUpdateCount());
-      lastException = batchException;
+          newError.getSQLState(), uncompressUpdateCount()));
     }
     resultIndex++;
 
-    lastException.setNextException(newError);
-    lastException = newError;
+    super.handleError(newError);
   }
 
   public void handleCompletion() throws SQLException {
     updateGeneratedKeys();
+    SQLException batchException = getException();
     if (batchException != null) {
       if (isAutoCommit()) {
         // Re-create batch exception since rows after exception might indeed succeed.

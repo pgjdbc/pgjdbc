@@ -23,12 +23,8 @@ import java.util.List;
  */
 public class SetupQueryRunner {
 
-  private static class SimpleResultHandler implements ResultHandler {
-    private SQLException error;
+  private static class SimpleResultHandler extends ResultHandlerBase {
     private List<byte[][]> tuples;
-
-    SimpleResultHandler() {
-    }
 
     List<byte[][]> getResults() {
       return tuples;
@@ -39,30 +35,9 @@ public class SetupQueryRunner {
       this.tuples = tuples;
     }
 
-    public void handleCommandStatus(String status, int updateCount, long insertOID) {
-    }
-
     public void handleWarning(SQLWarning warning) {
       // We ignore warnings. We assume we know what we're
       // doing in the setup queries.
-    }
-
-    public void handleError(SQLException newError) {
-      if (error == null) {
-        error = newError;
-      } else {
-        error.setNextException(newError);
-      }
-    }
-
-    public void handleCompletion() throws SQLException {
-      if (error != null) {
-        throw error;
-      }
-    }
-
-    @Override
-    public void secureProgress() {
     }
   }
 

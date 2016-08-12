@@ -1,3 +1,11 @@
+/*-------------------------------------------------------------------------
+*
+* Copyright (c) 2016-2016, PostgreSQL Global Development Group
+*
+*
+*-------------------------------------------------------------------------
+*/
+
 package org.postgresql.jdbc;
 
 import org.postgresql.core.Field;

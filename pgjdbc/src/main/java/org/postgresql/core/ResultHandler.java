@@ -83,4 +83,16 @@ public interface ResultHandler {
    * statements are executed successfully and which are not.
    */
   void secureProgress();
+
+  /**
+   * Returns the first encountered exception. The rest are chained via {@link SQLException#setNextException(SQLException)}
+   * @return the first encountered exception
+   */
+  SQLException getException();
+
+  /**
+   * Returns the first encountered warning. The rest are chained via {@link SQLException#setNextException(SQLException)}
+   * @return the first encountered warning
+   */
+  SQLWarning getWarning();
 }

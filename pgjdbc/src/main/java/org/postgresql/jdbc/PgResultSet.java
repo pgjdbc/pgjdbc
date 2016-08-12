@@ -16,7 +16,7 @@ import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
 import org.postgresql.core.Query;
 import org.postgresql.core.ResultCursor;
-import org.postgresql.core.ResultHandler;
+import org.postgresql.core.ResultHandlerBase;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.core.Utils;
@@ -1751,8 +1751,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
   }
 
-  public class CursorResultHandler implements ResultHandler {
-    private SQLException error;
+  public class CursorResultHandler extends ResultHandlerBase {
 
     public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples,
         ResultCursor cursor) {
@@ -1765,30 +1764,14 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           PSQLState.PROTOCOL_VIOLATION));
     }
 
-    public void handleWarning(SQLWarning warning) {
-      PgResultSet.this.addWarning(warning);
-    }
-
-    public void handleError(SQLException newError) {
-      if (error == null) {
-        error = newError;
-      } else {
-        error.setNextException(newError);
-      }
-    }
-
     public void handleCompletion() throws SQLException {
-      if (error != null) {
-        throw error;
+      SQLWarning warning = getWarning();
+      if (warning != null) {
+        PgResultSet.this.addWarning(warning);
       }
-    }
-
-    @Override
-    public void secureProgress() {
+      super.handleCompletion();
     }
   }
-
-  ;
 
 
   public BaseStatement getPGStatement() {

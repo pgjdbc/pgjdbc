@@ -17,14 +17,12 @@ import org.postgresql.core.BaseStatement;
 import org.postgresql.core.CachedQuery;
 import org.postgresql.core.ConnectionFactory;
 import org.postgresql.core.Encoding;
-import org.postgresql.core.Field;
 import org.postgresql.core.Logger;
 import org.postgresql.core.Oid;
 import org.postgresql.core.Provider;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
-import org.postgresql.core.ResultCursor;
-import org.postgresql.core.ResultHandler;
+import org.postgresql.core.ResultHandlerBase;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.SqlCommand;
 import org.postgresql.core.TransactionState;
@@ -64,7 +62,6 @@ import java.sql.Types;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -1047,36 +1044,13 @@ public class PgConnection implements BaseConnection {
   /**
    * Handler for transaction queries
    */
-  private class TransactionCommandHandler implements ResultHandler {
-    private SQLException error;
-
-    public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples,
-        ResultCursor cursor) {
-    }
-
-    public void handleCommandStatus(String status, int updateCount, long insertOID) {
-    }
-
-    public void handleWarning(SQLWarning warning) {
-      PgConnection.this.addWarning(warning);
-    }
-
-    public void handleError(SQLException newError) {
-      if (error == null) {
-        error = newError;
-      } else {
-        error.setNextException(newError);
-      }
-    }
-
+  private class TransactionCommandHandler extends ResultHandlerBase {
     public void handleCompletion() throws SQLException {
-      if (error != null) {
-        throw error;
+      SQLWarning warning = getWarning();
+      if (warning != null) {
+        PgConnection.this.addWarning(warning);
       }
-    }
-
-    @Override
-    public void secureProgress() {
+      super.handleCompletion();
     }
   }
 

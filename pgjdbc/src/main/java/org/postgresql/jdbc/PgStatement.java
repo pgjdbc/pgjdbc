@@ -18,7 +18,7 @@ import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ResultCursor;
-import org.postgresql.core.ResultHandler;
+import org.postgresql.core.ResultHandlerBase;
 import org.postgresql.core.SqlCommand;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -190,9 +190,9 @@ public class PgStatement implements Statement, BaseStatement {
   /**
    * ResultHandler implementations for updates, queries, and either-or.
    */
-  public class StatementResultHandler implements ResultHandler {
-    private SQLException error;
+  public class StatementResultHandler extends ResultHandlerBase {
     private ResultWrapper results;
+    private ResultWrapper lastResult;
 
     ResultWrapper getResults() {
       return results;
@@ -200,12 +200,13 @@ public class PgStatement implements Statement, BaseStatement {
 
     private void append(ResultWrapper newResult) {
       if (results == null) {
-        results = newResult;
+        lastResult = results = newResult;
       } else {
-        results.append(newResult);
+        lastResult.append(newResult);
       }
     }
 
+    @Override
     public void handleResultRows(Query fromQuery, Field[] fields, List<byte[][]> tuples,
         ResultCursor cursor) {
       try {
@@ -216,30 +217,18 @@ public class PgStatement implements Statement, BaseStatement {
       }
     }
 
+    @Override
     public void handleCommandStatus(String status, int updateCount, long insertOID) {
       append(new ResultWrapper(updateCount, insertOID));
     }
 
-    public void handleWarning(SQLWarning warning) {
-      PgStatement.this.addWarning(warning);
-    }
-
-    public void handleError(SQLException newError) {
-      if (error == null) {
-        error = newError;
-      } else {
-        error.setNextException(newError);
-      }
-    }
-
-    public void handleCompletion() throws SQLException {
-      if (error != null) {
-        throw error;
-      }
-    }
-
     @Override
-    public void secureProgress() {
+    public void handleCompletion() throws SQLException {
+      SQLWarning warning = getWarning();
+      if (warning != null) {
+        PgStatement.this.addWarning(warning);
+      }
+      super.handleCompletion();
     }
   }
 

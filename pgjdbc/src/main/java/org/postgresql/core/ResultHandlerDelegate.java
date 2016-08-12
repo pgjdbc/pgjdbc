@@ -59,4 +59,20 @@ public class ResultHandlerDelegate implements ResultHandler {
       delegate.secureProgress();
     }
   }
+
+  @Override
+  public SQLException getException() {
+    if (delegate != null) {
+      return delegate.getException();
+    }
+    return null;
+  }
+
+  @Override
+  public SQLWarning getWarning() {
+    if (delegate != null) {
+      return delegate.getWarning();
+    }
+    return null;
+  }
 }
