@@ -32,6 +32,7 @@ import org.postgresql.core.SqlCommand;
 import org.postgresql.core.SqlCommandType;
 import org.postgresql.core.TransactionState;
 import org.postgresql.core.Utils;
+import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.BatchResultHandler;
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.util.GT;
@@ -91,6 +92,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * from Sync messages vs from simple execute (aka 'Q')
    */
   private final SimpleQuery sync = (SimpleQuery) createQuery("SYNC", false, true).query;
+
+  private short deallocateEpoch;
 
   public QueryExecutorImpl(PGStream pgStream, String user, String database,
       int cancelSignalTimeout, Properties info, Logger logger) throws SQLException, IOException {
@@ -260,9 +263,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       ((V3ParameterList) parameters).checkAllParametersSet();
     }
 
+    boolean autosave = false;
     try {
       try {
         handler = sendQueryPreamble(handler, flags);
+        autosave = sendAutomaticSavepoint(query, flags);
         sendQuery(query, (V3ParameterList) parameters, maxRows, fetchSize, flags,
             handler, null);
         if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0) {
@@ -302,7 +307,47 @@ public class QueryExecutorImpl extends QueryExecutorBase {
               PSQLState.CONNECTION_FAILURE, e));
     }
 
-    handler.handleCompletion();
+    try {
+      handler.handleCompletion();
+    } catch (SQLException e) {
+      rollbackIfRequired(autosave, e);
+    }
+  }
+
+  private boolean sendAutomaticSavepoint(Query query, int flags) throws IOException {
+    if (((flags & QueryExecutor.QUERY_SUPPRESS_BEGIN) == 0
+        || getTransactionState() == TransactionState.OPEN)
+        && query != restoreToAutoSave
+        && getAutoSave() != AutoSave.NEVER
+        // If query has no resulting fields, it cannot fail with 'cached plan must not change result type'
+        // thus no need to set a safepoint before such query
+        && (getAutoSave() == AutoSave.ALWAYS
+        // If CompositeQuery is observed, just assume it might fail and set the savepoint
+        || !(query instanceof SimpleQuery)
+        || ((SimpleQuery) query).getFields() != null)) {
+      sendOneQuery(autoSaveQuery, SimpleQuery.NO_PARAMETERS, 1, 0,
+          updateQueryMode(QUERY_NO_RESULTS | QUERY_NO_METADATA)
+              // PostgreSQL does not support bind, exec, simple, sync message flow,
+              // so we force autosavepoint to use simple if the main query is using simple
+              | (flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE));
+      return true;
+    }
+    return false;
+  }
+
+  private void rollbackIfRequired(boolean autosave, SQLException e) throws SQLException {
+    if (autosave
+        && getTransactionState() == TransactionState.FAILED
+        && (getAutoSave() == AutoSave.ALWAYS || willHealOnRetry(e))) {
+      try {
+        execute(restoreToAutoSave, SimpleQuery.NO_PARAMETERS, new ResultHandlerDelegate(null),
+            1, 0, updateQueryMode(QUERY_NO_RESULTS | QUERY_NO_METADATA));
+      } catch (SQLException e2) {
+        // That's O(N), sorry
+        e.setNextException(e2);
+      }
+    }
+    throw e;
   }
 
   // Deadlock avoidance:
@@ -375,9 +420,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       }
     }
 
+    boolean autosave = false;
     ResultHandler handler = batchHandler;
     try {
       handler = sendQueryPreamble(batchHandler, flags);
+      autosave = sendAutomaticSavepoint(queries[0], flags);
       estimatedReceiveBufferBytes = 0;
 
       for (int i = 0; i < queries.length; ++i) {
@@ -411,7 +458,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
               PSQLState.CONNECTION_FAILURE, e));
     }
 
-    handler.handleCompletion();
+    try {
+      handler.handleCompletion();
+    } catch (SQLException e) {
+      rollbackIfRequired(autosave, e);
+    }
   }
 
   private ResultHandler sendQueryPreamble(final ResultHandler delegateHandler, int flags)
@@ -1279,7 +1330,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       throws IOException {
     // Already parsed, or we have a Parse pending and the types are right?
     int[] typeOIDs = params.getTypeOIDs();
-    if (query.isPreparedFor(typeOIDs)) {
+    if (query.isPreparedFor(typeOIDs, deallocateEpoch)) {
       return;
     }
 
@@ -1301,7 +1352,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       // NB: Must clone the OID array, as it's a direct reference to
       // the SimpleParameterList's internal array that might be modified
       // under us.
-      query.setStatementName(statementName);
+      query.setStatementName(statementName, deallocateEpoch);
       query.setStatementTypes(typeOIDs.clone());
       registerParsedQuery(query, statementName);
     }
@@ -1979,6 +2030,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         case 'C': // Command Status (end of Execute)
           // Handle status.
           String status = receiveCommandStatus();
+          if (status.startsWith("DEALLOCATE ALL") || status.startsWith("DISCARD ALL")) {
+            deallocateEpoch++;
+          }
 
           doneAfterRowDescNoData = false;
 
@@ -1992,6 +2046,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           } else {
             // For simple 'Q' queries, executeQueue is cleared via ReadyForQuery message
           }
+
+          if (currentQuery == autoSaveQuery) {
+            // ignore "SAVEPOINT" status from autosave query
+            break;
+          }
+
           Field[] fields = currentQuery.getFields();
           if (fields != null && !noResults && tuples == null) {
             tuples = new ArrayList<byte[][]>();
@@ -2072,7 +2132,16 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           // Error Response (response to pretty much everything; backend then skips until Sync)
           SQLException error = receiveErrorResponse();
           handler.handleError(error);
-
+          if (willHealViaReparse(error)) {
+            // prepared statement ... is not valid kind of error
+            // Technically speaking, the error is unexpected, thus we invalidate other
+            // server-prepared statements just in case.
+            deallocateEpoch++;
+            if (logger.logDebug()) {
+              logger.debug(" FE: received " + error.getSQLState() + ", will invalidate statements. "
+                  + "deallocateEpoch is now " + deallocateEpoch);
+            }
+          }
           // keep processing
           break;
 
@@ -2619,13 +2688,22 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private final SimpleQuery beginTransactionQuery =
       new SimpleQuery(
-          new NativeQuery("BEGIN", new int[0], false,
-              SqlCommand.createStatementTypeInfo(SqlCommandType.BLANK)
-          ), null, false);
+          new NativeQuery("BEGIN", new int[0], false, SqlCommand.BLANK),
+          null, false);
 
   private final SimpleQuery EMPTY_QUERY =
       new SimpleQuery(
           new NativeQuery("", new int[0], false,
               SqlCommand.createStatementTypeInfo(SqlCommandType.BLANK)
           ), null, false);
+
+  private final SimpleQuery autoSaveQuery =
+      new SimpleQuery(
+          new NativeQuery("SAVEPOINT PGJDBC_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
+          null, false);
+
+  private final SimpleQuery restoreToAutoSave =
+      new SimpleQuery(
+          new NativeQuery("ROLLBACK TO SAVEPOINT PGJDBC_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
+          null, false);
 }

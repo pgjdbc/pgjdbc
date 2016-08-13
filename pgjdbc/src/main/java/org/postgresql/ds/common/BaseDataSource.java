@@ -9,6 +9,7 @@
 package org.postgresql.ds.common;
 
 import org.postgresql.PGProperty;
+import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -1243,6 +1244,22 @@ public abstract class BaseDataSource implements Referenceable {
    */
   public void setPreferQueryMode(PreferQueryMode preferQueryMode) {
     PGProperty.PREFER_QUERY_MODE.set(properties, preferQueryMode.value());
+  }
+
+  /**
+   * @see PGProperty#AUTOSAVE
+   * @return connection configuration regarding automatic per-query savepoints
+   */
+  public AutoSave getAutosave() {
+    return AutoSave.of(PGProperty.AUTOSAVE.get(properties));
+  }
+
+  /**
+   * @see PGProperty#AUTOSAVE
+   * @param autoSave connection configuration regarding automatic per-query savepoints
+   */
+  public void setAutosave(AutoSave autoSave) {
+    PGProperty.AUTOSAVE.set(properties, autoSave.value());
   }
 
   /**

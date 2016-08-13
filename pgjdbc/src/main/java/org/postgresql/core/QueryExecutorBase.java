@@ -2,9 +2,13 @@ package org.postgresql.core;
 
 import org.postgresql.PGNotification;
 import org.postgresql.PGProperty;
+import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.LruCache;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+import org.postgresql.util.ServerErrorMessage;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -28,6 +32,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   private final boolean reWriteBatchedInserts;
   private final boolean columnSanitiserDisabled;
   private final PreferQueryMode preferQueryMode;
+  private AutoSave autoSave;
 
   // default value for server versions that don't report standard_conforming_strings
   private boolean standardConformingStrings = false;
@@ -49,6 +54,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     this.columnSanitiserDisabled = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
     String preferMode = PGProperty.PREFER_QUERY_MODE.get(info);
     this.preferQueryMode = PreferQueryMode.of(preferMode);
+    this.autoSave = AutoSave.of(PGProperty.AUTOSAVE.get(info));
     this.cachedQueryCreateAction = new CachedQueryCreateAction(this);
     statementCache = new LruCache<Object, CachedQuery>(
         Math.max(0, PGProperty.PREPARED_STATEMENT_CACHE_QUERIES.getInt(info)),
@@ -316,5 +322,48 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   @Override
   public PreferQueryMode getPreferQueryMode() {
     return preferQueryMode;
+  }
+
+  public AutoSave getAutoSave() {
+    return autoSave;
+  }
+
+  public void setAutoSave(AutoSave autoSave) {
+    this.autoSave = autoSave;
+  }
+
+  protected boolean willHealViaReparse(SQLException e) {
+    // "prepared statement \"S_2\" does not exist"
+    if (PSQLState.INVALID_SQL_STATEMENT_NAME.getState().equals(e.getSQLState())) {
+      return true;
+    }
+    if (!PSQLState.NOT_IMPLEMENTED.getState().equals(e.getSQLState())) {
+      return false;
+    }
+
+    if (!(e instanceof PSQLException)) {
+      return false;
+    }
+
+    PSQLException pe = (PSQLException) e;
+
+    ServerErrorMessage serverErrorMessage = pe.getServerErrorMessage();
+    if (serverErrorMessage == null) {
+      return false;
+    }
+    // "cached plan must not change result type"
+    String routine = pe.getServerErrorMessage().getRoutine();
+    return "RevalidateCachedQuery".equals(routine) // 9.2+
+        || "RevalidateCachedPlan".equals(routine); // <= 9.1
+  }
+
+  @Override
+  public boolean willHealOnRetry(SQLException e) {
+    if (autoSave == AutoSave.NEVER && getTransactionState() == TransactionState.FAILED) {
+      // If autorollback is not activated, then every statement will fail with
+      // 'transaction is aborted', etc, etc
+      return false;
+    }
+    return willHealViaReparse(e);
   }
 }

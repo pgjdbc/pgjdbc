@@ -110,10 +110,11 @@ class SimpleQuery implements Query {
     return nativeQuery.nativeSql;
   }
 
-  void setStatementName(String statementName) {
+  void setStatementName(String statementName, short deallocateEpoch) {
     assert statementName != null : "statement name should not be null";
     this.statementName = statementName;
     this.encodedStatementName = Utils.encodeUTF8(statementName);
+    this.deallocateEpoch = deallocateEpoch;
   }
 
   void setStatementTypes(int[] paramTypes) {
@@ -128,9 +129,12 @@ class SimpleQuery implements Query {
     return statementName;
   }
 
-  boolean isPreparedFor(int[] paramTypes) {
+  boolean isPreparedFor(int[] paramTypes, short deallocateEpoch) {
     if (statementName == null) {
       return false; // Not prepared.
+    }
+    if (this.deallocateEpoch != deallocateEpoch) {
+      return false;
     }
 
     assert preparedTypes == null || paramTypes.length == preparedTypes.length
@@ -311,6 +315,7 @@ class SimpleQuery implements Query {
   private final boolean sanitiserDisabled;
   private PhantomReference<?> cleanupRef;
   private int[] preparedTypes;
+  private short deallocateEpoch;
 
   private Integer cachedMaxResultRowSize;
 

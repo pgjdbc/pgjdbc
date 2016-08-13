@@ -83,6 +83,7 @@ public class PSQLState implements java.io.Serializable {
   public final static PSQLState NUMERIC_VALUE_OUT_OF_RANGE = new PSQLState("22003");
   public final static PSQLState BAD_DATETIME_FORMAT = new PSQLState("22007");
   public final static PSQLState DATETIME_OVERFLOW = new PSQLState("22008");
+  public final static PSQLState DIVISION_BY_ZERO = new PSQLState("22012");
   public final static PSQLState MOST_SPECIFIC_TYPE_DOES_NOT_MATCH = new PSQLState("2200G");
   public final static PSQLState INVALID_PARAMETER_VALUE = new PSQLState("22023");
 
@@ -91,6 +92,9 @@ public class PSQLState implements java.io.Serializable {
   public final static PSQLState TRANSACTION_STATE_INVALID = new PSQLState("25000");
   public final static PSQLState ACTIVE_SQL_TRANSACTION = new PSQLState("25001");
   public final static PSQLState NO_ACTIVE_SQL_TRANSACTION = new PSQLState("25P01");
+  public final static PSQLState IN_FAILED_SQL_TRANSACTION = new PSQLState("25P02");
+
+  public final static PSQLState INVALID_SQL_STATEMENT_NAME = new PSQLState("26000");
   public final static PSQLState INVALID_AUTHORIZATION_SPECIFICATION = new PSQLState("28000");
 
   public final static PSQLState STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL = new PSQLState("2F003");

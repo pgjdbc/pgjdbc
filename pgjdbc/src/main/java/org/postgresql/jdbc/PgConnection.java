@@ -138,6 +138,8 @@ public class PgConnection implements BaseConnection {
   // Only instantiated if a task is actually scheduled.
   private volatile Timer cancelTimer = null;
 
+  private PreparedStatement checkConnectionQuery;
+
   private final LruCache<FieldMetadata.Key, FieldMetadata> fieldMetadataCache;
 
   final CachedQuery borrowQuery(String sql) throws SQLException {
@@ -766,7 +768,17 @@ public class PgConnection implements BaseConnection {
       flags |= QueryExecutor.QUERY_ONESHOT;
     }
 
-    getQueryExecutor().execute(query, null, new TransactionCommandHandler(), 0, 0, flags);
+    try {
+      getQueryExecutor().execute(query, null, new TransactionCommandHandler(), 0, 0, flags);
+    } catch (SQLException e) {
+      // Don't retry composite queries as it might get partially executed
+      if (query.getSubqueries() != null || !queryExecutor.willHealOnRetry(e)) {
+        throw e;
+      }
+      query.close();
+      // retry
+      getQueryExecutor().execute(query, null, new TransactionCommandHandler(), 0, 0, flags);
+    }
   }
 
   public void commit() throws SQLException {
@@ -1130,6 +1142,16 @@ public class PgConnection implements BaseConnection {
     return queryExecutor.getPreferQueryMode();
   }
 
+  @Override
+  public AutoSave getAutosave() {
+    return queryExecutor.getAutoSave();
+  }
+
+  @Override
+  public void setAutosave(AutoSave autoSave) {
+    queryExecutor.setAutoSave(autoSave);
+  }
+
   protected void abort() {
     queryExecutor.abort();
   }
@@ -1310,33 +1332,28 @@ public class PgConnection implements BaseConnection {
   }
 
   public boolean isValid(int timeout) throws SQLException {
-    if (isClosed()) {
-      return false;
-    }
     if (timeout < 0) {
       throw new PSQLException(GT.tr("Invalid timeout ({0}<0).", timeout),
           PSQLState.INVALID_PARAMETER_VALUE);
     }
-    boolean valid = false;
-    Statement stmt = null;
-    try {
-      if (!isClosed()) {
-        stmt = createStatement();
-        stmt.setQueryTimeout(timeout);
-        stmt.executeUpdate("");
-        valid = true;
-      }
-    } catch (SQLException e) {
-      getLogger().log(GT.tr("Validating connection."), e);
-    } finally {
-      if (stmt != null) {
-        try {
-          stmt.close();
-        } catch (Exception ex) {
-        }
-      }
+    if (isClosed()) {
+      return false;
     }
-    return valid;
+    try {
+      if (checkConnectionQuery == null) {
+        checkConnectionQuery = prepareStatement("");
+      }
+      checkConnectionQuery.setQueryTimeout(timeout);
+      checkConnectionQuery.executeUpdate();
+      return true;
+    } catch (SQLException e) {
+      if (PSQLState.IN_FAILED_SQL_TRANSACTION.getState().equals(e.getSQLState())) {
+        // "current transaction aborted", assume the connection is up and running
+        return true;
+      }
+      getLogger().log(GT.tr("Validating connection."), e);
+    }
+    return false;
   }
 
   public void setClientInfo(String name, String value) throws SQLClientInfoException {

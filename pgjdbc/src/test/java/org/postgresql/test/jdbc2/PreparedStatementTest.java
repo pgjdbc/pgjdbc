@@ -60,6 +60,7 @@ public class PreparedStatementTest extends BaseTest4 {
     TestUtil.createTable(con, "streamtable", "bin bytea, str text");
     TestUtil.createTable(con, "texttable", "ch char(3), te text, vc varchar(3)");
     TestUtil.createTable(con, "intervaltable", "i interval");
+    TestUtil.createTable(con, "inttable", "a int");
   }
 
   @Override
@@ -67,6 +68,7 @@ public class PreparedStatementTest extends BaseTest4 {
     TestUtil.dropTable(con, "streamtable");
     TestUtil.dropTable(con, "texttable");
     TestUtil.dropTable(con, "intervaltable");
+    TestUtil.dropTable(con, "inttable");
     super.tearDown();
   }
 

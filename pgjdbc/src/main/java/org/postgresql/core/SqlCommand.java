@@ -18,6 +18,7 @@ import static org.postgresql.core.SqlCommandType.INSERT;
  *
  */
 public class SqlCommand {
+  public static final SqlCommand BLANK = SqlCommand.createStatementTypeInfo(SqlCommandType.BLANK);
 
   public boolean isBatchedReWriteCompatible() {
     return valuesBraceOpenPosition >= 0;

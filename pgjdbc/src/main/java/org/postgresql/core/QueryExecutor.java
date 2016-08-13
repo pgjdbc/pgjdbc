@@ -12,6 +12,7 @@ package org.postgresql.core;
 import org.postgresql.PGNotification;
 import org.postgresql.copy.CopyOperation;
 import org.postgresql.core.v3.TypeTransferModeRegistry;
+import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.BatchResultHandler;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.HostSpec;
@@ -408,4 +409,10 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   boolean isColumnSanitiserDisabled();
 
   PreferQueryMode getPreferQueryMode();
+
+  AutoSave getAutoSave();
+
+  void setAutoSave(AutoSave autoSave);
+
+  boolean willHealOnRetry(SQLException e);
 }

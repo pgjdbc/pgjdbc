@@ -370,6 +370,19 @@ public enum PGProperty {
       "extended", "extendedForPrepared", "extendedCacheEveryting", "simple"),
 
   /**
+   * Specifies what the driver should do if a query fails. In {@code autosave=always} mode, JDBC driver sets a safepoint before each query,
+   * and rolls back to that safepoint in case of failure. In {@code autosave=never} mode (default), no safepoint dance is made ever.
+   * In {@code autosave=conservative} mode, safepoint is set for each query, however the rollback is done only for rare cases
+   * like 'cached statement cannot change return type' or 'statement XXX is not valid' so JDBC driver rollsback and retries
+   */
+  AUTOSAVE("autosave", "never",
+      "Specifies what the driver should do if a query fails. In autosave=always mode, JDBC driver sets a safepoint before each query, "
+          + "and rolls back to that safepoint in case of failure. In autosave=never mode (default), no safepoint dance is made ever. "
+          + "In autosave=conservative mode, safepoint is set for each query, however the rollback is done only for rare cases"
+          + " like 'cached statement cannot change return type' or 'statement XXX is not valid' so JDBC driver rollsback and retries", false,
+      "always", "never", "conservative"),
+
+  /**
    * Configure optimization to enable batch insert re-writing.
    */
   REWRITE_BATCHED_INSERTS ("reWriteBatchedInserts", "false",

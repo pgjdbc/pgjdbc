@@ -10,6 +10,7 @@ package org.postgresql;
 
 import org.postgresql.copy.CopyManager;
 import org.postgresql.fastpath.Fastpath;
+import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.util.PGobject;
@@ -178,4 +179,20 @@ public interface PGConnection {
    * @return true if the connection is configured to use "simple 'Q' execute" commands only
    */
   PreferQueryMode getPreferQueryMode();
+
+
+  /**
+   * Connection configuration regarding automatic per-query savepoints.
+   *
+   * @see PGProperty#AUTOSAVE
+   * @return connection configuration regarding automatic per-query savepoints
+   */
+  AutoSave getAutosave();
+
+  /**
+   * Configures if connection should use automatic savepoints.
+   * @see PGProperty#AUTOSAVE
+   * @param autoSave connection configuration regarding automatic per-query savepoints
+   */
+  void setAutosave(AutoSave autoSave);
 }

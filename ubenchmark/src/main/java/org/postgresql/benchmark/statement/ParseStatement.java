@@ -50,6 +50,9 @@ public class ParseStatement {
 
   private Connection connection;
 
+  @Param({"conservative"})
+  private String autoSave;
+
   private String sql;
 
   private int cntr;
@@ -57,8 +60,16 @@ public class ParseStatement {
   @Setup(Level.Trial)
   public void setUp() throws SQLException {
     Properties props = ConnectionUtil.getProperties();
+    props.put("autosave", autoSave);
 
     connection = DriverManager.getConnection(ConnectionUtil.getURL(), props);
+
+    // Start transaction
+    Statement st = connection.createStatement();
+    connection.setAutoCommit(false);
+    st.execute("BEGIN");
+    st.close();
+
     StringBuilder sb = new StringBuilder();
     sb.append("SELECT ");
     for (int i = 0; i < bindCount; i++) {

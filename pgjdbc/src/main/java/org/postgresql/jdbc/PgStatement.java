@@ -352,7 +352,23 @@ public class PgStatement implements Statement, BaseStatement {
     return false;
   }
 
-  protected void execute(CachedQuery cachedQuery, ParameterList queryParameters, int flags)
+  protected final void execute(CachedQuery cachedQuery, ParameterList queryParameters, int flags)
+      throws SQLException {
+    try {
+      executeInternal(cachedQuery, queryParameters, flags);
+    } catch (SQLException e) {
+      // Don't retry composite queries as it might get partially executed
+      if (cachedQuery.query.getSubqueries() != null
+          || !connection.getQueryExecutor().willHealOnRetry(e)) {
+        throw e;
+      }
+      cachedQuery.query.close();
+      // Execute the query one more time
+      executeInternal(cachedQuery, queryParameters, flags);
+    }
+  }
+
+  private void executeInternal(CachedQuery cachedQuery, ParameterList queryParameters, int flags)
       throws SQLException {
     closeForNextExecution();
 
