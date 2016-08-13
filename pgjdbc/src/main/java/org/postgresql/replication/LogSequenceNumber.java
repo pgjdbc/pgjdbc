@@ -43,11 +43,11 @@ public final class LogSequenceNumber {
     }
 
     String logicalXLogStr = strValue.substring(0, slashIndex);
-    int logicalXlog = Integer.parseUnsignedInt(logicalXLogStr, 16);
+    int logicalXlog = (int) Long.parseLong(logicalXLogStr, 16);
     String segmentStr = strValue.substring(slashIndex + 1, strValue.length());
-    int segment = Integer.parseUnsignedInt(segmentStr, 16);
+    int segment = (int) Long.parseLong(segmentStr, 16);
 
-    ByteBuffer buf = ByteBuffer.allocate(Long.BYTES);
+    ByteBuffer buf = ByteBuffer.allocate(8);
     buf.putInt(logicalXlog);
     buf.putInt(segment);
     buf.position(0);
@@ -68,7 +68,7 @@ public final class LogSequenceNumber {
    * up to 8 digits each, separated by a slash. For example {@code 16/3002D50}, {@code 0/15D68C50}
    */
   public String asString() {
-    ByteBuffer buf = ByteBuffer.allocate(Long.BYTES);
+    ByteBuffer buf = ByteBuffer.allocate(8);
     buf.putLong(value);
     buf.position(0);
 

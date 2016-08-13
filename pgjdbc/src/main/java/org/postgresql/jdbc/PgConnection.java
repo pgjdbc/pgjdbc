@@ -19,6 +19,7 @@ import org.postgresql.core.Oid;
 import org.postgresql.core.Provider;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
+import org.postgresql.core.ReplicationProtocol;
 import org.postgresql.core.ResultHandlerBase;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.SqlCommand;
@@ -26,8 +27,11 @@ import org.postgresql.core.TransactionState;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.core.Utils;
 import org.postgresql.core.Version;
+import org.postgresql.core.v3.replication.V3ReplicationProtocol;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.largeobject.LargeObjectManager;
+import org.postgresql.replication.fluent.ChainedStreamBuilder;
+import org.postgresql.replication.fluent.ReplicationStreamBuilder;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.LruCache;
@@ -398,6 +402,10 @@ public class PgConnection implements BaseConnection {
 
   public QueryExecutor getQueryExecutor() {
     return queryExecutor;
+  }
+
+  public ReplicationProtocol getReplicationProtocol() {
+    return queryExecutor.getReplicationProtocol();
   }
 
   /**
@@ -1131,6 +1139,10 @@ public class PgConnection implements BaseConnection {
   @Override
   public LruCache<FieldMetadata.Key, FieldMetadata> getFieldMetadataCache() {
     return fieldMetadataCache;
+  }
+
+  public ChainedStreamBuilder replicationStream() {
+    return new ReplicationStreamBuilder(this);
   }
 
   private static void appendArray(StringBuilder sb, Object elements, char delim) {

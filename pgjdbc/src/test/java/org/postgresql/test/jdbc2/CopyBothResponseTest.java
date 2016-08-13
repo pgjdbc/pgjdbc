@@ -9,12 +9,15 @@ import org.postgresql.copy.CopyDual;
 import org.postgresql.copy.CopyManager;
 import org.postgresql.replication.LogSequenceNumber;
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.util.rules.ServerVersionRule;
+import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
 
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
@@ -28,7 +31,10 @@ import java.util.concurrent.TimeUnit;
 /**
  * CopyBothResponse use since 9.1 PostgreSQL version for replication protocol
  */
+@HaveMinimalServerVersion("9.4")
 public class CopyBothResponseTest {
+  @Rule
+  public ServerVersionRule versionRule = new ServerVersionRule();
 
   private Connection sqlConnection;
   private Connection replConnection;
@@ -185,7 +191,7 @@ public class CopyBothResponseTest {
 
   private Connection openReplicationConnection() throws Exception {
     Properties properties = new Properties();
-    PGProperty.ASSUME_MIN_SERVER_VERSION.set(properties, "9.1");
+    PGProperty.ASSUME_MIN_SERVER_VERSION.set(properties, "9.4");
     PGProperty.PROTOCOL_VERSION.set(properties, "3");
     PGProperty.REPLICATION.set(properties, "database");
     return TestUtil.openDB(properties);

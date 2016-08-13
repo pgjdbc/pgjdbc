@@ -23,6 +23,7 @@ import org.postgresql.core.Parser;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.QueryExecutorBase;
+import org.postgresql.core.ReplicationProtocol;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandler;
 import org.postgresql.core.ResultHandlerBase;
@@ -31,6 +32,7 @@ import org.postgresql.core.SqlCommand;
 import org.postgresql.core.SqlCommandType;
 import org.postgresql.core.TransactionState;
 import org.postgresql.core.Utils;
+import org.postgresql.core.v3.replication.V3ReplicationProtocol;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.BatchResultHandler;
 import org.postgresql.jdbc.TimestampUtils;
@@ -106,12 +108,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private SQLException transactionFailCause;
 
+  private final ReplicationProtocol replicationProtocol;
+
   public QueryExecutorImpl(PGStream pgStream, String user, String database,
       int cancelSignalTimeout, Properties info, Logger logger) throws SQLException, IOException {
     super(logger, pgStream, user, database, cancelSignalTimeout, info);
 
     this.allowEncodingChanges = PGProperty.ALLOW_ENCODING_CHANGES.getBoolean(info);
-
+    this.replicationProtocol = new V3ReplicationProtocol(this, pgStream, logger);
     readStartupMessages();
   }
 
@@ -891,7 +895,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       pgStream.sendInteger4(4);
       pgStream.flush();
 
-      processCopyResults(op, true);
+      do {
+        processCopyResults(op, true);
+      } while (hasLock(op));
       return op.getHandledRowCount();
     } catch (IOException ioe) {
       throw new PSQLException(GT.tr("Database connection failed when ending copy"),
@@ -2681,6 +2687,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       return "";
     }
     return applicationName;
+  }
+
+  @Override
+  public ReplicationProtocol getReplicationProtocol() {
+    return replicationProtocol;
   }
 
   @Override

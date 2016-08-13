@@ -210,7 +210,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         }
 
         String replication = PGProperty.REPLICATION.get(info);
-        if(replication != null && assumeVersion.getVersionNum() >= ServerVersion.v9_1.getVersionNum()) {
+        if (replication != null && assumeVersion.getVersionNum() >= ServerVersion.v9_4.getVersionNum()) {
           paramList.add(new String[]{"replication", replication});
         }
 
