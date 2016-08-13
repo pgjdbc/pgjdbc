@@ -32,7 +32,7 @@ public class CopyOutImpl extends CopyOperationImpl implements CopyOut {
     return currentDataRow;
   }
 
-  void handleCopydata(byte[] data) {
+  protected void handleCopydata(byte[] data) {
     currentDataRow = data;
   }
 }

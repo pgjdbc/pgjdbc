@@ -377,7 +377,26 @@ public enum PGProperty {
    * Configure optimization to enable batch insert re-writing.
    */
   REWRITE_BATCHED_INSERTS ("reWriteBatchedInserts", "false",
-      "Enable optimization to rewrite and collapse compatible INSERT statements that are batched.");
+      "Enable optimization to rewrite and collapse compatible INSERT statements that are batched."),
+
+  /**
+   * <p>Connection parameter for startup message Available value(true, database).
+   * A Boolean value of true tells the backend to go into walsender mode,
+   * wherein a small set of replication commands can be issued instead of SQL statements.
+   * Only the simple query protocol can be used in walsender mode.
+   * Passing database as the value instructs walsender to connect to the database specified in the dbname parameter,
+   * which will allow the connection to be used for logical replication from that database.
+   * <p>Parameter should be use together with {@link PGProperty#ASSUME_MIN_SERVER_VERSION} with parameter => 9.4
+   * (backend >= 9.4)
+   */
+  REPLICATION("replication", null,
+          "Connection parameter for startup message Available value(true, database). " +
+                  "A Boolean value of true tells the backend to go into walsender mode, " +
+                  "wherein a small set of replication commands can be issued instead of SQL statements. " +
+                  "Only the simple query protocol can be used in walsender mode. " +
+                  "Passing database as the value instructs walsender to connect to the database specified in the dbname parameter, " +
+                  "which will allow the connection to be used for logical replication from that database. " +
+                  "(backend >= 9.4)");
 
   private String _name;
   private String _defaultValue;

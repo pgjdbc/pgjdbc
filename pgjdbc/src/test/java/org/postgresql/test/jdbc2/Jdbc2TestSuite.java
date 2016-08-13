@@ -123,6 +123,9 @@ public class Jdbc2TestSuite extends TestSuite {
       suite.addTestSuite(CopyTest.class);
       suite.addTestSuite(CopyLargeFileTest.class);
     }
+    if(TestUtil.haveMinimumServerVersion(conn, ServerVersion.v9_1)) {
+      suite.addTest(new JUnit4TestAdapter(CopyBothResponseTest.class));
+    }
     if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v9_3)) {
       suite.addTestSuite(ServerErrorTest.class);
     }

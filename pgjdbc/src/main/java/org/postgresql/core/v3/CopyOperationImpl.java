@@ -12,7 +12,7 @@ import org.postgresql.util.PSQLState;
 
 import java.sql.SQLException;
 
-public class CopyOperationImpl implements CopyOperation {
+public abstract class CopyOperationImpl implements CopyOperation {
   QueryExecutorImpl queryExecutor;
   int rowFormat;
   int[] fieldFormats;
@@ -55,6 +55,13 @@ public class CopyOperationImpl implements CopyOperation {
           PSQLState.COMMUNICATION_ERROR);
     }
   }
+
+  /**
+   * Consume received copy data
+   *
+   * @param data data that was receive by copy protocol
+   */
+  protected abstract void handleCopydata(byte[] data) throws PSQLException;
 
   public long getHandledRowCount() {
     return handledRowCount;
