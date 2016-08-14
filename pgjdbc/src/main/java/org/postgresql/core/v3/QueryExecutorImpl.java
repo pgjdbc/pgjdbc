@@ -2030,7 +2030,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         case 'C': // Command Status (end of Execute)
           // Handle status.
           String status = receiveCommandStatus();
-          if (status.startsWith("DEALLOCATE ALL") || status.startsWith("DISCARD ALL")) {
+          if (isFlushCacheOnDeallocate()
+              && (status.startsWith("DEALLOCATE ALL") || status.startsWith("DISCARD ALL"))) {
             deallocateEpoch++;
           }
 

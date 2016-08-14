@@ -415,4 +415,13 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   void setAutoSave(AutoSave autoSave);
 
   boolean willHealOnRetry(SQLException e);
+
+  /**
+   * By default, the connection resets statement cache in case deallocate all/discard all
+   * message is observed.
+   * This API allows to disable that feature for testing purposes.
+   *
+   * @param flushCacheOnDeallocate true if statement cache should be reset when "deallocate/discard" message observed
+   */
+  void setFlushCacheOnDeallocate(boolean flushCacheOnDeallocate);
 }

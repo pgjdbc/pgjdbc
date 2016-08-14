@@ -244,4 +244,13 @@ public interface BaseConnection extends PGConnection, Connection {
   CachedQuery createQuery(String sql, boolean escapeProcessing, boolean isParameterized,
       String... columnNames)
       throws SQLException;
+
+  /**
+   * By default, the connection resets statement cache in case deallocate all/discard all
+   * message is observed.
+   * This API allows to disable that feature for testing purposes.
+   *
+   * @param flushCacheOnDeallocate true if statement cache should be reset when "deallocate/discard" message observed
+   */
+  void setFlushCacheOnDeallocate(boolean flushCacheOnDeallocate);
 }

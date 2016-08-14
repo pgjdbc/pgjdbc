@@ -165,6 +165,11 @@ public class PgConnection implements BaseConnection {
     queryExecutor.releaseQuery(cachedQuery);
   }
 
+  @Override
+  public void setFlushCacheOnDeallocate(boolean flushCacheOnDeallocate) {
+    queryExecutor.setFlushCacheOnDeallocate(flushCacheOnDeallocate);
+  }
+
   //
   // Ctor.
   //

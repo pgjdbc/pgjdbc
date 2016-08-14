@@ -33,6 +33,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   private final boolean columnSanitiserDisabled;
   private final PreferQueryMode preferQueryMode;
   private AutoSave autoSave;
+  private boolean flushCacheOnDeallocate = true;
 
   // default value for server versions that don't report standard_conforming_strings
   private boolean standardConformingStrings = false;
@@ -365,5 +366,13 @@ public abstract class QueryExecutorBase implements QueryExecutor {
       return false;
     }
     return willHealViaReparse(e);
+  }
+
+  public boolean isFlushCacheOnDeallocate() {
+    return flushCacheOnDeallocate;
+  }
+
+  public void setFlushCacheOnDeallocate(boolean flushCacheOnDeallocate) {
+    this.flushCacheOnDeallocate = flushCacheOnDeallocate;
   }
 }

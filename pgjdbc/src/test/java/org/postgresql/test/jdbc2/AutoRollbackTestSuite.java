@@ -1,9 +1,13 @@
 package org.postgresql.test.jdbc2;
 
+import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
+import org.postgresql.core.BaseConnection;
+import org.postgresql.core.ResultHandler;
 import org.postgresql.core.TransactionState;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.PgConnection;
+import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLState;
 
@@ -18,6 +22,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.Properties;
 
 @RunWith(Parameterized.class)
@@ -54,6 +59,12 @@ public class AutoRollbackTestSuite extends BaseTest4 {
     INSERT_BATCH,
   }
 
+  private final static EnumSet<FailMode> DEALLOCATES =
+      EnumSet.of(FailMode.DEALLOCATE, FailMode.DISCARD);
+
+  private final static EnumSet<FailMode> TRANS_KILLERS =
+      EnumSet.of(FailMode.SELECT, FailMode.INSERT_BATCH);
+
   private enum ContinueMode {
     COMMIT,
     IS_VALID,
@@ -64,13 +75,15 @@ public class AutoRollbackTestSuite extends BaseTest4 {
   private final AutoCommit autoCommit;
   private final FailMode failMode;
   private final ContinueMode continueMode;
+  private final boolean flushCacheOnDeallocate;
 
   public AutoRollbackTestSuite(AutoSave autoSave, AutoCommit autoCommit,
-      FailMode failMode, ContinueMode continueMode) {
+      FailMode failMode, ContinueMode continueMode, boolean flushCacheOnDeallocate) {
     this.autoSave = autoSave;
     this.autoCommit = autoCommit;
     this.failMode = failMode;
     this.continueMode = continueMode;
+    this.flushCacheOnDeallocate = flushCacheOnDeallocate;
   }
 
   @Override
@@ -78,6 +91,8 @@ public class AutoRollbackTestSuite extends BaseTest4 {
     super.setUp();
     TestUtil.createTable(con, "rollbacktest", "a int, str text");
     con.setAutoCommit(autoCommit == AutoCommit.YES);
+    BaseConnection baseConnection = con.unwrap(BaseConnection.class);
+    baseConnection.setFlushCacheOnDeallocate(flushCacheOnDeallocate);
   }
 
   @Override
@@ -99,9 +114,10 @@ public class AutoRollbackTestSuite extends BaseTest4 {
   }
 
 
-  @Parameterized.Parameters(name = "{index}: autorollback(autoSave={0}, autoCommit={1}, failMode={2}, continueMode={3})")
+  @Parameterized.Parameters(name = "{index}: autorollback(autoSave={0}, autoCommit={1}, failMode={2}, continueMode={3}, flushOnDeallocate={4})")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<Object[]>();
+    boolean[] booleans = new boolean[] {true, false};
     for (AutoSave autoSave : AutoSave.values()) {
       for (AutoCommit autoCommit : AutoCommit.values()) {
         for (FailMode failMode : FailMode.values()) {
@@ -113,7 +129,13 @@ public class AutoRollbackTestSuite extends BaseTest4 {
             if (failMode == FailMode.ALTER && continueMode != ContinueMode.SELECT) {
               continue;
             }
-            ids.add(new Object[]{autoSave, autoCommit, failMode, continueMode});
+            for (boolean flushCacheOnDeallocate : booleans) {
+              if (!(flushCacheOnDeallocate || DEALLOCATES.contains(failMode))) {
+                continue;
+              }
+
+              ids.add(new Object[]{autoSave, autoCommit, failMode, continueMode, flushCacheOnDeallocate});
+            }
           }
         }
       }
@@ -186,11 +208,32 @@ public class AutoRollbackTestSuite extends BaseTest4 {
 
     switch (continueMode) {
       case COMMIT:
-        doCommit();
+        try {
+          doCommit();
+          // No assert here: commit should always succeed with exception of well known failure cases in catch
+        } catch (SQLException e) {
+          if (!flushCacheOnDeallocate && DEALLOCATES.contains(failMode)
+              && autoSave == AutoSave.NEVER) {
+            Assert.assertEquals(
+                "flushCacheOnDeallocate is disabled, thus " + failMode + " should cause 'prepared statement \"...\" does not exist'"
+                    + " error message is " + e.getMessage(),
+                PSQLState.INVALID_SQL_STATEMENT_NAME.getState(), e.getSQLState());
+            return;
+          }
+          throw e;
+        }
         return;
       case IS_VALID:
-        Assert.assertTrue("Connection.isValid should return true unless the connection is closed",
-            con.isValid(4));
+        if (!flushCacheOnDeallocate && autoSave == AutoSave.NEVER
+            && DEALLOCATES.contains(failMode) && autoCommit == AutoCommit.NO
+            && con.unwrap(PGConnection.class).getPreferQueryMode() != PreferQueryMode.SIMPLE) {
+          Assert.assertFalse("Connection.isValid should return false since failMode=" + failMode
+              + ", flushCacheOnDeallocate=false, and autosave=NEVER",
+              con.isValid(4));
+        } else {
+          Assert.assertTrue("Connection.isValid should return true unless the connection is closed",
+              con.isValid(4));
+        }
         return;
       default:
         break;
@@ -199,39 +242,77 @@ public class AutoRollbackTestSuite extends BaseTest4 {
     try {
       // Try execute server-prepared statement again
       ps.executeQuery().close();
+      executeSqlSuccess();
     } catch (SQLException e) {
-      if (autoSave != AutoSave.ALWAYS && failMode == FailMode.ALTER) {
+      if (autoSave != AutoSave.ALWAYS && TRANS_KILLERS.contains(failMode) && autoCommit == AutoCommit.NO) {
         Assert.assertEquals(
-            "AutoSave==" + autoSave + " != ALWAYS, thus ALTER TABLE causes SELECT * to fail with "
-                + "'cached plan must not change result type', "
-                + " error message is " + e.getMessage(),
-            PSQLState.NOT_IMPLEMENTED.getState(), e.getSQLState());
-        return;
-      }
-      if (autoSave == AutoSave.NEVER
-          || autoSave == AutoSave.CONSERVATIVE && (failMode == FailMode.SELECT
-          || failMode == FailMode.INSERT_BATCH)) {
-        Assert.assertEquals(
-            "AutoSave==NEVER, thus statements should fail with 'current transaction is aborted...', "
+            "AutoSave==" + autoSave + ", thus statements should fail with 'current transaction is aborted...', "
                 + " error message is " + e.getMessage(),
             PSQLState.IN_FAILED_SQL_TRANSACTION.getState(), e.getSQLState());
         return;
       }
-      throw e;
+
+      if (autoSave == AutoSave.NEVER && autoCommit == AutoCommit.NO) {
+        if (DEALLOCATES.contains(failMode) && !flushCacheOnDeallocate) {
+          Assert.assertEquals(
+              "flushCacheOnDeallocate is disabled, thus " + failMode + " should cause 'prepared statement \"...\" does not exist'"
+                  + " error message is " + e.getMessage(),
+              PSQLState.INVALID_SQL_STATEMENT_NAME.getState(), e.getSQLState());
+        } else if (failMode == FailMode.ALTER) {
+          Assert.assertEquals(
+              "AutoSave==NEVER, autocommit=NO, thus ALTER TABLE causes SELECT * to fail with "
+                  + "'cached plan must not change result type', "
+                  + " error message is " + e.getMessage(),
+              PSQLState.NOT_IMPLEMENTED.getState(), e.getSQLState());
+        } else {
+          throw e;
+        }
+      } else {
+        throw e;
+      }
     }
+
 
     try {
       assertRows("rollbacktest", 1);
+      executeSqlSuccess();
     } catch (SQLException e) {
-      if (autoSave == AutoSave.NEVER
-          || autoSave == AutoSave.CONSERVATIVE && failMode == FailMode.SELECT) {
-        Assert.assertEquals(
-            "AutoSave==NEVER, thus statements should fail with 'current transaction is aborted...', "
-                + " error message is " + e.getMessage(),
-            PSQLState.IN_FAILED_SQL_TRANSACTION.getState(), e.getSQLState());
-        return;
+      if (autoSave == AutoSave.NEVER && autoCommit == AutoCommit.NO) {
+        if (DEALLOCATES.contains(failMode) && !flushCacheOnDeallocate
+            || failMode == FailMode.ALTER) {
+          // The above statement failed with "prepared statement does not exist", thus subsequent one should fail with
+          // transaction aborted.
+          Assert.assertEquals(
+              "AutoSave==NEVER, thus statements should fail with 'current transaction is aborted...', "
+                  + " error message is " + e.getMessage(),
+              PSQLState.IN_FAILED_SQL_TRANSACTION.getState(), e.getSQLState());
+        }
+      } else {
+        throw e;
       }
-      throw e;
+    }
+  }
+
+  private void executeSqlSuccess() throws SQLException {
+    if (autoCommit == AutoCommit.YES) {
+      // in autocommit everything should just work
+    } else if (TRANS_KILLERS.contains(failMode)) {
+      if (autoSave != AutoSave.ALWAYS) {
+        Assert.fail(
+            "autosave= " + autoSave + " != ALWAYS, thus the transaction should be killed");
+      }
+    } else if (DEALLOCATES.contains(failMode)) {
+      if (autoSave == AutoSave.NEVER && !flushCacheOnDeallocate
+          && con.unwrap(PGConnection.class).getPreferQueryMode() != PreferQueryMode.SIMPLE) {
+        Assert.fail("flushCacheOnDeallocate == false, thus DEALLOCATE ALL should kill the transaction");
+      }
+    } else if (failMode == FailMode.ALTER) {
+      if (autoSave == AutoSave.NEVER
+          && con.unwrap(PGConnection.class).getPreferQueryMode() != PreferQueryMode.SIMPLE) {
+        Assert.fail("autosave=NEVER, thus the transaction should be killed");
+      }
+    } else {
+      Assert.fail("It is not specified why the test should pass, thus marking a failure");
     }
   }
 
