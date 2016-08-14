@@ -95,6 +95,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private short deallocateEpoch;
 
+  /**
+   * This caches the latest observed {@code set search_path} query so the reset of prepared
+   * statement cache can be skipped if using repeated calls for the same {@code set search_path}
+   * value.
+   */
+  private String lastSetSearchPathQuery;
+
   public QueryExecutorImpl(PGStream pgStream, String user, String database,
       int cancelSignalTimeout, Properties info, Logger logger) throws SQLException, IOException {
     super(logger, pgStream, user, database, cancelSignalTimeout, info);
@@ -2041,6 +2048,18 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           ExecuteRequest executeData = pendingExecuteQueue.peekFirst();
           SimpleQuery currentQuery = executeData.query;
           Portal currentPortal = executeData.portal;
+
+          if (status.startsWith("SET")) {
+            String nativeSql = currentQuery.getNativeQuery().nativeSql;
+            // Scan only the first 1024 characters to
+            // avoid big overhead for long queries.
+            if (nativeSql.lastIndexOf("search_path", 1024) != -1
+                && !nativeSql.equals(lastSetSearchPathQuery)) {
+              // Search path was changed, invalidate prepared statement cache
+              lastSetSearchPathQuery = nativeSql;
+              deallocateEpoch++;
+            }
+          }
 
           if (!executeData.asSimple) {
             pendingExecuteQueue.removeFirst();
