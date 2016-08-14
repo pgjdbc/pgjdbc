@@ -65,7 +65,9 @@ public class CallableStmtTest extends BaseTest4 {
     stmt.execute(
         "CREATE OR REPLACE FUNCTION testspg__getarray() RETURNS int[] as 'SELECT ''{1,2}''::int[];' LANGUAGE sql");
     stmt.execute(
-        "CREATE OR REPLACE FUNCTION testspg__raisenotice() RETURNS int as 'BEGIN RAISE NOTICE ''hello'';  RAISE NOTICE ''goodbye''; RETURN 1; END;' LANGUAGE plpgsql");
+        "CREATE OR REPLACE FUNCTION testspg__raisenotice() RETURNS int as 'BEGIN RAISE NOTICE ''hello'' USING ERRCODE = ''00001'';  RAISE NOTICE ''goodbye'' USING ERRCODE = ''00002''; RETURN 1; END;' LANGUAGE plpgsql");
+    stmt.execute(
+            "CREATE OR REPLACE FUNCTION testspg__raiseerror() RETURNS int as 'BEGIN RAISE SQLSTATE ''22000'';  RETURN 1; END;' LANGUAGE plpgsql");
     stmt.execute(
         "CREATE OR REPLACE FUNCTION testspg__insertInt(int) RETURNS int as 'BEGIN INSERT INTO int_table(id) VALUES ($1); RETURN 1; END;' LANGUAGE plpgsql");
     stmt.close();
@@ -87,6 +89,7 @@ public class CallableStmtTest extends BaseTest4 {
     stmt.execute("drop FUNCTION testspg__getNumericWithoutArg ();");
     stmt.execute("DROP FUNCTION testspg__getarray();");
     stmt.execute("DROP FUNCTION testspg__raisenotice();");
+    stmt.execute("DROP FUNCTION testspg__raiseerror();");
     stmt.execute("DROP FUNCTION testspg__insertInt(int);");
     super.tearDown();
   }
@@ -218,15 +221,41 @@ public class CallableStmtTest extends BaseTest4 {
     Statement statement = con.createStatement();
     statement.execute("SET SESSION client_min_messages = 'NOTICE'");
     CallableStatement call = con.prepareCall(func + pkgName + "raisenotice()}");
+    try {
+      call.registerOutParameter(1, Types.INTEGER);
+      call.execute();
+
+      SQLWarning warn = call.getWarnings();
+      assertNotNull(warn);
+      assertEquals("hello", warn.getMessage());
+      assertEquals(1, warn.getErrorCode());
+
+      warn = warn.getNextWarning();
+      assertNotNull(warn);
+      assertEquals("goodbye", warn.getMessage());
+      assertEquals(2, warn.getErrorCode());
+
+      assertNull(warn.getNextWarning());
+
+      assertEquals(1, call.getInt(1));
+    } finally {
+      call.close();
+    }
+  }
+
+  @Test
+  public void testRaiseError() throws SQLException {
+    assumeCallableStatementsSupported();
+    CallableStatement call = con.prepareCall(func + pkgName + "raiseerror()}");
     call.registerOutParameter(1, Types.INTEGER);
-    call.execute();
-    SQLWarning warn = call.getWarnings();
-    assertNotNull(warn);
-    assertEquals("hello", warn.getMessage());
-    warn = warn.getNextWarning();
-    assertNotNull(warn);
-    assertEquals("goodbye", warn.getMessage());
-    assertEquals(1, call.getInt(1));
+    try {
+      call.execute();
+      fail("should raise an error");
+    } catch (SQLException e) {
+      assertEquals(22000, e.getErrorCode());
+    } finally {
+      call.close();
+    }
   }
 
   @Test

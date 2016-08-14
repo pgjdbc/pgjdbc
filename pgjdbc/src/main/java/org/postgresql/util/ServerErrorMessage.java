@@ -69,6 +69,20 @@ public class ServerErrorMessage implements Serializable {
     }
   }
 
+  public int getErrorCode() {
+    String sqlState = this.getSQLState();
+    if (sqlState == null) {
+      // default of SQLException
+      return 0;
+    }
+    try {
+      return Integer.parseInt(sqlState);
+    } catch (NumberFormatException e) {
+      // default of SQLException
+      return 0;
+    }
+  }
+
   public String getSQLState() {
     return m_mesgParts.get(SQLSTATE);
   }
