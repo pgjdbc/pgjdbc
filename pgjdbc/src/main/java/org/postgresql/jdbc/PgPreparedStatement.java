@@ -1048,6 +1048,10 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       //#endif
     } else if (x instanceof Map) {
       setMap(parameterIndex, (Map<?, ?>) x);
+    } else if (x instanceof java.io.Reader) {
+      setCharacterStream(parameterIndex, (java.io.Reader) x);
+    } else if (x instanceof java.io.InputStream) {
+      setAsciiStream(parameterIndex, (java.io.InputStream) x);
     } else {
       // Can't infer a type.
       throw new PSQLException(GT.tr(
