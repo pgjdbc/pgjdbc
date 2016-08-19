@@ -66,10 +66,11 @@ public class PGlseg extends PGobject implements Serializable, Cloneable {
    * @param s Definition of the line segment in PostgreSQL's syntax
    * @throws SQLException on conversion failure
    */
+  @Override
   public void setValue(String s) throws SQLException {
     PGtokenizer t = new PGtokenizer(PGtokenizer.removeBox(s), ',');
     if (t.getSize() != 2) {
-      throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", new Object[]{type, s}),
+      throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", type, s),
           PSQLState.DATA_TYPE_MISMATCH);
     }
 

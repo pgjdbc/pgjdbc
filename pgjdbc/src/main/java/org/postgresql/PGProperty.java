@@ -138,7 +138,7 @@ public enum PGProperty {
    */
   STRING_TYPE("stringtype", null,
       "The type to bind String parameters as (usually 'varchar', 'unspecified' allows implicit casting to other types)",
-      false, new String[]{"unspecified", "varchar"}),
+      false, "unspecified", "varchar"),
 
   /**
    * Specifies the length to return for types of unknown length.
@@ -500,7 +500,7 @@ public enum PGProperty {
       return Integer.parseInt(value);
     } catch (NumberFormatException nfe) {
       throw new PSQLException(GT.tr("{0} parameter value must be an integer but was: {1}",
-          new Object[]{getName(), value}), PSQLState.INVALID_PARAMETER_VALUE, nfe);
+          getName(), value), PSQLState.INVALID_PARAMETER_VALUE, nfe);
     }
   }
 
@@ -520,7 +520,7 @@ public enum PGProperty {
       return Integer.parseInt(value);
     } catch (NumberFormatException nfe) {
       throw new PSQLException(GT.tr("{0} parameter value must be an integer but was: {1}",
-          new Object[]{getName(), value}), PSQLState.INVALID_PARAMETER_VALUE, nfe);
+          getName(), value), PSQLState.INVALID_PARAMETER_VALUE, nfe);
     }
   }
 

@@ -18,21 +18,12 @@ import java.util.ResourceBundle;
  * java.text.MessageFormat syntax and any arguments it may need. The returned String is the
  * localized version if available or the original if not.
  */
-
 public class GT {
 
   private final static GT _gt = new GT();
   private final static Object noargs[] = new Object[0];
 
-  public static String tr(String message) {
-    return _gt.translate(message, null);
-  }
-
-  public static String tr(String message, Object arg) {
-    return _gt.translate(message, new Object[]{arg});
-  }
-
-  public static String tr(String message, Object args[]) {
+  public static String tr(String message, Object... args) {
     return _gt.translate(message, args);
   }
 

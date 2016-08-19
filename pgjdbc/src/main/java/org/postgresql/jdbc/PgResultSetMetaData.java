@@ -487,7 +487,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
     if (columnIndex < 1 || columnIndex > fields.length) {
       throw new PSQLException(
           GT.tr("The column index is out of range: {0}, number of columns: {1}.",
-              new Object[]{columnIndex, fields.length}),
+              columnIndex, fields.length),
           PSQLState.INVALID_PARAMETER_VALUE);
     }
     return fields[columnIndex - 1];

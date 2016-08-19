@@ -185,7 +185,7 @@ public class PgArray implements java.sql.Array {
     if ((--index) + count > arrayList.size()) {
       throw new PSQLException(
           GT.tr("The array index is out of range: {0}, number of elements: {1}.",
-              new Object[]{index + count, (long) arrayList.size()}),
+              index + count, (long) arrayList.size()),
           PSQLState.DATA_ERROR);
     }
 
@@ -841,7 +841,7 @@ public class PgArray implements java.sql.Array {
     if ((--index) + count > arrayList.size()) {
       throw new PSQLException(
           GT.tr("The array index is out of range: {0}, number of elements: {1}.",
-              new Object[]{index + count, (long) arrayList.size()}),
+                  index + count, (long) arrayList.size()),
           PSQLState.DATA_ERROR);
     }
 

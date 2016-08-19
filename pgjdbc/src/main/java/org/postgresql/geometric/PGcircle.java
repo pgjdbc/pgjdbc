@@ -70,10 +70,11 @@ public class PGcircle extends PGobject implements Serializable, Cloneable {
    * @param s definition of the circle in PostgreSQL's syntax.
    * @throws SQLException on conversion failure
    */
+  @Override
   public void setValue(String s) throws SQLException {
     PGtokenizer t = new PGtokenizer(PGtokenizer.removeAngle(s), ',');
     if (t.getSize() != 2) {
-      throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", new Object[]{type, s}),
+      throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", type, s),
           PSQLState.DATA_TYPE_MISMATCH);
     }
 
@@ -81,7 +82,7 @@ public class PGcircle extends PGobject implements Serializable, Cloneable {
       center = new PGpoint(t.getToken(0));
       radius = Double.parseDouble(t.getToken(1));
     } catch (NumberFormatException e) {
-      throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", new Object[]{type, s}),
+      throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", type, s),
           PSQLState.DATA_TYPE_MISMATCH, e);
     }
   }

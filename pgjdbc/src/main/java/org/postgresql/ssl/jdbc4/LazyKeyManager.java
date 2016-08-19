@@ -78,6 +78,7 @@ public class LazyKeyManager implements X509KeyManager {
     }
   }
 
+  @Override
   public String chooseClientAlias(String[] keyType, Principal[] issuers, Socket socket) {
     if (certfile == null) {
       return null;
@@ -107,10 +108,12 @@ public class LazyKeyManager implements X509KeyManager {
     }
   }
 
+  @Override
   public String chooseServerAlias(String keyType, Principal[] issuers, Socket socket) {
     return null; // We are not a server
   }
 
+  @Override
   public X509Certificate[] getCertificateChain(String alias) {
     if (cert == null && certfile != null) {
       // If certfile is null, we do not load the certificate
@@ -122,8 +125,8 @@ public class LazyKeyManager implements X509KeyManager {
         // For some strange reason it throws CertificateException instead of
         // NoSuchAlgorithmException...
         error = new PSQLException(GT.tr(
-            "Could not find a java cryptographic algorithm: X.509 CertificateFactory not available.",
-            null), PSQLState.CONNECTION_FAILURE, ex);
+            "Could not find a java cryptographic algorithm: X.509 CertificateFactory not available."),
+            PSQLState.CONNECTION_FAILURE, ex);
         return null;
       }
       Collection<? extends Certificate> certs;
@@ -132,13 +135,13 @@ public class LazyKeyManager implements X509KeyManager {
       } catch (FileNotFoundException ioex) {
         if (!defaultfile) { // It is not an error if there is no file at the default location
           error = new PSQLException(
-              GT.tr("Could not open SSL certificate file {0}.", new Object[]{certfile}),
+              GT.tr("Could not open SSL certificate file {0}.", certfile),
               PSQLState.CONNECTION_FAILURE, ioex);
         }
         return null;
       } catch (CertificateException gsex) {
         error = new PSQLException(GT.tr("Loading the SSL certificate {0} into a KeyManager failed.",
-            new Object[]{certfile}), PSQLState.CONNECTION_FAILURE, gsex);
+            certfile), PSQLState.CONNECTION_FAILURE, gsex);
         return null;
       }
       cert = certs.toArray(new X509Certificate[certs.size()]);
@@ -146,11 +149,13 @@ public class LazyKeyManager implements X509KeyManager {
     return cert;
   }
 
+  @Override
   public String[] getClientAliases(String keyType, Principal[] issuers) {
     String alias = chooseClientAlias(new String[]{keyType}, issuers, (Socket) null);
     return (alias == null ? new String[]{} : new String[]{alias});
   }
 
+  @Override
   public PrivateKey getPrivateKey(String alias) {
     RandomAccessFile raf = null;
     try {
@@ -199,13 +204,13 @@ public class LazyKeyManager implements X509KeyManager {
             if ((cbh instanceof LibPQFactory.ConsoleCallbackHandler)
                 && ("Console is not available".equals(ucex.getMessage()))) {
               error = new PSQLException(GT
-                  .tr("Could not read password for SSL key file, console is not available.", null),
+                  .tr("Could not read password for SSL key file, console is not available."),
                   PSQLState.CONNECTION_FAILURE, ucex);
             } else {
               error =
                   new PSQLException(
                       GT.tr("Could not read password for SSL key file by callbackhandler {0}.",
-                          new Object[]{cbh.getClass().getName()}),
+                              cbh.getClass().getName()),
                       PSQLState.CONNECTION_FAILURE, ucex);
             }
             return null;
@@ -223,7 +228,7 @@ public class LazyKeyManager implements X509KeyManager {
             key = kf.generatePrivate(pkcs8KeySpec);
           } catch (GeneralSecurityException ikex) {
             error = new PSQLException(
-                GT.tr("Could not decrypt SSL key file {0}.", new Object[]{keyfile}),
+                GT.tr("Could not decrypt SSL key file {0}.", keyfile),
                 PSQLState.CONNECTION_FAILURE, ikex);
             return null;
           }
@@ -237,17 +242,18 @@ public class LazyKeyManager implements X509KeyManager {
         }
       }
 
-      error = new PSQLException(GT.tr("Could not read SSL key file {0}.", new Object[]{keyfile}),
+      error = new PSQLException(GT.tr("Could not read SSL key file {0}.", keyfile),
           PSQLState.CONNECTION_FAILURE, ioex);
     } catch (NoSuchAlgorithmException ex) {
       error = new PSQLException(GT.tr("Could not find a java cryptographic algorithm: {0}.",
-          new Object[]{ex.getMessage()}), PSQLState.CONNECTION_FAILURE, ex);
+              ex.getMessage()), PSQLState.CONNECTION_FAILURE, ex);
       return null;
     }
 
     return key;
   }
 
+  @Override
   public String[] getServerAliases(String keyType, Principal[] issuers) {
     return new String[]{};
   }

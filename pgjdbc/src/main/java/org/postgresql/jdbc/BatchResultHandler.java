@@ -132,6 +132,7 @@ public class BatchResultHandler extends ResultHandlerBase {
     pgStatement.addWarning(warning);
   }
 
+  @Override
   public void handleError(SQLException newError) {
     if (getException() == null) {
       Arrays.fill(updateCounts, committedRows, updateCounts.length, Statement.EXECUTE_FAILED);
@@ -146,7 +147,7 @@ public class BatchResultHandler extends ResultHandlerBase {
 
       super.handleError(new BatchUpdateException(
           GT.tr("Batch entry {0} {1} was aborted: {2}  Call getNextException to see the cause.",
-              new Object[]{resultIndex, queryString, newError.getMessage()}),
+              resultIndex, queryString, newError.getMessage()),
           newError.getSQLState(), uncompressUpdateCount()));
     }
     resultIndex++;

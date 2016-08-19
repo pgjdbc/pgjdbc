@@ -638,6 +638,7 @@ public class PgConnection implements BaseConnection {
     return _typeCache;
   }
 
+  @Override
   public void addDataType(String type, String name) {
     try {
       addDataType(type, Class.forName(name).asSubclass(PGobject.class));
@@ -646,6 +647,7 @@ public class PgConnection implements BaseConnection {
     }
   }
 
+  @Override
   public void addDataType(String type, Class<? extends PGobject> klass) throws SQLException {
     checkClosed();
     _typeCache.addDataType(type, klass);
@@ -678,7 +680,7 @@ public class PgConnection implements BaseConnection {
         } catch (ClassNotFoundException cnfe) {
           throw new PSQLException(
               GT.tr("Unable to load the class {0} responsible for the datatype {1}",
-                  new Object[]{className, typeName}),
+                  className, typeName),
               PSQLState.SYSTEM_ERROR, cnfe);
         }
 

@@ -119,7 +119,7 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
           fis = new FileInputStream(sslrootcertfile); // NOSONAR
         } catch (FileNotFoundException ex) {
           throw new PSQLException(
-              GT.tr("Could not open SSL root certificate file {0}.", new Object[]{sslrootcertfile}),
+              GT.tr("Could not open SSL root certificate file {0}.", sslrootcertfile),
               PSQLState.CONNECTION_FAILURE, ex);
         }
         try {
@@ -134,12 +134,12 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
           tmf.init(ks);
         } catch (IOException ioex) {
           throw new PSQLException(
-              GT.tr("Could not read SSL root certificate file {0}.", new Object[]{sslrootcertfile}),
+              GT.tr("Could not read SSL root certificate file {0}.", sslrootcertfile),
               PSQLState.CONNECTION_FAILURE, ioex);
         } catch (GeneralSecurityException gsex) {
           throw new PSQLException(
               GT.tr("Loading the SSL root certificate {0} into a TrustManager failed.",
-                  new Object[]{sslrootcertfile}),
+                      sslrootcertfile),
               PSQLState.CONNECTION_FAILURE, gsex);
         } finally {
           try {
@@ -157,14 +157,14 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
       try {
         ctx.init(new KeyManager[]{km}, tm, null);
       } catch (KeyManagementException ex) {
-        throw new PSQLException(GT.tr("Could not initialize SSL context.", null),
+        throw new PSQLException(GT.tr("Could not initialize SSL context."),
             PSQLState.CONNECTION_FAILURE, ex);
       }
 
       _factory = ctx.getSocketFactory();
     } catch (NoSuchAlgorithmException ex) {
       throw new PSQLException(GT.tr("Could not find a java cryptographic algorithm: {0}.",
-          new Object[]{ex.getMessage()}), PSQLState.CONNECTION_FAILURE, ex);
+              ex.getMessage()), PSQLState.CONNECTION_FAILURE, ex);
     }
   }
 
