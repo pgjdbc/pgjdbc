@@ -79,6 +79,9 @@ matrix:
     - jdk: oraclejdk8
       addons:
         postgresql: "9.4"
+        apt:
+          packages:
+            - oracle-java8-installer
       env:
         - PG_VERSION=9.4
         - COVERAGE=Y
