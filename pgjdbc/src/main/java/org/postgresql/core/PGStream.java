@@ -525,7 +525,7 @@ public class PGStream {
         if (readCount < 0) {
           throw new EOFException(
               GT.tr("Premature end of input stream, expected {0} bytes, but only read {1}.",
-                  new Object[]{expectedLength, expectedLength - remaining}));
+                  expectedLength, expectedLength - remaining));
         }
       } catch (IOException ioe) {
         while (remaining > 0) {

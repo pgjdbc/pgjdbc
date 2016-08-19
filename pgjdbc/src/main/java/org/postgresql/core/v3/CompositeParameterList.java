@@ -30,11 +30,10 @@ class CompositeParameterList implements V3ParameterList {
     this.total = offsets[offsets.length - 1] + subparams[offsets.length - 1].getInParameterCount();
   }
 
-  private final int findSubParam(int index) throws SQLException {
+  private int findSubParam(int index) throws SQLException {
     if (index < 1 || index > total) {
       throw new PSQLException(
-          GT.tr("The column index is out of range: {0}, number of columns: {1}.",
-              new Object[]{index, total}),
+          GT.tr("The column index is out of range: {0}, number of columns: {1}.", index, total),
           PSQLState.INVALID_PARAMETER_VALUE);
     }
 

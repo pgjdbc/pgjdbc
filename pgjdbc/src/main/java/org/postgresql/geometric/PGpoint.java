@@ -69,13 +69,14 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
    * @param s Definition of this point in PostgreSQL's syntax
    * @throws SQLException on conversion failure
    */
+  @Override
   public void setValue(String s) throws SQLException {
     PGtokenizer t = new PGtokenizer(PGtokenizer.removePara(s), ',');
     try {
       x = Double.parseDouble(t.getToken(0));
       y = Double.parseDouble(t.getToken(1));
     } catch (NumberFormatException e) {
-      throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", new Object[]{type, s}),
+      throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", type, s),
           PSQLState.DATA_TYPE_MISMATCH, e);
     }
   }

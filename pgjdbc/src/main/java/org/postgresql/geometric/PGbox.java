@@ -72,11 +72,12 @@ public class PGbox extends PGobject implements PGBinaryObject, Serializable, Clo
    * @param value a string representation of the value of the object
    * @throws SQLException thrown if value is invalid for this type
    */
+  @Override
   public void setValue(String value) throws SQLException {
     PGtokenizer t = new PGtokenizer(value, ',');
     if (t.getSize() != 2) {
       throw new PSQLException(
-          GT.tr("Conversion to type {0} failed: {1}.", new Object[]{type, value}),
+          GT.tr("Conversion to type {0} failed: {1}.", type, value),
           PSQLState.DATA_TYPE_MISMATCH);
     }
 

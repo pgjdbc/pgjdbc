@@ -102,11 +102,12 @@ public class PGline extends PGobject implements Serializable, Cloneable {
    * @param s Definition of the line in PostgreSQL's syntax
    * @throws SQLException on conversion failure
    */
+  @Override
   public void setValue(String s) throws SQLException {
     if (s.trim().startsWith("{")) {
       PGtokenizer t = new PGtokenizer(PGtokenizer.removeCurlyBrace(s), ',');
       if (t.getSize() != 3) {
-        throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", new Object[]{type, s}),
+        throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", type, s),
             PSQLState.DATA_TYPE_MISMATCH);
       }
       a = Double.parseDouble(t.getToken(0));
@@ -115,7 +116,7 @@ public class PGline extends PGobject implements Serializable, Cloneable {
     } else if (s.trim().startsWith("[")) {
       PGtokenizer t = new PGtokenizer(PGtokenizer.removeBox(s), ',');
       if (t.getSize() != 2) {
-        throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", new Object[]{type, s}),
+        throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", type, s),
             PSQLState.DATA_TYPE_MISMATCH);
       }
       PGpoint point1 = new PGpoint(t.getToken(0));

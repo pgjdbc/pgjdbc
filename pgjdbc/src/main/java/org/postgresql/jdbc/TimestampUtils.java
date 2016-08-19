@@ -356,7 +356,7 @@ public class TimestampUtils {
 
     } catch (NumberFormatException nfe) {
       throw new PSQLException(
-          GT.tr("Bad value for type timestamp/date/time: {1}", new Object[]{str}),
+          GT.tr("Bad value for type timestamp/date/time: {1}", str),
           PSQLState.BAD_DATETIME_FORMAT, nfe);
     }
 

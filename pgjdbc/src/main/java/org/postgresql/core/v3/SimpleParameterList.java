@@ -50,11 +50,12 @@ class SimpleParameterList implements V3ParameterList {
     this.transferModeRegistry = transferModeRegistry;
   }
 
+  @Override
   public void registerOutParameter(int index, int sqlType) throws SQLException {
     if (index < 1 || index > paramValues.length) {
       throw new PSQLException(
           GT.tr("The column index is out of range: {0}, number of columns: {1}.",
-              new Object[]{index, paramValues.length}),
+              index, paramValues.length),
           PSQLState.INVALID_PARAMETER_VALUE);
     }
 
@@ -65,7 +66,7 @@ class SimpleParameterList implements V3ParameterList {
     if (index < 1 || index > paramValues.length) {
       throw new PSQLException(
           GT.tr("The column index is out of range: {0}, number of columns: {1}.",
-              new Object[]{index, paramValues.length}),
+              index, paramValues.length),
           PSQLState.INVALID_PARAMETER_VALUE);
     }
 
@@ -409,6 +410,7 @@ class SimpleParameterList implements V3ParameterList {
     return encoded;
   }
 
+  @Override
   public void appendAll(ParameterList list) throws SQLException {
     if (list instanceof org.postgresql.core.v3.SimpleParameterList ) {
       /* only v3.SimpleParameterList is compatible with this type
@@ -418,7 +420,7 @@ class SimpleParameterList implements V3ParameterList {
       if ((pos + inParamCount) > paramValues.length) {
         throw new PSQLException(
           GT.tr("Added parameters index out of range: {0}, number of columns: {1}.",
-            new Object[]{(pos + inParamCount), paramValues.length}),
+              (pos + inParamCount), paramValues.length),
               PSQLState.INVALID_PARAMETER_VALUE);
       }
       System.arraycopy(spl.getValues(), 0, this.paramValues, pos, inParamCount);

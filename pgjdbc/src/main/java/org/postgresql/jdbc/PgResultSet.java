@@ -483,6 +483,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
 
+  @Override
   public java.sql.Date getDate(int i, java.util.Calendar cal) throws SQLException {
     checkResultSet(i);
     if (wasNullFlag) {
@@ -507,7 +508,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       } else {
         throw new PSQLException(
             GT.tr("Cannot convert the column of type {0} to requested type {1}.",
-                new Object[]{Oid.toString(oid), "date"}),
+                Oid.toString(oid), "date"),
             PSQLState.DATA_TYPE_MISMATCH);
       }
     }
@@ -516,6 +517,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
 
+  @Override
   public Time getTime(int i, java.util.Calendar cal) throws SQLException {
     checkResultSet(i);
     if (wasNullFlag) {
@@ -540,7 +542,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       } else {
         throw new PSQLException(
             GT.tr("Cannot convert the column of type {0} to requested type {1}.",
-                new Object[]{Oid.toString(oid), "time"}),
+                Oid.toString(oid), "time"),
             PSQLState.DATA_TYPE_MISMATCH);
       }
     }
@@ -550,6 +552,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
 
+  @Override
   public Timestamp getTimestamp(int i, java.util.Calendar cal) throws SQLException {
     checkResultSet(i);
     if (wasNullFlag) {
@@ -576,7 +579,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         } else {
           throw new PSQLException(
               GT.tr("Cannot convert the column of type {0} to requested type {1}.",
-                  new Object[]{Oid.toString(oid), "timestamp"}),
+                  Oid.toString(oid), "timestamp"),
               PSQLState.DATA_TYPE_MISMATCH);
         }
         return new Timestamp(millis);
@@ -606,7 +609,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     if (oid != Oid.TIMESTAMP) {
       throw new PSQLException(
               GT.tr("Cannot convert the column of type {0} to requested type {1}.",
-                      new Object[]{Oid.toString(oid), "timestamp"}),
+                  Oid.toString(oid), "timestamp"),
               PSQLState.DATA_TYPE_MISMATCH);
     }
     if (isBinary(i)) {
@@ -1927,6 +1930,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   private static final BigInteger BYTEMAX = new BigInteger(Byte.toString(Byte.MAX_VALUE));
   private static final BigInteger BYTEMIN = new BigInteger(Byte.toString(Byte.MIN_VALUE));
 
+  @Override
   public byte getByte(int columnIndex) throws SQLException {
     checkResultSet(columnIndex);
     if (wasNullFlag) {
@@ -1961,12 +1965,12 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           int lt = i.compareTo(BYTEMIN);
 
           if (gt > 0 || lt < 0) {
-            throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{"byte", s}),
+            throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "byte", s),
                 PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
           }
           return i.byteValue();
         } catch (NumberFormatException ex) {
-          throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{"byte", s}),
+          throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "byte", s),
               PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
         }
       }
@@ -1977,6 +1981,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   private static final BigInteger SHORTMAX = new BigInteger(Short.toString(Short.MAX_VALUE));
   private static final BigInteger SHORTMIN = new BigInteger(Short.toString(Short.MIN_VALUE));
 
+  @Override
   public short getShort(int columnIndex) throws SQLException {
     checkResultSet(columnIndex);
     if (wasNullFlag) {
@@ -2006,13 +2011,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           int lt = i.compareTo(SHORTMIN);
 
           if (gt > 0 || lt < 0) {
-            throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{"short", s}),
+            throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "short", s),
                 PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
           }
           return i.shortValue();
 
         } catch (NumberFormatException ne) {
-          throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{"short", s}),
+          throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "short", s),
               PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
         }
       }
@@ -2747,7 +2752,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     if (column < 1 || column > fields.length) {
       throw new PSQLException(
           GT.tr("The column index is out of range: {0}, number of columns: {1}.",
-              new Object[]{column, fields.length}),
+              column, fields.length),
           PSQLState.INVALID_PARAMETER_VALUE);
     }
   }
@@ -2821,13 +2826,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           int lt = i.compareTo(INTMIN);
 
           if (gt > 0 || lt < 0) {
-            throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{"int", s}),
+            throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "int", s),
                 PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
           }
           return i.intValue();
 
         } catch (NumberFormatException ne) {
-          throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{"int", s}),
+          throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "int", s),
               PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
         }
       }
@@ -2851,12 +2856,12 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           int lt = i.compareTo(LONGMIN);
 
           if (gt > 0 || lt < 0) {
-            throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{"long", s}),
+            throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "long", s),
                 PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
           }
           return i.longValue();
         } catch (NumberFormatException ne) {
-          throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{"long", s}),
+          throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "long", s),
               PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
         }
       }
@@ -2872,7 +2877,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       s = s.trim();
       return new BigDecimal(s);
     } catch (NumberFormatException e) {
-      throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{"BigDecimal", s}),
+      throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "BigDecimal", s),
           PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
     }
   }
@@ -2893,7 +2898,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       return val.setScale(scale);
     } catch (ArithmeticException e) {
       throw new PSQLException(
-          GT.tr("Bad value for type {0} : {1}", new Object[]{"BigDecimal", val}),
+          GT.tr("Bad value for type {0} : {1}", "BigDecimal", val),
           PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
     }
   }
@@ -2904,7 +2909,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         s = s.trim();
         return Float.parseFloat(s);
       } catch (NumberFormatException e) {
-        throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{"float", s}),
+        throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "float", s),
             PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
       }
     }
@@ -2917,7 +2922,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         s = s.trim();
         return Double.parseDouble(s);
       } catch (NumberFormatException e) {
-        throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{"double", s}),
+        throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "double", s),
             PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
       }
     }
@@ -2996,7 +3001,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         return ByteConverter.float8(bytes, 0);
     }
     throw new PSQLException(GT.tr("Cannot convert the column of type {0} to requested type {1}.",
-        new Object[]{Oid.toString(oid), targetType}), PSQLState.DATA_TYPE_MISMATCH);
+        Oid.toString(oid), targetType), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   /**
@@ -3040,11 +3045,11 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       default:
         throw new PSQLException(
             GT.tr("Cannot convert the column of type {0} to requested type {1}.",
-                new Object[]{Oid.toString(oid), targetType}),
+                Oid.toString(oid), targetType),
             PSQLState.DATA_TYPE_MISMATCH);
     }
     if (val < minVal || val > maxVal) {
-      throw new PSQLException(GT.tr("Bad value for type {0} : {1}", new Object[]{targetType, val}),
+      throw new PSQLException(GT.tr("Bad value for type {0} : {1}", targetType, val),
           PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
     }
     return val;

@@ -573,6 +573,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
+  @Override
   public void setObject(int parameterIndex, Object in, int targetSqlType, int scale)
       throws SQLException {
     checkClosed();
@@ -693,7 +694,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         } else {
           throw new PSQLException(
               GT.tr("Cannot cast an instance of {0} to type {1}",
-                  new Object[]{in.getClass().getName(), "Types.TIMESTAMP_WITH_TIMEZONE"}),
+                  in.getClass().getName(), "Types.TIMESTAMP_WITH_TIMEZONE"),
               PSQLState.INVALID_PARAMETER_TYPE);
         }
         break;
@@ -715,7 +716,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         } else {
           throw new PSQLException(
               GT.tr("Cannot cast an instance of {0} to type {1}",
-                  new Object[]{in.getClass().getName(), "Types.BLOB"}),
+                  in.getClass().getName(), "Types.BLOB"),
               PSQLState.INVALID_PARAMETER_TYPE);
         }
         break;
@@ -725,7 +726,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         } else {
           throw new PSQLException(
               GT.tr("Cannot cast an instance of {0} to type {1}",
-                  new Object[]{in.getClass().getName(), "Types.CLOB"}),
+                  in.getClass().getName(), "Types.CLOB"),
               PSQLState.INVALID_PARAMETER_TYPE);
         }
         break;
@@ -735,7 +736,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         } else {
           throw new PSQLException(
               GT.tr("Cannot cast an instance of {0} to type {1}",
-                  new Object[]{in.getClass().getName(), "Types.ARRAY"}),
+                  in.getClass().getName(), "Types.ARRAY"),
               PSQLState.INVALID_PARAMETER_TYPE);
         }
         break;
@@ -981,7 +982,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   private static PSQLException cannotCastException(final String fromType, final String toType,
       final Exception cause) {
     return new PSQLException(
-        GT.tr("Cannot convert an instance of {0} to type {1}", new Object[]{fromType, toType}),
+        GT.tr("Cannot convert an instance of {0} to type {1}", fromType, toType),
         PSQLState.INVALID_PARAMETER_TYPE, cause);
   }
 

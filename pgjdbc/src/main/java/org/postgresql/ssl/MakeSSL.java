@@ -82,7 +82,7 @@ public class MakeSSL extends ObjectFactory {
       if (!hvn.verify(stream.getHostSpec().getHost(), newConnection.getSession())) {
         throw new PSQLException(
             GT.tr("The hostname {0} could not be verified by hostnameverifier {1}.",
-                new Object[]{stream.getHostSpec().getHost(), sslhostnameverifier}),
+                stream.getHostSpec().getHost(), sslhostnameverifier),
             PSQLState.CONNECTION_FAILURE);
       }
     } else {

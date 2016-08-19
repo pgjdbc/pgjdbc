@@ -1175,7 +1175,7 @@ public class Parser {
     // we can now translate escape functions
     try {
       Method escapeMethod = EscapedFunctions.getFunction(functionName);
-      return (String) escapeMethod.invoke(null, new Object[]{parsedArgs});
+      return (String) escapeMethod.invoke(null, parsedArgs);
     } catch (InvocationTargetException e) {
       if (e.getTargetException() instanceof SQLException) {
         throw (SQLException) e.getTargetException();

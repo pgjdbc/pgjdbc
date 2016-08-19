@@ -136,8 +136,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
         } else {
           throw new PSQLException(GT.tr(
               "A CallableStatement function was executed and the out parameter {0} was of type {1} however type {2} was registered.",
-              new Object[]{i + 1, "java.sql.Types=" + columnType,
-                  "java.sql.Types=" + functionReturnType[j]}),
+              i + 1, "java.sql.Types=" + columnType, "java.sql.Types=" + functionReturnType[j]),
               PSQLState.DATA_TYPE_MISMATCH);
         }
       }
@@ -374,8 +373,8 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
         && type2 != this.testReturn[parameterIndex - 1]) {
       throw new PSQLException(
           GT.tr("Parameter of type {0} was registered, but call to get{1} (sqltype={2}) was made.",
-              new Object[]{"java.sql.Types=" + testReturn[parameterIndex - 1], getName,
-                  "java.sql.Types=" + type1}),
+                  "java.sql.Types=" + testReturn[parameterIndex - 1], getName,
+                  "java.sql.Types=" + type1),
           PSQLState.MOST_SPECIFIC_TYPE_DOES_NOT_MATCH);
     }
   }
@@ -393,8 +392,8 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     if (type != this.testReturn[parameterIndex - 1]) {
       throw new PSQLException(
           GT.tr("Parameter of type {0} was registered, but call to get{1} (sqltype={2}) was made.",
-              new Object[]{"java.sql.Types=" + testReturn[parameterIndex - 1], getName,
-                  "java.sql.Types=" + type}),
+              "java.sql.Types=" + testReturn[parameterIndex - 1], getName,
+                  "java.sql.Types=" + type),
           PSQLState.MOST_SPECIFIC_TYPE_DOES_NOT_MATCH);
     }
   }
