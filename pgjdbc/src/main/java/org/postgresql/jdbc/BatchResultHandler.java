@@ -145,10 +145,12 @@ public class BatchResultHandler extends ResultHandlerBase {
         queryString = queries[resultIndex].toString(parameterLists[resultIndex]);
       }
 
-      super.handleError(new BatchUpdateException(
-          GT.tr("Batch entry {0} {1} was aborted: {2}  Call getNextException to see the cause.",
+      BatchUpdateException batchException = new BatchUpdateException(
+          GT.tr("Batch entry {0} {1} was aborted: {2}  Call getNextException to see other errors in the batch.",
               resultIndex, queryString, newError.getMessage()),
-          newError.getSQLState(), uncompressUpdateCount()));
+          newError.getSQLState(), uncompressUpdateCount());
+      batchException.initCause(newError);
+      super.handleError(batchException);
     }
     resultIndex++;
 
@@ -166,6 +168,7 @@ public class BatchResultHandler extends ResultHandlerBase {
             batchException.getSQLState(),
             uncompressUpdateCount()
         );
+        newException.initCause(batchException.getCause());
         SQLException next = batchException.getNextException();
         if (next != null) {
           newException.setNextException(next);

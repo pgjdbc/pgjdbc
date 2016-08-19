@@ -15,16 +15,15 @@ public class PSQLException extends SQLException {
   private ServerErrorMessage _serverError;
 
   public PSQLException(String msg, PSQLState state, Throwable cause) {
-    super(msg, state == null ? null : state.getState());
-    initCause(cause);
+    super(msg, state == null ? null : state.getState(), cause);
   }
 
   public PSQLException(String msg, PSQLState state) {
-    this(msg, state, null);
+    super(msg, state == null ? null : state.getState());
   }
 
   public PSQLException(ServerErrorMessage serverError) {
-    this(serverError.toString(), new PSQLState(serverError.getSQLState()));
+    super(serverError.toString(), serverError.getSQLState());
     _serverError = serverError;
   }
 
