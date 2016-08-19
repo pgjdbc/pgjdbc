@@ -48,7 +48,7 @@ public class LruCacheTest extends TestCase {
 
   @Override
   protected void setUp() throws Exception {
-    cache = new LruCache<Integer, Entry>(3, 1000, false, new LruCache.CreateAction<Integer, Entry>() {
+    cache = new LruCache<Integer, Entry>(4, 1000, false, new LruCache.CreateAction<Integer, Entry>() {
       @Override
       public Entry create(Integer key) throws SQLException {
         assertEquals("Unexpected create", expectCreate[0], key);
@@ -57,6 +57,9 @@ public class LruCacheTest extends TestCase {
     }, new LruCache.EvictAction<Entry>() {
       @Override
       public void evict(Entry entry) throws SQLException {
+        if (expectEvict.isEmpty()) {
+          fail("Unexpected entry was evicted: " + entry);
+        }
         Entry expected = expectEvict.removeFirst();
         assertEquals("Unexpected evict", expected, entry);
       }
@@ -68,25 +71,24 @@ public class LruCacheTest extends TestCase {
     Entry b;
     Entry c;
     Entry d;
+    Entry e;
 
-    a = use(1, dummy);
-    b = use(2, dummy);
-    c = use(3, dummy);
-    d = use(4, a);
+    a = use(1);
+    b = use(2);
+    c = use(3);
+    d = use(4);
+    e = use(5, a);
   }
 
   public void testEvictsBySize() throws SQLException {
     Entry a;
     Entry b;
     Entry c;
-    Entry d;
 
-    a = use(3, dummy);
-    b = use(5, dummy);
-    c = use((int) (1000 - a.getSize() - b.getSize()), dummy);
-    // Now cache holds exactly 1000 bytes.
-    // a and b should be evicted
-    d = use(4, a, b);
+    a = use(330);
+    b = use(331);
+    c = use(332);
+    use(400, a, b);
   }
 
   public void testEvictsLeastRecentlyUsed() throws SQLException {
@@ -95,10 +97,11 @@ public class LruCacheTest extends TestCase {
     Entry c;
     Entry d;
 
-    a = use(1, dummy);
-    b = use(2, dummy);
-    c = use(3, dummy);
-    a = use(1, dummy); // reuse a
+    a = use(1);
+    b = use(2);
+    c = use(3);
+    a = use(1); // reuse a
+    use(5);
     d = use(4, b); // expect b to be evicted
   }
 
@@ -107,18 +110,32 @@ public class LruCacheTest extends TestCase {
     Entry b;
     Entry c;
     Entry d;
+    Entry e;
 
-    a = use(1, dummy);
-    b = use(2, dummy);
-    c = use(3, dummy);
-    d = use(4, a);
+    a = use(1);
+    b = use(2);
+    c = use(3);
+    d = use(4);
+    e = use(5, a);
 
-    for (int i = 0; i < 100000; i++) {
+    for (int i = 0; i < 1000; i++) {
       a = use(1, b);
       b = use(2, c);
       c = use(3, d);
-      d = use(4, a);
+      d = use(4, e);
+      e = use(5, a);
     }
+  }
+
+  public void testDuplicateKey() throws SQLException {
+    Entry a;
+
+    a = use(1);
+    expectEvict.clear();
+    expectEvict.add(a);
+    // This overwrites the cache, evicting previous entry with exactly the same key
+    cache.put(1, new Entry(1));
+    assertEvict();
   }
 
   public void testCaching() throws SQLException {
@@ -126,18 +143,22 @@ public class LruCacheTest extends TestCase {
     Entry b;
     Entry c;
     Entry d;
+    Entry e;
 
-    a = use(1, dummy);
-    b = use(2, dummy);
-    c = use(3, dummy);
+    a = use(1);
+    b = use(2);
+    c = use(3);
+    d = use(4);
 
-    for (int i = 0; i < 100000; i++) {
-      b = use(-2, dummy);
-      a = use(-1, dummy);
-      d = use(4, c);
-      b = use(-2, dummy);
-      a = use(-1, dummy);
-      c = use(3, d);
+    for (int i = 0; i < 10000; i++) {
+      c = use(-3);
+      b = use(-2);
+      a = use(-1);
+      e = use(5, d);
+      c = use(-3);
+      b = use(-2);
+      a = use(-1);
+      d = use(4, e);
     }
   }
 
@@ -147,6 +168,14 @@ public class LruCacheTest extends TestCase {
     this.expectEvict.addAll(Arrays.asList(expectEvict));
     Entry a = cache.borrow(Math.abs(expectCreate));
     cache.put(a.id, a); // a
+    assertEvict();
     return a;
+  }
+
+  private void assertEvict() {
+    if (expectEvict.isEmpty()) {
+      return;
+    }
+    fail("Some of the expected evictions not happened: " + expectEvict.toString());
   }
 }

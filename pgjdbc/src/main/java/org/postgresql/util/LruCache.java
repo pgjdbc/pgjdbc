@@ -136,7 +136,15 @@ public class LruCache<Key, Value extends CanEstimateSize> {
       return;
     }
     currentSize += valueSize;
-    cache.put(key, value);
+    Value prev = cache.put(key, value);
+    if (prev == null) {
+      return;
+    }
+    // This should be a rare case
+    currentSize -= prev.getSize();
+    if (prev != value) {
+      evictValue(prev);
+    }
   }
 
   public final static CreateAction NOOP_CREATE_ACTION = new CreateAction() {
