@@ -38,7 +38,7 @@
 %global upstreamrel	git
 %global upstreammajor	9.5
 %global source_path	pgjdbc/src/main/java/org/postgresql
-%global parent_ver	1.0.8
+%global parent_ver	1.1.0
 %global parent_poms_builddir	./pgjdbc-parent-poms
 
 %global pgjdbc_mvn_options -DwaffleEnabled=false -DosgiEnabled=false \\\
