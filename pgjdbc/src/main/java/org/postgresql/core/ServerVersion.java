@@ -28,6 +28,7 @@ public enum ServerVersion implements Version {
   v9_4("9.4.0"),
   v9_5("9.5.0"),
   v9_6("9.6.0"),
+  v10("10.0.0")
   ;
 
   private final int version;
@@ -142,8 +143,7 @@ public enum ServerVersion implements Version {
     if (serverVersion.charAt(parsepos.getIndex()) == '.') {
       parsepos.setIndex(parsepos.getIndex() + 1);
     } else {
-      /* Unexpected version format */
-      return 0;
+      return vers;
     }
 
     /*
