@@ -88,6 +88,8 @@ matrix:
         - MCENTRAL=Y
         - JDOC=Y
     - jdk: oraclejdk8
+      sudo: required
+      dist: trusty
       env:
         - PG_VERSION=HEAD
     - jdk: openjdk7
