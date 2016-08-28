@@ -180,6 +180,20 @@ public class StatementTest extends TestCase {
     assertEquals("a5", rs.getString(1));
   }
 
+  public void testDollarInComment() throws SQLException {
+    PreparedStatement pstmt = con.prepareStatement("SELECT /* $ */ {fn curdate()}");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    assertNotNull("{fn curdate()} should be not null", rs.getString(1));
+  }
+
+  public void testDollarInCommentTwoComments() throws SQLException {
+    PreparedStatement pstmt = con.prepareStatement("SELECT /* $ *//* $ */ {fn curdate()}");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    assertNotNull("{fn curdate()} should be not null", rs.getString(1));
+  }
+
   public void testNumericFunctions() throws SQLException {
     Statement stmt = con.createStatement();
 

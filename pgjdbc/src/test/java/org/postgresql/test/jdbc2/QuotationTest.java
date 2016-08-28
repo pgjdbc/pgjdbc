@@ -40,6 +40,13 @@ public class QuotationTest extends BaseTest4 {
 
   @Parameterized.Parameters(name = "{index}: quotes(style={0}, src={1}, quoted={2})")
   public static Iterable<Object[]> data() {
+    Collection<String> prefix = new ArrayList<String>();
+    // Too many prefixes make test run long
+    prefix.add("");
+    prefix.add("/*\n$\n*//* ? *//*{fn *//* now} */");
+    prefix.add("-- $\n");
+    prefix.add("--\n/* $ */");
+
     Collection<Object[]> ids = new ArrayList<Object[]>();
     Collection<String> garbageValues = new ArrayList<String>();
     garbageValues.add("{fn now}");
@@ -79,7 +86,9 @@ public class QuotationTest extends BaseTest4 {
             continue;
           }
           String expected = unquoted;
-          ids.add(new Object[]{quoteStyle, expected, quoted});
+          for (String p : prefix) {
+            ids.add(new Object[]{quoteStyle, expected, p + quoted});
+          }
           if (unquoted.length() == 1) {
             char ch = unquoted.charAt(0);
             if (ch >= 'a' && ch <= 'z') {

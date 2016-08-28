@@ -967,17 +967,18 @@ public class Parser {
       // Since escape codes can only appear in SQL CODE, we keep track
       // of if we enter a string or not.
       int len = p_sql.length();
+      char[] chars = p_sql.toCharArray();
       StringBuilder newsql = new StringBuilder(len);
       int i = 0;
       while (i < len) {
-        i = parseSql(p_sql, i, newsql, false, standardConformingStrings);
+        i = parseSql(chars, i, newsql, false, standardConformingStrings);
         // We need to loop here in case we encounter invalid
         // SQL, consider: SELECT a FROM t WHERE (1 > 0)) ORDER BY a
         // We can't ending replacing after the extra closing paren
         // because that changes a syntax error to a valid query
         // that isn't what the user specified.
         if (i < len) {
-          newsql.append(p_sql.charAt(i));
+          newsql.append(chars[i]);
           i++;
         }
       }
@@ -1000,44 +1001,46 @@ public class Parser {
    * @return the position we stopped processing at
    * @throws SQLException if given SQL is wrong
    */
-  private static int parseSql(String p_sql, int i, StringBuilder newsql, boolean stopOnComma,
+  private static int parseSql(char[] p_sql, int i, StringBuilder newsql, boolean stopOnComma,
       boolean stdStrings) throws SQLException {
     SqlParseState state = SqlParseState.IN_SQLCODE;
-    int len = p_sql.length();
+    int len = p_sql.length;
     int nestedParenthesis = 0;
     boolean endOfNested = false;
 
     // because of the ++i loop
     i--;
     while (!endOfNested && ++i < len) {
-      char c = p_sql.charAt(i);
+      char c = p_sql[i];
       switch (state) {
         case IN_SQLCODE:
-          if (c == '$' && (i == 0 || !isIdentifierContChar(p_sql.charAt(i - 1)))) {
-            // start of a dollar-quoted string
-            int tagEnd = -1;
-            if (i + 1 < len) {
-              tagEnd = p_sql.indexOf('$', i + 1);
-            }
-            if (tagEnd != -1) {
-              String dollarQuoteTag = p_sql.substring(i, tagEnd + 1);
-              int nextPos = p_sql.indexOf(dollarQuoteTag, i + dollarQuoteTag.length());
-              if (nextPos > 0) {
-                tagEnd = nextPos + dollarQuoteTag.length();
-              }
-            }
-            if (tagEnd == -1) {
-              tagEnd = len;
-            }
-            newsql.append(p_sql, i, tagEnd); // tagEnd is excluding
-            i = tagEnd - 1;
+          if (c == '$') {
+            int i0 = i;
+            i = parseDollarQuotes(p_sql, i);
+            newsql.append(p_sql, i0, i - i0 + 1);
             break;
           } else if (c == '\'') {
             // start of a string?
-            state = SqlParseState.IN_STRING;
+            int i0 = i;
+            i = parseSingleQuotes(p_sql, i, stdStrings);
+            newsql.append(p_sql, i0, i - i0 + 1);
+            break;
           } else if (c == '"') {
             // start of a identifier?
-            state = SqlParseState.IN_IDENTIFIER;
+            int i0 = i;
+            i = parseDoubleQuotes(p_sql, i);
+            newsql.append(p_sql, i0, i - i0 + 1);
+            break;
+          } else if (c == '/') {
+            int i0 = i;
+            i = parseBlockComment(p_sql, i);
+            newsql.append(p_sql, i0, i - i0 + 1);
+            break;
+          } else if (c == '-') {
+            int i0 = i;
+            i = parseLineComment(p_sql, i);
+            newsql.append(p_sql, i0, i - i0 + 1);
+            break;
           } else if (c == '(') { // begin nested sql
             nestedParenthesis++;
           } else if (c == ')') { // end of nested sql
@@ -1051,8 +1054,8 @@ public class Parser {
             break;
           } else if (c == '{') { // start of an escape code?
             if (i + 1 < len) {
-              char next = p_sql.charAt(i + 1);
-              char nextnext = (i + 2 < len) ? p_sql.charAt(i + 2) : '\0';
+              char next = p_sql[i + 1];
+              char nextnext = (i + 2 < len) ? p_sql[i + 2] : '\0';
               if (next == 'd' || next == 'D') {
                 state = SqlParseState.ESC_TIMEDATE;
                 i++;
@@ -1088,38 +1091,15 @@ public class Parser {
           newsql.append(c);
           break;
 
-        case IN_STRING:
-          if (c == '\'') {
-            // end of string?
-            state = SqlParseState.IN_SQLCODE;
-          } else if (c == '\\' && !stdStrings) {
-            // a backslash?
-            state = SqlParseState.BACKSLASH;
-          }
-
-          newsql.append(c);
-          break;
-
-        case IN_IDENTIFIER:
-          if (c == '"') {
-            // end of identifier
-            state = SqlParseState.IN_SQLCODE;
-          }
-          newsql.append(c);
-          break;
-
-        case BACKSLASH:
-          state = SqlParseState.IN_STRING;
-
-          newsql.append(c);
-          break;
-
         case ESC_FUNCTION:
           // extract function name
           String functionName;
-          int posArgs = p_sql.indexOf('(', i);
-          if (posArgs != -1) {
-            functionName = p_sql.substring(i, posArgs).trim();
+          int posArgs;
+          for (posArgs = i; posArgs < len && p_sql[posArgs] != '('; posArgs++) {
+            ;
+          }
+          if (posArgs < len) {
+            functionName = new String(p_sql, i, posArgs - i).trim();
             // extract arguments
             i = posArgs + 1;// we start the scan after the first (
             StringBuilder args = new StringBuilder();
@@ -1129,8 +1109,8 @@ public class Parser {
           }
           // go to the end of the function copying anything found
           i++;
-          while (i < len && p_sql.charAt(i) != '}') {
-            newsql.append(p_sql.charAt(i++));
+          while (i < len && p_sql[i] != '}') {
+            newsql.append(p_sql[i++]);
           }
           state = SqlParseState.IN_SQLCODE; // end of escaped function (or query)
           break;
@@ -1161,12 +1141,13 @@ public class Parser {
       throws SQLException {
     // parse function arguments
     int len = args.length();
+    char[] argChars = args.toCharArray();
     int i = 0;
     ArrayList<StringBuilder> parsedArgs = new ArrayList<StringBuilder>();
     while (i < len) {
       StringBuilder arg = new StringBuilder();
       int lastPos = i;
-      i = parseSql(args, i, arg, true, stdStrings);
+      i = parseSql(argChars, i, arg, true, stdStrings);
       if (lastPos != i) {
         parsedArgs.add(arg);
       }
@@ -1200,9 +1181,6 @@ public class Parser {
   // Static variables for parsing SQL when replaceProcessing is true.
   private enum SqlParseState {
     IN_SQLCODE,
-    IN_STRING,
-    IN_IDENTIFIER,
-    BACKSLASH,
     ESC_TIMEDATE,
     ESC_FUNCTION,
     ESC_OUTERJOIN,
