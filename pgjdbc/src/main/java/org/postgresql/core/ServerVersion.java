@@ -28,6 +28,7 @@ public enum ServerVersion implements Version {
   v9_4("9.4.0"),
   v9_5("9.5.0"),
   v9_6("9.6.0"),
+  v10("10")
   ;
 
   private final int version;
@@ -101,29 +102,39 @@ public enum ServerVersion implements Version {
    * @return server version in number form
    */
   static int parseServerVersionStr(String serverVersion) throws NumberFormatException {
-    int vers;
     NumberFormat numformat = NumberFormat.getIntegerInstance();
     numformat.setGroupingUsed(false);
     ParsePosition parsepos = new ParsePosition(0);
-    Long parsed;
 
     if (serverVersion == null) {
       return 0;
     }
 
-    /* Get first major version part */
-    parsed = (Long) numformat.parseObject(serverVersion, parsepos);
-    if (parsed == null) {
-      return 0;
+    int[] parts = new int[3];
+    int versionParts;
+    for (versionParts = 0; versionParts < 3; versionParts++) {
+      Number part = (Number) numformat.parseObject(serverVersion, parsepos);
+      if (part == null) {
+        break;
+      }
+      parts[versionParts] = part.intValue();
+      if (parsepos.getIndex() == serverVersion.length()
+          || serverVersion.charAt(parsepos.getIndex()) != '.') {
+        break;
+      }
+      // Skip .
+      parsepos.setIndex(parsepos.getIndex() + 1);
     }
-    if (parsed.intValue() >= 10000) {
+    versionParts++;
+
+    if (parts[0] >= 10000) {
       /*
        * PostgreSQL version 1000? I don't think so. We're seeing a version like 90401; return it
        * verbatim, but only if there's nothing else in the version. If there is, treat it as a parse
        * error.
        */
-      if (parsepos.getIndex() == serverVersion.length()) {
-        return parsed.intValue();
+      if (parsepos.getIndex() == serverVersion.length() && versionParts == 1) {
+        return parts[0];
       } else {
         throw new NumberFormatException(
             "First major-version part equal to or greater than 10000 in invalid version string: "
@@ -131,64 +142,36 @@ public enum ServerVersion implements Version {
       }
     }
 
-    vers = parsed.intValue() * 10000;
-
-    /* Did we run out of string? */
-    if (parsepos.getIndex() == serverVersion.length()) {
-      return 0;
-    }
-
-    /* Skip the . */
-    if (serverVersion.charAt(parsepos.getIndex()) == '.') {
-      parsepos.setIndex(parsepos.getIndex() + 1);
-    } else {
-      /* Unexpected version format */
-      return 0;
-    }
-
-    /*
-     * Get second major version part. If this isn't purely an integer, accept the integer part and
-     * return with a minor version of zero, so we cope with 8.1devel, etc.
-     */
-    parsed = (Long) numformat.parseObject(serverVersion, parsepos);
-    if (parsed == null) {
-      /*
-       * Failed to parse second part of minor version at all. Half a major version is useless,
-       * return 0.
-       */
-      return 0;
-    }
-    if (parsed.intValue() > 99) {
-      throw new NumberFormatException(
-          "Unsupported second part of major version > 99 in invalid version string: "
-              + serverVersion);
-    }
-    vers = vers + parsed.intValue() * 100;
-
-    /* Did we run out of string? Return just the major. */
-    if (parsepos.getIndex() == serverVersion.length()) {
-      return vers;
-    }
-
-    /* Skip the . */
-    if (serverVersion.charAt(parsepos.getIndex()) == '.') {
-      parsepos.setIndex(parsepos.getIndex() + 1);
-    } else {
-      /* Doesn't look like an x.y.z version, return what we have */
-      return vers;
-    }
-
-    /* Try to parse any remainder as a minor version */
-    parsed = (Long) numformat.parseObject(serverVersion, parsepos);
-    if (parsed != null) {
-      if (parsed.intValue() > 99) {
+    if (versionParts == 3) {
+      if (parts[1] > 99) {
         throw new NumberFormatException(
-            "Unsupported minor version value > 99 in invalid version string: " + serverVersion);
+            "Unsupported second part of major version > 99 in invalid version string: "
+                + serverVersion);
       }
-      vers = vers + parsed.intValue();
+      if (parts[2] > 99) {
+        throw new NumberFormatException(
+            "Unsupported second part of minor version > 99 in invalid version string: "
+                + serverVersion);
+      }
+      return (parts[0] * 100 + parts[1]) * 100 + parts[2];
     }
-
-    return vers;
+    if (versionParts == 2) {
+      if (parts[0] >= 10) {
+        return parts[0] * 100 * 100 + parts[1];
+      }
+      if (parts[1] > 99) {
+        throw new NumberFormatException(
+            "Unsupported second part of major version > 99 in invalid version string: "
+                + serverVersion);
+      }
+      return (parts[0] * 100 + parts[1]) * 100;
+    }
+    if (versionParts == 1) {
+      if (parts[0] >= 10) {
+        return parts[0] * 100 * 100;
+      }
+    }
+    return 0; /* unknown */
   }
 
 }

@@ -14,6 +14,8 @@ import org.postgresql.jdbc.DeepBatchedInsertStatementTest;
 import org.postgresql.test.CursorFetchBinaryTest;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.core.NativeQueryBindLengthTest;
+import org.postgresql.test.util.ServerVersionParseTest;
+import org.postgresql.test.util.ServerVersionTest;
 
 import junit.framework.JUnit4TestAdapter;
 import junit.framework.TestSuite;
@@ -49,7 +51,8 @@ public class Jdbc2TestSuite extends TestSuite {
     suite.addTestSuite(EncodingTest.class);
     suite.addTestSuite(ColumnSanitiserDisabledTest.class);
     suite.addTestSuite(ColumnSanitiserEnabledTest.class);
-    suite.addTestSuite(VersionTest.class);
+    suite.addTest(new JUnit4TestAdapter(ServerVersionParseTest.class));
+    suite.addTest(new JUnit4TestAdapter(ServerVersionTest.class));
 
     // Connectivity/Protocols
 
