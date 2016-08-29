@@ -5,12 +5,13 @@ PG_DATADIR="/etc/postgresql/${PG_VERSION}/main"
 
 sudo service postgresql stop
 sudo apt-get remove postgresql libpq-dev libpq5 postgresql-client-common postgresql-common -qq --purge
+sudo apt-get -y install libxml2
 
 git clone --depth=1 https://github.com/postgres/postgres.git
 cd postgres
 
 # Build PostgreSQL from source
-sudo ./configure && sudo make && sudo make install
+sudo ./configure --with-libxml && sudo make && sudo make install
 sudo ln -s /usr/local/pgsql/bin/psql /usr/bin/psql
 # Build contrib from source
 cd contrib
