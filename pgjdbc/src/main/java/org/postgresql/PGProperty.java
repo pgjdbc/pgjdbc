@@ -386,7 +386,7 @@ public enum PGProperty {
    * walsender mode. Passing database as the value instructs walsender to connect to the database
    * specified in the dbname parameter, which will allow the connection to be used for logical
    * replication from that database. <p>Parameter should be use together with {@link
-   * PGProperty#ASSUME_MIN_SERVER_VERSION} with parameter => 9.4 (backend >= 9.4)
+   * PGProperty#ASSUME_MIN_SERVER_VERSION} with parameter &gt;= 9.4 (backend &gt;= 9.4)
    */
   REPLICATION("replication", null,
       "Connection parameter for startup message Available value(true, database). "

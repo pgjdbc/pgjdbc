@@ -60,6 +60,7 @@ public abstract class CopyOperationImpl implements CopyOperation {
    * Consume received copy data
    *
    * @param data data that was receive by copy protocol
+   * @throws PSQLException if some internal problem occurs
    */
   protected abstract void handleCopydata(byte[] data) throws PSQLException;
 

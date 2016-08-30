@@ -18,7 +18,8 @@ import java.sql.Statement;
     CopyBothResponseTest.class,
     LogicalReplicationTest.class,
     LogSequenceNumberTest.class,
-    PhysicalReplicationTest.class})
+    PhysicalReplicationTest.class,
+    LogicalReplicationStatusTest.class})
 public class ReplicationTestSuite {
 
   @BeforeClass
@@ -34,7 +35,8 @@ public class ReplicationTestSuite {
         stmt.close();
 
         if (maxWalSenders == 0) {
-          throw new AssumptionViolatedException("Skip replication test because max_wal_senders = 0");
+          throw new AssumptionViolatedException(
+              "Skip replication test because max_wal_senders = 0");
         }
 
       } else {

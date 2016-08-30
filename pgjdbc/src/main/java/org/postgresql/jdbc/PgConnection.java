@@ -27,7 +27,6 @@ import org.postgresql.core.TransactionState;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.core.Utils;
 import org.postgresql.core.Version;
-import org.postgresql.core.v3.replication.V3ReplicationProtocol;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.replication.fluent.ChainedStreamBuilder;

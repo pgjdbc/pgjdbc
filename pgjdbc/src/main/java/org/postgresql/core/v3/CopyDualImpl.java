@@ -25,7 +25,16 @@ public class CopyDualImpl extends CopyOperationImpl implements CopyDual {
 
   public byte[] readFromCopy() throws SQLException {
     if (received.isEmpty()) {
-      queryExecutor.readFromCopy(this);
+      queryExecutor.readFromCopy(this, true);
+    }
+
+    return received.poll();
+  }
+
+  @Override
+  public byte[] readFromCopy(boolean block) throws SQLException {
+    if (received.isEmpty()) {
+      queryExecutor.readFromCopy(this, block);
     }
 
     return received.poll();

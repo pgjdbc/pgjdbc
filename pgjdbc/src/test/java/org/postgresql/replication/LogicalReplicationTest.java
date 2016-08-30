@@ -3,6 +3,7 @@ package org.postgresql.replication;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeThat;
 
 import org.postgresql.PGConnection;
@@ -11,6 +12,7 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.rules.ServerVersionRule;
 import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
@@ -29,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 @HaveMinimalServerVersion("9.4")
 public class LogicalReplicationTest {
@@ -55,37 +58,63 @@ public class LogicalReplicationTest {
     st.close();
   }
 
+
+
   @After
   public void tearDown() throws Exception {
     replConnection.close();
     TestUtil.dropTable(sqlConnection, "test_logic_table");
 
-    Statement st = sqlConnection.createStatement();
-    st.execute("select pg_drop_replication_slot('" + SLOT_NAME + "')");
-    st.close();
+    dropReplicationSlot();
     sqlConnection.close();
+  }
+
+  private void dropReplicationSlot() throws SQLException {
+    try {
+      Statement dropStatement = sqlConnection.createStatement();
+      dropStatement.execute("select pg_drop_replication_slot('" + SLOT_NAME + "')");
+      dropStatement.close();
+    } catch (PSQLException e) {
+      //slot is active
+      if (PSQLState.OBJECT_IN_USE.equals(new PSQLState(e.getSQLState()))) {
+        Statement terminateStatement = sqlConnection.createStatement();
+        terminateStatement.execute("select pg_terminate_backend(active_pid) from pg_replication_slots "
+            + "where active = true and slot_name='" + SLOT_NAME + "'"
+        );
+        terminateStatement.close();
+        dropReplicationSlot();
+      } else {
+        throw e;
+      }
+    }
   }
 
   @Test(timeout = 1000)
   public void testNotAvailableStartNotExistReplicationSlot() throws Exception {
-    exception.expect(PSQLException.class);
-    exception.expectMessage(CoreMatchers.containsString("does not exist"));
-    exception.reportMissingExceptionWithMessage(
-        "For logical decoding replication slot name it required parameter "
-            + "that should be create on server before start replication"
-    );
-
     PGConnection pgConnection = (PGConnection) replConnection;
 
     LogSequenceNumber lsn = getCurrentLSN();
 
-    PGReplicationStream stream =
-        pgConnection
-            .replicationStream()
-            .logical()
-            .withSlotName("notExistSlotName")
-            .withStartPosition(lsn)
-            .start();
+    try {
+      PGReplicationStream stream =
+          pgConnection
+              .replicationStream()
+              .logical()
+              .withSlotName("notExistSlotName")
+              .withStartPosition(lsn)
+              .start();
+
+      fail("For logical decoding replication slot name it required parameter "
+          + "that should be create on server before start replication");
+
+    } catch (PSQLException e) {
+      String state = e.getSQLState();
+
+      assertThat("When replication slot doesn't exists, server can't start replication "
+          + "and should throw exception about it",
+          state, equalTo(PSQLState.UNDEFINED_OBJECT.getState())
+      );
+    }
   }
 
   @Test(timeout = 1000)
@@ -411,7 +440,96 @@ public class LogicalReplicationTest {
     );
   }
 
-  @Test(timeout = 30000 /* backend keep alive 10s * 3 */)
+  @Test(timeout = 3000)
+  public void testDoesNotHavePendingMessageWhenStartFromLastLSN() throws Exception {
+    PGConnection pgConnection = (PGConnection) replConnection;
+
+    PGReplicationStream stream =
+        pgConnection
+            .replicationStream()
+            .logical()
+            .withSlotName(SLOT_NAME)
+            .withStartPosition(getCurrentLSN())
+            .start();
+
+    ByteBuffer result = stream.readPending();
+
+    assertThat("Read pending message allow without lock on socket read message, "
+            + "and if message absent return null. In current test we start replication from last LSN on server, "
+            + "so changes absent on server and readPending message will always lead to null ByteBuffer",
+        result, equalTo(null)
+    );
+  }
+
+  @Test(timeout = 3000)
+  public void testReadPreviousChangesWithoutBlock() throws Exception {
+    PGConnection pgConnection = (PGConnection) replConnection;
+
+    LogSequenceNumber startLSN = getCurrentLSN();
+
+    Statement st = sqlConnection.createStatement();
+    st.execute("insert into test_logic_table(name) values('previous changes')");
+    st.close();
+
+    PGReplicationStream stream =
+        pgConnection
+            .replicationStream()
+            .logical()
+            .withSlotName(SLOT_NAME)
+            .withStartPosition(startLSN)
+            .withSlotOption("include-xids", false)
+            .withSlotOption("skip-empty-xacts", true)
+            .start();
+
+    String received = group(receiveMessageWithoutBlock(stream, 3));
+
+    String wait = group(Arrays.asList(
+        "BEGIN",
+        "table public.test_logic_table: INSERT: pk[integer]:1 name[character varying]:'previous changes'",
+        "COMMIT"
+    ));
+
+    assertThat(
+        "Messages from stream can be read by readPending method for avoid long block on Socket, "
+            + "in current test we wait that behavior will be same as for read message with block",
+        received, equalTo(wait)
+    );
+  }
+
+  @Test(timeout = 3000)
+  public void testReadActualChangesWithoutBlock() throws Exception {
+    PGConnection pgConnection = (PGConnection) replConnection;
+
+    PGReplicationStream stream =
+        pgConnection
+            .replicationStream()
+            .logical()
+            .withSlotName(SLOT_NAME)
+            .withStartPosition(getCurrentLSN())
+            .withSlotOption("include-xids", false)
+            .withSlotOption("skip-empty-xacts", true)
+            .start();
+
+    Statement st = sqlConnection.createStatement();
+    st.execute("insert into test_logic_table(name) values('actual changes')");
+    st.close();
+
+    String received = group(receiveMessageWithoutBlock(stream, 3));
+
+    String wait = group(Arrays.asList(
+        "BEGIN",
+        "table public.test_logic_table: INSERT: pk[integer]:1 name[character varying]:'actual changes'",
+        "COMMIT"
+    ));
+
+    assertThat(
+        "Messages from stream can be read by readPending method for avoid long block on Socket, "
+            + "in current test we wait that behavior will be same as for read message with block",
+        received, equalTo(wait)
+    );
+  }
+
+  @Test(timeout = 5000 /* default client keep alive 10s*/)
   public void testAvoidTimeoutDisconnectWithDefaultStatusInterval() throws Exception {
     exception.expect(TestTimedOutException.class);
     exception.expectMessage(CoreMatchers.containsString("test timed out after"));
@@ -466,6 +584,25 @@ public class LogicalReplicationTest {
     List<String> result = new ArrayList<String>(count);
     for (int index = 0; index < count; index++) {
       result.add(toString(stream.read()));
+    }
+
+    return result;
+  }
+
+  private List<String> receiveMessageWithoutBlock(PGReplicationStream stream, int count)
+      throws Exception {
+    List<String> result = new ArrayList<String>(3);
+    for (int index = 0; index < count; index++) {
+      ByteBuffer message;
+      do {
+        message = stream.readPending();
+
+        if (message == null) {
+          TimeUnit.MILLISECONDS.sleep(2);
+        }
+      } while (message == null);
+
+      result.add(toString(message));
     }
 
     return result;

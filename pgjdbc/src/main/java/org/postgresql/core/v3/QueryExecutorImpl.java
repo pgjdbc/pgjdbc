@@ -954,20 +954,21 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   /**
-   * Blocks to wait for a row of data to be received from server on an active copy operation
+   * Wait for a row of data to be received from server on an active copy operation
    * Connection gets unlocked by processCopyResults() at end of operation
    *
    * @param op the copy operation presumably currently holding lock on this connection
+   * @param block whether to block waiting for input
    * @throws SQLException on any failure
    */
-  synchronized void readFromCopy(CopyOperationImpl op) throws SQLException {
+  synchronized void readFromCopy(CopyOperationImpl op, boolean block) throws SQLException {
     if (!hasLock(op)) {
       throw new PSQLException(GT.tr("Tried to read from inactive copy"),
           PSQLState.OBJECT_NOT_IN_STATE);
     }
 
     try {
-      processCopyResults(op, true); // expect a call to handleCopydata() to store the data
+      processCopyResults(op, block); // expect a call to handleCopydata() to store the data
     } catch (IOException ioe) {
       throw new PSQLException(GT.tr("Database connection failed when reading from copy"),
           PSQLState.CONNECTION_FAILURE, ioe);

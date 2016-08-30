@@ -51,40 +51,16 @@ public class V3PGReplicationStream implements PGReplicationStream {
     checkClose();
 
     ByteBuffer payload = null;
-    boolean updateStatusRequired = false;
     while (payload == null && copyDual.isActive()) {
-      if (updateStatusRequired || isTimeUpdate()) {
-        timeUpdateStatus();
-      }
-
-      ByteBuffer buffer = receiveNextData();
-
-      if (buffer == null) {
-        continue;
-      }
-
-      int code = buffer.get();
-
-      switch (code) {
-
-        case 'k': //KeepAlive message
-          updateStatusRequired = processKeepAliveMessage(buffer);
-          updateStatusRequired |= updateInterval == 0;
-          break;
-
-        case 'w': //XLogData
-          payload = processXLogData(buffer);
-          break;
-
-        default:
-          throw new PSQLException(
-              GT.tr("Unexpected packet type during replication: {0}", Integer.toString(code)),
-              PSQLState.PROTOCOL_VIOLATION
-          );
-      }
+      payload = readInternal(true);
     }
 
     return payload;
+  }
+
+  public ByteBuffer readPending() throws SQLException {
+    checkClose();
+    return readInternal(false);
   }
 
   @Override
@@ -120,13 +96,53 @@ public class V3PGReplicationStream implements PGReplicationStream {
 
   @Override
   public boolean isClosed() {
-    return closeFlag;
+    return closeFlag || !copyDual.isActive();
   }
 
-  private ByteBuffer receiveNextData() throws SQLException {
+  private ByteBuffer readInternal(boolean block) throws SQLException {
+    boolean updateStatusRequired = false;
+    while (copyDual.isActive()) {
+      if (updateStatusRequired || isTimeUpdate()) {
+        timeUpdateStatus();
+      }
+
+      ByteBuffer buffer = receiveNextData(block);
+
+      if (buffer == null) {
+        return null;
+      }
+
+      int code = buffer.get();
+
+      switch (code) {
+
+        case 'k': //KeepAlive message
+          updateStatusRequired = processKeepAliveMessage(buffer);
+          updateStatusRequired |= updateInterval == 0;
+          break;
+
+        case 'w': //XLogData
+          return processXLogData(buffer);
+
+        default:
+          throw new PSQLException(
+              GT.tr("Unexpected packet type during replication: {0}", Integer.toString(code)),
+              PSQLState.PROTOCOL_VIOLATION
+          );
+      }
+    }
+
+    return null;
+  }
+
+  private ByteBuffer receiveNextData(boolean block) throws SQLException {
     try {
-      byte[] messsage = copyDual.readFromCopy();
-      return ByteBuffer.wrap(messsage);
+      byte[] message = copyDual.readFromCopy(block);
+      if (message != null) {
+        return ByteBuffer.wrap(message);
+      } else {
+        return null;
+      }
     } catch (PSQLException e) { //todo maybe replace on thread sleep?
       if (e.getCause() instanceof SocketTimeoutException) {
         //signal for keep alive
