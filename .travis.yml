@@ -5,8 +5,10 @@ before_script:
   - export PG_DATADIR="/etc/postgresql/${PG_VERSION}/main"
   -  ./.travis/travis_install_postgres.sh
   - test "x$XA" == 'x' || ./.travis/travis_configure_xa.sh
+  - test "x$REPLICATION" == 'x' || ./.travis/travis_configure_replication.sh
   - ./.travis/travis_start_postgres.sh
   - psql -U postgres -c "create user test with password 'test';"
+  - test "x$REPLICATION" == 'x' || psql -U postgres -c "alter user test with replication;"
   - psql -c 'create database test owner test;' -U postgres
   - echo "MAVEN_OPTS='-Xmx1g -Dgpg.skip=true'" > ~/.mavenrc
   - test "x$PG_VERSION" == 'x' || test "x$NO_HSTORE" == 'xY' || psql test -c 'CREATE EXTENSION hstore;' -U postgres
@@ -69,6 +71,7 @@ matrix:
       env:
         - PG_VERSION=9.6
         - XA=true
+        - REPLICATION=Y
         - COVERAGE=Y
     - jdk: oraclejdk8
       sudo: required
@@ -78,6 +81,7 @@ matrix:
       env:
         - PG_VERSION=9.5
         - XA=true
+        - REPLICATION=Y
         - COVERAGE=Y
     - jdk: oraclejdk8
       sudo: required
@@ -106,8 +110,12 @@ matrix:
         apt:
           packages:
             - oracle-java8-installer
+      sudo: required
+      dist: trusty
       env:
         - PG_VERSION=9.4
+        - XA=true
+        - REPLICATION=Y
         - COVERAGE=Y
         - MCENTRAL=Y
         - JDOC=Y
@@ -117,6 +125,7 @@ matrix:
       env:
         - PG_VERSION=HEAD
         - XA=true
+        - REPLICATION=Y
     - jdk: openjdk7
       addons:
         postgresql: "9.4"
