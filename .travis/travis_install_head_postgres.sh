@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -x -e
 
-PG_DATADIR="/etc/postgresql/${PG_VERSION}/main"
-
 sudo service postgresql stop
 sudo apt-get remove postgresql libpq-dev libpq5 postgresql-client-common postgresql-common -qq --purge
 sudo apt-get -y install libxml2
@@ -27,6 +25,3 @@ sudo chmod 777 ${PG_DATADIR}
 sudo chown -R postgres:postgres ${PG_DATADIR}
 
 sudo su postgres -c "/usr/local/pgsql/bin/pg_ctl -D ${PG_DATADIR} -U postgres initdb"
-#Start head postgres
-sudo su postgres -c "/usr/local/pgsql/bin/pg_ctl -D ${PG_DATADIR} -w -t 300 -o '-p 5432' -l /tmp/postgres.log start"
-sudo tail /tmp/postgres.log
