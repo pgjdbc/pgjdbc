@@ -197,7 +197,8 @@ public interface PGConnection {
   /**
    * Api available only if connection was create with required for replication properties: {@link
    * PGProperty#REPLICATION} and {@link PGProperty#ASSUME_MIN_SERVER_VERSION}. Without it property
-   * building replication stream fail with exception.
+   * building replication stream fail with exception. After start replication stream this connection
+   * not available to use for another queries until replication stream will not close.
    *
    * @return not null fluent api for build replication stream
    */

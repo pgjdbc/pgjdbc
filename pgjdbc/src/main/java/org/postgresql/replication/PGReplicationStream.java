@@ -80,12 +80,20 @@ public interface PGReplicationStream {
   void forceUpdateStatus() throws SQLException;
 
   /**
-   * @return {@code true} if replicaiton stream was already close, otherwise return {@code false}
+   * @return {@code true} if replication stream was already close, otherwise return {@code false}
    */
   boolean isClosed();
 
   /**
-   * Stop replication changes from server and free resources
+   * <p>Stop replication changes from server and free resources. After that connection can be reuse
+   * to another queries. Also after close current stream they cannot be used anymore.
+   *
+   * <p><b>Note:</b> This method can spend much time for logical replication stream on postgresql
+   * version 9.6 and lower, because postgresql have bug - during decode big transaction to logical
+   * form and during wait new changes postgresql ignore messages from client. As workaround you can
+   * close replication connection instead of close replication stream. For more information about it
+   * problem see mailing list thread <a href="http://www.postgresql.org/message-id/CAFgjRd3hdYOa33m69TbeOfNNer2BZbwa8FFjt2V5VFzTBvUU3w@mail.gmail.com">
+   * Stopping logical replication protocol</a>
    *
    * @throws SQLException when some internal exception occurs during end streaming
    */
