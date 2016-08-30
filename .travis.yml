@@ -2,8 +2,10 @@ sudo: false
 language: java
 
 before_script:
-  - test "x$XA" == 'x' || ./.travis/travis_install_dependencies.sh
-  - test "x$PG_VERSION" != "xHEAD" || ./.travis/travis_install_head_postgres.sh
+  - export PG_DATADIR="/etc/postgresql/${PG_VERSION}/main"
+  -  ./.travis/travis_install_postgres.sh
+  - test "x$XA" == 'x' || ./.travis/travis_configure_xa.sh
+  - ./.travis/travis_start_postgres.sh
   - psql -U postgres -c "create user test with password 'test';"
   - psql -c 'create database test owner test;' -U postgres
   - echo "MAVEN_OPTS='-Xmx1g -Dgpg.skip=true'" > ~/.mavenrc
@@ -88,8 +90,11 @@ matrix:
         - MCENTRAL=Y
         - JDOC=Y
     - jdk: oraclejdk8
+      sudo: required
+      dist: trusty
       env:
         - PG_VERSION=HEAD
+        - XA=true
     - jdk: openjdk7
       addons:
         postgresql: "9.4"
