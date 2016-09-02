@@ -67,8 +67,6 @@ public class TypeInfoCache implements TypeInfo {
   // 2 - sql type
   // 3 - java class
   // 4 - array type oid
-  // 5 - conditional minimum server version
-  // 6 - conditional minimum JDK build version
   private static final Object types[][] = {
       {"int2", Oid.INT2, Types.SMALLINT, "java.lang.Integer", Oid.INT2_ARRAY},
       {"int4", Oid.INT4, Types.INTEGER, "java.lang.Integer", Oid.INT4_ARRAY},
@@ -92,6 +90,9 @@ public class TypeInfoCache implements TypeInfo {
       {"timestamp", Oid.TIMESTAMP, Types.TIMESTAMP, "java.sql.Timestamp", Oid.TIMESTAMP_ARRAY},
       {"timestamptz", Oid.TIMESTAMPTZ, Types.TIMESTAMP, "java.sql.Timestamp",
           Oid.TIMESTAMPTZ_ARRAY},
+      //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+      {"refcursor", Oid.REF_CURSOR, Types.REF_CURSOR, "java.sql.ResultSet", Oid.REF_CURSOR_ARRAY},
+      //#endif
       {"json", Oid.JSON, Types.VARCHAR, "java.lang.String", Oid.JSON_ARRAY},
       {"point", Oid.POINT, Types.OTHER, "org.postgresql.geometric.PGpoint", Oid.POINT_ARRAY}
   };
