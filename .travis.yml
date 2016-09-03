@@ -157,4 +157,4 @@ matrix:
 
 # Deploy snapshots to Maven Central
 after_success:
-  - "test $MCENTRAL == 'Y' && ./.travis/travis_deploy.sh"
+  - "$TRAVIS_PULL_REQUEST == 'false' && test $TRAVIS_BRANCH == 'master' && test $MCENTRAL == 'Y' && ./.travis/travis_deploy.sh"
