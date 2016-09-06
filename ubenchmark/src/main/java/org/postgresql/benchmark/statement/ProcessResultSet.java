@@ -79,7 +79,13 @@ public class ProcessResultSet {
   @Param({"NAME"})
   public ColumnIndexType columnIndexType;
 
+  // Reuse == false is in line with what most applications do. They never reuse PreparedStatement objects
+  @Param({"false"})
+  public boolean reuseStatement;
+
   private Connection connection;
+
+  private PreparedStatement ps;
 
   private String sql;
 
@@ -89,6 +95,10 @@ public class ProcessResultSet {
 
   @Setup(Level.Trial)
   public void setUp() throws SQLException {
+    if (reuseStatement && unique) {
+      System.out.println("It does not make sense to test reuseStatement && unique combination. Terminating to save time");
+      System.exit(-1);
+    }
     if (type == FieldType.TIMESTAMP) {
       System.out.println(
           "TimeZone.getDefault().getDisplayName() = " + TimeZone.getDefault().getDisplayName());
@@ -124,6 +134,9 @@ public class ProcessResultSet {
     }
     sb.append(" from generate_series(1, ?) as t(x)");
     sql = sb.toString();
+    if (reuseStatement) {
+      this.ps = connection.prepareStatement(sql);
+    }
   }
 
   @TearDown(Level.Trial)
@@ -137,7 +150,8 @@ public class ProcessResultSet {
     if (unique) {
       sql += " -- " + cntr++;
     }
-    PreparedStatement ps = connection.prepareStatement(sql);
+
+    PreparedStatement ps = reuseStatement ? this.ps : connection.prepareStatement(sql);
     ps.setInt(1, nrows);
     ResultSet rs = ps.executeQuery();
     while (rs.next()) {
@@ -150,7 +164,9 @@ public class ProcessResultSet {
       }
     }
     rs.close();
-    ps.close();
+    if (!reuseStatement) {
+      ps.close();
+    }
     return ps;
   }
 
