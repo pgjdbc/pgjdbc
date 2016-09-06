@@ -15,6 +15,8 @@ import static org.junit.Assert.assertTrue;
 import org.postgresql.test.TestUtil;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
@@ -22,13 +24,34 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
+import java.util.Arrays;
 
-/*
+/**
  * RefCursor ResultSet tests. This test case is basically the same as the ResultSet test case.
  *
- * @author Nic Ferrier <nferrier@tapsellferrier.co.uk>
+ * <p>For backwards compatibility reasons we verify that ref cursors can be
+ * registered with both {@link Types#OTHER} and {@link Types#REF_CURSOR}.</p>
+ *
+ * @author Nic Ferrier (nferrier@tapsellferrier.co.uk)
  */
+@RunWith(Parameterized.class)
 public class RefCursorTest extends BaseTest4 {
+
+  final int cursorType;
+
+  public RefCursorTest(String typeName, int cursorType) {
+    this.cursorType = cursorType;
+  }
+
+  @Parameterized.Parameters(name = "typeName = {0}, cursorType = {1}")
+  public static Iterable<Object[]> data() {
+    return Arrays.asList(new Object[][]{
+        {"OTHER", Types.OTHER},
+        //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+        {"REF_CURSOR", Types.REF_CURSOR},
+        //#endif
+    });
+  }
 
   @Override
   public void setUp() throws Exception {
@@ -71,7 +94,7 @@ public class RefCursorTest extends BaseTest4 {
   public void testResult() throws SQLException {
     assumeCallableStatementsSupported();
     CallableStatement call = con.prepareCall("{ ? = call testspg__getRefcursor () }");
-    call.registerOutParameter(1, Types.OTHER);
+    call.registerOutParameter(1, cursorType);
     call.execute();
     ResultSet rs = (ResultSet) call.getObject(1);
 
@@ -94,6 +117,7 @@ public class RefCursorTest extends BaseTest4 {
     assertTrue(rs.getInt(1) == 9);
 
     assertTrue(!rs.next());
+    rs.close();
 
     call.close();
   }
@@ -103,11 +127,12 @@ public class RefCursorTest extends BaseTest4 {
   public void testEmptyResult() throws SQLException {
     assumeCallableStatementsSupported();
     CallableStatement call = con.prepareCall("{ ? = call testspg__getEmptyRefcursor () }");
-    call.registerOutParameter(1, Types.OTHER);
+    call.registerOutParameter(1, cursorType);
     call.execute();
 
     ResultSet rs = (ResultSet) call.getObject(1);
     assertTrue(!rs.next());
+    rs.close();
 
     call.close();
   }
@@ -117,7 +142,7 @@ public class RefCursorTest extends BaseTest4 {
     assumeCallableStatementsSupported();
 
     CallableStatement call = con.prepareCall("{ ? = call testspg__getRefcursor () }");
-    call.registerOutParameter(1, Types.OTHER);
+    call.registerOutParameter(1, cursorType);
     call.execute();
 
     ResultSet rs = (ResultSet) call.getObject(1);
@@ -136,7 +161,7 @@ public class RefCursorTest extends BaseTest4 {
     assumeCallableStatementsSupported();
     CallableStatement call = con.prepareCall("{ ? = call testspg__getRefcursor () }",
         ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-    call.registerOutParameter(1, Types.OTHER);
+    call.registerOutParameter(1, cursorType);
     call.execute();
     ResultSet rs = (ResultSet) call.getObject(1);
 
@@ -145,6 +170,8 @@ public class RefCursorTest extends BaseTest4 {
 
     assertTrue(rs.last());
     assertEquals(6, rs.getRow());
+    rs.close();
+    call.close();
   }
 
 }
