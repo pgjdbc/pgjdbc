@@ -4,6 +4,9 @@ use strict;
 while(<>) {
   if ($_ !~ /@@@/) {
     print $_;
+    if ($_ =~ /:/) {
+      print "\n";
+    }
     next;
   }
   my @c = split('@@@', $_);
