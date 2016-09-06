@@ -133,6 +133,12 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
           if (callResult[j] != null) {
             callResult[j] = ((Double) callResult[j]).floatValue();
           }
+          //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+        } else if (columnType == Types.REF_CURSOR && functionReturnType[j] == Types.OTHER) {
+          // For backwards compatibility reasons we support that ref cursors can be
+          // registered with both Types.OTHER and Types.REF_CURSOR so we allow
+          // this specific mismatch
+          //#endif
         } else {
           throw new PSQLException(GT.tr(
               "A CallableStatement function was executed and the out parameter {0} was of type {1} however type {2} was registered.",

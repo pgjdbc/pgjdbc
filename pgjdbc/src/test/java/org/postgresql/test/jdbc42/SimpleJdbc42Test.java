@@ -8,6 +8,8 @@
 
 package org.postgresql.test.jdbc42;
 
+import static org.junit.Assert.assertTrue;
+
 import org.postgresql.test.TestUtil;
 
 import org.junit.After;
@@ -37,7 +39,7 @@ public class SimpleJdbc42Test {
    * Test presence of JDBC 4.2 specific methods
    */
   @Test
-  public void testDatabaseMetaData() throws Exception {
-    _conn.getMetaData().supportsRefCursors();
+  public void testSupportsRefCursors() throws Exception {
+    assertTrue(_conn.getMetaData().supportsRefCursors());
   }
 }

@@ -76,6 +76,8 @@ public class Oid {
   public static final int JSONB_ARRAY = 3807;
   public static final int JSON = 114;
   public static final int JSON_ARRAY = 199;
+  public static final int REF_CURSOR = 1790;
+  public static final int REF_CURSOR_ARRAY = 2201;
 
   /**
    * Returns the name of the oid as string.
