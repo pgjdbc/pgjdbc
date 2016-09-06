@@ -3153,7 +3153,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   public boolean supportsRefCursors() throws SQLException {
-    return false;
+    return true;
   }
 
   public RowIdLifetime getRowIdLifetime() throws SQLException {
