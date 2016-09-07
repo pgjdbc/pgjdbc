@@ -14,12 +14,12 @@ This is a simple readme describing how to compile and use the PostgreSQL JDBC dr
 
 This isn't a guide on how to use JDBC - for that refer to [Oracle's website](http://www.oracle.com/technetwork/java/javase/jdbc/) and the [JDBC tutorial](http://docs.oracle.com/javase/tutorial/jdbc/).
 
-For problems with this driver, refer to driver's [home page](http://jdbc.postgresql.org/) and associated [mailing list](http://archives.postgresql.org/pgsql-jdbc/).
+For problems with this driver, refer to driver's [home page](https://jdbc.postgresql.org/) and associated [mailing list](https://archives.postgresql.org/pgsql-jdbc/).
 
 ## Downloading pre-built drivers
 
 Most people do not need to compile PgJDBC. You can download prebuilt versions of the driver 
-from the [Postgresql JDBC site](http://jdbc.postgresql.org/) or using your chosen dependency management tool:
+from the [PostgreSQL JDBC site](https://jdbc.postgresql.org/) or using your chosen dependency management tool:
 
 ## Changelog
 
@@ -146,7 +146,7 @@ artifacts you should use `mvn`.
   
 After running the build , and build a .jar file (Java ARchive)
 depending on the version of java and which release you have the jar will be named
-postgresql-<major>.<minor>.<release>.jre<N>.jar. Where major,minor are the postgreSQL major,minor
+postgresql-<major>.<minor>.<release>.jre<N>.jar. Where major,minor are the PostgreSQL major,minor
 version numbers. release is the jdbc release number. N is the version of the JDBC API which 
 corresponds to the version of Java used to compile the driver.
 
@@ -156,7 +156,7 @@ If you need source code, documentation and runtime dependencies use `mvn package
 *NOTE*: default build produces Java 8 (JDBC 4.2) driver (in `pgjdbc/target` folder).
 
 If you need a version for older Java, configure `~/.m2/toolchains.xml`.
-Here's sample configuration for Mac OS:
+Here's sample configuration for macOS:
 ```xml
 <?xml version="1.0" encoding="UTF8"?>
 <toolchains>
@@ -348,7 +348,7 @@ See the full JDBC driver documentation for details.
 
 ## More information
 
-For more information see the [the PgJDBC driver documentation](http://jdbc.postgresql.org/documentation/documentation.html) and [the JDBC tutorial](http://docs.oracle.com/javase/tutorial/jdbc/).
+For more information see the [the PgJDBC driver documentation](https://jdbc.postgresql.org/documentation/documentation.html) and [the JDBC tutorial](http://docs.oracle.com/javase/tutorial/jdbc/).
 
 ## Bug reports, patches and development
 
@@ -429,7 +429,7 @@ Project code style is located at `pgjdbc/src/main/checkstyle/pgjdbc-intellij-jav
 In order to import it, copy the file to `$IDEA_CONFIG_LOCATION/codestyles` folder, restart IDEA,
 then choose "GoogleStyle (PgJDBC)" style for the Preferences -> Editor -> CodeStyle setting.
 
-For instance, for Mac OS it would be `~/Library/Preferences/IntelliJIdeaXX/codestyles`.
+For instance, for macOS it would be `~/Library/Preferences/IntelliJIdeaXX/codestyles`.
 More details here: https://intellij-support.jetbrains.com/hc/en-us/articles/206827437-Directories-used-by-the-IDE-to-store-settings-caches-plugins-and-logs
 
 ### Eclipse
