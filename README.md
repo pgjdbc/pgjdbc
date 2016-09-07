@@ -14,12 +14,12 @@ This is a simple readme describing how to compile and use the PostgreSQL JDBC dr
 
 This isn't a guide on how to use JDBC - for that refer to [Oracle's website](http://www.oracle.com/technetwork/java/javase/jdbc/) and the [JDBC tutorial](http://docs.oracle.com/javase/tutorial/jdbc/).
 
-For problems with this driver, refer to driver's [home page](http://jdbc.postgresql.org/) and associated [mailing list](http://archives.postgresql.org/pgsql-jdbc/).
+For problems with this driver, refer to driver's [home page](https://jdbc.postgresql.org/) and associated [mailing list](https://archives.postgresql.org/pgsql-jdbc/).
 
 ## Downloading pre-built drivers
 
 Most people do not need to compile PgJDBC. You can download prebuilt versions of the driver 
-from the [PostgreSQL JDBC site](http://jdbc.postgresql.org/) or using your chosen dependency management tool:
+from the [PostgreSQL JDBC site](https://jdbc.postgresql.org/) or using your chosen dependency management tool:
 
 ## Changelog
 
@@ -348,7 +348,7 @@ See the full JDBC driver documentation for details.
 
 ## More information
 
-For more information see the [the PgJDBC driver documentation](http://jdbc.postgresql.org/documentation/documentation.html) and [the JDBC tutorial](http://docs.oracle.com/javase/tutorial/jdbc/).
+For more information see the [the PgJDBC driver documentation](https://jdbc.postgresql.org/documentation/documentation.html) and [the JDBC tutorial](http://docs.oracle.com/javase/tutorial/jdbc/).
 
 ## Bug reports, patches and development
 
