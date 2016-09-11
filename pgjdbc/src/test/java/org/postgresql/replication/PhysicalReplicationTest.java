@@ -92,6 +92,7 @@ public class PhysicalReplicationTest {
 
     PGReplicationStream stream =
         pgConnection
+            .getReplicationAPI()
             .replicationStream()
             .physical()
             .withStartPosition(lsn)
@@ -116,6 +117,7 @@ public class PhysicalReplicationTest {
 
     PGReplicationStream stream =
         pgConnection
+            .getReplicationAPI()
             .replicationStream()
             .physical()
             .withSlotName(SLOT_NAME)
@@ -135,6 +137,7 @@ public class PhysicalReplicationTest {
 
     PGReplicationStream stream =
         pgConnection
+            .getReplicationAPI()
             .replicationStream()
             .physical()
             .withSlotName(SLOT_NAME)
@@ -158,6 +161,7 @@ public class PhysicalReplicationTest {
 
     PGReplicationStream stream =
         pgConnection
+            .getReplicationAPI()
             .replicationStream()
             .physical()
             .withSlotName(SLOT_NAME)
@@ -189,6 +193,7 @@ public class PhysicalReplicationTest {
 
     PGReplicationStream stream =
         pgConnection
+            .getReplicationAPI()
             .replicationStream()
             .physical()
             .withSlotName(SLOT_NAME)
@@ -201,6 +206,7 @@ public class PhysicalReplicationTest {
     //reopen stream
     stream =
         pgConnection
+            .getReplicationAPI()
             .replicationStream()
             .physical()
             .withSlotName(SLOT_NAME)

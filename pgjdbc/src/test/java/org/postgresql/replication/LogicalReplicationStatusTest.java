@@ -93,6 +93,7 @@ public class LogicalReplicationStatusTest {
 
     PGReplicationStream stream =
         pgConnection
+            .getReplicationAPI()
             .replicationStream()
             .logical()
             .withSlotName(SLOT_NAME)
@@ -126,6 +127,7 @@ public class LogicalReplicationStatusTest {
 
     PGReplicationStream stream =
         pgConnection
+            .getReplicationAPI()
             .replicationStream()
             .logical()
             .withSlotName(SLOT_NAME)
@@ -155,6 +157,7 @@ public class LogicalReplicationStatusTest {
 
     PGReplicationStream stream =
         pgConnection
+            .getReplicationAPI()
             .replicationStream()
             .logical()
             .withSlotName(SLOT_NAME)
@@ -184,6 +187,7 @@ public class LogicalReplicationStatusTest {
 
     PGReplicationStream stream =
         pgConnection
+            .getReplicationAPI()
             .replicationStream()
             .logical()
             .withSlotName(SLOT_NAME)
@@ -216,6 +220,7 @@ public class LogicalReplicationStatusTest {
 
     PGReplicationStream stream =
         pgConnection
+            .getReplicationAPI()
             .replicationStream()
             .logical()
             .withSlotName(SLOT_NAME)
@@ -255,6 +260,7 @@ public class LogicalReplicationStatusTest {
 
     PGReplicationStream stream =
         pgConnection
+            .getReplicationAPI()
             .replicationStream()
             .logical()
             .withSlotName(SLOT_NAME)
@@ -287,6 +293,7 @@ public class LogicalReplicationStatusTest {
 
     PGReplicationStream stream =
         pgConnection
+            .getReplicationAPI()
             .replicationStream()
             .logical()
             .withSlotName(SLOT_NAME)
@@ -328,6 +335,7 @@ public class LogicalReplicationStatusTest {
 
     PGReplicationStream stream =
         pgConnection
+            .getReplicationAPI()
             .replicationStream()
             .logical()
             .withSlotName(SLOT_NAME)
@@ -366,6 +374,7 @@ public class LogicalReplicationStatusTest {
 
     PGReplicationStream stream =
         pgConnection
+            .getReplicationAPI()
             .replicationStream()
             .logical()
             .withSlotName(SLOT_NAME)
@@ -401,6 +410,7 @@ public class LogicalReplicationStatusTest {
 
     PGReplicationStream stream =
         pgConnection
+            .getReplicationAPI()
             .replicationStream()
             .logical()
             .withSlotName(SLOT_NAME)

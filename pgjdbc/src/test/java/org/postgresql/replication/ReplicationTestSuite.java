@@ -19,7 +19,9 @@ import java.sql.Statement;
     LogicalReplicationTest.class,
     LogSequenceNumberTest.class,
     PhysicalReplicationTest.class,
-    LogicalReplicationStatusTest.class})
+    LogicalReplicationStatusTest.class,
+    ReplicationConnectionTest.class,
+    ReplicationSlotTest.class})
 public class ReplicationTestSuite {
 
   @BeforeClass

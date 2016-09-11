@@ -26,7 +26,7 @@ public class ReplicationConnectionTest {
   @Before
   public void setUp() throws Exception {
     replConnection = openReplicationConnection();
-//    DriverManager.setLogWriter(new PrintWriter(System.out));
+    //DriverManager.setLogWriter(new PrintWriter(System.out));
   }
 
   @After

@@ -1,31 +1,31 @@
 package org.postgresql.replication.fluent;
 
+import org.postgresql.replication.fluent.logical.ChainedLogicalCreateSlotBuilder;
+import org.postgresql.replication.fluent.physical.ChainedPhysicalCreateSlotBuilder;
 
-import org.postgresql.replication.fluent.logical.ChainedLogicalStreamBuilder;
-import org.postgresql.replication.fluent.physical.ChainedPhysicalStreamBuilder;
-
-/**
- * Start point for fluent API that build replication stream(logical or physical).
- * Api not thread safe, and can be use only for crate single stream.
+/***
+ * Fluent interface for specify common parameters for Logical and Physical replication.
  */
-public interface ChainedStreamBuilder {
+public interface ChainedCreateReplicationSlotBuilder {
   /**
-   * Create logical replication stream that decode raw wal logs by output plugin to logical form.
-   * Default about logical decoding you can see by following link
-   * <a href="http://www.postgresql.org/docs/current/static/logicaldecoding-explanation.html">
-   *   Logical Decoding Concepts
-   * </a>.
-   *
    * Example usage:
    * <pre>
    *   {@code
+   *
+   *    pgConnection
+   *        .getReplicationAPI()
+   *        .createReplicationSlot()
+   *        .logical()
+   *        .withSlotName("mySlot")
+   *        .withOutputPlugin("test_decoding")
+   *        .make();
    *
    *    PGReplicationStream stream =
    *        pgConnection
    *            .getReplicationAPI()
    *            .replicationStream()
    *            .logical()
-   *            .withSlotName("test_decoding")
+   *            .withSlotName("mySlot")
    *            .withSlotOption("include-xids", false)
    *            .withSlotOption("skip-empty-xacts", true)
    *            .start();
@@ -39,7 +39,7 @@ public interface ChainedStreamBuilder {
    * </pre>
    * @return not null fluent api
    */
-  ChainedLogicalStreamBuilder logical();
+  ChainedLogicalCreateSlotBuilder logical();
 
   /**
    * Create physical replication stream for process wal logs in binary form.
@@ -48,14 +48,19 @@ public interface ChainedStreamBuilder {
    * <pre>
    *   {@code
    *
-   *    LogSequenceNumber lsn = getCurrentLSN();
+   *    pgConnection
+   *        .getReplicationAPI()
+   *        .createReplicationSlot()
+   *        .physical()
+   *        .withSlotName("mySlot")
+   *        .make();
    *
    *    PGReplicationStream stream =
    *        pgConnection
    *            .getReplicationAPI()
    *            .replicationStream()
    *            .physical()
-   *            .withStartPosition(lsn)
+   *            .withSlotName("mySlot")
    *            .start();
    *
    *    while (true) {
@@ -67,5 +72,5 @@ public interface ChainedStreamBuilder {
    * </pre>
    * @return not null fluent api
    */
-  ChainedPhysicalStreamBuilder physical();
+  ChainedPhysicalCreateSlotBuilder physical();
 }

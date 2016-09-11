@@ -10,7 +10,7 @@ import org.postgresql.fastpath.Fastpath;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.largeobject.LargeObjectManager;
-import org.postgresql.replication.fluent.ChainedStreamBuilder;
+import org.postgresql.replication.PGReplicationConnection;
 import org.postgresql.util.PGobject;
 
 import java.sql.SQLException;
@@ -195,12 +195,7 @@ public interface PGConnection {
   void setAutosave(AutoSave autoSave);
 
   /**
-   * Api available only if connection was create with required for replication properties: {@link
-   * PGProperty#REPLICATION} and {@link PGProperty#ASSUME_MIN_SERVER_VERSION}. Without it property
-   * building replication stream fail with exception. After start replication stream this connection
-   * not available to use for another queries until replication stream will not close.
-   *
-   * @return not null fluent api for build replication stream
+   * @return replication API for the current connection
    */
-  ChainedStreamBuilder replicationStream();
+  PGReplicationConnection getReplicationAPI();
 }

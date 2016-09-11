@@ -29,8 +29,8 @@ import org.postgresql.core.Utils;
 import org.postgresql.core.Version;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.largeobject.LargeObjectManager;
-import org.postgresql.replication.fluent.ChainedStreamBuilder;
-import org.postgresql.replication.fluent.ReplicationStreamBuilder;
+import org.postgresql.replication.PGReplicationConnection;
+import org.postgresql.replication.PGReplicationConnectionImpl;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.LruCache;
@@ -1147,8 +1147,9 @@ public class PgConnection implements BaseConnection {
     return fieldMetadataCache;
   }
 
-  public ChainedStreamBuilder replicationStream() {
-    return new ReplicationStreamBuilder(this);
+  @Override
+  public PGReplicationConnection getReplicationAPI() {
+    return new PGReplicationConnectionImpl(this);
   }
 
   private static void appendArray(StringBuilder sb, Object elements, char delim) {
@@ -1307,7 +1308,7 @@ public class PgConnection implements BaseConnection {
       return false;
     }
     try {
-      if(replicationConnection) {
+      if (replicationConnection) {
         Statement statement = createStatement();
         statement.execute("IDENTIFY_SYSTEM");
         statement.close();

@@ -109,6 +109,7 @@ public class LogicalReplicationTest {
     try {
       PGReplicationStream stream =
           pgConnection
+              .getReplicationAPI()
               .replicationStream()
               .logical()
               .withSlotName("notExistSlotName")
@@ -140,6 +141,7 @@ public class LogicalReplicationTest {
 
     PGReplicationStream stream =
         pgConnection
+            .getReplicationAPI()
             .replicationStream()
             .logical()
             .withSlotName(SLOT_NAME)
@@ -172,6 +174,7 @@ public class LogicalReplicationTest {
 
     PGReplicationStream stream =
         pgConnection
+            .getReplicationAPI()
             .replicationStream()
             .logical()
             .withSlotName(SLOT_NAME)
@@ -220,6 +223,7 @@ public class LogicalReplicationTest {
 
     PGReplicationStream stream =
         pgConnection
+            .getReplicationAPI()
             .replicationStream()
             .logical()
             .withSlotName(SLOT_NAME)
@@ -250,6 +254,7 @@ public class LogicalReplicationTest {
 
     PGReplicationStream stream =
         pgConnection
+            .getReplicationAPI()
             .replicationStream()
             .logical()
             .withSlotName(SLOT_NAME)
@@ -280,6 +285,7 @@ public class LogicalReplicationTest {
 
     PGReplicationStream stream =
         pgConnection
+            .getReplicationAPI()
             .replicationStream()
             .logical()
             .withSlotName(SLOT_NAME)
@@ -307,6 +313,7 @@ public class LogicalReplicationTest {
 
     PGReplicationStream stream =
         pgConnection
+            .getReplicationAPI()
             .replicationStream()
             .logical()
             .withSlotName(SLOT_NAME)
@@ -334,7 +341,16 @@ public class LogicalReplicationTest {
     );
   }
 
+  /**
+   * <p>Bug in postgreSQL that should be fixed in 10 version after code review patch <a
+   * href="http://www.postgresql.org/message-id/CAFgjRd3hdYOa33m69TbeOfNNer2BZbwa8FFjt2V5VFzTBvUU3w@mail.gmail.com">
+   * Stopping logical replication protocol</a>.
+   *
+   * <p>If you try to run it test on version before 10 they fail with time out, because postgresql
+   * wait new changes and until waiting messages from client ignores.
+   */
   @Test(timeout = 10000)
+  @HaveMinimalServerVersion("10.1")
   public void testDuringSendBigTransactionConnectionCloseSlotStatusNotActive() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
@@ -347,6 +363,7 @@ public class LogicalReplicationTest {
 
     PGReplicationStream stream =
         pgConnection
+            .getReplicationAPI()
             .replicationStream()
             .logical()
             .withStartPosition(lsn)
@@ -361,6 +378,12 @@ public class LogicalReplicationTest {
     replConnection.close();
 
     boolean isActive = isActiveOnView();
+    //we doesn't wait replay from server about stop connection that why some delay exists on update view and should wait some time before check view
+    if (!isActive) {
+      TimeUnit.SECONDS.sleep(2L);
+      isActive = isActiveOnView();
+    }
+
     assertThat(
         "Execute close method on Connection should lead to stop replication as fast as possible, "
             + "as result we wait that on view pg_replication_slots status for slot will change to no active",
@@ -390,6 +413,7 @@ public class LogicalReplicationTest {
 
     PGReplicationStream stream =
         pgConnection
+            .getReplicationAPI()
             .replicationStream()
             .logical()
             .withStartPosition(lsn)
@@ -423,6 +447,7 @@ public class LogicalReplicationTest {
 
     PGReplicationStream stream =
         pgConnection
+            .getReplicationAPI()
             .replicationStream()
             .logical()
             .withSlotName(SLOT_NAME)
@@ -440,6 +465,7 @@ public class LogicalReplicationTest {
 
     stream =
         pgConnection
+            .getReplicationAPI()
             .replicationStream()
             .logical()
             .withSlotName(SLOT_NAME)
@@ -472,6 +498,7 @@ public class LogicalReplicationTest {
 
     PGReplicationStream stream =
         pgConnection
+            .getReplicationAPI()
             .replicationStream()
             .logical()
             .withSlotName(SLOT_NAME)
@@ -499,6 +526,7 @@ public class LogicalReplicationTest {
 
     PGReplicationStream stream =
         pgConnection
+            .getReplicationAPI()
             .replicationStream()
             .logical()
             .withSlotName(SLOT_NAME)
@@ -528,6 +556,7 @@ public class LogicalReplicationTest {
 
     PGReplicationStream stream =
         pgConnection
+            .getReplicationAPI()
             .replicationStream()
             .logical()
             .withSlotName(SLOT_NAME)
@@ -571,6 +600,7 @@ public class LogicalReplicationTest {
 
               PGReplicationStream stream =
                   pgConnection
+                      .getReplicationAPI()
                       .replicationStream()
                       .logical()
                       .withSlotName(SLOT_NAME)
