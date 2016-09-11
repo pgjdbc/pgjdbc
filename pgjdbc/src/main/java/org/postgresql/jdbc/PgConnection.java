@@ -137,6 +137,11 @@ public class PgConnection implements BaseConnection {
   private volatile Timer cancelTimer = null;
 
   private PreparedStatement checkConnectionQuery;
+  /**
+   * Replication protocol in current version postgresql(10devel) supports a limited number of
+   * commands.
+   */
+  private boolean replicationConnection;
 
   private final LruCache<FieldMetadata.Key, FieldMetadata> fieldMetadataCache;
 
@@ -341,6 +346,8 @@ public class PgConnection implements BaseConnection {
             Math.max(0, PGProperty.DATABASE_METADATA_CACHE_FIELDS.getInt(info)),
             Math.max(0, PGProperty.DATABASE_METADATA_CACHE_FIELDS_MIB.getInt(info) * 1024 * 1024),
         false);
+
+    replicationConnection = PGProperty.REPLICATION.get(info) != null;
   }
 
   private Set<Integer> getOidSet(String oidList) throws PSQLException {
@@ -1300,11 +1307,17 @@ public class PgConnection implements BaseConnection {
       return false;
     }
     try {
-      if (checkConnectionQuery == null) {
-        checkConnectionQuery = prepareStatement("");
+      if(replicationConnection) {
+        Statement statement = createStatement();
+        statement.execute("IDENTIFY_SYSTEM");
+        statement.close();
+      } else {
+        if (checkConnectionQuery == null) {
+          checkConnectionQuery = prepareStatement("");
+        }
+        checkConnectionQuery.setQueryTimeout(timeout);
+        checkConnectionQuery.executeUpdate();
       }
-      checkConnectionQuery.setQueryTimeout(timeout);
-      checkConnectionQuery.executeUpdate();
       return true;
     } catch (SQLException e) {
       if (PSQLState.IN_FAILED_SQL_TRANSACTION.getState().equals(e.getSQLState())) {

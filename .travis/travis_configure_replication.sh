@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -x -e
 
-if [ ${REPLICATION} = 'Y' ]
+if [ "${REPLICATION}" = "Y" ]
 then
-    if [ ${PG_VERSION} = 'HEAD' ]
+    if [ "${PG_VERSION}" = "HEAD" ]
     then
         PG_VERSION="9.5"
     fi
