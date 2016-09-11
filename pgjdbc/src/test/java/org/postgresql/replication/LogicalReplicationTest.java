@@ -20,7 +20,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.junit.runners.model.TestTimedOutException;
 
 import java.nio.ByteBuffer;
 import java.sql.Connection;
@@ -31,7 +30,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @HaveMinimalServerVersion("9.4")
 public class LogicalReplicationTest {
@@ -45,6 +49,14 @@ public class LogicalReplicationTest {
   private Connection replConnection;
   private Connection sqlConnection;
 
+  private static String toString(ByteBuffer buffer) {
+    int offset = buffer.arrayOffset();
+    byte[] source = buffer.array();
+    int length = source.length - offset;
+
+    return new String(source, offset, length);
+  }
+
   @Before
   public void setUp() throws Exception {
     sqlConnection = TestUtil.openDB();
@@ -57,8 +69,6 @@ public class LogicalReplicationTest {
         "SELECT * FROM pg_create_logical_replication_slot('" + SLOT_NAME + "', 'test_decoding')");
     st.close();
   }
-
-
 
   @After
   public void tearDown() throws Exception {
@@ -78,8 +88,9 @@ public class LogicalReplicationTest {
       //slot is active
       if (PSQLState.OBJECT_IN_USE.equals(new PSQLState(e.getSQLState()))) {
         Statement terminateStatement = sqlConnection.createStatement();
-        terminateStatement.execute("select pg_terminate_backend(active_pid) from pg_replication_slots "
-            + "where active = true and slot_name='" + SLOT_NAME + "'"
+        terminateStatement.execute(
+            "select pg_terminate_backend(active_pid) from pg_replication_slots "
+                + "where active = true and slot_name='" + SLOT_NAME + "'"
         );
         terminateStatement.close();
         dropReplicationSlot();
@@ -111,7 +122,7 @@ public class LogicalReplicationTest {
       String state = e.getSQLState();
 
       assertThat("When replication slot doesn't exists, server can't start replication "
-          + "and should throw exception about it",
+              + "and should throw exception about it",
           state, equalTo(PSQLState.UNDEFINED_OBJECT.getState())
       );
     }
@@ -255,15 +266,15 @@ public class LogicalReplicationTest {
   }
 
   /**
-   * <p>Bug in postgreSQL that should be fixed in 9.7 version after code review patch <a
+   * <p>Bug in postgreSQL that should be fixed in 10 version after code review patch <a
    * href="http://www.postgresql.org/message-id/CAFgjRd3hdYOa33m69TbeOfNNer2BZbwa8FFjt2V5VFzTBvUU3w@mail.gmail.com">
    * Stopping logical replication protocol</a>.
    *
-   * <p>If you try to run it test on version before 9.7 they fail with time out, because postgresql
+   * <p>If you try to run it test on version before 10 they fail with time out, because postgresql
    * wait new changes and until waiting messages from client ignores.
    */
   @Test(timeout = 1000)
-  @HaveMinimalServerVersion("9.7")
+  @HaveMinimalServerVersion("10.1")
   public void testAfterCloseReplicationStreamDBSlotStatusNotActive() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
@@ -310,6 +321,12 @@ public class LogicalReplicationTest {
     replConnection.close();
 
     isActive = isActiveOnView();
+    //we doesn't wait replay from server about stop connection that why some delay exists on update view and should wait some time before check view
+    if (!isActive) {
+      TimeUnit.MILLISECONDS.sleep(200L);
+      isActive = isActiveOnView();
+    }
+
     assertThat(
         "Execute close method on Connection should lead to stop replication as fast as possible, "
             + "as result we wait that on view pg_replication_slots status for slot will change to no active",
@@ -351,7 +368,16 @@ public class LogicalReplicationTest {
     );
   }
 
+  /**
+   * <p>Bug in postgreSQL that should be fixed in 10 version after code review patch <a
+   * href="http://www.postgresql.org/message-id/CAFgjRd3hdYOa33m69TbeOfNNer2BZbwa8FFjt2V5VFzTBvUU3w@mail.gmail.com">
+   * Stopping logical replication protocol</a>.
+   *
+   * <p>If you try to run it test on version before 10 they fail with time out, because postgresql
+   * wait new changes and until waiting messages from client ignores.
+   */
   @Test(timeout = 60000)
+  @HaveMinimalServerVersion("10.1")
   public void testDuringSendBigTransactionReplicationStreamCloseNotActive() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
@@ -376,7 +402,7 @@ public class LogicalReplicationTest {
     stream.read();
 
     stream.close();
-
+    //after replay from server that replication stream stopped, view already should be updated
     boolean isActive = isActiveOnView();
     assertThat("Execute close method on PGREplicationStream should lead to stop replication, "
             + "as result we wait that on view pg_replication_slots status for slot will change to no active",
@@ -529,32 +555,66 @@ public class LogicalReplicationTest {
     );
   }
 
-  @Test(timeout = 5000 /* default client keep alive 10s*/)
+  @Test(timeout = 10000 /* default client keep alive 10s*/)
   public void testAvoidTimeoutDisconnectWithDefaultStatusInterval() throws Exception {
-    exception.expect(TestTimedOutException.class);
-    exception.expectMessage(CoreMatchers.containsString("test timed out after"));
+    final int statusInterval = getKeepAliveTimeout();
 
-    PGConnection pgConnection = (PGConnection) replConnection;
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    Future future = null;
+    boolean done;
+    try {
+      future =
+          executor.submit(new Callable<Object>() {
+            @Override
+            public Object call() throws Exception {
+              PGConnection pgConnection = (PGConnection) replConnection;
 
-    PGReplicationStream stream =
-        pgConnection
-            .replicationStream()
-            .logical()
-            .withSlotName(SLOT_NAME)
-            .withStartPosition(getCurrentLSN())
-            .start();
+              PGReplicationStream stream =
+                  pgConnection
+                      .replicationStream()
+                      .logical()
+                      .withSlotName(SLOT_NAME)
+                      .withStartPosition(getCurrentLSN())
+                      .withStatusInterval(statusInterval, TimeUnit.SECONDS)
+                      .start();
 
-    while (!Thread.interrupted()) {
-      ByteBuffer buffer = stream.read();
-      System.out.println("Received: " + toString(buffer));
+              while (!Thread.interrupted()) {
+                stream.read();
+              }
+
+              return null;
+            }
+          });
+
+      future.get(5, TimeUnit.SECONDS);
+      done = future.isDone();
+    } catch (TimeoutException timeout) {
+      done = future.isDone();
+    } finally {
+      executor.shutdownNow();
     }
+
+    assertThat(
+        "ReplicationStream should periodically send keep alive message to postgresql to avoid disconnect from server",
+        done, CoreMatchers.equalTo(false)
+    );
+  }
+
+  private int getKeepAliveTimeout() throws SQLException {
+    Statement statement = sqlConnection.createStatement();
+    ResultSet resultSet = statement.executeQuery("select setting from pg_settings where name = 'wal_sender_timeout'");
+    int result = 0;
+    if (resultSet.next()) {
+      result = resultSet.getInt(1);
+    }
+
+    return result;
   }
 
   private boolean isActiveOnView() throws SQLException {
     boolean result = false;
     Statement st = sqlConnection.createStatement();
-    ResultSet
-        rs =
+    ResultSet rs =
         st.executeQuery("select * from pg_replication_slots where slot_name = '" + SLOT_NAME + "'");
     if (rs.next()) {
       result = rs.getBoolean("active");
@@ -606,14 +666,6 @@ public class LogicalReplicationTest {
     }
 
     return result;
-  }
-
-  private String toString(ByteBuffer buffer) {
-    int offset = buffer.arrayOffset();
-    byte[] source = buffer.array();
-    int length = source.length - offset;
-
-    return new String(source, offset, length);
   }
 
   private LogSequenceNumber getCurrentLSN() throws SQLException {
