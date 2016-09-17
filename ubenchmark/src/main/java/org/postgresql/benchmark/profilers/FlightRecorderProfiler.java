@@ -15,9 +15,10 @@ import org.openjdk.jmh.results.BenchmarkResult;
 import org.openjdk.jmh.results.Result;
 
 import java.io.File;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -44,10 +45,17 @@ public class FlightRecorderProfiler implements ExternalProfiler {
 
     long duration =
         getDurationSeconds(params.getWarmup()) + getDurationSeconds(params.getMeasurement());
-    return Arrays.asList(
-        "-XX:+UnlockCommercialFeatures", "-XX:+FlightRecorder",
-        "-XX:StartFlightRecording=settings=profile,duration=" + duration + "s,filename="
-            + params.getBenchmark() + "_" + sb + ".jfr");
+    List<String> opts = new ArrayList<>();
+    opts.add("-XX:+UnlockCommercialFeatures");
+    opts.add("-XX:+FlightRecorder");
+    if (!System.getProperty("java.version").startsWith("1.7")) {
+      // DebugNonSafepoints requires java 1.8u40+
+      opts.add("-XX:+UnlockDiagnosticVMOptions");
+      opts.add("-XX:+DebugNonSafepoints");
+    }
+    opts.add("-XX:StartFlightRecording=settings=profile,duration=" + duration + "s,filename="
+        + params.getBenchmark() + "_" + sb + ".jfr");
+    return opts;
   }
 
   private static long getDurationSeconds(IterationParams warmup) {
