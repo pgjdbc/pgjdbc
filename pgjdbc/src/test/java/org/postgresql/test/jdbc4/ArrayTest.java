@@ -136,10 +136,10 @@ public class ArrayTest extends BaseTest4 {
     Array arr = rs.getArray(1);
     ResultSet arrRs = arr.getResultSet();
     Assert.assertTrue(arrRs.next());
-    Assert.assertEquals(in[0].getValue(), arrRs.getObject(2));
+    Assert.assertEquals(in[0], arrRs.getObject(2));
 
     Assert.assertTrue(arrRs.next());
-    Assert.assertEquals(in[1].getValue(), arrRs.getObject(2));
+    Assert.assertEquals(in[1], arrRs.getObject(2));
   }
 
   @Test

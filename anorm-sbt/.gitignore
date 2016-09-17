@@ -1,0 +1,7 @@
+.idea/
+target/
+logs/
+.ivy2
+*.swp
+*.swo
+.DS_STORE

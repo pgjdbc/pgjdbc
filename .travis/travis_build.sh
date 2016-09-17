@@ -33,7 +33,10 @@ then
     MVN_ARGS="$MVN_ARGS -Dcurrent.jdk=1.9 -Djavac.target=1.9"
 fi
 
-if [[ "$JDOC" == *"Y"* ]];
+if [[ "$TEST_CLIENTS" ]];
+then
+    mvn clean install -B -V -DskipTests $MVN_CUSTOM_ARGS
+elif [[ "$JDOC" == *"Y"* ]];
 then
     # Build javadocs for Java 8 only
     mvn ${MVN_ARGS} -P ${MVN_PROFILES},release-artifacts
@@ -49,6 +52,28 @@ then
     mvn ${MVN_ARGS} -P ${MVN_PROFILES},skip-unzip-jdk
 else
     mvn ${MVN_ARGS} -P ${MVN_PROFILES}
+fi
+
+# Run Scala-based and Clojure-based tests
+if [[ "${TEST_CLIENTS}" == *"Y" ]];
+then
+  mvn -DskipTests install
+
+  mkdir -p $HOME/.sbt/launchers/0.13.12
+  curl -L -o $HOME/.sbt/launchers/0.13.12/sbt-launch.jar http://dl.bintray.com/typesafe/ivy-releases/org.scala-sbt/sbt-launch/0.13.12/sbt-launch.jar
+
+  PROJECT_VERSION=$(mvn -B -N org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep -v '\[')
+
+  cd anorm-sbt
+  sed -i "s/\"org.postgresql\" % \"postgresql\" % \"[^\"]*\"/\"org.postgresql\" % \"postgresql\" % \"${PROJECT_VERSION}\"/" build.sbt
+  sbt test
+
+  cd ..
+
+  # Uncomment when https://github.com/clojure/java.jdbc/pull/44 is merged in
+  #git clone --depth=10 https://github.com/clojure/java.jdbc.git
+  #cd java.jdbc
+  #TEST_DBS=postgres TEST_POSTGRES_USER=test TEST_POSTGRES_DBNAME=test mvn test -Djava.jdbc.test.pgjdbc.version=$PROJECT_VERSION
 fi
 
 if [[ "${COVERAGE}" == "Y" ]];

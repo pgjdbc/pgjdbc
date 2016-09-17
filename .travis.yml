@@ -35,7 +35,9 @@ script:
 
 before_cache:
   # No sense in caching current build artifacts
-  rm -rf $HOME/.m2/repository/org/postgresql
+  - rm -rf $HOME/.m2/repository/org/postgresql
+  - find $HOME/.ivy2 -name "ivydata-*.properties" -delete
+  - find $HOME/.sbt -name "*.lock" -delete
 
 # Skip default "mvn install" issued by Travis
 # Root project cannot be compiled with older JDKs, so it makes sense to just skip the step
@@ -43,7 +45,9 @@ install: true
 
 cache:
   directories:
-    - '$HOME/.m2/repository'
+    - $HOME/.m2/repository
+    - $HOME/.ivy2/cache
+    - $HOME/.sbt/boot/
 
 matrix:
   fast_finish: true
@@ -107,6 +111,12 @@ matrix:
       env:
         - PG_VERSION=9.4
         - MCENTRAL=Y
+    - jdk: oraclejdk8
+      addons:
+        postgresql: "9.4"
+      env:
+        - PG_VERSION=9.4
+        - TEST_CLIENTS=Y
     - jdk: oraclejdk8 # this will be overwritten by before_install above
       addons:
         postgresql: "9.4"
@@ -123,6 +133,7 @@ matrix:
         - PG_VERSION=9.4
         - QUERY_MODE=simple
         - COVERAGE=Y
+        - ANORM_SBT=Y
     - jdk: oraclejdk8
       addons:
         postgresql: "9.4"
