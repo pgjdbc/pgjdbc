@@ -102,6 +102,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private String lastSetSearchPathQuery;
 
+  /**
+   * The exception that caused the last transaction to fail.
+   */
+  private SQLException transactionFailCause;
+
   public QueryExecutorImpl(PGStream pgStream, String user, String database,
       int cancelSignalTimeout, Properties info, Logger logger) throws SQLException, IOException {
     super(logger, pgStream, user, database, cancelSignalTimeout, info);
@@ -2450,7 +2455,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       logger.debug(" <=BE ErrorMessage(" + errorMsg.toString() + ")");
     }
 
-    return new PSQLException(errorMsg);
+    PSQLException error = new PSQLException(errorMsg);
+    if (transactionFailCause == null) {
+      transactionFailCause = error;
+    } else {
+      error.initCause(transactionFailCause);
+    }
+    return error;
   }
 
   private SQLWarning receiveNoticeResponse() throws IOException {
@@ -2524,9 +2535,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // Update connection state.
     switch (tStatus) {
       case 'I':
+        transactionFailCause = null;
         setTransactionState(TransactionState.IDLE);
         break;
       case 'T':
+        transactionFailCause = null;
         setTransactionState(TransactionState.OPEN);
         break;
       case 'E':
