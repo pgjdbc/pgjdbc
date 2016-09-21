@@ -271,7 +271,8 @@ public class PgStatement implements Statement, BaseStatement {
 
   private boolean executeCachedSql(String sql, int flags, String[] columnNames) throws SQLException {
     PreferQueryMode preferQueryMode = connection.getPreferQueryMode();
-    boolean shouldUseParameterized = preferQueryMode.compareTo(PreferQueryMode.EXTENDED) >= 0;
+    // Simple statements should not replace ?, ? with $1, $2
+    boolean shouldUseParameterized = false;
     QueryExecutor queryExecutor = connection.getQueryExecutor();
     Object key = queryExecutor
         .createQueryKey(sql, replaceProcessingEnabled, shouldUseParameterized, columnNames);
@@ -663,7 +664,8 @@ public class PgStatement implements Statement, BaseStatement {
       batchParameters = new ArrayList<ParameterList>();
     }
 
-    boolean shouldUseParameterized = connection.getPreferQueryMode().compareTo(PreferQueryMode.EXTENDED) >= 0;
+    // Simple statements should not replace ?, ? with $1, $2
+    boolean shouldUseParameterized = false;
     CachedQuery cachedQuery = connection.createQuery(p_sql, replaceProcessingEnabled, shouldUseParameterized);
     batchStatements.add(cachedQuery.query);
     batchParameters.add(null);
