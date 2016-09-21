@@ -8,6 +8,7 @@
 
 package org.postgresql.core;
 
+import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.LruCache;
 
 import java.sql.SQLException;
@@ -56,7 +57,7 @@ class CachedQueryCreateAction implements LruCache.CreateAction<Object, CachedQue
       outParmBeforeFunc = false;
     }
     boolean isParameterized = key instanceof String || queryKey.isParameterized;
-    boolean splitStatements = isParameterized;
+    boolean splitStatements = isParameterized || queryExecutor.getPreferQueryMode().compareTo(PreferQueryMode.EXTENDED) >= 0;
 
     String[] returningColumns;
     if (key instanceof QueryWithReturningColumnsKey) {
