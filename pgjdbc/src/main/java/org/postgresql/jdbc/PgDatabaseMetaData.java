@@ -3151,12 +3151,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         ResultSet.CONCUR_READ_ONLY);
   }
 
-  @Override
   public long getMaxLogicalLobSize() throws SQLException {
     return 0;
   }
 
-  @Override
   public boolean supportsRefCursors() throws SQLException {
     return true;
   }
