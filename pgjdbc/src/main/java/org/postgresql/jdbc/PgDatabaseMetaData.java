@@ -1291,6 +1291,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
+  @Override
   public ResultSet getTables(String catalog, String schemaPattern, String tableNamePattern,
       String types[]) throws SQLException {
     String select;
@@ -1503,6 +1504,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     ht.put("NOSCHEMAS", "c.relkind = 'm'");
   }
 
+  @Override
   public ResultSet getSchemas() throws SQLException {
     return getSchemas(getJDBCMajorVersion(), null, null);
   }
@@ -1549,6 +1551,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
    * PostgreSQL does not support multiple catalogs from a single connection, so to reduce confusion
    * we only return the current catalog. {@inheritDoc}
    */
+  @Override
   public ResultSet getCatalogs() throws SQLException {
     Field f[] = new Field[1];
     List<byte[][]> v = new ArrayList<byte[][]>();
@@ -1560,21 +1563,21 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
+  @Override
   public ResultSet getTableTypes() throws SQLException {
     String types[] = new String[tableTypeClauses.size()];
-    Iterator<String> e = tableTypeClauses.keySet().iterator();
     int i = 0;
-    while (e.hasNext()) {
-      types[i++] = e.next();
+    for (String s : tableTypeClauses.keySet()) {
+      types[i++] = s;
     }
     sortStringArray(types);
 
     Field f[] = new Field[1];
     List<byte[][]> v = new ArrayList<byte[][]>();
     f[0] = new Field("TABLE_TYPE", Oid.VARCHAR);
-    for (i = 0; i < types.length; i++) {
+    for (String type : types) {
       byte[][] tuple = new byte[1][];
-      tuple[0] = connection.encodeString(types[i]);
+      tuple[0] = connection.encodeString(type);
       v.add(tuple);
     }
 
@@ -1806,12 +1809,14 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
+  @Override
   public ResultSet getColumns(String catalog, String schemaPattern,
       String tableNamePattern, String columnNamePattern) throws SQLException {
     return getColumns(getJDBCMajorVersion(), catalog, schemaPattern, tableNamePattern,
         columnNamePattern);
   }
 
+  @Override
   public ResultSet getColumnPrivileges(String catalog, String schema, String table,
       String columnNamePattern) throws SQLException {
     Field f[] = new Field[8];
@@ -1889,20 +1894,18 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         permissions.putAll(relPermissions);
       }
       String permNames[] = new String[permissions.size()];
-      Iterator<String> e = permissions.keySet().iterator();
       int i = 0;
-      while (e.hasNext()) {
-        permNames[i++] = e.next();
+      for (String s : permissions.keySet()) {
+        permNames[i++] = s;
       }
       sortStringArray(permNames);
-      for (i = 0; i < permNames.length; i++) {
-        byte[] privilege = connection.encodeString(permNames[i]);
-        Map<String, List<String[]>> grantees = permissions.get(permNames[i]);
+      for (String permName : permNames) {
+        byte[] privilege = connection.encodeString(permName);
+        Map<String, List<String[]>> grantees = permissions.get(permName);
         String granteeUsers[] = new String[grantees.size()];
-        Iterator<String> g = grantees.keySet().iterator();
         int k = 0;
-        while (g.hasNext()) {
-          granteeUsers[k++] = g.next();
+        for (String s : grantees.keySet()) {
+          granteeUsers[k++] = s;
         }
         for (int j = 0; j < grantees.size(); j++) {
           List<String[]> grantor = grantees.get(granteeUsers[j]);
@@ -1929,6 +1932,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
+  @Override
   public ResultSet getTablePrivileges(String catalog, String schemaPattern,
       String tableNamePattern) throws SQLException {
     Field f[] = new Field[7];
@@ -1973,20 +1977,18 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       String acl = rs.getString("relacl");
       Map<String, Map<String, List<String[]>>> permissions = parseACL(acl, owner);
       String permNames[] = new String[permissions.size()];
-      Iterator<String> e = permissions.keySet().iterator();
       int i = 0;
-      while (e.hasNext()) {
-        permNames[i++] = e.next();
+      for (String s : permissions.keySet()) {
+        permNames[i++] = s;
       }
       sortStringArray(permNames);
-      for (i = 0; i < permNames.length; i++) {
-        byte[] privilege = connection.encodeString(permNames[i]);
-        Map<String, List<String[]>> grantees = permissions.get(permNames[i]);
+      for (String permName : permNames) {
+        byte[] privilege = connection.encodeString(permName);
+        Map<String, List<String[]>> grantees = permissions.get(permName);
         String granteeUsers[] = new String[grantees.size()];
-        Iterator<String> g = grantees.keySet().iterator();
         int k = 0;
-        while (g.hasNext()) {
-          granteeUsers[k++] = g.next();
+        for (String s : grantees.keySet()) {
+          granteeUsers[k++] = s;
         }
         for (String granteeUser : granteeUsers) {
           List<String[]> grants = grantees.get(granteeUser);
@@ -2613,7 +2615,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
         int action = java.sql.DatabaseMetaData.importedKeyNoAction;
 
-        if (rule == null || "noaction".equals(rule)) {
+        if ("noaction".equals(rule)) {
           action = java.sql.DatabaseMetaData.importedKeyNoAction;
         }
         if ("cascade".equals(rule)) {
@@ -2899,7 +2901,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     } else {
       String select;
       String from;
-      String where = "";
+      String where;
 
       if (connection.haveMinimumServerVersion(ServerVersion.v7_3)) {
         select = "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, ";
@@ -3129,7 +3131,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
 
-  public java.sql.Connection getConnection() throws SQLException {
+  @Override
+  public Connection getConnection() throws SQLException {
     return connection;
   }
 
@@ -3143,35 +3146,42 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return false;
   }
 
-  protected java.sql.Statement createMetaDataStatement() throws SQLException {
+  protected Statement createMetaDataStatement() throws SQLException {
     return connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
         ResultSet.CONCUR_READ_ONLY);
   }
 
+  @Override
   public long getMaxLogicalLobSize() throws SQLException {
     return 0;
   }
 
+  @Override
   public boolean supportsRefCursors() throws SQLException {
     return true;
   }
 
+  @Override
   public RowIdLifetime getRowIdLifetime() throws SQLException {
     throw org.postgresql.Driver.notImplemented(this.getClass(), "getRowIdLifetime()");
   }
 
+  @Override
   public ResultSet getSchemas(String catalog, String schemaPattern) throws SQLException {
     return getSchemas(getJDBCMajorVersion(), catalog, schemaPattern);
   }
 
+  @Override
   public boolean supportsStoredFunctionsUsingCallSyntax() throws SQLException {
     return true;
   }
 
+  @Override
   public boolean autoCommitFailureClosesAllResultSets() throws SQLException {
     return false;
   }
 
+  @Override
   public ResultSet getClientInfoProperties() throws SQLException {
     Field f[] = new Field[4];
     f[0] = new Field("NAME", Oid.VARCHAR);

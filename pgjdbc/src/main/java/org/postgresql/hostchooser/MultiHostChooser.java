@@ -40,6 +40,7 @@ public class MultiHostChooser implements HostChooser {
     loadBalance = parseBoolean(info.getProperty("loadBalanceHosts", "false"));
   }
 
+  @Override
   public Iterator<HostSpec> iterator() {
     List<HostSpecStatus> candidates =
         GlobalHostStatusTracker.getCandidateHosts(hostSpecs, targetServerType, hostRecheckTime);
