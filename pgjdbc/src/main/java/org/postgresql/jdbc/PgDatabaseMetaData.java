@@ -139,7 +139,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
    * Retrieves the name of this database product. We hope that it is PostgreSQL, so we return that
    * explicitly.
    *
+<<<<<<< HEAD
    * @return "PostgreSQL"
+=======
+   * @return the database product name
+   * @throws SQLException if a database access error occurs
+>>>>>>> Filter DatabaseMetaData to show only the items for which the current user has access.
    */
   @Override
   public String getDatabaseProductName() throws SQLException {
@@ -182,7 +187,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   /**
-   * Does the database use a file for each table? Well, not really, since it doesn't use local files.
+   * Does the database use a file for each table? Well, not really, since it doesn't use local
+   * files.
    *
    * @return true if so
    * @throws SQLException if a database access error occurs
@@ -973,6 +979,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     }
     if (procedureNamePattern != null && !procedureNamePattern.isEmpty()) {
       sql += " AND p.proname LIKE " + escapeQuotes(procedureNamePattern);
+
     }
     sql += " ORDER BY PROCEDURE_SCHEM, PROCEDURE_NAME, p.oid::text ";
 
@@ -1538,7 +1545,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       }
 
       tuple[10] = connection.encodeString(Integer.toString(rs.getBoolean("attnotnull")
-          ? java.sql.DatabaseMetaData.columnNoNulls : java.sql.DatabaseMetaData.columnNullable)); // Nullable
+          ? java.sql.DatabaseMetaData.columnNoNulls
+          : java.sql.DatabaseMetaData.columnNullable)); // Nullable
       tuple[11] = rs.getBytes("description"); // Description (if any)
       tuple[12] = rs.getBytes("adsrc"); // Column default
       tuple[13] = null; // sql data type (unused)
@@ -1767,7 +1775,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
    * Add the user described by the given acl to the Lists of users with the privileges described by
    * the acl.
    */
-  private static void addACLPrivileges(String acl, Map<String, Map<String, List<String[]>>> privileges) {
+  private static void addACLPrivileges(String acl,
+      Map<String, Map<String, List<String[]>>> privileges) {
     int equalIndex = acl.lastIndexOf("=");
     int slashIndex = acl.lastIndexOf("/");
     if (equalIndex == -1) {
@@ -1870,7 +1879,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
    * For instance: {@code SELECT -> user1 -> list of [grantor, grantable]}
    *
    * @param aclArray ACL array
-   * @param owner owner
+   * @param owner    owner
    * @return a Map mapping the SQL permission name
    */
   public Map<String, Map<String, List<String[]>>> parseACL(String aclArray, String owner) {
@@ -2032,11 +2041,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   /**
    * @param primaryCatalog primary catalog
-   * @param primarySchema primary schema
-   * @param primaryTable if provided will get the keys exported by this table
+   * @param primarySchema  primary schema
+   * @param primaryTable   if provided will get the keys exported by this table
    * @param foreignCatalog foreign catalog
-   * @param foreignSchema foreign schema
-   * @param foreignTable if provided will get the keys imported by this table
+   * @param foreignSchema  foreign schema
+   * @param foreignTable   if provided will get the keys imported by this table
    * @return ResultSet
    * @throws SQLException if something wrong happens
    */
@@ -2135,7 +2144,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   public ResultSet getCrossReference(String primaryCatalog, String primarySchema,
       String primaryTable, String foreignCatalog, String foreignSchema, String foreignTable)
-          throws SQLException {
+      throws SQLException {
     return getImportedExportedKeys(primaryCatalog, primarySchema, primaryTable, foreignCatalog,
         foreignSchema, foreignTable);
   }
@@ -2481,7 +2490,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     }
     sql += toAdd.toString();
     if(connection.getHideUnprivilegedObjects() && connection.haveMinimumServerVersion(ServerVersion.v9_2)) {
-     sql += " AND has_type_privilege(t.oid, 'USAGE')";
+      sql += " AND has_type_privilege(t.oid, 'USAGE')";
     }
     sql += " order by data_type, type_schem, type_name";
     return createMetaDataStatement().executeQuery(sql);
