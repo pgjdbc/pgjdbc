@@ -49,6 +49,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   private int NAMEDATALEN = 0; // length for name datatype
   private int INDEX_MAX_KEYS = 0; // maximum number of keys in an index.
+
   protected int getMaxIndexKeys() throws SQLException {
     if (INDEX_MAX_KEYS == 0) {
       String sql;
