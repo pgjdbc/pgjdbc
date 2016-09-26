@@ -9,6 +9,7 @@
 package org.postgresql.jdbc;
 
 import org.postgresql.Driver;
+import org.postgresql.PGProperty;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
@@ -53,7 +54,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   private int NAMEDATALEN = 0; // length for name datatype
   private int INDEX_MAX_KEYS = 0; // maximum number of keys in an index.
-
   protected int getMaxIndexKeys() throws SQLException {
     if (INDEX_MAX_KEYS == 0) {
       String sql;
@@ -1011,6 +1011,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       if (procedureNamePattern != null) {
         sql += " AND p.proname LIKE " + escapeQuotes(procedureNamePattern);
       }
+      if(connection.getHideUnprivilegedObjects()) {
+        sql += " AND has_function_privilege(p.oid,'EXECUTE')";
+      }
       sql += " ORDER BY PROCEDURE_SCHEM, PROCEDURE_NAME, p.oid::text ";
     } else if (connection.haveMinimumServerVersion(ServerVersion.v7_1)) {
       sql =
@@ -1341,6 +1344,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       if (schemaPattern != null && !"".equals(schemaPattern)) {
         select += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
       }
+      if(connection.getHideUnprivilegedObjects()) {
+        select += " AND has_table_privilege(c.oid, "
+            + " 'SELECT, INSERT, UPDATE, DELETE, RULE, REFERENCES, TRIGGER')";
+      }
       orderby = " ORDER BY TABLE_TYPE,TABLE_SCHEM,TABLE_NAME ";
     } else {
       useSchemas = "NOSCHEMAS";
@@ -1531,6 +1538,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
               + tempSchema + ", 'pg_temp_', 'pg_toast_temp_')) ";
       if (schemaPattern != null && !"".equals(schemaPattern)) {
         sql += " AND nspname LIKE " + escapeQuotes(schemaPattern);
+      }
+      if(connection.getHideUnprivilegedObjects()) {
+        sql += " AND has_schema_privilege(nspname, 'USAGE, CREATE')";
       }
       sql += " ORDER BY TABLE_SCHEM";
     } else {
@@ -2761,6 +2771,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       sql = "SELECT t.typname,t.oid FROM pg_catalog.pg_type t"
           + " JOIN pg_catalog.pg_namespace n ON (t.typnamespace = n.oid) "
           + " WHERE n.nspname  != 'pg_toast'";
+       if(connection.getHideUnprivilegedObjects() && connection.haveMinimumServerVersion(ServerVersion.v9_2)) {
+        sql += " AND has_type_privilege(t.oid, 'USAGE')";
+      }
     } else {
       sql = "SELECT typname,oid FROM pg_type"
           + " WHERE NOT (typname ~ '^pg_toast_') ";
@@ -3124,6 +3137,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       toAdd += " and n.nspname like " + escapeQuotes(schemaPattern);
     }
     sql += toAdd;
+    if(connection.getHideUnprivilegedObjects() && connection.haveMinimumServerVersion(ServerVersion.v9_2)) {
+     sql += " AND has_type_privilege(t.oid, 'USAGE')";
+    }
     sql += " order by data_type, type_schem, type_name";
     return createMetaDataStatement().executeQuery(sql);
   }

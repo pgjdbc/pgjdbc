@@ -386,7 +386,12 @@ public enum PGProperty {
    * Configure optimization to enable batch insert re-writing.
    */
   REWRITE_BATCHED_INSERTS ("reWriteBatchedInserts", "false",
-      "Enable optimization to rewrite and collapse compatible INSERT statements that are batched.");
+      "Enable optimization to rewrite and collapse compatible INSERT statements that are batched."),
+  /**
+   * Enable mode to filter out the names of database objects for which the current user has no privileges granted from appearing in the DatabaseMetaData returned by the driver.
+   */
+  HIDE_UNPRIVILEGED_OBJECTS("hideUnprivilegedObjects", "false",
+        "Enable hiding of database objects for which the current user has no privileges granted from the DatabaseMetaData");
 
   private String _name;
   private String _defaultValue;
