@@ -419,7 +419,12 @@ public enum PGProperty {
           + "to the database specified in the dbname parameter, "
           + "which will allow the connection to be used for logical replication "
           + "from that database. "
-          + "(backend >= 9.4)");
+          + "(backend >= 9.4)"),
+  /**
+   * Enable mode to filter out the names of database objects for which the current user has no privileges granted from appearing in the DatabaseMetaData returned by the driver.
+   */
+  HIDE_UNPRIVILEGED_OBJECTS("hideUnprivilegedObjects", "false",
+        "Enable hiding of database objects for which the current user has no privileges granted from the DatabaseMetaData");
 
   private String _name;
   private String _defaultValue;
