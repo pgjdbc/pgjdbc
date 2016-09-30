@@ -15,6 +15,8 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import org.postgresql.PGProperty;
+import org.postgresql.core.ServerVersion;
+import org.postgresql.jdbc.PgConnection;
 import org.postgresql.test.TestUtil;
 
 import org.junit.AfterClass;
@@ -30,6 +32,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
+;
+
 /**
  * Tests that database objects for which the current user has no privileges are filtered out from
  * the DatabaseMetaData depending on whether the connection parameter hideUnprivilegedObjects is
@@ -40,6 +44,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
   private static Connection hidingCon;
   private static Connection nonhidingCon;
   private static Connection privilegedCon;
+  private static PgConnection pgConnection;
   private static DatabaseMetaData hidingDatabaseMetaData;
   private static DatabaseMetaData nonhidingDatabaseMetaData;
 
@@ -47,6 +52,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
   public static void setUp() throws Exception {
     Properties props = new Properties();
     privilegedCon = TestUtil.openPrivilegedDB();
+    pgConnection = privilegedCon.unwrap(PgConnection.class);
     Statement stmt = privilegedCon.createStatement();
 
     createTestDataObjectsWithRangeOfPrivilegesInSchema("high_privileges_schema");
@@ -105,29 +111,32 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
     stmt.executeUpdate(
         "CREATE OR REPLACE VIEW " + schema + "." + "no_grants_view AS SELECT name FROM " + schema
             + "." + "owned_table");
-    stmt.executeUpdate(
-        "CREATE TYPE " + schema + "." + "usage_granted_composite_type AS (f1 int, f2 text)");
-    stmt.executeUpdate(
-        "CREATE TYPE " + schema + "." + "no_grants_composite_type AS (f1 int, f2 text)");
-    stmt.executeUpdate(
-        "CREATE DOMAIN " + schema + "." + "usage_granted_us_postal_code_domain CHAR(5) NOT NULL");
-    stmt.executeUpdate(
-        "CREATE DOMAIN " + schema + "." + "no_grants_us_postal_code_domain AS CHAR(5) NOT NULL");
-    stmt.executeUpdate(
-        "REVOKE ALL ON TYPE " + schema + "." + "usage_granted_composite_type FROM public RESTRICT");
-    stmt.executeUpdate(
-        "REVOKE ALL ON TYPE " + schema + "." + "no_grants_composite_type FROM public RESTRICT");
-    stmt.executeUpdate("GRANT USAGE on TYPE " + schema + "." + "usage_granted_composite_type TO "
-        + TestUtil.getUser());
-    stmt.executeUpdate(
-        "REVOKE ALL ON TYPE " + schema + "."
-            + "usage_granted_us_postal_code_domain FROM public RESTRICT");
-    stmt.executeUpdate(
-        "REVOKE ALL ON TYPE " + schema + "."
-            + "no_grants_us_postal_code_domain FROM public RESTRICT");
-    stmt.executeUpdate(
-        "GRANT USAGE on TYPE " + schema + "." + "usage_granted_us_postal_code_domain TO "
-            + TestUtil.getUser());
+    if (pgConnection.haveMinimumServerVersion(ServerVersion.v9_2)) {
+      stmt.executeUpdate(
+          "CREATE TYPE " + schema + "." + "usage_granted_composite_type AS (f1 int, f2 text)");
+      stmt.executeUpdate(
+          "CREATE TYPE " + schema + "." + "no_grants_composite_type AS (f1 int, f2 text)");
+      stmt.executeUpdate(
+          "CREATE DOMAIN " + schema + "." + "usage_granted_us_postal_code_domain CHAR(5) NOT NULL");
+      stmt.executeUpdate(
+          "CREATE DOMAIN " + schema + "." + "no_grants_us_postal_code_domain AS CHAR(5) NOT NULL");
+      stmt.executeUpdate(
+          "REVOKE ALL ON TYPE " + schema + "."
+              + "usage_granted_composite_type FROM public RESTRICT");
+      stmt.executeUpdate(
+          "REVOKE ALL ON TYPE " + schema + "." + "no_grants_composite_type FROM public RESTRICT");
+      stmt.executeUpdate("GRANT USAGE on TYPE " + schema + "." + "usage_granted_composite_type TO "
+          + TestUtil.getUser());
+      stmt.executeUpdate(
+          "REVOKE ALL ON TYPE " + schema + "."
+              + "usage_granted_us_postal_code_domain FROM public RESTRICT");
+      stmt.executeUpdate(
+          "REVOKE ALL ON TYPE " + schema + "."
+              + "no_grants_us_postal_code_domain FROM public RESTRICT");
+      stmt.executeUpdate(
+          "GRANT USAGE on TYPE " + schema + "." + "usage_granted_us_postal_code_domain TO "
+              + TestUtil.getUser());
+    }
     stmt.executeUpdate(
         "REVOKE ALL ON ALL FUNCTIONS IN SCHEMA " + schema + " FROM public RESTRICT");
     stmt.executeUpdate(
@@ -403,39 +412,41 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
    *  According to the JDBC JavaDoc, the applicable UDTs are: JAVA_OBJECT, STRUCT, or DISTINCT.
    */
   public void testGetUDTs() throws SQLException {
-    List<String> typesWithHiding = getTypeNames(hidingDatabaseMetaData, "high_privileges_schema");
-    assertThat(typesWithHiding,
-        hasItems("usage_granted_composite_type", "usage_granted_us_postal_code_domain"));
-    assertThat(typesWithHiding,
-        not(hasItems("no_grants_composite_type", "no_grants_us_postal_code_domain")));
-    List<String> typesWithNoHiding =
-        getTypeNames(nonhidingDatabaseMetaData, "high_privileges_schema");
-    assertThat(typesWithNoHiding,
-        hasItems("usage_granted_composite_type", "no_grants_composite_type",
-            "usage_granted_us_postal_code_domain", "no_grants_us_postal_code_domain"));
+    if (pgConnection.haveMinimumServerVersion(ServerVersion.v9_2)) {
+      List<String> typesWithHiding = getTypeNames(hidingDatabaseMetaData, "high_privileges_schema");
+      assertThat(typesWithHiding,
+          hasItems("usage_granted_composite_type", "usage_granted_us_postal_code_domain"));
+      assertThat(typesWithHiding,
+          not(hasItems("no_grants_composite_type", "no_grants_us_postal_code_domain")));
+      List<String> typesWithNoHiding =
+          getTypeNames(nonhidingDatabaseMetaData, "high_privileges_schema");
+      assertThat(typesWithNoHiding,
+          hasItems("usage_granted_composite_type", "no_grants_composite_type",
+              "usage_granted_us_postal_code_domain", "no_grants_us_postal_code_domain"));
 
-    typesWithHiding = getTypeNames(hidingDatabaseMetaData, "low_privileges_schema");
-    assertThat(typesWithHiding,
-        hasItems("usage_granted_composite_type", "usage_granted_us_postal_code_domain"));
-    assertThat(typesWithHiding,
-        not(hasItems("no_grants_composite_type", "no_grants_us_postal_code_domain")));
-    typesWithNoHiding =
-        getTypeNames(nonhidingDatabaseMetaData, "low_privileges_schema");
-    assertThat(typesWithNoHiding,
-        hasItems("usage_granted_composite_type", "no_grants_composite_type",
-            "usage_granted_us_postal_code_domain", "no_grants_us_postal_code_domain"));
+      typesWithHiding = getTypeNames(hidingDatabaseMetaData, "low_privileges_schema");
+      assertThat(typesWithHiding,
+          hasItems("usage_granted_composite_type", "usage_granted_us_postal_code_domain"));
+      assertThat(typesWithHiding,
+          not(hasItems("no_grants_composite_type", "no_grants_us_postal_code_domain")));
+      typesWithNoHiding =
+          getTypeNames(nonhidingDatabaseMetaData, "low_privileges_schema");
+      assertThat(typesWithNoHiding,
+          hasItems("usage_granted_composite_type", "no_grants_composite_type",
+              "usage_granted_us_postal_code_domain", "no_grants_us_postal_code_domain"));
 
-    // Or should the the types names not be returned because the schema is not visible?
-    typesWithHiding = getTypeNames(hidingDatabaseMetaData, "no_privileges_schema");
-    assertThat(typesWithHiding,
-        hasItems("usage_granted_composite_type", "usage_granted_us_postal_code_domain"));
-    assertThat(typesWithHiding,
-        not(hasItems("no_grants_composite_type", "no_grants_us_postal_code_domain")));
-    typesWithNoHiding =
-        getTypeNames(nonhidingDatabaseMetaData, "no_privileges_schema");
-    assertThat(typesWithNoHiding,
-        hasItems("usage_granted_composite_type", "no_grants_composite_type",
-            "usage_granted_us_postal_code_domain", "no_grants_us_postal_code_domain"));
+      // Or should the the types names not be returned because the schema is not visible?
+      typesWithHiding = getTypeNames(hidingDatabaseMetaData, "no_privileges_schema");
+      assertThat(typesWithHiding,
+          hasItems("usage_granted_composite_type", "usage_granted_us_postal_code_domain"));
+      assertThat(typesWithHiding,
+          not(hasItems("no_grants_composite_type", "no_grants_us_postal_code_domain")));
+      typesWithNoHiding =
+          getTypeNames(nonhidingDatabaseMetaData, "no_privileges_schema");
+      assertThat(typesWithNoHiding,
+          hasItems("usage_granted_composite_type", "no_grants_composite_type",
+              "usage_granted_us_postal_code_domain", "no_grants_us_postal_code_domain"));
+    }
   }
 
   /*
