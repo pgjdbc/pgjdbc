@@ -111,15 +111,16 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
     stmt.executeUpdate(
         "CREATE OR REPLACE VIEW " + schema + "." + "no_grants_view AS SELECT name FROM " + schema
             + "." + "owned_table");
+    stmt.executeUpdate(
+        "CREATE TYPE " + schema + "." + "usage_granted_composite_type AS (f1 int, f2 text)");
+    stmt.executeUpdate(
+        "CREATE TYPE " + schema + "." + "no_grants_composite_type AS (f1 int, f2 text)");
+    stmt.executeUpdate(
+        "CREATE DOMAIN " + schema + "." + "usage_granted_us_postal_code_domain CHAR(5) NOT NULL");
+    stmt.executeUpdate(
+        "CREATE DOMAIN " + schema + "." + "no_grants_us_postal_code_domain AS CHAR(5) NOT NULL");
+
     if (pgConnection.haveMinimumServerVersion(ServerVersion.v9_2)) {
-      stmt.executeUpdate(
-          "CREATE TYPE " + schema + "." + "usage_granted_composite_type AS (f1 int, f2 text)");
-      stmt.executeUpdate(
-          "CREATE TYPE " + schema + "." + "no_grants_composite_type AS (f1 int, f2 text)");
-      stmt.executeUpdate(
-          "CREATE DOMAIN " + schema + "." + "usage_granted_us_postal_code_domain CHAR(5) NOT NULL");
-      stmt.executeUpdate(
-          "CREATE DOMAIN " + schema + "." + "no_grants_us_postal_code_domain AS CHAR(5) NOT NULL");
       stmt.executeUpdate(
           "REVOKE ALL ON TYPE " + schema + "."
               + "usage_granted_composite_type FROM public RESTRICT");
@@ -137,16 +138,13 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
           "GRANT USAGE on TYPE " + schema + "." + "usage_granted_us_postal_code_domain TO "
               + TestUtil.getUser());
     }
-    stmt.executeUpdate(
-        "REVOKE ALL ON ALL FUNCTIONS IN SCHEMA " + schema + " FROM public RESTRICT");
-    stmt.executeUpdate(
-        "REVOKE ALL ON ALL FUNCTIONS IN SCHEMA " + schema + " FROM " + TestUtil.getUser()
-            + " RESTRICT");
-    stmt.executeUpdate(
-        "REVOKE ALL ON ALL TABLES IN SCHEMA " + schema + " FROM public RESTRICT");
-    stmt.executeUpdate(
-        "REVOKE ALL ON ALL TABLES IN SCHEMA " + schema + " FROM " + TestUtil.getUser()
-            + " RESTRICT");
+    revokeAllOnFunctions(schema, new String[]{"execute_granted_add_function(integer, integer)",
+        "no_grants_add_function(integer, integer)"});
+
+    revokeAllOnTables(schema,
+        new String[]{"owned_table", "all_grants_table", "insert_granted_table",
+            "select_granted_table", "no_grants_table", "select_granted_view", "no_grants_view"});
+
     stmt.executeUpdate(
         "GRANT ALL ON FUNCTION " + schema + "."
             + "execute_granted_add_function(integer, integer) TO "
@@ -161,6 +159,32 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
         + TestUtil.getUser());
     stmt.executeUpdate("GRANT SELECT ON TABLE " + schema + "." + "select_granted_view TO "
         + TestUtil.getUser());
+    stmt.close();
+  }
+
+  private static void revokeAllOnFunctions(String schema, String[] functions
+  ) throws SQLException {
+    Statement stmt = privilegedCon.createStatement();
+    for (String function : functions) {
+      stmt.executeUpdate(
+          "REVOKE ALL ON FUNCTION " + schema + "." + function + " FROM public RESTRICT");
+      stmt.executeUpdate(
+          "REVOKE ALL ON FUNCTION  " + schema + "." + function + " FROM " + TestUtil.getUser()
+              + " RESTRICT");
+    }
+    stmt.close();
+  }
+
+  private static void revokeAllOnTables(String schema, String[] tables
+  ) throws SQLException {
+    Statement stmt = privilegedCon.createStatement();
+    for (String table : tables) {
+      stmt.executeUpdate(
+          "REVOKE ALL ON TABLE " + schema + "." + table + " FROM public RESTRICT");
+      stmt.executeUpdate(
+          "REVOKE ALL ON TABLE  " + schema + "." + table + " FROM " + TestUtil.getUser()
+              + " RESTRICT");
+    }
     stmt.close();
   }
 
@@ -418,22 +442,12 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
           hasItems("usage_granted_composite_type", "usage_granted_us_postal_code_domain"));
       assertThat(typesWithHiding,
           not(hasItems("no_grants_composite_type", "no_grants_us_postal_code_domain")));
-      List<String> typesWithNoHiding =
-          getTypeNames(nonhidingDatabaseMetaData, "high_privileges_schema");
-      assertThat(typesWithNoHiding,
-          hasItems("usage_granted_composite_type", "no_grants_composite_type",
-              "usage_granted_us_postal_code_domain", "no_grants_us_postal_code_domain"));
 
       typesWithHiding = getTypeNames(hidingDatabaseMetaData, "low_privileges_schema");
       assertThat(typesWithHiding,
           hasItems("usage_granted_composite_type", "usage_granted_us_postal_code_domain"));
       assertThat(typesWithHiding,
           not(hasItems("no_grants_composite_type", "no_grants_us_postal_code_domain")));
-      typesWithNoHiding =
-          getTypeNames(nonhidingDatabaseMetaData, "low_privileges_schema");
-      assertThat(typesWithNoHiding,
-          hasItems("usage_granted_composite_type", "no_grants_composite_type",
-              "usage_granted_us_postal_code_domain", "no_grants_us_postal_code_domain"));
 
       // Or should the the types names not be returned because the schema is not visible?
       typesWithHiding = getTypeNames(hidingDatabaseMetaData, "no_privileges_schema");
@@ -441,12 +455,25 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
           hasItems("usage_granted_composite_type", "usage_granted_us_postal_code_domain"));
       assertThat(typesWithHiding,
           not(hasItems("no_grants_composite_type", "no_grants_us_postal_code_domain")));
-      typesWithNoHiding =
-          getTypeNames(nonhidingDatabaseMetaData, "no_privileges_schema");
-      assertThat(typesWithNoHiding,
-          hasItems("usage_granted_composite_type", "no_grants_composite_type",
-              "usage_granted_us_postal_code_domain", "no_grants_us_postal_code_domain"));
     }
+
+    List<String> typesWithNoHiding =
+        getTypeNames(nonhidingDatabaseMetaData, "high_privileges_schema");
+    assertThat(typesWithNoHiding,
+        hasItems("usage_granted_composite_type", "no_grants_composite_type",
+            "usage_granted_us_postal_code_domain", "no_grants_us_postal_code_domain"));
+
+    typesWithNoHiding =
+        getTypeNames(nonhidingDatabaseMetaData, "low_privileges_schema");
+    assertThat(typesWithNoHiding,
+        hasItems("usage_granted_composite_type", "no_grants_composite_type",
+            "usage_granted_us_postal_code_domain", "no_grants_us_postal_code_domain"));
+
+    typesWithNoHiding =
+        getTypeNames(nonhidingDatabaseMetaData, "no_privileges_schema");
+    assertThat(typesWithNoHiding,
+        hasItems("usage_granted_composite_type", "no_grants_composite_type",
+            "usage_granted_us_postal_code_domain", "no_grants_us_postal_code_domain"));
   }
 
   /*
