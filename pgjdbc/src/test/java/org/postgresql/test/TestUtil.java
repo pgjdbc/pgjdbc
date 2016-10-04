@@ -9,7 +9,6 @@
 package org.postgresql.test;
 
 import org.postgresql.PGProperty;
-import org.postgresql.core.ServerVersion;
 import org.postgresql.core.Version;
 import org.postgresql.jdbc.PgConnection;
 
@@ -45,7 +44,7 @@ public class TestUtil {
     }
 
     String binaryTransfer = "";
-    if (getBinaryTransfer() != null && !getBinaryTransfer().equals("")) {
+    if (getBinaryTransfer() != null && !getBinaryTransfer().isEmpty()) {
       binaryTransfer = "&binaryTransfer=" + getBinaryTransfer();
     }
 
@@ -250,7 +249,6 @@ public class TestUtil {
    *         functions now as of 4/14
    */
   public static java.sql.Connection openPrivilegedDB() throws Exception {
-
     initDriver();
     Properties properties = new Properties();
     properties.setProperty("user", getPrivilegedUser());
@@ -336,10 +334,7 @@ public class TestUtil {
   public static void dropSchema(Connection con, String schema) throws SQLException {
     Statement stmt = con.createStatement();
     try {
-      String sql = "DROP SCHEMA " + schema;
-      if (haveMinimumServerVersion(con, ServerVersion.v7_3)) {
-        sql += " CASCADE ";
-      }
+      String sql = "DROP SCHEMA " + schema + " CASCADE ";
       stmt.executeUpdate(sql);
     } catch (SQLException ex) {
       // Since every create schema issues a drop schema
@@ -375,7 +370,7 @@ public class TestUtil {
 
       // Starting with 8.0 oids may be turned off by default.
       // Some tests need them, so they flag that here.
-      if (withOids && haveMinimumServerVersion(con, ServerVersion.v8_0)) {
+      if (withOids) {
         sql += " WITH OIDS";
       }
       st.executeUpdate(sql);
@@ -510,10 +505,7 @@ public class TestUtil {
   public static void dropTable(Connection con, String table) throws SQLException {
     Statement stmt = con.createStatement();
     try {
-      String sql = "DROP TABLE " + table;
-      if (haveMinimumServerVersion(con, ServerVersion.v7_3)) {
-        sql += " CASCADE ";
-      }
+      String sql = "DROP TABLE " + table + " CASCADE ";
       stmt.executeUpdate(sql);
     } catch (SQLException ex) {
       // Since every create table issues a drop table

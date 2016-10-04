@@ -36,7 +36,6 @@ import java.util.HashMap;
 import java.util.SimpleTimeZone;
 import java.util.TimeZone;
 
-
 /**
  * Misc utils for handling time and date values.
  */
@@ -110,19 +109,13 @@ public class TimestampUtils {
   private Calendar calCache;
   private int calCacheZone;
 
-  private final boolean min74;
-  private final boolean min82;
-
   /**
    * True if the backend uses doubles for time values. False if long is used.
    */
   private final boolean usesDouble;
   private final Provider<TimeZone> timeZoneProvider;
 
-  TimestampUtils(boolean min74, boolean min82, boolean usesDouble,
-      Provider<TimeZone> timeZoneProvider) {
-    this.min74 = min74;
-    this.min82 = min82;
+  TimestampUtils(boolean usesDouble, Provider<TimeZone> timeZoneProvider) {
     this.usesDouble = usesDouble;
     this.timeZoneProvider = timeZoneProvider;
   }
@@ -317,13 +310,12 @@ public class TimestampUtils {
         }
 
         tzsec = 0;
-        if (min82) {
-          sep = charAt(s, start);
-          if (sep == ':') {
-            end = firstNonDigit(s, start + 1); // Skip ':'
-            tzsec = number(s, start + 1, end);
-            start = end;
-          }
+
+        sep = charAt(s, start);
+        if (sep == ':') {
+          end = firstNonDigit(s, start + 1); // Skip ':'
+          tzsec = number(s, start + 1, end);
+          start = end;
         }
 
         // Setting offset does not seem to work correctly in all
@@ -565,7 +557,7 @@ public class TimestampUtils {
     appendTime(sbuf, cal, cal.get(Calendar.MILLISECOND) * 1000000);
 
     // The 'time' parser for <= 7.3 doesn't like timezones.
-    if (min74 && withTimeZone) {
+    if (withTimeZone) {
       appendTimeZone(sbuf, cal);
     }
 
@@ -652,7 +644,7 @@ public class TimestampUtils {
 
     sb.append(NUMBERS[mins]);
 
-    if (min82 && secs != 0) {
+    if (secs != 0) {
       sb.append(':');
       sb.append(NUMBERS[secs]);
     }

@@ -99,7 +99,6 @@ public class Jdbc2TestSuite extends TestSuite {
 
     // Fastpath/LargeObject
     suite.addTestSuite(BlobTest.class);
-    suite.addTestSuite(OID74Test.class);
     suite.addTestSuite(BlobTransactionTest.class);
 
     suite.addTest(new JUnit4TestAdapter(UpdateableResultTest.class));

@@ -9,7 +9,6 @@
 package org.postgresql.jdbc;
 
 import org.postgresql.core.BaseConnection;
-import org.postgresql.core.ServerVersion;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.util.GT;
@@ -76,11 +75,6 @@ public abstract class AbstractBlobClob {
    */
   public synchronized void truncate(long len) throws SQLException {
     checkFreed();
-    if (!conn.haveMinimumServerVersion(ServerVersion.v8_3)) {
-      throw new PSQLException(
-          GT.tr("Truncation of large objects is only implemented in 8.3 and later servers."),
-          PSQLState.NOT_IMPLEMENTED);
-    }
 
     if (len < 0) {
       throw new PSQLException(GT.tr("Cannot truncate LOB to a negative length."),
