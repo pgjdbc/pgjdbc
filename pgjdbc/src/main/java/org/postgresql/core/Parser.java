@@ -22,6 +22,7 @@ import java.util.List;
 
 /**
  * Basic query parser infrastructure.
+ * Note: This class should not be considered as pgjdbc public API.
  *
  * @author Michael Paesold (mpaesold@gmx.at)
  * @author Christopher Deckers (chrriis@gmail.com)
@@ -961,7 +962,7 @@ public class Parser {
    * @param standardConformingStrings whether standard_conforming_strings is on
    * @return PostgreSQL-compatible SQL
    */
-  static String replaceProcessing(String p_sql, boolean replaceProcessingEnabled,
+  public static String replaceProcessing(String p_sql, boolean replaceProcessingEnabled,
       boolean standardConformingStrings) throws SQLException {
     if (replaceProcessingEnabled) {
       // Since escape codes can only appear in SQL CODE, we keep track
@@ -1012,6 +1013,8 @@ public class Parser {
     i--;
     while (!endOfNested && ++i < len) {
       char c = p_sql[i];
+
+      state_switch:
       switch (state) {
         case IN_SQLCODE:
           if (c == '$') {
@@ -1054,37 +1057,20 @@ public class Parser {
             break;
           } else if (c == '{') { // start of an escape code?
             if (i + 1 < len) {
-              char next = p_sql[i + 1];
-              char nextnext = (i + 2 < len) ? p_sql[i + 2] : '\0';
-              if (next == 'd' || next == 'D') {
-                state = SqlParseState.ESC_TIMEDATE;
-                i++;
-                newsql.append("DATE ");
-                break;
-              } else if (next == 't' || next == 'T') {
-                state = SqlParseState.ESC_TIMEDATE;
-                if (nextnext == 's' || nextnext == 'S') {
-                  // timestamp constant
-                  i += 2;
-                  newsql.append("TIMESTAMP ");
-                } else {
-                  // time constant
-                  i++;
-                  newsql.append("TIME ");
+              SqlParseState[] availableStates = SqlParseState.values();
+              // skip first state, it's not a escape code state
+              for (int j = 1; j < availableStates.length; j++) {
+                SqlParseState availableState = availableStates[j];
+                int matchedPosition = availableState.getMatchedPosition(p_sql, i + 1);
+                if (matchedPosition == 0) {
+                  continue;
                 }
-                break;
-              } else if (next == 'f' || next == 'F') {
-                state = SqlParseState.ESC_FUNCTION;
-                i += (nextnext == 'n' || nextnext == 'N') ? 2 : 1;
-                break;
-              } else if (next == 'o' || next == 'O') {
-                state = SqlParseState.ESC_OUTERJOIN;
-                i += (nextnext == 'j' || nextnext == 'J') ? 2 : 1;
-                break;
-              } else if (next == 'e' || next == 'E') {
-                // we assume that escape is the only escape sequence beginning with e
-                state = SqlParseState.ESC_ESCAPECHAR;
-                break;
+                i += matchedPosition;
+                if (availableState.replacementKeyword != null) {
+                  newsql.append(availableState.replacementKeyword);
+                }
+                state = availableState;
+                break state_switch;
               }
             }
           }
@@ -1114,7 +1100,9 @@ public class Parser {
           }
           state = SqlParseState.IN_SQLCODE; // end of escaped function (or query)
           break;
-        case ESC_TIMEDATE:
+        case ESC_DATE:
+        case ESC_TIME:
+        case ESC_TIMESTAMP:
         case ESC_OUTERJOIN:
         case ESC_ESCAPECHAR:
           if (c == '}') {
@@ -1178,12 +1166,67 @@ public class Parser {
     }
   }
 
+  private final static char[] QUOTE_OR_ALPHABETIC_MARKER = new char[]{'\"', '0'};
+  private final static char[] SINGLE_QUOTE = new char[]{'\''};
+
   // Static variables for parsing SQL when replaceProcessing is true.
   private enum SqlParseState {
     IN_SQLCODE,
-    ESC_TIMEDATE,
-    ESC_FUNCTION,
-    ESC_OUTERJOIN,
-    ESC_ESCAPECHAR;
+    ESC_DATE("d", SINGLE_QUOTE, "DATE "),
+    ESC_TIME("t", SINGLE_QUOTE, "TIME "),
+
+    ESC_TIMESTAMP("ts", SINGLE_QUOTE, "TIMESTAMP "),
+    ESC_FUNCTION("fn", QUOTE_OR_ALPHABETIC_MARKER, null),
+    ESC_OUTERJOIN("oj", QUOTE_OR_ALPHABETIC_MARKER, null),
+    ESC_ESCAPECHAR("escape", SINGLE_QUOTE, "ESCAPE ");
+
+    private final char[] escapeKeyword;
+    private final char[] allowedValues;
+    private final String replacementKeyword;
+
+    SqlParseState() {
+      this("", new char[0], null);
+    }
+
+    SqlParseState(String escapeKeyword, char[] allowedValues, String replacementKeyword) {
+      this.escapeKeyword = escapeKeyword.toCharArray();
+      this.allowedValues = allowedValues;
+      this.replacementKeyword = replacementKeyword;
+    }
+
+    private int getMatchedPosition(char[] p_sql, int pos) {
+      int newPos = pos;
+
+      // check for the keyword
+      for (char c : escapeKeyword) {
+        if (newPos >= p_sql.length) {
+          return 0;
+        }
+        char curr = p_sql[newPos++];
+        if (curr != c && curr != Character.toUpperCase(c)) {
+          return 0;
+        }
+      }
+      if (newPos >= p_sql.length) {
+        return 0;
+      }
+
+      // check for the beginning of the value
+      char curr = p_sql[newPos];
+      // ignore any in-between whitespace
+      while (curr == ' ') {
+        newPos++;
+        if (newPos >= p_sql.length) {
+          return 0;
+        }
+        curr = p_sql[newPos];
+      }
+      for (char c : allowedValues) {
+        if (curr == c || (c == '0' && Character.isLetter(curr))) {
+          return newPos - pos;
+        }
+      }
+      return 0;
+    }
   }
 }
