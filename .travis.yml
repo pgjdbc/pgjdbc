@@ -9,8 +9,8 @@ before_script:
   - psql -U postgres -c "create user test with password 'test';"
   - psql -c 'create database test owner test;' -U postgres
   - echo "MAVEN_OPTS='-Xmx1g -Dgpg.skip=true'" > ~/.mavenrc
-  - test "x$PG_VERSION" == 'x' || test $PG_VERSION == '8.4' || test $PG_VERSION == '9.0' || psql test -c 'CREATE EXTENSION hstore;' -U postgres
-  - test "x$PG_VERSION" == 'x' || test $PG_VERSION != '8.4' || createlang -U postgres plpgsql test
+  - test "x$PG_VERSION" == 'x' || test "x$NO_HSTORE" == 'xN' || psql test -c 'CREATE EXTENSION hstore;' -U postgres
+  - test "x$PG_VERSION" == 'x' || test "xCREATE_PLPGSQL" == 'xY' || createlang -U postgres plpgsql test
   - if [[ "x$JDK" == *'x9'* ]]; then remove_dir_from_path $JAVA_HOME/bin; export JAVA_HOME=/usr/lib/jvm/java-9-oracle; export PATH=$JAVA_HOME/bin:$PATH; java -Xmx32m -version; fi
 
 env:
@@ -52,119 +52,128 @@ cache:
 matrix:
   fast_finish: true
   include:
-    - env:
-        - FEDORA_CI=Y
-      services:
-        - docker
+#    - env:
+#        - FEDORA_CI=Y
+#      services:
+#        - docker
+#    - jdk: oraclejdk8
+#      sudo: required
+#      dist: trusty
+#      env:
+#        - PG_VERSION=9.6
+#        - XA=true
+#        - COVERAGE=Y
+#    - jdk: oraclejdk8
+#      sudo: required
+#      dist: trusty
+#      addons:
+#        postgresql: "9.5"
+#      env:
+#        - PG_VERSION=9.5
+#        - XA=true
+#        - COVERAGE=Y
+#    - jdk: oraclejdk8
+#      sudo: required
+#      dist: trusty
+#      env:
+#        - PG_VERSION=8.4
+#        - XA=true
+#        - COVERAGE=Y
     - jdk: oraclejdk8
       sudo: required
       dist: trusty
       env:
-        - PG_VERSION=9.6
+        - PG_VERSION=8.2
         - XA=true
         - COVERAGE=Y
-    - jdk: oraclejdk8
-      sudo: required
-      dist: trusty
-      addons:
-        postgresql: "9.5"
-      env:
-        - PG_VERSION=9.5
-        - XA=true
-        - COVERAGE=Y
-    - jdk: oraclejdk8
-      sudo: required
-      dist: trusty
-      env:
-        - PG_VERSION=8.4
-        - XA=true
-        - COVERAGE=Y
-    - jdk: oraclejdk8
-      env: RUN_CHECKSTYLE=true
-      script: mvn checkstyle:check
-    - jdk: oraclejdk8
-      addons:
-        postgresql: "9.4"
-        apt:
-          packages:
-            - oracle-java8-installer
-      env:
-        - PG_VERSION=9.4
-        - COVERAGE=Y
-        - MCENTRAL=Y
-        - JDOC=Y
-    - jdk: oraclejdk8
-      sudo: required
-      dist: trusty
-      env:
-        - PG_VERSION=HEAD
-        - XA=true
-    - jdk: openjdk7
-      addons:
-        postgresql: "9.4"
-      env:
-        - PG_VERSION=9.4
-        - MCENTRAL=Y
-    - jdk: openjdk6
-      addons:
-        postgresql: "9.4"
-      env:
-        - PG_VERSION=9.4
-        - MCENTRAL=Y
-    - jdk: oraclejdk8
-      addons:
-        postgresql: "9.4"
-      env:
-        - PG_VERSION=9.4
-        - TEST_CLIENTS=Y
-    - jdk: oraclejdk8 # this will be overwritten by before_install above
-      addons:
-        postgresql: "9.4"
-        apt:
-          packages:
-            - oracle-java9-installer
-      env:
-        - PG_VERSION=9.4
-        - JDK=9
-    - jdk: oraclejdk8
-      addons:
-        postgresql: "9.4"
-      env:
-        - PG_VERSION=9.4
-        - QUERY_MODE=simple
-        - COVERAGE=Y
-        - ANORM_SBT=Y
-    - jdk: oraclejdk8
-      addons:
-        postgresql: "9.4"
-      env:
-        - PG_VERSION=9.4
-        - QUERY_MODE=extendedForPrepared
-    - jdk: oraclejdk8
-      addons:
-        postgresql: "9.4"
-      env:
-        - PG_VERSION=9.4
-        - NO_WAFFLE_NO_OSGI=Y
-        - JDOC=Y
-    - jdk: openjdk7
-      addons:
-        postgresql: "9.3"
-      env:
-        - PG_VERSION=9.3
-        - COVERAGE=Y
-    - jdk: openjdk6
-      addons:
-        postgresql: "9.2"
-      env:
-        - PG_VERSION=9.2
-        - COVERAGE=Y
-    - jdk: oraclejdk8
-      addons:
-        postgresql: "9.1"
-      env:
-        - PG_VERSION=9.1
-        - COVERAGE=Y
+        - NO_HSTORE=Y
+        - CREATE_PLPGSQL=Y
+#    - jdk: oraclejdk8
+#      env: RUN_CHECKSTYLE=true
+#      script: mvn checkstyle:check
+#    - jdk: oraclejdk8
+#      addons:
+#        postgresql: "9.4"
+#        apt:
+#          packages:
+#            - oracle-java8-installer
+#      env:
+#        - PG_VERSION=9.4
+#        - COVERAGE=Y
+#        - MCENTRAL=Y
+#        - JDOC=Y
+#    - jdk: oraclejdk8
+#      sudo: required
+#      dist: trusty
+#      env:
+#        - PG_VERSION=HEAD
+#        - XA=true
+#    - jdk: openjdk7
+#      addons:
+#        postgresql: "9.4"
+#      env:
+#        - PG_VERSION=9.4
+#        - MCENTRAL=Y
+#    - jdk: openjdk6
+#      addons:
+#        postgresql: "9.4"
+#      env:
+#        - PG_VERSION=9.4
+#        - MCENTRAL=Y
+#    - jdk: oraclejdk8
+#      addons:
+#        postgresql: "9.4"
+#      env:
+#        - PG_VERSION=9.4
+#        - TEST_CLIENTS=Y
+#    - jdk: oraclejdk8 # this will be overwritten by before_install above
+#      addons:
+#        postgresql: "9.4"
+#        apt:
+#          packages:
+#            - oracle-java9-installer
+#      env:
+#        - PG_VERSION=9.4
+#        - JDK=9
+#    - jdk: oraclejdk8
+#      addons:
+#        postgresql: "9.4"
+#      env:
+#        - PG_VERSION=9.4
+#        - QUERY_MODE=simple
+#        - COVERAGE=Y
+#        - ANORM_SBT=Y
+#    - jdk: oraclejdk8
+#      addons:
+#        postgresql: "9.4"
+#      env:
+#        - PG_VERSION=9.4
+#        - QUERY_MODE=extendedForPrepared
+#    - jdk: oraclejdk8
+#      addons:
+#        postgresql: "9.4"
+#      env:
+#        - PG_VERSION=9.4
+#        - NO_WAFFLE_NO_OSGI=Y
+#        - JDOC=Y
+#    - jdk: openjdk7
+#      addons:
+#        postgresql: "9.3"
+#      env:
+#        - PG_VERSION=9.3
+#        - COVERAGE=Y
+#    - jdk: openjdk6
+#      addons:
+#        postgresql: "9.2"
+#      env:
+#        - PG_VERSION=9.2
+#        - COVERAGE=Y
+#    - jdk: oraclejdk8
+#      addons:
+#        postgresql: "9.1"
+#      env:
+#        - PG_VERSION=9.1
+#        - COVERAGE=Y
 
 # Deploy snapshots to Maven Central
 after_success:
