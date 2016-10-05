@@ -79,52 +79,6 @@ public interface BaseConnection extends PGConnection, Connection {
   TypeInfo getTypeInfo();
 
   /**
-   * Check if we should use driver behaviour introduced in a particular driver version. This
-   * defaults to behaving as the actual driver's version but can be overridden by the "compatible"
-   * URL parameter.
-   *
-   * If possible you should use the integer version of this method instead. It was introduced with
-   * the 9.4 driver release.
-   *
-   * @param ver the driver version to check
-   * @return true if the driver's behavioural version is at least "ver".
-   * @deprecated Avoid using this in new code that can require PgJDBC 9.4.
-   */
-  @Deprecated
-  boolean haveMinimumCompatibleVersion(String ver);
-
-  /**
-   * Check if we should use driver behaviour introduced in a particular driver version.
-   *
-   * This defaults to behaving as the actual driver's version but can be overridden by the
-   * "compatible" URL parameter.
-   *
-   * The version is of the form xxyyzz, e.g. 90401 for PgJDBC 9.4.1.
-   *
-   * This is used to toggle between different functionality as it changes across different releases
-   * of the jdbc driver code. The values here are versions of the jdbc client and not server
-   * versions. For example in 7.1 get/setBytes worked on LargeObject values, in 7.2 these methods
-   * were changed to work on bytea values. This change in functionality could be disabled by setting
-   * the "compatible" level to be 7.1, in which case the driver will revert to the 7.1
-   * functionality.
-   *
-   * @param ver the driver version to check, eg 90401 for 9.4.1
-   * @return true if the driver's behavioural version is at least "ver".
-   */
-  boolean haveMinimumCompatibleVersion(int ver);
-
-  /**
-   * Check if we should use driver behaviour introduced in a particular driver version.
-   *
-   * This defaults to behaving as the actual driver's version but can be overridden by the
-   * "compatible" URL parameter.
-   *
-   * @param ver the driver version to check
-   * @return true if the driver's behavioural version is at least "ver".
-   */
-  boolean haveMinimumCompatibleVersion(Version ver);
-
-  /**
    * Check if we have at least a particular server version.
    *
    * @param ver the server version to check

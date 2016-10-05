@@ -10,7 +10,6 @@ package org.postgresql.xa;
 import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Logger;
-import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TransactionState;
 import org.postgresql.ds.PGPooledConnection;
 import org.postgresql.util.GT;
@@ -311,12 +310,6 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
 
     state = STATE_IDLE;
     currentXid = null;
-
-    if (!conn.haveMinimumServerVersion(ServerVersion.v8_1)) {
-      throw new PGXAException(
-          GT.tr("Server versions prior to 8.1 do not support two-phase commit."),
-          XAException.XAER_RMERR);
-    }
 
     try {
       String s = RecoveredXid.xidToString(xid);

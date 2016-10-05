@@ -109,12 +109,6 @@ public enum PGProperty {
       "Use binary format for sending and receiving data if possible"),
 
   /**
-   * Force compatibility of some features with an older version of the driver.
-   */
-  COMPATIBLE("compatible", Driver.MAJORVERSION + "." + Driver.MINORVERSION,
-      "Force compatibility of some features with an older version of the driver"),
-
-  /**
    * Puts this connection in read-only mode.
    */
   READ_ONLY("readOnly", "false", "Puts this connection in read-only mode"),
