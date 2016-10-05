@@ -16,9 +16,7 @@ import org.postgresql.util.PSQLState;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * Basic query parser infrastructure.
@@ -961,7 +959,7 @@ public class Parser {
    * @param standardConformingStrings whether standard_conforming_strings is on
    * @return PostgreSQL-compatible SQL
    */
-  static String replaceProcessing(String p_sql, boolean replaceProcessingEnabled,
+  public static String replaceProcessing(String p_sql, boolean replaceProcessingEnabled,
       boolean standardConformingStrings) throws SQLException {
     if (replaceProcessingEnabled) {
       // Since escape codes can only appear in SQL CODE, we keep track
@@ -1012,6 +1010,8 @@ public class Parser {
     i--;
     while (!endOfNested && ++i < len) {
       char c = p_sql[i];
+
+      state_switch:
       switch (state) {
         case IN_SQLCODE:
           if (c == '$') {
@@ -1054,37 +1054,20 @@ public class Parser {
             break;
           } else if (c == '{') { // start of an escape code?
             if (i + 1 < len) {
-              char next = p_sql[i + 1];
-              char nextnext = (i + 2 < len) ? p_sql[i + 2] : '\0';
-              if (next == 'd' || next == 'D') {
-                state = SqlParseState.ESC_TIMEDATE;
-                i++;
-                newsql.append("DATE ");
-                break;
-              } else if (next == 't' || next == 'T') {
-                state = SqlParseState.ESC_TIMEDATE;
-                if (nextnext == 's' || nextnext == 'S') {
-                  // timestamp constant
-                  i += 2;
-                  newsql.append("TIMESTAMP ");
-                } else {
-                  // time constant
-                  i++;
-                  newsql.append("TIME ");
+              SqlParseState[] availableStates = SqlParseState.values();
+              // skip first state, it's not a escape code state
+              for (int j = 1; j < availableStates.length; j++) {
+                SqlParseState availableState = availableStates[j];
+                int matched = SqlParseState.matchEscapeCode(p_sql, i + 1,
+                        availableState.escapeKeyword(), availableState.allowedValues());
+                if (matched > 0) {
+                  i += matched;
+                  if (availableState.replacementKeyword() != null) {
+                    newsql.append(availableState.replacementKeyword());
+                  }
+                  state = availableState;
+                  break state_switch;
                 }
-                break;
-              } else if (next == 'f' || next == 'F') {
-                state = SqlParseState.ESC_FUNCTION;
-                i += (nextnext == 'n' || nextnext == 'N') ? 2 : 1;
-                break;
-              } else if (next == 'o' || next == 'O') {
-                state = SqlParseState.ESC_OUTERJOIN;
-                i += (nextnext == 'j' || nextnext == 'J') ? 2 : 1;
-                break;
-              } else if (next == 'e' || next == 'E') {
-                // we assume that escape is the only escape sequence beginning with e
-                state = SqlParseState.ESC_ESCAPECHAR;
-                break;
               }
             }
           }
@@ -1114,7 +1097,9 @@ public class Parser {
           }
           state = SqlParseState.IN_SQLCODE; // end of escaped function (or query)
           break;
-        case ESC_TIMEDATE:
+        case ESC_DATE:
+        case ESC_TIME:
+        case ESC_TIMESTAMP:
         case ESC_OUTERJOIN:
         case ESC_ESCAPECHAR:
           if (c == '}') {
@@ -1180,10 +1165,143 @@ public class Parser {
 
   // Static variables for parsing SQL when replaceProcessing is true.
   private enum SqlParseState {
-    IN_SQLCODE,
-    ESC_TIMEDATE,
-    ESC_FUNCTION,
-    ESC_OUTERJOIN,
-    ESC_ESCAPECHAR;
+    IN_SQLCODE {
+      char[] keyword = new char[0];
+
+      @Override
+      char[] escapeKeyword() {
+        return keyword;
+      }
+    },
+    ESC_DATE {
+      char[] keyword = new char[]{'d'};
+      String replacementKeyword = "DATE ";
+
+      @Override
+      char[] escapeKeyword() {
+        return keyword;
+      }
+
+      @Override
+      String replacementKeyword() {
+        return replacementKeyword;
+      }
+    },
+    ESC_TIME {
+      char[] keyword = new char[]{'t'};
+      String replacementKeyword = "TIME ";
+
+      @Override
+      char[] escapeKeyword() {
+        return keyword;
+      }
+
+      @Override
+      String replacementKeyword() {
+        return replacementKeyword;
+      }
+    },
+    ESC_TIMESTAMP {
+      char[] keyword = new char[]{'t','s'};
+      String replacementKeyword = "TIMESTAMP ";
+
+      @Override
+      char[] escapeKeyword() {
+        return keyword;
+      }
+
+      @Override
+      String replacementKeyword() {
+        return replacementKeyword;
+      }
+    },
+    ESC_FUNCTION {
+      char[] keyword = new char[]{'f','n'};
+
+      @Override
+      char[] escapeKeyword() {
+        return keyword;
+      }
+
+      @Override
+      char[] allowedValues() {
+        return QUOTE_OR_ALPHABETIC_MARKER;
+      }
+    },
+    ESC_OUTERJOIN {
+      char[] keyword = new char[]{'o','j'};
+
+      @Override
+      char[] escapeKeyword() {
+        return keyword;
+      }
+
+      @Override
+      char[] allowedValues() {
+        return QUOTE_OR_ALPHABETIC_MARKER;
+      }
+    },
+    ESC_ESCAPECHAR {
+      char[] keyword = new char[]{'e','s','c','a','p','e'};
+      String replacementKeyword = "ESCAPE ";
+
+      @Override
+      char[] escapeKeyword() {
+        return keyword;
+      }
+
+      @Override
+      String replacementKeyword() {
+        return replacementKeyword;
+      }
+    };
+
+    private final static char[] QUOTE_OR_ALPHABETIC_MARKER = new char[]{'\"', '0'};
+    private final static char[] SINGLE_QUOTE = new char[]{'\''};
+
+    abstract char[] escapeKeyword();
+
+    char[] allowedValues() {
+      return SINGLE_QUOTE;
+    }
+
+    String replacementKeyword() {
+      return null;
+    }
+
+    private static int matchEscapeCode(char[] p_sql, int pos, char[] keyword, char[] val) {
+      int newPos = pos;
+
+      // check for the keyword
+      for (char c : keyword) {
+        if (newPos >= p_sql.length) {
+          return 0;
+        }
+        char curr = p_sql[newPos++];
+        if (curr != c && curr != Character.toUpperCase(c)) {
+          return 0;
+        }
+      }
+      if (newPos >= p_sql.length) {
+        return 0;
+      }
+
+      // check for the beginning of the value
+      char curr = p_sql[newPos];
+      // ignore any in-between whitespace
+      while (curr == ' ') {
+        curr = p_sql[++newPos];
+      }
+      boolean valid = false;
+      for (char c : val) {
+        if (curr == c || (c == '0' && Character.isAlphabetic(curr))) {
+          valid = true;
+        }
+      }
+      if (!valid) {
+        return 0;
+      }
+      return newPos - pos;
+    }
   }
 }
