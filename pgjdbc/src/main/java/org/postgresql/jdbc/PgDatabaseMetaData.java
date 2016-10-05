@@ -1565,11 +1565,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   @Override
   public ResultSet getTableTypes() throws SQLException {
-    String types[] = new String[tableTypeClauses.size()];
-    int i = 0;
-    for (String s : tableTypeClauses.keySet()) {
-      types[i++] = s;
-    }
+    String types[] = tableTypeClauses.keySet().toArray(new String[0]);
     sortStringArray(types);
 
     Field f[] = new Field[1];
@@ -1893,20 +1889,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         Map<String, Map<String, List<String[]>>> relPermissions = parseACL(acl, owner);
         permissions.putAll(relPermissions);
       }
-      String permNames[] = new String[permissions.size()];
-      int i = 0;
-      for (String s : permissions.keySet()) {
-        permNames[i++] = s;
-      }
+      String permNames[] = permissions.keySet().toArray(new String[0]);
       sortStringArray(permNames);
       for (String permName : permNames) {
         byte[] privilege = connection.encodeString(permName);
         Map<String, List<String[]>> grantees = permissions.get(permName);
-        String granteeUsers[] = new String[grantees.size()];
-        int k = 0;
-        for (String s : grantees.keySet()) {
-          granteeUsers[k++] = s;
-        }
+        String granteeUsers[] = grantees.keySet().toArray(new String[0]);
         for (int j = 0; j < grantees.size(); j++) {
           List<String[]> grantor = grantees.get(granteeUsers[j]);
           String grantee = granteeUsers[j];
@@ -1976,20 +1964,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       String owner = rs.getString("rolname");
       String acl = rs.getString("relacl");
       Map<String, Map<String, List<String[]>>> permissions = parseACL(acl, owner);
-      String permNames[] = new String[permissions.size()];
-      int i = 0;
-      for (String s : permissions.keySet()) {
-        permNames[i++] = s;
-      }
+      String permNames[] = permissions.keySet().toArray(new String[0]);
       sortStringArray(permNames);
       for (String permName : permNames) {
         byte[] privilege = connection.encodeString(permName);
         Map<String, List<String[]>> grantees = permissions.get(permName);
-        String granteeUsers[] = new String[grantees.size()];
-        int k = 0;
-        for (String s : grantees.keySet()) {
-          granteeUsers[k++] = s;
-        }
+        String granteeUsers[] = grantees.keySet().toArray(new String[0]);
         for (String granteeUser : granteeUsers) {
           List<String[]> grants = grantees.get(granteeUser);
           for (String[] grantTuple : grants) {
