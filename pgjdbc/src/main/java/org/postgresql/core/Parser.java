@@ -1058,10 +1058,9 @@ public class Parser {
               // skip first state, it's not a escape code state
               for (int j = 1; j < availableStates.length; j++) {
                 SqlParseState availableState = availableStates[j];
-                int matched = SqlParseState.matchEscapeCode(p_sql, i + 1,
-                        availableState.escapeKeyword, availableState.allowedValues);
-                if (matched > 0) {
-                  i += matched;
+                int matchedPosition = availableState.getMatchedPosition(p_sql, i + 1);
+                if (matchedPosition > 0) {
+                  i += matchedPosition;
                   if (availableState.replacementKeyword != null) {
                     newsql.append(availableState.replacementKeyword);
                   }
@@ -1191,11 +1190,11 @@ public class Parser {
       this.replacementKeyword = replacementKeyword;
     }
 
-    private static int matchEscapeCode(char[] p_sql, int pos, char[] keyword, char[] val) {
+    private int getMatchedPosition(char[] p_sql, int pos) {
       int newPos = pos;
 
       // check for the keyword
-      for (char c : keyword) {
+      for (char c : escapeKeyword) {
         if (newPos >= p_sql.length) {
           return 0;
         }
@@ -1215,7 +1214,7 @@ public class Parser {
         curr = p_sql[++newPos];
       }
       boolean valid = false;
-      for (char c : val) {
+      for (char c : allowedValues) {
         if (curr == c || (c == '0' && Character.isAlphabetic(curr))) {
           valid = true;
         }
