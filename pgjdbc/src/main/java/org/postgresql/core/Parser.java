@@ -1059,11 +1059,11 @@ public class Parser {
               for (int j = 1; j < availableStates.length; j++) {
                 SqlParseState availableState = availableStates[j];
                 int matched = SqlParseState.matchEscapeCode(p_sql, i + 1,
-                        availableState.escapeKeyword(), availableState.allowedValues());
+                        availableState.escapeKeyword, availableState.allowedValues);
                 if (matched > 0) {
                   i += matched;
-                  if (availableState.replacementKeyword() != null) {
-                    newsql.append(availableState.replacementKeyword());
+                  if (availableState.replacementKeyword != null) {
+                    newsql.append(availableState.replacementKeyword);
                   }
                   state = availableState;
                   break state_switch;
@@ -1163,110 +1163,32 @@ public class Parser {
     }
   }
 
+  private final static char[] QUOTE_OR_ALPHABETIC_MARKER = new char[]{'\"', '0'};
+  private final static char[] SINGLE_QUOTE = new char[]{'\''};
+
   // Static variables for parsing SQL when replaceProcessing is true.
   private enum SqlParseState {
-    IN_SQLCODE {
-      char[] keyword = new char[0];
+    IN_SQLCODE,
+    ESC_DATE(new char[]{'d'}, SINGLE_QUOTE, "DATE "),
+    ESC_TIME(new char[]{'t'}, SINGLE_QUOTE, "TIME "),
 
-      @Override
-      char[] escapeKeyword() {
-        return keyword;
-      }
-    },
-    ESC_DATE {
-      char[] keyword = new char[]{'d'};
-      String replacementKeyword = "DATE ";
+    ESC_TIMESTAMP(new char[]{'t','s'}, SINGLE_QUOTE, "TIMESTAMP "),
+    ESC_FUNCTION(new char[]{'f','n'}, QUOTE_OR_ALPHABETIC_MARKER, null),
+    ESC_OUTERJOIN(new char[]{'o','j'}, QUOTE_OR_ALPHABETIC_MARKER, null),
+    ESC_ESCAPECHAR(new char[]{'e','s','c','a','p','e'}, SINGLE_QUOTE, "ESCAPE ");
 
-      @Override
-      char[] escapeKeyword() {
-        return keyword;
-      }
+    private final char[] escapeKeyword;
+    private final char[] allowedValues;
+    private final String replacementKeyword;
 
-      @Override
-      String replacementKeyword() {
-        return replacementKeyword;
-      }
-    },
-    ESC_TIME {
-      char[] keyword = new char[]{'t'};
-      String replacementKeyword = "TIME ";
-
-      @Override
-      char[] escapeKeyword() {
-        return keyword;
-      }
-
-      @Override
-      String replacementKeyword() {
-        return replacementKeyword;
-      }
-    },
-    ESC_TIMESTAMP {
-      char[] keyword = new char[]{'t','s'};
-      String replacementKeyword = "TIMESTAMP ";
-
-      @Override
-      char[] escapeKeyword() {
-        return keyword;
-      }
-
-      @Override
-      String replacementKeyword() {
-        return replacementKeyword;
-      }
-    },
-    ESC_FUNCTION {
-      char[] keyword = new char[]{'f','n'};
-
-      @Override
-      char[] escapeKeyword() {
-        return keyword;
-      }
-
-      @Override
-      char[] allowedValues() {
-        return QUOTE_OR_ALPHABETIC_MARKER;
-      }
-    },
-    ESC_OUTERJOIN {
-      char[] keyword = new char[]{'o','j'};
-
-      @Override
-      char[] escapeKeyword() {
-        return keyword;
-      }
-
-      @Override
-      char[] allowedValues() {
-        return QUOTE_OR_ALPHABETIC_MARKER;
-      }
-    },
-    ESC_ESCAPECHAR {
-      char[] keyword = new char[]{'e','s','c','a','p','e'};
-      String replacementKeyword = "ESCAPE ";
-
-      @Override
-      char[] escapeKeyword() {
-        return keyword;
-      }
-
-      @Override
-      String replacementKeyword() {
-        return replacementKeyword;
-      }
-    };
-
-    private final static char[] QUOTE_OR_ALPHABETIC_MARKER = new char[]{'\"', '0'};
-    private final static char[] SINGLE_QUOTE = new char[]{'\''};
-
-    abstract char[] escapeKeyword();
-
-    char[] allowedValues() {
-      return SINGLE_QUOTE;
+    SqlParseState() {
+      this(new char[0], new char[0], null);
     }
 
-    String replacementKeyword() {
-      return null;
+    SqlParseState(char[] escapeKeyword, char[] allowedValues, String replacementKeyword) {
+      this.escapeKeyword = escapeKeyword;
+      this.allowedValues = allowedValues;
+      this.replacementKeyword = replacementKeyword;
     }
 
     private static int matchEscapeCode(char[] p_sql, int pos, char[] keyword, char[] val) {

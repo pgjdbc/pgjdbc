@@ -13,8 +13,12 @@ import java.util.concurrent.TimeUnit;
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 public class EscapeProcessing {
 
+    private String fnEscapeSQL = "{fn week({d '2005-01-24'})}";
+    private boolean replaceProcessingEnabled = true;
+    private boolean standardConformingStrings = false;
+
     @Benchmark
-    public void escapeFunctionWithDate() throws Exception {
-        Parser.replaceProcessing("{fn week({d '2005-01-24'})}", true, false);
+    public String escapeFunctionWithDate() throws Exception {
+        return Parser.replaceProcessing(fnEscapeSQL, replaceProcessingEnabled, standardConformingStrings);
     }
 }
