@@ -103,4 +103,25 @@ public class ParserTest extends TestCase {
     "select".getChars(0, 6, command, 0);
     Assert.assertTrue("Failed to correctly parse lower case command.", Parser.parseSelectKeyword(command, 0));
   }
+
+  public void testEscapeProcessing() throws Exception {
+    Assert.assertEquals("DATE '1999-01-09'", Parser.replaceProcessing("{d '1999-01-09'}", true, false));
+    Assert.assertEquals("DATE '1999-01-09'", Parser.replaceProcessing("{D  '1999-01-09'}", true, false));
+    Assert.assertEquals("TIME '20:00:03'", Parser.replaceProcessing("{t '20:00:03'}", true, false));
+    Assert.assertEquals("TIME '20:00:03'", Parser.replaceProcessing("{T '20:00:03'}", true, false));
+    Assert.assertEquals("TIMESTAMP '1999-01-09 20:11:11.123455'", Parser.replaceProcessing("{ts '1999-01-09 20:11:11.123455'}", true, false));
+    Assert.assertEquals("TIMESTAMP '1999-01-09 20:11:11.123455'", Parser.replaceProcessing("{Ts '1999-01-09 20:11:11.123455'}", true, false));
+
+    Assert.assertEquals("user", Parser.replaceProcessing("{fn user()}", true, false));
+    Assert.assertEquals("cos(1)", Parser.replaceProcessing("{fn cos(1)}", true, false));
+    Assert.assertEquals("extract(week from DATE '2005-01-24')", Parser.replaceProcessing("{fn week({d '2005-01-24'})}", true, false));
+
+    Assert.assertEquals("\"T1\" LEFT OUTER JOIN t2 ON \"T1\".id = t2.id",
+            Parser.replaceProcessing("{oj \"T1\" LEFT OUTER JOIN t2 ON \"T1\".id = t2.id}", true, false));
+
+    Assert.assertEquals("ESCAPE '_'", Parser.replaceProcessing("{escape '_'}", true, false));
+
+    // nothing should be changed in that case, no valid escape code
+    Assert.assertEquals("{obj : 1}", Parser.replaceProcessing("{obj : 1}", true, false));
+  }
 }
