@@ -1168,24 +1168,24 @@ public class Parser {
   // Static variables for parsing SQL when replaceProcessing is true.
   private enum SqlParseState {
     IN_SQLCODE,
-    ESC_DATE(new char[]{'d'}, SINGLE_QUOTE, "DATE "),
-    ESC_TIME(new char[]{'t'}, SINGLE_QUOTE, "TIME "),
+    ESC_DATE("d", SINGLE_QUOTE, "DATE "),
+    ESC_TIME("t", SINGLE_QUOTE, "TIME "),
 
-    ESC_TIMESTAMP(new char[]{'t','s'}, SINGLE_QUOTE, "TIMESTAMP "),
-    ESC_FUNCTION(new char[]{'f','n'}, QUOTE_OR_ALPHABETIC_MARKER, null),
-    ESC_OUTERJOIN(new char[]{'o','j'}, QUOTE_OR_ALPHABETIC_MARKER, null),
-    ESC_ESCAPECHAR(new char[]{'e','s','c','a','p','e'}, SINGLE_QUOTE, "ESCAPE ");
+    ESC_TIMESTAMP("ts", SINGLE_QUOTE, "TIMESTAMP "),
+    ESC_FUNCTION("fn", QUOTE_OR_ALPHABETIC_MARKER, null),
+    ESC_OUTERJOIN("oj", QUOTE_OR_ALPHABETIC_MARKER, null),
+    ESC_ESCAPECHAR("escape", SINGLE_QUOTE, "ESCAPE ");
 
     private final char[] escapeKeyword;
     private final char[] allowedValues;
     private final String replacementKeyword;
 
     SqlParseState() {
-      this(new char[0], new char[0], null);
+      this("", new char[0], null);
     }
 
-    SqlParseState(char[] escapeKeyword, char[] allowedValues, String replacementKeyword) {
-      this.escapeKeyword = escapeKeyword;
+    SqlParseState(String escapeKeyword, char[] allowedValues, String replacementKeyword) {
+      this.escapeKeyword = escapeKeyword.toCharArray();
       this.allowedValues = allowedValues;
       this.replacementKeyword = replacementKeyword;
     }
