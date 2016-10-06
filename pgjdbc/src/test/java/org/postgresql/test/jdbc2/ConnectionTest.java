@@ -109,7 +109,7 @@ public class ConnectionTest extends TestCase {
   public void testNativeSQL() throws Exception {
     // test a simple escape
     con = TestUtil.openDB();
-    assertEquals("DATE  '2005-01-24'", con.nativeSQL("{d '2005-01-24'}"));
+    assertEquals("DATE '2005-01-24'", con.nativeSQL("{d '2005-01-24'}"));
   }
 
   /*
