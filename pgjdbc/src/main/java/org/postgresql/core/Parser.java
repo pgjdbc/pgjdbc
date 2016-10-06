@@ -1217,7 +1217,7 @@ public class Parser {
       }
       boolean valid = false;
       for (char c : allowedValues) {
-        if (curr == c || (c == '0' && Character.isAlphabetic(curr))) {
+        if (curr == c || (c == '0' && Character.isLetter(curr))) {
           valid = true;
         }
       }
