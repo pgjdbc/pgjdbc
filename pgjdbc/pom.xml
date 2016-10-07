@@ -16,14 +16,14 @@
 
   <licenses>
     <license>
-      <name>The PostgreSQL License</name>
-      <url>http://www.postgresql.org/about/licence/</url>
+      <name>BSD-2-Clause</name>
+      <url>https://jdbc.postgresql.org/about/license.html</url>
     </license>
   </licenses>
 
   <organization>
     <name>PostgreSQL Global Development Group</name>
-    <url>http://jdbc.postgresql.org/</url>
+    <url>https://jdbc.postgresql.org/</url>
   </organization>
 
   <properties>
