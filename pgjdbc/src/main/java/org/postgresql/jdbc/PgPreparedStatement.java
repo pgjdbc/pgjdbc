@@ -257,11 +257,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       case Types.BINARY:
       case Types.VARBINARY:
       case Types.LONGVARBINARY:
-        if (connection.haveMinimumCompatibleVersion(ServerVersion.v7_2)) {
-          oid = Oid.BYTEA;
-        } else {
-          oid = Oid.OID;
-        }
+        oid = Oid.BYTEA;
         break;
       case Types.BLOB:
       case Types.CLOB:
@@ -387,20 +383,10 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       return;
     }
 
-    if (connection.haveMinimumCompatibleVersion(ServerVersion.v7_2)) {
-      // Version 7.2 supports the bytea datatype for byte arrays
-      byte[] copy = new byte[x.length];
-      System.arraycopy(x, 0, copy, 0, x.length);
-      preparedParameters.setBytea(parameterIndex, copy, 0, x.length);
-    } else {
-      // Version 7.1 and earlier support done as LargeObjects
-      LargeObjectManager lom = connection.getLargeObjectAPI();
-      long oid = lom.createLO();
-      LargeObject lob = lom.open(oid);
-      lob.write(x);
-      lob.close();
-      setLong(parameterIndex, oid);
-    }
+    // Version 7.2 supports the bytea datatype for byte arrays
+    byte[] copy = new byte[x.length];
+    System.arraycopy(x, 0, copy, 0, x.length);
+    preparedParameters.setBytea(parameterIndex, copy, 0, x.length);
   }
 
   public void setDate(int parameterIndex, java.sql.Date x) throws SQLException {
@@ -426,7 +412,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       throw new PSQLException(GT.tr("Invalid stream length {0}.", length),
           PSQLState.INVALID_PARAMETER_VALUE);
     }
-
 
     // Version 7.2 supports AsciiStream for all PG text types (char, varchar, text)
     // As the spec/javadoc for this method indicate this is to be used for
@@ -463,24 +448,13 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   public void setAsciiStream(int parameterIndex, InputStream x, int length) throws SQLException {
     checkClosed();
-    if (connection.haveMinimumCompatibleVersion(ServerVersion.v7_2)) {
-      setCharacterStreamPost71(parameterIndex, x, length, "ASCII");
-    } else {
-      // Version 7.1 supported only LargeObjects by treating everything
-      // as binary data
-      setBinaryStream(parameterIndex, x, length);
-    }
+    setCharacterStreamPost71(parameterIndex, x, length, "ASCII");
   }
 
   public void setUnicodeStream(int parameterIndex, InputStream x, int length) throws SQLException {
     checkClosed();
-    if (connection.haveMinimumCompatibleVersion(ServerVersion.v7_2)) {
-      setCharacterStreamPost71(parameterIndex, x, length, "UTF-8");
-    } else {
-      // Version 7.1 supported only LargeObjects by treating everything
-      // as binary data
-      setBinaryStream(parameterIndex, x, length);
-    }
+
+    setCharacterStreamPost71(parameterIndex, x, length, "UTF-8");
   }
 
   public void setBinaryStream(int parameterIndex, InputStream x, int length) throws SQLException {
@@ -496,41 +470,12 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
           PSQLState.INVALID_PARAMETER_VALUE);
     }
 
-    if (connection.haveMinimumCompatibleVersion(ServerVersion.v7_2)) {
-      // Version 7.2 supports BinaryStream for for the PG bytea type
-      // As the spec/javadoc for this method indicate this is to be used for
-      // large binary values (i.e. LONGVARBINARY) PG doesn't have a separate
-      // long binary datatype, but with toast the bytea datatype is capable of
-      // handling very large values.
-
-      preparedParameters.setBytea(parameterIndex, x, length);
-    } else {
-      // Version 7.1 only supported streams for LargeObjects
-      // but the jdbc spec indicates that streams should be
-      // available for LONGVARBINARY instead
-      LargeObjectManager lom = connection.getLargeObjectAPI();
-      long oid = lom.createLO();
-      LargeObject lob = lom.open(oid);
-      OutputStream los = lob.getOutputStream();
-      try {
-        // could be buffered, but then the OutputStream returned by LargeObject
-        // is buffered internally anyhow, so there would be no performance
-        // boost gained, if anything it would be worse!
-        int c = x.read();
-        int p = 0;
-        while (c > -1 && p < length) {
-          los.write(c);
-          c = x.read();
-          p++;
-        }
-        los.close();
-      } catch (IOException se) {
-        throw new PSQLException(GT.tr("Provided InputStream failed."), PSQLState.UNEXPECTED_ERROR,
-            se);
-      }
-      // lob is closed by the stream so don't call lob.close()
-      setLong(parameterIndex, oid);
-    }
+    // Version 7.2 supports BinaryStream for for the PG bytea type
+    // As the spec/javadoc for this method indicate this is to be used for
+    // large binary values (i.e. LONGVARBINARY) PG doesn't have a separate
+    // long binary datatype, but with toast the bytea datatype is capable of
+    // handling very large values.
+    preparedParameters.setBytea(parameterIndex, x, length);
   }
 
   public void clearParameters() throws SQLException {
@@ -1067,7 +1012,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     return preparedQuery.query.toString(preparedParameters);
   }
 
-
   /**
    * Note if s is a String it should be escaped by the caller to avoid SQL injection attacks. It is
    * not done here for efficiency reasons as most calls to this method do not require escaping as
@@ -1252,11 +1196,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     checkClosed();
 
     if (x == null) {
-      if (connection.haveMinimumServerVersion(ServerVersion.v7_2)) {
-        setNull(i, Types.VARCHAR);
-      } else {
-        setNull(i, Types.CLOB);
-      }
+      setNull(i, Types.VARCHAR);
       return;
     }
 
@@ -1265,60 +1205,32 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
           PSQLState.INVALID_PARAMETER_VALUE);
     }
 
-    if (connection.haveMinimumCompatibleVersion(ServerVersion.v7_2)) {
-      // Version 7.2 supports CharacterStream for for the PG text types
-      // As the spec/javadoc for this method indicate this is to be used for
-      // large text values (i.e. LONGVARCHAR) PG doesn't have a separate
-      // long varchar datatype, but with toast all the text datatypes are capable of
-      // handling very large values. Thus the implementation ends up calling
-      // setString() since there is no current way to stream the value to the server
-      char[] l_chars = new char[length];
-      int l_charsRead = 0;
-      try {
-        while (true) {
-          int n = x.read(l_chars, l_charsRead, length - l_charsRead);
-          if (n == -1) {
-            break;
-          }
-
-          l_charsRead += n;
-
-          if (l_charsRead == length) {
-            break;
-          }
+    // Version 7.2 supports CharacterStream for for the PG text types
+    // As the spec/javadoc for this method indicate this is to be used for
+    // large text values (i.e. LONGVARCHAR) PG doesn't have a separate
+    // long varchar datatype, but with toast all the text datatypes are capable of
+    // handling very large values. Thus the implementation ends up calling
+    // setString() since there is no current way to stream the value to the server
+    char[] l_chars = new char[length];
+    int l_charsRead = 0;
+    try {
+      while (true) {
+        int n = x.read(l_chars, l_charsRead, length - l_charsRead);
+        if (n == -1) {
+          break;
         }
-      } catch (IOException l_ioe) {
-        throw new PSQLException(GT.tr("Provided Reader failed."), PSQLState.UNEXPECTED_ERROR,
-            l_ioe);
-      }
-      setString(i, new String(l_chars, 0, l_charsRead));
-    } else {
-      // Version 7.1 only supported streams for LargeObjects
-      // but the jdbc spec indicates that streams should be
-      // available for LONGVARCHAR instead
-      LargeObjectManager lom = connection.getLargeObjectAPI();
-      long oid = lom.createLO();
-      LargeObject lob = lom.open(oid);
-      OutputStream los = lob.getOutputStream();
-      try {
-        // could be buffered, but then the OutputStream returned by LargeObject
-        // is buffered internally anyhow, so there would be no performance
-        // boost gained, if anything it would be worse!
-        int c = x.read();
-        int p = 0;
-        while (c > -1 && p < length) {
-          los.write(c);
-          c = x.read();
-          p++;
+
+        l_charsRead += n;
+
+        if (l_charsRead == length) {
+          break;
         }
-        los.close();
-      } catch (IOException se) {
-        throw new PSQLException(GT.tr("Unexpected error writing large object to database."),
-            PSQLState.UNEXPECTED_ERROR, se);
       }
-      // lob is closed by the stream so don't call lob.close()
-      setLong(i, oid);
+    } catch (IOException l_ioe) {
+      throw new PSQLException(GT.tr("Provided Reader failed."), PSQLState.UNEXPECTED_ERROR,
+          l_ioe);
     }
+    setString(i, new String(l_chars, 0, l_charsRead));
   }
 
   public void setClob(int i, Clob x) throws SQLException {

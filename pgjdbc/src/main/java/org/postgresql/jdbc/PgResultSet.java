@@ -14,11 +14,8 @@ import org.postgresql.core.Oid;
 import org.postgresql.core.Query;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandlerBase;
-import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.core.Utils;
-import org.postgresql.largeobject.LargeObject;
-import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.HStoreConverter;
@@ -432,27 +429,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       return null;
     }
 
-    if (connection.haveMinimumCompatibleVersion(ServerVersion.v7_2)) {
-      // Version 7.2 supports AsciiStream for all the PG text types
-      // As the spec/javadoc for this method indicate this is to be used for
-      // large text values (i.e. LONGVARCHAR) PG doesn't have a separate
-      // long string datatype, but with toast the text datatype is capable of
-      // handling very large values. Thus the implementation ends up calling
-      // getString() since there is no current way to stream the value from the server
-      return new CharArrayReader(getString(i).toCharArray());
-    } else {
-      // In 7.1 Handle as BLOBS so return the LargeObject input stream
-      Encoding encoding = connection.getEncoding();
-      InputStream input = getBinaryStream(i);
-
-      try {
-        return encoding.getDecodingReader(input);
-      } catch (IOException ioe) {
-        throw new PSQLException(
-            GT.tr("Unexpected error while decoding character data from a large object."),
-            PSQLState.UNEXPECTED_ERROR, ioe);
-      }
-    }
+    // Version 7.2 supports AsciiStream for all the PG text types
+    // As the spec/javadoc for this method indicate this is to be used for
+    // large text values (i.e. LONGVARCHAR) PG doesn't have a separate
+    // long string datatype, but with toast the text datatype is capable of
+    // handling very large values. Thus the implementation ends up calling
+    // getString() since there is no current way to stream the value from the server
+    return new CharArrayReader(getString(i).toCharArray());
   }
 
 
@@ -2349,25 +2332,11 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     if (isBinary(columnIndex)) {
       // If the data is already binary then just return it
       return this_row[columnIndex - 1];
-    } else if (connection.haveMinimumCompatibleVersion(ServerVersion.v7_2)) {
-      // Version 7.2 supports the bytea datatype for byte arrays
-      if (fields[columnIndex - 1].getOID() == Oid.BYTEA) {
-        return trimBytes(columnIndex, PGbytea.toBytes(this_row[columnIndex - 1]));
-      } else {
-        return trimBytes(columnIndex, this_row[columnIndex - 1]);
-      }
+    }
+    if (fields[columnIndex - 1].getOID() == Oid.BYTEA) {
+      return trimBytes(columnIndex, PGbytea.toBytes(this_row[columnIndex - 1]));
     } else {
-      // Version 7.1 and earlier supports LargeObjects for byte arrays
-      // Handle OID's as BLOBS
-      if (fields[columnIndex - 1].getOID() == Oid.OID) {
-        LargeObjectManager lom = connection.getLargeObjectAPI();
-        LargeObject lob = lom.open(getLong(columnIndex));
-        byte buf[] = lob.read(lob.size());
-        lob.close();
-        return trimBytes(columnIndex, buf);
-      } else {
-        return trimBytes(columnIndex, this_row[columnIndex - 1]);
-      }
+      return trimBytes(columnIndex, this_row[columnIndex - 1]);
     }
   }
 
@@ -2389,22 +2358,17 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       return null;
     }
 
-    if (connection.haveMinimumCompatibleVersion(ServerVersion.v7_2)) {
-      // Version 7.2 supports AsciiStream for all the PG text types
-      // As the spec/javadoc for this method indicate this is to be used for
-      // large text values (i.e. LONGVARCHAR) PG doesn't have a separate
-      // long string datatype, but with toast the text datatype is capable of
-      // handling very large values. Thus the implementation ends up calling
-      // getString() since there is no current way to stream the value from the server
-      try {
-        return new ByteArrayInputStream(getString(columnIndex).getBytes("ASCII"));
-      } catch (UnsupportedEncodingException l_uee) {
-        throw new PSQLException(GT.tr("The JVM claims not to support the encoding: {0}", "ASCII"),
-            PSQLState.UNEXPECTED_ERROR, l_uee);
-      }
-    } else {
-      // In 7.1 Handle as BLOBS so return the LargeObject input stream
-      return getBinaryStream(columnIndex);
+    // Version 7.2 supports AsciiStream for all the PG text types
+    // As the spec/javadoc for this method indicate this is to be used for
+    // large text values (i.e. LONGVARCHAR) PG doesn't have a separate
+    // long string datatype, but with toast the text datatype is capable of
+    // handling very large values. Thus the implementation ends up calling
+    // getString() since there is no current way to stream the value from the server
+    try {
+      return new ByteArrayInputStream(getString(columnIndex).getBytes("ASCII"));
+    } catch (UnsupportedEncodingException l_uee) {
+      throw new PSQLException(GT.tr("The JVM claims not to support the encoding: {0}", "ASCII"),
+          PSQLState.UNEXPECTED_ERROR, l_uee);
     }
   }
 
@@ -2414,22 +2378,17 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       return null;
     }
 
-    if (connection.haveMinimumCompatibleVersion(ServerVersion.v7_2)) {
-      // Version 7.2 supports AsciiStream for all the PG text types
-      // As the spec/javadoc for this method indicate this is to be used for
-      // large text values (i.e. LONGVARCHAR) PG doesn't have a separate
-      // long string datatype, but with toast the text datatype is capable of
-      // handling very large values. Thus the implementation ends up calling
-      // getString() since there is no current way to stream the value from the server
-      try {
-        return new ByteArrayInputStream(getString(columnIndex).getBytes("UTF-8"));
-      } catch (UnsupportedEncodingException l_uee) {
-        throw new PSQLException(GT.tr("The JVM claims not to support the encoding: {0}", "UTF-8"),
-            PSQLState.UNEXPECTED_ERROR, l_uee);
-      }
-    } else {
-      // In 7.1 Handle as BLOBS so return the LargeObject input stream
-      return getBinaryStream(columnIndex);
+    // Version 7.2 supports AsciiStream for all the PG text types
+    // As the spec/javadoc for this method indicate this is to be used for
+    // large text values (i.e. LONGVARCHAR) PG doesn't have a separate
+    // long string datatype, but with toast the text datatype is capable of
+    // handling very large values. Thus the implementation ends up calling
+    // getString() since there is no current way to stream the value from the server
+    try {
+      return new ByteArrayInputStream(getString(columnIndex).getBytes("UTF-8"));
+    } catch (UnsupportedEncodingException l_uee) {
+      throw new PSQLException(GT.tr("The JVM claims not to support the encoding: {0}", "UTF-8"),
+          PSQLState.UNEXPECTED_ERROR, l_uee);
     }
   }
 
@@ -2439,24 +2398,15 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       return null;
     }
 
-    if (connection.haveMinimumCompatibleVersion(ServerVersion.v7_2)) {
-      // Version 7.2 supports BinaryStream for all PG bytea type
-      // As the spec/javadoc for this method indicate this is to be used for
-      // large binary values (i.e. LONGVARBINARY) PG doesn't have a separate
-      // long binary datatype, but with toast the bytea datatype is capable of
-      // handling very large values. Thus the implementation ends up calling
-      // getBytes() since there is no current way to stream the value from the server
-      byte b[] = getBytes(columnIndex);
-      if (b != null) {
-        return new ByteArrayInputStream(b);
-      }
-    } else {
-      // In 7.1 Handle as BLOBS so return the LargeObject input stream
-      if (fields[columnIndex - 1].getOID() == Oid.OID) {
-        LargeObjectManager lom = connection.getLargeObjectAPI();
-        LargeObject lob = lom.open(getLong(columnIndex));
-        return lob.getInputStream();
-      }
+    // Version 7.2 supports BinaryStream for all PG bytea type
+    // As the spec/javadoc for this method indicate this is to be used for
+    // large binary values (i.e. LONGVARBINARY) PG doesn't have a separate
+    // long binary datatype, but with toast the bytea datatype is capable of
+    // handling very large values. Thus the implementation ends up calling
+    // getBytes() since there is no current way to stream the value from the server
+    byte b[] = getBytes(columnIndex);
+    if (b != null) {
+      return new ByteArrayInputStream(b);
     }
     return null;
   }
@@ -3102,8 +3052,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
   }
 
-  ;
-
   //
   // We need to specify the type of NULL when updating a column to NULL, so
   // NullObject is a simple extension of PGobject that always returns null
@@ -3119,8 +3067,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       return null;
     }
   }
-
-  ;
 
   /**
    * Used to add rows to an already existing ResultSet that exactly match the existing rows.

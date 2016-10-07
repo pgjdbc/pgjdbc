@@ -23,12 +23,8 @@ public class Jdbc3TestSuite extends TestSuite {
     try {
       java.sql.Connection con = TestUtil.openDB();
 
-      if (TestUtil.haveMinimumServerVersion(con, "8.1") && TestUtil.isProtocolVersion(con, 3)) {
-        suite.addTest(new JUnit4TestAdapter(Jdbc3CallableStatementTest.class));
-      }
-      if (TestUtil.haveMinimumServerVersion(con, "8.2")) {
-        suite.addTest(new JUnit4TestAdapter(GeneratedKeysTest.class));
-      }
+      suite.addTest(new JUnit4TestAdapter(Jdbc3CallableStatementTest.class));
+      suite.addTest(new JUnit4TestAdapter(GeneratedKeysTest.class));
       con.close();
     } catch (Exception ex) {
       ex.printStackTrace();

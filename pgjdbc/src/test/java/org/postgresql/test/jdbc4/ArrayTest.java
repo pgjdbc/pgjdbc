@@ -5,6 +5,7 @@
 
 package org.postgresql.test.jdbc4;
 
+import org.postgresql.core.ServerVersion;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
@@ -116,7 +117,7 @@ public class ArrayTest extends BaseTest4 {
 
   @Test
   public void testCreateArrayOfMultiJson() throws SQLException {
-    if (!TestUtil.haveMinimumServerVersion(_conn, "9.2")) {
+    if (!TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v9_2)) {
       return;
     }
     PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::json[]");
@@ -162,10 +163,6 @@ public class ArrayTest extends BaseTest4 {
 
   @Test
   public void testCreateArrayOfNull() throws SQLException {
-    if (!TestUtil.haveMinimumServerVersion(_conn, "8.2")) {
-      return;
-    }
-
     String sql = "SELECT ?";
     // We must provide the type information for V2 protocol
     if (preferQueryMode == PreferQueryMode.SIMPLE) {

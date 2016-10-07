@@ -11,6 +11,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
 import org.junit.After;
@@ -60,23 +61,17 @@ public class DatabaseMetaDataTest {
 
     stmt.execute(
         "CREATE OR REPLACE FUNCTION f1(int, varchar) RETURNS int AS 'SELECT 1;' LANGUAGE SQL");
-    if (TestUtil.haveMinimumServerVersion(con, "8.0")) {
-      stmt.execute(
-          "CREATE OR REPLACE FUNCTION f2(a int, b varchar) RETURNS int AS 'SELECT 1;' LANGUAGE SQL");
-    }
-    if (TestUtil.haveMinimumServerVersion(con, "8.1")) {
-      stmt.execute(
-          "CREATE OR REPLACE FUNCTION f3(IN a int, INOUT b varchar, OUT c timestamptz) AS $f$ BEGIN b := 'a'; c := now(); return; END; $f$ LANGUAGE plpgsql");
-    }
+    stmt.execute(
+        "CREATE OR REPLACE FUNCTION f2(a int, b varchar) RETURNS int AS 'SELECT 1;' LANGUAGE SQL");
+    stmt.execute(
+        "CREATE OR REPLACE FUNCTION f3(IN a int, INOUT b varchar, OUT c timestamptz) AS $f$ BEGIN b := 'a'; c := now(); return; END; $f$ LANGUAGE plpgsql");
     stmt.execute(
         "CREATE OR REPLACE FUNCTION f4(int) RETURNS metadatatest AS 'SELECT 1, ''a''::text, now(), ''c''::text, ''q''::text' LANGUAGE SQL");
     stmt.execute(
         "CREATE OR REPLACE FUNCTION f5() RETURNS TABLE (i int) LANGUAGE sql AS 'SELECT 1'");
 
-    if (TestUtil.haveMinimumServerVersion(con, "7.3")) {
-      TestUtil.createDomain(con, "nndom", "int not null");
-      TestUtil.createTable(con, "domaintable", "id nndom");
-    }
+    TestUtil.createDomain(con, "nndom", "int not null");
+    TestUtil.createTable(con, "domaintable", "id nndom");
     stmt.close();
   }
 
@@ -100,16 +95,10 @@ public class DatabaseMetaDataTest {
     TestUtil.dropType(con, "_custom");
 
     stmt.execute("DROP FUNCTION f1(int, varchar)");
-    if (TestUtil.haveMinimumServerVersion(con, "8.0")) {
-      stmt.execute("DROP FUNCTION f2(int, varchar)");
-    }
-    if (TestUtil.haveMinimumServerVersion(con, "8.1")) {
-      stmt.execute("DROP FUNCTION f3(int, varchar)");
-    }
-    if (TestUtil.haveMinimumServerVersion(con, "7.3")) {
-      TestUtil.dropType(con, "domaintable");
-      TestUtil.dropDomain(con, "nndom");
-    }
+    stmt.execute("DROP FUNCTION f2(int, varchar)");
+    stmt.execute("DROP FUNCTION f3(int, varchar)");
+    TestUtil.dropType(con, "domaintable");
+    TestUtil.dropDomain(con, "nndom");
 
     TestUtil.closeDB(con);
   }
@@ -226,13 +215,7 @@ public class DatabaseMetaDataTest {
       assertTrue(fkColumnName.equals("m") || fkColumnName.equals("n"));
 
       String fkName = rs.getString("FK_NAME");
-      if (TestUtil.haveMinimumServerVersion(con1, "8.0")) {
-        assertEquals("ww_m_fkey", fkName);
-      } else if (TestUtil.haveMinimumServerVersion(con1, "7.3")) {
-        assertTrue(fkName.startsWith("$1"));
-      } else {
-        assertTrue(fkName.startsWith("<unnamed>"));
-      }
+      assertEquals("ww_m_fkey", fkName);
 
       String pkName = rs.getString("PK_NAME");
       assertEquals("vv_pkey", pkName);
@@ -277,10 +260,6 @@ public class DatabaseMetaDataTest {
 
   @Test
   public void testForeignKeysToUniqueIndexes() throws Exception {
-    if (!TestUtil.haveMinimumServerVersion(con, "7.4")) {
-      return;
-    }
-
     Connection con1 = TestUtil.openDB();
     TestUtil.createTable(con1, "pkt",
         "a int not null, b int not null, CONSTRAINT pkt_pk_a PRIMARY KEY (a), CONSTRAINT pkt_un_b UNIQUE (b)");
@@ -471,7 +450,7 @@ public class DatabaseMetaDataTest {
 
   @Test
   public void testDroppedColumns() throws SQLException {
-    if (!TestUtil.haveMinimumServerVersion(con, "8.4")) {
+    if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4)) {
       return;
     }
 
@@ -578,10 +557,8 @@ public class DatabaseMetaDataTest {
     stmt.execute("create index idx_id on metadatatest (id)");
     stmt.execute("create index idx_func_single on metadatatest (upper(colour))");
     stmt.execute("create unique index idx_un_id on metadatatest(id)");
-    if (TestUtil.haveMinimumServerVersion(con, "7.4")) {
-      stmt.execute("create index idx_func_multi on metadatatest (upper(colour), upper(quest))");
-      stmt.execute("create index idx_func_mixed on metadatatest (colour, upper(quest))");
-    }
+    stmt.execute("create index idx_func_multi on metadatatest (upper(colour), upper(quest))");
+    stmt.execute("create index idx_func_mixed on metadatatest (colour, upper(quest))");
 
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
@@ -593,27 +570,25 @@ public class DatabaseMetaDataTest {
     assertEquals("id", rs.getString("COLUMN_NAME"));
     assertTrue(!rs.getBoolean("NON_UNIQUE"));
 
-    if (TestUtil.haveMinimumServerVersion(con, "7.4")) {
-      assertTrue(rs.next());
-      assertEquals("idx_func_mixed", rs.getString("INDEX_NAME"));
-      assertEquals(1, rs.getInt("ORDINAL_POSITION"));
-      assertEquals("colour", rs.getString("COLUMN_NAME"));
+    assertTrue(rs.next());
+    assertEquals("idx_func_mixed", rs.getString("INDEX_NAME"));
+    assertEquals(1, rs.getInt("ORDINAL_POSITION"));
+    assertEquals("colour", rs.getString("COLUMN_NAME"));
 
-      assertTrue(rs.next());
-      assertEquals("idx_func_mixed", rs.getString("INDEX_NAME"));
-      assertEquals(2, rs.getInt("ORDINAL_POSITION"));
-      assertEquals("upper(quest)", rs.getString("COLUMN_NAME"));
+    assertTrue(rs.next());
+    assertEquals("idx_func_mixed", rs.getString("INDEX_NAME"));
+    assertEquals(2, rs.getInt("ORDINAL_POSITION"));
+    assertEquals("upper(quest)", rs.getString("COLUMN_NAME"));
 
-      assertTrue(rs.next());
-      assertEquals("idx_func_multi", rs.getString("INDEX_NAME"));
-      assertEquals(1, rs.getInt("ORDINAL_POSITION"));
-      assertEquals("upper(colour)", rs.getString("COLUMN_NAME"));
+    assertTrue(rs.next());
+    assertEquals("idx_func_multi", rs.getString("INDEX_NAME"));
+    assertEquals(1, rs.getInt("ORDINAL_POSITION"));
+    assertEquals("upper(colour)", rs.getString("COLUMN_NAME"));
 
-      assertTrue(rs.next());
-      assertEquals("idx_func_multi", rs.getString("INDEX_NAME"));
-      assertEquals(2, rs.getInt("ORDINAL_POSITION"));
-      assertEquals("upper(quest)", rs.getString("COLUMN_NAME"));
-    }
+    assertTrue(rs.next());
+    assertEquals("idx_func_multi", rs.getString("INDEX_NAME"));
+    assertEquals(2, rs.getInt("ORDINAL_POSITION"));
+    assertEquals("upper(quest)", rs.getString("COLUMN_NAME"));
 
     assertTrue(rs.next());
     assertEquals("idx_func_single", rs.getString("INDEX_NAME"));
@@ -633,10 +608,6 @@ public class DatabaseMetaDataTest {
 
   @Test
   public void testNotNullDomainColumn() throws SQLException {
-    if (!TestUtil.haveMinimumServerVersion(con, "7.3")) {
-      return;
-    }
-
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getColumns("", "", "domaintable", "");
     assertTrue(rs.next());
@@ -647,7 +618,7 @@ public class DatabaseMetaDataTest {
 
   @Test
   public void testAscDescIndexInfo() throws SQLException {
-    if (!TestUtil.haveMinimumServerVersion(con, "8.3")) {
+    if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3)) {
       return;
     }
 
@@ -725,10 +696,6 @@ public class DatabaseMetaDataTest {
 
   @Test
   public void testFuncWithNames() throws SQLException {
-    if (!TestUtil.haveMinimumServerVersion(con, "8.0")) {
-      return;
-    }
-
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getProcedureColumns(null, null, "f2", null);
 
@@ -747,10 +714,6 @@ public class DatabaseMetaDataTest {
 
   @Test
   public void testFuncWithDirection() throws SQLException {
-    if (!TestUtil.haveMinimumServerVersion(con, "8.1")) {
-      return;
-    }
-
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getProcedureColumns(null, null, "f3", null);
 
@@ -886,17 +849,10 @@ public class DatabaseMetaDataTest {
       }
     }
     rs.close();
-    if (TestUtil.haveMinimumServerVersion(con, "7.3")) {
-      assertTrue(count >= 2);
-      assertTrue(foundPublic);
-      assertTrue(foundPGCatalog);
-      assertTrue(!foundEmpty);
-    } else {
-      assertEquals(count, 1);
-      assertTrue(foundEmpty);
-      assertTrue(!foundPublic);
-      assertTrue(!foundPGCatalog);
-    }
+    assertTrue(count >= 2);
+    assertTrue(foundPublic);
+    assertTrue(foundPGCatalog);
+    assertTrue(!foundEmpty);
   }
 
   @Test
@@ -927,10 +883,6 @@ public class DatabaseMetaDataTest {
 
   @Test
   public void testGetUDTQualified() throws Exception {
-    if (!TestUtil.haveMinimumServerVersion(con, "7.3")) {
-      return;
-    }
-
     Statement stmt = null;
     try {
       stmt = con.createStatement();
@@ -985,10 +937,6 @@ public class DatabaseMetaDataTest {
 
   @Test
   public void testGetUDT1() throws Exception {
-    if (!TestUtil.haveMinimumServerVersion(con, "7.3")) {
-      return;
-    }
-
     try {
       Statement stmt = con.createStatement();
       stmt.execute("create domain testint8 as int8");
@@ -1029,10 +977,6 @@ public class DatabaseMetaDataTest {
 
   @Test
   public void testGetUDT2() throws Exception {
-    if (!TestUtil.haveMinimumServerVersion(con, "7.3")) {
-      return;
-    }
-
     try {
       Statement stmt = con.createStatement();
       stmt.execute("create domain testint8 as int8");
@@ -1072,10 +1016,6 @@ public class DatabaseMetaDataTest {
 
   @Test
   public void testGetUDT3() throws Exception {
-    if (!TestUtil.haveMinimumServerVersion(con, "7.3")) {
-      return;
-    }
-
     try {
       Statement stmt = con.createStatement();
       stmt.execute("create domain testint8 as int8");
@@ -1115,10 +1055,6 @@ public class DatabaseMetaDataTest {
 
   @Test
   public void testGetUDT4() throws Exception {
-    if (!TestUtil.haveMinimumServerVersion(con, "7.3")) {
-      return;
-    }
-
     try {
       Statement stmt = con.createStatement();
       stmt.execute("create type testint8 as (i int8)");

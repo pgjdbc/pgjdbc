@@ -10,7 +10,6 @@ import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
-import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc2.ArrayAssistant;
 import org.postgresql.jdbc2.ArrayAssistantRegistry;
 import org.postgresql.util.ByteConverter;
@@ -86,11 +85,6 @@ public class PgArray implements java.sql.Array {
   private final boolean useObjects;
 
   /**
-   * Are we connected to an 8.2 or higher server? Only 8.2 or higher supports null array elements.
-   */
-  private final boolean haveMinServer82;
-
-  /**
    * Value of field as {@link PgArrayList}. Will be initialized only once within
    * {@link #buildArrayList()}.
    */
@@ -101,8 +95,7 @@ public class PgArray implements java.sql.Array {
   private PgArray(BaseConnection connection, int oid) throws SQLException {
     this.connection = connection;
     this.oid = oid;
-    this.useObjects = connection.haveMinimumCompatibleVersion(ServerVersion.v8_3);
-    this.haveMinServer82 = connection.haveMinimumServerVersion(ServerVersion.v8_2);
+    this.useObjects = true;
   }
 
   /**
@@ -504,7 +497,7 @@ public class PgArray implements java.sql.Array {
 
           // add element to current array
           if (b != null && (!b.isEmpty() || wasInsideString)) {
-            curArray.add(!wasInsideString && haveMinServer82 && b.equals("NULL") ? null : b);
+            curArray.add(!wasInsideString && b.equals("NULL") ? null : b);
           }
 
           wasInsideString = false;

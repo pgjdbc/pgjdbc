@@ -217,22 +217,6 @@ public abstract class BaseDataSource implements Referenceable {
   }
 
   /**
-   * @return value of compatible parameter
-   * @see PGProperty#COMPATIBLE
-   */
-  public String getCompatible() {
-    return PGProperty.COMPATIBLE.get(properties);
-  }
-
-  /**
-   * @param compatible value of compatible parameter
-   * @see PGProperty#COMPATIBLE
-   */
-  public void setCompatible(String compatible) {
-    PGProperty.COMPATIBLE.set(properties, compatible);
-  }
-
-  /**
    * @return login timeout
    * @see PGProperty#LOGIN_TIMEOUT
    */
