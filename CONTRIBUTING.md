@@ -23,6 +23,262 @@ desired feature or improvement happens is to implement it yourself. The PgJDBC
 sources are reasonably clear and they're pure Java, so it's sometimes easier
 than you might expect.
 
+## Build requirements
+
+In order to build the source code for PgJDBC you will need the following tools:
+
+- A git client
+- A recent version of Maven (3.x)
+- A JDK for the JDBC version you'd like to build (JDK6 for JDBC 4, JDK7 for JDBC 4.1 or JDK8 for JDBC 4.2)
+- A running PostgreSQL instance
+
+Additionally, in order to update translations (not typical), you will need the following additional tools:
+
+-  the gettext package, which contains the commands "msgfmt", "msgmerge", and "xgettext"
+
+## Checking out the source code
+
+The PgJDBC project uses git for version control. You can check out the current code by running:
+
+    git clone https://github.com/pgjdbc/pgjdbc.git
+    
+This will create a pgjdbc directory containing the checked-out source code.
+In order do build jre7 or jre6 compatible versions, check out those repositories under `pgjdbc`
+
+    cd pgjdbc # <-- that is pgjdbc/pgjdbc.git clone
+    git clone https://github.com/pgjdbc/pgjdbc-jre7.git
+    git clone https://github.com/pgjdbc/pgjdbc-jre6.git
+
+Note: all the source code is stored in `pgjdbc.git` repository, so just `pgjdbc.git` is sufficient for development.
+
+## Compiling with Maven on the command line
+
+After checking out the code you can compile and test the PgJDBC driver by running the following
+on a command line:
+
+    mvn package
+
+Note: if you want to skip test execution, issue `mvn package -DskipTests`.
+
+Note: in certain cases, proper build requires cleaning the results of previous one.
+For instance, if you remove a `.java` file, then clean is required to remove the relevant `.class` file.
+In such cases, use `mvn clean` or `mvn clean package`.
+
+PgJDBC doesn't natively support building from IDEs like Eclipse, NetBeans or
+IntelliJ. However you can use the tools Maven support from within the IDE if you wish.
+You can use regular IDE tools to develop, execute tests, etc, however if you want to build final
+artifacts you should use `mvn`.
+  
+After running the build , and build a .jar file (Java ARchive)
+depending on the version of java and which release you have the jar will be named
+postgresql-<major>.<minor>.<release>.jre<N>.jar. Where major,minor are the PostgreSQL major,minor
+version numbers. release is the jdbc release number. N is the version of the JDBC API which 
+corresponds to the version of Java used to compile the driver.
+
+The target directory will contain the driver jar.
+If you need source code, documentation and runtime dependencies use `mvn package -P release-artifacts`.
+
+*NOTE*: default build produces Java 8 (JDBC 4.2) driver (in `pgjdbc/target` folder).
+
+If you need a version for older Java, configure `~/.m2/toolchains.xml`.
+Here's sample configuration for macOS:
+```xml
+<?xml version="1.0" encoding="UTF8"?>
+<toolchains>
+  <!-- JDK toolchains -->
+  <toolchain>
+    <type>jdk</type>
+    <provides>
+      <version>1.6</version>
+      <vendor>oracle</vendor>
+    </provides>
+    <configuration>
+      <jdkHome>/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Home</jdkHome>
+    </configuration>
+  </toolchain>
+  <toolchain>
+    <type>jdk</type>
+    <provides>
+      <version>1.7</version>
+      <vendor>oracle</vendor>
+    </provides>
+    <configuration>
+      <jdkHome>/Library/Java/JavaVirtualMachines/jdk1.7.0_55.jdk/Contents/Home</jdkHome>
+    </configuration>
+  </toolchain>
+  <toolchain>
+    <type>jdk</type>
+    <provides>
+      <version>1.8</version>
+      <vendor>oracle</vendor>
+    </provides>
+    <configuration>
+      <jdkHome>/Library/Java/JavaVirtualMachines/jdk1.8.0_60.jdk/Contents/Home</jdkHome>
+    </configuration>
+  </toolchain>
+</toolchains>
+```
+
+## Updating translations
+
+From time to time, the translation packages will need to be updated as part of the build process.
+However, this is atypical, and is generally only done when needed such as by a project committer before a major release.
+This process adds additional compile time and generally should not be executed for every build.
+
+Updating translations can be accomplished with the following command:
+
+    mvn -Ptranslate compile && git add pgjdbc && git commit -m "Translations updated"
+
+Note that the maven profile "translate" can safely be called with other profiles, such as -P release-artifacts.
+Invocation of this command will generate new .po files, a new messages.pot file, and newly translated class files.
+
+## Releasing a snapshot version
+
+TravisCI automatically deploys snapshots for each commit to master branch.
+
+Git repository typically contains -SNAPSHOT versions, so you can use the following command:
+
+    mvn deploy && (cd pgjdbc-jre7; mvn deploy) && (cd pgjdbc-jre6; mvn deploy)
+
+## Releasing a new version
+
+Prerequisites:
+- JDK 6, JDK 7, and JDK8 configured in `~/.m2/toolchains.xml`
+- a PostgreSQL instance for running tests
+- ensure that the RPM packaging CI isn't failing at
+  [copr web page](https://copr.fedorainfracloud.org/coprs/g/pgjdbc/pgjdbc-travis/builds/) -
+  possibly bump `parent poms` or `pgjdbc` versions in RPM [spec file](packaging/rpm/postgresql-jdbc.spec).
+
+Procedure:
+
+Release a version for JDK8
+- From a root folder, perform `mvn release:clean release:prepare`. That will ask you new version, update pom.xml, commit and push it to git.
+- From a root folder, perform `mvn release:perform`. That will *stage* Java 8-compatible PgJDBC version to maven central.
+
+Release a version for JDK7
+- Update `pgjdbc` submodule in `pgjdbc-jre7`
+
+```
+cd pgjdbc-jre7/pgjdbc
+git checkout master
+git reset --hard REL9.4.1208
+cd ..
+git add pgjdbc
+git commit -m "Update pgjdbc"
+```
+
+- Release `pgjdbc-jre7`
+
+```
+mvn release:clean release:prepare release:perform
+```
+
+Release a version for JDK6
+- Update `pgjdbc` submodule in `pgjdbc-jre7`
+- Release `pgjdbc-jre6`
+
+```
+mvn release:clean release:prepare release:perform
+```
+
+Close staging repository and release it:
+- From a `pgjdbc` folder, perform
+
+```
+mvn nexus-staging:close -DstagingRepositoryId=orgpostgresql-1082
+```
+
+The staged repository will become open for smoke testing access at https://oss.sonatype.org/content/repositories/orgpostgresql-1082/
+
+If staged artifacts look fine, release it
+
+```
+ mvn nexus-staging:release -DstagingRepositoryId=orgpostgresql-1082
+```
+
+Update changelog:
+- run `./release_notes.sh`, edit as desired
+
+## Dependencies
+
+PgJDBC has optional dependencies on other libraries for some features. These
+libraries must also be on your classpath if you wish to use those features; if
+they aren't, you'll get a `PSQLException` at runtime when you try to use features
+with missing libraries.
+
+Maven will download additional dependencies from the Internet (from Maven
+repositories) to satisfy build requirements. Whether or not you intend to use
+the optional features the libraries used to implement them they *must* be present to
+compile the driver.
+
+Currently Waffle-JNA and its dependencies are required for SSPI authentication
+support (only supported on a JVM running on Windows). Unless you're on Windows
+and using SSPI you can leave them out when you install the driver.
+
+## Installing the driver
+
+To install the driver, the postgresql jar file has to be in the classpath.
+When running standalone Java programs, use the `-cp` command line option,
+e.g.
+
+    java -cp postgresql-<major>.<minor>.<release>.jre<N>.jar -jar myprogram.jar
+
+If you're using an application server or servlet container, follow the
+instructions for installing JDBC drivers for that server or container.
+
+For users of IDEs like Eclipse, NetBeans, etc, you should simply add the
+driver JAR like any other JAR to use it in your program. To use it within
+the IDE itself (for database browsing etc) you should follow the IDE
+specific documentation on how to install JDBC drivers.
+
+## Bug reports, patches and development
+
+PgJDBC development is carried out on the [PgJDBC mailing list](https://jdbc.postgresql.org/community/mailinglist.html) and on [GitHub](https://github.com/pgjdbc/pgjdbc).
+
+Set of "backend protocol missing features" is collected in [backend_protocol_v4_wanted_features.md](backend_protocol_v4_wanted_features.md)
+
+### Bug reports
+
+For bug reports please post on pgsql-jdbc or add a GitHub issue. If you include
+additional unit tests demonstrating the issue, or self-contained runnable test
+case including SQL scripts etc that shows the problem, your report is likely to
+get more attention. Make sure you include appropriate details on your
+environment, like your JDK version, container/appserver if any, platform,
+PostgreSQL version, etc. Err on the site of excess detail if in doubt.
+
+### Bug fixes and new features
+
+If you've developed a patch you want to propose for inclusion in PgJDBC, feel
+free to send a GitHub pull request or post the patch on the PgJDBC mailing
+list.  Make sure your patch includes additional unit tests demonstrating and
+testing any new features. In the case of bug fixes, where possible include a
+new unit test that failed before the fix and passes after it.
+
+For information on working with GitHub, see: http://help.github.com/articles/fork-a-repo and http://learn.github.com/p/intro.html.
+
+### Testing
+
+Remember to test proposed PgJDBC patches when running against older PostgreSQL
+versions where possible, not just against the PostgreSQL you use yourself.
+
+You also need to test your changes with older JDKs. PgJDBC must support JDK6
+("Java 1.6") and newer. Code that is specific to a particular spec version
+may use features from that version of the language. i.e. JDBC4.1 specific 
+may use JDK7 features, JDBC4.2 may use JDK8 features.
+Common code and JDBC4 code needs to be compiled using JDK6.
+
+Three different versions of PgJDBC can be built, the JDBC 4, 4.1 and 4.2 drivers.
+These require JDK6, JDK7 and JDK8 respectively.
+The driver to build is auto-selected based on the JDK version used to run the
+build. The best way to test a proposed change is to build and test with JDK6, 7 and 8.
+
+You can get old JDK versions from the [Oracle Java Archive](http://www.oracle.com/technetwork/java/archive-139210.html).
+
+Then, to test against old JDK, run `mvn test` in `pgjdbc-jre6` or `pgjdbc-jre7` modules.
+
+For information about the unit tests and how to run them, see
+  [org/postgresql/test/README](pgjdbc/src/test/java/org/postgresql/test/README.md)
+
 ## Support for IDEs
 
 It's possible to debug and test PgJDBC with various IDEs, not just with mvn on
