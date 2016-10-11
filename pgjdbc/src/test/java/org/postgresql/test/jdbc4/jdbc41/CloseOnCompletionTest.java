@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2007, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
 package org.postgresql.test.jdbc4.jdbc41;
 
 import org.postgresql.test.TestUtil;

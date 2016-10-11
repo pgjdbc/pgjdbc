@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2003, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+// Copyright (c) 2004, Open Cloud Limited.
+
 package org.postgresql.sspi;
 
 import com.sun.jna.LastErrorException;
