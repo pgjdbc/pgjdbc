@@ -64,7 +64,8 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   public boolean isAutoIncrement(int column) throws SQLException {
     fetchFieldMetaData();
     Field field = getField(column);
-    return field.getMetadata().autoIncrement;
+    FieldMetadata metadata = field.getMetadata();
+    return metadata != null && metadata.autoIncrement;
   }
 
   /*
