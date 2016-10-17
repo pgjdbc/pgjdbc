@@ -329,7 +329,7 @@ public class LogicalReplicationTest {
 
     isActive = isActiveOnView();
     //we doesn't wait replay from server about stop connection that why some delay exists on update view and should wait some time before check view
-    if (!isActive) {
+    if (isActive) {
       TimeUnit.MILLISECONDS.sleep(200L);
       isActive = isActiveOnView();
     }
@@ -605,7 +605,7 @@ public class LogicalReplicationTest {
                       .logical()
                       .withSlotName(SLOT_NAME)
                       .withStartPosition(getCurrentLSN())
-                      .withStatusInterval(statusInterval, TimeUnit.SECONDS)
+                      .withStatusInterval(statusInterval, TimeUnit.MILLISECONDS)
                       .start();
 
               while (!Thread.interrupted()) {
@@ -632,10 +632,14 @@ public class LogicalReplicationTest {
 
   private int getKeepAliveTimeout() throws SQLException {
     Statement statement = sqlConnection.createStatement();
-    ResultSet resultSet = statement.executeQuery("select setting from pg_settings where name = 'wal_sender_timeout'");
+    ResultSet resultSet = statement.executeQuery("select setting, unit from pg_settings where name = 'wal_sender_timeout'");
     int result = 0;
     if (resultSet.next()) {
       result = resultSet.getInt(1);
+      String unit = resultSet.getString(2);
+      if ("sec".equals(unit)) {
+        result = (int) TimeUnit.SECONDS.toMillis(result);
+      }
     }
 
     return result;
