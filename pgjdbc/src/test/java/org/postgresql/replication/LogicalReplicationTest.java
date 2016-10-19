@@ -23,6 +23,7 @@ import org.junit.rules.ExpectedException;
 
 import java.nio.ByteBuffer;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -605,7 +606,7 @@ public class LogicalReplicationTest {
                       .logical()
                       .withSlotName(SLOT_NAME)
                       .withStartPosition(getCurrentLSN())
-                      .withStatusInterval(statusInterval, TimeUnit.MILLISECONDS)
+                      .withStatusInterval(Math.round(statusInterval / 3), TimeUnit.MILLISECONDS)
                       .start();
 
               while (!Thread.interrupted()) {
@@ -630,9 +631,163 @@ public class LogicalReplicationTest {
     );
   }
 
+  @Test
+  public void testRestartReplicationFromRestartSlotLSNWhenFeedbackAbsent() throws Exception {
+    PGConnection pgConnection = (PGConnection) replConnection;
+
+    LogSequenceNumber startLSN = getCurrentLSN();
+
+    PGReplicationStream stream =
+        pgConnection
+            .getReplicationAPI()
+            .replicationStream()
+            .logical()
+            .withSlotName(SLOT_NAME)
+            .withStartPosition(startLSN)
+            .withSlotOption("include-xids", false)
+            .withSlotOption("skip-empty-xacts", true)
+            .start();
+
+    Statement st = sqlConnection.createStatement();
+    st.execute("insert into test_logic_table(name) values('first tx changes')");
+    st.close();
+
+    st = sqlConnection.createStatement();
+    st.execute("insert into test_logic_table(name) values('second tx change')");
+    st.close();
+
+    List<String> consumedData = new ArrayList<String>();
+    consumedData.addAll(receiveMessageWithoutBlock(stream, 3));
+
+    //emulate replication break
+    replConnection.close();
+    waitStopReplicationSlot();
+
+    replConnection = openReplicationConnection();
+    pgConnection = (PGConnection) replConnection;
+    stream =
+        pgConnection
+            .getReplicationAPI()
+            .replicationStream()
+            .logical()
+            .withSlotName(SLOT_NAME)
+            .withStartPosition(LogSequenceNumber.INVALID_LSN) /* Invalid LSN indicate for start from restart lsn */
+            .withSlotOption("include-xids", false)
+            .withSlotOption("skip-empty-xacts", true)
+            .start();
+
+    consumedData.addAll(receiveMessageWithoutBlock(stream, 3));
+    String result = group(consumedData);
+
+    String wait = group(Arrays.asList(
+        "BEGIN",
+        "table public.test_logic_table: INSERT: pk[integer]:1 name[character varying]:'first tx changes'",
+        "COMMIT",
+        "BEGIN",
+        "table public.test_logic_table: INSERT: pk[integer]:1 name[character varying]:'first tx changes'",
+        "COMMIT"
+    ));
+
+    assertThat(
+        "If was consume message via logical replication stream but wasn't send feedback about apply and flush "
+            + "consumed LSN, if replication crash, server should restart from last success apllyed lsn, "
+            + "in this case it lsn of start replication slot, so we should consume first 3 message twice",
+        result, equalTo(wait)
+    );
+  }
+
+  @Test
+  public void testReplicationRestartFromLastFeedbackPosition() throws Exception {
+    PGConnection pgConnection = (PGConnection) replConnection;
+
+    LogSequenceNumber startLSN = getCurrentLSN();
+
+    PGReplicationStream stream =
+        pgConnection
+            .getReplicationAPI()
+            .replicationStream()
+            .logical()
+            .withSlotName(SLOT_NAME)
+            .withStartPosition(startLSN)
+            .withSlotOption("include-xids", false)
+            .withSlotOption("skip-empty-xacts", true)
+            .start();
+
+    Statement st = sqlConnection.createStatement();
+    st.execute("insert into test_logic_table(name) values('first tx changes')");
+    st.close();
+
+    st = sqlConnection.createStatement();
+    st.execute("insert into test_logic_table(name) values('second tx change')");
+    st.close();
+
+    List<String> consumedData = new ArrayList<String>();
+    consumedData.addAll(receiveMessageWithoutBlock(stream, 3));
+    stream.setFlushedLSN(stream.getLastReceiveLSN());
+    stream.setAppliedLSN(stream.getLastReceiveLSN());
+    stream.forceUpdateStatus();
+
+    //emulate replication break
+    replConnection.close();
+    waitStopReplicationSlot();
+
+    replConnection = openReplicationConnection();
+    pgConnection = (PGConnection) replConnection;
+    stream =
+        pgConnection
+            .getReplicationAPI()
+            .replicationStream()
+            .logical()
+            .withSlotName(SLOT_NAME)
+            .withStartPosition(LogSequenceNumber.INVALID_LSN) /* Invalid LSN indicate for start from restart lsn */
+            .withSlotOption("include-xids", false)
+            .withSlotOption("skip-empty-xacts", true)
+            .start();
+
+    consumedData.addAll(receiveMessageWithoutBlock(stream, 3));
+    String result = group(consumedData);
+
+
+    String wait = group(Arrays.asList(
+        "BEGIN",
+        "table public.test_logic_table: INSERT: pk[integer]:1 name[character varying]:'first tx changes'",
+        "COMMIT",
+        "BEGIN",
+        "table public.test_logic_table: INSERT: pk[integer]:2 name[character varying]:'second tx change'",
+        "COMMIT"
+    ));
+
+    assertThat(
+        "When we add feedback about applied lsn to replication stream(in this case it's force update status)"
+            + "after restart consume changes via this slot should be started from last success lsn that "
+            + "we send before via force status update, that why we wait consume both transaction without duplicates",
+        result, equalTo(wait));
+  }
+
+  private void waitStopReplicationSlot() throws SQLException, InterruptedException {
+    while (true) {
+      PreparedStatement statement =
+          sqlConnection.prepareStatement(
+              "select 1 from pg_replication_slots where slot_name = ? and active = true"
+          );
+      statement.setString(1, SLOT_NAME);
+      ResultSet rs = statement.executeQuery();
+      boolean active = rs.next();
+      rs.close();
+      statement.close();
+
+      if (!active) {
+        return;
+      }
+
+      TimeUnit.MILLISECONDS.sleep(10);
+    }
+  }
+
   private int getKeepAliveTimeout() throws SQLException {
     Statement statement = sqlConnection.createStatement();
-    ResultSet resultSet = statement.executeQuery("select setting, unit from pg_settings where name = 'wal_sender_timeout'");
+    ResultSet resultSet = statement.executeQuery(
+        "select setting, unit from pg_settings where name = 'wal_sender_timeout'");
     int result = 0;
     if (resultSet.next()) {
       result = resultSet.getInt(1);

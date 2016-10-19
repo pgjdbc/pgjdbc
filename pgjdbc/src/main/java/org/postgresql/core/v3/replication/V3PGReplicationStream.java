@@ -24,6 +24,9 @@ public class V3PGReplicationStream implements PGReplicationStream {
   private boolean closeFlag = false;
 
   private LogSequenceNumber lastServerLSN = LogSequenceNumber.INVALID_LSN;
+  /**
+   * Last receive LSN + payload size
+   */
   private LogSequenceNumber lastReceiveLSN = LogSequenceNumber.INVALID_LSN;
   private LogSequenceNumber lastAppliedLSN = LogSequenceNumber.INVALID_LSN;
   private LogSequenceNumber lastFlushedLSN = LogSequenceNumber.INVALID_LSN;
@@ -222,9 +225,12 @@ public class V3PGReplicationStream implements PGReplicationStream {
   }
 
   private ByteBuffer processXLogData(ByteBuffer buffer) {
-    lastReceiveLSN = LogSequenceNumber.valueOf(buffer.getLong());
+    long startLsn = buffer.getLong();
     lastServerLSN = LogSequenceNumber.valueOf(buffer.getLong());
     long systemClock = buffer.getLong();
+
+    int payloadSize = buffer.limit() - buffer.position();
+    lastReceiveLSN = LogSequenceNumber.valueOf(startLsn + payloadSize);
 
     if (logger.logDebug()) {
       logger.debug("  <=BE XLogData(currWal: " + lastReceiveLSN.asString() + ", lastServerWal: "
