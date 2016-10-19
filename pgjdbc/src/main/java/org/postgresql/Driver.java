@@ -447,37 +447,14 @@ public class Driver implements java.sql.Driver {
     return props;
   }
 
-  public static final int MAJORVERSION =
-      /*$mvn.project.property.parsedversion.majorversion+";"$*//*-*/9;
-
-  /**
-   * Gets the drivers major version number
-   *
-   * @return the drivers major version number
-   */
+  @Override
   public int getMajorVersion() {
-    return MAJORVERSION;
+    return org.postgresql.util.DriverInfo.MAJOR_VERSION;
   }
 
-  public static final int MINORVERSION =
-      /*$mvn.project.property.parsedversion.minorversion+";"$*//*-*/4;
-
-  /**
-   * Get the drivers minor version number
-   *
-   * @return the drivers minor version number
-   */
+  @Override
   public int getMinorVersion() {
-    return MINORVERSION;
-  }
-
-  /**
-   * Returns the server version series of this driver and the specific build number.
-   *
-   * @return JDBC driver version
-   */
-  public static String getVersion() {
-    return "PostgreSQL /*$mvn.project.property.parsedversion.osgiversion$*/";
+    return org.postgresql.util.DriverInfo.MINOR_VERSION;
   }
 
   /**

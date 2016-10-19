@@ -5,6 +5,7 @@
 
 package org.postgresql;
 
+import org.postgresql.util.DriverInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -281,7 +282,7 @@ public enum PGProperty {
   /**
    * The application name (require server version &gt;= 9.0)
    */
-  APPLICATION_NAME("ApplicationName", null, "name of the application (backend >= 9.0)"),
+  APPLICATION_NAME("ApplicationName", DriverInfo.DRIVER_NAME, "Name of the Application (backend >= 9.0)"),
 
   /**
    * Specifies the name of the JAAS system or application login configuration.

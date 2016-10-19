@@ -24,8 +24,8 @@ public class PGBundleActivator implements BundleActivator {
   public void start(BundleContext context) throws Exception {
     Dictionary<String, Object> properties = new Hashtable<String, Object>();
     properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_CLASS, Driver.class.getName());
-    properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_NAME, "PostgreSQL JDBC Driver");
-    properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_VERSION, Driver.getVersion());
+    properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_NAME, org.postgresql.util.DriverInfo.DRIVER_NAME);
+    properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_VERSION, org.postgresql.util.DriverInfo.DRIVER_VERSION);
     try {
       _registration = context.registerService(DataSourceFactory.class.getName(),
           new PGDataSourceFactory(), properties);
