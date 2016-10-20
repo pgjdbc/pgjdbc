@@ -28,6 +28,7 @@ import org.postgresql.util.PGTimestamp;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.ReaderInputStream;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -626,8 +627,14 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         setString(parameterIndex, castToString(in), Oid.BPCHAR);
         break;
       case Types.VARCHAR:
-      case Types.LONGVARCHAR:
         setString(parameterIndex, castToString(in), getStringType());
+        break;
+      case Types.LONGVARCHAR:
+        if (in instanceof InputStream) {
+          preparedParameters.setText(parameterIndex, (InputStream)in);
+        } else {
+          setString(parameterIndex, castToString(in), getStringType());
+        }
         break;
       case Types.DATE:
         if (in instanceof java.sql.Date) {
@@ -1556,8 +1563,31 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     throw Driver.notImplemented(this.getClass(), "setCharacterStream(int, Reader, long)");
   }
 
+  private String getString(Reader value) throws SQLException {
+    try {
+      StringBuilder v = new StringBuilder(1024);
+      char[] buf = new char[1024];
+      int nRead = 0;
+      while (nRead > -1) {
+        nRead = value.read(buf);
+        if (nRead > 1) {
+          v.append(buf, 0, nRead);
+        }
+      }
+      return v.toString();
+    } catch (IOException ioe) {
+      throw new PSQLException(GT.tr("Provided Reader failed."), PSQLState.UNEXPECTED_ERROR, ioe);
+    }
+  }
+
   public void setCharacterStream(int parameterIndex, Reader value) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setCharacterStream(int, Reader)");
+    if (connection.getPreferQueryMode() == PreferQueryMode.SIMPLE) {
+      String s = (value != null) ? getString(value) : null;
+      setString(parameterIndex, s);
+    } else {
+      InputStream is = (value != null) ? new ReaderInputStream(value) : null;
+      setObject(parameterIndex, is, Types.LONGVARCHAR);
+    }
   }
 
   public void setBinaryStream(int parameterIndex, InputStream value, long length)

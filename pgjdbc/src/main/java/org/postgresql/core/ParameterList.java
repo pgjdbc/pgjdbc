@@ -128,6 +128,18 @@ public interface ParameterList {
   void setBytea(int index, InputStream stream) throws SQLException;
 
   /**
+   * Binds a text value stored as an InputStream that is a valid UTF-8 byte stream.
+   * Any byte-order marks (BOM) in the stream are passed to the backend.
+   * The parameter's type is implicitly set to 'text'.
+   * The stream should remain valid until query execution has completed.
+   *
+   * @param index the 1-based parameter index to bind.
+   * @param stream a stream containing the parameter data.
+   * @throws SQLException on error or if <code>index</code> is out of range
+   */
+  void setText(int index, InputStream stream) throws SQLException;
+
+  /**
    * Binds given byte[] value to a parameter. The bytes must already be in correct format matching
    * the OID.
    *
