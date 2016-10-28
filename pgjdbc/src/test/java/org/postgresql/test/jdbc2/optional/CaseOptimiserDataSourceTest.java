@@ -1,9 +1,6 @@
-/*-------------------------------------------------------------------------
- *
- * Copyright (c) 2004-2014, PostgreSQL Global Development Group
- *
- *
- *-------------------------------------------------------------------------
+/*
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
  */
 
 package org.postgresql.test.jdbc2.optional;
