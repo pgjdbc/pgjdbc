@@ -518,7 +518,7 @@ public class TestUtil {
   public static void dropTable(Connection con, String table) throws SQLException {
     Statement stmt = con.createStatement();
     try {
-      String sql = "DROP TABLE " + table + " CASCADE ";
+      String sql = "DROP TABLE IF EXISTS " + table + " CASCADE ";
       stmt.executeUpdate(sql);
     } catch (SQLException ex) {
       // Since every create table issues a drop table

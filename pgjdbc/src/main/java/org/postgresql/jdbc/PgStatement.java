@@ -16,6 +16,8 @@ import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandlerBase;
 import org.postgresql.core.SqlCommand;
+import org.postgresql.core.fetchsize.ConstantFetchSize;
+import org.postgresql.core.fetchsize.FetchSizeProvider;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -106,9 +108,9 @@ public class PgStatement implements Statement, BaseStatement {
   protected int maxrows = 0;
 
   /**
-   * Number of rows to get in a batch.
+   * Provide number of rows to get in a batch.
    */
-  protected int fetchSize = 0;
+  protected FetchSizeProvider fetchSizeProvider;
 
   /**
    * Timeout (in milliseconds) for a query.
@@ -142,7 +144,7 @@ public class PgStatement implements Statement, BaseStatement {
     forceBinaryTransfers |= c.getForceBinary();
     resultsettype = rsType;
     concurrency = rsConcurrency;
-    setFetchSize(c.getDefaultFetchSize());
+    fetchSizeProvider = c.getFetchSizeProvider();
     setPrepareThreshold(c.getPrepareThreshold());
     this.rsHoldability = rsHoldability;
   }
@@ -151,8 +153,7 @@ public class PgStatement implements Statement, BaseStatement {
       ResultCursor cursor) throws SQLException {
     PgResultSet newResult = new PgResultSet(originalQuery, this, fields, tuples, cursor,
         getMaxRows(), getMaxFieldSize(), getResultSetType(), getResultSetConcurrency(),
-        getResultSetHoldability());
-    newResult.setFetchSize(getFetchSize());
+        getResultSetHoldability(), fetchSizeProvider);
     newResult.setFetchDirection(getFetchDirection());
     return newResult;
   }
@@ -166,7 +167,7 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   public int getFetchSize() {
-    return fetchSize;
+    return fetchSizeProvider.getFetchSize();
   }
 
   protected boolean wantsScrollableResultSet() {
@@ -379,6 +380,7 @@ public class PgStatement implements Statement, BaseStatement {
       throws SQLException {
     closeForNextExecution();
 
+    int fetchSize = fetchSizeProvider.getFetchSize();
     // Enable cursor-based resultset if possible.
     if (fetchSize > 0 && !wantsScrollableResultSet() && !connection.getAutoCommit()
         && !wantsHoldableResultSet()) {
@@ -837,8 +839,8 @@ public class PgStatement implements Statement, BaseStatement {
 
     try {
       startTimer();
-      connection.getQueryExecutor().execute(queries, parameterLists, handler, maxrows, fetchSize,
-          flags);
+      connection.getQueryExecutor().execute(queries, parameterLists, handler, maxrows,
+          fetchSizeProvider.getFetchSize(), flags);
     } finally {
       killTimerTask();
       // There might be some rows generated even in case of failures
@@ -908,7 +910,8 @@ public class PgStatement implements Statement, BaseStatement {
       throw new PSQLException(GT.tr("Fetch size must be a value greater to or equal to 0."),
           PSQLState.INVALID_PARAMETER_VALUE);
     }
-    fetchSize = rows;
+
+    fetchSizeProvider = new ConstantFetchSize(rows);
   }
 
   private void startTimer() {

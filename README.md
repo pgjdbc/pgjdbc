@@ -131,6 +131,7 @@ In addition to the standard connection parameters the driver supports a number o
 | preparedStatementCacheQueries | Integer | 256     | Specifies the maximum number of entries in per-connection cache of prepared statements. A value of 0 disables the cache. |
 | preparedStatementCacheSizeMiB | Integer | 5       | Specifies the maximum size (in megabytes) of a per-connection prepared statement cache. A value of 0 disables the cache. |
 | defaultRowFetchSize           | Integer | 0       | Positive number of rows that should be fetched from the database when more rows are needed for ResultSet by each fetch iteration |
+| defaultRowFetchSizeInBytes    | Long    | 0       | Specifies the maximum size (in bytes) of ResultSet that should be fetched from the database when more rows are needed for ResultSet by each fetch iteration |
 | loginTimeout                  | Integer | 0       | Specify how long to wait for establishment of a database connection.|
 | connectTimeout                | Integer | 10      | The timeout value used for socket connect operations. |
 | socketTimeout                 | Integer | 0       | The timeout value used for socket read operations. |

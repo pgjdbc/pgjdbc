@@ -419,6 +419,38 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @param sizeInBytes default fetch size in bytes
+   * @see PGProperty#DEFAULT_ROW_FETCH_SIZE_IN_BYTES
+   */
+  public void setDefaultRowFetchSizeInBytes(long sizeInBytes) {
+    PGProperty.DEFAULT_ROW_FETCH_SIZE_IN_BYTES.set(properties, String.valueOf(sizeInBytes));
+  }
+
+  /**
+   * @return default fetch size in bytes
+   * @see PGProperty#DEFAULT_ROW_FETCH_SIZE_IN_BYTES
+   */
+  public long getDefaultRowFetchSizeInBytes() {
+    return PGProperty.DEFAULT_ROW_FETCH_SIZE_IN_BYTES.getLongNoCheck(properties);
+  }
+
+  /**
+   * @param factor smoothing factor for function that estimates average rows size for query
+   * @see PGProperty#ROWS_SIZE_ESTIMATE_SMOOTHING_FACTOR
+   */
+  public void setRowsSizeEstimateSmoothingFactor(double factor) {
+    PGProperty.ROWS_SIZE_ESTIMATE_SMOOTHING_FACTOR.set(properties, String.valueOf(factor));
+  }
+
+  /**
+   * @return smoothing factor for function that estimates average rows size for query
+   * @see PGProperty#ROWS_SIZE_ESTIMATE_SMOOTHING_FACTOR
+   */
+  public double getRowsSizeEstimateSmoothingFactor() {
+    return PGProperty.ROWS_SIZE_ESTIMATE_SMOOTHING_FACTOR.getDoubleNoCheck(properties);
+  }
+
+  /**
    * @param unknownLength unknown length
    * @see PGProperty#UNKNOWN_LENGTH
    */

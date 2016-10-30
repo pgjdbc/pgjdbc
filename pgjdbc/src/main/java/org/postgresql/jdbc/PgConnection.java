@@ -26,6 +26,10 @@ import org.postgresql.core.TransactionState;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.core.Utils;
 import org.postgresql.core.Version;
+import org.postgresql.core.fetchsize.AverageBytesFetchSizeProviderFactory;
+import org.postgresql.core.fetchsize.ConstantFetchSizeFactory;
+import org.postgresql.core.fetchsize.FetchSizeProvider;
+import org.postgresql.core.fetchsize.FetchSizeProviderFactory;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.replication.PGReplicationConnection;
@@ -142,6 +146,8 @@ public class PgConnection implements BaseConnection {
 
   private final LruCache<FieldMetadata.Key, FieldMetadata> fieldMetadataCache;
 
+  private FetchSizeProviderFactory fetchSizeProviderFactory;
+
   final CachedQuery borrowQuery(String sql) throws SQLException {
     return queryExecutor.borrowQuery(sql);
   }
@@ -185,6 +191,14 @@ public class PgConnection implements BaseConnection {
     this.creatingURL = url;
 
     setDefaultFetchSize(PGProperty.DEFAULT_ROW_FETCH_SIZE.getInt(info));
+    long defaultFetchSizeInBytes = PGProperty.DEFAULT_ROW_FETCH_SIZE_IN_BYTES.getLong(info);
+    if (defaultFetchSizeInBytes > 0) {
+      double smoothingFactor = PGProperty.ROWS_SIZE_ESTIMATE_SMOOTHING_FACTOR.getDouble(info);
+      fetchSizeProviderFactory =
+          new AverageBytesFetchSizeProviderFactory(defaultFetchSizeInBytes, smoothingFactor);
+    } else {
+      fetchSizeProviderFactory = new ConstantFetchSizeFactory();
+    }
 
     setPrepareThreshold(PGProperty.PREPARE_THRESHOLD.getInt(info));
     if (prepareThreshold == -1) {
@@ -1032,6 +1046,14 @@ public class PgConnection implements BaseConnection {
 
   public int getDefaultFetchSize() {
     return defaultFetchSize;
+  }
+
+  /**
+   * @return not null instance of fetch size provider that can dynamic provide fetch size for each
+   * round trip to database
+   */
+  public FetchSizeProvider getFetchSizeProvider() {
+    return fetchSizeProviderFactory.getProvider(defaultFetchSize);
   }
 
   public void setPrepareThreshold(int newThreshold) {

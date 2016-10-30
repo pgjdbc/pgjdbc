@@ -17,6 +17,8 @@ import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandlerBase;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.core.Utils;
+import org.postgresql.core.fetchsize.ConstantFetchSize;
+import org.postgresql.core.fetchsize.FetchSizeProvider;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.HStoreConverter;
@@ -118,6 +120,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   private byte[][] rowBuffer = null; // updateable rowbuffer
 
   protected int fetchSize; // Current fetch size (might be 0).
+  protected FetchSizeProvider fetchSizeProvider;
   protected ResultCursor cursor; // Cursor for fetching additional data.
 
   private Map<String, Integer> columnNameIndexMap; // Speed up findColumn by caching lookups
@@ -138,7 +141,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   PgResultSet(Query originalQuery, BaseStatement statement, Field[] fields, List<byte[][]> tuples,
       ResultCursor cursor, int maxRows, int maxFieldSize, int rsType, int rsConcurrency,
-      int rsHoldability) throws SQLException {
+      int rsHoldability, FetchSizeProvider fetchSizeProvider) throws SQLException {
     // Fail-fast on invalid null inputs
     if (tuples == null) {
       throw new NullPointerException("tuples must be non-null");
@@ -157,6 +160,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     this.maxFieldSize = maxFieldSize;
     this.resultsettype = rsType;
     this.resultsetconcurrency = rsConcurrency;
+    this.fetchSizeProvider = fetchSizeProvider;
   }
 
   public java.net.URL getURL(int columnIndex) throws SQLException {
@@ -795,8 +799,9 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     row_offset += rows_size - 1; // Discarding all but one row.
 
+
     // Work out how many rows maxRows will let us fetch.
-    int fetchRows = fetchSize;
+    int fetchRows = fetchSizeProvider.getNextFetchSize(rows);
     if (maxRows != 0) {
       if (fetchRows == 0 || row_offset + fetchRows > maxRows) {
         // Fetch would exceed maxRows, limit it.
@@ -1817,12 +1822,12 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       throw new PSQLException(GT.tr("Fetch size must be a value greater to or equal to 0."),
           PSQLState.INVALID_PARAMETER_VALUE);
     }
-    fetchSize = rows;
+    fetchSizeProvider = new ConstantFetchSize(rows);
   }
 
   public int getFetchSize() throws SQLException {
     checkClosed();
-    return fetchSize;
+    return fetchSizeProvider.getFetchSize();
   }
 
   public boolean next() throws SQLException {
@@ -1844,7 +1849,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       // Ask for some more data.
       row_offset += rows.size(); // We are discarding some data.
 
-      int fetchRows = fetchSize;
+      int fetchRows = fetchSizeProvider.getNextFetchSize(rows);
       if (maxRows != 0) {
         if (fetchRows == 0 || row_offset + fetchRows > maxRows) {
           // Fetch would exceed maxRows, limit it.

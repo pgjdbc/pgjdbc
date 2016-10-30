@@ -116,10 +116,57 @@ public enum PGProperty {
 
   /**
    * Default parameter for {@link java.sql.Statement#getFetchSize()}. A value of {@code 0} means
-   * that need fetch all rows at once
+   * that need fetch all rows at once. When enabled adaptive fetch size this parameter also use as
+   * initial fetch size for get samples for next fetch size estimates.
+   *
+   * @see PGProperty#DEFAULT_ROW_FETCH_SIZE_IN_BYTES
    */
   DEFAULT_ROW_FETCH_SIZE("defaultRowFetchSize", "0",
       "Positive number of rows that should be fetched from the database when more rows are needed for ResultSet by each fetch iteration"),
+
+  /**
+   * <p>Specifies default fetch size in bytes if fetch size not define manually.
+   * This property also enable adaptive fetch size, base on previous round trip to database will be
+   * estimate fetch size for next round trip. Adaptive fetch size allow fetch table with
+   * heavyweight rows by small fetch size, but also allow fetch table with lightweight by
+   * high fetch size, as result it improve performance tables with lightweight rows and also
+   * prevents from OOM.
+   *
+   * <p>Fetch size in bytes not support on postgres protocol level, that why this parameter define
+   * approximate value of fetch size in bytes, and it can be exceeded at least twice(in case of
+   * insufficient number of samples). For gets enough samples to estimate fetch size should be
+   * configure {@link PGProperty#DEFAULT_ROW_FETCH_SIZE} with enough count rows, it necessary to
+   * exclude case when firstly receive lightweight rows and by it rows estimates fetch size
+   * but next round trip contains only heavyweight rows(First estimate fetch size was not correct,
+   * because extended specified fetchSizeInBytes limit).
+   *
+   * <p>A value of {@code 0} means that adaptive fetch size can't be apply.
+   *
+   * @see PGProperty#DEFAULT_ROW_FETCH_SIZE
+   * @see PGProperty#ROWS_SIZE_ESTIMATE_SMOOTHING_FACTOR
+   */
+  DEFAULT_ROW_FETCH_SIZE_IN_BYTES(
+      "defaultRowFetchSizeInBytes",
+      "0",
+      "Specifies default fetch size in bytes if fetch size not define manually."
+  ),
+
+  /**
+   * <p>Specifies smoothing factor for function that estimate average rows size base on previous
+   * fetch data. Smoothing factor allow smooth noise in data when query return only lightweight
+   * rows and for example 1 percent of heavyweight rows, in that case without apply smoothing factor
+   * fetch size can change small value to with small to large very sharply and as result
+   * be the cause of OOM.
+   *
+   * <p>Value should satisfy next rule: 0 &gt; smoothingFactor &lt; 1
+   *
+   * @see PGProperty#DEFAULT_ROW_FETCH_SIZE_IN_BYTES
+   */
+  ROWS_SIZE_ESTIMATE_SMOOTHING_FACTOR(
+      "rowsSizeEstimateSmoothingFactor",
+      "0.5",
+      "Double value define smooth factor for average function that calculate fetch size base on previous fetch"
+  ),
 
   /**
    * Use binary format for sending and receiving data if possible.
@@ -421,7 +468,47 @@ public enum PGProperty {
           + "to the database specified in the dbname parameter, "
           + "which will allow the connection to be used for logical replication "
           + "from that database. "
-          + "(backend >= 9.4)");
+          + "(backend >= 9.4)"),
+
+  /**
+   * Specify the driver behavior for not defined manually fetch size, it can be some default fetch size
+   * or fetch size that calculates base on rows size in bytes. Available values: default, adaptive.
+   *
+   * @see PGProperty#DEFAULT_ROW_FETCH_SIZE
+   * @see PGProperty#ADAPTIVE_FETCH_SIZE_MODE_ROW_FETCH_IN_BYTES
+   */
+  FETCH_SIZE_MODE(
+      "fetchSizeMode",
+      "default",
+      "Specify the driver behavior for not defined manually fetch size, it can be some default fetch size"
+          + " or fetch size that calculates base on rows size in bytes",
+      false,
+      "default",
+      "adaptive"
+  ),
+
+  /**
+   * Specifies default fetch size in bytes if fetch size not define manually. Property
+   * {@link PGProperty#FETCH_SIZE_MODE} should be also set to "adaptive" to enable the driver estimate
+   * fetch size base on rows size.
+   */
+  ADAPTIVE_FETCH_SIZE_MODE_ROW_FETCH_IN_BYTES(
+      "fetchSizeMode.adaptive.fetchSizeInBytes",
+      "0",
+      "Specifies default fetch size in bytes if fetch size not define manually."
+  ),
+
+  /**
+   * Double value define smooth factor for average function that calculate fetch size base on
+   * previous fetch. This property work only together with {@link PGProperty#FETCH_SIZE_MODE},
+   * {@link PGProperty#ADAPTIVE_FETCH_SIZE_MODE_ROW_FETCH_IN_BYTES}
+   * <p>Value should satisfy next rule: 0 &gt; smoothingFactor &lt; 1
+   */
+  ADAPTIVE_FETCH_SIZE_MODE_AVERAGE_SMOOTHING_FACTOR(
+      "fetchSizeMode.adaptive.average.smoothingFactor",
+      "0.5",
+      "Double value defint smooth factor for average function that calculate fetch size base on previous fetch"
+  );
 
   private String _name;
   private String _defaultValue;
@@ -523,7 +610,33 @@ public enum PGProperty {
   }
 
   /**
-   * Return the int value for this connection parameter in the given {@code Properties}.
+   * Return the long value for this connection parameter in the given {@code Properties}. Prefer the
+   * use of {@link #getLong(Properties)} anywhere you can throw an {@link java.sql.SQLException}
+   *
+   * @param properties properties to take actual value from
+   * @return evaluated value for this connection parameter converted to long
+   * @throws NumberFormatException if it cannot be converted to long.
+   */
+  public long getLongNoCheck(Properties properties) {
+    String value = get(properties);
+    return Long.parseLong(value);
+  }
+
+  /**
+   * Return the int value for this connection parameter in the given {@code Properties}. Prefer the
+   * use of {@link #getDouble(Properties)} anywhere you can throw an {@link java.sql.SQLException}
+   *
+   * @param properties properties to take actual value from
+   * @return evaluated value for this connection parameter converted to double
+   * @throws NumberFormatException if it cannot be converted to double.
+   */
+  public double getDoubleNoCheck(Properties properties) {
+    String value = get(properties);
+    return Double.parseDouble(value);
+  }
+
+  /**
+   * Return the int value for this connection parameter in the given {@code Properties}
    *
    * @param properties properties to take actual value from
    * @return evaluated value for this connection parameter converted to int
@@ -555,6 +668,40 @@ public enum PGProperty {
       return Integer.parseInt(value);
     } catch (NumberFormatException nfe) {
       throw new PSQLException(GT.tr("{0} parameter value must be an integer but was: {1}",
+          getName(), value), PSQLState.INVALID_PARAMETER_VALUE, nfe);
+    }
+  }
+
+  /**
+   * Return the int value for this connection parameter in the given {@code Properties}
+   *
+   * @param properties properties to take actual value from
+   * @return evaluated value for this connection parameter converted to long
+   * @throws PSQLException if it cannot be converted to int.
+   */
+  public long getLong(Properties properties) throws PSQLException {
+    String value = get(properties);
+    try {
+      return Long.parseLong(value);
+    } catch (NumberFormatException nfe) {
+      throw new PSQLException(GT.tr("{0} parameter value must be an long but was: {1}",
+          getName(), value), PSQLState.INVALID_PARAMETER_VALUE, nfe);
+    }
+  }
+
+  /**
+   * Return the int value for this connection parameter in the given {@code Properties}
+   *
+   * @param properties properties to take actual value from
+   * @return evaluated value for this connection parameter converted to double
+   * @throws PSQLException if it cannot be converted to int.
+   */
+  public double getDouble(Properties properties) throws PSQLException {
+    String value = get(properties);
+    try {
+      return Double.parseDouble(value);
+    } catch (NumberFormatException nfe) {
+      throw new PSQLException(GT.tr("{0} parameter value must be an double but was: {1}",
           getName(), value), PSQLState.INVALID_PARAMETER_VALUE, nfe);
     }
   }
