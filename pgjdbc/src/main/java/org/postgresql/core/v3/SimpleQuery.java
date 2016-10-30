@@ -114,8 +114,16 @@ class SimpleQuery implements Query {
     this.deallocateEpoch = deallocateEpoch;
   }
 
-  void setStatementTypes(int[] paramTypes) {
+  void setDescribedStatementTypes(int[] paramTypes) {
+    assert originalTypes == null || paramTypes.length == originalTypes.length
+        : String.format("paramTypes:%1$d originalTypes:%2$d", paramTypes.length,
+        paramTypes == null ? -1 : originalTypes.length);
     this.preparedTypes = paramTypes;
+  }
+
+  void setOriginalStatementTypes(int[] paramTypes) {
+    this.preparedTypes = paramTypes;
+    this.originalTypes = paramTypes;
   }
 
   int[] getStatementTypes() {
@@ -139,7 +147,11 @@ class SimpleQuery implements Query {
         paramTypes == null ? -1 : preparedTypes.length);
     // Check for compatible types.
     for (int i = 0; i < paramTypes.length; ++i) {
-      if (paramTypes[i] != Oid.UNSPECIFIED && paramTypes[i] != preparedTypes[i]) {
+      if (paramTypes[i] == Oid.UNSPECIFIED) {
+        if ((originalTypes != null) && (originalTypes[i] != Oid.UNSPECIFIED)) {
+          return false;
+        }
+      } else if (paramTypes[i] != preparedTypes[i]) {
         return false;
       }
     }
@@ -312,6 +324,7 @@ class SimpleQuery implements Query {
   private final boolean sanitiserDisabled;
   private PhantomReference<?> cleanupRef;
   private int[] preparedTypes;
+  private int[] originalTypes;
   private short deallocateEpoch;
 
   private Integer cachedMaxResultRowSize;

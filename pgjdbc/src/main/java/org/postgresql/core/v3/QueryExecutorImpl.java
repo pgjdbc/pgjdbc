@@ -1362,7 +1362,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       // the SimpleParameterList's internal array that might be modified
       // under us.
       query.setStatementName(statementName, deallocateEpoch);
-      query.setStatementTypes(typeOIDs.clone());
+      query.setOriginalStatementTypes(typeOIDs.clone());
       registerParsedQuery(query, statementName);
     }
 
@@ -1961,7 +1961,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           if ((origStatementName == null && query.getStatementName() == null)
               || (origStatementName != null
                   && origStatementName.equals(query.getStatementName()))) {
-            query.setStatementTypes(params.getTypeOIDs().clone());
+            query.setDescribedStatementTypes(params.getTypeOIDs().clone());
           }
 
           if (describeOnly) {
