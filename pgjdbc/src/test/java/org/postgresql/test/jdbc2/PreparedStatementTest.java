@@ -30,6 +30,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -1009,6 +1010,35 @@ public class PreparedStatementTest extends BaseTest4 {
       rs.close();
     }
     pstmt.close();
+  }
+
+  @Test
+  public void testSetTimeAndTimestamp() throws SQLException {
+    PreparedStatement ps = con.prepareStatement("SELECT ?::timestamp");
+    try {
+      Timestamp ts = new Timestamp(1474997614836L);
+      for (int i = 0; i < 3; ++i) {
+        ResultSet rs;
+        ps.setNull(1, Types.DATE);
+        rs = ps.executeQuery();
+        try {
+          assertTrue(rs.next());
+          assertNull(rs.getObject(1));
+        } finally {
+          rs.close();
+        }
+        ps.setTimestamp(1, ts);
+        rs = ps.executeQuery();
+        try {
+          assertTrue(rs.next());
+          assertEquals(ts, rs.getObject(1));
+        } finally {
+          rs.close();
+        }
+      }
+    } finally {
+      ps.close();
+    }
   }
 
 }
