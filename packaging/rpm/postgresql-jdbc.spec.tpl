@@ -67,6 +67,7 @@ BuildRequires:	properties-maven-plugin
 BuildRequires:	maven-enforcer-plugin
 BuildRequires:	maven-plugin-bundle
 BuildRequires:	maven-plugin-build-helper
+BuildRequires:	classloader-leak-test-framework
 
 %if %runselftest
 BuildRequires:	postgresql-server
