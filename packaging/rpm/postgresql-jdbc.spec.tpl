@@ -38,7 +38,7 @@
 %global upstreamrel	git
 %global upstreammajor	9.5
 %global source_path	pgjdbc/src/main/java/org/postgresql
-%global parent_ver	1.1.0
+%global parent_ver	SET_BY_TRAVIS
 %global parent_poms_builddir	./pgjdbc-parent-poms
 
 %global pgjdbc_mvn_options -DwaffleEnabled=false -DosgiEnabled=false \\\
@@ -52,7 +52,6 @@ License:	BSD
 URL:		http://jdbc.postgresql.org/
 
 Source0:	REL%{version}.tar.gz
-Source1:	postgres-testing.sh
 
 # Upstream moved parent pom.xml into separate project (even though there is only
 # one dependant project on it?).  Let's try to not complicate packaging by
@@ -67,10 +66,12 @@ BuildRequires:	properties-maven-plugin
 BuildRequires:	maven-enforcer-plugin
 BuildRequires:	maven-plugin-bundle
 BuildRequires:	maven-plugin-build-helper
+BuildRequires:	classloader-leak-test-framework
 
 %if %runselftest
-BuildRequires:	postgresql-server
 BuildRequires:	postgresql-contrib
+BuildRequires:	postgresql-devel
+BuildRequires:	postgresql-server
 %endif
 
 # gettext is only needed if we try to update translations
@@ -138,7 +139,7 @@ mkdir -p pgjdbc/target/generated-sources/annotations
 
 # Include PostgreSQL testing methods and variables.
 %if %runselftest
-. %{SOURCE1}
+%pgtests_init
 
 PGTESTS_LOCALE=C.UTF-8
 
@@ -156,13 +157,14 @@ protocolVersion=0
 EOF
 
 # Start the local PG cluster.
-pgtests_start
+%pgtests_start
 %else
 # -f is equal to -Dmaven.test.skip=true
 opts="-f"
 %endif
 
 %mvn_build $opts -- %pgjdbc_mvn_options
+
 
 %install
 %mvn_install
@@ -183,7 +185,7 @@ opts="-f"
 
 
 %changelog
-* Mon Aug 29 2016 Pavel Raiskup <praiskup@redhat.com> - 9.4.1209-6
+* Thu Nov 03 2016 Pavel Raiskup <praiskup@redhat.com> - 9.5.git-1
 - sync with latest Fedora
 
 * Wed Jun 01 2016 Pavel Raiskup <praiskup@redhat.com> - 9.5.git-1
