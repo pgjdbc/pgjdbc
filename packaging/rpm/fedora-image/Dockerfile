@@ -15,6 +15,7 @@ RUN dnf -y --setopt=tsflags=nodocs install \
     && dnf -y update copr-cli python-copr --enablerepo updates-testing
 
 ADD build_local copr-ci-git srpmgen /usr/bin/
+RUN chmod +rx /usr/bin/{build_local,copr-ci-git,srpmgen}
 
 WORKDIR /rpm
 

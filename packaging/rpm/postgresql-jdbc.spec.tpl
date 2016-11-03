@@ -38,7 +38,7 @@
 %global upstreamrel	git
 %global upstreammajor	9.5
 %global source_path	pgjdbc/src/main/java/org/postgresql
-%global parent_ver	SET_BY_TRAVIS
+%global parent_ver	GENERATED
 %global parent_poms_builddir	./pgjdbc-parent-poms
 
 %global pgjdbc_mvn_options -DwaffleEnabled=false -DosgiEnabled=false \\\
@@ -47,7 +47,7 @@
 Summary:	JDBC driver for PostgreSQL
 Name:		postgresql-jdbc
 Version:	%upstreammajor.%{upstreamrel}
-Release:	1%{?dist}
+Release:	GENERATED
 License:	BSD
 URL:		http://jdbc.postgresql.org/
 
@@ -56,7 +56,7 @@ Source0:	REL%{version}.tar.gz
 # Upstream moved parent pom.xml into separate project (even though there is only
 # one dependant project on it?).  Let's try to not complicate packaging by
 # having separate spec file for it, too.
-Source2:	https://github.com/pgjdbc/pgjdbc-parent-poms/archive/REL%parent_ver.tar.gz
+Source1:	https://github.com/pgjdbc/pgjdbc-parent-poms/archive/REL%parent_ver.tar.gz
 
 BuildArch:	noarch
 BuildRequires:	java-devel >= 1.8
@@ -99,7 +99,7 @@ This package contains the API Documentation for %{name}.
 
 
 %prep
-%setup -c -q -a 2 -n pgjdbc-REL%version
+%setup -c -q -a 1 -n pgjdbc-REL%version
 
 mv pgjdbc-REL%version/* .
 mv pgjdbc-parent-poms-REL%parent_ver pgjdbc-parent-poms
