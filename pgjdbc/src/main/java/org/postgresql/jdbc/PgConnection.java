@@ -1488,7 +1488,6 @@ public class PgConnection implements BaseConnection {
     throw new SQLException("Cannot unwrap to " + iface.getName());
   }
 
-  @Override
   public String getSchema() throws SQLException {
     checkClosed();
     Statement stmt = createStatement();
@@ -1507,7 +1506,6 @@ public class PgConnection implements BaseConnection {
     }
   }
 
-  @Override
   public void setSchema(String schema) throws SQLException {
     checkClosed();
     Statement stmt = createStatement();
@@ -1532,7 +1530,6 @@ public class PgConnection implements BaseConnection {
     }
   }
 
-  @Override
   public void abort(Executor executor) throws SQLException {
     if (isClosed()) {
       return;
@@ -1548,12 +1545,10 @@ public class PgConnection implements BaseConnection {
     }
   }
 
-  @Override
   public void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
     throw org.postgresql.Driver.notImplemented(this.getClass(), "setNetworkTimeout(Executor, int)");
   }
 
-  @Override
   public int getNetworkTimeout() throws SQLException {
     throw org.postgresql.Driver.notImplemented(this.getClass(), "getNetworkTimeout()");
   }
