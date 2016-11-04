@@ -16,7 +16,7 @@ PostgreSQL JDBC Driver (PgJDBC for short) allows Java programs to connect to a P
 ## Supported PostgreSQL and Java versions
 The current version of the driver should be compatible with **PostgreSQL 8.2 and higher** using the version 3.0 of the protocol, and **Java 6** (JDBC 4.0), **Java 7** (JDBC 4.1) and **Java 8** (JDBC 4.2). Unless you have unusual requirements (running old applications or JVMs), this is the driver you should be using.
 
-Don't assume that the current version of PgJDBC 9.4.x is only PostgreSQL 9.4 compatible. PgJDBC regression tests are run against all PostgreSQL versions since 8.4, including "build PostgreSQL from git master" version. There are other derived forks of PostgreSQL but have not been certified to run with PgJDBC.
+PgJDBC regression tests are run against all PostgreSQL versions since 8.2, including "build PostgreSQL from git master" version. There are other derived forks of PostgreSQL but have not been certified to run with PgJDBC. If you find a bug or regression on supported versions, please fill an [Issue](https://github.com/pgjdbc/pgjdbc/issues).
 
 ## Get the Driver
 Most people do not need to compile PgJDBC. You can download the precompiled driver (jar) from the [PostgreSQL JDBC site](https://jdbc.postgresql.org/download.html) or using your chosen dependency management tool:
@@ -72,14 +72,14 @@ There are also available (snapshot) binary RPMs in [Fedora's Copr repository](ht
 ## Changelog
 Notable changes for:
 
-**9.4.1212** (2016-11-02):
+**[9.4.1212]** (2016-11-02):
 * ? can now be used in non-prepared statements (fixed regression of 9.4.1210)
 
-**9.4.1211** (2016-09-18):
+**[9.4.1211]** (2016-09-18):
 * json type is returned as PGObject like in pre-9.4.1210 (fixed regression of 9.4.1210)
 * 'current transaction is aborted' exception includes the original exception via caused-by chain
 
-**9.4.1210** (2016-09-07):
+**[9.4.1210]** (2016-09-07):
 * BUG: json datatype is returned as java.lang.String object, not as PGObject (fixed in 9.4.1211)
 * Better support for RETURN_GENERATED_KEYS, statements with RETURNING clause
 * Avoid user-visible prepared-statement errors if client uses DEALLOCATE/DISCARD statements (invalidate cache when those statements detected)
@@ -87,17 +87,31 @@ Notable changes for:
 * Support comments when replacing {fn ...} JDBC syntax
 * Support for Types.REF_CURSOR
 
-**9.4.1209** (2016-07-15):
+**[9.4.1209]** (2016-07-15):
 * Many improvements to `insert into .. values(?,?)` => `insert .. values(?,?), (?,?)...` rewriter. Give it a try by using `reWriteBatchedInserts=true` connection property. 2-3x improvements for insert batch can be expected
 * Full test suite passes against PostgreSQL 9.6, and OpenJDK 9
 * Performance optimization for timestamps (~`TimeZone.getDefault` optimization)
 * Allow build-from-source on GNU/Linux without maven repositories, and add Fedora Copr test to the regression suite
+
+[9.4.1212]: https://github.com/pgjdbc/pgjdbc/compare/REL9.4.1211...REL9.4.1212
+[9.4.1211]: https://github.com/pgjdbc/pgjdbc/compare/REL9.4.1210...REL9.4.1211
+[9.4.1210]: https://github.com/pgjdbc/pgjdbc/compare/REL9.4.1209...REL9.4.1210
+[9.4.1209]: https://github.com/pgjdbc/pgjdbc/compare/REL9.4.1208...REL9.4.1209
 
 Read the [History of Changes](https://jdbc.postgresql.org/documentation/changelog.html#introduction) for reference of previous versions.
 
 ----------------------------------------------------
 ## Documentation
 For more information you can read [the PgJDBC driver documentation](https://jdbc.postgresql.org/documentation/head/) or for general JDBC documentation please refer to [The Java™ Tutorials](http://docs.oracle.com/javase/tutorial/jdbc/).
+
+### Driver and DataSource class
+
+| Implements                          | Class                                          |
+| ----------------------------------- | ---------------------------------------------- |
+| java.sql.Driver                     | **org.postgresql.Driver**                      |
+| javax.sql.DataSource                | org.postgresql.ds.PGSimpleDataSource           |
+| javax.sql.ConnectionPoolDataSource  | org.postgresql.ds.PGConnectionPoolDataSource   |
+| javax.sql.XADataSource              | org.postgresql.xa.PGXADataSource               |
 
 ### Building the Connection URL
 The driver recognises JDBC URLs of the form:
