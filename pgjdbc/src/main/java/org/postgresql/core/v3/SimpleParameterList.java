@@ -132,18 +132,22 @@ class SimpleParameterList implements V3ParameterList {
     bind(index, value, oid, BINARY);
   }
 
+  @Override
   public void setBytea(int index, byte[] data, int offset, int length) throws SQLException {
     bind(index, new StreamWrapper(data, offset, length), Oid.BYTEA, BINARY);
   }
 
+  @Override
   public void setBytea(int index, InputStream stream, int length) throws SQLException {
     bind(index, new StreamWrapper(stream, length), Oid.BYTEA, BINARY);
   }
 
+  @Override
   public void setBytea(int index, InputStream stream) throws SQLException {
     bind(index, new StreamWrapper(stream), Oid.BYTEA, BINARY);
   }
 
+  @Override
   public void setNull(int index, int oid) throws SQLException {
 
     byte binaryTransfer = TEXT;
@@ -154,6 +158,7 @@ class SimpleParameterList implements V3ParameterList {
     bind(index, NULL_OBJECT, oid, binaryTransfer);
   }
 
+  @Override
   public String toString(int index, boolean standardConformingStrings) {
     --index;
     if (paramValues[index] == null) {
@@ -240,6 +245,7 @@ class SimpleParameterList implements V3ParameterList {
     }
   }
 
+  @Override
   public void checkAllParametersSet() throws SQLException {
     for (int i = 0; i < paramTypes.length; ++i) {
       if (direction(i) != OUT && paramValues[i] == null) {
@@ -249,6 +255,7 @@ class SimpleParameterList implements V3ParameterList {
     }
   }
 
+  @Override
   public void convertFunctionOutParameters() {
     for (int i = 0; i < paramTypes.length; ++i) {
       if (direction(i) == OUT) {
