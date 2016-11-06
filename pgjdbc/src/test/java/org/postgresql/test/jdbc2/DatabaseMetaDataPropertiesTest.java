@@ -5,9 +5,15 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -18,29 +24,23 @@ import java.sql.SQLException;
  * properties. Methods which return a ResultSet are tested elsewhere. This avoids a complicated
  * setUp/tearDown for something like assertTrue(dbmd.nullPlusNonNullIsNull());
  */
-
-public class DatabaseMetaDataPropertiesTest extends TestCase {
-
+public class DatabaseMetaDataPropertiesTest {
   private Connection con;
 
-  /*
-   * Constructor
-   */
-  public DatabaseMetaDataPropertiesTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
+  @Before
+  public void setUp() throws Exception {
     con = TestUtil.openDB();
   }
 
-  protected void tearDown() throws Exception {
+  @After
+  public void tearDown() throws Exception {
     TestUtil.closeDB(con);
   }
 
   /*
    * The spec says this may return null, but we always do!
    */
+  @Test
   public void testGetMetaData() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
@@ -49,6 +49,7 @@ public class DatabaseMetaDataPropertiesTest extends TestCase {
   /*
    * Test default capabilities
    */
+  @Test
   public void testCapabilities() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
@@ -80,6 +81,7 @@ public class DatabaseMetaDataPropertiesTest extends TestCase {
 
   }
 
+  @Test
   public void testJoins() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
@@ -89,6 +91,7 @@ public class DatabaseMetaDataPropertiesTest extends TestCase {
     assertTrue(dbmd.supportsLimitedOuterJoins());
   }
 
+  @Test
   public void testCursors() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
@@ -97,6 +100,7 @@ public class DatabaseMetaDataPropertiesTest extends TestCase {
     assertTrue(!dbmd.supportsPositionedUpdate());
   }
 
+  @Test
   public void testValues() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
@@ -108,6 +112,7 @@ public class DatabaseMetaDataPropertiesTest extends TestCase {
     }
   }
 
+  @Test
   public void testNulls() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
@@ -122,6 +127,7 @@ public class DatabaseMetaDataPropertiesTest extends TestCase {
     assertTrue(dbmd.supportsNonNullableColumns());
   }
 
+  @Test
   public void testLocalFiles() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
@@ -130,6 +136,7 @@ public class DatabaseMetaDataPropertiesTest extends TestCase {
     assertTrue(!dbmd.usesLocalFiles());
   }
 
+  @Test
   public void testIdentifiers() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
@@ -147,6 +154,7 @@ public class DatabaseMetaDataPropertiesTest extends TestCase {
 
   }
 
+  @Test
   public void testTables() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
@@ -162,6 +170,7 @@ public class DatabaseMetaDataPropertiesTest extends TestCase {
     }
   }
 
+  @Test
   public void testSelect() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
@@ -181,6 +190,7 @@ public class DatabaseMetaDataPropertiesTest extends TestCase {
     assertTrue(dbmd.supportsGroupByBeyondSelect()); // needs checking
   }
 
+  @Test
   public void testDBParams() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
@@ -189,6 +199,7 @@ public class DatabaseMetaDataPropertiesTest extends TestCase {
     assertTrue(dbmd.getUserName().equals(TestUtil.getUser()));
   }
 
+  @Test
   public void testDbProductDetails() throws SQLException {
     assertTrue(con instanceof org.postgresql.PGConnection);
 
@@ -198,6 +209,7 @@ public class DatabaseMetaDataPropertiesTest extends TestCase {
     assertTrue(dbmd.getDatabaseProductName().equals("PostgreSQL"));
   }
 
+  @Test
   public void testDriverVersioning() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);

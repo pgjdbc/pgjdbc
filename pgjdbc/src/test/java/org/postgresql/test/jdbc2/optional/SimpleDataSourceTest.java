@@ -13,16 +13,11 @@ import org.postgresql.jdbc2.optional.SimpleDataSource;
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  */
 public class SimpleDataSourceTest extends BaseDataSourceTest {
-  /**
-   * Constructor required by JUnit
-   */
-  public SimpleDataSourceTest(String name) {
-    super(name);
-  }
 
   /**
    * Creates and configures a new SimpleDataSource.
    */
+  @Override
   protected void initializeDataSource() {
     if (bds == null) {
       bds = new SimpleDataSource();

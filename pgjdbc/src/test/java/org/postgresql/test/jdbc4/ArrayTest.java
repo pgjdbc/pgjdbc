@@ -47,6 +47,7 @@ public class ArrayTest extends BaseTest4 {
     return ids;
   }
 
+  @Override
   public void setUp() throws Exception {
     super.setUp();
     _conn = con;
@@ -61,6 +62,7 @@ public class ArrayTest extends BaseTest4 {
     TestUtil.createTable(_conn, "\"Evil.Table\"", "id serial");
   }
 
+  @Override
   public void tearDown() throws SQLException {
     TestUtil.dropTable(_conn, "arrtest");
     TestUtil.dropTable(_conn, "arrcompprnttest");

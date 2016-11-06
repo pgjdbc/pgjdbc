@@ -5,12 +5,19 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import org.postgresql.PGStatement;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.Date;
@@ -30,22 +37,19 @@ import java.util.TimeZone;
  * Test get/setTimestamp for both timestamp with time zone and timestamp without time zone datatypes
  *
  */
-public class TimestampTest extends TestCase {
-
+public class TimestampTest {
   private Connection con;
 
-  public TimestampTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
+  @Before
+  public void setUp() throws Exception {
     con = TestUtil.openDB();
     TestUtil.createTable(con, TSWTZ_TABLE, "ts timestamp with time zone");
     TestUtil.createTable(con, TSWOTZ_TABLE, "ts timestamp without time zone");
     TestUtil.createTable(con, DATE_TABLE, "ts date");
   }
 
-  protected void tearDown() throws Exception {
+  @After
+  public void tearDown() throws Exception {
     TestUtil.dropTable(con, TSWTZ_TABLE);
     TestUtil.dropTable(con, TSWOTZ_TABLE);
     TestUtil.dropTable(con, DATE_TABLE);
@@ -55,6 +59,7 @@ public class TimestampTest extends TestCase {
   /**
    * Ensure the driver doesn't modify a Calendar that is passed in.
    */
+  @Test
   public void testCalendarModification() throws SQLException {
     Calendar cal = Calendar.getInstance();
     Calendar origCal = (Calendar) cal.clone();
@@ -92,6 +97,7 @@ public class TimestampTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testInfinity() throws SQLException {
     runInfinityTests(TSWTZ_TABLE, PGStatement.DATE_POSITIVE_INFINITY);
     runInfinityTests(TSWTZ_TABLE, PGStatement.DATE_NEGATIVE_INFINITY);
@@ -151,6 +157,7 @@ public class TimestampTest extends TestCase {
    * Tests the timestamp methods in ResultSet on timestamp with time zone we insert a known string
    * value (don't use setTimestamp) then see that we get back the same value from getTimestamp
    */
+  @Test
   public void testGetTimestampWTZ() throws SQLException {
     Statement stmt = con.createStatement();
     TimestampUtils tsu = ((BaseConnection) con).getTimestampUtils();
@@ -211,6 +218,7 @@ public class TimestampTest extends TestCase {
    * using setTimestamp then see that we get back the same value from getTimestamp (which we know
    * works as it was tested independently of setTimestamp
    */
+  @Test
   public void testSetTimestampWTZ() throws SQLException {
     Statement stmt = con.createStatement();
     PreparedStatement pstmt = con.prepareStatement(TestUtil.insertSQL(TSWTZ_TABLE, "?"));
@@ -280,6 +288,7 @@ public class TimestampTest extends TestCase {
    * string value (don't use setTimestamp) then see that we get back the same value from
    * getTimestamp
    */
+  @Test
   public void testGetTimestampWOTZ() throws SQLException {
     Statement stmt = con.createStatement();
     TimestampUtils tsu = ((BaseConnection) con).getTimestampUtils();
@@ -359,6 +368,7 @@ public class TimestampTest extends TestCase {
    * value using setTimestamp then see that we get back the same value from getTimestamp (which we
    * know works as it was tested independently of setTimestamp
    */
+  @Test
   public void testSetTimestampWOTZ() throws SQLException {
     Statement stmt = con.createStatement();
     PreparedStatement pstmt = con.prepareStatement(TestUtil.insertSQL(TSWOTZ_TABLE, "?"));

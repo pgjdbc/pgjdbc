@@ -5,12 +5,17 @@
 
 package org.postgresql.test.jdbc2.optional;
 
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import org.postgresql.core.BaseConnection;
 import org.postgresql.ds.common.BaseDataSource;
 import org.postgresql.jdbc2.optional.SimpleDataSource;
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -20,18 +25,11 @@ import java.sql.Statement;
 /*
  * DataSource test to ensure the BaseConnection is configured with column sanitiser disabled.
  */
-public class CaseOptimiserDataSourceTest extends TestCase {
+public class CaseOptimiserDataSourceTest {
   private BaseDataSource bds;
   protected Connection conn;
 
-  protected void initializeDataSource() {
-    if (bds == null) {
-      bds = new SimpleDataSource();
-      setupDataSource(bds);
-      bds.setDisableColumnSanitiser(true);
-    }
-  }
-
+  @Before
   public void setUp() throws SQLException {
     Connection conn = getDataSourceConnection();
     assertTrue(conn instanceof BaseConnection);
@@ -46,7 +44,7 @@ public class CaseOptimiserDataSourceTest extends TestCase {
     conn.close();
   }
 
-  @Override
+  @After
   public void tearDown() throws SQLException {
     Connection conn = getDataSourceConnection();
     Statement drop = conn.createStatement();
@@ -61,6 +59,7 @@ public class CaseOptimiserDataSourceTest extends TestCase {
    * checks for a side effect of the sanitiser being disabled. The column is not expected to be
    * found.
    */
+  @Test
   public void testDataSourceDisabledSanitiserPropertySucceeds() throws SQLException {
     String label = "FOO";
     Connection conn = getDataSourceConnection();
@@ -83,6 +82,14 @@ public class CaseOptimiserDataSourceTest extends TestCase {
     return bds.getConnection();
   }
 
+  protected void initializeDataSource() {
+    if (bds == null) {
+      bds = new SimpleDataSource();
+      setupDataSource(bds);
+      bds.setDisableColumnSanitiser(true);
+    }
+  }
+
   public static void setupDataSource(BaseDataSource bds) {
     bds.setServerName(TestUtil.getServer());
     bds.setPortNumber(TestUtil.getPort());
@@ -92,9 +99,5 @@ public class CaseOptimiserDataSourceTest extends TestCase {
     bds.setPrepareThreshold(TestUtil.getPrepareThreshold());
     bds.setLogLevel(TestUtil.getLogLevel());
     bds.setProtocolVersion(TestUtil.getProtocolVersion());
-  }
-
-  public CaseOptimiserDataSourceTest(String name) {
-    super(name);
   }
 }

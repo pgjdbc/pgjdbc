@@ -5,9 +5,15 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -20,20 +26,17 @@ import java.sql.Statement;
  * problems from re-occurring ;-)
  *
  */
-public class DateTest extends TestCase {
-
+public class DateTest {
   private Connection con;
 
-  public DateTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
+  @Before
+  public void setUp() throws Exception {
     con = TestUtil.openDB();
     TestUtil.createTable(con, "testdate", "dt date");
   }
 
-  protected void tearDown() throws Exception {
+  @After
+  public void tearDown() throws Exception {
     TestUtil.dropTable(con, "testdate");
     TestUtil.closeDB(con);
   }
@@ -41,6 +44,7 @@ public class DateTest extends TestCase {
   /*
    * Tests the time methods in ResultSet
    */
+  @Test
   public void testGetDate() throws SQLException {
     Statement stmt = con.createStatement();
 
@@ -73,6 +77,7 @@ public class DateTest extends TestCase {
   /*
    * Tests the time methods in PreparedStatement
    */
+  @Test
   public void testSetDate() throws SQLException {
     Statement stmt = con.createStatement();
     PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("testdate", "?"));
