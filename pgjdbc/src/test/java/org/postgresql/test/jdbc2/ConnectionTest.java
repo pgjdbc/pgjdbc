@@ -5,10 +5,17 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -19,25 +26,16 @@ import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
 
-/*
+/**
  * TestCase to test the internal functionality of org.postgresql.jdbc2.Connection and it's
  * superclass.
- *
  */
-
-public class ConnectionTest extends TestCase {
-
+public class ConnectionTest {
   private Connection con;
 
-  /*
-   * Constructor
-   */
-  public ConnectionTest(String name) {
-    super(name);
-  }
-
   // Set up the fixture for this testcase: the tables for this test.
-  protected void setUp() throws Exception {
+  @Before
+  public void setUp() throws Exception {
     con = TestUtil.openDB();
 
     TestUtil.createTable(con, "test_a", "imagename name,image oid,id int4");
@@ -47,7 +45,8 @@ public class ConnectionTest extends TestCase {
   }
 
   // Tear down the fixture for this test case.
-  protected void tearDown() throws Exception {
+  @After
+  public void tearDown() throws Exception {
     TestUtil.closeDB(con);
 
     con = TestUtil.openDB();
@@ -61,6 +60,7 @@ public class ConnectionTest extends TestCase {
   /*
    * Tests the two forms of createStatement()
    */
+  @Test
   public void testCreateStatement() throws Exception {
     con = TestUtil.openDB();
 
@@ -78,6 +78,7 @@ public class ConnectionTest extends TestCase {
   /*
    * Tests the two forms of prepareStatement()
    */
+  @Test
   public void testPrepareStatement() throws Exception {
     con = TestUtil.openDB();
 
@@ -97,12 +98,14 @@ public class ConnectionTest extends TestCase {
   /*
    * Put the test for createPrepareCall here
    */
+  @Test
   public void testPrepareCall() {
   }
 
   /*
    * Test nativeSQL
    */
+  @Test
   public void testNativeSQL() throws Exception {
     // test a simple escape
     con = TestUtil.openDB();
@@ -112,6 +115,7 @@ public class ConnectionTest extends TestCase {
   /*
    * Test autoCommit (both get & set)
    */
+  @Test
   public void testTransactions() throws Exception {
     con = TestUtil.openDB();
     Statement st;
@@ -153,6 +157,7 @@ public class ConnectionTest extends TestCase {
   /*
    * Simple test to see if isClosed works.
    */
+  @Test
   public void testIsClosed() throws Exception {
     con = TestUtil.openDB();
 
@@ -168,6 +173,7 @@ public class ConnectionTest extends TestCase {
   /*
    * Test the warnings system
    */
+  @Test
   public void testWarnings() throws Exception {
     con = TestUtil.openDB();
 
@@ -197,6 +203,7 @@ public class ConnectionTest extends TestCase {
   /*
    * Transaction Isolation Levels
    */
+  @Test
   public void testTransactionIsolation() throws Exception {
     con = TestUtil.openDB();
 
@@ -260,6 +267,7 @@ public class ConnectionTest extends TestCase {
   /*
    * JDBC2 Type mappings
    */
+  @Test
   public void testTypeMaps() throws Exception {
     con = TestUtil.openDB();
 
@@ -281,6 +289,7 @@ public class ConnectionTest extends TestCase {
   /**
    * Closing a Connection more than once is not an error.
    */
+  @Test
   public void testDoubleClose() throws Exception {
     con = TestUtil.openDB();
     con.close();

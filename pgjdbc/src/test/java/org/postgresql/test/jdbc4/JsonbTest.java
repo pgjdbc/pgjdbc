@@ -21,6 +21,7 @@ import java.sql.Statement;
 
 public class JsonbTest extends BaseTest4 {
 
+  @Override
   public void setUp() throws Exception {
     super.setUp();
     Assume.assumeTrue("jsonb requires PostgreSQL 9.4+", TestUtil.haveMinimumServerVersion(con, "9.4"));
@@ -32,6 +33,7 @@ public class JsonbTest extends BaseTest4 {
     stmt.close();
   }
 
+  @Override
   public void tearDown() throws SQLException {
     TestUtil.dropTable(con, "jsonbtest");
     super.tearDown();

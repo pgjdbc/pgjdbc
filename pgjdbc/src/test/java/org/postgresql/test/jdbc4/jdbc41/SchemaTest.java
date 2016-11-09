@@ -5,9 +5,14 @@
 
 package org.postgresql.test.jdbc4.jdbc41;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -18,17 +23,12 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.Properties;
 
-public class SchemaTest extends TestCase {
-
+public class SchemaTest {
   private Connection _conn;
-
   private boolean dropUserSchema;
 
-  public SchemaTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
+  @Before
+  public void setUp() throws Exception {
     _conn = TestUtil.openDB();
     Statement stmt = _conn.createStatement();
     try {
@@ -51,7 +51,8 @@ public class SchemaTest extends TestCase {
     TestUtil.createTable(_conn, "schema2.sptest", "id varchar");
   }
 
-  protected void tearDown() throws SQLException {
+  @After
+  public void tearDown() throws SQLException {
     _conn.setAutoCommit(true);
     _conn.setSchema(null);
     Statement stmt = _conn.createStatement();
@@ -71,6 +72,7 @@ public class SchemaTest extends TestCase {
   /**
    * Test that what you set is what you get
    */
+  @Test
   public void testGetSetSchema() throws SQLException {
     _conn.setSchema("schema1");
     assertEquals("schema1", _conn.getSchema());
@@ -90,6 +92,7 @@ public class SchemaTest extends TestCase {
    * Test that setting the schema allows to access objects of this schema without prefix, hide
    * objects from other schemas but doesn't prevent to prefix-access to them.
    */
+  @Test
   public void testUsingSchema() throws SQLException {
     Statement stmt = _conn.createStatement();
     try {
@@ -137,6 +140,7 @@ public class SchemaTest extends TestCase {
   /**
    * Test that get schema returns the schema with the highest priority in the search path
    */
+  @Test
   public void testMultipleSearchPath() throws SQLException {
     execute("SET search_path TO schema1,schema2");
     assertEquals("schema1", _conn.getSchema());
@@ -145,6 +149,7 @@ public class SchemaTest extends TestCase {
     assertEquals("schema ,6", _conn.getSchema());
   }
 
+  @Test
   public void testSchemaInProperties() throws Exception {
     Properties properties = new Properties();
     properties.setProperty("currentSchema", "schema1");
@@ -166,6 +171,7 @@ public class SchemaTest extends TestCase {
     }
   }
 
+  @Test
   public void testSchemaPath$User() throws Exception {
     execute("SET search_path TO \"$user\",public,schema2");
     assertEquals(TestUtil.getUser(), _conn.getSchema());
@@ -183,15 +189,18 @@ public class SchemaTest extends TestCase {
     }
   }
 
+  @Test
   public void testSearchPathPreparedStatementAutoCommitFalse() throws SQLException {
     _conn.setAutoCommit(false);
     testSearchPathPreparedStatement();
   }
 
+  @Test
   public void testSearchPathPreparedStatementAutoCommitTrue() throws SQLException {
     testSearchPathPreparedStatement();
   }
 
+  @Test
   public void testSearchPathPreparedStatement() throws SQLException {
     execute("set search_path to schema1,public");
     PreparedStatement ps = _conn.prepareStatement("select * from sptest");
