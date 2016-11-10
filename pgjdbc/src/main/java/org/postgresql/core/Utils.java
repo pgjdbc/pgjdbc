@@ -87,7 +87,8 @@ public class Utils {
     try {
       if (standardConformingStrings) {
         // With standard_conforming_strings on, escape only single-quotes.
-        for (char ch : value.toCharArray()) {
+        for (int i = 0; i < value.length(); ++i) {
+          char ch = value.charAt(i);
           if (ch == '\0') {
             throw new PSQLException(GT.tr("Zero bytes may not occur in string parameters."),
                 PSQLState.INVALID_PARAMETER_VALUE);
@@ -103,7 +104,8 @@ public class Utils {
         // avoid a security hazard if the reported value of
         // standard_conforming_strings is incorrect, or an error if
         // backslash_quote is off.
-        for (char ch : value.toCharArray()) {
+        for (int i = 0; i < value.length(); ++i) {
+          char ch = value.charAt(i);
           if (ch == '\0') {
             throw new PSQLException(GT.tr("Zero bytes may not occur in string parameters."),
                 PSQLState.INVALID_PARAMETER_VALUE);
@@ -151,7 +153,8 @@ public class Utils {
     try {
       sbuf.append('"');
 
-      for (char ch : value.toCharArray()) {
+      for (int i = 0; i < value.length(); ++i) {
+        char ch = value.charAt(i);
         if (ch == '\0') {
           throw new PSQLException(GT.tr("Zero bytes may not occur in identifiers."),
               PSQLState.INVALID_PARAMETER_VALUE);
