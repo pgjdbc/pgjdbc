@@ -5,9 +5,14 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -21,13 +26,10 @@ import java.util.Properties;
 /**
  * User: alexei
  */
-public class OID74Test extends TestCase {
+public class OID74Test {
   private Connection conn;
 
-  public OID74Test(String name) {
-    super(name);
-  }
-
+  @Before
   public void setUp() throws Exception {
     // set up conection here
     Properties props = new Properties();
@@ -38,12 +40,14 @@ public class OID74Test extends TestCase {
     conn.setAutoCommit(false);
   }
 
+  @After
   public void tearDown() throws Exception {
     conn.setAutoCommit(true);
     TestUtil.dropTable(conn, "temp");
     TestUtil.closeDB(conn);
   }
 
+  @Test
   public void testSetNull() throws SQLException {
     PreparedStatement pstmt = conn.prepareStatement("INSERT INTO temp VALUES (?)");
     pstmt.setNull(1, Types.VARBINARY);
@@ -55,6 +59,7 @@ public class OID74Test extends TestCase {
     pstmt.close();
   }
 
+  @Test
   public void testBinaryStream() throws Exception {
     PreparedStatement pstmt = conn.prepareStatement("INSERT INTO temp VALUES (?)");
     pstmt.setBinaryStream(1, new ByteArrayInputStream(new byte[]{1, 2, 3, 4, 5}), 5);

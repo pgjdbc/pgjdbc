@@ -5,30 +5,34 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
 import org.postgresql.PGNotification;
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-public class NotifyTest extends TestCase {
+public class NotifyTest {
   private Connection conn;
 
-  public NotifyTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
+  @Before
+  public void setUp() throws Exception {
     conn = TestUtil.openDB();
   }
 
-  protected void tearDown() throws SQLException {
+  @After
+  public void tearDown() throws SQLException {
     TestUtil.closeDB(conn);
   }
 
+  @Test
   public void testNotify() throws SQLException {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
@@ -43,6 +47,7 @@ public class NotifyTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testNotifyArgument() throws Exception {
     if (!TestUtil.haveMinimumServerVersion(conn, "9.0") || TestUtil.isProtocolVersion(conn, 2)) {
       return;
@@ -61,6 +66,7 @@ public class NotifyTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testAsyncNotify() throws Exception {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");

@@ -5,11 +5,17 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -26,24 +32,21 @@ import java.sql.Types;
  * Some simple tests based on problems reported by users. Hopefully these will help prevent previous
  * problems from re-occurring ;-)
  */
-public class BlobTest extends TestCase {
-
-  private Connection con;
-
+public class BlobTest {
   private static final int LOOP = 0; // LargeObject API using loop
   private static final int NATIVE_STREAM = 1; // LargeObject API using OutputStream
 
-  public BlobTest(String name) {
-    super(name);
-  }
+  private Connection con;
 
-  protected void setUp() throws Exception {
+  @Before
+  public void setUp() throws Exception {
     con = TestUtil.openDB();
     TestUtil.createTable(con, "testblob", "id name,lo oid");
     con.setAutoCommit(false);
   }
 
-  protected void tearDown() throws Exception {
+  @After
+  public void tearDown() throws Exception {
     con.setAutoCommit(true);
     try {
       Statement stmt = con.createStatement();
@@ -61,6 +64,7 @@ public class BlobTest extends TestCase {
     }
   }
 
+  @Test
   public void testSetNull() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("INSERT INTO testblob(lo) VALUES (?)");
 
@@ -83,6 +87,7 @@ public class BlobTest extends TestCase {
     pstmt.executeUpdate();
   }
 
+  @Test
   public void testSet() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("INSERT INTO testblob(id,lo) VALUES ('1', lo_creat(-1))");
@@ -125,6 +130,7 @@ public class BlobTest extends TestCase {
   /*
    * Tests one method of uploading a blob to the database
    */
+  @Test
   public void testUploadBlob_LOOP() throws Exception {
     assertTrue(uploadFile("/test-file.xml", LOOP) > 0);
 
@@ -138,6 +144,7 @@ public class BlobTest extends TestCase {
   /*
    * Tests one method of uploading a blob to the database
    */
+  @Test
   public void testUploadBlob_NATIVE() throws Exception {
     assertTrue(uploadFile("/test-file.xml", NATIVE_STREAM) > 0);
 
@@ -146,6 +153,7 @@ public class BlobTest extends TestCase {
     assertTrue(compareBlobs());
   }
 
+  @Test
   public void testGetBytesOffset() throws Exception {
     assertTrue(uploadFile("/test-file.xml", NATIVE_STREAM) > 0);
 
@@ -162,6 +170,7 @@ public class BlobTest extends TestCase {
     assertEquals(data[3], 'l');
   }
 
+  @Test
   public void testMultipleStreams() throws Exception {
     assertTrue(uploadFile("/test-file.xml", NATIVE_STREAM) > 0);
 
@@ -185,6 +194,7 @@ public class BlobTest extends TestCase {
     is.close();
   }
 
+  @Test
   public void testParallelStreams() throws Exception {
     assertTrue(uploadFile("/test-file.xml", NATIVE_STREAM) > 0);
 
@@ -209,6 +219,7 @@ public class BlobTest extends TestCase {
     is2.close();
   }
 
+  @Test
   public void testLargeLargeObject() throws Exception {
     if (!TestUtil.haveMinimumServerVersion(con, "9.3")) {
       return;

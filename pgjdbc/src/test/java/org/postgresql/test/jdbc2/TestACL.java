@@ -8,22 +8,11 @@ package org.postgresql.test.jdbc2;
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.jdbc.PgDatabaseMetaData;
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
-public class TestACL extends TestCase {
+public class TestACL {
 
-  @Override
-  protected void setUp() throws Exception {
-    // TODO Auto-generated method stub
-    super.setUp();
-  }
-
-  @Override
-  protected void tearDown() throws Exception {
-    // TODO Auto-generated method stub
-    super.tearDown();
-  }
-
+  @Test
   public void testParseACL() {
     PgConnection _a = null;
     PgDatabaseMetaData a = new PgDatabaseMetaData(_a) {
