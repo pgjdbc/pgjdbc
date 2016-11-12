@@ -11,6 +11,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
 import org.junit.After;
@@ -50,7 +51,10 @@ public class DatabaseMetaDataTest {
     TestUtil.createTable(con, "intarraytable", "a int4[], b int4[][]");
     TestUtil.createCompositeType(con, "custom", "i int");
     TestUtil.createCompositeType(con, "_custom", "f float");
-    TestUtil.createTable(con, "customtable", "c1 custom, c2 _custom, c3 custom[], c4 _custom[]");
+
+    // 8.2 does not support _custom[].  ERROR: type "_custom[]" does not exist
+    TestUtil.createTable(con, "customtable", "c1 custom, c2 _custom, c3 custom[]"
+        + (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3) ? ", c4 _custom[]" : ""));
 
     Statement stmt = con.createStatement();
     // we add the following comments to ensure the joins to the comments
@@ -70,8 +74,11 @@ public class DatabaseMetaDataTest {
     }
     stmt.execute(
         "CREATE OR REPLACE FUNCTION f4(int) RETURNS metadatatest AS 'SELECT 1, ''a''::text, now(), ''c''::text, ''q''::text' LANGUAGE SQL");
-    stmt.execute(
-        "CREATE OR REPLACE FUNCTION f5() RETURNS TABLE (i int) LANGUAGE sql AS 'SELECT 1'");
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4)) {
+      // RETURNS TABLE requires PostgreSQL 8.4+
+      stmt.execute(
+          "CREATE OR REPLACE FUNCTION f5() RETURNS TABLE (i int) LANGUAGE sql AS 'SELECT 1'");
+    }
 
     if (TestUtil.haveMinimumServerVersion(con, "7.3")) {
       TestUtil.createDomain(con, "nndom", "int not null");
@@ -150,8 +157,10 @@ public class DatabaseMetaDataTest {
     assertEquals("_custom", res.getString("TYPE_NAME"));
     assertTrue(res.next());
     assertEquals("__custom", res.getString("TYPE_NAME"));
-    assertTrue(res.next());
-    assertEquals("___custom", res.getString("TYPE_NAME"));
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3)) {
+      assertTrue(res.next());
+      assertEquals("___custom", res.getString("TYPE_NAME"));
+    }
     con.createArrayOf("custom", new Object[] {});
     res = dbmd.getColumns(null, null, "customtable", null);
     assertTrue(res.next());
@@ -160,8 +169,10 @@ public class DatabaseMetaDataTest {
     assertEquals("_custom", res.getString("TYPE_NAME"));
     assertTrue(res.next());
     assertEquals("__custom", res.getString("TYPE_NAME"));
-    assertTrue(res.next());
-    assertEquals("___custom", res.getString("TYPE_NAME"));
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3)) {
+      assertTrue(res.next());
+      assertEquals("___custom", res.getString("TYPE_NAME"));
+    }
   }
 
   @Test
@@ -813,6 +824,9 @@ public class DatabaseMetaDataTest {
 
   @Test
   public void testFuncReturningTable() throws Exception {
+    if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4)) {
+      return;
+    }
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getProcedureColumns(null, null, "f5", null);
     assertTrue(rs.next());
