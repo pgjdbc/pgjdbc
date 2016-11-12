@@ -982,6 +982,7 @@ public class PgConnection implements BaseConnection {
     }
   }
 
+  @Override
   public boolean haveMinimumServerVersion(String ver) {
     int requiredver = Utils.parseServerVersionStr(ver);
     if (requiredver == 0) {
@@ -994,31 +995,38 @@ public class PgConnection implements BaseConnection {
     }
   }
 
+  @Override
   public boolean haveMinimumServerVersion(int ver) {
     return queryExecutor.getServerVersionNum() >= ver;
   }
 
+  @Override
   public boolean haveMinimumServerVersion(Version ver) {
     return haveMinimumServerVersion(ver.getVersionNum());
   }
 
+  @Override
   public boolean haveMinimumCompatibleVersion(int ver) {
     return compatibleInt >= ver;
   }
 
+  @Override
   public boolean haveMinimumCompatibleVersion(String ver) {
     return haveMinimumCompatibleVersion(ServerVersion.from(ver));
   }
 
+  @Override
   public boolean haveMinimumCompatibleVersion(Version ver) {
     return haveMinimumCompatibleVersion(ver.getVersionNum());
   }
 
 
+  @Override
   public Encoding getEncoding() {
     return queryExecutor.getEncoding();
   }
 
+  @Override
   public byte[] encodeString(String str) throws SQLException {
     try {
       return getEncoding().encode(str);
@@ -1028,11 +1036,13 @@ public class PgConnection implements BaseConnection {
     }
   }
 
+  @Override
   public String escapeString(String str) throws SQLException {
     return Utils.escapeLiteral(null, str, queryExecutor.getStandardConformingStrings())
         .toString();
   }
 
+  @Override
   public boolean getStandardConformingStrings() {
     return queryExecutor.getStandardConformingStrings();
   }
@@ -1040,15 +1050,18 @@ public class PgConnection implements BaseConnection {
   // This is a cache of the DatabaseMetaData instance for this connection
   protected java.sql.DatabaseMetaData metadata;
 
+  @Override
   public boolean isClosed() throws SQLException {
     return queryExecutor.isClosed();
   }
 
+  @Override
   public void cancelQuery() throws SQLException {
     checkClosed();
     queryExecutor.sendQueryCancel();
   }
 
+  @Override
   public PGNotification[] getNotifications() throws SQLException {
     checkClosed();
     getQueryExecutor().processNotifies();
@@ -1174,11 +1187,13 @@ public class PgConnection implements BaseConnection {
     }
   }
 
+  @Override
   public void addTimerTask(TimerTask timerTask, long milliSeconds) {
     Timer timer = getTimer();
     timer.schedule(timerTask, milliSeconds);
   }
 
+  @Override
   public void purgeTimerTasks() {
     Timer timer = cancelTimer;
     if (timer != null) {
@@ -1186,10 +1201,12 @@ public class PgConnection implements BaseConnection {
     }
   }
 
+  @Override
   public String escapeIdentifier(String identifier) throws SQLException {
     return Utils.escapeIdentifier(null, identifier).toString();
   }
 
+  @Override
   public String escapeLiteral(String literal) throws SQLException {
     return Utils.escapeLiteral(null, literal, queryExecutor.getStandardConformingStrings())
         .toString();
@@ -1244,12 +1261,14 @@ public class PgConnection implements BaseConnection {
     return Integer.parseInt(dirtyString.substring(start, end));
   }
 
+  @Override
   public Statement createStatement(int resultSetType, int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
     checkClosed();
     return new PgStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability);
   }
 
+  @Override
   public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
     checkClosed();
@@ -1257,6 +1276,7 @@ public class PgConnection implements BaseConnection {
         resultSetHoldability);
   }
 
+  @Override
   public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
     checkClosed();
@@ -1264,6 +1284,7 @@ public class PgConnection implements BaseConnection {
         resultSetHoldability);
   }
 
+  @Override
   public DatabaseMetaData getMetaData() throws SQLException {
     checkClosed();
     if (metadata == null) {
@@ -1272,6 +1293,7 @@ public class PgConnection implements BaseConnection {
     return metadata;
   }
 
+  @Override
   public void setTypeMap(Map<String, Class<?>> map) throws SQLException {
     setTypeMapImpl(map);
   }
@@ -1292,31 +1314,37 @@ public class PgConnection implements BaseConnection {
     return new PgSQLXML(this);
   }
 
+  @Override
   public Clob createClob() throws SQLException {
     checkClosed();
     throw org.postgresql.Driver.notImplemented(this.getClass(), "createClob()");
   }
 
+  @Override
   public Blob createBlob() throws SQLException {
     checkClosed();
     throw org.postgresql.Driver.notImplemented(this.getClass(), "createBlob()");
   }
 
+  @Override
   public NClob createNClob() throws SQLException {
     checkClosed();
     throw org.postgresql.Driver.notImplemented(this.getClass(), "createNClob()");
   }
 
+  @Override
   public SQLXML createSQLXML() throws SQLException {
     checkClosed();
     return makeSQLXML();
   }
 
+  @Override
   public Struct createStruct(String typeName, Object[] attributes) throws SQLException {
     checkClosed();
     throw org.postgresql.Driver.notImplemented(this.getClass(), "createStruct(String, Object[])");
   }
 
+  @Override
   public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
     checkClosed();
 
@@ -1335,6 +1363,7 @@ public class PgConnection implements BaseConnection {
     return makeArray(oid, sb.toString());
   }
 
+  @Override
   public boolean isValid(int timeout) throws SQLException {
     if (timeout < 0) {
       throw new PSQLException(GT.tr("Invalid timeout ({0}<0).", timeout),
@@ -1360,6 +1389,7 @@ public class PgConnection implements BaseConnection {
     return false;
   }
 
+  @Override
   public void setClientInfo(String name, String value) throws SQLClientInfoException {
     try {
       checkClosed();
@@ -1399,6 +1429,7 @@ public class PgConnection implements BaseConnection {
         PSQLState.NOT_IMPLEMENTED.getState()));
   }
 
+  @Override
   public void setClientInfo(Properties properties) throws SQLClientInfoException {
     try {
       checkClosed();
@@ -1425,12 +1456,14 @@ public class PgConnection implements BaseConnection {
     }
   }
 
+  @Override
   public String getClientInfo(String name) throws SQLException {
     checkClosed();
     _clientInfo.put("ApplicationName", queryExecutor.getApplicationName());
     return _clientInfo.getProperty(name);
   }
 
+  @Override
   public Properties getClientInfo() throws SQLException {
     checkClosed();
     _clientInfo.put("ApplicationName", queryExecutor.getApplicationName());
@@ -1520,6 +1553,7 @@ public class PgConnection implements BaseConnection {
     throw org.postgresql.Driver.notImplemented(this.getClass(), "getNetworkTimeout()");
   }
 
+  @Override
   public void setHoldability(int holdability) throws SQLException {
     checkClosed();
 
@@ -1536,11 +1570,13 @@ public class PgConnection implements BaseConnection {
     }
   }
 
+  @Override
   public int getHoldability() throws SQLException {
     checkClosed();
     return rsHoldability;
   }
 
+  @Override
   public Savepoint setSavepoint() throws SQLException {
     String pgName;
     checkClosed();
@@ -1565,6 +1601,7 @@ public class PgConnection implements BaseConnection {
     return savepoint;
   }
 
+  @Override
   public Savepoint setSavepoint(String name) throws SQLException {
     checkClosed();
     if (!haveMinimumServerVersion(ServerVersion.v8_0)) {
@@ -1587,6 +1624,7 @@ public class PgConnection implements BaseConnection {
     return savepoint;
   }
 
+  @Override
   public void rollback(Savepoint savepoint) throws SQLException {
     checkClosed();
     if (!haveMinimumServerVersion(ServerVersion.v8_0)) {
@@ -1598,6 +1636,7 @@ public class PgConnection implements BaseConnection {
     execSQLUpdate("ROLLBACK TO SAVEPOINT " + pgSavepoint.getPGName());
   }
 
+  @Override
   public void releaseSavepoint(Savepoint savepoint) throws SQLException {
     checkClosed();
     if (!haveMinimumServerVersion(ServerVersion.v8_0)) {
