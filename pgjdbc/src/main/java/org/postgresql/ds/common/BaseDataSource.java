@@ -35,17 +35,6 @@ import javax.naming.StringRefAddr;
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  */
 public abstract class BaseDataSource implements Referenceable {
-  // Load the normal driver, since we'll use it to actually connect to the
-  // database. That way we don't have to maintain the connecting code in
-  // multiple places.
-  static {
-    try {
-      Class.forName("org.postgresql.Driver");
-    } catch (ClassNotFoundException e) {
-      System.err.println("PostgreSQL DataSource unable to load PostgreSQL JDBC Driver");
-    }
-  }
-
   // Needed to implement the DataSource/ConnectionPoolDataSource interfaces
   private transient PrintWriter logger;
 

@@ -19,7 +19,6 @@ public class Jdbc3TestSuite extends TestSuite {
    * The main entry point for JUnit
    */
   public static TestSuite suite() throws Exception {
-    Class.forName("org.postgresql.Driver");
     TestSuite suite = new TestSuite();
     try {
       java.sql.Connection con = TestUtil.openDB();

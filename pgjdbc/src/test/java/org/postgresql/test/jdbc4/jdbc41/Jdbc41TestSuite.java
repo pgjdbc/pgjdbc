@@ -20,12 +20,4 @@ import org.junit.runners.Suite;
     )
 public class Jdbc41TestSuite {
 
-  static {
-    try {
-      Class.forName("org.postgresql.Driver");
-    } catch (ClassNotFoundException e) {
-      e.printStackTrace();
-    }
-  }
-
 }

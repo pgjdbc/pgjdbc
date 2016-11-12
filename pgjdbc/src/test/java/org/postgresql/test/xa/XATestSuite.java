@@ -15,7 +15,6 @@ import java.sql.Statement;
 
 public class XATestSuite extends TestSuite {
   public static TestSuite suite() throws Exception {
-    Class.forName("org.postgresql.Driver");
     TestSuite suite = new TestSuite();
     Connection connection = TestUtil.openDB();
 

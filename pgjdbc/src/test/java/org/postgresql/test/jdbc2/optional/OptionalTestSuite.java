@@ -22,11 +22,5 @@ import org.junit.runners.Suite;
         PoolingDataSourceTest.class,
         CaseOptimiserDataSourceTest.class})
 public class OptionalTestSuite extends TestSuite {
-  static {
-    try {
-      Class.forName("org.postgresql.Driver");
-    } catch (ClassNotFoundException e) {
-      e.printStackTrace();
-    }
-  }
+
 }
