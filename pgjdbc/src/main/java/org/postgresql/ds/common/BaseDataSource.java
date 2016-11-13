@@ -1263,4 +1263,20 @@ public abstract class BaseDataSource implements Referenceable {
   public void setReWriteBatchedInserts(boolean reWrite) {
     PGProperty.REWRITE_BATCHED_INSERTS.set(properties, reWrite);
   }
+
+  /**
+   * @see PGProperty#HIDE_UNPRIVILEGED_OBJECTS
+   * @return boolean indicating property is enabled or not.
+   */
+  public boolean getHideUnprivilegedObjects() {
+    return PGProperty.HIDE_UNPRIVILEGED_OBJECTS.getBoolean(properties);
+  }
+
+  /**
+   * @see PGProperty#HIDE_UNPRIVILEGED_OBJECTS
+   * @param hideUnprivileged boolean value to set the property in the properties collection
+   */
+  public void setHideUnprivilegedObjects(boolean hideUnprivileged) {
+    PGProperty.HIDE_UNPRIVILEGED_OBJECTS.set(properties, hideUnprivileged);
+  }
 }

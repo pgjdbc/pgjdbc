@@ -194,7 +194,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   /**
-   * Does the database use a file for each table? Well, not really, since it doesn't use local files.
+   * Does the database use a file for each table? Well, not really, since it doesn't use local
+   * files.
    *
    * @return true if so
    * @throws SQLException if a database access error occurs
@@ -919,12 +920,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     if (level == Connection.TRANSACTION_SERIALIZABLE
         || level == Connection.TRANSACTION_READ_COMMITTED) {
       return true;
-    } else if (connection.haveMinimumServerVersion(ServerVersion.v8_0)
-        && (level == Connection.TRANSACTION_READ_UNCOMMITTED
-            || level == Connection.TRANSACTION_REPEATABLE_READ)) {
-      return true;
     } else {
-      return false;
+      return connection.haveMinimumServerVersion(ServerVersion.v8_0)
+          && (level == Connection.TRANSACTION_READ_UNCOMMITTED
+          || level == Connection.TRANSACTION_REPEATABLE_READ);
     }
   }
 
@@ -1009,6 +1008,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       if (procedureNamePattern != null) {
         sql += " AND p.proname LIKE " + escapeQuotes(procedureNamePattern);
       }
+      if (connection.getHideUnprivilegedObjects()) {
+        sql += " AND has_function_privilege(p.oid,'EXECUTE')";
+      }
       sql += " ORDER BY PROCEDURE_SCHEM, PROCEDURE_NAME, p.oid::text ";
     } else if (connection.haveMinimumServerVersion(ServerVersion.v7_1)) {
       sql =
@@ -1050,7 +1052,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   protected ResultSet getProcedureColumns(int jdbcVersion, String catalog,
       String schemaPattern, String procedureNamePattern, String columnNamePattern)
-          throws SQLException {
+      throws SQLException {
     int columns = 13;
     if (jdbcVersion >= 4) {
       columns += 7;
@@ -1340,6 +1342,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       if (schemaPattern != null && !"".equals(schemaPattern)) {
         select += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
       }
+      if (connection.getHideUnprivilegedObjects()) {
+        select += " AND has_table_privilege(c.oid, "
+            + " 'SELECT, INSERT, UPDATE, DELETE, RULE, REFERENCES, TRIGGER')";
+      }
       orderby = " ORDER BY TABLE_TYPE,TABLE_SCHEM,TABLE_NAME ";
     } else {
       useSchemas = "NOSCHEMAS";
@@ -1531,6 +1537,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
               + tempSchema + ", 'pg_temp_', 'pg_toast_temp_')) ";
       if (schemaPattern != null && !"".equals(schemaPattern)) {
         sql += " AND nspname LIKE " + escapeQuotes(schemaPattern);
+      }
+      if (connection.getHideUnprivilegedObjects()) {
+        sql += " AND has_schema_privilege(nspname, 'USAGE, CREATE')";
       }
       sql += " ORDER BY TABLE_SCHEM";
     } else {
@@ -1766,7 +1775,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       }
 
       tuple[10] = connection.encodeString(Integer.toString(rs.getBoolean("attnotnull")
-          ? java.sql.DatabaseMetaData.columnNoNulls : java.sql.DatabaseMetaData.columnNullable)); // Nullable
+          ? java.sql.DatabaseMetaData.columnNoNulls
+          : java.sql.DatabaseMetaData.columnNullable)); // Nullable
       tuple[11] = rs.getBytes("description"); // Description (if any)
       tuple[12] = rs.getBytes("adsrc"); // Column default
       tuple[13] = null; // sql data type (unused)
@@ -1784,7 +1794,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         tuple[20] = null; // SCOPE_TABLE
         tuple[21] = baseTypeOid == 0 ? null
             : connection
-                .encodeString(Integer.toString(connection.getTypeInfo().getSQLType(baseTypeOid))); // SOURCE_DATA_TYPE
+                .encodeString(Integer.toString(
+                    connection.getTypeInfo().getSQLType(baseTypeOid))); // SOURCE_DATA_TYPE
       }
 
       if (jdbcVersion >= 4) {
@@ -2036,7 +2047,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
    * Add the user described by the given acl to the Lists of users with the privileges described by
    * the acl.
    */
-  private static void addACLPrivileges(String acl, Map<String, Map<String, List<String[]>>> privileges) {
+  private static void addACLPrivileges(String acl,
+      Map<String, Map<String, List<String[]>>> privileges) {
     int equalIndex = acl.lastIndexOf("=");
     int slashIndex = acl.lastIndexOf("/");
     if (equalIndex == -1) {
@@ -2138,7 +2150,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
    * For instance: {@code SELECT -> user1 -> list of [grantor, grantable]}
    *
    * @param aclArray ACL array
-   * @param owner owner
+   * @param owner    owner
    * @return a Map mapping the SQL permission name
    */
   public Map<String, Map<String, List<String[]>>> parseACL(String aclArray, String owner) {
@@ -2352,17 +2364,17 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   /**
    * @param primaryCatalog primary catalog
-   * @param primarySchema primary schema
-   * @param primaryTable if provided will get the keys exported by this table
+   * @param primarySchema  primary schema
+   * @param primaryTable   if provided will get the keys exported by this table
    * @param foreignCatalog foreign catalog
-   * @param foreignSchema foreign schema
-   * @param foreignTable if provided will get the keys imported by this table
+   * @param foreignSchema  foreign schema
+   * @param foreignTable   if provided will get the keys imported by this table
    * @return ResultSet
    * @throws SQLException if something wrong happens
    */
   protected ResultSet getImportedExportedKeys(String primaryCatalog, String primarySchema,
       String primaryTable, String foreignCatalog, String foreignSchema, String foreignTable)
-          throws SQLException {
+      throws SQLException {
     Field f[] = new Field[14];
 
     f[0] = new Field("PKTABLE_CAT", Oid.VARCHAR);
@@ -2696,7 +2708,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   public ResultSet getCrossReference(String primaryCatalog, String primarySchema,
       String primaryTable, String foreignCatalog, String foreignSchema, String foreignTable)
-          throws SQLException {
+      throws SQLException {
     return getImportedExportedKeys(primaryCatalog, primarySchema, primaryTable, foreignCatalog,
         foreignSchema, foreignTable);
   }
@@ -2730,6 +2742,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       sql = "SELECT t.typname,t.oid FROM pg_catalog.pg_type t"
           + " JOIN pg_catalog.pg_namespace n ON (t.typnamespace = n.oid) "
           + " WHERE n.nspname  != 'pg_toast'";
+      if (connection.getHideUnprivilegedObjects() && connection.haveMinimumServerVersion(
+          ServerVersion.v9_2)) {
+        sql += " AND has_type_privilege(t.oid, 'USAGE')";
+      }
     } else {
       sql = "SELECT typname,oid FROM pg_type"
           + " WHERE NOT (typname ~ '^pg_toast_') ";
@@ -3037,7 +3053,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         + " end as data_type, pg_catalog.obj_description(t.oid, 'pg_type')  "
         + "as remarks, CASE WHEN t.typtype = 'd' then  (select CASE";
 
-    for (Iterator<String> i = connection.getTypeInfo().getPGTypeNamesWithSQLTypes(); i.hasNext(); ) {
+    for (Iterator<String> i = connection.getTypeInfo().getPGTypeNamesWithSQLTypes();
+         i.hasNext(); ) {
       String pgType = i.next();
       int sqlType = connection.getTypeInfo().getSQLType(pgType);
       sql += " when typname = " + escapeQuotes(pgType) + " then " + sqlType;
@@ -3093,6 +3110,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       toAdd += " and n.nspname like " + escapeQuotes(schemaPattern);
     }
     sql += toAdd;
+    if (connection.getHideUnprivilegedObjects() && connection.haveMinimumServerVersion(
+        ServerVersion.v9_2)) {
+      sql += " AND has_type_privilege(t.oid, 'USAGE')";
+    }
     sql += " order by data_type, type_schem, type_name";
     return createMetaDataStatement().executeQuery(sql);
   }
