@@ -8,9 +8,9 @@ package org.postgresql.test.jdbc2;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
-import org.junit.Ignore;
 import org.postgresql.test.TestUtil;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
