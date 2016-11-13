@@ -947,17 +947,18 @@ public class Parser {
 
   /**
    * Filter the SQL string of Java SQL Escape clauses.
-   *
+   * <p>
    * Currently implemented Escape clauses are those mentioned in 11.3 in the specification.
    * Basically we look through the sql string for {d xxx}, {t xxx}, {ts xxx}, {oj xxx} or {fn xxx}
    * in non-string sql code. When we find them, we just strip the escape part leaving only the xxx
    * part. So, something like "select * from x where d={d '2001-10-09'}" would return "select * from
    * x where d= '2001-10-09'".
    *
-   * @param p_sql the original query text
-   * @param replaceProcessingEnabled whether replace_processing_enabled is on
+   * @param p_sql                     the original query text
+   * @param replaceProcessingEnabled  whether replace_processing_enabled is on
    * @param standardConformingStrings whether standard_conforming_strings is on
    * @return PostgreSQL-compatible SQL
+   * @throws SQLException if given SQL is wrong
    */
   public static String replaceProcessing(String p_sql, boolean replaceProcessingEnabled,
       boolean standardConformingStrings) throws SQLException {
