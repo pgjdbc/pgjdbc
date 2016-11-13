@@ -958,6 +958,7 @@ public class Parser {
    * @param replaceProcessingEnabled whether replace_processing_enabled is on
    * @param standardConformingStrings whether standard_conforming_strings is on
    * @return PostgreSQL-compatible SQL
+   * @throws SQLException if given SQL is wrong
    */
   public static String replaceProcessing(String p_sql, boolean replaceProcessingEnabled,
       boolean standardConformingStrings) throws SQLException {

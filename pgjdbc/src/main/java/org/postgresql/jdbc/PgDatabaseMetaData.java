@@ -2135,7 +2135,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   /**
    * Take the a String representing an array of ACLs and return a Map mapping the SQL permission
    * name to a List of usernames who have that permission.
-   * For instance: SELECT -> user1 -> list of [grantor, grantable]
+   * For instance: {@code SELECT -> user1 -> list of [grantor, grantable]}
    *
    * @param aclArray ACL array
    * @param owner owner
