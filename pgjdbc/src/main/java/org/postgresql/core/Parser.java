@@ -1018,23 +1018,31 @@ public class Parser {
           if (c == '$') {
             int i0 = i;
             i = parseDollarQuotes(p_sql, i);
+            checkParsePosition(i, len, i0, p_sql,
+                "Unterminated dollar quote started at position {0} in SQL {1}. Expected terminating $$");
             newsql.append(p_sql, i0, i - i0 + 1);
             break;
           } else if (c == '\'') {
             // start of a string?
             int i0 = i;
             i = parseSingleQuotes(p_sql, i, stdStrings);
+            checkParsePosition(i, len, i0, p_sql,
+                "Unterminated string literal started at position {0} in SQL {1}. Expected ' char");
             newsql.append(p_sql, i0, i - i0 + 1);
             break;
           } else if (c == '"') {
             // start of a identifier?
             int i0 = i;
             i = parseDoubleQuotes(p_sql, i);
+            checkParsePosition(i, len, i0, p_sql,
+                "Unterminated identifier started at position {0} in SQL {1}. Expected \" char");
             newsql.append(p_sql, i0, i - i0 + 1);
             break;
           } else if (c == '/') {
             int i0 = i;
             i = parseBlockComment(p_sql, i);
+            checkParsePosition(i, len, i0, p_sql,
+                "Unterminated block comment started at position {0} in SQL {1}. Expected */ sequence");
             newsql.append(p_sql, i0, i - i0 + 1);
             break;
           } else if (c == '-') {
@@ -1112,6 +1120,17 @@ public class Parser {
       } // end switch
     }
     return i;
+  }
+
+  private static void checkParsePosition(int i, int len, int i0, char[] p_sql,
+      String message)
+      throws PSQLException {
+    if (i < len) {
+      return;
+    }
+    throw new PSQLException(
+        GT.tr(message, i0, new String(p_sql)),
+        PSQLState.SYNTAX_ERROR);
   }
 
   /**

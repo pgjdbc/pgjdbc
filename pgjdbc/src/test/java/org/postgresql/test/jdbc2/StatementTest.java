@@ -7,8 +7,10 @@ package org.postgresql.test.jdbc2;
 
 import org.postgresql.jdbc.PgStatement;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PSQLState;
 
 import junit.framework.TestCase;
+import org.junit.Assert;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -669,6 +671,45 @@ public class StatementTest extends TestCase {
       ResultSet rs = ps.executeQuery();
       rs.next();
       assertEquals("Javascript code has been protected with $JAVASCRIPT$", str, rs.getString(1));
+    } finally {
+      TestUtil.closeQuietly(ps);
+    }
+  }
+
+  public void testUnterminatedDollarQuotes() throws SQLException {
+    ensureSyntaxException("dollar quotes", "CREATE OR REPLACE FUNCTION update_on_change() RETURNS TRIGGER AS $$\n"
+        + "BEGIN");
+  }
+
+  public void testUnterminatedNamedDollarQuotes() throws SQLException {
+    ensureSyntaxException("dollar quotes", "CREATE OR REPLACE FUNCTION update_on_change() RETURNS TRIGGER AS $ABC$\n"
+        + "BEGIN");
+  }
+
+  public void testUnterminatedComment() throws SQLException {
+    ensureSyntaxException("block comment", "CREATE OR REPLACE FUNCTION update_on_change() RETURNS TRIGGER AS /* $$\n"
+        + "BEGIN $$");
+  }
+
+  public void testUnterminatedLiteral() throws SQLException {
+    ensureSyntaxException("string literal", "CREATE OR REPLACE FUNCTION update_on_change() 'RETURNS TRIGGER AS $$\n"
+        + "BEGIN $$");
+  }
+
+  public void testUnterminatedIdentifier() throws SQLException {
+    ensureSyntaxException("string literal", "CREATE OR REPLACE FUNCTION \"update_on_change() RETURNS TRIGGER AS $$\n"
+        + "BEGIN $$");
+  }
+
+  private void ensureSyntaxException(String errorType, String sql) throws SQLException {
+    PreparedStatement ps = null;
+    try {
+      ps = con.prepareStatement(sql);
+      ps.executeUpdate();
+      Assert.fail("Query with unterminated " + errorType + " should fail");
+    } catch (SQLException e) {
+      Assert.assertEquals("Query should fail with unterminated " + errorType,
+          PSQLState.SYNTAX_ERROR.getState(), e.getSQLState());
     } finally {
       TestUtil.closeQuietly(ps);
     }
