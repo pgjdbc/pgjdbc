@@ -94,11 +94,11 @@ public class GetObjectTest {
             + "circle_column circle,"
             + "money_column money,"
             + "interval_column interval,"
-            + "uuid_column uuid,"
+            + (TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_3) ? "uuid_column uuid," : "")
             + "inet_column inet,"
             + "cidr_column cidr,"
-            + "macaddr_column macaddr,"
-            + "xml_column xml"
+            + "macaddr_column macaddr"
+            + (TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_3) ? ",xml_column xml" : "")
     );
   }
 
@@ -608,6 +608,10 @@ public class GetObjectTest {
    */
   @Test
   public void testGetXml() throws SQLException {
+    if (!TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_3)) {
+      // XML column requires PostgreSQL 8.3+
+      return;
+    }
     Statement stmt = _conn.createStatement();
     String content = "<book><title>Manual</title></book>";
     stmt.executeUpdate(TestUtil.insertSQL("table1","xml_column","XMLPARSE (DOCUMENT '<?xml version=\"1.0\"?><book><title>Manual</title></book>')"));
@@ -814,6 +818,10 @@ public class GetObjectTest {
    */
   @Test
   public void testGetUuid() throws SQLException {
+    if (!TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_3)) {
+      // UUID requires PostgreSQL 8.3+
+      return;
+    }
     Statement stmt = _conn.createStatement();
     String expected = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";
     stmt.executeUpdate(TestUtil.insertSQL("table1","uuid_column","'" + expected + "'"));

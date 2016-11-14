@@ -9,8 +9,8 @@ before_script:
   - psql -U postgres -c "create user test with password 'test';"
   - psql -c 'create database test owner test;' -U postgres
   - echo "MAVEN_OPTS='-Xmx1g -Dgpg.skip=true'" > ~/.mavenrc
-  - test "x$PG_VERSION" == 'x' || test $PG_VERSION == '8.4' || test $PG_VERSION == '9.0' || psql test -c 'CREATE EXTENSION hstore;' -U postgres
-  - test "x$PG_VERSION" == 'x' || test $PG_VERSION != '8.4' || createlang -U postgres plpgsql test
+  - test "x$PG_VERSION" == 'x' || test "x$NO_HSTORE" == 'xY' || psql test -c 'CREATE EXTENSION hstore;' -U postgres
+  - test "x$PG_VERSION" == 'x' || test "x$CREATE_PLPGSQL" == 'x' || createlang -U postgres plpgsql test
   - if [[ "x$JDK" == *'x9'* ]]; then remove_dir_from_path $JAVA_HOME/bin; export JAVA_HOME=/usr/lib/jvm/java-9-oracle; export PATH=$JAVA_HOME/bin:$PATH; java -Xmx32m -version; fi
 
 env:
@@ -51,6 +51,13 @@ cache:
 
 matrix:
   fast_finish: true
+  allow_failures:
+    - env: # this has to match the environment for 8.2 below
+        - PG_VERSION=8.2
+        - XA=true
+        - COVERAGE=Y
+        - NO_HSTORE=Y
+        - CREATE_PLPGSQL=Y
   include:
     - env:
         - FEDORA_CI=Y
@@ -79,6 +86,17 @@ matrix:
         - PG_VERSION=8.4
         - XA=true
         - COVERAGE=Y
+        - NO_HSTORE=Y
+        - CREATE_PLPGSQL=Y
+    - jdk: oraclejdk8
+      sudo: required
+      dist: precise
+      env: # this has to match allow_failures above
+        - PG_VERSION=8.2
+        - XA=true
+        - COVERAGE=Y
+        - NO_HSTORE=Y
+        - CREATE_PLPGSQL=Y
     - jdk: oraclejdk8
       env: RUN_CHECKSTYLE=true
       script: mvn checkstyle:check
