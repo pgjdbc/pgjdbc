@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2016, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
 package org.postgresql.test.util.rules.annotation;
 
 import static java.lang.annotation.ElementType.METHOD;
