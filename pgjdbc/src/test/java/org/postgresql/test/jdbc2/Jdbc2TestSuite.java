@@ -6,6 +6,7 @@
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.core.ParserTest;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.core.v3.V3ParameterListTests;
 import org.postgresql.jdbc.DeepBatchedInsertStatementTest;
 import org.postgresql.test.CursorFetchBinaryTest;
@@ -96,7 +97,6 @@ public class Jdbc2TestSuite extends TestSuite {
 
     // Fastpath/LargeObject
     suite.addTest(new JUnit4TestAdapter(BlobTest.class));
-    suite.addTest(new JUnit4TestAdapter(OID74Test.class));
     suite.addTest(new JUnit4TestAdapter(BlobTransactionTest.class));
 
     suite.addTest(new JUnit4TestAdapter(UpdateableResultTest.class));
@@ -123,11 +123,11 @@ public class Jdbc2TestSuite extends TestSuite {
       suite.addTest(new JUnit4TestAdapter(CopyTest.class));
       suite.addTest(new JUnit4TestAdapter(CopyLargeFileTest.class));
     }
-    if (TestUtil.haveMinimumServerVersion(conn, "9.3")) {
-      suite.addTest(new JUnit4TestAdapter(ServerErrorTest.class));
+    if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v9_3)) {
+        suite.addTest(new JUnit4TestAdapter(ServerErrorTest.class));
     }
 
-    if (TestUtil.haveMinimumServerVersion(conn, "9.5")) {
+    if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v9_5)) {
       suite.addTestSuite(UpsertTest.class);
       suite.addTestSuite(UpsertBinaryTest.class);
     }

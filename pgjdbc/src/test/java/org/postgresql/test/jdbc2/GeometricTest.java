@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.postgresql.core.ServerVersion;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGcircle;
 import org.postgresql.geometric.PGline;
@@ -120,9 +121,9 @@ public class GeometricTest {
 
     // PostgreSQL versions older than 9.4 support creating columns with the LINE datatype, but
     // not actually writing to those columns. Only try to write if the version if at least 9.4
-    final boolean roundTripToDatabase = TestUtil.haveMinimumServerVersion(con, "9.4");
+    final boolean roundTripToDatabase = TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_4);
 
-    if (TestUtil.haveMinimumServerVersion(con, "9.4")) {
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_4)) {
 
       // Apparently the driver requires public no-args constructor, and postgresql doesn't accept
       // lines with A and B

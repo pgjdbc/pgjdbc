@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import org.postgresql.core.ServerVersion;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.test.TestUtil;
@@ -221,7 +222,7 @@ public class BlobTest {
 
   @Test
   public void testLargeLargeObject() throws Exception {
-    if (!TestUtil.haveMinimumServerVersion(con, "9.3")) {
+    if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_3)) {
       return;
     }
 

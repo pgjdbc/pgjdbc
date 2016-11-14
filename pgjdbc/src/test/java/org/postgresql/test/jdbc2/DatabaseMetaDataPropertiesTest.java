@@ -69,11 +69,7 @@ public class DatabaseMetaDataPropertiesTest {
     assertTrue(dbmd.supportsMinimumSQLGrammar());
     assertTrue(!dbmd.supportsCoreSQLGrammar());
     assertTrue(!dbmd.supportsExtendedSQLGrammar());
-    if (TestUtil.haveMinimumServerVersion(con, "7.3")) {
-      assertTrue(dbmd.supportsANSI92EntryLevelSQL());
-    } else {
-      assertTrue(!dbmd.supportsANSI92EntryLevelSQL());
-    }
+    assertTrue(dbmd.supportsANSI92EntryLevelSQL());
     assertTrue(!dbmd.supportsANSI92IntermediateSQL());
     assertTrue(!dbmd.supportsANSI92FullSQL());
 
@@ -105,11 +101,7 @@ public class DatabaseMetaDataPropertiesTest {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
     int indexMaxKeys = dbmd.getMaxColumnsInIndex();
-    if (TestUtil.haveMinimumServerVersion(con, "7.3")) {
-      assertEquals(32, indexMaxKeys);
-    } else {
-      assertEquals(16, indexMaxKeys);
-    }
+    assertEquals(32, indexMaxKeys);
   }
 
   @Test
@@ -118,8 +110,8 @@ public class DatabaseMetaDataPropertiesTest {
     assertNotNull(dbmd);
 
     assertTrue(!dbmd.nullsAreSortedAtStart());
-    assertTrue(dbmd.nullsAreSortedAtEnd() != TestUtil.haveMinimumServerVersion(con, "7.2"));
-    assertTrue(dbmd.nullsAreSortedHigh() == TestUtil.haveMinimumServerVersion(con, "7.2"));
+    assertTrue(dbmd.nullsAreSortedAtEnd() != true);
+    assertTrue(dbmd.nullsAreSortedHigh() == true);
     assertTrue(!dbmd.nullsAreSortedLow());
 
     assertTrue(dbmd.nullPlusNonNullIsNull());
@@ -163,11 +155,7 @@ public class DatabaseMetaDataPropertiesTest {
     assertTrue(dbmd.supportsAlterTableWithAddColumn());
 
     // we can only drop columns in >= 7.3
-    if (TestUtil.haveMinimumServerVersion(con, "7.3")) {
-      assertTrue(dbmd.supportsAlterTableWithDropColumn());
-    } else {
-      assertTrue(!dbmd.supportsAlterTableWithDropColumn());
-    }
+    assertTrue(dbmd.supportsAlterTableWithDropColumn());
   }
 
   @Test

@@ -271,7 +271,8 @@ public class StatementTest {
   @Test
   public void testStringFunctions() throws SQLException {
     Statement stmt = con.createStatement();
-    ResultSet rs = stmt.executeQuery("select {fn ascii(' test')},{fn char(32)}"
+    ResultSet rs = stmt.executeQuery(
+        "select {fn ascii(' test')},{fn char(32)}"
         + ",{fn concat('ab','cd')}"
         + ",{fn lcase('aBcD')},{fn left('1234',2)},{fn length('123 ')}"
         + ",{fn locate('bc','abc')},{fn locate('bc','abc',3)}");
@@ -285,20 +286,18 @@ public class StatementTest {
     assertEquals(2, rs.getInt(7));
     assertEquals(0, rs.getInt(8));
 
-    if (TestUtil.haveMinimumServerVersion(con, "7.3")) {
-      rs = stmt.executeQuery(
-          "SELECT {fn insert('abcdef',3,2,'xxxx')}"
-              + ",{fn replace('abcdbc','bc','x')}");
-      assertTrue(rs.next());
-      assertEquals("abxxxxef", rs.getString(1));
-      assertEquals("axdx", rs.getString(2));
-    }
+    rs = stmt.executeQuery(
+        "SELECT {fn insert('abcdef',3,2,'xxxx')}"
+        + ",{fn replace('abcdbc','bc','x')}");
+    assertTrue(rs.next());
+    assertEquals("abxxxxef", rs.getString(1));
+    assertEquals("axdx", rs.getString(2));
 
     rs = stmt.executeQuery(
         "select {fn ltrim(' ab')},{fn repeat('ab',2)}"
-            + ",{fn right('abcde',2)},{fn rtrim('ab ')}"
-            + ",{fn space(3)},{fn substring('abcd',2,2)}"
-            + ",{fn ucase('aBcD')}");
+        + ",{fn right('abcde',2)},{fn rtrim('ab ')}"
+        + ",{fn space(3)},{fn substring('abcd',2,2)}"
+        + ",{fn ucase('aBcD')}");
     assertTrue(rs.next());
     assertEquals("ab", rs.getString(1));
     assertEquals("abab", rs.getString(2));
@@ -314,9 +313,6 @@ public class StatementTest {
     // Prior to 8.0 there is not an interval + timestamp operator,
     // so timestampadd does not work.
     //
-    if (!TestUtil.haveMinimumServerVersion(con, "8.0")) {
-      return;
-    }
 
     PreparedStatement ps = con.prepareStatement(
         "SELECT {fn timestampadd(SQL_TSI_QUARTER, ? ,{fn now()})}, {fn timestampadd(SQL_TSI_MONTH, ?, {fn now()})} ");
@@ -345,9 +341,6 @@ public class StatementTest {
     // Prior to 8.0 there is not an interval + timestamp operator,
     // so timestampadd does not work.
     //
-    if (!TestUtil.haveMinimumServerVersion(con, "8.0")) {
-      return;
-    }
 
     // second
     rs = stmt.executeQuery(
@@ -396,16 +389,14 @@ public class StatementTest {
     Statement stmt = con.createStatement();
     ResultSet rs = stmt.executeQuery(
         "select {fn ifnull(null,'2')}"
-            + ",{fn user()} ");
+        + ",{fn user()} ");
     assertTrue(rs.next());
     assertEquals("2", rs.getString(1));
     assertEquals(TestUtil.getUser(), rs.getString(2));
 
-    if (TestUtil.haveMinimumServerVersion(con, "7.3")) {
-      rs = stmt.executeQuery("select {fn database()} ");
-      assertTrue(rs.next());
-      assertEquals(TestUtil.getDatabase(), rs.getString(1));
-    }
+    rs = stmt.executeQuery("select {fn database()} ");
+    assertTrue(rs.next());
+    assertEquals(TestUtil.getDatabase(), rs.getString(1));
   }
 
   @Test
@@ -441,10 +432,6 @@ public class StatementTest {
   @Test
   public void testParsingDollarQuotes() throws SQLException {
     // dollar-quotes are supported in the backend since version 8.0
-    if (!TestUtil.haveMinimumServerVersion(con, "8.0")) {
-      return;
-    }
-
     Statement st = con.createStatement();
     ResultSet rs;
 

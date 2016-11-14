@@ -21,6 +21,7 @@ public class SingleHostChooser implements HostChooser {
     this.hostSpec = Collections.singletonList(hostSpec);
   }
 
+  @Override
   public Iterator<HostSpec> iterator() {
     return hostSpec.iterator();
   }

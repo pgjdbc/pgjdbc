@@ -12,6 +12,7 @@ import static org.junit.Assert.fail;
 
 import org.postgresql.PGStatement;
 import org.postgresql.core.BaseConnection;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.test.TestUtil;
 
@@ -103,7 +104,7 @@ public class TimestampTest {
     runInfinityTests(TSWTZ_TABLE, PGStatement.DATE_NEGATIVE_INFINITY);
     runInfinityTests(TSWOTZ_TABLE, PGStatement.DATE_POSITIVE_INFINITY);
     runInfinityTests(TSWOTZ_TABLE, PGStatement.DATE_NEGATIVE_INFINITY);
-    if (TestUtil.haveMinimumServerVersion(con, "8.4")) {
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4)) {
       runInfinityTests(DATE_TABLE, PGStatement.DATE_POSITIVE_INFINITY);
       runInfinityTests(DATE_TABLE, PGStatement.DATE_NEGATIVE_INFINITY);
     }

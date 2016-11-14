@@ -85,7 +85,7 @@ public class DatabaseEncodingTest {
 
     rs.close();
 
-    boolean testHighUnicode = TestUtil.haveMinimumServerVersion(con, "8.1");
+    boolean testHighUnicode = true;
 
     // Create data.
     // NB: we avoid d800-dfff as those are reserved for surrogates in UTF-16

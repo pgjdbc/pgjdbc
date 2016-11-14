@@ -108,9 +108,7 @@ public class CopyTest {
     long count1 = cp.endCopy();
     long count2 = cp.getHandledRowCount();
     long expectedResult = -1;
-    if (TestUtil.haveMinimumServerVersion(con, "8.2")) {
-      expectedResult = dataRows;
-    }
+    expectedResult = dataRows;
     assertEquals(expectedResult, count1);
     assertEquals(expectedResult, count2);
 
@@ -215,9 +213,8 @@ public class CopyTest {
 
     long rowCount = cp.getHandledRowCount();
     long expectedResult = -1;
-    if (TestUtil.haveMinimumServerVersion(con, "8.2")) {
-      expectedResult = dataRows;
-    }
+    expectedResult = dataRows;
+
     assertEquals(expectedResult, rowCount);
 
     assertEquals(dataRows, getCount());
@@ -298,10 +295,6 @@ public class CopyTest {
 
   @Test
   public void testCopyQuery() throws SQLException, IOException {
-    if (!TestUtil.haveMinimumServerVersion(con, "8.2")) {
-      return;
-    }
-
     testCopyInByRow(); // ensure we have some data.
 
     long count = copyAPI.copyOut("COPY (SELECT generate_series(1,1000)) TO STDOUT",
