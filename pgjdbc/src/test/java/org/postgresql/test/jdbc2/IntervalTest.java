@@ -119,13 +119,9 @@ public class IntervalTest {
     assertTrue(rs.next());
     PGInterval i = (PGInterval) rs.getObject(1);
     // 8.1 servers store hours and days separately.
-    if (TestUtil.haveMinimumServerVersion(conn, "8.1")) {
-      assertEquals(0, i.getDays());
-      assertEquals(101, i.getHours());
-    } else {
-      assertEquals(4, i.getDays());
-      assertEquals(5, i.getHours());
-    }
+    assertEquals(0, i.getDays());
+    assertEquals(101, i.getHours());
+
     assertEquals(12, i.getMinutes());
   }
 
