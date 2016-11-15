@@ -148,6 +148,11 @@ class SimpleParameterList implements V3ParameterList {
   }
 
   @Override
+  public void setText(int index, InputStream stream) throws SQLException {
+    bind(index, new StreamWrapper(stream), Oid.TEXT, TEXT);
+  }
+
+  @Override
   public void setNull(int index, int oid) throws SQLException {
 
     byte binaryTransfer = TEXT;
