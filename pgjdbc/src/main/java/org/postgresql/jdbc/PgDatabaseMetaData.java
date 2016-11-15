@@ -2062,10 +2062,23 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + " pg_catalog.pg_namespace fkn, pg_catalog.pg_class fkc, pg_catalog.pg_attribute fka, "
             + " pg_catalog.pg_constraint con, "
             + " pg_catalog.generate_series(1, " + getMaxIndexKeys() + ") pos(n), "
-            + " pg_catalog.pg_depend dep, pg_catalog.pg_class pkic "
-            + " WHERE pkn.oid = pkc.relnamespace AND pkc.oid = pka.attrelid AND pka.attnum = con.confkey[pos.n] AND con.confrelid = pkc.oid "
+            + " pg_catalog.pg_class pkic";
+    // Starting in Postgres 9.0, pg_constraint was augmented with the conindid column, which
+    // contains the oid of the index supporting the constraint. This makes it unnecessary to do a
+    // further join on pg_depend.
+    if (!connection.haveMinimumServerVersion(ServerVersion.v9_0)) {
+      sql += ", pg_catalog.pg_depend dep ";
+    }
+    sql +=
+        " WHERE pkn.oid = pkc.relnamespace AND pkc.oid = pka.attrelid AND pka.attnum = con.confkey[pos.n] AND con.confrelid = pkc.oid "
             + " AND fkn.oid = fkc.relnamespace AND fkc.oid = fka.attrelid AND fka.attnum = con.conkey[pos.n] AND con.conrelid = fkc.oid "
-            + " AND con.contype = 'f' AND con.oid = dep.objid AND pkic.oid = dep.refobjid AND pkic.relkind = 'i' AND dep.classid = 'pg_constraint'::regclass::oid AND dep.refclassid = 'pg_class'::regclass::oid ";
+            + " AND con.contype = 'f' AND pkic.relkind = 'i' ";
+    if (!connection.haveMinimumServerVersion(ServerVersion.v9_0)) {
+      sql += " AND con.oid = dep.objid AND pkic.oid = dep.refobjid AND dep.classid = 'pg_constraint'::regclass::oid AND dep.refclassid = 'pg_class'::regclass::oid ";
+    } else {
+      sql += " AND pkic.oid = con.conindid ";
+    }
+
     if (primarySchema != null && !primarySchema.isEmpty()) {
       sql += " AND pkn.nspname = " + escapeQuotes(primarySchema);
     }
