@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
 package org.postgresql.test.ssl;
 
 import org.postgresql.test.TestUtil;
@@ -101,11 +106,6 @@ public class SingleCertValidatingFactoryTestSuite {
     String url = getServerJdbcUrl();
     info.setProperty("user", getUsername());
     info.setProperty("password", getPassword());
-    try {
-      Class.forName("org.postgresql.Driver");
-    } catch (ClassNotFoundException e) {
-      throw new RuntimeException(e);
-    }
     return DriverManager.getConnection(url, info);
   }
 

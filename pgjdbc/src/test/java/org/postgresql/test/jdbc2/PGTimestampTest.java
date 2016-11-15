@@ -1,18 +1,21 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2004-2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
 package org.postgresql.test.jdbc2;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGInterval;
 import org.postgresql.util.PGTimestamp;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -26,29 +29,24 @@ import java.util.TimeZone;
 
 /**
  * Tests {@link PGTimestamp} in various scenarios including setTimestamp, setObject for both
- * <code>timestamp with time zone</code> and <code>timestamp without time zone</code> data types.
+ * {@code timestamp with time zone} and {@code timestamp without time zone} data types.
  */
-public class PGTimestampTest extends TestCase {
+public class PGTimestampTest {
   /**
    * The name of the test table.
    */
   private static final String TEST_TABLE = "testtimestamp";
 
-  /**
-   * The database connection.
-   */
   private Connection con;
 
-  public PGTimestampTest(final String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
+  @Before
+  public void setUp() throws Exception {
     con = TestUtil.openDB();
     TestUtil.createTable(con, TEST_TABLE, "ts timestamp, tz timestamp with time zone");
   }
 
-  protected void tearDown() throws Exception {
+  @After
+  public void tearDown() throws Exception {
     TestUtil.dropTable(con, TEST_TABLE);
     TestUtil.closeDB(con);
   }
@@ -58,6 +56,7 @@ public class PGTimestampTest extends TestCase {
    *
    * @throws SQLException if a JDBC or database problem occurs.
    */
+  @Test
   public void testTimestampWithInterval() throws SQLException {
     PGTimestamp timestamp = new PGTimestamp(System.currentTimeMillis());
     PGInterval interval = new PGInterval(0, 0, 0, 1, 2, 3.14);
@@ -127,11 +126,12 @@ public class PGTimestampTest extends TestCase {
   }
 
   /**
-   * Tests inserting and selecting <code>PGTimestamp</code> objects with <code>timestamp</code> and
-   * <code>timestamp with time zone</code> columns.
+   * Tests inserting and selecting {@code PGTimestamp} objects with {@code timestamp} and
+   * {@code timestamp with time zone} columns.
    *
    * @throws SQLException if a JDBC or database problem occurs.
    */
+  @Test
   public void testTimeInsertAndSelect() throws SQLException {
     final long now = System.currentTimeMillis();
     verifyInsertAndSelect(new PGTimestamp(now), true);
@@ -149,11 +149,11 @@ public class PGTimestampTest extends TestCase {
   }
 
   /**
-   * Verifies that inserting the given <code>PGTimestamp</code> as a timestamp string and an object
+   * Verifies that inserting the given {@code PGTimestamp} as a timestamp string and an object
    * produces the same results.
    *
    * @param timestamp the timestamp to test.
-   * @param useSetObject <code>true</code> if the setObject method should be used instead of
+   * @param useSetObject {@code true} if the setObject method should be used instead of
    *        setTimestamp.
    * @throws SQLException if a JDBC or database problem occurs.
    */

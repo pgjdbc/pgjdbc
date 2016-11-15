@@ -1,23 +1,21 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2004-2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
 package org.postgresql.test.jdbc2;
 
-import junit.framework.TestCase;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 
-public class ANTTest extends TestCase {
-  public ANTTest(String name) {
-    super(name);
-  }
+import org.junit.Test;
+
+public class ANTTest {
 
   /*
    * This tests the acceptsURL() method with a couple of good and badly formed jdbc urls
    */
+  @Test
   public void testANT() {
     String url = System.getProperty("database");
     String usr = System.getProperty("username");
@@ -27,7 +25,7 @@ public class ANTTest extends TestCase {
     assertNotNull(usr);
     assertNotNull(psw);
 
-    assertTrue(!url.equals(""));
-    assertTrue(!usr.equals(""));
+    assertFalse(url.isEmpty());
+    assertFalse(usr.isEmpty());
   }
 }

@@ -1,16 +1,13 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2009-2014, PostgreSQL Global Development Group
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2009, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
 package org.postgresql.xa;
 
 import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Logger;
-import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TransactionState;
 import org.postgresql.ds.PGPooledConnection;
 import org.postgresql.util.GT;
@@ -311,12 +308,6 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
 
     state = STATE_IDLE;
     currentXid = null;
-
-    if (!conn.haveMinimumServerVersion(ServerVersion.v8_1)) {
-      throw new PGXAException(
-          GT.tr("Server versions prior to 8.1 do not support two-phase commit."),
-          XAException.XAER_RMERR);
-    }
 
     try {
       String s = RecoveredXid.xidToString(xid);

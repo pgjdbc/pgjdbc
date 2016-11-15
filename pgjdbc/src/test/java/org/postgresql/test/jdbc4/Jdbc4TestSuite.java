@@ -1,13 +1,11 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2007-2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2007, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
 package org.postgresql.test.jdbc4;
 
+import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
 import junit.framework.JUnit4TestAdapter;
@@ -27,7 +25,6 @@ public class Jdbc4TestSuite extends TestSuite {
    * The main entry point for JUnit
    */
   public static TestSuite suite() throws Exception {
-    Class.forName("org.postgresql.Driver");
     TestSuite suite = new TestSuite();
 
     suite.addTestSuite(DatabaseMetaDataTest.class);
@@ -43,7 +40,7 @@ public class Jdbc4TestSuite extends TestSuite {
 
     Connection connection = TestUtil.openDB();
     try {
-      if (TestUtil.haveMinimumServerVersion(connection, "8.3")) {
+      if (TestUtil.haveMinimumServerVersion(connection, ServerVersion.v8_3)) {
         suite.addTest(new JUnit4TestAdapter(UUIDTest.class));
         if (isXmlEnabled(connection)) {
           suite.addTestSuite(XmlTest.class);

@@ -1,10 +1,7 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2003-2015, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2003, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
 package org.postgresql.osgi;
 
@@ -35,6 +32,10 @@ public class PGBundleActivator implements BundleActivator {
     } catch (NoClassDefFoundError e) {
       String msg = e.getMessage();
       if (msg != null && msg.contains("org/osgi/service/jdbc/DataSourceFactory")) {
+        if (!Boolean.getBoolean("pgjdbc.osgi.debug")) {
+          return;
+        }
+
         new IllegalArgumentException("Unable to load DataSourceFactory. "
             + "Will ignore DataSourceFactory registration. If you need one, "
             + "ensure org.osgi.enterprise is on the classpath", e).printStackTrace();

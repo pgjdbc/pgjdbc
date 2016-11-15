@@ -1,10 +1,7 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2004-2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
 package org.postgresql.test.jdbc2;
 
@@ -269,83 +266,69 @@ public class PreparedStatementTest extends BaseTest4 {
   @Test
   public void testSingleQuotes() throws SQLException {
     String[] testStrings = new String[]{
-        "bare ? question mark",
-        "quoted \\' single quote",
-        "doubled '' single quote",
-        "octal \\060 constant",
-        "escaped \\? question mark",
-        "double \\\\ backslash",
-        "double \" quote",
-    };
+      "bare ? question mark",
+      "quoted \\' single quote",
+      "doubled '' single quote",
+      "octal \\060 constant",
+      "escaped \\? question mark",
+      "double \\\\ backslash",
+      "double \" quote",};
 
     String[] testStringsStdConf = new String[]{
-        "bare ? question mark",
-        "quoted '' single quote",
-        "doubled '' single quote",
-        "octal 0 constant",
-        "escaped ? question mark",
-        "double \\ backslash",
-        "double \" quote",
-    };
+      "bare ? question mark",
+      "quoted '' single quote",
+      "doubled '' single quote",
+      "octal 0 constant",
+      "escaped ? question mark",
+      "double \\ backslash",
+      "double \" quote",};
 
     String[] expected = new String[]{
-        "bare ? question mark",
-        "quoted ' single quote",
-        "doubled ' single quote",
-        "octal 0 constant",
-        "escaped ? question mark",
-        "double \\ backslash",
-        "double \" quote",
-    };
+      "bare ? question mark",
+      "quoted ' single quote",
+      "doubled ' single quote",
+      "octal 0 constant",
+      "escaped ? question mark",
+      "double \\ backslash",
+      "double \" quote",};
 
-    if (!TestUtil.haveMinimumServerVersion(con, "8.2")) {
-      for (int i = 0; i < testStrings.length; ++i) {
-        PreparedStatement pstmt = con.prepareStatement("SELECT '" + testStrings[i] + "'");
-        ResultSet rs = pstmt.executeQuery();
-        assertTrue(rs.next());
-        assertEquals(expected[i], rs.getString(1));
-        rs.close();
-        pstmt.close();
-      }
-    } else {
-      boolean oldStdStrings = TestUtil.getStandardConformingStrings(con);
-      Statement stmt = con.createStatement();
+    boolean oldStdStrings = TestUtil.getStandardConformingStrings(con);
+    Statement stmt = con.createStatement();
 
-      // Test with standard_conforming_strings turned off.
-      stmt.execute("SET standard_conforming_strings TO off");
-      for (int i = 0; i < testStrings.length; ++i) {
-        PreparedStatement pstmt = con.prepareStatement("SELECT '" + testStrings[i] + "'");
-        ResultSet rs = pstmt.executeQuery();
-        assertTrue(rs.next());
-        assertEquals(expected[i], rs.getString(1));
-        rs.close();
-        pstmt.close();
-      }
-
-      // Test with standard_conforming_strings turned off...
-      // ... using the escape string syntax (E'').
-      stmt.execute("SET standard_conforming_strings TO on");
-      for (int i = 0; i < testStrings.length; ++i) {
-        PreparedStatement pstmt = con.prepareStatement("SELECT E'" + testStrings[i] + "'");
-        ResultSet rs = pstmt.executeQuery();
-        assertTrue(rs.next());
-        assertEquals(expected[i], rs.getString(1));
-        rs.close();
-        pstmt.close();
-      }
-      // ... using standard conforming input strings.
-      for (int i = 0; i < testStrings.length; ++i) {
-        PreparedStatement pstmt = con.prepareStatement("SELECT '" + testStringsStdConf[i] + "'");
-        ResultSet rs = pstmt.executeQuery();
-        assertTrue(rs.next());
-        assertEquals(expected[i], rs.getString(1));
-        rs.close();
-        pstmt.close();
-      }
-
-      stmt.execute("SET standard_conforming_strings TO " + (oldStdStrings ? "on" : "off"));
-      stmt.close();
+    // Test with standard_conforming_strings turned off.
+    stmt.execute("SET standard_conforming_strings TO off");
+    for (int i = 0; i < testStrings.length; ++i) {
+      PreparedStatement pstmt = con.prepareStatement("SELECT '" + testStrings[i] + "'");
+      ResultSet rs = pstmt.executeQuery();
+      assertTrue(rs.next());
+      assertEquals(expected[i], rs.getString(1));
+      rs.close();
+      pstmt.close();
     }
+
+    // Test with standard_conforming_strings turned off...
+    // ... using the escape string syntax (E'').
+    stmt.execute("SET standard_conforming_strings TO on");
+    for (int i = 0; i < testStrings.length; ++i) {
+      PreparedStatement pstmt = con.prepareStatement("SELECT E'" + testStrings[i] + "'");
+      ResultSet rs = pstmt.executeQuery();
+      assertTrue(rs.next());
+      assertEquals(expected[i], rs.getString(1));
+      rs.close();
+      pstmt.close();
+    }
+    // ... using standard conforming input strings.
+    for (int i = 0; i < testStrings.length; ++i) {
+      PreparedStatement pstmt = con.prepareStatement("SELECT '" + testStringsStdConf[i] + "'");
+      ResultSet rs = pstmt.executeQuery();
+      assertTrue(rs.next());
+      assertEquals(expected[i], rs.getString(1));
+      rs.close();
+      pstmt.close();
+    }
+
+    stmt.execute("SET standard_conforming_strings TO " + (oldStdStrings ? "on" : "off"));
+    stmt.close();
   }
 
   @Test
@@ -373,10 +356,6 @@ public class PreparedStatementTest extends BaseTest4 {
   @Test
   public void testDollarQuotes() throws SQLException {
     // dollar-quotes are supported in the backend since version 8.0
-    if (!TestUtil.haveMinimumServerVersion(con, "8.0")) {
-      return;
-    }
-
     PreparedStatement st;
     ResultSet rs;
 
@@ -419,10 +398,6 @@ public class PreparedStatementTest extends BaseTest4 {
   @Test
   public void testDollarQuotesAndIdentifiers() throws SQLException {
     // dollar-quotes are supported in the backend since version 8.0
-    if (!TestUtil.haveMinimumServerVersion(con, "8.0")) {
-      return;
-    }
-
     PreparedStatement st;
 
     con.createStatement().execute("CREATE TEMP TABLE a$b$c(a varchar, b varchar)");

@@ -1,10 +1,7 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2014, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
 package org.postgresql.hostchooser;
 
@@ -24,6 +21,7 @@ public class SingleHostChooser implements HostChooser {
     this.hostSpec = Collections.singletonList(hostSpec);
   }
 
+  @Override
   public Iterator<HostSpec> iterator() {
     return hostSpec.iterator();
   }

@@ -1,10 +1,8 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2004-2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
 
 package org.postgresql.util;
 
@@ -205,7 +203,7 @@ public class ServerErrorMessage implements Serializable {
       String l_routine = m_mesgParts.get(ROUTINE);
       if (l_file != null || l_line != null || l_routine != null) {
         l_totalMessage.append("\n  ").append(GT.tr("Location: File: {0}, Routine: {1}, Line: {2}",
-            new Object[]{l_file, l_routine, l_line}));
+            l_file, l_routine, l_line));
       }
       l_message = m_mesgParts.get(SQLSTATE);
       if (l_message != null) {

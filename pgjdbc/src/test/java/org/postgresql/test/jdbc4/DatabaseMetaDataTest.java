@@ -1,13 +1,11 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2007-2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2007, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
 package org.postgresql.test.jdbc4;
 
+import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
 import junit.framework.TestCase;
@@ -41,7 +39,7 @@ public class DatabaseMetaDataTest extends TestCase {
     DatabaseMetaData dbmd = _conn.getMetaData();
 
     ResultSet rs = dbmd.getClientInfoProperties();
-    if (!TestUtil.haveMinimumServerVersion(_conn, "9.0")) {
+    if (!TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v9_0)) {
       assertTrue(!rs.next());
       return;
     }
@@ -69,11 +67,6 @@ public class DatabaseMetaDataTest extends TestCase {
     DatabaseMetaData dbmd = _conn.getMetaData();
 
     ResultSet rs = dbmd.getSchemas("", "publ%");
-
-    if (!TestUtil.haveMinimumServerVersion(_conn, "7.3")) {
-      assertTrue(!rs.next());
-      return;
-    }
 
     assertTrue(rs.next());
     assertEquals("public", rs.getString("TABLE_SCHEM"));

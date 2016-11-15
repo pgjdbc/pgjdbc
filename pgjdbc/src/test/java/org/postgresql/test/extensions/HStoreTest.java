@@ -1,10 +1,7 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2007-2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2007, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
 package org.postgresql.test.extensions;
 
@@ -12,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
@@ -41,6 +39,8 @@ public class HStoreTest extends BaseTest4 {
     _conn = con;
     Assume.assumeFalse("hstore is not supported in simple protocol only mode",
         preferQueryMode == PreferQueryMode.SIMPLE);
+    Assume.assumeTrue("hstore requires PostgreSQL 8.3+",
+        TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3));
   }
 
   @Override

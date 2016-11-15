@@ -1,11 +1,8 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2004-2014, PostgreSQL Global Development Group
-* Copyright (c) 2004, Open Cloud Limited.
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+// Copyright (c) 2004, Open Cloud Limited.
 
 package org.postgresql.benchmark.encoding;
 

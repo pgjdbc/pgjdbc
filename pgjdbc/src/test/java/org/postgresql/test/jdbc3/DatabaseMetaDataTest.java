@@ -1,10 +1,7 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2008-2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2008, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
 package org.postgresql.test.jdbc3;
 
@@ -28,27 +25,19 @@ public class DatabaseMetaDataTest extends TestCase {
 
   protected void setUp() throws Exception {
     _conn = TestUtil.openDB();
-    if (TestUtil.haveMinimumServerVersion(_conn, "7.3")) {
-      Statement stmt = _conn.createStatement();
-      stmt.execute("CREATE DOMAIN mydom AS int");
-      stmt.execute("CREATE TABLE domtab (a mydom)");
-    }
+    Statement stmt = _conn.createStatement();
+    stmt.execute("CREATE DOMAIN mydom AS int");
+    stmt.execute("CREATE TABLE domtab (a mydom)");
   }
 
   protected void tearDown() throws Exception {
-    if (TestUtil.haveMinimumServerVersion(_conn, "7.3")) {
-      Statement stmt = _conn.createStatement();
-      stmt.execute("DROP TABLE domtab");
-      stmt.execute("DROP DOMAIN mydom");
-    }
+    Statement stmt = _conn.createStatement();
+    stmt.execute("DROP TABLE domtab");
+    stmt.execute("DROP DOMAIN mydom");
     TestUtil.closeDB(_conn);
   }
 
   public void testGetColumnsForDomain() throws Exception {
-    if (!TestUtil.haveMinimumServerVersion(_conn, "7.3")) {
-      return;
-    }
-
     DatabaseMetaData dbmd = _conn.getMetaData();
 
     ResultSet rs = dbmd.getColumns("%", "%", "domtab", "%");

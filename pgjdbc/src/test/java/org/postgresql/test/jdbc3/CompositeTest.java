@@ -1,10 +1,7 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2007-2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2007, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
 package org.postgresql.test.jdbc3;
 
@@ -36,9 +33,12 @@ public class CompositeTest extends TestCase {
         "l bigint[], n nestedcompositetest[], s simplecompositetest");
     TestUtil.createTable(_conn, "compositetabletest",
         "s simplecompositetest, cc \"Composites\".\"ComplexCompositeTest\"[]");
+    TestUtil.createTable(_conn, "\"Composites\".\"Table\"",
+        "s simplecompositetest, cc \"Composites\".\"ComplexCompositeTest\"[]");
   }
 
   protected void tearDown() throws SQLException {
+    TestUtil.dropTable(_conn, "\"Composites\".\"Table\"");
     TestUtil.dropTable(_conn, "compositetabletest");
     TestUtil.dropType(_conn, "\"Composites\".\"ComplexCompositeTest\"");
     TestUtil.dropType(_conn, "nestedcompositetest");
@@ -107,7 +107,7 @@ public class CompositeTest extends TestCase {
     assertTrue(rs.next());
     PGobject pgo2 = (PGobject) rs.getObject(1);
     Array pgarr2 = (Array) rs.getObject(2);
-    assertEquals("public.simplecompositetest", pgo2.getType());
+    assertEquals("simplecompositetest", pgo2.getType());
     assertEquals("\"Composites\".\"ComplexCompositeTest\"", pgarr2.getBaseTypeName());
     Object[] pgobjarr2 = (Object[]) pgarr2.getArray();
     assertEquals(1, pgobjarr2.length);
@@ -135,5 +135,43 @@ public class CompositeTest extends TestCase {
     assertEquals(2, items.length);
     assertNull(items[0]);
     assertNull(items[1]);
+  }
+
+  public void testTableMetadata() throws SQLException {
+    PreparedStatement pstmt = _conn.prepareStatement("INSERT INTO compositetabletest VALUES(?, ?)");
+    PGobject pgo1 = new PGobject();
+    pgo1.setType("public.simplecompositetest");
+    pgo1.setValue("(1,2.2,)");
+    pstmt.setObject(1, pgo1);
+    String[] ctArr = new String[1];
+    ctArr[0] = "(\"{1,2}\",{},\"(1,2.2,)\")";
+    Array pgarr1 = _conn.createArrayOf("\"Composites\".\"ComplexCompositeTest\"", ctArr);
+    pstmt.setArray(2, pgarr1);
+    int res = pstmt.executeUpdate();
+    assertEquals(1, res);
+    pstmt = _conn.prepareStatement("SELECT t FROM compositetabletest t");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    String name = rs.getMetaData().getColumnTypeName(1);
+    assertEquals("compositetabletest", name);
+  }
+
+  public void testComplexTableNameMetadata() throws SQLException {
+    PreparedStatement pstmt = _conn.prepareStatement("INSERT INTO \"Composites\".\"Table\" VALUES(?, ?)");
+    PGobject pgo1 = new PGobject();
+    pgo1.setType("public.simplecompositetest");
+    pgo1.setValue("(1,2.2,)");
+    pstmt.setObject(1, pgo1);
+    String[] ctArr = new String[1];
+    ctArr[0] = "(\"{1,2}\",{},\"(1,2.2,)\")";
+    Array pgarr1 = _conn.createArrayOf("\"Composites\".\"ComplexCompositeTest\"", ctArr);
+    pstmt.setArray(2, pgarr1);
+    int res = pstmt.executeUpdate();
+    assertEquals(1, res);
+    pstmt = _conn.prepareStatement("SELECT t FROM \"Composites\".\"Table\" t");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    String name = rs.getMetaData().getColumnTypeName(1);
+    assertEquals("\"Composites\".\"Table\"", name);
   }
 }

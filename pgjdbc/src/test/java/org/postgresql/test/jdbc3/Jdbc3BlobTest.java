@@ -1,13 +1,11 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2005-2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2005, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
 package org.postgresql.test.jdbc3;
 
+import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
 import junit.framework.TestCase;
@@ -101,7 +99,7 @@ public class Jdbc3BlobTest extends TestCase {
   }
 
   public void testTruncate() throws SQLException {
-    if (!TestUtil.haveMinimumServerVersion(_conn, "8.3")) {
+    if (!TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_3)) {
       return;
     }
 

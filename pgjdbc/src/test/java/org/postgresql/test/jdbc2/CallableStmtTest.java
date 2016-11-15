@@ -1,10 +1,7 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2004-2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
 package org.postgresql.test.jdbc2;
 
@@ -38,36 +35,44 @@ public class CallableStmtTest extends BaseTest4 {
     super.setUp();
     TestUtil.createTable(con, "int_table", "id int");
     Statement stmt = con.createStatement();
-    stmt.execute("CREATE OR REPLACE FUNCTION testspg__getString (varchar) "
+    stmt.execute(
+        "CREATE OR REPLACE FUNCTION testspg__getString (varchar) "
         + "RETURNS varchar AS ' DECLARE inString alias for $1; begin "
         + "return ''bob''; end; ' LANGUAGE plpgsql;");
-    stmt.execute("CREATE OR REPLACE FUNCTION testspg__getDouble (float) "
+    stmt.execute(
+        "CREATE OR REPLACE FUNCTION testspg__getDouble (float) "
         + "RETURNS float AS ' DECLARE inString alias for $1; begin "
         + "return 42.42; end; ' LANGUAGE plpgsql;");
-    if (TestUtil.haveMinimumServerVersion(con, "7.3")) {
-      stmt.execute("CREATE OR REPLACE FUNCTION testspg__getVoid (float) "
-          + "RETURNS void AS ' DECLARE inString alias for $1; begin "
-          + " return; end; ' LANGUAGE plpgsql;");
-    }
-    stmt.execute("CREATE OR REPLACE FUNCTION testspg__getInt (int) RETURNS int "
+    stmt.execute(
+        "CREATE OR REPLACE FUNCTION testspg__getVoid (float) "
+        + "RETURNS void AS ' DECLARE inString alias for $1; begin "
+        + " return; end; ' LANGUAGE plpgsql;");
+    stmt.execute(
+        "CREATE OR REPLACE FUNCTION testspg__getInt (int) RETURNS int "
         + " AS 'DECLARE inString alias for $1; begin "
         + "return 42; end;' LANGUAGE plpgsql;");
-    stmt.execute("CREATE OR REPLACE FUNCTION testspg__getShort (int2) RETURNS int2 "
+    stmt.execute(
+        "CREATE OR REPLACE FUNCTION testspg__getShort (int2) RETURNS int2 "
         + " AS 'DECLARE inString alias for $1; begin "
         + "return 42; end;' LANGUAGE plpgsql;");
-    stmt.execute("CREATE OR REPLACE FUNCTION testspg__getNumeric (numeric) "
+    stmt.execute(
+        "CREATE OR REPLACE FUNCTION testspg__getNumeric (numeric) "
         + "RETURNS numeric AS ' DECLARE inString alias for $1; "
         + "begin return 42; end; ' LANGUAGE plpgsql;");
 
-    stmt.execute("CREATE OR REPLACE FUNCTION testspg__getNumericWithoutArg() "
+    stmt.execute(
+        "CREATE OR REPLACE FUNCTION testspg__getNumericWithoutArg() "
         + "RETURNS numeric AS '  "
         + "begin return 42; end; ' LANGUAGE plpgsql;");
     stmt.execute(
-        "CREATE OR REPLACE FUNCTION testspg__getarray() RETURNS int[] as 'SELECT ''{1,2}''::int[];' LANGUAGE sql");
+        "CREATE OR REPLACE FUNCTION testspg__getarray() RETURNS int[] as "
+        + "'SELECT ''{1,2}''::int[];' LANGUAGE sql");
     stmt.execute(
-        "CREATE OR REPLACE FUNCTION testspg__raisenotice() RETURNS int as 'BEGIN RAISE NOTICE ''hello'';  RAISE NOTICE ''goodbye''; RETURN 1; END;' LANGUAGE plpgsql");
+        "CREATE OR REPLACE FUNCTION testspg__raisenotice() RETURNS int as "
+        + "'BEGIN RAISE NOTICE ''hello'';  RAISE NOTICE ''goodbye''; RETURN 1; END;' LANGUAGE plpgsql");
     stmt.execute(
-        "CREATE OR REPLACE FUNCTION testspg__insertInt(int) RETURNS int as 'BEGIN INSERT INTO int_table(id) VALUES ($1); RETURN 1; END;' LANGUAGE plpgsql");
+        "CREATE OR REPLACE FUNCTION testspg__insertInt(int) RETURNS int as "
+        + "'BEGIN INSERT INTO int_table(id) VALUES ($1); RETURN 1; END;' LANGUAGE plpgsql");
     stmt.close();
   }
 
@@ -77,9 +82,7 @@ public class CallableStmtTest extends BaseTest4 {
     TestUtil.dropTable(con, "int_table");
     stmt.execute("drop FUNCTION testspg__getString (varchar);");
     stmt.execute("drop FUNCTION testspg__getDouble (float);");
-    if (TestUtil.haveMinimumServerVersion(con, "7.3")) {
-      stmt.execute("drop FUNCTION testspg__getVoid(float);");
-    }
+    stmt.execute("drop FUNCTION testspg__getVoid(float);");
     stmt.execute("drop FUNCTION testspg__getInt (int);");
     stmt.execute("drop FUNCTION testspg__getShort(int2)");
     stmt.execute("drop FUNCTION testspg__getNumeric (numeric);");
@@ -138,11 +141,9 @@ public class CallableStmtTest extends BaseTest4 {
     call.setDouble(1, 3.04);
     call.execute();
 
-    if (TestUtil.haveMinimumServerVersion(con, "7.3")) {
-      call = con.prepareCall("{ call " + pkgName + "getVoid(?) }");
-      call.setDouble(1, 3.04);
-      call.execute();
-    }
+    call = con.prepareCall("{ call " + pkgName + "getVoid(?) }");
+    call.setDouble(1, 3.04);
+    call.execute();
   }
 
   @Test

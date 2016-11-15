@@ -242,4 +242,13 @@
       <property name="illegalPattern" value="true"/>
     </module>
   </module>
+
+  <!-- Enforce License Header -->
+  <module name="RegexpHeader">
+    <property
+        name="header"
+        value="/\*\n \* Copyright \(c\) 20\d\d, PostgreSQL Global Development Group\n \* See the LICENSE file in the project root for more information.\n \*/"
+    />
+    <property name="fileExtensions" value="java"/>
+  </module>
 </module>

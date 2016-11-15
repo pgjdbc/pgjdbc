@@ -1,13 +1,15 @@
-package org.postgresql.test.sspi;
+/*
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+package org.postgresql.test.sspi;
 
 /*
  * Executes all known tests for SSPI.
  */
-@RunWith(Suite.class)
-@Suite.SuiteClasses({ SSPITest.class })
+//@RunWith(Suite.class)
+//@Suite.SuiteClasses({ SSPITest.class })
 public class SSPITestSuite {
   // Empty.
 }

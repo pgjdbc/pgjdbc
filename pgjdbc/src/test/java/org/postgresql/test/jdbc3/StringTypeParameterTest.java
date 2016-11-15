@@ -1,13 +1,11 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2005-2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2005, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
 package org.postgresql.test.jdbc3;
 
+import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
 import junit.framework.TestCase;
@@ -27,14 +25,18 @@ public class StringTypeParameterTest extends TestCase {
     super(name);
   }
 
-  protected void setUp(String stringType) throws Exception {
+  protected boolean setUp(String stringType) throws Exception {
     Properties props = new Properties();
     if (stringType != null) {
       props.put("stringtype", stringType);
     }
     _conn = TestUtil.openDB(props);
+    if (TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_3)) {
+      return false;
+    }
     TestUtil.createEnumType(_conn, "mood", "'happy', 'sad'");
     TestUtil.createTable(_conn, "stringtypetest", "m mood");
+    return true;
   }
 
   protected void tearDown() throws SQLException {
@@ -60,7 +62,9 @@ public class StringTypeParameterTest extends TestCase {
   }
 
   private void testParameterVarchar(String param) throws Exception {
-    setUp(param);
+    if (!setUp(param)) {
+      return;
+    }
 
     PreparedStatement update = _conn.prepareStatement("insert into stringtypetest (m) values (?)");
     update.setString(1, "sad");
@@ -118,7 +122,9 @@ public class StringTypeParameterTest extends TestCase {
   }
 
   public void testParameterUnspecified() throws Exception {
-    setUp("unspecified");
+    if (!setUp("unspecified")) {
+      return;
+    }
 
     PreparedStatement update = _conn.prepareStatement("insert into stringtypetest (m) values (?)");
     update.setString(1, "happy");

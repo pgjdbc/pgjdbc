@@ -1,10 +1,7 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2003-2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2003, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
 package org.postgresql.core;
 
@@ -13,10 +10,6 @@ import org.postgresql.util.GT;
 import java.io.IOException;
 
 class UTF8Encoding extends Encoding {
-  UTF8Encoding(String jvmEncoding) {
-    super(jvmEncoding);
-  }
-
   private static final int MIN_2_BYTES = 0x80;
   private static final int MIN_3_BYTES = 0x800;
   private static final int MIN_4_BYTES = 0x10000;
@@ -24,16 +17,20 @@ class UTF8Encoding extends Encoding {
 
   private char[] decoderArray = new char[1024];
 
+  UTF8Encoding(String jvmEncoding) {
+    super(jvmEncoding);
+  }
+
   // helper for decode
-  private final static void checkByte(int ch, int pos, int len) throws IOException {
+  private static void checkByte(int ch, int pos, int len) throws IOException {
     if ((ch & 0xc0) != 0x80) {
       throw new IOException(
           GT.tr("Illegal UTF-8 sequence: byte {0} of {1} byte sequence is not 10xxxxxx: {2}",
-              new Object[]{pos, len, ch}));
+              pos, len, ch));
     }
   }
 
-  private final static void checkMinimal(int ch, int minValue) throws IOException {
+  private static void checkMinimal(int ch, int minValue) throws IOException {
     if (ch >= minValue) {
       return;
     }
@@ -67,7 +64,7 @@ class UTF8Encoding extends Encoding {
 
     throw new IOException(
         GT.tr("Illegal UTF-8 sequence: {0} bytes used to encode a {1} byte value: {2}",
-            new Object[]{actualLen, expectedLen, ch}));
+            actualLen, expectedLen, ch));
   }
 
   /**
@@ -77,11 +74,12 @@ class UTF8Encoding extends Encoding {
    * databases out there.
    *
    * @param data the array containing UTF8-encoded data
-   * @param offset the offset of the first byte in <code>data</code> to decode from
+   * @param offset the offset of the first byte in {@code data} to decode from
    * @param length the number of bytes to decode
    * @return a decoded string
    * @throws IOException if something goes wrong
    */
+  @Override
   public synchronized String decode(byte[] data, int offset, int length) throws IOException {
     char[] cdata = decoderArray;
     if (cdata.length < length) {
@@ -102,7 +100,7 @@ class UTF8Encoding extends Encoding {
         } else if (ch < 0xc0) {
           // 10xxxxxx -- illegal!
           throw new IOException(GT.tr("Illegal UTF-8 sequence: initial byte is {0}: {1}",
-              new Object[]{"10xxxxxx", ch}));
+              "10xxxxxx", ch));
         } else if (ch < 0xe0) {
           // 110xxxxx 10xxxxxx
           ch = ((ch & 0x1f) << 6);
@@ -129,7 +127,7 @@ class UTF8Encoding extends Encoding {
           checkMinimal(ch, MIN_4_BYTES);
         } else {
           throw new IOException(GT.tr("Illegal UTF-8 sequence: initial byte is {0}: {1}",
-              new Object[]{"11111xxx", ch}));
+              "11111xxx", ch));
         }
 
         if (ch > MAX_CODE_POINT) {

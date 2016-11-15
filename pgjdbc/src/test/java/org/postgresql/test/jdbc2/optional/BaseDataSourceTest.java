@@ -1,19 +1,21 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2004-2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
 package org.postgresql.test.jdbc2.optional;
+
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import org.postgresql.PGConnection;
 import org.postgresql.ds.common.BaseDataSource;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.MiniJndiContextFactory;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -32,22 +34,16 @@ import javax.naming.NamingException;
  *
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  */
-public abstract class BaseDataSourceTest extends TestCase {
+public abstract class BaseDataSourceTest {
   public static String DATA_SOURCE_JNDI = "BaseDataSource";
   protected Connection con;
   protected BaseDataSource bds;
 
   /**
-   * Constructor required by JUnit
-   */
-  public BaseDataSourceTest(String name) {
-    super(name);
-  }
-
-  /**
    * Creates a test table using a standard connection (not from a DataSource).
    */
-  protected void setUp() throws Exception {
+  @Before
+  public void setUp() throws Exception {
     con = TestUtil.openDB();
     TestUtil.createTable(con, "poolingtest", "id int4 not null primary key, name varchar(50)");
     Statement stmt = con.createStatement();
@@ -59,7 +55,8 @@ public abstract class BaseDataSourceTest extends TestCase {
   /**
    * Removes the test table using a standard connection (not from a DataSource)
    */
-  protected void tearDown() throws Exception {
+  @After
+  public void tearDown() throws Exception {
     TestUtil.closeDB(con);
     con = TestUtil.openDB();
     TestUtil.dropTable(con, "poolingtest");
@@ -96,6 +93,7 @@ public abstract class BaseDataSourceTest extends TestCase {
   /**
    * Test to make sure you can instantiate and configure the appropriate DataSource
    */
+  @Test
   public void testCreateDataSource() {
     initializeDataSource();
   }
@@ -104,6 +102,7 @@ public abstract class BaseDataSourceTest extends TestCase {
    * Test to make sure you can get a connection from the DataSource, which in turn means the
    * DataSource was able to open it.
    */
+  @Test
   public void testGetConnection() {
     try {
       con = getDataSourceConnection();
@@ -116,6 +115,7 @@ public abstract class BaseDataSourceTest extends TestCase {
   /**
    * A simple test to make sure you can execute SQL using the Connection from the DataSource
    */
+  @Test
   public void testUseConnection() {
     try {
       con = getDataSourceConnection();
@@ -143,6 +143,7 @@ public abstract class BaseDataSourceTest extends TestCase {
   /**
    * A test to make sure you can execute DDL SQL using the Connection from the DataSource.
    */
+  @Test
   public void testDdlOverConnection() {
     try {
       con = getDataSourceConnection();
@@ -157,6 +158,7 @@ public abstract class BaseDataSourceTest extends TestCase {
    * A test to make sure the connections are not being pooled by the current DataSource. Obviously
    * need to be overridden in the case of a pooling Datasource.
    */
+  @Test
   public void testNotPooledConnection() throws SQLException {
     con = getDataSourceConnection();
     String name = con.toString();
@@ -170,6 +172,7 @@ public abstract class BaseDataSourceTest extends TestCase {
   /**
    * Test to make sure that PGConnection methods can be called on the pooled Connection.
    */
+  @Test
   public void testPGConnection() {
     try {
       con = getDataSourceConnection();
@@ -182,24 +185,11 @@ public abstract class BaseDataSourceTest extends TestCase {
   }
 
   /**
-   * Uses the mini-JNDI implementation for testing purposes
-   */
-  protected InitialContext getInitialContext() {
-    Hashtable<String, Object> env = new Hashtable<String, Object>();
-    env.put(Context.INITIAL_CONTEXT_FACTORY, MiniJndiContextFactory.class.getName());
-    try {
-      return new InitialContext(env);
-    } catch (NamingException e) {
-      fail("Unable to create InitialContext: " + e.getMessage());
-      return null;
-    }
-  }
-
-  /**
    * Eventually, we must test stuffing the DataSource in JNDI and then getting it back out and make
    * sure it's still usable. This should ideally test both Serializable and Referenceable
    * mechanisms. Will probably be multiple tests when implemented.
    */
+  @Test
   public void testJndi() {
     initializeDataSource();
     BaseDataSource oldbds = bds;
@@ -216,6 +206,20 @@ public abstract class BaseDataSourceTest extends TestCase {
     testUseConnection();
     assertTrue("Test should not have changed DataSource (" + bds + " != " + oldbds + ")!",
         bds == oldbds);
+  }
+
+  /**
+   * Uses the mini-JNDI implementation for testing purposes
+   */
+  protected InitialContext getInitialContext() {
+    Hashtable<String, Object> env = new Hashtable<String, Object>();
+    env.put(Context.INITIAL_CONTEXT_FACTORY, MiniJndiContextFactory.class.getName());
+    try {
+      return new InitialContext(env);
+    } catch (NamingException e) {
+      fail("Unable to create InitialContext: " + e.getMessage());
+      return null;
+    }
   }
 
   /**

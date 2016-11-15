@@ -38,7 +38,7 @@
 %global upstreamrel	git
 %global upstreammajor	9.5
 %global source_path	pgjdbc/src/main/java/org/postgresql
-%global parent_ver	1.1.0
+%global parent_ver	GENERATED
 %global parent_poms_builddir	./pgjdbc-parent-poms
 
 %global pgjdbc_mvn_options -DwaffleEnabled=false -DosgiEnabled=false \\\
@@ -47,17 +47,16 @@
 Summary:	JDBC driver for PostgreSQL
 Name:		postgresql-jdbc
 Version:	%upstreammajor.%{upstreamrel}
-Release:	1%{?dist}
+Release:	GENERATED
 License:	BSD
 URL:		http://jdbc.postgresql.org/
 
 Source0:	REL%{version}.tar.gz
-Source1:	postgres-testing.sh
 
 # Upstream moved parent pom.xml into separate project (even though there is only
 # one dependant project on it?).  Let's try to not complicate packaging by
 # having separate spec file for it, too.
-Source2:	https://github.com/pgjdbc/pgjdbc-parent-poms/archive/REL%parent_ver.tar.gz
+Source1:	https://github.com/pgjdbc/pgjdbc-parent-poms/archive/REL%parent_ver.tar.gz
 
 BuildArch:	noarch
 BuildRequires:	java-devel >= 1.8
@@ -67,10 +66,12 @@ BuildRequires:	properties-maven-plugin
 BuildRequires:	maven-enforcer-plugin
 BuildRequires:	maven-plugin-bundle
 BuildRequires:	maven-plugin-build-helper
+BuildRequires:	classloader-leak-test-framework
 
 %if %runselftest
-BuildRequires:	postgresql-server
 BuildRequires:	postgresql-contrib
+BuildRequires:	postgresql-devel
+BuildRequires:	postgresql-server
 %endif
 
 # gettext is only needed if we try to update translations
@@ -98,7 +99,7 @@ This package contains the API Documentation for %{name}.
 
 
 %prep
-%setup -c -q -a 2 -n pgjdbc-REL%version
+%setup -c -q -a 1 -n pgjdbc-REL%version
 
 mv pgjdbc-REL%version/* .
 mv pgjdbc-parent-poms-REL%parent_ver pgjdbc-parent-poms
@@ -138,7 +139,7 @@ mkdir -p pgjdbc/target/generated-sources/annotations
 
 # Include PostgreSQL testing methods and variables.
 %if %runselftest
-. %{SOURCE1}
+%pgtests_init
 
 PGTESTS_LOCALE=C.UTF-8
 
@@ -156,13 +157,14 @@ protocolVersion=0
 EOF
 
 # Start the local PG cluster.
-pgtests_start
+%pgtests_start
 %else
 # -f is equal to -Dmaven.test.skip=true
 opts="-f"
 %endif
 
 %mvn_build $opts -- %pgjdbc_mvn_options
+
 
 %install
 %mvn_install
@@ -183,7 +185,7 @@ opts="-f"
 
 
 %changelog
-* Mon Aug 29 2016 Pavel Raiskup <praiskup@redhat.com> - 9.4.1209-6
+* Thu Nov 03 2016 Pavel Raiskup <praiskup@redhat.com> - 9.5.git-1
 - sync with latest Fedora
 
 * Wed Jun 01 2016 Pavel Raiskup <praiskup@redhat.com> - 9.5.git-1

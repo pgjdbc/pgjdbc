@@ -1,34 +1,28 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2004-2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import org.postgresql.core.Encoding;
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.Reader;
 import java.util.Locale;
 
-/*
+/**
  * Tests for the Encoding class.
- *
  */
+public class EncodingTest {
 
-
-public class EncodingTest extends TestCase {
-
-  public EncodingTest(String name) {
-    super(name);
-  }
-
+  @Test
   public void testCreation() throws Exception {
     Encoding encoding = Encoding.getDatabaseEncoding("UTF8");
     assertEquals("UTF", encoding.name().substring(0, 3).toUpperCase(Locale.US));
@@ -38,6 +32,7 @@ public class EncodingTest extends TestCase {
         Encoding.defaultEncoding(), Encoding.getDatabaseEncoding("UNKNOWN"));
   }
 
+  @Test
   public void testTransformations() throws Exception {
     Encoding encoding = Encoding.getDatabaseEncoding("UTF8");
     assertEquals("ab", encoding.decode(new byte[]{97, 98}));
@@ -51,6 +46,7 @@ public class EncodingTest extends TestCase {
     assertEquals(new String(new byte[]{97}), encoding.decode(new byte[]{97}));
   }
 
+  @Test
   public void testReader() throws Exception {
     Encoding encoding = Encoding.getDatabaseEncoding("SQL_ASCII");
     InputStream stream = new ByteArrayInputStream(new byte[]{97, 98});

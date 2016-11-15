@@ -1,10 +1,7 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2007-2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2007, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
 package org.postgresql.test.hostchooser;
 
@@ -53,7 +50,6 @@ public class MultiHostTestSuite extends TestSuite {
    * The main entry point for JUnit
    */
   public static TestSuite suite() throws Exception {
-    Class.forName("org.postgresql.Driver");
     TestSuite suite = new TestSuite();
 
     try {

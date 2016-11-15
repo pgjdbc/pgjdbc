@@ -1,16 +1,18 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2010-2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2010, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
 package org.postgresql.test.jdbc4.jdbc41;
 
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -22,25 +24,24 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-public class AbortTest extends TestCase {
+public class AbortTest {
 
   private static final int SLEEP_SECONDS = 30;
   private static final int SLEEP_MILLISECONDS = SLEEP_SECONDS * 1000;
 
   private Connection _conn;
 
-  public AbortTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
+  @Before
+  public void setUp() throws Exception {
     _conn = TestUtil.openDB();
   }
 
-  protected void tearDown() throws SQLException {
+  @After
+  public void tearDown() throws SQLException {
     TestUtil.closeDB(_conn);
   }
 
+  @Test
   public void testAbort() throws SQLException, InterruptedException, ExecutionException {
     final ExecutorService executor = Executors.newFixedThreadPool(2);
     long startTime = System.currentTimeMillis();
@@ -89,6 +90,7 @@ public class AbortTest extends TestCase {
   /**
    * According to the javadoc, calling abort on a closed connection is a no-op.
    */
+  @Test
   public void testAbortOnClosedConnection() throws SQLException {
     _conn.close();
     try {

@@ -1,10 +1,7 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2008-2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2008, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
 package org.postgresql.gss;
 
@@ -42,7 +39,7 @@ public class MakeGSS {
       kerberosServerName = "postgres";
     }
 
-    Exception result = null;
+    Exception result;
     try {
       boolean performAuthentication = true;
       GSSCredential gssCredential = null;

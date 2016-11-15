@@ -1,13 +1,11 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2010-2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2010, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
 package org.postgresql.test.jdbc4;
 
+import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
 import junit.framework.TestCase;
@@ -46,7 +44,7 @@ public class ClientInfoTest extends TestCase {
   }
 
   public void testSetAppName() throws SQLException {
-    if (!TestUtil.haveMinimumServerVersion(_conn, "9.0")) {
+    if (!TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v9_0)) {
       return;
     }
 
@@ -57,7 +55,7 @@ public class ClientInfoTest extends TestCase {
   }
 
   public void testExplicitSetAppNameNotificationIsParsed() throws SQLException {
-    if (!TestUtil.haveMinimumServerVersion(_conn, "9.0")) {
+    if (!TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v9_0)) {
       return;
     }
 
@@ -73,7 +71,7 @@ public class ClientInfoTest extends TestCase {
   }
 
   public void testSetAppNameProps() throws SQLException {
-    if (!TestUtil.haveMinimumServerVersion(_conn, "9.0")) {
+    if (!TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v9_0)) {
       return;
     }
 
@@ -101,7 +99,7 @@ public class ClientInfoTest extends TestCase {
    * Test that a name missing in the properties given to setClientInfo should be unset (spec)
    */
   public void testMissingName() throws SQLException {
-    if (!TestUtil.haveMinimumServerVersion(_conn, "9.0")) {
+    if (!TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v9_0)) {
       return;
     }
 

@@ -1,13 +1,11 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2007-2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2007, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
 package org.postgresql.test.jdbc4;
 
+import org.postgresql.core.ServerVersion;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
@@ -50,12 +48,15 @@ public class ArrayTest extends BaseTest4 {
     return ids;
   }
 
+  @Override
   public void setUp() throws Exception {
     super.setUp();
     _conn = con;
 
     TestUtil.createTable(_conn, "arrtest",
-        "intarr int[], decarr decimal(2,1)[], strarr text[], uuidarr uuid[], floatarr float8[]"
+        "intarr int[], decarr decimal(2,1)[], strarr text[]"
+        + (TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_3) ? ", uuidarr uuid[]" : "")
+        + ", floatarr float8[]"
         + ", intarr2 int4[][]");
     TestUtil.createTable(_conn, "arrcompprnttest", "id serial, name character(10)");
     TestUtil.createTable(_conn, "arrcompchldttest",
@@ -64,6 +65,7 @@ public class ArrayTest extends BaseTest4 {
     TestUtil.createTable(_conn, "\"Evil.Table\"", "id serial");
   }
 
+  @Override
   public void tearDown() throws SQLException {
     TestUtil.dropTable(_conn, "arrtest");
     TestUtil.dropTable(_conn, "arrcompprnttest");
@@ -117,7 +119,7 @@ public class ArrayTest extends BaseTest4 {
 
   @Test
   public void testCreateArrayOfMultiJson() throws SQLException {
-    if (!TestUtil.haveMinimumServerVersion(_conn, "9.2")) {
+    if (!TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v9_2)) {
       return;
     }
     PreparedStatement pstmt = _conn.prepareStatement("SELECT ?::json[]");
@@ -163,10 +165,6 @@ public class ArrayTest extends BaseTest4 {
 
   @Test
   public void testCreateArrayOfNull() throws SQLException {
-    if (!TestUtil.haveMinimumServerVersion(_conn, "8.2")) {
-      return;
-    }
-
     String sql = "SELECT ?";
     // We must provide the type information for V2 protocol
     if (preferQueryMode == PreferQueryMode.SIMPLE) {
@@ -248,7 +246,8 @@ public class ArrayTest extends BaseTest4 {
   public void testUUIDArray() throws SQLException {
     Assume.assumeTrue("UUID is not supported in PreferQueryMode.SIMPLE",
         preferQueryMode != PreferQueryMode.SIMPLE);
-
+    Assume.assumeTrue("UUID requires PostgreSQL 8.3+",
+        TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_3));
     UUID uuid1 = UUID.randomUUID();
     UUID uuid2 = UUID.randomUUID();
     UUID uuid3 = UUID.randomUUID();

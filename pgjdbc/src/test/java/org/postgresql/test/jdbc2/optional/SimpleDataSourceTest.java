@@ -1,10 +1,7 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2004-2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
 package org.postgresql.test.jdbc2.optional;
 
@@ -16,16 +13,11 @@ import org.postgresql.jdbc2.optional.SimpleDataSource;
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  */
 public class SimpleDataSourceTest extends BaseDataSourceTest {
-  /**
-   * Constructor required by JUnit
-   */
-  public SimpleDataSourceTest(String name) {
-    super(name);
-  }
 
   /**
    * Creates and configures a new SimpleDataSource.
    */
+  @Override
   protected void initializeDataSource() {
     if (bds == null) {
       bds = new SimpleDataSource();

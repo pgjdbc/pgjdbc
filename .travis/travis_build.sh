@@ -3,8 +3,7 @@ set -x -e
 
 if [[ "${FEDORA_CI}" == *"Y" ]];
 then
-  PARENT_VERSION=$(mvn -B -N org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.parent.version | grep -v '\[')
-  sed -i "s/^%global parent_ver	.*/%global parent_ver	${PARENT_VERSION}/" packaging/rpm/postgresql-jdbc.spec.tpl
+  export PARENT_VERSION=$(mvn -B -N org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.parent.version | grep -v '\[')
   exec ./packaging/rpm_ci
 fi
 

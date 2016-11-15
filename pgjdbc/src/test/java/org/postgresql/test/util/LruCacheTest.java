@@ -1,17 +1,18 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2015, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2015, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
 package org.postgresql.test.util;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import org.postgresql.util.CanEstimateSize;
 import org.postgresql.util.LruCache;
 
-import junit.framework.TestCase;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.sql.SQLException;
 import java.util.ArrayDeque;
@@ -21,7 +22,8 @@ import java.util.Deque;
 /**
  * Tests {@link org.postgresql.util.LruCache}
  */
-public class LruCacheTest extends TestCase {
+public class LruCacheTest {
+
   private static class Entry implements CanEstimateSize {
     private final int id;
 
@@ -46,8 +48,8 @@ public class LruCacheTest extends TestCase {
   private final Entry dummy = new Entry(-999);
   private LruCache<Integer, Entry> cache;
 
-  @Override
-  protected void setUp() throws Exception {
+  @Before
+  public void setUp() throws Exception {
     cache = new LruCache<Integer, Entry>(4, 1000, false, new LruCache.CreateAction<Integer, Entry>() {
       @Override
       public Entry create(Integer key) throws SQLException {
@@ -66,6 +68,7 @@ public class LruCacheTest extends TestCase {
     });
   }
 
+  @Test
   public void testEvictsByNumberOfEntries() throws SQLException {
     Entry a;
     Entry b;
@@ -80,6 +83,7 @@ public class LruCacheTest extends TestCase {
     e = use(5, a);
   }
 
+  @Test
   public void testEvictsBySize() throws SQLException {
     Entry a;
     Entry b;
@@ -91,6 +95,7 @@ public class LruCacheTest extends TestCase {
     use(400, a, b);
   }
 
+  @Test
   public void testEvictsLeastRecentlyUsed() throws SQLException {
     Entry a;
     Entry b;
@@ -105,6 +110,7 @@ public class LruCacheTest extends TestCase {
     d = use(4, b); // expect b to be evicted
   }
 
+  @Test
   public void testCyclicReplacement() throws SQLException {
     Entry a;
     Entry b;
@@ -127,6 +133,7 @@ public class LruCacheTest extends TestCase {
     }
   }
 
+  @Test
   public void testDuplicateKey() throws SQLException {
     Entry a;
 
@@ -138,6 +145,7 @@ public class LruCacheTest extends TestCase {
     assertEvict();
   }
 
+  @Test
   public void testCaching() throws SQLException {
     Entry a;
     Entry b;

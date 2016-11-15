@@ -1,10 +1,7 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2004-2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
 package org.postgresql.ds.common;
 
@@ -38,17 +35,6 @@ import javax.naming.StringRefAddr;
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  */
 public abstract class BaseDataSource implements Referenceable {
-  // Load the normal driver, since we'll use it to actually connect to the
-  // database. That way we don't have to maintain the connecting code in
-  // multiple places.
-  static {
-    try {
-      Class.forName("org.postgresql.Driver");
-    } catch (ClassNotFoundException e) {
-      System.err.println("PostgreSQL DataSource unable to load PostgreSQL JDBC Driver");
-    }
-  }
-
   // Needed to implement the DataSource/ConnectionPoolDataSource interfaces
   private transient PrintWriter logger;
 
@@ -228,22 +214,6 @@ public abstract class BaseDataSource implements Referenceable {
    */
   public void setPortNumber(int portNumber) {
     this.portNumber = portNumber;
-  }
-
-  /**
-   * @return value of compatible parameter
-   * @see PGProperty#COMPATIBLE
-   */
-  public String getCompatible() {
-    return PGProperty.COMPATIBLE.get(properties);
-  }
-
-  /**
-   * @param compatible value of compatible parameter
-   * @see PGProperty#COMPATIBLE
-   */
-  public void setCompatible(String compatible) {
-    PGProperty.COMPATIBLE.set(properties, compatible);
   }
 
   /**

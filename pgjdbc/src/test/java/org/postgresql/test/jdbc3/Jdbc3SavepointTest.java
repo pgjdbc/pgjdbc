@@ -1,10 +1,7 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2004-2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
 package org.postgresql.test.jdbc3;
 
@@ -40,7 +37,7 @@ public class Jdbc3SavepointTest extends TestCase {
   }
 
   private boolean hasSavepoints() throws SQLException {
-    return TestUtil.haveMinimumServerVersion(_conn, "8.0");
+    return true;
   }
 
   private void addRow(int id) throws SQLException {

@@ -1,18 +1,19 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2004-2013, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
 package org.postgresql.test.jdbc2;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.sql.ResultSet;
 import java.sql.Statement;
@@ -21,16 +22,12 @@ import java.sql.Statement;
  * TestCase to test the internal functionality of org.postgresql.jdbc2.DatabaseMetaData
  *
  */
-
-public class SearchPathLookupTest extends TestCase {
-
+public class SearchPathLookupTest {
   private BaseConnection con;
 
-  /*
-   * Constructor
-   */
-  public SearchPathLookupTest(String name) {
-    super(name);
+  @Before
+  public void setUp() throws Exception {
+    con = (BaseConnection) TestUtil.openDB();
   }
 
   // TODO: make @getMetaData() consider search_path as well
@@ -39,8 +36,8 @@ public class SearchPathLookupTest extends TestCase {
    * This usecase is most common, here the object we are searching for is in the current_schema (the
    * first schema in the search_path)
    */
+  @Test
   public void testSearchPathNormalLookup() throws Exception {
-    con = (BaseConnection) TestUtil.openDB();
     Statement stmt = con.createStatement();
     try {
       TestUtil.createSchema(con, "first_schema");
@@ -75,8 +72,8 @@ public class SearchPathLookupTest extends TestCase {
    * search_path, but not in the current_schema, for example a public schema or some kind of schema,
    * that is used for keeping utility objects.
    */
+  @Test
   public void testSearchPathHiddenLookup() throws Exception {
-    con = (BaseConnection) TestUtil.openDB();
     Statement stmt = con.createStatement();
     try {
       TestUtil.createSchema(con, "first_schema");
@@ -106,8 +103,8 @@ public class SearchPathLookupTest extends TestCase {
     }
   }
 
+  @Test
   public void testSearchPathBackwardsCompatibleLookup() throws Exception {
-    con = (BaseConnection) TestUtil.openDB();
     Statement stmt = con.createStatement();
     try {
       TestUtil.createSchema(con, "first_schema");

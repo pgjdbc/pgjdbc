@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2003, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
 package org.postgresql.core;
 
 import java.text.NumberFormat;
@@ -9,15 +14,6 @@ import java.text.ParsePosition;
 public enum ServerVersion implements Version {
 
   INVALID("0.0.0"),
-  v6_4("6.4.0"),
-  v6_5("6.5.0"),
-  v7_0("7.0.0"),
-  v7_1("7.1.0"),
-  v7_2("7.2.0"),
-  v7_3("7.3.0"),
-  v7_4("7.4.0"),
-  v8_0("8.0.0"),
-  v8_1("8.1.0"),
   v8_2("8.2.0"),
   v8_3("8.3.0"),
   v8_4("8.4.0"),

@@ -1,15 +1,11 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2004-2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
 package org.postgresql.test;
 
 import org.postgresql.PGProperty;
-import org.postgresql.core.ServerVersion;
 import org.postgresql.core.Version;
 import org.postgresql.jdbc.PgConnection;
 
@@ -336,10 +332,8 @@ public class TestUtil {
   public static void dropSchema(Connection con, String schema) throws SQLException {
     Statement stmt = con.createStatement();
     try {
-      String sql = "DROP SCHEMA " + schema;
-      if (haveMinimumServerVersion(con, ServerVersion.v7_3)) {
-        sql += " CASCADE ";
-      }
+      String sql = "DROP SCHEMA " + schema + " CASCADE ";
+
       stmt.executeUpdate(sql);
     } catch (SQLException ex) {
       // Since every create schema issues a drop schema
@@ -371,13 +365,8 @@ public class TestUtil {
       dropTable(con, table);
 
       // Now create the table
-      String sql = "CREATE TABLE " + table + " (" + columns + ") ";
+      String sql = "CREATE TABLE " + table + " (" + columns + ") WITH OIDS";
 
-      // Starting with 8.0 oids may be turned off by default.
-      // Some tests need them, so they flag that here.
-      if (withOids && haveMinimumServerVersion(con, ServerVersion.v8_0)) {
-        sql += " WITH OIDS";
-      }
       st.executeUpdate(sql);
     } finally {
       closeQuietly(st);
@@ -510,10 +499,7 @@ public class TestUtil {
   public static void dropTable(Connection con, String table) throws SQLException {
     Statement stmt = con.createStatement();
     try {
-      String sql = "DROP TABLE " + table;
-      if (haveMinimumServerVersion(con, ServerVersion.v7_3)) {
-        sql += " CASCADE ";
-      }
+      String sql = "DROP TABLE " + table + " CASCADE ";
       stmt.executeUpdate(sql);
     } catch (SQLException ex) {
       // Since every create table issues a drop table
@@ -628,14 +614,6 @@ public class TestUtil {
    * version. This is convenient because we are working with a java.sql.Connection, not an Postgres
    * connection.
    */
-  public static boolean haveMinimumServerVersion(Connection con, String version)
-      throws SQLException {
-    if (con instanceof PgConnection) {
-      return ((PgConnection) con).haveMinimumServerVersion(version);
-    }
-    return false;
-  }
-
   public static boolean haveMinimumServerVersion(Connection con, int version) throws SQLException {
     if (con instanceof PgConnection) {
       return ((PgConnection) con).haveMinimumServerVersion(version);

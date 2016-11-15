@@ -1,11 +1,8 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2004-2014, PostgreSQL Global Development Group
-* Copyright (c) 2004, Open Cloud Limited.
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+// Copyright (c) 2004, Open Cloud Limited.
 
 package org.postgresql.core;
 
@@ -32,7 +29,7 @@ public abstract class ConnectionFactory {
    * If the "protocolVersion" property is specified, only that protocol version is tried. Otherwise,
    * all protocols are tried in order, falling back to older protocols as necessary.
    * <p>
-   * Currently, protocol versions 3 (7.4+) and 2 (pre-7.4) are supported.
+   * Currently, protocol versions 3 (7.4+) is supported.
    *
    * @param hostSpecs at least one host and port to connect to; multiple elements for round-robin
    *        failover
@@ -48,11 +45,10 @@ public abstract class ConnectionFactory {
       String database, Properties info, Logger logger) throws SQLException {
     String protoName = PGProperty.PROTOCOL_VERSION.get(info);
 
-    if (protoName == null || "".equals(protoName)
-        || "2".equals(protoName) || "3".equals(protoName)) {
+    if (protoName == null || protoName.isEmpty() || "3".equals(protoName)) {
       ConnectionFactory connectionFactory = new ConnectionFactoryImpl();
-      QueryExecutor queryExecutor =
-          connectionFactory.openConnectionImpl(hostSpecs, user, database, info, logger);
+      QueryExecutor queryExecutor = connectionFactory.openConnectionImpl(
+          hostSpecs, user, database, info, logger);
       if (queryExecutor != null) {
         return queryExecutor;
       }

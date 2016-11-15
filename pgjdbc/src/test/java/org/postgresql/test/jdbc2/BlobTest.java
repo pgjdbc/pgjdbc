@@ -1,13 +1,11 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2004-2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
 package org.postgresql.test.jdbc2;
 
+import org.postgresql.core.ServerVersion;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.test.TestUtil;
@@ -213,7 +211,7 @@ public class BlobTest extends TestCase {
   }
 
   public void testLargeLargeObject() throws Exception {
-    if (!TestUtil.haveMinimumServerVersion(con, "9.3")) {
+    if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_3)) {
       return;
     }
 

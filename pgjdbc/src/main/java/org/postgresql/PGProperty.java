@@ -1,10 +1,7 @@
-/*-------------------------------------------------------------------------
-*
-* Copyright (c) 2004-2014, PostgreSQL Global Development Group
-*
-*
-*-------------------------------------------------------------------------
-*/
+/*
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
 
 package org.postgresql;
 
@@ -54,8 +51,8 @@ public enum PGProperty {
    * fallback.
    */
   PROTOCOL_VERSION("protocolVersion", null,
-      "Force use of a particular protocol version when connecting, if set, disables protocol version fallback.",
-      false, "2", "3"),
+      "Force use of a particular protocol version when connecting, currently only version 3 is supported.",
+      false, "3"),
 
   /**
    * The loglevel. Can be one of {@link Driver#DEBUG}, {@link Driver#INFO}, {@link Driver#OFF}.
@@ -107,12 +104,6 @@ public enum PGProperty {
    */
   BINARY_TRANSFER("binaryTransfer", "true",
       "Use binary format for sending and receiving data if possible"),
-
-  /**
-   * Force compatibility of some features with an older version of the driver.
-   */
-  COMPATIBLE("compatible", Driver.MAJORVERSION + "." + Driver.MINORVERSION,
-      "Force compatibility of some features with an older version of the driver"),
 
   /**
    * Puts this connection in read-only mode.
