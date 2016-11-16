@@ -14,6 +14,7 @@ import static org.junit.Assert.fail;
 
 import org.postgresql.jdbc.PgStatement;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PSQLState;
 
 import org.junit.After;
 import org.junit.Before;
@@ -702,6 +703,50 @@ public class StatementTest {
       ResultSet rs = ps.executeQuery();
       rs.next();
       assertEquals("Javascript code has been protected with $JAVASCRIPT$", str, rs.getString(1));
+    } finally {
+      TestUtil.closeQuietly(ps);
+    }
+  }
+
+  @Test
+  public void testUnterminatedDollarQuotes() throws SQLException {
+    ensureSyntaxException("dollar quotes", "CREATE OR REPLACE FUNCTION update_on_change() RETURNS TRIGGER AS $$\n"
+        + "BEGIN");
+  }
+
+  @Test
+  public void testUnterminatedNamedDollarQuotes() throws SQLException {
+    ensureSyntaxException("dollar quotes", "CREATE OR REPLACE FUNCTION update_on_change() RETURNS TRIGGER AS $ABC$\n"
+        + "BEGIN");
+  }
+
+  @Test
+  public void testUnterminatedComment() throws SQLException {
+    ensureSyntaxException("block comment", "CREATE OR REPLACE FUNCTION update_on_change() RETURNS TRIGGER AS /* $$\n"
+        + "BEGIN $$");
+  }
+
+  @Test
+  public void testUnterminatedLiteral() throws SQLException {
+    ensureSyntaxException("string literal", "CREATE OR REPLACE FUNCTION update_on_change() 'RETURNS TRIGGER AS $$\n"
+        + "BEGIN $$");
+  }
+
+  @Test
+  public void testUnterminatedIdentifier() throws SQLException {
+    ensureSyntaxException("string literal", "CREATE OR REPLACE FUNCTION \"update_on_change() RETURNS TRIGGER AS $$\n"
+        + "BEGIN $$");
+  }
+
+  private void ensureSyntaxException(String errorType, String sql) throws SQLException {
+    PreparedStatement ps = null;
+    try {
+      ps = con.prepareStatement(sql);
+      ps.executeUpdate();
+      fail("Query with unterminated " + errorType + " should fail");
+    } catch (SQLException e) {
+      assertEquals("Query should fail with unterminated " + errorType,
+          PSQLState.SYNTAX_ERROR.getState(), e.getSQLState());
     } finally {
       TestUtil.closeQuietly(ps);
     }
