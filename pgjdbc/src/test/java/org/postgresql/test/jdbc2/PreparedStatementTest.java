@@ -992,7 +992,7 @@ public class PreparedStatementTest extends BaseTest4 {
   }
 
   @Test
-  public void testBatchWithPrepareThreshold() throws SQLException {
+  public void testBatchWithPrepareThreshold5() throws SQLException {
     assumeBinaryModeRegular();
     Assume.assumeTrue("simple protocol only does not support prepared statement requests",
         preferQueryMode != PreferQueryMode.SIMPLE);
@@ -1019,8 +1019,15 @@ public class PreparedStatementTest extends BaseTest4 {
     assertEquals(1, rs.getInt(1));
     rs.close();
     pstmt.close();
+  }
 
-    pstmt = con.prepareStatement("CREATE temp TABLE batch_tab_threshold0 (id bigint, val bigint)");
+  @Test
+  public void testBatchWithPrepareThreshold0() throws SQLException {
+    assumeBinaryModeRegular();
+    Assume.assumeTrue("simple protocol only does not support prepared statement requests",
+        preferQueryMode != PreferQueryMode.SIMPLE);
+
+    PreparedStatement pstmt = con.prepareStatement("CREATE temp TABLE batch_tab_threshold0 (id bigint, val bigint)");
     pstmt.executeUpdate();
     pstmt.close();
 
@@ -1037,7 +1044,7 @@ public class PreparedStatementTest extends BaseTest4 {
     }
     pstmt.close();
     pstmt = con.prepareStatement("select count(*) from pg_prepared_statements where statement = 'INSERT INTO batch_tab_threshold0 (id, val) VALUES ($1,$2)'");
-    rs = pstmt.executeQuery();
+    ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
     assertEquals(0, rs.getInt(1));
     rs.close();
