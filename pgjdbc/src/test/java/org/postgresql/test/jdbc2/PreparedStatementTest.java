@@ -1013,12 +1013,15 @@ public class PreparedStatementTest extends BaseTest4 {
   }
 
   @Test
-  public void testSetTimeAndTimestamp() throws SQLException {
+  public void testInappropriateStatementSharing() throws SQLException {
     PreparedStatement ps = con.prepareStatement("SELECT ?::timestamp");
     try {
       Timestamp ts = new Timestamp(1474997614836L);
+      // Since PreparedStatement isn't cached immediately, we need to some warm up
       for (int i = 0; i < 3; ++i) {
         ResultSet rs;
+
+        // Flip statement to use Oid.DATE
         ps.setNull(1, Types.DATE);
         rs = ps.executeQuery();
         try {
@@ -1027,10 +1030,13 @@ public class PreparedStatementTest extends BaseTest4 {
         } finally {
           rs.close();
         }
+
+        // Flop statement to use Oid.UNSPECIFIED
         ps.setTimestamp(1, ts);
         rs = ps.executeQuery();
         try {
           assertTrue(rs.next());
+          // If an inappropriate caching occurred, then we'll get the data narrowing (TIMESTAMP -> DATE)
           assertEquals(ts, rs.getObject(1));
         } finally {
           rs.close();
