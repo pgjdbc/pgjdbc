@@ -5,22 +5,26 @@
 
 package org.postgresql.test.jdbc4;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.TransactionState;
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
-import org.junit.Assert;
+import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.Statement;
 
-public class IsValidTest extends TestCase {
+public class IsValidTest {
 
   private TransactionState getTransactionState(Connection conn) {
     return ((BaseConnection) conn).getTransactionState();
   }
 
+  @Test
   public void testIsValid() throws Exception {
     Connection _conn = TestUtil.openDB();
     try {
@@ -34,13 +38,14 @@ public class IsValidTest extends TestCase {
   /**
    * Test that the transaction state is left unchanged
    */
+  @Test
   public void testTransactionState() throws Exception {
     Connection conn = TestUtil.openDB();
     try {
       TransactionState transactionState;
       transactionState = getTransactionState(conn);
       conn.isValid(0);
-      Assert.assertEquals("Transaction state has been changed", transactionState,
+      assertEquals("Transaction state has been changed", transactionState,
           getTransactionState(conn));
 
       conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
@@ -48,14 +53,14 @@ public class IsValidTest extends TestCase {
       try {
         transactionState = getTransactionState(conn);
         conn.isValid(0);
-        Assert.assertEquals("Transaction state has been changed", transactionState,
+        assertEquals("Transaction state has been changed", transactionState,
             getTransactionState(conn));
 
         Statement stmt = conn.createStatement();
         stmt.execute("SELECT 1");
         transactionState = getTransactionState(conn);
         conn.isValid(0);
-        Assert.assertEquals("Transaction state has been changed", transactionState,
+        assertEquals("Transaction state has been changed", transactionState,
             getTransactionState(conn));
       } finally {
         try {
