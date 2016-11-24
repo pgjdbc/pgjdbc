@@ -25,6 +25,7 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.chrono.IsoEra;
+import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
 //#endif
 import java.util.Calendar;
@@ -393,6 +394,27 @@ public class TimestampUtils {
   }
 
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+  /**
+   * Parse a string and return a LocalTime representing its value.
+   *
+   * @param s The ISO formated time string to parse.
+   * @return null if s is null or a LocalTime of the parsed string s.
+   * @throws SQLException if there is a problem parsing s.
+   */
+  public LocalTime toLocalTime(String s) throws SQLException {
+    if (s == null) {
+      return null;
+    }
+    try {
+      return LocalTime.parse(s);
+    } catch (DateTimeParseException nfe) {
+      throw new PSQLException(
+          GT.tr("Bad value for type timestamp/date/time: {1}", s),
+          PSQLState.BAD_DATETIME_FORMAT, nfe);
+    }
+
+  }
+
   /**
    * Parse a string and return a LocalDateTime representing its value.
    *
@@ -887,6 +909,36 @@ public class TimestampUtils {
 
     return convertToTime(millis, tz); // Ensure date part is 1970-01-01
   }
+
+
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+  /**
+   * Returns the SQL Time object matching the given bytes with {@link Oid#TIME}.
+   *
+   * @param bytes The binary encoded time value.
+   * @return The parsed time object.
+   * @throws PSQLException If binary format could not be parsed.
+   */
+  public LocalTime toLocalTimeBin(byte[] bytes) throws PSQLException {
+    if (bytes.length != 8) {
+      throw new PSQLException(GT.tr("Unsupported binary encoding of {0}.", "time"),
+          PSQLState.BAD_DATETIME_FORMAT);
+    }
+
+    long micros;
+
+    if (usesDouble) {
+      double seconds = ByteConverter.float8(bytes, 0);
+
+      micros = (long) (seconds * 1000000d);
+    } else {
+      micros = ByteConverter.int8(bytes, 0);
+    }
+
+
+    return LocalTime.ofNanoOfDay(micros * 1000);
+  }
+  //#endif
 
   /**
    * Returns the SQL Timestamp object matching the given bytes with {@link Oid#TIMESTAMP} or

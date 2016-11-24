@@ -95,7 +95,7 @@ public class SetObject310Test extends TestCase {
     return readString(columnName);
   }
 
-  private void insertWithoutType(OffsetDateTime data, String columnName) throws SQLException {
+  private void insertWithoutType(Object data, String columnName) throws SQLException {
     insert(data, columnName, null);
   }
 
@@ -205,17 +205,17 @@ public class SetObject310Test extends TestCase {
             "1997-06-30T23:59:59", "1997-07-01T00:00:00", "2012-06-30T23:59:59", "2012-07-01T00:00:00",
             "2015-06-30T23:59:59", "2015-07-01T00:00:00", "2005-12-31T23:59:59", "2006-01-01T00:00:00",
             "2008-12-31T23:59:59", "2009-01-01T00:00:00", /* "2015-06-30T23:59:60", */ "2015-07-31T00:00:00",
-            "2015-07-31T00:00:01",
+            "2015-07-31T00:00:01", "2015-07-31T00:00:00.000001",
 
             // On 2000-03-26 02:00:00 Moscow went to DST, thus local time became 03:00:00
             "2000-03-26T01:59:59", "2000-03-26T02:00:00", "2000-03-26T02:00:01", "2000-03-26T02:59:59",
             "2000-03-26T03:00:00", "2000-03-26T03:00:01", "2000-03-26T03:59:59", "2000-03-26T04:00:00",
-            "2000-03-26T04:00:01",
+            "2000-03-26T04:00:01", "2000-03-26T04:00:00.000001",
 
             // On 2000-10-29 03:00:00 Moscow went to regular time, thus local time became 02:00:00
             "2000-10-29T01:59:59", "2000-10-29T02:00:00", "2000-10-29T02:00:01", "2000-10-29T02:59:59",
             "2000-10-29T03:00:00", "2000-10-29T03:00:01", "2000-10-29T03:59:59", "2000-10-29T04:00:00",
-            "2000-10-29T04:00:01");
+            "2000-10-29T04:00:01", "2000-10-29T04:00:00.000001");
   }
 
   private List<String> getZoneIdsToTest() {
@@ -275,11 +275,11 @@ public class SetObject310Test extends TestCase {
   public void testSetLocalDateTimeBc() throws SQLException {
     // use BC for funsies
     List<LocalDateTime> bcDates = new ArrayList<LocalDateTime>();
-    bcDates.add(LocalDateTime.parse("1997-06-30T23:59:59").with(ChronoField.ERA, IsoEra.BCE.getValue()));
-    bcDates.add(LocalDateTime.parse("0997-06-30T23:59:59").with(ChronoField.ERA, IsoEra.BCE.getValue()));
+    bcDates.add(LocalDateTime.parse("1997-06-30T23:59:59.999999").with(ChronoField.ERA, IsoEra.BCE.getValue()));
+    bcDates.add(LocalDateTime.parse("0997-06-30T23:59:59.999999").with(ChronoField.ERA, IsoEra.BCE.getValue()));
 
     for (LocalDateTime bcDate : bcDates) {
-      // -1997-06-30T23:59:59 -> 1997-06-30 23:59:59 BC
+      // -1997-06-30T23:59:59.999999 -> 1997-06-30 23:59:59.999999 BC
       String expected = bcDate.toString().substring(1).replace('T', ' ') + " BC";
       localTimestamps(ZoneOffset.UTC, bcDate, expected);
     }
@@ -303,6 +303,18 @@ public class SetObject310Test extends TestCase {
     java.sql.Date actual = insertThenReadWithoutType(data, "date_column", java.sql.Date.class);
     java.sql.Date expected = java.sql.Date.valueOf("1971-12-15");
     assertEquals(expected, actual);
+  }
+
+  /**
+   * Test the behavior setObject for time columns.
+   */
+  public void testSetLocalTimeAndReadBack() throws SQLException {
+    LocalTime data = LocalTime.parse("16:21:51.123456");
+
+    insertWithoutType(data, "time_without_time_zone_column");
+
+    String readBack = readString("time_without_time_zone_column");
+    assertEquals("16:21:51.123456", readBack);
   }
 
   /**
