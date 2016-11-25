@@ -206,7 +206,7 @@ public class ReplicationSlotTest {
     return result;
   }
 
-  private void dropReplicationSlot() throws SQLException, InterruptedException {
+  private void dropReplicationSlot() throws Exception {
     if (slotName != null) {
       TestUtil.dropReplicationSlot(sqlConnection, slotName);
     }

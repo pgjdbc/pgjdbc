@@ -9,8 +9,6 @@ import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.Version;
 import org.postgresql.jdbc.PgConnection;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.junit.Assert;
 
@@ -26,6 +24,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Utility class for JDBC tests
@@ -728,7 +727,7 @@ public class TestUtil {
   }
 
   public static void recreateLogicalReplicationSlot(Connection connection, String slotName, String outputPlugin)
-      throws SQLException, InterruptedException {
+      throws SQLException, InterruptedException, TimeoutException {
     //drop previos slot
     dropReplicationSlot(connection, slotName);
 
@@ -744,7 +743,7 @@ public class TestUtil {
   }
 
   public static void recreatePhysicalReplicationSlot(Connection connection, String slotName)
-      throws SQLException, InterruptedException {
+      throws SQLException, InterruptedException, TimeoutException {
     //drop previos slot
     dropReplicationSlot(connection, slotName);
 
@@ -759,42 +758,31 @@ public class TestUtil {
   }
 
   public static void dropReplicationSlot(Connection connection, String slotName)
-      throws SQLException, InterruptedException {
-    if (isReplicationSlotActive(connection, slotName)) {
-      if (haveMinimumServerVersion(connection, ServerVersion.v9_5)) {
-        PreparedStatement terminateStatement =
-            connection.prepareStatement(
-                "select pg_terminate_backend(active_pid) from pg_replication_slots "
-                    + "where active = true and slot_name= ?");
-        terminateStatement.setString(1, slotName);
-        terminateStatement.execute();
-        terminateStatement.close();
-      } else {
-        boolean stillActive = true;
-        while (stillActive) {
-          TimeUnit.MILLISECONDS.sleep(100L);
-          stillActive = isReplicationSlotActive(connection, slotName);
-        }
+      throws SQLException, InterruptedException, TimeoutException {
+    if (haveMinimumServerVersion(connection, ServerVersion.v9_5)) {
+      PreparedStatement stm = null;
+      try {
+        stm = connection.prepareStatement(
+            "select pg_terminate_backend(active_pid) from pg_replication_slots "
+                + "where active = true and slot_name = ?");
+        stm.setString(1, slotName);
+        stm.execute();
+      } finally {
+        closeQuietly(stm);
       }
     }
 
-    try {
-      PreparedStatement dropStatement =
-          connection.prepareStatement(
-              "select pg_drop_replication_slot(slot_name) "
-                  + "from pg_replication_slots where slot_name = ?"
-          );
+    waitStopReplicationSlot(connection, slotName);
 
-      dropStatement.setString(1, slotName);
-      dropStatement.execute();
-      dropStatement.close();
-    } catch (PSQLException e) {
-      //slot is active
-      if (PSQLState.OBJECT_IN_USE.equals(new PSQLState(e.getSQLState()))) {
-        dropReplicationSlot(connection, slotName);
-      } else {
-        throw e;
-      }
+    PreparedStatement stm = null;
+    try {
+      stm = connection.prepareStatement(
+          "select pg_drop_replication_slot(slot_name) "
+              + "from pg_replication_slots where slot_name = ?");
+      stm.setString(1, slotName);
+      stm.execute();
+    } finally {
+      closeQuietly(stm);
     }
   }
 
@@ -812,6 +800,25 @@ public class TestUtil {
     } finally {
       closeQuietly(rs);
       closeQuietly(stm);
+    }
+  }
+
+  private static void waitStopReplicationSlot(Connection connection, String slotName)
+      throws InterruptedException, TimeoutException, SQLException {
+    long startWaitTime = System.currentTimeMillis();
+    boolean stillActive;
+    long timeInWait = 0;
+
+    do {
+      stillActive = isReplicationSlotActive(connection, slotName);
+      if (stillActive) {
+        TimeUnit.MILLISECONDS.sleep(100L);
+        timeInWait = System.currentTimeMillis() - startWaitTime;
+      }
+    } while (stillActive && timeInWait <= 30000);
+
+    if (stillActive) {
+      throw new TimeoutException("Wait stop replication slot " + timeInWait + " timeout occurs");
     }
   }
 }
