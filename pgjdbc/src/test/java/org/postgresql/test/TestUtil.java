@@ -6,8 +6,11 @@
 package org.postgresql.test;
 
 import org.postgresql.PGProperty;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.core.Version;
 import org.postgresql.jdbc.PgConnection;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 import org.junit.Assert;
 
@@ -22,6 +25,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Utility class for JDBC tests
@@ -720,6 +724,94 @@ public class TestUtil {
         rs.close();
       } catch (SQLException ignore) {
       }
+    }
+  }
+
+  public static void recreateLogicalReplicationSlot(Connection connection, String slotName, String outputPlugin)
+      throws SQLException, InterruptedException {
+    //drop previos slot
+    dropReplicationSlot(connection, slotName);
+
+    PreparedStatement stm = null;
+    try {
+      stm = connection.prepareStatement("SELECT * FROM pg_create_logical_replication_slot(?, ?)");
+      stm.setString(1, slotName);
+      stm.setString(2, outputPlugin);
+      stm.execute();
+    } finally {
+      closeQuietly(stm);
+    }
+  }
+
+  public static void recreatePhysicalReplicationSlot(Connection connection, String slotName)
+      throws SQLException, InterruptedException {
+    //drop previos slot
+    dropReplicationSlot(connection, slotName);
+
+    PreparedStatement stm = null;
+    try {
+      stm = connection.prepareStatement("SELECT * FROM pg_create_physical_replication_slot(?)");
+      stm.setString(1, slotName);
+      stm.execute();
+    } finally {
+      closeQuietly(stm);
+    }
+  }
+
+  public static void dropReplicationSlot(Connection connection, String slotName)
+      throws SQLException, InterruptedException {
+    if (isReplicationSlotActive(connection, slotName)) {
+      if (haveMinimumServerVersion(connection, ServerVersion.v9_5)) {
+        PreparedStatement terminateStatement =
+            connection.prepareStatement(
+                "select pg_terminate_backend(active_pid) from pg_replication_slots "
+                    + "where active = true and slot_name= ?");
+        terminateStatement.setString(1, slotName);
+        terminateStatement.execute();
+        terminateStatement.close();
+      } else {
+        boolean stillActive = true;
+        while (stillActive) {
+          TimeUnit.MILLISECONDS.sleep(100L);
+          stillActive = isReplicationSlotActive(connection, slotName);
+        }
+      }
+    }
+
+    try {
+      PreparedStatement dropStatement =
+          connection.prepareStatement(
+              "select pg_drop_replication_slot(slot_name) "
+                  + "from pg_replication_slots where slot_name = ?"
+          );
+
+      dropStatement.setString(1, slotName);
+      dropStatement.execute();
+      dropStatement.close();
+    } catch (PSQLException e) {
+      //slot is active
+      if (PSQLState.OBJECT_IN_USE.equals(new PSQLState(e.getSQLState()))) {
+        dropReplicationSlot(connection, slotName);
+      } else {
+        throw e;
+      }
+    }
+  }
+
+  public static boolean isReplicationSlotActive(Connection connection, String slotName)
+      throws SQLException {
+    PreparedStatement stm = null;
+    ResultSet rs = null;
+
+    try {
+      stm =
+          connection.prepareStatement("select active from pg_replication_slots where slot_name = ?");
+      stm.setString(1, slotName);
+      rs = stm.executeQuery();
+      return rs.next() && rs.getBoolean(1);
+    } finally {
+      closeQuietly(rs);
+      closeQuietly(stm);
     }
   }
 }

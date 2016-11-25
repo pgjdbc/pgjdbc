@@ -70,40 +70,16 @@ public class LogicalReplicationTest {
     replConnection = openReplicationConnection();
     TestUtil.createTable(sqlConnection, "test_logic_table",
         "pk serial primary key, name varchar(100)");
-    Statement st = sqlConnection.createStatement();
-    st.execute(
-        "SELECT * FROM pg_create_logical_replication_slot('" + SLOT_NAME + "', 'test_decoding')");
-    st.close();
+
+    TestUtil.recreateLogicalReplicationSlot(sqlConnection, SLOT_NAME, "test_decoding");
   }
 
   @After
   public void tearDown() throws Exception {
     replConnection.close();
     TestUtil.dropTable(sqlConnection, "test_logic_table");
-
-    dropReplicationSlot();
+    TestUtil.dropReplicationSlot(sqlConnection, SLOT_NAME);
     sqlConnection.close();
-  }
-
-  private void dropReplicationSlot() throws SQLException {
-    try {
-      Statement dropStatement = sqlConnection.createStatement();
-      dropStatement.execute("select pg_drop_replication_slot('" + SLOT_NAME + "')");
-      dropStatement.close();
-    } catch (PSQLException e) {
-      //slot is active
-      if (PSQLState.OBJECT_IN_USE.equals(new PSQLState(e.getSQLState()))) {
-        Statement terminateStatement = sqlConnection.createStatement();
-        terminateStatement.execute(
-            "select pg_terminate_backend(active_pid) from pg_replication_slots "
-                + "where active = true and slot_name='" + SLOT_NAME + "'"
-        );
-        terminateStatement.close();
-        dropReplicationSlot();
-      } else {
-        throw e;
-      }
-    }
   }
 
   @Test(timeout = 1000)

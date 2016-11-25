@@ -206,11 +206,9 @@ public class ReplicationSlotTest {
     return result;
   }
 
-  private void dropReplicationSlot() throws SQLException {
+  private void dropReplicationSlot() throws SQLException, InterruptedException {
     if (slotName != null) {
-      Statement dropStatement = sqlConnection.createStatement();
-      dropStatement.execute("select pg_drop_replication_slot('" + slotName + "')");
-      dropStatement.close();
+      TestUtil.dropReplicationSlot(sqlConnection, slotName);
     }
   }
 
