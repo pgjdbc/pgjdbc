@@ -27,12 +27,17 @@ public class CopyOutImpl extends CopyOperationImpl implements CopyOut {
   private byte[] currentDataRow;
 
   public byte[] readFromCopy() throws SQLException {
+    return readFromCopy(true);
+  }
+
+  @Override
+  public byte[] readFromCopy(boolean block) throws SQLException {
     currentDataRow = null;
-    queryExecutor.readFromCopy(this);
+    queryExecutor.readFromCopy(this, block);
     return currentDataRow;
   }
 
-  void handleCopydata(byte[] data) {
+  protected void handleCopydata(byte[] data) {
     currentDataRow = data;
   }
 }
