@@ -365,7 +365,11 @@ public class TestUtil {
       dropTable(con, table);
 
       // Now create the table
-      String sql = "CREATE TABLE " + table + " (" + columns + ") WITH OIDS";
+      String sql = "CREATE TABLE " + table + " (" + columns + ")";
+
+      if (withOids) {
+        sql += " WITH OIDS";
+      }
 
       st.executeUpdate(sql);
     } finally {

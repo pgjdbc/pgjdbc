@@ -2463,16 +2463,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return connection;
   }
 
-  /* I don't find these in the spec!?! */
-
-  public boolean rowChangesAreDetected(int type) throws SQLException {
-    return false;
-  }
-
-  public boolean rowChangesAreVisible(int type) throws SQLException {
-    return false;
-  }
-
   protected Statement createMetaDataStatement() throws SQLException {
     return connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
         ResultSet.CONCUR_READ_ONLY);
@@ -2522,10 +2512,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     }
 
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
-  }
-
-  public boolean providesQueryObjectGenerator() throws SQLException {
-    return false;
   }
 
   public boolean isWrapperFor(Class<?> iface) throws SQLException {
