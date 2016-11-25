@@ -9,7 +9,6 @@ import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyIn;
 import org.postgresql.copy.CopyManager;
 import org.postgresql.copy.CopyOut;
-import org.postgresql.copy.PGCopyOutputStream;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLState;
@@ -20,7 +19,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.StringReader;
 import java.sql.Connection;
@@ -115,18 +113,6 @@ public class CopyTest extends TestCase {
         fail("should have thrown object not in state exception.");
       }
     }
-    int rowCount = getCount();
-    assertEquals(dataRows, rowCount);
-  }
-
-  public void testCopyInAsOutputStream() throws SQLException, IOException {
-    String sql = "COPY copytest FROM STDIN";
-    OutputStream os = new PGCopyOutputStream((PGConnection) con, sql, 1000);
-    for (int i = 0; i < origData.length; i++) {
-      byte[] buf = origData[i].getBytes();
-      os.write(buf);
-    }
-    os.close();
     int rowCount = getCount();
     assertEquals(dataRows, rowCount);
   }
