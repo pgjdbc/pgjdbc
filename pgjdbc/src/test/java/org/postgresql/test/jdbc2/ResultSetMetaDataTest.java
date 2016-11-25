@@ -259,7 +259,9 @@ public class ResultSetMetaDataTest extends BaseTest4 {
     ResultSetMetaData rsmd = rs.getMetaData();
     assertTrue(rs.next());
     for (int i = 0; i < rsmd.getColumnCount(); i++) {
-      assertEquals(rs.getObject(i + 1).getClass().getName(), rsmd.getColumnClassName(i + 1));
+      String resultClassName = rs.getObject(i + 1).getClass().getName();
+      String metadataClassName = rsmd.getColumnClassName(i + 1);
+      assertEquals(resultClassName, metadataClassName);
     }
   }
 
