@@ -9,16 +9,20 @@ import org.postgresql.Driver;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.util.GT;
+import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.CallableStatement;
 import java.sql.Clob;
+import java.sql.Date;
 import java.sql.NClob;
 import java.sql.Ref;
 import java.sql.ResultSet;
@@ -28,8 +32,15 @@ import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
+//#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+//#endif
 import java.util.Calendar;
 import java.util.Map;
+import java.util.UUID;
 
 class PgCallableStatement extends PgPreparedStatement implements CallableStatement {
   // Used by the callablestatement style methods
@@ -41,6 +52,14 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   private int[] testReturn;
   // returnTypeSet is true when a proper call to registerOutParameter has been made
   private boolean returnTypeSet;
+
+  /*
+   * Contains the values of calling #getObject(int) on the result set.
+   * For temporal types when running in JDBC 4.2 or later contains java.time
+   * types instead of java.sql types. The former can be converted without loss
+   * to the later but not the other way around.
+   * Checks have to be made in #getDate #getTime and #getTimestamp
+   */
   protected Object[] callResult;
   private int lastIndex = 0;
 
@@ -120,7 +139,31 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
         j++;
       }
 
+      //#if mvn.project.property.postgresql.jdbc.spec <= "JDBC4.1"
       callResult[j] = rs.getObject(i + 1);
+      //#endif
+      //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+      switch (functionReturnType[j]) {
+        case Types.TIMESTAMP_WITH_TIMEZONE:
+          callResult[j] = rs.getObject(i + 1, OffsetDateTime.class);
+          break;
+        case Types.TIMESTAMP:
+          callResult[j] = rs.getObject(i + 1, LocalDateTime.class);
+          break;
+        case Types.DATE:
+          callResult[j] = rs.getObject(i + 1, LocalDate.class);
+          break;
+        case Types.TIME:
+          callResult[j] = rs.getObject(i + 1, LocalTime.class);
+          break;
+        default:
+          callResult[j] = rs.getObject(i + 1);
+          break;
+      }
+      //#endif
+
+
+
       int columnType = rs.getMetaData().getColumnType(i + 1);
 
       if (columnType != functionReturnType[j]) {
@@ -338,19 +381,49 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   public java.sql.Date getDate(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.DATE, "Date");
-    return (java.sql.Date) callResult[parameterIndex - 1];
+    Object value = callResult[parameterIndex - 1];
+    java.sql.Date date = null;
+    //#if mvn.project.property.postgresql.jdbc.spec <= "JDBC4.1"
+    if (value instanceof java.sql.Date) {
+      date = (java.sql.Date) value;
+    }
+    //#endif
+    //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+    date = java.sql.Date.valueOf((LocalDate) value);
+    //#endif
+    return date;
   }
 
   public java.sql.Time getTime(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.TIME, "Time");
-    return (java.sql.Time) callResult[parameterIndex - 1];
+    Object value = callResult[parameterIndex - 1];
+    java.sql.Time time = null;
+    //#if mvn.project.property.postgresql.jdbc.spec <= "JDBC4.1"
+    if (value instanceof java.sql.Time) {
+      time = (java.sql.Time) value;
+    }
+    //#endif
+    //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+    time =  java.sql.Time.valueOf((LocalTime) value);
+    //#endif
+    return time;
   }
 
   public java.sql.Timestamp getTimestamp(int parameterIndex) throws SQLException {
     checkClosed();
     checkIndex(parameterIndex, Types.TIMESTAMP, "Timestamp");
-    return (java.sql.Timestamp) callResult[parameterIndex - 1];
+    Object value = callResult[parameterIndex - 1];
+    java.sql.Timestamp timestamp = null;
+    //#if mvn.project.property.postgresql.jdbc.spec <= "JDBC4.1"
+    if (value instanceof java.sql.Timestamp) {
+      timestamp = (java.sql.Timestamp) value;
+    }
+    //#endif
+    //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+    timestamp =  java.sql.Timestamp.valueOf((LocalDateTime) value);
+    //#endif
+    return timestamp;
   }
 
   public Object getObject(int parameterIndex) throws SQLException {
@@ -358,6 +431,22 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     checkIndex(parameterIndex);
     return callResult[parameterIndex - 1];
   }
+
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+  /**
+   * helperfunction for the getXXX type calls to check isFunction and index == 1
+   *
+   * @param parameterIndex parameter index (1-based)
+   * @param type type the SQL type
+   * @param getName getter name
+   * @throws SQLException if given index is not valid
+   */
+  private <T> T getJsr310Type(int parameterIndex, Class<T> javaType, int type, String getName) throws SQLException {
+    checkClosed();
+    checkIndex(parameterIndex, type, getName);
+    return javaType.cast(callResult[parameterIndex - 1]);
+  }
+  //#endif
 
   /**
    * helperfunction for the getXXX calls to check isFunction and index == 1 Compare BOTH type fields
@@ -504,7 +593,13 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
       return null;
     }
 
-    String value = callResult[i - 1].toString();
+    String value = null;
+    //#if mvn.project.property.postgresql.jdbc.spec <= "JDBC4.2"
+    value = callResult[i - 1].toString();
+    //#endif
+    //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+    value = Timestamp.valueOf((LocalDateTime) callResult[i - 1]).toString();
+    //#endif
     return connection.getTimestampUtils().toTimestamp(cal, value);
   }
 
@@ -691,7 +786,150 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   }
 
   public <T> T getObject(int parameterIndex, Class<T> type) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getObject(int, Class<T>)");
+    if (type == null) {
+      throw new SQLException("type is null");
+    }
+    checkIndex(parameterIndex);
+    int sqlType = functionReturnType[parameterIndex - 1];
+    if (type == BigDecimal.class) {
+      if (sqlType == Types.NUMERIC || sqlType == Types.DECIMAL) {
+        return type.cast(getBigDecimal(parameterIndex));
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == String.class) {
+      if (sqlType == Types.CHAR || sqlType == Types.VARCHAR) {
+        return type.cast(getString(parameterIndex));
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == Boolean.class) {
+      if (sqlType == Types.BOOLEAN || sqlType == Types.BIT) {
+        boolean booleanValue = getBoolean(parameterIndex);
+        if (wasNull()) {
+          return null;
+        }
+        return type.cast(booleanValue);
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == Integer.class) {
+      if (sqlType == Types.SMALLINT || sqlType == Types.INTEGER) {
+        int intValue = getInt(parameterIndex);
+        if (wasNull()) {
+          return null;
+        }
+        return type.cast(intValue);
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == Long.class) {
+      if (sqlType == Types.BIGINT) {
+        long longValue = getLong(parameterIndex);
+        if (wasNull()) {
+          return null;
+        }
+        return type.cast(longValue);
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == Float.class) {
+      if (sqlType == Types.REAL) {
+        float floatValue = getFloat(parameterIndex);
+        if (wasNull()) {
+          return null;
+        }
+        return type.cast(floatValue);
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == Double.class) {
+      if (sqlType == Types.FLOAT || sqlType == Types.DOUBLE) {
+        double doubleValue = getDouble(parameterIndex);
+        if (wasNull()) {
+          return null;
+        }
+        return type.cast(doubleValue);
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == Date.class) {
+      if (sqlType == Types.DATE) {
+        return type.cast(getDate(parameterIndex));
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == Time.class) {
+      if (sqlType == Types.TIME) {
+        return type.cast(getTime(parameterIndex));
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == Timestamp.class) {
+      if (sqlType == Types.TIMESTAMP
+              //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+              || sqlType == Types.TIMESTAMP_WITH_TIMEZONE
+      //#endif
+      ) {
+        return type.cast(getTimestamp(parameterIndex));
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == Array.class) {
+      if (sqlType == Types.ARRAY) {
+        return type.cast(getArray(parameterIndex));
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == SQLXML.class) {
+      if (sqlType == Types.SQLXML) {
+        return type.cast(getSQLXML(parameterIndex));
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == UUID.class) {
+      return type.cast(getObject(parameterIndex));
+    } else if (type == InetAddress.class) {
+      Object addressString = getObject(parameterIndex);
+      if (addressString == null) {
+        return null;
+      }
+      try {
+        return type.cast(InetAddress.getByName(((PGobject) addressString).getValue()));
+      } catch (UnknownHostException e) {
+        throw new SQLException("could not create inet address from string '" + addressString + "'");
+      }
+    } else if (type == ResultSet.class) {
+      return type.cast(getObject(parameterIndex));
+      // JSR-310 support
+      //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+    } else if (type == LocalDate.class) {
+      if (sqlType == Types.DATE) {
+        return getJsr310Type(parameterIndex, type, sqlType, "Date");
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == LocalTime.class) {
+      if (sqlType == Types.TIME) {
+        return getJsr310Type(parameterIndex, type, sqlType, "Time");
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == LocalDateTime.class) {
+      if (sqlType == Types.TIMESTAMP) {
+        return getJsr310Type(parameterIndex, type, sqlType, "Timestamp");
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+    } else if (type == OffsetDateTime.class) {
+      if (sqlType == Types.TIMESTAMP_WITH_TIMEZONE) {
+        return getJsr310Type(parameterIndex, type, sqlType, "Timestamp");
+      } else {
+        throw new SQLException("conversion to " + type + " from " + sqlType + " not supported");
+      }
+      //#endif
+    }
+    throw new SQLException("unsupported conversion to " + type);
   }
 
   public <T> T getObject(String parameterName, Class<T> type) throws SQLException {
