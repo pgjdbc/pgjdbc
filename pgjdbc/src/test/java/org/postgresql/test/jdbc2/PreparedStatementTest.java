@@ -1026,7 +1026,7 @@ public class PreparedStatementTest extends BaseTest4 {
         rs = ps.executeQuery();
         try {
           assertTrue(rs.next());
-          assertNull(rs.getObject(1));
+          assertNull("NULL DATE converted to TIMESTAMP should return NULL value on getObject", rs.getObject(1));
         } finally {
           rs.close();
         }
@@ -1036,8 +1036,7 @@ public class PreparedStatementTest extends BaseTest4 {
         rs = ps.executeQuery();
         try {
           assertTrue(rs.next());
-          // If an inappropriate caching occurred, then we'll get the data narrowing (TIMESTAMP -> DATE)
-          assertEquals(ts, rs.getObject(1));
+          assertEquals("Looks like we got a narrowing of the data (TIMESTAMP -> DATE). It might caused by inappropriate caching of the statement.", ts, rs.getObject(1));
         } finally {
           rs.close();
         }
