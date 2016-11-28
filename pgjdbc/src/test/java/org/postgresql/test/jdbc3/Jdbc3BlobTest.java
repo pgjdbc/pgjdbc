@@ -5,10 +5,15 @@
 
 package org.postgresql.test.jdbc3;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,23 +26,22 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 
-public class Jdbc3BlobTest extends TestCase {
-  Connection _conn;
+public class Jdbc3BlobTest {
   private final static String TABLE = "blobtest";
   private final static String INSERT = "INSERT INTO " + TABLE + " VALUES (1, lo_creat(-1))";
   private final static String SELECT = "SELECT ID, DATA FROM " + TABLE + " WHERE ID = 1";
 
-  public Jdbc3BlobTest(String name) {
-    super(name);
-  }
+  private Connection _conn;
 
-  protected void setUp() throws Exception {
+  @Before
+  public void setUp() throws Exception {
     _conn = TestUtil.openDB();
     TestUtil.createTable(_conn, TABLE, "ID INT PRIMARY KEY, DATA OID");
     _conn.setAutoCommit(false);
   }
 
-  protected void tearDown() throws SQLException {
+  @After
+  public void tearDown() throws SQLException {
     _conn.setAutoCommit(true);
     try {
       Statement stmt = _conn.createStatement();
@@ -58,6 +62,7 @@ public class Jdbc3BlobTest extends TestCase {
   /**
    * Test the writing and reading of a single byte.
    */
+  @Test
   public void test1Byte() throws SQLException {
     byte[] data = {(byte) 'a'};
     readWrite(data);
@@ -66,6 +71,7 @@ public class Jdbc3BlobTest extends TestCase {
   /**
    * Test the writing and reading of a few bytes.
    */
+  @Test
   public void testManyBytes() throws SQLException {
     byte[] data = "aaaaaaaaaa".getBytes();
     readWrite(data);
@@ -74,6 +80,7 @@ public class Jdbc3BlobTest extends TestCase {
   /**
    * Test writing a single byte with an offset.
    */
+  @Test
   public void test1ByteOffset() throws SQLException {
     byte[] data = {(byte) 'a'};
     readWrite(10, data);
@@ -82,6 +89,7 @@ public class Jdbc3BlobTest extends TestCase {
   /**
    * Test the writing and reading of a few bytes with an offset.
    */
+  @Test
   public void testManyBytesOffset() throws SQLException {
     byte[] data = "aaaaaaaaaa".getBytes();
     readWrite(10, data);
@@ -90,6 +98,7 @@ public class Jdbc3BlobTest extends TestCase {
   /**
    * Tests all of the byte values from 0 - 255.
    */
+  @Test
   public void testAllBytes() throws SQLException {
     byte[] data = new byte[256];
     for (int i = 0; i < data.length; i++) {
@@ -98,6 +107,7 @@ public class Jdbc3BlobTest extends TestCase {
     readWrite(data);
   }
 
+  @Test
   public void testTruncate() throws SQLException {
     if (!TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_3)) {
       return;
@@ -150,7 +160,6 @@ public class Jdbc3BlobTest extends TestCase {
    * @throws SQLException if something goes wrong
    */
   public void readWrite(int offset, byte[] data) throws SQLException {
-
     PreparedStatement ps = _conn.prepareStatement(INSERT);
     ps.executeUpdate();
     ps.close();
@@ -181,6 +190,7 @@ public class Jdbc3BlobTest extends TestCase {
   /**
    * Test the writing and reading of a single byte.
    */
+  @Test
   public void test1ByteStream() throws SQLException, IOException {
     byte[] data = {(byte) 'a'};
     readWriteStream(data);
@@ -189,6 +199,7 @@ public class Jdbc3BlobTest extends TestCase {
   /**
    * Test the writing and reading of a few bytes.
    */
+  @Test
   public void testManyBytesStream() throws SQLException, IOException {
     byte[] data = "aaaaaaaaaa".getBytes();
     readWriteStream(data);
@@ -197,6 +208,7 @@ public class Jdbc3BlobTest extends TestCase {
   /**
    * Test writing a single byte with an offset.
    */
+  @Test
   public void test1ByteOffsetStream() throws SQLException, IOException {
     byte[] data = {(byte) 'a'};
     readWriteStream(10, data);
@@ -205,6 +217,7 @@ public class Jdbc3BlobTest extends TestCase {
   /**
    * Test the writing and reading of a few bytes with an offset.
    */
+  @Test
   public void testManyBytesOffsetStream() throws SQLException, IOException {
     byte[] data = "aaaaaaaaaa".getBytes();
     readWriteStream(10, data);
@@ -213,6 +226,7 @@ public class Jdbc3BlobTest extends TestCase {
   /**
    * Tests all of the byte values from 0 - 255.
    */
+  @Test
   public void testAllBytesStream() throws SQLException, IOException {
     byte[] data = new byte[256];
     for (int i = 0; i < data.length; i++) {
@@ -230,7 +244,6 @@ public class Jdbc3BlobTest extends TestCase {
    * Reads then writes data to the blob via a stream.
    */
   public void readWriteStream(int offset, byte[] data) throws SQLException, IOException {
-
     PreparedStatement ps = _conn.prepareStatement(INSERT);
     ps.executeUpdate();
     ps.close();
@@ -265,6 +278,7 @@ public class Jdbc3BlobTest extends TestCase {
     ps.close();
   }
 
+  @Test
   public void testPattern() throws SQLException {
     byte[] data = "abcdefghijklmnopqrstuvwxyx0123456789".getBytes();
     byte[] pattern = "def".getBytes();
@@ -294,6 +308,5 @@ public class Jdbc3BlobTest extends TestCase {
 
     rs.close();
     ps.close();
-
   }
 }

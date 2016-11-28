@@ -29,14 +29,14 @@ public class Jdbc3TestSuite extends TestSuite {
     } catch (Exception ex) {
       ex.printStackTrace();
     }
-    suite.addTestSuite(CompositeQueryParseTest.class);
-    suite.addTestSuite(Jdbc3SavepointTest.class);
+    suite.addTest(new JUnit4TestAdapter(CompositeQueryParseTest.class));
+    suite.addTest(new JUnit4TestAdapter(Jdbc3SavepointTest.class));
     suite.addTest(new JUnit4TestAdapter(TypesTest.class));
-    suite.addTestSuite(ResultSetTest.class);
+    suite.addTest(new JUnit4TestAdapter(ResultSetTest.class));
     suite.addTest(new JUnit4TestAdapter(ParameterMetaDataTest.class));
-    suite.addTestSuite(Jdbc3BlobTest.class);
-    suite.addTestSuite(DatabaseMetaDataTest.class);
-    suite.addTestSuite(SendRecvBufferSizeTest.class);
+    suite.addTest(new JUnit4TestAdapter(Jdbc3BlobTest.class));
+    suite.addTest(new JUnit4TestAdapter(DatabaseMetaDataTest.class));
+    suite.addTest(new JUnit4TestAdapter(SendRecvBufferSizeTest.class));
     suite.addTestSuite(StringTypeParameterTest.class);
     return suite;
   }
