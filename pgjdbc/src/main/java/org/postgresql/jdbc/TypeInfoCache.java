@@ -9,6 +9,7 @@ import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Oid;
 import org.postgresql.core.QueryExecutor;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.PGobject;
@@ -285,12 +286,23 @@ public class TypeInfoCache implements TypeInfo {
     PreparedStatement oidStatementComplex;
     if (isArray) {
       if (_getOidStatementComplexArray == null) {
-        String sql = "SELECT t.typarray, arr.typname "
-            + "  FROM pg_catalog.pg_type t"
-            + "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
-            + "  JOIN pg_catalog.pg_type arr ON arr.oid = t.typarray"
-            + " WHERE t.typname = ? AND (n.nspname = ? OR ? IS NULL AND n.nspname = ANY (current_schemas(true)))"
-            + " ORDER BY t.oid DESC LIMIT 1";
+        String sql;
+        if (_conn.haveMinimumServerVersion(ServerVersion.v8_3)) {
+          sql = "SELECT t.typarray, arr.typname "
+              + "  FROM pg_catalog.pg_type t"
+              + "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
+              + "  JOIN pg_catalog.pg_type arr ON arr.oid = t.typarray"
+              + " WHERE t.typname = ? AND (n.nspname = ? OR ? IS NULL AND n.nspname = ANY (current_schemas(true)))"
+              + " ORDER BY t.oid DESC LIMIT 1";
+        } else {
+          sql = "SELECT t.oid, t.typname "
+              + "  FROM pg_catalog.pg_type t"
+              + "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
+              + " WHERE t.typelem = (SELECT oid FROM pg_catalog.pg_type WHERE typname = ?)"
+              + " AND substring(t.typname, 1, 1) = '_' AND t.typlen = -1"
+              + " AND (n.nspname = ? OR ? IS NULL AND n.nspname = ANY (current_schemas(true)))"
+              + " ORDER BY t.typelem DESC LIMIT 1";
+        }
         _getOidStatementComplexArray = _conn.prepareStatement(sql);
       }
       oidStatementComplex = _getOidStatementComplexArray;
