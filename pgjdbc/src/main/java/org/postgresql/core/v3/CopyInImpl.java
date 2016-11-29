@@ -6,6 +6,9 @@
 package org.postgresql.core.v3;
 
 import org.postgresql.copy.CopyIn;
+import org.postgresql.util.GT;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 import java.sql.SQLException;
 
@@ -38,5 +41,10 @@ public class CopyInImpl extends CopyOperationImpl implements CopyIn {
 
   public long endCopy() throws SQLException {
     return queryExecutor.endCopy(this);
+  }
+
+  protected void handleCopydata(byte[] data) throws PSQLException {
+    throw new PSQLException(GT.tr("CopyIn copy direction can't receive data"),
+        PSQLState.PROTOCOL_VIOLATION);
   }
 }

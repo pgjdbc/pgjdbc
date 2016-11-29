@@ -112,6 +112,11 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
     return result;
   }
 
+  @Override
+  public byte[] readFromCopy(boolean block) throws SQLException {
+    return readFromCopy();
+  }
+
   public void close() throws IOException {
     // Don't complain about a double close.
     if (op == null) {

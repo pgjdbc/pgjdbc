@@ -66,6 +66,17 @@ public class CopyManager {
     }
   }
 
+  public CopyDual copyDual(String sql) throws SQLException {
+    CopyOperation op = queryExecutor.startCopy(sql, connection.getAutoCommit());
+    if (op == null || op instanceof CopyDual) {
+      return (CopyDual) op;
+    } else {
+      op.cancelCopy();
+      throw new PSQLException(GT.tr("Requested CopyDual but got {0}", op.getClass().getName()),
+          PSQLState.WRONG_OBJECT_TYPE);
+    }
+  }
+
   /**
    * Pass results of a COPY TO STDOUT query from database into a Writer.
    *

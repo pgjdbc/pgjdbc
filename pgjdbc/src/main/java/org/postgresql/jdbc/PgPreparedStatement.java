@@ -25,6 +25,7 @@ import org.postgresql.util.PGTimestamp;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.ReaderInputStream;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -568,8 +569,14 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         setString(parameterIndex, castToString(in), Oid.BPCHAR);
         break;
       case Types.VARCHAR:
-      case Types.LONGVARCHAR:
         setString(parameterIndex, castToString(in), getStringType());
+        break;
+      case Types.LONGVARCHAR:
+        if (in instanceof InputStream) {
+          preparedParameters.setText(parameterIndex, (InputStream)in);
+        } else {
+          setString(parameterIndex, castToString(in), getStringType());
+        }
         break;
       case Types.DATE:
         if (in instanceof java.sql.Date) {
@@ -1192,6 +1199,24 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
+  private String readerToString(Reader value, int maxLength) throws SQLException {
+    try {
+      int bufferSize = Math.min(maxLength, 1024);
+      StringBuilder v = new StringBuilder(bufferSize);
+      char[] buf = new char[bufferSize];
+      int nRead = 0;
+      while (nRead > -1 && v.length() < maxLength) {
+        nRead = value.read(buf, 0, Math.min(bufferSize, maxLength - v.length()));
+        if (nRead > 0) {
+          v.append(buf, 0, nRead);
+        }
+      }
+      return v.toString();
+    } catch (IOException ioe) {
+      throw new PSQLException(GT.tr("Provided Reader failed."), PSQLState.UNEXPECTED_ERROR, ioe);
+    }
+  }
+
   public void setCharacterStream(int i, java.io.Reader x, int length) throws SQLException {
     checkClosed();
 
@@ -1211,26 +1236,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     // long varchar datatype, but with toast all the text datatypes are capable of
     // handling very large values. Thus the implementation ends up calling
     // setString() since there is no current way to stream the value to the server
-    char[] l_chars = new char[length];
-    int l_charsRead = 0;
-    try {
-      while (true) {
-        int n = x.read(l_chars, l_charsRead, length - l_charsRead);
-        if (n == -1) {
-          break;
-        }
-
-        l_charsRead += n;
-
-        if (l_charsRead == length) {
-          break;
-        }
-      }
-    } catch (IOException l_ioe) {
-      throw new PSQLException(GT.tr("Provided Reader failed."), PSQLState.UNEXPECTED_ERROR,
-          l_ioe);
-    }
-    setString(i, new String(l_chars, 0, l_charsRead));
+    setString(i, readerToString(x, length));
   }
 
   public void setClob(int i, Clob x) throws SQLException {
@@ -1466,7 +1472,13 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   }
 
   public void setCharacterStream(int parameterIndex, Reader value) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setCharacterStream(int, Reader)");
+    if (connection.getPreferQueryMode() == PreferQueryMode.SIMPLE) {
+      String s = (value != null) ? readerToString(value, Integer.MAX_VALUE) : null;
+      setString(parameterIndex, s);
+      return;
+    }
+    InputStream is = (value != null) ? new ReaderInputStream(value) : null;
+    setObject(parameterIndex, is, Types.LONGVARCHAR);
   }
 
   public void setBinaryStream(int parameterIndex, InputStream value, long length)

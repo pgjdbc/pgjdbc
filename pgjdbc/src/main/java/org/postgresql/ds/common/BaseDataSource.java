@@ -1007,6 +1007,21 @@ public abstract class BaseDataSource implements Referenceable {
   }
 
   /**
+   * @param replication replication argument
+   * @see PGProperty#REPLICATION
+   */
+  public void setReplication(String replication) {
+    PGProperty.REPLICATION.set(properties, replication);
+  }
+
+  /**
+   * @see PGProperty#REPLICATION
+   */
+  public String getReplication() {
+    return PGProperty.REPLICATION.get(properties);
+  }
+
+  /**
    * Generates a {@link DriverManager} URL from the other properties supplied.
    *
    * @return {@link DriverManager} URL from the other properties supplied

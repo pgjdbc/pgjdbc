@@ -56,6 +56,14 @@ public interface BaseConnection extends PGConnection, Connection {
   QueryExecutor getQueryExecutor();
 
   /**
+   * Internal protocol for work with physical and logical replication. Physical replication available
+   * only since PostgreSQL version 9.1. Logical replication available only since PostgreSQL version 9.4.
+   *
+   * @return not null replication protocol
+   */
+  ReplicationProtocol getReplicationProtocol();
+
+  /**
    * Construct and return an appropriate object for the given type and value. This only considers
    * the types registered via {@link org.postgresql.PGConnection#addDataType(String, Class)} and
    * {@link org.postgresql.PGConnection#addDataType(String, String)}.

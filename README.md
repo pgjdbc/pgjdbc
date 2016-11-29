@@ -61,9 +61,9 @@ Snapshot builds (builds from `master` branch) are also deployed to Maven Central
 <dependency>
   <groupId>org.postgresql</groupId>
   <artifactId>postgresql</artifactId>
-  <version>9.4.1213-SNAPSHOT</version> <!-- Java 8 -->
-  <version>9.4.1213.jre7-SNAPSHOT</version> <!-- Java 7 -->
-  <version>9.4.1213.jre6-SNAPSHOT</version> <!-- Java 6 -->
+  <version>42.0.0-SNAPSHOT</version> <!-- Java 8 -->
+  <version>42.0.0.jre7-SNAPSHOT</version> <!-- Java 7 -->
+  <version>42.0.0.jre6-SNAPSHOT</version> <!-- Java 6 -->
 </dependency>
 ```
 

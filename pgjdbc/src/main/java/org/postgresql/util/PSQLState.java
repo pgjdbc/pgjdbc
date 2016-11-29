@@ -110,6 +110,8 @@ public class PSQLState implements java.io.Serializable {
 
   public final static PSQLState OUT_OF_MEMORY = new PSQLState("53200");
   public final static PSQLState OBJECT_NOT_IN_STATE = new PSQLState("55000");
+  public final static PSQLState OBJECT_IN_USE = new PSQLState("55006");
+
 
   public final static PSQLState SYSTEM_ERROR = new PSQLState("60000");
   public final static PSQLState IO_ERROR = new PSQLState("58030");
