@@ -220,6 +220,13 @@ public class PgConnection implements BaseConnection {
     // Now make the initial connection and set up local state
     this.queryExecutor = ConnectionFactory.openConnection(hostSpecs, user, database, info, logger);
 
+    // Reject connection to unsupported servers (8.1 and lower are not supported)
+    if (!haveMinimumServerVersion(ServerVersion.v8_2)) {
+      throw new PSQLException(
+          GT.tr("Unsupported server version: {0}", this.queryExecutor.getServerVersion()),
+          PSQLState.CONNECTION_REJECTED);
+    }
+
     // Set read-only early if requested
     if (PGProperty.READ_ONLY.getBoolean(info)) {
       setReadOnly(true);
