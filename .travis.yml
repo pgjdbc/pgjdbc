@@ -60,12 +60,6 @@ matrix:
         - COVERAGE=Y
         - NO_HSTORE=Y
         - CREATE_PLPGSQL=Y
-    - env: # this has to match the environment for 8.3 below
-        - PG_VERSION=8.3
-        - XA=true
-        - COVERAGE=Y
-        - NO_HSTORE=Y
-        - CREATE_PLPGSQL=Y
   include:
     - env:
         - FEDORA_CI=Y
