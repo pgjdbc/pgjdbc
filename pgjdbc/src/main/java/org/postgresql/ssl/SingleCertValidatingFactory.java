@@ -5,6 +5,7 @@
 
 package org.postgresql.ssl;
 
+import org.postgresql.PGProperty;
 import org.postgresql.util.GT;
 
 import java.io.BufferedInputStream;
@@ -17,6 +18,7 @@ import java.security.KeyStore;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.Properties;
 import java.util.UUID;
 
 import javax.net.ssl.SSLContext;
@@ -159,7 +161,9 @@ public class SingleCertValidatingFactory extends WrappedFactory {
   private static final String ENV_PREFIX = "env:";
   private static final String SYS_PROP_PREFIX = "sys:";
 
-  public SingleCertValidatingFactory(String sslFactoryArg) throws GeneralSecurityException {
+  public SingleCertValidatingFactory(Properties info) throws GeneralSecurityException {
+	
+	String sslFactoryArg = PGProperty.SSL_FACTORY_ARG.get(info);
     if (sslFactoryArg == null || sslFactoryArg.equals("")) {
       throw new GeneralSecurityException(GT.tr("The sslfactoryarg property may not be empty."));
     }
@@ -194,8 +198,10 @@ public class SingleCertValidatingFactory extends WrappedFactory {
         throw new GeneralSecurityException(GT.tr(
             "The sslfactoryarg property must start with the prefix file:, classpath:, env:, sys:, or -----BEGIN CERTIFICATE-----."));
       }
+      
+      // Instead of defaulting to the default TLS version of the java version instead allow the user to specify.
+      SSLContext ctx = MakeSSL.getSSLContext(info, "TLS");
 
-      SSLContext ctx = SSLContext.getInstance("TLS");
       ctx.init(null, new TrustManager[]{new SingleCertTrustManager(in)}, null);
       _factory = ctx.getSocketFactory();
     } catch (RuntimeException e) {

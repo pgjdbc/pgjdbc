@@ -34,8 +34,7 @@ public class SocketFactoryFactory {
       return SocketFactory.getDefault();
     }
     try {
-      return (SocketFactory) ObjectFactory.instantiate(socketFactoryClassName, info, true,
-          PGProperty.SOCKET_FACTORY_ARG.get(info));
+      return (SocketFactory) ObjectFactory.instantiate(socketFactoryClassName, info);
     } catch (Exception e) {
       throw new PSQLException(
           GT.tr("The SocketFactory class provided {0} could not be instantiated.",

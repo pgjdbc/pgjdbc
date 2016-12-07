@@ -59,7 +59,8 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
   public LibPQFactory(Properties info) throws PSQLException {
     try {
       sslmode = PGProperty.SSL_MODE.get(info);
-      SSLContext ctx = SSLContext.getInstance("TLS"); // or "SSL" ?
+      // Instead of defaulting to the default TLS version of the java version instead allow the user to specify.
+      SSLContext ctx = MakeSSL.getSSLContext(info, "TLS");
 
       // Determinig the default file location
       String pathsep = System.getProperty("file.separator");
@@ -88,7 +89,7 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
       String sslpasswordcallback = PGProperty.SSL_PASSWORD_CALLBACK.get(info);
       if (sslpasswordcallback != null) {
         try {
-          cbh = (CallbackHandler) MakeSSL.instantiate(sslpasswordcallback, info, false, null);
+          cbh = (CallbackHandler) MakeSSL.instantiate(sslpasswordcallback, info);
         } catch (Exception e) {
           throw new PSQLException(
               GT.tr("The password callback class provided {0} could not be instantiated.",

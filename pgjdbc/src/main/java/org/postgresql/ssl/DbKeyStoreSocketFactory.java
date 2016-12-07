@@ -43,7 +43,8 @@ abstract public class DbKeyStoreSocketFactory extends org.postgresql.ssl.Wrapped
           TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
       trustfact.init(keys);
 
-      SSLContext ctx = SSLContext.getInstance("SSL");
+      // Instead of defaulting to the default TLS version of the java version instead allow the user to specify.
+      SSLContext ctx = MakeSSL.getSSLContext(null, "SSL");
       ctx.init(keyfact.getKeyManagers(), trustfact.getTrustManagers(), null);
       _factory = ctx.getSocketFactory();
     } catch (java.security.GeneralSecurityException gse) {

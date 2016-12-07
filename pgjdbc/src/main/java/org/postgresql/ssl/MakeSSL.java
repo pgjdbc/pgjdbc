@@ -15,13 +15,33 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Properties;
 
 import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
 public class MakeSSL extends ObjectFactory {
+
+  public static SSLContext getSSLContext(Properties info, String defaultCipher) throws NoSuchAlgorithmException {
+	  
+	  // Default to grabbing from the property, no prop set try default.
+	  String sslCipher = null;
+	  if (info != null) {
+	      sslCipher = PGProperty.SSL_FACTORY_ALGO.get(info);
+	  }
+      if (sslCipher == null || sslCipher.isEmpty()) {
+    	  sslCipher = defaultCipher;
+      }
+      
+      // If at the end of the day we still don't have one default to the hardcoded default (TLS)
+      if (sslCipher == null || sslCipher.isEmpty()) {
+    	  sslCipher = PGProperty.SSL_FACTORY_ALGO.getDefaultValue();
+      }
+      return SSLContext.getInstance(sslCipher);
+  }
 
   public static void convert(PGStream stream, Properties info, Logger logger)
       throws PSQLException, IOException {
@@ -42,8 +62,7 @@ public class MakeSSL extends ObjectFactory {
       }
     } else {
       try {
-        factory = (SSLSocketFactory) instantiate(classname, info, true,
-            PGProperty.SSL_FACTORY_ARG.get(info));
+        factory = (SSLSocketFactory) instantiate(classname, info);
       } catch (Exception e) {
         throw new PSQLException(
             GT.tr("The SSLSocketFactory class provided {0} could not be instantiated.", classname),
@@ -69,7 +88,7 @@ public class MakeSSL extends ObjectFactory {
     if (sslhostnameverifier != null) {
       HostnameVerifier hvn;
       try {
-        hvn = (HostnameVerifier) instantiate(sslhostnameverifier, info, false, null);
+        hvn = (HostnameVerifier) instantiate(sslhostnameverifier, info);
       } catch (Exception e) {
         throw new PSQLException(
             GT.tr("The HostnameVerifier class provided {0} could not be instantiated.",
