@@ -522,7 +522,7 @@ public abstract class BaseDataSource implements Referenceable {
    * @return SSL Algo Used
    * @see PGProperty#SSL_FACTORY_PROTO
    */
-  public String getSslFactoryAlgo() {
+  public String getSslContextProtocol() {
     return PGProperty.SSL_CONTEXT_PROTOCOL.get(properties);
   }
 
@@ -530,7 +530,7 @@ public abstract class BaseDataSource implements Referenceable {
    * @param arg argument forwarded to SSL Context
    * @see PGProperty#SSL_FACTORY_PROTO
    */
-  public void setSslFactoryAlgo(String arg) {
+  public void setSslContextProtocol(String arg) {
     PGProperty.SSL_CONTEXT_PROTOCOL.set(properties, arg);
   }
 

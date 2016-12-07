@@ -177,7 +177,10 @@ public enum PGProperty {
     * The String argument to give to the constructor of the SSL Context Factory.
     */
    SSL_CONTEXT_PROTOCOL("sslContextProtocol", "TLS",
-          "Argument forwarded to constructor of SSLContext. Explicit SSL protocol to use when creating an SSLContext."),
+          "Argument forwarded to constructor of SSLContext. Explicit SSL protocol "
+          + "to use when creating an SSLContext. Possible values are dependant on your version "
+          + "of Java but possible values for Java 8 are documented here: "
+          + "http://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html#SSLContext"),
 
   /**
    * Classname of the SSL HostnameVerifier to use (instance of {@code
