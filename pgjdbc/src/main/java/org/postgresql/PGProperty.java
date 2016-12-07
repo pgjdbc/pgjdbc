@@ -178,7 +178,7 @@ public enum PGProperty {
     */
    SSL_CONTEXT_PROTOCOL("sslContextProtocol", "TLS",
           "Argument forwarded to constructor of SSLContext. Explicit SSL protocol "
-          + "to use when creating an SSLContext. Possible values are dependant on your version "
+          + "to use when creating an SSLContext. Possible values are dependent on your version "
           + "of Java but possible values for Java 8 are documented here: "
           + "http://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html#SSLContext"),
 
