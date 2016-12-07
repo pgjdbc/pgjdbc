@@ -89,7 +89,7 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
       String sslpasswordcallback = PGProperty.SSL_PASSWORD_CALLBACK.get(info);
       if (sslpasswordcallback != null) {
         try {
-          cbh = (CallbackHandler) MakeSSL.instantiate(sslpasswordcallback, info);
+          cbh = (CallbackHandler) MakeSSL.instantiate(sslpasswordcallback, info, false, null);
         } catch (Exception e) {
           throw new PSQLException(
               GT.tr("The password callback class provided {0} could not be instantiated.",

@@ -17,7 +17,7 @@ public class ObjectFactory {
 
   /**
    * Instantiates a class using the appropriate constructor. If a constructor with a single
-   * Propertiesparameter exists, it is used. Otherwise, if tryString is true a constructor with a
+   * Properties parameter exists, it is used. Otherwise, if tryString is true a constructor with a
    * single String argument is searched if it fails, or tryString is true a no argument constructor
    * is tried.
    *
@@ -34,8 +34,8 @@ public class ObjectFactory {
    * @throws IllegalAccessException if something goes wrong
    * @throws InvocationTargetException if something goes wrong
    */
-  public static Object instantiate(String classname, Properties info) throws
-          ClassNotFoundException, SecurityException, NoSuchMethodException,
+  public static Object instantiate(String classname, Properties info, boolean tryString,
+      String stringarg) throws ClassNotFoundException, SecurityException, NoSuchMethodException,
           IllegalArgumentException, InstantiationException, IllegalAccessException,
           InvocationTargetException {
     Object[] args = {info};
@@ -44,8 +44,18 @@ public class ObjectFactory {
     try {
       ctor = cls.getConstructor(Properties.class);
     } catch (NoSuchMethodException nsme) {
-      ctor = cls.getConstructor((Class[]) null);
-      args = null;
+      if (tryString) {
+        try {
+          ctor = cls.getConstructor(String.class);
+          args = new String[]{stringarg};
+        } catch (NoSuchMethodException nsme2) {
+          tryString = false;
+        }
+      }
+      if (!tryString) {
+        ctor = cls.getConstructor((Class[]) null);
+        args = null;
+      }
     }
     return ctor.newInstance(args);
   }

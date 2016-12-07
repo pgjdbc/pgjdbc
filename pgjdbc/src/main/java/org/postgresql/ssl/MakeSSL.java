@@ -62,7 +62,8 @@ public class MakeSSL extends ObjectFactory {
       }
     } else {
       try {
-        factory = (SSLSocketFactory) instantiate(classname, info);
+        factory = (SSLSocketFactory) instantiate(classname, info, true,
+                PGProperty.SSL_FACTORY_ARG.get(info));
       } catch (Exception e) {
         throw new PSQLException(
             GT.tr("The SSLSocketFactory class provided {0} could not be instantiated.", classname),
@@ -88,7 +89,7 @@ public class MakeSSL extends ObjectFactory {
     if (sslhostnameverifier != null) {
       HostnameVerifier hvn;
       try {
-        hvn = (HostnameVerifier) instantiate(sslhostnameverifier, info);
+        hvn = (HostnameVerifier) instantiate(sslhostnameverifier, info, false, null);
       } catch (Exception e) {
         throw new PSQLException(
             GT.tr("The HostnameVerifier class provided {0} could not be instantiated.",
