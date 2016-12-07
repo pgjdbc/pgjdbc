@@ -34,8 +34,8 @@ public class ObjectFactory {
    * @throws IllegalAccessException if something goes wrong
    * @throws InvocationTargetException if something goes wrong
    */
-  public static Object instantiate(String classname, Properties info) throws 
-  		  ClassNotFoundException, SecurityException, NoSuchMethodException,
+  public static Object instantiate(String classname, Properties info) throws
+          ClassNotFoundException, SecurityException, NoSuchMethodException,
           IllegalArgumentException, InstantiationException, IllegalAccessException,
           InvocationTargetException {
     Object[] args = {info};

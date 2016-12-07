@@ -517,21 +517,21 @@ public abstract class BaseDataSource implements Referenceable {
   public void setSslMode(String mode) {
     PGProperty.SSL_MODE.set(properties, mode);
   }
-  
+
   /**
    * @return SSL Algo Used
-   * @see PGProperty#SSL_FACTORY_ALGO
+   * @see PGProperty#SSL_FACTORY_PROTO
    */
   public String getSslFactoryAlgo() {
-    return PGProperty.SSL_FACTORY_ALGO.get(properties);
+    return PGProperty.SSL_FACTORY_PROTO.get(properties);
   }
 
   /**
    * @param arg argument forwarded to SSL Context
-   * @see PGProperty#SSL_FACTORY_ALGO
+   * @see PGProperty#SSL_FACTORY_PROTO
    */
   public void setSslFactoryAlgo(String arg) {
-    PGProperty.SSL_FACTORY_ALGO.set(properties, arg);
+    PGProperty.SSL_FACTORY_PROTO.set(properties, arg);
   }
 
   /**

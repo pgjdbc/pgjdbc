@@ -172,11 +172,11 @@ public enum PGProperty {
    */
   SSL_FACTORY_ARG("sslfactoryarg", null,
       "Argument forwarded to constructor of SSLSocketFactory class."),
-      
+
    /**
     * The String argument to give to the constructor of the SSL Context
     */
-   SSL_FACTORY_ALGO("sslfactoryalgo", "TLS",
+   SSL_FACTORY_PROTO("sslContextProtocol", "TLS",
           "Argument forwarded to constructor of SSLContext class and is used to specify the SSL Context algo used."),
 
   /**

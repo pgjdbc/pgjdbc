@@ -26,21 +26,21 @@ import javax.net.ssl.SSLSocketFactory;
 public class MakeSSL extends ObjectFactory {
 
   public static SSLContext getSSLContext(Properties info, String defaultCipher) throws NoSuchAlgorithmException {
-	  
-	  // Default to grabbing from the property, no prop set try default.
-	  String sslCipher = null;
-	  if (info != null) {
-	      sslCipher = PGProperty.SSL_FACTORY_ALGO.get(info);
-	  }
-      if (sslCipher == null || sslCipher.isEmpty()) {
-    	  sslCipher = defaultCipher;
-      }
-      
-      // If at the end of the day we still don't have one default to the hardcoded default (TLS)
-      if (sslCipher == null || sslCipher.isEmpty()) {
-    	  sslCipher = PGProperty.SSL_FACTORY_ALGO.getDefaultValue();
-      }
-      return SSLContext.getInstance(sslCipher);
+
+    // Default to grabbing from the property, no prop set try default.
+    String sslCipher = null;
+    if (info != null) {
+      sslCipher = PGProperty.SSL_FACTORY_PROTO.get(info);
+    }
+    if (sslCipher == null || sslCipher.isEmpty()) {
+      sslCipher = defaultCipher;
+    }
+
+    // If at the end of the day we still don't have one default to the hardcoded default (TLS)
+    if (sslCipher == null || sslCipher.isEmpty()) {
+      sslCipher = PGProperty.SSL_FACTORY_PROTO.getDefaultValue();
+    }
+    return SSLContext.getInstance(sslCipher);
   }
 
   public static void convert(PGStream stream, Properties info, Logger logger)

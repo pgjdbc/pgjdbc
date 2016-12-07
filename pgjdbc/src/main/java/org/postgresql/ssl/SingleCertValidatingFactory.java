@@ -162,8 +162,8 @@ public class SingleCertValidatingFactory extends WrappedFactory {
   private static final String SYS_PROP_PREFIX = "sys:";
 
   public SingleCertValidatingFactory(Properties info) throws GeneralSecurityException {
-	
-	String sslFactoryArg = PGProperty.SSL_FACTORY_ARG.get(info);
+
+    String sslFactoryArg = PGProperty.SSL_FACTORY_ARG.get(info);
     if (sslFactoryArg == null || sslFactoryArg.equals("")) {
       throw new GeneralSecurityException(GT.tr("The sslfactoryarg property may not be empty."));
     }
@@ -198,7 +198,7 @@ public class SingleCertValidatingFactory extends WrappedFactory {
         throw new GeneralSecurityException(GT.tr(
             "The sslfactoryarg property must start with the prefix file:, classpath:, env:, sys:, or -----BEGIN CERTIFICATE-----."));
       }
-      
+
       // Instead of defaulting to the default TLS version of the java version instead allow the user to specify.
       SSLContext ctx = MakeSSL.getSSLContext(info, "TLS");
 

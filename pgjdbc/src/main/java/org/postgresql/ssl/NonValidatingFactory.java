@@ -29,7 +29,7 @@ public class NonValidatingFactory extends WrappedFactory {
    * @throws GeneralSecurityException if something goes wrong
    */
   public NonValidatingFactory(Properties info) throws GeneralSecurityException {
-	
+
     // Instead of defaulting to the default TLS version of the java version instead allow the user to specify.
     SSLContext ctx = MakeSSL.getSSLContext(info, "TLS");
 
