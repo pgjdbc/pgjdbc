@@ -30,7 +30,7 @@ public class MakeSSL extends ObjectFactory {
     // Default to grabbing from the property, no prop set try default.
     String sslCipher = null;
     if (info != null) {
-      sslCipher = PGProperty.SSL_FACTORY_PROTO.get(info);
+      sslCipher = PGProperty.SSL_CONTEXT_PROTOCOL.get(info);
     }
     if (sslCipher == null || sslCipher.isEmpty()) {
       sslCipher = defaultCipher;
@@ -38,7 +38,7 @@ public class MakeSSL extends ObjectFactory {
 
     // If at the end of the day we still don't have one default to the hardcoded default (TLS)
     if (sslCipher == null || sslCipher.isEmpty()) {
-      sslCipher = PGProperty.SSL_FACTORY_PROTO.getDefaultValue();
+      sslCipher = PGProperty.SSL_CONTEXT_PROTOCOL.getDefaultValue();
     }
     return SSLContext.getInstance(sslCipher);
   }

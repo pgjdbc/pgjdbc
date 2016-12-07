@@ -174,10 +174,10 @@ public enum PGProperty {
       "Argument forwarded to constructor of SSLSocketFactory class."),
 
    /**
-    * The String argument to give to the constructor of the SSL Context
+    * The String argument to give to the constructor of the SSL Context Factory.
     */
-   SSL_FACTORY_PROTO("sslContextProtocol", "TLS",
-          "Argument forwarded to constructor of SSLContext class and is used to specify the SSL Context algo used."),
+   SSL_CONTEXT_PROTOCOL("sslContextProtocol", "TLS",
+          "Argument forwarded to constructor of SSLContext. Explicit SSL protocol to use when creating an SSLContext."),
 
   /**
    * Classname of the SSL HostnameVerifier to use (instance of {@code

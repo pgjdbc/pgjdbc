@@ -523,7 +523,7 @@ public abstract class BaseDataSource implements Referenceable {
    * @see PGProperty#SSL_FACTORY_PROTO
    */
   public String getSslFactoryAlgo() {
-    return PGProperty.SSL_FACTORY_PROTO.get(properties);
+    return PGProperty.SSL_CONTEXT_PROTOCOL.get(properties);
   }
 
   /**
@@ -531,7 +531,7 @@ public abstract class BaseDataSource implements Referenceable {
    * @see PGProperty#SSL_FACTORY_PROTO
    */
   public void setSslFactoryAlgo(String arg) {
-    PGProperty.SSL_FACTORY_PROTO.set(properties, arg);
+    PGProperty.SSL_CONTEXT_PROTOCOL.set(properties, arg);
   }
 
   /**
