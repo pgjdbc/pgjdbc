@@ -6,7 +6,6 @@
 package org.postgresql.test.jdbc4;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
@@ -16,7 +15,6 @@ import org.junit.jupiter.api.Test;
 import java.io.Reader;
 import java.io.StringReader;
 import java.sql.PreparedStatement;
-import java.sql.SQLFeatureNotSupportedException;
 
 public class CharacterStreamTest extends BaseTest4 {
 
@@ -54,11 +52,7 @@ public class CharacterStreamTest extends BaseTest4 {
     try {
       Reader reader = data != null ? new StringReader(data) : null;
       long length = data != null ? data.length() : 0;
-      try {
-        insertPS.setCharacterStream(1, reader, length);
-      } catch (SQLFeatureNotSupportedException e) {
-        assumeTrue(false, "PreparedStatement.setCharacterStream(int, Reader, long) is not implemented");
-      }
+      insertPS.setCharacterStream(1, reader, length);
       insertPS.executeUpdate();
     } finally {
       TestUtil.closeQuietly(insertPS);
