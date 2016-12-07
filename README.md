@@ -130,6 +130,7 @@ In addition to the standard connection parameters the driver supports a number o
 | ssl                           | Boolean | false   | Control use of SSL (true value causes SSL to be required) |
 | sslfactory                    | String  | null    | Provide a SSLSocketFactory class when using SSL. |
 | sslfactoryarg                 | String  | null    | Argument forwarded to constructor of SSLSocketFactory class. |
+| sslContextProtocol            | String  | TLS     | Argument forwarded to constructor of SSLContext. Explicit SSL protocol to use when creating an SSLContext. Possible values are dependant on your version of Java but possible values for Java 8 are documented here: http://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html#SSLContext |
 | sslmode                       | String  | null    | Parameter governing the use of SSL. |
 | sslcert                       | String  | null    | The location of the client's SSL certificate |
 | sslkey                        | String  | null    | The location of the client's PKCS#8 SSL key |
