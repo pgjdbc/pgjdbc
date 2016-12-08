@@ -9,9 +9,9 @@ package org.postgresql.core;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.StandardCharsets;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.sql.SQLException;
 
 /**
@@ -34,12 +34,6 @@ public class Utils {
   }
 
   /**
-   * Keep a local copy of the UTF-8 Charset so we can avoid synchronization overhead from looking up
-   * the Charset by name as String.getBytes(String) requires.
-   */
-  private final static Charset utf8Charset = Charset.forName("UTF-8");
-
-  /**
    * Encode a string as UTF-8.
    *
    * @param str the string to encode
@@ -50,7 +44,7 @@ public class Utils {
     // for performance measurements.
     // In OracleJDK 6u65, 7u55, and 8u40 String.getBytes(Charset) is
     // 3 times faster than other JDK approaches.
-    return str.getBytes(utf8Charset);
+    return str.getBytes(StandardCharsets.UTF_8);
   }
 
   /**
@@ -194,4 +188,5 @@ public class Utils {
   public static int parseServerVersionStr(String serverVersion) throws NumberFormatException {
     return ServerVersion.parseServerVersionStr(serverVersion);
   }
+
 }

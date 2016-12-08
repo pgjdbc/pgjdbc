@@ -42,10 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
   <description>PostgreSQL JDBC Driver - benchmarks</description>
   <url>https://github.com/pgjdbc/pgjdbc</url>
 
-  <prerequisites>
-    <maven>3.0</maven>
-  </prerequisites>
-
   <dependencies>
     <dependency>
       <groupId>org.openjdk.jmh</groupId>
@@ -67,7 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
   </dependencies>
 
   <properties>
-    <jmh.version>1.12</jmh.version>
+    <jmh.version>1.17.3</jmh.version>
     <uberjar.name>benchmarks</uberjar.name>
     <current.jdk>1.8</current.jdk>
     <javac.target>${current.jdk}</javac.target>

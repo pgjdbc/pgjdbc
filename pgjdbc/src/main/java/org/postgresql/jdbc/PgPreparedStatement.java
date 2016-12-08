@@ -26,6 +26,7 @@ import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.ReaderInputStream;
+import org.postgresql.util.StandardCharsets;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,7 +34,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
-import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -402,8 +402,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     setTimestamp(parameterIndex, x, null);
   }
 
-  private void setCharacterStreamPost71(int parameterIndex, InputStream x, int length,
-      String encoding) throws SQLException {
+  private void setCharacterStream(int parameterIndex, InputStream x, int length,
+      Charset encoding) throws SQLException {
 
     if (x == null) {
       setNull(parameterIndex, Types.VARCHAR);
@@ -438,9 +438,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       }
 
       setString(parameterIndex, new String(l_chars, 0, l_charsRead), Oid.VARCHAR);
-    } catch (UnsupportedEncodingException l_uee) {
-      throw new PSQLException(GT.tr("The JVM claims not to support the {0} encoding.", encoding),
-          PSQLState.UNEXPECTED_ERROR, l_uee);
     } catch (IOException l_ioe) {
       throw new PSQLException(GT.tr("Provided InputStream failed."), PSQLState.UNEXPECTED_ERROR,
           l_ioe);
@@ -449,13 +446,12 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   public void setAsciiStream(int parameterIndex, InputStream x, int length) throws SQLException {
     checkClosed();
-    setCharacterStreamPost71(parameterIndex, x, length, "ASCII");
+    setCharacterStream(parameterIndex, x, length, StandardCharsets.US_ASCII);
   }
 
   public void setUnicodeStream(int parameterIndex, InputStream x, int length) throws SQLException {
     checkClosed();
-
-    setCharacterStreamPost71(parameterIndex, x, length, "UTF-8");
+    setCharacterStream(parameterIndex, x, length, StandardCharsets.UTF_8);
   }
 
   public void setBinaryStream(int parameterIndex, InputStream x, int length) throws SQLException {

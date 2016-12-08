@@ -24,6 +24,7 @@ import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.StandardCharsets;
 
 import java.io.ByteArrayInputStream;
 import java.io.CharArrayReader;
@@ -31,7 +32,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -1066,7 +1066,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
 
     try {
-      InputStreamReader reader = new InputStreamReader(x, "ASCII");
+      InputStreamReader reader = new InputStreamReader(x, StandardCharsets.US_ASCII);
       char data[] = new char[length];
       int numRead = 0;
       while (true) {
@@ -1082,9 +1082,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         }
       }
       updateString(columnIndex, new String(data, 0, numRead));
-    } catch (UnsupportedEncodingException uee) {
-      throw new PSQLException(GT.tr("The JVM claims not to support the encoding: {0}", "ASCII"),
-          PSQLState.UNEXPECTED_ERROR, uee);
     } catch (IOException ie) {
       throw new PSQLException(GT.tr("Provided InputStream failed."), null, ie);
     }
@@ -1714,14 +1711,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
             if (isBinary(columnIndex + 1)) {
               rowBuffer[columnIndex] = (byte[]) valueObject;
             } else {
-              try {
-                rowBuffer[columnIndex] =
-                    PGbytea.toPGString((byte[]) valueObject).getBytes("ISO-8859-1");
-              } catch (UnsupportedEncodingException e) {
-                throw new PSQLException(
-                    GT.tr("The JVM claims not to support the encoding: {0}", "ISO-8859-1"),
-                    PSQLState.UNEXPECTED_ERROR, e);
-              }
+              rowBuffer[columnIndex] =
+                  PGbytea.toPGString((byte[]) valueObject).getBytes(StandardCharsets.ISO_8859_1);
             }
             break;
 
@@ -2364,12 +2355,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     // long string datatype, but with toast the text datatype is capable of
     // handling very large values. Thus the implementation ends up calling
     // getString() since there is no current way to stream the value from the server
-    try {
-      return new ByteArrayInputStream(getString(columnIndex).getBytes("ASCII"));
-    } catch (UnsupportedEncodingException l_uee) {
-      throw new PSQLException(GT.tr("The JVM claims not to support the encoding: {0}", "ASCII"),
-          PSQLState.UNEXPECTED_ERROR, l_uee);
-    }
+    return new ByteArrayInputStream(getString(columnIndex).getBytes(StandardCharsets.US_ASCII));
   }
 
   public InputStream getUnicodeStream(int columnIndex) throws SQLException {
@@ -2384,12 +2370,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     // long string datatype, but with toast the text datatype is capable of
     // handling very large values. Thus the implementation ends up calling
     // getString() since there is no current way to stream the value from the server
-    try {
-      return new ByteArrayInputStream(getString(columnIndex).getBytes("UTF-8"));
-    } catch (UnsupportedEncodingException l_uee) {
-      throw new PSQLException(GT.tr("The JVM claims not to support the encoding: {0}", "UTF-8"),
-          PSQLState.UNEXPECTED_ERROR, l_uee);
-    }
+    return new ByteArrayInputStream(getString(columnIndex).getBytes(StandardCharsets.UTF_8));
   }
 
   public InputStream getBinaryStream(int columnIndex) throws SQLException {
