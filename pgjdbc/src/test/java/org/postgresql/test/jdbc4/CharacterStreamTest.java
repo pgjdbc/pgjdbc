@@ -16,19 +16,16 @@ import java.io.StringReader;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 
 public class CharacterStreamTest extends BaseTest4 {
 
   private static final String TEST_TABLE_NAME = "charstream";
   private static final String TEST_COLUMN_NAME = "cs";
 
-  private static final String _delete;
   private static final String _insert;
   private static final String _select;
 
   static {
-    _delete = String.format("DELETE FROM %s", TEST_TABLE_NAME);
     _insert = String.format("INSERT INTO %s (%s) VALUES (?)", TEST_TABLE_NAME, TEST_COLUMN_NAME);
     _select = String.format("SELECT %s FROM %s", TEST_COLUMN_NAME, TEST_TABLE_NAME);
   }
