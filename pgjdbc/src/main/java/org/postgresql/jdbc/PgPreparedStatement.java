@@ -880,7 +880,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     try {
       if (in instanceof String) {
         return ((String) in).equalsIgnoreCase("true") || ((String) in).equals("1")
-            || ((String) in).equalsIgnoreCase("t");
+            || ((String) in).equalsIgnoreCase("t")
+            || ((String) in).equalsIgnoreCase("y")
+            || ((String) in).equalsIgnoreCase("yes");
       }
       if (in instanceof BigDecimal) {
         return ((BigDecimal) in).signum() != 0;
@@ -900,7 +902,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
             || asString.equalsIgnoreCase("t");
       }
       if (in instanceof Character) {
-        return (Character) in == '1' || (Character) in == 't' || (Character) in == 'T';
+        return (Character) in == '1' || (Character) in == 't' || (Character) in == 'T'
+                || (Character) in == 'y' || (Character) in == 'Y';
       }
     } catch (final Exception e) {
       throw cannotCastException(in.getClass().getName(), "boolean", e);
