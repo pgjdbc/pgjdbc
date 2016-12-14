@@ -21,6 +21,7 @@ import org.junit.runners.Parameterized;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -512,28 +513,101 @@ public class PreparedStatementTest extends BaseTest4 {
   @Test
   public void testBoolean() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement(
-        "CREATE TEMP TABLE bool_tab (max_val boolean, min_val boolean, null_val boolean)");
+        "CREATE TEMP TABLE bool_tab (bool_val boolean, null_val boolean, tf_val boolean, "
+        + "truefalse_val boolean, yn_val boolean, yesno_val boolean, onoff_val boolean, onezero_val boolean)");
     pstmt.executeUpdate();
     pstmt.close();
 
-    pstmt = con.prepareStatement("insert into bool_tab values (?,?,?)");
+    pstmt = con.prepareStatement("insert into bool_tab values (?,?,?,?,?,?,?,?)");
+    // Test TRUE values
     pstmt.setBoolean(1, true);
-    pstmt.setBoolean(2, false);
-    pstmt.setNull(3, Types.BIT);
-    pstmt.executeUpdate();
-    pstmt.close();
+    pstmt.setObject(1, Boolean.TRUE);
+    pstmt.setNull(2, Types.BIT);
+    pstmt.setObject(3, 't', Types.BIT);
+    pstmt.setObject(3, 'T', Types.BIT);
+    pstmt.setObject(3, "t", Types.BIT);
+    pstmt.setObject(4, "true", Types.BIT);
+    pstmt.setObject(5, 'y', Types.BIT);
+    pstmt.setObject(5, 'Y', Types.BIT);
+    pstmt.setObject(5, "Y", Types.BIT);
+    pstmt.setObject(6, "YES", Types.BIT);
+    pstmt.setObject(7, "On", Types.BIT);
+    pstmt.setObject(8, '1', Types.BIT);
+    pstmt.setObject(8, "1", Types.BIT);
+    assertEquals("one row inserted, true values", 1, pstmt.executeUpdate());
+    // Test FALSE values
+    pstmt.setBoolean(1, false);
+    pstmt.setObject(1, Boolean.FALSE);
+    pstmt.setNull(2, Types.BOOLEAN);
+    pstmt.setObject(3, 'f', Types.BOOLEAN);
+    pstmt.setObject(3, 'F', Types.BOOLEAN);
+    pstmt.setObject(3, "F", Types.BOOLEAN);
+    pstmt.setObject(4, "false", Types.BOOLEAN);
+    pstmt.setObject(5, 'n', Types.BOOLEAN);
+    pstmt.setObject(5, 'N', Types.BOOLEAN);
+    pstmt.setObject(5, "N", Types.BOOLEAN);
+    pstmt.setObject(6, "NO", Types.BOOLEAN);
+    pstmt.setObject(7, "Off", Types.BOOLEAN);
+    pstmt.setObject(8, "0", Types.BOOLEAN);
+    pstmt.setObject(8, '0', Types.BOOLEAN);
+    assertEquals("one row inserted, false values", 1, pstmt.executeUpdate());
+    // Test weird values
+    pstmt.setObject(1, new java.util.Date(0), Types.BOOLEAN);
+    pstmt.setObject(2, BigDecimal.ONE, Types.BOOLEAN);
+    pstmt.setObject(3, 0L, Types.BOOLEAN);
+    pstmt.setObject(4, 0x1, Types.BOOLEAN);
+    pstmt.setObject(5, 0, Types.BOOLEAN);
+    pstmt.setObject(6, Integer.valueOf("1"), Types.BOOLEAN);
+    pstmt.clearParameters();
 
+    try {
+      pstmt.setObject(1, "this is not boolean", Types.BOOLEAN);
+      fail();
+    } catch (SQLException e) {
+      assertEquals(e.getMessage(), "Cannot convert an instance of String to type boolean");
+    }
+    try {
+      pstmt.setObject(1, 'X', Types.BOOLEAN);
+      fail();
+    } catch (SQLException e) {
+      assertEquals(e.getMessage(), "Cannot convert an instance of Character to type boolean");
+    }
+    try {
+      File obj = new File("");
+      pstmt.setObject(1, obj, Types.BOOLEAN);
+      fail();
+    } catch (SQLException e) {
+      assertEquals(e.getMessage(), "Cannot convert an instance of java.io.File to type boolean");
+    }
+
+    pstmt.close();
     pstmt = con.prepareStatement("select * from bool_tab");
     ResultSet rs = pstmt.executeQuery();
-    assertTrue(rs.next());
 
-    assertTrue("expected true,received " + rs.getBoolean(1), rs.getBoolean(1));
-    assertFalse("expected false,received " + rs.getBoolean(2), rs.getBoolean(2));
-    rs.getFloat(3);
+    assertTrue(rs.next());
+    assertTrue("expected true, received " + rs.getBoolean(1), rs.getBoolean(1));
+    rs.getFloat(2);
     assertTrue(rs.wasNull());
+    assertTrue("expected true, received " + rs.getBoolean(3), rs.getBoolean(3));
+    assertTrue("expected true, received " + rs.getBoolean(4), rs.getBoolean(4));
+    assertTrue("expected true, received " + rs.getBoolean(5), rs.getBoolean(5));
+    assertTrue("expected true, received " + rs.getBoolean(6), rs.getBoolean(6));
+    assertTrue("expected true, received " + rs.getBoolean(7), rs.getBoolean(7));
+    assertTrue("expected true, received " + rs.getBoolean(8), rs.getBoolean(8));
+
+    assertTrue(rs.next());
+    assertFalse("expected false, received " + rs.getBoolean(1), rs.getBoolean(1));
+    rs.getBoolean(2);
+    assertTrue(rs.wasNull());
+    assertFalse("expected false, received " + rs.getBoolean(3), rs.getBoolean(3));
+    assertFalse("expected false, received " + rs.getBoolean(4), rs.getBoolean(4));
+    assertFalse("expected false, received " + rs.getBoolean(5), rs.getBoolean(5));
+    assertFalse("expected false, received " + rs.getBoolean(6), rs.getBoolean(6));
+    assertFalse("expected false, received " + rs.getBoolean(7), rs.getBoolean(7));
+    assertFalse("expected false, received " + rs.getBoolean(8), rs.getBoolean(8));
+
     rs.close();
     pstmt.close();
-
   }
 
   @Test

@@ -283,7 +283,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   public void setBoolean(int parameterIndex, boolean x) throws SQLException {
     checkClosed();
-    bindString(parameterIndex, x ? "1" : "0", Oid.BOOL);
+    // The key words TRUE and FALSE are the preferred (SQL-compliant) usage.
+    bindLiteral(parameterIndex, x ? "TRUE" : "FALSE", Oid.BOOL);
   }
 
   public void setByte(int parameterIndex, byte x) throws SQLException {
@@ -877,35 +878,71 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   }
 
   private static boolean castToBoolean(final Object in) throws SQLException {
-    try {
-      if (in instanceof String) {
-        return ((String) in).equalsIgnoreCase("true") || ((String) in).equals("1")
-            || ((String) in).equalsIgnoreCase("t");
+    if (in instanceof Boolean) {
+      return (Boolean) in;
+    }
+    if (in instanceof String) {
+      // Leading or trailing whitespace is ignored, and case does not matter.
+      final String strval = ((String) in).trim();
+      Boolean value = booleanTypeFromString(strval);
+      if (value == null) {
+        throw cannotCastException("String", "boolean");
       }
-      if (in instanceof BigDecimal) {
-        return ((BigDecimal) in).signum() != 0;
+      return value;
+    }
+    if (in instanceof Character) {
+      Boolean value = null;
+      final Character charval = (Character) in;
+      if ('1' == charval || 't' == charval || 'T' == charval
+          || 'y' == charval || 'Y' == charval) {
+        value = Boolean.TRUE;
+      } else if ('0' == charval || 'f' == charval || 'F' == charval
+          || 'n' == charval || 'N' == charval) {
+        value = Boolean.FALSE;
+      } else if (value == null) {
+        throw cannotCastException("Character", "boolean");
       }
-      if (in instanceof Number) {
-        return ((Number) in).longValue() != 0L;
+      return value;
+    }
+    if (in instanceof BigDecimal) {
+      return ((BigDecimal) in).signum() != 0;
+    }
+    if (in instanceof Number) {
+      return ((Number) in).longValue() != 0L;
+    }
+    if (in instanceof java.util.Date) {
+      return ((java.util.Date) in).getTime() != 0L;
+    }
+    if (in instanceof Clob) {
+      final String strval = asString((Clob) in).trim();
+      Boolean value = booleanTypeFromString(strval);
+      if (value == null) {
+        throw cannotCastException("Clob", "boolean");
       }
-      if (in instanceof java.util.Date) {
-        return ((java.util.Date) in).getTime() != 0L;
-      }
-      if (in instanceof Boolean) {
-        return (Boolean) in;
-      }
-      if (in instanceof Clob) {
-        final String asString = asString((Clob) in);
-        return asString.equalsIgnoreCase("true") || asString.equals("1")
-            || asString.equalsIgnoreCase("t");
-      }
-      if (in instanceof Character) {
-        return (Character) in == '1' || (Character) in == 't' || (Character) in == 'T';
-      }
-    } catch (final Exception e) {
-      throw cannotCastException(in.getClass().getName(), "boolean", e);
+      return value;
     }
     throw cannotCastException(in.getClass().getName(), "boolean");
+  }
+
+  /**
+   * Based on values accepted by the PostgreSQL server:
+   * https://www.postgresql.org/docs/current/static/datatype-boolean.html
+   *
+   * @param val String with the value to "parse"
+   * @return Boolean if any valid value match, null otherwise.
+   */
+  private static Boolean booleanTypeFromString(final String val) {
+    if ("1".equals(val) || "true".equalsIgnoreCase(val)
+        || "t".equalsIgnoreCase(val) || "yes".equalsIgnoreCase(val)
+        || "y".equalsIgnoreCase(val) || "on".equalsIgnoreCase(val)) {
+      return Boolean.TRUE;
+    }
+    if ("0".equals(val) || "false".equalsIgnoreCase(val)
+        || "f".equalsIgnoreCase(val) || "no".equalsIgnoreCase(val)
+        || "n".equalsIgnoreCase(val) || "off".equalsIgnoreCase(val)) {
+      return Boolean.FALSE;
+    }
+    return null;
   }
 
   private static String castToString(final Object in) throws SQLException {
