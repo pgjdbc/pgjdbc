@@ -6,6 +6,7 @@
 package org.postgresql.test.jdbc2;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import org.postgresql.core.Encoding;
@@ -23,13 +24,32 @@ import java.util.Locale;
 public class EncodingTest {
 
   @Test
-  public void testCreation() throws Exception {
+  public void testCreationDatabaseEncoding() throws Exception {
     Encoding encoding = Encoding.getDatabaseEncoding("UTF8");
-    assertEquals("UTF", encoding.name().substring(0, 3).toUpperCase(Locale.US));
+    assertNotNull(encoding);
+    assertEquals("UTF-8", encoding.name());
+    assertTrue(encoding.hasAsciiNumbers());
+    encoding = Encoding.getDatabaseEncoding("LATIN1");
+    assertEquals("ISO8859_1", encoding.toString());
+    assertEquals("ISO-8859-1", encoding.name());
     encoding = Encoding.getDatabaseEncoding("SQL_ASCII");
     assertTrue(encoding.name().toUpperCase(Locale.US).contains("ASCII"));
     assertEquals("When encoding is unknown the default encoding should be used",
-        Encoding.defaultEncoding(), Encoding.getDatabaseEncoding("UNKNOWN"));
+        Encoding.defaultEncoding().name(), Encoding.getDatabaseEncoding("UNKNOWN").name());
+  }
+
+  @Test
+  public void testCreationJVMEncoding() throws Exception {
+    Encoding encoding = Encoding.getJVMEncoding("UTF8");
+    assertNotNull(encoding);
+    assertEquals("UTF-8", encoding.name());
+    encoding = Encoding.getJVMEncoding("ISO-8859-1");
+    assertEquals("ISO-8859-1", encoding.name());
+    encoding = Encoding.getJVMEncoding("ASCII");
+    assertEquals("US-ASCII", encoding.name());
+    assertEquals("ASCII", encoding.toString());
+    assertEquals("When encoding is unknown the default encoding should be used",
+        Encoding.defaultEncoding().name(), Encoding.getJVMEncoding("UNKNOWN").name());
   }
 
   @Test
@@ -54,5 +74,30 @@ public class EncodingTest {
     assertEquals(97, reader.read());
     assertEquals(98, reader.read());
     assertEquals(-1, reader.read());
+  }
+
+  @Test
+  public void testEncoder() throws Exception {
+    Encoding encoding = Encoding.getDatabaseEncoding("SQL_ASCII");
+    assertNotNull(encoding);
+    byte[] strByte = encoding.encode("Hola mundo!");
+    assertNotNull(strByte);
+    assertEquals(new String(strByte, "US-ASCII"), "Hola mundo!");
+
+    encoding = Encoding.getDatabaseEncoding("UTF8");
+    strByte = encoding.encode("Привет мир!");
+    assertEquals(new String(strByte, "UTF-8"), "Привет мир!");
+  }
+
+  @Test
+  public void testDecoder() throws Exception {
+    Encoding encoding = Encoding.getDatabaseEncoding("SQL_ASCII");
+    assertNotNull(encoding);
+    byte[] strByte = "Hola mundo!".getBytes("US-ASCII");
+    assertEquals(encoding.decode(strByte), "Hola mundo!");
+
+    encoding = Encoding.getDatabaseEncoding("UTF8");
+    strByte = encoding.encode("Привет мир!");
+    assertEquals(encoding.decode(strByte), "Привет мир!");
   }
 }
