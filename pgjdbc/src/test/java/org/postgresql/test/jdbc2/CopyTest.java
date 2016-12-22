@@ -327,6 +327,11 @@ public class CopyTest extends TestCase {
   }
 
   public void testLockReleaseOnCancelFailure() throws SQLException, InterruptedException {
+    if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4)) {
+      // pg_backend_pid() requires PostgreSQL 8.4+
+      return;
+    }
+
     // This is a fairly complex test because it is testing a
     // deadlock that only occurs when the connection to postgres
     // is broken during a copy operation. We'll start a copy

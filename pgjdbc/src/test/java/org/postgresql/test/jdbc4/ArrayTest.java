@@ -327,6 +327,9 @@ public class ArrayTest extends BaseTest4 {
 
   @Test
   public void testGetArrayOfComposites() throws SQLException {
+    Assume.assumeTrue("array_agg(expression) requires PostgreSQL 8.4+",
+        TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_4));
+
     PreparedStatement insert_parent_pstmt =
         _conn.prepareStatement("INSERT INTO arrcompprnttest (name) "
             + "VALUES ('aParent');");
@@ -392,6 +395,9 @@ public class ArrayTest extends BaseTest4 {
 
   @Test
   public void testCasingComposite() throws SQLException {
+    Assume.assumeTrue("Arrays of composite types requires PostgreSQL 8.3+",
+        TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_3));
+
     PGobject cc = new PGobject();
     cc.setType("\"CorrectCasing\"");
     cc.setValue("(1)");
@@ -439,6 +445,9 @@ public class ArrayTest extends BaseTest4 {
 
   @Test
   public void testEvilCasing() throws SQLException {
+    Assume.assumeTrue("Arrays of composite types requires PostgreSQL 8.3+",
+        TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_3));
+
     PGobject cc = new PGobject();
     cc.setType("\"Evil.Table\"");
     cc.setValue("(1)");
