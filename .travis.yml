@@ -61,6 +61,9 @@ matrix:
         - NO_HSTORE=Y
         - CREATE_PLPGSQL=Y
   include:
+    - jdk: oraclejdk8
+      env: RUN_CHECKSTYLE=true
+      script: mvn checkstyle:check
     - env:
         - FEDORA_CI=Y
       services:
@@ -104,15 +107,12 @@ matrix:
     - jdk: oraclejdk8
       sudo: required
       dist: precise
-      env: # this has to match allow_failures above
+      env:
         - PG_VERSION=8.3
         - XA=true
         - COVERAGE=Y
         - NO_HSTORE=Y
         - CREATE_PLPGSQL=Y
-    - jdk: oraclejdk8
-      env: RUN_CHECKSTYLE=true
-      script: mvn checkstyle:check
     - jdk: oraclejdk8
       addons:
         postgresql: "9.4"
