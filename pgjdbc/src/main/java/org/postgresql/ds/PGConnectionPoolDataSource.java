@@ -98,10 +98,4 @@ public class PGConnectionPoolDataSource extends BaseDataSource
     readBaseObject(in);
     defaultAutoCommit = in.readBoolean();
   }
-
-  public java.util.logging.Logger getParentLogger()
-      throws java.sql.SQLFeatureNotSupportedException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "getParentLogger()");
-  }
-
 }

@@ -38,6 +38,16 @@ public class TestUtil {
   }
 
   public static String getURL(String server, int port) {
+    String logLevel = "";
+    if (getLogLevel() != null && !getLogLevel().equals("")) {
+      logLevel = "&loggerLevel=" + getLogLevel();
+    }
+
+    String logFile = "";
+    if (getLogFile() != null && !getLogFile().equals("")) {
+      logFile = "&loggerFile=" + getLogFile();
+    }
+
     String protocolVersion = "";
     if (getProtocolVersion() != 0) {
       protocolVersion = "&protocolVersion=" + getProtocolVersion();
@@ -67,7 +77,9 @@ public class TestUtil {
         + server + ":"
         + port + "/"
         + getDatabase()
-        + "?loglevel=" + getLogLevel()
+        + "?ApplicationName=Driver Tests"
+        + logLevel
+        + logFile
         + protocolVersion
         + binaryTransfer
         + receiveBufferSize
@@ -142,8 +154,15 @@ public class TestUtil {
   /*
    * Returns the log level to use
    */
-  public static int getLogLevel() {
-    return Integer.parseInt(System.getProperty("loglevel", "0"));
+  public static String getLogLevel() {
+    return System.getProperty("loggerLevel");
+  }
+
+  /*
+   * Returns the log file to use
+   */
+  public static String getLogFile() {
+    return System.getProperty("loggerFile");
   }
 
   /*
@@ -211,14 +230,6 @@ public class TestUtil {
       p.putAll(System.getProperties());
       System.getProperties().putAll(p);
 
-      if (getLogLevel() > 0) {
-        // Ant's junit task likes to buffer stdout/stderr and tends to run out of memory.
-        // So we put debugging output to a file instead.
-        java.io.Writer output = new java.io.FileWriter("postgresql-jdbc-tests.debug.txt", true);
-        java.sql.DriverManager.setLogWriter(new java.io.PrintWriter(output, true));
-      }
-
-      org.postgresql.Driver.setLogLevel(getLogLevel()); // Also loads and registers driver.
       initialized = true;
     }
   }

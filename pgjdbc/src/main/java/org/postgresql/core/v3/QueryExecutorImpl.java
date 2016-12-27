@@ -13,7 +13,6 @@ import org.postgresql.copy.CopyOut;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.EncodingPredictor;
 import org.postgresql.core.Field;
-import org.postgresql.core.Logger;
 import org.postgresql.core.NativeQuery;
 import org.postgresql.core.Oid;
 import org.postgresql.core.PGBindException;
@@ -58,11 +57,15 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * QueryExecutor implementation for the V3 protocol.
  */
 public class QueryExecutorImpl extends QueryExecutorBase {
+
+  private static final Logger LOGGER = Logger.getLogger(QueryExecutorImpl.class.getName());
   /**
    * TimeZone of the current connection (TimeZone backend parameter)
    */
@@ -111,11 +114,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private final ReplicationProtocol replicationProtocol;
 
   public QueryExecutorImpl(PGStream pgStream, String user, String database,
-      int cancelSignalTimeout, Properties info, Logger logger) throws SQLException, IOException {
-    super(logger, pgStream, user, database, cancelSignalTimeout, info);
+      int cancelSignalTimeout, Properties info) throws SQLException, IOException {
+    super(pgStream, user, database, cancelSignalTimeout, info);
 
     this.allowEncodingChanges = PGProperty.ALLOW_ENCODING_CHANGES.getBoolean(info);
-    this.replicationProtocol = new V3ReplicationProtocol(this, pgStream, logger);
+    this.replicationProtocol = new V3ReplicationProtocol(this, pgStream);
     readStartupMessages();
   }
 
@@ -258,10 +261,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   public synchronized void execute(Query query, ParameterList parameters, ResultHandler handler,
       int maxRows, int fetchSize, int flags) throws SQLException {
     waitOnLock();
-    if (logger.logDebug()) {
-      logger.debug("simple execute, handler=" + handler + ", maxRows=" + maxRows + ", fetchSize="
-          + fetchSize + ", flags=" + flags);
-    }
+    LOGGER.log(Level.FINEST, "  simple execute, handler={0}, maxRows={1}, fetchSize={2}, flags={3}",
+        new Object[]{handler, maxRows, fetchSize, flags});
 
     if (parameters == null) {
       parameters = SimpleQuery.NO_PARAMETERS;
@@ -418,10 +419,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   public synchronized void execute(Query[] queries, ParameterList[] parameterLists,
       BatchResultHandler batchHandler, int maxRows, int fetchSize, int flags) throws SQLException {
     waitOnLock();
-    if (logger.logDebug()) {
-      logger.debug("batch execute " + queries.length + " queries, handler=" + batchHandler + ", maxRows="
-          + maxRows + ", fetchSize=" + fetchSize + ", flags=" + flags);
-    }
+    LOGGER.log(Level.FINEST, "  batch execute {0} queries, handler={1}, maxRows={2}, fetchSize={3}, flags={4}",
+        new Object[]{queries.length, batchHandler, maxRows, fetchSize, flags});
 
     flags = updateQueryMode(flags);
 
@@ -551,9 +550,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   public void doSubprotocolBegin() throws SQLException {
     if (getTransactionState() == TransactionState.IDLE) {
 
-      if (logger.logDebug()) {
-        logger.debug("Issuing BEGIN before fastpath or copy call.");
-      }
+      LOGGER.log(Level.FINEST, "Issuing BEGIN before fastpath or copy call.");
 
       ResultHandler handler = new ResultHandlerBase() {
         private boolean sawBegin = false;
@@ -601,9 +598,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private void sendFastpathCall(int fnid, SimpleParameterList params)
       throws SQLException, IOException {
-    if (logger.logDebug()) {
-      logger.debug(" FE=> FunctionCall(" + fnid + ", " + params.getParameterCount() + " params)");
-    }
+    LOGGER.log(Level.FINEST, " FE=> FunctionCall({0}, {1} params)", new Object[]{fnid, params.getParameterCount()});
 
     //
     // Total size = 4 (length)
@@ -712,9 +707,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           int msgLen = pgStream.receiveInteger4();
           int valueLen = pgStream.receiveInteger4();
 
-          if (logger.logDebug()) {
-            logger.debug(" <=BE FunctionCallResponse(" + valueLen + " bytes)");
-          }
+          LOGGER.log(Level.FINEST, " <=BE FunctionCallResponse({0} bytes)", valueLen);
 
           if (valueLen != -1) {
             byte buf[] = new byte[valueLen];
@@ -759,9 +752,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     byte buf[] = Utils.encodeUTF8(sql);
 
     try {
-      if (logger.logDebug()) {
-        logger.debug(" FE=> Query(CopyStart)");
-      }
+      LOGGER.log(Level.FINEST, " FE=> Query(CopyStart)");
 
       pgStream.sendChar('Q');
       pgStream.sendInteger4(buf.length + 4 + 1);
@@ -817,9 +808,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     try {
       if (op instanceof CopyIn) {
         synchronized (this) {
-          if (logger.logDebug()) {
-            logger.debug("FE => CopyFail");
-          }
+          LOGGER.log(Level.FINEST, "FE => CopyFail");
           final byte[] msg = Utils.encodeUTF8("Copy cancel requested");
           pgStream.sendChar('f'); // CopyFail
           pgStream.sendInteger4(5 + msg.length);
@@ -887,9 +876,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
 
     try {
-      if (logger.logDebug()) {
-        logger.debug(" FE=> CopyDone");
-      }
+      LOGGER.log(Level.FINEST, " FE=> CopyDone");
 
       pgStream.sendChar('c'); // CopyDone
       pgStream.sendInteger4(4);
@@ -922,9 +909,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           PSQLState.OBJECT_NOT_IN_STATE);
     }
 
-    if (logger.logDebug()) {
-      logger.debug(" FE=> CopyData(" + siz + ")");
-    }
+    LOGGER.log(Level.FINEST, " FE=> CopyData({0})", siz);
 
     try {
       pgStream.sendChar('d');
@@ -1007,9 +992,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         int c = pgStream.peekChar();
         if (c == 'C') {
           // CommandComplete
-          if (logger.logDebug()) {
-            logger.debug(" <=BE CommandStatus, Ignored until CopyDone");
-          }
+          LOGGER.log(Level.FINEST, " <=BE CommandStatus, Ignored until CopyDone");
           break;
         }
       }
@@ -1019,18 +1002,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         case 'A': // Asynchronous Notify
 
-          if (logger.logDebug()) {
-            logger.debug(" <=BE Asynchronous Notification while copying");
-          }
+          LOGGER.log(Level.FINEST, " <=BE Asynchronous Notification while copying");
 
           receiveAsyncNotify();
           break;
 
         case 'N': // Notice Response
 
-          if (logger.logDebug()) {
-            logger.debug(" <=BE Notification while copying");
-          }
+          LOGGER.log(Level.FINEST, " <=BE Notification while copying");
 
           addWarning(receiveNoticeResponse());
           break;
@@ -1064,9 +1043,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         case 'G': // CopyInResponse
 
-          if (logger.logDebug()) {
-            logger.debug(" <=BE CopyInResponse");
-          }
+          LOGGER.log(Level.FINEST, " <=BE CopyInResponse");
 
           if (op != null) {
             error = new PSQLException(GT.tr("Got CopyInResponse from server during an active {0}",
@@ -1080,9 +1057,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         case 'H': // CopyOutResponse
 
-          if (logger.logDebug()) {
-            logger.debug(" <=BE CopyOutResponse");
-          }
+          LOGGER.log(Level.FINEST, " <=BE CopyOutResponse");
 
           if (op != null) {
             error = new PSQLException(GT.tr("Got CopyOutResponse from server during an active {0}",
@@ -1096,9 +1071,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         case 'W': // CopyBothResponse
 
-          if (logger.logDebug()) {
-            logger.debug(" <=BE CopyBothResponse");
-          }
+          LOGGER.log(Level.FINEST, " <=BE CopyBothResponse");
 
           if (op != null) {
             error = new PSQLException(GT.tr("Got CopyBothResponse from server during an active {0}",
@@ -1112,9 +1085,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         case 'd': // CopyData
 
-          if (logger.logDebug()) {
-            logger.debug(" <=BE CopyData");
-          }
+          LOGGER.log(Level.FINEST, " <=BE CopyData");
 
           len = pgStream.receiveInteger4() - 4;
           byte[] buf = pgStream.receive(len);
@@ -1133,9 +1104,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         case 'c': // CopyDone (expected after all copydata received)
 
-          if (logger.logDebug()) {
-            logger.debug(" <=BE CopyDone");
-          }
+          LOGGER.log(Level.FINEST, " <=BE CopyDone");
 
           len = pgStream.receiveInteger4() - 4;
           if (len > 0) {
@@ -1155,9 +1124,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           int l_len = pgStream.receiveInteger4();
           String name = pgStream.receiveString();
           String value = pgStream.receiveString();
-          if (logger.logDebug()) {
-            logger.debug(" <=BE ParameterStatus(" + name + " = " + value + ")");
-          }
+          LOGGER.log(Level.FINEST, " <=BE ParameterStatus({0} = {1})", new Object[]{name, value});
 
           if (name.equals("client_encoding") && !value.equalsIgnoreCase("UTF8")
               && !allowEncodingChanges) {
@@ -1206,18 +1173,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         // If the user sends a non-copy query, we've got to handle some additional things.
         //
         case 'T': // Row Description (response to Describe)
-          if (logger.logDebug()) {
-            logger.debug(" <=BE RowDescription (during copy ignored)");
-          }
-
+          LOGGER.log(Level.FINEST, " <=BE RowDescription (during copy ignored)");
 
           skipMessage();
           break;
 
         case 'D': // DataRow
-          if (logger.logDebug()) {
-            logger.debug(" <=BE DataRow (during copy ignored)");
-          }
+          LOGGER.log(Level.FINEST, " <=BE DataRow (during copy ignored)");
 
           skipMessage();
           break;
@@ -1271,7 +1233,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       if (maxResultRowSize >= 0) {
         estimatedReceiveBufferBytes += maxResultRowSize;
       } else {
-        logger.debug("Couldn't estimate result size or result size unbounded, "
+        LOGGER.log(Level.FINEST, "Couldn't estimate result size or result size unbounded, "
             + "disabling batching for this query.");
         disallowBatching = true;
       }
@@ -1285,7 +1247,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
 
     if (disallowBatching || estimatedReceiveBufferBytes >= MAX_BUFFERED_RECV_BYTES) {
-      logger.debug("Forcing Sync, receive buffer full or batching disallowed");
+      LOGGER.log(Level.FINEST, "Forcing Sync, receive buffer full or batching disallowed");
       sendSync();
       processResults(resultHandler, flags);
       estimatedReceiveBufferBytes = 0;
@@ -1349,9 +1311,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   //
 
   private void sendSync() throws IOException {
-    if (logger.logDebug()) {
-      logger.debug(" FE=> Sync");
-    }
+    LOGGER.log(Level.FINEST, " FE=> Sync");
 
     pgStream.sendChar('S'); // Sync
     pgStream.sendInteger4(4); // Length
@@ -1394,7 +1354,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     byte[] encodedStatementName = query.getEncodedStatementName();
     String nativeSql = query.getNativeSql();
 
-    if (logger.logDebug()) {
+    if (LOGGER.isLoggable(Level.FINEST)) {
       StringBuilder sbuf = new StringBuilder(" FE=> Parse(stmt=" + statementName + ",query=\"");
       sbuf.append(nativeSql);
       sbuf.append("\",oids={");
@@ -1405,7 +1365,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         sbuf.append(params.getTypeOID(i));
       }
       sbuf.append("})");
-      logger.debug(sbuf.toString());
+      LOGGER.log(Level.FINEST, sbuf.toString());
     }
 
     //
@@ -1449,7 +1409,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     byte[] encodedStatementName = query.getEncodedStatementName();
     byte[] encodedPortalName = (portal == null ? null : portal.getEncodedPortalName());
 
-    if (logger.logDebug()) {
+    if (LOGGER.isLoggable(Level.FINEST)) {
       StringBuilder sbuf =
           new StringBuilder(" FE=> Bind(stmt=" + statementName + ",portal=" + portal);
       for (int i = 1; i <= params.getParameterCount(); ++i) {
@@ -1458,7 +1418,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             .append(">");
       }
       sbuf.append(")");
-      logger.debug(sbuf.toString());
+      LOGGER.log(Level.FINEST, sbuf.toString());
     }
 
     // Total size = 4 (size field) + N + 1 (destination portal)
@@ -1578,9 +1538,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // Send Describe.
     //
 
-    if (logger.logDebug()) {
-      logger.debug(" FE=> Describe(portal=" + portal + ")");
-    }
+    LOGGER.log(Level.FINEST, " FE=> Describe(portal={0})", portal);
 
     byte[] encodedPortalName = (portal == null ? null : portal.getEncodedPortalName());
 
@@ -1603,9 +1561,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       boolean describeOnly) throws IOException {
     // Send Statement Describe
 
-    if (logger.logDebug()) {
-      logger.debug(" FE=> Describe(statement=" + query.getStatementName() + ")");
-    }
+    LOGGER.log(Level.FINEST, " FE=> Describe(statement={0})", query.getStatementName());
 
     byte[] encodedStatementName = query.getEncodedStatementName();
 
@@ -1634,9 +1590,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // Send Execute.
     //
 
-    if (logger.logDebug()) {
-      logger.debug(" FE=> Execute(portal=" + portal + ",limit=" + limit + ")");
-    }
+    LOGGER.log(Level.FINEST, " FE=> Execute(portal={0},limit={1})", new Object[]{portal, limit});
 
     byte[] encodedPortalName = (portal == null ? null : portal.getEncodedPortalName());
     int encodedSize = (encodedPortalName == null ? 0 : encodedPortalName.length);
@@ -1658,9 +1612,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // Send Close.
     //
 
-    if (logger.logDebug()) {
-      logger.debug(" FE=> ClosePortal(" + portalName + ")");
-    }
+    LOGGER.log(Level.FINEST, " FE=> ClosePortal({0})", portalName);
 
     byte[] encodedPortalName = (portalName == null ? null : Utils.encodeUTF8(portalName));
     int encodedSize = (encodedPortalName == null ? 0 : encodedPortalName.length);
@@ -1680,9 +1632,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // Send Close.
     //
 
-    if (logger.logDebug()) {
-      logger.debug(" FE=> CloseStatement(" + statementName + ")");
-    }
+    LOGGER.log(Level.FINEST, " FE=> CloseStatement({0})", statementName);
 
     byte[] encodedStatementName = Utils.encodeUTF8(statementName);
 
@@ -1821,9 +1771,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private void sendSimpleQuery(SimpleQuery query, SimpleParameterList params) throws IOException {
     String nativeSql = query.toString(params);
 
-    if (logger.logDebug()) {
-      logger.debug(" FE=> SimpleQuery(query=\"" + nativeSql + "\")");
-    }
+    LOGGER.log(Level.FINEST, " FE=> SimpleQuery(query=\"{0}\")", nativeSql);
     Encoding encoding = pgStream.getEncoding();
 
     byte[] encoded = encoding.encode(nativeSql);
@@ -1950,18 +1898,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           SimpleQuery parsedQuery = pendingParseQueue.removeFirst();
           String parsedStatementName = parsedQuery.getStatementName();
 
-          if (logger.logDebug()) {
-            logger.debug(" <=BE ParseComplete [" + parsedStatementName + "]");
-          }
+          LOGGER.log(Level.FINEST, " <=BE ParseComplete [{0}]", parsedStatementName);
 
           break;
 
         case 't': // ParameterDescription
           pgStream.receiveInteger4(); // len, discarded
 
-          if (logger.logDebug()) {
-            logger.debug(" <=BE ParameterDescription");
-          }
+          LOGGER.log(Level.FINEST, " <=BE ParameterDescription");
 
         {
           DescribeRequest describeData = pendingDescribeStatementQueue.getFirst();
@@ -2001,25 +1945,19 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           pgStream.receiveInteger4(); // len, discarded
 
           Portal boundPortal = pendingBindQueue.removeFirst();
-          if (logger.logDebug()) {
-            logger.debug(" <=BE BindComplete [" + boundPortal + "]");
-          }
+          LOGGER.log(Level.FINEST, " <=BE BindComplete [{0}]", boundPortal);
 
           registerOpenPortal(boundPortal);
           break;
 
         case '3': // Close Complete (response to Close)
           pgStream.receiveInteger4(); // len, discarded
-          if (logger.logDebug()) {
-            logger.debug(" <=BE CloseComplete");
-          }
+          LOGGER.log(Level.FINEST, " <=BE CloseComplete");
           break;
 
         case 'n': // No Data (response to Describe)
           pgStream.receiveInteger4(); // len, discarded
-          if (logger.logDebug()) {
-            logger.debug(" <=BE NoData");
-          }
+          LOGGER.log(Level.FINEST, " <=BE NoData");
 
           pendingDescribePortalQueue.removeFirst();
 
@@ -2042,9 +1980,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           // Must be a SELECT if we suspended, so don't worry about it.
 
           pgStream.receiveInteger4(); // len, discarded
-          if (logger.logDebug()) {
-            logger.debug(" <=BE PortalSuspended");
-          }
+          LOGGER.log(Level.FINEST, " <=BE PortalSuspended");
 
         {
           ExecuteRequest executeData = pendingExecuteQueue.removeFirst();
@@ -2157,7 +2093,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             tuples.add(tuple);
           }
 
-          if (logger.logDebug()) {
+          if (LOGGER.isLoggable(Level.FINEST)) {
             int length;
             if (tuple == null) {
               length = -1;
@@ -2170,7 +2106,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
                 length += aTuple.length;
               }
             }
-            logger.debug(" <=BE DataRow(len=" + length + ")");
+            LOGGER.log(Level.FINEST, " <=BE DataRow(len={0})", length);
           }
 
           break;
@@ -2184,10 +2120,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             // Technically speaking, the error is unexpected, thus we invalidate other
             // server-prepared statements just in case.
             deallocateEpoch++;
-            if (logger.logDebug()) {
-              logger.debug(" FE: received " + error.getSQLState() + ", will invalidate statements. "
-                  + "deallocateEpoch is now " + deallocateEpoch);
-            }
+            LOGGER.log(Level.FINEST, " FE: received {0}, will invalidate statements. deallocateEpoch is now {1}",
+                new Object[]{error.getSQLState(), deallocateEpoch});
           }
           // keep processing
           break;
@@ -2195,9 +2129,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         case 'I': // Empty Query (end of Execute)
           pgStream.receiveInteger4();
 
-          if (logger.logDebug()) {
-            logger.debug(" <=BE EmptyQuery");
-          }
+          LOGGER.log(Level.FINEST, " <=BE EmptyQuery");
 
         {
           ExecuteRequest executeData = pendingExecuteQueue.removeFirst();
@@ -2219,9 +2151,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           int l_len = pgStream.receiveInteger4();
           String name = pgStream.receiveString();
           String value = pgStream.receiveString();
-          if (logger.logDebug()) {
-            logger.debug(" <=BE ParameterStatus(" + name + " = " + value + ")");
-          }
+          LOGGER.log(Level.FINEST, " <=BE ParameterStatus({0} = {1})", new Object[]{name, value});
 
           if (name.equals("client_encoding") && !value.equalsIgnoreCase("UTF8")
               && !allowEncodingChanges) {
@@ -2320,10 +2250,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
 
         case 'G': // CopyInResponse
-          if (logger.logDebug()) {
-            logger.debug(" <=BE CopyInResponse");
-            logger.debug(" FE=> CopyFail");
-          }
+          LOGGER.log(Level.FINEST, " <=BE CopyInResponse");
+          LOGGER.log(Level.FINEST, " FE=> CopyFail");
 
           // COPY sub-protocol is not implemented yet
           // We'll send a CopyFail message for COPY FROM STDIN so that
@@ -2341,9 +2269,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
 
         case 'H': // CopyOutResponse
-          if (logger.logDebug()) {
-            logger.debug(" <=BE CopyOutResponse");
-          }
+          LOGGER.log(Level.FINEST, " <=BE CopyOutResponse");
 
           skipMessage();
           // In case of CopyOutResponse, we cannot abort data transfer,
@@ -2355,16 +2281,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         case 'c': // CopyDone
           skipMessage();
-          if (logger.logDebug()) {
-            logger.debug(" <=BE CopyDone");
-          }
+          LOGGER.log(Level.FINEST, " <=BE CopyDone");
           break;
 
         case 'd': // CopyData
           skipMessage();
-          if (logger.logDebug()) {
-            logger.debug(" <=BE CopyData");
-          }
+          LOGGER.log(Level.FINEST, " <=BE CopyData");
           break;
 
         default:
@@ -2427,9 +2349,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     int size = pgStream.receiveInteger2();
     Field[] fields = new Field[size];
 
-    if (logger.logDebug()) {
-      logger.debug(" <=BE RowDescription(" + size + ")");
-    }
+    LOGGER.log(Level.FINEST, " <=BE RowDescription({0})", size);
 
     for (int i = 0; i < fields.length; i++) {
       String columnLabel = pgStream.receiveString();
@@ -2443,9 +2363,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           typeOid, typeLength, typeModifier, tableOid, positionInTable);
       fields[i].setFormat(formatType);
 
-      if (logger.logDebug()) {
-        logger.debug("        " + fields[i]);
-      }
+      LOGGER.log(Level.FINEST, "        {0}", fields[i]);
     }
 
     return fields;
@@ -2458,9 +2376,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     String param = pgStream.receiveString();
     addNotification(new org.postgresql.core.Notification(msg, pid, param));
 
-    if (logger.logDebug()) {
-      logger.debug(" <=BE AsyncNotify(" + pid + "," + msg + "," + param + ")");
-    }
+    LOGGER.log(Level.FINEST, " <=BE AsyncNotify({0},{1},{2})", new Object[]{pid, msg, param});
   }
 
   private SQLException receiveErrorResponse() throws IOException {
@@ -2471,11 +2387,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     int elen = pgStream.receiveInteger4();
     EncodingPredictor.DecodeResult totalMessage = pgStream.receiveErrorString(elen - 4);
-    ServerErrorMessage errorMsg = new ServerErrorMessage(totalMessage, logger.getLogLevel());
+    ServerErrorMessage errorMsg = new ServerErrorMessage(totalMessage);
 
-    if (logger.logDebug()) {
-      logger.debug(" <=BE ErrorMessage(" + errorMsg.toString() + ")");
-    }
+    LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", errorMsg.toString());
 
     PSQLException error = new PSQLException(errorMsg);
     if (transactionFailCause == null) {
@@ -2488,12 +2402,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private SQLWarning receiveNoticeResponse() throws IOException {
     int nlen = pgStream.receiveInteger4();
-    ServerErrorMessage warnMsg =
-        new ServerErrorMessage(pgStream.receiveString(nlen - 4), logger.getLogLevel());
+    ServerErrorMessage warnMsg = new ServerErrorMessage(pgStream.receiveString(nlen - 4));
 
-    if (logger.logDebug()) {
-      logger.debug(" <=BE NoticeResponse(" + warnMsg.toString() + ")");
-    }
+    LOGGER.log(Level.FINEST, " <=BE NoticeResponse({0})", warnMsg.toString());
 
     return new PSQLWarning(warnMsg);
   }
@@ -2506,9 +2417,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // now read and discard the trailing \0
     pgStream.receiveChar(); // Receive(1) would allocate new byte[1], so avoid it
 
-    if (logger.logDebug()) {
-      logger.debug(" <=BE CommandStatus(" + status + ")");
-    }
+    LOGGER.log(Level.FINEST, " <=BE CommandStatus({0})", status);
 
     return status;
   }
@@ -2550,9 +2459,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
 
     char tStatus = (char) pgStream.receiveChar();
-    if (logger.logDebug()) {
-      logger.debug(" <=BE ReadyForQuery(" + tStatus + ")");
-    }
+    LOGGER.log(Level.FINEST, " <=BE ReadyForQuery({0})", tStatus);
 
     // Update connection state.
     switch (tStatus) {
@@ -2599,9 +2506,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           int pid = pgStream.receiveInteger4();
           int ckey = pgStream.receiveInteger4();
 
-          if (logger.logDebug()) {
-            logger.debug(" <=BE BackendKeyData(pid=" + pid + ",ckey=" + ckey + ")");
-          }
+          LOGGER.log(Level.FINEST, " <=BE BackendKeyData(pid={0},ckey={1})", new Object[]{pid, ckey});
 
           setBackendKeyData(pid, ckey);
           break;
@@ -2621,9 +2526,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           String name = pgStream.receiveString();
           String value = pgStream.receiveString();
 
-          if (logger.logDebug()) {
-            logger.debug(" <=BE ParameterStatus(" + name + " = " + value + ")");
-          }
+          LOGGER.log(Level.FINEST, " <=BE ParameterStatus({0} = {1})", new Object[]{name, value});
 
           if ("server_version_num".equals(name)) {
             setServerVersionNum(Integer.parseInt(value));
@@ -2658,9 +2561,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
 
         default:
-          if (logger.logDebug()) {
-            logger.debug("invalid message type=" + (char) beresp);
-          }
+          LOGGER.log(Level.FINEST, "  invalid message type={0}", (char) beresp);
           throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
               PSQLState.PROTOCOL_VIOLATION);
       }

@@ -184,18 +184,18 @@ public class PGPropertyTest {
   @Test
   public void testPresenceCheck() {
     Properties empty = new Properties();
-    Object value = PGProperty.LOG_LEVEL.get(empty);
+    Object value = PGProperty.READ_ONLY.get(empty);
     assertNotNull(value);
-    assertFalse(PGProperty.LOG_LEVEL.isPresent(empty));
+    assertFalse(PGProperty.READ_ONLY.isPresent(empty));
   }
 
   @Test
   public void testNullValue() {
     Properties empty = new Properties();
-    assertNull(PGProperty.LOG_LEVEL.getSetString(empty));
+    assertNull(PGProperty.LOGGER_LEVEL.getSetString(empty));
     Properties withLogging = new Properties();
-    withLogging.setProperty(PGProperty.LOG_LEVEL.getName(), "2");
-    assertNotNull(PGProperty.LOG_LEVEL.getSetString(withLogging));
+    withLogging.setProperty(PGProperty.LOGGER_LEVEL.getName(), "OFF");
+    assertNotNull(PGProperty.LOGGER_LEVEL.getSetString(withLogging));
   }
 
   @Test

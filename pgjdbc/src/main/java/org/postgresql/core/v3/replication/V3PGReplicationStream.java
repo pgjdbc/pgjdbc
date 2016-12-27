@@ -6,7 +6,6 @@
 package org.postgresql.core.v3.replication;
 
 import org.postgresql.copy.CopyDual;
-import org.postgresql.core.Logger;
 import org.postgresql.replication.LogSequenceNumber;
 import org.postgresql.replication.PGReplicationStream;
 import org.postgresql.util.GT;
@@ -18,11 +17,14 @@ import java.nio.ByteBuffer;
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class V3PGReplicationStream implements PGReplicationStream {
+
+  private static final Logger LOGGER = Logger.getLogger(V3PGReplicationStream.class.getName());
   public static final long POSTGRES_EPOCH_2000_01_01 = 946684800000L;
   private final CopyDual copyDual;
-  private final Logger logger;
   private final long updateInterval;
   private long lastStatusUpdate;
   private boolean closeFlag = false;
@@ -41,13 +43,9 @@ public class V3PGReplicationStream implements PGReplicationStream {
    *                         server.  A value of zero disables the periodic status updates
    *                         completely, although an update will still be sent when requested by the
    *                         server, to avoid timeout disconnect.
-   * @param logger           logger
    */
-  public V3PGReplicationStream(CopyDual copyDual, LogSequenceNumber startLSN,
-      long updateIntervalMs,
-      Logger logger) {
+  public V3PGReplicationStream(CopyDual copyDual, LogSequenceNumber startLSN, long updateIntervalMs) {
     this.copyDual = copyDual;
-    this.logger = logger;
     this.updateInterval = updateIntervalMs;
     this.lastStatusUpdate = System.currentTimeMillis() - updateIntervalMs;
     this.lastReceiveLSN = startLSN;
@@ -188,11 +186,8 @@ public class V3PGReplicationStream implements PGReplicationStream {
     long systemClock = TimeUnit.MICROSECONDS.convert((now - POSTGRES_EPOCH_2000_01_01),
         TimeUnit.MICROSECONDS);
 
-    if (logger.logDebug()) {
-      logger.debug(" FE=> StandbyStatusUpdate(received: " + received.asString() + ", flushed: "
-          + flushed.asString() + ", applied: " + applied.asString() + ", clock: " + new Date(now)
-          + ")");
-    }
+    LOGGER.log(Level.FINEST, " FE=> StandbyStatusUpdate(received: {0}, flushed: {1}, applied: {2}, clock: {3})",
+        new Object[]{received.asString(), flushed.asString(), applied.asString(), new Date(now)});
 
     byteBuffer.put((byte) 'r');
     byteBuffer.putLong(received.asLong());
@@ -216,13 +211,12 @@ public class V3PGReplicationStream implements PGReplicationStream {
 
     boolean replyRequired = buffer.get() != 0;
 
-    if (logger.logDebug()) {
+    if (LOGGER.isLoggable(Level.FINEST)) {
       Date clockTime = new Date(
           TimeUnit.MILLISECONDS.convert(lastServerClock, TimeUnit.MICROSECONDS)
-              + POSTGRES_EPOCH_2000_01_01);
-      logger.debug(
-          "  <=BE Keepalive(lastServerWal: " + lastServerLSN.asString() + ", clock: "
-              + clockTime + " needReply: " + replyRequired + ")");
+          + POSTGRES_EPOCH_2000_01_01);
+      LOGGER.log(Level.FINEST, "  <=BE Keepalive(lastServerWal: {0}, clock: {1} needReply: {2})",
+          new Object[]{lastServerLSN.asString(), clockTime, replyRequired});
     }
 
     return replyRequired;
@@ -236,10 +230,8 @@ public class V3PGReplicationStream implements PGReplicationStream {
     int payloadSize = buffer.limit() - buffer.position();
     lastReceiveLSN = LogSequenceNumber.valueOf(startLsn + payloadSize);
 
-    if (logger.logDebug()) {
-      logger.debug("  <=BE XLogData(currWal: " + lastReceiveLSN.asString() + ", lastServerWal: "
-          + lastServerLSN.asString() + ", clock: " + systemClock + ")");
-    }
+    LOGGER.log(Level.FINEST, "  <=BE XLogData(currWal: {0}, lastServerWal: {1}, clock: {2})",
+        new Object[]{lastReceiveLSN.asString(), lastServerLSN.asString(), systemClock});
 
     return buffer.slice();
   }
@@ -256,9 +248,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
       return;
     }
 
-    if (logger.logDebug()) {
-      logger.debug(" FE=> StopReplication");
-    }
+    LOGGER.log(Level.FINEST, " FE=> StopReplication");
 
     copyDual.endCopy();
 

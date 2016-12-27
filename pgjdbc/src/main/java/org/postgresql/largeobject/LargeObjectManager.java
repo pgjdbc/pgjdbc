@@ -15,6 +15,7 @@ import org.postgresql.util.PSQLState;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.logging.Level;
 
 /**
  * This class implements the large object interface to org.postgresql.
@@ -148,7 +149,7 @@ public class LargeObjectManager {
     res.close();
     stmt.close();
 
-    conn.getLogger().debug("Large Object initialised");
+    conn.getLogger().log(Level.FINE, "Large Object initialised");
   }
 
   /**

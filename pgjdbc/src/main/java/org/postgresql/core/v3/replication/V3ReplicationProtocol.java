@@ -6,7 +6,6 @@
 package org.postgresql.core.v3.replication;
 
 import org.postgresql.copy.CopyDual;
-import org.postgresql.core.Logger;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ReplicationProtocol;
@@ -21,16 +20,18 @@ import org.postgresql.util.PSQLState;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class V3ReplicationProtocol implements ReplicationProtocol {
+
+  private static final Logger LOGGER = Logger.getLogger(V3ReplicationProtocol.class.getName());
   private final QueryExecutor queryExecutor;
   private final PGStream pgStream;
-  private final Logger logger;
 
-  public V3ReplicationProtocol(QueryExecutor queryExecutor, PGStream pgStream, Logger logger) {
+  public V3ReplicationProtocol(QueryExecutor queryExecutor, PGStream pgStream) {
     this.queryExecutor = queryExecutor;
     this.pgStream = pgStream;
-    this.logger = logger;
   }
 
   public PGReplicationStream startLogical(LogicalReplicationOptions options)
@@ -49,15 +50,12 @@ public class V3ReplicationProtocol implements ReplicationProtocol {
 
   private PGReplicationStream initializeReplication(String query, CommonOptions options)
       throws SQLException {
-    if (logger.logDebug()) {
-      logger.debug(" FE=> StartReplication(query: " + query + ")");
-    }
+    LOGGER.log(Level.FINEST, " FE=> StartReplication(query: {0})", query);
 
     configureSocketTimeout(options);
     CopyDual copyDual = (CopyDual) queryExecutor.startCopy(query, true);
 
-    return new V3PGReplicationStream(copyDual, options.getStartLSNPosition(),
-        options.getStatusInterval(), logger);
+    return new V3PGReplicationStream(copyDual, options.getStartLSNPosition(), options.getStatusInterval());
   }
 
   /**

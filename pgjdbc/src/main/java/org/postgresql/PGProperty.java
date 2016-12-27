@@ -56,9 +56,29 @@ public enum PGProperty {
       false, "3"),
 
   /**
-   * The loglevel. Can be one of {@link Driver#DEBUG}, {@link Driver#INFO}, {@link Driver#OFF}.
+   * Logger level of the driver. Allowed values: {@code OFF}, {@code DEBUG} or {@code TRACE}.
+   * <p>
+   * This enable the {@link java.util.logging.Logger} of the driver based on the following mapping
+   * of levels:
+   * <p>
+   * FINE -&gt; DEBUG<br>
+   * FINEST -&gt; TRACE
+   * <p>
+   * <b>NOTE:</b> The recommended approach to enable java.util.logging is using a
+   * {@code logging.properties} configuration file with the property
+   * {@code -Djava.util.logging.config.file=myfile} or if your are using an application server
+   * you should use the appropriate logging subsystem.
    */
-  LOG_LEVEL("loglevel", "0", "The log level", false, "0", "1", "2"),
+  LOGGER_LEVEL("loggerLevel", null, "Logger level of the driver", false, "OFF", "DEBUG", "TRACE"),
+
+  /**
+   * File name output of the Logger, if set, the Logger will use a
+   * {@link java.util.logging.FileHandler} to write to a specified file. If the parameter is not set
+   * or the file can't be created the {@link java.util.logging.ConsoleHandler} will be used instead.
+   * <p>
+   * Parameter should be use together with {@link PGProperty#LOGGER_LEVEL}
+   */
+  LOGGER_FILE("loggerFile", null, "File name output of the Logger"),
 
   /**
    * Sets the default threshold for enabling server-side prepare. A value of {@code -1} stands for
@@ -452,7 +472,7 @@ public enum PGProperty {
    * @return evaluated value for this connection parameter
    */
   public String get(Properties properties) {
-    return properties.getProperty(_name, _defaultValue);
+    return new org.postgresql.util.ExpressionProperties(properties).getProperty(_name, _defaultValue);
   }
 
   /**

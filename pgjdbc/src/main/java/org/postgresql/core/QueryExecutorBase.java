@@ -20,9 +20,12 @@ import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.ArrayList;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public abstract class QueryExecutorBase implements QueryExecutor {
-  protected final Logger logger;
+
+  private static final Logger LOGGER = Logger.getLogger(QueryExecutorBase.class.getName());
   protected final PGStream pgStream;
   private final String user;
   private final String database;
@@ -49,9 +52,8 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   private final LruCache<Object, CachedQuery> statementCache;
   private final CachedQueryCreateAction cachedQueryCreateAction;
 
-  protected QueryExecutorBase(Logger logger, PGStream pgStream, String user, String database,
-      int cancelSignalTimeout, Properties info) throws SQLException {
-    this.logger = logger;
+  protected QueryExecutorBase(PGStream pgStream, String user,
+      String database, int cancelSignalTimeout, Properties info) throws SQLException {
     this.pgStream = pgStream;
     this.user = user;
     this.database = database;
@@ -119,17 +121,12 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     }
 
     try {
-      if (logger.logDebug()) {
-        logger.debug(" FE=> Terminate");
-      }
+      LOGGER.log(Level.FINEST, " FE=> Terminate");
       sendCloseMessage();
       pgStream.flush();
       pgStream.close();
     } catch (IOException ioe) {
-      // Forget it.
-      if (logger.logDebug()) {
-        logger.debug("Discarding IOException on close:", ioe);
-      }
+      LOGGER.log(Level.FINEST, "Discarding IOException on close:", ioe);
     }
 
     closed = true;
@@ -150,9 +147,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
     // Now we need to construct and send a cancel packet
     try {
-      if (logger.logDebug()) {
-        logger.debug(" FE=> CancelRequest(pid=" + cancelPid + ",ckey=" + cancelKey + ")");
-      }
+      LOGGER.log(Level.FINEST, " FE=> CancelRequest(pid={0},ckey={1})", new Object[]{cancelPid, cancelKey});
 
       cancelStream =
           new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), cancelSignalTimeout);
@@ -168,9 +163,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
       cancelStream.receiveEOF();
     } catch (IOException e) {
       // Safe to ignore.
-      if (logger.logDebug()) {
-        logger.debug("Ignoring exception on cancel request:", e);
-      }
+      LOGGER.log(Level.FINEST, "Ignoring exception on cancel request:", e);
     } finally {
       if (cancelStream != null) {
         try {
