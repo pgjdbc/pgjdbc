@@ -318,13 +318,6 @@ public enum PGProperty {
   SSPI_SERVICE_CLASS("sspiServiceClass", "POSTGRES", "The Windows SSPI service class for SPN"),
 
   /**
-   * The character set to use for data sent to the database or received from the database. This
-   * property is only relevant for server versions less than or equal to 7.2.
-   */
-  CHARSET("charSet", null,
-      "The character set to use for data sent to the database or received from the database (for backend <= 7.2)"),
-
-  /**
    * When using the V3 protocol the driver monitors changes in certain server configuration
    * parameters that should not be touched by end users. The {@code client_encoding} setting is set
    * by the driver and should not be altered. If the driver detects a change it will abort the

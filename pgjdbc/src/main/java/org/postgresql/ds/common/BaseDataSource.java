@@ -943,22 +943,6 @@ public abstract class BaseDataSource implements Referenceable {
   }
 
   /**
-   * @return character set to use for data sent to the database or received
-   * @see PGProperty#CHARSET
-   */
-  public String getCharset() {
-    return PGProperty.CHARSET.get(properties);
-  }
-
-  /**
-   * @param charset character set to use for data sent to the database or received
-   * @see PGProperty#CHARSET
-   */
-  public void setCharset(String charset) {
-    PGProperty.CHARSET.set(properties, charset);
-  }
-
-  /**
    * @return if connection allows encoding changes
    * @see PGProperty#ALLOW_ENCODING_CHANGES
    */
