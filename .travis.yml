@@ -66,13 +66,91 @@ matrix:
       services:
         - docker
     - jdk: oraclejdk8
-      sudo: required
       dist: trusty
+      sudo: false
+      env: RUN_CHECKSTYLE=true
+      script: mvn checkstyle:check
+    - jdk: oraclejdk8
+      dist: trusty
+      sudo: required
+      addons:
+        postgresql: "9.6"
+        apt:
+          packages:
+            - oracle-java8-installer
       env:
         - PG_VERSION=9.6
         - XA=true
         - REPLICATION=Y
         - COVERAGE=Y
+        - MCENTRAL=Y
+        - JDOC=Y
+    - jdk: openjdk7
+      dist: trusty
+      sudo: false
+      addons:
+        postgresql: "9.6"
+        apt:
+          packages:
+            - openjdk-7-jdk
+      env:
+        - PG_VERSION=9.6
+        - MCENTRAL=Y
+    - jdk: openjdk6
+      dist: trusty
+      sudo: false
+      addons:
+        postgresql: "9.6"
+        apt:
+          packages:
+            - openjdk-6-jdk
+      env:
+        - PG_VERSION=9.6
+        - MCENTRAL=Y
+    - jdk: oraclejdk8
+      dist: trusty
+      sudo: false
+      addons:
+        postgresql: "9.6"
+      env:
+        - PG_VERSION=9.6
+        - TEST_CLIENTS=Y
+    - jdk: oraclejdk8
+      dist: trusty
+      sudo: false
+      addons:
+        postgresql: "9.6"
+        apt:
+          packages:
+            - openjdk-6-jdk
+      env:
+        - PG_VERSION=9.6
+        - QUERY_MODE=simple
+        - COVERAGE=Y
+        - ANORM_SBT=Y
+    - jdk: oraclejdk8
+      dist: trusty
+      sudo: false
+      addons:
+        postgresql: "9.6"
+        apt:
+          packages:
+            - openjdk-6-jdk
+      env:
+        - PG_VERSION=9.6
+        - QUERY_MODE=extendedForPrepared
+    - jdk: oraclejdk8
+      dist: trusty
+      sudo: false
+      addons:
+        postgresql: "9.6"
+        apt:
+          packages:
+            - openjdk-6-jdk
+      env:
+        - PG_VERSION=9.6
+        - NO_WAFFLE_NO_OSGI=Y
+        - JDOC=Y
     - jdk: oraclejdk8
       sudo: required
       dist: trusty
@@ -84,41 +162,8 @@ matrix:
         - REPLICATION=Y
         - COVERAGE=Y
     - jdk: oraclejdk8
-      sudo: required
-      dist: precise
-      env:
-        - PG_VERSION=8.4
-        - XA=true
-        - COVERAGE=Y
-        - NO_HSTORE=Y
-        - CREATE_PLPGSQL=Y
-    - jdk: oraclejdk8
-      sudo: required
-      dist: precise
-      env: # this has to match allow_failures above
-        - PG_VERSION=8.2
-        - XA=true
-        - COVERAGE=Y
-        - NO_HSTORE=Y
-        - CREATE_PLPGSQL=Y
-    - jdk: oraclejdk8
-      sudo: required
-      dist: precise
-      env: # this has to match allow_failures above
-        - PG_VERSION=8.3
-        - XA=true
-        - COVERAGE=Y
-        - NO_HSTORE=Y
-        - CREATE_PLPGSQL=Y
-    - jdk: oraclejdk8
-      env: RUN_CHECKSTYLE=true
-      script: mvn checkstyle:check
-    - jdk: oraclejdk8
       addons:
         postgresql: "9.4"
-        apt:
-          packages:
-            - oracle-java8-installer
       sudo: required
       dist: trusty
       env:
@@ -126,63 +171,6 @@ matrix:
         - XA=true
         - REPLICATION=Y
         - COVERAGE=Y
-        - MCENTRAL=Y
-        - JDOC=Y
-    - jdk: oraclejdk8
-      sudo: required
-      dist: trusty
-      env:
-        - PG_VERSION=HEAD
-        - XA=true
-        - REPLICATION=Y
-    - jdk: openjdk7
-      addons:
-        postgresql: "9.4"
-      env:
-        - PG_VERSION=9.4
-        - MCENTRAL=Y
-    - jdk: openjdk6
-      addons:
-        postgresql: "9.4"
-      env:
-        - PG_VERSION=9.4
-        - MCENTRAL=Y
-    - jdk: oraclejdk8
-      addons:
-        postgresql: "9.4"
-      env:
-        - PG_VERSION=9.4
-        - TEST_CLIENTS=Y
-    - jdk: oraclejdk8 # this will be overwritten by before_install above
-      addons:
-        postgresql: "9.4"
-        apt:
-          packages:
-            - oracle-java9-installer
-      env:
-        - PG_VERSION=9.4
-        - JDK=9
-    - jdk: oraclejdk8
-      addons:
-        postgresql: "9.4"
-      env:
-        - PG_VERSION=9.4
-        - QUERY_MODE=simple
-        - COVERAGE=Y
-        - ANORM_SBT=Y
-    - jdk: oraclejdk8
-      addons:
-        postgresql: "9.4"
-      env:
-        - PG_VERSION=9.4
-        - QUERY_MODE=extendedForPrepared
-    - jdk: oraclejdk8
-      addons:
-        postgresql: "9.4"
-      env:
-        - PG_VERSION=9.4
-        - NO_WAFFLE_NO_OSGI=Y
-        - JDOC=Y
     - jdk: openjdk7
       addons:
         postgresql: "9.3"
@@ -201,6 +189,51 @@ matrix:
       env:
         - PG_VERSION=9.1
         - COVERAGE=Y
+    - jdk: oraclejdk8
+      sudo: required
+      dist: precise
+      env:
+        - PG_VERSION=8.4
+        - XA=true
+        - COVERAGE=Y
+        - NO_HSTORE=Y
+        - CREATE_PLPGSQL=Y
+    - jdk: oraclejdk8
+      sudo: required
+      dist: precise
+      env: # this has to match allow_failures above
+        - PG_VERSION=8.3
+        - XA=true
+        - COVERAGE=Y
+        - NO_HSTORE=Y
+        - CREATE_PLPGSQL=Y
+    - jdk: oraclejdk8
+      sudo: required
+      dist: precise
+      env: # this has to match allow_failures above
+        - PG_VERSION=8.2
+        - XA=true
+        - COVERAGE=Y
+        - NO_HSTORE=Y
+        - CREATE_PLPGSQL=Y
+    - jdk: oraclejdk8 # this will be overwritten by before_install above
+      dist: precise
+      sudo: false
+      addons:
+        postgresql: "9.4"
+        apt:
+          packages:
+            - oracle-java9-installer
+      env:
+        - PG_VERSION=9.4
+        - JDK=9
+    - jdk: oraclejdk8
+      sudo: required
+      dist: trusty
+      env:
+        - PG_VERSION=HEAD
+        - XA=true
+        - REPLICATION=Y
 
 # Deploy snapshots to Maven Central
 after_success:
