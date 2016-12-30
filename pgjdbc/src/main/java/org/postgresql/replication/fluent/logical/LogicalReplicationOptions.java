@@ -5,7 +5,6 @@
 
 package org.postgresql.replication.fluent.logical;
 
-
 import org.postgresql.replication.fluent.CommonOptions;
 
 import java.util.Properties;

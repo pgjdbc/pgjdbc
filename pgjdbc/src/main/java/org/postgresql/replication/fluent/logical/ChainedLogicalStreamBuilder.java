@@ -5,7 +5,6 @@
 
 package org.postgresql.replication.fluent.logical;
 
-
 import org.postgresql.replication.PGReplicationStream;
 import org.postgresql.replication.fluent.ChainedCommonStreamBuilder;
 

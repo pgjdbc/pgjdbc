@@ -5,7 +5,6 @@
 
 package org.postgresql.test.util.rules;
 
-
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.Version;
 import org.postgresql.jdbc.PgConnection;

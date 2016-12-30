@@ -5,7 +5,6 @@
 
 package org.postgresql.core.v3;
 
-
 import org.postgresql.copy.CopyDual;
 import org.postgresql.util.PSQLException;
 

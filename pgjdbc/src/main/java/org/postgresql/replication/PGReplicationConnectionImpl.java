@@ -5,7 +5,6 @@
 
 package org.postgresql.replication;
 
-
 import org.postgresql.core.BaseConnection;
 import org.postgresql.replication.fluent.ChainedCreateReplicationSlotBuilder;
 import org.postgresql.replication.fluent.ChainedStreamBuilder;

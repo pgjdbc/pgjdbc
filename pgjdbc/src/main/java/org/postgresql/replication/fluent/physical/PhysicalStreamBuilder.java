@@ -5,7 +5,6 @@
 
 package org.postgresql.replication.fluent.physical;
 
-
 import org.postgresql.replication.LogSequenceNumber;
 import org.postgresql.replication.PGReplicationStream;
 import org.postgresql.replication.fluent.AbstractStreamBuilder;
