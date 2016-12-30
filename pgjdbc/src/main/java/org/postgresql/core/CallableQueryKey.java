@@ -28,4 +28,10 @@ class CallableQueryKey extends BaseQueryKey {
   public int hashCode() {
     return super.hashCode() * 31;
   }
+
+  @Override
+  public boolean equals(Object o) {
+    // Nothing interesting here, overriding equals to make hashCode and equals paired
+    return super.equals(o);
+  }
 }
