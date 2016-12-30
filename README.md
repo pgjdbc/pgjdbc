@@ -16,7 +16,7 @@ PostgreSQL JDBC Driver (PgJDBC for short) allows Java programs to connect to a P
 ## Supported PostgreSQL and Java versions
 The current version of the driver should be compatible with **PostgreSQL 8.2 and higher** using the version 3.0 of the protocol, and **Java 6** (JDBC 4.0), **Java 7** (JDBC 4.1) and **Java 8** (JDBC 4.2). Unless you have unusual requirements (running old applications or JVMs), this is the driver you should be using.
 
-Don't assume that the current version of PgJDBC 9.4.x is only PostgreSQL 9.4 compatible. PgJDBC regression tests are run against all PostgreSQL versions since 8.4, including "build PostgreSQL from git master" version. There are other derived forks of PostgreSQL but have not been certified to run with PgJDBC.
+Don't assume that the current version of PgJDBC 9.4.x is only PostgreSQL 9.4 compatible. PgJDBC regression tests are run against all PostgreSQL versions since 8.2, including "build PostgreSQL from git master" version. There are other derived forks of PostgreSQL but have not been certified to run with PgJDBC.
 
 ## Get the Driver
 Most people do not need to compile PgJDBC. You can download the precompiled driver (jar) from the [PostgreSQL JDBC site](https://jdbc.postgresql.org/download.html) or using your chosen dependency management tool:
