@@ -5,10 +5,18 @@
 
 package org.postgresql.test.jdbc2.optional;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import org.postgresql.PGConnection;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.ds.PGConnectionPoolDataSource;
 import org.postgresql.jdbc2.optional.ConnectionPool;
 import org.postgresql.test.TestUtil;
+
+import org.junit.Assume;
+import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -36,15 +44,9 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
   private ArrayList<PooledConnection> connections = new ArrayList<PooledConnection>();
 
   /**
-   * Constructor required by JUnit
-   */
-  public ConnectionPoolTest(String name) {
-    super(name);
-  }
-
-  /**
    * Creates and configures a ConnectionPool
    */
+  @Override
   protected void initializeDataSource() {
     if (bds == null) {
       bds = new ConnectionPool();
@@ -52,7 +54,8 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
     }
   }
 
-  protected void tearDown() throws Exception {
+  @Override
+  public void tearDown() throws Exception {
     for (PooledConnection c : connections) {
       try {
         c.close();
@@ -64,26 +67,12 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
   }
 
   /**
-   * Though the normal client interface is to grab a Connection, in order to test the
-   * middleware/server interface, we need to deal with PooledConnections. Some tests use each.
-   */
-  protected PooledConnection getPooledConnection() throws SQLException {
-    initializeDataSource();
-    // we need to recast to PGConnectionPool rather than
-    // jdbc.optional.ConnectionPool because our ObjectFactory
-    // returns only the top level class, not the specific
-    // jdbc2/jdbc3 implementations.
-    PooledConnection c = ((PGConnectionPoolDataSource) bds).getPooledConnection();
-    connections.add(c);
-    return c;
-  }
-
-  /**
    * Instead of just fetching a Connection from the ConnectionPool, get a PooledConnection, add a
    * listener to close it when the Connection is closed, and then get the Connection. Without the
    * listener the PooledConnection (and thus the physical connection) would never by closed.
    * Probably not a disaster during testing, but you never know.
    */
+  @Override
   protected Connection getDataSourceConnection() throws SQLException {
     initializeDataSource();
     final PooledConnection pc = getPooledConnection();
@@ -105,10 +94,26 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
   }
 
   /**
+   * Though the normal client interface is to grab a Connection, in order to test the
+   * middleware/server interface, we need to deal with PooledConnections. Some tests use each.
+   */
+  protected PooledConnection getPooledConnection() throws SQLException {
+    initializeDataSource();
+    // we need to recast to PGConnectionPool rather than
+    // jdbc.optional.ConnectionPool because our ObjectFactory
+    // returns only the top level class, not the specific
+    // jdbc2/jdbc3 implementations.
+    PooledConnection c = ((PGConnectionPoolDataSource) bds).getPooledConnection();
+    connections.add(c);
+    return c;
+  }
+
+  /**
    * Makes sure that if you get a connection from a PooledConnection, close it, and then get another
    * one, you're really using the same physical connection. Depends on the implementation of
    * toString for the connection handle.
    */
+  @Test
   public void testPoolReuse() {
     try {
       PooledConnection pc = getPooledConnection();
@@ -130,6 +135,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
    * Makes sure that when you request a connection from the PooledConnection, and previous
    * connection it might have given out is closed. See JDBC 2.0 Optional Package spec section 6.2.3
    */
+  @Test
   public void testPoolCloseOldWrapper() {
     try {
       PooledConnection pc = getPooledConnection();
@@ -153,6 +159,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
    * different, even though the represent the same physical connection. See JDBC 2.0 Optional
    * Pacakge spec section 6.2.2
    */
+  @Test
   public void testPoolNewWrapper() {
     try {
       PooledConnection pc = getPooledConnection();
@@ -172,6 +179,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
    * Makes sure that exactly one close event is fired for each time a connection handle is closed.
    * Also checks that events are not fired after a given handle has been closed once.
    */
+  @Test
   public void testCloseEvent() {
     try {
       PooledConnection pc = getPooledConnection();
@@ -202,6 +210,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
   /**
    * Makes sure that close events are not fired after a listener has been removed.
    */
+  @Test
   public void testNoCloseEvent() {
     try {
       PooledConnection pc = getPooledConnection();
@@ -229,6 +238,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
    * Makes sure that a listener can be removed while dispatching events. Sometimes this causes a
    * ConcurrentModificationException or something.
    */
+  @Test
   public void testInlineCloseEvent() {
     try {
       PooledConnection pc = getPooledConnection();
@@ -252,6 +262,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
    * to a new connection handle being opened for the same PooledConnection. See JDBC 2.0 Optional
    * Package spec section 6.3
    */
+  @Test
   public void testAutomaticCloseEvent() {
     try {
       PooledConnection pc = getPooledConnection();
@@ -284,6 +295,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
    * Makes sure the isClosed method on a connection wrapper does what you'd expect. Checks the usual
    * case, as well as automatic closure when a new handle is opened on the same physical connection.
    */
+  @Test
   public void testIsClosed() {
     try {
       PooledConnection pc = getPooledConnection();
@@ -307,11 +319,16 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
    * Make sure that close status of pooled connection reflect the one of the underlying physical
    * connection.
    */
+  @Test
   public void testBackendIsClosed() throws Exception {
     try {
       PooledConnection pc = getPooledConnection();
       con = pc.getConnection();
       assertTrue(!con.isClosed());
+
+      Assume.assumeTrue("pg_terminate_backend requires PostgreSQL 8.4+",
+          TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4));
+
       int pid = ((PGConnection) con).getBackendPID();
 
       Connection adminCon = TestUtil.openPrivilegedDB();
@@ -338,6 +355,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
    * Ensures that a statement generated by a proxied connection returns the proxied connection from
    * getConnection() [not the physical connection].
    */
+  @Test
   public void testStatementConnection() {
     try {
       PooledConnection pc = getPooledConnection();
@@ -356,6 +374,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
    * Ensures that the Statement proxy generated by the Connection handle throws the correct kind of
    * exception.
    */
+  @Test
   public void testStatementProxy() {
     Statement s = null;
     try {
@@ -379,6 +398,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
    * Ensures that a prepared statement generated by a proxied connection returns the proxied
    * connection from getConnection() [not the physical connection].
    */
+  @Test
   public void testPreparedStatementConnection() {
     try {
       PooledConnection pc = getPooledConnection();
@@ -397,6 +417,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
    * Ensures that a callable statement generated by a proxied connection returns the proxied
    * connection from getConnection() [not the physical connection].
    */
+  @Test
   public void testCallableStatementConnection() {
     try {
       PooledConnection pc = getPooledConnection();
@@ -415,6 +436,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
    * Ensure that a statement created from a pool can be used like any other statement in regard to
    * pg extensions.
    */
+  @Test
   public void testStatementsProxyPGStatement() {
     try {
       PooledConnection pc = getPooledConnection();
@@ -438,10 +460,12 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
    * Helper class to remove a listener during event dispatching.
    */
   private class RemoveClose implements ConnectionEventListener {
+    @Override
     public void connectionClosed(ConnectionEvent event) {
       ((PooledConnection) event.getSource()).removeConnectionEventListener(this);
     }
 
+    @Override
     public void connectionErrorOccurred(ConnectionEvent event) {
       ((PooledConnection) event.getSource()).removeConnectionEventListener(this);
     }
@@ -455,10 +479,12 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
     private int count = 0;
     private int errorCount = 0;
 
+    @Override
     public void connectionClosed(ConnectionEvent event) {
       count++;
     }
 
+    @Override
     public void connectionErrorOccurred(ConnectionEvent event) {
       errorCount++;
     }
@@ -476,6 +502,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
     }
   }
 
+  @Test
   public void testSerializable() throws IOException, ClassNotFoundException {
     ConnectionPool pool = new ConnectionPool();
     pool.setDefaultAutoCommit(false);

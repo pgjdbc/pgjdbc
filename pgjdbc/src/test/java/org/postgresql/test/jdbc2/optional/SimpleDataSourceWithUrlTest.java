@@ -15,15 +15,9 @@ import org.postgresql.test.TestUtil;
  */
 public class SimpleDataSourceWithUrlTest extends BaseDataSourceTest {
   /**
-   * Constructor required by JUnit
-   */
-  public SimpleDataSourceWithUrlTest(String name) {
-    super(name);
-  }
-
-  /**
    * Creates and configures a new SimpleDataSource.
    */
+  @Override
   protected void initializeDataSource() {
     if (bds == null) {
       bds = new SimpleDataSource();

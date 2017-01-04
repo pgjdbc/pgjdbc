@@ -6,6 +6,7 @@
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.PGNotification;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
 import junit.framework.TestCase;
@@ -44,7 +45,7 @@ public class NotifyTest extends TestCase {
   }
 
   public void testNotifyArgument() throws Exception {
-    if (!TestUtil.haveMinimumServerVersion(conn, "9.0") || TestUtil.isProtocolVersion(conn, 2)) {
+    if (!TestUtil.haveMinimumServerVersion(conn, ServerVersion.v9_0) || TestUtil.isProtocolVersion(conn, 2)) {
       return;
     }
 

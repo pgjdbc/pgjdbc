@@ -5,12 +5,14 @@ before_script:
   - export PG_DATADIR="/etc/postgresql/${PG_VERSION}/main"
   -  ./.travis/travis_install_postgres.sh
   - test "x$XA" == 'x' || ./.travis/travis_configure_xa.sh
+  - test "x$REPLICATION" == 'x' || ./.travis/travis_configure_replication.sh
   - ./.travis/travis_start_postgres.sh
   - psql -U postgres -c "create user test with password 'test';"
+  - test "x$REPLICATION" == 'x' || psql -U postgres -c "alter user test with replication;"
   - psql -c 'create database test owner test;' -U postgres
   - echo "MAVEN_OPTS='-Xmx1g -Dgpg.skip=true'" > ~/.mavenrc
-  - test "x$PG_VERSION" == 'x' || test $PG_VERSION == '8.4' || test $PG_VERSION == '9.0' || psql test -c 'CREATE EXTENSION hstore;' -U postgres
-  - test "x$PG_VERSION" == 'x' || test $PG_VERSION != '8.4' || createlang -U postgres plpgsql test
+  - test "x$PG_VERSION" == 'x' || test "x$NO_HSTORE" == 'xY' || psql test -c 'CREATE EXTENSION hstore;' -U postgres
+  - test "x$PG_VERSION" == 'x' || test "x$CREATE_PLPGSQL" == 'x' || createlang -U postgres plpgsql test
   - if [[ "x$JDK" == *'x9'* ]]; then remove_dir_from_path $JAVA_HOME/bin; export JAVA_HOME=/usr/lib/jvm/java-9-oracle; export PATH=$JAVA_HOME/bin:$PATH; java -Xmx32m -version; fi
 
 env:
@@ -51,7 +53,17 @@ cache:
 
 matrix:
   fast_finish: true
+  allow_failures:
+    - env: # this has to match the environment for 8.2 below
+        - PG_VERSION=8.2
+        - XA=true
+        - COVERAGE=Y
+        - NO_HSTORE=Y
+        - CREATE_PLPGSQL=Y
   include:
+    - jdk: oraclejdk8
+      env: RUN_CHECKSTYLE=true
+      script: mvn checkstyle:check
     - env:
         - FEDORA_CI=Y
       services:
@@ -62,6 +74,7 @@ matrix:
       env:
         - PG_VERSION=9.6
         - XA=true
+        - REPLICATION=Y
         - COVERAGE=Y
     - jdk: oraclejdk8
       sudo: required
@@ -71,25 +84,47 @@ matrix:
       env:
         - PG_VERSION=9.5
         - XA=true
+        - REPLICATION=Y
         - COVERAGE=Y
     - jdk: oraclejdk8
       sudo: required
-      dist: trusty
+      dist: precise
       env:
         - PG_VERSION=8.4
         - XA=true
         - COVERAGE=Y
+        - NO_HSTORE=Y
+        - CREATE_PLPGSQL=Y
     - jdk: oraclejdk8
-      env: RUN_CHECKSTYLE=true
-      script: mvn checkstyle:check
+      sudo: required
+      dist: precise
+      env: # this has to match allow_failures above
+        - PG_VERSION=8.2
+        - XA=true
+        - COVERAGE=Y
+        - NO_HSTORE=Y
+        - CREATE_PLPGSQL=Y
+    - jdk: oraclejdk8
+      sudo: required
+      dist: precise
+      env:
+        - PG_VERSION=8.3
+        - XA=true
+        - COVERAGE=Y
+        - NO_HSTORE=Y
+        - CREATE_PLPGSQL=Y
     - jdk: oraclejdk8
       addons:
         postgresql: "9.4"
         apt:
           packages:
             - oracle-java8-installer
+      sudo: required
+      dist: trusty
       env:
         - PG_VERSION=9.4
+        - XA=true
+        - REPLICATION=Y
         - COVERAGE=Y
         - MCENTRAL=Y
         - JDOC=Y
@@ -99,6 +134,7 @@ matrix:
       env:
         - PG_VERSION=HEAD
         - XA=true
+        - REPLICATION=Y
     - jdk: openjdk7
       addons:
         postgresql: "9.4"

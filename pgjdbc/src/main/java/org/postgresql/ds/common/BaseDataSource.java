@@ -35,17 +35,6 @@ import javax.naming.StringRefAddr;
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  */
 public abstract class BaseDataSource implements Referenceable {
-  // Load the normal driver, since we'll use it to actually connect to the
-  // database. That way we don't have to maintain the connecting code in
-  // multiple places.
-  static {
-    try {
-      Class.forName("org.postgresql.Driver");
-    } catch (ClassNotFoundException e) {
-      System.err.println("PostgreSQL DataSource unable to load PostgreSQL JDBC Driver");
-    }
-  }
-
   // Needed to implement the DataSource/ConnectionPoolDataSource interfaces
   private transient PrintWriter logger;
 
@@ -225,22 +214,6 @@ public abstract class BaseDataSource implements Referenceable {
    */
   public void setPortNumber(int portNumber) {
     this.portNumber = portNumber;
-  }
-
-  /**
-   * @return value of compatible parameter
-   * @see PGProperty#COMPATIBLE
-   */
-  public String getCompatible() {
-    return PGProperty.COMPATIBLE.get(properties);
-  }
-
-  /**
-   * @param compatible value of compatible parameter
-   * @see PGProperty#COMPATIBLE
-   */
-  public void setCompatible(String compatible) {
-    PGProperty.COMPATIBLE.set(properties, compatible);
   }
 
   /**
@@ -970,22 +943,6 @@ public abstract class BaseDataSource implements Referenceable {
   }
 
   /**
-   * @return character set to use for data sent to the database or received
-   * @see PGProperty#CHARSET
-   */
-  public String getCharset() {
-    return PGProperty.CHARSET.get(properties);
-  }
-
-  /**
-   * @param charset character set to use for data sent to the database or received
-   * @see PGProperty#CHARSET
-   */
-  public void setCharset(String charset) {
-    PGProperty.CHARSET.set(properties, charset);
-  }
-
-  /**
    * @return if connection allows encoding changes
    * @see PGProperty#ALLOW_ENCODING_CHANGES
    */
@@ -1031,6 +988,21 @@ public abstract class BaseDataSource implements Referenceable {
    */
   public void setSocketFactoryArg(String socketFactoryArg) {
     PGProperty.SOCKET_FACTORY_ARG.set(properties, socketFactoryArg);
+  }
+
+  /**
+   * @param replication replication argument
+   * @see PGProperty#REPLICATION
+   */
+  public void setReplication(String replication) {
+    PGProperty.REPLICATION.set(properties, replication);
+  }
+
+  /**
+   * @see PGProperty#REPLICATION
+   */
+  public String getReplication() {
+    return PGProperty.REPLICATION.get(properties);
   }
 
   /**

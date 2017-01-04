@@ -39,7 +39,7 @@ public class MakeGSS {
       kerberosServerName = "postgres";
     }
 
-    Exception result = null;
+    Exception result;
     try {
       boolean performAuthentication = true;
       GSSCredential gssCredential = null;

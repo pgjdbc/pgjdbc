@@ -37,7 +37,7 @@ public class Jdbc3SavepointTest extends TestCase {
   }
 
   private boolean hasSavepoints() throws SQLException {
-    return TestUtil.haveMinimumServerVersion(_conn, "8.0");
+    return true;
   }
 
   private void addRow(int id) throws SQLException {

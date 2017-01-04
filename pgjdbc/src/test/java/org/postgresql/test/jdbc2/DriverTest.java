@@ -5,11 +5,16 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import org.postgresql.Driver;
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
-import org.junit.Assert;
+import org.junit.Test;
 
 import java.lang.reflect.Method;
 import java.sql.Connection;
@@ -22,15 +27,12 @@ import java.util.Properties;
  * Tests the dynamically created class org.postgresql.Driver
  *
  */
-public class DriverTest extends TestCase {
-
-  public DriverTest(String name) {
-    super(name);
-  }
+public class DriverTest {
 
   /*
    * This tests the acceptsURL() method with a couple of well and poorly formed jdbc urls.
    */
+  @Test
   public void testAcceptsURL() throws Exception {
     TestUtil.initDriver(); // Set up log levels, etc.
 
@@ -77,6 +79,7 @@ public class DriverTest extends TestCase {
   /**
    * Tests the connect method by connecting to the test database
    */
+  @Test
   public void testConnect() throws Exception {
     TestUtil.initDriver(); // Set up log levels, etc.
 
@@ -101,6 +104,7 @@ public class DriverTest extends TestCase {
    *
    * @throws Exception if something wrong happens
    */
+  @Test
   public void testConnectFailover() throws Exception {
     String url = "jdbc:postgresql://invalidhost.not.here," + TestUtil.getServer() + ":"
         + TestUtil.getPort() + "/" + TestUtil.getDatabase() + "?connectTimeout=5";
@@ -112,6 +116,7 @@ public class DriverTest extends TestCase {
   /*
    * Test that the readOnly property works.
    */
+  @Test
   public void testReadOnly() throws Exception {
     TestUtil.initDriver(); // Set up log levels, etc.
 
@@ -134,14 +139,14 @@ public class DriverTest extends TestCase {
     con.close();
   }
 
+  @Test
   public void testRegistration() throws Exception {
     TestUtil.initDriver();
-    ArrayList<java.sql.Driver> drivers;
 
     // Driver is initially registered because it is automatically done when class is loaded
-    Assert.assertTrue(org.postgresql.Driver.isRegistered());
+    assertTrue(org.postgresql.Driver.isRegistered());
 
-    drivers = Collections.list(DriverManager.getDrivers());
+    ArrayList<java.sql.Driver> drivers = Collections.list(DriverManager.getDrivers());
     searchInstanceOf: {
 
       for (java.sql.Driver driver : drivers) {
@@ -149,24 +154,23 @@ public class DriverTest extends TestCase {
           break searchInstanceOf;
         }
       }
-      Assert.fail("Driver has not been found in DriverManager's list but it should be registered");
+      fail("Driver has not been found in DriverManager's list but it should be registered");
     }
 
     // Deregister the driver
     Driver.deregister();
-    Assert.assertFalse(Driver.isRegistered());
+    assertFalse(Driver.isRegistered());
 
     drivers = Collections.list(DriverManager.getDrivers());
     for (java.sql.Driver driver : drivers) {
       if (driver instanceof org.postgresql.Driver) {
-        Assert
-            .fail("Driver should be deregistered but it is still present in DriverManager's list");
+        fail("Driver should be deregistered but it is still present in DriverManager's list");
       }
     }
 
     // register again the driver
     Driver.register();
-    Assert.assertTrue(Driver.isRegistered());
+    assertTrue(Driver.isRegistered());
 
     drivers = Collections.list(DriverManager.getDrivers());
     for (java.sql.Driver driver : drivers) {
@@ -174,6 +178,6 @@ public class DriverTest extends TestCase {
         return;
       }
     }
-    Assert.fail("Driver has not been found in DriverManager's list but it should be registered");
+    fail("Driver has not been found in DriverManager's list but it should be registered");
   }
 }

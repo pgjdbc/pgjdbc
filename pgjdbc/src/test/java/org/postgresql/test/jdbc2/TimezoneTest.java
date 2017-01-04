@@ -65,9 +65,6 @@ public class TimezoneTest extends TestCase {
   private Calendar cGMT05;
   private Calendar cGMT13;
 
-  private boolean min73;
-  private boolean min74;
-
   public TimezoneTest(String name) {
     super(name);
 
@@ -94,9 +91,6 @@ public class TimezoneTest extends TestCase {
     // This is not obvious, but the "gmt-3" timezone is actually 3 hours *ahead* of GMT
     // so will produce +03 timestamptz output
     con.createStatement().executeUpdate("set timezone = 'gmt-3'");
-
-    min73 = TestUtil.haveMinimumServerVersion(con, "7.3");
-    min74 = TestUtil.haveMinimumServerVersion(con, "7.4");
 
     // System.err.println("++++++ TESTS START (" + getName() + ") ++++++");
   }
@@ -345,10 +339,6 @@ public class TimezoneTest extends TestCase {
    */
   public void testSetTimestampOnTime() throws Exception {
     // Pre-7.4 servers cannot convert timestamps with timezones to times.
-    if (!min74) {
-      return;
-    }
-
     for (int i = 0; i < PREPARE_THRESHOLD; i++) {
       con.createStatement().execute("delete from testtimezone");
       PreparedStatement insertTimestamp =
@@ -378,12 +368,10 @@ public class TimezoneTest extends TestCase {
       insertTimestamp.setTimestamp(2, instant, cGMT05); // 07:00:00
       insertTimestamp.executeUpdate();
 
-      if (min73) {
-        // +1300
-        insertTimestamp.setInt(1, seq++);
-        insertTimestamp.setTimestamp(2, instant, cGMT13); // 01:00:00
-        insertTimestamp.executeUpdate();
-      }
+      // +1300
+      insertTimestamp.setInt(1, seq++);
+      insertTimestamp.setTimestamp(2, instant, cGMT13); // 01:00:00
+      insertTimestamp.executeUpdate();
 
       insertTimestamp.close();
 
@@ -474,15 +462,13 @@ public class TimezoneTest extends TestCase {
       insertTimestamp.setTimestamp(5, instant, cGMT05); // 2005-01-01
       insertTimestamp.executeUpdate();
 
-      if (min73) {
-        // +1300
-        insertTimestamp.setInt(1, seq++);
-        insertTimestamp.setTimestamp(2, instant, cGMT13); // 2005-01-02 01:00:00 +1300
-        insertTimestamp.setTimestamp(3, instant, cGMT13); // 2005-01-02 01:00:00
-        insertTimestamp.setTimestamp(4, instant, cGMT13); // 01:00:00 +1300
-        insertTimestamp.setTimestamp(5, instant, cGMT13); // 2005-01-02
-        insertTimestamp.executeUpdate();
-      }
+      // +1300
+      insertTimestamp.setInt(1, seq++);
+      insertTimestamp.setTimestamp(2, instant, cGMT13); // 2005-01-02 01:00:00 +1300
+      insertTimestamp.setTimestamp(3, instant, cGMT13); // 2005-01-02 01:00:00
+      insertTimestamp.setTimestamp(4, instant, cGMT13); // 01:00:00 +1300
+      insertTimestamp.setTimestamp(5, instant, cGMT13); // 2005-01-02
+      insertTimestamp.executeUpdate();
 
       insertTimestamp.close();
 
@@ -538,14 +524,12 @@ public class TimezoneTest extends TestCase {
       assertEquals(instantTime, rs.getTimestamp(4, cGMT05));
       assertEquals(instantDateGMT05, rs.getTimestamp(5, cGMT05));
 
-      if (min73) {
-        assertTrue(rs.next());
-        assertEquals(seq++, rs.getInt(1));
-        assertEquals(instant, rs.getTimestamp(2, cGMT13));
-        assertEquals(instant, rs.getTimestamp(3, cGMT13));
-        assertEquals(normalizeTimeOfDayPart(instantTime, cGMT13), rs.getTimestamp(4, cGMT13));
-        assertEquals(instantDateGMT13, rs.getTimestamp(5, cGMT13));
-      }
+      assertTrue(rs.next());
+      assertEquals(seq++, rs.getInt(1));
+      assertEquals(instant, rs.getTimestamp(2, cGMT13));
+      assertEquals(instant, rs.getTimestamp(3, cGMT13));
+      assertEquals(normalizeTimeOfDayPart(instantTime, cGMT13), rs.getTimestamp(4, cGMT13));
+      assertEquals(instantDateGMT13, rs.getTimestamp(5, cGMT13));
 
       assertTrue(!rs.next());
       ps.close();
@@ -598,15 +582,13 @@ public class TimezoneTest extends TestCase {
       insertTimestamp.setDate(4, dGMT05, cGMT05); // 2005-01-01
       insertTimestamp.executeUpdate();
 
-      if (min73) {
-        // +1300
-        dGMT13 = new Date(1104490800000L); // 2005-01-01 00:00:00 +1300
-        insertTimestamp.setInt(1, seq++);
-        insertTimestamp.setDate(2, dGMT13, cGMT13); // 2005-01-01 00:00:00 +1300
-        insertTimestamp.setDate(3, dGMT13, cGMT13); // 2005-01-01 00:00:00
-        insertTimestamp.setDate(4, dGMT13, cGMT13); // 2005-01-01
-        insertTimestamp.executeUpdate();
-      }
+      // +1300
+      dGMT13 = new Date(1104490800000L); // 2005-01-01 00:00:00 +1300
+      insertTimestamp.setInt(1, seq++);
+      insertTimestamp.setDate(2, dGMT13, cGMT13); // 2005-01-01 00:00:00 +1300
+      insertTimestamp.setDate(3, dGMT13, cGMT13); // 2005-01-01 00:00:00
+      insertTimestamp.setDate(4, dGMT13, cGMT13); // 2005-01-01
+      insertTimestamp.executeUpdate();
 
       insertTimestamp.close();
 
@@ -652,13 +634,11 @@ public class TimezoneTest extends TestCase {
       assertEquals(dGMT05, rs.getDate(3, cGMT05));
       assertEquals(dGMT05, rs.getDate(4, cGMT05));
 
-      if (min73) {
-        assertTrue(rs.next());
-        assertEquals(seq++, rs.getInt(1));
-        assertEquals(dGMT13, rs.getDate(2, cGMT13));
-        assertEquals(dGMT13, rs.getDate(3, cGMT13));
-        assertEquals(dGMT13, rs.getDate(4, cGMT13));
-      }
+      assertTrue(rs.next());
+      assertEquals(seq++, rs.getInt(1));
+      assertEquals(dGMT13, rs.getDate(2, cGMT13));
+      assertEquals(dGMT13, rs.getDate(3, cGMT13));
+      assertEquals(dGMT13, rs.getDate(4, cGMT13));
 
       assertTrue(!rs.next());
       ps.close();
@@ -666,12 +646,6 @@ public class TimezoneTest extends TestCase {
   }
 
   public void testSetTime() throws Exception {
-    if (!min74) {
-      // We can't do timezones properly for time/timetz values before 7.4
-      System.err.println("Skipping TimezoneTest.testSetTime on a pre-7.4 server");
-      return;
-    }
-
     for (int i = 0; i < PREPARE_THRESHOLD; i++) {
       con.createStatement().execute("delete from testtimezone");
       PreparedStatement insertTimestamp =
@@ -781,10 +755,6 @@ public class TimezoneTest extends TestCase {
   }
 
   public void testTimezoneWithSeconds() throws SQLException {
-    if (!TestUtil.haveMinimumServerVersion(con, "8.2")) {
-      return;
-    }
-
     Statement stmt = con.createStatement();
     stmt.execute("SET TimeZone = 'Europe/Paris'");
     for (int i = 0; i < PREPARE_THRESHOLD; i++) {

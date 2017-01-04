@@ -5,10 +5,17 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGInterval;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -19,34 +26,32 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 
-public class IntervalTest extends TestCase {
+public class IntervalTest {
+  private Connection conn;
 
-  private Connection _conn;
-
-  public IntervalTest(String name) {
-    super(name);
+  @Before
+  public void setUp() throws Exception {
+    conn = TestUtil.openDB();
+    TestUtil.createTable(conn, "testinterval", "v interval");
+    TestUtil.createTable(conn, "testdate", "v date");
   }
 
-  protected void setUp() throws Exception {
-    _conn = TestUtil.openDB();
-    TestUtil.createTable(_conn, "testinterval", "v interval");
-    TestUtil.createTable(_conn, "testdate", "v date");
+  @After
+  public void tearDown() throws Exception {
+    TestUtil.dropTable(conn, "testinterval");
+    TestUtil.dropTable(conn, "testdate");
+
+    TestUtil.closeDB(conn);
   }
 
-  protected void tearDown() throws Exception {
-    TestUtil.dropTable(_conn, "testinterval");
-    TestUtil.dropTable(_conn, "testdate");
-
-    TestUtil.closeDB(_conn);
-  }
-
+  @Test
   public void testOnlineTests() throws SQLException {
-    PreparedStatement pstmt = _conn.prepareStatement("INSERT INTO testinterval VALUES (?)");
+    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO testinterval VALUES (?)");
     pstmt.setObject(1, new PGInterval(2004, 13, 28, 0, 0, 43000.9013));
     pstmt.executeUpdate();
     pstmt.close();
 
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT v FROM testinterval");
     assertTrue(rs.next());
     PGInterval pgi = (PGInterval) rs.getObject(1);
@@ -61,15 +66,16 @@ public class IntervalTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testStringToIntervalCoercion() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     stmt.executeUpdate(TestUtil.insertSQL("testdate", "'2010-01-01'"));
     stmt.executeUpdate(TestUtil.insertSQL("testdate", "'2010-01-02'"));
     stmt.executeUpdate(TestUtil.insertSQL("testdate", "'2010-01-04'"));
     stmt.executeUpdate(TestUtil.insertSQL("testdate", "'2010-01-05'"));
     stmt.close();
 
-    PreparedStatement pstmt = _conn.prepareStatement(
+    PreparedStatement pstmt = conn.prepareStatement(
         "SELECT v FROM testdate WHERE v < (?::timestamp with time zone + ? * ?::interval) ORDER BY v");
     pstmt.setObject(1, makeDate(2010, 1, 1));
     pstmt.setObject(2, Integer.valueOf(2));
@@ -97,6 +103,7 @@ public class IntervalTest extends TestCase {
   }
 
 
+  @Test
   public void testIntervalToStringCoercion() throws SQLException {
     PGInterval interval = new PGInterval("1 year 3 months");
     String coercedStringValue = interval.toString();
@@ -105,22 +112,20 @@ public class IntervalTest extends TestCase {
   }
 
 
+  @Test
   public void testDaysHours() throws SQLException {
-    Statement stmt = _conn.createStatement();
+    Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT '101:12:00'::interval");
     assertTrue(rs.next());
     PGInterval i = (PGInterval) rs.getObject(1);
     // 8.1 servers store hours and days separately.
-    if (TestUtil.haveMinimumServerVersion(_conn, "8.1")) {
-      assertEquals(0, i.getDays());
-      assertEquals(101, i.getHours());
-    } else {
-      assertEquals(4, i.getDays());
-      assertEquals(5, i.getHours());
-    }
+    assertEquals(0, i.getDays());
+    assertEquals(101, i.getHours());
+
     assertEquals(12, i.getMinutes());
   }
 
+  @Test
   public void testAddRounding() {
     PGInterval pgi = new PGInterval(0, 0, 0, 0, 0, 0.6006);
     Calendar cal = Calendar.getInstance();
@@ -133,6 +138,7 @@ public class IntervalTest extends TestCase {
     assertEquals(origTime, cal.getTime().getTime());
   }
 
+  @Test
   public void testOfflineTests() throws Exception {
     PGInterval pgi = new PGInterval(2004, 4, 20, 15, 57, 12.1);
 
@@ -172,7 +178,7 @@ public class IntervalTest extends TestCase {
     assertEquals(-12.1, pgi.getSeconds(), 0);
   }
 
-  Calendar getStartCalendar() {
+  private Calendar getStartCalendar() {
     Calendar cal = new GregorianCalendar();
     cal.set(Calendar.YEAR, 2005);
     cal.set(Calendar.MONTH, 4);
@@ -185,6 +191,7 @@ public class IntervalTest extends TestCase {
     return cal;
   }
 
+  @Test
   public void testCalendar() throws Exception {
     Calendar cal = getStartCalendar();
 
@@ -235,6 +242,7 @@ public class IntervalTest extends TestCase {
     assertEquals(100, cal.get(Calendar.MILLISECOND));
   }
 
+  @Test
   public void testDate() throws Exception {
     Date date = getStartCalendar().getTime();
     Date date2 = getStartCalendar().getTime();
@@ -249,6 +257,7 @@ public class IntervalTest extends TestCase {
     assertEquals(date2, date);
   }
 
+  @Test
   public void testISODate() throws Exception {
     Date date = getStartCalendar().getTime();
     Date date2 = getStartCalendar().getTime();

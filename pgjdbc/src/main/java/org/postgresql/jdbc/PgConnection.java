@@ -19,6 +19,7 @@ import org.postgresql.core.Oid;
 import org.postgresql.core.Provider;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
+import org.postgresql.core.ReplicationProtocol;
 import org.postgresql.core.ResultHandlerBase;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.SqlCommand;
@@ -28,6 +29,8 @@ import org.postgresql.core.Utils;
 import org.postgresql.core.Version;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.largeobject.LargeObjectManager;
+import org.postgresql.replication.PGReplicationConnection;
+import org.postgresql.replication.PGReplicationConnectionImpl;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.LruCache;
@@ -93,8 +96,6 @@ public class PgConnection implements BaseConnection {
 
   /* Actual network handler */
   private final QueryExecutor queryExecutor;
-  /* Compatible version as xxyyzz form */
-  private final int compatibleInt;
 
   /* Query that runs COMMIT */
   private final Query commitQuery;
@@ -136,6 +137,11 @@ public class PgConnection implements BaseConnection {
   private volatile Timer cancelTimer = null;
 
   private PreparedStatement checkConnectionQuery;
+  /**
+   * Replication protocol in current version postgresql(10devel) supports a limited number of
+   * commands.
+   */
+  private boolean replicationConnection;
 
   private final LruCache<FieldMetadata.Key, FieldMetadata> fieldMetadataCache;
 
@@ -212,13 +218,7 @@ public class PgConnection implements BaseConnection {
     }
 
     // Now make the initial connection and set up local state
-    this.queryExecutor =
-        ConnectionFactory.openConnection(hostSpecs, user, database, info, logger);
-    int compat = Utils.parseServerVersionStr(PGProperty.COMPATIBLE.get(info));
-    if (compat == 0) {
-      compat = Driver.MAJORVERSION * 10000 + Driver.MINORVERSION * 100;
-    }
-    this.compatibleInt = compat;
+    this.queryExecutor = ConnectionFactory.openConnection(hostSpecs, user, database, info, logger);
 
     // Set read-only early if requested
     if (PGProperty.READ_ONLY.getBoolean(info)) {
@@ -251,25 +251,6 @@ public class PgConnection implements BaseConnection {
       binaryOids.add(Oid.BOX);
       binaryOids.add(Oid.UUID);
     }
-    // the pre 8.0 servers do not disclose their internal encoding for
-    // time fields so do not try to use them.
-    if (!haveMinimumCompatibleVersion(ServerVersion.v8_0)) {
-      binaryOids.remove(Oid.TIME);
-      binaryOids.remove(Oid.TIMETZ);
-      binaryOids.remove(Oid.TIMESTAMP);
-      binaryOids.remove(Oid.TIMESTAMPTZ);
-    }
-    // driver supports only null-compatible arrays
-    if (!haveMinimumCompatibleVersion(ServerVersion.v8_3)) {
-      binaryOids.remove(Oid.INT2_ARRAY);
-      binaryOids.remove(Oid.INT4_ARRAY);
-      binaryOids.remove(Oid.INT8_ARRAY);
-      binaryOids.remove(Oid.FLOAT4_ARRAY);
-      binaryOids.remove(Oid.FLOAT8_ARRAY);
-      binaryOids.remove(Oid.FLOAT8_ARRAY);
-      binaryOids.remove(Oid.VARCHAR_ARRAY);
-      binaryOids.remove(Oid.TEXT_ARRAY);
-    }
 
     binaryOids.addAll(getOidSet(PGProperty.BINARY_TRANSFER_ENABLE.get(info)));
     binaryOids.removeAll(getOidSet(PGProperty.BINARY_TRANSFER_DISABLE.get(info)));
@@ -291,7 +272,6 @@ public class PgConnection implements BaseConnection {
     queryExecutor.setBinarySendOids(useBinarySendForOids);
 
     if (logger.logDebug()) {
-      logger.debug("    compatible = " + compatibleInt);
       logger.debug("    loglevel = " + logLevel);
       logger.debug("    prepare threshold = " + prepareThreshold);
       logger.debug("    types using binary send = " + oidsToString(useBinarySendForOids));
@@ -315,18 +295,16 @@ public class PgConnection implements BaseConnection {
             PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else {
-      bindStringAsVarchar = haveMinimumCompatibleVersion(ServerVersion.v8_0);
+      bindStringAsVarchar = true;
     }
 
     // Initialize timestamp stuff
-    timestampUtils = new TimestampUtils(haveMinimumServerVersion(ServerVersion.v7_4),
-        haveMinimumServerVersion(ServerVersion.v8_2), !queryExecutor.getIntegerDateTimes(),
-        new Provider<TimeZone>() {
-          @Override
-          public TimeZone get() {
-            return queryExecutor.getTimeZone();
-          }
-        });
+    timestampUtils = new TimestampUtils(!queryExecutor.getIntegerDateTimes(), new Provider<TimeZone>() {
+      @Override
+      public TimeZone get() {
+        return queryExecutor.getTimeZone();
+      }
+    });
 
     // Initialize common queries.
     // isParameterized==true so full parse is performed and the engine knows the query
@@ -368,6 +346,8 @@ public class PgConnection implements BaseConnection {
             Math.max(0, PGProperty.DATABASE_METADATA_CACHE_FIELDS.getInt(info)),
             Math.max(0, PGProperty.DATABASE_METADATA_CACHE_FIELDS_MIB.getInt(info) * 1024 * 1024),
         false);
+
+    replicationConnection = PGProperty.REPLICATION.get(info) != null;
   }
 
   private Set<Integer> getOidSet(String oidList) throws PSQLException {
@@ -428,6 +408,10 @@ public class PgConnection implements BaseConnection {
 
   public QueryExecutor getQueryExecutor() {
     return queryExecutor;
+  }
+
+  public ReplicationProtocol getReplicationProtocol() {
+    return queryExecutor.getReplicationProtocol();
   }
 
   /**
@@ -732,9 +716,9 @@ public class PgConnection implements BaseConnection {
           PSQLState.ACTIVE_SQL_TRANSACTION);
     }
 
-    if (haveMinimumServerVersion(ServerVersion.v7_4) && readOnly != this.readOnly) {
-      String readOnlySql =
-          "SET SESSION CHARACTERISTICS AS TRANSACTION " + (readOnly ? "READ ONLY" : "READ WRITE");
+    if (readOnly != this.readOnly) {
+      String readOnlySql
+             = "SET SESSION CHARACTERISTICS AS TRANSACTION " + (readOnly ? "READ ONLY" : "READ WRITE");
       execSQLUpdate(readOnlySql); // nb: no BEGIN triggered.
     }
 
@@ -827,52 +811,28 @@ public class PgConnection implements BaseConnection {
     checkClosed();
 
     String level = null;
-
-    if (haveMinimumServerVersion(ServerVersion.v7_3)) {
-      // 7.3+ returns the level as a query result.
-      ResultSet rs = execSQLQuery("SHOW TRANSACTION ISOLATION LEVEL"); // nb: no BEGIN triggered
-      if (rs.next()) {
-        level = rs.getString(1);
-      }
-      rs.close();
-    } else {
-      // 7.2 returns the level as an INFO message. Ew.
-      // We juggle the warning chains a bit here.
-
-      // Swap out current warnings.
-      SQLWarning saveWarnings = getWarnings();
-      clearWarnings();
-
-      // Run the query any examine any resulting warnings.
-      execSQLUpdate("SHOW TRANSACTION ISOLATION LEVEL"); // nb: no BEGIN triggered
-      SQLWarning warning = getWarnings();
-      if (warning != null) {
-        level = warning.getMessage();
-      }
-
-      // Swap original warnings back.
-      clearWarnings();
-      if (saveWarnings != null) {
-        addWarning(saveWarnings);
-      }
+    final ResultSet rs = execSQLQuery("SHOW TRANSACTION ISOLATION LEVEL"); // nb: no BEGIN triggered
+    if (rs.next()) {
+      level = rs.getString(1);
     }
+    rs.close();
 
-    // XXX revisit: throw exception instead of silently eating the error in unknown cases?
+    // TODO revisit: throw exception instead of silently eating the error in unknown cases?
     if (level == null) {
       return Connection.TRANSACTION_READ_COMMITTED; // Best guess.
     }
 
     level = level.toUpperCase(Locale.US);
-    if (level.contains("READ COMMITTED")) {
+    if (level.equals("READ COMMITTED")) {
       return Connection.TRANSACTION_READ_COMMITTED;
     }
-    if (level.contains("READ UNCOMMITTED")) {
+    if (level.equals("READ UNCOMMITTED")) {
       return Connection.TRANSACTION_READ_UNCOMMITTED;
     }
-    if (level.contains("REPEATABLE READ")) {
+    if (level.equals("REPEATABLE READ")) {
       return Connection.TRANSACTION_REPEATABLE_READ;
     }
-    if (level.contains("SERIALIZABLE")) {
+    if (level.equals("SERIALIZABLE")) {
       return Connection.TRANSACTION_SERIALIZABLE;
     }
 
@@ -900,19 +860,18 @@ public class PgConnection implements BaseConnection {
   }
 
   protected String getIsolationLevelName(int level) {
-    boolean pg80 = haveMinimumServerVersion(ServerVersion.v8_0);
-
-    if (level == Connection.TRANSACTION_READ_COMMITTED) {
-      return "READ COMMITTED";
-    } else if (level == Connection.TRANSACTION_SERIALIZABLE) {
-      return "SERIALIZABLE";
-    } else if (pg80 && level == Connection.TRANSACTION_READ_UNCOMMITTED) {
-      return "READ UNCOMMITTED";
-    } else if (pg80 && level == Connection.TRANSACTION_REPEATABLE_READ) {
-      return "REPEATABLE READ";
+    switch (level) {
+      case Connection.TRANSACTION_READ_COMMITTED:
+        return "READ COMMITTED";
+      case Connection.TRANSACTION_SERIALIZABLE:
+        return "SERIALIZABLE";
+      case Connection.TRANSACTION_READ_UNCOMMITTED:
+        return "READ UNCOMMITTED";
+      case Connection.TRANSACTION_REPEATABLE_READ:
+        return "REPEATABLE READ";
+      default:
+        return null;
     }
-
-    return null;
   }
 
   public void setCatalog(String catalog) throws SQLException {
@@ -982,43 +941,22 @@ public class PgConnection implements BaseConnection {
     }
   }
 
-  public boolean haveMinimumServerVersion(String ver) {
-    int requiredver = Utils.parseServerVersionStr(ver);
-    if (requiredver == 0) {
-      /*
-       * Failed to parse input version. Fall back on legacy behaviour for BC.
-       */
-      return (queryExecutor.getServerVersion().compareTo(ver) >= 0);
-    } else {
-      return haveMinimumServerVersion(requiredver);
-    }
-  }
-
+  @Override
   public boolean haveMinimumServerVersion(int ver) {
     return queryExecutor.getServerVersionNum() >= ver;
   }
 
+  @Override
   public boolean haveMinimumServerVersion(Version ver) {
     return haveMinimumServerVersion(ver.getVersionNum());
   }
 
-  public boolean haveMinimumCompatibleVersion(int ver) {
-    return compatibleInt >= ver;
-  }
-
-  public boolean haveMinimumCompatibleVersion(String ver) {
-    return haveMinimumCompatibleVersion(ServerVersion.from(ver));
-  }
-
-  public boolean haveMinimumCompatibleVersion(Version ver) {
-    return haveMinimumCompatibleVersion(ver.getVersionNum());
-  }
-
-
+  @Override
   public Encoding getEncoding() {
     return queryExecutor.getEncoding();
   }
 
+  @Override
   public byte[] encodeString(String str) throws SQLException {
     try {
       return getEncoding().encode(str);
@@ -1028,11 +966,13 @@ public class PgConnection implements BaseConnection {
     }
   }
 
+  @Override
   public String escapeString(String str) throws SQLException {
     return Utils.escapeLiteral(null, str, queryExecutor.getStandardConformingStrings())
         .toString();
   }
 
+  @Override
   public boolean getStandardConformingStrings() {
     return queryExecutor.getStandardConformingStrings();
   }
@@ -1040,15 +980,18 @@ public class PgConnection implements BaseConnection {
   // This is a cache of the DatabaseMetaData instance for this connection
   protected java.sql.DatabaseMetaData metadata;
 
+  @Override
   public boolean isClosed() throws SQLException {
     return queryExecutor.isClosed();
   }
 
+  @Override
   public void cancelQuery() throws SQLException {
     checkClosed();
     queryExecutor.sendQueryCancel();
   }
 
+  @Override
   public PGNotification[] getNotifications() throws SQLException {
     checkClosed();
     getQueryExecutor().processNotifies();
@@ -1174,11 +1117,13 @@ public class PgConnection implements BaseConnection {
     }
   }
 
+  @Override
   public void addTimerTask(TimerTask timerTask, long milliSeconds) {
     Timer timer = getTimer();
     timer.schedule(timerTask, milliSeconds);
   }
 
+  @Override
   public void purgeTimerTasks() {
     Timer timer = cancelTimer;
     if (timer != null) {
@@ -1186,10 +1131,12 @@ public class PgConnection implements BaseConnection {
     }
   }
 
+  @Override
   public String escapeIdentifier(String identifier) throws SQLException {
     return Utils.escapeIdentifier(null, identifier).toString();
   }
 
+  @Override
   public String escapeLiteral(String literal) throws SQLException {
     return Utils.escapeLiteral(null, literal, queryExecutor.getStandardConformingStrings())
         .toString();
@@ -1198,6 +1145,11 @@ public class PgConnection implements BaseConnection {
   @Override
   public LruCache<FieldMetadata.Key, FieldMetadata> getFieldMetadataCache() {
     return fieldMetadataCache;
+  }
+
+  @Override
+  public PGReplicationConnection getReplicationAPI() {
+    return new PGReplicationConnectionImpl(this);
   }
 
   private static void appendArray(StringBuilder sb, Object elements, char delim) {
@@ -1244,12 +1196,14 @@ public class PgConnection implements BaseConnection {
     return Integer.parseInt(dirtyString.substring(start, end));
   }
 
+  @Override
   public Statement createStatement(int resultSetType, int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
     checkClosed();
     return new PgStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability);
   }
 
+  @Override
   public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
     checkClosed();
@@ -1257,6 +1211,7 @@ public class PgConnection implements BaseConnection {
         resultSetHoldability);
   }
 
+  @Override
   public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
     checkClosed();
@@ -1264,6 +1219,7 @@ public class PgConnection implements BaseConnection {
         resultSetHoldability);
   }
 
+  @Override
   public DatabaseMetaData getMetaData() throws SQLException {
     checkClosed();
     if (metadata == null) {
@@ -1272,6 +1228,7 @@ public class PgConnection implements BaseConnection {
     return metadata;
   }
 
+  @Override
   public void setTypeMap(Map<String, Class<?>> map) throws SQLException {
     setTypeMapImpl(map);
   }
@@ -1292,31 +1249,37 @@ public class PgConnection implements BaseConnection {
     return new PgSQLXML(this);
   }
 
+  @Override
   public Clob createClob() throws SQLException {
     checkClosed();
     throw org.postgresql.Driver.notImplemented(this.getClass(), "createClob()");
   }
 
+  @Override
   public Blob createBlob() throws SQLException {
     checkClosed();
     throw org.postgresql.Driver.notImplemented(this.getClass(), "createBlob()");
   }
 
+  @Override
   public NClob createNClob() throws SQLException {
     checkClosed();
     throw org.postgresql.Driver.notImplemented(this.getClass(), "createNClob()");
   }
 
+  @Override
   public SQLXML createSQLXML() throws SQLException {
     checkClosed();
     return makeSQLXML();
   }
 
+  @Override
   public Struct createStruct(String typeName, Object[] attributes) throws SQLException {
     checkClosed();
     throw org.postgresql.Driver.notImplemented(this.getClass(), "createStruct(String, Object[])");
   }
 
+  @Override
   public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
     checkClosed();
 
@@ -1335,6 +1298,7 @@ public class PgConnection implements BaseConnection {
     return makeArray(oid, sb.toString());
   }
 
+  @Override
   public boolean isValid(int timeout) throws SQLException {
     if (timeout < 0) {
       throw new PSQLException(GT.tr("Invalid timeout ({0}<0).", timeout),
@@ -1344,11 +1308,17 @@ public class PgConnection implements BaseConnection {
       return false;
     }
     try {
-      if (checkConnectionQuery == null) {
-        checkConnectionQuery = prepareStatement("");
+      if (replicationConnection) {
+        Statement statement = createStatement();
+        statement.execute("IDENTIFY_SYSTEM");
+        statement.close();
+      } else {
+        if (checkConnectionQuery == null) {
+          checkConnectionQuery = prepareStatement("");
+        }
+        checkConnectionQuery.setQueryTimeout(timeout);
+        checkConnectionQuery.executeUpdate();
       }
-      checkConnectionQuery.setQueryTimeout(timeout);
-      checkConnectionQuery.executeUpdate();
       return true;
     } catch (SQLException e) {
       if (PSQLState.IN_FAILED_SQL_TRANSACTION.getState().equals(e.getSQLState())) {
@@ -1360,6 +1330,7 @@ public class PgConnection implements BaseConnection {
     return false;
   }
 
+  @Override
   public void setClientInfo(String name, String value) throws SQLClientInfoException {
     try {
       checkClosed();
@@ -1399,6 +1370,7 @@ public class PgConnection implements BaseConnection {
         PSQLState.NOT_IMPLEMENTED.getState()));
   }
 
+  @Override
   public void setClientInfo(Properties properties) throws SQLClientInfoException {
     try {
       checkClosed();
@@ -1425,12 +1397,14 @@ public class PgConnection implements BaseConnection {
     }
   }
 
+  @Override
   public String getClientInfo(String name) throws SQLException {
     checkClosed();
     _clientInfo.put("ApplicationName", queryExecutor.getApplicationName());
     return _clientInfo.getProperty(name);
   }
 
+  @Override
   public Properties getClientInfo() throws SQLException {
     checkClosed();
     _clientInfo.put("ApplicationName", queryExecutor.getApplicationName());
@@ -1520,6 +1494,7 @@ public class PgConnection implements BaseConnection {
     throw org.postgresql.Driver.notImplemented(this.getClass(), "getNetworkTimeout()");
   }
 
+  @Override
   public void setHoldability(int holdability) throws SQLException {
     checkClosed();
 
@@ -1536,18 +1511,17 @@ public class PgConnection implements BaseConnection {
     }
   }
 
+  @Override
   public int getHoldability() throws SQLException {
     checkClosed();
     return rsHoldability;
   }
 
+  @Override
   public Savepoint setSavepoint() throws SQLException {
-    String pgName;
     checkClosed();
-    if (!haveMinimumServerVersion(ServerVersion.v8_0)) {
-      throw new PSQLException(GT.tr("Server versions prior to 8.0 do not support savepoints."),
-          PSQLState.NOT_IMPLEMENTED);
-    }
+
+    String pgName;
     if (getAutoCommit()) {
       throw new PSQLException(GT.tr("Cannot establish a savepoint in auto-commit mode."),
           PSQLState.NO_ACTIVE_SQL_TRANSACTION);
@@ -1565,12 +1539,10 @@ public class PgConnection implements BaseConnection {
     return savepoint;
   }
 
+  @Override
   public Savepoint setSavepoint(String name) throws SQLException {
     checkClosed();
-    if (!haveMinimumServerVersion(ServerVersion.v8_0)) {
-      throw new PSQLException(GT.tr("Server versions prior to 8.0 do not support savepoints."),
-          PSQLState.NOT_IMPLEMENTED);
-    }
+
     if (getAutoCommit()) {
       throw new PSQLException(GT.tr("Cannot establish a savepoint in auto-commit mode."),
           PSQLState.NO_ACTIVE_SQL_TRANSACTION);
@@ -1587,23 +1559,17 @@ public class PgConnection implements BaseConnection {
     return savepoint;
   }
 
+  @Override
   public void rollback(Savepoint savepoint) throws SQLException {
     checkClosed();
-    if (!haveMinimumServerVersion(ServerVersion.v8_0)) {
-      throw new PSQLException(GT.tr("Server versions prior to 8.0 do not support savepoints."),
-          PSQLState.NOT_IMPLEMENTED);
-    }
 
     PSQLSavepoint pgSavepoint = (PSQLSavepoint) savepoint;
     execSQLUpdate("ROLLBACK TO SAVEPOINT " + pgSavepoint.getPGName());
   }
 
+  @Override
   public void releaseSavepoint(Savepoint savepoint) throws SQLException {
     checkClosed();
-    if (!haveMinimumServerVersion(ServerVersion.v8_0)) {
-      throw new PSQLException(GT.tr("Server versions prior to 8.0 do not support savepoints."),
-          PSQLState.NOT_IMPLEMENTED);
-    }
 
     PSQLSavepoint pgSavepoint = (PSQLSavepoint) savepoint;
     execSQLUpdate("RELEASE SAVEPOINT " + pgSavepoint.getPGName());

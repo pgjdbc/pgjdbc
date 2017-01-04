@@ -5,26 +5,19 @@
 
 package org.postgresql.test.jdbc4.jdbc41;
 
-import junit.framework.TestSuite;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
 
 /*
  * Executes all known tests for JDBC4.1
  */
-public class Jdbc41TestSuite extends TestSuite {
-
-  /*
-   * The main entry point for JUnit
-   */
-  public static TestSuite suite() throws Exception {
-    Class.forName("org.postgresql.Driver");
-    TestSuite suite = new TestSuite();
-
-    suite.addTestSuite(SchemaTest.class);
-    suite.addTestSuite(AbortTest.class);
-    suite.addTestSuite(CloseOnCompletionTest.class);
-    suite.addTestSuite(GetObjectTest.class);
-
-    return suite;
-  }
+@RunWith(Suite.class)
+@Suite.SuiteClasses({
+        SchemaTest.class,
+        AbortTest.class,
+        CloseOnCompletionTest.class,
+        GetObjectTest.class}
+    )
+public class Jdbc41TestSuite {
 
 }

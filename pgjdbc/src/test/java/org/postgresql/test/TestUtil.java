@@ -23,6 +23,8 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Utility class for JDBC tests
@@ -333,10 +335,8 @@ public class TestUtil {
   public static void dropSchema(Connection con, String schema) throws SQLException {
     Statement stmt = con.createStatement();
     try {
-      String sql = "DROP SCHEMA " + schema;
-      if (haveMinimumServerVersion(con, ServerVersion.v7_3)) {
-        sql += " CASCADE ";
-      }
+      String sql = "DROP SCHEMA " + schema + " CASCADE ";
+
       stmt.executeUpdate(sql);
     } catch (SQLException ex) {
       // Since every create schema issues a drop schema
@@ -368,13 +368,12 @@ public class TestUtil {
       dropTable(con, table);
 
       // Now create the table
-      String sql = "CREATE TABLE " + table + " (" + columns + ") ";
+      String sql = "CREATE TABLE " + table + " (" + columns + ")";
 
-      // Starting with 8.0 oids may be turned off by default.
-      // Some tests need them, so they flag that here.
-      if (withOids && haveMinimumServerVersion(con, ServerVersion.v8_0)) {
+      if (withOids) {
         sql += " WITH OIDS";
       }
+
       st.executeUpdate(sql);
     } finally {
       closeQuietly(st);
@@ -507,10 +506,7 @@ public class TestUtil {
   public static void dropTable(Connection con, String table) throws SQLException {
     Statement stmt = con.createStatement();
     try {
-      String sql = "DROP TABLE " + table;
-      if (haveMinimumServerVersion(con, ServerVersion.v7_3)) {
-        sql += " CASCADE ";
-      }
+      String sql = "DROP TABLE " + table + " CASCADE ";
       stmt.executeUpdate(sql);
     } catch (SQLException ex) {
       // Since every create table issues a drop table
@@ -625,14 +621,6 @@ public class TestUtil {
    * version. This is convenient because we are working with a java.sql.Connection, not an Postgres
    * connection.
    */
-  public static boolean haveMinimumServerVersion(Connection con, String version)
-      throws SQLException {
-    if (con instanceof PgConnection) {
-      return ((PgConnection) con).haveMinimumServerVersion(version);
-    }
-    return false;
-  }
-
   public static boolean haveMinimumServerVersion(Connection con, int version) throws SQLException {
     if (con instanceof PgConnection) {
       return ((PgConnection) con).haveMinimumServerVersion(version);
@@ -735,6 +723,102 @@ public class TestUtil {
         rs.close();
       } catch (SQLException ignore) {
       }
+    }
+  }
+
+  public static void recreateLogicalReplicationSlot(Connection connection, String slotName, String outputPlugin)
+      throws SQLException, InterruptedException, TimeoutException {
+    //drop previos slot
+    dropReplicationSlot(connection, slotName);
+
+    PreparedStatement stm = null;
+    try {
+      stm = connection.prepareStatement("SELECT * FROM pg_create_logical_replication_slot(?, ?)");
+      stm.setString(1, slotName);
+      stm.setString(2, outputPlugin);
+      stm.execute();
+    } finally {
+      closeQuietly(stm);
+    }
+  }
+
+  public static void recreatePhysicalReplicationSlot(Connection connection, String slotName)
+      throws SQLException, InterruptedException, TimeoutException {
+    //drop previos slot
+    dropReplicationSlot(connection, slotName);
+
+    PreparedStatement stm = null;
+    try {
+      stm = connection.prepareStatement("SELECT * FROM pg_create_physical_replication_slot(?)");
+      stm.setString(1, slotName);
+      stm.execute();
+    } finally {
+      closeQuietly(stm);
+    }
+  }
+
+  public static void dropReplicationSlot(Connection connection, String slotName)
+      throws SQLException, InterruptedException, TimeoutException {
+    if (haveMinimumServerVersion(connection, ServerVersion.v9_5)) {
+      PreparedStatement stm = null;
+      try {
+        stm = connection.prepareStatement(
+            "select pg_terminate_backend(active_pid) from pg_replication_slots "
+                + "where active = true and slot_name = ?");
+        stm.setString(1, slotName);
+        stm.execute();
+      } finally {
+        closeQuietly(stm);
+      }
+    }
+
+    waitStopReplicationSlot(connection, slotName);
+
+    PreparedStatement stm = null;
+    try {
+      stm = connection.prepareStatement(
+          "select pg_drop_replication_slot(slot_name) "
+              + "from pg_replication_slots where slot_name = ?");
+      stm.setString(1, slotName);
+      stm.execute();
+    } finally {
+      closeQuietly(stm);
+    }
+  }
+
+  public static boolean isReplicationSlotActive(Connection connection, String slotName)
+      throws SQLException {
+    PreparedStatement stm = null;
+    ResultSet rs = null;
+
+    try {
+      stm =
+          connection.prepareStatement("select active from pg_replication_slots where slot_name = ?");
+      stm.setString(1, slotName);
+      rs = stm.executeQuery();
+      return rs.next() && rs.getBoolean(1);
+    } finally {
+      closeQuietly(rs);
+      closeQuietly(stm);
+    }
+  }
+
+  private static void waitStopReplicationSlot(Connection connection, String slotName)
+      throws InterruptedException, TimeoutException, SQLException {
+    long startWaitTime = System.currentTimeMillis();
+    boolean stillActive;
+    long timeInWait = 0;
+
+    do {
+      stillActive = isReplicationSlotActive(connection, slotName);
+      if (stillActive) {
+        TimeUnit.MILLISECONDS.sleep(100L);
+        timeInWait = System.currentTimeMillis() - startWaitTime;
+      }
+    } while (stillActive && timeInWait <= 30000);
+
+    if (stillActive) {
+      throw new TimeoutException("Wait stop replication slot " + timeInWait + " timeout occurs");
     }
   }
 }

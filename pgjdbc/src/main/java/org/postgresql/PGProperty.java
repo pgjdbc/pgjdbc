@@ -51,8 +51,8 @@ public enum PGProperty {
    * fallback.
    */
   PROTOCOL_VERSION("protocolVersion", null,
-      "Force use of a particular protocol version when connecting, if set, disables protocol version fallback.",
-      false, "2", "3"),
+      "Force use of a particular protocol version when connecting, currently only version 3 is supported.",
+      false, "3"),
 
   /**
    * The loglevel. Can be one of {@link Driver#DEBUG}, {@link Driver#INFO}, {@link Driver#OFF}.
@@ -104,12 +104,6 @@ public enum PGProperty {
    */
   BINARY_TRANSFER("binaryTransfer", "true",
       "Use binary format for sending and receiving data if possible"),
-
-  /**
-   * Force compatibility of some features with an older version of the driver.
-   */
-  COMPATIBLE("compatible", Driver.MAJORVERSION + "." + Driver.MINORVERSION,
-      "Force compatibility of some features with an older version of the driver"),
 
   /**
    * Puts this connection in read-only mode.
@@ -324,13 +318,6 @@ public enum PGProperty {
   SSPI_SERVICE_CLASS("sspiServiceClass", "POSTGRES", "The Windows SSPI service class for SPN"),
 
   /**
-   * The character set to use for data sent to the database or received from the database. This
-   * property is only relevant for server versions less than or equal to 7.2.
-   */
-  CHARSET("charSet", null,
-      "The character set to use for data sent to the database or received from the database (for backend <= 7.2)"),
-
-  /**
    * When using the V3 protocol the driver monitors changes in certain server configuration
    * parameters that should not be touched by end users. The {@code client_encoding} setting is set
    * by the driver and should not be altered. If the driver detects a change it will abort the
@@ -383,7 +370,27 @@ public enum PGProperty {
    * Configure optimization to enable batch insert re-writing.
    */
   REWRITE_BATCHED_INSERTS ("reWriteBatchedInserts", "false",
-      "Enable optimization to rewrite and collapse compatible INSERT statements that are batched.");
+      "Enable optimization to rewrite and collapse compatible INSERT statements that are batched."),
+
+  /**
+   * <p>Connection parameter for startup message Available value(true, database). A Boolean value of
+   * true tells the backend to go into walsender mode, wherein a small set of replication commands
+   * can be issued instead of SQL statements. Only the simple query protocol can be used in
+   * walsender mode. Passing database as the value instructs walsender to connect to the database
+   * specified in the dbname parameter, which will allow the connection to be used for logical
+   * replication from that database. <p>Parameter should be use together with {@link
+   * PGProperty#ASSUME_MIN_SERVER_VERSION} with parameter &gt;= 9.4 (backend &gt;= 9.4)
+   */
+  REPLICATION("replication", null,
+      "Connection parameter for startup message Available value(true, database). "
+          + "A Boolean value of true tells the backend to go into walsender mode, "
+          + "wherein a small set of replication commands can be issued instead of SQL statements. "
+          + "Only the simple query protocol can be used in walsender mode. "
+          + "Passing database as the value instructs walsender to connect "
+          + "to the database specified in the dbname parameter, "
+          + "which will allow the connection to be used for logical replication "
+          + "from that database. "
+          + "(backend >= 9.4)");
 
   private String _name;
   private String _defaultValue;

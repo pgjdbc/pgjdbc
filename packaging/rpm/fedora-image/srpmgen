@@ -1,11 +1,12 @@
 #! /bin/perl
 
 use YAML;
+use Cwd;
 use File::Basename;
 
-open (my $config_file, "<", ".srpmgen") or die "Couldn't open file: $!"; 
+open (my $config_file, "<", ".srpmgen") or die "Couldn't open file: $!";
 
-my ($config) = Load( join('', <$config_file>));
+my ($config) = Load(join('', <$config_file>));
 
 sub info
 {
@@ -20,10 +21,28 @@ if ($? >> 8) {
 sub obtain_source
 {
     my ($id, $config) = @_;
+    my $tarball_dir = cwd();
 
     if (defined ($config->{git_archive})) {
+        my $srcdir = ".";
+
+        if (defined ($config->{repo}))
+        {
+            # This is not going to be cloned from the "main" git repo, but
+            # rather from separate one.
+            if (!defined $config->{repo}->{address} ||
+                !defined $config->{repo}->{subdir}) {
+                die ("'repo' argument in .srpmdir requires 'address' and 'subdir' sub-parameters");
+            }
+            $srcdir = $config->{repo}->{address};
+            system ("git clone $config->{repo}->{address} ${config}->{repo}->{subdir}");
+            if ($? >> 8) {
+                die ("can't clone $config->{repo}->{address}");
+            }
+        }
+
         $config = $config->{git_archive};
-        my $topleveldir = `git rev-parse --show-toplevel`;
+        my $topleveldir = `cd "$srcdir" && git rev-parse --show-toplevel`;
         if ($? >> 8) {
             die ("can't get git top level directory");
         }
@@ -35,7 +54,7 @@ sub obtain_source
         if (defined ($config->{tarball_base})) {
             $tarball_base = $config->{tarball_base};
         }
-        system ("git archive --remote $topleveldir --prefix $pfx/ HEAD | gzip > $tarball_base.tar.gz");
+        system ("cd '$srcdir' && git archive --remote '$topleveldir' --prefix $pfx/ HEAD | gzip > '$tarball_dir/$tarball_base.tar.gz'");
         if ($? >> 8) {
             die ("can't generate tarball $tarball_base.tar.gz");
         }

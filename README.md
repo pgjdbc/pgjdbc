@@ -61,9 +61,9 @@ Snapshot builds (builds from `master` branch) are also deployed to Maven Central
 <dependency>
   <groupId>org.postgresql</groupId>
   <artifactId>postgresql</artifactId>
-  <version>9.4.1213-SNAPSHOT</version> <!-- Java 8 -->
-  <version>9.4.1213.jre7-SNAPSHOT</version> <!-- Java 7 -->
-  <version>9.4.1213.jre6-SNAPSHOT</version> <!-- Java 6 -->
+  <version>42.0.0-SNAPSHOT</version> <!-- Java 8 -->
+  <version>42.0.0.jre7-SNAPSHOT</version> <!-- Java 7 -->
+  <version>42.0.0.jre6-SNAPSHOT</version> <!-- Java 6 -->
 </dependency>
 ```
 
@@ -148,12 +148,12 @@ In addition to the standard connection parameters the driver supports a number o
 | sslcert                       | String  | null    | The location of the client's SSL certificate |
 | sslkey                        | String  | null    | The location of the client's PKCS#8 SSL key |
 | sslrootcert                   | String  | null    | The location of the root certificate for authenticating the server. |
-| sslhostnameverifier           | String  | null    | A class, implementing javax.net.ssl.HostnameVerifier that can verify the server |
-| sslpaswordcallback            | String  | null    | A class, implementing javax.security.auth.callback.CallbackHandler that can handle PassworCallback for the ssl password. |
+| sslhostnameverifier           | String  | null    | The name of a class (for use in [Class.forName(String)](https://docs.oracle.com/javase/6/docs/api/java/lang/Class.html#forName%28java.lang.String%29)) that implements javax.net.ssl.HostnameVerifier and can verify the server hostname. |
+| sslpasswordcallback           | String  | null    | The name of a class (for use in [Class.forName(String)](https://docs.oracle.com/javase/6/docs/api/java/lang/Class.html#forName%28java.lang.String%29)) that implements javax.security.auth.callback.CallbackHandler and can handle PasswordCallback for the ssl password. |
 | sslpassword                   | String  | null    | The password for the client's ssl key (ignored if sslpasswordcallback is set) |
 | sendBufferSize                | Integer | -1      | Socket write buffer size |
 | recvBufferSize                | Integer | -1      | Socket read buffer size  |
-| loglevel                      | Integer | 0       | The log level to debug the driver, posible values: 0, 1, 2 |
+| loglevel                      | Integer | 0       | The log level to debug the driver, possible values: 0, 1, 2. Call [setLogWriter(PrintWriter)](https://docs.oracle.com/javase/6/docs/api/java/sql/DriverManager.html#setLogWriter%28java.io.PrintWriter%29) to set the log output destination. |
 | allowEncodingChanges          | Boolean | false   | Allow for changes in client_encoding |
 | logUnclosedConnections        | Boolean | false   | When connections that are not explicitly closed are garbage collected, log the stacktrace from the opening of the connection to trace the leak source |
 | binaryTransferEnable          | String  | ""      | Comma separated list of types to enable binary transfer. Either OID numbers or names |
@@ -171,13 +171,13 @@ In addition to the standard connection parameters the driver supports a number o
 | disableColumnSanitiser        | Boolean | false   | Enable optimization that disables column name sanitiser |
 | assumeMinServerVersion        | String  | null    | Assume the server is at least that version |
 | currentSchema                 | String  | null    | Specify the schema to be set in the search-path |
-| targetServerType              | String  | any     | Specifies what kind of server to connect, posible values: any, master, slave, preferSlave |
+| targetServerType              | String  | any     | Specifies what kind of server to connect, possible values: any, master, slave, preferSlave |
 | hostRecheckSeconds            | Integer | 10      | Specifies period (seconds) after host statuses are checked again in case they have changed |
 | loadBalanceHosts              | Boolean | false   | If disabled hosts are connected in the given order. If enabled hosts are chosen randomly from the set of suitable candidates |
 | socketFactory                 | String  | null    | Specify a socket factory for socket creation |
 | socketFactoryArg              | String  | null    | Argument forwarded to constructor of SocketFactory class. |
-| autosave                      | String  | never   | Specifies what the driver should do if a query fails, posible values: always, never, conservative |
-| preferQueryMode               | String  | extended | Specifies which mode is used to execute queries to database, posible values: extended, extendedForPrepared, extendedCacheEveryting, simple |
+| autosave                      | String  | never   | Specifies what the driver should do if a query fails, possible values: always, never, conservative |
+| preferQueryMode               | String  | extended | Specifies which mode is used to execute queries to database, possible values: extended, extendedForPrepared, extendedCacheEveryting, simple |
 | reWriteBatchedInserts         | Boolean | false  | Enable optimization to rewrite and collapse compatible INSERT statements that are batched. |
 
 ## Contributing 

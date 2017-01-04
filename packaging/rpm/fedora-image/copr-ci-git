@@ -6,6 +6,8 @@ copr_fe_url=https://copr.fedorainfracloud.org/coprs/g/pgjdbc/pgjdbc-travis/build
 copr_be_link=https://copr-be.cloud.fedoraproject.org/results/@pgjdbc/pgjdbc-travis/fedora-rawhide-x86_64/
 status_file=copr_build_id
 
+test -z "$PARENT_VERSION" && exit 1
+
 copr_wrapper ()
 (
     set +x
@@ -29,7 +31,9 @@ cd "$1"
 git_rev=$(git rev-parse --short=7 HEAD)
 date_rev=$(date +%Y%m%d_%H%M%S)
 release=${date_rev}.git$git_rev
-sed "s!^Release:.*\$!Release: 1.$release%{?dist}!" "$2".spec.tpl > "$2".spec
+sed -e "s!^Release:.*\$!Release: 1.$release%{?dist}!" \
+    -e "s!%global parent_ver.*!%global parent_ver $PARENT_VERSION!" \
+    "$2".spec.tpl > "$2".spec
 srpmgen
 build_local -bs "$2".spec --define "dist %nil"
 copr_wrapper --config "$1"/copr-token build --nowait @pgjdbc/pgjdbc-travis "$2-$3-1.$release.src.rpm"

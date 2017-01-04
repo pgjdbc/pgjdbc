@@ -252,10 +252,6 @@ public class ArrayTest extends BaseTest4 {
 
   @Test
   public void testNullValues() throws SQLException {
-    if (!TestUtil.haveMinimumServerVersion(conn, "8.2")) {
-      return;
-    }
-
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT ARRAY[1,NULL,3]");
     Assert.assertTrue(rs.next());
@@ -344,20 +340,14 @@ public class ArrayTest extends BaseTest4 {
     String s[] = (String[]) arr.getArray();
     Assert.assertEquals(2, s.length);
     Assert.assertEquals("a", s[0]);
-    if (TestUtil.haveMinimumServerVersion(conn, "8.2")) {
-      Assert.assertNull(s[1]);
-    } else {
-      Assert.assertEquals("NULL", s[1]);
-    }
+    Assert.assertNull(s[1]);
   }
 
   @Test
   public void testEscaping() throws SQLException {
     Statement stmt = conn.createStatement();
     String sql = "SELECT ";
-    if (TestUtil.haveMinimumServerVersion(conn, "8.1")) {
-      sql += 'E';
-    }
+    sql += 'E';
     // Uggg. Three levels of escaping: Java, string literal, array.
     sql += "'{{c\\\\\"d, ''}, {\"\\\\\\\\\",\"''\"}}'::text[]";
 
