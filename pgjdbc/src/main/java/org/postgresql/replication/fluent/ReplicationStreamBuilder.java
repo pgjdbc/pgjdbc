@@ -5,7 +5,6 @@
 
 package org.postgresql.replication.fluent;
 
-
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ReplicationProtocol;
 import org.postgresql.replication.PGReplicationStream;

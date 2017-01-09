@@ -5,7 +5,6 @@
 
 package org.postgresql.replication;
 
-
 import java.nio.ByteBuffer;
 
 /**

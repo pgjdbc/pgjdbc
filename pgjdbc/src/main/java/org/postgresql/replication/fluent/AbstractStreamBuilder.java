@@ -5,7 +5,6 @@
 
 package org.postgresql.replication.fluent;
 
-
 import org.postgresql.replication.LogSequenceNumber;
 
 import java.util.concurrent.TimeUnit;

@@ -5,7 +5,6 @@
 
 package org.postgresql.replication.fluent.physical;
 
-
 import org.postgresql.core.BaseConnection;
 import org.postgresql.replication.fluent.AbstractCreateSlotBuilder;
 

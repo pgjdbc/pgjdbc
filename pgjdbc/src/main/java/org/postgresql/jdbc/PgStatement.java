@@ -5,7 +5,6 @@
 
 package org.postgresql.jdbc;
 
-
 import org.postgresql.Driver;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;

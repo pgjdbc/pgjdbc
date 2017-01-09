@@ -5,7 +5,6 @@
 
 package org.postgresql.largeobject;
 
-
 import org.postgresql.core.BaseConnection;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.fastpath.FastpathArg;

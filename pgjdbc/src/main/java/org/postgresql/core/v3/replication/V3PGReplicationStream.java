@@ -5,7 +5,6 @@
 
 package org.postgresql.core.v3.replication;
 
-
 import org.postgresql.copy.CopyDual;
 import org.postgresql.core.Logger;
 import org.postgresql.replication.LogSequenceNumber;

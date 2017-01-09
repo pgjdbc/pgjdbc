@@ -5,7 +5,6 @@
 
 package org.postgresql.replication;
 
-
 import org.postgresql.replication.fluent.CommonOptions;
 import org.postgresql.replication.fluent.logical.LogicalReplicationOptions;
 
