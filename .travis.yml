@@ -58,7 +58,7 @@ matrix:
       env: RUN_CHECKSTYLE=true
       script: mvn checkstyle:check
     - jdk:
-        - openjdk8
+        - oraclejdk8
         - openjdk7
         - openjdk6
       dist: trusty
