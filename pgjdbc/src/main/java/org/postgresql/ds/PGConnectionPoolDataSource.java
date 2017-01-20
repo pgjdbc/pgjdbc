@@ -44,7 +44,7 @@ public class PGConnectionPoolDataSource extends BaseDataSource
    * Gets a description of this DataSource.
    */
   public String getDescription() {
-    return "ConnectionPoolDataSource from " + org.postgresql.Driver.getVersion();
+    return "ConnectionPoolDataSource from " + org.postgresql.util.DriverInfo.DRIVER_FULL_NAME;
   }
 
   /**

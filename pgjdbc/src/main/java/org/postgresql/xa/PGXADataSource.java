@@ -50,7 +50,7 @@ public class PGXADataSource extends BaseDataSource implements XADataSource, Refe
   }
 
   public String getDescription() {
-    return "JDBC3 XA-enabled DataSource from " + org.postgresql.Driver.getVersion();
+    return "XA-enabled DataSource from " + org.postgresql.util.DriverInfo.DRIVER_FULL_NAME;
   }
 
   /**

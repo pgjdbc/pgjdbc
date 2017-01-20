@@ -78,7 +78,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
    * Gets a description of this DataSource.
    */
   public String getDescription() {
-    return "Pooling DataSource '" + dataSourceName + " from " + org.postgresql.Driver.getVersion();
+    return "Pooling DataSource '" + dataSourceName + " from " + org.postgresql.util.DriverInfo.DRIVER_FULL_NAME;
   }
 
   /**

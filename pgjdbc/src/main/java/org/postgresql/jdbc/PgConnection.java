@@ -214,7 +214,7 @@ public class PgConnection implements BaseConnection {
 
     // Print out the driver version number
     if (logger.logInfo()) {
-      logger.info(Driver.getVersion());
+      logger.info(org.postgresql.util.DriverInfo.DRIVER_FULL_NAME);
     }
 
     // Now make the initial connection and set up local state

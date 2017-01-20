@@ -5,7 +5,6 @@
 
 package org.postgresql.jdbc;
 
-import org.postgresql.Driver;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
@@ -36,7 +35,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public PgDatabaseMetaData(PgConnection conn) {
     this.connection = conn;
   }
-
 
   private static final String keywords = "abort,acl,add,aggregate,append,archive,"
       + "arch_store,backward,binary,boolean,change,cluster,"
@@ -138,35 +136,39 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   /**
-   * What is the name of this database product - we hope that it is PostgreSQL, so we return that
+   * Retrieves the name of this database product. We hope that it is PostgreSQL, so we return that
    * explicitly.
    *
-   * @return the database product name
-   *
-   * @exception SQLException if a database access error occurs
+   * @return "PostgreSQL"
    */
+  @Override
   public String getDatabaseProductName() throws SQLException {
     return "PostgreSQL";
   }
 
+  @Override
   public String getDatabaseProductVersion() throws SQLException {
     return connection.getDBVersionNumber();
   }
 
-  public String getDriverName() throws SQLException {
-    return "PostgreSQL Native Driver";
+  @Override
+  public String getDriverName() {
+    return org.postgresql.util.DriverInfo.DRIVER_NAME;
   }
 
-  public String getDriverVersion() throws SQLException {
-    return Driver.getVersion();
+  @Override
+  public String getDriverVersion() {
+    return org.postgresql.util.DriverInfo.DRIVER_VERSION;
   }
 
+  @Override
   public int getDriverMajorVersion() {
-    return Driver.MAJORVERSION;
+    return org.postgresql.util.DriverInfo.MAJOR_VERSION;
   }
 
+  @Override
   public int getDriverMinorVersion() {
-    return Driver.MINORVERSION;
+    return org.postgresql.util.DriverInfo.MINOR_VERSION;
   }
 
   /**
@@ -2539,11 +2541,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return getProcedureColumns(catalog, schemaPattern, functionNamePattern, columnNamePattern);
   }
 
-  public int getJDBCMajorVersion() throws SQLException {
-    // FIXME: dependent on JDBC version
-    return 4;
-  }
-
   public ResultSet getPseudoColumns(String catalog, String schemaPattern, String tableNamePattern,
       String columnNamePattern) throws SQLException {
     throw org.postgresql.Driver.notImplemented(this.getClass(),
@@ -2599,20 +2596,28 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return ResultSet.HOLD_CURSORS_OVER_COMMIT;
   }
 
+  @Override
   public int getDatabaseMajorVersion() throws SQLException {
     return connection.getServerMajorVersion();
   }
 
+  @Override
   public int getDatabaseMinorVersion() throws SQLException {
     return connection.getServerMinorVersion();
   }
 
-  public int getJDBCMinorVersion() throws SQLException {
-    return 0; // This class implements JDBC 3.0
+  @Override
+  public int getJDBCMajorVersion() {
+    return org.postgresql.util.DriverInfo.JDBC_MAJOR_VERSION;
+  }
+
+  @Override
+  public int getJDBCMinorVersion() {
+    return org.postgresql.util.DriverInfo.JDBC_MINOR_VERSION;
   }
 
   public int getSQLStateType() throws SQLException {
-    return sqlStateSQL99;
+    return sqlStateSQL;
   }
 
   public boolean locatorsUpdateCopy() throws SQLException {

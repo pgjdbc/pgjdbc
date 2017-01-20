@@ -195,6 +195,9 @@ public class DatabaseMetaDataPropertiesTest {
     assertNotNull(dbmd);
 
     assertTrue(dbmd.getDatabaseProductName().equals("PostgreSQL"));
+    assertTrue(dbmd.getDatabaseMajorVersion() >= 8);
+    assertTrue(dbmd.getDatabaseMinorVersion() >= 0);
+    assertTrue(dbmd.getDatabaseProductVersion().startsWith(String.valueOf(dbmd.getDatabaseMajorVersion())));
   }
 
   @Test
@@ -202,9 +205,11 @@ public class DatabaseMetaDataPropertiesTest {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 
-    assertTrue(dbmd.getDriverVersion().equals(org.postgresql.Driver.getVersion()));
-    assertTrue(dbmd.getDriverMajorVersion() == org.postgresql.Driver.MAJORVERSION);
-    assertTrue(dbmd.getDriverMinorVersion() == org.postgresql.Driver.MINORVERSION);
+    assertTrue(dbmd.getDriverName().equals("PostgreSQL JDBC Driver"));
+    assertTrue(dbmd.getDriverVersion().equals(org.postgresql.util.DriverInfo.DRIVER_VERSION));
+    assertTrue(dbmd.getDriverMajorVersion() == new org.postgresql.Driver().getMajorVersion());
+    assertTrue(dbmd.getDriverMinorVersion() == new org.postgresql.Driver().getMinorVersion());
+    assertTrue(dbmd.getJDBCMajorVersion() >= 4);
+    assertTrue(dbmd.getJDBCMinorVersion() >= 0);
   }
 }
-
