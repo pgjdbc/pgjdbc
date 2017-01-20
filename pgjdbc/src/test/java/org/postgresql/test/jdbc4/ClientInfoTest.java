@@ -5,10 +5,16 @@
 
 package org.postgresql.test.jdbc4;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -17,19 +23,17 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
 
-public class ClientInfoTest extends TestCase {
+public class ClientInfoTest {
 
   private Connection _conn;
 
-  public ClientInfoTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
+  @Before
+  public void setUp() throws Exception {
     _conn = TestUtil.openDB();
   }
 
-  protected void tearDown() throws SQLException {
+  @After
+  public void tearDown() throws SQLException {
     TestUtil.closeDB(_conn);
   }
 
@@ -43,6 +47,7 @@ public class ClientInfoTest extends TestCase {
     return appName;
   }
 
+  @Test
   public void testSetAppName() throws SQLException {
     if (!TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v9_0)) {
       return;
@@ -54,6 +59,7 @@ public class ClientInfoTest extends TestCase {
     assertEquals("my app", _conn.getClientInfo().getProperty("ApplicationName"));
   }
 
+  @Test
   public void testExplicitSetAppNameNotificationIsParsed() throws SQLException {
     if (!TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v9_0)) {
       return;
@@ -70,6 +76,7 @@ public class ClientInfoTest extends TestCase {
         + "con.getClientInfo", appName, _conn.getClientInfo().get("ApplicationName"));
   }
 
+  @Test
   public void testSetAppNameProps() throws SQLException {
     if (!TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v9_0)) {
       return;
@@ -86,6 +93,7 @@ public class ClientInfoTest extends TestCase {
   /**
    * Test that no exception is thrown when an unknown property is set
    */
+  @Test
   public void testWarningOnUnknownName() throws SQLException {
     try {
       _conn.setClientInfo("UnexisingClientInfoName", "NoValue");
@@ -98,6 +106,7 @@ public class ClientInfoTest extends TestCase {
   /**
    * Test that a name missing in the properties given to setClientInfo should be unset (spec)
    */
+  @Test
   public void testMissingName() throws SQLException {
     if (!TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v9_0)) {
       return;

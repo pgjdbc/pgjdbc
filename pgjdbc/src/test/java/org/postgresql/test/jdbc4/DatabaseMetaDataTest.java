@@ -5,36 +5,41 @@
 
 package org.postgresql.test.jdbc4;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public class DatabaseMetaDataTest extends TestCase {
+public class DatabaseMetaDataTest {
 
   private Connection _conn;
 
-  public DatabaseMetaDataTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
+  @Before
+  public void setUp() throws Exception {
     _conn = TestUtil.openDB();
     TestUtil.dropSequence(_conn, "sercoltest_a_seq");
     TestUtil.createTable(_conn, "sercoltest", "a serial, b int");
   }
 
-  protected void tearDown() throws Exception {
+  @After
+  public void tearDown() throws Exception {
     TestUtil.dropSequence(_conn, "sercoltest_a_seq");
     TestUtil.dropTable(_conn, "sercoltest");
     TestUtil.closeDB(_conn);
   }
 
+  @Test
   public void testGetClientInfoProperties() throws Exception {
     DatabaseMetaData dbmd = _conn.getMetaData();
 
@@ -48,6 +53,7 @@ public class DatabaseMetaDataTest extends TestCase {
     assertEquals("ApplicationName", rs.getString("NAME"));
   }
 
+  @Test
   public void testGetColumnsForAutoIncrement() throws Exception {
     DatabaseMetaData dbmd = _conn.getMetaData();
 
@@ -63,6 +69,7 @@ public class DatabaseMetaDataTest extends TestCase {
     assertTrue(!rs.next());
   }
 
+  @Test
   public void testGetSchemas() throws SQLException {
     DatabaseMetaData dbmd = _conn.getMetaData();
 

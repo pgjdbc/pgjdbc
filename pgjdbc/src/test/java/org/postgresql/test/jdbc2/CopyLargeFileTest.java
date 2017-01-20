@@ -5,13 +5,17 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertEquals;
+
 import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyManager;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.BufferGenerator;
 import org.postgresql.test.util.StrangeInputStream;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -22,19 +26,17 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 /**
- * Created by amozhenin on 30.09.2015.
+ * @author amozhenin on 30.09.2015.
  */
-public class CopyLargeFileTest extends TestCase {
+public class CopyLargeFileTest {
 
   private static final int FEED_COUNT = 10;
 
   private Connection con;
   private CopyManager copyAPI;
 
-
-  protected void setUp() throws Exception {
-    super.setUp();
-
+  @Before
+  public void setUp() throws Exception {
     con = TestUtil.openDB();
 
     TestUtil.createTable(con, "pgjdbc_issue366_test_glossary",
@@ -66,8 +68,8 @@ public class CopyLargeFileTest extends TestCase {
     stmt.executeUpdate();
   }
 
-  protected void tearDown() throws Exception {
-    super.tearDown();
+  @After
+  public void tearDown() throws Exception {
     try {
       TestUtil.dropTable(con, "pgjdbc_issue366_test_data");
       TestUtil.dropTable(con, "pgjdbc_issue366_test_glossary");
@@ -77,6 +79,7 @@ public class CopyLargeFileTest extends TestCase {
     }
   }
 
+  @Test
   public void testFeedTableSeveralTimesTest() throws Exception {
     for (int i = 1; i <= FEED_COUNT; i++) {
       feedTableAndCheckTableFeedIsOk(con);

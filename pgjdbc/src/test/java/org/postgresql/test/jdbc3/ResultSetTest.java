@@ -5,24 +5,26 @@
 
 package org.postgresql.test.jdbc3;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-public class ResultSetTest extends TestCase {
+public class ResultSetTest {
 
   private Connection _conn;
 
-  public ResultSetTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
+  @Before
+  public void setUp() throws Exception {
     _conn = TestUtil.openDB();
     Statement stmt = _conn.createStatement();
     stmt.execute("CREATE TEMP TABLE hold(a int)");
@@ -31,13 +33,15 @@ public class ResultSetTest extends TestCase {
     stmt.close();
   }
 
-  protected void tearDown() throws SQLException {
+  @After
+  public void tearDown() throws SQLException {
     Statement stmt = _conn.createStatement();
     stmt.execute("DROP TABLE hold");
     stmt.close();
     TestUtil.closeDB(_conn);
   }
 
+  @Test
   public void testHoldableResultSet() throws SQLException {
     Statement stmt = _conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
         ResultSet.HOLD_CURSORS_OVER_COMMIT);

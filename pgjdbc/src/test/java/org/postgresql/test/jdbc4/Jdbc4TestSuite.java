@@ -27,14 +27,14 @@ public class Jdbc4TestSuite extends TestSuite {
   public static TestSuite suite() throws Exception {
     TestSuite suite = new TestSuite();
 
-    suite.addTestSuite(DatabaseMetaDataTest.class);
+    suite.addTest(new JUnit4TestAdapter(DatabaseMetaDataTest.class));
     suite.addTest(new JUnit4TestAdapter(ArrayTest.class));
-    suite.addTestSuite(WrapperTest.class);
+    suite.addTest(new JUnit4TestAdapter(WrapperTest.class));
     suite.addTest(new JUnit4TestAdapter(BinaryTest.class));
-    suite.addTestSuite(IsValidTest.class);
-    suite.addTestSuite(ClientInfoTest.class);
-    suite.addTestSuite(PGCopyInputStreamTest.class);
-    suite.addTestSuite(BlobTest.class);
+    suite.addTest(new JUnit4TestAdapter(IsValidTest.class));
+    suite.addTest(new JUnit4TestAdapter(ClientInfoTest.class));
+    suite.addTest(new JUnit4TestAdapter(PGCopyInputStreamTest.class));
+    suite.addTest(new JUnit4TestAdapter(BlobTest.class));
     suite.addTest(new JUnit4TestAdapter(BinaryStreamTest.class));
     suite.addTest(new JUnit4TestAdapter(CharacterStreamTest.class));
 
@@ -43,7 +43,7 @@ public class Jdbc4TestSuite extends TestSuite {
       if (TestUtil.haveMinimumServerVersion(connection, ServerVersion.v8_3)) {
         suite.addTest(new JUnit4TestAdapter(UUIDTest.class));
         if (isXmlEnabled(connection)) {
-          suite.addTestSuite(XmlTest.class);
+          suite.addTest(new JUnit4TestAdapter(XmlTest.class));
         }
       }
     } finally {

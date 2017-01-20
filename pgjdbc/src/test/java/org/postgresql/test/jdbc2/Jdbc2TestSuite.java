@@ -66,7 +66,7 @@ public class Jdbc2TestSuite extends TestSuite {
     suite.addTest(new JUnit4TestAdapter(DateTest.class));
     suite.addTest(new JUnit4TestAdapter(TimeTest.class));
     suite.addTest(new JUnit4TestAdapter(TimestampTest.class));
-    suite.addTestSuite(TimezoneTest.class);
+    suite.addTest(new JUnit4TestAdapter(TimezoneTest.class));
     suite.addTest(new JUnit4TestAdapter(PGTimeTest.class));
     suite.addTest(new JUnit4TestAdapter(PGTimestampTest.class));
     suite.addTest(new JUnit4TestAdapter(TimezoneCachingTest.class));
@@ -74,7 +74,7 @@ public class Jdbc2TestSuite extends TestSuite {
 
     // PreparedStatement
     suite.addTest(new JUnit4TestAdapter(PreparedStatementTest.class));
-    suite.addTestSuite(StatementTest.class);
+    suite.addTest(new JUnit4TestAdapter(StatementTest.class));
     suite.addTest(new JUnit4TestAdapter(QuotationTest.class));
 
     // ServerSide Prepared Statements
@@ -90,14 +90,14 @@ public class Jdbc2TestSuite extends TestSuite {
 
     // Other misc tests, based on previous problems users have had or specific
     // features some applications require.
-    suite.addTestSuite(JBuilderTest.class);
-    suite.addTestSuite(MiscTest.class);
-    suite.addTestSuite(NotifyTest.class);
-    suite.addTestSuite(DatabaseEncodingTest.class);
+    suite.addTest(new JUnit4TestAdapter(JBuilderTest.class));
+    suite.addTest(new JUnit4TestAdapter(MiscTest.class));
+    suite.addTest(new JUnit4TestAdapter(NotifyTest.class));
+    suite.addTest(new JUnit4TestAdapter(DatabaseEncodingTest.class));
 
     // Fastpath/LargeObject
-    suite.addTestSuite(BlobTest.class);
-    suite.addTestSuite(BlobTransactionTest.class);
+    suite.addTest(new JUnit4TestAdapter(BlobTest.class));
+    suite.addTest(new JUnit4TestAdapter(BlobTransactionTest.class));
 
     suite.addTest(new JUnit4TestAdapter(UpdateableResultTest.class));
 
@@ -107,25 +107,25 @@ public class Jdbc2TestSuite extends TestSuite {
     suite.addTest(new JUnit4TestAdapter(ServerCursorTest.class));
 
     suite.addTest(new JUnit4TestAdapter(IntervalTest.class));
-    suite.addTestSuite(GeometricTest.class);
+    suite.addTest(new JUnit4TestAdapter(GeometricTest.class));
 
-    suite.addTestSuite(LoginTimeoutTest.class);
-    suite.addTestSuite(TestACL.class);
+    suite.addTest(new JUnit4TestAdapter(LoginTimeoutTest.class));
+    suite.addTest(new JUnit4TestAdapter(TestACL.class));
 
-    suite.addTestSuite(ConnectTimeoutTest.class);
+    suite.addTest(new JUnit4TestAdapter(ConnectTimeoutTest.class));
 
-    suite.addTestSuite(PGPropertyTest.class);
+    suite.addTest(new JUnit4TestAdapter(PGPropertyTest.class));
 
     suite.addTestSuite(V3ParameterListTests.class);
 
     Connection conn = TestUtil.openDB();
     if (TestUtil.isProtocolVersion(conn, 3)) {
-      suite.addTestSuite(CopyTest.class);
-      suite.addTestSuite(CopyLargeFileTest.class);
+      suite.addTest(new JUnit4TestAdapter(CopyTest.class));
+      suite.addTest(new JUnit4TestAdapter(CopyLargeFileTest.class));
     }
 
     if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v9_3)) {
-      suite.addTestSuite(ServerErrorTest.class);
+      suite.addTest(new JUnit4TestAdapter(ServerErrorTest.class));
     }
 
     if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v9_5)) {

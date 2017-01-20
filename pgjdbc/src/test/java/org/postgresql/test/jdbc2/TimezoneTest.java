@@ -5,10 +5,16 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.Date;
@@ -46,7 +52,7 @@ import java.util.TimeZone;
  *
  * (this matches what we must support per JDBC 3.0, tables B-5 and B-6)
  */
-public class TimezoneTest extends TestCase {
+public class TimezoneTest {
   private static final int DAY = 24 * 3600 * 1000;
   private static final TimeZone saveTZ = TimeZone.getDefault();
   private static final int PREPARE_THRESHOLD = 2;
@@ -65,9 +71,7 @@ public class TimezoneTest extends TestCase {
   private Calendar cGMT05;
   private Calendar cGMT13;
 
-  public TimezoneTest(String name) {
-    super(name);
-
+  public TimezoneTest() {
     TimeZone UTC = TimeZone.getTimeZone("UTC"); // +0000 always
     TimeZone GMT03 = TimeZone.getTimeZone("GMT+03"); // +0300 always
     TimeZone GMT05 = TimeZone.getTimeZone("GMT-05"); // -0500 always
@@ -79,7 +83,8 @@ public class TimezoneTest extends TestCase {
     cGMT13 = Calendar.getInstance(GMT13);
   }
 
-  protected void setUp() throws Exception {
+  @Before
+  public void setUp() throws Exception {
     // We must change the default TZ before establishing the connection.
     // Arbitrary timezone that doesn't match our test timezones
     TimeZone.setDefault(TimeZone.getTimeZone("GMT+01"));
@@ -101,7 +106,8 @@ public class TimezoneTest extends TestCase {
     con = TestUtil.openDB(p);
   }
 
-  protected void tearDown() throws Exception {
+  @After
+  public void tearDown() throws Exception {
     // System.err.println("++++++ TESTS END (" + getName() + ") ++++++");
     TimeZone.setDefault(saveTZ);
 
@@ -109,6 +115,7 @@ public class TimezoneTest extends TestCase {
     TestUtil.closeDB(con);
   }
 
+  @Test
   public void testGetTimestamp() throws Exception {
     con.createStatement().executeUpdate(
         "INSERT INTO testtimezone(tstz,ts,t,tz,d) VALUES('2005-01-01 15:00:00 +0300', '2005-01-01 15:00:00', '15:00:00', '15:00:00 +0300', '2005-01-01')");
@@ -206,6 +213,7 @@ public class TimezoneTest extends TestCase {
     }
   }
 
+  @Test
   public void testGetDate() throws Exception {
     con.createStatement().executeUpdate(
         "INSERT INTO testtimezone(tstz,ts,d) VALUES('2005-01-01 15:00:00 +0300', '2005-01-01 15:00:00', '2005-01-01')");
@@ -261,8 +269,8 @@ public class TimezoneTest extends TestCase {
     }
   }
 
+  @Test
   public void testGetTime() throws Exception {
-
     con.createStatement().executeUpdate(
         "INSERT INTO testtimezone(tstz,ts,t,tz) VALUES('2005-01-01 15:00:00 +0300', '2005-01-01 15:00:00', '15:00:00', '15:00:00 +0300')");
 
@@ -337,6 +345,7 @@ public class TimezoneTest extends TestCase {
    * putting tons of conditionals in that test makes it largely unreadable. The time data type does
    * not accept timestamp with time zone style input on these servers.
    */
+  @Test
   public void testSetTimestampOnTime() throws Exception {
     // Pre-7.4 servers cannot convert timestamps with timezones to times.
     for (int i = 0; i < PREPARE_THRESHOLD; i++) {
@@ -410,6 +419,7 @@ public class TimezoneTest extends TestCase {
   }
 
 
+  @Test
   public void testSetTimestamp() throws Exception {
     for (int i = 0; i < PREPARE_THRESHOLD; i++) {
       con.createStatement().execute("delete from testtimezone");
@@ -536,6 +546,7 @@ public class TimezoneTest extends TestCase {
     }
   }
 
+  @Test
   public void testSetDate() throws Exception {
     for (int i = 0; i < PREPARE_THRESHOLD; i++) {
       con.createStatement().execute("delete from testtimezone");
@@ -645,6 +656,7 @@ public class TimezoneTest extends TestCase {
     }
   }
 
+  @Test
   public void testSetTime() throws Exception {
     for (int i = 0; i < PREPARE_THRESHOLD; i++) {
       con.createStatement().execute("delete from testtimezone");
@@ -742,6 +754,7 @@ public class TimezoneTest extends TestCase {
     }
   }
 
+  @Test
   public void testHalfHourTimezone() throws Exception {
     Statement stmt = con.createStatement();
     stmt.execute("SET TimeZone = 'GMT+3:30'");
@@ -754,6 +767,7 @@ public class TimezoneTest extends TestCase {
     }
   }
 
+  @Test
   public void testTimezoneWithSeconds() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("SET TimeZone = 'Europe/Paris'");
@@ -768,32 +782,39 @@ public class TimezoneTest extends TestCase {
     }
   }
 
+  @Test
   public void testLocalTimestampsInNonDSTZones() throws Exception {
     for (int i = -12; i <= 13; i++) {
       localTimestamps(String.format("GMT%02d", i));
     }
   }
 
+  @Test
   public void testLocalTimestampsInAfricaCasablanca() throws Exception {
     localTimestamps("Africa/Casablanca"); // It is something like GMT+0..GMT+1
   }
 
+  @Test
   public void testLocalTimestampsInAtlanticAzores() throws Exception {
     localTimestamps("Atlantic/Azores"); // It is something like GMT-1..GMT+0
   }
 
+  @Test
   public void testLocalTimestampsInEuropeMoscow() throws Exception {
     localTimestamps("Europe/Moscow"); // It is something like GMT+3..GMT+4 for 2000s
   }
 
+  @Test
   public void testLocalTimestampsInPacificApia() throws Exception {
     localTimestamps("Pacific/Apia"); // It is something like GMT+13..GMT+14
   }
 
+  @Test
   public void testLocalTimestampsInPacificNiue() throws Exception {
     localTimestamps("Pacific/Niue"); // It is something like GMT-11..GMT-11
   }
 
+  @Test
   public void testLocalTimestampsInAmericaAdak() throws Exception {
     localTimestamps("America/Adak"); // It is something like GMT-10..GMT-9
   }

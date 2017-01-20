@@ -5,11 +5,17 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
+
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.ServerErrorMessage;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -18,15 +24,12 @@ import java.sql.Statement;
 /*
  * Test that enhanced error reports return the correct origin for constraint violation errors.
  */
-public class ServerErrorTest extends TestCase {
+public class ServerErrorTest {
 
   private Connection con;
 
-  public ServerErrorTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
+  @Before
+  public void setUp() throws Exception {
     con = TestUtil.openDB();
     Statement stmt = con.createStatement();
 
@@ -36,7 +39,8 @@ public class ServerErrorTest extends TestCase {
     stmt.close();
   }
 
-  protected void tearDown() throws Exception {
+  @After
+  public void tearDown() throws Exception {
     TestUtil.dropTable(con, "testerr");
     Statement stmt = con.createStatement();
     stmt.execute("DROP DOMAIN testdom");
@@ -44,6 +48,7 @@ public class ServerErrorTest extends TestCase {
     TestUtil.closeDB(con);
   }
 
+  @Test
   public void testPrimaryKey() throws Exception {
     Statement stmt = con.createStatement();
     stmt.executeUpdate("INSERT INTO testerr (id, val) VALUES (1, 1)");
@@ -61,6 +66,7 @@ public class ServerErrorTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testColumn() throws Exception {
     Statement stmt = con.createStatement();
     try {
@@ -77,6 +83,7 @@ public class ServerErrorTest extends TestCase {
     stmt.close();
   }
 
+  @Test
   public void testDatatype() throws Exception {
     Statement stmt = con.createStatement();
     try {
