@@ -72,6 +72,13 @@ matrix:
       sudo: required
       dist: trusty
       env:
+        - PG_VERSION=HEAD
+        - XA=true
+        - REPLICATION=Y
+    - jdk: oraclejdk8
+      sudo: required
+      dist: trusty
+      env:
         - PG_VERSION=9.6
         - XA=true
         - REPLICATION=Y
@@ -86,33 +93,6 @@ matrix:
         - XA=true
         - REPLICATION=Y
         - COVERAGE=Y
-    - jdk: oraclejdk8
-      sudo: required
-      dist: precise
-      env:
-        - PG_VERSION=8.4
-        - XA=true
-        - COVERAGE=Y
-        - NO_HSTORE=Y
-        - CREATE_PLPGSQL=Y
-    - jdk: oraclejdk8
-      sudo: required
-      dist: precise
-      env: # this has to match allow_failures above
-        - PG_VERSION=8.2
-        - XA=true
-        - COVERAGE=Y
-        - NO_HSTORE=Y
-        - CREATE_PLPGSQL=Y
-    - jdk: oraclejdk8
-      sudo: required
-      dist: precise
-      env:
-        - PG_VERSION=8.3
-        - XA=true
-        - COVERAGE=Y
-        - NO_HSTORE=Y
-        - CREATE_PLPGSQL=Y
     - jdk: oraclejdk8
       addons:
         postgresql: "9.4"
@@ -130,11 +110,40 @@ matrix:
         - JDOC=Y
     - jdk: oraclejdk8
       sudo: required
-      dist: trusty
+      dist: precise
       env:
-        - PG_VERSION=HEAD
+        - PG_VERSION=8.4
         - XA=true
-        - REPLICATION=Y
+        - COVERAGE=Y
+        - NO_HSTORE=Y
+        - CREATE_PLPGSQL=Y
+    - jdk: oraclejdk8
+      sudo: required
+      dist: precise
+      env:
+        - PG_VERSION=8.3
+        - XA=true
+        - COVERAGE=Y
+        - NO_HSTORE=Y
+        - CREATE_PLPGSQL=Y
+    - jdk: oraclejdk8
+      sudo: required
+      dist: precise
+      env: # this has to match allow_failures above
+        - PG_VERSION=8.2
+        - XA=true
+        - COVERAGE=Y
+        - NO_HSTORE=Y
+        - CREATE_PLPGSQL=Y
+    - jdk: oraclejdk8 # this will be overwritten by before_install above
+      addons:
+        postgresql: "9.4"
+        apt:
+          packages:
+            - oracle-java9-installer
+      env:
+        - PG_VERSION=9.4
+        - JDK=9
     - jdk: openjdk7
       addons:
         postgresql: "9.4"
@@ -153,15 +162,6 @@ matrix:
       env:
         - PG_VERSION=9.4
         - TEST_CLIENTS=Y
-    - jdk: oraclejdk8 # this will be overwritten by before_install above
-      addons:
-        postgresql: "9.4"
-        apt:
-          packages:
-            - oracle-java9-installer
-      env:
-        - PG_VERSION=9.4
-        - JDK=9
     - jdk: oraclejdk8
       addons:
         postgresql: "9.4"
