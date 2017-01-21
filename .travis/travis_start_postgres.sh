@@ -7,7 +7,7 @@ then
 elif [ "x${PG_VERSION}" = "xHEAD" ]
 then
     #Start head postgres
-    sudo su postgres -c "/usr/local/pgsql/bin/pg_ctl -D ${PG_DATADIR} -w -t 300 -o '-p 5432' -l /tmp/postgres.log start"
+    sudo su postgres -c "/usr/local/pgsql/bin/pg_ctl -D ${PG_DATADIR} -w -t 300 -c -o '-p 5432' -l /tmp/postgres.log start"
     sudo tail /tmp/postgres.log
 elif [ "$XA" = "true" ] || [ "${REPLICATION}" = "Y" ]
 then
