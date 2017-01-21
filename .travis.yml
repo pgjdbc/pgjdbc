@@ -31,6 +31,7 @@ script:
   - test -d "${JDK9_HOME}" || export JDK9_HOME=$(jdk_switcher home oraclejdk8)
   - envsubst < toolchains.xml > ~/.m2/toolchains.xml
   - ./.travis/travis_build.sh
+  - ./.travis/travis_check_postgres_health.sh
   # To avoid useless S3 cache updates (https://github.com/travis-ci/travis-ci/issues/1441#issuecomment-67607074)
   #- mkdir /tmp/cache-trick
   #- mv $HOME/.m2/repository/org/postgresql /tmp/cache-trick/
