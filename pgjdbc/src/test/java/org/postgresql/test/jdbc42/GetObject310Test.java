@@ -5,8 +5,13 @@
 
 package org.postgresql.test.jdbc42;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest;
+
+import org.junit.Test;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -22,6 +27,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.TimeZone;
 
+
 public class GetObject310Test extends BaseTest {
 
   private static final TimeZone saveTZ = TimeZone.getDefault();
@@ -31,11 +37,8 @@ public class GetObject310Test extends BaseTest {
   private static final ZoneOffset GMT05 = ZoneOffset.of("-05:00"); // -0500 always
   private static final ZoneOffset GMT13 = ZoneOffset.of("+13:00"); // +1300 always
 
-  public GetObject310Test(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
+  @Override
+  public void setUp() throws Exception {
     super.setUp();
     TestUtil.createTable(con, "table1", "timestamp_without_time_zone_column timestamp without time zone,"
             + "timestamp_with_time_zone_column timestamp with time zone,"
@@ -45,7 +48,8 @@ public class GetObject310Test extends BaseTest {
     );
   }
 
-  protected void tearDown() throws SQLException {
+  @Override
+  public void tearDown() throws SQLException {
     TimeZone.setDefault(saveTZ);
     TestUtil.dropTable(con, "table1");
     super.tearDown();
@@ -54,6 +58,7 @@ public class GetObject310Test extends BaseTest {
   /**
    * Test the behavior getObject for date columns.
    */
+  @Test
   public void testGetLocalDate() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.executeUpdate(TestUtil.insertSQL("table1","date_column","DATE '1999-01-08'"));
@@ -72,6 +77,7 @@ public class GetObject310Test extends BaseTest {
   /**
    * Test the behavior getObject for time columns.
    */
+  @Test
   public void testGetLocalTime() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.executeUpdate(TestUtil.insertSQL("table1","time_without_time_zone_column","TIME '04:05:06'"));
@@ -90,6 +96,7 @@ public class GetObject310Test extends BaseTest {
   /**
    * Test the behavior getObject for timestamp columns.
    */
+  @Test
   public void testGetLocalDateTime() throws SQLException {
     List<String> zoneIdsToTest = new ArrayList<String>();
     zoneIdsToTest.add("Africa/Casablanca"); // It is something like GMT+0..GMT+1
@@ -150,6 +157,7 @@ public class GetObject310Test extends BaseTest {
   /**
    * Test the behavior getObject for timestamp with time zone columns.
    */
+  @Test
   public void testGetTimestampWithTimeZone() throws SQLException {
     runGetOffsetDateTime(UTC);
     runGetOffsetDateTime(GMT03);
