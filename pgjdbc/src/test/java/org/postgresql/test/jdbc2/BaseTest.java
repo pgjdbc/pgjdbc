@@ -11,7 +11,6 @@ import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 
 import org.junit.After;
-import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 
