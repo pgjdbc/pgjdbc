@@ -7,5 +7,9 @@ package org.postgresql.jdbc2.optional;
 
 import org.postgresql.ds.PGPoolingDataSource;
 
+/**
+ * @deprecated Since 42.0.0, see {@link PGPoolingDataSource}
+ */
+@Deprecated
 public class PoolingDataSource extends PGPoolingDataSource {
 }
