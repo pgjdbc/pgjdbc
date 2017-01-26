@@ -5,7 +5,6 @@
 
 package org.postgresql.test.jdbc2.optional;
 
-import junit.framework.TestSuite;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -21,6 +20,6 @@ import org.junit.runners.Suite;
         ConnectionPoolTest.class,
         PoolingDataSourceTest.class,
         CaseOptimiserDataSourceTest.class})
-public class OptionalTestSuite extends TestSuite {
+public class OptionalTestSuite {
 
 }

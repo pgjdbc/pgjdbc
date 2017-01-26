@@ -28,7 +28,7 @@ public class PGSimpleDataSource extends BaseDataSource implements DataSource, Se
    * Gets a description of this DataSource.
    */
   public String getDescription() {
-    return "Non-Pooling DataSource from " + org.postgresql.Driver.getVersion();
+    return "Non-Pooling DataSource from " + org.postgresql.util.DriverInfo.DRIVER_FULL_NAME;
   }
 
   private void writeObject(ObjectOutputStream out) throws IOException {

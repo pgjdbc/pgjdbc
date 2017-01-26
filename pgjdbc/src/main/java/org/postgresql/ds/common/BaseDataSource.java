@@ -943,22 +943,6 @@ public abstract class BaseDataSource implements Referenceable {
   }
 
   /**
-   * @return character set to use for data sent to the database or received
-   * @see PGProperty#CHARSET
-   */
-  public String getCharset() {
-    return PGProperty.CHARSET.get(properties);
-  }
-
-  /**
-   * @param charset character set to use for data sent to the database or received
-   * @see PGProperty#CHARSET
-   */
-  public void setCharset(String charset) {
-    PGProperty.CHARSET.set(properties, charset);
-  }
-
-  /**
    * @return if connection allows encoding changes
    * @see PGProperty#ALLOW_ENCODING_CHANGES
    */
@@ -1004,6 +988,21 @@ public abstract class BaseDataSource implements Referenceable {
    */
   public void setSocketFactoryArg(String socketFactoryArg) {
     PGProperty.SOCKET_FACTORY_ARG.set(properties, socketFactoryArg);
+  }
+
+  /**
+   * @param replication replication argument
+   * @see PGProperty#REPLICATION
+   */
+  public void setReplication(String replication) {
+    PGProperty.REPLICATION.set(properties, replication);
+  }
+
+  /**
+   * @see PGProperty#REPLICATION
+   */
+  public String getReplication() {
+    return PGProperty.REPLICATION.get(properties);
   }
 
   /**

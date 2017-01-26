@@ -7,7 +7,9 @@
 package org.postgresql.core.v3;
 
 import org.postgresql.PGProperty;
+import org.postgresql.copy.CopyIn;
 import org.postgresql.copy.CopyOperation;
+import org.postgresql.copy.CopyOut;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.EncodingPredictor;
 import org.postgresql.core.Field;
@@ -21,6 +23,7 @@ import org.postgresql.core.Parser;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.QueryExecutorBase;
+import org.postgresql.core.ReplicationProtocol;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandler;
 import org.postgresql.core.ResultHandlerBase;
@@ -29,6 +32,7 @@ import org.postgresql.core.SqlCommand;
 import org.postgresql.core.SqlCommandType;
 import org.postgresql.core.TransactionState;
 import org.postgresql.core.Utils;
+import org.postgresql.core.v3.replication.V3ReplicationProtocol;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.BatchResultHandler;
 import org.postgresql.jdbc.TimestampUtils;
@@ -104,12 +108,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private SQLException transactionFailCause;
 
+  private final ReplicationProtocol replicationProtocol;
+
   public QueryExecutorImpl(PGStream pgStream, String user, String database,
       int cancelSignalTimeout, Properties info, Logger logger) throws SQLException, IOException {
     super(logger, pgStream, user, database, cancelSignalTimeout, info);
 
     this.allowEncodingChanges = PGProperty.ALLOW_ENCODING_CHANGES.getBoolean(info);
-
+    this.replicationProtocol = new V3ReplicationProtocol(this, pgStream, logger);
     readStartupMessages();
   }
 
@@ -809,7 +815,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     int errors = 0;
 
     try {
-      if (op instanceof CopyInImpl) {
+      if (op instanceof CopyIn) {
         synchronized (this) {
           if (logger.logDebug()) {
             logger.debug("FE => CopyFail");
@@ -837,7 +843,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             }
           } while (hasLock(op));
         }
-      } else if (op instanceof CopyOutImpl) {
+      } else if (op instanceof CopyOut) {
         sendQueryCancel();
       }
 
@@ -856,7 +862,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       }
     }
 
-    if (op instanceof CopyInImpl) {
+    if (op instanceof CopyIn) {
       if (errors < 1) {
         throw new PSQLException(GT.tr("Missing expected error response to copy cancel request"),
             PSQLState.COMMUNICATION_ERROR);
@@ -875,7 +881,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * @return number of rows updated for server versions 8.2 or newer
    * @throws SQLException on failure
    */
-  public synchronized long endCopy(CopyInImpl op) throws SQLException {
+  public synchronized long endCopy(CopyOperationImpl op) throws SQLException {
     if (!hasLock(op)) {
       throw new PSQLException(GT.tr("Tried to end inactive copy"), PSQLState.OBJECT_NOT_IN_STATE);
     }
@@ -889,7 +895,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       pgStream.sendInteger4(4);
       pgStream.flush();
 
-      processCopyResults(op, true);
+      do {
+        processCopyResults(op, true);
+      } while (hasLock(op));
       return op.getHandledRowCount();
     } catch (IOException ioe) {
       throw new PSQLException(GT.tr("Database connection failed when ending copy"),
@@ -907,7 +915,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * @param siz number of bytes to send (usually data.length)
    * @throws SQLException on failure
    */
-  public synchronized void writeToCopy(CopyInImpl op, byte[] data, int off, int siz)
+  public synchronized void writeToCopy(CopyOperationImpl op, byte[] data, int off, int siz)
       throws SQLException {
     if (!hasLock(op)) {
       throw new PSQLException(GT.tr("Tried to write to an inactive copy operation"),
@@ -930,7 +938,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
   }
 
-  public synchronized void flushCopy(CopyInImpl op) throws SQLException {
+  public synchronized void flushCopy(CopyOperationImpl op) throws SQLException {
     if (!hasLock(op)) {
       throw new PSQLException(GT.tr("Tried to write to an inactive copy operation"),
           PSQLState.OBJECT_NOT_IN_STATE);
@@ -946,20 +954,21 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   /**
-   * Blocks to wait for a row of data to be received from server on an active copy operation
+   * Wait for a row of data to be received from server on an active copy operation
    * Connection gets unlocked by processCopyResults() at end of operation
    *
    * @param op the copy operation presumably currently holding lock on this connection
+   * @param block whether to block waiting for input
    * @throws SQLException on any failure
    */
-  synchronized void readFromCopy(CopyOutImpl op) throws SQLException {
+  synchronized void readFromCopy(CopyOperationImpl op, boolean block) throws SQLException {
     if (!hasLock(op)) {
       throw new PSQLException(GT.tr("Tried to read from inactive copy"),
           PSQLState.OBJECT_NOT_IN_STATE);
     }
 
     try {
-      processCopyResults(op, true); // expect a call to handleCopydata() to store the data
+      processCopyResults(op, block); // expect a call to handleCopydata() to store the data
     } catch (IOException ioe) {
       throw new PSQLException(GT.tr("Database connection failed when reading from copy"),
           PSQLState.CONNECTION_FAILURE, ioe);
@@ -1085,6 +1094,22 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           endReceiving = true;
           break;
 
+        case 'W': // CopyBothResponse
+
+          if (logger.logDebug()) {
+            logger.debug(" <=BE CopyBothResponse");
+          }
+
+          if (op != null) {
+            error = new PSQLException(GT.tr("Got CopyBothResponse from server during an active {0}",
+                    op.getClass().getName()), PSQLState.OBJECT_NOT_IN_STATE);
+          }
+
+          op = new CopyDualImpl();
+          initCopy(op);
+          endReceiving = true;
+          break;
+
         case 'd': // CopyData
 
           if (logger.logDebug()) {
@@ -1096,12 +1121,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           if (op == null) {
             error = new PSQLException(GT.tr("Got CopyData without an active copy operation"),
                 PSQLState.OBJECT_NOT_IN_STATE);
-          } else if (!(op instanceof CopyOutImpl)) {
+          } else if (!(op instanceof CopyOut)) {
             error = new PSQLException(
                 GT.tr("Unexpected copydata from server for {0}", op.getClass().getName()),
                 PSQLState.COMMUNICATION_ERROR);
           } else {
-            ((CopyOutImpl) op).handleCopydata(buf);
+            op.handleCopydata(buf);
           }
           endReceiving = true;
           break;
@@ -1117,7 +1142,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             pgStream.receive(len); // not in specification; should never appear
           }
 
-          if (!(op instanceof CopyOutImpl)) {
+          if (!(op instanceof CopyOut)) {
             error = new PSQLException("Got CopyDone while not copying from server",
                 PSQLState.OBJECT_NOT_IN_STATE);
           }
@@ -2663,6 +2688,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       return "";
     }
     return applicationName;
+  }
+
+  @Override
+  public ReplicationProtocol getReplicationProtocol() {
+    return replicationProtocol;
   }
 
   @Override

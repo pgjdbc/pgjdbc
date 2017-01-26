@@ -19,6 +19,7 @@ import org.postgresql.core.Oid;
 import org.postgresql.core.Provider;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
+import org.postgresql.core.ReplicationProtocol;
 import org.postgresql.core.ResultHandlerBase;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.SqlCommand;
@@ -28,6 +29,8 @@ import org.postgresql.core.Utils;
 import org.postgresql.core.Version;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.largeobject.LargeObjectManager;
+import org.postgresql.replication.PGReplicationConnection;
+import org.postgresql.replication.PGReplicationConnectionImpl;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.LruCache;
@@ -134,6 +137,11 @@ public class PgConnection implements BaseConnection {
   private volatile Timer cancelTimer = null;
 
   private PreparedStatement checkConnectionQuery;
+  /**
+   * Replication protocol in current version postgresql(10devel) supports a limited number of
+   * commands.
+   */
+  private boolean replicationConnection;
 
   private final LruCache<FieldMetadata.Key, FieldMetadata> fieldMetadataCache;
 
@@ -206,7 +214,7 @@ public class PgConnection implements BaseConnection {
 
     // Print out the driver version number
     if (logger.logInfo()) {
-      logger.info(Driver.getVersion());
+      logger.info(org.postgresql.util.DriverInfo.DRIVER_FULL_NAME);
     }
 
     // Now make the initial connection and set up local state
@@ -338,6 +346,8 @@ public class PgConnection implements BaseConnection {
             Math.max(0, PGProperty.DATABASE_METADATA_CACHE_FIELDS.getInt(info)),
             Math.max(0, PGProperty.DATABASE_METADATA_CACHE_FIELDS_MIB.getInt(info) * 1024 * 1024),
         false);
+
+    replicationConnection = PGProperty.REPLICATION.get(info) != null;
   }
 
   private Set<Integer> getOidSet(String oidList) throws PSQLException {
@@ -398,6 +408,10 @@ public class PgConnection implements BaseConnection {
 
   public QueryExecutor getQueryExecutor() {
     return queryExecutor;
+  }
+
+  public ReplicationProtocol getReplicationProtocol() {
+    return queryExecutor.getReplicationProtocol();
   }
 
   /**
@@ -1133,6 +1147,11 @@ public class PgConnection implements BaseConnection {
     return fieldMetadataCache;
   }
 
+  @Override
+  public PGReplicationConnection getReplicationAPI() {
+    return new PGReplicationConnectionImpl(this);
+  }
+
   private static void appendArray(StringBuilder sb, Object elements, char delim) {
     sb.append('{');
 
@@ -1289,11 +1308,17 @@ public class PgConnection implements BaseConnection {
       return false;
     }
     try {
-      if (checkConnectionQuery == null) {
-        checkConnectionQuery = prepareStatement("");
+      if (replicationConnection) {
+        Statement statement = createStatement();
+        statement.execute("IDENTIFY_SYSTEM");
+        statement.close();
+      } else {
+        if (checkConnectionQuery == null) {
+          checkConnectionQuery = prepareStatement("");
+        }
+        checkConnectionQuery.setQueryTimeout(timeout);
+        checkConnectionQuery.executeUpdate();
       }
-      checkConnectionQuery.setQueryTimeout(timeout);
-      checkConnectionQuery.executeUpdate();
       return true;
     } catch (SQLException e) {
       if (PSQLState.IN_FAILED_SQL_TRANSACTION.getState().equals(e.getSQLState())) {

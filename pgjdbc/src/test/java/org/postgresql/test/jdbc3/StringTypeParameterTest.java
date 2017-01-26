@@ -31,7 +31,7 @@ public class StringTypeParameterTest extends TestCase {
       props.put("stringtype", stringType);
     }
     _conn = TestUtil.openDB(props);
-    if (TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_3)) {
+    if (!TestUtil.haveMinimumServerVersion(_conn, ServerVersion.v8_3)) {
       return false;
     }
     TestUtil.createEnumType(_conn, "mood", "'happy', 'sad'");

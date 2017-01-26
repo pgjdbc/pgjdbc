@@ -7,6 +7,7 @@ package org.postgresql.test.xa;
 
 import org.postgresql.test.TestUtil;
 
+import junit.framework.JUnit4TestAdapter;
 import junit.framework.TestSuite;
 
 import java.sql.Connection;
@@ -24,7 +25,7 @@ public class XATestSuite extends TestSuite {
       rs.next();
       int mpt = rs.getInt(1);
       if (mpt > 0) {
-        suite.addTestSuite(XADataSourceTest.class);
+        suite.addTest(new JUnit4TestAdapter(XADataSourceTest.class));
       } else {
         System.out.println("Skipping XA tests because max_prepared_transactions = 0.");
       }

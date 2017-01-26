@@ -5,7 +5,6 @@
 
 package org.postgresql.jdbc;
 
-import org.postgresql.Driver;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
@@ -36,7 +35,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public PgDatabaseMetaData(PgConnection conn) {
     this.connection = conn;
   }
-
 
   private static final String keywords = "abort,acl,add,aggregate,append,archive,"
       + "arch_store,backward,binary,boolean,change,cluster,"
@@ -138,35 +136,39 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   /**
-   * What is the name of this database product - we hope that it is PostgreSQL, so we return that
+   * Retrieves the name of this database product. We hope that it is PostgreSQL, so we return that
    * explicitly.
    *
-   * @return the database product name
-   *
-   * @exception SQLException if a database access error occurs
+   * @return "PostgreSQL"
    */
+  @Override
   public String getDatabaseProductName() throws SQLException {
     return "PostgreSQL";
   }
 
+  @Override
   public String getDatabaseProductVersion() throws SQLException {
     return connection.getDBVersionNumber();
   }
 
-  public String getDriverName() throws SQLException {
-    return "PostgreSQL Native Driver";
+  @Override
+  public String getDriverName() {
+    return org.postgresql.util.DriverInfo.DRIVER_NAME;
   }
 
-  public String getDriverVersion() throws SQLException {
-    return Driver.getVersion();
+  @Override
+  public String getDriverVersion() {
+    return org.postgresql.util.DriverInfo.DRIVER_VERSION;
   }
 
+  @Override
   public int getDriverMajorVersion() {
-    return Driver.MAJORVERSION;
+    return org.postgresql.util.DriverInfo.MAJOR_VERSION;
   }
 
+  @Override
   public int getDriverMinorVersion() {
-    return Driver.MINORVERSION;
+    return org.postgresql.util.DriverInfo.MINOR_VERSION;
   }
 
   /**
@@ -1032,7 +1034,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       StringTokenizer st = new StringTokenizer(strArgTypes);
       List<Long> argTypes = new ArrayList<Long>();
       while (st.hasMoreTokens()) {
-        argTypes.add(new Long(st.nextToken()));
+        argTypes.add(Long.valueOf(st.nextToken()));
       }
 
       String argNames[] = null;
@@ -1231,14 +1233,15 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     }
     if (types != null) {
       select += " AND (false ";
+      StringBuilder orclause = new StringBuilder();
       for (String type : types) {
         Map<String, String> clauses = tableTypeClauses.get(type);
         if (clauses != null) {
           String clause = clauses.get(useSchemas);
-          select += " OR ( " + clause + " ) ";
+          orclause.append(" OR ( ").append(clause).append(" ) ");
         }
       }
-      select += ") ";
+      select += orclause.toString() + ") ";
     }
     String sql = select + orderby;
 
@@ -2397,33 +2400,35 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         + " end as data_type, pg_catalog.obj_description(t.oid, 'pg_type')  "
         + "as remarks, CASE WHEN t.typtype = 'd' then  (select CASE";
 
+    StringBuilder sqlwhen = new StringBuilder();
     for (Iterator<String> i = connection.getTypeInfo().getPGTypeNamesWithSQLTypes(); i.hasNext(); ) {
       String pgType = i.next();
       int sqlType = connection.getTypeInfo().getSQLType(pgType);
-      sql += " when typname = " + escapeQuotes(pgType) + " then " + sqlType;
+      sqlwhen.append(" when typname = ").append(escapeQuotes(pgType)).append(" then ").append(sqlType);
     }
+    sql += sqlwhen.toString();
 
     sql += " else " + java.sql.Types.OTHER + " end from pg_type where oid=t.typbasetype) "
         + "else null end as base_type "
         + "from pg_catalog.pg_type t, pg_catalog.pg_namespace n where t.typnamespace = n.oid and n.nspname != 'pg_catalog' and n.nspname != 'pg_toast'";
 
 
-    String toAdd = "";
+    StringBuilder toAdd = new StringBuilder();
     if (types != null) {
-      toAdd += " and (false ";
+      toAdd.append(" and (false ");
       for (int type : types) {
         switch (type) {
           case Types.STRUCT:
-            toAdd += " or t.typtype = 'c'";
+            toAdd.append(" or t.typtype = 'c'");
             break;
           case Types.DISTINCT:
-            toAdd += " or t.typtype = 'd'";
+            toAdd.append(" or t.typtype = 'd'");
             break;
         }
       }
-      toAdd += " ) ";
+      toAdd.append(" ) ");
     } else {
-      toAdd += " and t.typtype IN ('c','d') ";
+      toAdd.append(" and t.typtype IN ('c','d') ");
     }
     // spec says that if typeNamePattern is a fully qualified name
     // then the schema and catalog are ignored
@@ -2445,14 +2450,14 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         // strip out just the typeName
         typeNamePattern = typeNamePattern.substring(secondQualifier + 1);
       }
-      toAdd += " and t.typname like " + escapeQuotes(typeNamePattern);
+      toAdd.append(" and t.typname like ").append(escapeQuotes(typeNamePattern));
     }
 
     // schemaPattern may have been modified above
     if (schemaPattern != null) {
-      toAdd += " and n.nspname like " + escapeQuotes(schemaPattern);
+      toAdd.append(" and n.nspname like ").append(escapeQuotes(schemaPattern));
     }
-    sql += toAdd;
+    sql += toAdd.toString();
     sql += " order by data_type, type_schem, type_name";
     return createMetaDataStatement().executeQuery(sql);
   }
@@ -2461,16 +2466,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   @Override
   public Connection getConnection() throws SQLException {
     return connection;
-  }
-
-  /* I don't find these in the spec!?! */
-
-  public boolean rowChangesAreDetected(int type) throws SQLException {
-    return false;
-  }
-
-  public boolean rowChangesAreVisible(int type) throws SQLException {
-    return false;
   }
 
   protected Statement createMetaDataStatement() throws SQLException {
@@ -2524,10 +2519,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
 
-  public boolean providesQueryObjectGenerator() throws SQLException {
-    return false;
-  }
-
   public boolean isWrapperFor(Class<?> iface) throws SQLException {
     return iface.isAssignableFrom(getClass());
   }
@@ -2548,11 +2539,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       String functionNamePattern, String columnNamePattern)
       throws SQLException {
     return getProcedureColumns(catalog, schemaPattern, functionNamePattern, columnNamePattern);
-  }
-
-  public int getJDBCMajorVersion() throws SQLException {
-    // FIXME: dependent on JDBC version
-    return 4;
   }
 
   public ResultSet getPseudoColumns(String catalog, String schemaPattern, String tableNamePattern,
@@ -2610,20 +2596,28 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return ResultSet.HOLD_CURSORS_OVER_COMMIT;
   }
 
+  @Override
   public int getDatabaseMajorVersion() throws SQLException {
     return connection.getServerMajorVersion();
   }
 
+  @Override
   public int getDatabaseMinorVersion() throws SQLException {
     return connection.getServerMinorVersion();
   }
 
-  public int getJDBCMinorVersion() throws SQLException {
-    return 0; // This class implements JDBC 3.0
+  @Override
+  public int getJDBCMajorVersion() {
+    return org.postgresql.util.DriverInfo.JDBC_MAJOR_VERSION;
+  }
+
+  @Override
+  public int getJDBCMinorVersion() {
+    return org.postgresql.util.DriverInfo.JDBC_MINOR_VERSION;
   }
 
   public int getSQLStateType() throws SQLException {
-    return sqlStateSQL99;
+    return sqlStateSQL;
   }
 
   public boolean locatorsUpdateCopy() throws SQLException {

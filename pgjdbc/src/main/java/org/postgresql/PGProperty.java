@@ -5,6 +5,7 @@
 
 package org.postgresql;
 
+import org.postgresql.util.DriverInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -281,7 +282,7 @@ public enum PGProperty {
   /**
    * The application name (require server version &gt;= 9.0)
    */
-  APPLICATION_NAME("ApplicationName", null, "name of the application (backend >= 9.0)"),
+  APPLICATION_NAME("ApplicationName", DriverInfo.DRIVER_NAME, "Name of the Application (backend >= 9.0)"),
 
   /**
    * Specifies the name of the JAAS system or application login configuration.
@@ -316,13 +317,6 @@ public enum PGProperty {
    * default, {@code POSTGRES}, is almost always correct.
    */
   SSPI_SERVICE_CLASS("sspiServiceClass", "POSTGRES", "The Windows SSPI service class for SPN"),
-
-  /**
-   * The character set to use for data sent to the database or received from the database. This
-   * property is only relevant for server versions less than or equal to 7.2.
-   */
-  CHARSET("charSet", null,
-      "The character set to use for data sent to the database or received from the database (for backend <= 7.2)"),
 
   /**
    * When using the V3 protocol the driver monitors changes in certain server configuration
@@ -376,8 +370,28 @@ public enum PGProperty {
   /**
    * Configure optimization to enable batch insert re-writing.
    */
-  REWRITE_BATCHED_INSERTS ("reWriteBatchedInserts", "false",
-      "Enable optimization to rewrite and collapse compatible INSERT statements that are batched.");
+  REWRITE_BATCHED_INSERTS("reWriteBatchedInserts", "false",
+      "Enable optimization to rewrite and collapse compatible INSERT statements that are batched."),
+
+  /**
+   * <p>Connection parameter for startup message Available value(true, database). A Boolean value of
+   * true tells the backend to go into walsender mode, wherein a small set of replication commands
+   * can be issued instead of SQL statements. Only the simple query protocol can be used in
+   * walsender mode. Passing database as the value instructs walsender to connect to the database
+   * specified in the dbname parameter, which will allow the connection to be used for logical
+   * replication from that database. <p>Parameter should be use together with {@link
+   * PGProperty#ASSUME_MIN_SERVER_VERSION} with parameter &gt;= 9.4 (backend &gt;= 9.4)
+   */
+  REPLICATION("replication", null,
+      "Connection parameter for startup message Available value(true, database). "
+          + "A Boolean value of true tells the backend to go into walsender mode, "
+          + "wherein a small set of replication commands can be issued instead of SQL statements. "
+          + "Only the simple query protocol can be used in walsender mode. "
+          + "Passing database as the value instructs walsender to connect "
+          + "to the database specified in the dbname parameter, "
+          + "which will allow the connection to be used for logical replication "
+          + "from that database. "
+          + "(backend >= 9.4)");
 
   private String _name;
   private String _defaultValue;

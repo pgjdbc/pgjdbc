@@ -5,9 +5,14 @@
 
 package org.postgresql.test.jdbc3;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -16,21 +21,19 @@ import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.sql.Statement;
 
-public class Jdbc3SavepointTest extends TestCase {
+public class Jdbc3SavepointTest {
 
   private Connection _conn;
 
-  public Jdbc3SavepointTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
+  @Before
+  public void setUp() throws Exception {
     _conn = TestUtil.openDB();
     TestUtil.createTable(_conn, "savepointtable", "id int primary key");
     _conn.setAutoCommit(false);
   }
 
-  protected void tearDown() throws SQLException {
+  @After
+  public void tearDown() throws SQLException {
     _conn.setAutoCommit(true);
     TestUtil.dropTable(_conn, "savepointtable");
     TestUtil.closeDB(_conn);
@@ -56,6 +59,7 @@ public class Jdbc3SavepointTest extends TestCase {
     return count;
   }
 
+  @Test
   public void testAutoCommitFails() throws SQLException {
     if (!hasSavepoints()) {
       return;
@@ -76,6 +80,7 @@ public class Jdbc3SavepointTest extends TestCase {
     }
   }
 
+  @Test
   public void testCantMixSavepointTypes() throws SQLException {
     if (!hasSavepoints()) {
       return;
@@ -98,6 +103,7 @@ public class Jdbc3SavepointTest extends TestCase {
 
   }
 
+  @Test
   public void testRollingBackToSavepoints() throws SQLException {
     if (!hasSavepoints()) {
       return;
@@ -115,6 +121,7 @@ public class Jdbc3SavepointTest extends TestCase {
     assertEquals(0, countRows());
   }
 
+  @Test
   public void testGlobalRollbackWorks() throws SQLException {
     if (!hasSavepoints()) {
       return;
@@ -130,6 +137,7 @@ public class Jdbc3SavepointTest extends TestCase {
     assertEquals(0, countRows());
   }
 
+  @Test
   public void testContinueAfterError() throws SQLException {
     if (!hasSavepoints()) {
       return;
@@ -149,6 +157,7 @@ public class Jdbc3SavepointTest extends TestCase {
     assertEquals(2, countRows());
   }
 
+  @Test
   public void testReleaseSavepoint() throws SQLException {
     if (!hasSavepoints()) {
       return;
@@ -171,6 +180,7 @@ public class Jdbc3SavepointTest extends TestCase {
     }
   }
 
+  @Test
   public void testComplicatedSavepointName() throws SQLException {
     if (!hasSavepoints()) {
       return;
@@ -181,6 +191,7 @@ public class Jdbc3SavepointTest extends TestCase {
     _conn.releaseSavepoint(savepoint);
   }
 
+  @Test
   public void testRollingBackToInvalidSavepointFails() throws SQLException {
     if (!hasSavepoints()) {
       return;
@@ -197,6 +208,7 @@ public class Jdbc3SavepointTest extends TestCase {
     }
   }
 
+  @Test
   public void testRollbackMultipleTimes() throws SQLException {
     if (!hasSavepoints()) {
       return;

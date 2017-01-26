@@ -26,9 +26,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 /*
  * TestCase to test the internal functionality of org.postgresql.jdbc2.DatabaseMetaData
@@ -52,9 +51,9 @@ public class DatabaseMetaDataTest {
     TestUtil.createCompositeType(con, "custom", "i int");
     TestUtil.createCompositeType(con, "_custom", "f float");
 
-    // 8.2 does not support _custom[].  ERROR: type "_custom[]" does not exist
-    TestUtil.createTable(con, "customtable", "c1 custom, c2 _custom, c3 custom[]"
-        + (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3) ? ", c4 _custom[]" : ""));
+    // 8.2 does not support arrays of composite types
+    TestUtil.createTable(con, "customtable", "c1 custom, c2 _custom"
+        + (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3) ? ", c3 custom[], c4 _custom[]" : ""));
 
     Statement stmt = con.createStatement();
     // we add the following comments to ensure the joins to the comments
@@ -143,21 +142,21 @@ public class DatabaseMetaDataTest {
     assertEquals("custom", res.getString("TYPE_NAME"));
     assertTrue(res.next());
     assertEquals("_custom", res.getString("TYPE_NAME"));
-    assertTrue(res.next());
-    assertEquals("__custom", res.getString("TYPE_NAME"));
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3)) {
+      assertTrue(res.next());
+      assertEquals("__custom", res.getString("TYPE_NAME"));
       assertTrue(res.next());
       assertEquals("___custom", res.getString("TYPE_NAME"));
     }
-    con.createArrayOf("custom", new Object[] {});
-    res = dbmd.getColumns(null, null, "customtable", null);
-    assertTrue(res.next());
-    assertEquals("custom", res.getString("TYPE_NAME"));
-    assertTrue(res.next());
-    assertEquals("_custom", res.getString("TYPE_NAME"));
-    assertTrue(res.next());
-    assertEquals("__custom", res.getString("TYPE_NAME"));
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3)) {
+      con.createArrayOf("custom", new Object[]{});
+      res = dbmd.getColumns(null, null, "customtable", null);
+      assertTrue(res.next());
+      assertEquals("custom", res.getString("TYPE_NAME"));
+      assertTrue(res.next());
+      assertEquals("_custom", res.getString("TYPE_NAME"));
+      assertTrue(res.next());
+      assertEquals("__custom", res.getString("TYPE_NAME"));
       assertTrue(res.next());
       assertEquals("___custom", res.getString("TYPE_NAME"));
     }
@@ -1103,73 +1102,66 @@ public class DatabaseMetaDataTest {
     }
   }
 
-  // these all work from 9.1 on. Not meant to be exhaustive, but it's better than nothing.
-  private String[] typeArray = new String[]{
-      "bool",
-      "bytea",
-      "char",
-      "name",
-      "int8",
-      "int2",
-      "int2vector",
-      "int4",
-      "text",
-      "oid",
-      "tid",
-      "xid",
-      "cid",
-      "oidvector",
-      "xml",
-      "point",
-      "lseg",
-      "path",
-      "box",
-      "polygon",
-      "line",
-      "float4",
-      "float8",
-      "abstime",
-      "reltime",
-      "tinterval",
-      "unknown",
-      "circle",
-      "money",
-      "macaddr",
-      "inet",
-      "cidr",
-      "aclitem",
-      "bpchar",
-      "varchar",
-      "date",
-      "time",
-      "timestamp",
-      "timestamptz",
-      "interval",
-      "timetz",
-      "bit",
-      "varbit",
-      "numeric",
-      "refcursor",
-      "uuid",
-      "tsvector",
-      "gtsvector",
-      "tsquery",
-      "any",
-      "anyarray",
-      "void",
-  };
-
   @Test
   public void testTypes() throws SQLException {
+    // https://www.postgresql.org/docs/8.2/static/datatype.html
+    List<String> stringTypeList = new ArrayList<String>();
+    stringTypeList.addAll(Arrays.asList(new String[]{
+        "bit",
+        "bool",
+        "box",
+        "bytea",
+        "char",
+        "cidr",
+        "circle",
+        "date",
+        "float4",
+        "float8",
+        "inet",
+        "int2",
+        "int4",
+        "int8",
+        "interval",
+        "line",
+        "lseg",
+        "macaddr",
+        "money",
+        "numeric",
+        "path",
+        "point",
+        "polygon",
+        "text",
+        "time",
+        "timestamp",
+        "timestamptz",
+        "timetz",
+        "varbit",
+        "varchar"
+    }));
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3)) {
+      stringTypeList.add("tsquery");
+      stringTypeList.add("tsvector");
+      stringTypeList.add("txid_snapshot");
+      stringTypeList.add("uuid");
+      stringTypeList.add("xml");
+    }
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_2)) {
+      stringTypeList.add("json");
+    }
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_4)) {
+      stringTypeList.add("jsonb");
+      stringTypeList.add("pg_lsn");
+    }
+
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getTypeInfo();
-    Map<String, Boolean> types = new HashMap<String, Boolean>();
+    List<String> types = new ArrayList<String>();
 
     while (rs.next()) {
-      types.put(rs.getString("TYPE_NAME"), true);
+      types.add(rs.getString("TYPE_NAME"));
     }
-    for (String typeName : typeArray) {
-      assertTrue(types.containsKey(typeName));
+    for (String typeName : stringTypeList) {
+      assertTrue(types.contains(typeName));
     }
 
   }

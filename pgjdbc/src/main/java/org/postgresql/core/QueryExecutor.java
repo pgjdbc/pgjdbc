@@ -421,4 +421,9 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    * @param flushCacheOnDeallocate true if statement cache should be reset when "deallocate/discard" message observed
    */
   void setFlushCacheOnDeallocate(boolean flushCacheOnDeallocate);
+
+  /**
+   * @return the ReplicationProtocol instance for this connection.
+   */
+  ReplicationProtocol getReplicationProtocol();
 }

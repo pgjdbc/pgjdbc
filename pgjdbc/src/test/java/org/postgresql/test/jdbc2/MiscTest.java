@@ -5,9 +5,13 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.Ignore;
+import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
@@ -22,11 +26,7 @@ import java.sql.Statement;
  * problems from re-occurring ;-)
  *
  */
-public class MiscTest extends TestCase {
-
-  public MiscTest(String name) {
-    super(name);
-  }
+public class MiscTest {
 
   /*
    * Some versions of the driver would return rs as a null?
@@ -35,6 +35,7 @@ public class MiscTest extends TestCase {
    *
    * Added Feb 13 2001
    */
+  @Test
   public void testDatabaseSelectNullBug() throws Exception {
     Connection con = TestUtil.openDB();
 
@@ -56,6 +57,7 @@ public class MiscTest extends TestCase {
    * Ensure the cancel call does not return before it has completed. Previously it did which
    * cancelled future queries.
    */
+  @Test
   public void testSingleThreadCancel() throws Exception {
     Connection con = TestUtil.openDB();
     Statement stmt = con.createStatement();
@@ -67,6 +69,7 @@ public class MiscTest extends TestCase {
     TestUtil.closeDB(con);
   }
 
+  @Test
   public void testError() throws Exception {
     Connection con = TestUtil.openDB();
     try {
@@ -89,6 +92,7 @@ public class MiscTest extends TestCase {
     con.close();
   }
 
+  @Test
   public void testWarning() throws Exception {
     Connection con = TestUtil.openDB();
     Statement stmt = con.createStatement();
@@ -110,6 +114,8 @@ public class MiscTest extends TestCase {
     con.close();
   }
 
+  @Ignore
+  @Test
   public void xtestLocking() throws Exception {
     Connection con = TestUtil.openDB();
     Connection con2 = TestUtil.openDB();

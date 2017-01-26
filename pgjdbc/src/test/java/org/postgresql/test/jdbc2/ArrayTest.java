@@ -46,12 +46,14 @@ public class ArrayTest extends BaseTest4 {
     return ids;
   }
 
+  @Override
   public void setUp() throws Exception {
     super.setUp();
     conn = con;
     TestUtil.createTable(conn, "arrtest", "intarr int[], decarr decimal(2,1)[], strarr text[]");
   }
 
+  @Override
   public void tearDown() throws SQLException {
     TestUtil.dropTable(conn, "arrtest");
     super.tearDown();

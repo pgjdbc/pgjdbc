@@ -5,9 +5,15 @@
 
 package org.postgresql.test.jdbc42;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -29,17 +35,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.TimeZone;
 
-public class SetObject310Test extends TestCase {
+public class SetObject310Test {
+  private static final TimeZone saveTZ = TimeZone.getDefault();
 
   private Connection con;
 
-  private static final TimeZone saveTZ = TimeZone.getDefault();
-
-  public SetObject310Test(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
+  @Before
+  public void setUp() throws Exception {
     con = TestUtil.openDB();
     TestUtil.createTable(con, "table1", "timestamp_without_time_zone_column timestamp without time zone,"
             + "timestamp_with_time_zone_column timestamp with time zone,"
@@ -49,7 +51,8 @@ public class SetObject310Test extends TestCase {
     );
   }
 
-  protected void tearDown() throws SQLException {
+  @After
+  public void tearDown() throws SQLException {
     TimeZone.setDefault(saveTZ);
     TestUtil.dropTable(con, "table1");
     TestUtil.closeDB(con);
@@ -165,6 +168,7 @@ public class SetObject310Test extends TestCase {
   /**
    * Test the behavior of setObject for timestamp columns.
    */
+  @Test
   public void testSetLocalDateTime() throws SQLException {
     List<String> zoneIdsToTest = getZoneIdsToTest();
     List<String> datesToTest = getDatesToTest();
@@ -182,6 +186,7 @@ public class SetObject310Test extends TestCase {
   /**
    * Test the behavior of setObject for timestamp columns.
    */
+  @Test
   public void testSetOffsetDateTime() throws SQLException {
     List<String> zoneIdsToTest = getZoneIdsToTest();
     List<TimeZone> storeZones = new ArrayList<TimeZone>();
@@ -272,6 +277,7 @@ public class SetObject310Test extends TestCase {
   /**
    * Test the behavior of setObject for timestamp columns.
    */
+  @Test
   public void testSetLocalDateTimeBc() throws SQLException {
     // use BC for funsies
     List<LocalDateTime> bcDates = new ArrayList<LocalDateTime>();
@@ -288,6 +294,7 @@ public class SetObject310Test extends TestCase {
   /**
    * Test the behavior setObject for date columns.
    */
+  @Test
   public void testSetLocalDateWithType() throws SQLException {
     LocalDate data = LocalDate.parse("1971-12-15");
     java.sql.Date actual = insertThenReadWithType(data, Types.DATE, "date_column", java.sql.Date.class);
@@ -298,6 +305,7 @@ public class SetObject310Test extends TestCase {
   /**
    * Test the behavior setObject for date columns.
    */
+  @Test
   public void testSetLocalDateWithoutType() throws SQLException {
     LocalDate data = LocalDate.parse("1971-12-15");
     java.sql.Date actual = insertThenReadWithoutType(data, "date_column", java.sql.Date.class);
@@ -308,6 +316,7 @@ public class SetObject310Test extends TestCase {
   /**
    * Test the behavior setObject for time columns.
    */
+  @Test
   public void testSetLocalTimeAndReadBack() throws SQLException {
     LocalTime data = LocalTime.parse("16:21:51.123456");
 
@@ -320,6 +329,7 @@ public class SetObject310Test extends TestCase {
   /**
    * Test the behavior setObject for time columns.
    */
+  @Test
   public void testSetLocalTimeWithType() throws SQLException {
     LocalTime data = LocalTime.parse("16:21:51");
     Time actual = insertThenReadWithType(data, Types.TIME, "time_without_time_zone_column", Time.class);
@@ -330,6 +340,7 @@ public class SetObject310Test extends TestCase {
   /**
    * Test the behavior setObject for time columns.
    */
+  @Test
   public void testSetLocalTimeWithoutType() throws SQLException {
     LocalTime data = LocalTime.parse("16:21:51");
     Time actual = insertThenReadWithoutType(data, "time_without_time_zone_column", Time.class);

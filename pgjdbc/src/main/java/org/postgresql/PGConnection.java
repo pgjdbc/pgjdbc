@@ -10,6 +10,7 @@ import org.postgresql.fastpath.Fastpath;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.largeobject.LargeObjectManager;
+import org.postgresql.replication.PGReplicationConnection;
 import org.postgresql.util.PGobject;
 
 import java.sql.SQLException;
@@ -192,4 +193,9 @@ public interface PGConnection {
    * @param autoSave connection configuration regarding automatic per-query savepoints
    */
   void setAutosave(AutoSave autoSave);
+
+  /**
+   * @return replication API for the current connection
+   */
+  PGReplicationConnection getReplicationAPI();
 }

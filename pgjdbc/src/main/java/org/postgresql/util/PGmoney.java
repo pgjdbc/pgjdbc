@@ -6,7 +6,6 @@
 
 package org.postgresql.util;
 
-
 import java.io.Serializable;
 import java.sql.SQLException;
 

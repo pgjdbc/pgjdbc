@@ -5,9 +5,14 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -17,20 +22,15 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.HashMap;
+
 /*
  * Test for getObject
  */
+public class GetXXXTest {
+  private Connection con = null;
 
-public class GetXXXTest extends TestCase {
-  Connection con = null;
-
-  public GetXXXTest(String name) {
-    super(name);
-  }
-
-  protected void setUp() throws Exception {
-    super.setUp();
-
+  @Before
+  public void setUp() throws Exception {
     con = TestUtil.openDB();
     TestUtil.createTempTable(con, "test_interval",
         "initial timestamp with time zone, final timestamp with time zone");
@@ -44,12 +44,13 @@ public class GetXXXTest extends TestCase {
     pstmt.close();
   }
 
-  protected void tearDown() throws Exception {
-    super.tearDown();
+  @After
+  public void tearDown() throws Exception {
     TestUtil.dropTable(con, "test_interval");
     con.close();
   }
 
+  @Test
   public void testGetObject() throws SQLException {
     Statement stmt = con.createStatement();
     ResultSet rs = stmt.executeQuery("select (final-initial) as diff from test_interval");
@@ -62,6 +63,7 @@ public class GetXXXTest extends TestCase {
     }
   }
 
+  @Test
   public void testGetUDT() throws SQLException {
     Statement stmt = con.createStatement();
     ResultSet rs = stmt.executeQuery("select (final-initial) as diff from test_interval");

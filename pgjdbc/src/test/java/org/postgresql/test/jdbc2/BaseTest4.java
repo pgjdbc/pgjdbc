@@ -69,4 +69,8 @@ public class BaseTest4 {
     Assume.assumeTrue("callable statements are not fully supported in simple protocol execution mode",
         preferQueryMode.compareTo(PreferQueryMode.EXTENDED) >= 0);
   }
+
+  public void assumeBinaryModeRegular() {
+    Assume.assumeTrue(binaryMode == BinaryMode.REGULAR);
+  }
 }
