@@ -23,7 +23,6 @@ import org.junit.runners.Parameterized;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -61,6 +60,9 @@ public class PreparedStatementTest extends BaseTest4 {
     TestUtil.createTable(con, "texttable", "ch char(3), te text, vc varchar(3)");
     TestUtil.createTable(con, "intervaltable", "i interval");
     TestUtil.createTable(con, "inttable", "a int");
+    TestUtil.createTable(con, "bool_tab", "bool_val boolean, null_val boolean, tf_val boolean, "
+        + "truefalse_val boolean, yn_val boolean, yesno_val boolean, "
+        + "onoff_val boolean, onezero_val boolean");
   }
 
   @Override
@@ -69,6 +71,7 @@ public class PreparedStatementTest extends BaseTest4 {
     TestUtil.dropTable(con, "texttable");
     TestUtil.dropTable(con, "intervaltable");
     TestUtil.dropTable(con, "inttable");
+    TestUtil.dropTable(con, "bool_tab");
     super.tearDown();
   }
 
@@ -514,13 +517,16 @@ public class PreparedStatementTest extends BaseTest4 {
 
   @Test
   public void testBoolean() throws SQLException {
-    PreparedStatement pstmt = con.prepareStatement(
-        "CREATE TEMP TABLE bool_tab (bool_val boolean, null_val boolean, tf_val boolean, "
-        + "truefalse_val boolean, yn_val boolean, yesno_val boolean, onoff_val boolean, onezero_val boolean)");
-    pstmt.executeUpdate();
-    pstmt.close();
+    testBoolean(0);
+    testBoolean(1);
+    testBoolean(5);
+    testBoolean(-1);
+  }
 
-    pstmt = con.prepareStatement("insert into bool_tab values (?,?,?,?,?,?,?,?)");
+  public void testBoolean(int prepareThreshold) throws SQLException {
+    PreparedStatement pstmt = con.prepareStatement("insert into bool_tab values (?,?,?,?,?,?,?,?)");
+    ((org.postgresql.PGStatement) pstmt).setPrepareThreshold(prepareThreshold);
+
     // Test TRUE values
     pstmt.setBoolean(1, true);
     pstmt.setObject(1, Boolean.TRUE);
@@ -554,36 +560,20 @@ public class PreparedStatementTest extends BaseTest4 {
     pstmt.setObject(8, '0', Types.BOOLEAN);
     assertEquals("one row inserted, false values", 1, pstmt.executeUpdate());
     // Test weird values
-    pstmt.setObject(1, new java.util.Date(0), Types.BOOLEAN);
+    pstmt.setObject(1, (byte) 0, Types.BOOLEAN);
     pstmt.setObject(2, BigDecimal.ONE, Types.BOOLEAN);
     pstmt.setObject(3, 0L, Types.BOOLEAN);
     pstmt.setObject(4, 0x1, Types.BOOLEAN);
-    pstmt.setObject(5, 0, Types.BOOLEAN);
+    pstmt.setObject(5, new Float(0), Types.BOOLEAN);
+    pstmt.setObject(5, 1.0d, Types.BOOLEAN);
+    pstmt.setObject(5, 0.0f, Types.BOOLEAN);
     pstmt.setObject(6, Integer.valueOf("1"), Types.BOOLEAN);
+    pstmt.setObject(7, new java.math.BigInteger("0"), Types.BOOLEAN);
     pstmt.clearParameters();
-
-    try {
-      pstmt.setObject(1, "this is not boolean", Types.BOOLEAN);
-      fail();
-    } catch (SQLException e) {
-      assertEquals(e.getMessage(), "Cannot convert an instance of String to type boolean");
-    }
-    try {
-      pstmt.setObject(1, 'X', Types.BOOLEAN);
-      fail();
-    } catch (SQLException e) {
-      assertEquals(e.getMessage(), "Cannot convert an instance of Character to type boolean");
-    }
-    try {
-      File obj = new File("");
-      pstmt.setObject(1, obj, Types.BOOLEAN);
-      fail();
-    } catch (SQLException e) {
-      assertEquals(e.getMessage(), "Cannot convert an instance of java.io.File to type boolean");
-    }
-
     pstmt.close();
+
     pstmt = con.prepareStatement("select * from bool_tab");
+    ((org.postgresql.PGStatement) pstmt).setPrepareThreshold(prepareThreshold);
     ResultSet rs = pstmt.executeQuery();
 
     assertTrue(rs.next());
@@ -609,6 +599,83 @@ public class PreparedStatementTest extends BaseTest4 {
     assertFalse("expected false, received " + rs.getBoolean(8), rs.getBoolean(8));
 
     rs.close();
+    pstmt.close();
+
+    pstmt = con.prepareStatement("TRUNCATE TABLE bool_tab");
+    pstmt.executeUpdate();
+    pstmt.close();
+  }
+
+  @Test
+  public void testBadBoolean() throws SQLException {
+    PreparedStatement pstmt = con.prepareStatement("INSERT INTO bad_bool VALUES (?)");
+    try {
+      pstmt.setObject(1, "this is not boolean", Types.BOOLEAN);
+      fail();
+    } catch (SQLException e) {
+      assertEquals(e.getSQLState(), org.postgresql.util.PSQLState.CANNOT_COERCE.getState());
+    }
+    try {
+      pstmt.setObject(1, 'X', Types.BOOLEAN);
+      fail();
+    } catch (SQLException e) {
+      assertEquals(e.getSQLState(), org.postgresql.util.PSQLState.CANNOT_COERCE.getState());
+    }
+    try {
+      java.io.File obj = new java.io.File("");
+      pstmt.setObject(1, obj, Types.BOOLEAN);
+      fail();
+    } catch (SQLException e) {
+      assertEquals(e.getSQLState(), org.postgresql.util.PSQLState.CANNOT_COERCE.getState());
+    }
+    try {
+      pstmt.setObject(1, "1.0", Types.BOOLEAN);
+      fail();
+    } catch (SQLException e) {
+      assertEquals(e.getSQLState(), org.postgresql.util.PSQLState.CANNOT_COERCE.getState());
+    }
+    try {
+      pstmt.setObject(1, "-1", Types.BOOLEAN);
+      fail();
+    } catch (SQLException e) {
+      assertEquals(e.getSQLState(), org.postgresql.util.PSQLState.CANNOT_COERCE.getState());
+    }
+    try {
+      pstmt.setObject(1, "ok", Types.BOOLEAN);
+      fail();
+    } catch (SQLException e) {
+      assertEquals(e.getSQLState(), org.postgresql.util.PSQLState.CANNOT_COERCE.getState());
+    }
+    try {
+      pstmt.setObject(1, 0.99f, Types.BOOLEAN);
+      fail();
+    } catch (SQLException e) {
+      assertEquals(e.getSQLState(), org.postgresql.util.PSQLState.CANNOT_COERCE.getState());
+    }
+    try {
+      pstmt.setObject(1, -0.01d, Types.BOOLEAN);
+      fail();
+    } catch (SQLException e) {
+      assertEquals(e.getSQLState(), org.postgresql.util.PSQLState.CANNOT_COERCE.getState());
+    }
+    try {
+      pstmt.setObject(1, new java.sql.Date(0), Types.BOOLEAN);
+      fail();
+    } catch (SQLException e) {
+      assertEquals(e.getSQLState(), org.postgresql.util.PSQLState.CANNOT_COERCE.getState());
+    }
+    try {
+      pstmt.setObject(1, new java.math.BigInteger("1000"), Types.BOOLEAN);
+      fail();
+    } catch (SQLException e) {
+      assertEquals(e.getSQLState(), org.postgresql.util.PSQLState.CANNOT_COERCE.getState());
+    }
+    try {
+      pstmt.setObject(1, Math.PI, Types.BOOLEAN);
+      fail();
+    } catch (SQLException e) {
+      assertEquals(e.getSQLState(), org.postgresql.util.PSQLState.CANNOT_COERCE.getState());
+    }
     pstmt.close();
   }
 
@@ -664,18 +731,27 @@ public class PreparedStatementTest extends BaseTest4 {
     pstmt.setObject(2, minStringFloat, Types.FLOAT);
     pstmt.setNull(3, Types.FLOAT);
     pstmt.executeUpdate();
+    pstmt.setObject(1, "1.0", Types.FLOAT);
+    pstmt.setObject(2, "0.0", Types.FLOAT);
+    pstmt.setNull(3, Types.FLOAT);
+    pstmt.executeUpdate();
     pstmt.close();
 
     pstmt = con.prepareStatement("select * from float_tab");
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
 
-    assertTrue("expected true,received " + rs.getObject(1),
-        ((Double) rs.getObject(1)).equals(maxFloat));
-    assertTrue("expected false,received " + rs.getBoolean(2),
-        ((Double) rs.getObject(2)).equals(minFloat));
+    assertTrue(((Double) rs.getObject(1)).equals(maxFloat));
+    assertTrue(((Double) rs.getObject(2)).equals(minFloat));
+    assertTrue(rs.getDouble(1) == maxFloat);
+    assertTrue(rs.getDouble(2) == minFloat);
     rs.getFloat(3);
     assertTrue(rs.wasNull());
+
+    assertTrue(rs.next());
+    assertTrue("expected true, received " + rs.getBoolean(1), rs.getBoolean(1) == true);
+    assertTrue("expected false,received " + rs.getBoolean(2), rs.getBoolean(2) == false);
+
     rs.close();
     pstmt.close();
 

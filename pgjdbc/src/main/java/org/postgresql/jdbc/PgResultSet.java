@@ -169,12 +169,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   protected Object internalGetObject(int columnIndex, Field field) throws SQLException {
     switch (getSQLType(columnIndex)) {
       case Types.BOOLEAN:
+      case Types.BIT:
         return getBoolean(columnIndex);
       case Types.SQLXML:
         return getSQLXML(columnIndex);
-      case Types.BIT:
-        // Also Types.BOOLEAN in JDBC3
-        return getBoolean(columnIndex) ? Boolean.TRUE : Boolean.FALSE;
       case Types.TINYINT:
       case Types.SMALLINT:
       case Types.INTEGER:
@@ -1918,6 +1916,29 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
   }
 
+  /**
+   * Retrieves the value of the designated column in the current row of this <code>ResultSet</code>
+   * object as a <code>boolean</code> in the Java programming language.
+   * <p>
+   * If the designated column has a Character datatype and is one of the following values: "1",
+   * "true", "t", "yes", "y" or "on", a value of <code>true</code> is returned. If the designated
+   * column has a Character datatype and is one of the following values: "0", "false", "f", "no",
+   * "n" or "off", a value of <code>false</code> is returned. Leading or trailing whitespace is
+   * ignored, and case does not matter.
+   * <p>
+   * If the designated column has a Numeric datatype and is a 1, a value of <code>true</code> is
+   * returned. If the designated column has a Numeric datatype and is a 0, a value of
+   * <code>false</code> is returned.
+   *
+   * @param columnIndex the first column is 1, the second is 2, ...
+   * @return the column value; if the value is SQL <code>NULL</code>, the value returned is
+   * <code>false</code>
+   * @exception SQLException if the columnIndex is not valid; if a database access error occurs or
+   * this method is called on a closed result set
+   * @see <a href="https://www.postgresql.org/docs/current/static/datatype-boolean.html">PostgreSQL
+   * Boolean Type</a>
+   */
+  @Override
   public boolean getBoolean(int columnIndex) throws SQLException {
     checkResultSet(columnIndex);
     if (wasNullFlag) {
@@ -1926,10 +1947,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
     if (isBinary(columnIndex)) {
       int col = columnIndex - 1;
-      return readDoubleValue(this_row[col], fields[col].getOID(), "boolean") == 1;
+      return BooleanTypeUtil.castToBoolean(readDoubleValue(this_row[col], fields[col].getOID(), "boolean"));
     }
 
-    return toBoolean(getString(columnIndex));
+    return BooleanTypeUtil.castToBoolean(getString(columnIndex));
   }
 
   private static final BigInteger BYTEMAX = new BigInteger(Byte.toString(Byte.MAX_VALUE));
@@ -2440,6 +2461,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return getString(findColumn(columnName));
   }
 
+  @Override
   public boolean getBoolean(String columnName) throws SQLException {
     return getBoolean(findColumn(columnName));
   }
@@ -2758,28 +2780,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   // ----------------- Formatting Methods -------------------
-
-  public static boolean toBoolean(String s) {
-    if (s != null) {
-      s = s.trim();
-
-      if (s.equalsIgnoreCase("t") || s.equalsIgnoreCase("true") || s.equals("1")) {
-        return true;
-      }
-
-      if (s.equalsIgnoreCase("f") || s.equalsIgnoreCase("false") || s.equals("0")) {
-        return false;
-      }
-
-      try {
-        if (Double.parseDouble(s) == 1) {
-          return true;
-        }
-      } catch (NumberFormatException e) {
-      }
-    }
-    return false; // SQL NULL
-  }
 
   private static final BigInteger INTMAX = new BigInteger(Integer.toString(Integer.MAX_VALUE));
   private static final BigInteger INTMIN = new BigInteger(Integer.toString(Integer.MIN_VALUE));

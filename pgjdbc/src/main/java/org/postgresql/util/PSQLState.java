@@ -107,6 +107,7 @@ public class PSQLState implements java.io.Serializable {
   public final static PSQLState DATA_TYPE_MISMATCH = new PSQLState("42821");
   public final static PSQLState UNDEFINED_FUNCTION = new PSQLState("42883");
   public final static PSQLState INVALID_NAME = new PSQLState("42602");
+  public final static PSQLState CANNOT_COERCE = new PSQLState("42846");
 
   public final static PSQLState OUT_OF_MEMORY = new PSQLState("53200");
   public final static PSQLState OBJECT_NOT_IN_STATE = new PSQLState("55000");
