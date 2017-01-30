@@ -26,6 +26,7 @@ import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.net.URLEncoder;
 import java.sql.DriverPropertyInfo;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
@@ -212,5 +213,48 @@ public class PGPropertyTest {
     assertEquals("database", databaseName, PGProperty.PG_DBNAME.get(parsed));
     assertEquals("user", userName, PGProperty.USER.get(parsed));
     assertEquals("password", password, PGProperty.PASSWORD.get(parsed));
+  }
+
+  @Test
+  public void testLowerCamelCase() {
+    // These are legacy properties excluded for backward compatibility.
+    ArrayList<String> excluded = new ArrayList<String>();
+    excluded.add("LOG_LEVEL"); // Remove with PR #722
+    excluded.add("PREPARED_STATEMENT_CACHE_SIZE_MIB"); // preparedStatementCacheSizeMi[B]
+    excluded.add("DATABASE_METADATA_CACHE_FIELDS_MIB"); // databaseMetadataCacheFieldsMi[B]
+    excluded.add("STRING_TYPE"); // string[t]ype
+    excluded.add("SSL_MODE"); // ssl[m]ode
+    excluded.add("SSL_FACTORY"); // ssl[f]actory
+    excluded.add("SSL_FACTORY_ARG"); // ssl[f]actory[a]rg
+    excluded.add("SSL_HOSTNAME_VERIFIER"); // ssl[h]ostname[v]erifier
+    excluded.add("SSL_CERT"); // ssl[c]ert
+    excluded.add("SSL_KEY"); // ssl[k]ey
+    excluded.add("SSL_ROOT_CERT"); // ssl[r]oot[c]ert
+    excluded.add("SSL_PASSWORD"); // ssl[p]assword
+    excluded.add("SSL_PASSWORD_CALLBACK"); // ssl[p]assword[c]allback
+    excluded.add("APPLICATION_NAME"); // [A]pplicationName
+    excluded.add("GSS_LIB"); // gss[l]ib
+    excluded.add("REWRITE_BATCHED_INSERTS"); // re[W]riteBatchedInserts
+
+    for (PGProperty property : PGProperty.values()) {
+      if (!property.name().startsWith("PG")) { // Ignore all properties that start with PG
+        String[] words = property.name().split("_");
+        if (words.length == 1) {
+          assertEquals(words[0].toLowerCase(), property.getName());
+        } else {
+          if (!excluded.contains(property.name())) {
+            String word = "";
+            for (int i = 0; i < words.length; i++) {
+              if (i == 0) {
+                word = words[i].toLowerCase();
+              } else {
+                word += words[i].substring(0, 1).toUpperCase() + words[i].substring(1).toLowerCase();
+              }
+            }
+            assertEquals(word, property.getName());
+          }
+        }
+      }
+    }
   }
 }
