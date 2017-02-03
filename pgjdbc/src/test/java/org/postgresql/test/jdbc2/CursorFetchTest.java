@@ -20,7 +20,7 @@ import java.sql.Statement;
 /*
  * Tests for using non-zero setFetchSize().
  */
-public class CursorFetchTest extends BaseTest {
+public class CursorFetchTest extends BaseTest4 {
 
   @Override
   public void setUp() throws Exception {

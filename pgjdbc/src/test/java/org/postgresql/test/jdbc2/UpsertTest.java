@@ -10,17 +10,35 @@ import static org.junit.Assert.assertEquals;
 import org.postgresql.test.TestUtil;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collection;
 
 
 /**
  * Tests {@code INSERT .. ON CONFLICT} introduced in PostgreSQL 9.5.
  */
-public class UpsertTest extends BaseTest {
+@RunWith(Parameterized.class)
+public class UpsertTest extends BaseTest4 {
   private Statement stmt;
+
+  public UpsertTest(BinaryMode binaryMode) {
+    setBinaryMode(binaryMode);
+  }
+
+  @Parameterized.Parameters(name = "binary = {0}")
+  public static Iterable<Object[]> data() {
+    Collection<Object[]> ids = new ArrayList<Object[]>();
+    for (BinaryMode binaryMode : BinaryMode.values()) {
+      ids.add(new Object[]{binaryMode});
+    }
+    return ids;
+  }
 
   @Override
   public void setUp() throws Exception {

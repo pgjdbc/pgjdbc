@@ -7,8 +7,7 @@ package org.postgresql.core.v3;
 
 import static org.junit.Assert.assertEquals;
 
-import org.postgresql.test.jdbc2.BaseTest;
-
+import org.junit.Before;
 import org.junit.Test;
 
 import java.sql.SQLException;
@@ -19,10 +18,10 @@ import java.sql.SQLException;
  * @author Jeremy Whiting jwhiting@redhat.com
  *
  */
-public class V3ParameterListTests extends BaseTest {
+public class V3ParameterListTests {
   private TypeTransferModeRegistry transferModeRegistry;
 
-  @Override
+  @Before
   public void setUp() throws Exception {
     transferModeRegistry = new TypeTransferModeRegistry() {
         @Override

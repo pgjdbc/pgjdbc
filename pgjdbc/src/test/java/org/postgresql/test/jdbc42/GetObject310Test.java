@@ -10,11 +10,13 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.jdbc2.BaseTest;
+import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -27,11 +29,12 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.TimeZone;
 
-
-public class GetObject310Test extends BaseTest {
+@RunWith(Parameterized.class)
+public class GetObject310Test extends BaseTest4 {
 
   private static final TimeZone saveTZ = TimeZone.getDefault();
 
@@ -39,6 +42,20 @@ public class GetObject310Test extends BaseTest {
   private static final ZoneOffset GMT03 = ZoneOffset.of("+03:00"); // +0300 always
   private static final ZoneOffset GMT05 = ZoneOffset.of("-05:00"); // -0500 always
   private static final ZoneOffset GMT13 = ZoneOffset.of("+13:00"); // +1300 always
+
+
+  public GetObject310Test(BinaryMode binaryMode) {
+    setBinaryMode(binaryMode);
+  }
+
+  @Parameterized.Parameters(name = "binary = {0}")
+  public static Iterable<Object[]> data() {
+    Collection<Object[]> ids = new ArrayList<Object[]>();
+    for (BinaryMode binaryMode : BinaryMode.values()) {
+      ids.add(new Object[]{binaryMode});
+    }
+    return ids;
+  }
 
   @Override
   public void setUp() throws Exception {

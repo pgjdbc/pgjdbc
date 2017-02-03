@@ -130,7 +130,6 @@ public class Jdbc2TestSuite extends TestSuite {
 
     if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v9_5)) {
       suite.addTest(new JUnit4TestAdapter(UpsertTest.class));
-      suite.addTest(new JUnit4TestAdapter(UpsertBinaryTest.class));
     }
 
     conn.close();

@@ -12,7 +12,7 @@ import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.v3.BatchedQuery;
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.jdbc2.BaseTest;
+import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.test.jdbc2.BatchExecuteTest;
 
 import org.junit.Test;
@@ -30,7 +30,7 @@ import java.util.Properties;
  * execution. Rather than rely on testing at the jdbc api layer.
  * on.
  */
-public class DeepBatchedInsertStatementTest extends BaseTest {
+public class DeepBatchedInsertStatementTest extends BaseTest4 {
 
   /*
    * Set up the fixture for this testcase: a connection to a database with a

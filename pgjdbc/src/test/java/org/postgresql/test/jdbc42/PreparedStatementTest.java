@@ -6,7 +6,7 @@
 package org.postgresql.test.jdbc42;
 
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.jdbc2.BaseTest;
+import org.postgresql.test.jdbc2.BaseTest4;
 
 import org.junit.Test;
 
@@ -15,7 +15,7 @@ import java.sql.SQLException;
 import java.sql.Types;
 
 
-public class PreparedStatementTest extends BaseTest {
+public class PreparedStatementTest extends BaseTest4 {
 
   @Override
   public void setUp() throws Exception {
