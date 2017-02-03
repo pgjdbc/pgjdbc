@@ -6,6 +6,7 @@
 package org.postgresql.test.jdbc42;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import org.postgresql.test.TestUtil;
@@ -98,6 +99,7 @@ public class GetObject310Test extends BaseTest {
   /**
    * Test the behavior getObject for time columns with null.
    */
+  @Test
   public void testGetLocalTimeNull() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.executeUpdate(TestUtil.insertSQL("table1","time_without_time_zone_column","NULL"));
@@ -115,6 +117,7 @@ public class GetObject310Test extends BaseTest {
   /**
    * Test the behavior getObject for time columns with null.
    */
+  @Test
   public void testGetLocalTimeInvalidType() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.executeUpdate(TestUtil.insertSQL("table1","time_with_time_zone_column", "TIME '04:05:06.123456-08:00'"));
