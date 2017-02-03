@@ -54,7 +54,11 @@ import javax.sql.PooledConnection;
  * </p>
  *
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
+ *
+ * @deprecated Since 42.0.0, instead of this class you should use a fully featured connection pool
+ * like HikariCP, vibur-dbcp, commons-dbcp, c3p0, etc.
  */
+@Deprecated
 public class PGPoolingDataSource extends BaseDataSource implements DataSource {
   protected static ConcurrentMap<String, PGPoolingDataSource> dataSources =
       new ConcurrentHashMap<String, PGPoolingDataSource>();

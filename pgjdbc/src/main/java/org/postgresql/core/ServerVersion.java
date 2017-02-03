@@ -138,7 +138,13 @@ public enum ServerVersion implements Version {
       }
     }
 
-    if (versionParts == 3) {
+    /* #667 - Allow for versions with greater than 3 parts.
+      For versions with more than 3 parts, still return 3 parts (4th part ignored for now
+      as no functionality is dependent on the 4th part .
+      Allows for future versions of the server to utilize more than 3 part version numbers
+      without upgrading the jdbc driver */
+
+    if (versionParts >= 3) {
       if (parts[1] > 99) {
         throw new NumberFormatException(
             "Unsupported second part of major version > 99 in invalid version string: "
