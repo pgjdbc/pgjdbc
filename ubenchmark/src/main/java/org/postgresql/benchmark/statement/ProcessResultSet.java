@@ -54,6 +54,7 @@ public class ProcessResultSet {
     STRING,
     TIMESTAMP,
     TIMESTAMPTZ,
+    BOOL
   }
 
   public enum ColumnIndexType {
@@ -132,6 +133,8 @@ public class ProcessResultSet {
         sb.append("localtimestamp");
       } else if (type == FieldType.TIMESTAMPTZ) {
         sb.append("current_timestamp");
+      } else if (type == FieldType.BOOL) {
+        sb.append("TRUE");
       }
       String columnName = "c" + String.valueOf(System.currentTimeMillis()) + String.valueOf(i);
       columnNames[i] = columnName;
@@ -190,6 +193,8 @@ public class ProcessResultSet {
       b.consume(rs.getTimestamp(i));
     } else if (type == FieldType.TIMESTAMPTZ) {
       b.consume(rs.getTimestamp(i));
+    } else if (type == FieldType.BOOL) {
+      b.consume(rs.getBoolean(i));
     }
   }
 
@@ -208,6 +213,8 @@ public class ProcessResultSet {
       b.consume(rs.getTimestamp(i));
     } else if (type == FieldType.TIMESTAMPTZ) {
       b.consume(rs.getTimestamp(i));
+    } else if (type == FieldType.BOOL) {
+      b.consume(rs.getBoolean(i));
     }
   }
 
