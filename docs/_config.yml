@@ -1,0 +1,3 @@
+name: PostgreSQL JDBC Driver HEAD documentation
+markdown: kramdown
+highlighter: rouge
