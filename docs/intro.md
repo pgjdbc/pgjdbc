@@ -9,13 +9,20 @@ nexttitle: Chapter 2. Setting up the JDBC Driver
 next: setup.html
 ---
 		
-JDBC is a core API of Java 1.1 and later. It provides a standard set of interfaces
-to SQL-compliant databases.
+Java Database Connectivity (JDBC) is an application programming interface (API) for
+the programming language Java, which defines how a client may access a database.
+It is part of the Java Standard Edition platform and provides methods to query and
+update data in a database, and is oriented towards relational databases.
 		
-PostgreSQL™ provides a *type 4* JDBC driver. Type 4 indicates that the driver is
-written in Pure Java, and communicates in the database system's own network protocol.
+PostgreSQL JDBC Driver (PgJDBC for short) allows Java programs to connect to a PostgreSQL
+database using standard, database independent Java code. Is an open source JDBC driver
+written in Pure Java (Type 4), and communicates in the PostgreSQL native network protocol.
 Because of this, the driver is platform independent; once compiled, the driver
 can be used on any system.
+
+The current version of the driver should be compatible with PostgreSQL 8.2 and higher
+using the version 3.0 of the PostgreSQL protocol, and it's compatible with Java 6 (JDBC 4.0),
+Java 7 (JDBC 4.1) and Java 8 (JDBC 4.2).
   		
 This manual is not intended as a complete guide to JDBC programming, but should
 help to get you started. For more information refer to the standard JDBC API
