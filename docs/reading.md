@@ -1,10 +1,10 @@
 ---
 layout: default_docs
-title: Chapter 12. Further Reading
-header: Chapter 12. Further Reading
+title: Chapter 13. Further Reading
+header: Chapter 13. Further Reading
 resource: media
-previoustitle: Data Sources and JNDI
-previous: jndi.html
+previoustitle: Chapter 12. Logging with java.util.logging
+previous: logging.html
 nexttitle: The PostgreSQL™ JDBC Interface
 next: index.html
 ---
