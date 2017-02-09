@@ -73,6 +73,6 @@ do
 done
 
 echo " * getting the build log for rawhide chroot"
-curl $concrete_copr_be_link/build.log.gz | gunzip || :
+curl -L $concrete_copr_be_link/build.log.gz | gunzip || :
 
 $exit_cmd
