@@ -1,0 +1,5 @@
+spec: postgresql-jdbc.spec
+
+source0:
+  method: git_archive
+  archive_prefix: pgjdbc-REL9.5.git

@@ -1,5 +1,6 @@
 *.tar.gz
 *.src.rpm
 *.spec
+stdout
 copr-token
 copr_build_id
