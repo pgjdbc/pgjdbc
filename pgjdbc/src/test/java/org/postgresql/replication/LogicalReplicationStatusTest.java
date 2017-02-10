@@ -11,6 +11,8 @@ import static org.hamcrest.core.IsEqual.equalTo;
 
 import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
+import org.postgresql.core.BaseConnection;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.rules.ServerVersionRule;
 import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
@@ -509,7 +511,9 @@ public class LogicalReplicationStatusTest {
     Statement st = sqlConnection.createStatement();
     ResultSet rs = null;
     try {
-      rs = st.executeQuery("select pg_current_xlog_location()");
+      rs = st.executeQuery("select "
+          + (((BaseConnection) sqlConnection).haveMinimumServerVersion(ServerVersion.v10)
+          ? "pg_current_wal_location()" : "pg_current_xlog_location()"));
 
       if (rs.next()) {
         String lsn = rs.getString(1);
