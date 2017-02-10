@@ -56,7 +56,9 @@ public class UTF8Encoding {
   public void setup() {
     StringBuilder sb = new StringBuilder();
     for (int i = 0; i < length; i++) {
-      sb.append("Hello мир,");
+      sb.append("Привет мир, ");
+      sb.append("こんにちは世界, ");
+      sb.append("Hola mundo, ");
     }
     source = sb.toString();
     encoder = UTF_8.newEncoder();
@@ -77,7 +79,12 @@ public class UTF8Encoding {
   }
 
   @Benchmark
-  public byte[] string_getBytes() {
+  public byte[] string_getBytes() throws java.io.UnsupportedEncodingException {
+    return source.getBytes("UTF-8");
+  }
+
+  @Benchmark
+  public byte[] charset_getBytes() {
     return source.getBytes(UTF_8);
   }
 
