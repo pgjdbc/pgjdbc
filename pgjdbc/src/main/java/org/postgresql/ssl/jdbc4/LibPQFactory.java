@@ -59,7 +59,7 @@ public class LibPQFactory extends WrappedFactory implements HostnameVerifier {
   public LibPQFactory(Properties info) throws PSQLException {
     try {
       sslmode = PGProperty.SSL_MODE.get(info);
-      SSLContext ctx = SSLContext.getInstance("TLS"); // or "SSL" ?
+      SSLContext ctx = SSLContext.getInstance(MakeSSL.getSSLContextProtocol("TLS")); // or "SSL" ?
 
       // Determinig the default file location
       String pathsep = System.getProperty("file.separator");

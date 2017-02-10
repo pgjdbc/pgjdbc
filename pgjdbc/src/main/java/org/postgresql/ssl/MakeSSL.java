@@ -23,6 +23,14 @@ import javax.net.ssl.SSLSocketFactory;
 
 public class MakeSSL extends ObjectFactory {
 
+  public static String getSSLContextProtocol(String defaultProtocol) {
+	  String protocol = System.getProperty("pg.jdbc.sslContext.protocol");
+	  if (protocol != null) {
+		  return protocol;
+	  }
+	  return defaultProtocol;
+  }
+  
   public static void convert(PGStream stream, Properties info, Logger logger)
       throws PSQLException, IOException {
     logger.debug("converting regular socket connection to ssl");
