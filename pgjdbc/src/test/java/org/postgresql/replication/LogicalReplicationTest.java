@@ -12,6 +12,8 @@ import static org.junit.Assume.assumeThat;
 
 import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
+import org.postgresql.core.BaseConnection;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.rules.ServerVersionRule;
 import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
@@ -841,7 +843,9 @@ public class LogicalReplicationTest {
     Statement st = sqlConnection.createStatement();
     ResultSet rs = null;
     try {
-      rs = st.executeQuery("select pg_current_xlog_location()");
+      rs = st.executeQuery("select "
+          + (((BaseConnection) sqlConnection).haveMinimumServerVersion(ServerVersion.v10)
+          ? "pg_current_wal_location()" : "pg_current_xlog_location()"));
 
       if (rs.next()) {
         String lsn = rs.getString(1);
