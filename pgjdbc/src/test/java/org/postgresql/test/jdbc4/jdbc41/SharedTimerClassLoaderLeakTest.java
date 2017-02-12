@@ -3,7 +3,7 @@
  * See the LICENSE file in the project root for more information.
  */
 
-package org.postgresql.test.util;
+package org.postgresql.test.jdbc4.jdbc41;
 
 import org.postgresql.Driver;
 
@@ -17,6 +17,10 @@ import se.jiderhamn.classloader.leak.Leaks;
 /**
  * Test case that verifies that the use of {@link org.postgresql.util.SharedTimer} within
  * {@link org.postgresql.Driver} does not cause ClassLoader leaks
+ *
+ * The class is placed in {@code jdbc41} package so it won't be tested in JRE6 build.
+ * {@link JUnitClassloaderRunner} does not support JRE6, so we have to skip the test there.
+ *
  * @author Mattias Jiderhamn
  */
 @RunWith(JUnitClassloaderRunner.class)

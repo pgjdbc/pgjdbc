@@ -16,6 +16,7 @@ import org.junit.runners.Suite;
         SchemaTest.class,
         AbortTest.class,
         CloseOnCompletionTest.class,
+        SharedTimerClassLoaderLeakTest.class,
         GetObjectTest.class}
     )
 public class Jdbc41TestSuite {
