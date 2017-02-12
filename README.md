@@ -153,7 +153,8 @@ In addition to the standard connection parameters the driver supports a number o
 | sslpassword                   | String  | null    | The password for the client's ssl key (ignored if sslpasswordcallback is set) |
 | sendBufferSize                | Integer | -1      | Socket write buffer size |
 | recvBufferSize                | Integer | -1      | Socket read buffer size  |
-| loglevel                      | Integer | 0       | The log level to debug the driver, possible values: 0, 1, 2. Call [setLogWriter(PrintWriter)](https://docs.oracle.com/javase/6/docs/api/java/sql/DriverManager.html#setLogWriter%28java.io.PrintWriter%29) to set the log output destination. |
+| loggerLevel                   | String  | null    | Logger level of the driver using java.util.logging. Allowed values: OFF, DEBUG or TRACE. |
+| loggerFile                    | String  | null    | File name output of the Logger, if set, the Logger will use a FileHandler to write to a specified file. If the parameter is not set or the file can't be created the ConsoleHandler will be used instead. |
 | allowEncodingChanges          | Boolean | false   | Allow for changes in client_encoding |
 | logUnclosedConnections        | Boolean | false   | When connections that are not explicitly closed are garbage collected, log the stacktrace from the opening of the connection to trace the leak source |
 | binaryTransferEnable          | String  | ""      | Comma separated list of types to enable binary transfer. Either OID numbers or names |

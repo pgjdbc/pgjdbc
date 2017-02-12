@@ -141,7 +141,7 @@ public interface BaseConnection extends PGConnection, Connection {
   TimestampUtils getTimestampUtils();
 
   // Get the per-connection logger.
-  Logger getLogger();
+  java.util.logging.Logger getLogger();
 
   // Get the bind-string-as-varchar config flag
   boolean getStringVarcharFlag();

@@ -23,7 +23,6 @@ import org.postgresql.util.PSQLState;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -1003,10 +1002,6 @@ public class PgStatement implements Statement, BaseStatement {
       return iface.cast(this);
     }
     throw new SQLException("Cannot unwrap to " + iface.getName());
-  }
-
-  public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException {
-    throw Driver.notImplemented(this.getClass(), "getParentLogger()");
   }
 
   public void closeOnCompletion() throws SQLException {

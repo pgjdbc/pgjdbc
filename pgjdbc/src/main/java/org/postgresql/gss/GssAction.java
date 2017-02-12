@@ -5,7 +5,6 @@
 
 package org.postgresql.gss;
 
-import org.postgresql.core.Logger;
 import org.postgresql.core.PGStream;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -21,25 +20,27 @@ import org.ietf.jgss.Oid;
 
 import java.io.IOException;
 import java.security.PrivilegedAction;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 class GssAction implements PrivilegedAction<Exception> {
+
+  private static final Logger LOGGER = Logger.getLogger(GssAction.class.getName());
   private final PGStream pgStream;
   private final String host;
   private final String user;
   private final String kerberosServerName;
-  private final Logger logger;
   private final boolean useSpnego;
   private final GSSCredential clientCredentials;
 
 
   public GssAction(PGStream pgStream, GSSCredential clientCredentials, String host, String user,
-      String kerberosServerName, Logger logger, boolean useSpnego) {
+      String kerberosServerName, boolean useSpnego) {
     this.pgStream = pgStream;
     this.clientCredentials = clientCredentials;
     this.host = host;
     this.user = user;
     this.kerberosServerName = kerberosServerName;
-    this.logger = logger;
     this.useSpnego = useSpnego;
   }
 
@@ -94,9 +95,7 @@ class GssAction implements PrivilegedAction<Exception> {
 
 
         if (outToken != null) {
-          if (logger.logDebug()) {
-            logger.debug(" FE=> Password(GSS Authentication Token)");
-          }
+          LOGGER.log(Level.FINEST, " FE=> Password(GSS Authentication Token)");
 
           pgStream.sendChar('p');
           pgStream.sendInteger4(4 + outToken.length);
@@ -107,31 +106,26 @@ class GssAction implements PrivilegedAction<Exception> {
         if (!secContext.isEstablished()) {
           int response = pgStream.receiveChar();
           // Error
-          if (response == 'E') {
-            int l_elen = pgStream.receiveInteger4();
-            ServerErrorMessage l_errorMsg =
-                new ServerErrorMessage(pgStream.receiveErrorString(l_elen - 4), logger.getLogLevel());
+          switch (response) {
+            case 'E':
+              int l_elen = pgStream.receiveInteger4();
+              ServerErrorMessage l_errorMsg
+                  = new ServerErrorMessage(pgStream.receiveErrorString(l_elen - 4));
 
-            if (logger.logDebug()) {
-              logger.debug(" <=BE ErrorMessage(" + l_errorMsg + ")");
-            }
+              LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", l_errorMsg);
 
-            return new PSQLException(l_errorMsg);
-
-          } else if (response == 'R') {
-
-            if (logger.logDebug()) {
-              logger.debug(" <=BE AuthenticationGSSContinue");
-            }
-
-            int len = pgStream.receiveInteger4();
-            int type = pgStream.receiveInteger4();
-            // should check type = 8
-            inToken = pgStream.receive(len - 8);
-          } else {
-            // Unknown/unexpected message type.
-            return new PSQLException(GT.tr("Protocol error.  Session setup failed."),
-                PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+              return new PSQLException(l_errorMsg);
+            case 'R':
+              LOGGER.log(Level.FINEST, " <=BE AuthenticationGSSContinue");
+              int len = pgStream.receiveInteger4();
+              int type = pgStream.receiveInteger4();
+              // should check type = 8
+              inToken = pgStream.receive(len - 8);
+              break;
+            default:
+              // Unknown/unexpected message type.
+              return new PSQLException(GT.tr("Protocol error.  Session setup failed."),
+                  PSQLState.CONNECTION_UNABLE_TO_CONNECT);
           }
         } else {
           established = true;

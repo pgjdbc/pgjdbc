@@ -6,7 +6,6 @@
 
 package org.postgresql.sspi;
 
-import org.postgresql.core.Logger;
 import org.postgresql.core.PGStream;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
@@ -23,6 +22,8 @@ import waffle.windows.auth.impl.WindowsSecurityContextImpl;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Use Waffle-JNI to support SSPI authentication when PgJDBC is running on a Windows client and
@@ -36,7 +37,7 @@ public class SSPIClient implements ISSPIClient {
 
   public static String SSPI_DEFAULT_SPN_SERVICE_CLASS = "POSTGRES";
 
-  private final Logger logger;
+  private static final Logger LOGGER = Logger.getLogger(SSPIClient.class.getName());
   private final PGStream pgStream;
   private final String spnServiceClass;
   private final boolean enableNegotiate;
@@ -57,11 +58,8 @@ public class SSPIClient implements ISSPIClient {
    * @param pgStream PostgreSQL connection stream
    * @param spnServiceClass SSPI SPN service class, defaults to POSTGRES if null
    * @param enableNegotiate enable negotiate
-   * @param logger logger
    */
-  public SSPIClient(PGStream pgStream, String spnServiceClass, boolean enableNegotiate,
-      Logger logger) {
-    this.logger = logger;
+  public SSPIClient(PGStream pgStream, String spnServiceClass, boolean enableNegotiate) {
     this.pgStream = pgStream;
 
     /* If blank or unspecified, SPN service class should be POSTGRES */
@@ -90,21 +88,17 @@ public class SSPIClient implements ISSPIClient {
        * won't have JNA and this will throw a NoClassDefFoundError.
        */
       if (!Platform.isWindows()) {
-        logger.debug("SSPI not supported: non-Windows host");
+        LOGGER.log(Level.WARNING, "SSPI not supported: non-Windows host");
         return false;
       }
       /* Waffle must be on the CLASSPATH */
       Class.forName("waffle.windows.auth.impl.WindowsSecurityContextImpl");
       return true;
     } catch (NoClassDefFoundError ex) {
-      if (logger.logDebug()) {
-        logger.debug("SSPI unavailable (no Waffle/JNA libraries?)", ex);
-      }
+      LOGGER.log(Level.WARNING, "SSPI unavailable (no Waffle/JNA libraries?)", ex);
       return false;
     } catch (ClassNotFoundException ex) {
-      if (logger.logDebug()) {
-        logger.debug("SSPI unavailable (no Waffle/JNA libraries?)", ex);
-      }
+      LOGGER.log(Level.WARNING, "SSPI unavailable (no Waffle/JNA libraries?)", ex);
       return false;
     }
   }
@@ -136,9 +130,7 @@ public class SSPIClient implements ISSPIClient {
      */
     final String securityPackage = enableNegotiate ? "negotiate" : "kerberos";
 
-    if (logger.logDebug()) {
-      logger.debug("Beginning SSPI/Kerberos negotiation with SSPI package: " + securityPackage);
-    }
+    LOGGER.log(Level.FINEST, "Beginning SSPI/Kerberos negotiation with SSPI package: {0}", securityPackage);
 
     try {
       /*
@@ -160,9 +152,7 @@ public class SSPIClient implements ISSPIClient {
       try {
         targetName = makeSPN();
 
-        if (logger.logDebug()) {
-          logger.debug("SSPI target name: " + targetName);
-        }
+        LOGGER.log(Level.FINEST, "SSPI target name: {0}", targetName);
 
         sspiContext = new WindowsSecurityContextImpl();
         sspiContext.setPrincipalName(targetName);
@@ -175,7 +165,7 @@ public class SSPIClient implements ISSPIClient {
       }
 
       sendSSPIResponse(sspiContext.getToken());
-      logger.debug("Sent first SSPI negotiation message");
+      LOGGER.log(Level.FINEST, "Sent first SSPI negotiation message");
     } catch (NoClassDefFoundError ex) {
       throw new PSQLException(
           "SSPI cannot be used, Waffle or its dependencies are missing from the classpath",
@@ -197,7 +187,7 @@ public class SSPIClient implements ISSPIClient {
       throw new IllegalStateException("Cannot continue SSPI authentication that we didn't begin");
     }
 
-    logger.debug("Continuing SSPI negotiation");
+    LOGGER.log(Level.FINEST, "Continuing SSPI negotiation");
 
     /* Read the response token from the server */
     byte[] receivedToken = pgStream.receive(msgLength);
@@ -214,9 +204,9 @@ public class SSPIClient implements ISSPIClient {
     byte[] responseToken = sspiContext.getToken();
     if (responseToken.length > 0) {
       sendSSPIResponse(responseToken);
-      logger.debug("Sent SSPI negotiation continuation message");
+      LOGGER.log(Level.FINEST, "Sent SSPI negotiation continuation message");
     } else {
-      logger.debug("SSPI authentication complete, no reply required");
+      LOGGER.log(Level.FINEST, "SSPI authentication complete, no reply required");
     }
   }
 

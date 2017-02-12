@@ -5,8 +5,8 @@
 
 package org.postgresql;
 
-import org.postgresql.core.Logger;
 import org.postgresql.jdbc.PgConnection;
+import org.postgresql.util.ExpressionProperties;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
@@ -28,6 +28,9 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Properties;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * The Java SQL framework allows for multiple database drivers. Each driver should supply a class
@@ -51,16 +54,10 @@ import java.util.Properties;
  */
 public class Driver implements java.sql.Driver {
 
-  // make these public so they can be used in setLogLevel below
-
-  public static final int DEBUG = 2;
-  public static final int INFO = 1;
-  public static final int OFF = 0;
-
   private static Driver registeredDriver;
-  private static final Logger logger = new Logger();
-  private static boolean logLevelSet = false;
-  private static SharedTimer sharedTimer = new SharedTimer(logger);
+  private static final Logger PARENT_LOGGER = Logger.getLogger("org.postgresql");
+  private static final Logger LOGGER = Logger.getLogger("org.postgresql.Driver");
+  private static SharedTimer sharedTimer = new SharedTimer();
 
   static {
     try {
@@ -83,8 +80,7 @@ public class Driver implements java.sql.Driver {
       return defaultProperties;
     }
 
-    // Make sure we load properties with the maximum possible
-    // privileges.
+    // Make sure we load properties with the maximum possible privileges.
     try {
       defaultProperties =
           AccessController.doPrivileged(new PrivilegedExceptionAction<Properties>() {
@@ -94,23 +90,6 @@ public class Driver implements java.sql.Driver {
           });
     } catch (PrivilegedActionException e) {
       throw (IOException) e.getException();
-    }
-
-    // Use the loglevel from the default properties (if any)
-    // as the driver-wide default unless someone explicitly called
-    // setLogLevel() already.
-    synchronized (Driver.class) {
-      if (!logLevelSet) {
-        String driverLogLevel = PGProperty.LOG_LEVEL.get(defaultProperties);
-        if (driverLogLevel != null) {
-          try {
-            setLogLevel(Integer.parseInt(driverLogLevel));
-          } catch (Exception l_e) {
-            // XXX revisit
-            // invalid value for loglevel; ignore it
-          }
-        }
-      }
     }
 
     return defaultProperties;
@@ -140,13 +119,11 @@ public class Driver implements java.sql.Driver {
     }
 
     if (cl == null) {
-      logger.debug("Can't find a classloader for the Driver; not loading driver configuration");
+      LOGGER.log(Level.WARNING, "Can't find a classloader for the Driver; not loading driver configuration");
       return merged; // Give up on finding defaults.
     }
 
-    if (logger.logDebug()) {
-      logger.debug("Loading driver configuration via classloader " + cl);
-    }
+    LOGGER.log(Level.FINE, "Loading driver configuration via classloader {0}", cl);
 
     // When loading the driver config files we don't want settings found
     // in later files in the classpath to override settings specified in
@@ -160,9 +137,7 @@ public class Driver implements java.sql.Driver {
 
     for (int i = urls.size() - 1; i >= 0; i--) {
       URL url = urls.get(i);
-      if (logger.logDebug()) {
-        logger.debug("Loading driver configuration from: " + url);
-      }
+      LOGGER.log(Level.FINE, "Loading driver configuration from: {0}", url);
       InputStream is = url.openStream();
       merged.load(is);
       is.close();
@@ -236,9 +211,8 @@ public class Driver implements java.sql.Driver {
     // override defaults with provided properties
     Properties props = new Properties(defaults);
     if (info != null) {
-      Enumeration<?> e = info.propertyNames();
-      while (e.hasMoreElements()) {
-        String propName = (String) e.nextElement();
+      Set<String> e = info.stringPropertyNames();
+      for (String propName : e) {
         String propValue = info.getProperty(propName);
         if (propValue == null) {
           throw new PSQLException(
@@ -251,13 +225,14 @@ public class Driver implements java.sql.Driver {
     }
     // parse URL and add more properties
     if ((props = parseURL(url, props)) == null) {
-      logger.debug("Error in url: " + url);
+      LOGGER.log(Level.SEVERE, "Error in url: {0}", url);
       return null;
     }
     try {
-      if (logger.logDebug()) {
-        logger.debug("Connecting with URL: " + url);
-      }
+      // Setup java.util.logging.Logger using connection properties.
+      setupLoggerFromProperties(props);
+
+      LOGGER.log(Level.FINE, "Connecting with URL: {0}", url);
 
       // Enforce login timeout, if specified, by running the connection
       // attempt in a separate thread. If we hit the timeout without the
@@ -278,7 +253,7 @@ public class Driver implements java.sql.Driver {
       thread.start();
       return ct.getResult(timeout);
     } catch (PSQLException ex1) {
-      logger.debug("Connection error:", ex1);
+      LOGGER.log(Level.SEVERE, "Connection error: ", ex1);
       // re-throw the exception, otherwise it will be caught next, and a
       // org.postgresql.unusual error will be returned instead.
       throw ex1;
@@ -288,12 +263,64 @@ public class Driver implements java.sql.Driver {
               "Your security policy has prevented the connection from being attempted.  You probably need to grant the connect java.net.SocketPermission to the database server host and port that you wish to connect to."),
           PSQLState.UNEXPECTED_ERROR, ace);
     } catch (Exception ex2) {
-      logger.debug("Unexpected connection error:", ex2);
+      LOGGER.log(Level.SEVERE, "Unexpected connection error: ", ex2);
       throw new PSQLException(
           GT.tr(
               "Something unusual has occurred to cause the driver to fail. Please report this exception."),
           PSQLState.UNEXPECTED_ERROR, ex2);
     }
+  }
+
+  // Used to check if the handler file is the same
+  private static String loggerHandlerFile;
+
+  /**
+   * Setup java.util.logging.Logger using connection properties.
+   * <p>
+   * See {@link PGProperty#LOGGER_FILE} and {@link PGProperty#LOGGER_FILE}
+   *
+   * @param props Connection Properties
+   */
+  private void setupLoggerFromProperties(final Properties props) {
+    final String driverLogLevel = PGProperty.LOGGER_LEVEL.get(props);
+    if (driverLogLevel == null) {
+      return; // Don't mess with Logger if not set
+    }
+    if ("OFF".equalsIgnoreCase(driverLogLevel)) {
+      PARENT_LOGGER.setLevel(Level.OFF);
+      return; // Don't mess with Logger if set to OFF
+    } else if ("DEBUG".equalsIgnoreCase(driverLogLevel)) {
+      PARENT_LOGGER.setLevel(Level.FINE);
+    } else if ("TRACE".equalsIgnoreCase(driverLogLevel)) {
+      PARENT_LOGGER.setLevel(Level.FINEST);
+    }
+
+    ExpressionProperties exprProps = new ExpressionProperties(props, System.getProperties());
+    final String driverLogFile = PGProperty.LOGGER_FILE.get(exprProps);
+    if (driverLogFile != null && driverLogFile.equals(loggerHandlerFile)) {
+      return; // Same file output, do nothing.
+    }
+
+    for (java.util.logging.Handler handlers : PARENT_LOGGER.getHandlers()) {
+      // Remove previously set Handlers
+      handlers.close();
+      PARENT_LOGGER.removeHandler(handlers);
+      loggerHandlerFile = null;
+    }
+
+    java.util.logging.Handler handler = new java.util.logging.ConsoleHandler();
+    if (driverLogFile != null) {
+      try {
+        handler = new java.util.logging.FileHandler(driverLogFile);
+        loggerHandlerFile = driverLogFile;
+      } catch (Exception ex) {
+        System.err.println("Cannot enable FileHandler, fallback to ConsoleHandler.");
+      }
+    }
+
+    handler.setFormatter(new java.util.logging.SimpleFormatter());
+    PARENT_LOGGER.setUseParentHandlers(false);
+    PARENT_LOGGER.addHandler(handler);
   }
 
   /**
@@ -589,11 +616,7 @@ public class Driver implements java.sql.Driver {
       try {
         return (long) (Float.parseFloat(timeout) * 1000);
       } catch (NumberFormatException e) {
-        // Log level isn't set yet, so this doesn't actually
-        // get printed.
-        if (logger.logDebug()) {
-          logger.debug("Couldn't parse loginTimeout value: " + timeout);
-        }
+        LOGGER.log(Level.WARNING, "Couldn't parse loginTimeout value: {0}", timeout);
       }
     }
     return (long) DriverManager.getLoginTimeout() * 1000;
@@ -617,29 +640,12 @@ public class Driver implements java.sql.Driver {
         PSQLState.NOT_IMPLEMENTED.getState());
   }
 
-  /**
-   * used to turn logging on to a certain level, can be called by specifying fully qualified class
-   * ie org.postgresql.Driver.setLogLevel()
-   *
-   * @param logLevel sets the level which logging will respond to OFF turn off logging INFO being
-   *        almost no messages DEBUG most verbose
-   */
-  public static void setLogLevel(int logLevel) {
-    synchronized (Driver.class) {
-      logger.setLogLevel(logLevel);
-      logLevelSet = true;
-    }
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
+  @Override
+  public java.util.logging.Logger getParentLogger() {
+    return PARENT_LOGGER;
   }
-
-  public static int getLogLevel() {
-    synchronized (Driver.class) {
-      return logger.getLogLevel();
-    }
-  }
-
-  public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException {
-    throw notImplemented(this.getClass(), "getParentLogger()");
-  }
+  //#endif
 
   public static SharedTimer getSharedTimer() {
     return sharedTimer;

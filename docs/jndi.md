@@ -5,8 +5,8 @@ header: Chapter 11. Connection Pools and Data Sources
 resource: media
 previoustitle: Tomcat setup
 previous: tomcat.html
-nexttitle: Chapter 12. Further Reading
-next: reading.html
+nexttitle: Chapter 12. Logging with java.util.logging
+next: logging.html
 ---
 
 All the `ConnectionPoolDataSource` and `DataSource` implementations can be stored

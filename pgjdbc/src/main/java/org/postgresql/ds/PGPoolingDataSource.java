@@ -12,7 +12,6 @@ import org.postgresql.util.PSQLState;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -458,9 +457,5 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
       return iface.cast(this);
     }
     throw new SQLException("Cannot unwrap to " + iface.getName());
-  }
-
-  public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "getParentLogger()");
   }
 }
