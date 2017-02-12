@@ -112,7 +112,7 @@ public class ReaderInputStream extends InputStream {
     int res = 0;
     while (res != -1) {
       res = read(oneByte);
-      if (res != 0) {
+      if (res > 0) {
         return oneByte[0];
       }
     }
@@ -147,6 +147,9 @@ public class ReaderInputStream extends InputStream {
         }
       }
       advance();
+    }
+    if (endOfInput && !bbuf.hasRemaining()) {
+      return -1;
     }
     return totalRead;
   }

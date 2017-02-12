@@ -16,6 +16,7 @@ import org.postgresql.test.util.ExpressionPropertiesTest;
 import org.postgresql.test.util.LruCacheTest;
 import org.postgresql.test.util.ServerVersionParseTest;
 import org.postgresql.test.util.ServerVersionTest;
+import org.postgresql.util.ReaderInputStreamTest;
 
 import junit.framework.JUnit4TestAdapter;
 import junit.framework.TestSuite;
@@ -53,6 +54,7 @@ public class Jdbc2TestSuite extends TestSuite {
     suite.addTest(new JUnit4TestAdapter(ColumnSanitiserDisabledTest.class));
     suite.addTest(new JUnit4TestAdapter(ColumnSanitiserEnabledTest.class));
     suite.addTest(new JUnit4TestAdapter(LruCacheTest.class));
+    suite.addTest(new JUnit4TestAdapter(ReaderInputStreamTest.class));
     suite.addTest(new JUnit4TestAdapter(ServerVersionParseTest.class));
     suite.addTest(new JUnit4TestAdapter(ServerVersionTest.class));
 
