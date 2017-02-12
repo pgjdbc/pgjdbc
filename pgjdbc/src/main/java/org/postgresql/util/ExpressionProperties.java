@@ -6,37 +6,27 @@
 package org.postgresql.util;
 
 import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ExpressionProperties extends Properties {
 
-  /**
-   * Prefix for constant names
-   */
-  private static final String PREFIX = "${";
+  private static final Pattern EXPRESSION = Pattern.compile("\\$\\{([^}]+)\\}");
 
-  /**
-   * Suffix for constant names
-   */
-  private static final String SUFFIX = "}";
-
-  /**
-   * Creates an empty property list with no default values.
-   */
-  public ExpressionProperties() {
-    super();
-  }
+  private final Properties[] defaults;
 
   /**
    * Creates an empty property list with the specified defaults.
    *
    * @param defaults java.util.Properties
    */
-  public ExpressionProperties(Properties defaults) {
-    super(defaults);
+  public ExpressionProperties(Properties ...defaults) {
+    this.defaults = defaults;
   }
 
   /**
-   * This method expands the constants between the PREFIX and SUFFIX and return the normalized value.
+   * Returns property value with all {@code ${propKey}} like references replaced with the value of
+   * the relevant property with recursive resolution.
    *
    * The method returns <code>null</code> if the property is not found.
    *
@@ -45,47 +35,61 @@ public class ExpressionProperties extends Properties {
    * @return the value in this property list with
    *         the specified key value.
    */
+  @Override
   public String getProperty(String key) {
+    String value = getRawPropertyValue(key);
+    return replaceProperties(value);
+  }
+
+  @Override
+  public String getProperty(String key, String defaultValue) {
+    String value = getRawPropertyValue(key);
+    if (value == null) {
+      value = defaultValue;
+    }
+    return replaceProperties(value);
+  }
+
+  /**
+   * Returns raw value of a property without any replacements
+   * @param key property name
+   * @return raw property value
+   */
+  public String getRawPropertyValue(String key) {
     String value = super.getProperty(key);
+    if (value != null) {
+      return value;
+    }
+    for (Properties properties : defaults) {
+      value = properties.getProperty(key);
+      if (value != null) {
+        return value;
+      }
+    }
+    return null;
+  }
+
+  private String replaceProperties(String value) {
     if (value == null) {
       return null;
     }
-    // Get the index of the first constant, if any
-    int beginIndex = 0;
-    int startName = value.indexOf(PREFIX, beginIndex);
-
-    while (startName != -1) {
-      int endName = value.indexOf(SUFFIX, startName);
-      if (endName == -1) {
-        // Terminating symbol not found return the value as is
-        return value;
+    Matcher matcher = EXPRESSION.matcher(value);
+    StringBuffer sb = null;
+    while (matcher.find()) {
+      if (sb == null) {
+        sb = new StringBuffer();
       }
-
-      String constName = value.substring(startName + 1, endName);
-      String constValue = getProperty(constName);
-
-      if (constValue == null) {
-        // Property name not found return the value as is
-        return value;
+      String propValue = getProperty(matcher.group(1));
+      if (propValue == null) {
+        // Use original content like ${propKey} if property is not found
+        propValue = matcher.group();
       }
-
-      // Insert the constant value into the original property value
-      String newValue = (startName > 0) ? value.substring(0, startName) : "";
-      newValue += constValue;
-
-      // Start checking for constants at this index
-      beginIndex = newValue.length();
-
-      // Append the remainder of the value
-      newValue += value.substring(endName + 1);
-
-      value = newValue;
-
-      // Look for the next constant
-      startName = value.indexOf(PREFIX, beginIndex);
+      matcher.appendReplacement(sb, Matcher.quoteReplacement(propValue));
     }
-
-    // Return the value as is
-    return value;
+    if (sb == null) {
+      return value;
+    }
+    matcher.appendTail(sb);
+    return sb.toString();
   }
 }

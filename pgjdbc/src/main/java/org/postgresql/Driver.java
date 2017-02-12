@@ -6,6 +6,7 @@
 package org.postgresql;
 
 import org.postgresql.jdbc.PgConnection;
+import org.postgresql.util.ExpressionProperties;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
@@ -294,7 +295,8 @@ public class Driver implements java.sql.Driver {
       PARENT_LOGGER.setLevel(Level.FINEST);
     }
 
-    final String driverLogFile = PGProperty.LOGGER_FILE.get(props);
+    ExpressionProperties exprProps = new ExpressionProperties(props, System.getProperties());
+    final String driverLogFile = PGProperty.LOGGER_FILE.get(exprProps);
     if (driverLogFile != null && driverLogFile.equals(loggerHandlerFile)) {
       return; // Same file output, do nothing.
     }

@@ -472,7 +472,7 @@ public enum PGProperty {
    * @return evaluated value for this connection parameter
    */
   public String get(Properties properties) {
-    return new org.postgresql.util.ExpressionProperties(properties).getProperty(_name, _defaultValue);
+    return properties.getProperty(_name, _defaultValue);
   }
 
   /**

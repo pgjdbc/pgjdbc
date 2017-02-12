@@ -1011,7 +1011,8 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @see PGProperty#LOGGER_FILE
    */
   public String getLoggerFile() {
-    return PGProperty.LOGGER_FILE.get(properties);
+    ExpressionProperties exprProps = new ExpressionProperties(properties, System.getProperties());
+    return PGProperty.LOGGER_FILE.get(exprProps);
   }
 
   /**
