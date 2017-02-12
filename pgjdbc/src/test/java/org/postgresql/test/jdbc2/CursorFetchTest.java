@@ -10,17 +10,35 @@ import static org.junit.Assert.assertTrue;
 
 import org.postgresql.test.TestUtil;
 
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.junit.Test;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collection;
 
 /*
  * Tests for using non-zero setFetchSize().
  */
+@RunWith(Parameterized.class)
 public class CursorFetchTest extends BaseTest4 {
+
+  public CursorFetchTest(BinaryMode binaryMode) {
+    setBinaryMode(binaryMode);
+  }
+
+  @Parameterized.Parameters(name = "binary = {0}")
+  public static Iterable<Object[]> data() {
+    Collection<Object[]> ids = new ArrayList<Object[]>();
+    for (BinaryMode binaryMode : BinaryMode.values()) {
+      ids.add(new Object[]{binaryMode});
+    }
+    return ids;
+  }
 
   @Override
   public void setUp() throws Exception {
