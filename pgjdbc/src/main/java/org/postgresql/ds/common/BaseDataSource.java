@@ -50,7 +50,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   private int portNumber = 0;
 
   // Map for all other properties
-  private Properties properties = new ExpressionProperties();
+  private Properties properties = new Properties();
 
   /**
    * Gets a connection to the PostgreSQL database. The database is identified by the DataSource
