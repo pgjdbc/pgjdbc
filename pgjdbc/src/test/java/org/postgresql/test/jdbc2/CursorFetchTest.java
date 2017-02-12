@@ -10,9 +10,9 @@ import static org.junit.Assert.assertTrue;
 
 import org.postgresql.test.TestUtil;
 
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.junit.Test;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
