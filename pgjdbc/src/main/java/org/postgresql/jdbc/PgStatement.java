@@ -137,6 +137,8 @@ public class PgStatement implements Statement, BaseStatement {
    */
   protected ResultWrapper generatedKeys = null;
 
+  protected Query lastSimpleQuery;
+
   protected int m_prepareThreshold; // Reuse threshold to enable use of PREPARE
 
   protected int maxfieldSize = 0;
@@ -144,6 +146,7 @@ public class PgStatement implements Statement, BaseStatement {
   PgStatement(PgConnection c, int rsType, int rsConcurrency, int rsHoldability)
       throws SQLException {
     this.connection = c;
+    this.lastSimpleQuery = null;
     forceBinaryTransfers |= c.getForceBinary();
     resultsettype = rsType;
     concurrency = rsConcurrency;
@@ -300,6 +303,7 @@ public class PgStatement implements Statement, BaseStatement {
       flags |= QueryExecutor.QUERY_EXECUTE_AS_SIMPLE;
     }
     execute(simpleQuery, null, flags);
+    this.lastSimpleQuery = simpleQuery.query;
     return (result != null && result.getResultSet() != null);
   }
 
@@ -322,7 +326,10 @@ public class PgStatement implements Statement, BaseStatement {
       firstUnclosedResult = firstUnclosedResult.getNext();
     }
     result = null;
-
+    if (lastSimpleQuery != null) {
+      lastSimpleQuery.close();
+      lastSimpleQuery = null;
+    }
     if (generatedKeys != null) {
       if (generatedKeys.getResultSet() != null) {
         generatedKeys.getResultSet().close();
@@ -1140,6 +1147,34 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   protected void transformQueriesAndParameters() throws SQLException {
+  }
+
+  public int getParameterCount() {
+    return 0;
+  }
+
+  public boolean isParameterBound(int index) {
+    throw new ArrayIndexOutOfBoundsException();
+  }
+
+  public int[] getParameterTypes() {
+    return new int[0];
+  }
+
+  public Object[] getParameterValues() {
+    return new Object[0];
+  }
+
+  @Override
+  public String toString() {
+    if (lastSimpleQuery == null) {
+      return super.toString();
+    }
+    return lastSimpleQuery.toString(null);
+  }
+
+  public String toPreparedString() {
+    return toString();
   }
 
 }

@@ -25,7 +25,7 @@ public interface PGStatement {
 
 
   /**
-   * Returns the Last inserted/updated oid.
+   * Return the Last inserted/updated oid.
    *
    * @return OID of last insert
    * @throws SQLException if something goes wrong
@@ -43,10 +43,11 @@ public interface PGStatement {
    * @since 7.3
    * @deprecated As of build 302, replaced by {@link #setPrepareThreshold(int)}
    */
+  @Deprecated
   void setUseServerPrepare(boolean flag) throws SQLException;
 
   /**
-   * Checks if this statement will be executed as a server-prepared statement. A return value of
+   * Check if this statement will be executed as a server-prepared statement. A return value of
    * <code>true</code> indicates that the next execution of the statement will be done as a
    * server-prepared statement, assuming the underlying protocol supports it.
    *
@@ -55,7 +56,7 @@ public interface PGStatement {
   boolean isUseServerPrepare();
 
   /**
-   * Sets the reuse threshold for using server-prepared statements.
+   * Set the reuse threshold for using server-prepared statements.
    * <p>
    * If <code>threshold</code> is a non-zero value N, the Nth and subsequent reuses of a
    * PreparedStatement will use server-side prepare.
@@ -72,11 +73,68 @@ public interface PGStatement {
   void setPrepareThreshold(int threshold) throws SQLException;
 
   /**
-   * Gets the server-side prepare reuse threshold in use for this statement.
+   * Get the server-side prepare reuse threshold in use for this statement.
    *
    * @return the current threshold
    * @see #setPrepareThreshold(int)
    * @since build 302
    */
   int getPrepareThreshold();
+
+  /**
+   * Get the number of parameters of this statement.
+   *
+   * @return the number of parameters
+   */
+  int getParameterCount();
+
+  /**
+   * Check whether a parameter is bound.
+   *
+   * @param parameterIndex the index of the parameter to check
+   * @return true if the parameter is bound
+   */
+  boolean isParameterBound(int parameterIndex);
+
+  /**
+   * Get the SQL types (as defined in {@link java.sql.Types}) of the parameters of this statement.
+   * <p>
+   * These types are the types defined by the user, whether implicitly or explicitly, when setting
+   * parameter values.
+   *
+   * @return the types of the parameters
+   */
+  int[] getParameterTypes();
+
+  /**
+   * Get the current values of the statement parameters.
+   * <p>
+   * These values are the exact instances set by the user, except for primitive types which values
+   * were boxed.
+   * <p>
+   * A value of null can be returned for a parameter that is not bound, which can be checked using
+   * {@link #isParameterBound(int)}.
+   *
+   * @return the values of the parameters
+   */
+  Object[] getParameterValues();
+
+  /**
+   * Return the SQL statement as was defined: without the current template values substituted.
+   * <p>
+   * For plain statements, the SQL statement returned before execution is not defined.
+   *
+   * @return the raw SQL statement
+   */
+  String toString();
+
+  /**
+   * Return the SQL statement with the current template values substituted.
+   * <p>
+   * For plain statements, the SQL statement returned before execution is not defined.
+   *
+   * @return SQL statement with the current template values substituted
+   */
+  String toPreparedString();
+
 }
