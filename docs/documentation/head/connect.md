@@ -149,32 +149,23 @@ connection.
 	
 * `protocolVersion = String`
 
-	The driver supports both the V2 and V3 frontend/backend protocols. The
+	The driver supports the V3 frontend/backend protocols. The
 	V3 protocol was introduced in 7.4 and the driver will by default try to
-	connect using the V3 protocol, if that fails it will fall back to the V2
-	protocol. If the protocolVersion property is specified, the driver will
-	try only the specified protocol (which should be either "2" or "3").
-	Setting protocolVersion to "2" may be used to avoid the failed attempt
-	to use the V3 protocol when connecting to a version 7.3 or earlier server,
-	or to force the driver to use the V2 protocol despite connecting to a 7.4
-	or greater server.
+	connect using the V3 protocol.
  
-* `loglevel = int`
+* `loggerLevel = String`
 
-	Set the amount of logging information printed to the DriverManager's
-	current value for LogStream or LogWriter. It currently supports values
-	of `org.postgresql.Driver.DEBUG` (2) and `org.postgresql.Driver.INFO` (1).
-	`INFO` will log very little information while `DEBUG` will produce significant
-	detail. This property is only really useful if you are a developer or
-	are having problems with the driver.
+  Logger level of the driver. Allowed values: <code>OFF</code>, <code>DEBUG</code> or <code>TRACE</code>.
+  This enable the <code>java.util.logging.Logger</code> Level of the driver based on the following mapping
+  of levels: DEBUG -&gt; FINE, TRACE -&gt; FINEST. This property is intented for debug the driver and
+  not for general SQL query debug.
 
-* `charSet = String`
+* `loggerFile = String`
 
-	The character set to use for data sent to the database or received from
-	the database. This property is only relevant for server versions less
-	than or equal to 7.2. The 7.3 release was the first with multibyte support
-	compiled by default and the driver uses its character set translation
-	facilities instead of trying to do it itself.
+	File name output of the Logger. If set, the Logger will use a <code>java.util.logging.FileHandler</code>
+  to write to a specified file. If the parameter is not set or the file can’t be created the
+  <code>java.util.logging.ConsoleHandler</code> will be used instead. This parameter should be use
+  together with loggerLevel.
  
 * `allowEncodingChanges = boolean`
 

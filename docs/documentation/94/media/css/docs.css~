@@ -27,7 +27,7 @@ div.NAVHEADER table {
 }
 
 #docHeader {
-  background-image: url("media/img/docs/bg_hdr.png");
+  background-image: url("../img/docs/bg_hdr.png");
   height: 83px;
   margin: 0px;
   padding: 0px;
@@ -220,13 +220,15 @@ p, ol, ul, li {
   padding: 3px;
 }
 
+#docContainer p code,
+#docContainer dt code,
 #docContainer pre code,
 #docContainer pre tt,
 #docContainer pre pre,
 #docContainer tt tt,
 #docContainer tt code,
 #docContainer tt pre {
-  font-size: 1em;
+  font-size: 1.5em;
 }
 
 pre.LITERALLAYOUT,

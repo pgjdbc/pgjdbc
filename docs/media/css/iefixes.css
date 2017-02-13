@@ -1,0 +1,138 @@
+/*
+  PostgreSQL.org - Fixes for Internet Explorer
+*/
+
+/*Win IE fix \*/
+* html #pgHeaderContainer { height: 1%; }
+
+/*End Win IE fix*/
+
+/*Win IE fix \*/
+* html #pgHeader { height: 1%; }
+
+/*End Win IE fix*/
+
+/*Win IE fix \*/
+* html #pgTopNav { height: 1%; margin-top: 0px; }
+
+/*End Win IE fix*/
+
+/*Win IE fix \*/
+* html #pgTopNavLeft { height: 1%; }
+
+/*End Win IE fix*/
+
+/*Win IE fix \*/
+* html #pgTopNavRight { height: 1%; }
+
+/*End Win IE fix*/
+
+/*Win IE fix \*/
+* html #pgTopNavList { height: 1%; margin-bottom: -2px; }
+* html #pgTopNavList li { margin: 0 0.5em 0 -0.5em; }
+
+/*End Win IE fix*/
+
+
+/*Win IE fix \*/
+* html #pgSearchNavList { height: 1%; margin-right: 0.5em; }
+* html #pgSearchNavList li { margin: 0 0 0 0.5em; }
+
+/*End Win IE fix*/
+
+/*Win IE fix \*/
+* html #pgContent { height: 1%; }
+
+/*End Win IE fix*/
+
+/*Win IE fix \*/
+* html #pgFrontContainer { height: 1%; }
+
+/*End Win IE fix*/
+
+/*Win IE fix \*/
+* html #pgFrontMain { height: 1%; }
+
+/*End Win IE fix*/
+
+/*Win IE fix \*/
+* html #pgFrontFeature { height: 1%; }
+
+/*End Win IE fix*/
+
+/*Win IE fix \*/
+* html #pgFrontFeatureLink { height: 1%; }
+
+/*End Win IE fix*/
+
+/*Win IE fix \*/
+* html #pgFrontNewsEventsContainer { height: 1%; }
+
+/*End Win IE fix*/
+
+/*Win IE fix \*/
+* html #pgFrontNews { height: 1%; }
+
+/*End Win IE fix*/
+
+/*Win IE fix \*/
+* html #pgFrontEvents { height: 1%; }
+
+/*End Win IE fix*/
+
+/*Win IE fix \*/
+* html .pgNewsEventsList { height: 1%; }
+
+/*End Win IE fix*/
+
+/*Win IE fix \*/
+* html #pgFrontUSSContainer { height: 1%; }
+
+/*End Win IE fix*/
+
+/*Win IE fix \*/
+* html #pgFrontUser { height: 1%; }
+
+/*End Win IE fix*/
+
+/*Win IE fix \*/
+* html #pgFrontSupportUs { height: 1%; }
+
+/*End Win IE fix*/
+
+/*Win IE fix \*/
+* html #pgFrontShortcuts { height: 1%; }
+
+/*End Win IE fix*/
+
+/*Win IE fix \*/
+* html #pgFrontShortcutsWrap { height: 1%; margin-top: 7px; }
+
+/*End Win IE fix*/
+
+/*Win IE fix \*/
+* html #pgFrontShortcutsList { height: 1%; }
+
+/*End Win IE fix*/
+
+/*Win IE fix \*/
+* html #pgFrontNewsEventsContainer h3 img { height: 1%; margin-bottom: 4px; }
+
+/*End Win IE fix*/
+
+/*Win IE fix \*/
+* html #pgSideWrap { /* margin-top: 11px; */ }
+/*End Win IE fix*/
+
+/*Win IE fix \*/
+* html #pgContentWrap {margin-left: 165px; /* margin-top: 11px; */ }
+/*End Win IE fix*/
+
+/*Win IE fix \*/
+* html #pgSideNav { height: 1%; position: static; }
+
+/*End Win IE fix*/
+
+/*Win IE fix \*/
+* html #txtArchives pre { font-size: 100%; }
+/*End Win IE fix*/

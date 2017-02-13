@@ -1,0 +1,98 @@
+/*
+  PostgreSQL.org - Global Styles
+*/
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: verdana, sans-serif;
+  font-size: 69%;
+  color: #000;
+  background-color: #fff;
+}
+
+h1 {
+  font-size: 1.4em;
+  font-weight: bold;
+  margin-top: 0em;
+  margin-bottom: 0em;
+}
+
+h2 {
+  font-size: 1.2em;
+  margin: 1.2em 0em 1.2em 0em;
+  font-weight: bold;
+}
+
+h3 {
+  font-size: 1.0em;
+  margin: 1.2em 0em 1.2em 0em;
+  font-weight: bold;
+}
+
+h4 {
+  font-size: 0.95em;
+  margin: 1.2em 0em 1.2em 0em;
+  font-weight: normal;
+}
+
+h5 {
+  font-size: 0.9em;
+  margin: 1.2em 0em 1.2em 0em;
+  font-weight: normal;
+}
+
+h6 {
+  font-size: 0.85em;
+  margin: 1.2em 0em 1.2em 0em;
+  font-weight: normal;
+}
+
+img {
+  border: 0;
+}
+
+ol, ul, li {/*
+  list-style: none;*/
+  font-size: 1.0em;
+  line-height: 1.2em;
+  margin-top: 0.2em;
+  margin-bottom: 0.1em; 
+}
+
+p {
+  font-size: 1.0em;
+  line-height: 1.2em;
+  margin: 1.2em 0em;
+}
+
+td p {
+  margin: 0em 0em 1.2em;
+}
+
+li > p {
+  margin-top: 0.2em;
+}
+
+pre {
+  font-family: monospace;
+  font-size: 1.0em;
+}
+
+div#pgContentWrap code {
+  font-size: 1.2em;
+  padding: 1em;
+  margin: 2ex 0 2ex 2ex;
+  background: #F7F7F7;
+  border: 1px solid #CFCFCF;
+  -moz-border-radius: 8px;
+  -webkit-border-radius: 8px;
+  -khtml-border-radius: 8px;
+  border-radius: 8px;
+  display: block;
+  overflow: auto;
+}
+
+strong, b {
+  font-weight: bold;
+}
