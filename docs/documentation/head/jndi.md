@@ -31,18 +31,20 @@ application components that may need to use it. An example of this is shown in
 Application code to initialize a pooling `DataSource` and add it to JNDI might
 look like this:
 
-`PGPoolingDataSource source = new PGPoolingDataSource();`  
-`source.setDataSourceName("A Data Source");`  
-`source.setServerName("localhost");`  
-`source.setDatabaseName("test");`  
-`source.setUser("testuser");`  
-`source.setPassword("testpassword");`  
-`source.setMaxConnections(10);`  
-`new InitialContext().rebind("DataSource", source);`
+```java
+PGPoolingDataSource source = new PGPoolingDataSource();
+source.setDataSourceName("A Data Source");
+source.setServerName("localhost");
+source.setDatabaseName("test");
+source.setUser("testuser");
+source.setPassword("testpassword");
+source.setMaxConnections(10);
+new InitialContext().rebind("DataSource", source);
+```
 
 Then code to use a connection from the pool might look like this:
 
-<pre><code>
+```java
 Connection conn = null;
 try
 {
@@ -65,4 +67,4 @@ finally
         try { conn.close(); } catch (SQLException e) {}
     }
 }
-</code></pre>
+```

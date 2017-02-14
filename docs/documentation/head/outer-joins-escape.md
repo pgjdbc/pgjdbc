@@ -14,4 +14,6 @@ ON search-condition  }`
 
 For example :
 
-`rs = stmt.executeQuery( "select * from {oj a left outer join b on (a.i=b.i)} ");`
+```java
+rs = stmt.executeQuery( "select * from {oj a left outer join b on (a.i=b.i)} ");
+```

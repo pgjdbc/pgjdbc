@@ -38,11 +38,15 @@ It translates the given SQL to a SQL suitable for the PostgreSQL™ backend.
 To use the JDBC escapes, you simply write your SQL replacing date/time literal
 values, outer join and functions by the JDBC escape syntax. For example :
 
-`ResultSet rs = st.executeQuery("SELECT {fn week({d '2005-01-24'})}");`
+```java
+ResultSet rs = st.executeQuery("SELECT {fn week({d '2005-01-24'})}");
+```
 
 is the portable version for
 
-`ResultSet rs = st.executeQuery("SELECT extract(week from DATE '2005-01-24')");`
+```java
+ResultSet rs = st.executeQuery("SELECT extract(week from DATE '2005-01-24')");
+```
 
 <a name="like-escape"></a>
 # Escape for like escape character
@@ -54,4 +58,6 @@ comparison expression.
 
 For example, you can compare string values using '|' as escape character to protect '_' :
 
-`rs = stmt.executeQuery("select str2 from comparisontest where str1 like '|_abcd' {escape '|'} ");`
+```java
+rs = stmt.executeQuery("select str2 from comparisontest where str1 like '|_abcd' {escape '|'} ");
+```

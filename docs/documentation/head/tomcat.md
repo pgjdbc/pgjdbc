@@ -21,43 +21,43 @@ context you want to use it in.
 Setup for Tomcat 4 place the following inside the &lt;Context&gt; tag inside
 conf/server.xml
 
-<pre><code>
-&lt;Resource name="jdbc/postgres" scope="Shareable" type="javax.sql.DataSource"/&gt;
-&lt;ResourceParams name="jdbc/postgres"&gt;
-	&lt;parameter&gt;
-		&lt;name&gt;validationQuery&lt;/name&gt;
-		&lt;value&gt;select version();&lt;/value&gt;
-	&lt;/parameter&gt;
-	&lt;parameter&gt;
-		&lt;name&gt;url&lt;/name&gt;
-		&lt;value&gt;jdbc:postgresql://localhost/davec&lt;/value&gt;
-	&lt;/parameter&gt;
-	&lt;parameter&gt;
-		&lt;name&gt;password&lt;/name&gt;
-		&lt;value&gt;davec&lt;/value&gt;
-	&lt;/parameter&gt;
-	&lt;parameter&gt;
-		&lt;name&gt;maxActive&lt;/name&gt;
-		&lt;value&gt;4&lt;/value&gt;
-	&lt;/parameter&gt;
-	&lt;parameter&gt;
-		&lt;name&gt;maxWait&lt;/name&gt;
-		&lt;value&gt;5000&lt;/value&gt;
-	&lt;/parameter&gt;
-	&lt;parameter&gt;
-		&lt;name&gt;driverClassName&lt;/name&gt;
-		&lt;value&gt;org.postgresql.Driver&lt;/value&gt;
-	&lt;/parameter&gt;
-	&lt;parameter&gt;
-		&lt;name&gt;username&lt;/name&gt;
-		&lt;value&gt;davec&lt;/value&gt;
-	&lt;/parameter&gt;
-	&lt;parameter&gt;
-		&lt;name&gt;maxIdle&lt;/name&gt;
-		&lt;value&gt;2&lt;/value&gt;
-	&lt;/parameter&gt;
-&lt;/ResourceParams&gt;	
-</code></pre>
+```xml
+<Resource name="jdbc/postgres" scope="Shareable" type="javax.sql.DataSource"/>
+<ResourceParams name="jdbc/postgres">
+	<parameter>
+		<name>validationQuery</name>
+		<value>select version();</value>
+	</parameter>
+	<parameter>
+		<name>url</name>
+		<value>jdbc:postgresql://localhost/davec</value>
+	</parameter>
+	<parameter>
+		<name>password</name>
+		<value>davec</value>
+	</parameter>
+	<parameter>
+		<name>maxActive</name>
+		<value>4</value>
+	</parameter>
+	<parameter>
+		<name>maxWait</name>
+		<value>5000</value>
+	</parameter>
+	<parameter>
+		<name>driverClassName</name>
+		<value>org.postgresql.Driver</value>
+	</parameter>
+	<parameter>
+		<name>username</name>
+		<value>davec</value>
+	</parameter>
+	<parameter>
+		<name>maxIdle</name>
+		<value>2</value>
+	</parameter>
+</ResourceParams>	
+```
 
 Setup for Tomcat 5, you can use the above method, except that it goes inside the
 &lt;DefaultContext&gt; tag inside the &lt;Host&gt; tag. eg. &lt;Host&gt; ... &lt;DefaultContext&gt; ...
@@ -68,7 +68,7 @@ Inside this file place the above xml inside the &lt;Context&gt; tag
 
 Then you can use the following code to access the connection.
 
-<pre><code>
+```java
 import javax.naming.*;
 import javax.sql.*;
 import java.sql.*;
@@ -118,4 +118,4 @@ public class DBTest
 
 	public int getBar() { return bar;}
 }
-</code></pre>
+```

@@ -21,12 +21,14 @@ next: binary-data.html
 This example shows how to call a PostgreSQL™ built in function, `upper`, which
 simply converts the supplied string argument to uppercase.
 
-`CallableStatement upperProc = conn.prepareCall("{ ? = call upper( ? ) }");`  
-`upperProc.registerOutParameter(1, Types.VARCHAR);`  
-`upperProc.setString(2, "lowercase to uppercase");`  
-`upperProc.execute();`  
-`String upperCased = upperProc.getString(1);`  
-`upperProc.close();`  
+```java
+CallableStatement upperProc = conn.prepareCall("{ ? = call upper( ? ) }");
+upperProc.registerOutParameter(1, Types.VARCHAR);
+upperProc.setString(2, "lowercase to uppercase");
+upperProc.execute();
+String upperCased = upperProc.getString(1);
+upperProc.close();
+```
 
 <a name="callproc-resultset"></a>
 # Obtaining a `ResultSet` from a stored function
@@ -46,16 +48,18 @@ interfaces.
 <a name="setof-resultset"></a>
 **Example 6.2. Getting `SETOF` type values from a function**
 
-`Statement stmt = conn.createStatement();`  
-`stmt.execute("CREATE OR REPLACE FUNCTION setoffunc() RETURNS SETOF int AS "`  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`+ "' SELECT 1 UNION SELECT 2;' LANGUAGE sql");`  
-`ResultSet rs = stmt.executeQuery("SELECT * FROM setoffunc()");`  
-`while (rs.next())`  
-`{`  
-&nbsp;&nbsp;&nbsp;`// do something`  
-`}`  
-`rs.close();`  
-`stmt.close();`  
+```java
+Statement stmt = conn.createStatement();
+stmt.execute("CREATE OR REPLACE FUNCTION setoffunc() RETURNS SETOF int AS "
+    + "' SELECT 1 UNION SELECT 2;' LANGUAGE sql");
+ResultSet rs = stmt.executeQuery("SELECT * FROM setoffunc()");
+while (rs.next())
+{
+    // do something
+}
+rs.close();
+stmt.close();
+```
 
 <a name="callproc-resultset-refcursor"></a>
 ## From a Function Returning a refcursor
@@ -75,31 +79,33 @@ and it is technically possible to remove it, we just haven't found the time.
 <a name="get-refcursor-from-function-call"></a>
 **Example 6.3. Getting refcursor Value From a Function**
 
-`// Setup function to call.`  
-`Statement stmt = conn.createStatement();`  
-`stmt.execute("CREATE OR REPLACE FUNCTION refcursorfunc() RETURNS refcursor AS '"`  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`+ " DECLARE "`  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`+ "    mycurs refcursor; "`  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`+ " BEGIN "`  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`+ "    OPEN mycurs FOR SELECT 1 UNION SELECT 2; "`  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`+ "    RETURN mycurs; "`  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`+ " END;' language plpgsql");`  
-`stmt.close();`<br />
+```java
+// Setup function to call.
+Statement stmt = conn.createStatement();
+stmt.execute("CREATE OR REPLACE FUNCTION refcursorfunc() RETURNS refcursor AS '"
+    + " DECLARE "
+    + "    mycurs refcursor; "
+    + " BEGIN "
+    + "    OPEN mycurs FOR SELECT 1 UNION SELECT 2; "
+    + "    RETURN mycurs; "
+    + " END;' language plpgsql");
+stmt.close();
 
-`// We must be inside a transaction for cursors to work.`  
-`conn.setAutoCommit(false);`<br />
+// We must be inside a transaction for cursors to work.
+conn.setAutoCommit(false);
 
-`// Procedure call.`  
-`CallableStatement proc = conn.prepareCall("{ ? = call refcursorfunc() }");`  
-`proc.registerOutParameter(1, Types.OTHER);`  
-`proc.execute();`  
-`ResultSet results = (ResultSet) proc.getObject(1);`  
-`while (results.next())`  
-`{`  
-&nbsp;&nbsp;&nbsp;`// do something with the results.`  
-`}`  
-`results.close();`  
-`proc.close();`  
+// Procedure call.
+CallableStatement proc = conn.prepareCall("{ ? = call refcursorfunc() }");
+proc.registerOutParameter(1, Types.OTHER);
+proc.execute();
+ResultSet results = (ResultSet) proc.getObject(1);
+while (results.next())
+{
+    // do something with the results.
+}
+results.close();
+proc.close();
+```
 
 It is also possible to treat the refcursor return value as a cursor name directly.
 To do this, use the `getString` of `ResultSet`. With the underlying cursor name,
@@ -108,9 +114,11 @@ you are free to directly use cursor commands on it, such as `FETCH` and `MOVE`.
 <a name="refcursor-string-example"></a>
 **Example 6.4. Treating refcursor as a cursor name**
 
-`conn.setAutoCommit(false);`  
-`CallableStatement proc = conn.prepareCall("{ ? = call refcursorfunc() }");`  
-`proc.registerOutParameter(1, Types.OTHER);`  
-`proc.execute();`  
-`String cursorName = proc.getString(1);`  
-`proc.close();`  
+```java
+conn.setAutoCommit(false);
+CallableStatement proc = conn.prepareCall("{ ? = call refcursorfunc() }");
+proc.registerOutParameter(1, Types.OTHER);
+proc.execute();
+String cursorName = proc.getString(1);
+proc.close();
+```

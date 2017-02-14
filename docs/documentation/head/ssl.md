@@ -25,13 +25,11 @@ so it will not be repeated here. Before trying to access your SSL enabled
 server from Java, make sure you can get to it via **psql**. You should
 see output like the following if you have established a SSL  connnection. 
 
-`$ ./bin/psql -h localhost`  
-`Welcome to psql 8.0.0rc5, the PostgreSQL interactive terminal.`
+```
+$ ./bin/psql -h localhost -U postgres
+psql (9.6.2)
+SSL connection (protocol: TLSv1.2, cipher: ECDHE-RSA-AES256-GCM-SHA384, bits: 256, compression: off)
+Type "help" for help.
 
-`Type: \copyright for distribution terms`  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`\h for help with SQL commands`  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`\? for help with psql commands`  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`\g or terminate with semicolon to execute query`  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`\q to quit`
-
-`SSL connection (cipher: DHE-RSA-AES256-SHA, bits: 256)`
+postgres=#
+```

@@ -17,6 +17,7 @@ for the details of available classes and features metioned in [Chapter 12, *Fur
 <a name="geometric-circle-example"></a>
 **Example 9.1. Using the CIRCLE datatype JDBC**
 
+```java
 import java.sql.*;
 
 import org.postgresql.geometric.PGpoint;
@@ -66,3 +67,4 @@ public class GeometricTest {
 		System.out.println("Area = " + area);
 	}
 }
+```

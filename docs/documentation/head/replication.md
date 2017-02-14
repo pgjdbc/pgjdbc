@@ -56,16 +56,16 @@ Your database should be configured to enable logical or physical replication
 Enable connect user with replication privileges to replication stream.
 
 ```
-local replication all trust
-host replication all 127.0.0.1/32            md5
-host replication all ::1/128                 md5
+local   replication   all                   trust
+host    replication   all   127.0.0.1/32    md5
+host    replication   all   ::1/128         md5
 ```
 
 ### Configuration for examples
 
 *postgresql.conf*
 
-```
+```ini
 max_wal_senders = 4             # max number of walsender processes
 wal_keep_segments = 4           # in logfile segments, 16MB each; 0 disables
 wal_level = logical             # minimal, replica, or logical
@@ -77,9 +77,9 @@ max_replication_slots = 4       # max number of replication slots
 ```
 # Allow replication connections from localhost, by a user with the
 # replication privilege.
-local replication all trust
-host replication all 127.0.0.1/32            md5
-host replication all ::1/128                 md5
+local   replication   all                   trust
+host    replication   all   127.0.0.1/32    md5
+host    replication   all   ::1/128         md5
 ```
 
 <a name="logical-replication"></a>
@@ -93,7 +93,7 @@ execute any kinds of sql, this connection can work only with replication API. It
 
 **Example 9.4. Create replication connection.**
 
-```
+```java
     String url = "jdbc:postgresql://localhost:5432/postgres";
     Properties props = new Properties();
     PGProperty.USER.set(props, "postgres");
@@ -112,7 +112,7 @@ Before you can start replication protocol, you need to have replication slot, wh
 
 **Example 9.5. Create replication slot via pgjdbc API**
 
-```
+```java
     replConnection.getReplicationAPI()
         .createReplicationSlot()
         .logical()
@@ -125,7 +125,7 @@ Once we have the replication slot, we can create ReplicationStream.
 
 **Example 9.6. Create logical replication stream.**
 
-```
+```java
     PGReplicationStream stream =
         replConnection.getReplicationAPI()
             .replicationStream()
@@ -142,7 +142,7 @@ in that case LNS position should be specified when you create the replication st
 
 **Example 9.7. Create logical replication stream from particular position.**
 
-```
+```java
     LogSequenceNumber waitLSN = LogSequenceNumber.valueOf("6F/E3C53568");
 
     PGReplicationStream stream =
@@ -185,7 +185,7 @@ disconnects by timeout. To specify the feedback interval use `withStatusInterval
 
 **Example 9.10. Replication stream with configured feedback interval equal to 20 sec**
 
-```
+```java
     PGReplicationStream stream =
         replConnection.getReplicationAPI()
             .replicationStream()
@@ -215,7 +215,7 @@ OutputPluginWrite(ctx, true);
 
 **Example 9.12. Receive changes via replication stream.**
 
-```
+```java
     while (true) {
       //non blocking receive message
       ByteBuffer msg = stream.readPending();
@@ -244,7 +244,7 @@ For say database which LSN successfully applied on current consumer and can be t
 
 **Example 9.13. Add feedback about successfully process LSN**
 
-```
+```java
     while (true) {
       //Receive last successfully send to queue message. LSN ordered.
       LogSequenceNumber successfullySendToQueue = getQueueFeedback();
@@ -267,7 +267,7 @@ For say database which LSN successfully applied on current consumer and can be t
 
 **Example 9.14. Full example use logical replication**
 
-```
+```java
     String url = "jdbc:postgresql://localhost:5432/test";
     Properties props = new Properties();
     PGProperty.USER.set(props, "postgres");
@@ -355,7 +355,7 @@ both.
 
 **Example 9.15. Use physical replication**
 
-```
+```java
     LogSequenceNumber lsn = getCurrentLSN();
 
     Statement st = sqlConnection.createStatement();

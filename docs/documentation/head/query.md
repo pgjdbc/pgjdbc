@@ -16,7 +16,7 @@ next: statement.html
 * [Using the `ResultSet` Interface](resultset.html)
 * [Performing Updates](update.html)
 * [Creating and Modifying Database Objects](ddl.html)
-* [Using Java 8 Date and Time classes](8-date-time.html)
+* [Using Java 8 Date and Time classes](java8-date-time.html)
 
 Any time you want to issue SQL statements to the database, you require a `Statement`
 or `PreparedStatement` instance. Once you have a `Statement` or `PreparedStatement`,
@@ -31,30 +31,34 @@ illustrates this process.
 This example will issue a simple query and print out the first column of each
 row using a `Statement`.
 
-`Statement st = conn.createStatement();`  
-`ResultSet rs = st.executeQuery("SELECT * FROM mytable WHERE columnfoo = 500");`  
-`while (rs.next())`  
-`{`  
-&nbsp;&nbsp;&nbsp;`System.out.print("Column 1 returned ");`  
-&nbsp;&nbsp;&nbsp;`System.out.println(rs.getString(1));`  
-`}`
-`rs.close();`  
-`st.close();`  
+```java
+Statement st = conn.createStatement();
+ResultSet rs = st.executeQuery("SELECT * FROM mytable WHERE columnfoo = 500");
+while (rs.next())
+{
+    System.out.print("Column 1 returned ");
+    System.out.println(rs.getString(1));
+}
+rs.close();
+st.close();
+```
 
 This example issues the same query as before but uses a `PreparedStatement` and
 a bind value in the query.
 
-`int foovalue = 500;`  
-`PreparedStatement st = conn.prepareStatement("SELECT * FROM mytable WHERE columnfoo = ?");`  
-`st.setInt(1, foovalue);`  
-`ResultSet rs = st.executeQuery();`  
-`while (rs.next())`  
-`{`  
-&nbsp;&nbsp;&nbsp;`System.out.print("Column 1 returned ");`  
-&nbsp;&nbsp;&nbsp;`System.out.println(rs.getString(1));`  
-`}`  
-`rs.close();`  
-`st.close();`  
+```java
+int foovalue = 500;
+PreparedStatement st = conn.prepareStatement("SELECT * FROM mytable WHERE columnfoo = ?");
+st.setInt(1, foovalue);
+ResultSet rs = st.executeQuery();
+while (rs.next())
+{
+    System.out.print("Column 1 returned ");
+    System.out.println(rs.getString(1));
+}
+rs.close();
+st.close();
+```
 
 <a name="query-with-cursor"></a>
 # Getting results based on a cursor
@@ -91,24 +95,29 @@ Changing code to cursor mode is as simple as setting the fetch size of the
 `Statement` to the appropriate size. Setting the fetch size back to 0 will cause
 all rows to be cached (the default behaviour).
 
-`// make sure autocommit is off`  
-`conn.setAutoCommit(false);`  
-`Statement st = conn.createStatement();`<br /><br />
-`// Turn use of the cursor on.`  
-`st.setFetchSize(50);`  
-`ResultSet rs = st.executeQuery("SELECT * FROM mytable");`  
-`while (rs.next())`  
-`{`  
-&nbsp;&nbsp;&nbsp;`System.out.print("a row was returned.");`  
-`}`  
-`rs.close();`<br /><br />
-`// Turn the cursor off.`  
-`st.setFetchSize(0);`  
-`rs = st.executeQuery("SELECT * FROM mytable");`  
-`while (rs.next())`  
-`{`  
-&nbsp;&nbsp;&nbsp;`System.out.print("many rows were returned.");`  
-`}`  
-`rs.close();`<br /><br />
-`// Close the statement.`  
-`st.close();`
+```java
+// make sure autocommit is off
+conn.setAutoCommit(false);
+Statement st = conn.createStatement();
+
+// Turn use of the cursor on.
+st.setFetchSize(50);
+ResultSet rs = st.executeQuery("SELECT * FROM mytable");
+while (rs.next())
+{
+    System.out.print("a row was returned.");
+}
+rs.close();
+
+// Turn the cursor off.
+st.setFetchSize(0);
+rs = st.executeQuery("SELECT * FROM mytable");
+while (rs.next())
+{
+    System.out.print("many rows were returned.");
+}
+rs.close();
+
+// Close the statement.
+st.close();
+```

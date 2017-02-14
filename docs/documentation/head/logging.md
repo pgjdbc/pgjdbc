@@ -99,7 +99,8 @@ file by specifying the `java.util.logging.config.file` property when starting a 
 `logging.properties` files can also be created and stored with individual projects.
 
 The following is an example of setting that you can make in the `logging.properties`:
-```
+
+```properties
 # Specify the handler, the handlers will be installed during VM startup.
 handlers= java.util.logging.FileHandler
 

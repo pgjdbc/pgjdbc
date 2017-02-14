@@ -10,7 +10,7 @@ next: ssl.html
 ---
 
 With JDBC, a database is represented by a URL (Uniform Resource Locator). With
-PostgreSQL™, this takes one of the following forms:
+PostgreSQL, this takes one of the following forms:
 
 * jdbc:postgresql:*`database`*
 * jdbc:postgresql:/
@@ -54,15 +54,17 @@ URL or an additional `Properties` object parameter to `DriverManager.getConnecti
 The following examples illustrate the use of both methods to establish a SSL
 connection.
 
-`String url = "jdbc:postgresql://localhost/test";`  
-`Properties props = new Properties();`  
-`props.setProperty("user","fred");`  
-`props.setProperty("password","secret");`  
-`props.setProperty("ssl","true");`  
-`Connection conn = DriverManager.getConnection(url, props);`
+```java
+String url = "jdbc:postgresql://localhost/test";
+Properties props = new Properties();
+props.setProperty("user","fred");
+props.setProperty("password","secret");
+props.setProperty("ssl","true");
+Connection conn = DriverManager.getConnection(url, props);
 
-`String url = "jdbc:postgresql://localhost/test?user=fred&password=secret&ssl=true";`  
-`Connection conn = DriverManager.getConnection(url);`
+String url = "jdbc:postgresql://localhost/test?user=fred&password=secret&ssl=true";
+Connection conn = DriverManager.getConnection(url);
+```
 
 * `user = String`
 
@@ -149,9 +151,8 @@ connection.
 	
 * `protocolVersion = String`
 
-	The driver supports the V3 frontend/backend protocols. The
-	V3 protocol was introduced in 7.4 and the driver will by default try to
-	connect using the V3 protocol.
+	The driver supports the V3 frontend/backend protocols. The V3 protocol was introduced in 7.4 and
+  the driver will by default try to	connect using the V3 protocol.
  
 * `loggerLevel = String`
 
@@ -344,11 +345,11 @@ connection.
 	
 	Use SPNEGO in SSPI authentication requests
 
-*	`sendBufferSize = int`  
+*	`sendBufferSize = int`
 	
 	Sets SO_SNDBUF on the connection stream
 
-*	`receiveBufferSize = int`  
+*	`receiveBufferSize = int`
 	
 	Sets SO_RCVBUF on the connection stream
 

@@ -58,18 +58,22 @@ driver.
 For example, suppose you have a table containing the file names of images and you
 also want to store the image in a BYTEA column:
 
-`CREATE TABLE images (imgname text, img bytea);`
+```sql
+CREATE TABLE images (imgname text, img bytea);
+```
 
 To insert an image, you would use:
 
-`File file = new File("myimage.gif");`  
-`FileInputStream fis = new FileInputStream(file);`  
-`PreparedStatement ps = conn.prepareStatement("INSERT INTO images VALUES (?, ?)");`  
-`ps.setString(1, file.getName());`  
-`ps.setBinaryStream(2, fis, (int)file.length());`  
-`ps.executeUpdate();`  
-`ps.close();`  
-`fis.close();`
+```java
+File file = new File("myimage.gif");
+FileInputStream fis = new FileInputStream(file);
+PreparedStatement ps = conn.prepareStatement("INSERT INTO images VALUES (?, ?)");
+ps.setString(1, file.getName());
+ps.setBinaryStream(2, fis, (int)file.length());
+ps.executeUpdate();
+ps.close();
+fis.close();
+```
 
 Here, `setBinaryStream()` transfers a set number of bytes from a stream into the
 column of type BYTEA. This also could have been done using the `setBytes()` method
@@ -86,16 +90,18 @@ the driver.
 Retrieving an image is even easier. (We use `PreparedStatement` here, but the
 `Statement` class can equally be used.)
 
-`PreparedStatement ps = conn.prepareStatement("SELECT img FROM images WHERE imgname = ?");`  
-`ps.setString(1, "myimage.gif");`  
-`ResultSet rs = ps.executeQuery();`  
-`while (rs.next())`  
-`{`  
-&nbsp;&nbsp;&nbsp;`byte[] imgBytes = rs.getBytes(1);`  
-&nbsp;&nbsp;&nbsp;`// use the data in some way here`  
-`}`  
-`rs.close();`  
-`ps.close();`
+```java
+PreparedStatement ps = conn.prepareStatement("SELECT img FROM images WHERE imgname = ?"); 
+ps.setString(1, "myimage.gif"); 
+ResultSet rs = ps.executeQuery(); 
+while (rs.next()) 
+{ 
+    byte[] imgBytes = rs.getBytes(1); 
+    // use the data in some way here 
+} 
+rs.close(); 
+ps.close();
+```
 
 Here the binary data was retrieved as an `byte[]`.  You could have used a
 `InputStream` object instead.
@@ -103,77 +109,82 @@ Here the binary data was retrieved as an `byte[]`.  You could have used a
 Alternatively you could be storing a very large file and want to use the
 `LargeObject` API to store the file:
 
-`CREATE TABLE imageslo (imgname text, imgoid oid);`
+```sql
+CREATE TABLE imageslo (imgname text, imgoid oid);
+```
 
 To insert an image, you would use:
 
+```java
+// All LargeObject API calls must be within a transaction block
+conn.setAutoCommit(false);
 
-`// All LargeObject API calls must be within a transaction block`  
-`conn.setAutoCommit(false);``<br />
+// Get the Large Object Manager to perform operations with
+LargeObjectManager lobj = conn.unwrap(org.postgresql.PGConnection.class).getLargeObjectAPI();
 
-`// Get the Large Object Manager to perform operations with`  
-`LargeObjectManager lobj = conn.unwrap(org.postgresql.PGConnection.class).getLargeObjectAPI();`<br />
+// Create a new large object
+long oid = lobj.createLO(LargeObjectManager.READ | LargeObjectManager.WRITE);
 
-`// Create a new large object`  
-`long oid = lobj.createLO(LargeObjectManager.READ | LargeObjectManager.WRITE);`<br />
+// Open the large object for writing
+LargeObject obj = lobj.open(oid, LargeObjectManager.WRITE);
 
-`// Open the large object for writing`  
-`LargeObject obj = lobj.open(oid, LargeObjectManager.WRITE);`<br />
+// Now open the file
+File file = new File("myimage.gif");
+FileInputStream fis = new FileInputStream(file);
 
-`// Now open the file`  
-`File file = new File("myimage.gif");`  
-`FileInputStream fis = new FileInputStream(file);`<br />
+// Copy the data from the file to the large object
+byte buf[] = new byte[2048];
+int s, tl = 0;
+while ((s = fis.read(buf, 0, 2048)) > 0)
+{
+    obj.write(buf, 0, s);
+    tl += s;
+}
 
-`// Copy the data from the file to the large object`  
-`byte buf[] = new byte[2048];`  
-`int s, tl = 0;`  
-`while ((s = fis.read(buf, 0, 2048)) > 0)`
-`{`  
-&nbsp;&nbsp;&nbsp;`obj.write(buf, 0, s);`  
-&nbsp;&nbsp;&nbsp;`tl += s;`  
-`}`<br />
+// Close the large object
+obj.close();
 
-`// Close the large object`  
-`obj.close();`<br />
+// Now insert the row into imageslo
+PreparedStatement ps = conn.prepareStatement("INSERT INTO imageslo VALUES (?, ?)");
+ps.setString(1, file.getName());
+ps.setLong(2, oid);
+ps.executeUpdate();
+ps.close();
+fis.close();
 
-`// Now insert the row into imageslo`  
-`PreparedStatement ps = conn.prepareStatement("INSERT INTO imageslo VALUES (?, ?)");`  
-`ps.setString(1, file.getName());`  
-`ps.setLong(2, oid);`  
-`ps.executeUpdate();`  
-`ps.close();`  
-`fis.close();`<br />
-
-`// Finally, commit the transaction.`  
-`conn.commit();`  
+// Finally, commit the transaction.
+conn.commit();
+```
 
 Retrieving the image from the Large Object:
 
-`// All LargeObject API calls must be within a transaction block`  
-`conn.setAutoCommit(false);`<br />
+```java
+// All LargeObject API calls must be within a transaction block
+conn.setAutoCommit(false);
 
-`// Get the Large Object Manager to perform operations with`  
-`LargeObjectManager lobj = conn.unwrap(org.postgresql.PGConnection.class).getLargeObjectAPI();`<br />
+// Get the Large Object Manager to perform operations with
+LargeObjectManager lobj = conn.unwrap(org.postgresql.PGConnection.class).getLargeObjectAPI();
 
-`PreparedStatement ps = conn.prepareStatement("SELECT imgoid FROM imageslo WHERE imgname = ?");`  
-`ps.setString(1, "myimage.gif");`  
-`ResultSet rs = ps.executeQuery();`  
-`while (rs.next())`  
-`{`  
-&nbsp;&nbsp;&nbsp;`// Open the large object for reading`  
-&nbsp;&nbsp;&nbsp;`long oid = rs.getLong(1);`  
-&nbsp;&nbsp;&nbsp;`LargeObject obj = lobj.open(oid, LargeObjectManager.READ);`<br />
+PreparedStatement ps = conn.prepareStatement("SELECT imgoid FROM imageslo WHERE imgname = ?");
+ps.setString(1, "myimage.gif");
+ResultSet rs = ps.executeQuery();
+while (rs.next())
+{
+    // Open the large object for reading
+    long oid = rs.getLong(1);
+    LargeObject obj = lobj.open(oid, LargeObjectManager.READ);
 
-&nbsp;&nbsp;&nbsp;`// Read the data`  
-&nbsp;&nbsp;&nbsp;`byte buf[] = new byte[obj.size()];`  
-&nbsp;&nbsp;&nbsp;`obj.read(buf, 0, obj.size());`  
-&nbsp;&nbsp;&nbsp;`// Do something with the data read here`<br />
+    // Read the data
+    byte buf[] = new byte[obj.size()];
+    obj.read(buf, 0, obj.size());
+    // Do something with the data read here
 
-&nbsp;&nbsp;&nbsp;`// Close the object`  
-&nbsp;&nbsp;&nbsp;`obj.close();`  
-`}`  
-`rs.close();`  
-`ps.close();`<br />
+    // Close the object
+    obj.close();
+}
+rs.close();
+ps.close();
 
-`// Finally, commit the transaction.`  
-`conn.commit();`
+// Finally, commit the transaction.
+conn.commit();
+```
