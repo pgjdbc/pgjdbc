@@ -44,6 +44,7 @@ side prepared statements globally.
 <a name="server-prepared-statement-example"></a>
 **Example 9.3. Using server side prepared statements**
 
+```java
 import java.sql.*;
 
 public class ServerSidePreparedStatement
@@ -77,15 +78,18 @@ public class ServerSidePreparedStatement
 		conn.close();
 	}
 }
+```
 
 Which produces the expected result of using server side prepared statements upon
 the third execution.
 
-`Execution: 1, Used server side: false, Result: 1`  
-`Execution: 2, Used server side: false, Result: 2`  
-`Execution: 3, Used server side: true, Result: 3`  
-`Execution: 4, Used server side: true, Result: 4`  
-`Execution: 5, Used server side: true, Result: 5`
+```
+Execution: 1, Used server side: false, Result: 1
+Execution: 2, Used server side: false, Result: 2
+Execution: 3, Used server side: true, Result: 3
+Execution: 4, Used server side: true, Result: 4
+Execution: 5, Used server side: true, Result: 5
+```
 
 The example shown above requires the programmer to use PostgreSQL™ specific code
 in a supposedly portable API which is not ideal. Also it sets the threshold only
@@ -97,25 +101,27 @@ above that the source of the connection be it a `Datasource` or a URL. The serve
 side prepared statement threshold can be set at any of these levels such that
 the value will be the default for all of it's children.
 
-`// pg extension interfaces`  
-`org.postgresql.PGConnection pgconn;`  
-`org.postgresql.PGStatement pgstmt;`
+```java
+// pg extension interfaces
+org.postgresql.PGConnection pgconn;
+org.postgresql.PGStatement pgstmt;
 
-`// set a prepared statement threshold for connections created from this url`  
-`String url = "jdbc:postgresql://localhost:5432/test?prepareThreshold=3";`
+// set a prepared statement threshold for connections created from this url
+String url = "jdbc:postgresql://localhost:5432/test?prepareThreshold=3";
 
-`// see that the connection has picked up the correct threshold from the url`  
-`Connection conn = DriverManager.getConnection(url,"test","");`  
-`pgconn = conn.unwrap(org.postgresql.PGConnection.class);`  
-`System.out.println(pgconn.getPrepareThreshold()); // Should be 3`
+// see that the connection has picked up the correct threshold from the url
+Connection conn = DriverManager.getConnection(url,"test","");
+pgconn = conn.unwrap(org.postgresql.PGConnection.class);
+System.out.println(pgconn.getPrepareThreshold()); // Should be 3
 
-`// see that the statement has picked up the correct threshold from the connection`  
-`PreparedStatement pstmt = conn.prepareStatement("SELECT ?");`  
-`pgstmt = pstmt.unwrap(org.postgresql.PGStatement.class);`  
-`System.out.println(pgstmt.getPrepareThreshold()); // Should be 3`
+// see that the statement has picked up the correct threshold from the connection
+PreparedStatement pstmt = conn.prepareStatement("SELECT ?");
+pgstmt = pstmt.unwrap(org.postgresql.PGStatement.class);
+System.out.println(pgstmt.getPrepareThreshold()); // Should be 3
 
-`// change the connection's threshold and ensure that new statements pick it up`  
-`pgconn.setPrepareThreshold(5);`  
-`PreparedStatement pstmt = conn.prepareStatement("SELECT ?");`  
-`pgstmt = pstmt.unwrap(org.postgresql.PGStatement.class);`  
-`System.out.println(pgstmt.getPrepareThreshold()); // Should be 5`
+// change the connection's threshold and ensure that new statements pick it up
+pgconn.setPrepareThreshold(5);
+PreparedStatement pstmt = conn.prepareStatement("SELECT ?");
+pgstmt = pstmt.unwrap(org.postgresql.PGStatement.class);
+System.out.println(pgstmt.getPrepareThreshold()); // Should be 5
+```

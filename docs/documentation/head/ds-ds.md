@@ -145,19 +145,21 @@ of typical application code using a pooling `DataSource`.
 
 Code to initialize a pooling `DataSource` might look like this:
 
-`PGPoolingDataSource source = new PGPoolingDataSource();`  
-`source.setDataSourceName("A Data Source");`  
-`source.setServerName("localhost");`  
-`source.setDatabaseName("test");`  
-`source.setUser("testuser");`  
-`source.setPassword("testpassword");`  
-`source.setMaxConnections(10);`
+```java
+PGPoolingDataSource source = new PGPoolingDataSource();
+source.setDataSourceName("A Data Source");
+source.setServerName("localhost");
+source.setDatabaseName("test");
+source.setUser("testuser");
+source.setPassword("testpassword");
+source.setMaxConnections(10);
+```
 
 Then code to use a connection from the pool might look like this. Note that it
 is critical that the connections are eventually closed.  Else the pool will
 “leak” connections and will eventually lock all the clients out.
 
-<pre><code>
+```java
 Connection conn = null;
 try
 {
@@ -175,4 +177,4 @@ finally
         try { conn.close(); } catch (SQLException e) {}
     }
 }
-</code></pre>
+```

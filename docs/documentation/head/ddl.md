@@ -6,7 +6,7 @@ resource: media
 previoustitle: Performing Updates
 previous: update.html
 nexttitle: Using Java 8 Date and Time classes
-next: 8-date-time.html
+next: java8-date-time.html
 ---
 
 To create, modify or drop a database object like a table or view you use the
@@ -19,6 +19,8 @@ illustrates the usage.
 
 This example will drop a table.
 
-`Statement st = conn.createStatement();`  
-`st.execute("DROP TABLE mytable");`  
-`st.close();`  
+```java
+Statement st = conn.createStatement();
+st.execute("DROP TABLE mytable");
+st.close();
+```

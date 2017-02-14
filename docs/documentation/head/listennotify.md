@@ -28,7 +28,7 @@ notifications and must poll the backend to check if any notifications were issue
 <a name="listen-notify-example"></a>
 **Example 9.2. Receiving Notifications**
 
-<pre><code>
+```java
 import java.sql.*;
 
 public class NotificationTest
@@ -55,9 +55,7 @@ public class NotificationTest
 		notifier.start();
 	}
 }
-</code></pre>
 
-<pre><code>
 class Listener extends Thread
 {
 	private Connection conn;
@@ -110,9 +108,7 @@ class Listener extends Thread
 		}
 	}
 }
-</code></pre>
 
-<pre><code>
 class Notifier extends Thread
 {
 	private Connection conn;
@@ -145,4 +141,4 @@ class Notifier extends Thread
 	}
 
 }
-</code></pre>
+```
