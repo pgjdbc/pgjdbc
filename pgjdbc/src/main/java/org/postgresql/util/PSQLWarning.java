@@ -13,6 +13,7 @@ public class PSQLWarning extends SQLWarning {
   private ServerErrorMessage serverError;
 
   public PSQLWarning(ServerErrorMessage err) {
+    super(err.toString(), err.getSQLState());
     this.serverError = err;
   }
 
