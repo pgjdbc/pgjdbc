@@ -19,8 +19,7 @@ so there are get and set methods for each of these properties.
 <a name="ds-cpds-props"></a>
 **Table 11.1. `ConnectionPoolDataSource` Configuration Properties**
 
-<table summary="ConnectionPoolDataSource Configuration Properties"
- border="1">
+<table summary="ConnectionPoolDataSource Configuration Properties" class="CALSTABLE" border="1">
   <tr>
     <th>Property</th>
     <th>Type</th>

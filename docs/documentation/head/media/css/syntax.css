@@ -1,4 +1,22 @@
-.highlight  { background: #f5f5f5; }
+.highlight  {
+  border-color: #CFCFCF;
+  background-color: #F7F7F7;
+  color: black;
+  border-width: 1px;
+  border-style: solid;
+  padding: 2ex;
+  margin: 2ex 0 2ex 2ex;
+  overflow: auto;
+  -moz-border-radius: 8px;
+  -webkit-border-radius: 8px;
+  -khtml-border-radius: 8px;
+  border-radius: 8px;
+  -moz-box-shadow: 3px 3px 5px #DFDFDF;
+  -webkit-box-shadow: 3px 3px 5px #DFDFDF;
+  -khtml-box-shadow: 3px 3px 5px #DFDFDF;
+  -o-box-shadow: 3px 3px 5px #DFDFDF;
+  box-shadow: 3px 3px 5px #DFDFDF;
+}
 .highlight .py { color: #545454; }
 .highlight .n { color: #3A3A3A; }
 .highlight .c { color: #999988; font-style: italic } /* Comment */

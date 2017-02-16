@@ -29,7 +29,7 @@ project.
 <a name="ds-ds-imp"></a>
 **Table 11.2. `DataSource` Implementations**
 
-<table summary="DataSource Implementations" border="1">
+<table summary="DataSource Implementations" class="CALSTABLE" border="1">
   <tr>
     <th>Pooling</th>
     <th>Implementation Class</th>
@@ -53,7 +53,7 @@ so there are get and set methods for each of these properties.
 <a name="ds-ds-props"></a>
 **Table 11.3. `DataSource` Configuration Properties**
 
-<table summary="DataSource Configuration Properties" border="1">
+<table summary="DataSource Configuration Properties" class="CALSTABLE" border="1">
   <tr>
     <th>Property</th>
     <th>Type</th>
@@ -108,7 +108,7 @@ which are shown in [Table 11.4, “Additional Pooling `DataSource` Configuratio
 <a name="ds-ds-xprops"></a>
 **Table 11.4. Additional Pooling `DataSource` Configuration Properties**
 
-<table summary="Additional Pooling DataSource Configuration Properties" border="1">
+<table summary="Additional Pooling DataSource Configuration Properties" class="CALSTABLE" border="1">
   <tr>
     <th>Property</th>
     <th>Type</th>

@@ -24,7 +24,7 @@ translation but the driver will not automatically handle this.
 <a name="escape-numeric-functions-table"></a>
 **Table 8.1. Supported escaped numeric functions**
 
-<table summary="Supported escaped numeric functions" border="1">
+<table summary="Supported escaped numeric functions" class="CALSTABLE" border="1">
   <tr>
     <th>function</th>
     <th>reported as supported</th>
@@ -188,7 +188,7 @@ translation but the driver will not automatically handle this.
 <a name="escape-string-functions-table"></a>
 **Table 8.2. Supported escaped string functions**
 
-<table summary="Supported escaped string functions" border="1">
+<table summary="Supported escaped string functions" class="CALSTABLE" border="1">
   <tr>
     <th>function</th>
     <th>reported as supported</th>
@@ -330,7 +330,7 @@ contrib module.</td>
 <a name="escape-datetime-functions-table"></a>
 **Table 8.3. Supported escaped date/time functions**
 
-<table summary="Supported escaped date/time functions" border="1">
+<table summary="Supported escaped date/time functions" class="CALSTABLE" border="1">
   <tr>
     <th>function</th>
     <th>reported as supported</th>
@@ -450,7 +450,7 @@ or SQL_TSI_FRAC_DAY is supported </td>
 <a name="escape-misc-functions-table"></a>
 **Table 8.4. Supported escaped misc functions**
 
-<table summary="Supported escaped misc functions" border="1">
+<table summary="Supported escaped misc functions" class="CALSTABLE" border="1">
   <tr>
     <th>function</th>
     <th>reported as supported</th>
