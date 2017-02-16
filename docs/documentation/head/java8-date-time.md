@@ -16,7 +16,7 @@ The PostgreSQL™ JDBC driver implements native support for the
 <a name="8-date-time-supported-data-types"></a>
 **Table 5.1. Supported escaped numeric functions**
 
-<table summary="Supported data type" border="1">
+<table summary="Supported data type" class="CALSTABLE" border="1">
   <tr>
     <th>PostgreSQL™</th>
     <th>Java SE 8</th>

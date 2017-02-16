@@ -62,13 +62,14 @@ The properties are `loggerLevel` and `loggerFile`:
 
 **loggerLevel**: Logger level of the driver. Allowed values: `OFF`, `DEBUG` or `TRACE`.
 
-This option enable the `java.util.logging.Logger` of the driver based on the following mapping:
+This option enable the `java.util.logging.Logger` Level of the driver based on the following mapping:
 
-| java.util.logging | loggerLevel |
-| ----------------- | ----------- |
-| OFF               | OFF         |
-| FINE              | DEBUG       |
-| FINEST            | TRACE       |
+{:.CALSTABLE}
+| loggerLevel | java.util.logging |
+| ----------- | ----------------- |
+| OFF         | OFF               |
+| DEBUG       | FINE              |
+| TRACE       | FINEST            |
 
 As noted, there are no other levels supported using this method, and internally the driver Logger levels
 should not (for the most part) use others levels as the intention is to debug the driver and don't
