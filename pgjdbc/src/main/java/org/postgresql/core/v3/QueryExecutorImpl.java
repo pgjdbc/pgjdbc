@@ -261,8 +261,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   public synchronized void execute(Query query, ParameterList parameters, ResultHandler handler,
       int maxRows, int fetchSize, int flags) throws SQLException {
     waitOnLock();
-    LOGGER.log(Level.FINEST, "  simple execute, handler={0}, maxRows={1}, fetchSize={2}, flags={3}",
-        new Object[]{handler, maxRows, fetchSize, flags});
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, "  simple execute, handler={0}, maxRows={1}, fetchSize={2}, flags={3}",
+          new Object[]{handler, maxRows, fetchSize, flags});
+    }
 
     if (parameters == null) {
       parameters = SimpleQuery.NO_PARAMETERS;
@@ -419,8 +421,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   public synchronized void execute(Query[] queries, ParameterList[] parameterLists,
       BatchResultHandler batchHandler, int maxRows, int fetchSize, int flags) throws SQLException {
     waitOnLock();
-    LOGGER.log(Level.FINEST, "  batch execute {0} queries, handler={1}, maxRows={2}, fetchSize={3}, flags={4}",
-        new Object[]{queries.length, batchHandler, maxRows, fetchSize, flags});
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, "  batch execute {0} queries, handler={1}, maxRows={2}, fetchSize={3}, flags={4}",
+          new Object[]{queries.length, batchHandler, maxRows, fetchSize, flags});
+    }
 
     flags = updateQueryMode(flags);
 
@@ -598,7 +602,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private void sendFastpathCall(int fnid, SimpleParameterList params)
       throws SQLException, IOException {
-    LOGGER.log(Level.FINEST, " FE=> FunctionCall({0}, {1} params)", new Object[]{fnid, params.getParameterCount()});
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, " FE=> FunctionCall({0}, {1} params)", new Object[]{fnid, params.getParameterCount()});
+    }
 
     //
     // Total size = 4 (length)
@@ -1124,7 +1130,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           int l_len = pgStream.receiveInteger4();
           String name = pgStream.receiveString();
           String value = pgStream.receiveString();
-          LOGGER.log(Level.FINEST, " <=BE ParameterStatus({0} = {1})", new Object[]{name, value});
+
+          if (LOGGER.isLoggable(Level.FINEST)) {
+            LOGGER.log(Level.FINEST, " <=BE ParameterStatus({0} = {1})", new Object[]{name, value});
+          }
 
           if (name.equals("client_encoding") && !value.equalsIgnoreCase("UTF8")
               && !allowEncodingChanges) {
@@ -1410,8 +1419,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     byte[] encodedPortalName = (portal == null ? null : portal.getEncodedPortalName());
 
     if (LOGGER.isLoggable(Level.FINEST)) {
-      StringBuilder sbuf =
-          new StringBuilder(" FE=> Bind(stmt=" + statementName + ",portal=" + portal);
+      StringBuilder sbuf = new StringBuilder(" FE=> Bind(stmt=" + statementName + ",portal=" + portal);
       for (int i = 1; i <= params.getParameterCount(); ++i) {
         sbuf.append(",$").append(i).append("=<")
             .append(params.toString(i,true))
@@ -1589,8 +1597,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     //
     // Send Execute.
     //
-
-    LOGGER.log(Level.FINEST, " FE=> Execute(portal={0},limit={1})", new Object[]{portal, limit});
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, " FE=> Execute(portal={0},limit={1})", new Object[]{portal, limit});
+    }
 
     byte[] encodedPortalName = (portal == null ? null : portal.getEncodedPortalName());
     int encodedSize = (encodedPortalName == null ? 0 : encodedPortalName.length);
@@ -2120,8 +2129,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             // Technically speaking, the error is unexpected, thus we invalidate other
             // server-prepared statements just in case.
             deallocateEpoch++;
-            LOGGER.log(Level.FINEST, " FE: received {0}, will invalidate statements. deallocateEpoch is now {1}",
-                new Object[]{error.getSQLState(), deallocateEpoch});
+            if (LOGGER.isLoggable(Level.FINEST)) {
+              LOGGER.log(Level.FINEST, " FE: received {0}, will invalidate statements. deallocateEpoch is now {1}",
+                  new Object[]{error.getSQLState(), deallocateEpoch});
+            }
           }
           // keep processing
           break;
@@ -2151,7 +2162,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           int l_len = pgStream.receiveInteger4();
           String name = pgStream.receiveString();
           String value = pgStream.receiveString();
-          LOGGER.log(Level.FINEST, " <=BE ParameterStatus({0} = {1})", new Object[]{name, value});
+
+          if (LOGGER.isLoggable(Level.FINEST)) {
+            LOGGER.log(Level.FINEST, " <=BE ParameterStatus({0} = {1})", new Object[]{name, value});
+          }
 
           if (name.equals("client_encoding") && !value.equalsIgnoreCase("UTF8")
               && !allowEncodingChanges) {
@@ -2376,7 +2390,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     String param = pgStream.receiveString();
     addNotification(new org.postgresql.core.Notification(msg, pid, param));
 
-    LOGGER.log(Level.FINEST, " <=BE AsyncNotify({0},{1},{2})", new Object[]{pid, msg, param});
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, " <=BE AsyncNotify({0},{1},{2})", new Object[]{pid, msg, param});
+    }
   }
 
   private SQLException receiveErrorResponse() throws IOException {
@@ -2506,7 +2522,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           int pid = pgStream.receiveInteger4();
           int ckey = pgStream.receiveInteger4();
 
-          LOGGER.log(Level.FINEST, " <=BE BackendKeyData(pid={0},ckey={1})", new Object[]{pid, ckey});
+          if (LOGGER.isLoggable(Level.FINEST)) {
+            LOGGER.log(Level.FINEST, " <=BE BackendKeyData(pid={0},ckey={1})", new Object[]{pid, ckey});
+          }
 
           setBackendKeyData(pid, ckey);
           break;
@@ -2526,7 +2544,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           String name = pgStream.receiveString();
           String value = pgStream.receiveString();
 
-          LOGGER.log(Level.FINEST, " <=BE ParameterStatus({0} = {1})", new Object[]{name, value});
+          if (LOGGER.isLoggable(Level.FINEST)) {
+            LOGGER.log(Level.FINEST, " <=BE ParameterStatus({0} = {1})", new Object[]{name, value});
+          }
 
           if ("server_version_num".equals(name)) {
             setServerVersionNum(Integer.parseInt(value));

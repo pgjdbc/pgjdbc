@@ -77,7 +77,9 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   public Connection getConnection(String user, String password) throws SQLException {
     try {
       Connection con = DriverManager.getConnection(getUrl(), user, password);
-      LOGGER.log(Level.FINE, "Created a {0} for {1} at {2}", new Object[]{getDescription(), user, getUrl()});
+      if (LOGGER.isLoggable(Level.FINE)) {
+        LOGGER.log(Level.FINE, "Created a {0} for {1} at {2}", new Object[]{getDescription(), user, getUrl()});
+      }
       return con;
     } catch (SQLException e) {
       LOGGER.log(Level.SEVERE, "Failed to create a {0} for {1} at {2}: {3}",

@@ -147,7 +147,9 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
     // Now we need to construct and send a cancel packet
     try {
-      LOGGER.log(Level.FINEST, " FE=> CancelRequest(pid={0},ckey={1})", new Object[]{cancelPid, cancelKey});
+      if (LOGGER.isLoggable(Level.FINEST)) {
+        LOGGER.log(Level.FINEST, " FE=> CancelRequest(pid={0},ckey={1})", new Object[]{cancelPid, cancelKey});
+      }
 
       cancelStream =
           new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), cancelSignalTimeout);

@@ -573,7 +573,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                     }
                   }
 
-                  LOGGER.log(Level.FINE, "Using SSPI: {0}, gsslib={1} and SSPI support detected", new Object[]{useSSPI, gsslib});
+                  if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE, "Using SSPI: {0}, gsslib={1} and SSPI support detected", new Object[]{useSSPI, gsslib});
+                  }
                 }
 
                 if (useSSPI) {

@@ -82,7 +82,9 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   private boolean localAutoCommitMode = true;
 
   private void debug(String s) {
-    LOGGER.log(Level.FINEST, "XAResource {0}: {1}", new Object[]{Integer.toHexString(this.hashCode()), s});
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, "XAResource {0}: {1}", new Object[]{Integer.toHexString(this.hashCode()), s});
+    }
   }
 
   public PGXAConnection(BaseConnection conn) throws SQLException {
@@ -179,7 +181,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
    * Postconditions: 1. Connection is associated with the transaction
    */
   public void start(Xid xid, int flags) throws XAException {
-    if (LOGGER.isLoggable(Level.FINER)) {
+    if (LOGGER.isLoggable(Level.FINEST)) {
       debug("starting transaction xid = " + xid);
     }
 
@@ -247,7 +249,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
    * Postconditions: 1. connection is disassociated from the transaction.
    */
   public void end(Xid xid, int flags) throws XAException {
-    if (LOGGER.isLoggable(Level.FINER)) {
+    if (LOGGER.isLoggable(Level.FINEST)) {
       debug("ending transaction xid = " + xid);
     }
 
@@ -287,7 +289,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
    * Postconditions: 1. Transaction is prepared
    */
   public int prepare(Xid xid) throws XAException {
-    if (LOGGER.isLoggable(Level.FINER)) {
+    if (LOGGER.isLoggable(Level.FINEST)) {
       debug("preparing transaction xid = " + xid);
     }
 
@@ -382,7 +384,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
    * Postconditions: 1. Transaction is rolled back and disassociated from connection
    */
   public void rollback(Xid xid) throws XAException {
-    if (LOGGER.isLoggable(Level.FINER)) {
+    if (LOGGER.isLoggable(Level.FINEST)) {
       debug("rolling back xid = " + xid);
     }
 
@@ -416,7 +418,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   }
 
   public void commit(Xid xid, boolean onePhase) throws XAException {
-    if (LOGGER.isLoggable(Level.FINER)) {
+    if (LOGGER.isLoggable(Level.FINEST)) {
       debug("committing xid = " + xid + (onePhase ? " (one phase) " : " (two phase)"));
     }
 

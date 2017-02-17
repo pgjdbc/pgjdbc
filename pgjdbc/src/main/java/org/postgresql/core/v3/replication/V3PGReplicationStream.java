@@ -186,8 +186,10 @@ public class V3PGReplicationStream implements PGReplicationStream {
     long systemClock = TimeUnit.MICROSECONDS.convert((now - POSTGRES_EPOCH_2000_01_01),
         TimeUnit.MICROSECONDS);
 
-    LOGGER.log(Level.FINEST, " FE=> StandbyStatusUpdate(received: {0}, flushed: {1}, applied: {2}, clock: {3})",
-        new Object[]{received.asString(), flushed.asString(), applied.asString(), new Date(now)});
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, " FE=> StandbyStatusUpdate(received: {0}, flushed: {1}, applied: {2}, clock: {3})",
+          new Object[]{received.asString(), flushed.asString(), applied.asString(), new Date(now)});
+    }
 
     byteBuffer.put((byte) 'r');
     byteBuffer.putLong(received.asLong());
@@ -230,8 +232,10 @@ public class V3PGReplicationStream implements PGReplicationStream {
     int payloadSize = buffer.limit() - buffer.position();
     lastReceiveLSN = LogSequenceNumber.valueOf(startLsn + payloadSize);
 
-    LOGGER.log(Level.FINEST, "  <=BE XLogData(currWal: {0}, lastServerWal: {1}, clock: {2})",
-        new Object[]{lastReceiveLSN.asString(), lastServerLSN.asString(), systemClock});
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, "  <=BE XLogData(currWal: {0}, lastServerWal: {1}, clock: {2})",
+          new Object[]{lastReceiveLSN.asString(), lastServerLSN.asString(), systemClock});
+    }
 
     return buffer.slice();
   }
