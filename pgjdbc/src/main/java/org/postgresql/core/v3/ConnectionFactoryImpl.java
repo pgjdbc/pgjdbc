@@ -450,7 +450,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               case AUTH_REQ_CRYPT: {
                 byte[] salt = pgStream.receive(2);
 
-                LOGGER.log(Level.FINEST, " <=BE AuthenticationReqCrypt(salt=''{0}'')", new String(salt, "US-ASCII"));
+                if (LOGGER.isLoggable(Level.FINEST)) {
+                  LOGGER.log(Level.FINEST, " <=BE AuthenticationReqCrypt(salt=''{0}'')", new String(salt, "US-ASCII"));
+                }
 
                 if (password == null) {
                   throw new PSQLException(
@@ -461,7 +463,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
                 byte[] encodedResult = UnixCrypt.crypt(salt, password.getBytes("UTF-8"));
 
-                LOGGER.log(Level.FINEST, " FE=> Password(crypt=''{0}'')", new String(encodedResult, "US-ASCII"));
+                if (LOGGER.isLoggable(Level.FINEST)) {
+                  LOGGER.log(Level.FINEST, " FE=> Password(crypt=''{0}'')", new String(encodedResult, "US-ASCII"));
+                }
 
                 pgStream.sendChar('p');
                 pgStream.sendInteger4(4 + encodedResult.length + 1);
@@ -474,7 +478,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
               case AUTH_REQ_MD5: {
                 byte[] md5Salt = pgStream.receive(4);
-                LOGGER.log(Level.FINEST, " <=BE AuthenticationReqMD5(salt={0})", Utils.toHexString(md5Salt));
+                if (LOGGER.isLoggable(Level.FINEST)) {
+                  LOGGER.log(Level.FINEST, " <=BE AuthenticationReqMD5(salt={0})", Utils.toHexString(md5Salt));
+                }
 
                 if (password == null) {
                   throw new PSQLException(
@@ -486,7 +492,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 byte[] digest =
                     MD5Digest.encode(user.getBytes("UTF-8"), password.getBytes("UTF-8"), md5Salt);
 
-                LOGGER.log(Level.FINEST, " FE=> Password(md5digest={0})", new String(digest, "US-ASCII"));
+                if (LOGGER.isLoggable(Level.FINEST)) {
+                  LOGGER.log(Level.FINEST, " FE=> Password(md5digest={0})", new String(digest, "US-ASCII"));
+                }
 
                 pgStream.sendChar('p');
                 pgStream.sendInteger4(4 + digest.length + 1);

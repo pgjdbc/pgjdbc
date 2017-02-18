@@ -1281,10 +1281,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         selectSQL.append(" and ");
       }
     }
-    connection.getLogger().log(Level.FINE, "selecting {0}", selectSQL.toString());
+    String sqlText = selectSQL.toString();
+    if (connection.getLogger().isLoggable(Level.FINE)) {
+      connection.getLogger().log(Level.FINE, "selecting {0}", sqlText);
+    }
     // because updateable result sets do not yet support binary transfers we must request refresh
     // with updateable result set to get field data in correct format
-    selectStatement = connection.prepareStatement(selectSQL.toString(),
+    selectStatement = connection.prepareStatement(sqlText,
         ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
 
 
@@ -1358,8 +1361,11 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       }
     }
 
-    connection.getLogger().log(Level.FINE, "updating {0}", updateSQL.toString());
-    updateStatement = connection.prepareStatement(updateSQL.toString());
+    String sqlText = updateSQL.toString();
+    if (connection.getLogger().isLoggable(Level.FINE)) {
+      connection.getLogger().log(Level.FINE, "updating {0}", sqlText);
+    }
+    updateStatement = connection.prepareStatement(sqlText);
 
     int i = 0;
     Iterator<Object> iterator = updateValues.values().iterator();
