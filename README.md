@@ -24,36 +24,36 @@ Most people do not need to compile PgJDBC. You can download the precompiled driv
 ### Maven Central
 You can search on The Central Repository with GroupId and ArtifactId [![Maven Search](https://img.shields.io/badge/org.postgresql-postgresql-yellow.svg)][mvn-search] for:
 
-[![Java 8](https://img.shields.io/badge/Java_8-9.4.1212-blue.svg)][mvn-jre8]
+[![Java 8](https://img.shields.io/badge/Java_8-42.0.0-blue.svg)][mvn-jre8]
 ```xml
 <dependency>
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>
-    <version>9.4.1212</version>
+    <version>42.0.0</version>
 </dependency>
 ```
 
-[![Java 7](https://img.shields.io/badge/Java_7-9.4.1212.jre7-blue.svg)][mvn-jre7]
+[![Java 7](https://img.shields.io/badge/Java_7-42.0.0.jre7-blue.svg)][mvn-jre7]
 ```xml
 <dependency>
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>
-    <version>9.4.1212.jre7</version>
+    <version>42.0.0.jre7</version>
 </dependency>
 ```
 
-[![Java 6](https://img.shields.io/badge/Java_6-9.4.1212.jre6-blue.svg)][mvn-jre6]
+[![Java 6](https://img.shields.io/badge/Java_6-42.0.0.jre6-blue.svg)][mvn-jre6]
 ```xml
 <dependency>
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>
-    <version>9.4.1212.jre6</version>
+    <version>42.0.0.jre6</version>
 </dependency>
 ```
 [mvn-search]: http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.postgresql%22%20AND%20a%3A%22postgresql%22 "Search on Maven Central"
-[mvn-jre6]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|9.4.1212.jre6|bundle
-[mvn-jre7]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|9.4.1212.jre7|bundle
-[mvn-jre8]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|9.4.1212|bundle
+[mvn-jre6]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.0.0.jre6|bundle
+[mvn-jre7]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.0.0.jre7|bundle
+[mvn-jre8]: http://search.maven.org/#artifactdetails|org.postgresql|postgresql|42.0.0|bundle
 
 #### Development snapshots
 Snapshot builds (builds from `master` branch) are also deployed to Maven Central, so you can test current development version (test some bugfix) using:
@@ -61,16 +61,26 @@ Snapshot builds (builds from `master` branch) are also deployed to Maven Central
 <dependency>
   <groupId>org.postgresql</groupId>
   <artifactId>postgresql</artifactId>
-  <version>42.0.0-SNAPSHOT</version> <!-- Java 8 -->
-  <version>42.0.0.jre7-SNAPSHOT</version> <!-- Java 7 -->
-  <version>42.0.0.jre6-SNAPSHOT</version> <!-- Java 6 -->
+  <version>42.0.1-SNAPSHOT</version> <!-- Java 8 -->
+  <version>42.0.1.jre7-SNAPSHOT</version> <!-- Java 7 -->
+  <version>42.0.1.jre6-SNAPSHOT</version> <!-- Java 6 -->
 </dependency>
 ```
 
 There are also available (snapshot) binary RPMs in [Fedora's Copr repository](https://copr.fedorainfracloud.org/coprs/g/pgjdbc/pgjdbc-travis/).
 
+
+
 ## Changelog
 Notable changes for:
+
+**[42.0.0]** (2017-02-18):
+* Support for PostgreSQL versions below 8.2 was dropped
+* java.util.logging is now used for logging: [logging documentation](https://jdbc.postgresql.org//documentation/head/logging.html)
+* Ensure executeBatch() can be used with pgbouncer. Previously pgjdbc could use server-prepared statements for batch execution even with prepareThreshold=0 (see [issue 742](https://github.com/pgjdbc/pgjdbc/issues/742))
+* Replication protocol API was added: [replication API documentation](https://jdbc.postgresql.org//documentation/head/replication.html), [GitHub PR 550](https://github.com/pgjdbc/pgjdbc/pull/550)
+* Version bumped to 42.0.0 to avoid version clash with PostgreSQL version
+* Error position is displayed when SQL has unterminated literals, comments, etc (see [issue 688](https://github.com/pgjdbc/pgjdbc/issues/688))
 
 **[9.4.1212]** (2016-11-02):
 * ? can now be used in non-prepared statements (fixed regression of 9.4.1210)
@@ -93,6 +103,7 @@ Notable changes for:
 * Performance optimization for timestamps (~`TimeZone.getDefault` optimization)
 * Allow build-from-source on GNU/Linux without maven repositories, and add Fedora Copr test to the regression suite
 
+[42.0.0]: https://github.com/pgjdbc/pgjdbc/compare/REL9.4.1212...REL42.0.0
 [9.4.1212]: https://github.com/pgjdbc/pgjdbc/compare/REL9.4.1211...REL9.4.1212
 [9.4.1211]: https://github.com/pgjdbc/pgjdbc/compare/REL9.4.1210...REL9.4.1211
 [9.4.1210]: https://github.com/pgjdbc/pgjdbc/compare/REL9.4.1209...REL9.4.1210
