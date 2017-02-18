@@ -548,7 +548,10 @@ public class PgConnection implements BaseConnection {
 
     PGobject obj = null;
 
-    LOGGER.log(Level.FINEST, "Constructing object from type={0} value=<{1}>", new Object[]{type, value});
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, "Constructing object from type={0} value=<{1}>", new Object[]{type, value});
+    }
+
     try {
       Class<? extends PGobject> klass = _typeCache.getPGobject(type);
 
@@ -1344,7 +1347,9 @@ public class PgConnection implements BaseConnection {
             GT.tr("Failed to set ClientInfo property: {0}", "ApplicationName"), sqle.getSQLState(),
             failures, sqle);
       }
-      LOGGER.log(Level.FINE, "  setClientInfo = {0} {1}", new Object[]{name, value});
+      if (LOGGER.isLoggable(Level.FINE)) {
+        LOGGER.log(Level.FINE, "  setClientInfo = {0} {1}", new Object[]{name, value});
+      }
       _clientInfo.put(name, value);
       return;
     }

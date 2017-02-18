@@ -97,7 +97,9 @@ class BooleanTypeUtil {
   }
 
   private static PSQLException cannotCoerceException(final String fromType, final String value) {
-    LOGGER.log(Level.FINE, "Cannot cast type {0} to boolean: \"{1}\"", new Object[]{fromType, value});
+    if (LOGGER.isLoggable(Level.FINE)) {
+      LOGGER.log(Level.FINE, "Cannot cast type {0} to boolean: \"{1}\"", new Object[]{fromType, value});
+    }
     return new PSQLException(GT.tr("Cannot cast type {0} to boolean: \"{1}\"", fromType, value),
         PSQLState.CANNOT_COERCE);
   }
