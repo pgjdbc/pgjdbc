@@ -10,7 +10,7 @@
   <artifactId>postgresql</artifactId>
   <packaging>bundle</packaging>
   <name>PostgreSQL JDBC Driver - JDBC 4.2</name>
-  <version>42.0.0</version>
+  <version>42.0.1-SNAPSHOT</version>
   <description>Java JDBC 4.2 (JRE 8+) driver for PostgreSQL database</description>
   <url>https://github.com/pgjdbc/pgjdbc</url>
 
@@ -276,8 +276,4 @@
       </plugins>
     </pluginManagement>
   </build>
-
-  <scm>
-    <tag>REL42.0.0</tag>
-  </scm>
 </project>
