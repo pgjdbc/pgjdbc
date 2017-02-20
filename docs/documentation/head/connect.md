@@ -66,15 +66,15 @@ String url = "jdbc:postgresql://localhost/test?user=fred&password=secret&ssl=tru
 Connection conn = DriverManager.getConnection(url);
 ```
 
-* `user = String`
+* **user** = String
 
 	The database user on whose behalf the connection is being made. 
 
-* `password = String`
-	
+* **password** = String
+
 	The database user's password. 
 
-* `ssl`
+* **ssl** = boolean
 
 	Connect using SSL. The driver must have been compiled with SSL support.
 	This property does not need a value associated with it. The mere presence
@@ -82,93 +82,76 @@ Connection conn = DriverManager.getConnection(url);
 	versions, the value "true" is preferred. For more information see [Chapter
 	4, *Using SSL*](ssl.html).
  
-* `sslfactory = String`
+* **sslfactory** = String
 
 	The provided value is a class name to use as the `SSLSocketFactory` when
 	establishing a SSL connection. For more information see the section
 	called [“Custom SSLSocketFactory”](ssl-factory.html). 
 
-* `sslfactoryarg = String`
+* **sslfactoryarg** = String
 
 	This value is an optional argument to the constructor of the sslfactory
 	class provided above. For more information see the section called [“Custom SSLSocketFactory”](ssl-factory.html). 
 
-* `sslmode = String`
+* **sslmode** = String
 
 	possible values are "verify-ca" and "verify-full" setting these will 
 	necessitate storing the server certificate on the client machine ["Configuring the client"](ssl-client.html).
-	
-* `sslcert = String`
+
+* **sslcert** = String
 
 	Provide the full path for the certificate file. Defaults to /defaultdir/postgresql.crt
-	
-	Note: defaultdir is ${user.home}/.postgresql/ in *nix systems and %appdata%/postgresql/ on windows 
 
-* `sslkey = String`
-	
+	*Note:* defaultdir is ${user.home}/.postgresql/ in *nix systems and %appdata%/postgresql/ on windows 
+
+* **sslkey** = String
+
 	Provide the full path for the key file. Defaults to /defaultdir/postgresql.pk8
 
-* `sslrootcert = String`
+* **sslrootcert** = String
 
 	File name of the SSL root certificate. Defaults to defaultdir/root.crt
 
-* `sslhostnameverifier = String`
-	
+* **sslhostnameverifier** = String
+
 	Class name of hostname verifier. Defaults to using `org.postgresql.ssl.jdbc4.LibPQFactory.verify()`
 
-* `sslpaswordcallback = String`
+* **sslpaswordcallback** = String
 
 	Class name of the SSL password provider. Defaults to `org.postgresql.ssl.jdbc4.LibPQFactory.ConsoleCallbackHandler`
-	
-* `sslpassword = String`
+
+* **sslpassword** = String
 
 	If provided will be used by ConsoleCallbackHandler
-	
-* `compatible = String`
 
-	Act like an older version of the driver to retain compatibility with older
-	applications. At the moment this controls two driver behaviours: the
-	handling of binary data fields, and the handling of parameters set via
-	`setString()`.
-
-	Older versions of the driver used this property to also control the
-	protocol used to connect to the backend. This is now controlled by the
-	`protocolVersion` property.
-
-	Information on binary data handling is detailed in [Chapter 7, Storing Binary Data](binary-data.html).
-	To force the use of Large Objects set the compatible property to 7.1.
-
-	When `compatible` is set to 7.4 or below, the default for the `stringtype`
-	parameter is changed to `unspecified`.
-
-* `sendBufferSize = int` 
+* **sendBufferSize** = int
 
 	Sets SO_SNDBUF on the connection stream
-	
-* `recvBufferSize = int`
+
+* **recvBufferSize** = int
 
 	Sets SO_RCVBUF on the connection stream
-	
-* `protocolVersion = String`
+
+* **protocolVersion** = int
 
 	The driver supports the V3 frontend/backend protocols. The V3 protocol was introduced in 7.4 and
-  the driver will by default try to	connect using the V3 protocol.
+	the driver will by default try to	connect using the V3 protocol.
  
-* `loggerLevel = String`
+* **loggerLevel** = String
 
-  Logger level of the driver. Allowed values: <code>OFF</code>, <code>DEBUG</code> or <code>TRACE</code>.
-  This enable the <code>java.util.logging.Logger</code> Level of the driver based on the following mapping
-  of levels: DEBUG -&gt; FINE, TRACE -&gt; FINEST. This property is intented for debug the driver and
-  not for general SQL query debug.
+	Logger level of the driver. Allowed values: <code>OFF</code>, <code>DEBUG</code> or <code>TRACE</code>.
+	This enable the <code>java.util.logging.Logger</code> Level of the driver based on the following mapping
+	of levels: DEBUG -&gt; FINE, TRACE -&gt; FINEST. This property is intented for debug the driver and
+	not for general SQL query debug.
 
-* `loggerFile = String`
+* **loggerFile** = String
 
 	File name output of the Logger. If set, the Logger will use a <code>java.util.logging.FileHandler</code>
-  to write to a specified file. If the parameter is not set or the file can’t be created the
-  <code>java.util.logging.ConsoleHandler</code> will be used instead. This parameter should be use
-  together with loggerLevel.
+	to write to a specified file. If the parameter is not set or the file can’t be created the
+	<code>java.util.logging.ConsoleHandler</code> will be used instead. This parameter should be use
+	together with loggerLevel.
  
-* `allowEncodingChanges = boolean`
+* **allowEncodingChanges** = boolean
 
 	When using the V3 protocol the driver monitors changes in certain server
 	configuration parameters that should not be touched by end users. The
@@ -182,7 +165,7 @@ Connection conn = DriverManager.getConnection(url);
 	for now there is this URL parameter. Enable this only if you need to
 	override the client encoding when doing a copy.
 
-* `logUnclosedConnections = boolean`
+* **logUnclosedConnections** = boolean
 
 	Clients may leak `Connection` objects by failing to call its `close()`
 	method. Eventually these objects will be garbage collected and the
@@ -194,28 +177,28 @@ Connection conn = DriverManager.getConnection(url);
 	method is reached without having been closed the stacktrace is printed
 	to the log.
 
-* `autoCloseUnclosedStatements = boolean`
-	
+* **autoCloseUnclosedStatements** = boolean
+
 	Clients may leak `Statement` objects by failing to call its `close()` method. 
 	If `autoCloseUnclosedStatements` is set to "true" then finalizer will be used 
 	as a stopgap solution to `close()` the resource.
-	
-	**Note:** *Creating finalizable objects is very expensive in lots of JVM.
+
+	*Note:* *Creating finalizable objects is very expensive in lots of JVM.
 	It dramatically impacts `Statement` instantiation 
 	and increases time spent in garbage collection, so avoid using `autoCloseUnclosedStatements`="true"
 	for highly loaded applications unless you are sure your JVM can crater 
 	finalizer traffic.*
-	
-* `binaryTransferEnable = String`
+
+* **binaryTransferEnable** = String
 
 	A comma separated list of types to enable binary transfer. Either OID numbers or names.
-	
-* `binaryTransferDisable = String`
+
+* **binaryTransferDisable** = String
 
 	A comma separated list of types to disable binary transfer. Either OID numbers or names.
 	Overrides values in the driver default set and values set with binaryTransferEnable.
 
-* `prepareThreshold = int`
+* **prepareThreshold** = int
 
 	Determine the number of `PreparedStatement` executions required before
 	switching over to use server side prepared statements. The default is
@@ -223,8 +206,9 @@ Connection conn = DriverManager.getConnection(url);
 	execution of the same `PreparedStatement` object. More information on
 	server side prepared statements is available in the section called
 	[“Server Prepared Statements”](server-prepare.html).
-	
-* `preparedStatementCacheQueries = int`
+
+* **preparedStatementCacheQueries** = int
+
 	Determine the number of queries that are cached in each connection.
 	The default is 256, meaning if you use more than 256 different queries
 	in `prepareStatement()` calls, the least recently used ones
@@ -234,8 +218,8 @@ Connection conn = DriverManager.getConnection(url);
 	closed after each execution. The value of 0 disables the cache.
 
 	N.B.Each connection has its own statement cache.
-  
-* `preparedStatementCacheSizeMiB = int`
+
+* **preparedStatementCacheSizeMiB** = int
 
 	Determine the maximum size (in mebibytes) of the prepared queries cache
 	(see `preparedStatementCacheQueries`).
@@ -243,29 +227,29 @@ Connection conn = DriverManager.getConnection(url);
 	the least recently used ones will be discarded.
 	The main aim of this setting is to prevent `OutOfMemoryError`.
 	The value of 0 disables the cache.
-		
-* `defaultRowFetchSize = int`
-	
+
+* **defaultRowFetchSize** = int
+
 	Determine the number of rows fetched in `ResultSet`
 	by one fetch with trip to the database. Limiting the number of rows are fetch with 
 	each trip to the database allow avoids unnecessary memory consumption 
 	and as a consequence `OutOfMemoryException`.
-	
+
 	The default is zero, meaning that in `ResultSet` will be fetch all rows at once. 
 	Negative number is not available.
-	
-* `loginTimeout = int`
+
+* **loginTimeout** = int
 
 	Specify how long to wait for establishment of a database connection. The
 	timeout is specified in seconds. 
 
-*	connectTimeout = int
-	
+* **connectTimeout** = int
+
 	The timeout value used for socket connect operations. If connecting to the server
 	takes longer than this value, the connection is broken. 
 	The timeout is specified in seconds and a value of zero means that it 	is disabled.
 
-* `socketTimeout = int`
+* **socketTimeout** = int
 
 	The timeout value used for socket read operations. If reading from the
 	server takes longer than this value, the connection is closed. This can
@@ -273,11 +257,11 @@ Connection conn = DriverManager.getConnection(url);
 	detecting network problems. The timeout is specified in seconds and a
 	value of zero means that it is disabled.
 
-* `tcpKeepAlive = boolean`
+* **tcpKeepAlive** = boolean
 
 	Enable or disable TCP keep-alive probe. The default is `false`.
 
-* `unknownLength = int`
+* **unknownLength** = int
 
 	Certain postgresql types such as `TEXT` do not have a well defined length.
 	When returning meta-data about these types through functions like
@@ -286,7 +270,7 @@ Connection conn = DriverManager.getConnection(url);
 	about what they would like to see. This parameter specifies the length
 	to return for types of unknown length.
 
-* `stringtype = String`
+* **stringtype** = String
 
 	Specify the type to use when binding `PreparedStatement` parameters set
 	via `setString()`. If `stringtype` is set to `VARCHAR` (the default), such
@@ -298,24 +282,24 @@ Connection conn = DriverManager.getConnection(url);
 	you are unable to change the application to use an appropriate method
 	such as `setInt()`.
 
-* `kerberosServerName = String`
+* **kerberosServerName** = String
 
 	The Kerberos service name to use when authenticating with GSSAPI. This
 	is equivalent to libpq's PGKRBSRVNAME environment variable and defaults
 	to "postgres".
 
-* `jaasApplicationName = String`
+* **jaasApplicationName** = String
 
 	Specifies the name of the JAAS system or application login configuration. 
-	
-*	`ApplicationName = String`
-	
+
+* **ApplicationName** = String
+
 	Specifies the name of the application that is using the connection. 
 	This allows a database administrator to see what applications are 
 	connected to the server and what resources they are using through views like pg_stat_activity.
 
-*	`gsslib = String`
-	
+* **gsslib** = String
+
 	Force either SSPI (Windows transparent single-sign-on) or GSSAPI (Kerberos, via JSSE)
 	to be used when the server requests Kerberos or SSPI authentication. 
 	Permissible values are auto (default, see below), sspi (force SSPI) or gssapi (force GSSAPI-JSSE).
@@ -332,8 +316,8 @@ Connection conn = DriverManager.getConnection(url);
 
 	Since: 9.4
 
-*	`sspiServiceClass = String`
-	
+* **sspiServiceClass** = String
+
 	Specifies the name of the Windows SSPI service class that forms the service 
 	class part of the SPN. The default, POSTGRES, is almost always correct.
 
@@ -341,55 +325,55 @@ Connection conn = DriverManager.getConnection(url);
 
 	This parameter is ignored on non-Windows platforms.
 
-*	`useSpnego = boolean`
-	
+* **useSpnego** = boolean
+
 	Use SPNEGO in SSPI authentication requests
 
-*	`sendBufferSize = int`
-	
+* **sendBufferSize** = int
+
 	Sets SO_SNDBUF on the connection stream
 
-*	`receiveBufferSize = int`
-	
+* **receiveBufferSize** = int
+
 	Sets SO_RCVBUF on the connection stream
 
-*	`readOnly = boolean`
-	
+* **readOnly** = boolean
+
 	Put the connection in read-only mode
 
-*	`disableColumnSanitiser = boolean`
-	
+* **disableColumnSanitiser** = boolean
+
 	Enable optimization that disables column name sanitiser.
 
-*	`assumeMinServerVersion = String`
-	
+* **assumeMinServerVersion** = String
+
 	Assume that the server is at least the given version, 
 	thus enabling to some optimization at connection time instead of trying to be version blind.
 
-*	`currentSchema = String`
-	
+* **currentSchema** = String
+
 	Specify the schema to be set in the search-path. 
 	This schema will be used to resolve unqualified object names used in statements over this connection.
 
-*	`targetServerType`
-	
+* **targetServerType** = String
+
 	Allows opening connections to only servers with required state, 
 	the allowed values are any, master, slave and preferSlave. 
 	The master/slave distinction is currently done by observing if the server allows writes. 
 	The value preferSlave tries to connect to slaves if any are available, 
 	otherwise allows falls back to connecting also to master.
 
-*	`hostRecheckSeconds = int`
+* **hostRecheckSeconds** = int
 
 	Controls how long in seconds the knowledge about a host state 
 	is cached in JVM wide global cache. The default value is 10 seconds.
 
-*	`loadBalanceHosts = boolean`
-	
+* **loadBalanceHosts** = boolean
+
 	In default mode (disabled) hosts are connected in the given order. 
 	If enabled hosts are chosen randomly from the set of suitable candidates.
 
-*   `socketFactory = String`
+* **socketFactory** = String
 
 	The provided value is a class name to use as the `SocketFactory` when establishing a socket connection. 
 	This may be used to create unix sockets instead of normal sockets. The class name specified by `socketFactory` 
@@ -397,13 +381,13 @@ Connection conn = DriverManager.getConnection(url);
 	This class must have a zero argument constructor or a single argument constructor taking a String argument. 
 	This argument may optionally be supplied by `socketFactoryArg`.
 
-*   `socketFactoryArg = String`
+* **socketFactoryArg** = String
 
 	This value is an optional argument to the constructor of the socket factory
 	class provided above. 
-	
-*   `reWriteBatchedInserts=true`
-	
+
+* **reWriteBatchedInserts** = boolean
+
 	This will change batch inserts from insert into foo (col1, col2, col3) values (1,2,3) into 
 	insert into foo (col1, col2, col3) values (1,2,3), (4,5,6) this provides 2-3x performance improvement
 
@@ -417,7 +401,7 @@ Connection conn = DriverManager.getConnection(url);
 
 	The syntax for the connection url is:
 
-	jdbc:postgresql://host1:port1,host2:port2/database
+	`jdbc:postgresql://host1:port1,host2:port2/database`
 
 	The simple connection fail-over is useful when running against a high availability 
 	postgres installation that has identical data on each node. 
@@ -426,7 +410,7 @@ Connection conn = DriverManager.getConnection(url);
 	For example an application can create two connection pools. 
 	One data source is for writes, another for reads. The write pool limits connections only to master node:
 
-	jdbc:postgresql://node1,node2,node3/accounting?targetServerType=master
-	. And read pool balances connections between slaves nodes, but allows connections also to master if no slaves are available:
+	`jdbc:postgresql://node1,node2,node3/accounting?targetServerType=master`.
+	And read pool balances connections between slaves nodes, but allows connections also to master if no slaves are available:
 
-	jdbc:postgresql://node1,node2,node3/accounting?targetServerType=preferSlave&loadBalanceHosts=true
+	`jdbc:postgresql://node1,node2,node3/accounting?targetServerType=preferSlave&loadBalanceHosts=true`

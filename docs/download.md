@@ -33,12 +33,14 @@ requirements (running old applications or JVMs), this is the driver
 you should be using.  It supports PostgreSQL 8.2 or newer and
 requires Java 6 or newer.  It contains support for SSL and the
 javax.sql package.
+
 * If you are using Java 8 or newer then you should use the JDBC 4.2 version.
 * If you are using Java 7 then you should use the JDBC 4.1 version.
 * If you are using Java 6 then you should use the JDBC 4.0 version.
 * If you are using a Java version older than 6 then
 you will need to use a JDBC3 version of the driver, which will by
 necessity not be current, found in [Other Versions](#others).
+
 
 [PostgreSQL JDBC 4.0 Driver, 42.0.0](download/postgresql-42.0.0.jre6.jar)
 
@@ -74,14 +76,14 @@ versions of the JVM with the JDBC specification implemented.
 * JDK 8 - JDBC 4.2  Support for JDBC4 methods is not complete,
 	but the majority of methods are implemented.
 
-<div>
 <br/>
-<table summary=""  border="1" cellspacing="1" cellpadding="2">
+<div class="tblBasic">
+<table class="tblBasicGrey" style="width: 100%;" summary="Other Versions" border="1" cellspacing="0" cellpadding="0">
 <tr>
 	<th>Version</th>
-	<th>JDBC 4</th>
-	<th>JDBC 41</th>
-	<th>JDBC 42</th>
+	<th>JDBC 4.0</th>
+	<th>JDBC 4.1</th>
+	<th>JDBC 4.2</th>
 	<th>Source</th>
 </tr>
 <tr>
@@ -181,8 +183,8 @@ versions of the JVM with the JDBC specification implemented.
 <a name="archived"></a>
 ## Archived Versions
 
-<div>
-<table summary=""  border="1" cellspacing="1" cellpadding="2">
+<div class="tblBasic">
+<table class="tblBasicGrey" style="width: 100%;" summary="Archived Versions" border="1" cellspacing="0" cellpadding="0">
 <tr>
 	<th>Version</th>
 	<th>JDBC 2</th>
@@ -269,10 +271,8 @@ versions of the JVM with the JDBC specification implemented.
 </table>
 </div>
 
-<br>
-
-<div>
-<table summary=""  border="1" cellspacing="1" cellpadding="2">
+<div class="tblBasic">
+<table class="tblBasicGrey" style="width: 100%;" summary="Older Versions" border="1" cellspacing="0" cellpadding="0">
 <tr>
 	<th>Version</th>
 	<th>JDBC 1</th>

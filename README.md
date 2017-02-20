@@ -74,7 +74,7 @@ There are also available (snapshot) binary RPMs in [Fedora's Copr repository](ht
 ## Changelog
 Notable changes for:
 
-**[42.0.0]** (2017-02-18):
+**[42.0.0]** (2017-02-20):
 * Support for PostgreSQL versions below 8.2 was dropped
 * java.util.logging is now used for logging: [logging documentation](https://jdbc.postgresql.org//documentation/head/logging.html)
 * Ensure executeBatch() can be used with pgbouncer. Previously pgjdbc could use server-prepared statements for batch execution even with prepareThreshold=0 (see [issue 742](https://github.com/pgjdbc/pgjdbc/issues/742))
