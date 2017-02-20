@@ -74,7 +74,7 @@ denote the various action types:![add](../media/img/add.jpg)=add,
 <img alt="update" src="../media/img/update.jpg" />=update
 ***
 
-{% include_relative _changelog/42.0.0-release.md %}
+{% include changelog/42.0.0-release.md %}
 
 <a name="version_9.4.1212"></a>
 ## Version 9.4.1212 (2016-11-02)
