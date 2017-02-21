@@ -19,8 +19,8 @@ next: thread.html
 # Overview
 
 Postgres 9.4 (released in December 2014) introduced a new feature called logical replication. Logical replication allows
-changes from a database to be streamed in real-time to an external system. The difference between binary replication and
-logical replication is that logical replication sends data over in a logical format whereas binary replication sends data over in a binary format. Additionally logical replication can send over a single table, or database. Binary replication replicates the entire cluster in an all or nothing fashion; which is to say there is no way to get a specific table or database using binary replication
+changes from a database to be streamed in real-time to an external system. The difference between physical replication and
+logical replication is that logical replication sends data over in a logical format whereas physical replication sends data over in a binary format. Additionally logical replication can send over a single table, or database. Binary replication replicates the entire cluster in an all or nothing fashion; which is to say there is no way to get a specific table or database using binary replication
 
 Prior to logical replication keeping an external system synchronized in real time was problematic. The application would have to update/invalidate the appropriate cache entries, reindex the data in your search engine, send it to your analytics system, and so on.
 This suffers from race conditions and reliability problems. For example if slightly different data gets written to two different datastores (perhaps due to a bug or a race condition),the contents of the datastores will gradually drift apart — they will become more and more inconsistent over time. Recovering from such gradual data corruption is difficult.
