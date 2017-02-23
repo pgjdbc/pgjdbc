@@ -98,6 +98,7 @@ execute SQL commands, and can only be used with replication API. This is a restr
     PGProperty.PASSWORD.set(props, "postgres");
     PGProperty.ASSUME_MIN_SERVER_VERSION.set(props, "9.4");
     PGProperty.REPLICATION.set(props, "database");
+    PGProperty.PREFER_QUERY_MODE.set(props, "simple");
 
     Connection con = DriverManager.getConnection(url, props);
     PGConnection replConnection = con.unwrap(PGConnection.class);
