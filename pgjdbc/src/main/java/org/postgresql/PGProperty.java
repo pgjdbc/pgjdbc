@@ -184,7 +184,7 @@ public enum PGProperty {
   SSL_MODE("sslmode", null, "Parameter governing the use of SSL"),
 
   /**
-   * Classname of the SSL Factory to use (instance of {@code javax.net.ssl.SSLSocketFactory}).
+   * Classname or actual instance of the SSL Factory to use (instance of {@code javax.net.ssl.SSLSocketFactory}).
    */
   SSL_FACTORY("sslfactory", null, "Provide a SSLSocketFactory class when using SSL."),
 
@@ -195,7 +195,7 @@ public enum PGProperty {
       "Argument forwarded to constructor of SSLSocketFactory class."),
 
   /**
-   * Classname of the SSL HostnameVerifier to use (instance of {@code
+   * Classname or actual instance of the SSL HostnameVerifier to use (instance of {@code
    * javax.net.ssl.HostnameVerifier}).
    */
   SSL_HOSTNAME_VERIFIER("sslhostnameverifier", null,

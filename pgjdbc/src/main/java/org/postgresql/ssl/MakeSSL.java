@@ -30,12 +30,12 @@ public class MakeSSL extends ObjectFactory {
       throws PSQLException, IOException {
     LOGGER.log(Level.FINE, "converting regular socket connection to ssl");
 
-    SSLSocketFactory factory;
+    final SSLSocketFactory factory;
 
     String sslmode = PGProperty.SSL_MODE.get(info);
     // Use the default factory if no specific factory is requested
     // unless sslmode is set
-    String classname = PGProperty.SSL_FACTORY.get(info);
+    Object classname = PGProperty.SSL_FACTORY.get(info);
     if (classname == null) {
       // If sslmode is set, use the libp compatible factory
       if (sslmode != null) {
@@ -43,9 +43,13 @@ public class MakeSSL extends ObjectFactory {
       } else {
         factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
       }
+    } else if (classname instanceof SSLSocketFactory) {
+      // The property delivered the SSLSocketFactory directly
+      factory = (SSLSocketFactory)classname;
     } else {
+      // The property delivered the classname of the SSLSocketFactory
       try {
-        factory = (SSLSocketFactory) instantiate(classname, info, true,
+        factory = (SSLSocketFactory) instantiate((String)classname, info, true,
             PGProperty.SSL_FACTORY_ARG.get(info));
       } catch (Exception e) {
         throw new PSQLException(
@@ -68,16 +72,22 @@ public class MakeSSL extends ObjectFactory {
           PSQLState.CONNECTION_FAILURE, ex);
     }
 
-    String sslhostnameverifier = PGProperty.SSL_HOSTNAME_VERIFIER.get(info);
+    Object sslhostnameverifier = PGProperty.SSL_HOSTNAME_VERIFIER.get(info);
     if (sslhostnameverifier != null) {
-      HostnameVerifier hvn;
-      try {
-        hvn = (HostnameVerifier) instantiate(sslhostnameverifier, info, false, null);
-      } catch (Exception e) {
-        throw new PSQLException(
-            GT.tr("The HostnameVerifier class provided {0} could not be instantiated.",
-                sslhostnameverifier),
-            PSQLState.CONNECTION_FAILURE, e);
+      final HostnameVerifier hvn;
+      if (sslhostnameverifier instanceof HostnameVerifier) {
+        // Property delivered the HostnameVerifier
+        hvn = (HostnameVerifier)sslhostnameverifier;
+      } else {
+        // Property delivered the class name to be instantiated 
+        try {
+          hvn = (HostnameVerifier) instantiate((String)sslhostnameverifier, info, false, null);
+        } catch (Exception e) {
+          throw new PSQLException(
+              GT.tr("The HostnameVerifier class provided {0} could not be instantiated.",
+                    sslhostnameverifier),
+              PSQLState.CONNECTION_FAILURE, e);
+        }
       }
       if (!hvn.verify(stream.getHostSpec().getHost(), newConnection.getSession())) {
         throw new PSQLException(
@@ -98,5 +108,4 @@ public class MakeSSL extends ObjectFactory {
     }
     stream.changeSocket(newConnection);
   }
-
 }
