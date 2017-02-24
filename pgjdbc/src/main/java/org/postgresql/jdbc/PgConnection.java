@@ -71,12 +71,17 @@ import java.util.TimeZone;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class PgConnection implements BaseConnection {
 
   private static final Logger LOGGER = Logger.getLogger(PgConnection.class.getName());
+
+  // Unique id generator for each PgConnection instance
+  private static final AtomicLong baseConnectionID = new AtomicLong(0);
+  private final String traceID;
 
   private static final SQLPermission SQL_PERMISSION_ABORT = new SQLPermission("callAbort");
 
@@ -167,7 +172,9 @@ public class PgConnection implements BaseConnection {
   @Override
   public void setFlushCacheOnDeallocate(boolean flushCacheOnDeallocate) {
     queryExecutor.setFlushCacheOnDeallocate(flushCacheOnDeallocate);
-    LOGGER.log(Level.FINE, "  setFlushCacheOnDeallocate = {0}", flushCacheOnDeallocate);
+    if (LOGGER.isLoggable(Level.FINE)) {
+      LOGGER.log(Level.FINE, "({0}) setFlushCacheOnDeallocate = {1}", new Object[]{traceID, flushCacheOnDeallocate});
+    }
   }
 
   //
@@ -178,8 +185,12 @@ public class PgConnection implements BaseConnection {
                       String database,
                       Properties info,
                       String url) throws SQLException {
-    // Print out the driver version number
-    LOGGER.log(Level.FINE, org.postgresql.util.DriverInfo.DRIVER_FULL_NAME);
+    traceID = getClass().getSimpleName() + ":" + baseConnectionID.incrementAndGet();
+
+    if (LOGGER.isLoggable(Level.FINE)) {
+      LOGGER.log(Level.FINE, "({0}) Creating new Connection with {1}", new Object[]{traceID,
+          org.postgresql.util.DriverInfo.DRIVER_FULL_NAME});
+    }
 
     this.creatingURL = url;
 
@@ -447,7 +458,6 @@ public class PgConnection implements BaseConnection {
     if (warnings != null) {
       addWarning(warnings);
     }
-
     stmt.close();
   }
 
@@ -549,7 +559,8 @@ public class PgConnection implements BaseConnection {
     PGobject obj = null;
 
     if (LOGGER.isLoggable(Level.FINEST)) {
-      LOGGER.log(Level.FINEST, "Constructing object from type={0} value=<{1}>", new Object[]{type, value});
+      LOGGER.log(Level.FINEST, "({0}) Constructing object from type={1} value=<{0}>",
+          new Object[]{traceID, type, value});
     }
 
     try {
@@ -654,6 +665,9 @@ public class PgConnection implements BaseConnection {
    * {@inheritDoc}
    */
   public void close() throws SQLException {
+    if (LOGGER.isLoggable(Level.FINE)) {
+      LOGGER.log(Level.FINE, "({0}) Closing connection.", traceID);
+    }
     releaseTimer();
     queryExecutor.close();
     openStackTrace = null;
@@ -687,6 +701,11 @@ public class PgConnection implements BaseConnection {
 
   public void setReadOnly(boolean readOnly) throws SQLException {
     checkClosed();
+
+    if (LOGGER.isLoggable(Level.FINE)) {
+      LOGGER.log(Level.FINE, "({0}) setReadOnly = {1}", new Object[]{traceID, readOnly});
+    }
+
     if (queryExecutor.getTransactionState() != TransactionState.IDLE) {
       throw new PSQLException(
           GT.tr("Cannot change transaction read-only property in the middle of a transaction."),
@@ -700,7 +719,6 @@ public class PgConnection implements BaseConnection {
     }
 
     this.readOnly = readOnly;
-    LOGGER.log(Level.FINE, "  setReadOnly = {0}", readOnly);
   }
 
   public boolean isReadOnly() throws SQLException {
@@ -711,6 +729,10 @@ public class PgConnection implements BaseConnection {
   public void setAutoCommit(boolean autoCommit) throws SQLException {
     checkClosed();
 
+    if (LOGGER.isLoggable(Level.FINE)) {
+      LOGGER.log(Level.FINE, "({0}) setAutoCommit = {1}", new Object[]{traceID, autoCommit});
+    }
+
     if (this.autoCommit == autoCommit) {
       return;
     }
@@ -720,7 +742,6 @@ public class PgConnection implements BaseConnection {
     }
 
     this.autoCommit = autoCommit;
-    LOGGER.log(Level.FINE, "  setAutoCommit = {0}", autoCommit);
   }
 
   public boolean getAutoCommit() throws SQLException {
@@ -751,6 +772,10 @@ public class PgConnection implements BaseConnection {
   public void commit() throws SQLException {
     checkClosed();
 
+    if (LOGGER.isLoggable(Level.FINE)) {
+      LOGGER.log(Level.FINE, "({0}) commit()", traceID);
+    }
+
     if (autoCommit) {
       throw new PSQLException(GT.tr("Cannot commit when autoCommit is enabled."),
           PSQLState.NO_ACTIVE_SQL_TRANSACTION);
@@ -763,6 +788,9 @@ public class PgConnection implements BaseConnection {
 
   protected void checkClosed() throws SQLException {
     if (isClosed()) {
+      if (LOGGER.isLoggable(Level.FINE)) {
+        LOGGER.log(Level.FINE, "({0}) This connection has been closed.", traceID);
+      }
       throw new PSQLException(GT.tr("This connection has been closed."),
           PSQLState.CONNECTION_DOES_NOT_EXIST);
     }
@@ -771,6 +799,10 @@ public class PgConnection implements BaseConnection {
 
   public void rollback() throws SQLException {
     checkClosed();
+
+    if (LOGGER.isLoggable(Level.FINE)) {
+      LOGGER.log(Level.FINE, "({0}) rollback()", traceID);
+    }
 
     if (autoCommit) {
       throw new PSQLException(GT.tr("Cannot rollback when autoCommit is enabled."),
@@ -836,7 +868,10 @@ public class PgConnection implements BaseConnection {
     String isolationLevelSQL =
         "SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL " + isolationLevelName;
     execSQLUpdate(isolationLevelSQL); // nb: no BEGIN triggered
-    LOGGER.log(Level.FINE, "  setTransactionIsolation = {0}", isolationLevelName);
+
+    if (LOGGER.isLoggable(Level.FINE)) {
+      LOGGER.log(Level.FINE, "({0}) setTransactionIsolation = {1}", new Object[]{traceID, isolationLevelName});
+    }
   }
 
   protected String getIsolationLevelName(int level) {
@@ -1004,7 +1039,10 @@ public class PgConnection implements BaseConnection {
     }
 
     this.defaultFetchSize = fetchSize;
-    LOGGER.log(Level.FINE, "  setDefaultFetchSize = {0}", fetchSize);
+
+    if (LOGGER.isLoggable(Level.FINE)) {
+      LOGGER.log(Level.FINE, "({0}) setDefaultFetchSize = {1}", new Object[]{traceID, fetchSize});
+    }
   }
 
   public int getDefaultFetchSize() {
@@ -1013,7 +1051,10 @@ public class PgConnection implements BaseConnection {
 
   public void setPrepareThreshold(int newThreshold) {
     this.prepareThreshold = newThreshold;
-    LOGGER.log(Level.FINE, "  setPrepareThreshold = {0}", newThreshold);
+
+    if (LOGGER.isLoggable(Level.FINE)) {
+      LOGGER.log(Level.FINE, "({0}) setPrepareThreshold = {1}", new Object[]{traceID, newThreshold});
+    }
   }
 
   public boolean getForceBinary() {
@@ -1022,7 +1063,10 @@ public class PgConnection implements BaseConnection {
 
   public void setForceBinary(boolean newValue) {
     this.forcebinary = newValue;
-    LOGGER.log(Level.FINE, "  setForceBinary = {0}", newValue);
+
+    if (LOGGER.isLoggable(Level.FINE)) {
+      LOGGER.log(Level.FINE, "({0}) setForceBinary = {1}", new Object[]{traceID, newValue});
+    }
   }
 
   public void setTypeMapImpl(Map<String, Class<?>> map) throws SQLException {
@@ -1065,7 +1109,10 @@ public class PgConnection implements BaseConnection {
 
   public void setDisableColumnSanitiser(boolean disableColumnSanitiser) {
     this.disableColumnSanitiser = disableColumnSanitiser;
-    LOGGER.log(Level.FINE, "  setDisableColumnSanitiser = {0}", disableColumnSanitiser);
+
+    if (LOGGER.isLoggable(Level.FINE)) {
+      LOGGER.log(Level.FINE, "({0}) setDisableColumnSanitiser = {1}", new Object[]{traceID, disableColumnSanitiser});
+    }
   }
 
   @Override
@@ -1081,7 +1128,10 @@ public class PgConnection implements BaseConnection {
   @Override
   public void setAutosave(AutoSave autoSave) {
     queryExecutor.setAutoSave(autoSave);
-    LOGGER.log(Level.FINE, "  setAutosave = {0}", autoSave.value());
+
+    if (LOGGER.isLoggable(Level.FINE)) {
+      LOGGER.log(Level.FINE, "({0}) setAutosave = {1}", new Object[]{traceID, autoSave.value()});
+    }
   }
 
   protected void abort() {
@@ -1181,10 +1231,42 @@ public class PgConnection implements BaseConnection {
     return Integer.parseInt(dirtyString.substring(start, end));
   }
 
+  // Helper method for logging information.
+  private String rsConstName(int constant) {
+    switch (constant) {
+      case ResultSet.CLOSE_CURSORS_AT_COMMIT:
+        return "CLOSE_CURSORS_AT_COMMIT";
+      case ResultSet.CONCUR_READ_ONLY:
+        return "CONCUR_READ_ONLY";
+      case ResultSet.CONCUR_UPDATABLE:
+        return "CONCUR_UPDATABLE";
+      case ResultSet.FETCH_FORWARD:
+        return "FETCH_FORWARD";
+      case ResultSet.FETCH_REVERSE:
+        return "FETCH_REVERSE";
+      case ResultSet.FETCH_UNKNOWN:
+        return "FETCH_UNKNOWN";
+      case ResultSet.HOLD_CURSORS_OVER_COMMIT:
+        return "HOLD_CURSORS_OVER_COMMIT";
+      case ResultSet.TYPE_FORWARD_ONLY:
+        return "TYPE_FORWARD_ONLY";
+      case ResultSet.TYPE_SCROLL_INSENSITIVE:
+        return "TYPE_SCROLL_INSENSITIVE";
+      case ResultSet.TYPE_SCROLL_SENSITIVE:
+        return "TYPE_SCROLL_SENSITIVE";
+      default:
+        return "";
+    }
+  }
+
   @Override
   public Statement createStatement(int resultSetType, int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
     checkClosed();
+    if (LOGGER.isLoggable(Level.FINE)) {
+      LOGGER.log(Level.FINE, "({0}) createStatement = {1}, {2}, {3}", new Object[]{traceID,
+          rsConstName(resultSetType), rsConstName(resultSetConcurrency), rsConstName(resultSetHoldability)});
+    }
     return new PgStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability);
   }
 
@@ -1192,16 +1274,22 @@ public class PgConnection implements BaseConnection {
   public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
     checkClosed();
-    return new PgPreparedStatement(this, sql, resultSetType, resultSetConcurrency,
-        resultSetHoldability);
+    if (LOGGER.isLoggable(Level.FINE)) {
+      LOGGER.log(Level.FINE, "({0}) prepareStatement = [{1}], {2}, {3}, {4}", new Object[]{traceID, sql,
+          rsConstName(resultSetType), rsConstName(resultSetConcurrency), rsConstName(resultSetHoldability)});
+    }
+    return new PgPreparedStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
   }
 
   @Override
   public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
     checkClosed();
-    return new PgCallableStatement(this, sql, resultSetType, resultSetConcurrency,
-        resultSetHoldability);
+    if (LOGGER.isLoggable(Level.FINE)) {
+      LOGGER.log(Level.FINE, "({0}) prepareCall = [{1}], {2}, {3}, {4}", new Object[]{traceID, sql,
+          rsConstName(resultSetType), rsConstName(resultSetConcurrency), rsConstName(resultSetHoldability)});
+    }
+    return new PgCallableStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
   }
 
   @Override
@@ -1215,8 +1303,10 @@ public class PgConnection implements BaseConnection {
 
   @Override
   public void setTypeMap(Map<String, Class<?>> map) throws SQLException {
+    if (LOGGER.isLoggable(Level.FINE)) {
+      LOGGER.log(Level.FINE, "({0}) setTypeMap = {1}", new Object[]{traceID, map});
+    }
     setTypeMapImpl(map);
-    LOGGER.log(Level.FINE, "  setTypeMap = {0}", map);
   }
 
   protected Array makeArray(int oid, String fieldString) throws SQLException {
@@ -1268,6 +1358,10 @@ public class PgConnection implements BaseConnection {
   @Override
   public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
     checkClosed();
+
+    if (LOGGER.isLoggable(Level.FINE)) {
+      LOGGER.log(Level.FINE, "({0}) createArrayOf = {1}, {2}", new Object[]{traceID, typeName, elements});
+    }
 
     int oid = getTypeInfo().getPGArrayType(typeName);
 
@@ -1326,6 +1420,10 @@ public class PgConnection implements BaseConnection {
       throw new SQLClientInfoException(GT.tr("This connection has been closed."), failures, cause);
     }
 
+    if (LOGGER.isLoggable(Level.FINE)) {
+      LOGGER.log(Level.FINE, "({0}) setClientInfo = {0} {1}", new Object[]{traceID, name, value});
+    }
+
     if (haveMinimumServerVersion(ServerVersion.v9_0) && "ApplicationName".equals(name)) {
       if (value == null) {
         value = "";
@@ -1346,9 +1444,6 @@ public class PgConnection implements BaseConnection {
         throw new SQLClientInfoException(
             GT.tr("Failed to set ClientInfo property: {0}", "ApplicationName"), sqle.getSQLState(),
             failures, sqle);
-      }
-      if (LOGGER.isLoggable(Level.FINE)) {
-        LOGGER.log(Level.FINE, "  setClientInfo = {0} {1}", new Object[]{name, value});
       }
       _clientInfo.put(name, value);
       return;
@@ -1437,6 +1532,9 @@ public class PgConnection implements BaseConnection {
 
   public void setSchema(String schema) throws SQLException {
     checkClosed();
+    if (LOGGER.isLoggable(Level.FINE)) {
+      LOGGER.log(Level.FINE, "({0}) setSchema = {1}", new Object[]{traceID, schema});
+    }
     Statement stmt = createStatement();
     try {
       if (schema == null) {
@@ -1447,7 +1545,6 @@ public class PgConnection implements BaseConnection {
         Utils.escapeLiteral(sb, schema, getStandardConformingStrings());
         sb.append("'");
         stmt.executeUpdate(sb.toString());
-        LOGGER.log(Level.FINE, "  setSchema = {0}", schema);
       }
     } finally {
       stmt.close();
@@ -1487,6 +1584,10 @@ public class PgConnection implements BaseConnection {
   public void setHoldability(int holdability) throws SQLException {
     checkClosed();
 
+    if (LOGGER.isLoggable(Level.FINE)) {
+      LOGGER.log(Level.FINE, "({0}) setHoldability = {1}", new Object[]{traceID, holdability});
+    }
+
     switch (holdability) {
       case ResultSet.CLOSE_CURSORS_AT_COMMIT:
         rsHoldability = holdability;
@@ -1498,7 +1599,6 @@ public class PgConnection implements BaseConnection {
         throw new PSQLException(GT.tr("Unknown ResultSet holdability setting: {0}.", holdability),
             PSQLState.INVALID_PARAMETER_VALUE);
     }
-    LOGGER.log(Level.FINE, "  setHoldability = {0}", holdability);
   }
 
   @Override
