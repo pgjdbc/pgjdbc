@@ -477,10 +477,11 @@ public enum PGProperty {
 
   /**
    * Returns the value of the connection parameters according to the given {@code Properties} or null.
-   * This is an Object from underlying Hashtable&lt;Object,Object> and can deliver anything,
+   * This is an Object from underlying Hashtable&lt;Object,Object&gt; and can deliver anything,
    * not just Strings.
    *
    * @param properties properties to take actual value from
+   * @return connection parameter Object
    */
   public Object getObject(Properties properties) {
     return properties.get(_name);
