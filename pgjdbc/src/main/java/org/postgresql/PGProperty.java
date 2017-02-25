@@ -483,8 +483,8 @@ public enum PGProperty {
    * @param properties properties to take actual value from
    */
   public Object getObject(Properties properties) {
-      return properties.get(_name);
-    }
+    return properties.get(_name);
+  }
 
   /**
    * Set the value for this connection parameter in the given {@code Properties}
