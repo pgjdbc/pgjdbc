@@ -35,7 +35,7 @@ public class MakeSSL extends ObjectFactory {
     String sslmode = PGProperty.SSL_MODE.get(info);
     // Use the default factory if no specific factory is requested
     // unless sslmode is set
-    Object classname = PGProperty.SSL_FACTORY.get(info);
+    Object classname = PGProperty.SSL_FACTORY.getObject(info);
     if (classname == null) {
       // If sslmode is set, use the libp compatible factory
       if (sslmode != null) {
@@ -72,7 +72,7 @@ public class MakeSSL extends ObjectFactory {
           PSQLState.CONNECTION_FAILURE, ex);
     }
 
-    Object sslhostnameverifier = PGProperty.SSL_HOSTNAME_VERIFIER.get(info);
+    Object sslhostnameverifier = PGProperty.SSL_HOSTNAME_VERIFIER.getObject(info);
     if (sslhostnameverifier != null) {
       final HostnameVerifier hvn;
       if (sslhostnameverifier instanceof HostnameVerifier) {
