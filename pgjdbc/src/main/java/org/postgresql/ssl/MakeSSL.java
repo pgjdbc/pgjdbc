@@ -79,7 +79,7 @@ public class MakeSSL extends ObjectFactory {
         // Property delivered the HostnameVerifier
         hvn = (HostnameVerifier)sslhostnameverifier;
       } else {
-        // Property delivered the class name to be instantiated 
+        // Property delivered the class name to be instantiated
         try {
           hvn = (HostnameVerifier) instantiate((String)sslhostnameverifier, info, false, null);
         } catch (Exception e) {
