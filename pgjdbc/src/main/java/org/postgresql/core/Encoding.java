@@ -12,13 +12,20 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
+import java.nio.charset.Charset;
 import java.util.HashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Representation of a particular character encoding.
  */
 public class Encoding {
-  private static final Encoding DEFAULT_ENCODING = new Encoding(null);
+
+  private static final Logger LOGGER = Logger.getLogger(Encoding.class.getName());
+
+  private static final Encoding DEFAULT_ENCODING = new Encoding();
+  private static final Encoding UTF8_ENCODING = new Encoding("UTF-8");
 
   /*
    * Preferred JVM encodings for backend encodings.
@@ -28,10 +35,9 @@ public class Encoding {
   static {
     //Note: this list should match the set of supported server
     // encodings found in backend/util/mb/encnames.c
-    encodings.put("SQL_ASCII", new String[]{"ASCII", "us-ascii"});
+    encodings.put("SQL_ASCII", new String[]{"ASCII", "US-ASCII"});
     encodings.put("UNICODE", new String[]{"UTF-8", "UTF8"});
-    encodings.put("UTF8",
-        new String[]{"UTF-8", "UTF8"}); // 8.1's canonical name for UNICODE changed.
+    encodings.put("UTF8", new String[]{"UTF-8", "UTF8"});
     encodings.put("LATIN1", new String[]{"ISO8859_1"});
     encodings.put("LATIN2", new String[]{"ISO8859_2"});
     encodings.put("LATIN3", new String[]{"ISO8859_3"});
@@ -73,9 +79,28 @@ public class Encoding {
   private final String encoding;
   private final boolean fastASCIINumbers;
 
+  /**
+   * Uses the default charset of the JVM.
+   */
+  private Encoding() {
+    this(Charset.defaultCharset().name());
+  }
+
+  /**
+   * Use the charset passed as parameter.
+   *
+   * @param encoding charset name to use
+   */
   protected Encoding(String encoding) {
+    if (encoding == null) {
+      throw new NullPointerException("Null encoding charset not supported");
+    }
     this.encoding = encoding;
     fastASCIINumbers = testAsciiNumbers();
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, "Creating new Encoding {0} with fastASCIINumbers {1}",
+          new Object[]{encoding, fastASCIINumbers});
+    }
   }
 
   /**
@@ -96,14 +121,13 @@ public class Encoding {
    * default JVM encoding if the specified encoding is unavailable.
    */
   public static Encoding getJVMEncoding(String jvmEncoding) {
-    if (isAvailable(jvmEncoding)) {
-      if (jvmEncoding.equals("UTF-8") || jvmEncoding.equals("UTF8")) {
-        return new UTF8Encoding(jvmEncoding);
-      } else {
-        return new Encoding(jvmEncoding);
-      }
+    if ("UTF-8".equals(jvmEncoding)) {
+      return new UTF8Encoding(jvmEncoding);
+    }
+    if (Charset.isSupported(jvmEncoding)) {
+      return new Encoding(jvmEncoding);
     } else {
-      return defaultEncoding();
+      return DEFAULT_ENCODING;
     }
   }
 
@@ -115,14 +139,17 @@ public class Encoding {
    * default JVM encoding if the specified encoding is unavailable.
    */
   public static Encoding getDatabaseEncoding(String databaseEncoding) {
+    if ("UTF8".equals(databaseEncoding)) {
+      return UTF8_ENCODING;
+    }
     // If the backend encoding is known and there is a suitable
     // encoding in the JVM we use that. Otherwise we fall back
     // to the default encoding of the JVM.
-
     String[] candidates = encodings.get(databaseEncoding);
     if (candidates != null) {
       for (String candidate : candidates) {
-        if (isAvailable(candidate)) {
+        LOGGER.log(Level.FINEST, "Search encoding candidate {0}", candidate);
+        if (Charset.isSupported(candidate)) {
           return new Encoding(candidate);
         }
       }
@@ -130,12 +157,13 @@ public class Encoding {
 
     // Try the encoding name directly -- maybe the charset has been
     // provided by the user.
-    if (isAvailable(databaseEncoding)) {
+    if (Charset.isSupported(databaseEncoding)) {
       return new Encoding(databaseEncoding);
     }
 
     // Fall back to default JVM encoding.
-    return defaultEncoding();
+    LOGGER.log(Level.FINEST, "{0} encoding not found, returning default encoding", databaseEncoding);
+    return DEFAULT_ENCODING;
   }
 
   /**
@@ -144,7 +172,7 @@ public class Encoding {
    * @return the JVM encoding name used by this instance.
    */
   public String name() {
-    return encoding;
+    return Charset.isSupported(encoding) ? Charset.forName(encoding).name() : encoding;
   }
 
   /**
@@ -157,10 +185,6 @@ public class Encoding {
   public byte[] encode(String s) throws IOException {
     if (s == null) {
       return null;
-    }
-
-    if (encoding == null) {
-      return s.getBytes();
     }
 
     return s.getBytes(encoding);
@@ -177,10 +201,6 @@ public class Encoding {
    * @throws IOException if something goes wrong
    */
   public String decode(byte[] encodedString, int offset, int length) throws IOException {
-    if (encoding == null) {
-      return new String(encodedString, offset, length);
-    }
-
     return new String(encodedString, offset, length, encoding);
   }
 
@@ -203,10 +223,6 @@ public class Encoding {
    * @throws IOException if something goes wrong
    */
   public Reader getDecodingReader(InputStream in) throws IOException {
-    if (encoding == null) {
-      return new InputStreamReader(in);
-    }
-
     return new InputStreamReader(in, encoding);
   }
 
@@ -218,10 +234,6 @@ public class Encoding {
    * @throws IOException if something goes wrong
    */
   public Writer getEncodingWriter(OutputStream out) throws IOException {
-    if (encoding == null) {
-      return new OutputStreamWriter(out);
-    }
-
     return new OutputStreamWriter(out, encoding);
   }
 
@@ -234,23 +246,8 @@ public class Encoding {
     return DEFAULT_ENCODING;
   }
 
-  /**
-   * Test if an encoding is available in the JVM.
-   *
-   * @param encodingName the JVM encoding name to test
-   * @return true iff the encoding is supported
-   */
-  private static boolean isAvailable(String encodingName) {
-    try {
-      "DUMMY".getBytes(encodingName); //NOSONAR
-      return true;
-    } catch (java.io.UnsupportedEncodingException e) {
-      return false;
-    }
-  }
-
   public String toString() {
-    return (encoding == null ? "<default JVM encoding>" : encoding);
+    return encoding;
   }
 
   /**
