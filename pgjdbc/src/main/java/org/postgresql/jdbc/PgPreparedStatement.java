@@ -100,6 +100,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     setPoolable(true); // As per JDBC spec: prepared and callable statements are poolable by
   }
 
+  @Override
   public java.sql.ResultSet executeQuery(String p_sql) throws SQLException {
     throw new PSQLException(
         GT.tr("Can''t use query methods that take a query string on a PreparedStatement."),
@@ -113,6 +114,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
    *
    * @exception SQLException if a database access error occurs
    */
+  @Override
   public java.sql.ResultSet executeQuery() throws SQLException {
     if (!executeWithFlags(0)) {
       throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
@@ -126,12 +128,14 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     return result.getResultSet();
   }
 
+  @Override
   public int executeUpdate(String p_sql) throws SQLException {
     throw new PSQLException(
         GT.tr("Can''t use query methods that take a query string on a PreparedStatement."),
         PSQLState.WRONG_OBJECT_TYPE);
   }
 
+  @Override
   public int executeUpdate() throws SQLException {
     executeWithFlags(QueryExecutor.QUERY_NO_RESULTS);
 
@@ -148,16 +152,19 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     return getUpdateCount();
   }
 
+  @Override
   public boolean execute(String p_sql) throws SQLException {
     throw new PSQLException(
         GT.tr("Can''t use query methods that take a query string on a PreparedStatement."),
         PSQLState.WRONG_OBJECT_TYPE);
   }
 
+  @Override
   public boolean execute() throws SQLException {
     return executeWithFlags(0);
   }
 
+  @Override
   public boolean executeWithFlags(int flags) throws SQLException {
     try {
       checkClosed();
@@ -174,6 +181,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
+  @Override
   protected boolean isOneShotQuery(CachedQuery cachedQuery) {
     if (cachedQuery == null) {
       cachedQuery = preparedQuery;
@@ -202,6 +210,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     super.close();
   }
 
+  @Override
   public void setNull(int parameterIndex, int sqlType) throws SQLException {
     checkClosed();
 
@@ -279,16 +288,19 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     preparedParameters.setNull(parameterIndex, oid);
   }
 
+  @Override
   public void setBoolean(int parameterIndex, boolean x) throws SQLException {
     checkClosed();
     // The key words TRUE and FALSE are the preferred (SQL-compliant) usage.
     bindLiteral(parameterIndex, x ? "TRUE" : "FALSE", Oid.BOOL);
   }
 
+  @Override
   public void setByte(int parameterIndex, byte x) throws SQLException {
     setShort(parameterIndex, x);
   }
 
+  @Override
   public void setShort(int parameterIndex, short x) throws SQLException {
     checkClosed();
     if (connection.binaryTransferSend(Oid.INT2)) {
@@ -300,6 +312,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     bindLiteral(parameterIndex, Integer.toString(x), Oid.INT2);
   }
 
+  @Override
   public void setInt(int parameterIndex, int x) throws SQLException {
     checkClosed();
     if (connection.binaryTransferSend(Oid.INT4)) {
@@ -311,6 +324,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     bindLiteral(parameterIndex, Integer.toString(x), Oid.INT4);
   }
 
+  @Override
   public void setLong(int parameterIndex, long x) throws SQLException {
     checkClosed();
     if (connection.binaryTransferSend(Oid.INT8)) {
@@ -322,6 +336,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     bindLiteral(parameterIndex, Long.toString(x), Oid.INT8);
   }
 
+  @Override
   public void setFloat(int parameterIndex, float x) throws SQLException {
     checkClosed();
     if (connection.binaryTransferSend(Oid.FLOAT4)) {
@@ -333,6 +348,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     bindLiteral(parameterIndex, Float.toString(x), Oid.FLOAT8);
   }
 
+  @Override
   public void setDouble(int parameterIndex, double x) throws SQLException {
     checkClosed();
     if (connection.binaryTransferSend(Oid.FLOAT8)) {
@@ -344,6 +360,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     bindLiteral(parameterIndex, Double.toString(x), Oid.FLOAT8);
   }
 
+  @Override
   public void setBigDecimal(int parameterIndex, BigDecimal x) throws SQLException {
     checkClosed();
     if (x == null) {
@@ -353,6 +370,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
+  @Override
   public void setString(int parameterIndex, String x) throws SQLException {
     checkClosed();
     setString(parameterIndex, x, getStringType());
@@ -375,6 +393,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
+  @Override
   public void setBytes(int parameterIndex, byte[] x) throws SQLException {
     checkClosed();
 
@@ -389,14 +408,17 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     preparedParameters.setBytea(parameterIndex, copy, 0, x.length);
   }
 
+  @Override
   public void setDate(int parameterIndex, java.sql.Date x) throws SQLException {
     setDate(parameterIndex, x, null);
   }
 
+  @Override
   public void setTime(int parameterIndex, Time x) throws SQLException {
     setTime(parameterIndex, x, null);
   }
 
+  @Override
   public void setTimestamp(int parameterIndex, Timestamp x) throws SQLException {
     setTimestamp(parameterIndex, x, null);
   }
@@ -446,17 +468,20 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
+  @Override
   public void setAsciiStream(int parameterIndex, InputStream x, int length) throws SQLException {
     checkClosed();
     setCharacterStreamPost71(parameterIndex, x, length, "ASCII");
   }
 
+  @Override
   public void setUnicodeStream(int parameterIndex, InputStream x, int length) throws SQLException {
     checkClosed();
 
     setCharacterStreamPost71(parameterIndex, x, length, "UTF-8");
   }
 
+  @Override
   public void setBinaryStream(int parameterIndex, InputStream x, int length) throws SQLException {
     checkClosed();
 
@@ -478,6 +503,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     preparedParameters.setBytea(parameterIndex, x, length);
   }
 
+  @Override
   public void clearParameters() throws SQLException {
     preparedParameters.clear();
   }
@@ -899,6 +925,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         PSQLState.INVALID_PARAMETER_TYPE, cause);
   }
 
+  @Override
   public void setObject(int parameterIndex, Object x, int targetSqlType) throws SQLException {
     setObject(parameterIndex, x, targetSqlType, -1);
   }
@@ -906,6 +933,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   /*
    * This stores an Object into a parameter.
    */
+  @Override
   public void setObject(int parameterIndex, Object x) throws SQLException {
     checkClosed();
     if (x == null) {
@@ -975,6 +1003,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
    *
    * @return SQL statement with the current template values substituted
    */
+  @Override
   public String toString() {
     if (preparedQuery == null) {
       return super.toString();
@@ -1023,11 +1052,13 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     preparedParameters.setStringParameter(paramIndex, s, oid);
   }
 
+  @Override
   public boolean isUseServerPrepare() {
     return (preparedQuery != null && m_prepareThreshold != 0
         && preparedQuery.getExecuteCount() + 1 >= m_prepareThreshold);
   }
 
+  @Override
   public void addBatch(String p_sql) throws SQLException {
     checkClosed();
 
@@ -1036,6 +1067,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         PSQLState.WRONG_OBJECT_TYPE);
   }
 
+  @Override
   public void addBatch() throws SQLException {
     checkClosed();
     if (batchStatements == null) {
@@ -1050,6 +1082,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
+  @Override
   public ResultSetMetaData getMetaData() throws SQLException {
     checkClosed();
     ResultSet rs = getResultSet();
@@ -1078,6 +1111,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     return null;
   }
 
+  @Override
   public void setArray(int i, java.sql.Array x) throws SQLException {
     checkClosed();
 
@@ -1143,6 +1177,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     return oid;
   }
 
+  @Override
   public void setBlob(int i, Blob x) throws SQLException {
     checkClosed();
 
@@ -1181,6 +1216,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
+  @Override
   public void setCharacterStream(int i, java.io.Reader x, int length) throws SQLException {
     checkClosed();
 
@@ -1203,6 +1239,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     setString(i, readerToString(x, length));
   }
 
+  @Override
   public void setClob(int i, Clob x) throws SQLException {
     checkClosed();
 
@@ -1239,15 +1276,18 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     setLong(i, oid);
   }
 
+  @Override
   public void setNull(int i, int t, String s) throws SQLException {
     checkClosed();
     setNull(i, t);
   }
 
+  @Override
   public void setRef(int i, Ref x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setRef(int,Ref)");
   }
 
+  @Override
   public void setDate(int i, java.sql.Date d, java.util.Calendar cal) throws SQLException {
     checkClosed();
 
@@ -1289,6 +1329,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     bindString(i, connection.getTimestampUtils().toString(cal, d), Oid.UNSPECIFIED);
   }
 
+  @Override
   public void setTime(int i, Time t, java.util.Calendar cal) throws SQLException {
     checkClosed();
 
@@ -1316,6 +1357,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     bindString(i, connection.getTimestampUtils().toString(cal, t), oid);
   }
 
+  @Override
   public void setTimestamp(int i, Timestamp t, java.util.Calendar cal) throws SQLException {
     checkClosed();
 
@@ -1399,42 +1441,53 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     return new PgParameterMetaData(conn, oids);
   }
 
-
   //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.2"
+  @Override
   public void setObject(int parameterIndex, Object x, java.sql.SQLType targetSqlType,
       int scaleOrLength) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setObject");
   }
 
+  @Override
   public void setObject(int parameterIndex, Object x, java.sql.SQLType targetSqlType)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setObject");
   }
+
+  @Override
+  public long executeLargeUpdate() throws SQLException {
+    throw Driver.notImplemented(this.getClass(), "executeLargeUpdate");
+  }
   //#endif
 
-
+  @Override
   public void setRowId(int parameterIndex, RowId x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setRowId(int, RowId)");
   }
 
+  @Override
   public void setNString(int parameterIndex, String value) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setNString(int, String)");
   }
 
+  @Override
   public void setNCharacterStream(int parameterIndex, Reader value, long length)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setNCharacterStream(int, Reader, long)");
   }
 
+  @Override
   public void setNCharacterStream(int parameterIndex, Reader value) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setNCharacterStream(int, Reader)");
   }
 
+  @Override
   public void setCharacterStream(int parameterIndex, Reader value, long length)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setCharacterStream(int, Reader, long)");
   }
 
+  @Override
   public void setCharacterStream(int parameterIndex, Reader value) throws SQLException {
     if (connection.getPreferQueryMode() == PreferQueryMode.SIMPLE) {
       String s = (value != null) ? readerToString(value, Integer.MAX_VALUE) : null;
@@ -1445,6 +1498,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     setObject(parameterIndex, is, Types.LONGVARCHAR);
   }
 
+  @Override
   public void setBinaryStream(int parameterIndex, InputStream value, long length)
       throws SQLException {
     if (length > Integer.MAX_VALUE) {
@@ -1454,31 +1508,38 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     preparedParameters.setBytea(parameterIndex, value, (int) length);
   }
 
+  @Override
   public void setBinaryStream(int parameterIndex, InputStream value) throws SQLException {
     preparedParameters.setBytea(parameterIndex, value);
   }
 
+  @Override
   public void setAsciiStream(int parameterIndex, InputStream value, long length)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setAsciiStream(int, InputStream, long)");
   }
 
+  @Override
   public void setAsciiStream(int parameterIndex, InputStream value) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setAsciiStream(int, InputStream)");
   }
 
+  @Override
   public void setNClob(int parameterIndex, NClob value) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setNClob(int, NClob)");
   }
 
+  @Override
   public void setClob(int parameterIndex, Reader reader, long length) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setClob(int, Reader, long)");
   }
 
+  @Override
   public void setClob(int parameterIndex, Reader reader) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setClob(int, Reader)");
   }
 
+  @Override
   public void setBlob(int parameterIndex, InputStream inputStream, long length)
       throws SQLException {
     checkClosed();
@@ -1497,6 +1558,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     setLong(parameterIndex, oid);
   }
 
+  @Override
   public void setBlob(int parameterIndex, InputStream inputStream) throws SQLException {
     checkClosed();
 
@@ -1509,14 +1571,17 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     setLong(parameterIndex, oid);
   }
 
+  @Override
   public void setNClob(int parameterIndex, Reader reader, long length) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setNClob(int, Reader, long)");
   }
 
+  @Override
   public void setNClob(int parameterIndex, Reader reader) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setNClob(int, Reader)");
   }
 
+  @Override
   public void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SQLException {
     checkClosed();
     if (xmlObject == null || xmlObject.getString() == null) {
@@ -1537,6 +1602,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
+  @Override
   public void setURL(int parameterIndex, java.net.URL x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setURL(int,URL)");
   }
@@ -1562,6 +1628,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     return sharedCalendar;
   }
 
+  @Override
   public ParameterMetaData getParameterMetaData() throws SQLException {
     int flags = QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_DESCRIBE_ONLY
         | QueryExecutor.QUERY_SUPPRESS_BEGIN;
@@ -1575,7 +1642,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
 
     return null;
-
   }
 
   @Override

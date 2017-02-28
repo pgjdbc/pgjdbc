@@ -353,6 +353,7 @@ public class PgConnection implements BaseConnection {
 
   private final TimestampUtils timestampUtils;
 
+  @Override
   public TimestampUtils getTimestampUtils() {
     return timestampUtils;
   }
@@ -362,31 +363,37 @@ public class PgConnection implements BaseConnection {
    */
   protected Map<String, Class<?>> typemap;
 
+  @Override
   public java.sql.Statement createStatement() throws SQLException {
     // We now follow the spec and default to TYPE_FORWARD_ONLY.
     return createStatement(java.sql.ResultSet.TYPE_FORWARD_ONLY,
         java.sql.ResultSet.CONCUR_READ_ONLY);
   }
 
+  @Override
   public java.sql.PreparedStatement prepareStatement(String sql) throws SQLException {
     return prepareStatement(sql, java.sql.ResultSet.TYPE_FORWARD_ONLY,
         java.sql.ResultSet.CONCUR_READ_ONLY);
   }
 
+  @Override
   public java.sql.CallableStatement prepareCall(String sql) throws SQLException {
     return prepareCall(sql, java.sql.ResultSet.TYPE_FORWARD_ONLY,
         java.sql.ResultSet.CONCUR_READ_ONLY);
   }
 
+  @Override
   public Map<String, Class<?>> getTypeMap() throws SQLException {
     checkClosed();
     return typemap;
   }
 
+  @Override
   public QueryExecutor getQueryExecutor() {
     return queryExecutor;
   }
 
+  @Override
   public ReplicationProtocol getReplicationProtocol() {
     return queryExecutor.getReplicationProtocol();
   }
@@ -406,10 +413,12 @@ public class PgConnection implements BaseConnection {
 
   }
 
+  @Override
   public ResultSet execSQLQuery(String s) throws SQLException {
     return execSQLQuery(s, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
   }
 
+  @Override
   public ResultSet execSQLQuery(String s, int resultSetType, int resultSetConcurrency)
       throws SQLException {
     BaseStatement stat = (BaseStatement) createStatement(resultSetType, resultSetConcurrency);
@@ -433,6 +442,7 @@ public class PgConnection implements BaseConnection {
     return stat.getResultSet();
   }
 
+  @Override
   public void execSQLUpdate(String s) throws SQLException {
     BaseStatement stmt = (BaseStatement) createStatement();
     if (stmt.executeWithFlags(s, QueryExecutor.QUERY_NO_METADATA | QueryExecutor.QUERY_NO_RESULTS
@@ -449,32 +459,6 @@ public class PgConnection implements BaseConnection {
     }
 
     stmt.close();
-  }
-
-  /**
-   * In SQL, a result table can be retrieved through a cursor that is named. The current row of a
-   * result can be updated or deleted using a positioned update/delete statement that references the
-   * cursor name.
-   * <p>
-   * We do not support positioned update/delete, so this is a no-op.
-   *
-   * @param cursor the cursor name
-   * @throws SQLException if a database access error occurs
-   */
-  public void setCursorName(String cursor) throws SQLException {
-    checkClosed();
-    // No-op.
-  }
-
-  /**
-   * getCursorName gets the cursor name.
-   *
-   * @return the current cursor name
-   * @throws SQLException if a database access error occurs
-   */
-  public String getCursorName() throws SQLException {
-    checkClosed();
-    return null;
   }
 
   /**
@@ -500,6 +484,7 @@ public class PgConnection implements BaseConnection {
     return queryExecutor.getUser();
   }
 
+  @Override
   public Fastpath getFastpathAPI() throws SQLException {
     checkClosed();
     if (fastpath == null) {
@@ -511,6 +496,7 @@ public class PgConnection implements BaseConnection {
   // This holds a reference to the Fastpath API if already open
   private Fastpath fastpath = null;
 
+  @Override
   public LargeObjectManager getLargeObjectAPI() throws SQLException {
     checkClosed();
     if (largeobject == null) {
@@ -536,6 +522,7 @@ public class PgConnection implements BaseConnection {
    *
    * @exception SQLException if value is not correct for this type
    */
+  @Override
   public Object getObject(String type, String value, byte[] byteValue) throws SQLException {
     if (typemap != null) {
       Class<?> c = typemap.get(type);
@@ -592,6 +579,7 @@ public class PgConnection implements BaseConnection {
     return new TypeInfoCache(conn, unknownLength);
   }
 
+  @Override
   public TypeInfo getTypeInfo() {
     return _typeCache;
   }
@@ -653,12 +641,14 @@ public class PgConnection implements BaseConnection {
    *
    * {@inheritDoc}
    */
+  @Override
   public void close() throws SQLException {
     releaseTimer();
     queryExecutor.close();
     openStackTrace = null;
   }
 
+  @Override
   public String nativeSQL(String sql) throws SQLException {
     checkClosed();
     CachedQuery cachedQuery = queryExecutor.createQuery(sql, false, true);
@@ -666,6 +656,7 @@ public class PgConnection implements BaseConnection {
     return cachedQuery.query.getNativeSql();
   }
 
+  @Override
   public synchronized SQLWarning getWarnings() throws SQLException {
     checkClosed();
     SQLWarning newWarnings = queryExecutor.getWarnings(); // NB: also clears them.
@@ -678,13 +669,14 @@ public class PgConnection implements BaseConnection {
     return firstWarning;
   }
 
+  @Override
   public synchronized void clearWarnings() throws SQLException {
     checkClosed();
     queryExecutor.getWarnings(); // Clear and discard.
     firstWarning = null;
   }
 
-
+  @Override
   public void setReadOnly(boolean readOnly) throws SQLException {
     checkClosed();
     if (queryExecutor.getTransactionState() != TransactionState.IDLE) {
@@ -703,11 +695,13 @@ public class PgConnection implements BaseConnection {
     LOGGER.log(Level.FINE, "  setReadOnly = {0}", readOnly);
   }
 
+  @Override
   public boolean isReadOnly() throws SQLException {
     checkClosed();
     return readOnly;
   }
 
+  @Override
   public void setAutoCommit(boolean autoCommit) throws SQLException {
     checkClosed();
 
@@ -723,6 +717,7 @@ public class PgConnection implements BaseConnection {
     LOGGER.log(Level.FINE, "  setAutoCommit = {0}", autoCommit);
   }
 
+  @Override
   public boolean getAutoCommit() throws SQLException {
     checkClosed();
     return this.autoCommit;
@@ -748,6 +743,7 @@ public class PgConnection implements BaseConnection {
     }
   }
 
+  @Override
   public void commit() throws SQLException {
     checkClosed();
 
@@ -768,7 +764,7 @@ public class PgConnection implements BaseConnection {
     }
   }
 
-
+  @Override
   public void rollback() throws SQLException {
     checkClosed();
 
@@ -782,10 +778,12 @@ public class PgConnection implements BaseConnection {
     }
   }
 
+  @Override
   public TransactionState getTransactionState() {
     return queryExecutor.getTransactionState();
   }
 
+  @Override
   public int getTransactionIsolation() throws SQLException {
     checkClosed();
 
@@ -818,6 +816,7 @@ public class PgConnection implements BaseConnection {
     return Connection.TRANSACTION_READ_COMMITTED; // Best guess.
   }
 
+  @Override
   public void setTransactionIsolation(int level) throws SQLException {
     checkClosed();
 
@@ -854,11 +853,13 @@ public class PgConnection implements BaseConnection {
     }
   }
 
+  @Override
   public void setCatalog(String catalog) throws SQLException {
     checkClosed();
     // no-op
   }
 
+  @Override
   public String getCatalog() throws SQLException {
     checkClosed();
     return queryExecutor.getDatabase();
@@ -871,6 +872,7 @@ public class PgConnection implements BaseConnection {
    * Greenham</a> who hit a problem where multiple clients didn't close the connection, and once a
    * fortnight enough clients were open to kill the postgres server.
    */
+  @Override
   protected void finalize() throws Throwable {
     try {
       if (openStackTrace != null) {
@@ -984,6 +986,7 @@ public class PgConnection implements BaseConnection {
    * Handler for transaction queries
    */
   private class TransactionCommandHandler extends ResultHandlerBase {
+    @Override
     public void handleCompletion() throws SQLException {
       SQLWarning warning = getWarning();
       if (warning != null) {
@@ -993,10 +996,12 @@ public class PgConnection implements BaseConnection {
     }
   }
 
+  @Override
   public int getPrepareThreshold() {
     return prepareThreshold;
   }
 
+  @Override
   public void setDefaultFetchSize(int fetchSize) throws SQLException {
     if (fetchSize < 0) {
       throw new PSQLException(GT.tr("Fetch size must be a value greater to or equal to 0."),
@@ -1007,10 +1012,12 @@ public class PgConnection implements BaseConnection {
     LOGGER.log(Level.FINE, "  setDefaultFetchSize = {0}", fetchSize);
   }
 
+  @Override
   public int getDefaultFetchSize() {
     return defaultFetchSize;
   }
 
+  @Override
   public void setPrepareThreshold(int newThreshold) {
     this.prepareThreshold = newThreshold;
     LOGGER.log(Level.FINE, "  setPrepareThreshold = {0}", newThreshold);
@@ -1029,6 +1036,7 @@ public class PgConnection implements BaseConnection {
     typemap = map;
   }
 
+  @Override
   public Logger getLogger() {
     return LOGGER;
   }
@@ -1037,12 +1045,14 @@ public class PgConnection implements BaseConnection {
     return queryExecutor.getProtocolVersion();
   }
 
+  @Override
   public boolean getStringVarcharFlag() {
     return bindStringAsVarchar;
   }
 
   private CopyManager copyManager = null;
 
+  @Override
   public CopyManager getCopyAPI() throws SQLException {
     checkClosed();
     if (copyManager == null) {
@@ -1051,14 +1061,17 @@ public class PgConnection implements BaseConnection {
     return copyManager;
   }
 
+  @Override
   public boolean binaryTransferSend(int oid) {
     return queryExecutor.useBinaryForSend(oid);
   }
 
+  @Override
   public int getBackendPID() {
     return queryExecutor.getBackendPID();
   }
 
+  @Override
   public boolean isColumnSanitiserDisabled() {
     return this.disableColumnSanitiser;
   }
@@ -1404,11 +1417,13 @@ public class PgConnection implements BaseConnection {
     throw org.postgresql.Driver.notImplemented(this.getClass(), "createQueryObject(Class<T>)");
   }
 
+  @Override
   public boolean isWrapperFor(Class<?> iface) throws SQLException {
     checkClosed();
     return iface.isAssignableFrom(getClass());
   }
 
+  @Override
   public <T> T unwrap(Class<T> iface) throws SQLException {
     checkClosed();
     if (iface.isAssignableFrom(getClass())) {
@@ -1417,6 +1432,8 @@ public class PgConnection implements BaseConnection {
     throw new SQLException("Cannot unwrap to " + iface.getName());
   }
 
+  //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
+  @Override
   public String getSchema() throws SQLException {
     checkClosed();
     Statement stmt = createStatement();
@@ -1435,6 +1452,7 @@ public class PgConnection implements BaseConnection {
     }
   }
 
+  @Override
   public void setSchema(String schema) throws SQLException {
     checkClosed();
     Statement stmt = createStatement();
@@ -1455,11 +1473,13 @@ public class PgConnection implements BaseConnection {
   }
 
   public class AbortCommand implements Runnable {
+    @Override
     public void run() {
       abort();
     }
   }
 
+  @Override
   public void abort(Executor executor) throws SQLException {
     if (isClosed()) {
       return;
@@ -1475,13 +1495,16 @@ public class PgConnection implements BaseConnection {
     }
   }
 
+  @Override
   public void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
     throw org.postgresql.Driver.notImplemented(this.getClass(), "setNetworkTimeout(Executor, int)");
   }
 
+  @Override
   public int getNetworkTimeout() throws SQLException {
     throw org.postgresql.Driver.notImplemented(this.getClass(), "getNetworkTimeout()");
   }
+  //#endif
 
   @Override
   public void setHoldability(int holdability) throws SQLException {
@@ -1566,24 +1589,28 @@ public class PgConnection implements BaseConnection {
     pgSavepoint.invalidate();
   }
 
+  @Override
   public Statement createStatement(int resultSetType, int resultSetConcurrency)
       throws SQLException {
     checkClosed();
     return createStatement(resultSetType, resultSetConcurrency, getHoldability());
   }
 
+  @Override
   public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency)
       throws SQLException {
     checkClosed();
     return prepareStatement(sql, resultSetType, resultSetConcurrency, getHoldability());
   }
 
+  @Override
   public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency)
       throws SQLException {
     checkClosed();
     return prepareCall(sql, resultSetType, resultSetConcurrency, getHoldability());
   }
 
+  @Override
   public PreparedStatement prepareStatement(String sql, int autoGeneratedKeys) throws SQLException {
     if (autoGeneratedKeys != Statement.RETURN_GENERATED_KEYS) {
       return prepareStatement(sql);
@@ -1592,6 +1619,7 @@ public class PgConnection implements BaseConnection {
     return prepareStatement(sql, (String[]) null);
   }
 
+  @Override
   public PreparedStatement prepareStatement(String sql, int columnIndexes[]) throws SQLException {
     if (columnIndexes != null && columnIndexes.length == 0) {
       return prepareStatement(sql);
@@ -1602,6 +1630,7 @@ public class PgConnection implements BaseConnection {
         PSQLState.NOT_IMPLEMENTED);
   }
 
+  @Override
   public PreparedStatement prepareStatement(String sql, String columnNames[]) throws SQLException {
     if (columnNames != null && columnNames.length == 0) {
       return prepareStatement(sql);
