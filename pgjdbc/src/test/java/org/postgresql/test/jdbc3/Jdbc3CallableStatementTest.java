@@ -28,11 +28,7 @@ import java.sql.Types;
  */
 public class Jdbc3CallableStatementTest extends BaseTest4 {
 
-  /*
-   * (non-Javadoc)
-   *
-   * @see junit.framework.TestCase#setUp()
-   */
+  @Override
   public void setUp() throws Exception {
     super.setUp();
     Statement stmt = con.createStatement();
@@ -81,17 +77,10 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
         + "pc := pa + 1;"
         + "end;'"
         + "LANGUAGE plpgsql VOLATILE;"
-
     );
-
-
   }
 
-  /*
-   * (non-Javadoc)
-   *
-   * @see junit.framework.TestCase#tearDown()
-   */
+  @Override
   public void tearDown() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("drop function Numeric_Proc(out decimal, out decimal, out decimal)");
@@ -118,7 +107,6 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
 
   @Test
   public void testNotEnoughParameters() throws Throwable {
-
     assumeCallableStatementsSupported();
     CallableStatement cs = con.prepareCall("{call myiofunc(?,?)}");
     cs.setInt(1, 2);
@@ -134,7 +122,6 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
 
   @Test
   public void testTooManyParameters() throws Throwable {
-
     CallableStatement cs = con.prepareCall("{call myif(?,?)}");
     try {
       cs.setInt(1, 1);
@@ -151,7 +138,6 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
 
   @Test
   public void testAllInOut() throws Throwable {
-
     CallableStatement call = con.prepareCall("{ call test_allinout(?,?,?) }");
 
     call.registerOutParameter(1, Types.INTEGER);
@@ -178,22 +164,20 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
     call.registerOutParameter(3, Types.NUMERIC, 15);
 
     call.executeUpdate();
-    java.math.BigDecimal ret = call.getBigDecimal(1);
+    BigDecimal ret = call.getBigDecimal(1);
     assertTrue(
         "correct return from getNumeric () should be 999999999999999.000000000000000 but returned "
             + ret.toString(),
-        ret.equals(new java.math.BigDecimal("999999999999999.000000000000000")));
+        ret.equals(new BigDecimal("999999999999999.000000000000000")));
 
     ret = call.getBigDecimal(2);
     assertTrue("correct return from getNumeric ()",
-        ret.equals(new java.math.BigDecimal("0.000000000000001")));
+        ret.equals(new BigDecimal("0.000000000000001")));
     try {
       ret = call.getBigDecimal(3);
     } catch (NullPointerException ex) {
       assertTrue("This should be null", call.wasNull());
     }
-
-
   }
 
   @Test
@@ -262,7 +246,6 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
       throw ex;
     }
     try {
-      String str = Boolean.TRUE.toString();
       CallableStatement cstmt = con.prepareCall("{ call updatevarchar(?,?) }");
       cstmt.setObject(1, Boolean.TRUE, Types.VARCHAR);
       cstmt.setObject(2, Boolean.FALSE, Types.VARCHAR);

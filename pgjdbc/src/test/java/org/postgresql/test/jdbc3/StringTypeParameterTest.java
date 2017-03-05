@@ -5,10 +5,15 @@
 
 package org.postgresql.test.jdbc3;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
-import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -17,15 +22,11 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Properties;
 
-public class StringTypeParameterTest extends TestCase {
+public class StringTypeParameterTest {
 
   private Connection _conn;
 
-  public StringTypeParameterTest(String name) {
-    super(name);
-  }
-
-  protected boolean setUp(String stringType) throws Exception {
+  private boolean prepare(String stringType) throws Exception {
     Properties props = new Properties();
     if (stringType != null) {
       props.put("stringtype", stringType);
@@ -39,7 +40,8 @@ public class StringTypeParameterTest extends TestCase {
     return true;
   }
 
-  protected void tearDown() throws SQLException {
+  @After
+  public void tearDown() throws SQLException {
     if (_conn != null) {
       TestUtil.dropTable(_conn, "stringtypetest");
       TestUtil.dropType(_conn, "mood");
@@ -47,6 +49,7 @@ public class StringTypeParameterTest extends TestCase {
     }
   }
 
+  @Test
   public void testParameterStringTypeVarchar() throws Exception {
     if (!TestUtil.isProtocolVersion(_conn, 3)) {
       return;
@@ -54,6 +57,7 @@ public class StringTypeParameterTest extends TestCase {
     testParameterVarchar("varchar");
   }
 
+  @Test
   public void testParameterStringTypeNotSet() throws Exception {
     if (!TestUtil.isProtocolVersion(_conn, 3)) {
       return;
@@ -61,8 +65,44 @@ public class StringTypeParameterTest extends TestCase {
     testParameterVarchar(null);
   }
 
+  @Test
+  public void testParameterUnspecified() throws Exception {
+    if (!prepare("unspecified")) {
+      return;
+    }
+
+    PreparedStatement update = _conn.prepareStatement("insert into stringtypetest (m) values (?)");
+    update.setString(1, "happy");
+    update.executeUpdate();
+    // all good
+
+    update.clearParameters();
+    update.setObject(1, "happy", Types.VARCHAR);
+    update.executeUpdate();
+    // all good
+    update.close();
+
+    PreparedStatement query = _conn.prepareStatement("select * from stringtypetest where m = ?");
+    query.setString(1, "happy");
+    ResultSet rs = query.executeQuery();
+    assertTrue(rs.next());
+    assertEquals("happy", rs.getObject("m"));
+    rs.close();
+
+    query.clearParameters();
+    query.setObject(1, "happy", Types.VARCHAR);
+    rs = query.executeQuery();
+    assertTrue(rs.next());
+    assertEquals("happy", rs.getObject("m"));
+
+    // all good
+    rs.close();
+    query.close();
+
+  }
+
   private void testParameterVarchar(String param) throws Exception {
-    if (!setUp(param)) {
+    if (!prepare(param)) {
       return;
     }
 
@@ -112,41 +152,6 @@ public class StringTypeParameterTest extends TestCase {
     query.clearParameters();
     query.setObject(1, "happy", Types.OTHER);
     ResultSet rs = query.executeQuery();
-    assertTrue(rs.next());
-    assertEquals("happy", rs.getObject("m"));
-
-    // all good
-    rs.close();
-    query.close();
-
-  }
-
-  public void testParameterUnspecified() throws Exception {
-    if (!setUp("unspecified")) {
-      return;
-    }
-
-    PreparedStatement update = _conn.prepareStatement("insert into stringtypetest (m) values (?)");
-    update.setString(1, "happy");
-    update.executeUpdate();
-    // all good
-
-    update.clearParameters();
-    update.setObject(1, "happy", Types.VARCHAR);
-    update.executeUpdate();
-    // all good
-    update.close();
-
-    PreparedStatement query = _conn.prepareStatement("select * from stringtypetest where m = ?");
-    query.setString(1, "happy");
-    ResultSet rs = query.executeQuery();
-    assertTrue(rs.next());
-    assertEquals("happy", rs.getObject("m"));
-    rs.close();
-
-    query.clearParameters();
-    query.setObject(1, "happy", Types.VARCHAR);
-    rs = query.executeQuery();
     assertTrue(rs.next());
     assertEquals("happy", rs.getObject("m"));
 
