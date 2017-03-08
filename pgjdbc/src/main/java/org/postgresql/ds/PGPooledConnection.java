@@ -19,12 +19,16 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.sql.ConnectionEvent;
 import javax.sql.ConnectionEventListener;
 import javax.sql.PooledConnection;
+import javax.sql.StatementEvent;
 import javax.sql.StatementEventListener;
 
 /**
@@ -36,11 +40,19 @@ import javax.sql.StatementEventListener;
  * @see org.postgresql.ds.PGConnectionPoolDataSource
  */
 public class PGPooledConnection implements PooledConnection {
-  private final List<ConnectionEventListener> listeners = new LinkedList<ConnectionEventListener>();
+
+  private static final Logger LOGGER = Logger.getLogger(PGPooledConnection.class.getName());
+
+  private final List<ConnectionEventListener> connectionEventListeners;
+  private final List<StatementEventListener> statementEventListeners;
   private Connection con;
   private ConnectionHandler last;
   private final boolean autoCommit;
   private final boolean isXA;
+
+  // Unique id generator for each PgConnection instance
+  private static final AtomicLong baseConnectionID = new AtomicLong(0);
+  private final String traceID;
 
   /**
    * Creates a new PooledConnection representing the specified physical connection.
@@ -53,38 +65,69 @@ public class PGPooledConnection implements PooledConnection {
     this.con = con;
     this.autoCommit = autoCommit;
     this.isXA = isXA;
+    statementEventListeners = new CopyOnWriteArrayList<StatementEventListener>();
+    connectionEventListeners = new CopyOnWriteArrayList<ConnectionEventListener>();
+    traceID = getClass().getSimpleName() + ":" + baseConnectionID.incrementAndGet();
   }
 
   public PGPooledConnection(Connection con, boolean autoCommit) {
     this(con, autoCommit, false);
   }
 
-  /**
-   * Adds a listener for close or fatal error events on the connection handed out to a client.
-   */
+  @Override
   public void addConnectionEventListener(ConnectionEventListener connectionEventListener) {
-    listeners.add(connectionEventListener);
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, "({0}) Registers a ConnectionEventListener.", traceID);
+    }
+    connectionEventListeners.add(connectionEventListener);
   }
 
-  /**
-   * Removes a listener for close or fatal error events on the connection handed out to a client.
-   */
+  @Override
   public void removeConnectionEventListener(ConnectionEventListener connectionEventListener) {
-    listeners.remove(connectionEventListener);
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, "({0}) Remove a ConnectionEventListener.", traceID);
+    }
+    connectionEventListeners.remove(connectionEventListener);
+  }
+
+  @Override
+  public void addStatementEventListener(StatementEventListener listener) {
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, "({0}) Registers a StatementEventListener.", traceID);
+    }
+    statementEventListeners.add(listener);
+  }
+
+  @Override
+  public void removeStatementEventListener(StatementEventListener listener) {
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, "({0}) Remove a StatementEventListener.", traceID);
+    }
+    statementEventListeners.remove(listener);
   }
 
   /**
    * Closes the physical database connection represented by this PooledConnection. If any client has
    * a connection based on this PooledConnection, it is forcibly closed as well.
    */
+  @Override
   public void close() throws SQLException {
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, "({0}) Closing physical connection.", traceID);
+    }
     if (last != null) {
       last.close();
       if (!con.isClosed()) {
         if (!con.getAutoCommit()) {
           try {
+            if (LOGGER.isLoggable(Level.FINEST)) {
+              LOGGER.log(Level.FINEST, "({0}) Rollback an active transaction.", traceID);
+            }
             con.rollback();
           } catch (SQLException ignored) {
+            if (LOGGER.isLoggable(Level.FINEST)) {
+              LOGGER.log(Level.FINEST, "Ignore rollback error.", ignored);
+            }
           }
         }
       }
@@ -107,8 +150,12 @@ public class PGPooledConnection implements PooledConnection {
    * called, the previous one is forcibly closed and its work rolled back.
    * </p>
    */
+  @Override
   public Connection getConnection() throws SQLException {
     if (con == null) {
+      if (LOGGER.isLoggable(Level.FINEST)) {
+        LOGGER.log(Level.FINEST, "({0}) The connection is null, fire error.", traceID);
+      }
       // Before throwing the exception, let's notify the registered listeners about the error
       PSQLException sqlException =
           new PSQLException(GT.tr("This PooledConnection has already been closed."),
@@ -128,6 +175,9 @@ public class PGPooledConnection implements PooledConnection {
           try {
             con.rollback();
           } catch (SQLException ignored) {
+            if (LOGGER.isLoggable(Level.FINEST)) {
+              LOGGER.log(Level.FINEST, "Ignore rollback error.", ignored);
+            }
           }
         }
         con.clearWarnings();
@@ -149,6 +199,10 @@ public class PGPooledConnection implements PooledConnection {
     Connection proxyCon = (Connection) Proxy.newProxyInstance(getClass().getClassLoader(),
         new Class[]{Connection.class, PGConnection.class}, handler);
     last.setProxy(proxyCon);
+
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, "({0}) Get a connection proxy.", traceID);
+    }
     return proxyCon;
   }
 
@@ -156,15 +210,12 @@ public class PGPooledConnection implements PooledConnection {
    * Used to fire a connection closed event to all listeners.
    */
   void fireConnectionClosed() {
-    ConnectionEvent evt = null;
-    // Copy the listener list so the listener can remove itself during this method call
-    ConnectionEventListener[] local =
-        listeners.toArray(new ConnectionEventListener[listeners.size()]);
-    for (ConnectionEventListener listener : local) {
-      if (evt == null) {
-        evt = createConnectionEvent(null);
-      }
-      listener.connectionClosed(evt);
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, "({0}) Fire connectionClosed event.", traceID);
+    }
+    ConnectionEvent event = new ConnectionEvent(this);
+    for (ConnectionEventListener listener : connectionEventListeners) {
+      listener.connectionClosed(event);
     }
   }
 
@@ -172,20 +223,37 @@ public class PGPooledConnection implements PooledConnection {
    * Used to fire a connection error event to all listeners.
    */
   void fireConnectionFatalError(SQLException e) {
-    ConnectionEvent evt = null;
-    // Copy the listener list so the listener can remove itself during this method call
-    ConnectionEventListener[] local =
-        listeners.toArray(new ConnectionEventListener[listeners.size()]);
-    for (ConnectionEventListener listener : local) {
-      if (evt == null) {
-        evt = createConnectionEvent(e);
-      }
-      listener.connectionErrorOccurred(evt);
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, "({0}) Fire connectionErrorOccurred event.", traceID);
+    }
+    ConnectionEvent event = new ConnectionEvent(this, e);
+    for (ConnectionEventListener listener : connectionEventListeners) {
+      listener.connectionErrorOccurred(event);
     }
   }
 
-  protected ConnectionEvent createConnectionEvent(SQLException e) {
-    return new ConnectionEvent(this, e);
+  public void fireStatementClosed(Statement st) {
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, "({0}) Fire statementClosed event.", traceID);
+    }
+    if (st instanceof PreparedStatement) {
+      StatementEvent event = new StatementEvent(this, (PreparedStatement) st);
+      for (StatementEventListener listener : statementEventListeners) {
+        listener.statementClosed(event);
+      }
+    }
+  }
+
+  public void fireStatementErrorOccured(Statement st, SQLException ex) {
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, "({0}) Fire statementErrorOccurred event.", traceID);
+    }
+    if (st instanceof PreparedStatement) {
+      StatementEvent event = new StatementEvent(this, (PreparedStatement) st, ex);
+      for (StatementEventListener listener : statementEventListeners) {
+        listener.statementErrorOccurred(event);
+      }
+    }
   }
 
   // Classes we consider fatal.
@@ -252,17 +320,18 @@ public class PGPooledConnection implements PooledConnection {
       this.con = con;
     }
 
+    @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
       final String methodName = method.getName();
       // From Object
       if (method.getDeclaringClass() == Object.class) {
-        if (methodName.equals("toString")) {
+        if ("toString".equals(methodName)) {
           return "Pooled connection wrapping physical connection " + con;
         }
-        if (methodName.equals("equals")) {
+        if ("equals".equals(methodName)) {
           return proxy == args[0];
         }
-        if (methodName.equals("hashCode")) {
+        if ("hashCode".equals(methodName)) {
           return System.identityHashCode(proxy);
         }
         try {
@@ -273,10 +342,10 @@ public class PGPooledConnection implements PooledConnection {
       }
 
       // All the rest is from the Connection or PGConnection interface
-      if (methodName.equals("isClosed")) {
+      if ("isClosed".equals(methodName)) {
         return con == null || con.isClosed();
       }
-      if (methodName.equals("close")) {
+      if ("close".equals(methodName)) {
         // we are already closed and a double close
         // is not an error.
         if (con == null) {
@@ -313,17 +382,17 @@ public class PGPooledConnection implements PooledConnection {
       // From here on in, we invoke via reflection, catch exceptions,
       // and check if they're fatal before rethrowing.
       try {
-        if (methodName.equals("createStatement")) {
+        if ("createStatement".equals(methodName)) {
           Statement st = (Statement) method.invoke(con, args);
           return Proxy.newProxyInstance(getClass().getClassLoader(),
               new Class[]{Statement.class, org.postgresql.PGStatement.class},
               new StatementHandler(this, st));
-        } else if (methodName.equals("prepareCall")) {
+        } else if ("prepareCall".equals(methodName)) {
           Statement st = (Statement) method.invoke(con, args);
           return Proxy.newProxyInstance(getClass().getClassLoader(),
               new Class[]{CallableStatement.class, org.postgresql.PGStatement.class},
               new StatementHandler(this, st));
-        } else if (methodName.equals("prepareStatement")) {
+        } else if ("prepareStatement".equals(methodName)) {
           Statement st = (Statement) method.invoke(con, args);
           return Proxy.newProxyInstance(getClass().getClassLoader(),
               new Class[]{PreparedStatement.class, org.postgresql.PGStatement.class},
@@ -380,32 +449,34 @@ public class PGPooledConnection implements PooledConnection {
       this.st = st;
     }
 
+    @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
       final String methodName = method.getName();
       // From Object
       if (method.getDeclaringClass() == Object.class) {
-        if (methodName.equals("toString")) {
+        if ("toString".equals(methodName)) {
           return "Pooled statement wrapping physical statement " + st;
         }
-        if (methodName.equals("hashCode")) {
+        if ("hashCode".equals(methodName)) {
           return System.identityHashCode(proxy);
         }
-        if (methodName.equals("equals")) {
+        if ("equals".equals(methodName)) {
           return proxy == args[0];
         }
         return method.invoke(st, args);
       }
 
       // All the rest is from the Statement interface
-      if (methodName.equals("isClosed")) {
+      if ("isClosed".equals(methodName)) {
         return st == null || st.isClosed();
       }
-      if (methodName.equals("close")) {
+      if ("close".equals(methodName)) {
         if (st == null || st.isClosed()) {
           return null;
         }
         con = null;
         final Statement oldSt = st;
+        fireStatementClosed(st);
         st = null;
         oldSt.close();
         return null;
@@ -413,7 +484,7 @@ public class PGPooledConnection implements PooledConnection {
       if (st == null || st.isClosed()) {
         throw new PSQLException(GT.tr("Statement has been closed."), PSQLState.OBJECT_NOT_IN_STATE);
       }
-      if (methodName.equals("getConnection")) {
+      if ("getConnection".equals(methodName)) {
         return con.getProxy(); // the proxied connection, not a physical connection
       }
 
@@ -423,17 +494,12 @@ public class PGPooledConnection implements PooledConnection {
       } catch (final InvocationTargetException ite) {
         final Throwable te = ite.getTargetException();
         if (te instanceof SQLException) {
+          fireStatementErrorOccured(st, (SQLException) te);
           fireConnectionError((SQLException) te); // Tell listeners about exception if it's fatal
         }
         throw te;
       }
     }
-  }
-
-  public void removeStatementEventListener(StatementEventListener listener) {
-  }
-
-  public void addStatementEventListener(StatementEventListener listener) {
   }
 
 }
