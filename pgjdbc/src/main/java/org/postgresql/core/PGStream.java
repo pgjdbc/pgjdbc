@@ -59,9 +59,9 @@ public class PGStream {
 
     Socket socket = socketFactory.createSocket();
     if (!socket.isConnected()) {
-      InetSocketAddress address = System.getProperty("socksProxyHost") == null ?
-          new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort()) :
-          InetSocketAddress.createUnresolved(hostSpec.getHost(), hostSpec.getPort());
+      InetSocketAddress address = System.getProperty("socksProxyHost") == null
+          ? new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort())
+          : InetSocketAddress.createUnresolved(hostSpec.getHost(), hostSpec.getPort());
       socket.connect(address, timeout);
     }
     changeSocket(socket);
