@@ -59,7 +59,10 @@ public class PGStream {
 
     Socket socket = socketFactory.createSocket();
     if (!socket.isConnected()) {
-      socket.connect(new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort()), timeout);
+      InetSocketAddress address = System.getProperty("socksProxyHost") == null ?
+          new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort()) :
+          InetSocketAddress.createUnresolved(hostSpec.getHost(), hostSpec.getPort());
+      socket.connect(address, timeout);
     }
     changeSocket(socket);
     setEncoding(Encoding.getJVMEncoding("UTF-8"));
