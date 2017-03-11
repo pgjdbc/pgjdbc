@@ -653,9 +653,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   /**
-   * @param timeoutMillis when >0, block for this time
+   * @param timeoutMillis when &gt; 0, block for this time
    *                      when =0, block forever
-   *                      when <0, don't block
+   *                      when &lt; 0, don't block
    */
   public synchronized void processNotifies(int timeoutMillis) throws SQLException {
     waitOnLock();
