@@ -100,7 +100,7 @@ public class NotifyTest {
    * To test timeouts we have to send the notification from another thread, because we
    * listener is blocking.
    */
-  @Test(timeout=60000) // 120 seconds should be enough
+  @Test(timeout=60000) // 60 seconds should be enough
   public void testAsyncNotifyWithTimeout() throws Exception {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
