@@ -664,6 +664,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       return;
     }
 
+    if (hasNotifications()) {
+      // No need to timeout when there are already notifications. We just check for more in this case.
+      timeoutMillis = -1;
+    }
+
     boolean useTimeout = timeoutMillis > 0;
     long startTime = 0;
     if (useTimeout) {
@@ -672,11 +677,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     try {
       while (pgStream.hasMessagePending() || timeoutMillis >= 0 ) {
-        if (useTimeout) {
+        if (useTimeout && timeoutMillis >= 0) {
           setSocketTimeout(timeoutMillis);
         }
         int c = pgStream.receiveChar();
-        if (useTimeout) {
+        if (useTimeout && timeoutMillis >= 0) {
           setSocketTimeout(0); // Don't timeout after first char
         }
         switch (c) {

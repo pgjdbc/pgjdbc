@@ -169,6 +169,39 @@ public class NotifyTest {
     assertEquals("mynotification", notifications[0].getName());
     assertEquals("", notifications[0].getParameter());
 
+    // This checks if notifications are returned immediately when available also when a timeout
+    // has been given. The test will timeout when the notification goes unnoticed.
+    connectAndNotify("mynotification");
+
+    notifications = ((org.postgresql.PGConnection) conn).getNotifications(120000);
+    assertNotNull(notifications);
+    assertEquals(1, notifications.length);
+    assertEquals("mynotification", notifications[0].getName());
+    assertEquals("", notifications[0].getParameter());
+
+    // Here we check what happens when the connection gets closed from another thread. This
+    // should be able, and this test ensures that no synchronized statements will stop the
+    // connection from becoming closed.
+    new Thread( new Runnable() {
+      public void run() {
+        try {
+          Thread.sleep(500);
+        } catch (InterruptedException ie) {
+        }
+        try {
+          conn.close();
+        } catch (SQLException e) {
+        }
+      }
+    }).start();
+
+    try {
+      notifications = ((org.postgresql.PGConnection) conn).getNotifications(40000);
+      Assert.fail("The getNotifications(...) call didn't return when the socket closed.");
+    } catch (SQLException e) {
+      // We expected thta
+    }
+
     stmt.close();
   }
 
