@@ -649,9 +649,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   // Just for API compatibility with previous versions.
   public synchronized void processNotifies() throws SQLException {
-	  processNotifies(-1);
+    processNotifies(-1);
   }
-	  
+
   /**
    * @param timeoutMillis when >0, block for this time
    *                      when =0, block forever
@@ -666,18 +666,18 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     boolean useTimeout = timeoutMillis > 0;
     long startTime = 0;
-    if( useTimeout ) {
-		startTime = System.currentTimeMillis();
+    if (useTimeout) {
+      startTime = System.currentTimeMillis();
     }
 
     try {
       while (pgStream.hasMessagePending() || timeoutMillis >= 0 ) {
-    	if( useTimeout ) {
-        	setSocketTimeout(timeoutMillis);
-    	}
+        if (useTimeout) {
+          setSocketTimeout(timeoutMillis);
+        }
         int c = pgStream.receiveChar();
-        if( useTimeout ) {
-    		setSocketTimeout(0); // Don't timeout after first char
+        if (useTimeout) {
+          setSocketTimeout(0); // Don't timeout after first char
         }
         switch (c) {
           case 'A': // Asynchronous Notify
@@ -690,13 +690,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           case 'N': // Notice Response (warnings / info)
             SQLWarning warning = receiveNoticeResponse();
             addWarning(warning);
-            if( useTimeout ) {
-                long newTimeMillis = System.currentTimeMillis();
-                timeoutMillis += startTime - newTimeMillis; // Overflows after 49 days, ignore that
-                startTime = newTimeMillis;
-                if( timeoutMillis == 0 ) {
-                	timeoutMillis = -1; // Don't accidentially wait forever
-                }
+            if (useTimeout) {
+              long newTimeMillis = System.currentTimeMillis();
+              timeoutMillis += startTime - newTimeMillis; // Overflows after 49 days, ignore that
+              startTime = newTimeMillis;
+              if (timeoutMillis == 0) {
+                timeoutMillis = -1; // Don't accidentially wait forever
+              }
             }
             break;
           default:
@@ -705,27 +705,27 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         }
       }
     } catch (SocketTimeoutException ioe) {
-    	// No notifications this time...
+      // No notifications this time...
     } catch (IOException ioe) {
       throw new PSQLException(GT.tr("An I/O error occurred while sending to the backend."),
           PSQLState.CONNECTION_FAILURE, ioe);
     } finally {
-    	if( useTimeout ) {
-    		setSocketTimeout(0);
-    	}
+      if (useTimeout) {
+        setSocketTimeout(0);
+      }
     }
   }
 
   private void setSocketTimeout(int millis) throws PSQLException {
-		try {
-			Socket s = pgStream.getSocket();
-			if( !s.isClosed() ) { // Is this check required?
-     			pgStream.getSocket().setSoTimeout(millis);
-			}
-		} catch (SocketException e) {
-		      throw new PSQLException(GT.tr("An error occured while trying to reset the socket timeout."),
-		              PSQLState.CONNECTION_FAILURE, e);
-		}
+    try {
+      Socket s = pgStream.getSocket();
+      if (!s.isClosed()) { // Is this check required?
+        pgStream.getSocket().setSoTimeout(millis);
+      }
+    } catch (SocketException e) {
+      throw new PSQLException(GT.tr("An error occurred while trying to reset the socket timeout."),
+        PSQLState.CONNECTION_FAILURE, e);
+    }
   }
 
   private byte[] receiveFastpathResult() throws IOException, SQLException {

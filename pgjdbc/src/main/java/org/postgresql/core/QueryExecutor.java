@@ -226,7 +226,7 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    * @throws SQLException if and error occurs while fetching notifications
    */
   void processNotifies(int timeoutMillis) throws SQLException;
-  
+
   //
   // Fastpath interface.
   //

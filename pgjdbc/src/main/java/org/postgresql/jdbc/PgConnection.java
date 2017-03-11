@@ -970,7 +970,7 @@ public class PgConnection implements BaseConnection {
     checkClosed();
     queryExecutor.sendQueryCancel();
   }
-  
+
   @Override
   public PGNotification[] getNotifications() throws SQLException {
     return getNotifications(-1);
@@ -984,7 +984,7 @@ public class PgConnection implements BaseConnection {
     PGNotification[] notifications = queryExecutor.getNotifications();
     return (notifications.length == 0 ? null : notifications);
   }
-  
+
   /**
    * Handler for transaction queries
    */
