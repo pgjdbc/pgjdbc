@@ -970,16 +970,21 @@ public class PgConnection implements BaseConnection {
     checkClosed();
     queryExecutor.sendQueryCancel();
   }
-
+  
   @Override
   public PGNotification[] getNotifications() throws SQLException {
+    return getNotifications(-1);
+  }
+
+  @Override
+  public PGNotification[] getNotifications(int timeoutMillis) throws SQLException {
     checkClosed();
-    getQueryExecutor().processNotifies();
+    getQueryExecutor().processNotifies(timeoutMillis);
     // Backwards-compatibility hand-holding.
     PGNotification[] notifications = queryExecutor.getNotifications();
     return (notifications.length == 0 ? null : notifications);
   }
-
+  
   /**
    * Handler for transaction queries
    */
