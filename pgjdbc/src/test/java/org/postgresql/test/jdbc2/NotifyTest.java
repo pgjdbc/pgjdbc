@@ -135,12 +135,14 @@ public class NotifyTest {
 
     // Now we check the case where notifications are send after we have started to listen for
     // notifications
-    new Thread(() -> {
-      try {
-        Thread.sleep(200);
-      } catch (InterruptedException ie) {
+    new Thread( new Runnable() {
+      public void run() {
+        try {
+          Thread.sleep(200);
+        } catch (InterruptedException ie) {
+        }
+        connectAndNotify("mynotification");
       }
-      connectAndNotify("mynotification");
     }).start();
 
     notifications = ((org.postgresql.PGConnection) conn).getNotifications(10000);
@@ -151,12 +153,14 @@ public class NotifyTest {
 
     // Now we check the case where notifications are send after we have started to listen for
     // notifications forever
-    new Thread(() -> {
-      try {
-        Thread.sleep(200);
-      } catch (InterruptedException ie) {
+    new Thread( new Runnable() {
+      public void run() {
+        try {
+          Thread.sleep(200);
+        } catch (InterruptedException ie) {
+        }
+        connectAndNotify("mynotification");
       }
-      connectAndNotify("mynotification");
     }).start();
 
     notifications = ((org.postgresql.PGConnection) conn).getNotifications(0);
