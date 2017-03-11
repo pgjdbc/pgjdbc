@@ -9,17 +9,18 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
+import org.postgresql.PGNotification;
+import org.postgresql.core.ServerVersion;
+import org.postgresql.test.TestUtil;
 
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.postgresql.PGNotification;
-import org.postgresql.core.ServerVersion;
-import org.postgresql.test.TestUtil;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 public class NotifyTest {
   private Connection conn;
@@ -81,9 +82,9 @@ public class NotifyTest {
     PGNotification notifications[] = null;
     try {
       int retries = 20;
-      while( retries --> 0 && // Special arrow operator decrements until retries is zero.
-    		 (notifications = ((org.postgresql.PGConnection) conn).getNotifications()) == null ) {
-          Thread.sleep(100);
+      while (retries-- > 0
+        && (notifications = ((org.postgresql.PGConnection) conn).getNotifications()) == null ) {
+        Thread.sleep(100);
       }
     } catch (InterruptedException ie) {
     }
@@ -100,7 +101,7 @@ public class NotifyTest {
    * To test timeouts we have to send the notification from another thread, because we
    * listener is blocking.
    */
-  @Test(timeout=60000) // 60 seconds should be enough
+  @Test(timeout = 60000) // 60 seconds should be enough
   public void testAsyncNotifyWithTimeout() throws Exception {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
@@ -111,7 +112,7 @@ public class NotifyTest {
     long endMillis = System.currentTimeMillis();
     long runtime = endMillis - startMillis;
     assertNull("There have been notifications, althought none have been expected.",notifications);
-    Assert.assertTrue("We didn't wait long enough! runtime="+runtime, runtime > 450);
+    Assert.assertTrue("We didn't wait long enough! runtime=" + runtime, runtime > 450);
 
     // Now we check the case where notifications are already available while we are starting to
     // listen for notifications
@@ -134,11 +135,11 @@ public class NotifyTest {
 
     // Now we check the case where notifications are send after we have started to listen for
     // notifications
-    new Thread(()-> {
+    new Thread(() -> {
       try {
-   	    Thread.sleep(200);
-   	  } catch (InterruptedException ie) {
-   	  }
+        Thread.sleep(200);
+      } catch (InterruptedException ie) {
+      }
       connectAndNotify("mynotification");
     }).start();
 
@@ -150,11 +151,11 @@ public class NotifyTest {
 
     // Now we check the case where notifications are send after we have started to listen for
     // notifications forever
-    new Thread(()-> {
+    new Thread(() -> {
       try {
-   	    Thread.sleep(200);
-   	  } catch (InterruptedException ie) {
-   	  }
+        Thread.sleep(200);
+      } catch (InterruptedException ie) {
+      }
       connectAndNotify("mynotification");
     }).start();
 
@@ -168,19 +169,19 @@ public class NotifyTest {
   }
 
   private static void connectAndNotify(String channel) {
-	Connection conn2 = null;
-	try {
+    Connection conn2 = null;
+    try {
       conn2 = TestUtil.openDB();
       Statement stmt2 = conn2.createStatement();
-      stmt2.executeUpdate("NOTIFY "+channel);
+      stmt2.executeUpdate("NOTIFY " + channel);
       stmt2.close();
     } catch (Exception e) {
-      throw new RuntimeException("Couldn't notify '"+channel+"'.",e);
-	} finally {
+      throw new RuntimeException("Couldn't notify '" + channel + "'.",e);
+    } finally {
       try {
-		conn2.close();
-	  } catch (SQLException e) {
-	  }
+        conn2.close();
+      } catch (SQLException e) {
+      }
     }
   }
 
