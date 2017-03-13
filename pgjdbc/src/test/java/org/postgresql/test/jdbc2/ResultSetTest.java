@@ -252,13 +252,74 @@ public class ResultSetTest extends BaseTest4 {
           rs.getBoolean(1);
           fail();
         } catch (SQLException e) {
-          assertEquals(e.getSQLState(), org.postgresql.util.PSQLState.CANNOT_COERCE.getState());
+          assertEquals(org.postgresql.util.PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
         }
       }
-
     }
     rs.close();
     pstmt.close();
+  }
+
+  @Test
+  public void testgetBooleanJDBCCompliance() throws SQLException {
+    // The JDBC specification in Table B-6 "Use of ResultSet getter Methods to Retrieve JDBC Data Types"
+    // the getBoolean have this Supported JDBC Type: TINYINT, SMALLINT, INTEGER, BIGINT, REAL, FLOAT,
+    // DOUBLE, DECIAML, NUMERIC, BIT, BOOLEAN, CHAR, VARCHAR, LONGVARCHAR
+
+    // There is no TINYINT in PostgreSQL
+    testgetBoolean("int2"); // SMALLINT
+    testgetBoolean("int4"); // INTEGER
+    testgetBoolean("int8"); // BIGINT
+    testgetBoolean("float4"); // REAL
+    testgetBoolean("float8"); // FLOAT, DOUBLE
+    testgetBoolean("numeric"); // DECIMAL, NUMERIC
+    testgetBoolean("bpchar"); // CHAR
+    testgetBoolean("varchar"); // VARCHAR
+    testgetBoolean("text"); // LONGVARCHAR?
+  }
+
+  public void testgetBoolean(String dataType) throws SQLException {
+    Statement stmt = con.createStatement();
+    ResultSet rs = stmt.executeQuery("select 1::" + dataType + ", 0::" + dataType + ", 2::" + dataType);
+    assertTrue(rs.next());
+    assertEquals(true, rs.getBoolean(1));
+    assertEquals(false, rs.getBoolean(2));
+
+    try {
+      // The JDBC ResultSet JavaDoc states that only 1 and 0 are valid values, so 2 should return error.
+      rs.getBoolean(3);
+      fail();
+    } catch (SQLException e) {
+      assertEquals(org.postgresql.util.PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
+      assertEquals("Cannot cast to boolean: \"2\"", e.getMessage());
+    }
+    rs.close();
+    stmt.close();
+  }
+
+  @Test
+  public void testgetBadBoolean() throws SQLException {
+    testBadBoolean("'2017-03-13 14:25:48.130861'::timestamp", "2017-03-13 14:25:48.130861");
+    testBadBoolean("'2017-03-13'::date", "2017-03-13");
+    testBadBoolean("'2017-03-13 14:25:48.130861'::time", "14:25:48.130861");
+    testBadBoolean("ARRAY[[1,0],[0,1]]", "{{1,0},{0,1}}");
+    testBadBoolean("'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11");
+    testBadBoolean("29::bit(4)", "1101");
+  }
+
+  public void testBadBoolean(String select, String value) throws SQLException {
+    Statement stmt = con.createStatement();
+    ResultSet rs = stmt.executeQuery("select " + select);
+    assertTrue(rs.next());
+    try {
+      rs.getBoolean(1);
+      fail();
+    } catch (SQLException e) {
+      assertEquals(org.postgresql.util.PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
+      assertEquals("Cannot cast to boolean: \"" + value + "\"", e.getMessage());
+    }
+    rs.close();
+    stmt.close();
   }
 
   @Test
