@@ -29,8 +29,11 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Properties;
 import java.util.Set;
+import java.util.logging.Formatter;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
+import java.util.logging.StreamHandler;
 
 /**
  * The Java SQL framework allows for multiple database drivers. Each driver should supply a class
@@ -318,7 +321,19 @@ public class Driver implements java.sql.Driver {
       }
     }
 
-    handler.setFormatter(new java.util.logging.SimpleFormatter());
+    Formatter formatter = new SimpleFormatter();
+
+    if ( handler == null ) {
+      if ( DriverManager.getLogStream() != null) {
+        handler = new StreamHandler(DriverManager.getLogStream(), formatter);
+      } else {
+        handler = new StreamHandler(System.err, formatter);
+      }
+    } else {
+      handler.setFormatter(formatter);
+    }
+
+    handler.setLevel(PARENT_LOGGER.getLevel());
     PARENT_LOGGER.setUseParentHandlers(false);
     PARENT_LOGGER.addHandler(handler);
   }
