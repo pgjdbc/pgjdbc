@@ -13,6 +13,7 @@ import static org.junit.Assert.fail;
 
 import org.postgresql.Driver;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.NullOutputStream;
 import org.postgresql.util.WriterHandler;
 
 import org.junit.Test;
@@ -196,7 +197,7 @@ public class DriverTest {
 
     try {
 
-      PrintWriter printWriter = new PrintWriter(System.err);
+      PrintWriter printWriter = new PrintWriter(new NullOutputStream(System.err));
       DriverManager.setLogWriter(printWriter);
       assertEquals(DriverManager.getLogWriter(), printWriter);
       System.clearProperty("loggerFile");
@@ -212,6 +213,7 @@ public class DriverTest {
       assertTrue(handlers[0] instanceof WriterHandler );
       con.close();
     } finally {
+      DriverManager.setLogWriter(null);
       System.setProperty("loggerLevel", loggerLevel);
       System.setProperty("loggerFile", loggerFile);
 
@@ -230,7 +232,7 @@ public class DriverTest {
 
     try {
 
-      DriverManager.setLogStream(System.err);
+      DriverManager.setLogStream(new NullOutputStream(System.err));
       System.clearProperty("loggerFile");
       System.clearProperty("loggerLevel");
       Properties props = new Properties();
@@ -244,6 +246,7 @@ public class DriverTest {
       assertTrue( handlers[0] instanceof WriterHandler );
       con.close();
     } finally {
+      DriverManager.setLogStream(null);
       System.setProperty("loggerLevel", loggerLevel);
       System.setProperty("loggerFile", loggerFile);
 
