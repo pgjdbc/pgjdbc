@@ -6,12 +6,14 @@
 package org.postgresql;
 
 import org.postgresql.jdbc.PgConnection;
+
 import org.postgresql.util.ExpressionProperties;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.SharedTimer;
+import org.postgresql.util.WriterHandler;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -311,7 +313,7 @@ public class Driver implements java.sql.Driver {
       loggerHandlerFile = null;
     }
 
-    java.util.logging.Handler handler = new java.util.logging.ConsoleHandler();
+    java.util.logging.Handler handler = null;
     if (driverLogFile != null) {
       try {
         handler = new java.util.logging.FileHandler(driverLogFile);
@@ -324,7 +326,9 @@ public class Driver implements java.sql.Driver {
     Formatter formatter = new SimpleFormatter();
 
     if ( handler == null ) {
-      if ( DriverManager.getLogStream() != null) {
+      if (DriverManager.getLogWriter() != null) {
+        handler = new WriterHandler(DriverManager.getLogWriter());
+      } else if ( DriverManager.getLogStream() != null) {
         handler = new StreamHandler(DriverManager.getLogStream(), formatter);
       } else {
         handler = new StreamHandler(System.err, formatter);

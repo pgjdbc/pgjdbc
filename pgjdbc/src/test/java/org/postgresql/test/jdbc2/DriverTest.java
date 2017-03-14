@@ -13,15 +13,20 @@ import static org.junit.Assert.fail;
 
 import org.postgresql.Driver;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.WriterHandler;
 
 import org.junit.Test;
 
+import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Properties;
+import java.util.logging.Handler;
+import java.util.logging.Logger;
+import java.util.logging.StreamHandler;
 
 /*
  * Tests the dynamically created class org.postgresql.Driver
@@ -179,5 +184,46 @@ public class DriverTest {
       }
     }
     fail("Driver has not been found in DriverManager's list but it should be registered");
+  }
+
+  @Test
+  public void testSetLogWriter() throws Exception {
+
+    // this is a dummy to make sure TestUtil is initialized
+    Connection con = DriverManager.getConnection(TestUtil.getURL(), TestUtil.getUser(), TestUtil.getPassword());
+    con.close();
+    String loggerLevel = System.getProperty("loggerLevel");
+    String loggerFile = System.getProperty("loggerFile");
+
+    try {
+
+      PrintWriter printWriter = new PrintWriter(System.err);
+      DriverManager.setLogWriter(printWriter);
+      assertEquals(DriverManager.getLogWriter(), printWriter);
+      System.clearProperty("loggerFile");
+      System.clearProperty("loggerLevel");
+      Properties props = new Properties();
+      props.setProperty("user", TestUtil.getUser());
+      props.setProperty("password", TestUtil.getPassword());
+      props.setProperty("loggerLevel", "DEBUG");
+      con = DriverManager.getConnection(TestUtil.getURL(), props);
+
+      Logger logger = Logger.getLogger("org.postgresql");
+      Handler[] handlers = logger.getHandlers();
+      assertTrue(handlers[0] instanceof WriterHandler );
+      con.close();
+      DriverManager.setLogWriter(null);
+      DriverManager.setLogStream(System.err);
+      con = DriverManager.getConnection(TestUtil.getURL(), props);
+      logger = Logger.getLogger("org.postgresql");
+      handlers = logger.getHandlers();
+      assertTrue( handlers[0] instanceof StreamHandler );
+      con.close();
+    } finally {
+      System.setProperty("loggerLevel", loggerLevel);
+      System.setProperty("loggerFile", loggerFile);
+
+    }
+
   }
 }
