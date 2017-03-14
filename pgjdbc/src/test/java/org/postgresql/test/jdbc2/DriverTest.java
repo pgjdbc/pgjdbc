@@ -26,7 +26,6 @@ import java.util.Collections;
 import java.util.Properties;
 import java.util.logging.Handler;
 import java.util.logging.Logger;
-import java.util.logging.StreamHandler;
 
 /*
  * Tests the dynamically created class org.postgresql.Driver
@@ -212,13 +211,6 @@ public class DriverTest {
       Handler[] handlers = logger.getHandlers();
       assertTrue(handlers[0] instanceof WriterHandler );
       con.close();
-      DriverManager.setLogWriter(null);
-      DriverManager.setLogStream(System.err);
-      con = DriverManager.getConnection(TestUtil.getURL(), props);
-      logger = Logger.getLogger("org.postgresql");
-      handlers = logger.getHandlers();
-      assertTrue( handlers[0] instanceof StreamHandler );
-      con.close();
     } finally {
       System.setProperty("loggerLevel", loggerLevel);
       System.setProperty("loggerFile", loggerFile);
@@ -226,4 +218,38 @@ public class DriverTest {
     }
 
   }
+
+  @Test
+  public void testSetLogStream() throws Exception {
+
+    // this is a dummy to make sure TestUtil is initialized
+    Connection con = DriverManager.getConnection(TestUtil.getURL(), TestUtil.getUser(), TestUtil.getPassword());
+    con.close();
+    String loggerLevel = System.getProperty("loggerLevel");
+    String loggerFile = System.getProperty("loggerFile");
+
+    try {
+
+      DriverManager.setLogStream(System.err);
+      System.clearProperty("loggerFile");
+      System.clearProperty("loggerLevel");
+      Properties props = new Properties();
+      props.setProperty("user", TestUtil.getUser());
+      props.setProperty("password", TestUtil.getPassword());
+      props.setProperty("loggerLevel", "DEBUG");
+      con = DriverManager.getConnection(TestUtil.getURL(), props);
+
+      Logger logger = Logger.getLogger("org.postgresql");
+      Handler []handlers = logger.getHandlers();
+      assertTrue( handlers[0] instanceof WriterHandler );
+      con.close();
+    } finally {
+      System.setProperty("loggerLevel", loggerLevel);
+      System.setProperty("loggerFile", loggerFile);
+
+
+    }
+
+  }
+
 }
