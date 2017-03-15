@@ -53,6 +53,8 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   private Xid currentXid;
 
   private State state;
+  private Xid preparedXid;
+  private boolean committedOrRolledBack;
 
   /*
    * When an XA transaction is started, we put the underlying connection into non-autocommit mode.
@@ -222,6 +224,8 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     // Preconditions are met, Associate connection with the transaction
     state = State.ACTIVE;
     currentXid = xid;
+    preparedXid = null;
+    committedOrRolledBack = false;
   }
 
   /**
@@ -280,17 +284,31 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     }
 
     // Check preconditions
+    if (currentXid == null && preparedXid != null) {
+      if (LOGGER.isLoggable(Level.FINEST)) {
+        debug("Prepare xid " + xid + " but current connection is not attached to a transaction"
+            + " while it was prepared in past with prepared xid " + preparedXid);
+      }
+      throw new PGXAException(GT.tr(
+          "Preparing already prepared transaction, the prepared xid {0}", preparedXid), XAException.XAER_PROTO);
+    } else if (currentXid == null) {
+      throw new PGXAException(GT.tr(
+          "Unknown xid in context of the connection"), XAException.XAER_NOTA);
+    }
     if (!currentXid.equals(xid)) {
-      throw new PGXAException(
-          GT.tr(
-              "Not implemented: Prepare must be issued using the same connection that started the transaction"),
+      if (LOGGER.isLoggable(Level.FINEST)) {
+        debug("Error to prepare xid " + xid + ", the current connection already bound with xid " + currentXid);
+      }
+      throw new PGXAException(GT.tr(
+          "Not implemented: Prepare must be issued using the same connection that started the transaction"),
           XAException.XAER_RMERR);
     }
     if (state != State.ENDED) {
-      throw new PGXAException(GT.tr("Prepare called before end"), XAException.XAER_INVAL);
+      throw new PGXAException(GT.tr("Prepare called before end (xid={0})", xid), XAException.XAER_INVAL);
     }
 
     state = State.IDLE;
+    preparedXid = currentXid;
     currentXid = null;
 
     try {
@@ -306,7 +324,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
 
       return XA_OK;
     } catch (SQLException ex) {
-      throw new PGXAException(GT.tr("Error preparing transaction"), ex, XAException.XAER_RMERR);
+      throw new PGXAException(GT.tr("Error preparing transaction xid {0}", xid), ex, XAException.XAER_RMERR);
     }
   }
 
@@ -395,13 +413,25 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
           stmt.close();
         }
       }
+      committedOrRolledBack = true;
     } catch (SQLException ex) {
+      int errorCode = XAException.XAER_RMERR;
       if (PSQLState.UNDEFINED_OBJECT.getState().equals(ex.getSQLState())) {
-        throw new PGXAException(GT.tr("Error rolling back prepared transaction"), ex,
-            XAException.XAER_NOTA);
+        if (committedOrRolledBack || !xid.equals(preparedXid)) {
+          if (LOGGER.isLoggable(Level.FINEST)) {
+            debug("rolling back xid " + xid + " while the connection prepared xid is " + preparedXid
+                + (committedOrRolledBack ? ", but the connection was already committed/rolled-back" : ""));
+          }
+          errorCode = XAException.XAER_NOTA;
+        }
       }
-      throw new PGXAException(GT.tr("Error rolling back prepared transaction"), ex,
-          XAException.XAER_RMERR);
+      if (PSQLState.isConnectionError(ex.getSQLState())) {
+        if (LOGGER.isLoggable(Level.FINEST)) {
+          debug("rollback connection failure (sql error code " + ex.getSQLState() + "), reconnection could be expected");
+        }
+        errorCode = XAException.XAER_RMFAIL;
+      }
+      throw new PGXAException(GT.tr("Error rolling back prepared transaction (xid={xid})"), ex, errorCode);
     }
   }
 
@@ -433,27 +463,34 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   private void commitOnePhase(Xid xid) throws XAException {
     try {
       // Check preconditions
-      if (currentXid == null || !currentXid.equals(xid)) {
-        // In fact, we don't know if xid is bogus, or if it just wasn't associated with this
-        // connection.
+      if (xid.equals(preparedXid)) {
+        throw new PGXAException(GT.tr("One-phase commit called for xid {0} but connection was prepared with xid {1}",
+            xid, preparedXid), XAException.XAER_PROTO);
+      }
+      if (currentXid == null && !committedOrRolledBack) {
+        // In fact, we don't know if xid is bogus, or if it just wasn't associated with this connection.
         // Assume it's our fault.
-        throw new PGXAException(
-            GT.tr(
-                "Not implemented: one-phase commit must be issued using the same connection that was used to start it"),
+        throw new PGXAException(GT.tr(
+            "Not implemented: one-phase commit (xid={0}) must be issued using the same connection that was used to start it", xid),
             XAException.XAER_RMERR);
       }
+      if (!xid.equals(currentXid) || committedOrRolledBack) {
+        throw new PGXAException(GT.tr("One-phase commit with unknown xid. Xid to commit {0}, xid bound to the connection {1}",
+            xid, currentXid), XAException.XAER_NOTA);
+      }
       if (state != State.ENDED) {
-        throw new PGXAException(GT.tr("commit called before end"), XAException.XAER_PROTO);
+        throw new PGXAException(GT.tr("commit (xid={0}) called before end", xid), XAException.XAER_PROTO);
       }
 
       // Preconditions are met. Commit
       state = State.IDLE;
       currentXid = null;
+      committedOrRolledBack = true;
 
       conn.commit();
       conn.setAutoCommit(localAutoCommitMode);
     } catch (SQLException ex) {
-      throw new PGXAException(GT.tr("Error during one-phase commit"), ex, XAException.XAER_RMERR);
+      throw new PGXAException(GT.tr("Error during one-phase commit (xid={0})", xid), ex, XAException.XAER_RMFAIL);
     }
   }
 
@@ -472,7 +509,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
       if (state != State.IDLE
           || conn.getTransactionState() != TransactionState.IDLE) {
         throw new PGXAException(
-            GT.tr("Not implemented: 2nd phase commit must be issued using an idle connection"),
+            GT.tr("Not implemented: 2nd phase commit (xid={0}) must be issued using an idle connection", xid),
             XAException.XAER_RMERR);
       }
 
@@ -487,9 +524,25 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         stmt.close();
         conn.setAutoCommit(localAutoCommitMode);
       }
+      committedOrRolledBack = true;
     } catch (SQLException ex) {
-      throw new PGXAException(GT.tr("Error committing prepared transaction"), ex,
-          XAException.XAER_RMERR);
+      int errorCode = XAException.XAER_RMERR;
+      if (PSQLState.UNDEFINED_OBJECT.getState().equals(ex.getSQLState())) {
+        if (committedOrRolledBack || !xid.equals(preparedXid)) {
+          if (LOGGER.isLoggable(Level.FINEST)) {
+            debug("committing xid " + xid + " while the connection prepared xid is " + preparedXid
+                + (committedOrRolledBack ? ", but the connection was already committed/rolled-back" : ""));
+          }
+          errorCode = XAException.XAER_NOTA;
+        }
+      }
+      if (PSQLState.isConnectionError(ex.getSQLState())) {
+        if (LOGGER.isLoggable(Level.FINEST)) {
+          debug("commit connection failure (sql error code " + ex.getSQLState() + "), reconnection could be expected");
+        }
+        errorCode = XAException.XAER_RMFAIL;
+      }
+      throw new PGXAException(GT.tr("Error committing prepared transaction (xid={0})"), ex, errorCode);
     }
   }
 
@@ -506,7 +559,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
    */
   @Override
   public void forget(Xid xid) throws XAException {
-    throw new PGXAException(GT.tr("Heuristic commit/rollback not supported"),
+    throw new PGXAException(GT.tr("Heuristic commit/rollback not supported (xid={0})"),
         XAException.XAER_NOTA);
   }
 

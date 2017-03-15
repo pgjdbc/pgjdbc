@@ -95,6 +95,14 @@ public enum PSQLState {
 
   UNEXPECTED_ERROR("99999");
 
+  public static boolean isConnectionError(String psqlState) {
+    return PSQLState.CONNECTION_UNABLE_TO_CONNECT.getState().equals(psqlState)
+      || PSQLState.CONNECTION_DOES_NOT_EXIST.getState().equals(psqlState)
+      || PSQLState.CONNECTION_REJECTED.getState().equals(psqlState)
+      || PSQLState.CONNECTION_FAILURE.getState().equals(psqlState)
+      || PSQLState.CONNECTION_FAILURE_DURING_TRANSACTION.getState().equals(psqlState);
+  }
+
   private final String state;
 
   PSQLState(String state) {
