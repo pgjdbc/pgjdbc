@@ -17,14 +17,6 @@ public class PSQLWarning extends SQLWarning {
     this.serverError = err;
   }
 
-  public String toString() {
-    return serverError.toString();
-  }
-
-  public String getSQLState() {
-    return serverError.getSQLState();
-  }
-
   public String getMessage() {
     return serverError.getMessage();
   }
