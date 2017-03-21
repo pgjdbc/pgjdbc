@@ -101,7 +101,6 @@ public class NotifyTest {
    * To test timeouts we have to send the notification from another thread, because we
    * listener is blocking.
    */
-  @Test(timeout = 60000) // 60 seconds should be enough
   public void testAsyncNotifyWithTimeout() throws Exception {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
@@ -114,24 +113,47 @@ public class NotifyTest {
     assertNull("There have been notifications, althought none have been expected.",notifications);
     Assert.assertTrue("We didn't wait long enough! runtime=" + runtime, runtime > 450);
 
+    stmt.close();
+  }
+
+  public void testAsyncNotifyWithTimeout2() throws Exception {
+    Statement stmt = conn.createStatement();
+    stmt.executeUpdate("LISTEN mynotification");
+
     // Now we check the case where notifications are already available while we are starting to
     // listen for notifications
     connectAndNotify("mynotification");
 
-    notifications = ((org.postgresql.PGConnection) conn).getNotifications(10000);
+    PGNotification notifications[] = ((org.postgresql.PGConnection) conn).getNotifications(10000);
     assertNotNull(notifications);
     assertEquals(1, notifications.length);
     assertEquals("mynotification", notifications[0].getName());
     assertEquals("", notifications[0].getParameter());
+
+    stmt.close();
+  }
+
+  @Test(timeout = 60000) // 60 seconds should be enough
+  public void testAsyncNotifyWithTimeout3() throws Exception {
+    Statement stmt = conn.createStatement();
+    stmt.executeUpdate("LISTEN mynotification");
 
     // Now we check the case where notifications are already available while we are waiting forever
     connectAndNotify("mynotification");
 
-    notifications = ((org.postgresql.PGConnection) conn).getNotifications(0);
+    PGNotification notifications[] = ((org.postgresql.PGConnection) conn).getNotifications(0);
     assertNotNull(notifications);
     assertEquals(1, notifications.length);
     assertEquals("mynotification", notifications[0].getName());
     assertEquals("", notifications[0].getParameter());
+
+    stmt.close();
+  }
+
+  @Test(timeout = 60000) // 60 seconds should be enough
+  public void testAsyncNotifyWithTimeout4() throws Exception {
+    Statement stmt = conn.createStatement();
+    stmt.executeUpdate("LISTEN mynotification");
 
     // Now we check the case where notifications are send after we have started to listen for
     // notifications
@@ -145,11 +167,19 @@ public class NotifyTest {
       }
     }).start();
 
-    notifications = ((org.postgresql.PGConnection) conn).getNotifications(10000);
+    PGNotification notifications[] = ((org.postgresql.PGConnection) conn).getNotifications(10000);
     assertNotNull(notifications);
     assertEquals(1, notifications.length);
     assertEquals("mynotification", notifications[0].getName());
     assertEquals("", notifications[0].getParameter());
+
+    stmt.close();
+  }
+
+  @Test(timeout = 60000) // 60 seconds should be enough
+  public void testAsyncNotifyWithTimeout5() throws Exception {
+    Statement stmt = conn.createStatement();
+    stmt.executeUpdate("LISTEN mynotification");
 
     // Now we check the case where notifications are send after we have started to listen for
     // notifications forever
@@ -163,21 +193,18 @@ public class NotifyTest {
       }
     }).start();
 
-    notifications = ((org.postgresql.PGConnection) conn).getNotifications(0);
+    PGNotification notifications[] = ((org.postgresql.PGConnection) conn).getNotifications(0);
     assertNotNull(notifications);
     assertEquals(1, notifications.length);
     assertEquals("mynotification", notifications[0].getName());
     assertEquals("", notifications[0].getParameter());
 
-    // This checks if notifications are returned immediately when available also when a timeout
-    // has been given. The test will timeout when the notification goes unnoticed.
-    connectAndNotify("mynotification");
+    stmt.close();
+  }
 
-    notifications = ((org.postgresql.PGConnection) conn).getNotifications(120000);
-    assertNotNull(notifications);
-    assertEquals(1, notifications.length);
-    assertEquals("mynotification", notifications[0].getName());
-    assertEquals("", notifications[0].getParameter());
+  public void testAsyncNotifyWithTimeout6() throws Exception {
+    Statement stmt = conn.createStatement();
+    stmt.executeUpdate("LISTEN mynotification");
 
     // Here we check what happens when the connection gets closed from another thread. This
     // should be able, and this test ensures that no synchronized statements will stop the
@@ -196,7 +223,7 @@ public class NotifyTest {
     }).start();
 
     try {
-      notifications = ((org.postgresql.PGConnection) conn).getNotifications(40000);
+      ((org.postgresql.PGConnection) conn).getNotifications(40000);
       Assert.fail("The getNotifications(...) call didn't return when the socket closed.");
     } catch (SQLException e) {
       // We expected thta

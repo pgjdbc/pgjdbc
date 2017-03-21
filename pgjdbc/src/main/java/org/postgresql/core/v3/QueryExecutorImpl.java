@@ -671,8 +671,15 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     boolean useTimeout = timeoutMillis > 0;
     long startTime = 0;
+    int oldTimeout = 0;
     if (useTimeout) {
       startTime = System.currentTimeMillis();
+      try {
+        oldTimeout = pgStream.getSocket().getSoTimeout();
+      } catch (SocketException e) {
+        throw new PSQLException(GT.tr("An error occurred while trying to get the socket "
+          + "timeout."), PSQLState.CONNECTION_FAILURE, e);
+      }
     }
 
     try {
@@ -716,7 +723,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           PSQLState.CONNECTION_FAILURE, ioe);
     } finally {
       if (useTimeout) {
-        setSocketTimeout(0);
+        setSocketTimeout(oldTimeout);
       }
     }
   }
