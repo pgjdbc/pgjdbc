@@ -35,7 +35,7 @@ public class NotifyTest {
     TestUtil.closeDB(conn);
   }
 
-  @Test
+  @Test(timeout = 60000)
   public void testNotify() throws SQLException {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
@@ -50,7 +50,7 @@ public class NotifyTest {
     stmt.close();
   }
 
-  @Test
+  @Test(timeout = 60000)
   public void testNotifyArgument() throws Exception {
     if (!TestUtil.haveMinimumServerVersion(conn, ServerVersion.v9_0) || TestUtil.isProtocolVersion(conn, 2)) {
       return;
@@ -69,7 +69,7 @@ public class NotifyTest {
     stmt.close();
   }
 
-  @Test
+  @Test(timeout = 60000)
   public void testAsyncNotify() throws Exception {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
@@ -101,6 +101,7 @@ public class NotifyTest {
    * To test timeouts we have to send the notification from another thread, because we
    * listener is blocking.
    */
+  @Test(timeout = 60000)
   public void testAsyncNotifyWithTimeout() throws Exception {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
@@ -116,6 +117,7 @@ public class NotifyTest {
     stmt.close();
   }
 
+  @Test(timeout = 60000)
   public void testAsyncNotifyWithTimeout2() throws Exception {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
@@ -133,7 +135,7 @@ public class NotifyTest {
     stmt.close();
   }
 
-  @Test(timeout = 60000) // 60 seconds should be enough
+  @Test(timeout = 60000)
   public void testAsyncNotifyWithTimeout3() throws Exception {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
@@ -150,7 +152,7 @@ public class NotifyTest {
     stmt.close();
   }
 
-  @Test(timeout = 60000) // 60 seconds should be enough
+  @Test(timeout = 60000)
   public void testAsyncNotifyWithTimeout4() throws Exception {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
@@ -176,7 +178,7 @@ public class NotifyTest {
     stmt.close();
   }
 
-  @Test(timeout = 60000) // 60 seconds should be enough
+  @Test(timeout = 60000)
   public void testAsyncNotifyWithTimeout5() throws Exception {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
@@ -202,6 +204,7 @@ public class NotifyTest {
     stmt.close();
   }
 
+  @Test(timeout = 60000)
   public void testAsyncNotifyWithTimeout6() throws Exception {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
