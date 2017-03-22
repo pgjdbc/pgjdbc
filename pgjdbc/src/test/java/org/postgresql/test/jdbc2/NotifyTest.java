@@ -118,7 +118,7 @@ public class NotifyTest {
   }
 
   @Test(timeout = 60000)
-  public void testAsyncNotifyWithTimeout2() throws Exception {
+  public void testAsyncNotifyWithTimeoutAndMessagesAvailableWhenStartingListening() throws Exception {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
 
@@ -136,7 +136,7 @@ public class NotifyTest {
   }
 
   @Test(timeout = 60000)
-  public void testAsyncNotifyWithTimeout3() throws Exception {
+  public void testAsyncNotifyWithEndlessTimeoutAndMessagesAvailableWhenStartingListening() throws Exception {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
 
@@ -153,7 +153,7 @@ public class NotifyTest {
   }
 
   @Test(timeout = 60000)
-  public void testAsyncNotifyWithTimeout4() throws Exception {
+  public void testAsyncNotifyWithTimeoutAndMessagesSendAfter() throws Exception {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
 
@@ -179,7 +179,7 @@ public class NotifyTest {
   }
 
   @Test(timeout = 60000)
-  public void testAsyncNotifyWithTimeout5() throws Exception {
+  public void testAsyncNotifyWithEndlessTimeoutAndMessagesSendAfter() throws Exception {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
 
@@ -205,7 +205,7 @@ public class NotifyTest {
   }
 
   @Test(timeout = 60000)
-  public void testAsyncNotifyWithTimeout6() throws Exception {
+  public void testAsyncNotifyWithTimeoutAndSocketThatBecomesClosed() throws Exception {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
 
