@@ -921,14 +921,16 @@ public class Parser {
     }
     String s = jdbcSql.substring(startIndex, endIndex);
     StringBuilder sb = new StringBuilder(s);
-    if (outParmBeforeFunc) {
+
+    int opening = s.indexOf('(') + 1;
+    if (opening == 0) {
+      sb.append(outParmBeforeFunc ? "(?)" : "()");
+    } else if (outParmBeforeFunc) {
       // move the single out parameter into the function call
       // so that it can be treated like all other parameters
       boolean needComma = false;
 
-      // have to use String.indexOf for java 2
-      int opening = s.indexOf('(') + 1;
-      int closing = s.indexOf(')');
+      int closing = s.indexOf(')', opening);
       for (int j = opening; j < closing; j++) {
         if (!Character.isWhitespace(sb.charAt(j))) {
           needComma = true;
