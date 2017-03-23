@@ -45,6 +45,9 @@ import java.io.IOException;
 import java.lang.ref.PhantomReference;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
+import java.net.Socket;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
@@ -644,35 +647,96 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     pgStream.flush();
   }
 
+  // Just for API compatibility with previous versions.
   public synchronized void processNotifies() throws SQLException {
+    processNotifies(-1);
+  }
+
+  /**
+   * @param timeoutMillis when &gt; 0, block for this time
+   *                      when =0, block forever
+   *                      when &lt; 0, don't block
+   */
+  public synchronized void processNotifies(int timeoutMillis) throws SQLException {
     waitOnLock();
     // Asynchronous notifies only arrive when we are not in a transaction
     if (getTransactionState() != TransactionState.IDLE) {
       return;
     }
 
+    if (hasNotifications()) {
+      // No need to timeout when there are already notifications. We just check for more in this case.
+      timeoutMillis = -1;
+    }
+
+    boolean useTimeout = timeoutMillis > 0;
+    long startTime = 0;
+    int oldTimeout = 0;
+    if (useTimeout) {
+      startTime = System.currentTimeMillis();
+      try {
+        oldTimeout = pgStream.getSocket().getSoTimeout();
+      } catch (SocketException e) {
+        throw new PSQLException(GT.tr("An error occurred while trying to get the socket "
+          + "timeout."), PSQLState.CONNECTION_FAILURE, e);
+      }
+    }
+
     try {
-      while (pgStream.hasMessagePending()) {
+      while (pgStream.hasMessagePending() || timeoutMillis >= 0 ) {
+        if (useTimeout && timeoutMillis >= 0) {
+          setSocketTimeout(timeoutMillis);
+        }
         int c = pgStream.receiveChar();
+        if (useTimeout && timeoutMillis >= 0) {
+          setSocketTimeout(0); // Don't timeout after first char
+        }
         switch (c) {
           case 'A': // Asynchronous Notify
             receiveAsyncNotify();
-            break;
+            timeoutMillis = -1;
+            continue;
           case 'E':
             // Error Response (response to pretty much everything; backend then skips until Sync)
             throw receiveErrorResponse();
           case 'N': // Notice Response (warnings / info)
             SQLWarning warning = receiveNoticeResponse();
             addWarning(warning);
+            if (useTimeout) {
+              long newTimeMillis = System.currentTimeMillis();
+              timeoutMillis += startTime - newTimeMillis; // Overflows after 49 days, ignore that
+              startTime = newTimeMillis;
+              if (timeoutMillis == 0) {
+                timeoutMillis = -1; // Don't accidentially wait forever
+              }
+            }
             break;
           default:
             throw new PSQLException(GT.tr("Unknown Response Type {0}.", (char) c),
                 PSQLState.CONNECTION_FAILURE);
         }
       }
+    } catch (SocketTimeoutException ioe) {
+      // No notifications this time...
     } catch (IOException ioe) {
       throw new PSQLException(GT.tr("An I/O error occurred while sending to the backend."),
           PSQLState.CONNECTION_FAILURE, ioe);
+    } finally {
+      if (useTimeout) {
+        setSocketTimeout(oldTimeout);
+      }
+    }
+  }
+
+  private void setSocketTimeout(int millis) throws PSQLException {
+    try {
+      Socket s = pgStream.getSocket();
+      if (!s.isClosed()) { // Is this check required?
+        pgStream.getSocket().setSoTimeout(millis);
+      }
+    } catch (SocketException e) {
+      throw new PSQLException(GT.tr("An error occurred while trying to reset the socket timeout."),
+        PSQLState.CONNECTION_FAILURE, e);
     }
   }
 

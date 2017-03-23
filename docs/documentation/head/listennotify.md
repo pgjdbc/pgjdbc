@@ -24,6 +24,8 @@ any outstanding notifications.
 
 > A key limitation of the JDBC driver is that it cannot receive asynchronous
 notifications and must poll the backend to check if any notifications were issued.
+I timeout can be given to the poll function, but then the execution of statements
+from other threads will block.  
 
 <a name="listen-notify-example"></a>
 **Example 9.2. Receiving Notifications**
@@ -72,19 +74,15 @@ class Listener extends Thread
 
 	public void run()
 	{
-		while (true)
+		try
 		{
-			try
+			while (true)
 			{
-				// issue a dummy query to contact the backend
-				// and receive any pending notifications.
-
-				Statement stmt = conn.createStatement();
-				ResultSet rs = stmt.executeQuery("SELECT 1");
-				rs.close();
-				stmt.close();
-
 				org.postgresql.PGNotification notifications[] = pgconn.getNotifications();
+				
+				// If this thread is the only one that uses the connection, a timeout can be used to 
+				// receive notifications immediately:
+				// org.postgresql.PGNotification notifications[] = pgconn.getNotifications(10000);
 				
 				if (notifications != null)
 				{
@@ -97,14 +95,14 @@ class Listener extends Thread
 				
 				Thread.sleep(500);
 			}
-			catch (SQLException sqle)
-			{
-				sqle.printStackTrace();
-			}
-			catch (InterruptedException ie)
-			{
-				ie.printStackTrace();
-			}
+		}
+		catch (SQLException sqle)
+		{
+			sqle.printStackTrace();
+		}
+		catch (InterruptedException ie)
+		{
+			ie.printStackTrace();
 		}
 	}
 }

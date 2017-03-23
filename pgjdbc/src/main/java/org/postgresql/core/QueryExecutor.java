@@ -217,6 +217,16 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    */
   void processNotifies() throws SQLException;
 
+  /**
+   * Prior to attempting to retrieve notifications, we need to pull any recently received
+   * notifications off of the network buffers. The notification retrieval in ProtocolConnection
+   * cannot do this as it is prone to deadlock, so the higher level caller must be responsible which
+   * requires exposing this method. This variant supports blocking for the given time in millis.
+   *
+   * @throws SQLException if and error occurs while fetching notifications
+   */
+  void processNotifies(int timeoutMillis) throws SQLException;
+
   //
   // Fastpath interface.
   //

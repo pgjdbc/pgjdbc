@@ -375,4 +375,8 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   public void setFlushCacheOnDeallocate(boolean flushCacheOnDeallocate) {
     this.flushCacheOnDeallocate = flushCacheOnDeallocate;
   }
+
+  protected boolean hasNotifications() {
+    return notifications.size() > 0;
+  }
 }
