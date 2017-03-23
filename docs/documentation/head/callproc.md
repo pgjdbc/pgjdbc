@@ -22,7 +22,7 @@ This example shows how to call a PostgreSQL™ built in function, `upper`, which
 simply converts the supplied string argument to uppercase.
 
 ```java
-CallableStatement upperProc = conn.prepareCall("{ ? = call upper( ? ) }");
+CallableStatement upperProc = conn.prepareCall("{? = call upper( ? ) }");
 upperProc.registerOutParameter(1, Types.VARCHAR);
 upperProc.setString(2, "lowercase to uppercase");
 upperProc.execute();
@@ -95,7 +95,7 @@ stmt.close();
 conn.setAutoCommit(false);
 
 // Procedure call.
-CallableStatement proc = conn.prepareCall("{ ? = call refcursorfunc() }");
+CallableStatement proc = conn.prepareCall("{? = call refcursorfunc() }");
 proc.registerOutParameter(1, Types.OTHER);
 proc.execute();
 ResultSet results = (ResultSet) proc.getObject(1);
@@ -116,7 +116,7 @@ you are free to directly use cursor commands on it, such as `FETCH` and `MOVE`.
 
 ```java
 conn.setAutoCommit(false);
-CallableStatement proc = conn.prepareCall("{ ? = call refcursorfunc() }");
+CallableStatement proc = conn.prepareCall("{? = call refcursorfunc() }");
 proc.registerOutParameter(1, Types.OTHER);
 proc.execute();
 String cursorName = proc.getString(1);
