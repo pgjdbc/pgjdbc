@@ -10,6 +10,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.PSQLState;
 
@@ -45,6 +46,10 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
         "CREATE OR REPLACE FUNCTION myiofunc(a INOUT int, b OUT int) AS 'BEGIN b := a; a := 1; END;' LANGUAGE plpgsql");
     stmt.execute(
         "CREATE OR REPLACE FUNCTION myif(a INOUT int, b IN int) AS 'BEGIN a := b; END;' LANGUAGE plpgsql");
+    stmt.execute(
+            "CREATE OR REPLACE FUNCTION mynoparams() returns int AS 'BEGIN return 733; END;' LANGUAGE plpgsql");
+    stmt.execute(
+            "CREATE OR REPLACE FUNCTION mynoparamsproc() returns void AS 'BEGIN NULL; END;' LANGUAGE plpgsql");
 
     stmt.execute("create or replace function "
         + "Numeric_Proc( OUT IMAX NUMERIC(30,15), OUT IMIN NUMERIC(30,15), OUT INUL NUMERIC(30,15))  as "
@@ -100,6 +105,8 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
     stmt.execute("drop function mysum(a int, b int)");
     stmt.execute("drop function myiofunc(a INOUT int, b OUT int) ");
     stmt.execute("drop function myif(a INOUT int, b IN int)");
+    stmt.execute("drop function mynoparams()");
+    stmt.execute("drop function mynoparamsproc()");
     stmt.close();
     super.tearDown();
   }
@@ -1006,6 +1013,42 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
     cs.setInt(3, 3);
     cs.execute();
     assertEquals("2+3 should be 5 when executed via {?= call mysum(?, ?)}", 5, cs.getInt(1));
+  }
+
+  @Test
+  public void testFunctionNoParametersWithParentheses() throws SQLException {
+    assumeCallableStatementsSupported();
+    CallableStatement cs = con.prepareCall("{?= call mynoparams()}");
+    cs.registerOutParameter(1, Types.INTEGER);
+    cs.execute();
+    assertEquals("{?= call mynoparam()} should return 733, but did not.", 733, cs.getInt(1));
+    TestUtil.closeQuietly(cs);
+  }
+
+  @Test
+  public void testFunctionNoParametersWithoutParentheses() throws SQLException {
+    assumeCallableStatementsSupported();
+    CallableStatement cs = con.prepareCall("{?= call mynoparams}");
+    cs.registerOutParameter(1, Types.INTEGER);
+    cs.execute();
+    assertEquals("{?= call mynoparam()} should return 733, but did not.", 733, cs.getInt(1));
+    TestUtil.closeQuietly(cs);
+  }
+
+  @Test
+  public void testProcedureNoParametersWithParentheses() throws SQLException {
+    assumeCallableStatementsSupported();
+    CallableStatement cs = con.prepareCall("{ call mynoparamsproc()}");
+    cs.execute();
+    TestUtil.closeQuietly(cs);
+  }
+
+  @Test
+  public void testProcedureNoParametersWithoutParentheses() throws SQLException {
+    assumeCallableStatementsSupported();
+    CallableStatement cs = con.prepareCall("{ call mynoparamsproc}");
+    cs.execute();
+    TestUtil.closeQuietly(cs);
   }
 
 }
