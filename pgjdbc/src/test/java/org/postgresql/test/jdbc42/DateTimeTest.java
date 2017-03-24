@@ -1,19 +1,30 @@
+/*
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
+
 package org.postgresql.test.jdbc42;
+
+import static org.junit.Assert.assertEquals;
+
+import org.postgresql.PGStatement;
+import org.postgresql.test.TestUtil;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.postgresql.PGStatement;
-import org.postgresql.jdbc.TimestampUtils;
-import org.postgresql.test.TestUtil;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 
 /**
  * Created by davec on 3/24/17.
@@ -32,6 +43,7 @@ public class DateTimeTest {
     TestUtil.dropTable(con, TSWOTZ_TABLE);
     TestUtil.closeDB(con);
   }
+
   @Test
   public void testInfinity() throws SQLException {
     runInfinityTests(TSWOTZ_TABLE, PGStatement.DATE_POSITIVE_INFINITY, false);
@@ -70,7 +82,7 @@ public class DateTimeTest {
     ps.close();
 
     ps = con.prepareStatement("select ts from " + table);
-    if (binary){
+    if (binary) {
       // cast to the pg extension interface
       org.postgresql.PGStatement pgstmt = ps.unwrap(org.postgresql.PGStatement.class);
 
@@ -90,6 +102,7 @@ public class DateTimeTest {
     assertEquals(4, stmt.executeUpdate("DELETE FROM " + table));
     stmt.close();
   }
+
   private static final String TSWOTZ_TABLE = "testtimestampwotz";
 
 }
