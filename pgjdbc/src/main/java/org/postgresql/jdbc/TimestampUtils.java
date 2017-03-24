@@ -1046,7 +1046,7 @@ public class TimestampUtils {
     if (parsedTimestamp.infinity == Infinity.POSITIVE) {
       return LocalDateTime.MAX;
     } else if (parsedTimestamp.infinity == Infinity.NEGATIVE) {
-      return LocalDateTime.MAX;
+      return LocalDateTime.MIN;
     }
 
     return LocalDateTime.ofEpochSecond(parsedTimestamp.millis / 1000L, parsedTimestamp.nanos, ZoneOffset.UTC);

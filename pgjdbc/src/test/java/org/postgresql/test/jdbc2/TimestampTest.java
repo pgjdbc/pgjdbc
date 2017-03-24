@@ -30,6 +30,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
@@ -100,17 +101,26 @@ public class TimestampTest {
 
   @Test
   public void testInfinity() throws SQLException {
-    runInfinityTests(TSWTZ_TABLE, PGStatement.DATE_POSITIVE_INFINITY);
-    runInfinityTests(TSWTZ_TABLE, PGStatement.DATE_NEGATIVE_INFINITY);
-    runInfinityTests(TSWOTZ_TABLE, PGStatement.DATE_POSITIVE_INFINITY);
-    runInfinityTests(TSWOTZ_TABLE, PGStatement.DATE_NEGATIVE_INFINITY);
+    runInfinityTests(TSWTZ_TABLE, PGStatement.DATE_POSITIVE_INFINITY, false);
+    runInfinityTests(TSWTZ_TABLE, PGStatement.DATE_NEGATIVE_INFINITY, false);
+    runInfinityTests(TSWOTZ_TABLE, PGStatement.DATE_POSITIVE_INFINITY, false);
+    runInfinityTests(TSWOTZ_TABLE, PGStatement.DATE_NEGATIVE_INFINITY, false);
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4)) {
-      runInfinityTests(DATE_TABLE, PGStatement.DATE_POSITIVE_INFINITY);
-      runInfinityTests(DATE_TABLE, PGStatement.DATE_NEGATIVE_INFINITY);
+      runInfinityTests(DATE_TABLE, PGStatement.DATE_POSITIVE_INFINITY, false);
+      runInfinityTests(DATE_TABLE, PGStatement.DATE_NEGATIVE_INFINITY, false);
     }
+    runInfinityTests(TSWTZ_TABLE, PGStatement.DATE_POSITIVE_INFINITY, true);
+    runInfinityTests(TSWTZ_TABLE, PGStatement.DATE_NEGATIVE_INFINITY, true);
+    runInfinityTests(TSWOTZ_TABLE, PGStatement.DATE_POSITIVE_INFINITY, true);
+    runInfinityTests(TSWOTZ_TABLE, PGStatement.DATE_NEGATIVE_INFINITY, true);
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4)) {
+      runInfinityTests(DATE_TABLE, PGStatement.DATE_POSITIVE_INFINITY, true);
+      runInfinityTests(DATE_TABLE, PGStatement.DATE_NEGATIVE_INFINITY, true);
+    }
+
   }
 
-  private void runInfinityTests(String table, long value) throws SQLException {
+  private void runInfinityTests(String table, long value, boolean binary) throws SQLException {
     GregorianCalendar cal = new GregorianCalendar();
     // Pick some random timezone that is hopefully different than ours
     // and exists in this JVM.
@@ -134,8 +144,16 @@ public class TimestampTest {
     ps.executeUpdate();
     ps.close();
 
-    stmt = con.createStatement();
-    ResultSet rs = stmt.executeQuery("select ts from " + table);
+    ps = con.prepareStatement("select ts from " + table);
+    if (binary){
+      // cast to the pg extension interface
+      org.postgresql.PGStatement pgstmt = ps.unwrap(org.postgresql.PGStatement.class);
+
+      // force binary
+      pgstmt.setPrepareThreshold(-1);
+    }
+
+    ResultSet rs = ps.executeQuery();
     while (rs.next()) {
       assertEquals(strValue, rs.getString(1));
 
@@ -146,10 +164,14 @@ public class TimestampTest {
       assertEquals(value, d.getTime());
 
       Timestamp tscal = rs.getTimestamp(1, cal);
+
       assertEquals(value, tscal.getTime());
+
     }
     rs.close();
+    ps.close();
 
+    stmt = con.createStatement();
     assertEquals(3, stmt.executeUpdate("DELETE FROM " + table));
     stmt.close();
   }
