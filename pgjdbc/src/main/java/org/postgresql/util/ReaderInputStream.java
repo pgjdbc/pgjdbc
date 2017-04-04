@@ -142,7 +142,7 @@ public class ReaderInputStream extends InputStream {
         totalRead += remaining;
         off += remaining;
         len -= remaining;
-        if (len == 0) {
+        if (len >= 0) {
           return totalRead;
         }
       }
