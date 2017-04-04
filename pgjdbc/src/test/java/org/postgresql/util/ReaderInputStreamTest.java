@@ -9,11 +9,7 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
-import java.io.CharArrayReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.io.StringReader;
+import java.io.*;
 import java.nio.charset.MalformedInputException;
 import java.util.Arrays;
 
@@ -180,6 +176,35 @@ public class ReaderInputStreamTest {
     Reader reader = new SingleCharPerReadReader(LEADING_SURROGATE, LEADING_SURROGATE);
     InputStream is = new ReaderInputStream(reader);
     read(is, 0xF0, 0xA0, 0x9C, 0x8E);
+  }
+
+  @Test
+  public void readsSmallerThanBlockSizeTest() throws Exception {
+    final int BLOCK = 8 * 1024;
+    final int DATASIZE = BLOCK * 5 + 57;
+    final byte[] data = new byte[DATASIZE];
+    final byte[] buffer = new byte[BLOCK];
+
+    // initialize with values (0, 1, ... 127, 0, 1, ...)
+    for (int i = 0; i < data.length; i++) {
+      data[i] = (byte) (i & 0x7F);
+    }
+
+    InputStreamReader isr = new InputStreamReader(new ByteArrayInputStream(data));
+    ReaderInputStream r = new ReaderInputStream(isr);
+
+    int read;
+    int total = 0;
+
+    while ((read = r.read(buffer, 0, BLOCK)) > -1) {
+      // System.out.println(String.format("Read: %4d  Start: %3d  End: %3d", read, buffer[0], buffer[read - 1]));
+      total += read;
+      if (read == BLOCK) {
+        assertEquals("Byte values are not correct", buffer[0], buffer[read % BLOCK]);
+      }
+    }
+
+    assertEquals("Data not read completely: missing " + (DATASIZE - total) + " bytes", total, DATASIZE);
   }
 
   private static class SingleCharPerReadReader extends Reader {
