@@ -8,6 +8,7 @@ package org.postgresql.core.v3.replication;
 import org.postgresql.copy.CopyDual;
 import org.postgresql.replication.LogSequenceNumber;
 import org.postgresql.replication.PGReplicationStream;
+import org.postgresql.replication.ReplicationType;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -26,6 +27,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
   public static final long POSTGRES_EPOCH_2000_01_01 = 946684800000L;
   private final CopyDual copyDual;
   private final long updateInterval;
+  private final ReplicationType replicationType;
   private long lastStatusUpdate;
   private boolean closeFlag = false;
 
@@ -44,11 +46,14 @@ public class V3PGReplicationStream implements PGReplicationStream {
    *                         completely, although an update will still be sent when requested by the
    *                         server, to avoid timeout disconnect.
    */
-  public V3PGReplicationStream(CopyDual copyDual, LogSequenceNumber startLSN, long updateIntervalMs) {
+  public V3PGReplicationStream(CopyDual copyDual, LogSequenceNumber startLSN, long updateIntervalMs,
+      ReplicationType replicationType
+  ) {
     this.copyDual = copyDual;
     this.updateInterval = updateIntervalMs;
     this.lastStatusUpdate = System.currentTimeMillis() - updateIntervalMs;
     this.lastReceiveLSN = startLSN;
+    this.replicationType = replicationType;
   }
 
   @Override
@@ -229,8 +234,15 @@ public class V3PGReplicationStream implements PGReplicationStream {
     lastServerLSN = LogSequenceNumber.valueOf(buffer.getLong());
     long systemClock = buffer.getLong();
 
-    int payloadSize = buffer.limit() - buffer.position();
-    lastReceiveLSN = LogSequenceNumber.valueOf(startLsn + payloadSize);
+    switch (replicationType) {
+      case LOGICAL:
+        lastReceiveLSN = LogSequenceNumber.valueOf(startLsn);
+        break;
+      case PHYSICAL:
+        int payloadSize = buffer.limit() - buffer.position();
+        lastReceiveLSN = LogSequenceNumber.valueOf(startLsn + payloadSize);
+        break;
+    }
 
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, "  <=BE XLogData(currWal: {0}, lastServerWal: {1}, clock: {2})",

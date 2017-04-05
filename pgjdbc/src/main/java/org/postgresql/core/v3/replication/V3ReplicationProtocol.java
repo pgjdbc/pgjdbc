@@ -10,6 +10,7 @@ import org.postgresql.core.PGStream;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ReplicationProtocol;
 import org.postgresql.replication.PGReplicationStream;
+import org.postgresql.replication.ReplicationType;
 import org.postgresql.replication.fluent.CommonOptions;
 import org.postgresql.replication.fluent.logical.LogicalReplicationOptions;
 import org.postgresql.replication.fluent.physical.PhysicalReplicationOptions;
@@ -38,24 +39,30 @@ public class V3ReplicationProtocol implements ReplicationProtocol {
       throws SQLException {
 
     String query = createStartLogicalQuery(options);
-    return initializeReplication(query, options);
+    return initializeReplication(query, options, ReplicationType.LOGICAL);
   }
 
   public PGReplicationStream startPhysical(PhysicalReplicationOptions options)
       throws SQLException {
 
     String query = createStartPhysicalQuery(options);
-    return initializeReplication(query, options);
+    return initializeReplication(query, options, ReplicationType.PHYSICAL);
   }
 
-  private PGReplicationStream initializeReplication(String query, CommonOptions options)
+  private PGReplicationStream initializeReplication(String query, CommonOptions options,
+      ReplicationType replicationType)
       throws SQLException {
     LOGGER.log(Level.FINEST, " FE=> StartReplication(query: {0})", query);
 
     configureSocketTimeout(options);
     CopyDual copyDual = (CopyDual) queryExecutor.startCopy(query, true);
 
-    return new V3PGReplicationStream(copyDual, options.getStartLSNPosition(), options.getStatusInterval());
+    return new V3PGReplicationStream(
+        copyDual,
+        options.getStartLSNPosition(),
+        options.getStatusInterval(),
+        replicationType
+    );
   }
 
   /**

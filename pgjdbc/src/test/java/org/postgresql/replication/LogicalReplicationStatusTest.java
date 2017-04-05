@@ -87,18 +87,11 @@ public class LogicalReplicationStatusTest {
     LogSequenceNumber lastReceivedLSN = stream.getLastReceiveLSN();
     stream.forceUpdateStatus();
 
-    int lastPayloadSize =
-        received
-            .get(countMessage - 1)
-            .getBytes()
-            .length;
-
-    LogSequenceNumber waitLsn = LogSequenceNumber.valueOf(lastReceivedLSN.asLong() - lastPayloadSize);
     LogSequenceNumber sentByServer = getSentLocationOnView();
 
     assertThat("When changes absent on server last receive by stream LSN "
             + "should be equal to last sent by server LSN",
-        sentByServer, equalTo(waitLsn)
+        sentByServer, equalTo(lastReceivedLSN)
     );
   }
 

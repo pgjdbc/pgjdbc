@@ -204,6 +204,55 @@ public class PhysicalReplicationTest {
     );
   }
 
+  @Test
+  public void restartPhysicalReplicationWithoutRepeatMessage() throws Exception {
+    PGConnection pgConnection = (PGConnection) replConnection;
+
+    LogSequenceNumber lsn = getCurrentLSN();
+
+    Statement st = sqlConnection.createStatement();
+    st.execute("insert into test_physic_table(name) values('first value')");
+    st.close();
+
+    PGReplicationStream stream =
+        pgConnection
+            .getReplicationAPI()
+            .replicationStream()
+            .physical()
+            .withSlotName(SLOT_NAME)
+            .withStartPosition(lsn)
+            .start();
+
+    byte[] streamOneFirstPart = toByteArray(stream.read());
+    LogSequenceNumber restartLSN = stream.getLastReceiveLSN();
+
+    st = sqlConnection.createStatement();
+    st.execute("insert into test_physic_table(name) values('second value')");
+    st.close();
+
+    byte[] streamOneSecondPart = toByteArray(stream.read());
+    stream.close();
+
+    //reopen stream
+    stream =
+        pgConnection
+            .getReplicationAPI()
+            .replicationStream()
+            .physical()
+            .withSlotName(SLOT_NAME)
+            .withStartPosition(restartLSN)
+            .start();
+
+    byte[] streamTwoFirstPart = toByteArray(stream.read());
+    stream.close();
+
+    boolean arrayEquals = Arrays.equals(streamOneSecondPart, streamTwoFirstPart);
+    assertThat("Interrupt physical replication and restart from lastReceiveLSN should not "
+            + "lead to repeat messages skip part of them",
+        arrayEquals, CoreMatchers.equalTo(true)
+    );
+  }
+
   private boolean isActiveOnView() throws SQLException {
     boolean result = false;
     Statement st = sqlConnection.createStatement();
