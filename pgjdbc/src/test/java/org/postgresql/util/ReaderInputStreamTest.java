@@ -9,7 +9,13 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.CharArrayReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringReader;
 import java.nio.charset.MalformedInputException;
 import java.util.Arrays;
 
@@ -197,11 +203,7 @@ public class ReaderInputStreamTest {
     int total = 0;
 
     while ((read = r.read(buffer, 0, BLOCK)) > -1) {
-      // System.out.println(String.format("Read: %4d  Start: %3d  End: %3d", read, buffer[0], buffer[read - 1]));
       total += read;
-      if (read == BLOCK) {
-        assertEquals("Byte values are not correct", buffer[0], buffer[read % BLOCK]);
-      }
     }
 
     assertEquals("Data not read completely: missing " + (DATASIZE - total) + " bytes", total, DATASIZE);

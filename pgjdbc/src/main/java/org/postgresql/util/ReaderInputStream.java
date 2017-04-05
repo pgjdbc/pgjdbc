@@ -142,13 +142,13 @@ public class ReaderInputStream extends InputStream {
         totalRead += remaining;
         off += remaining;
         len -= remaining;
-        if (len >= 0) {
+        if (len == 0) {
           return totalRead;
         }
       }
       advance();
     }
-    if (endOfInput && !bbuf.hasRemaining()) {
+    if (endOfInput && !bbuf.hasRemaining() && totalRead == 0) {
       return -1;
     }
     return totalRead;
