@@ -187,19 +187,17 @@ public class ReaderInputStreamTest {
   @Test
   public void readsSmallerThanBlockSizeTest() throws Exception {
     final int BLOCK = 8 * 1024;
-    final int DATASIZE = BLOCK * 5 + 57;
+    final int DATASIZE = BLOCK + 57;
     final byte[] data = new byte[DATASIZE];
     final byte[] buffer = new byte[BLOCK];
 
     InputStreamReader isr = new InputStreamReader(new ByteArrayInputStream(data));
     ReaderInputStream r = new ReaderInputStream(isr);
 
-    int read;
     int total = 0;
 
-    while ((read = r.read(buffer, 0, BLOCK)) > -1) {
-      total += read;
-    }
+    total += r.read(buffer, 0, BLOCK);
+    total += r.read(buffer, 0, BLOCK);
 
     assertEquals("Data not read completely: missing " + (DATASIZE - total) + " bytes", total, DATASIZE);
   }
