@@ -191,11 +191,6 @@ public class ReaderInputStreamTest {
     final byte[] data = new byte[DATASIZE];
     final byte[] buffer = new byte[BLOCK];
 
-    // initialize with values (0, 1, ... 127, 0, 1, ...)
-    for (int i = 0; i < data.length; i++) {
-      data[i] = (byte) (i & 0x7F);
-    }
-
     InputStreamReader isr = new InputStreamReader(new ByteArrayInputStream(data));
     ReaderInputStream r = new ReaderInputStream(isr);
 
