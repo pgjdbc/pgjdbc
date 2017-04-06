@@ -7,7 +7,6 @@ package org.postgresql.util;
 
 import org.postgresql.PGProperty;
 
-import java.util.Properties;
 
 public class ConnectionUtil {
   /**
