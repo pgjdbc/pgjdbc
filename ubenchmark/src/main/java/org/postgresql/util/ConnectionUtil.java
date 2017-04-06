@@ -7,6 +7,8 @@ package org.postgresql.util;
 
 import org.postgresql.PGProperty;
 
+import java.util.Properties;
+
 
 public class ConnectionUtil {
   /**
@@ -58,7 +60,7 @@ public class ConnectionUtil {
   /**
    * @return merged with default property list
    */
-  public static PGProperties getProperties() {
+  public static Properties getProperties() {
     PGProperties properties = new PGProperties(System.getProperties());
 
     PGProperty.USER.set(properties, getUser());
@@ -67,6 +69,6 @@ public class ConnectionUtil {
     properties.set("database", getDatabase());
     properties.set("server", getServer());
 
-    return properties;
+    return properties.getProperties();
   }
 }

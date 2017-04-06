@@ -62,9 +62,9 @@ public class FinalizeConnection {
 
   @Setup(Level.Trial)
   public void setUp() throws SQLException {
-    PGProperties props = ConnectionUtil.getProperties();
+    Properties props = ConnectionUtil.getProperties();
 
-    connectionProperties = props.getProperties();
+    connectionProperties = props;
     connectionUrl = ConnectionUtil.getURL();
     driver = DriverManager.getDriver(connectionUrl);
   }
